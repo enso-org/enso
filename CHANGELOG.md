@@ -136,7 +136,7 @@
   such as dropdown can now be placed in the node and affect the code text flow.
 - [The IDE UI element for selecting the execution mode of the project is now
   sending messages to the backend.][6341].
-- [Area selectionof nodes no longer takes into account the visualisation that 
+- [Area selectionof nodes no longer takes into account the visualisation that
   belongs to the node.][6487].
 - [List Editor Widget][6470]. Now you can edit lists by clicking buttons on
   nodes or by dragging the elements.
