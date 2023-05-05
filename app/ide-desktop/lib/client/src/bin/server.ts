@@ -22,14 +22,11 @@ const HTTP_STATUS_OK = 200
 // === URL Parameters ===
 // ======================
 
-/** Construct URL query with the given parameters. For each `key` - `value` pair,
+/** Construct a URL query string with the given parameters. For each `key` - `value` pair,
  * `key=value` will be added to the query. */
 export function urlParamsFromObject(obj: Record<string, string>) {
-    const params = []
-    for (const [key, value] of Object.entries(obj)) {
-        params.push(`${key}=${encodeURIComponent(value)}`)
-    }
-    return params.length === 0 ? '' : '?' + params.join('&')
+    const params = new URLSearchParams(obj).toString()
+    return params ? '?' + params : ''
 }
 
 // ==============
