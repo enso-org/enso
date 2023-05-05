@@ -316,9 +316,11 @@ impl ContainerModel {
 impl ContainerModel {
     fn set_visibility(&self, visibility: bool) {
         if visibility {
+            self.view.add_child(&self.action_bar);
             self.drag_root.add_child(&self.view);
             self.show_visualisation();
         } else {
+            self.action_bar.unset_parent();
             self.drag_root.remove_child(&self.view);
         }
     }
