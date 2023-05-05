@@ -83,7 +83,6 @@ class BindingAnalysisTest extends CompilerTest {
         Type("Baz", List(), false),
         PolyglotSymbol("MyClass"),
         PolyglotSymbol("Renamed_Class"),
-        ModuleMethod("enso_project"),
         ModuleMethod("foo")
       )
       metadata.currentModule shouldEqual ModuleReference.Concrete(ctx.module)
@@ -106,7 +105,6 @@ class BindingAnalysisTest extends CompilerTest {
         .get
         .definedEntities
         .filter(_.isInstanceOf[BindingsMap.ModuleMethod]) shouldEqual List(
-        ModuleMethod("enso_project"),
         ModuleMethod("bar")
       )
 

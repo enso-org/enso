@@ -623,6 +623,14 @@ impl<T> SpanSeed<T> {
     pub fn child(node: T) -> Self {
         Self::Child(SpanSeedChild { node })
     }
+
+    pub fn token(token: String) -> Self {
+        Self::Token(SpanSeedToken { token })
+    }
+
+    pub fn is_child(&self) -> bool {
+        matches!(self, SpanSeed::Child { .. })
+    }
 }
 
 

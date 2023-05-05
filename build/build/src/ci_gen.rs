@@ -293,8 +293,8 @@ pub fn changelog() -> Result<Workflow> {
 pub fn nightly() -> Result<Workflow> {
     let on = Event {
         workflow_dispatch: Some(default()),
-        // 5am (UTC) from Tuesday to Saturday (i.e. after every workday)
-        schedule: vec![Schedule::new("0 5 * * 2-6")?],
+        // 2am (UTC) from Tuesday to Saturday (i.e. after every workday)
+        schedule: vec![Schedule::new("0 2 * * 2-6")?],
         ..default()
     };
 

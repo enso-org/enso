@@ -300,18 +300,15 @@ impl Model {
                 let update = self.state.update_from_view();
                 let ast_to_remove = update.remove_connection(id)?;
                 Some(self.controller.disconnect(&ast_to_remove).map(|target_crumbs| {
-                    target_crumbs.and_then(|crumbs| {
+                    if let Some(crumbs) = target_crumbs {
                         trace!(
                             "Updating edge target after disconnecting it. New crumbs: {crumbs:?}"
                         );
                         // If we are still using this edge (e.g. when dragging it), we need to
                         // update its target endpoint. Otherwise it will not reflect expression
                         // update performed on the target node.
-                        let edge = self.view.model.edges.get_cloned_ref(&id)?;
-                        let outdated_target = edge.target()?;
-                        edge.set_target(EdgeEndpoint::new(outdated_target.node_id, crumbs));
-                        Some(())
-                    });
+                        self.view.replace_detached_edge_target((id, crumbs));
+                    };
                 }))
             },
             "delete connection",

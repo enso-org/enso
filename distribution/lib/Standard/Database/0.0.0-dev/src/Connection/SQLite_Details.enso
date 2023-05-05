@@ -3,7 +3,7 @@ from Standard.Base import all
 import project.Connection.Connection_Options.Connection_Options
 import project.Internal.SQLite.SQLite_Connection
 
-type SQLite_Options
+type SQLite_Details
     ## Connect to a SQLite DB File or InMemory DB.
 
        Arguments:

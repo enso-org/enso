@@ -19,6 +19,13 @@ import * as paths from '../paths'
  */
 export const APP_PATH = electron.app.getAppPath()
 
+/**
+ * Get the path of the directory where the log files of IDE are stored.
+ *
+ * This is based on the Electron `logs` directory, see {@link Electron.App.getPath}.
+ */
+export const LOGS_DIRECTORY = electron.app.getPath('logs')
+
 /** The application assets, all files bundled with it. */
 export const ASSETS_PATH = path.join(APP_PATH, 'assets')
 
