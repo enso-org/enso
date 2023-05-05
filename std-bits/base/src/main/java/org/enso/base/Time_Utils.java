@@ -95,7 +95,7 @@ public class Time_Utils {
     return DateTimeFormatter.ofPattern(format.toString()).format(date);
   }
 
-  public static String local_date_format(LocalDate date, Object format, Locale locale) {
+  public static String local_date_format_with_locale(LocalDate date, Object format, Locale locale) {
     return DateTimeFormatter.ofPattern(format.toString()).withLocale(locale).format(date);
   }
 
@@ -107,7 +107,7 @@ public class Time_Utils {
     return DateTimeFormatter.ofPattern(format.toString()).withLocale(locale).format(dateTime);
   }
 
-  public static String time_of_day_format(LocalTime localTime, Object format, Locale locale) {
+  public static String time_of_day_format_with_locale(LocalTime localTime, Object format, Locale locale) {
     return DateTimeFormatter.ofPattern(format.toString()).withLocale(locale).format(localTime);
   }
 

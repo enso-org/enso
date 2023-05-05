@@ -609,7 +609,7 @@ type Date
     format : Text -> Locale -> Text
     format self pattern locale=Locale.default = case locale of
         Nothing -> Time_Utils.local_date_format self pattern
-        _ -> Time_Utils.local_date_format self pattern locale.java_locale
+        _ -> Time_Utils.local_date_format_with_locale self pattern locale.java_locale
 
 ## PRIVATE
 week_days_between start end =

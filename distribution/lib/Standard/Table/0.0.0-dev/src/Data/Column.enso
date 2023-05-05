@@ -1246,21 +1246,20 @@ type Column
        > Example
          Format a `Column` of `Booleans` in the format `"t|f"`.
 
-            input = Column.from_vector "values" [True, False]
-            input.format "t|f"
-            # ==> ["t", "f"]
+             input = Column.from_vector "values" [True, False]
+             input.format "t|f"
+             # ==> ["t", "f"]
+
+       > Example
+         Format a `Column` of numbers, using both decimal point / digit
+         separators and a Locale.
+
+             input = Column.from_vector "values" ["100000000", "2222", "3"] . parse numeric_type
+             input.format "#,##0.00" locale=(Locale.new "fr")
+             # ==> ["100 000 000,00", "2 222,00", "3,00"]
     format : Text | Column -> Locale -> Column ! Illegal_Argument
     format self format=Nothing locale=Locale.default =
-        create_formatter = case self.value_type of
-            Value_Type.Date -> make_value_formatter locale
-            Value_Type.Date_Time _ -> make_value_formatter locale
-            Value_Type.Time -> make_value_formatter locale
-            Value_Type.Boolean -> make_boolean_formatter
-            Value_Type.Integer _ -> make_value_formatter locale
-            Value_Type.Float _ -> make_value_formatter locale
-            bad_type ->
-                msg = "Cannot format a Column of type " + bad_type.to_text
-                Error.throw (Illegal_Argument.Error msg)
+        create_formatter = make_value_formatter_for_value_type self.value_type locale
 
         new_column = case format of
             "" ->

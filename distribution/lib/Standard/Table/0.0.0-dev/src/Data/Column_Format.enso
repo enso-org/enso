@@ -1,12 +1,11 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
-
 import project.Data.Column.Column
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Type.Storage
+import project.Data.Type.Value_Type.Value_Type
 
-from project.Data.Type.Value_Type import Value_Type
 from project.Internal.Java_Exports import make_string_builder
 
 polyglot java import java.lang.IllegalArgumentException
@@ -15,6 +14,20 @@ polyglot java import org.enso.table.data.column.operation.map.MapOperationProble
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
+
+## PRIVATE
+   Create a formatter for the specified `Value_Type`.
+make_value_formatter_for_value_type : Value_Type -> Locale -> (Any -> Text)
+make_value_formatter_for_value_type value_type locale = case value_type of
+    Value_Type.Date -> make_value_formatter locale
+    Value_Type.Date_Time _ -> make_value_formatter locale
+    Value_Type.Time -> make_value_formatter locale
+    Value_Type.Boolean -> make_boolean_formatter
+    Value_Type.Integer _ -> make_value_formatter locale
+    Value_Type.Float _ -> make_value_formatter locale
+    bad_type ->
+        msg = "Cannot format a Column of type " + bad_type.to_text
+        Error.throw (Illegal_Argument.Error msg)
 
 ## PRIVATE
    Create a formatter for the given format string.

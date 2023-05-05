@@ -357,4 +357,4 @@ type Time_Of_Day
     format : Text -> Locale -> Text
     format self pattern locale=Locale.default = case locale of
         Nothing -> Time_Utils.time_of_day_format self pattern
-        _ -> Time_Utils.time_of_day_format self pattern locale.java_locale
+        _ -> Time_Utils.time_of_day_format_with_locale self pattern locale.java_locale
