@@ -311,6 +311,7 @@ type Table
              table.select_columns [-1, 0, 1] reorder=True
 
        Icon: select_column
+    @columns Widget_Helpers.make_column_name_vector_selector
     select_columns :  Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Boolean -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range
     select_columns self columns=[0] (reorder = False) (error_on_missing_columns = True) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.select_columns selectors=columns reorder=reorder error_on_missing_columns=error_on_missing_columns on_problems=on_problems
@@ -363,7 +364,7 @@ type Table
          Remove the first two columns and the last column.
 
              table.remove_columns [-1, 0, 1]
-
+    @columns Widget_Helpers.make_column_name_vector_selector
     remove_columns :  Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range
     remove_columns self (columns=[0]) (error_on_missing_columns = False) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.remove_columns selectors=columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
@@ -419,7 +420,7 @@ type Table
          Move the first column to back.
 
              table.reorder_columns [0] position=Position.After_Other_Columns
-
+    @columns Widget_Helpers.make_column_name_vector_selector
     reorder_columns : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Position -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range
     reorder_columns self (columns = [0]) (position = Position.Before_Other_Columns) (error_on_missing_columns = False) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.reorder_columns selectors=columns position=position error_on_missing_columns=error_on_missing_columns on_problems=on_problems
@@ -681,6 +682,7 @@ type Table
          Sort the table by columns whose names start with letter `a`.
 
               table.order_by [(Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive)]
+    @columns Widget_Helpers.make_order_by_selector
     order_by : Text | Sort_Column | Vector (Text | Sort_Column) -> Text_Ordering -> Boolean -> Problem_Behavior -> Table ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns | Column_Indexes_Out_Of_Range
     order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
@@ -739,6 +741,7 @@ type Table
          - If floating points values are present in the distinct columns, a
            `Floating_Point_Equality` is reported according to the `on_problems`
            setting.
+    @columns Widget_Helpers.make_column_name_vector_selector
     distinct : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
     distinct self (columns = self.column_names) case_sensitivity=Case_Sensitivity.Default error_on_missing_columns=True on_problems=Report_Warning =
         key_columns = self.columns_helper.select_columns selectors=columns reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
@@ -833,6 +836,8 @@ type Table
          Parse all columns inferring their types, using `,` as the decimal point for numbers.
 
              table.parse format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
+    @type Widget_Helpers.parse_type_selector
+    @columns Widget_Helpers.make_column_name_vector_selector
     parse : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
     parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning =
         formatter = case format of
@@ -918,6 +923,7 @@ type Table
          If the backend does not support the requested target type, the closest
          supported type is chosen and a `Inexact_Type_Coercion` problem is
          reported.
+    @columns Widget_Helpers.make_column_name_vector_selector
     cast : (Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector)) -> Value_Type -> Problem_Behavior -> Table ! Illegal_Argument | Inexact_Type_Coercion | Lossy_Conversion
     cast self columns=[0] value_type=Value_Type.Char on_problems=Problem_Behavior.Report_Warning =
         _ = [columns, value_type, on_problems]
@@ -939,6 +945,7 @@ type Table
        ! Error Conditions
          If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
          be reported according to the `on_problems` behavior.
+    @column Widget_Helpers.make_column_name_selector
     split_to_columns : Text | Integer -> Text -> Integer | Nothing -> Problem_Behavior -> Table
     split_to_columns self column delimiter="," column_count=Nothing on_problems=Report_Error =
         Split_Tokenize.split_to_columns self column delimiter column_count on_problems
@@ -949,6 +956,7 @@ type Table
        Arguments:
        - column: The name or index of the column to split the text of.
        - delimiter: The term or terms used to split the text.
+    @column Widget_Helpers.make_column_name_selector
     split_to_rows : Text | Integer -> Text -> Table
     split_to_rows self column delimiter="," =
         Split_Tokenize.split_to_rows self column delimiter
@@ -973,6 +981,7 @@ type Table
        ! Error Conditions
          If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
          be reported according to the `on_problems` behavior.
+    @column Widget_Helpers.make_column_name_selector
     tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> Table
     tokenize_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive column_count=Nothing on_problems=Report_Error =
         Split_Tokenize.tokenize_to_columns self column pattern case_sensitivity column_count on_problems
@@ -991,6 +1000,7 @@ type Table
        - at_least_one_row: If True, a tokenization that returns no values will still
          produce at least one row, with `Nothing` for the output column values.
          Equivalent to converting a tokenization output of [] to [Nothing].
+    @column Widget_Helpers.make_column_name_selector
     tokenize_to_rows : Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Table
     tokenize_to_rows self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive at_least_one_row=False =
         Split_Tokenize.tokenize_to_rows self column pattern case_sensitivity at_least_one_row
@@ -1019,6 +1029,7 @@ type Table
        will be named `<Input Column> <N>` where `N` is the number of the marked group.
        If the new name is already in use it will be renamed following the normal
        suffixing strategy.
+    @column Widget_Helpers.make_column_name_selector
     parse_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
     parse_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
         Split_Tokenize.parse_to_columns self column pattern case_sensitivity parse_values on_problems
@@ -1208,6 +1219,7 @@ type Table
                  double_inventory = table.at "total_stock" * 2
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
+    @new_name Widget_Helpers.make_column_name_selector
     set : Column | Text -> Text | Nothing -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
@@ -1322,12 +1334,15 @@ type Table
 
        Arguments:
        - right: The table to join with.
-       - join_kind: The `Join_Kind` for the joining the two tables.
+       - join_kind: The `Join_Kind` for the joining the two tables. It defaults
+         to `Left_Outer`.
        - on: A single condition or a common column name, or a list thereof, on
          which to correlate rows from the two tables. If multiple conditions
          are supplied, rows are correlated only if all are true.
          If common column names are provided, these columns should be present
          in both tables and an equality condition is added for each of them.
+         By default, the join is performed on the first column of the left table
+         correlated with a column in the right table with the same name.
        - right_prefix: The prefix added to right table column names in case of
          name conflict.
        - on_problems: Specifies how to handle problems if they occur, reporting
@@ -1375,10 +1390,9 @@ type Table
          allows to join the two tables on equality of corresponding columns with
          the same name. So `table.join other on=["A", "B"]` is a shorthand for:
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
-    @join_kind Widget_Helpers.join_kind_selector
     @on Widget_Helpers.make_column_name_selector
     join : Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> Table
-    join self right join_kind=Join_Kind.Inner on=[Join_Condition.Equals 0 0] right_prefix="Right_" on_problems=Report_Warning =
+    join self right join_kind=Join_Kind.Left_Outer on=[Join_Condition.Equals self.column_names.first] right_prefix="Right " on_problems=Report_Warning =
         if check_table "right" right then
             # [left_unmatched, matched, right_unmatched]
             rows_to_keep = case join_kind of
@@ -1439,7 +1453,7 @@ type Table
          example, by sorting the table; in-memory tables will keep the memory
          layout order while for database tables the order may be unspecified).
     cross_join : Table -> Integer | Nothing -> Text -> Problem_Behavior -> Table
-    cross_join self right right_row_limit=100 right_prefix="Right_" on_problems=Report_Warning =
+    cross_join self right right_row_limit=100 right_prefix="Right " on_problems=Report_Warning =
         if check_table "right" right then
             limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
                 True ->
@@ -1495,7 +1509,7 @@ type Table
          order of columns is undefined and the operation will fail, reporting a
          `Undefined_Column_Order` problem and returning an empty table.
     zip : Table -> Boolean | Report_Unmatched -> Text -> Problem_Behavior -> Table
-    zip self right keep_unmatched=Report_Unmatched right_prefix="Right_" on_problems=Report_Warning =
+    zip self right keep_unmatched=Report_Unmatched right_prefix="Right " on_problems=Report_Warning =
         if check_table "right" right then
             keep_unmatched_bool = case keep_unmatched of
                 Report_Unmatched -> True
@@ -1694,6 +1708,7 @@ type Table
          - If any column names in the new table are clashing, a
            `Duplicate_Output_Column_Names` is reported according to the
            `on_problems` setting.
+    @id_fields Widget_Helpers.make_column_name_vector_selector
     transpose : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text -> Text -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range | Duplicate_Output_Column_Names
     transpose self (id_fields = []) (name_field="Name") (value_field="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
         columns_helper = self.columns_helper
@@ -1749,7 +1764,10 @@ type Table
              an `Unquoted_Delimiter`
            - If there are more than 10 issues with a single column,
              an `Additional_Warnings`.
-    cross_tab : Aggregate_Column | Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector | Aggregate_Column) -> (Text | Integer) -> Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    @group_by Widget_Helpers.make_column_name_vector_selector
+    @name_column Widget_Helpers.make_column_name_selector
+    @values (Widget_Helpers.make_aggregate_column_selector include_group_by=False)
+    cross_tab : Aggregate_Column | Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector | Aggregate_Column) -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     cross_tab self group_by=[] name_column=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) =
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True

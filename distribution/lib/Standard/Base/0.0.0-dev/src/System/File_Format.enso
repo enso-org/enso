@@ -45,7 +45,7 @@ format_widget : Single_Choice
 format_widget =
     all_types = [Auto_Detect] + format_types
     make_ctor type_obj =
-        type_name = Meta.get_qualified_type_name type_obj
+        type_name = Meta.get_simple_type_name type_obj
         ctors = Meta.meta type_obj . constructors
         is_singleton_type = ctors.length == 0
         if is_singleton_type then type_name else
