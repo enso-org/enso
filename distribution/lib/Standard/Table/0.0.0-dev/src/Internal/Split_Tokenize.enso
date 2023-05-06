@@ -47,11 +47,11 @@ tokenize_to_columns table input_column_id pattern case_sensitivity column_count 
    Tokenizes a column of text into a set of new rows using a regular
    expression.
    See `Table.tokenize_to_rows`.
-tokenize_to_rows : Table -> Text | Integer -> Text -> Case_Sensitivity -> Table
-tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
+tokenize_to_rows : Table -> Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Table
+tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensitivity.Sensitive at_least_one_row=False =
     column = table.at input_column_id
     Value_Type.expect_text column
-        fan_out_to_rows table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity))
+        fan_out_to_rows table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity)) at_least_one_row=at_least_one_row
 
 ## PRIVATE
    Converts a Text column into new columns using a regular expression
@@ -68,7 +68,7 @@ parse_to_columns table input_column_id pattern="." case_sensitivity=Case_Sensiti
     column = table.at input_column_id
 
     new_table = Value_Type.expect_text column <|
-        fan_out_to_rows_and_columns table input_column_id fun column_names on_problems
+        fan_out_to_rows_and_columns table input_column_id fun column_names on_problems=on_problems
     if parse_values then new_table.parse on_problems=on_problems else new_table
 
 ## PRIVATE
@@ -138,14 +138,14 @@ fan_out_to_columns table input_column_id function column_count=Nothing on_proble
    - input_column: The column to transform.
    - function: A function that transforms a single element of `input_column`
      to multiple values.
-fan_out_to_rows : Table -> Text | Integer -> (Any -> Vector Any) -> Problem_Behavior -> Table
-fan_out_to_rows table input_column_id function on_problems=Report_Error =
+fan_out_to_rows : Table -> Text | Integer -> (Any -> Vector Any) -> Boolean -> Problem_Behavior -> Table
+fan_out_to_rows table input_column_id function at_least_one_row=False on_problems=Report_Error =
     ## Treat this as a special case of fan_out_to_rows_and_columns, with one
        column. Wrap the provided function to convert each value to a singleton
        `Vector`.
     wrapped_function x = function x . map y-> [y]
     column_names = [input_column_id]
-    fan_out_to_rows_and_columns table input_column_id wrapped_function column_names on_problems
+    fan_out_to_rows_and_columns table input_column_id wrapped_function column_names at_least_one_row=at_least_one_row on_problems=on_problems
 
 ## PRIVATE
    Transform a column by applying the given function to the values in the
@@ -187,8 +187,8 @@ fan_out_to_rows table input_column_id function on_problems=Report_Error =
      to a `Vector` of `Vector` of values.
    - column_names: The names for the generated columns.
    - on_problems: Specifies the behavior when a problem occurs.
-fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector (Vector Any)) -> Vector Text -> Problem_Behavior -> Table
-fan_out_to_rows_and_columns table input_column_id function column_names on_problems=Report_Error =
+fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector (Vector Any)) -> Vector Text -> Boolean -> Problem_Behavior -> Table
+fan_out_to_rows_and_columns table input_column_id function column_names at_least_one_row=False on_problems=Report_Error =
     problem_builder = Problem_Builder.new
     unique = Unique_Name_Strategy.new
 
@@ -205,9 +205,15 @@ fan_out_to_rows_and_columns table input_column_id function column_names on_probl
     # Accumulates repeated position indices for the order mask.
     order_mask_positions = Vector.new_builder initial_size
 
+    maybe_add_empty_row vecs =
+        should_add_empty_row = vecs.is_empty && at_least_one_row
+        if should_add_empty_row.not then vecs else
+            empty_row = Vector.fill num_output_columns Nothing
+            [empty_row]
+
     0.up_to num_input_rows . each i->
         input_value = input_storage.getItemBoxed i
-        output_values = function input_value
+        output_values = function input_value |> maybe_add_empty_row
         # Append each group of values to the builder.
         output_values.each row_unchecked->
             row = uniform_length num_output_columns row_unchecked problem_builder
@@ -355,6 +361,7 @@ handle_nothing function = x-> case x of
 
 ## PRIVATE
    Repeat a computation n times.
+repeat_each : Integer -> Any -> Any
 repeat_each n ~action = 0.up_to n . each _-> action
 
 ## PRIVATE

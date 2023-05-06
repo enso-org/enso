@@ -115,6 +115,18 @@ spec =
             t2 = t.tokenize_to_rows "bar" "[bc]" case_sensitivity=Case_Sensitivity.Insensitive
             t2.should_equal expected
 
+        Test.specify "can do tokenize_to_rows with at_least_one_row=True" <|
+            input = Table.from_rows ["foo", "bar"] [[0, "a12b34r5"], [1, "qqq"], [2, "2r4r55"]]
+            expected = Table.from_rows ["foo", "bar"] [[0, "12"], [0, "34"], [0, "5"], [1, Nothing], [2, "2"], [2, "4"], [2, "55"]]
+            actual = input.tokenize_to_rows "bar" "\d+" at_least_one_row=True
+            actual.should_equal expected
+
+        Test.specify "can do tokenize_to_rows with at_least_one_row=True, with groups" <|
+            input = Table.from_rows ["foo", "bar"] [[0, "a12b34r5"], [1, "qqq"], [2, "2r44r55"], [3, Nothing]]
+            expected = Table.from_rows ["foo", "bar"] [[0, "12"], [0, "34"], [1, Nothing], [2, "44"], [2, "55"], [3, Nothing]]
+            actual = input.tokenize_to_rows "bar" "(\d)(\d)" at_least_one_row=True
+            actual.should_equal expected
+
     Test.group "Table.split/tokenize column count" <|
         Test.specify "should generate extra empty columns if column_count is set" <|
             cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]

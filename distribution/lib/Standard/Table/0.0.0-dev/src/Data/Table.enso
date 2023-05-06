@@ -949,7 +949,6 @@ type Table
        Arguments:
        - column: The name or index of the column to split the text of.
        - delimiter: The term or terms used to split the text.
-       - on_problems: Specifies the behavior when a problem occurs.
     split_to_rows : Text | Integer -> Text -> Table
     split_to_rows self column delimiter="," =
         Split_Tokenize.split_to_rows self column delimiter
@@ -989,10 +988,12 @@ type Table
        - pattern: The pattern used to find within the text.
        - case_sensitivity: Specifies if the text values should be compared case
          sensitively.
-       - on_problems: Specifies the behavior when a problem occurs.
-    tokenize_to_rows : Text | Integer -> Text -> Case_Sensitivity -> Table
-    tokenize_to_rows self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
-        Split_Tokenize.tokenize_to_rows self column pattern case_sensitivity
+       - at_least_one_row: If True, a tokenization that returns no values will still
+         produce at least one row, with `Nothing` for the output column values.
+         Equivalent to converting a tokenization output of [] to [Nothing].
+    tokenize_to_rows : Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Table
+    tokenize_to_rows self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive at_least_one_row=False =
+        Split_Tokenize.tokenize_to_rows self column pattern case_sensitivity at_least_one_row
 
     ## Converts a Text column into new columns using a regular expression
        pattern.
