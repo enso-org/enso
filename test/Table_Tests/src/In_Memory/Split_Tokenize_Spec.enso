@@ -14,7 +14,7 @@ spec =
             cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
             t = Table.new cols
             expected_rows = [[0, "a", "c", Nothing], [1, "c", "d", "ef"], [2, "gh", "ij", "u"]]
-            expected = Table.from_rows ["foo", "bar 0", "bar 1", "bar 2"] expected_rows
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3"] expected_rows
             t2 = t.split_to_columns "bar" "b"
             t2.should_equal expected
 
@@ -30,7 +30,7 @@ spec =
             cols = [["foo", [0, 1, 2, 3]], ["bar", ["abc", "cbdbef", Nothing, "ghbijbu"]]]
             t = Table.new cols
             expected_rows = [[0, "a", "c", Nothing], [1, "c", "d", "ef"], [2, Nothing, Nothing, Nothing], [3, "gh", "ij", "u"]]
-            expected = Table.from_rows ["foo", "bar 0", "bar 1", "bar 2"] expected_rows
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3"] expected_rows
             t2 = t.split_to_columns "bar" "b"
             t2.should_equal expected
 
@@ -47,7 +47,7 @@ spec =
             cols = [["foo", [0, 1, 2]], ["bar", ["a12b34r5", "23", "2r4r55"]]]
             t = Table.new cols
             expected_rows = [[0, "12", "34", "5"], [1, "23", Nothing, Nothing], [2, "2", "4", "55"]]
-            expected = Table.from_rows ["foo", "bar 0", "bar 1", "bar 2"] expected_rows
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3"] expected_rows
             t2 = t.tokenize_to_columns "bar" "\d+"
             t2.should_equal expected
 
@@ -63,7 +63,7 @@ spec =
             cols = [["foo", [0, 1, 2, 3]], ["bar", ["a12b34r5", Nothing, "23", "2r4r55"]]]
             t = Table.new cols
             expected_rows = [[0, "12", "34", "5"], [1, Nothing, Nothing, Nothing], [2, "23", Nothing, Nothing], [3, "2", "4", "55"]]
-            expected = Table.from_rows ["foo", "bar 0", "bar 1", "bar 2"] expected_rows
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3"] expected_rows
             t2 = t.tokenize_to_columns "bar" "\d+"
             t2.should_equal expected
 
@@ -87,7 +87,7 @@ spec =
             cols = [["foo", [0, 1]], ["bar", ["r a-1, b-12,qd-50", "ab-10:bc-20c"]]]
             t = Table.new cols
             expected_rows = [[0, "a1", "b12", "d50"], [1, "b10", "c20", Nothing]]
-            expected = Table.from_rows ["foo", "bar 0", "bar 1", "bar 2"] expected_rows
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3"] expected_rows
             t2 = t.tokenize_to_columns "bar" "([a-z]).(\d+)"
             t2.should_equal expected
 
@@ -103,7 +103,7 @@ spec =
             cols = [["foo", [0, 1, 2]], ["bar", ["aBqcE", "qcBr", "cCb"]]]
             t = Table.new cols
             expected_rows = [[0, "B", "c", Nothing], [1, "c", "B", Nothing], [2, "c", "C", "b"]]
-            expected = Table.from_rows ["foo", "bar 0", "bar 1", "bar 2"] expected_rows
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3"] expected_rows
             t2 = t.tokenize_to_columns "bar" "[bc]" case_sensitivity=Case_Sensitivity.Insensitive
             t2.should_equal expected
 
@@ -132,7 +132,7 @@ spec =
             cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
             t = Table.new cols
             expected_rows = [[0, "a", "c", Nothing, Nothing], [1, "c", "d", "ef", Nothing], [2, "gh", "ij", "u", Nothing]]
-            expected = Table.from_rows ["foo", "bar 0", "bar 1", "bar 2", "bar 3"] expected_rows
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3", "bar 3"] expected_rows
             t2 = t.split_to_columns "bar" "b" column_count=4
             t2.should_equal expected
             t2.at "bar 3" . value_type . is_text . should_be_true
@@ -141,7 +141,7 @@ spec =
             cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
             t = Table.new cols
             expected_rows = [[0, "a", "c"], [1, "c", "d"], [2, "gh", "ij"]]
-            expected = Table.from_rows ["foo", "bar 0", "bar 1"] expected_rows
+            expected = Table.from_rows ["foo", "bar 1", "bar 2"] expected_rows
             action = t.split_to_columns "bar" "b" column_count=2 on_problems=_
             tester = t-> t.should_equal expected
             problems = [Column_Count_Exceeded.Error 2 3]
@@ -151,7 +151,7 @@ spec =
             cols = [["foo", [0, 1]], ["bar", ["r a-1, b-12,qd-50", "ab-10:bc-20c"]]]
             t = Table.new cols
             expected_rows = [[0, "a1", "b12", "d50"], [1, "b10", "c20", Nothing]]
-            expected = Table.from_rows ["foo", "bar 0", "bar 1"] expected_rows
+            expected = Table.from_rows ["foo", "bar 1", "bar 2"] expected_rows
             action = t.tokenize_to_columns "bar" "([a-z]).(\d+)" column_count=2 on_problems=_
             tester = t-> t.should_equal expected
             problems = [Column_Count_Exceeded.Error 2 3]
@@ -161,7 +161,7 @@ spec =
             cols = [["foo", [0, 1, 2]], ["bar", ["ghbijbu", "cbdbef", "abc"]]]
             t = Table.new cols
             expected_rows = [[0, "gh", "ij", "u", Nothing], [1, "c", "d", "ef", Nothing], [2, "a", "c", Nothing, Nothing]]
-            expected = Table.from_rows ["foo", "bar 0", "bar 1", "bar 2", "bar 3"] expected_rows
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3", "bar 3"] expected_rows
             t2 = t.split_to_columns "bar" "b" column_count=4
             t2.should_equal expected
             t2.at "bar 3" . value_type . is_text . should_be_true
@@ -198,7 +198,7 @@ spec =
             cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]], ["bar 1", ["a", "b", "c"]]]
             t = Table.new cols
             expected_rows = [[0, "a", "c", Nothing, "a"], [1, "c", "d", "ef", "b"], [2, "gh", "ij", "u", "c"]]
-            expected = Table.from_rows ["foo", "bar 0", "bar 1_1", "bar 2", "bar 1"] expected_rows
+            expected = Table.from_rows ["foo", "bar 1 1", "bar 2", "bar 3", "bar 1"] expected_rows
             action = t.split_to_columns "bar" "b" on_problems=_
             tester = t-> t.should_equal expected
             problems = [Duplicate_Output_Column_Names.Error ["bar 1"]]
@@ -208,7 +208,7 @@ spec =
             cols = [["foo", [0, 1, 2]], ["bar", ["a12b34r5", "23", "2r4r55"]], ["bar 1", ["a", "b", "c"]]]
             t = Table.new cols
             expected_rows = [[0, "12", "34", "5", "a"], [1, "23", Nothing, Nothing, "b"], [2, "2", "4", "55", "c"]]
-            expected = Table.from_rows ["foo", "bar 0", "bar 1_1", "bar 2", "bar 1"] expected_rows
+            expected = Table.from_rows ["foo", "bar 1 1", "bar 2", "bar 3", "bar 1"] expected_rows
             action = t.tokenize_to_columns "bar" "\d+"  on_problems=_
             tester = t-> t.should_equal expected
             problems = [Duplicate_Output_Column_Names.Error ["bar 1"]]
@@ -219,14 +219,14 @@ spec =
             cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]], ["baz", [1, 2, 3]]]
             t = Table.new cols
             expected_rows = [[0, "a", "c", Nothing, 1], [1, "c", "d", "ef", 2], [2, "gh", "ij", "u", 3]]
-            expected = Table.from_rows ["foo", "bar 0", "bar 1", "bar 2", "baz"] expected_rows
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3", "baz"] expected_rows
             t2 = t.split_to_columns "bar" "b"
             t2.should_equal expected
 
     Test.group "Table.parse_to_columns" <|
         Test.specify "can parse to columns" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "12 34p q56", "y"], ["xx", "a48 59b", "yy"]]
-            expected = Table.from_rows ["foo", "bar 0", "bar 1", "baz"] [["x", 1, 2, "y"], ["x", 3, 4, "y"], ["x", 5, 6, "y"], ["xx", 4, 8, "yy"], ["xx", 5, 9, "yy"]]
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "baz"] [["x", 1, 2, "y"], ["x", 3, 4, "y"], ["x", 5, 6, "y"], ["xx", 4, 8, "yy"], ["xx", 5, 9, "yy"]]
             actual = t.parse_to_columns "bar" "(\d)(\d)"
             actual.should_equal expected
 
@@ -244,31 +244,31 @@ spec =
 
         Test.specify "non-participating groups" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "q1", "y"], ["xx", "qp", "yy"]]
-            expected = Table.from_rows ["foo", "bar 0", "bar 1", "bar 2", "baz"] [["x", "1", 1, Nothing, "y"], ["xx", "p", Nothing, "p", "yy"]]
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3", "baz"] [["x", "1", 1, Nothing, "y"], ["xx", "p", Nothing, "p", "yy"]]
             actual = t.parse_to_columns "bar" "q((\d)|([a-z]))"
             actual.should_equal expected
 
         Test.specify "case-insensitive" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "qq", "y"], ["xx", "qQ", "yy"]]
-            expected = Table.from_rows ["foo", "bar 0", "baz"] [["x", "q", "y"], ["xx", "Q", "yy"]]
+            expected = Table.from_rows ["foo", "bar 1", "baz"] [["x", "q", "y"], ["xx", "Q", "yy"]]
             actual = t.parse_to_columns "bar" "q(q)" case_sensitivity=Case_Sensitivity.Insensitive
             actual.should_equal expected
 
         Test.specify "no post-parsing" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "12 34p q56", "y"], ["xx", "a48 59b", "yy"]]
-            expected = Table.from_rows ["foo", "bar 0", "bar 1", "baz"] [["x", "1", "2", "y"], ["x", "3", "4", "y"], ["x", "5", "6", "y"], ["xx", "4", "8", "yy"], ["xx", "5", "9", "yy"]]
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "baz"] [["x", "1", "2", "y"], ["x", "3", "4", "y"], ["x", "5", "6", "y"], ["xx", "4", "8", "yy"], ["xx", "5", "9", "yy"]]
             actual = t.parse_to_columns "bar" "(\d)(\d)" parse_values=False
             actual.should_equal expected
 
         Test.specify "column name clash" <|
             t = Table.from_rows ["foo", "bar", "bar 1"] [["x", "12 34p q56", "y"], ["xx", "a48 59b", "yy"]]
-            expected = Table.from_rows ["foo", "bar 0", "bar 1_1", "bar 1"] [["x", 1, 2, "y"], ["x", 3, 4, "y"], ["x", 5, 6, "y"], ["xx", 4, 8, "yy"], ["xx", 5, 9, "yy"]]
+            expected = Table.from_rows ["foo", "bar 1 1", "bar 2", "bar 1"] [["x", 1, 2, "y"], ["x", 3, 4, "y"], ["x", 5, 6, "y"], ["xx", 4, 8, "yy"], ["xx", 5, 9, "yy"]]
             actual = t.parse_to_columns "bar" "(\d)(\d)"
             actual.should_equal expected
 
         Test.specify "column and group name clash" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "123", "y"]]
-            expected = Table.from_rows ["foo", "bar", "baz_1", "quux", "baz"] [["x", 1, 2, 3, "y"]]
+            expected = Table.from_rows ["foo", "bar", "baz 1", "quux", "baz"] [["x", 1, 2, 3, "y"]]
             actual = t.parse_to_columns "bar" "(?<bar>\d)(?<baz>\d)(?<quux>\d)"
             actual.should_equal expected
 
@@ -280,13 +280,13 @@ spec =
 
         Test.specify "empty table, with regex groups" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]] . take 0
-            expected = Table.from_rows ["foo", "bar 0", "bar 1", "baz"] [["x", "a", "a", "y"]] . take 0
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "baz"] [["x", "a", "a", "y"]] . take 0
             actual = t.parse_to_columns "bar" "(\d)(\d)"
             actual.should_equal expected
 
         Test.specify "empty table, with named and unnamed regex groups" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]] . take 0
-            expected = Table.from_rows ["foo", "quux", "bar 0", "foo_1", "bar 1", "baz"] [["x", "a", "a", "a", "a", "y"]] . take 0
+            expected = Table.from_rows ["foo", "quux", "bar 1", "foo 1", "bar 2", "baz"] [["x", "a", "a", "a", "a", "y"]] . take 0
             actual = t.parse_to_columns "bar" "(?<quux>)(\d)(?<foo>\d)(\d)"
             actual.should_equal expected
 
@@ -298,13 +298,13 @@ spec =
 
         Test.specify "input with no matches, with regex groups" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]]
-            expected = Table.from_rows ["foo", "bar 0", "bar 1", "baz"] []
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "baz"] []
             actual = t.parse_to_columns "bar" "(\d)(\d)"
             actual.should_equal expected
 
         Test.specify "input with no matches, with named and unnamed regex groups" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]]
-            expected = Table.from_rows ["foo", "quux", "bar 0", "foo_1", "bar 1", "baz"] []
+            expected = Table.from_rows ["foo", "quux", "bar 1", "foo 1", "bar 2", "baz"] []
             actual = t.parse_to_columns "bar" "(?<quux>)(\d)(?<foo>\d)(\d)"
             actual.should_equal expected
 
