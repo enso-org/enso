@@ -410,8 +410,6 @@ impl Area {
         let selection_color = Animation::new(network);
 
         frp::extend! { network
-            trace frp.set_expression;
-            trace frp.edit_expression;
             init <- source::<()>();
             set_editing <- all(frp.set_editing, init)._0();
 

@@ -1583,6 +1583,111 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eaa37046cc0f6c3cc6090fbdbf73ef0b8ef4cfcc37f6befc0020f63e8cf121e1"
 
 [[package]]
+name = "debug-scene-component-list-panel-view"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-profiler",
+ "ensogl-core",
+ "ensogl-grid-view",
+ "ensogl-hardcoded-theme",
+ "ensogl-selector",
+ "ensogl-text",
+ "ensogl-text-msdf",
+ "ide-view-component-list-panel",
+ "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "debug-scene-documentation"
+version = "0.1.0"
+dependencies = [
+ "enso-doc-parser",
+ "enso-suggestion-database",
+ "ensogl",
+ "ensogl-hardcoded-theme",
+ "ensogl-text-msdf",
+ "ide-view-documentation",
+ "ide-view-graph-editor",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "debug-scene-execution-environment-dropdown"
+version = "0.1.0"
+dependencies = [
+ "ensogl",
+ "ensogl-drop-down-menu",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-text-msdf",
+ "ide-view-execution-environment-selector",
+]
+
+[[package]]
+name = "debug-scene-icons"
+version = "0.1.0"
+dependencies = [
+ "ensogl",
+ "ensogl-hardcoded-theme",
+ "ide-view-component-list-panel-grid",
+ "ide-view-component-list-panel-icons",
+ "ide-view-graph-editor",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "debug-scene-interface"
+version = "0.1.0"
+dependencies = [
+ "ast",
+ "enso-frp",
+ "ensogl",
+ "ensogl-hardcoded-theme",
+ "ensogl-text-msdf",
+ "ide-view",
+ "ide-view-execution-environment-selector",
+ "parser",
+ "span-tree",
+ "uuid 0.8.2",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "debug-scene-text-grid-visualization"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl",
+ "ensogl-grid-view",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-text-msdf",
+ "ide-view",
+ "js-sys",
+ "nalgebra",
+ "serde_json",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "debug-scene-visualization"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl",
+ "ensogl-hardcoded-theme",
+ "ensogl-text-msdf",
+ "ide-view",
+ "js-sys",
+ "nalgebra",
+ "serde_json",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "dependency_runner"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1999,6 +2104,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-debug-scene"
+version = "0.1.0"
+dependencies = [
+ "debug-scene-component-list-panel-view",
+ "debug-scene-documentation",
+ "debug-scene-execution-environment-dropdown",
+ "debug-scene-icons",
+ "debug-scene-interface",
+ "debug-scene-text-grid-visualization",
+ "debug-scene-visualization",
+]
+
+[[package]]
 name = "enso-doc-parser"
 version = "0.1.0"
 dependencies = [
@@ -2072,6 +2190,7 @@ dependencies = [
  "enso-config",
  "enso-data-structures",
  "enso-debug-api",
+ "enso-debug-scene",
  "enso-doc-parser",
  "enso-executor",
  "enso-frp",

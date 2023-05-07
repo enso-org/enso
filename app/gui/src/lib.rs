@@ -138,7 +138,7 @@ pub mod prelude {
 // functions (such as the dynamic-asset loader), available in the IDE.
 #[allow(unused_imports)]
 mod imported_for_entry_points {
-    // use enso_debug_scene::*;
+    use enso_debug_scene::*;
     use ensogl_dynamic_assets::*;
     use ensogl_examples::*;
 }

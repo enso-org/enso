@@ -2048,7 +2048,6 @@ impl GraphEditorModel {
     fn set_node_expression(&self, node_id: impl Into<NodeId>, expr: impl Into<node::Expression>) {
         let node_id = node_id.into();
         let expr = expr.into();
-        error!("Set node expression: {expr:?}");
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
             node.set_expression.emit(expr);
         }
