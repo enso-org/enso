@@ -8,6 +8,7 @@ use crate::system::web;
 use crate::system::web::dom::Shape;
 use crate::system::web::JsValue;
 
+use enso_data_structures::circular_vec::CircularVecDeque;
 use std::f64;
 
 
@@ -65,7 +66,7 @@ pub struct ConfigTemplate<Str> {
     pub plot_color_err:          Str,
     pub plot_color_missing:      Str,
     pub plot_background_color:   Str,
-    pub plot_bar_size:           Option<f64>,
+    pub plot_bar_size:           f64,
     pub plot_step_size:          f64,
     pub plot_selection_border:   f64,
     pub plot_selection_width:    f64,
@@ -106,14 +107,14 @@ fn light_theme() -> Config {
         label_color_ok:          "#202124".into(),
         label_color_warn:        "#f58025".into(),
         label_color_err:         "#eb3941".into(),
-        label_color_missing:     "#00FF00".into(),
+        label_color_missing:     "#CCCCCC".into(),
         label_color_ok_selected: "#008cff".into(),
         plot_color_ok:           "#202124".into(),
         plot_color_warn:         "#f58025".into(),
         plot_color_err:          "#eb3941".into(),
-        plot_color_missing:      "#00FF00".into(),
+        plot_color_missing:      "#CCCCCC".into(),
         plot_background_color:   "#f1f1f0".into(),
-        plot_bar_size:           Some(2.0),
+        plot_bar_size:           2.0,
         plot_step_size:          1.0,
         plot_selection_border:   1.0,
         plot_selection_width:    1.0,
@@ -152,7 +153,7 @@ impl Config {
             plot_color_err:          (&self.plot_color_err).into(),
             plot_color_missing:      (&self.plot_color_missing).into(),
             plot_background_color:   (&self.plot_background_color).into(),
-            plot_bar_size:           self.plot_bar_size.map(|t| t * ratio),
+            plot_bar_size:           self.plot_bar_size * ratio,
             plot_step_size:          self.plot_step_size * ratio,
             plot_selection_border:   self.plot_selection_border * ratio,
             plot_selection_width:    self.plot_selection_width * ratio,
@@ -455,9 +456,11 @@ impl Default for Monitor {
     fn default() -> Self {
         let frp = Frp::new();
         let mut renderer = Renderer::new(&frp.public);
-        renderer.add(sampler::FRAME_TIME);
         renderer.add(sampler::FPS);
-        renderer.add(sampler::DRAW_TIME);
+        renderer.add(sampler::FRAME_TIME);
+        renderer.add(sampler::CPU_TIME);
+        renderer.add(sampler::GPU_TIME);
+        renderer.add(sampler::IDLE_TIME);
         renderer.add(sampler::WASM_MEMORY_USAGE);
         renderer.add(sampler::GPU_MEMORY_USAGE);
         renderer.add(sampler::DRAW_CALL_COUNT);
@@ -484,6 +487,10 @@ impl Monitor {
     /// Does nothing if the monitor is not visible (see: [`toggle()`]).
     pub fn sample_and_draw(&self, stats: &StatsData) {
         self.renderer.borrow_mut().sample_and_draw(stats);
+    }
+
+    pub fn redraw_back(&self, n: usize) {
+        self.renderer.borrow_mut().redraw_back(n);
     }
 
     /// Toggle the visibility of the monitor.
@@ -516,6 +523,14 @@ impl Monitor {
         }
         self.renderer.borrow_mut().toggle();
     }
+
+    pub fn with_last_n_samples(&self, n: usize, f: impl FnMut(&mut StatsData)) {
+        self.renderer.borrow_mut().samples.with_last_n_elems(n, f);
+    }
+
+    pub fn with_last_nth_sample(&self, n: usize, f: impl FnOnce(&mut StatsData)) {
+        self.renderer.borrow_mut().samples.with_last_nth_elem(n, f);
+    }
 }
 
 
@@ -526,19 +541,18 @@ impl Monitor {
 /// Code responsible for drawing [`Monitor`]'s data.
 #[derive(Debug)]
 struct Renderer {
-    frp:               api::Public,
-    user_config:       Config,
-    config:            SamplerConfig,
-    screen_shape:      Shape,
-    width:             f64,
-    height:            f64,
-    dom:               Option<Dom>,
-    panels:            Vec<Panel>,
-    selected_panel:    Option<usize>,
-    first_draw:        bool,
-    paused:            bool,
-    samples:           Vec<StatsData>,
-    next_sample_index: usize,
+    frp:            api::Public,
+    user_config:    Config,
+    config:         SamplerConfig,
+    screen_shape:   Shape,
+    width:          f64,
+    height:         f64,
+    dom:            Option<Dom>,
+    panels:         Vec<Panel>,
+    selected_panel: Option<usize>,
+    first_draw:     bool,
+    paused:         bool,
+    samples:        CircularVecDeque<StatsData>,
 }
 
 impl Renderer {
@@ -554,8 +568,7 @@ impl Renderer {
         let dom = default();
         let selected_panel = default();
         let paused = default();
-        let samples = default();
-        let next_sample_index = default();
+        let samples = CircularVecDeque::new(config.sample_count);
         let mut out = Self {
             frp,
             user_config,
@@ -569,7 +582,6 @@ impl Renderer {
             first_draw,
             paused,
             samples,
-            next_sample_index,
         };
         out.update_config();
         out
@@ -651,9 +663,7 @@ impl Renderer {
     }
 
     fn set_focus_sample(&mut self, index: usize) {
-        let local_index = index + self.next_sample_index;
-        let local_index = local_index % self.config.sample_count;
-        let sample = self.samples.get(local_index).or_else(|| self.samples.last());
+        let sample = self.samples.get(index).or_else(|| self.samples.last());
         if let Some(sample) = sample {
             for panel in &self.panels {
                 panel.sample_and_postprocess(sample);
@@ -666,12 +676,7 @@ impl Renderer {
 
     fn sample_and_draw(&mut self, stats: &StatsData) {
         if !self.paused {
-            if self.samples.len() < self.config.sample_count {
-                self.samples.push(stats.clone());
-            } else {
-                self.samples[self.next_sample_index] = stats.clone();
-                self.next_sample_index = (self.next_sample_index + 1) % self.config.sample_count;
-            }
+            self.samples.push_back(stats.clone());
             if self.visible() {
                 for panel in &self.panels {
                     panel.sample_and_postprocess(stats);
@@ -680,6 +685,23 @@ impl Renderer {
             }
         } else if self.visible() {
             self.draw_paused(stats);
+        }
+    }
+
+    fn redraw_back(&mut self, n: usize) {
+        if !self.paused {
+            let stats = self.samples.get(self.samples.len() - 1 - n).unwrap();
+            // console_log!("redraw_back({n}), draw_time: {:?}", stats.draw_time);
+            if let Some(dom) = self.dom.clone() {
+                self.with_all_panels(&dom, |selected, panel| {
+                    panel.sample_and_postprocess(stats);
+                    panel.draw_back(&dom, n);
+                });
+                // for panel in &self.panels {
+                //     panel.sample_and_postprocess(stats);
+                //     panel.draw_back(&dom, n + 1);
+                // }
+            }
         }
     }
 
@@ -825,6 +847,10 @@ impl Panel {
     /// Display results of last measurements.
     pub fn draw(&self, selected: bool, dom: &Dom, stats: &StatsData) {
         self.rc.borrow_mut().draw(selected, dom, stats)
+    }
+
+    pub fn draw_back(&self, dom: &Dom, n: usize) {
+        self.rc.borrow_mut().draw_plot_update(dom, n)
     }
 
     /// Display results in the paused state. In this state, the user might dragged the selection
@@ -1040,7 +1066,7 @@ impl PanelData {
     fn draw_value(&mut self, dom: &Dom) {
         self.with_pen_at_value(dom, |this| {
             let display_value = match this.value {
-                None => "missing".to_string(),
+                None => "N/A".to_string(),
                 Some(value) => format!("{1:.0$}", this.precision, value),
             };
             let y_pos = this.config.panel_height - this.config.font_vertical_offset;
@@ -1061,17 +1087,18 @@ impl PanelData {
     /// Draw a single plot point. As the plots shift left on every frame, this function only updates
     /// the most recent plot value.
     fn draw_plot_update(&mut self, dom: &Dom, offset: usize) {
+        // console_log!("draw_plot_update, offset: {}", offset);
         self.with_pen_at_new_plot_part(dom, offset, |this| {
-            dom.plot_area.plots_context.set_fill_style(&this.config.plot_background_color);
+            dom.plot_area.plots_context.set_fill_style(&this.config.background_color);
             dom.plot_area.plots_context.fill_rect(
                 0.0,
                 0.0,
                 this.config.plot_step_size,
                 this.config.panel_height,
             );
-            let value_height = this.norm_value * this.config.panel_height;
-            let y_pos = this.config.panel_height - value_height;
-            let bar_height = this.config.plot_bar_size.unwrap_or(value_height);
+            let panel_space = this.config.panel_height - this.config.plot_bar_size;
+            let value_height = this.norm_value * panel_space;
+            let y_pos = panel_space - value_height;
             let color = match this.value_check {
                 sampler::ValueCheck::Correct => &this.config.plot_color_ok,
                 sampler::ValueCheck::Warning => &this.config.plot_color_warn,
@@ -1083,7 +1110,7 @@ impl PanelData {
                 0.0,
                 y_pos,
                 this.config.plot_step_size,
-                bar_height,
+                this.config.plot_bar_size,
             );
         })
     }

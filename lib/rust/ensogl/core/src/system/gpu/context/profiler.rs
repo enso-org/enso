@@ -64,10 +64,12 @@ pub struct Profiler {
 
 #[derive(Debug)]
 struct InitializedProfiler {
-    ext:        extension::ExtDisjointTimerQueryWebgl2,
-    context:    ContextWithExtensions,
-    metrics:    RefCell<Metrics>,
-    assertions: Assertions,
+    ext:            extension::ExtDisjointTimerQueryWebgl2,
+    context:        ContextWithExtensions,
+    metrics:        RefCell<Metrics>,
+    assertions:     Assertions,
+    frame:          Cell<usize>,
+    frame_reported: Cell<usize>,
 }
 
 #[derive(Debug, Default)]
@@ -89,7 +91,9 @@ impl Profiler {
             let context = context.clone();
             let metrics = default();
             let assertions = default();
-            InitializedProfiler { ext, context, metrics, assertions }
+            let frame = default();
+            let frame_reported = default();
+            InitializedProfiler { ext, context, metrics, assertions, frame, frame_reported }
         });
         Self { data }
     }
@@ -159,6 +163,7 @@ macro_rules! define_metrics {
             #[allow(missing_docs)]
             #[derive(Clone, Copy, Debug, Default)]
             pub struct Results {
+                pub frame_offset: usize,
                 pub total: f64,
                 $(pub $name: f64),*
             }
@@ -186,7 +191,7 @@ macro_rules! define_metrics {
                 fn start_frame(&self) -> Vec<Results> {
                     let target_measurements_per_frame = 0 $(+ (|_| 1)(stringify!($name)) )*;
                     let measurements_per_frame = self.assertions.measurements_per_frame.take();
-                    if measurements_per_frame == 0 {
+                    let results = if measurements_per_frame == 0 {
                         default()
                     } else if measurements_per_frame == target_measurements_per_frame {
                         let mut results = vec![];
@@ -194,16 +199,20 @@ macro_rules! define_metrics {
                         $(self.update_results_of(&mut metrics.$name);)*
                         $(let $name = &mut metrics.$name;)*
                         while true $(&& $name.results.len() > 0)* {
+                            let frame_offset = self.frame.get() - self.frame_reported.get();
                             $(let $name = $name.results.pop_front().unwrap();)*
                             let total = 0.0 $(+ $name)*;
-                            results.push(Results { total, $($name),* });
+                            results.push(Results { frame_offset, total, $($name),* });
+                            self.frame_reported.modify(|t| *t += 1);
                         }
                         results
                     } else {
                         error!("Expected {target_measurements_per_frame} metrics per frame, \
                             but got {measurements_per_frame}.");
                         default()
-                    }
+                    };
+                    self.frame.modify(|t| *t += 1);
+                    results
                 }
             }
         }

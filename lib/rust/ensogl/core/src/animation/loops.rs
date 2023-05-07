@@ -323,11 +323,11 @@ fn on_frame_closure(
             .then(move || fixed_fps_sampler.borrow_mut().run(time_info, |t| animations.run_all(t)))
             .then(move || on_after_animations.emit(time_info))
             .then(move || on_before_layout.emit(time_info))
+            .then(move || on_before_rendering.emit(time_info))
             .then(move || {
-                on_before_rendering.emit(time_info);
+                on_frame_end.emit(time_info);
                 drop(_profiler);
             })
-            .then(move || on_frame_end.emit(time_info))
             .schedule();
     }
 }

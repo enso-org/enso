@@ -374,7 +374,6 @@ impl super::SpanWidget for Widget {
     }
 
     fn new(_: &Config, ctx: &super::ConfigContext) -> Self {
-        console_log!("NEW");
         let display_object = object::Instance::new_named("widget::ListEditor");
         let model = Model::new(ctx, &display_object);
         let network = frp::Network::new("widget::ListEditor");
@@ -382,7 +381,6 @@ impl super::SpanWidget for Widget {
     }
 
     fn configure(&mut self, cfg: &Config, ctx: super::ConfigContext) {
-        console_log!("CONFIGURE");
         let mut model = self.model.borrow_mut();
         model.configure(&self.display_object, cfg, ctx);
     }

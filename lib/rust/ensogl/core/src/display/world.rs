@@ -39,7 +39,7 @@ use web::JsValue;
 // ==============
 
 pub use crate::display::symbol::types::*;
-
+use crate::system::gpu::context::profiler::Results;
 
 
 // ===============
@@ -336,10 +336,11 @@ impl WorldDataWithLoop {
         let network = frp.network();
         crate::frp::extend! {network
             eval on_frame_start ([data] (t) {
+                data.stats.calculate_prev_frame_fps(*t);
                 let tt = data.default_scene.on_frame_start();
                 data.run_stats(*t, tt)
             });
-            eval_ on_frame_end (data.default_scene.on_frame_end());
+            eval_ on_frame_end (data.stats.end_frame());
             layout_update <- on_before_layout.map(f!((t) data.run_next_frame_layout(*t)));
             _eval <- on_before_rendering.map2(&layout_update,
                 f!((t, early) data.run_next_frame_rendering(*t, *early))
@@ -374,9 +375,9 @@ impl Deref for WorldDataWithLoop {
 #[derive(Clone, CloneRef, Debug, Default)]
 #[allow(missing_docs)]
 pub struct Callbacks {
-    pub prev_frame_stats: callback::registry::Ref1<StatsData>,
-    pub before_frame:     callback::registry::Copy1<animation::TimeInfo>,
-    pub after_frame:      callback::registry::Copy1<animation::TimeInfo>,
+    // pub prev_frame_stats: callback::registry::Ref1<StatsData>,
+    pub before_frame: callback::registry::Copy1<animation::TimeInfo>,
+    pub after_frame:  callback::registry::Copy1<animation::TimeInfo>,
 }
 
 
@@ -414,7 +415,7 @@ pub struct WorldData {
     display_mode: Rc<Cell<glsl::codes::DisplayModes>>,
     stats: Stats,
     stats_monitor: debug::monitor::Monitor,
-    stats_draw_handle: callback::Handle,
+    // stats_draw_handle: callback::Handle,
     pub on: Callbacks,
     debug_hotkeys_handle: Rc<RefCell<Option<web::EventListenerHandle>>>,
     update_themes_handle: callback::Handle,
@@ -437,16 +438,16 @@ impl WorldData {
         let uniforms = Uniforms::new(&default_scene.variables);
         let debug_hotkeys_handle = default();
         let garbage_collector = default();
-        let stats_draw_handle = on.prev_frame_stats.add(f!([stats_monitor] (stats: &StatsData) {
-            // console_log!("{:?}", stats.fps);
-            stats_monitor.sample_and_draw(stats);
-
-            if stats.fps < 80.0 {
-                SCENE.with_borrow(|t| t.as_ref().unwrap().low_fps_mode(true));
-            } else {
-                SCENE.with_borrow(|t| t.as_ref().unwrap().low_fps_mode(false));
-            }
-        }));
+        // let stats_draw_handle = on.prev_frame_stats.add(f!([stats_monitor] (stats: &StatsData) {
+        //     // console_log!("{:?}", stats.fps);
+        //     stats_monitor.sample_and_draw(stats);
+        //
+        //     if stats.fps < 80.0 {
+        //         SCENE.with_borrow(|t| t.as_ref().unwrap().low_fps_mode(true));
+        //     } else {
+        //         SCENE.with_borrow(|t| t.as_ref().unwrap().low_fps_mode(false));
+        //     }
+        // }));
         let themes = with_context(|t| t.theme_manager.clone_ref());
         let update_themes_handle = on.before_frame.add(f_!(themes.update()));
         let emit_measurements_handle = default();
@@ -463,7 +464,7 @@ impl WorldData {
             on,
             debug_hotkeys_handle,
             stats_monitor,
-            stats_draw_handle,
+            // stats_draw_handle,
             update_themes_handle,
             garbage_collector,
             emit_measurements_handle,
@@ -546,12 +547,34 @@ impl WorldData {
         self.default_scene.renderer.set_pipeline(pipeline);
     }
 
-    fn run_stats(&self, time: Duration, t: Option<f64>) {
-        self.stats.calculate_prev_frame_fps(time);
+    fn run_stats(&self, time: Duration, t: Vec<Results>) {
         {
-            self.stats.borrow_mut().stats_data.draw_time = t;
+            for result in t {
+                if result.frame_offset == 1 {
+                    let stats_data = &mut self.stats.borrow_mut().stats_data;
+                    stats_data.gpu_time = Some(result.total);
+                    stats_data.cpu_time = Some(stats_data.frame_time - result.total);
+                } else {
+                    self.stats_monitor.with_last_nth_sample(result.frame_offset - 2, |sample| {
+                        sample.gpu_time = Some(result.total);
+                        sample.cpu_time = Some(sample.frame_time - result.total);
+                    });
+                    self.stats_monitor.redraw_back(result.frame_offset - 2);
+                }
+            }
+
             let stats_borrowed = self.stats.borrow();
-            self.on.prev_frame_stats.run_all(&stats_borrowed.stats_data);
+            // self.on.prev_frame_stats.run_all(&stats_borrowed.stats_data);
+            let stats = &stats_borrowed.stats_data;
+
+            // console_log!("{:?}", stats.fps);
+            self.stats_monitor.sample_and_draw(stats);
+
+            if stats.fps < 80.0 {
+                SCENE.with_borrow(|t| t.as_ref().unwrap().low_fps_mode(true));
+            } else {
+                SCENE.with_borrow(|t| t.as_ref().unwrap().low_fps_mode(false));
+            }
         }
         self.stats.reset_per_frame_statistics();
     }
@@ -598,7 +621,6 @@ impl WorldData {
         self.garbage_collector.mouse_events_handled();
         self.default_scene.render(update_status);
         self.on.after_frame.run_all(time);
-        self.stats.end_frame();
         self.after_rendering.emit(());
     }
 

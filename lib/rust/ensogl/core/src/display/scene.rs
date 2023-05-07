@@ -48,11 +48,11 @@ pub mod layer;
 #[warn(missing_docs)]
 pub mod pointer_target;
 
+use crate::system::gpu::context::profiler::Results;
 pub use crate::system::web::dom::Shape;
 pub use layer::Layer;
 pub use pointer_target::PointerTargetId;
 pub use pointer_target::PointerTarget_DEPRECATED;
-
 
 
 // =====================
@@ -1179,20 +1179,16 @@ impl Scene {
         }
     }
 
-    pub fn on_frame_start(&self) -> Option<f64> {
+    pub fn on_frame_start(&self) -> Vec<Results> {
         // console_log!("start frame");
         if let Some(context) = &*self.context.borrow() {
             let results = context.profiler.start_frame();
-            results.last().map(|t| Some(t.total)).unwrap_or(None)
+            // console_log!("{:?}", results);
+            results
+            // results.into_iter().map(|t| t.total).collect_vec()
         } else {
-            None
+            default()
         }
-    }
-
-    pub fn on_frame_end(&self) {
-        // if let Some(context) = &*self.context.borrow() {
-        //     context.profiler.end_frame();
-        // }
     }
 
     pub fn extension<T: Extension>(&self) -> T {

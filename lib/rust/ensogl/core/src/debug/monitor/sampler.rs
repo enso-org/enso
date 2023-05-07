@@ -91,6 +91,7 @@ pub struct Sampler {
     pub max_value:      Option<f64>,
     /// The number of digits after the dot which should be displayed in the monitor panel.
     pub precision:      usize,
+    pub min_size:       Option<f64>,
 }
 
 impl Debug for Sampler {
@@ -111,6 +112,7 @@ impl const Default for Sampler {
             min_value:      None,
             max_value:      None,
             precision:      0,
+            min_size:       None,
         }
     }
 }
@@ -130,7 +132,7 @@ impl Sampler {
 
     /// Minimum size of the size the sampler should occupy in the performance monitor view.
     pub fn min_size(&self) -> Option<f64> {
-        Some(self.warn_threshold)
+        Some(self.min_size.unwrap_or_else(|| max(self.warn_threshold, self.err_threshold)))
     }
 }
 
@@ -156,7 +158,7 @@ pub const FPS: Sampler = Sampler {
 
 #[allow(missing_docs)]
 pub const FRAME_TIME: Sampler = Sampler {
-    label: "Frame time (ms)",
+    label: "CPU + GPU (ms)",
     expr: |s| Some(s.frame_time),
     warn_threshold: 1000.0 / 55.0,
     err_threshold: 1000.0 / 25.0,
@@ -165,11 +167,34 @@ pub const FRAME_TIME: Sampler = Sampler {
 };
 
 #[allow(missing_docs)]
-pub const DRAW_TIME: Sampler = Sampler {
-    label: "Draw time (ms)",
-    expr: |s| s.draw_time,
+pub const CPU_TIME: Sampler = Sampler {
+    label: "CPU time (ms)",
+    expr: |s| s.cpu_time,
     warn_threshold: 1000.0 / 55.0,
     err_threshold: 1000.0 / 25.0,
+    precision: 2,
+    ..DEFAULT_SAMPLER
+};
+
+#[allow(missing_docs)]
+pub const GPU_TIME: Sampler = Sampler {
+    label: "GPU time (ms)",
+    expr: |s| s.gpu_time,
+    warn_threshold: 1000.0 / 55.0,
+    err_threshold: 1000.0 / 25.0,
+    precision: 2,
+    ..DEFAULT_SAMPLER
+};
+
+#[allow(missing_docs)]
+pub const IDLE_TIME: Sampler = Sampler {
+    label: "Idle time (ms)",
+    expr: |s| Some(s.idle_time),
+    // Negative idle time can happen due to improper time measurements when high-resolution timers
+    // are not used.
+    warn_threshold: -0.000001,
+    err_threshold: -0.000002,
+    min_size: Some(1.0),
     precision: 2,
     ..DEFAULT_SAMPLER
 };

@@ -42,7 +42,6 @@ impl ExtensionsData {
     fn init(context: &WebGl2RenderingContext) -> Self {
         let khr_parallel_shader_compile = KhrParallelShaderCompile::try_init(context);
         let ext_disjoint_timer_query_webgl2 = ExtDisjointTimerQueryWebgl2::try_init(context);
-        console_log!("{:?}", ext_disjoint_timer_query_webgl2);
         Self { khr_parallel_shader_compile, ext_disjoint_timer_query_webgl2 }
     }
 }

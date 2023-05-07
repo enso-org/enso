@@ -99,17 +99,25 @@ impl StatsInternal {
     /// Calculate FPS for the last frame. This function should be called on the very beginning of
     /// every frame. Please note, that it does not clean the per-frame statistics. You want to run
     /// the [`reset_per_frame_statistics`] function before running rendering operations.
-    fn calculate_prev_frame_fps(&mut self, time: Duration) {
-        let time = time.unchecked_raw() as f64;
-        if let Some(previous_frame_begin_time) = self.frame_begin_time.replace(time) {
-            self.stats_data.fps = 1000.0 / (time - previous_frame_begin_time);
+    fn calculate_prev_frame_fps(&mut self, current_frame_begin_time: Duration) {
+        let current_frame_begin_time = current_frame_begin_time.unchecked_raw() as f64;
+        if let Some(previous_frame_begin_time) =
+            self.frame_begin_time.replace(current_frame_begin_time)
+        {
+            let previous_frame_time = current_frame_begin_time - previous_frame_begin_time;
+            self.stats_data.fps = 1000.0 / previous_frame_time;
+            self.stats_data.idle_time = previous_frame_time - self.stats_data.frame_time;
         }
     }
 
     fn end_frame(&mut self) {
+        console_log!("end_frame");
         if let Some(begin_time) = self.frame_begin_time {
+            console_log!("begin_time: {}", begin_time);
             let end_time = self.time_provider.now();
+            console_log!("end_time: {}", end_time);
             self.stats_data.frame_time = end_time - begin_time;
+            console_log!("frame_time: {}", self.stats_data.frame_time);
         }
 
         // TODO[MC,IB]: drop the `cfg!` (outlier in our codebase) once wasm_bindgen::memory()
@@ -128,6 +136,9 @@ impl StatsInternal {
         self.stats_data.shader_compile_count = 0;
         self.stats_data.data_upload_count = 0;
         self.stats_data.data_upload_size = 0;
+        self.stats_data.cpu_time = None;
+        self.stats_data.gpu_time = None;
+        self.stats_data.idle_time = 0.0;
     }
 }
 
@@ -136,6 +147,7 @@ impl Default for StatsInternal {
         Self::new()
     }
 }
+
 
 
 // ========================
@@ -203,9 +215,11 @@ macro_rules! gen_stats {
 }
 
 gen_stats! {
-    frame_time           : f64,
     fps                  : f64,
-    draw_time            : Option<f64>,
+    frame_time           : f64,
+    cpu_time             : Option<f64>,
+    gpu_time             : Option<f64>,
+    idle_time            : f64,
     wasm_memory_usage    : u32,
     gpu_memory_usage     : u32,
     draw_calls           : Vec<&'static str>,
