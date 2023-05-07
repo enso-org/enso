@@ -229,6 +229,22 @@ spec_with name create_new_date parse_date =
             (create_new_date 2000 7 1).end_of Date_Period.Quarter . should_equal (Date.new 2000 9 30)
             (create_new_date 2000 6 30).end_of Date_Period.Quarter . should_equal (Date.new 2000 6 30)
 
+        Test.specify "should allow to compute the number of days until a date" <|
+            create_new_date 2000 2 1 . days_until (create_new_date 2000 2 1) . should_equal 0
+            create_new_date 2000 2 1 . days_until (create_new_date 2000 2 2) . should_equal 1
+            create_new_date 2000 2 2 . days_until (create_new_date 2000 2 1) . should_equal -1
+            create_new_date 2001 3 1 . days_until (create_new_date 2001 4 1) . should_equal 31
+            create_new_date 2000 3 1 . days_until (create_new_date 2001 3 1) . should_equal 365
+            create_new_date 2001 3 1 . days_until (create_new_date 2000 3 1) . should_equal -365
+
+        Test.specify "should allow to compute the number of days until a date including the end date" <|
+            create_new_date 2000 2 1 . days_until (create_new_date 2000 2 1) include_end_date=True . should_equal 1
+            create_new_date 2000 2 1 . days_until (create_new_date 2000 2 2) include_end_date=True . should_equal 2
+            create_new_date 2000 2 2 . days_until (create_new_date 2000 2 1) include_end_date=True . should_equal -2
+            create_new_date 2001 3 1 . days_until (create_new_date 2001 4 1) include_end_date=True . should_equal 32
+            create_new_date 2000 3 1 . days_until (create_new_date 2001 3 1) include_end_date=True . should_equal 366
+            create_new_date 2001 3 1 . days_until (create_new_date 2000 3 1) include_end_date=True . should_equal -366
+
         Test.specify "should allow to compute the number of working days until a later date" <|
             # 2000-2-1 is a Tuesday
             create_new_date 2000 2 1 . work_days_until (create_new_date 2000 2 1) . should_equal 0

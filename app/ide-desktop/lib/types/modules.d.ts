@@ -2,8 +2,35 @@
  *
  * This file MUST NOT `export {}` for the modules to be visible to other files. */
 
-declare module '*.yaml' {
-    const DATA: unknown
+declare module '*/build.json' {
+    interface BuildInfo {
+        commit: string
+        version: string
+        engineVersion: string
+        name: string
+    }
+
+    const BUILD_INFO: BuildInfo
+    export default BUILD_INFO
+}
+
+declare module '*/ensogl-pack/linked-dist' {
+    // eslint-disable-next-line no-restricted-syntax
+    export * from '../../../../lib/rust/ensogl/pack/js/src/runner/index'
+}
+
+declare module '*/gui/config.yaml' {
+    interface Config {
+        windowAppScopeName: string
+        windowAppScopeConfigName: string
+        windowAppScopeThemeName: string
+        projectManagerEndpoint: string
+        minimumSupportedVersion: string
+        engineVersionSupported: string
+        languageEditionSupported: string
+    }
+
+    const DATA: Config
     export default DATA
 }
 

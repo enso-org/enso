@@ -140,6 +140,10 @@ abstract class JsonRpcServerTestKit
     }
 
     def expectNoMessage(): Unit = outActor.expectNoMessage()
+
+    def actorRef(): ActorRef = {
+      outActor.ref
+    }
   }
 }
 

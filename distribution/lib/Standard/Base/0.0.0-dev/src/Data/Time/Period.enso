@@ -1,10 +1,12 @@
 import project.Any.Any
+import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
 import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Duration.Duration
+import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
@@ -144,3 +146,20 @@ type Period
         m = if months == 0 && (y=="" || d=="") then "" else months.to_text + "M "
 
         (y + m + d) . trim
+
+    ## PRIVATE
+       Convert to a JavaScript Object representing a Period.
+
+       > Example
+         Convert a period of 10 months to a JS_Object.
+
+             example_to_json = (Period.new months=10).to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        b = Vector.new_builder 7
+        b.append ["type", "Period"]
+        b.append ["constructor", "new"]
+        if self.years==0 . not then b.append ["years", self.years]
+        if self.months==0 . not then b.append ["months", self.months]
+        if self.days==0 . not then b.append ["days", self.days]
+        JS_Object.from_pairs b.to_vector

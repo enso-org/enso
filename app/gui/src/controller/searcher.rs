@@ -10,7 +10,6 @@ use crate::model::module::NodeMetadata;
 use crate::model::suggestion_database;
 
 use breadcrumbs::Breadcrumbs;
-use const_format::concatcp;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
 use double_representation::import;
@@ -49,12 +48,6 @@ pub use action::Action;
 /// needed. Currently enabled to trigger engine's caching of user-added nodes.
 /// See: https://github.com/enso-org/ide/issues/1067
 pub const ASSIGN_NAMES_FOR_NODES: bool = true;
-
-/// The special module used for mock `Enso_Project.data` entry.
-/// See also [`Searcher::add_enso_project_entries`].
-const ENSO_PROJECT_SPECIAL_MODULE: &str =
-    concatcp!(project::STANDARD_BASE_LIBRARY_PATH, ".Enso_Project");
-
 
 
 // ==============
@@ -862,13 +855,7 @@ impl Searcher {
             })
             .flatten();
         let mut module = self.module();
-        // TODO[ao] this is a temporary workaround. See [`Searcher::add_enso_project_entries`]
-        //     documentation.
-        let enso_project_special_import = suggestion_database::entry::Import::Qualified {
-            module: ENSO_PROJECT_SPECIAL_MODULE.try_into().unwrap(),
-        };
-        let without_enso_project = imports.filter(|i| *i != enso_project_special_import);
-        for entry_import in without_enso_project {
+        for entry_import in imports {
             let already_imported =
                 module.iter_imports().any(|existing| entry_import.covered_by(&existing));
             let import: import::Info = entry_import.into();
@@ -1029,9 +1016,6 @@ impl Searcher {
         }
         let libraries_cat =
             libraries_root_cat.add_category("Libraries", libraries_icon.clone_ref());
-        if should_add_additional_entries {
-            Self::add_enso_project_entries(&libraries_cat);
-        }
         let entries = completion_response.results.iter().filter_map(|id| {
             self.database
                 .lookup(*id)
@@ -1092,34 +1076,6 @@ impl Searcher {
 
     fn module_qualified_name(&self) -> QualifiedName {
         self.graph.module_qualified_name(&*self.project)
-    }
-
-    /// Add to the action list the special mocked entry of `Enso_Project.data`.
-    ///
-    /// This is a workaround for Engine bug https://github.com/enso-org/enso/issues/1605.
-    //TODO[ao] this is a temporary workaround.
-    fn add_enso_project_entries(libraries_cat_builder: &action::CategoryBuilder) {
-        // We may unwrap here, because the constant is tested to be convertible to
-        // [`QualifiedName`].
-        let module = QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE).unwrap();
-        let self_type = module.clone();
-        for method in &["data", "root"] {
-            let entry = model::suggestion_database::Entry {
-                name:          (*method).to_owned(),
-                kind:          model::suggestion_database::entry::Kind::Method,
-                defined_in:    module.clone(),
-                arguments:     vec![],
-                return_type:   "Standard.Base.System.File.File".try_into().unwrap(),
-                documentation: vec![],
-                self_type:     Some(self_type.clone()),
-                is_static:     true,
-                scope:         model::suggestion_database::entry::Scope::Everywhere,
-                icon_name:     None,
-                reexported_in: None,
-            };
-            let action = Action::Suggestion(action::Suggestion::FromDatabase(Rc::new(entry)));
-            libraries_cat_builder.add_action(action);
-        }
     }
 }
 
@@ -1345,13 +1301,6 @@ pub mod test {
     use json_rpc::expect_call;
     use parser::Parser;
     use std::assert_matches::assert_matches;
-
-
-    #[test]
-    fn enso_project_special_module_is_convertible_to_qualified_names() {
-        QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE)
-            .expect("ENSO_PROJECT_SPECIAL_MODULE should be convertible to QualifiedName.");
-    }
 
     pub fn completion_response(results: &[SuggestionId]) -> language_server::response::Completion {
         language_server::response::Completion {
@@ -1682,11 +1631,11 @@ pub mod test {
         assert!(searcher.actions().is_loading());
         fixture.test.run_until_stalled();
         let list = searcher.actions().list().unwrap().to_action_vec();
-        // There are 8 entries, because: 2 were returned from `completion` method, two are mocked,
-        // and all of these are repeated in "All Search Result" category.
-        assert_eq!(list.len(), 8);
-        assert_eq!(list[2], Action::Suggestion(action::Suggestion::FromDatabase(test_function_1)));
-        assert_eq!(list[3], Action::Suggestion(action::Suggestion::FromDatabase(test_function_2)));
+        // There are 4 entries, because: 2 were returned from `completion` method, and two are
+        // mocked.
+        assert_eq!(list.len(), 4);
+        assert_eq!(list[0], Action::Suggestion(action::Suggestion::FromDatabase(test_function_1)));
+        assert_eq!(list[1], Action::Suggestion(action::Suggestion::FromDatabase(test_function_2)));
         let notification = subscriber.next().boxed_local().expect_ready();
         assert_eq!(notification, Some(Notification::NewActionList));
     }

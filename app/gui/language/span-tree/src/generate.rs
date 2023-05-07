@@ -819,6 +819,11 @@ fn tree_generate_node<T: Payload>(
     } else {
         let mut parent_offset = ByteDiff::from(0);
         let mut sibling_offset = ByteDiff::from(0);
+        let first_token_or_child =
+            tree.span_info.iter().find(|span| !matches!(span, SpanSeed::Space(_)));
+        let is_array = matches!(first_token_or_child, Some(SpanSeed::Token(ast::SpanSeedToken { token })) if token == "[");
+        let last_token_index =
+            tree.span_info.iter().rposition(|span| matches!(span, SpanSeed::Token(_)));
         for (index, raw_span_info) in tree.span_info.iter().enumerate() {
             match raw_span_info {
                 SpanSeed::Space(ast::SpanSeedSpace { space }) => {
@@ -826,6 +831,16 @@ fn tree_generate_node<T: Payload>(
                     sibling_offset += ByteDiff::from(space);
                 }
                 SpanSeed::Token(ast::SpanSeedToken { token }) => {
+                    if is_array && Some(index) == last_token_index {
+                        let kind = InsertionPointType::Append;
+                        children.push(node::Child {
+                            node: Node::<T>::new().with_kind(kind),
+                            parent_offset,
+                            sibling_offset,
+                            ast_crumbs: vec![],
+                        });
+                        sibling_offset = 0.byte_diff();
+                    }
                     let kind = node::Kind::Token;
                     let size = ByteDiff::from(token.len());
                     let ast_crumbs = vec![TreeCrumb { index }.into()];
@@ -835,7 +850,18 @@ fn tree_generate_node<T: Payload>(
                     sibling_offset = 0.byte_diff();
                 }
                 SpanSeed::Child(ast::SpanSeedChild { node }) => {
-                    let kind = node::Kind::argument();
+                    if is_array {
+                        let kind = InsertionPointType::BeforeArgument(index);
+                        children.push(node::Child {
+                            node: Node::<T>::new().with_kind(kind),
+                            parent_offset,
+                            sibling_offset,
+                            ast_crumbs: vec![],
+                        });
+                        sibling_offset = 0.byte_diff();
+                    }
+
+                    let kind = node::Kind::argument().with_removable(is_array);
                     let node = node.generate_node(kind, context)?;
                     let child_size = node.size;
                     let ast_crumbs = vec![TreeCrumb { index }.into()];

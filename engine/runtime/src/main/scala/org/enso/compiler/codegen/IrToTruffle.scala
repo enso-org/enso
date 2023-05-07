@@ -155,7 +155,6 @@ class IrToTruffle(
     * @param module the module for which code should be generated
     */
   private def processModule(module: IR.Module): Unit = {
-    generateMethods()
     generateReExportBindings(module)
     val bindingsMap =
       module
@@ -393,7 +392,7 @@ class IrToTruffle(
             val builtinNameElements = fullMethodName.text.split('.')
             if (builtinNameElements.length != 2) {
               throw new CompilerError(
-                s"Unknwon builtin method ${fullMethodName.text}"
+                s"Unknown builtin method ${fullMethodName.text}, probably should be '$fullMethodDefName?'"
               )
             }
             val methodName      = builtinNameElements(1)
@@ -721,26 +720,6 @@ class IrToTruffle(
       loc.id.foreach { id => expr.setId(id) }
     }
     expr
-  }
-
-  private def generateMethods(): Unit = {
-    generateEnsoProjectMethod()
-  }
-
-  private def generateEnsoProjectMethod(): Unit = {
-    val name            = BindingsMap.Generated.ensoProjectMethodName
-    val pkg             = context.getPackageOf(moduleScope.getModule.getSourceFile)
-    val ensoProjectNode = new EnsoProjectNode(language, context, pkg)
-    val body            = ensoProjectNode.getCallTarget
-    val schema = new FunctionSchema(
-      new ArgumentDefinition(
-        0,
-        Constants.Names.SELF_ARGUMENT,
-        ArgumentDefinition.ExecutionMode.EXECUTE
-      )
-    )
-    val fun = new RuntimeFunction(body, null, schema)
-    moduleScope.registerMethod(moduleScope.getAssociatedType, name, fun)
   }
 
   private def generateReExportBindings(module: IR.Module): Unit = {

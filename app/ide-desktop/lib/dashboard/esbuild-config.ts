@@ -15,6 +15,7 @@ import * as url from 'node:url'
 import * as esbuild from 'esbuild'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
 import esbuildPluginTime from 'esbuild-plugin-time'
+import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
 import postcss from 'postcss'
 import tailwindcss from 'tailwindcss'
@@ -112,6 +113,9 @@ export function bundlerOptions(args: Arguments) {
         plugins: [
             esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),
             esbuildPluginTime(),
+            // This is not strictly needed because the cloud frontend does not use the Project Manager,
+            // however it is very difficult to conditionally exclude a module.
+            esbuildPluginYaml.yamlPlugin({}),
             esbuildPluginGenerateTailwind(),
         ],
         define: {

@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.state;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.DynamicObjectLibrary;
@@ -16,7 +17,8 @@ import org.enso.interpreter.runtime.state.State;
     type = "State",
     name = "run",
     description = "Runs a stateful computation in a local state environment.",
-    autoRegister = false)
+    autoRegister = false,
+    inlineable = true)
 @ReportPolymorphism
 public abstract class RunStateNode extends Node {
   static RunStateNode build() {
@@ -25,10 +27,12 @@ public abstract class RunStateNode extends Node {
 
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
 
-  abstract Object execute(State state, Object key, Object local_state, @Suspend Object computation);
+  abstract Object execute(
+      VirtualFrame frame, State state, Object key, Object local_state, @Suspend Object computation);
 
   @Specialization(guards = "objects.containsKey(data, key)")
   Object doExisting(
+      VirtualFrame frame,
       State state,
       Object key,
       Object local,
@@ -38,7 +42,8 @@ public abstract class RunStateNode extends Node {
     var old = objects.getOrDefault(data, key, null);
     objects.put(data, key, local);
     try {
-      return thunkExecutorNode.executeThunk(computation, state, BaseNode.TailStatus.NOT_TAIL);
+      return thunkExecutorNode.executeThunk(
+          frame, computation, state, BaseNode.TailStatus.NOT_TAIL);
     } finally {
       objects.put(state.getContainer(), key, old);
     }
@@ -46,6 +51,7 @@ public abstract class RunStateNode extends Node {
 
   @Specialization(guards = "!objects.containsKey(data, key)")
   Object doFresh(
+      VirtualFrame frame,
       State state,
       Object key,
       Object local,
@@ -54,7 +60,8 @@ public abstract class RunStateNode extends Node {
       @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     objects.put(data, key, local);
     try {
-      return thunkExecutorNode.executeThunk(computation, state, BaseNode.TailStatus.NOT_TAIL);
+      return thunkExecutorNode.executeThunk(
+          frame, computation, state, BaseNode.TailStatus.NOT_TAIL);
     } finally {
       objects.removeKey(data, key);
     }

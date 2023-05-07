@@ -51,23 +51,28 @@ class ValuesGenerator {
   }
 
   private ValueInfo v(String key, String prelude, String typeOrValue) {
+    return v(key, prelude, typeOrValue, key != null ? typeOrValue : null);
+  }
+
+  private ValueInfo v(String key, String prelude, String typeOrValue, String typeCheck) {
     if (key == null) {
       key = typeOrValue;
     }
     var v = values.get(key);
     if (v == null) {
-      var f = ctx.eval("enso", prelude + "\nn = " + typeOrValue);
+      var code = prelude + "\nn = " + typeOrValue;
+      var f = ctx.eval("enso", code);
       var value = f.invokeMember("eval_expression", "n");
-      var c = ctx.eval("enso", """
-      {import}
+      if (typeCheck != null) {
+        var c = ctx.eval("enso", """
+        {import}
 
-      check x = case x of
-          v : {type} -> 1
-          _ -> 0
+        check x = case x of
+            _ : {type} -> 1
+            _ -> 0
 
-      """.replace("{type}", typeOrValue).replace("{import}", prelude)
-      );
-      if (key != null) {
+        """.replace("{type}", typeCheck).replace("{import}", prelude)
+        );
         var check = c.invokeMember("eval_expression", "check");
         assertTrue("Can execute the check", check.canExecute());
         v = new ValueInfo(value, check);
@@ -109,7 +114,7 @@ class ValuesGenerator {
       }
       sb.append("""
       check_{i} x = case x of
-          v : {type} -> 1
+          _ : {type} -> 1
           _ -> 0
 
       """.replace("{type}", c).replace("{i}", "" + i));
@@ -343,9 +348,9 @@ class ValuesGenerator {
       collect.add(v(null, "", "'?'").type());
       collect.add(v(null, "", """
       '''
-      block of
-      multi-line
-      texts
+          block of
+          multi-line
+          texts
       """).type());
     }
 
@@ -426,7 +431,7 @@ class ValuesGenerator {
           "Time_Zone.parse 'Europe/London'",
           "Time_Zone.parse 'CET'"
       )) {
-        collect.add(v("timeZones-" + expr, "import Standard.Base.Data.Time.Time_Zone.Time_Zone", expr).type());
+        collect.add(v("timeZones-" + expr, "import Standard.Base.Data.Time.Time_Zone.Time_Zone", expr, "Time_Zone").type());
       }
     }
     if (languages.contains(Language.JAVA)) {
@@ -569,7 +574,7 @@ class ValuesGenerator {
           "Map.empty.insert 'A' 1 . insert 'B' 2 . insert 'C' 3",
           "Map.empty.insert 'C' 3 . insert 'B' 2 . insert 'A' 1"
       )) {
-        collect.add(v("maps-" + expr, imports, expr).type());
+        collect.add(v("maps-" + expr, imports, expr, "Map").type());
       }
     }
     return collect;
