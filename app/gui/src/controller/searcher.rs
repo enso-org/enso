@@ -443,7 +443,6 @@ impl Searcher {
         cursor_position: Byte,
         position_in_code: Location<Byte>,
     ) -> FallibleResult<Self> {
-        error!("new from graph controller: {mode:?}");
         let project = project.clone_ref();
         let data = if let Mode::EditNode { node_id } = mode {
             Data::new_with_edited_node(&graph.graph(), node_id, cursor_position)?
@@ -553,7 +552,7 @@ impl Searcher {
     /// in a new action list (the appropriate notification will be emitted).
     #[profile(Debug)]
     pub fn set_input(&self, new_input: String, cursor_position: Byte) -> FallibleResult {
-        error!("Manually setting input to {new_input} with cursor position {cursor_position}");
+        debug!("Manually setting input to {new_input} with cursor position {cursor_position}");
         let parsed_input = input::Input::parse(self.ide.parser(), new_input, cursor_position);
         let new_context = parsed_input.context().map(|ctx| ctx.into_ast().repr());
         let new_literal = parsed_input.edited_literal().cloned();
@@ -594,7 +593,7 @@ impl Searcher {
         &self,
         picked_suggestion: action::Suggestion,
     ) -> FallibleResult<text::Change<Byte, String>> {
-        error!("Picking suggestion: {picked_suggestion:?}.");
+        debug!("Picking suggestion: {picked_suggestion:?}.");
         let change = {
             let mut data = self.data.borrow_mut();
             let has_this = self.this_var().is_some();
@@ -667,7 +666,7 @@ impl Searcher {
             let all_requirements = requirements.chain(preview_change.import.iter().cloned());
             self.add_required_imports(all_requirements, false)?;
         }
-        error!("Preview_suggestion: {:?}", expression);
+        debug!("Preview_suggestion: {:?}", expression);
         self.graph.graph().set_expression(self.mode.node_id(), expression)?;
 
         Ok(())
@@ -764,7 +763,6 @@ impl Searcher {
         let node_id = self.mode.node_id();
         let expression = self.get_expression(self.data.borrow().input.ast());
         let graph = self.graph.graph();
-        error!("Commit node: {:?}", expression);
         graph.set_expression(node_id, expression)?;
         if let Mode::NewNode { .. } = *self.mode {
             graph.introduce_name_on(node_id)?;
