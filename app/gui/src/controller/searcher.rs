@@ -666,7 +666,6 @@ impl Searcher {
             let all_requirements = requirements.chain(preview_change.import.iter().cloned());
             self.add_required_imports(all_requirements, false)?;
         }
-        debug!("Preview_suggestion: {:?}", expression);
         self.graph.graph().set_expression(self.mode.node_id(), expression)?;
 
         Ok(())
