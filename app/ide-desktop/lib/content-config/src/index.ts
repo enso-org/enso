@@ -2,7 +2,7 @@
 
 import * as semver from 'semver'
 
-import * as linkedDist from '../../../../../target/ensogl-pack/linked-dist'
+import * as linkedDist from '../../../../../target/ensogl-pack/linked-dist/index'
 import BUILD_INFO from '../../../build.json' assert { type: 'json' }
 
 // Aliases with the same name as the original.
