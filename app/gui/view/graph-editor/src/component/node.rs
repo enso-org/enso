@@ -433,14 +433,14 @@ impl NodeModel {
         use display::shape::compound::rectangle;
         ensogl::shapes_order_dependencies! {
             app.display.default_scene => {
-                edge::back::corner        -> error_shape;
-                edge::back::line          -> error_shape;
+                //edge::back::corner        -> error_shape;
+                //edge::back::line          -> error_shape;
                 error_shape               -> output::port::single_port;
                 error_shape               -> output::port::multi_port;
                 output::port::single_port -> rectangle;
                 output::port::multi_port  -> rectangle;
-                rectangle                 -> edge::front::corner;
-                rectangle                 -> edge::front::line;
+                //rectangle                 -> edge::front::corner;
+                //rectangle                 -> edge::front::line;
             }
         }
 
