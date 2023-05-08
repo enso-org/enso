@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.Runtime.Context
+import Standard.Base.Errors.File_Error.File_Error
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
@@ -177,9 +178,9 @@ spec =
         Test.specify "should recognise a SQLite database file" <|
             Auto_Detect.get_reading_format file . should_be_a SQLite_Format
 
-        Test.specify "should recognise a sqlite file by extension fro writing" <|
-            Auto_Detect.get_reading_format (enso_project.data / "nonexistent-data.db") . should_be_a SQLite_Format
-            Auto_Detect.get_reading_format (enso_project.data / "nonexistent-data.sqlite") . should_be_a SQLite_Format
+        Test.specify "should recognise a sqlite file by extension for writing" <|
+            Auto_Detect.get_writing_format (enso_project.data / "nonexistent-data.db") . should_be_a SQLite_Format
+            Auto_Detect.get_writing_format (enso_project.data / "nonexistent-data.sqlite") . should_be_a SQLite_Format
 
         Test.specify "should not recognise nonexistent or empty files for reading" <|
             r1 = Data.read (enso_project.data / "nonexistent-data.db")

@@ -14,7 +14,8 @@ type SQLite_Format
     for_file_read : File -> SQLite_Format | Nothing
     for_file_read file =
         expected_header = magic_header_string
-        got_header = file.read_first_bytes header.length
+        got_header = file.read_first_bytes expected_header.length
+        if got_header == expected_header then SQLite_Format.For_File else Nothing
 
     ## PRIVATE
        If the File_Format supports writing to the file, return a configured instance.
