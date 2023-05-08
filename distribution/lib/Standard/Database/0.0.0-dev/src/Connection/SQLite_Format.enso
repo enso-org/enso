@@ -41,5 +41,6 @@ type SQLite_Format
         Database.connect (SQLite_Details.SQLite file)
 
 ## PRIVATE
+   Based on the File Format definition at: https://www.sqlite.org/fileformat.html
 magic_header_string =
     "SQLite format 3".utf_8 + [0]
