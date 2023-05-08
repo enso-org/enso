@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Connection.Database
-import project.Connection.SQLite_Options.SQLite_Options
+import project.Connection.SQLite_Details.SQLite_Details
 
 ## Read the file to a `SQLite_Connection` from a `.db` or `.sqlite` file
 type SQLite_Format
@@ -30,4 +30,4 @@ type SQLite_Format
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
         _ = [on_problems]
-        Database.connect (SQLite_Options.SQLite file)
+        Database.connect (SQLite_Details.SQLite file)

@@ -334,7 +334,7 @@ public class DelimitedReader {
   private WithProblems<List<String>> generateDefaultHeaders(int columnCount) {
     List<String> headerNames = new ArrayList<>(columnCount);
     for (int i = 0; i < columnCount; ++i) {
-      headerNames.add(COLUMN_NAME + "_" + (i + 1));
+      headerNames.add(COLUMN_NAME + " " + (i + 1));
     }
     return new WithProblems<>(headerNames, Collections.emptyList());
   }

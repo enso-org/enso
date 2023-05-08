@@ -87,7 +87,7 @@ public class NameDeduplicator {
     if (index == 0) {
       return name;
     }
-    return name + "_" + index;
+    return name + " " + index;
   }
 
   public String[] getInvalidNames() {
@@ -134,7 +134,7 @@ public class NameDeduplicator {
       String name = second.get(i);
       if (output.get(i) == null) {
         var prefixed = secondPrefix + name;
-        output.set(i, makeUnique(secondPrefix + name));
+        output.set(i, makeUnique(prefixed));
       }
     }
     return output;

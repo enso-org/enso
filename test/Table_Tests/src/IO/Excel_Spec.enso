@@ -47,8 +47,8 @@ spec_fmt header file read_method sheet_count=5 =
 
         Test.specify "should gracefully handle duplicate column names and formulas" <|
             t = read_method file (Excel (Worksheet "Duplicate Columns"))
-            t.columns.map .name . should_equal ['Item', 'Price', 'Quantity', 'Price_1']
-            t.at 'Price_1' . to_vector . should_equal [20, 40, 0, 60, 0, 10]
+            t.columns.map .name . should_equal ['Item', 'Price', 'Quantity', 'Price 1']
+            t.at 'Price 1' . to_vector . should_equal [20, 40, 0, 60, 0, 10]
 
         Test.specify "should allow reading with cell range specified" <|
             t_1 = read_method file (Excel (Cell_Range "Simple!B:C"))
@@ -292,8 +292,8 @@ spec_write suffix test_sheet_name =
         Test.specify 'should be able to append to a range by name after deduplication of names' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['AA_1',[True, False]], ['BB_1', ['2022-01-20', '2022-01-21']]]
-            expected = Table.new [['AA', ['f', 'g', 'h', 'd', 'e']], ['BB',[1, 2, 3, 4, 5]], ['AA_1',[True, False, False, True, False]]]
+            extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['AA 1',[True, False]], ['BB 1', ['2022-01-20', '2022-01-21']]]
+            expected = Table.new [['AA', ['f', 'g', 'h', 'd', 'e']], ['BB',[1, 2, 3, 4, 5]], ['AA 1',[True, False, False, True, False]]]
             extra_another.write out (Excel (Cell_Range "Random!S3")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (Excel (Cell_Range "Random!S3")) . select_columns [0, 1, 2]
             written.should_equal expected
@@ -725,10 +725,10 @@ spec =
             check_table (file.read (Excel (Cell_Range "Sheet1!B2"))) ["B"] [["A","B","C","D","E","F"]]
 
         Test.specify "Patchy table" <|
-            check_table (file.read (Excel (Cell_Range "Sheet1!D1"))) ["A", "B", "Column_1"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
+            check_table (file.read (Excel (Cell_Range "Sheet1!D1"))) ["A", "B", "Column 1"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
             check_table (file.read (Excel (Cell_Range "Sheet1!D2"))) ["D", "E", "F"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
             check_table (file.read (Excel (Cell_Range "Sheet1!E"))) ["B"] [[4,4,Nothing,Nothing,Nothing,Nothing]]
-            check_table (file.read (Excel (Cell_Range "Sheet1!E1"))) ["B", "Column_1"] [[4,4,Nothing], [6,Nothing,6]]
+            check_table (file.read (Excel (Cell_Range "Sheet1!E1"))) ["B", "Column 1"] [[4,4,Nothing], [6,Nothing,6]]
             check_table (file.read (Excel (Cell_Range "Sheet1!E2"))) ["E", "F"] [[4,4,Nothing], [6,Nothing,6]]
 
         Test.specify "Single cell" <|
@@ -739,19 +739,19 @@ spec =
             check_table (file.read (Excel (Cell_Range "Sheet1!J1"))) ["J", "K", "L"] [["Just"],["Some"],["Headers"]]
 
         Test.specify "Growing table" <|
-            check_table (file.read (Excel (Cell_Range "Sheet1!N1"))) ["A", "Full", "Table", "Column_1"] [["Hello","World",Nothing,"Extend"],[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
-            check_table (file.read (Excel (Cell_Range "Sheet1!O1"))) ["Full", "Table", "Column_1"] [[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
+            check_table (file.read (Excel (Cell_Range "Sheet1!N1"))) ["A", "Full", "Table", "Column 1"] [["Hello","World",Nothing,"Extend"],[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
+            check_table (file.read (Excel (Cell_Range "Sheet1!O1"))) ["Full", "Table", "Column 1"] [[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
             check_table (file.read (Excel (Cell_Range "Sheet1!O2"))) ["O", "P", "Q"] [[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
 
         Test.specify "Should handle invalid headers with warnings" <|
             action = file.read (Excel (Cell_Range "Sheet1!D1")) on_problems=_
-            tester = check_table _ ["A", "B", "Column_1"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
+            tester = check_table _ ["A", "B", "Column 1"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
             problems = [Invalid_Output_Column_Names.Error [""]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "Should handle duplicate headers with warnings" <|
             action = file.read (Excel (Cell_Range "Sheet1!S1")) on_problems=_
-            tester = check_table _ ["DD", "DD_1"] [[1,3], [2,4]]
+            tester = check_table _ ["DD", "DD 1"] [[1,3], [2,4]]
             problems = [Duplicate_Output_Column_Names.Error ["DD"]]
             Problems.test_problem_handling action problems tester
 
