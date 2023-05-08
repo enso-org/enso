@@ -355,6 +355,14 @@ function Dashboard(props: DashboardProps) {
                             <RenameModal
                                 assetType={projectAsset.type}
                                 name={projectAsset.title}
+                                {...(backend.platform === platformModule.Platform.desktop
+                                    ? {
+                                          namePattern: '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*',
+                                          title:
+                                              'Names must be in Upper_Snake_Case. ' +
+                                              '(Numbers (_0, _1) are also allowed.)',
+                                      }
+                                    : {})}
                                 // TODO: Wait for backend implementation.
                                 doRename={() => Promise.resolve()}
                                 onSuccess={doRefresh}
@@ -848,8 +856,14 @@ function Dashboard(props: DashboardProps) {
                                     <RenameModal
                                         name={projectAsset.title}
                                         assetType={projectAsset.type}
-                                        // FIXME[sb]: Replace with API call
-                                        // when implemented in backend.
+                                        {...(backend.platform === platformModule.Platform.desktop
+                                            ? {
+                                                  namePattern: '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*',
+                                                  title:
+                                                      'Names must be in Upper_Snake_Case. ' +
+                                                      '(Numbers (_0, _1) are also allowed.)',
+                                              }
+                                            : {})}
                                         doRename={async name => {
                                             await backend.projectUpdate(projectAsset.id, {
                                                 ami: null,
@@ -881,9 +895,7 @@ function Dashboard(props: DashboardProps) {
                                     <ContextMenuEntry disabled onClick={doOpenAsFolder}>
                                         Open as folder
                                     </ContextMenuEntry>
-                                    <ContextMenuEntry onClick={doRename}>
-                                        Rename
-                                    </ContextMenuEntry>
+                                    <ContextMenuEntry onClick={doRename}>Rename</ContextMenuEntry>
                                     <ContextMenuEntry onClick={doDelete}>
                                         <span className="text-red-700">Delete</span>
                                     </ContextMenuEntry>

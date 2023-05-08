@@ -10,16 +10,20 @@ import Modal from './modal'
 export interface RenameModalProps {
     assetType: string
     name: string
+    namePattern?: string
+    title?: string
     doRename: (newName: string) => Promise<void>
     onSuccess: () => void
 }
 
 function RenameModal(props: RenameModalProps) {
-    const { assetType, name, doRename, onSuccess } = props
+    const { assetType, name, namePattern, title, doRename, onSuccess } = props
     const { unsetModal } = modalProvider.useSetModal()
+
     const [newName, setNewName] = react.useState<string | null>(null)
 
-    const onSubmit = async () => {
+    const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault()
         if (newName == null) {
             toast.error('Please provide a new name.')
         } else {
@@ -27,11 +31,15 @@ function RenameModal(props: RenameModalProps) {
             await toast.promise(doRename(newName), {
                 loading: `Renaming ${assetType}...`,
                 success: `Renamed ${assetType}.`,
-                error: `Could not rename ${assetType}.`,
+                // This is UNSAFE, as the original function's parameter is of type `any`.
+                error: (promiseError: Error) =>
+                    `Error renaming ${assetType}: ${promiseError.message}`,
             })
             onSuccess()
         }
     }
+
+    console.log('what', namePattern, title)
 
     return (
         <Modal className="bg-opacity-90">
@@ -39,10 +47,7 @@ function RenameModal(props: RenameModalProps) {
                 onClick={event => {
                     event.stopPropagation()
                 }}
-                onSubmit={async event => {
-                    event.preventDefault()
-                    await onSubmit()
-                }}
+                onSubmit={onSubmit}
                 className="relative bg-white shadow-soft rounded-lg w-96 p-2"
             >
                 <button type="button" className="absolute right-0 top-0 m-2" onClick={unsetModal}>
@@ -58,6 +63,8 @@ function RenameModal(props: RenameModalProps) {
                         id="renamed_file_name"
                         type="text"
                         required
+                        pattern={namePattern}
+                        title={title}
                         className="border-primary bg-gray-200 rounded-full w-2/3 px-2 mx-2"
                         onChange={event => {
                             setNewName(event.target.value)
@@ -66,12 +73,12 @@ function RenameModal(props: RenameModalProps) {
                     />
                 </div>
                 <div className="m-1">
-                    <div
+                    <button
+                        type="submit"
                         className="hover:cursor-pointer inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-1"
-                        onClick={onSubmit}
                     >
                         Rename
-                    </div>
+                    </button>
                     <div
                         className="hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1"
                         onClick={unsetModal}
