@@ -1,5 +1,6 @@
 package org.enso.compiler.phase
 
+import com.oracle.truffle.api.TruffleLogger
 import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
@@ -9,13 +10,22 @@ import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 
+import java.util.logging.Level
+
 class SymbolsImportResolution(compiler: Compiler) {
+  private val logger: TruffleLogger = compiler.context.getLogger(getClass)
+
   def resolveImportSymbols(
     module: Module
   ): Unit = {
     val bindingMap = module.getIr.unsafeGetMetadata(
       BindingAnalysis,
       "Should be analyzed before resolving import symbols"
+    )
+    logger.log(
+      Level.FINE,
+      "Resolving import symbols for module {0}",
+      Array[Object](module.getName.toString)
     )
     module.unsafeSetIr(
       module.getIr.copy(

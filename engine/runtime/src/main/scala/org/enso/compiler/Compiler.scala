@@ -191,7 +191,7 @@ class Compiler(
             logger.log(
               Level.SEVERE,
               "Could not find entry point for compilation in package [{0}.{1}]",
-              Array(pkg.namespace, pkg.name)
+              Array[Object](pkg.namespace, pkg.name)
             )
             CompletableFuture.completedFuture(false)
           case Some(m) =>
@@ -436,12 +436,23 @@ class Compiler(
     module: Module,
     bindingsCachingEnabled: Boolean
   ): List[Module] = {
+    logger.log(
+      Level.FINER,
+      "Running imports and exports resolution for module {0}",
+      Array[Object](module.getName.toString)
+    )
     val (importedModules, modulesImportedWithCachedBindings) =
       try {
         importResolver.mapImports(module, bindingsCachingEnabled)
       } catch {
         case e: ImportResolver.HiddenNamesConflict => reportExportConflicts(e)
       }
+
+    logger.log(
+      Level.FINER,
+      "Modules to be imported: [{0}]",
+      Array[Object](importedModules.map(_.getName.toString))
+    )
 
     val requiredModules =
       try { new ExportsResolution().run(importedModules) }
@@ -464,8 +475,18 @@ class Compiler(
         }
       }
 
+    logger.log(
+      Level.FINER,
+      "Required modules after exports resolution: [{0}]",
+      Array[Object](requiredModules.map(_.getName.toString))
+    )
+
     joinAllFutures(parsingTasks).get()
 
+    // Symbol imports resolution has to be done after the exports resolution
+    requiredModules.foreach(module =>
+      symbolImportsResolver.resolveImportSymbols(module)
+    )
     // ** Order matters for codegen **
     // Consider a case when an exported symbol is referenced but the module that defines the symbol
     // has not yet registered the method in its scope. This will result in No_Such_Method method during runtime;
