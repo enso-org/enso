@@ -194,6 +194,13 @@ spec =
             r2.catch . should_be_a File_Error.Unsupported_Type
             empty.delete_if_exists
 
+            broken = enso_project.data / "transient" / "empty-data.db"
+            "SOME_RANDOM_DATA".write empty on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+            r3 = Data.read broken
+            r3.should_fail_with File_Error
+            r3.catch . should_be_a File_Error.Unsupported_Type
+            broken.delete_if_exists
+
         Test.specify "should connect to a db file" <|
             connection = Data.read file
             tables = connection.tables
