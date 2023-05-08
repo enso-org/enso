@@ -176,7 +176,7 @@ impl View {
         let display_object = display::object::Instance::new();
         let background = background::View::new();
         let overlay = overlay::View::new();
-        // display_object.add_child(&background);
+        display_object.add_child(&background);
         display_object.add_child(&overlay);
         let div = web::document.create_div_or_panic();
         let background_dom = DomSymbol::new(&div);
@@ -186,6 +186,7 @@ impl View {
         ensogl::shapes_order_dependencies! {
             scene => {
                 background -> overlay;
+                background -> ensogl_component::spinner;
             }
         };
 
