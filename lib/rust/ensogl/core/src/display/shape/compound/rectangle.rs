@@ -28,7 +28,7 @@ pub use shape::Shape;
 pub mod shape {
     use super::*;
     crate::shape! {
-        pointer_events_instanced = true,
+        pointer_events_instanced = true;
         (
             style: Style,
             color: Vector4,

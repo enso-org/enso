@@ -148,7 +148,7 @@ impl Style {
 pub mod shape {
     use super::*;
     crate::shape! {
-        pointer_events_instanced = true,
+        pointer_events_instanced = true;
         alignment = center; (
             style: Style,
             press: f32,

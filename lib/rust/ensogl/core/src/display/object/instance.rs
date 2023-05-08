@@ -2547,52 +2547,61 @@ impl InstanceDef {
     /// - Execute bubbling phase - propagate event from the target to the root.
     /// - If event has been cancelled, store the phase and target to resume the propagation.
     fn emit_event_impl(&self, event: &event::SomeEvent) {
-        let Some((resume_phase, resume_target)) = event.begin_propagation() else { return; };
+        let Some((resume_phase, mut resume_target)) = event.begin_propagation() else { return; };
 
         let rev_parent_chain = self.rev_parent_chain();
-        // If we are resuming previously cancelled event, find the position of the last processed
-        // target in current parent chain. The processing will continue right after it.
-        let mut resume_index = resume_target.map(|t| rev_parent_chain.iter().position(|o| o == &t));
-        if resume_phase <= event::Phase::Capturing && event.captures.get() {
+        let only_target = &rev_parent_chain[rev_parent_chain.len().saturating_sub(1)..];
+
+        if resume_phase <= event::Phase::Capturing {
             event.enter_phase(event::Phase::Capturing);
+
+            // If capturing phase is disabled, process only target.
+            let chain = if event.captures.get() { &rev_parent_chain } else { only_target };
+
             // When resuming capturing phase, if the target is no longer in the parent chain, we
             // start the capturing again from the root.
-            let resume_position = match resume_index.take() {
+            let resume_index = resume_target.take().map(|t| chain.iter().position(|o| o == &t));
+            let resume_position = match resume_index {
                 // Resumed and the last target is still in chain. Continue capturing past it.
                 // targets: a b c d | d c b a
                 // index:   0 1 2 3 | 3 2 1 0
                 // resume:      >...|........
-                Some(Some(index)) => (index + 1).min(rev_parent_chain.len()),
+                Some(Some(index)) => (index + 1).min(chain.len()),
                 // Either starting from scratch, or resumed but the last target is no longer in
                 // chain. In that case start the capturing from the root.
                 Some(None) | None => 0,
             };
 
-            for object in &rev_parent_chain[resume_position..] {
+            for object in &chain[resume_position..] {
                 let false = event.is_cancelled() else { return };
                 event.set_current_target(Some(object));
                 object.event.capturing_fan.emit(&event.data);
             }
         }
 
-        if resume_phase <= event::Phase::Bubbling && event.bubbles.get() {
+        if resume_phase <= event::Phase::Bubbling {
             event.enter_phase(event::Phase::Bubbling);
+
+            // If bubbling phase is disabled, process only target.
+            let chain = if event.bubbles.get() { &rev_parent_chain } else { only_target };
+
             // When resuming bubbling phase, if the target is no longer in the parent chain, we
             // end bubbling completely.
-            let resume_position = match resume_index.take() {
+            let resume_index = resume_target.take().map(|t| chain.iter().position(|o| o == &t));
+            let resume_position = match resume_index {
                 // Resumed and the last target is still in chain. Continue bubbling past it.
                 // targets: a b c d | d c b a
                 // index:   0 1 2 3 | 3 2 1 0
                 // resume:          |   >....
                 Some(Some(index)) => index.saturating_sub(1),
                 // Starting from scratch. Start bubbling from the last object in the chain.
-                None => rev_parent_chain.len(),
+                None => chain.len(),
                 // Resumed in bubbling phase, but the last target is no longer in chain. Stop
                 // bubbling phase immediately.
                 Some(None) => 0,
             };
 
-            for object in rev_parent_chain[..resume_position].iter().rev() {
+            for object in chain[..resume_position].iter().rev() {
                 let false = event.is_cancelled() else { return };
                 event.set_current_target(Some(object));
                 object.event.bubbling_fan.emit(&event.data);
