@@ -76,7 +76,7 @@ spec =
             t4 = r2.second . order_by "N"
             t4.row_count . should_equal n
             t4.at "X" . to_vector . should_equal lowers
-            t4.at "Right_X" . to_vector . should_equal uppers
+            t4.at "Right X" . to_vector . should_equal uppers
             t4.at "Z" . to_vector . should_equal <| 1.up_to n+1 . to_vector . reverse
 
             base_ms = r1.first.total_milliseconds

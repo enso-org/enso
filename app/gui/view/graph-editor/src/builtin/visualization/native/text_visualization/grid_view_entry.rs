@@ -77,6 +77,11 @@ impl Entry {
         let mut style = "position: absolute; white-space: pre; pointer-events: auto;".to_string();
         write!(style, "left: {left}px; top: {top}px;").ok();
         write!(style, "width: {width}px; height: {height}px;").ok();
+        // The default line height in browsers is 1.2, which is great for multi-line text and
+        // elements whose height is greater than the line height. In this case, however, where the
+        // height and the font size are set to the same value, the default setting of 1.2 pushes
+        // the text below the allotted space.
+        write!(style, "line-height: 1").ok();
 
         self.text.set_attribute_or_warn("style", style);
     }

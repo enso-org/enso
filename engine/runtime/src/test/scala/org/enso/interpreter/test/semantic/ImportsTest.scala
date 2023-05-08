@@ -191,4 +191,15 @@ class ImportsTest extends PackageTest {
     ) shouldEqual "Main.enso[2:1-2:57]: The exported type `Atom` in `local.Test_Fully_Qualified_Name_Conflict.Atom` module will cause name conflict when attempting to use a fully qualified name of the `local.Test_Fully_Qualified_Name_Conflict.Atom.Foo` module."
   }
 
+  "Deeply nested modules" should "infer correct synthetic modules" in {
+    evalTestProject(
+      "Test_Deeply_Nested_Modules"
+    ).toString shouldEqual "0"
+    val outLines = consumeOut
+    outLines should have length 3
+    outLines(0) shouldEqual "(A_Mod.Value 1)"
+    outLines(1) shouldEqual "(C_Mod.Value 1)"
+    outLines(2) shouldEqual "(D_Mod.Value 1)"
+  }
+
 }

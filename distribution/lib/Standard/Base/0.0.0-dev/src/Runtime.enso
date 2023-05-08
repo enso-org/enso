@@ -174,6 +174,11 @@ type Context
     with_enabled self ~action =
         with_enabled_context self Runtime.current_execution_environment action
 
+    ## PRIVATE
+       Run an action with the Context disabled.
+    with_disabled : Function -> Any
+    with_disabled self ~action =
+        with_disabled_context self Runtime.current_execution_environment action
 
 ## PRIVATE
    ADVANCED

@@ -1,6 +1,6 @@
 package src.main.scala.licenses
 
-import com.typesafe.sbt.license.LicenseReport
+import sbtlicensereport.license.LicenseReport
 import sbt.File
 import sbt.librarymanagement.UpdateReport
 
