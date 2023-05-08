@@ -16,8 +16,8 @@ const CLOUD_REDIRECTS = {
      * The redirect URL must be known ahead of time because it is registered with the OAuth provider
      * when it is created. In the native app, the port is unpredictable, but this is not a problem
      * because the native app does not use port-based redirects, but deep links. */
-    development: newtype.asNewtype<auth.OAuthRedirect>('http://localhost:8080'),
-    production: newtype.asNewtype<auth.OAuthRedirect>('https://cloud.enso.org'),
+    development: newtype.asNewtype<auth.OAuthRedirect>('http://localhost:8081'),
+    production: newtype.asNewtype<auth.OAuthRedirect>('http://localhost:8080'),
 }
 
 /** All possible API URLs, sorted by environment. */
