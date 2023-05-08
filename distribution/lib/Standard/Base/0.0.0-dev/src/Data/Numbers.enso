@@ -545,6 +545,29 @@ type Decimal
     floor : Integer
     floor self = @Builtin_Method "Decimal.floor"
 
+    ## Round to a specified number of decimal places.
+
+       By default, rounding uses "asymmetric round-half-up", also known as
+       "round towards positive infinity." If use_bankers=True, then it uses
+       "round-half-even", also known as "banker's rounding".
+
+       Arguments:
+       - decimal_places: The number of decimal places to round to. Can be
+         negative, which results in rounding to positive integer powers of 10.
+       - use_bankers: Use banker's rounding
+
+       ? Negative decimal place counts
+         Rounding to `n` digits can be thought of as "rounding to the nearest
+         multiple of 10^(-n)". For negative decimal counts, this results in rounding to the nearest positive integer power of 10.
+
+       ? Infinities and NaN
+         - NaN.round == 0
+         - +Inf.round == +Inf
+         - -Inf.round == -Inf
+    round : Integer -> Boolean -> Decimal
+    round self decimal_places=0 use_bankers=False =
+        self * (10 ^ (-decimal_places)) . floor
+
     ## Compute the negation of this.
 
        > Example

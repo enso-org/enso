@@ -470,4 +470,86 @@ spec =
             Number.nan . equals Number.nan . should_fail_with Incomparable_Values
             Number.nan . equals 0 . should_fail_with Incomparable_Values
 
+    Test.group "Decimalround" <|
+        Test.specify "Can round positive decimals correctly" <|
+            3.0 . round . should_equal 3
+            3.00001 . round . should_equal 3
+            3.3 . round . should_equal 3
+            3.49999 . round . should_equal 3
+            3.5 . round . should_equal 4
+            3.50001 . round . should_equal 4
+            3.99999 . round . should_equal 4
+
+        Test.specify "Can round negative decimals correctly" <|
+            -3.0 . round . should_equal -3
+            -3.00001 . round . should_equal -3
+            -3.3 . round . should_equal -3
+            -3.49999 . round . should_equal -3
+            -3.5 . round . should_equal -3
+            -3.50001 . round . should_equal -4
+            -3.99999 . round . should_equal -4
+
+        Test.specify "Can round zero and small numbers correctly" <|
+            0.0 . round . should_equal 0
+            0.00001 . round . should_equal 0
+            -0.00001 . round . should_equal 0
+
+        Test.specify "Can round large numbers correctly" <|
+            27670116110564327418.0 . round . should_equal 27670116110564327418
+            27670116110564327418.49999 . round . should_equal 27670116110564327418
+            27670116110564327418.5 . round . should_equal 27670116110564327419
+            27670116110564327418.50001 . round . should_equal 27670116110564327419
+            27670116110564327418.8 . round . should_equal 27670116110564327419
+            27670116110564327418.99999 . round . should_equal 27670116110564327419
+
+            -27670116110564327418.0 . round . should_equal -27670116110564327418
+            -27670116110564327418.49999 . round . should_equal -27670116110564327418
+            -27670116110564327418.5 . round . should_equal -27670116110564327418
+            -27670116110564327418.50001 . round . should_equal -27670116110564327419
+            -27670116110564327418.8 . round . should_equal -27670116110564327419
+            -27670116110564327418.99999 . round . should_equal -27670116110564327419
+
+        Test.specify "Can round decimals to a specified number of decimal places" <|
+            3.0001 . round 2 . should_equal 3.0
+            3.1414 . round 2 . should_equal 3.14
+            3.1415 . round 2 . should_equal 3.14
+            3.1416 . round 2 . should_equal 3.14
+            3.9999 . round 2 . should_equal 4.0
+
+            3.0001 . round 3 . should_equal 3.0
+            3.1414 . round 3 . should_equal 3.141
+            3.1415 . round 3 . should_equal 3.142
+            3.1416 . round 3 . should_equal 3.142
+            3.9999 . round 3 . should_equal 4.0
+
+        Test.specify "Can round positive numbers to a specified negative number of decimal places" <|
+            1234.0 . round -1 . should_equal 1230
+            1234.0 . round -2 . should_equal 1200
+            1234.0 . round -3 . should_equal 1000
+            1234.0 . round -4 . should_equal 0
+
+            1499.0 . round -1 . should_equal 1500
+            1499.0 . round -2 . should_equal 1500
+            1499.0 . round -3 . should_equal 1500
+
+            1495.0 . round -1 . should_equal 1500
+            1494.0 . round -1 . should_equal 1490
+            1495.0 . round -2 . should_equal 1500
+            1494.0 . round -2 . should_equal 1500
+
+        Test.specify "Can round negative numbers to a specified negative number of decimal places" <|
+            -1234.0 . round -1 . should_equal -1230
+            -1234.0 . round -2 . should_equal -1200
+            -1234.0 . round -3 . should_equal -1000
+            -1234.0 . round -4 . should_equal 0
+
+            -1499.0 . round -1 . should_equal -1500
+            -1499.0 . round -2 . should_equal -1500
+            -1499.0 . round -3 . should_equal -1500
+
+            -1495.0 . round -1 . should_equal -1500
+            -1494.0 . round -1 . should_equal -1490
+            -1495.0 . round -2 . should_equal -1500
+            -1494.0 . round -2 . should_equal -1500
+
 main = Test_Suite.run_main spec
