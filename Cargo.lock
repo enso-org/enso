@@ -3233,7 +3233,6 @@ dependencies = [
  "enso-frp",
  "enso-prelude",
  "enso-shapely",
- "enso-text",
  "enso-types",
  "ensogl-core",
 ]
