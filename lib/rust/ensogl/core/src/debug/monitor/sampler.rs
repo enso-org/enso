@@ -6,8 +6,6 @@ use crate::prelude::*;
 
 use crate::debug::stats::StatsData;
 
-use num_traits::cast::AsPrimitive;
-
 
 
 // ==================
@@ -71,27 +69,33 @@ impl ValueCheck {
 #[derive(Copy, Clone)]
 pub struct Sampler {
     /// Label of the sampler to be displayed in the performance monitor window.
-    pub label:          &'static str,
+    pub label:                &'static str,
     /// Get the newest value of the sampler. The value will be displayed in the monitor panel. In
     /// case this function returns [`None`], it means that the value is not available yet.
-    pub expr:           fn(&StatsData) -> Option<f64>,
+    pub expr:                 fn(&StatsData) -> Option<f64>,
     /// Get the details to be displayed in the details view.
-    pub details:        Option<fn(&StatsData) -> &[&'static str]>,
+    pub details:              Option<fn(&StatsData) -> &[&'static str]>,
     /// If the value crosses this threshold, the graph will be drawn in the warning color.
-    pub warn_threshold: f64,
+    pub warn_threshold:       f64,
     /// If the value crosses this threshold, the graph will be drawn in the error color.
-    pub err_threshold:  f64,
+    pub err_threshold:        f64,
     /// The value will be divided by this number before being displayed.
-    pub value_divisor:  f64,
+    pub value_divisor:        f64,
     /// The minimum expected value in order to set proper scaling of the monitor plots. If the real
     /// value will be smaller than this parameter, it will be clamped.
-    pub min_value:      Option<f64>,
+    pub min_value:            Option<f64>,
     /// The maximum expected value in order to set proper scaling of the monitor plots. If the real
     /// value will be bigger than this parameter, it will be clamped.
-    pub max_value:      Option<f64>,
+    pub max_value:            Option<f64>,
     /// The number of digits after the dot which should be displayed in the monitor panel.
-    pub precision:      usize,
-    pub min_size:       Option<f64>,
+    pub precision:            usize,
+    /// The minimum size of the sampler in the performance monitor view. If it is set to [`None`],
+    /// the size will be computed as the bigger value of the [`Self::warn_threshold`] and
+    /// [`Self::err_threshold`].
+    pub min_size:             Option<f64>,
+    /// If set to [`true`], the sampler value can be updated in the subsequent frames and the
+    /// sampler will be re-drawn if the data updates after the first draw.
+    pub can_be_reported_late: bool,
 }
 
 impl Debug for Sampler {
@@ -103,16 +107,17 @@ impl Debug for Sampler {
 impl const Default for Sampler {
     fn default() -> Self {
         Self {
-            label:          "Unlabeled",
-            expr:           |_| None,
-            details:        None,
-            warn_threshold: 0.0,
-            err_threshold:  0.0,
-            value_divisor:  1.0,
-            min_value:      None,
-            max_value:      None,
-            precision:      0,
-            min_size:       None,
+            label:                "Unlabeled",
+            expr:                 |_| None,
+            details:              None,
+            warn_threshold:       0.0,
+            err_threshold:        0.0,
+            value_divisor:        1.0,
+            min_value:            None,
+            max_value:            None,
+            precision:            0,
+            min_size:             None,
+            can_be_reported_late: false,
         }
     }
 }
@@ -173,6 +178,7 @@ pub const CPU_TIME: Sampler = Sampler {
     warn_threshold: 1000.0 / 55.0,
     err_threshold: 1000.0 / 25.0,
     precision: 2,
+    can_be_reported_late: true,
     ..DEFAULT_SAMPLER
 };
 
@@ -183,6 +189,7 @@ pub const GPU_TIME: Sampler = Sampler {
     warn_threshold: 1000.0 / 55.0,
     err_threshold: 1000.0 / 25.0,
     precision: 2,
+    can_be_reported_late: true,
     ..DEFAULT_SAMPLER
 };
 

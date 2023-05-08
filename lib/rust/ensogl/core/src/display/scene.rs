@@ -944,12 +944,14 @@ impl SceneData {
         world::with_context(|t| t.new(label))
     }
 
-    pub fn low_fps_mode(&self, enabled: bool) {
-        // if enabled {
-        // self.dom.root.override_pixel_ratio(Some(1.0));
-        // } else {
-        //     self.dom.root.override_pixel_ratio(None);
-        // }
+    /// If enabled, the scene will be rendered with 1.0 device pixel ratio, even on high-dpi
+    /// monitors.
+    pub fn low_resolution_mode(&self, enabled: bool) {
+        if enabled {
+            self.dom.root.override_device_pixel_ratio(Some(1.0));
+        } else {
+            self.dom.root.override_device_pixel_ratio(None);
+        }
     }
 
     fn update_shape(&self) -> bool {
@@ -1179,15 +1181,15 @@ impl Scene {
         }
     }
 
-    pub fn on_frame_start(&self) -> Vec<Results> {
-        // console_log!("start frame");
+    /// Run the GPU profiler. If the result is [`None`], either the GPU context is not initialized
+    /// ot the profiler is not available at the current platform. In case the resulting vector
+    /// is empty, the previous frame measurements are not available yet and they will be
+    /// provided in the future.
+    pub fn on_frame_start(&self) -> Option<Vec<Results>> {
         if let Some(context) = &*self.context.borrow() {
-            let results = context.profiler.start_frame();
-            // console_log!("{:?}", results);
-            results
-            // results.into_iter().map(|t| t.total).collect_vec()
+            context.profiler.start_frame()
         } else {
-            default()
+            None
         }
     }
 

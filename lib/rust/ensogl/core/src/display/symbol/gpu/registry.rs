@@ -3,10 +3,8 @@
 
 use crate::data::dirty::traits::*;
 use crate::prelude::*;
-use crate::system::web::traits::*;
 
 use crate::data::dirty;
-use crate::debug;
 use crate::debug::stats::Stats;
 use crate::display::camera::Camera2d;
 use crate::display::scene;
@@ -20,7 +18,6 @@ use crate::display::symbol::WeakSymbol;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::Context;
-use crate::system::web;
 
 
 
@@ -29,6 +26,7 @@ use crate::system::web;
 // =============
 
 pub type Dirty = dirty::SharedSet<SymbolId>;
+
 
 
 // ===============

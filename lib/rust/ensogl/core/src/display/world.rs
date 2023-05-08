@@ -13,7 +13,6 @@ use crate::control::callback;
 use crate::data::dirty;
 use crate::debug;
 use crate::debug::stats::Stats;
-use crate::debug::stats::StatsData;
 use crate::display;
 use crate::display::garbage;
 use crate::display::render;
@@ -40,6 +39,25 @@ use web::JsValue;
 
 pub use crate::display::symbol::types::*;
 use crate::system::gpu::context::profiler::Results;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// The number of frames that need to be rendered slow/fast before the resolution mode is switched
+/// to low/high one.
+const FRAME_COUNT_CHECK_FOR_SWITCHING_RESOLUTION_MODE: usize = 8;
+
+/// The time threshold for switching to low resolution mode. It will be used on platforms which
+/// allow proper GPU time measurements (currently only Chrome).
+const LOW_RESOLUTION_MODE_GPU_TIME_THRESHOLD: f64 = 1000.0 / 30.0;
+
+/// The FPS threshold for switching to low resolution mode. It will be used on platforms which do
+/// not allow proper GPU time measurements (currently all browsers but Chrome).
+const LOW_RESOLUTION_MODE_FPS_THRESHOLD: usize = 25;
+
 
 
 // ===============
@@ -337,8 +355,8 @@ impl WorldDataWithLoop {
         crate::frp::extend! {network
             eval on_frame_start ([data] (t) {
                 data.stats.calculate_prev_frame_fps(*t);
-                let tt = data.default_scene.on_frame_start();
-                data.run_stats(*t, tt)
+                let gpu_perf_results = data.default_scene.on_frame_start();
+                data.update_stats(*t, gpu_perf_results)
             });
             eval_ on_frame_end (data.stats.end_frame());
             layout_update <- on_before_layout.map(f!((t) data.run_next_frame_layout(*t)));
@@ -415,13 +433,14 @@ pub struct WorldData {
     display_mode: Rc<Cell<glsl::codes::DisplayModes>>,
     stats: Stats,
     stats_monitor: debug::monitor::Monitor,
-    // stats_draw_handle: callback::Handle,
     pub on: Callbacks,
     debug_hotkeys_handle: Rc<RefCell<Option<web::EventListenerHandle>>>,
     update_themes_handle: callback::Handle,
     garbage_collector: garbage::Collector,
     emit_measurements_handle: Rc<RefCell<Option<callback::Handle>>>,
     pixel_read_pass_threshold: Rc<RefCell<Weak<Cell<usize>>>>,
+    slow_frame_count: Rc<Cell<usize>>,
+    fast_frame_count: Rc<Cell<usize>>,
 }
 
 impl WorldData {
@@ -438,21 +457,13 @@ impl WorldData {
         let uniforms = Uniforms::new(&default_scene.variables);
         let debug_hotkeys_handle = default();
         let garbage_collector = default();
-        // let stats_draw_handle = on.prev_frame_stats.add(f!([stats_monitor] (stats: &StatsData) {
-        //     // console_log!("{:?}", stats.fps);
-        //     stats_monitor.sample_and_draw(stats);
-        //
-        //     if stats.fps < 80.0 {
-        //         SCENE.with_borrow(|t| t.as_ref().unwrap().low_fps_mode(true));
-        //     } else {
-        //         SCENE.with_borrow(|t| t.as_ref().unwrap().low_fps_mode(false));
-        //     }
-        // }));
         let themes = with_context(|t| t.theme_manager.clone_ref());
         let update_themes_handle = on.before_frame.add(f_!(themes.update()));
         let emit_measurements_handle = default();
         SCENE.with_borrow_mut(|t| *t = Some(default_scene.clone_ref()));
         let pixel_read_pass_threshold = default();
+        let slow_frame_count = default();
+        let fast_frame_count = default();
 
         Self {
             frp,
@@ -464,11 +475,12 @@ impl WorldData {
             on,
             debug_hotkeys_handle,
             stats_monitor,
-            // stats_draw_handle,
             update_themes_handle,
             garbage_collector,
             emit_measurements_handle,
             pixel_read_pass_threshold,
+            slow_frame_count,
+            fast_frame_count,
         }
         .init()
     }
@@ -547,33 +559,56 @@ impl WorldData {
         self.default_scene.renderer.set_pipeline(pipeline);
     }
 
-    fn run_stats(&self, time: Duration, t: Vec<Results>) {
+    fn update_stats(&self, _time: Duration, gpu_perf_results: Option<Vec<Results>>) {
         {
-            for result in t {
-                if result.frame_offset == 1 {
-                    let stats_data = &mut self.stats.borrow_mut().stats_data;
-                    stats_data.gpu_time = Some(result.total);
-                    stats_data.cpu_time = Some(stats_data.frame_time - result.total);
-                } else {
-                    self.stats_monitor.with_last_nth_sample(result.frame_offset - 2, |sample| {
-                        sample.gpu_time = Some(result.total);
-                        sample.cpu_time = Some(sample.frame_time - result.total);
-                    });
-                    self.stats_monitor.redraw_back(result.frame_offset - 2);
+            if let Some(gpu_perf_results) = &gpu_perf_results {
+                for result in gpu_perf_results {
+                    // The monitor is not updated yet, so the last sample is from the previous
+                    // frame.
+                    let frame_offset = result.frame_offset - 1;
+                    if frame_offset == 0 {
+                        let stats_data = &mut self.stats.borrow_mut().stats_data;
+                        stats_data.gpu_time = Some(result.total);
+                        stats_data.cpu_time = Some(stats_data.frame_time - result.total);
+                    } else {
+                        // The last sampler stored in monitor is from 2 frames ago, as the last
+                        // frame stats are not submitted yet.
+                        let sampler_offset = result.frame_offset - 2;
+                        self.stats_monitor.with_last_nth_sample(sampler_offset, |sample| {
+                            sample.gpu_time = Some(result.total);
+                            sample.cpu_time = Some(sample.frame_time - result.total);
+                        });
+                        self.stats_monitor.redraw_historical_data(sampler_offset);
+                    }
                 }
             }
 
             let stats_borrowed = self.stats.borrow();
-            // self.on.prev_frame_stats.run_all(&stats_borrowed.stats_data);
             let stats = &stats_borrowed.stats_data;
-
-            // console_log!("{:?}", stats.fps);
             self.stats_monitor.sample_and_draw(stats);
 
-            if stats.fps < 80.0 {
-                SCENE.with_borrow(|t| t.as_ref().unwrap().low_fps_mode(true));
+            let slow_frame = if let Some(gpu_perf_results) = gpu_perf_results {
+                gpu_perf_results.last().map(|t| t.total > LOW_RESOLUTION_MODE_GPU_TIME_THRESHOLD)
             } else {
-                SCENE.with_borrow(|t| t.as_ref().unwrap().low_fps_mode(false));
+                Some(stats.fps < LOW_RESOLUTION_MODE_FPS_THRESHOLD as f64)
+            };
+
+            if let Some(slow_frame) = slow_frame {
+                if slow_frame {
+                    self.fast_frame_count.set(0);
+                    self.slow_frame_count.modify(|t| *t += 1);
+                    let count = self.slow_frame_count.get();
+                    if count == FRAME_COUNT_CHECK_FOR_SWITCHING_RESOLUTION_MODE {
+                        SCENE.with_borrow(|t| t.as_ref().unwrap().low_resolution_mode(true));
+                    }
+                } else {
+                    self.slow_frame_count.set(0);
+                    self.fast_frame_count.modify(|t| *t += 1);
+                    let count = self.fast_frame_count.get();
+                    if count == FRAME_COUNT_CHECK_FOR_SWITCHING_RESOLUTION_MODE {
+                        SCENE.with_borrow(|t| t.as_ref().unwrap().low_resolution_mode(false));
+                    }
+                }
             }
         }
         self.stats.reset_per_frame_statistics();

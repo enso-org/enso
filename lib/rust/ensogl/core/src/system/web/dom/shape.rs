@@ -61,7 +61,9 @@ impl Shape {
         Vector2::new(self.width / 2.0, self.height / 2.0)
     }
 
-    pub fn with_pixel_ratio(self, ratio: Option<f32>) -> Self {
+    /// Create a new shape with the provided device pixel ratio. In case the provided value is
+    /// [`None`], the device pixel ratio reported by the browser will be used.
+    pub fn with_device_pixel_ratio(self, ratio: Option<f32>) -> Self {
         Self {
             pixel_ratio: ratio.unwrap_or_else(|| web::window.device_pixel_ratio() as f32),
             ..self
@@ -129,10 +131,14 @@ impl<T> WithKnownShape<T> {
         Self { dom, network, shape, shape_source, observer, overridden_pixel_ratio }
     }
 
-    pub fn override_pixel_ratio(&self, ratio: Option<f32>) {
-        self.overridden_pixel_ratio.set(ratio);
-        let shape = self.shape.value().with_pixel_ratio(ratio);
-        self.shape_source.emit(shape);
+    /// Override the device pixel ratio. If the provided value is [`None`], the device pixel ratio
+    /// provided by the browser will be used.
+    pub fn override_device_pixel_ratio(&self, ratio: Option<f32>) {
+        if ratio != self.overridden_pixel_ratio.get() {
+            self.overridden_pixel_ratio.set(ratio);
+            let shape = self.shape.value().with_device_pixel_ratio(ratio);
+            self.shape_source.emit(shape);
+        }
     }
 
     /// Get the current shape of the object.

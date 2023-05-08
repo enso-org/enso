@@ -157,7 +157,7 @@ impl ExtDisjointTimerQueryWebgl2 {
     /// [`ExtDisjointTimerQueryWebgl2`].
     pub fn query_timestamp(&self, query: &WebGlQuery) {
         if let Err(err) =
-            self.query_counter_ext_fn.call2(&self.ext, &query, &(*self.timestamp_ext).into())
+            self.query_counter_ext_fn.call2(&self.ext, query, &(*self.timestamp_ext).into())
         {
             warn!("Error while querying timestamp: {:?}", err);
         }

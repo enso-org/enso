@@ -489,8 +489,11 @@ impl Monitor {
         self.renderer.borrow_mut().sample_and_draw(stats);
     }
 
-    pub fn redraw_back(&self, n: usize) {
-        self.renderer.borrow_mut().redraw_back(n);
+    /// Redraw the historical data of the monitor. This can be used to update the monitor if the
+    /// render stats were updated with a few-frames latency. Only the monitor panels marked as
+    /// `can_be_reported_late` will be redrawn.
+    pub fn redraw_historical_data(&self, offset: usize) {
+        self.renderer.borrow_mut().redraw_historical_data(offset);
     }
 
     /// Toggle the visibility of the monitor.
@@ -524,10 +527,7 @@ impl Monitor {
         self.renderer.borrow_mut().toggle();
     }
 
-    pub fn with_last_n_samples(&self, n: usize, f: impl FnMut(&mut StatsData)) {
-        self.renderer.borrow_mut().samples.with_last_n_elems(n, f);
-    }
-
+    /// Run the provided function with last `n`-th recorded performance sample.
     pub fn with_last_nth_sample(&self, n: usize, f: impl FnOnce(&mut StatsData)) {
         self.renderer.borrow_mut().samples.with_last_nth_elem(n, f);
     }
@@ -688,19 +688,16 @@ impl Renderer {
         }
     }
 
-    fn redraw_back(&mut self, n: usize) {
-        if !self.paused {
+    fn redraw_historical_data(&mut self, n: usize) {
+        if self.visible() && !self.paused {
             let stats = self.samples.get(self.samples.len() - 1 - n).unwrap();
-            // console_log!("redraw_back({n}), draw_time: {:?}", stats.draw_time);
             if let Some(dom) = self.dom.clone() {
-                self.with_all_panels(&dom, |selected, panel| {
-                    panel.sample_and_postprocess(stats);
-                    panel.draw_back(&dom, n);
+                self.with_all_panels(&dom, |_selected, panel| {
+                    if panel.can_be_reported_late() {
+                        panel.sample_and_postprocess(stats);
+                        panel.draw_historical_data(&dom, n);
+                    }
                 });
-                // for panel in &self.panels {
-                //     panel.sample_and_postprocess(stats);
-                //     panel.draw_back(&dom, n + 1);
-                // }
             }
         }
     }
@@ -849,7 +846,9 @@ impl Panel {
         self.rc.borrow_mut().draw(selected, dom, stats)
     }
 
-    pub fn draw_back(&self, dom: &Dom, n: usize) {
+    /// Redraw the historical data of the panel. This can be used to update the panel if the render
+    /// stats were updated with a few-frames latency.
+    pub fn draw_historical_data(&self, dom: &Dom, n: usize) {
         self.rc.borrow_mut().draw_plot_update(dom, n)
     }
 
@@ -867,6 +866,10 @@ impl Panel {
 
     fn first_draw(&self, dom: &Dom) {
         self.rc.borrow_mut().first_draw(dom)
+    }
+
+    fn can_be_reported_late(&self) -> bool {
+        self.rc.borrow().sampler.can_be_reported_late
     }
 }
 

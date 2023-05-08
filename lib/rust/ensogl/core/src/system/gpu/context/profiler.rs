@@ -1,5 +1,6 @@
-/// GPU profiler allowing measurements of various metrics, like draw call time or data upload
-/// time.
+//! GPU profiler allowing measurements of various metrics, like draw call time or data upload
+//! time.
+
 use crate::prelude::*;
 
 use crate::system::gpu::context::extension;
@@ -140,8 +141,8 @@ impl Profiler {
     /// Function that should be called on every frame. Gathers results of queries from previous
     /// frames. Please note, that not all results may be available yet, or results from multiple
     /// previous frames may be returned at once.
-    pub fn start_frame(&self) -> Vec<Results> {
-        self.data.as_ref().map(|t| t.start_frame()).unwrap_or_default()
+    pub fn start_frame(&self) -> Option<Vec<Results>> {
+        self.data.as_ref().map(|t| t.start_frame())
     }
 }
 
@@ -189,6 +190,7 @@ macro_rules! define_metrics {
                 )*
 
                 fn start_frame(&self) -> Vec<Results> {
+                    #[allow(clippy::redundant_closure_call)]
                     let target_measurements_per_frame = 0 $(+ (|_| 1)(stringify!($name)) )*;
                     let measurements_per_frame = self.assertions.measurements_per_frame.take();
                     let results = if measurements_per_frame == 0 {
