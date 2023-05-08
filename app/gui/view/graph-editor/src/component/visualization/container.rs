@@ -20,6 +20,7 @@ use crate::visualization;
 use action_bar::ActionBar;
 use enso_frp as frp;
 use ensogl::application::Application;
+use ensogl::data::color::Rgba;
 use ensogl::display;
 use ensogl::display::scene;
 use ensogl::display::scene::Scene;
@@ -162,10 +163,11 @@ ensogl::define_endpoints! {
 pub struct View {
     display_object: display::object::Instance,
 
-    background:     background::View,
-    overlay:        overlay::View,
-    background_dom: DomSymbol,
-    scene:          Scene,
+    background:      background::View,
+    overlay:         overlay::View,
+    background_dom:  DomSymbol,
+    scene:           Scene,
+    loading_spinner: ensogl_component::spinner::View,
 }
 
 impl View {
@@ -179,6 +181,7 @@ impl View {
         let div = web::document.create_div_or_panic();
         let background_dom = DomSymbol::new(&div);
         display_object.add_child(&background_dom);
+        let loading_spinner = ensogl_component::spinner::View::new();
 
         ensogl::shapes_order_dependencies! {
             scene => {
@@ -186,22 +189,19 @@ impl View {
             }
         };
 
-        Self { display_object, background, overlay, background_dom, scene }.init()
+        Self { display_object, background, overlay, background_dom, scene, loading_spinner }.init()
     }
 
     fn set_layer(&self, layer: visualization::Layer) {
         layer.apply_for_html_component(&self.scene, &self.background_dom);
     }
 
-    /// Load an HTML file into the view when user is waiting for data to be received.
-    /// TODO(#5214): This should be replaced with a EnsoGL spinner.
     fn show_waiting_screen(&self) {
-        let spinner = include_str!("../../../../assets/visualisation_spinner.html");
-        self.background_dom.dom().set_inner_html(spinner)
+        self.add_child(&self.loading_spinner);
     }
 
     fn disable_waiting_screen(&self) {
-        self.background_dom.dom().set_inner_html("")
+        self.loading_spinner.unset_parent();
     }
 
     fn init_background(&self) {
@@ -232,8 +232,15 @@ impl View {
         shadow::add_to_dom_element(background, &styles);
     }
 
+    fn init_spinner(&self) {
+        let spinner = &self.loading_spinner;
+        spinner.scale.set(5.0);
+        spinner.rgba.set(Rgba::black().into())
+    }
+
     fn init(self) -> Self {
         self.init_background();
+        self.init_spinner();
         self.show_waiting_screen();
         self.set_layer(visualization::Layer::Default);
         self.scene.layers.viz.add(&self);
@@ -418,6 +425,7 @@ impl ContainerModel {
             self.view.background.radius.set(CORNER_RADIUS);
             self.view.overlay.set_size(size);
             self.view.background.set_size(size + 2.0 * Vector2(PADDING, PADDING));
+            self.view.loading_spinner.set_size(size + 2.0 * Vector2(PADDING, PADDING));
             dom.set_style_or_warn("width", format!("{}px", size[0]));
             dom.set_style_or_warn("height", format!("{}px", size[1]));
             bg_dom.set_style_or_warn("width", "0");

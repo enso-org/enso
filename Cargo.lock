@@ -2640,6 +2640,7 @@ dependencies = [
  "ensogl-scrollbar",
  "ensogl-selector",
  "ensogl-shadow",
+ "ensogl-spinner",
  "ensogl-text",
  "ensogl-toggle-button",
  "ensogl-tooltip",
@@ -3223,6 +3224,18 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-tooltip",
+]
+
+[[package]]
+name = "ensogl-spinner"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-prelude",
+ "enso-shapely",
+ "enso-text",
+ "enso-types",
+ "ensogl-core",
 ]
 
 [[package]]
