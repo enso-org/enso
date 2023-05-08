@@ -78,8 +78,8 @@ export class LocalBackend implements Partial<backend.Backend> {
     }
 
     async closeProject(projectId: backend.ProjectId): Promise<void> {
-        if (this.currentlyOpeningProjectId === projectId) {
-            this.currentlyOpeningProjectId = null
+        if (LocalBackend.currentlyOpeningProjectId === projectId) {
+            LocalBackend.currentlyOpeningProjectId = null
         }
         await this.projectManager.closeProject({ projectId })
         if (projectId === LocalBackend.currentlyOpeningProjectId) {
@@ -194,12 +194,12 @@ export class LocalBackend implements Partial<backend.Backend> {
     }
 
     async deleteProject(projectId: backend.ProjectId): Promise<void> {
-        if (this.currentlyOpeningProjectId === projectId) {
-            this.currentlyOpeningProjectId = null
+        if (LocalBackend.currentlyOpeningProjectId === projectId) {
+            LocalBackend.currentlyOpeningProjectId = null
         }
         await this.projectManager.deleteProject({ projectId })
-        if (this.currentlyOpenProject?.id === projectId) {
-            this.currentlyOpenProject = null
+        if (LocalBackend.currentlyOpenProject?.id === projectId) {
+            LocalBackend.currentlyOpenProject = null
         }
     }
 }
