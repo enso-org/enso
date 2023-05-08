@@ -138,6 +138,12 @@ pub fn remove_symlink_dir_if_exists(path: impl AsRef<Path>) -> Result {
     }
 }
 
+/// Create a symlink, or remove and recreate it if it already exists.
+pub fn create_or_update_symlink(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result {
+    remove_symlink_dir_if_exists(&dst)?;
+    symlink_auto(&src, &dst)
+}
+
 /// `fs_extra`'s error type is not friendly to `anyhow`, so we need to convert it manually.
 ///
 /// Otherwise, we get just the message to look into the error kind, but the kind information is

@@ -86,6 +86,8 @@ use ide_ci::programs::git;
 use ide_ci::programs::git::clean;
 use ide_ci::programs::rustc;
 use ide_ci::programs::Cargo;
+use ide_ci::programs::Npm;
+use ide_ci::programs::Npx;
 use std::time::Duration;
 use tempfile::tempdir;
 use tokio::process::Child;
@@ -834,7 +836,18 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
                 .run_ok()
                 .await?;
 
+            // Copied from `build` in `lib/rust/ensogl/pack/src/lib.rs`.
+            let paths = ensogl_pack::Paths::new().await?;
+            ensogl_pack::compile_this_crate_ts_sources(&paths).await?;
+            ide_ci::fs::create_or_update_symlink(
+                &paths.target.ensogl_pack.dist,
+                &paths.target.ensogl_pack.linked_dist,
+            )?;
             prettier::check(&ctx.repo_root).await?;
+            let js_modules_root = ctx.repo_root.join("app/ide-desktop");
+            Npm.cmd()?.current_dir(&js_modules_root).args(["install"]).run_ok().await?;
+            Npm.cmd()?.current_dir(&js_modules_root).args(["run", "typecheck"]).run_ok().await?;
+            Npx.cmd()?.current_dir(&js_modules_root).args(["eslint", "."]).run_ok().await?;
         }
         Target::Fmt => {
             let prettier = prettier::write(&ctx.repo_root);
