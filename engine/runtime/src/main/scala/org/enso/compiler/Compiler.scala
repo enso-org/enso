@@ -458,11 +458,6 @@ class Compiler(
       try { new ExportsResolution().run(importedModules) }
       catch { case e: ExportCycleException => reportCycle(e) }
 
-    // Symbol imports resolution has to be done after the exports resolution
-    requiredModules.foreach(module =>
-      symbolImportsResolver.resolveImportSymbols(module)
-    )
-
     val parsingTasks: List[CompletableFuture[Unit]] =
       modulesImportedWithCachedBindings.map { module =>
         if (config.parallelParsing) {
