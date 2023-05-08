@@ -13,11 +13,8 @@ declare const self: ServiceWorkerGlobalScope
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url)
     if (url.hostname === 'localhost' && url.pathname !== '/esbuild') {
-        const responsePromise = /\/[^.]+$/.test(event.request.url)
-            ? fetch('/index.html')
-            : fetch(event.request.url)
         event.respondWith(
-            responsePromise.then(response => {
+            fetch(event.request.url).then(response => {
                 const clonedResponse = new Response(response.body, response)
                 clonedResponse.headers.set('Cross-Origin-Embedder-Policy', 'require-corp')
                 clonedResponse.headers.set('Cross-Origin-Opener-Policy', 'same-origin')

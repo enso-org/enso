@@ -111,6 +111,9 @@ export class Server {
             const url = requestUrl.split('?')[0]
             const resource = url === '/' ? '/index.html' : requestUrl
             const resourceFile = `${this.config.dir}${resource}`
+            response.setHeader('Cross-Origin-Embedder-Policy', 'require-corp')
+            response.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
+            response.setHeader('Cross-Origin-Resource-Policy', 'same-origin')
             fs.readFile(resourceFile, (err, data) => {
                 if (err) {
                     logger.error(`Resource '${resource}' not found.`)
