@@ -44,13 +44,13 @@ make_join_helpers left_table right_table left_column_mapping right_column_mappin
    names and returns a list of new columns that should be present in the join
    result (depending on the kind of performed join), ensuring that any colliding
    columns are properly renamed.
-select_columns_for_join join_kind left_new_columns right_new_columns redundant_column_names right_prefix problem_builder =
+select_columns_for_join join_kind left_new_columns right_new_columns right_columns_to_drop right_prefix problem_builder =
     case join_kind of
         Join_Kind.Left_Exclusive -> left_new_columns
         Join_Kind.Right_Exclusive -> right_new_columns
         _ ->
             left_names = left_new_columns.map .name
-            right_kept_columns = right_new_columns.filter c-> redundant_column_names.contains c.name . not
+            right_kept_columns = right_new_columns.filter c-> right_columns_to_drop.contains c.name . not
             right_names = right_kept_columns.map .name
             renaming_strategy = Unique_Name_Strategy.new
 

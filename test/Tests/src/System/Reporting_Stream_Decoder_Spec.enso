@@ -15,7 +15,7 @@ spec =
             f = enso_project.data / "short.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "Cup".write f
+            "Cup".write f . should_succeed
             f.with_input_stream [File_Access.Read] stream->
                 stream.with_stream_decoder Encoding.utf_8 reporting_stream_decoder->
                     reporting_stream_decoder.read.should_equal 67
@@ -29,7 +29,7 @@ spec =
             f = enso_project.data / "transient" / "varying_chunks.txt"
             fragment = 'Hello 😎🚀🚧!'
             contents = 1.up_to 1000 . map _->fragment . join '\n'
-            contents.write f
+            contents.write f . should_succeed
             all_codepoints = Vector.new_builder
             read_chars decoder n =
                 case read_characters decoder n of
@@ -77,7 +77,7 @@ spec =
         Test.specify "should allow reading a UTF-8 file" <|
             f = enso_project.data / "transient" / "utf8.txt"
             encoding = Encoding.utf_8
-            ((0.up_to 100).map _->'Hello World!' . join '\n').write f
+            ((0.up_to 100).map _->'Hello World!' . join '\n').write f . should_succeed
             expected_contents = f.read_text
             contents = read_file_one_by_one f encoding expected_contents.length
             contents.should_equal expected_contents

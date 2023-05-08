@@ -347,7 +347,7 @@ spec =
             with_headers = base_format . with_headers
 
             expected_table_with_headers = Table.new [["A", [1,2,33,44]], ["B", [1.0,1.5,Nothing,0]], ["C", ["x","y","a","BB"]]]
-            expected_table_without_headers = expected_table_with_headers.rename_columns ["Column_1", "Column_2", "Column_3"]
+            expected_table_without_headers = expected_table_with_headers.rename_columns ["Column 1", "Column 2", "Column 3"]
 
             test_append initial_file_format=with_headers append_format=no_headers expected_table_with_headers
             test_append initial_file_format=with_headers append_format=base_format expected_table_with_headers

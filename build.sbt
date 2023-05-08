@@ -131,7 +131,8 @@ GatherLicenses.distributions := Seq(
   ),
   makeStdLibDistribution("Table", Distribution.sbtProjects(`std-table`)),
   makeStdLibDistribution("Database", Distribution.sbtProjects(`std-database`)),
-  makeStdLibDistribution("Image", Distribution.sbtProjects(`std-image`))
+  makeStdLibDistribution("Image", Distribution.sbtProjects(`std-image`)),
+  makeStdLibDistribution("AWS", Distribution.sbtProjects(`std-aws`))
 )
 
 GatherLicenses.licenseConfigurations := Set("compile")
@@ -295,6 +296,7 @@ lazy val enso = (project in file("."))
     `std-google-api`,
     `std-image`,
     `std-table`,
+    `std-aws`,
     `simple-httpbin`,
     `enso-test-java-helpers`
   )
@@ -1376,6 +1378,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-database` / Compile / packageBin)
       .dependsOn(`std-google-api` / Compile / packageBin)
       .dependsOn(`std-table` / Compile / packageBin)
+      .dependsOn(`std-aws` / Compile / packageBin)
       .value
   )
   .settings(
@@ -1905,6 +1908,8 @@ val `google-api-polyglot-root` =
   stdLibComponentRoot("Google_Api") / "polyglot" / "java"
 val `database-polyglot-root` =
   stdLibComponentRoot("Database") / "polyglot" / "java"
+val `std-aws-polyglot-root` =
+  stdLibComponentRoot("AWS") / "polyglot" / "java"
 
 lazy val `std-base` = project
   .in(file("std-bits") / "base")
@@ -2065,13 +2070,9 @@ lazy val `std-database` = project
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
-      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "org.xerial"          % "sqlite-jdbc"             % sqliteVersion,
-      "org.postgresql"      % "postgresql"              % "42.4.0",
-      "com.amazon.redshift" % "redshift-jdbc42"         % "2.1.0.9",
-      "com.amazonaws"       % "aws-java-sdk-core"       % "1.12.273",
-      "com.amazonaws"       % "aws-java-sdk-redshift"   % "1.12.273",
-      "com.amazonaws"       % "aws-java-sdk-sts"        % "1.12.273"
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "org.xerial"       % "sqlite-jdbc"             % sqliteVersion,
+      "org.postgresql"   % "postgresql"              % "42.4.0"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -2086,6 +2087,37 @@ lazy val `std-database` = project
     }.value
   )
   .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+
+lazy val `std-aws` = project
+  .in(file("std-bits") / "aws")
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      `std-aws-polyglot-root` / "std-aws.jar",
+    libraryDependencies ++= Seq(
+      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "com.amazon.redshift" % "redshift-jdbc42"         % "2.1.0.9",
+      "com.amazonaws"       % "aws-java-sdk-core"       % "1.12.273",
+      "com.amazonaws"       % "aws-java-sdk-redshift"   % "1.12.273",
+      "com.amazonaws"       % "aws-java-sdk-sts"        % "1.12.273"
+    ),
+    Compile / packageBin := Def.task {
+      val result = (Compile / packageBin).value
+      val _ = StdBits
+        .copyDependencies(
+          `std-aws-polyglot-root`,
+          Seq("std-aws.jar"),
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+  .dependsOn(`std-database` % "provided")
 
 /* Note [Native Image Workaround for GraalVM 20.2]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2191,7 +2223,14 @@ runEngineDistribution := {
 
 val allStdBitsSuffix = List("All", "AllWithIndex")
 val stdBitsProjects =
-  List("Base", "Database", "Google_Api", "Image", "Table") ++ allStdBitsSuffix
+  List(
+    "AWS",
+    "Base",
+    "Database",
+    "Google_Api",
+    "Image",
+    "Table"
+  ) ++ allStdBitsSuffix
 val allStdBits: Parser[String] =
   stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
 
@@ -2240,6 +2279,8 @@ pkgStdLibInternal := Def.inputTask {
       (`std-table` / Compile / packageBin).value
     case "TestHelpers" =>
       (`enso-test-java-helpers` / Compile / packageBin).value
+    case "AWS" =>
+      (`std-aws` / Compile / packageBin).value
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
@@ -2247,6 +2288,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-database` / Compile / packageBin).value
       (`std-image` / Compile / packageBin).value
       (`std-google-api` / Compile / packageBin).value
+      (`std-aws` / Compile / packageBin).value
     case _ =>
   }
   val libs =

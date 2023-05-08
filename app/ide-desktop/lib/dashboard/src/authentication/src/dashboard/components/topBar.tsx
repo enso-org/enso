@@ -71,7 +71,7 @@ function TopBar(props: TopBarProps) {
                             tab === dashboard.Tab.dashboard ? 'm-2 w-16' : 'w-0'
                         }`}
                     >
-                        Dashboard
+                        {projectName ?? 'Dashboard'}
                     </span>
                     <div className="bg-white shadow-soft rounded-full px-1.5 py-1">
                         {svg.BARS_ICON}
@@ -100,6 +100,7 @@ function TopBar(props: TopBarProps) {
             <div className="grow" />
             <a
                 href="https://discord.gg/enso"
+                target="_blank"
                 className="flex items-center bg-help rounded-full px-2.5 text-white mx-2"
             >
                 <span>help chat</span>

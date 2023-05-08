@@ -30,10 +30,10 @@ interface CurrentlyOpenProjectInfo {
 /** Class for sending requests to the Project Manager API endpoints.
  * This is used instead of the cloud backend API when managing local projects from the dashboard. */
 export class LocalBackend implements Partial<backend.Backend> {
+    static currentlyOpeningProjectId: backend.ProjectId | null = null
+    static currentlyOpenProject: CurrentlyOpenProjectInfo | null = null
     readonly platform = platformModule.Platform.desktop
     private readonly projectManager = projectManager.ProjectManager.default()
-    private currentlyOpeningProjectId: string | null = null
-    private currentlyOpenProject: CurrentlyOpenProjectInfo | null = null
 
     /** Return a list of assets in a directory.
      *
@@ -92,14 +92,17 @@ export class LocalBackend implements Partial<backend.Backend> {
      * @throws An error if the JSON-RPC call fails. */
     async closeProject(projectId: backend.ProjectId): Promise<void> {
         await this.projectManager.closeProject({ projectId })
-        this.currentlyOpenProject = null
+        if (projectId === LocalBackend.currentlyOpeningProjectId) {
+            LocalBackend.currentlyOpeningProjectId = null
+            LocalBackend.currentlyOpenProject = null
+        }
     }
 
     /** Close the project identified by the given project ID.
      *
      * @throws An error if the JSON-RPC call fails. */
     async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
-        if (projectId !== this.currentlyOpenProject?.id) {
+        if (projectId !== LocalBackend.currentlyOpenProject?.id) {
             const result = await this.projectManager.listProjects({})
             const project = result.projects.find(listedProject => listedProject.id === projectId)
             const engineVersion = project?.engineVersion
@@ -125,14 +128,14 @@ export class LocalBackend implements Partial<backend.Backend> {
                     projectId,
                     state: {
                         type:
-                            projectId === this.currentlyOpeningProjectId
+                            projectId === LocalBackend.currentlyOpeningProjectId
                                 ? backend.ProjectState.openInProgress
                                 : backend.ProjectState.closed,
                     },
                 })
             }
         } else {
-            const project = this.currentlyOpenProject.project
+            const project = LocalBackend.currentlyOpenProject.project
             return Promise.resolve<backend.Project>({
                 name: project.projectName,
                 engineVersion: {
@@ -159,11 +162,11 @@ export class LocalBackend implements Partial<backend.Backend> {
      *
      * @throws An error if the JSON-RPC call fails. */
     async openProject(projectId: backend.ProjectId): Promise<void> {
-        this.currentlyOpeningProjectId = projectId
+        LocalBackend.currentlyOpeningProjectId = projectId
         const project = await this.projectManager.openProject({
             projectId,
             missingComponentAction: projectManager.MissingComponentAction.install,
         })
-        this.currentlyOpenProject = { id: projectId, project }
+        LocalBackend.currentlyOpenProject = { id: projectId, project }
     }
 }

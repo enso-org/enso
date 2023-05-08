@@ -9,8 +9,6 @@ import * as platformModule from '../../platform'
 // === Constants ===
 // =================
 
-/** The `id` attribute of the element into which the IDE will be rendered. */
-const IDE_ELEMENT_ID = 'root'
 const IDE_CDN_URL = 'https://ensocdn.s3.us-west-1.amazonaws.com/ide'
 const JS_EXTENSION: Record<platformModule.Platform, string> = {
     [platformModule.Platform.cloud]: '.js.gz',
@@ -31,13 +29,6 @@ export interface IdeProps {
 function Ide(props: IdeProps) {
     const { project, appRunner } = props
     const { backend } = backendProvider.useBackend()
-
-    react.useEffect(() => {
-        document.getElementById(IDE_ELEMENT_ID)?.classList.remove('hidden')
-        return () => {
-            document.getElementById(IDE_ELEMENT_ID)?.classList.add('hidden')
-        }
-    }, [])
 
     react.useEffect(() => {
         void (async () => {

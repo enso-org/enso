@@ -1,19 +1,19 @@
 from Standard.Base import all
 
-import project.Connection.Client_Certificate.Client_Certificate
-import project.Connection.Connection.Connection
-import project.Connection.Connection_Options.Connection_Options
-import project.Connection.Credentials.Credentials
-import project.Connection.SSL_Mode.SSL_Mode
-import project.Data.Dialect
-import project.Internal.JDBC_Connection
-import project.Internal.Postgres.Pgpass
+import Standard.Database.Connection.Client_Certificate.Client_Certificate
+import Standard.Database.Connection.Connection.Connection
+import Standard.Database.Connection.Connection_Options.Connection_Options
+import Standard.Database.Connection.Credentials.Credentials
+import Standard.Database.Connection.SSL_Mode.SSL_Mode
+import Standard.Database.Internal.JDBC_Connection
+import Standard.Database.Internal.Postgres.Pgpass
+
+import project.Database.Redshift.Internal.Redshift_Dialect
 
 polyglot java import com.amazon.redshift.jdbc.Driver
 polyglot java import java.util.Properties
-polyglot java import org.enso.database.JDBCProxy
 
-type Redshift_Options
+type Redshift_Details
     ## Connect to a AWS Redshift database.
 
        Arguments:
@@ -40,7 +40,7 @@ type Redshift_Options
             java_props.setProperty pair.first pair.second
 
         jdbc_connection = JDBC_Connection.create self.jdbc_url properties
-        Connection.Value jdbc_connection Dialect.redshift
+        Connection.Value jdbc_connection Redshift_Dialect.redshift
 
     ## PRIVATE
        Provides the jdbc url for the connection.
@@ -49,7 +49,7 @@ type Redshift_Options
         prefix = case self.credentials of
             _ : AWS_Credential -> 'jdbc:redshift:iam://'
             _ -> 'jdbc:redshift://'
-        prefix + self.host + ':' + self.port.to_text + (if self.schema == '' then '' else '/' + self.schema)
+        prefix + self.host + ':' + self.port.to_text + '/' + self.schema
 
     ## PRIVATE
        Provides the properties for the connection.
