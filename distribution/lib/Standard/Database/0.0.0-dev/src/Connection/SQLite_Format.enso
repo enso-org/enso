@@ -11,8 +11,15 @@ type SQLite_Format
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file : File -> SQLite_Format | Nothing
-    for_file file =
+    for_file_read : File -> SQLite_Format | Nothing
+    for_file_read file =
+        expected_header = magic_header_string
+        got_header = file.read_first_bytes header.length
+
+    ## PRIVATE
+       If the File_Format supports writing to the file, return a configured instance.
+    for_file_write : File -> SQLite_Format | Nothing
+    for_file_write file =
         case file.extension of
             ".db" -> SQLite_Format.For_File
             ".sqlite" -> SQLite_Format.For_File
@@ -31,3 +38,7 @@ type SQLite_Format
     read self file on_problems =
         _ = [on_problems]
         Database.connect (SQLite_Details.SQLite file)
+
+## PRIVATE
+magic_header_string =
+    "SQLite format 3".utf_8 + [0]

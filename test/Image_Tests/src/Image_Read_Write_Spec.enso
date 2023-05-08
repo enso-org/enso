@@ -69,9 +69,9 @@ spec =
 
     Test.group "Image File_Format" <|
         Test.specify "should recognise image files" <|
-            Auto_Detect.get_format (enso_project.data / "data.jpg") . should_be_a Image_File_Format
-            Auto_Detect.get_format (enso_project.data / "data.png") . should_be_a Image_File_Format
-            Auto_Detect.get_format (enso_project.data / "data.bmp") . should_be_a Image_File_Format
+            Auto_Detect.get_reading_format (enso_project.data / "data.jpg") . should_be_a Image_File_Format
+            Auto_Detect.get_reading_format (enso_project.data / "data.png") . should_be_a Image_File_Format
+            Auto_Detect.get_reading_format (enso_project.data / "data.bmp") . should_be_a Image_File_Format
 
         Test.specify "should allow reading an Image" <|
             img = Data.read rgba_file

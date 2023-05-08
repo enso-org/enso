@@ -614,6 +614,14 @@ type File
             Input_Stream.Value self resource
 
     ## PRIVATE
+       Reads first `n` bytes from the file (or less if the file is too small)
+       and returns a vector of bytes.
+    read_first_bytes : Integer -> Vector ! File_Error
+    read_first_bytes self n =
+        opts = [File_Access.Read]
+        self.with_input_stream opts (_.read_n_bytes n)
+
+    ## PRIVATE
        Reads last `n` bytes from the file (or less if the file is too small) and
        returns a vector of bytes.
     read_last_bytes : Integer -> Vector ! File_Error

@@ -175,11 +175,11 @@ spec =
         connection.close
 
         Test.specify "should recognise a SQLite database file" <|
-            Auto_Detect.get_format file . should_be_a SQLite_Format
+            Auto_Detect.get_reading_format file . should_be_a SQLite_Format
 
         Test.specify "should recognise a sqlite file by extension fro writing" <|
-            Auto_Detect.get_format (enso_project.data / "nonexistent-data.db") . should_be_a SQLite_Format
-            Auto_Detect.get_format (enso_project.data / "nonexistent-data.sqlite") . should_be_a SQLite_Format
+            Auto_Detect.get_reading_format (enso_project.data / "nonexistent-data.db") . should_be_a SQLite_Format
+            Auto_Detect.get_reading_format (enso_project.data / "nonexistent-data.sqlite") . should_be_a SQLite_Format
 
         Test.specify "should not recognise nonexistent or empty files for reading" <|
             r1 = Data.read (enso_project.data / "nonexistent-data.db")

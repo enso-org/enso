@@ -1928,7 +1928,7 @@ type Table
         file = File.new path
         case format of
             _ : Auto_Detect ->
-                base_format = format.get_format file
+                base_format = format.get_writing_format file
                 if base_format == Nothing then Error.throw (File_Error.Unsupported_Output_Type file Table) else
                     self.write file format=base_format on_existing_file match_columns on_problems
             _ ->
