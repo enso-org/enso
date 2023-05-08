@@ -103,16 +103,16 @@ ensogl::define_endpoints! {
         set_read_only(bool),
     }
     Output {
-        /// Signalizes when a new breadcrumb is pushed.
-        breadcrumb_push   (Option<LocalCall>),
-        /// Signalizes when a breadcrumb is popped.
-        breadcrumb_pop    (),
+        /// Signalizes new breadcrumbs to be pushed.
+        breadcrumb_push (Vec<LocalCall>),
+        /// Signalizes how many breadcrumbs to pop.
+        breadcrumb_pop (usize),
         /// Signalizes when project name is changed.
         project_name      (String),
         /// Signalizes when a breadcrumb is selected, returning a tuple with the amount of
         /// breadcrumbs to be popped, in case the selection happens on the left of the currently
         /// selected breadcrumb, or else a vector of existing breadcrumbs to be pushed.
-        breadcrumb_select ((usize,Vec<Option<LocalCall>>)),
+        breadcrumb_select ((usize, Vec<LocalCall>)),
         /// Indicates the pointer style that should be shown based on the interactions with the
         /// breadcrumb.
         pointer_style      (cursor::Style),
@@ -251,7 +251,7 @@ impl BreadcrumbsModel {
     /// Selects the breadcrumb identified by its `index` and returns `(popped_count,local_calls)`,
     /// where `popped_count` is the number of breadcrumbs in the right side of `index` that needs to
     /// be popped or a list of `LocalCall`s identifying the breadcrumbs we need to push.
-    fn select_breadcrumb(&self, index: usize) -> (usize, Vec<Option<LocalCall>>) {
+    fn select_breadcrumb(&self, index: usize) -> (usize, Vec<LocalCall>) {
         debug!("Selecting breadcrumb #{index}.");
         let current_index = self.current_index.get();
         match index.cmp(&current_index) {
@@ -271,8 +271,8 @@ impl BreadcrumbsModel {
                         })
                         .as_ref()
                         .cloned();
-                    if info.is_some() {
-                        local_calls.push(info);
+                    if let Some(local_call) = info {
+                        local_calls.push(local_call);
                     } else {
                         error!("LocalCall info is not present.");
                         self.remove_breadcrumbs_history_beginning_from(index);
@@ -331,7 +331,9 @@ impl BreadcrumbsModel {
     /// the right side of `index` that needs to be popped, or a list of `LocalCall`s identifying the
     /// breadcrumbs we need to push.
     fn debug_select_breadcrumb(&self, index: usize) -> (usize, Vec<Option<LocalCall>>) {
-        self.select_breadcrumb(index)
+        let (pop_count, stack_to_push) = self.select_breadcrumb(index);
+        let stack_to_push = stack_to_push.into_iter().map(Some).collect();
+        (pop_count, stack_to_push)
     }
 
     /// Pushes a breadcrumb, without signalizing the controller, and returns the index of the
@@ -489,10 +491,18 @@ impl Breadcrumbs {
             frp.select_breadcrumb <+ model.project_name.frp.output.mouse_down.constant(0);
             model.project_name.frp.outside_press <+ frp.outside_press;
 
-            popped_count <= frp.output.breadcrumb_select.map(|selected| (0..selected.0).collect_vec());
-            local_calls  <= frp.output.breadcrumb_select.map(|selected| selected.1.clone());
-            frp.source.breadcrumb_pop <+ popped_count.constant(());
-            frp.source.breadcrumb_push <+ local_calls;
+            breadcrumbs_to_pop_count <- frp.output.breadcrumb_select.filter_map(|(pop_count, _)|
+                if *pop_count > 0 { Some(*pop_count) } else { None }
+            );
+            breadcrumbs_to_push <- frp.output.breadcrumb_select.filter_map(|(_, breadcrumbs_to_push)|
+                if !breadcrumbs_to_push.is_empty() {
+                    Some(breadcrumbs_to_push.clone())
+                } else {
+                    None
+                }
+            );
+            frp.source.breadcrumb_pop <+ breadcrumbs_to_pop_count;
+            frp.source.breadcrumb_push <+ breadcrumbs_to_push;
 
 
             // === Select ===
