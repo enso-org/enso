@@ -165,4 +165,4 @@ type Non_Unique_Primary_Key
        Pretty print the non-unique primary key error.
     to_display_text : Text
     to_display_text self =
-        "The primary key " + self.primary_key.to_display_text + " is not unique. The key "+clashing_primary_key.to_display_text+" corresponds to "+clashing_example_row_count.to_text+" rows."
+        "The primary key " + self.primary_key.to_display_text + " is not unique. The key "+self.clashing_primary_key.to_display_text+" corresponds to "+self.clashing_example_row_count.to_text+" rows."

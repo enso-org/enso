@@ -346,6 +346,8 @@ type_spec name alter = Test.group name <|
         alter [1, 2, 3, 4, 5, 6] . short_display_text max_entries=3 . should_equal "[1, 2, 3 and 3 more elements]"
         alter (0.up_to 100).to_vector . short_display_text max_entries=2 . should_equal "[0, 1 and 98 more elements]"
 
+        alter [1, 2] . to_display_text . should_equal "[1, 2]"
+
         alter [] . short_display_text max_entries=0 . should_fail_with Illegal_Argument
 
     Test.specify "should define equality" <|

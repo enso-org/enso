@@ -149,7 +149,7 @@ translate_known_upload_errors source_table connection primary_key ~action =
         error_mapper = connection.dialect.get_error_mapper
         sql_error = caught_panic.payload
         case error_mapper.is_primary_key_violation sql_error of
-            True -> raise_duplicated_primary_key_error source_table primary_key
+            True -> raise_duplicated_primary_key_error source_table primary_key caught_panic
             False -> Panic.throw caught_panic
     Panic.catch SQL_Error action handler
 
@@ -167,7 +167,7 @@ raise_duplicated_primary_key_error source_table primary_key original_panic =
            case insensitive.
         True -> Panic.throw original_panic
         False ->
-            row = materialized.first_row
+            row = materialized.first_row.to_vector
             example_count = row.first
             example_entry = row.drop 1
             Error.throw (Non_Unique_Primary_Key.Error primary_key example_entry example_count)

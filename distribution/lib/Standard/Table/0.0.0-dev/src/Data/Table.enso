@@ -1670,7 +1670,7 @@ type Table
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
          available rows are fetched.
-    read : (Integer | Nothing) -> Materialized_Table
+    read : (Integer | Nothing) -> Table
     read self max_rows=Nothing = case max_rows of
         Nothing -> self
         _ : Integer -> self.take (First max_rows)
