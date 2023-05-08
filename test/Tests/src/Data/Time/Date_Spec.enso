@@ -244,6 +244,10 @@ spec_with name create_new_date parse_date =
             create_new_date 2000 2 1 . until (create_new_date 2000 12 12) . should_equal <| Period.new 0 10 11
             create_new_date 2000 2 1 . until (create_new_date 2010 2 12) . should_equal <| Period.new 10 0 11
 
+            create_new_date 2000 2 12 . until (create_new_date 2000 2 1) . should_equal <| Period.new 0 0 -11
+            create_new_date 2000 12 12 . until (create_new_date 2000 2 1) . should_equal <| Period.new 0 -10 -11
+            create_new_date 2010 2 12 . until (create_new_date 2000 2 1) . should_equal <| Period.new -10 0 -11
+
         Test.specify "should allow to compute the number of days until a date" <|
             create_new_date 2000 2 1 . days_until (create_new_date 2000 2 1) . should_equal 0
             create_new_date 2000 2 1 . days_until (create_new_date 2000 2 2) . should_equal 1
