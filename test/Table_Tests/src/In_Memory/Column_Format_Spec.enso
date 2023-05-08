@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Table.Data.Column_Format import all
 
 import Standard.Base.Data.Locale.Locale
 import Standard.Base.Data.Time.Date.Date
