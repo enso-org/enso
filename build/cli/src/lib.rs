@@ -836,27 +836,14 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
                 .run_ok()
                 .await?;
 
-            let build_json_exists = ctx.repo_root.join("app/ide-desktop/build.json").exists();
-            let ide_artifacts_exist = ctx.repo_root.join("target/ensogl-pack/linked-dist").exists();
-            if !build_json_exists || !ide_artifacts_exist {
-                let ide_cli = Cli::parse_from([
-                    "./run",
-                    "ide",
-                    "build",
-                    "--skip-version-check",
-                    "--skip-wasm-opt",
-                    "--wasm-profile=dev",
-                    "--backend-source",
-                    "release",
-                    "--backend-release",
-                    "nightly",
-                ]);
-                if let Target::Ide(ide) = ide_cli.target {
-                    ctx.handle_ide(ide).await?
-                } else {
-                    unreachable!("This command line is hard-coded to always use the IDE target.")
-                }
-            }
+            // Copied from `build` in `lib/rust/ensogl/pack/src/lib.rs`.
+            let paths = ensogl_pack::Paths::new().await?;
+            ensogl_pack::compile_this_crate_ts_sources(&paths).await?;
+            ide_ci::fs::remove_symlink_dir_if_exists(&paths.target.ensogl_pack.linked_dist)?;
+            ide_ci::fs::symlink_auto(
+                &paths.target.ensogl_pack.dist,
+                &paths.target.ensogl_pack.linked_dist,
+            )?;
             prettier::check(&ctx.repo_root).await?;
             let js_modules_root = ctx.repo_root.join("app/ide-desktop");
             Npm.cmd()?.current_dir(&js_modules_root).args(["install"]).run_ok().await?;

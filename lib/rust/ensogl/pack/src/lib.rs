@@ -353,7 +353,7 @@ fn check_if_ts_needs_rebuild(paths: &Paths) -> Result<bool> {
 }
 
 /// Compile TypeScript sources of this crate in case they were not compiled yet.
-async fn compile_this_crate_ts_sources(paths: &Paths) -> Result<()> {
+pub async fn compile_this_crate_ts_sources(paths: &Paths) -> Result<()> {
     println!("compile_this_crate_ts_sources");
     if check_if_ts_needs_rebuild(paths)? {
         info!("EnsoGL Pack TypeScript sources changed, recompiling.");
