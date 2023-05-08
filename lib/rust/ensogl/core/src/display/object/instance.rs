@@ -2536,6 +2536,16 @@ impl InstanceDef {
         self
     }
 
+    /// The main event propagation implementation. Propagates the event through the display object
+    /// hierarchy in two phases: capturing and bubbling. See [`crate::display::object::event`]
+    /// module to learn more about event phases.
+    ///
+    /// The propagation itself is done in following steps:
+    /// - If event has been previously cancelled, figure out where to resume the propagation.
+    /// - Collect the parent chain of the event target.
+    /// - Execute capturing phase - propagate event from the root to the target.
+    /// - Execute bubbling phase - propagate event from the target to the root.
+    /// - If event has been cancelled, store the phase and target to resume the propagation.
     fn emit_event_impl(&self, event: &event::SomeEvent) {
         let Some((resume_phase, resume_target)) = event.begin_propagation() else { return; };
 
