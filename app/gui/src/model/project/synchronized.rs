@@ -224,6 +224,13 @@ async fn update_modules_on_file_change(
 #[fail(display = "Project Manager is unavailable.")]
 pub struct ProjectManagerUnavailable;
 
+/// An error signalling the project name was invalid.
+#[derive(Clone, Debug, Fail)]
+#[fail(display = "The project name is not allowed: {}", cause)]
+pub struct ProjectNameInvalid {
+    cause: String,
+}
+
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Fail)]
 #[fail(display = "Project renaming is not available in read-only mode.")]
@@ -720,7 +727,14 @@ impl model::project::API for Project {
                     self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
                 let project_id = self.properties.borrow().id;
                 let project_name = ProjectName::new_unchecked(name);
-                project_manager.rename_project(&project_id, &project_name).await?;
+                project_manager.rename_project(&project_id, &project_name).await.map_err(
+                    |error| match error {
+                        RpcError::RemoteError(cause)
+                            if cause.code == code::PROJECT_NAME_INVALID =>
+                            failure::Error::from(ProjectNameInvalid { cause: cause.message }),
+                        error => error.into(),
+                    },
+                )?;
                 self.properties.borrow_mut().name.project = referent_name.clone_ref();
                 self.execution_contexts.rename_project(old_name, referent_name);
                 Ok(())
