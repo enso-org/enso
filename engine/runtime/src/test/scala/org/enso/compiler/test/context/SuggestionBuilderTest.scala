@@ -615,6 +615,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   Some(
                     Seq(
                       "Number",
+                      "Unnamed.Test.Other_Atom",
                       "Unnamed.Test.My_Atom.Variant_1",
                       "Unnamed.Test.My_Atom.Variant_2"
                     )
@@ -624,6 +625,102 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.Other_Atom",
               returnType    = "Number",
               isStatic      = false,
+              documentation = None
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build argument tag values111" in {
+
+      val code =
+        """type Value
+          |    A
+          |    B
+          |
+          |type Auto
+          |
+          |foo : Value | Auto -> Any
+          |foo a = a
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Value",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.Value",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "A",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Value",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "B",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Value",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Auto",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.Auto",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None),
+                Suggestion.Argument(
+                  "a",
+                  "Unnamed.Test.Value | Unnamed.Test.Auto",
+                  false,
+                  false,
+                  None,
+                  Some(
+                    Seq(
+                      "Unnamed.Test.Value.A",
+                      "Unnamed.Test.Value.B",
+                      "Unnamed.Test.Auto"
+                    )
+                  )
+                )
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = "Any",
+              isStatic      = true,
               documentation = None
             ),
             Vector()
@@ -699,7 +796,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   false,
                   false,
                   None,
-                  None
+                  Some(Seq("Unnamed.Test.A"))
                 )
               ),
               selfType      = "Unnamed.Test",
@@ -1123,7 +1220,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                         false,
                         false,
                         None,
-                        None
+                        Some(Seq("Unnamed.Test.A"))
                       )
                   ),
                   returnType = "Unnamed.Test.A",
@@ -2589,7 +2686,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       )
       val arg2 = method.get.arguments(2)
       arg2.reprType shouldEqual "Standard.Base.Data.Text.Text | (Standard.Base.Data.Text.Text -> Boolean)"
-      arg2.tagValues shouldEqual None
+      arg2.tagValues shouldEqual Some(Seq("Standard.Base.Data.Text.Text"))
     }
   }
 
