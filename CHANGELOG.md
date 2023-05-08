@@ -191,6 +191,8 @@
 - [ToggleButtons can now have tooltips][6035].
 - [Rendering of tooltips was improved.][6097] Their text is now more vertically
   centered and the delay before showing them was extended.
+- [Accurate GPU performance measurements have been implemented][6595]. It is
+  possible now to track both the time spent on both the CPU and the GPU sides.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
@@ -202,6 +204,7 @@
 [6097]: https://github.com/enso-org/enso/pull/6097
 [6341]: https://github.com/enso-org/enso/pull/6341
 [6470]: https://github.com/enso-org/enso/pull/6470
+[6595]: https://github.com/enso-org/enso/pull/6595
 
 #### Enso Standard Library
 

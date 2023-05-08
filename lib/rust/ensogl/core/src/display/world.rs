@@ -24,6 +24,7 @@ use crate::display::scene::UpdateStatus;
 use crate::display::shape::primitive::glsl;
 use crate::display::symbol::registry::RunMode;
 use crate::display::symbol::registry::SymbolRegistry;
+use crate::system::gpu::context::profiler::Results;
 use crate::system::gpu::shader;
 use crate::system::web;
 
@@ -38,7 +39,6 @@ use web::JsValue;
 // ==============
 
 pub use crate::display::symbol::types::*;
-use crate::system::gpu::context::profiler::Results;
 
 
 
@@ -393,7 +393,6 @@ impl Deref for WorldDataWithLoop {
 #[derive(Clone, CloneRef, Debug, Default)]
 #[allow(missing_docs)]
 pub struct Callbacks {
-    // pub prev_frame_stats: callback::registry::Ref1<StatsData>,
     pub before_frame: callback::registry::Copy1<animation::TimeInfo>,
     pub after_frame:  callback::registry::Copy1<animation::TimeInfo>,
 }

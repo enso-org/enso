@@ -1024,6 +1024,9 @@ impl PanelData {
         })
     }
 
+    /// Move the pen to the new plot part, this is the `right_of_plot - (1 + offset) *
+    /// plot_step_size`. The `offset` parameter can be used to chose the sample number. For example,
+    /// if `offset` is `0`, the pen will be moved before the last sample of the plot.
     fn with_pen_at_new_plot_part<T>(
         &mut self,
         dom: &Dom,
@@ -1090,7 +1093,6 @@ impl PanelData {
     /// Draw a single plot point. As the plots shift left on every frame, this function only updates
     /// the most recent plot value.
     fn draw_plot_update(&mut self, dom: &Dom, offset: usize) {
-        // console_log!("draw_plot_update, offset: {}", offset);
         self.with_pen_at_new_plot_part(dom, offset, |this| {
             dom.plot_area.plots_context.set_fill_style(&this.config.background_color);
             dom.plot_area.plots_context.fill_rect(

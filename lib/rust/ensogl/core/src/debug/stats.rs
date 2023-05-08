@@ -111,13 +111,9 @@ impl StatsInternal {
     }
 
     fn end_frame(&mut self) {
-        console_log!("end_frame");
         if let Some(begin_time) = self.frame_begin_time {
-            console_log!("begin_time: {}", begin_time);
             let end_time = self.time_provider.now();
-            console_log!("end_time: {}", end_time);
             self.stats_data.frame_time = end_time - begin_time;
-            console_log!("frame_time: {}", self.stats_data.frame_time);
         }
 
         // TODO[MC,IB]: drop the `cfg!` (outlier in our codebase) once wasm_bindgen::memory()

@@ -5,6 +5,7 @@ use crate::prelude::*;
 
 use crate::system::gpu::context::extension;
 use crate::system::gpu::context::native::ContextWithExtensions;
+
 use std::collections::VecDeque;
 use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlQuery;

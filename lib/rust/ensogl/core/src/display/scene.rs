@@ -23,6 +23,7 @@ use crate::display::style::data::DataMatch;
 use crate::display::symbol::Symbol;
 use crate::display::world;
 use crate::system;
+use crate::system::gpu::context::profiler::Results;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::shader;
@@ -48,11 +49,11 @@ pub mod layer;
 #[warn(missing_docs)]
 pub mod pointer_target;
 
-use crate::system::gpu::context::profiler::Results;
 pub use crate::system::web::dom::Shape;
 pub use layer::Layer;
 pub use pointer_target::PointerTargetId;
 pub use pointer_target::PointerTarget_DEPRECATED;
+
 
 
 // =====================

@@ -3,6 +3,8 @@
 
 use std::collections::VecDeque;
 
+
+
 /// A vector with a constant max size, that if full, keeps its element in a loop.
 #[derive(Clone, Debug)]
 pub struct CircularVecDeque<T> {
