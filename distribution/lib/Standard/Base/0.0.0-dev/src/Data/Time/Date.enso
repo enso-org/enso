@@ -314,6 +314,54 @@ type Date
     end_of : Date_Period -> Date
     end_of self period=Date_Period.Month = period.adjust_end self
 
+    ## Returns the next date adding the `Date_Period` to self.
+
+       Produces a warning for a Date that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+
+       Arguments:
+       - period: the period to add to self.
+    next : Date_Period -> Date
+    next self period=Date_Period.Day = self + period.to_period
+
+    ## Returns the previous date subtracting the `Date_Period` from self.
+
+       Produces a warning for a Date that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+
+       Arguments:
+       - period: the period to add to self.
+    previous : Date_Period -> Date
+    previous self period=Date_Period.Day = self - period.to_period
+
+    ## Creates a `Period` between self and the provided end date.
+
+       Produces a warning for a Date that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+
+       Arguments:
+       - end: the end date of the interval to count workdays in.
+    until : Date -> Period
+    until self end =
+        ensure_in_epoch self <| ensure_in_epoch end <|
+            Period.between self end
+
+    ## Counts the days between self (inclusive) and the provided end date
+       (exclusive).
+
+       Produces a warning for a Date that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+
+       Arguments:
+       - end: the end date of the interval to count workdays in.
+       - include_end_date: whether to include the end date in the count.
+         By default the end date is not included in the interval.
+    days_until : Date -> Boolean -> Integer
+    days_until self end include_end_date=False =
+        if end < self then -(end.days_until self include_end_date) else
+            ensure_in_epoch self <| ensure_in_epoch end <|
+                (Time_Utils.days_between self end) + if include_end_date then 1 else 0
+
     ## Counts workdays between self (inclusive) and the provided end date
        (exclusive).
 
@@ -331,7 +379,7 @@ type Date
          end-exclusive manner), by default the end date is not included in the
          count. This has the nice property that for example to count the work
          days within the next week you can do
-         `date.work_days_until (date + (Period.new days=7)` and it will look at
+         `date.work_days_until (date + (Period.new days=7))` and it will look at
          the 7 days starting from the current `date` and not 8 days. This also
          gives us a property that
          `date.work_days_until (date.add_work_days N) == N` for any non-negative

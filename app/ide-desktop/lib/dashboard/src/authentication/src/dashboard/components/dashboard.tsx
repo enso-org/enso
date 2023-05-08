@@ -270,7 +270,8 @@ function Dashboard(props: DashboardProps) {
                 setTab(Tab.dashboard)
                 const ideElement = document.getElementById(IDE_ELEMENT_ID)
                 if (ideElement) {
-                    ideElement.hidden = true
+                    ideElement.style.top = '-100vh'
+                    ideElement.style.display = 'fixed'
                 }
             }
         }
@@ -370,10 +371,13 @@ function Dashboard(props: DashboardProps) {
                     }}
                     openIde={async () => {
                         setTab(Tab.ide)
-                        setProject(await backend.getProjectDetails(projectAsset.id))
+                        if (project?.projectId !== projectAsset.id) {
+                            setProject(await backend.getProjectDetails(projectAsset.id))
+                        }
                         const ideElement = document.getElementById(IDE_ELEMENT_ID)
                         if (ideElement) {
-                            ideElement.hidden = false
+                            ideElement.style.top = ''
+                            ideElement.style.display = 'absolute'
                         }
                     }}
                 />
@@ -619,11 +623,11 @@ function Dashboard(props: DashboardProps) {
         return `${prefix}${highestProjectIndex + 1}`
     }
 
-    async function handleCreateProject(templateName?: string | null) {
-        const projectName = getNewProjectName(templateName)
+    async function handleCreateProject(templateId?: string | null) {
+        const projectName = getNewProjectName(templateId)
         const body: backendModule.CreateProjectRequestBody = {
             projectName,
-            projectTemplateName: templateName?.replace(/_/g, '').toLocaleLowerCase() ?? null,
+            projectTemplateName: templateId ?? null,
             parentDirectoryId: directoryId,
         }
         const projectAsset = await backend.createProject(body)
@@ -662,13 +666,15 @@ function Dashboard(props: DashboardProps) {
                         setTab(Tab.ide)
                         const ideElement = document.getElementById(IDE_ELEMENT_ID)
                         if (ideElement) {
-                            ideElement.hidden = false
+                            ideElement.style.top = ''
+                            ideElement.style.display = 'absolute'
                         }
                     } else {
                         setTab(Tab.dashboard)
                         const ideElement = document.getElementById(IDE_ELEMENT_ID)
                         if (ideElement) {
-                            ideElement.hidden = true
+                            ideElement.style.top = '-100vh'
+                            ideElement.style.display = 'fixed'
                         }
                     }
                 }}

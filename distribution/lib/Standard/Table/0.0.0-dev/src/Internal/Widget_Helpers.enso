@@ -1,16 +1,72 @@
 from Standard.Base import all
-
-from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 from Standard.Base.Metadata.Choice import Option
 import Standard.Base.Metadata.Display
 
-from project.Data.Table import Table
+import project.Data.Table.Table
+import project.Data.Aggregate_Column.Aggregate_Column
+
+## PRIVATE
+   Make an aggregate column selector.
+make_aggregate_column_selector : Table -> Display -> Boolean -> Single_Choice
+make_aggregate_column_selector table display=Display.Always include_group_by=True =
+    col_names_selector = make_column_name_selector table display=Display.Always
+    column_widget = Pair.new "column" col_names_selector
+
+    col_list_selector = make_column_name_vector_selector table display=Display.Always
+
+    group_by = if include_group_by then [Option "Group By" "(Aggregate_Column.Group_By)" [column_widget]] else []
+    count = Option "Count" "Aggregate_Column.Count"
+    count_distinct = Option "Count Distinct" "(Aggregate_Column.Count_Distinct)" [Pair.new "columns" (col_list_selector)]
+    first = Option "First" "(Aggregate_Column.First)" [column_widget, Pair.new "order_by" (col_list_selector)]
+    last = Option "Last" "(Aggregate_Column.Last)" [column_widget, Pair.new "order_by" (col_list_selector)]
+
+    count_not_nothing = Option "Count Not Nothing" "(Aggregate_Column.Count_Not_Nothing)" [column_widget]
+    count_nothing = Option "Count Nothing" "(Aggregate_Column.Count_Nothing)" [column_widget]
+
+    ## Should be a list of Text columns only
+    count_not_empty = Option "Count Not Empty" "(Aggregate_Column.Count_Not_Empty)" [column_widget]
+    count_empty = Option "Count Empty" "(Aggregate_Column.Count_Empty)" [column_widget]
+    concatenate = Option "Concatenate" "(Aggregate_Column.Concatenate)" [column_widget]
+    shortest = Option "Shortest" "(Aggregate_Column.Shortest)" [column_widget]
+    longest = Option "Longest" "(Aggregate_Column.Longest)" [column_widget]
+
+    ## Should be a list of Numeric columns only
+    sum = Option "Sum" "(Aggregate_Column.Sum)" [column_widget]
+    average = Option "Average" "(Aggregate_Column.Average)" [column_widget]
+    median = Option "Median" "(Aggregate_Column.Median)" [column_widget]
+    percentile = Option "Percentile" "(Aggregate_Column.Percentile)" [column_widget]
+    mode = Option "Mode" "(Aggregate_Column.Mode)" [column_widget]
+    standard_deviation = Option "Standard Deviation" "(Aggregate_Column.Standard_Deviation)" [column_widget]
+
+    # Should be a list of comparable columns only
+    maximum = Option "Maximum" "(Aggregate_Column.Maximum)" [column_widget]
+    minimum = Option "Minimum" "(Aggregate_Column.Minimum)" [column_widget]
+
+    Single_Choice display=display values=(group_by+[count, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, sum, average, median, percentile, mode, standard_deviation, maximum, minimum])
 
 ## PRIVATE
    Make a column name selector.
 make_column_name_selector : Table -> Display -> Single_Choice
 make_column_name_selector table display=Display.Always =
-    Single_Choice display=display values=(table.column_names.map n->(Option n n.pretty))
+    col_names = table.column_names
+    names = col_names.map n-> Option n n.pretty
+    Single_Choice display=display values=names
+
+## PRIVATE
+   Make a multiple column name selector.
+make_column_name_vector_selector : Table -> Display -> Vector_Editor
+make_column_name_vector_selector table display=Display.Always =
+    item_editor = make_column_name_selector table display=Display.Always
+    Vector_Editor item_editor=item_editor item_default=table.column_names.first.pretty display=display
+
+## PRIVATE
+   Make a column name selector.
+make_order_by_selector : Table -> Display -> Single_Choice
+make_order_by_selector table display=Display.Always =
+    col_names = table.column_names
+    names = col_names.fold [] c-> n-> c + [Option n+" (Asc)" n.pretty, Option n+" (Desc)" "(Sort_Column.Name "+n.pretty+" Sort_Direction.Descending)"]
+    Single_Choice display=display values=names
 
 ## PRIVATE
    Selector for type argument on `Column.parse`.
@@ -21,11 +77,3 @@ parse_type_selector =
     options = names.zip choice . map pair-> Option pair.first pair.second
     Single_Choice display=Display.Always values=options
 
-## PRIVATE
-   Selector for type argument on `Column.parse`.
-join_kind_selector : Single_Choice
-join_kind_selector =
-    choice = ['Join_Kind.Inner','Join_Kind.Left_Outer','Join_Kind.Right_Outer','Join_Kind.Full','Join_Kind.Left_Exclusive','Join_Kind.Right_Exclusive']
-    names = ['Inner', 'Left Outer', 'Right Outer', 'Full', 'Left Exclusive', 'Right Exclusive']
-    options = names.zip choice . map pair-> Option pair.first pair.second
-    Single_Choice display=Display.Always values=options

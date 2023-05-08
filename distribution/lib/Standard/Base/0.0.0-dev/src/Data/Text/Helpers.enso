@@ -1,8 +1,6 @@
-from Standard.Base import all
-
 import project.Any.Any
-import project.Data.Locale.Locale
-import project.Data.Text.Case_Sensitivity.Case_Sensitivity
+import project.Data.Text.Text
+import project.Error.Error
 import project.Errors.Common.Type_Error
 import project.Meta
 

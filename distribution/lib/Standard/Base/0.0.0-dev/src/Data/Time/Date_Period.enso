@@ -1,4 +1,5 @@
 import project.Data.Time.Date.Date
+import project.Data.Time.Period.Period
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Day_Of_Week.Day_Of_Week
 from project.Data.Boolean import Boolean, True, False
@@ -22,6 +23,8 @@ type Date_Period
        to any other day.
     Week (first_day:Day_Of_Week = Day_Of_Week.Monday)
 
+    Day
+
     ## PRIVATE
        This method could be replaced with matching on `Date_Period` supertype
        if/when that is supported.
@@ -36,14 +39,25 @@ type Date_Period
             Date_Period.Quarter -> Date_Period_Utils.quarter_start
             Date_Period.Month -> TemporalAdjusters.firstDayOfMonth
             Date_Period.Week first_day -> TemporalAdjusters.previousOrSame first_day.to_java
+            Date_Period.Day -> Date_Period_Utils.day_start
         (Time_Utils.utils_for date).apply_adjuster date adjuster
 
     ## PRIVATE
     adjust_end : (Date | Date_Time) -> (Date | Date_Time)
-    adjust_end self date =
+    adjust_end self date = if self == Date_Period.Day then date else
         adjuster = case self of
             Date_Period.Year -> TemporalAdjusters.lastDayOfYear
             Date_Period.Quarter -> Date_Period_Utils.quarter_end
             Date_Period.Month -> TemporalAdjusters.lastDayOfMonth
             Date_Period.Week first_day -> Date_Period_Utils.end_of_week first_day.to_java
+            Date_Period.Day -> Date_Period_Utils.day_end
         (Time_Utils.utils_for date).apply_adjuster date adjuster
+
+    ## PRIVATE
+    to_period : Period
+    to_period self = case self of
+        Date_Period.Year -> Period.new years=1
+        Date_Period.Quarter -> Period.new months=3
+        Date_Period.Month -> Period.new months=1
+        Date_Period.Week _ -> Period.new days=7
+        Date_Period.Day -> Period.new days=1
