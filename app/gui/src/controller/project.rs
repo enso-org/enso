@@ -214,16 +214,8 @@ impl Project {
     }
 
     fn display_warning_on_unsupported_engine_version(&self) {
-        let requirement = enso_config::engine_version_requirement();
-        let version = self.model.engine_version();
-        if !requirement.matches(&version) {
-            let message = format!(
-                "Unsupported Engine version. Please update edition in {} \
-                to {}.",
-                package_yaml_path(&self.model.name()),
-                enso_config::language_edition_supported
-            );
-            self.status_notifications.publish_event(message);
+        if let Err(e) = enso_config::check_engine_version(&self.model.engine_version()) {
+            self.status_notifications.publish_event(e.to_string());
         }
     }
 }
@@ -272,19 +264,6 @@ mod tests {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use engine_protocol::language_server;
     use std::assert_matches::assert_matches;
-
-    #[test]
-    fn parse_supported_engine_version() {
-        // Should not panic.
-        enso_config::engine_version_requirement();
-    }
-
-    #[test]
-    fn new_project_engine_version_fills_requirements() {
-        let requirements = enso_config::engine_version_requirement();
-        let version = semver::Version::parse(enso_config::engine_version_supported).unwrap();
-        assert!(requirements.matches(&version))
-    }
 
     #[wasm_bindgen_test]
     fn adding_missing_main() {

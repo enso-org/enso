@@ -50,7 +50,7 @@ itertools = { workspace = true }
 js-sys = { workspace = true }
 mockall = { version = "0.7.1", features = ["nightly"] }
 nalgebra = { workspace = true }
-semver = { version = "1.0.0", features = ["serde"] }
+semver = { workspace = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { workspace = true }
 sha3 = { version = "0.8.2" }

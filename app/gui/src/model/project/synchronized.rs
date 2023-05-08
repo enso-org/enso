@@ -240,8 +240,9 @@ pub struct RenameInReadOnly;
 /// engine's version (which is likely the cause of the problems).
 #[derive(Debug, Fail)]
 pub struct UnsupportedEngineVersion {
-    project_name: String,
-    root_cause:   failure::Error,
+    project_name:     String,
+    version_mismatch: enso_config::UnsupportedEngineVersion,
+    root_cause:       failure::Error,
 }
 
 impl UnsupportedEngineVersion {
@@ -249,10 +250,13 @@ impl UnsupportedEngineVersion {
         let engine_version = properties.engine_version.clone();
         let project_name = properties.name.project.as_str().to_owned();
         move |root_cause| {
-            let requirement = enso_config::engine_version_requirement();
-            if !requirement.matches(&engine_version) {
-                let project_name = project_name.clone();
-                UnsupportedEngineVersion { project_name, root_cause }.into()
+            if let Err(version_mismatch) = enso_config::check_engine_version(&engine_version) {
+                UnsupportedEngineVersion {
+                    project_name: project_name.clone(),
+                    version_mismatch,
+                    root_cause,
+                }
+                .into()
             } else {
                 root_cause
             }
