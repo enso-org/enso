@@ -624,19 +624,19 @@ type Date
          for a complete format specification.
 
        > Example
-         Format "2020-06-02" as "2 June 2020"
+         Format "2020-06-02" as "2 Jun 2020"
 
              from Standard.Base import Date
 
              example_format = Date.new 2020 6 2 . format "d MMMM yyyy"
 
        > Example
-         Format "2020-06-02" as "2 June 20"
+         Format "2020-06-02" as "2 Jun 20"
 
              example_format = Date.new 2020 6 2 . format "d MMMM yy"
 
        > Example
-         Format "2020-06-02" as "Tuesday, 02 June 2020"
+         Format "2020-06-02" as "Tuesday, 02 Jun 2020"
 
              example_format = Date.new 2020 6 2 . format "EEEE, dd MMMM yyyy"
 

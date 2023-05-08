@@ -97,8 +97,9 @@ spec =
             input.format "d. MMMM yyyy HH.mm.ss" (Locale.new "fr") . should_equal expected_fr
 
         Test.specify "Empty/Nothing format" <|
-            input = Column.from_vector "values" [Date_Time.new 2020 12 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
-            expected = Column.from_vector "values" ['2020-12-21T08:10:20-05:00[America/New_York]', '2023-04-25T14:25:02-04:00[America/New_York]']
+            zone = Time_Zone.parse "US/Hawaii"
+            input = Column.from_vector "values" [Date_Time.new 2020 12 21 8 10 20 zone=zone, Date_Time.new 2023 4 25 14 25 2 zone=zone]
+            expected = Column.from_vector "values" ['2020-12-21T08:10:20-10:00[US/Hawaii]', '2023-04-25T14:25:02-10:00[US/Hawaii]']
             input.format . should_equal expected
             input.format "" . should_equal expected
             input.format Nothing . should_equal expected
@@ -122,9 +123,10 @@ spec =
             input.format formats (Locale.new "fr") . should_equal expected
 
         Test.specify "Empty/Nothing format, with format Column" <|
-            input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
+            zone = Time_Zone.parse "US/Hawaii"
+            input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20 zone=zone, Date_Time.new 2023 4 25 14 25 2 zone=zone]
             formats = Column.from_vector "formats" ["", Nothing]
-            expected = Column.from_vector "values" ['2020-06-21T08:10:20-04:00[America/New_York]', '2023-04-25T14:25:02-04:00[America/New_York]']
+            expected = Column.from_vector "values" ['2020-06-21T08:10:20-10:00[US/Hawaii]', '2023-04-25T14:25:02-10:00[US/Hawaii]']
             actual = input.format formats
             actual . should_equal expected
 
