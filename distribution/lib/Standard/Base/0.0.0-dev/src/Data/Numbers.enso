@@ -564,10 +564,14 @@ type Decimal
          - NaN.round == 0
          - +Inf.round == +Inf
          - -Inf.round == -Inf
-    round : Integer -> Boolean -> Decimal
-    round self decimal_places=0 use_bankers=False =
-        scale = 10 ^ decimal_places
-        (((self * scale) + 0.5).floor) / scale
+    round : Integer -> Decimal
+    round self that = @Builtin_Method "Decimal.round"
+
+    ##
+        enso_round : Integer -> Boolean -> Decimal
+        enso_round self decimal_places=0 use_bankers=False =
+            scale = 10 ^ decimal_places
+            (((self * scale) + 0.5).floor) / scale
 
     ## Compute the negation of this.
 
