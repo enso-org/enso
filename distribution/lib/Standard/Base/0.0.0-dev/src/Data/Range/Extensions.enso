@@ -3,6 +3,8 @@ import project.Data.Range.Range
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 
+from project.Data.Boolean import Boolean, False
+
 ## ALIAS Range
 
    Creates an increasing range of integers from `self` to `n`.
@@ -21,7 +23,7 @@ import project.Errors.Illegal_Argument.Illegal_Argument
      Create a range containing elements 1, 2, 3.
 
          1.up_to 3 include_end=True
-Integer.up_to : Integer -> Range
+Integer.up_to : Integer -> Boolean -> Range
 Integer.up_to self n include_end=False = case n of
     _ : Integer ->
         effective_end = if include_end then n+1 else n
@@ -46,7 +48,7 @@ Integer.up_to self n include_end=False = case n of
      Create a range containing elements 3, 2, 1.
 
          3.down_to 1 include_end=True
-Integer.down_to : Integer -> Range
+Integer.down_to : Integer -> Boolean -> Range
 Integer.down_to self n include_end=False = case n of
     _ : Integer ->
         effective_end = if include_end then n-1 else n

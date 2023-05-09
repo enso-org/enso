@@ -6,6 +6,7 @@ import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
 import project.Data.Text.Text
 import project.Data.Time.Date_Period.Date_Period
+import project.Data.Time.Date_Range.Date_Range
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Day_Of_Week_From
@@ -463,7 +464,7 @@ type Date
          Create a range containing dates [2021-12-05, 2021-12-06].
 
              (Date.new 2021 12 05).up_to (Date.new 2021 12 06) include_end=True
-    up_to : Date -> Date_Range
+    up_to : Date -> Boolean -> Date_Range
     up_to self end include_end=False = case end of
         _ : Date ->
             effective_end = if include_end then end.next else end
@@ -488,7 +489,7 @@ type Date
          Create a range containing dates [2021-12-06, 2021-12-05].
 
              (Date.new 2021 12 06).down_to (Date.new 2021 12 05) include_end=True
-    down_to : Date -> Date_Range
+    down_to : Date -> Boolean -> Date_Range
     down_to self end include_end=False = case end of
         _ : Date ->
             effective_end = if include_end then end.previous else end
