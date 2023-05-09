@@ -1,5 +1,6 @@
 package org.enso.compiler.context
 
+import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.resolve.{
@@ -26,7 +27,8 @@ import scala.collection.mutable
   */
 final class SuggestionBuilder[A: IndexedSource](
   val source: A,
-  val typeGraph: TypeGraph
+  val typeGraph: TypeGraph,
+  val compiler: Compiler
 ) {
 
   import SuggestionBuilder._
@@ -379,6 +381,9 @@ final class SuggestionBuilder[A: IndexedSource](
     )
   }
 
+  private def containsValues(resolvedType: BindingsMap.ResolvedType): Boolean =
+    compiler.builtins.getBuiltinType(resolvedType.tp.name).containsValues()
+
   private def buildResolvedUnionTypeName(
     resolvedName: BindingsMap.ResolvedName
   ): TypeArg =
@@ -392,10 +397,14 @@ final class SuggestionBuilder[A: IndexedSource](
         } else if (tp.getVariants.size == 1) {
           TypeArg.Sum(Some(tp.qualifiedName), Seq())
         } else {
-          TypeArg.Sum(
-            Some(tp.qualifiedName),
-            Seq(TypeArg.Value(tp.qualifiedName))
-          )
+          if (containsValues(tp)) {
+            TypeArg.Sum(Some(tp.qualifiedName), Seq())
+          } else {
+            TypeArg.Sum(
+              Some(tp.qualifiedName),
+              Seq(TypeArg.Value(tp.qualifiedName))
+            )
+          }
         }
       case _: BindingsMap.ResolvedName =>
         TypeArg.Value(resolvedName.qualifiedName)
@@ -672,8 +681,11 @@ object SuggestionBuilder {
     * @param module the module to index
     * @return the suggestions builder for the module
     */
-  def apply(module: Module): SuggestionBuilder[CharSequence] =
-    SuggestionBuilder(module.getSource.getCharacters)
+  def apply(
+    module: Module,
+    compiler: Compiler
+  ): SuggestionBuilder[CharSequence] =
+    SuggestionBuilder(module.getSource.getCharacters, compiler)
 
   /** Create the suggestion builder.
     *
@@ -683,17 +695,21 @@ object SuggestionBuilder {
     */
   def apply[A: IndexedSource](
     source: A,
-    typeGraph: TypeGraph
+    typeGraph: TypeGraph,
+    compiler: Compiler
   ): SuggestionBuilder[A] =
-    new SuggestionBuilder[A](source, typeGraph)
+    new SuggestionBuilder[A](source, typeGraph, compiler)
 
   /** Create the suggestion builder.
     *
     * @param source the text source
     * @tparam A the type of the text source
     */
-  def apply[A: IndexedSource](source: A): SuggestionBuilder[A] =
-    new SuggestionBuilder[A](source, Types.getTypeHierarchy)
+  def apply[A: IndexedSource](
+    source: A,
+    compiler: Compiler
+  ): SuggestionBuilder[A] =
+    new SuggestionBuilder[A](source, Types.getTypeHierarchy, compiler)
 
   /** A single level of an `IR`.
     *
