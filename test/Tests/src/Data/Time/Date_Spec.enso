@@ -234,6 +234,25 @@ spec_with name create_new_date parse_date =
             (create_new_date 2000 7 1).end_of Date_Period.Quarter . should_equal (Date.new 2000 9 30)
             (create_new_date 2000 6 30).end_of Date_Period.Quarter . should_equal (Date.new 2000 6 30)
 
+        Test.specify "should allow to compute the next Date_Period after a date" <|
+            create_new_date 2000 2 1 . next Date_Period.Day . should_equal <| create_new_date 2000 2 2
+            create_new_date 2000 2 1 . next Date_Period.Month . should_equal <| create_new_date 2000 3 1
+            create_new_date 2000 2 1 . next Date_Period.Year . should_equal <| create_new_date 2001 2 1
+
+        Test.specify "should allow to compute the previous Date_Period after a date" <|
+            create_new_date 2000 2 1 . previous Date_Period.Day . should_equal <| create_new_date 2000 1 31
+            create_new_date 2000 2 1 . previous Date_Period.Month . should_equal <| create_new_date 2000 1 1
+            create_new_date 2000 2 1 . previous Date_Period.Year . should_equal <| create_new_date 1999 2 1
+
+        Test.specify "should allow to compute the Period between two dates." <|
+            create_new_date 2000 2 1 . until (create_new_date 2000 2 12) . should_equal <| Period.new 0 0 11
+            create_new_date 2000 2 1 . until (create_new_date 2000 12 12) . should_equal <| Period.new 0 10 11
+            create_new_date 2000 2 1 . until (create_new_date 2010 2 12) . should_equal <| Period.new 10 0 11
+
+            create_new_date 2000 2 12 . until (create_new_date 2000 2 1) . should_equal <| Period.new 0 0 -11
+            create_new_date 2000 12 12 . until (create_new_date 2000 2 1) . should_equal <| Period.new 0 -10 -11
+            create_new_date 2010 2 12 . until (create_new_date 2000 2 1) . should_equal <| Period.new -10 0 -11
+
         Test.specify "should allow to compute the number of days until a date" <|
             create_new_date 2000 2 1 . days_until (create_new_date 2000 2 1) . should_equal 0
             create_new_date 2000 2 1 . days_until (create_new_date 2000 2 2) . should_equal 1

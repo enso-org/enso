@@ -347,7 +347,7 @@ type Date
             Period.between self end
 
     ## Counts the days between self (inclusive) and the provided end date
-       (exclusive).
+       (exclusive, or inclusive if include_end_date=True).
 
        Produces a warning for a Date that is before epoch start.
        See `Date_Time.enso_epoch_start`.
