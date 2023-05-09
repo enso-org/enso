@@ -376,10 +376,7 @@ impl View {
         // FIXME[WD]: Think how to refactor it, as it needs to be done before model, as we do not
         //   want shader recompilation. Model uses styles already.
         model.set_style(theme);
-        // TODO[WD]: This should not be needed after the theme switching issue is implemented.
-        //   See: https://github.com/enso-org/ide/issues/795
         let input_change_delay = frp::io::timer::Timeout::new(network);
-        let searcher_open_delay = frp::io::timer::Timeout::new(network);
 
         if let Some(window_control_buttons) = &*model.window_control_buttons {
             let initial_size = &window_control_buttons.size.value();
@@ -482,8 +479,7 @@ impl View {
             existing_node_edited <- graph.node_expression_edited.gate_not(&frp.is_searcher_opened);
             open_searcher <- existing_node_edited.map2(&node_edited_by_user,
                 |(id, _, _), edited| edited.map_or(false, |edited| *id == edited)
-            ).on_true();
-            searcher_open_delay.restart <+ open_searcher.constant(0);
+            ).on_true().debounce();
             cursor_position <- existing_node_edited.map2(
                 &node_edited_by_user,
                 |(node_id, _, selections), edited| {
@@ -495,7 +491,7 @@ impl View {
             ).filter_map(|pos| *pos);
             edited_node <- node_edited_by_user.filter_map(|node| *node);
             position_and_edited_node <- cursor_position.map2(&edited_node, |pos, id| (*pos, *id));
-            prepare_params <- position_and_edited_node.sample(&searcher_open_delay.on_expired);
+            prepare_params <- position_and_edited_node.sample(&open_searcher);
             frp.source.searcher <+ prepare_params.map(|(pos, node_id)| {
                 Some(SearcherParams::new_for_edited_node(*node_id, *pos))
             });
@@ -510,7 +506,7 @@ impl View {
             update_searcher_input_on_commit <- frp.output.editing_committed.constant(());
             input_change_delay.cancel <+ update_searcher_input_on_commit;
             update_searcher_input <- any(&input_change_delay.on_expired, &update_searcher_input_on_commit);
-            input_change_and_searcher <- map2(&searcher_input_change, &frp.searcher,
+            input_change_and_searcher <- all_with(&searcher_input_change, &frp.searcher,
                 |c, s| (c.clone(), *s)
             );
             updated_input <- input_change_and_searcher.sample(&update_searcher_input);

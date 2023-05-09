@@ -533,8 +533,8 @@ function Dashboard(props: DashboardProps) {
                         const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
                         setModal(() => (
                             <CreateForm
-                                left={buttonPosition.left}
-                                top={buttonPosition.top}
+                                left={buttonPosition.left + window.scrollX}
+                                top={buttonPosition.top + window.scrollY}
                                 directoryId={directoryId}
                                 onSuccess={doRefresh}
                             />
@@ -653,7 +653,7 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div
-            className={`select-none text-primary text-xs min-h-screen p-2 ${
+            className={`relative select-none text-primary text-xs min-h-screen p-2 ${
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
             onClick={event => {
@@ -687,20 +687,22 @@ function Dashboard(props: DashboardProps) {
                     }
                 }}
                 setBackendPlatform={newBackendPlatform => {
-                    setProjectAssets([])
-                    setDirectoryAssets([])
-                    setSecretAssets([])
-                    setFileAssets([])
-                    switch (newBackendPlatform) {
-                        case platformModule.Platform.desktop:
-                            setBackend(new localBackend.LocalBackend())
-                            break
-                        case platformModule.Platform.cloud: {
-                            const headers = new Headers()
-                            headers.append('Authorization', `Bearer ${accessToken}`)
-                            const client = new http.Client(headers)
-                            setBackend(new remoteBackendModule.RemoteBackend(client, logger))
-                            break
+                    if (newBackendPlatform !== backend.platform) {
+                        setProjectAssets([])
+                        setDirectoryAssets([])
+                        setSecretAssets([])
+                        setFileAssets([])
+                        switch (newBackendPlatform) {
+                            case platformModule.Platform.desktop:
+                                setBackend(new localBackend.LocalBackend())
+                                break
+                            case platformModule.Platform.cloud: {
+                                const headers = new Headers()
+                                headers.append('Authorization', `Bearer ${accessToken}`)
+                                const client = new http.Client(headers)
+                                setBackend(new remoteBackendModule.RemoteBackend(client, logger))
+                                break
+                            }
                         }
                     }
                 }}
@@ -733,6 +735,7 @@ function Dashboard(props: DashboardProps) {
                                     ? 'opacity-50'
                                     : ''
                             }`}
+                            disabled={backend.platform === platformModule.Platform.desktop}
                             onClick={event => {
                                 event.stopPropagation()
                                 setModal(() => (
@@ -746,8 +749,8 @@ function Dashboard(props: DashboardProps) {
                             {svg.UPLOAD_ICON}
                         </button>
                         <button
-                            className={`mx-1 ${selectedAssets.length === 0 ? 'opacity-50' : ''}`}
-                            disabled={selectedAssets.length === 0}
+                            className={`mx-1 opacity-50`}
+                            disabled={true}
                             onClick={event => {
                                 event.stopPropagation()
                                 /* TODO */

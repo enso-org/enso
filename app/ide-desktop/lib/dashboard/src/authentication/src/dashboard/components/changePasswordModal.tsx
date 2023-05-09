@@ -33,7 +33,7 @@ function ChangePasswordModal() {
     }
 
     return (
-        <Modal className="bg-opacity-30">
+        <Modal centered className="bg-opacity-30">
             <div
                 onClick={event => {
                     event.stopPropagation()

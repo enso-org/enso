@@ -614,6 +614,8 @@ type Date
 
        Arguments:
        - pattern: The text specifying the format for formatting the date.
+       - locale: The locale in which the format should be interpreted.
+         (Defaults to Locale.default.)
 
        ? Pattern Syntax
          A custom pattern string consists of one or more custom date and time
@@ -622,19 +624,19 @@ type Date
          for a complete format specification.
 
        > Example
-         Format "2020-06-02" as "2 June 2020"
+         Format "2020-06-02" as "2 Jun 2020"
 
              from Standard.Base import Date
 
              example_format = Date.new 2020 6 2 . format "d MMMM yyyy"
 
        > Example
-         Format "2020-06-02" as "2 June 20"
+         Format "2020-06-02" as "2 Jun 20"
 
              example_format = Date.new 2020 6 2 . format "d MMMM yy"
 
        > Example
-         Format "2020-06-02" as "Tuesday, 02 June 2020"
+         Format "2020-06-02" as "Tuesday, 02 Jun 2020"
 
              example_format = Date.new 2020 6 2 . format "EEEE, dd MMMM yyyy"
 
@@ -647,8 +649,15 @@ type Date
          Format "2020-06-02" as "2020AD"
 
              example_format = Date.new 2020 6 2 . format "yyyyGG"
-    format : Text -> Text
-    format self pattern = Time_Utils.local_date_format self pattern
+
+       > Example
+         Format "2020-06-21" with French locale as "21. juin 2020"
+
+             example_format = Date.new 2020 6 21 . format "d. MMMM yyyy" (Locale.new "fr")
+    format : Text -> Locale -> Text
+    format self pattern locale=Locale.default = case locale of
+        Nothing -> Time_Utils.local_date_format self pattern
+        _ -> Time_Utils.local_date_format_with_locale self pattern locale.java_locale
 
 ## PRIVATE
 week_days_between start end =
