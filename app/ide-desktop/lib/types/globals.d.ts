@@ -3,6 +3,9 @@
  * monkeypatching on `window` and generated code.
  *
  * This file MUST `export {}` for the globals to be visible to other files. */
+// This file is being imported for its types.
+// eslint-disable-next-line no-restricted-syntax
+import * as buildJson from './build.json' assert { type: 'json' }
 
 interface StringConfig {
     [key: string]: StringConfig | string
@@ -10,13 +13,6 @@ interface StringConfig {
 
 interface Enso {
     main: (inputConfig?: StringConfig) => Promise<void>
-}
-
-interface BuildInfo {
-    commit: string
-    version: string
-    engineVersion: string
-    name: string
 }
 
 // ==========================
@@ -60,10 +56,8 @@ declare global {
     // These are used in other files (because they're globals)
     /* eslint-disable @typescript-eslint/naming-convention */
     const BUNDLED_ENGINE_VERSION: string
-    const BUILD_INFO: BuildInfo
+    const BUILD_INFO: buildJson.BuildInfo
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string
     const IS_DEV_MODE: boolean
     /* eslint-disable @typescript-eslint/naming-convention */
 }
-
-export {}

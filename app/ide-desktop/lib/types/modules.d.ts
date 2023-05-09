@@ -4,7 +4,7 @@
 
 // Required because this is a build artifact, which does not exist on a clean repository.
 declare module '*/build.json' {
-    interface BuildInfo {
+    export interface BuildInfo {
         commit: string
         version: string
         engineVersion: string
@@ -71,7 +71,7 @@ declare module 'create-servers' {
 
     interface CreateServersOptions {
         http: number
-        handler: http.RequestListener<http.IncomingMessage, http.ServerResponse>
+        handler: http.RequestListener
     }
     interface HttpError {
         http: string

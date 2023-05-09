@@ -836,13 +836,7 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
                 .run_ok()
                 .await?;
 
-            // Copied from `build` in `lib/rust/ensogl/pack/src/lib.rs`.
-            let paths = ensogl_pack::Paths::new().await?;
-            ensogl_pack::compile_this_crate_ts_sources(&paths).await?;
-            ide_ci::fs::create_or_update_symlink(
-                &paths.target.ensogl_pack.dist,
-                &paths.target.ensogl_pack.linked_dist,
-            )?;
+            ensogl_pack::build_ts_sources_only().await?;
             prettier::check(&ctx.repo_root).await?;
             let js_modules_root = ctx.repo_root.join("app/ide-desktop");
             Npm.cmd()?.current_dir(&js_modules_root).args(["install"]).run_ok().await?;

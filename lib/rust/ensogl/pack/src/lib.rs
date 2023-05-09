@@ -447,6 +447,16 @@ async fn extract_assets(paths: &Paths) -> Result<()> {
         .await
 }
 
+/// Just builds the TypeScript sources, and creates (or recreates) the symlink to `linked_dist`.
+pub async fn build_ts_sources_only() -> Result {
+    let paths = Paths::new().await?;
+    compile_this_crate_ts_sources(&paths).await?;
+    ide_ci::fs::create_or_update_symlink_dir(
+        &paths.target.ensogl_pack.dist,
+        &paths.target.ensogl_pack.linked_dist,
+    )
+}
+
 /// Wrapper over `wasm-pack build` command.
 ///
 /// # Arguments
@@ -464,7 +474,7 @@ pub async fn build(
     assets::build(&paths).await?;
     let out_dir = Path::new(&outputs.out_dir);
     ide_ci::fs::copy(&paths.target.ensogl_pack.dist, out_dir)?;
-    ide_ci::fs::create_or_update_symlink(
+    ide_ci::fs::create_or_update_symlink_dir(
         &paths.target.ensogl_pack.dist,
         &paths.target.ensogl_pack.linked_dist,
     )
