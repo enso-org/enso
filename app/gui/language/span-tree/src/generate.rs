@@ -239,8 +239,9 @@ impl<'a> ApplicationBase<'a> {
         let mut param_iter = invocation_info.parameters.into_iter();
         let argument_in_access = if has_argument_in_access { param_iter.next() } else { None };
         let chain_arguments: VecDeque<(usize, ArgumentInfo)> = param_iter.enumerate().collect();
+        let icon_name = invocation_info.icon_name;
 
-        Some(ResolvedApplication { argument_in_access, chain_arguments })
+        Some(ResolvedApplication { argument_in_access, chain_arguments, icon_name })
     }
 
     /// Switch the method application to use different expression as call id, but keep the same
@@ -263,6 +264,8 @@ struct ResolvedApplication {
     /// information is preserved even after the arguments are popped or removed from deque in
     /// arbitrary order.
     chain_arguments:    VecDeque<(usize, ArgumentInfo)>,
+    /// The icon to display on node when this is its main application.
+    icon_name:          Option<ImString>,
 }
 
 impl ResolvedApplication {
@@ -1315,6 +1318,7 @@ mod test {
                         .into_iter()
                         .enumerate()
                         .collect(),
+                    icon_name:          None,
                 };
 
                 let chain = ast::prefix::Chain::from_ast(&ast).unwrap_or_else(|| {

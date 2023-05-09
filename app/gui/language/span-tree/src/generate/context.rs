@@ -24,6 +24,8 @@ pub struct CalledMethodInfo {
     pub called_on_type: Option<bool>,
     /// Information about arguments taken by a called method.
     pub parameters:     Vec<ArgumentInfo>,
+    /// Name of an icon to display on node when this is its main method call, in PascalCase.
+    pub icon_name:      Option<ImString>,
 }
 
 impl CalledMethodInfo {

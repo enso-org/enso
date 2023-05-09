@@ -572,11 +572,10 @@ impl Entry {
             .iter()
             .map(|arg| to_span_tree_param(arg, suggestion_db, parser))
             .collect();
-        let is_static = self.is_static;
-        let is_constructor = matches!(self.kind, Kind::Constructor);
         span_tree::generate::context::CalledMethodInfo {
-            is_static,
-            is_constructor,
+            is_static: self.is_static,
+            is_constructor: matches!(self.kind, Kind::Constructor),
+            icon_name: self.icon_name.as_ref().map(|n| n.to_pascal_case()),
             parameters,
             ..default()
         }

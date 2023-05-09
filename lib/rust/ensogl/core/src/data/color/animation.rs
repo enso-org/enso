@@ -68,6 +68,8 @@ impl Animation {
                 |(color,alpha)| color.with_alpha(*alpha)
             );
         }
+        self.color_anim.precision.emit(0.01);
+        self.alpha_anim.precision.emit(0.01);
         self
     }
 }
