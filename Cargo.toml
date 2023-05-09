@@ -134,3 +134,5 @@ syn = { version = "1.0", features = [
   "visit-mut",
 ] }
 quote = { version = "1.0.23" }
+semver = { version = "1.0.0", features = ["serde"] }
+thiserror = "1.0.40"
