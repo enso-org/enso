@@ -6,24 +6,6 @@
 // === Module declarations ===
 // ===========================
 
-declare module '*/build.json' {
-    /** Version metadata for the current build. */
-    interface BuildInfo {
-        commit: string
-        version: string
-        engineVersion: string
-        name: string
-    }
-
-    const BUILD_INFO: BuildInfo
-    export default BUILD_INFO
-}
-
-declare module '*/ensogl-pack/linked-dist' {
-    // eslint-disable-next-line no-restricted-syntax
-    export * from '../../../../lib/rust/ensogl/pack/js/src/runner/index'
-}
-
 declare module '*/gui/config.yaml' {
     /** Content of the GUI config file. */
     interface Config {
