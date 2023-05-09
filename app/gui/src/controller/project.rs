@@ -189,13 +189,10 @@ impl Project {
     ) {
         // Restore the call stack from the metadata.
         let initial_call_stack = main_module.with_project_metadata(|m| m.call_stack.clone());
-        for frame in initial_call_stack {
-            // Push as many frames as possible. We should not be too concerned about failure here.
-            // It is to be assumed that metadata can get broken.
-            if let Err(e) = main_graph.enter_method_pointer(&frame).await {
-                warn!("Failed to push initial stack frame: {frame:?}: {e}");
-                break;
-            }
+        // We should not be too concerned about failure here. It is to be assumed that metadata can
+        // get broken.
+        if let Err(error) = main_graph.enter_stack(initial_call_stack).await {
+            warn!("Failed to push initial call stack. {error}");
         }
     }
 

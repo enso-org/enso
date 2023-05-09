@@ -65,10 +65,10 @@ pub enum Notification {
     /// The notification from the execution context about the computed value information
     /// being updated.
     ComputedValueInfo(model::execution_context::ComputedValueExpressions),
-    /// Notification emitted when the node has been entered.
-    EnteredNode(LocalCall),
-    /// Notification emitted when the node was step out.
-    SteppedOutOfNode(double_representation::node::Id),
+    /// Notification emitted when a call stack has been entered.
+    EnteredStack(Vec<LocalCall>),
+    /// Notification emitted when a number of frames of the call stack have been exited.
+    ExitedStack(usize),
 }
 
 
@@ -216,28 +216,30 @@ impl Handle {
         registry.clone_ref().get_type(id)
     }
 
-    /// Enter node by given node ID and method pointer.
+    /// Enter the given stack of nodes by node ID and method pointer.
     ///
-    /// This will cause pushing a new stack frame to the execution context and changing the graph
-    /// controller to point to a new definition.
+    /// This will push new stack frames to the execution context and change the graph controller to
+    /// point to a new definition.
     ///
     /// ### Errors
     /// - Fails if method graph cannot be created (see `graph_for_method` documentation).
     /// - Fails if the project is in read-only mode.
-    pub async fn enter_method_pointer(&self, local_call: &LocalCall) -> FallibleResult {
+    pub async fn enter_stack(&self, stack: Vec<LocalCall>) -> FallibleResult {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else {
-            debug!("Entering node {}.", local_call.call);
-            let method_ptr = &local_call.definition;
-            let graph = controller::Graph::new_method(&self.project, method_ptr);
-            let graph = graph.await?;
-            self.execution_ctx.push(local_call.clone()).await?;
-            debug!("Replacing graph with {graph:?}.");
-            self.graph.replace(graph);
-            debug!("Sending graph invalidation signal.");
-            self.notifier.publish(Notification::EnteredNode(local_call.clone())).await;
-
+            for local_call in stack.clone() {
+                debug!("Entering node {}.", local_call.call);
+                self.execution_ctx.push(local_call).await?;
+            }
+            if let Some(inner_call) = stack.last() {
+                let graph =
+                    controller::Graph::new_method(&self.project, &inner_call.definition).await?;
+                debug!("Replacing graph with {graph:?}.");
+                self.graph.replace(graph);
+                debug!("Sending graph invalidation signal.");
+                self.notifier.publish(Notification::EnteredStack(stack)).await;
+            }
             Ok(())
         }
     }
@@ -255,21 +257,23 @@ impl Handle {
         Ok(node_info)
     }
 
-    /// Leave the current node. Reverse of `enter_node`.
+    /// Leave the given number of stack frames. Reverse of `enter_stack`.
     ///
     /// ### Errors
     /// - Fails if this execution context is already at the stack's root or if the parent graph
     /// cannot be retrieved.
     /// - Fails if the project is in read-only mode.
-    pub async fn exit_node(&self) -> FallibleResult {
+    pub async fn exit_stack(&self, frame_count: usize) -> FallibleResult {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else {
-            let frame = self.execution_ctx.pop().await?;
+            for _ in 0..frame_count {
+                self.execution_ctx.pop().await?;
+            }
             let method = self.execution_ctx.current_method();
             let graph = controller::Graph::new_method(&self.project, &method).await?;
             self.graph.replace(graph);
-            self.notifier.publish(Notification::SteppedOutOfNode(frame.call)).await;
+            self.notifier.publish(Notification::ExitedStack(frame_count)).await;
             Ok(())
         }
     }
