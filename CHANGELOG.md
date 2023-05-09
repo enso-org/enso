@@ -146,9 +146,12 @@
 - [Fixed text visualisations which were being cut off at the last line.][6421]
 - [Fixed a bug where, when scrolling or dragging on a full-screen visualization,
   the view of the graph changed as well.][6530]
+- [Fixed a bug where selecting a nested breadcrumb would cause the order of
+  breadcrumbs to change incorrectly.][6617]
 
 [6421]: https://github.com/enso-org/enso/pull/6421
 [6530]: https://github.com/enso-org/enso/pull/6530
+[6617]: https://github.com/enso-org/enso/pull/6617
 
 #### EnsoGL (rendering engine)
 
