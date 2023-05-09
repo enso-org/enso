@@ -157,4 +157,9 @@ public final class ArraySlice implements TruffleObject {
     return new ArraySlice(newStorage, start, end);
   }
 
+  @ExportMessage
+  boolean reachedMaxWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    return warnings.reachedMaxWarnings(this.storage);
+  }
+
 }

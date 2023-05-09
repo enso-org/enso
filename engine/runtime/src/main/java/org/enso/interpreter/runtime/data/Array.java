@@ -238,6 +238,15 @@ public final class Array implements TruffleObject {
   }
 
   @ExportMessage
+  boolean reachedMaxWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    try {
+      return getWarnings(null, warnings).length >= WithWarnings.MAX_WARNINGS_LIMIT;
+    } catch (UnsupportedMessageException e) {
+      return false;
+    }
+  }
+
+  @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
     return EnsoContext.get(thisLib).getBuiltins().array();
   }

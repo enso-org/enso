@@ -19,7 +19,6 @@ import org.openjdk.jmh.infra.BenchmarkParams;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
@@ -55,7 +54,6 @@ public class WarningBenchmarks extends TestBase {
     private GeneratedVector generateRandomVector(Random random, String vectorName, long vectorSize, int maxRange) {
         List<Integer> primitiveValues = new ArrayList<>();
         random.ints(vectorSize, 0, maxRange).forEach(primitiveValues::add);
-        Collections.shuffle(primitiveValues);
         var sb = new StringBuilder();
         sb.append(vectorName).append(" = [");
         var sum = 0;
@@ -142,7 +140,7 @@ public class WarningBenchmarks extends TestBase {
     }
 
     @Benchmark
-    public void diiffWarningRandomElementsVecSum() {
+    public void diffWarningRandomElementsVecSum() {
         Value res = vecSumBench.execute(randomElemsWithWarningsVec);
         checkResult(res, randomVectorSum);
     }

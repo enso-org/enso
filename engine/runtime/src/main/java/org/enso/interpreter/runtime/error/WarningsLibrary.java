@@ -64,4 +64,15 @@ public abstract class WarningsLibrary extends Library {
   public Object removeWarnings(Object receiver) throws UnsupportedMessageException {
     throw UnsupportedMessageException.create();
   }
+
+  /**
+   * Returns the object with all warnings removed.
+   *
+   * @param receiver the receiver to analyze
+   * @return the receiver with all warnings removed, if any
+   */
+  @GenerateLibrary.Abstract(ifExported = {"hasWarnings"})
+  public boolean reachedMaxWarnings(Object receiver) {
+    return false;
+  }
 }

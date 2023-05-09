@@ -22,21 +22,32 @@ import java.util.Arrays;
 @ExportLibrary(ReflectionLibrary.class)
 public final class WithWarnings implements TruffleObject {
 
-  private static final int MAX_WARNINGS_LIMIT = 100;
+  public static final int MAX_WARNINGS_LIMIT = 100;
 
   private final EconomicSet<Warning> warnings;
   private final Object value;
 
-  private WithWarnings(Object value, Warning... warnings) {
+  private final boolean reachedMax;
+
+  private WithWarnings(Object value, boolean reachedMaxCount, Warning... warnings) {
     assert !(value instanceof WithWarnings);
     this.warnings = createSetFromArray(warnings);
     this.value = value;
+    this.reachedMax = reachedMaxCount || this.warnings.size() >= MAX_WARNINGS_LIMIT;
+  }
+  private WithWarnings(Object value, Warning... warnings) {
+    this(value, false, warnings);
   }
 
-  private WithWarnings(Object value, EconomicSet<Warning> warnings, Warning... additionalWarnings) {
+  private WithWarnings(Object value, EconomicSet<Warning> warnings, boolean reachedMaxCount, Warning... additionalWarnings) {
     assert !(value instanceof WithWarnings);
     this.warnings = cloneSetAndAppend(warnings, additionalWarnings);
     this.value = value;
+    this.reachedMax = reachedMaxCount || this.warnings.size() >= MAX_WARNINGS_LIMIT;
+  }
+
+  private WithWarnings(Object value, EconomicSet<Warning> warnings, Warning... additionalWarnings) {
+    this(value, warnings, false, additionalWarnings);
   }
 
   public static WithWarnings wrap(Object value, Warning... warnings) {
@@ -49,6 +60,10 @@ public final class WithWarnings implements TruffleObject {
 
   public Object getValue() {
     return value;
+  }
+
+  public WithWarnings append(boolean reachedMaxCount, Warning... newWarnings) {
+    return new WithWarnings(value, warnings, reachedMaxCount, newWarnings);
   }
 
   public WithWarnings append(Warning... newWarnings) {
@@ -100,11 +115,15 @@ public final class WithWarnings implements TruffleObject {
     }
   }
 
-  public static WithWarnings appendTo(Object target, Warning[] warnings) {
+  public static WithWarnings appendTo(Object target, Warning... warnings) {
+    return appendTo(target, false, warnings);
+  }
+
+  public static WithWarnings appendTo(Object target, boolean reachedMaxCount, Warning... warnings) {
     if (target instanceof WithWarnings) {
-      return ((WithWarnings) target).append(warnings);
+      return ((WithWarnings) target).append(reachedMaxCount, warnings);
     } else {
-      return new WithWarnings(target, warnings);
+      return new WithWarnings(target, reachedMaxCount, warnings);
     }
   }
 
@@ -140,6 +159,11 @@ public final class WithWarnings implements TruffleObject {
   }
 
   @ExportMessage
+  public boolean reachedMaxWarnings() {
+    return reachedMax;
+  }
+
+  @ExportMessage
   boolean hasSpecialDispatch() {
     return true;
   }
@@ -169,12 +193,15 @@ public final class WithWarnings implements TruffleObject {
       }
       set.add(entries[i]);
     }
-
     return set;
   }
 
-  @CompilerDirectives.TruffleBoundary
   private EconomicSet<Warning> cloneSetAndAppend(EconomicSet<Warning> initial, Warning[] entries) {
+    return initial.size() == MAX_WARNINGS_LIMIT ? initial : cloneSetAndAppendSlow(initial, entries);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private EconomicSet<Warning> cloneSetAndAppendSlow(EconomicSet<Warning> initial, Warning[] entries) {
     EconomicSet<Warning> set = EconomicSet.create(new WarningEquivalence());
     for (Warning warning: initial) {
       if (set.size() >= MAX_WARNINGS_LIMIT) {
@@ -191,8 +218,9 @@ public final class WithWarnings implements TruffleObject {
     return set;
   }
 
+
   @Override
   public String toString() {
-    return "WithWarnings{" + value + " + " + warnings.size() + " warnings}";
+    return "WithWarnings{" + value + " + " + warnings.size() + " warnings" + (reachedMax ? " (more warnings ignored)}" : "}");
   }
 }

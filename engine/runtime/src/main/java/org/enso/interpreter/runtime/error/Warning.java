@@ -117,6 +117,15 @@ public final class Warning implements TruffleObject {
     }
   }
 
+  @Builtin.Method(
+      name = "reached_max_count",
+      description = "Returns `true` if the maximal number of warnings has been reached, `false` otherwise.",
+      autoRegister = false)
+  @Builtin.Specialize
+  public static boolean reachedMaxCount(Object value, WarningsLibrary warnings) {
+    return warnings.hasWarnings(value) ? warnings.reachedMaxWarnings(value) : false;
+  }
+
   @CompilerDirectives.TruffleBoundary
   private static void sortArray(Warning[] arr) {
     Arrays.sort(arr, Comparator.comparing(Warning::getSequenceId).reversed());
