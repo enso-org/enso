@@ -257,7 +257,7 @@ impl Model {
         let background = display::shape::Rectangle::new();
         background.set_color(display::shape::INVISIBLE_HOVER_COLOR);
         background.allow_grow().set_alignment_left_center();
-        background.set_margin_vh(0.0, -LIST_HOVER_MARGIN);
+        background.set_margin_xy((-LIST_HOVER_MARGIN, 0.0));
         list.add_child(&background);
 
         Self {

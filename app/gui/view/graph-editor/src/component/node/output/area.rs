@@ -395,7 +395,7 @@ impl Area {
             eval frp.set_size ((t) model.set_size(*t));
             frp.source.size <+ frp.set_size;
 
-            expr_label_x <- model.label.width.map(|width| -width - input::area::TEXT_OFFSET);
+            expr_label_x <- frp.set_size.map(|size| size.x + input::area::TEXT_OFFSET);
             eval expr_label_x ((x) model.label.set_x(*x));
 
             frp.source.type_label_visibility <+ frp.set_type_label_visibility;

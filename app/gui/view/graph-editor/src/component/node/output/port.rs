@@ -90,7 +90,7 @@ impl AllPortsShape {
 
         let inner_width = canvas_width - HOVER_AREA_PADDING.px() * 2.0;
         let inner_height = canvas_height - HOVER_AREA_PADDING.px() * 2.0;
-        let inner_radius = node::RADIUS.px();
+        let inner_radius = node::CORNER_RADIUS.px();
         let top_mask = BottomHalfPlane();
 
 
@@ -542,7 +542,7 @@ impl Model {
                 shape.set_size(s + Vector2(HOVER_AREA_PADDING,HOVER_AREA_PADDING) * 2.0));
             set_type_label_x <- all_with(&frp.size,&type_label.width,
                 f!([port_count,port_index](port_size,type_label_width) {
-                    let shape_length   = shape_border_length(node::RADIUS, port_size.x);
+                    let shape_length   = shape_border_length(node::CORNER_RADIUS, port_size.x);
                     let shape_left     = - shape_length / 2.0;
                     let port_width     = shape_length / port_count as f32;
                     let port_left      = shape_left + port_width * port_index as f32;

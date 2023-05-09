@@ -55,17 +55,11 @@ pub use expression::Expression;
 // =================
 
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub const ACTION_BAR_WIDTH: f32 = 180.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub const ACTION_BAR_HEIGHT: f32 = 15.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub const CORNER_RADIUS: f32 = 14.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub const HEIGHT: f32 = 28.0;
+pub const HEIGHT: f32 = 32.0;
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const PADDING: f32 = 40.0;
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub const RADIUS: f32 = 14.0;
+pub const CORNER_RADIUS: f32 = HEIGHT / 2.0;
 
 /// Space between the documentation comment and the node.
 pub const COMMENT_MARGIN: f32 = 10.0;
@@ -166,7 +160,7 @@ pub mod error_shape {
             let zoom   = Var::<f32>::from("1.0/zoom()");
             let width  = width  - PADDING.px() * 2.0;
             let height = height - PADDING.px() * 2.0;
-            let radius = RADIUS.px();
+            let radius = CORNER_RADIUS.px();
 
             let error_width         = style.get_number(node_theme::error::width).px();
             let repeat_x            = style.get_number(node_theme::error::repeat_x).px();
@@ -370,6 +364,7 @@ pub struct NodeModel {
     pub output:              output::Area,
     pub visualization:       visualization::Container,
     pub error_visualization: error::Container,
+    pub action_bar_wrapper:  display::object::Instance,
     pub action_bar:          action_bar::ActionBar,
     pub vcs_indicator:       vcs::StatusIndicator,
     pub style:               StyleWatchFrp,
@@ -414,7 +409,12 @@ impl NodeModel {
         error_visualization.frp.set_size.emit(Vector2(x, y));
 
         let action_bar = action_bar::ActionBar::new(app);
-        display_object.add_child(&action_bar);
+        let action_bar_wrapper = display::object::Instance::new_named("action_bar_wrapper");
+        action_bar_wrapper.set_size((0.0, 0.0)).set_xy((0.0, 0.0));
+        action_bar_wrapper.add_child(&action_bar);
+        action_bar.set_alignment_right_center();
+        display_object.add_child(&action_bar_wrapper);
+        scene.layers.above_nodes.add(&action_bar);
 
         let output = output::Area::new(app);
         display_object.add_child(&output);
@@ -435,6 +435,7 @@ impl NodeModel {
             output,
             visualization,
             error_visualization,
+            action_bar_wrapper,
             action_bar,
             vcs_indicator,
             style,
@@ -539,11 +540,6 @@ impl NodeModel {
         self.background.set_size_and_center_xy(size, background_origin);
         self.error_indicator.set_x(x_offset_to_node_center);
         self.vcs_indicator.set_x(x_offset_to_node_center);
-
-        let action_bar_width = ACTION_BAR_WIDTH;
-        self.action_bar
-            .set_x(x_offset_to_node_center + width / 2.0 + CORNER_RADIUS + action_bar_width / 2.0);
-        self.action_bar.frp.set_size(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
 
         let visualization_offset = visualization_offset(width);
         self.error_visualization.set_xy(visualization_offset);

@@ -8,6 +8,7 @@ use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application::tooltip;
 use ensogl::application::Application;
+use ensogl::control::io::mouse;
 use ensogl::display;
 use ensogl_component::toggle_button;
 use ensogl_component::toggle_button::ColorableShape;
@@ -26,30 +27,18 @@ pub mod icon;
 // ==================
 // === Constants  ===
 // ==================
-
-const BUTTON_PADDING: f32 = 0.5;
-const BUTTON_OFFSET: f32 = 0.5;
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
+const BUTTON_SIZE: f32 = 15.0;
+const BUTTON_GAP: f32 = BUTTON_SIZE * 0.5;
 /// Grow the hover area in x direction by this amount. Used to close the gap between action
 /// icons and node.
-const HOVER_EXTENSION_X: f32 = 15.0;
+const HOVER_EXTENSION: Vector2 = Vector2(15.0, 15.0);
+const HOVER_HIDE_DELAY_MS: i32 = 20;
 const VISIBILITY_TOOLTIP_LABEL: &str = "Show preview";
 const DISABLE_OUTPUT_CONTEXT_TOOLTIP_LABEL: &str = "Don't write to files and databases";
 const ENABLE_OUTPUT_CONTEXT_TOOLTIP_LABEL: &str = "Allow writing to files and databases";
 const FREEZE_TOOLTIP_LABEL: &str = "Freeze";
 const SKIP_TOOLTIP_LABEL: &str = "Skip";
-
-
-// ===============
-// === Shapes  ===
-// ===============
-
-/// Invisible rectangular area that can be hovered.
-fn hover_area() -> Rectangle {
-    let area = Rectangle();
-    area.set_color(INVISIBLE_HOVER_COLOR);
-    area.set_border_color(INVISIBLE_HOVER_COLOR);
-    area
-}
 
 
 
@@ -59,7 +48,6 @@ fn hover_area() -> Rectangle {
 
 ensogl::define_endpoints! {
     Input {
-        set_size                        (Vector2),
         set_visibility                  (bool),
         /// Set whether the `visibility` icon should be toggled on or off.
         set_action_visibility_state     (bool),
@@ -104,31 +92,55 @@ struct Icons {
 
 impl Icons {
     fn new(app: &Application) -> Self {
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("Icons");
+        display_object
+            .use_auto_layout()
+            .reverse_columns()
+            .set_gap((BUTTON_GAP, 0.0))
+            .set_padding_xy(HOVER_EXTENSION)
+            .set_children_alignment_left_center();
+
         let visibility = labeled_button(app, VISIBILITY_TOOLTIP_LABEL);
         let context_switch = ContextSwitchButton::enable(app);
         let freeze = labeled_button(app, FREEZE_TOOLTIP_LABEL);
         let skip = labeled_button(app, SKIP_TOOLTIP_LABEL);
+
         display_object.add_child(&visibility);
         display_object.add_child(&context_switch);
         if ARGS.groups.feature_preview.options.skip_and_freeze.value {
             display_object.add_child(&freeze);
             display_object.add_child(&skip);
         }
+
+        // The appears smaller than the other ones, so this is an aesthetic adjustment.
+        visibility.set_size((BUTTON_SIZE * 1.2, BUTTON_SIZE * 1.2));
+        visibility.set_margin_xy((-BUTTON_SIZE * 0.2, -BUTTON_SIZE * 0.2));
+
         Self { display_object, visibility, context_switch, freeze, skip }
     }
 
     fn set_visibility(&self, visible: bool) {
-        self.visibility.frp.set_visibility(visible);
+        self.visibility.set_visibility(visible);
         self.context_switch.set_visibility(visible);
-        self.freeze.frp.set_visibility(visible);
-        self.skip.frp.set_visibility(visible);
+        self.freeze.set_visibility(visible);
+        self.skip.set_visibility(visible);
+        let pointer_events_val = (!visible) as i32 as f32;
+        self.visibility.view().disable_pointer_events.set(pointer_events_val);
+        self.freeze.view().disable_pointer_events.set(pointer_events_val);
+        self.skip.view().disable_pointer_events.set(pointer_events_val);
     }
 
     fn set_read_only(&self, read_only: bool) {
         self.context_switch.set_read_only(read_only);
-        self.freeze.frp.set_read_only(read_only);
-        self.skip.frp.set_read_only(read_only);
+        self.freeze.set_read_only(read_only);
+        self.skip.set_read_only(read_only);
+    }
+
+    fn set_color_scheme(&self, color_scheme: &toggle_button::ColorScheme) {
+        self.visibility.set_color_scheme(color_scheme);
+        self.context_switch.set_color_scheme(color_scheme);
+        self.freeze.set_color_scheme(color_scheme);
+        self.skip.set_color_scheme(color_scheme);
     }
 }
 
@@ -140,7 +152,9 @@ impl display::Object for Icons {
 
 fn labeled_button<Icon: ColorableShape>(app: &Application, label: &str) -> ToggleButton<Icon> {
     let tooltip_style = tooltip::Style::set_label(label.to_owned());
-    ToggleButton::new(app, tooltip_style)
+    let button = ToggleButton::new(app, tooltip_style);
+    button.set_size((BUTTON_SIZE, BUTTON_SIZE));
+    button
 }
 
 
@@ -162,11 +176,11 @@ struct ContextSwitchButton {
 
 impl ContextSwitchButton {
     fn enable(app: &Application) -> Self {
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("ContextSwitchButton");
+        display_object.use_auto_layout().set_children_alignment_left_center();
+
         let disable_button = labeled_button(app, DISABLE_OUTPUT_CONTEXT_TOOLTIP_LABEL);
         let enable_button = labeled_button(app, ENABLE_OUTPUT_CONTEXT_TOOLTIP_LABEL);
-        disable_button.set_size((100.pc(), 100.pc()));
-        enable_button.set_size((100.pc(), 100.pc()));
         display_object.add_child(&enable_button);
         let globally_enabled = Rc::new(Cell::new(false));
         Self { globally_enabled, disable_button, enable_button, display_object }
@@ -186,12 +200,10 @@ impl ContextSwitchButton {
     fn set_execution_environment(&self, environment: &ExecutionEnvironment) {
         if environment.output_context_enabled() != self.globally_enabled.get() {
             if environment.output_context_enabled() {
-                self.remove_child(&self.enable_button);
-                self.add_child(&self.disable_button);
+                self.replace_children(&[&self.disable_button]);
                 self.globally_enabled.set(true);
             } else {
-                self.remove_child(&self.disable_button);
-                self.add_child(&self.enable_button);
+                self.replace_children(&[&self.enable_button]);
                 self.globally_enabled.set(false);
             }
         }
@@ -200,6 +212,9 @@ impl ContextSwitchButton {
     fn set_visibility(&self, visible: bool) {
         self.disable_button.set_visibility(visible);
         self.enable_button.set_visibility(visible);
+        let pointer_events_val = (!visible) as i32 as f32;
+        self.enable_button.view().disable_pointer_events.set(pointer_events_val);
+        self.enable_button.view().disable_pointer_events.set(pointer_events_val);
     }
 
     fn set_read_only(&self, read_only: bool) {
@@ -230,101 +245,42 @@ struct Model {
     display_object: display::object::Instance,
     hover_area:     Rectangle,
     icons:          Icons,
-    size:           Rc<Cell<Vector2>>,
-    shapes:         compound::events::MouseEvents,
     styles:         StyleWatch,
 }
 
 impl Model {
     fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
-        let display_object = display::object::Instance::new();
-        let hover_area = hover_area();
-        let icons = Icons::new(app);
-        let shapes = compound::events::MouseEvents::default();
-        let size = default();
-        let styles = StyleWatch::new(&scene.style_sheet);
+        let display_object = display::object::Instance::new_named("ActionBar");
+        let hover_area = Rectangle::new();
+        hover_area.set_color(INVISIBLE_HOVER_COLOR);
+        hover_area.allow_grow().set_alignment_left_center();
 
-        shapes.add_sub_shape(&hover_area);
-        shapes.add_sub_shape(&icons.visibility.view());
-        shapes.add_sub_shape(&icons.context_switch.disable_button.view());
-        shapes.add_sub_shape(&icons.context_switch.enable_button.view());
-        shapes.add_sub_shape(&icons.freeze.view());
-        shapes.add_sub_shape(&icons.skip.view());
+        let icons = Icons::new(app);
+
+        display_object.add_child(&hover_area);
+        display_object.add_child(&icons);
+
+
+        let styles = StyleWatch::new(&scene.style_sheet);
 
         use display::shape::compound::rectangle;
         ensogl::shapes_order_dependencies! {
             scene => {
-                rectangle -> icon::visibility;
-                rectangle -> icon::disable_output_context;
-                rectangle -> icon::enable_output_context;
-                rectangle -> icon::freeze;
-                rectangle -> icon::skip;
+                compound::rectangle::shape -> icon::visibility;
+                compound::rectangle::shape -> icon::disable_output_context;
+                compound::rectangle::shape -> icon::enable_output_context;
+                compound::rectangle::shape -> icon::freeze;
+                compound::rectangle::shape -> icon::skip;
             }
         }
 
-        Self { display_object, hover_area, icons, size, shapes, styles }.init()
+        Self { display_object, hover_area, icons, styles }
     }
 
-    fn init(self) -> Self {
-        self.add_child(&self.hover_area);
-        self.add_child(&self.icons);
-        self
-    }
-
-    fn place_button_in_slot(&self, button: &dyn display::Object, index: usize) {
-        let icon_size = self.icon_size();
-        let index = index as f32;
-        let padding = BUTTON_PADDING;
-        let offset = BUTTON_OFFSET;
-        button.set_x(((1.0 + padding) * index + offset) * icon_size.x);
-        button.set_size(icon_size);
-    }
-
-    fn icon_size(&self) -> Vector2 {
-        Vector2::new(self.size.get().y, self.size.get().y)
-    }
-
-    fn layout_hover_area_to_cover_buttons(&self, button_count: usize) {
-        let button_count = button_count as f32;
-        let size = self.size.get();
-        let padding = BUTTON_PADDING;
-        let offset = BUTTON_OFFSET;
-        let hover_padding = 1.0;
-        let button_width = self.icon_size().x;
-        let hover_width =
-            button_width * (button_count + hover_padding + offset + padding) + HOVER_EXTENSION_X;
-        let hover_height = button_width * 2.0;
-        let hover_area_size = Vector2::new(hover_width, hover_height);
-        self.hover_area.set_size(hover_area_size);
-        let center_offset = -size.x / 2.0;
-        let padding_offset = -0.5 * hover_padding * button_width - HOVER_EXTENSION_X / 2.0;
-        let hover_origin = Vector2(center_offset + padding_offset, -hover_height / 2.0);
-        self.hover_area.set_xy(hover_origin);
-    }
-
-    fn set_size(&self, size: Vector2) {
-        self.size.set(size);
-        self.icons.set_x(-size.x / 2.0);
-
-        self.place_button_in_slot(&self.icons.visibility, 0);
-        self.place_button_in_slot(&self.icons.context_switch, 1);
-        if ARGS.groups.feature_preview.options.skip_and_freeze.value {
-            self.place_button_in_slot(&self.icons.skip, 2);
-            self.place_button_in_slot(&self.icons.freeze, 3);
-        }
-
-        let buttons_count = if ARGS.groups.feature_preview.options.skip_and_freeze.value {
-            // Toggle visualization, skip and freeze buttons.
-            4
-        } else {
-            // Toggle visualization button only.
-            2
-        };
-        self.layout_hover_area_to_cover_buttons(buttons_count);
-
-        // The appears smaller than the other ones, so this is an aesthetic adjustment.
-        self.icons.visibility.set_scale_xy(Vector2::new(1.2, 1.2));
+    fn set_visibility(&self, visible: bool) {
+        self.icons.set_visibility(visible);
+        self.hover_area.set_pointer_events(visible);
     }
 }
 
@@ -384,8 +340,6 @@ impl ActionBar {
 
             // === Input Processing ===
 
-            eval frp.set_size                    ((size)  model.set_size(*size));
-            eval frp.set_visibility              ((t)     model.icons.set_visibility(*t));
             eval frp.set_action_visibility_state ((state) model.icons.visibility.set_state(state));
             eval frp.set_action_skip_state ((state) model.icons.skip.set_state(state));
             eval frp.set_action_freeze_state ((state) model.icons.freeze.set_state(state));
@@ -400,10 +354,19 @@ impl ActionBar {
             // === Mouse Interactions ===
 
             visibility_init  <- source::<bool>();
-            visibility_mouse <- bool(&model.shapes.mouse_out,&model.shapes.mouse_over);
-            visibility       <- any(&visibility_init,&visibility_mouse);
-            visibility       <-  visibility && frp.show_on_hover;
-            eval visibility ((t) model.icons.set_visibility(*t));
+
+            let mouse_over = model.display_object.on_event::<mouse::Over>();
+            let mouse_out = model.display_object.on_event::<mouse::Out>();
+            visibility_mouse <- bool(&mouse_out,&mouse_over);
+
+            let hide_delay = frp::io::timer::Timeout::new(network);
+            hide_delay.restart <+ mouse_out.constant(HOVER_HIDE_DELAY_MS);
+            visibility_delay <- bool(&hide_delay.on_expired, &mouse_out);
+
+            visibility       <- frp.set_visibility || visibility_mouse;
+            visibility       <- visibility || visibility_delay;
+            visibility       <- visibility && frp.show_on_hover;
+            eval visibility ((t) model.set_visibility(*t));
 
 
             // === Icon Actions ===
