@@ -134,10 +134,14 @@ case object TypeSignatures extends IRPass {
         lastSignature = None
         res
       case ut: IR.Module.Scope.Definition.Type =>
-        // ut.members.foreach(d => {
-        //  verifyAscribedArguments(d.arguments)
-        // })
-        Some(ut.mapExpressions(resolveExpression))
+        Some(ut.mapExpressions(resolveExpression)).map(typ =>
+          typ.copy(
+            members = typ.members.map(d => {
+              verifyAscribedArguments(d.arguments)
+              d
+            })
+          )
+        );
       case err: IR.Error                  => Some(err)
       case ann: IR.Name.GenericAnnotation => Some(ann)
       case _: IR.Module.Scope.Definition.SugaredType =>
