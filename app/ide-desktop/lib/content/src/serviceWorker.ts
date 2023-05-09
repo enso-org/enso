@@ -1,4 +1,5 @@
-/** @file A service worker that redirects paths without extensions to `/index.html`.
+/** @file A service worker that redirects paths without extensions (e.g. `/login`) to `/index.html`.
+ * This is required during development, as the `esbuild` server cannot be configured.
  * This is only used in the cloud frontend. */
 /// <reference lib="WebWorker" />
 
