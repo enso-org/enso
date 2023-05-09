@@ -86,11 +86,10 @@ case object TypeSignatures extends IRPass {
         res
       case meth: IR.Module.Scope.Definition.Method =>
         val newMethod = meth.mapExpressions(resolveExpression)
-        val arr = newMethod.body match {
+        newMethod.body match {
           case fn: IR.Function => verifyAscribedArguments(fn)
           case _               => newMethod
         }
-        arr.getClass()
         val res = lastSignature match {
           case Some(asc @ IR.Type.Ascription(typed, sig, _, _, _)) =>
             val methodRef = meth.methodReference
