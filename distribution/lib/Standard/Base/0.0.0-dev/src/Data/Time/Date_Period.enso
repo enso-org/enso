@@ -26,12 +26,6 @@ type Date_Period
     Day
 
     ## PRIVATE
-       This method could be replaced with matching on `Date_Period` supertype
-       if/when that is supported.
-    is_date_period : Boolean
-    is_date_period self = True
-
-    ## PRIVATE
     adjust_start : (Date | Date_Time) -> (Date | Date_Time)
     adjust_start self date =
         adjuster = case self of
