@@ -78,7 +78,7 @@ type Period
        Arguments:
        - internal_period: An internal representation of period of type
          java.time.Period.
-    Value internal_period
+    Value (internal_period : Java_Period)
 
     ## Get the portion of the period expressed in years.
     years : Integer
@@ -132,6 +132,13 @@ type Period
                 case err of
                     DateTimeException -> Error.throw Time_Error.Error "Period subtraction failed"
                     ArithmeticException -> Error.throw Illegal_Argument.Error "Arithmetic error"
+
+    ## Negate all amounts in the period.
+
+       This is useful when a period used for going forward in time needs to be
+       used for going backwards instead.
+    negated : Period
+    negated self = Period.Value (self.internal_period.negated)
 
     ## PRIVATE
        Convert Period to a friendly string.
