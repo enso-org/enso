@@ -12,6 +12,13 @@ polyglot java import org.enso.table.error.EmptySheetException
 type Missing_Input_Columns
     ## PRIVATE
        One or more columns not found in the input table.
+
+       Arguments:
+       - criteria: the names of the columns or regular expressions that did not
+         have any matches.
+       - where: an optional text describing to which object this error is
+         related to (for example in join, whether the reported error is for the
+         left or right table).
     Error (criteria : [Text]) (where:Text|Nothing = Nothing)
 
     ## PRIVATE

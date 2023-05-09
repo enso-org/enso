@@ -619,6 +619,10 @@ type Vector a
     to_text self = self.map .to_text . join ", " "[" "]"
 
     ## PRIVATE
+    to_display_text : Text
+    to_display_text self = self.short_display_text max_entries=40
+
+    ## PRIVATE
        ADVANCED
 
        Generates a human-readable text representation of the vector, keeping its
