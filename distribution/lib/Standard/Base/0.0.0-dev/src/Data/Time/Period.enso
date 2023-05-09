@@ -114,7 +114,7 @@ type Period
         ensure_period other_period <|
             catch_arithmetic_exception "Period.+" <|
                 catch_date_time_exception "Period.+" <|
-                    Period.Value (self.internal_period.plus other_period.internal_period))
+                    Period.Value (self.internal_period.plus other_period.internal_period)
 
     ## Subtract a specified amount of time from this period.
 
