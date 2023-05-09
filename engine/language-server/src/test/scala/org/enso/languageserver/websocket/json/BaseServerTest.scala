@@ -362,6 +362,14 @@ class BaseServerTest
     client
   }
 
+  def getInitialisedWsClientAndId(
+    debug: Boolean = false
+  ): (WsTestClient, ClientId) = {
+    val client = new WsTestClient(address, debugMessages = debug)
+    val uuid   = initSession(client)
+    (client, uuid)
+  }
+
   private def initSession(client: WsTestClient): UUID = {
     initPackage
     val clientId = UUID.randomUUID()

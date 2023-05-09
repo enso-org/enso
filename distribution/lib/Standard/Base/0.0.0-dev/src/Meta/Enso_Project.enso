@@ -1,5 +1,9 @@
+import project.Any.Any
 import project.Data.Text.Text
+import project.Nothing.Nothing
 import project.System.File.File
+
+from project.Errors.Common import Module_Not_In_Package_Error
 
 ## Functionality for inspecting the current project.
 @Builtin_Type
@@ -47,3 +51,34 @@ type Project_Description
              enso_project.namespace
     namespace : Text
     namespace self = self.prim_config.namespace
+
+## Returns the Enso project description for the given module. If no module is
+   given, returns the description of the project that the engine was executed
+   with, i.e., the project that contains the `main` method, or throws
+   `Module_Not_In_Package_Error` if there is no such project, e.g., when
+   executing a single file.
+
+   Arguments:
+   - module: An optional module for which the Enso project description
+     will be fetched. If `Nothing`, the current project description will
+     be fetched.
+
+   > Example
+     Get the project description for the project that contains the `main`
+     method.
+
+         enso_project
+
+   > Example
+     Get the project description for the `Standard.Visualizations` project.
+
+         enso_project Standard.Visualizations
+
+   > Example
+     Get the project description for the `Standard.Base` project from the
+     `Vector` module.
+
+         enso_project Standard.Base.Data.Vector
+enso_project : (Any | Nothing) -> Project_Description ! Module_Not_In_Package_Error
+enso_project module=Nothing =
+    Project_Description.enso_project_builtin module

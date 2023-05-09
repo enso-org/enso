@@ -66,10 +66,10 @@ spec = Test.group "Columns" <|
         r.to_vector . should_equal [0, 2, 4, 5, Nothing, 30]
 
     Test.specify "should allow to count duplicate value occurences" <|
-        c_1 = Column.from_vector "c_1" [0, 1, 2, 2, 1, 0, 2]
+        c_1 = Column.from_vector "c 1" [0, 1, 2, 2, 1, 0, 2]
         c_1.duplicate_count.to_vector.should_equal [0, 0, 0, 1, 1, 1, 2]
 
-        c_2 = Column.from_vector "c_2" ["foo", "bar", "foo", "baz", "bar"]
+        c_2 = Column.from_vector "c 2" ["foo", "bar", "foo", "baz", "bar"]
         c_2.duplicate_count.to_vector.should_equal [0, 0, 1, 0, 1]
 
     Test.specify "should result in correct Storage if operation allows it" <|

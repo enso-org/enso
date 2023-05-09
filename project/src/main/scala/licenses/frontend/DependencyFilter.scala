@@ -1,6 +1,6 @@
 package src.main.scala.licenses.frontend
 
-import com.typesafe.sbt.license.DepModuleInfo
+import sbtlicensereport.license.DepModuleInfo
 import src.main.scala.licenses.DependencyInformation
 
 /** Filters out irrelevant dependencies.

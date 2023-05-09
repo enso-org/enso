@@ -61,7 +61,7 @@ const CHARS_PER_CHUNK: usize = 20;
 /// loaded in each direction around the visible grid. So a value of 5 with a base grid of 20x10 will
 /// load 25x15 grid.
 const CACHE_PADDING: u32 = 15;
-const PADDING_TEXT: f32 = 5.0;
+const PADDING_TEXT: f32 = 10.0;
 
 
 
@@ -325,7 +325,7 @@ impl<T: TextProvider + 'static> TextGrid<T> {
 
         frp::extend! { network
 
-            scroll_positition <- all(&scrollbar_h.thumb_position, &scrollbar_v.thumb_position);
+            scroll_position <- all(&scrollbar_h.thumb_position, &scrollbar_v.thumb_position);
 
             longest_line_with_init <- all(&init, &text_provider.longest_line)._1();
             lines_with_init        <- all(&init, &text_provider.line_count)._1();
@@ -350,6 +350,12 @@ impl<T: TextProvider + 'static> TextGrid<T> {
             text_grid_content_size_y <- text_grid.content_size.map(|size| size.y).on_change();
             text_grid_content_size_y_previous <- text_grid_content_size_y.previous();
 
+            scrollbar_h.set_max <+ text_grid_content_size_x;
+            scrollbar_v.set_max <+ text_grid_content_size_y;
+
+            scrollbar_h.set_thumb_size <+ frp.set_size.map(|size| size.x - 2.0 * PADDING_TEXT);
+            scrollbar_v.set_thumb_size <+ frp.set_size.map(|size| size.y - 2.0 * PADDING_TEXT);
+
             horizontal_scrollbar_change_args <- all(
                 text_grid_content_size_x,
                 text_grid_content_size_x_previous,
@@ -373,34 +379,20 @@ impl<T: TextProvider + 'static> TextGrid<T> {
                 thumb_position * content_size_y_previous / content_size_y
             });
 
-            size_update <- all(&frp.set_size, &text_grid.content_size);
-            scrollbar_sizes <- size_update.map(|(vis_size, content_size)| {
-                vis_size.iter().zip(content_size.iter()).map(|(vis_size, content_size)| {
-                    if *content_size > 0.0 {
-                        (vis_size / content_size).clamp(0.0,1.0)
-                    } else {
-                        0.0
-                    }
-                }).collect_tuple::<(f32,f32)>()
-            }).unwrap();
-            scrollbar_h.set_thumb_size <+ scrollbar_sizes._0();
-            scrollbar_v.set_thumb_size <+ scrollbar_sizes._1();
-
-            viewport <- all_with4(
+            viewport <- all_with3(
                 &init,
-                &scroll_positition,
+                &scroll_position,
                 &frp.set_size,
-                &text_grid.content_size,
-                f!([dom_entry_root](_, scroll_position, vis_size, content_size) {
+                f!([dom_entry_root] (_, scroll_position, vis_size) {
                     let (scroll_x, scroll_y) = *scroll_position;
-                    let top = -scroll_y * content_size.y;
+                    let top = -scroll_y;
                     let bottom = top - vis_size.y;
-                    let left = scroll_x * content_size.x;
-                    let right = left +  vis_size.x;
+                    let left = scroll_x;
+                    let right = left + vis_size.x;
 
                     // Set DOM element size.
-                    dom_entry_root.set_style_or_warn("top", format!("{}px", top + PADDING_TEXT));
-                    dom_entry_root.set_style_or_warn("left", format!("{}px", -left + PADDING_TEXT));
+                    dom_entry_root.set_style_or_warn("top", format!("{top}px"));
+                    dom_entry_root.set_style_or_warn("left", format!("{}px", -left));
 
                     // Output viewport.
                     let viewport = grid_view::Viewport {top, bottom, left, right};

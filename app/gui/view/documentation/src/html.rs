@@ -63,14 +63,27 @@ fn svg_icon(content: &'static str) -> impl Render {
 /// Render entry documentation to HTML code with Tailwind CSS styles.
 #[profile(Detail)]
 pub fn render(docs: EntryDocumentation) -> String {
-    match docs {
+    let html = match docs {
         EntryDocumentation::Placeholder(placeholder) => match placeholder {
             Placeholder::NoDocumentation => String::from("No documentation available."),
             Placeholder::VirtualComponentGroup { name } =>
                 render_virtual_component_group_docs(name),
         },
         EntryDocumentation::Docs(docs) => render_documentation(docs),
+    };
+    match validate_utf8(&html) {
+        Ok(_) => html,
+        Err(_) => {
+            error!("Internal error. Generated HTML is not valid utf-8. This is bug #5813.");
+            String::from("Failed to load documentation.")
+        }
     }
+}
+
+#[profile(Debug)]
+fn validate_utf8(s: &str) -> Result<&str, std::str::Utf8Error> {
+    let bytes = s.as_bytes();
+    std::str::from_utf8(bytes)
 }
 
 fn render_documentation(docs: Documentation) -> String {

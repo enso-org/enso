@@ -136,6 +136,19 @@
   such as dropdown can now be placed in the node and affect the code text flow.
 - [The IDE UI element for selecting the execution mode of the project is now
   sending messages to the backend.][6341].
+- [Feedback when renaming a project][6366]. When the user tries to rename the
+  project to an invalid name, a helpful error message is shown and the text
+  field stays the same as to give the user the opportunity to fix the mistake.
+- [Area selectionof nodes no longer takes into account the visualisation that
+  belongs to the node.][6487].
+- [List Editor Widget][6470]. Now you can edit lists by clicking buttons on
+  nodes or by dragging the elements.
+- [Fixed text visualisations which were being cut off at the last line.][6421]
+- [Fixed a bug where, when scrolling or dragging on a full-screen visualization,
+  the view of the graph changed as well.][6530]
+
+[6421]: https://github.com/enso-org/enso/pull/6421
+[6530]: https://github.com/enso-org/enso/pull/6530
 
 #### EnsoGL (rendering engine)
 
@@ -199,6 +212,10 @@
 [6035]: https://github.com/enso-org/enso/pull/6035
 [6097]: https://github.com/enso-org/enso/pull/6097
 [6097]: https://github.com/enso-org/enso/pull/6341
+[6366]: https://github.com/enso-org/enso/pull/6366
+[6487]: https://github.com/enso-org/enso/pull/6487
+[6341]: https://github.com/enso-org/enso/pull/6341
+[6470]: https://github.com/enso-org/enso/pull/6470
 
 #### Enso Standard Library
 
@@ -398,6 +415,13 @@
   `Time_Of_Day`, `Time_Zone`, and `URI` to `Text`.][6404]
 - [Implemented `create_database_table` allowing upload of in-memory
   tables.][6429]
+- [Added execution context control to writing files and dry run capabilities to
+  `Text.write`.][6459]
+- [Implemented `create_database_table` allowing saving queries as database
+  tables.][6467]
+- [Implemented `Column.format` for in-memory `Column`s.][6538]
+- [Added `at_least_one` flag to `Table.tokenize_to_rows`.][6539]
+- [Moved `Redshift` connector into a separate `AWS` library.][6550]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -602,6 +626,11 @@
 [6404]: https://github.com/enso-org/enso/pull/6404
 [6347]: https://github.com/enso-org/enso/pull/6347
 [6429]: https://github.com/enso-org/enso/pull/6429
+[6459]: https://github.com/enso-org/enso/pull/6459
+[6467]: https://github.com/enso-org/enso/pull/6467
+[6538]: https://github.com/enso-org/enso/pull/6538
+[6539]: https://github.com/enso-org/enso/pull/6539
+[6550]: https://github.com/enso-org/enso/pull/6550
 
 #### Enso Compiler
 
@@ -710,6 +739,7 @@
 - [Removing need for asynchronous thread to execute ResourceManager
   finalizers][6335]
 - [Warning.get_all returns only unique warnings][6372]
+- [Reimplement `enso_project` as a proper builtin][6352]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -818,6 +848,7 @@
 [6171]: https://github.com/enso-org/enso/pull/6171
 [6335]: https://github.com/enso-org/enso/pull/6335
 [6372]: https://github.com/enso-org/enso/pull/6372
+[6352]: https://github.com/enso-org/enso/pull/6352
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

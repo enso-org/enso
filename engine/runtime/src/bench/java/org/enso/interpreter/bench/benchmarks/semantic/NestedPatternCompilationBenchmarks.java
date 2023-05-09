@@ -46,7 +46,7 @@ public class NestedPatternCompilationBenchmarks {
                         Paths.get("../../distribution/component").toFile().getAbsolutePath()
                 ).build();
 
-        benchmarkName = params.getBenchmark().replaceFirst(".*\\.", "");
+        benchmarkName = SrcUtil.findName(params);
         code = """
             type List
                 Cons a b

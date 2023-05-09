@@ -106,6 +106,11 @@ class RuntimeErrorsTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
+  override protected def afterEach(): Unit = {
+    context.executionContext.context.close()
+    context.runtimeServerEmulator.terminate()
+  }
+
   it should "return panic sentinels in method body" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
