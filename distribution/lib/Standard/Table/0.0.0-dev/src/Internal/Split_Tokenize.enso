@@ -97,7 +97,7 @@ regex_to_column_names pattern original_column_name =
             group_nums_to_names = pattern.group_nums_to_names
 
             unnamed_group_numbers = 1.up_to pattern.group_count . filter i-> group_nums_to_names.contains_key i . not
-            group_number_to_column_name_suffix = Map.from_vector <| unnamed_group_numbers.zip (0.up_to unnamed_group_numbers.length)
+            group_number_to_column_name_suffix = Map.from_vector <| unnamed_group_numbers.zip (1.up_to unnamed_group_numbers.length+1)
 
             Vector.new (pattern.group_count-1) i->
                 # explicit groups start at 1
@@ -318,11 +318,11 @@ map_columns_to_multiple input_column function column_count problem_builder =
     # Name columns. If there's only one, use the original column name.
     new_column_names = case builders.length of
         1 -> [input_column.name]
-        _ -> 0.up_to builders.length . map i-> default_column_namer input_column.name i
+        _ -> 1.up_to (builders.length+1) . map i-> default_column_namer input_column.name i
 
     # Build Columns.
-    sealed = builders.map .seal
-    new_column_names.zip sealed Column.from_storage
+    storages = builders.map .seal
+    new_column_names.zip storages Column.from_storage
 
 ## PRIVATE
    Rename a vector of columns to be unique when added to a table.
