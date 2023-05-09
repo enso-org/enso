@@ -1,16 +1,18 @@
 package org.enso.compiler.test.semantic
 
 import org.enso.compiler.core.IR
-import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.BindingAnalysis
-import org.enso.interpreter.runtime.EnsoContext
-import org.enso.interpreter.test.InterpreterContext
-import org.enso.pkg.QualifiedName
 import org.enso.interpreter.runtime
+import org.enso.interpreter.runtime.EnsoContext
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{LanguageInfo, MethodNames, RuntimeOptions}
+import org.graalvm.polyglot.{Context, Engine}
+import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import java.io.ByteArrayOutputStream
+import java.nio.file.Paths
 import scala.annotation.unused
 
 /**
@@ -18,14 +20,36 @@ import scala.annotation.unused
  * Checks whether the exported symbols and defined entities metadata of the modules
  * are correct.
  */
-class ImportExportTest extends AnyWordSpecLike with Matchers {
-  private val interpreterCtx = new InterpreterContext(
-    contextModifiers = ctxBuilder => {
-      ctxBuilder
-        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
-    }
-  )
-  private val langCtx = interpreterCtx.ctx
+class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter {
+  private val out = new ByteArrayOutputStream()
+
+  private val engine = Engine
+    .newBuilder("enso")
+    .allowExperimentalOptions(true)
+    .build()
+
+  private val ctx = Context
+    .newBuilder(LanguageInfo.ID)
+    .engine(engine)
+    .allowExperimentalOptions(true)
+    .allowAllAccess(true)
+    .allowCreateThread(false)
+    .out(out)
+    .err(out)
+    .option(RuntimeOptions.LOG_LEVEL, "ALL")
+    .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+    .logHandler(System.err)
+    .option(
+      RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+      Paths
+        .get("../../test/micro-distribution/component")
+        .toFile
+        .getAbsolutePath
+    )
+    .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
+    .build()
+
+  private val langCtx: EnsoContext = ctx
     .getBindings(LanguageInfo.ID)
     .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
     .asHostObject[EnsoContext]()
@@ -36,19 +60,6 @@ class ImportExportTest extends AnyWordSpecLike with Matchers {
     QualifiedName.fromString(namespace + "." + packageName)
 
   langCtx.getPackageRepository.registerSyntheticPackage(namespace, packageName)
-
-  implicit private class CreateMainModule(code: String) {
-    def createMainModule: IR.Module = {
-      val module = new runtime.Module(
-        packageQualifiedName.createChild("Main"),
-        null,
-        code
-      )
-      langCtx.getPackageRepository.registerModuleCreatedInRuntime(module)
-      langCtx.getCompiler.run(module)
-      module.getIr
-    }
-  }
 
   implicit private class ProcessModule(moduleCode: String) {
     def processModule(moduleName: QualifiedName): IR.Module = {
@@ -65,6 +76,14 @@ class ImportExportTest extends AnyWordSpecLike with Matchers {
     }
   }
 
+  before {
+    ctx.enter()
+  }
+
+  after {
+    ctx.leave()
+  }
+
   "Import resolution" should {
     "bla" in {
       val moduleCode = """
@@ -75,6 +94,7 @@ class ImportExportTest extends AnyWordSpecLike with Matchers {
       val moduleIr = moduleCode.processModule(otherModuleName)
       moduleIr.unwrapBindingMap.definedEntities.size shouldEqual 1
       moduleIr.unwrapBindingMap.definedEntities.head.name shouldEqual "Other_Module_Type"
+      @unused
       val otherTypeDefinedEntity = moduleIr.unwrapBindingMap.definedEntities.head
 
       val mainCode =
@@ -92,10 +112,10 @@ class ImportExportTest extends AnyWordSpecLike with Matchers {
       }
       val mainBindingsMap = mainIr.unwrapBindingMap
       mainBindingsMap.resolvedImports.size shouldEqual 1
-      mainBindingsMap.resolvedImports.head.target match {
-
-      }
+      @unused
+      val resolvedImport = mainBindingsMap.resolvedImports.head.target
       mainIr shouldNot be(null)
     }
   }
+
 }
