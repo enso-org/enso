@@ -4,14 +4,25 @@ import project.Data.Time.Period.Period
 
 ## Represents a range of dates.
 type Date_Range
-    ## A representation of a date range.
+    ## PRIVATE
+       A representation of a date range.
+
+       Never use the constructor directly to construct a range, as it does not
+       allow to verify invariants and may lead to unexpected behavior.
+    Internal_Constructor (start_inclusive : Date) (end_exclusive : Date) (step : Period) (cached_length : Integer)
+
+    ## Create a representation of a right-exclusive range of dates.
 
        Arguments:
-       - start_inclusive: The start of the range.
-       - end_exclusive: The end of the range (exclusive).
-       - step: The step between dates in the range.
-    Between (start_inclusive : Date) (end_exclusive : Date) (step : Period)
-
+       - start: The left boundary of the range. Its value is included.
+       - end: The right boundary of the range. Its value is excluded.
+       - step: The step between values. Must be a positive value.
+    new : Date -> Date -> Integer -> Date_Range
+    new start=Date.now end=Date.now step=Date_Period.Day =
+        one_day = Period.new days=1
+        base_step = if start > end then one_day.negated else one_day
+        base_length = start.days_until end . abs
+        Date_Range.Internal_Constructor start end base_step base_length . with_step step
 
     ## Creates a copy of this range with a changed step.
 
@@ -30,3 +41,42 @@ type Date_Range
             Between self.start_inclusive self.end_exclusive new_step
         _ : Date_Period ->
             self.with_step new_step.to_period
+
+    ## Convert to a textual representation.
+    to_text : Text
+    to_text self =
+        step = if (self.step.days.abs == 1) && (self.step.years == 0) && (self.step.months == 0) then "" else
+            " by " + self.step.to_text
+        "(Date_Range from " + self.start_inclusive.to_text + " until " + self.end_exclusive.to_text + step + ")"
+
+    ## Convert to a display representation.
+    to_display_text : Text
+    to_display_text self = self.to_text
+
+    ## Checks if this range is empty.
+
+       > Example
+         Checking if the range of days from start of 2020 to start of 2023 is empty.
+
+             (Date.new 2020).up_to (Date.new 2023) . is_empty
+    is_empty : Boolean
+    is_empty self = self.cached_length == 0
+
+    ## Checks if this range is not empty.
+
+       > Example
+         Checking if the range of days from start of 2020 to start of 2023 is not empty.
+
+             (Date.new 2020).up_to (Date.new 2023) . is_empty
+    not_empty : Boolean
+    not_empty self = self.is_empty.not
+
+## PRIVATE
+   Computes the length of the range and verifies its invariants.
+
+   If any of the invariants are violated, a dataflow error is raised.
+compute_length_and_verify : Date -> Date -> Period -> Integer ! Time_Error
+compute_length_and_verify start end step =
+    # First a few heuristics for a fast path.
+
+    # Then we go brute force for the general case.
