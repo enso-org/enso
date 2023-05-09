@@ -63,9 +63,6 @@ declare global {
     const BUILD_INFO: BuildInfo
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string
     const IS_DEV_MODE: boolean
-    // This variable will be `undefined` if it is unset.
-    // eslint-disable-next-line no-restricted-syntax
-    const ENVIRONMENT_OVERRIDE: string | undefined
     /* eslint-disable @typescript-eslint/naming-convention */
 }
 

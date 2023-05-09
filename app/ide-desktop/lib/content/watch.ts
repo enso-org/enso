@@ -24,9 +24,6 @@ const HTTP_STATUS_OK = 200
 
 async function watch() {
     const dashboardOpts = dashboardBundler.bundleOptions()
-    // Use the development environment. This will make redirects go to the correct URL
-    // when logging in.
-    dashboardOpts.define.ENVIRONMENT_OVERRIDE = JSON.stringify('pbuchu')
     const dashboardBuilder = await esbuild.context(dashboardOpts)
     // We do not need to serve the dashboard as it outputs to the same directory.
     // It will not rebuild on request, but it is not intended to rebuild on request anyway.
