@@ -21,6 +21,8 @@ export const theme = {
             // Should be `#3e515fe5`, but `bg-opacity` does not work with RGBA.
             /** The default color of all text. */
             primary: '#52636f',
+            'ide-bg': '#ebeef1',
+            'ide-bg-dark': '#d0d3d6',
             // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
             label: '#f0f1f3',
             help: '#3f68ce',
@@ -34,6 +36,7 @@ export const theme = {
             'perm-docs-write': '#2db1c3',
             // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
             'perm-none': '#f0f1f3',
+            'call-to-action': '#fa6c08',
         },
         flexGrow: {
             2: '2',

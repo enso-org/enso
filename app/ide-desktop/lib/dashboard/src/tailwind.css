@@ -6,7 +6,8 @@ body {
 
 /* These styles MUST still be copied
  * as `.enso-dashboard body` and `.enso-dashboard html` make no sense. */
-.enso-dashboard {
+.enso-dashboard,
+.enso-chat {
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;
@@ -16,7 +17,8 @@ body {
   font-feature-settings: normal;
 }
 
-.enso-dashboard {
+.enso-dashboard,
+.enso-chat {
   @tailwind base;
   @tailwind components;
   @tailwind utilities;

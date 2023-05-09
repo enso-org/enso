@@ -20,6 +20,8 @@ interface TopBarProps {
     tab: dashboard.Tab
     toggleTab: () => void
     setBackendPlatform: (backendPlatform: platformModule.Platform) => void
+    isHelpChatOpen: boolean
+    setIsHelpChatOpen: (isHelpChatVisible: boolean) => void
     query: string
     setQuery: (value: string) => void
 }
@@ -29,7 +31,17 @@ interface TopBarProps {
  * because `searchVal` may change parent component's project list.
  */
 function TopBar(props: TopBarProps) {
-    const { platform, projectName, tab, toggleTab, setBackendPlatform, query, setQuery } = props
+    const {
+        platform,
+        projectName,
+        tab,
+        toggleTab,
+        setBackendPlatform,
+        isHelpChatOpen: isHelpChatVisible,
+        setIsHelpChatOpen: setIsHelpChatVisible,
+        query,
+        setQuery,
+    } = props
     const [userMenuVisible, setUserMenuVisible] = react.useState(false)
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
@@ -105,14 +117,18 @@ function TopBar(props: TopBarProps) {
                     className="flex-1 mx-2 bg-transparent"
                 />
             </div>
-            <a
-                href="https://discord.gg/enso"
-                target="_blank"
-                className="flex items-center bg-help rounded-full px-2.5 text-white mx-2"
-            >
-                <span className="whitespace-nowrap">help chat</span>
-                <div className="ml-2">{svg.SPEECH_BUBBLE_ICON}</div>
-            </a>
+            <div className="grow" />
+            {!isHelpChatVisible && (
+                <div
+                    className="flex cursor-pointer items-center bg-help rounded-full px-2.5 text-white mx-2"
+                    onClick={() => {
+                        setIsHelpChatVisible(true)
+                    }}
+                >
+                    <span>help chat</span>
+                    <div className="ml-2">{svg.SPEECH_BUBBLE_ICON}</div>
+                </div>
+            )}
             {/* User profile and menu. */}
             <div className="transform w-8">
                 <div

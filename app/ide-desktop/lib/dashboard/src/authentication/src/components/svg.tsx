@@ -264,6 +264,35 @@ export const DEFAULT_USER_ICON = (
     </svg>
 )
 
+/** An icon representing an expandable container. */
+export const DOWN_ARROW_ICON = (
+    <svg width={32} height={32} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+            d="M8 10h8l-4 6-4-6"
+            strokeLinejoin="round"
+            fill="currentColor"
+            stroke="currentColor"
+        />
+    </svg>
+)
+
+/** An `x`-shaped icon representing the closing of a window. */
+export const LARGE_CLOSE_ICON = (
+    <svg
+        width={32}
+        height={32}
+        viewBox="-2 -2 28 28"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+    >
+        <circle cx={12} cy={12} r={12} fill="currentColor" fillOpacity={0.1} />
+        <g opacity={0.66} transform="rotate(45 12 12)">
+            <rect x={11} y={6} width={2} height={12} fill="currentColor" />
+            <rect x={6} y={11} width={12} height={2} fill="currentColor" />
+        </g>
+    </svg>
+)
+
 /** Props for a {@link Spinner}. */
 export interface SpinnerProps {
     size: number
