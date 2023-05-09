@@ -276,7 +276,7 @@ impl BreadcrumbsModel {
     /// index of the newly selected one in the form of (old, new).
     fn push_breadcrumbs(&self, stack: &[LocalCall]) -> (usize, usize) {
         let old_index = self.current_index.get();
-        for (substack_index, local_call) in stack.into_iter().enumerate() {
+        for (substack_index, local_call) in stack.iter().enumerate() {
             let method_pointer = &local_call.definition;
             let expression_id = &local_call.call;
             let breadcrumb_index = old_index + substack_index;
@@ -339,9 +339,9 @@ impl BreadcrumbsModel {
             let call = uuid::Uuid::new_v4();
             LocalCall { call, definition }
         });
-        let (old_index, new_index) = self.push_breadcrumbs(&vec![local_call]);
+        let (old_index, new_index) = self.push_breadcrumbs(&[local_call]);
         if is_new_breadcrumb {
-            self.get_breadcrumb(new_index).map(|breadcrumb| {
+            if let Some(breadcrumb) = self.get_breadcrumb(new_index) {
                 let network = &breadcrumb.frp.network;
                 let frp_inputs = &self.frp_inputs;
                 frp::extend! { network
@@ -349,7 +349,7 @@ impl BreadcrumbsModel {
                         frp_inputs.debug_select_breadcrumb.emit(new_index);
                     );
                 }
-            });
+            }
         }
         (old_index, new_index)
     }
