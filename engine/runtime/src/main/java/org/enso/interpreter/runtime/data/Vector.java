@@ -123,7 +123,7 @@ public final class Vector implements TruffleObject {
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
-      return WithWarnings.wrap(toEnso.execute(v), extracted);
+      return WithWarnings.wrap(EnsoContext.get(interop), toEnso.execute(v), extracted);
     }
     return toEnso.execute(v);
   }
