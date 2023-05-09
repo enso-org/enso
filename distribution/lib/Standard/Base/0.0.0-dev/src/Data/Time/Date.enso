@@ -468,7 +468,7 @@ type Date
     up_to self end include_end=False = case end of
         _ : Date ->
             effective_end = if include_end then end.next else end
-            Date_Range.new self effective_end
+            Date_Range.new_internal self effective_end increasing=True step=(Period.new days=1)
         _ -> Error.throw (Type_Error.Error Date end "end")
 
     ## ALIAS Date Range
@@ -493,7 +493,7 @@ type Date
     down_to self end include_end=False = case end of
         _ : Date ->
             effective_end = if include_end then end.previous else end
-            Date_Range.new self effective_end
+            Date_Range.new_internal self effective_end increasing=False step=(Period.new days=1)
         _ -> Error.throw (Type_Error.Error Date end "end")
 
     ## Shift the date by the specified amount of business days.

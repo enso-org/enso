@@ -43,7 +43,7 @@ spec =
             (Date.new 2020 02 29).up_to (Date.new 2023) . with_step Date_Period.Year . to_vector . should_equal [Date.new 2020 02 29, Date.new 2021 02 28, Date.new 2022 02 28]
 
         Test.specify "should handle malformed step edge cases" <|
-            (Date.new 2021 05 05).up_to (Date.new 2021 05 08) . with_step (Period.new months=1 days=(-30)) . to_vector . should_equal [Date.new 2021 05 06, Date.new 2021 05 07]
+            (Date.new 2021 05 05).up_to (Date.new 2021 05 06) . with_step (Period.new months=1 days=(-30)) . to_vector . should_equal [Date.new 2021 05 05]
 
             # e.g. 2021-06-05 + 1 month - 30 days == 2021-06-05 --> no progression
             (Date.new 2021 06 05).up_to (Date.new 2021 06 08) . with_step (Period.new months=1 days=(-30)) . should_fail_with Time_Error
@@ -67,4 +67,4 @@ spec =
             ranges.each r->
                 r.length . should_equal r.to_vector.length
                 r.is_empty . should_equal r.to_vector.is_empty
-                r.non_empty . should_equal r.to_vector.non_empty
+                r.not_empty . should_equal r.to_vector.not_empty

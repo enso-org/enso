@@ -1,5 +1,4 @@
 import project.Any.Any
-import project.Data.Boolean.Boolean
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
@@ -11,25 +10,33 @@ import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Time_Error.Time_Error
 import project.Nothing.Nothing
 
+from project.Data.Boolean import Boolean, True, False
+
 ## Represents a range of dates.
 type Date_Range
     ## PRIVATE
        Never use the constructor directly to construct a range, as it does not
        allow to verify invariants and may lead to unexpected behavior.
-    Internal_Constructor (start_inclusive : Date) (end_exclusive : Date) (step : Period) (cached_length : Integer)
+    Internal_Constructor (start : Date) (end : Date) (step : Period) (increasing : Boolean) (cached_length : Integer)
 
     ## Create a representation of a right-exclusive range of dates.
 
        Arguments:
        - start: The left boundary of the range. Its value is included.
        - end: The right boundary of the range. Its value is excluded.
-       - step: The step between values. Must be a positive value.
-    new : Date -> Date -> Integer -> Date_Range
+       - step: The step between values.
+    new : Date -> Date -> Date_Period|Period -> Date_Range
     new start=Date.now end=Date.now step=Date_Period.Day =
+        increasing = start <= end
+        Date_Range.new_internal start end increasing step
+
+    ## PRIVATE
+    new_internal : Date -> Date -> Boolean -> Date_Period|Period -> Date_Range
+    new_internal start end increasing step =
         one_day = Period.new days=1
-        base_step = if start > end then one_day.negated else one_day
+        base_step = if increasing then one_day else one_day.negated
         base_length = start.days_until end . abs
-        Date_Range.Internal_Constructor start end base_step base_length . with_step step
+        Date_Range.Internal_Constructor start end base_step increasing base_length . with_step step
 
     ## Creates a copy of this range with a changed step.
 
@@ -42,13 +49,13 @@ type Date_Range
          Create a a decreasing range of every other day between two dates.
 
              (Date.new 2022 10 23).down_to (Date.new 2022 10 1) . with_step (Period.new days=2)
-    with_step : Period | Date_Period -> Date_Range
+    with_step : Date_Period|Period -> Date_Range
     with_step self new_step = case new_step of
         _ : Period ->
-            effective_step = if self.start_inclusive > self.end_exclusive then new_step.negated else new_step
-            effective_length = compute_length_and_verify self.start_inclusive self.end_exclusive effective_step
+            effective_step = if self.start > self.end then new_step.negated else new_step
+            effective_length = compute_length_and_verify self.start self.end effective_step self.increasing
             effective_length.if_not_error <|
-                Date_Range.Internal_Constructor self.start_inclusive self.end_exclusive effective_step effective_length
+                Date_Range.Internal_Constructor self.start self.end effective_step self.increasing effective_length
         _ : Date_Period ->
             self.with_step new_step.to_period
 
@@ -57,7 +64,7 @@ type Date_Range
     to_text self =
         step = if (self.step.days.abs == 1) && (self.step.years == 0) && (self.step.months == 0) then "" else
             " by " + self.step.to_text
-        "(Date_Range from " + self.start_inclusive.to_text + " until " + self.end_exclusive.to_text + step + ")"
+        "(Date_Range from " + self.start.to_text + " until " + self.end.to_text + step + ")"
 
     ## Convert to a display representation.
     to_display_text : Text
@@ -176,8 +183,8 @@ type Date_Range
    Computes the length of the range and verifies its invariants.
 
    If any of the invariants are violated, a dataflow error is raised.
-compute_length_and_verify : Date -> Date -> Period -> Integer ! Time_Error
-compute_length_and_verify start end step =
+compute_length_and_verify : Date -> Date -> Period -> Boolean -> Integer ! Time_Error
+compute_length_and_verify start end step increasing =
     # First a few heuristics for a fast path.
     if (step.days == 0) && (step.total_months == 0) then Error.throw (Time_Error.Error "The step must not be zero.") else
         # TODO implement heuristics
@@ -185,18 +192,21 @@ compute_length_and_verify start end step =
         # TODO check if this is able to handle edge cases correctly
         #if (step.days == 0) then compute_length_step_months start end step.total_months else
         # Then we go brute force for the general case.
-        compute_length_step_brute_force start end step
+        compute_length_step_brute_force start end step increasing
 
 ## PRIVATE
 nth_element_of_range start step n =
     start + step*n
 
 ## PRIVATE
-compute_length_step_brute_force start end step =
+compute_length_step_brute_force start end step increasing =
+    is_exceeded = case increasing of
+        True -> (x -> x >= end)
+        False -> (x -> x <= end)
     go current_date acc_length =
-        if current_date >= end then acc_length else
+        if is_exceeded current_date then acc_length else
             # TODO is cycle of length > 1 possible?
             next_date = nth_element_of_range start step (acc_length + 1)
-            if next_date == current_date then Error.throw (Time_Error.Error "The provided step ["+step.to_display_text+"] is malformed - for the date ["+current_date+"] that would be included in the range, it does not progress - the shifted date is the same as the starting date.") else
+            if next_date == current_date then Error.throw (Time_Error.Error "The provided step ["+step.to_display_text+"] is malformed - for the date ["+current_date.to_display_text+"] that would be included in the range, it does not progress - the shifted date is the same as the starting date.") else
                 @Tail_Call go next_date (acc_length + 1)
     go start 0
