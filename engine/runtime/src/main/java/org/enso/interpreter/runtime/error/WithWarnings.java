@@ -53,6 +53,7 @@ public final class WithWarnings implements TruffleObject {
     this(value, maxWarnings, warnings, false, additionalWarnings);
   }
 
+  @CompilerDirectives.TruffleBoundary
   private static int warningsLimitFromContext(EnsoContext ctx) {
     return ctx.getEnvironment().getOptions().get(RuntimeOptions.WARNINGS_LIMIT_KEY);
   }

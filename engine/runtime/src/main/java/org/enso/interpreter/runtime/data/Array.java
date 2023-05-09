@@ -241,15 +241,16 @@ public final class Array implements TruffleObject {
   @ExportMessage
   boolean reachedMaxWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
     try {
-      int limit =
-          EnsoContext.get(warnings)
-              .getEnvironment()
-              .getOptions()
-              .get(RuntimeOptions.WARNINGS_LIMIT_KEY);
+      int limit = getMaxNumberOfWarnings(EnsoContext.get(warnings));
       return getWarnings(null, warnings).length >= limit;
     } catch (UnsupportedMessageException e) {
       return false;
     }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private int getMaxNumberOfWarnings(EnsoContext ctx) {
+    return ctx.getEnvironment().getOptions().get(RuntimeOptions.WARNINGS_LIMIT_KEY);
   }
 
   @ExportMessage
