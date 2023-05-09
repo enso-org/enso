@@ -44,7 +44,19 @@ case object TypeNames extends IRPass {
       ir.unsafeGetMetadata(BindingAnalysis, "bindings analysis did not run")
     ir.copy(bindings = ir.bindings.map { d =>
       val mapped = d.mapExpressions(resolveExpression(bindingsMap, _))
-      doResolveType(bindingsMap, mapped)
+      doResolveType(
+        bindingsMap,
+        mapped match {
+          case typ: IR.Module.Scope.Definition.Type =>
+            typ.members.foreach(m => {
+              m.arguments.foreach(a => {
+                doResolveType(bindingsMap, a)
+              })
+            })
+            typ
+          case x => x
+        }
+      )
     })
   }
 
