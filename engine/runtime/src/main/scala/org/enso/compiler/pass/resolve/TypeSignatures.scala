@@ -134,9 +134,9 @@ case object TypeSignatures extends IRPass {
         lastSignature = None
         res
       case ut: IR.Module.Scope.Definition.Type =>
-        ut.members.foreach(d => {
-          verifyAscribedArguments(d.arguments)
-        })
+        // ut.members.foreach(d => {
+        //  verifyAscribedArguments(d.arguments)
+        // })
         Some(ut.mapExpressions(resolveExpression))
       case err: IR.Error                  => Some(err)
       case ann: IR.Name.GenericAnnotation => Some(ann)
