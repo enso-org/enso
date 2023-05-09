@@ -311,6 +311,8 @@ type Time_Of_Day
 
        Arguments:
        - pattern: The pattern specifying how to format the time of day.
+       - locale: The locale in which the format should be interpreted.
+         (Defaults to Locale.default.)
 
        ? Pattern Syntax
          A custom pattern string consists of one or more custom date and time
@@ -352,5 +354,7 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "'hour:'h"
-    format : Text -> Text
-    format self pattern = @Builtin_Method "Time_Of_Day.format"
+    format : Text -> Locale -> Text
+    format self pattern locale=Locale.default = case locale of
+        Nothing -> Time_Utils.time_of_day_format self pattern
+        _ -> Time_Utils.time_of_day_format_with_locale self pattern locale.java_locale

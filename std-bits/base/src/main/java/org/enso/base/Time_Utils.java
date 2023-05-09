@@ -95,6 +95,26 @@ public class Time_Utils {
     return DateTimeFormatter.ofPattern(format.toString()).format(date);
   }
 
+  public static String local_date_format_with_locale(LocalDate date, Object format, Locale locale) {
+    return DateTimeFormatter.ofPattern(format.toString()).withLocale(locale).format(date);
+  }
+
+  public static String date_time_format(ZonedDateTime dateTime, Object format) {
+    return DateTimeFormatter.ofPattern(format.toString()).format(dateTime);
+  }
+
+  public static String date_time_format_with_locale(ZonedDateTime dateTime, Object format, Locale locale) {
+    return DateTimeFormatter.ofPattern(format.toString()).withLocale(locale).format(dateTime);
+  }
+
+  public static String time_of_day_format_with_locale(LocalTime localTime, Object format, Locale locale) {
+    return DateTimeFormatter.ofPattern(format.toString()).withLocale(locale).format(localTime);
+  }
+
+  public static String time_of_day_format(LocalTime localTime, Object format) {
+    return DateTimeFormatter.ofPattern(format.toString()).format(localTime);
+  }
+
   public static LocalDate date_adjust(LocalDate date, AdjustOp op, Period period) {
     return switch (op) {
       case PLUS -> date.plus(period);
