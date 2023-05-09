@@ -1,0 +1,32 @@
+import project.Data.Time.Date.Date
+import project.Data.Time.Date_Period.Date_Period
+import project.Data.Time.Period.Period
+
+## Represents a range of dates.
+type Date_Range
+    ## A representation of a date range.
+
+       Arguments:
+       - start_inclusive: The start of the range.
+       - end_exclusive: The end of the range (exclusive).
+       - step: The step between dates in the range.
+    Between (start_inclusive : Date) (end_exclusive : Date) (step : Period)
+
+
+    ## Creates a copy of this range with a changed step.
+
+       > Example
+         Create a range representing the first day of every month in a year.
+
+             (Date.new 2020 1 1).up_to (Date.new 2020 12 31) . with_step Date_Period.Month
+
+       > Example
+         Create a a decreasing range of every other day between two dates.
+
+             (Date.new 2022 10 23).down_to (Date.new 2022 10 1) . with_step (Period.new days=2)
+    with_step : Period | Date_Period -> Date_Range
+    with_step self new_step = case new_step of
+        _ : Period ->
+            Between self.start_inclusive self.end_exclusive new_step
+        _ : Date_Period ->
+            self.with_step new_step.to_period
