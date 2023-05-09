@@ -2,8 +2,6 @@ package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterException, PackageTest}
 
-import scala.annotation.unused
-
 class ImportsTest extends PackageTest {
   "Atoms and methods" should "be available for import" in {
     evalTestProject("TestSimpleImports") shouldEqual 20
