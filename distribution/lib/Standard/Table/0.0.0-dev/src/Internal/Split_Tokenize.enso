@@ -321,8 +321,8 @@ map_columns_to_multiple input_column function column_count problem_builder =
         _ -> 0.up_to builders.length . map i-> default_column_namer input_column.name i
 
     # Build Columns.
-    sealed = builders.map .seal
-    new_column_names.zip sealed Column.from_storage
+    storages = builders.map .seal
+    new_column_names.zip storages Column.from_storage
 
 ## PRIVATE
    Rename a vector of columns to be unique when added to a table.
