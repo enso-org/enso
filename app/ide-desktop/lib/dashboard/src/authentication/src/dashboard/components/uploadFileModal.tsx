@@ -46,7 +46,7 @@ function UploadFileModal(props: UploadFileModalProps) {
         }
 
         return (
-            <Modal className="bg-opacity-90">
+            <Modal centered className="bg-opacity-90">
                 <form
                     className="relative bg-white shadow-soft rounded-lg w-96 h-72 p-2"
                     onClick={event => {

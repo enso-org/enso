@@ -6,6 +6,7 @@ import project.Connection.Database
 import project.Connection.Postgres_Details.Postgres_Details
 import project.Connection.SQLite_Details.SQLite_Details
 import project.Connection.SQLite_Details.In_Memory
+import project.Connection.SQLite_Format.SQLite_Format
 import project.Connection.SSL_Mode.SSL_Mode
 import project.Data.SQL_Query.SQL_Query
 import project.Extensions.Upload_Table
@@ -21,6 +22,7 @@ export project.Connection.Database
 export project.Connection.Postgres_Details.Postgres_Details
 export project.Connection.SQLite_Details.SQLite_Details
 export project.Connection.SQLite_Details.In_Memory
+export project.Connection.SQLite_Format.SQLite_Format
 export project.Connection.SSL_Mode.SSL_Mode
 export project.Data.SQL_Query.SQL_Query
 export project.Extensions.Upload_Table

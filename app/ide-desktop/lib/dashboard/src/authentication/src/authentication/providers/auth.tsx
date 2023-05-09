@@ -86,7 +86,11 @@ export interface PartialUserSession {
 interface AuthContextType {
     signUp: (email: string, password: string) => Promise<boolean>
     confirmSignUp: (email: string, code: string) => Promise<boolean>
-    setUsername: (username: string, email: string) => Promise<boolean>
+    setUsername: (
+        backend: backendProvider.AnyBackendAPI,
+        username: string,
+        email: string
+    ) => Promise<boolean>
     signInWithGoogle: () => Promise<boolean>
     signInWithGitHub: () => Promise<boolean>
     signInWithPassword: (email: string, password: string) => Promise<boolean>
@@ -166,7 +170,7 @@ export function AuthProvider(props: AuthProviderProps) {
                 const client = new http.Client(headers)
                 const backend = new remoteBackend.RemoteBackend(client, logger)
                 setBackend(backend)
-                const organization = await backend.usersMe()
+                const organization = await backend.usersMe().catch(() => null)
                 let newUserSession: UserSession
                 if (!organization) {
                     newUserSession = {
@@ -257,10 +261,14 @@ export function AuthProvider(props: AuthProviderProps) {
             return result.ok
         })
 
-    const setUsername = async (username: string, email: string) => {
-        const { backend } = backendProvider.useBackend()
+    const setUsername = async (
+        backend: backendProvider.AnyBackendAPI,
+        username: string,
+        email: string
+    ) => {
         if (backend.platform === platform.Platform.desktop) {
-            throw new Error('')
+            toast.error('You cannot set your username on the local backend.')
+            return false
         } else {
             try {
                 await backend.createUser({
@@ -270,7 +278,8 @@ export function AuthProvider(props: AuthProviderProps) {
                 navigate(app.DASHBOARD_PATH)
                 toast.success(MESSAGES.setUsernameSuccess)
                 return true
-            } catch {
+            } catch (e) {
+                toast.error('Could not set your username.')
                 return false
             }
         }
@@ -377,6 +386,22 @@ export function ProtectedLayout() {
 
     if (!session) {
         return <router.Navigate to={app.LOGIN_PATH} />
+    } else if (session.variant === 'partial') {
+        return <router.Navigate to={app.SET_USERNAME_PATH} />
+    } else {
+        return <router.Outlet context={session} />
+    }
+}
+
+// ===========================
+// === SemiProtectedLayout ===
+// ===========================
+
+export function SemiProtectedLayout() {
+    const { session } = useAuth()
+
+    if (session?.variant === 'full') {
+        return <router.Navigate to={app.DASHBOARD_PATH} />
     } else {
         return <router.Outlet context={session} />
     }

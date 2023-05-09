@@ -20,8 +20,9 @@ export interface ConfirmDeleteModalProps {
 function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
     const { assetType, name, doDelete, onSuccess } = props
     const { unsetModal } = modalProvider.useSetModal()
+
     return (
-        <Modal className="bg-opacity-90">
+        <Modal centered className="bg-opacity-90">
             <form
                 className="relative bg-white shadow-soft rounded-lg w-96 p-2"
                 onClick={event => {
