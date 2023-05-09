@@ -1,4 +1,6 @@
 /** @file The top-bar of dashboard. */
+import * as react from 'react'
+
 import * as dashboard from './dashboard'
 import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
@@ -28,8 +30,17 @@ interface TopBarProps {
  */
 function TopBar(props: TopBarProps) {
     const { platform, projectName, tab, toggleTab, setBackendPlatform, query, setQuery } = props
-    const { setModal } = modalProvider.useSetModal()
+    const [userMenuVisible, setUserMenuVisible] = react.useState(false)
+    const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
+
+    react.useEffect(() => {
+        if (userMenuVisible) {
+            setModal(() => <UserMenu />)
+        } else {
+            unsetModal()
+        }
+    }, [userMenuVisible])
 
     return (
         <div className="flex mb-2 h-8">
@@ -114,7 +125,7 @@ function TopBar(props: TopBarProps) {
                     className="rounded-full w-8 h-8 bg-cover cursor-pointer"
                     onClick={event => {
                         event.stopPropagation()
-                        setModal(() => <UserMenu />)
+                        setUserMenuVisible(!userMenuVisible)
                     }}
                 />
             </div>
