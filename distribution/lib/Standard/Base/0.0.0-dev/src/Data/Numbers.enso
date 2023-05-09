@@ -566,7 +566,8 @@ type Decimal
          - -Inf.round == -Inf
     round : Integer -> Boolean -> Decimal
     round self decimal_places=0 use_bankers=False =
-        self * (10 ^ (-decimal_places)) . floor
+        scale = 10 ^ decimal_places
+        (((self * scale) + 0.5).floor) / scale
 
     ## Compute the negation of this.
 

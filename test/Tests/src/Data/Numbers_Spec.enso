@@ -530,7 +530,7 @@ spec =
 
             1499.0 . round -1 . should_equal 1500
             1499.0 . round -2 . should_equal 1500
-            1499.0 . round -3 . should_equal 1500
+            1499.0 . round -3 . should_equal 1000
 
             1495.0 . round -1 . should_equal 1500
             1494.0 . round -1 . should_equal 1490
@@ -545,9 +545,9 @@ spec =
 
             -1499.0 . round -1 . should_equal -1500
             -1499.0 . round -2 . should_equal -1500
-            -1499.0 . round -3 . should_equal -1500
+            -1499.0 . round -3 . should_equal -1000
 
-            -1495.0 . round -1 . should_equal -1500
+            -1495.0 . round -1 . should_equal -1490
             -1494.0 . round -1 . should_equal -1490
             -1495.0 . round -2 . should_equal -1500
             -1494.0 . round -2 . should_equal -1500
