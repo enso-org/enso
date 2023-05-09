@@ -55,18 +55,21 @@ type Range
         _ ->
             Error.throw (Illegal_Argument.Error "Range step should be an integer.")
 
-    ## Returns the first element that is included within the range or `Nothing`
-       if the range is empty.
+    ## Returns the first element that is included within the range.
+
+       It will raise `Index_Out_Of_Bounds` if the range is empty.
     first : Integer ! Index_Out_Of_Bounds
     first self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else self.start
 
-    ## Returns the second element that is included within the range or `Nothing`
-       if the range has less than 2 element
+    ## Returns the second element that is included within the range.
+
+       It will raise `Index_Out_Of_Bounds` if the range has less than two elements.
     second : Integer ! Index_Out_Of_Bounds
     second self = if self.length < 2 then Error.throw (Index_Out_Of_Bounds.Error 1 self.length) else self.start + self.step
 
-    ## Returns the last element that is included within the range or `Nothing`
-       if the range is empty.
+    ## Returns the last element that is included within the range.
+
+       It will raise `Index_Out_Of_Bounds` if the range is empty.
     last : Integer ! Index_Out_Of_Bounds
     last self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
         self.start + self.step*(self.length - 1)
@@ -77,7 +80,7 @@ type Range
          The following range has 100 elements.
 
             0.up_to 100 . length
-    length : Number
+    length : Integer
     length self = if self.is_empty then 0 else
         diff = self.end - self.start
         steps = diff . div self.step
@@ -87,8 +90,8 @@ type Range
 
        Arguments:
        - index: The location in the Range to get the element from. The index is
-         also allowed be negative, then the elements are indexed from the back
-         of the final item, i.e. -1 will correspond to the last element.
+         also allowed be negative, then the elements are indexed from the back,
+         i.e. -1 will correspond to the last element.
 
        > Example
          Get the second element of a range.
@@ -108,8 +111,8 @@ type Range
 
        Arguments:
        - index: The location in the Range to get the element from. The index is
-         also allowed be negative, then the elements are indexed from the back
-         of the Range, i.e. -1 will correspond to the last element.
+         also allowed be negative, then the elements are indexed from the back,
+         i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
     get : Integer -> Any -> Any
     get self index ~if_missing=Nothing =
@@ -149,7 +152,7 @@ type Range
          the range.
 
              1.up_to 10 . map (*2)
-    map : (Number -> Any) -> Vector Any
+    map : (Integer -> Any) -> Vector Any
     map self function =
         Vector.new self.length (i -> function (self.start + i*self.step))
 
@@ -403,7 +406,7 @@ type Range
          Getting a vector of the numbers 1 to 5.
 
              1.up_to 6 . to_vector
-    to_vector : Vector
+    to_vector : Vector Integer
     to_vector self = self.map x->x
 
     ## Combines all the elements of a non-empty range using a binary operation.

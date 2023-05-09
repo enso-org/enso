@@ -5,8 +5,6 @@ import project.Data.Time.Period.Period
 ## Represents a range of dates.
 type Date_Range
     ## PRIVATE
-       A representation of a date range.
-
        Never use the constructor directly to construct a range, as it does not
        allow to verify invariants and may lead to unexpected behavior.
     Internal_Constructor (start_inclusive : Date) (end_exclusive : Date) (step : Period) (cached_length : Integer)
@@ -38,7 +36,10 @@ type Date_Range
     with_step : Period | Date_Period -> Date_Range
     with_step self new_step = case new_step of
         _ : Period ->
-            Between self.start_inclusive self.end_exclusive new_step
+            effective_step = if self.start_inclusive > self.end_exclusive then new_step.negated else new_step
+            effective_length = compute_length_and_verify self.start_inclusive self.end_exclusive effective_step
+            effective_length.if_not_error <|
+                Date_Range.Internal_Constructor self.start_inclusive self.end_exclusive effective_step effective_length
         _ : Date_Period ->
             self.with_step new_step.to_period
 
@@ -53,6 +54,97 @@ type Date_Range
     to_display_text : Text
     to_display_text self = self.to_text
 
+    ## Returns the first element that is included within the range or `Nothing`
+       if the range is empty.
+    first : Integer ! Index_Out_Of_Bounds
+    first self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else self.start
+
+    ## Returns the second element that is included within the range or `Nothing`
+       if the range has less than 2 element
+    second : Integer ! Index_Out_Of_Bounds
+    second self = if self.length < 2 then Error.throw (Index_Out_Of_Bounds.Error 1 self.length) else self.start + self.step
+
+    ## Returns the last element that is included within the range or `Nothing`
+       if the range is empty.
+    last : Integer ! Index_Out_Of_Bounds
+    last self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
+        self.start + self.step*(self.length - 1)
+
+    ## Get the number of elements in the range.
+
+       > Example
+         The following range has 2 elements.
+
+            (Date.new 2023 04 05) . up_to (Date.new 2023 04 07) . length
+    length : Integer
+    length self = self.cached_length
+
+    ## Gets an element from the range at a specified index (0-based).
+
+       Arguments:
+       - index: The location in the range to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back,
+         i.e. -1 will correspond to the last element.
+
+       > Example
+         Get the second element of a range.
+
+              (Date.new 2023 04 05) . up_to (Date.new 2023 04 07) . get 1 == (Date.new 2023 04 06)
+
+       > Example
+         Get the last element of a range with step.
+
+            (Date.new 2023 04 05) . up_to (Date.new 2023 10 07) . with_step Date_Period.Month . get -1 == (Date.new 2023 10 05)
+    at : Integer -> Any ! Index_Out_Of_Bounds
+    at self index =
+        self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
+
+    ## Gets an element from the range at a specified index (0-based).
+       If the index is invalid then `if_missing` is returned.
+
+       Arguments:
+       - index: The location in the range to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back,
+         i.e. -1 will correspond to the last element.
+       - if_missing: The value to return if the index is out of bounds.
+    get : Integer -> Any -> Any
+    get self index ~if_missing=Nothing =
+        len = self.length
+        effective_index = if index < 0 then len + index else index
+        if effective_index >= 0 && effective_index < len then self.internal_at effective_index else
+            if_missing
+
+    ## PRIVATE
+       Generates the i-th element of the range.
+
+       This method does no bounds checking, it should be used only internally.
+    internal_at self i =
+        nth_element_of_range self.start self.step i
+
+    ## Applies a function to each element in the range, producing a vector of
+       results.
+
+       Arguments:
+       - function: The function to apply to each date in the range.
+
+       > Example
+         Create a vector that contains the numbers twice that of the numbers in
+         the range.
+
+             1.up_to 10 . map (*2)
+    map : (Date -> Any) -> Vector Any
+    map self function =
+        Vector.new self.length (i -> function (self.internal_at i))
+
+    ## Converts the range to a vector containing the dates in the range.
+
+       > Example
+         Getting a vector of dates from 2021-05-07 to 2021-05-10 (exclusive).
+
+             (Date.new 2021 05 07).up_to (Date.new 2021 05 10) . to_vector
+    to_vector : Vector Date
+    to_vector self = self.map x->x
+
     ## Checks if this range is empty.
 
        > Example
@@ -60,7 +152,7 @@ type Date_Range
 
              (Date.new 2020).up_to (Date.new 2023) . is_empty
     is_empty : Boolean
-    is_empty self = self.cached_length == 0
+    is_empty self = self.length == 0
 
     ## Checks if this range is not empty.
 
@@ -78,5 +170,24 @@ type Date_Range
 compute_length_and_verify : Date -> Date -> Period -> Integer ! Time_Error
 compute_length_and_verify start end step =
     # First a few heuristics for a fast path.
+    if (step.days == 0) && (step.total_months == 0) then Error.throw (Time_Error.Error "The step must not be zero.") else
+        # TODO implement heuristics
+        #if (step.total_months == 0) then compute_length_step_days start end step.days else
+        # TODO check if this is able to handle edge cases correctly
+        #if (step.days == 0) then compute_length_step_months start end step.total_months else
+        # Then we go brute force for the general case.
+        compute_length_step_brute_force start end step
 
-    # Then we go brute force for the general case.
+## PRIVATE
+nth_element_of_range start step n =
+    start + step*n
+
+## PRIVATE
+compute_length_step_brute_force start end step =
+    go current_date acc_length =
+        if current_date >= end then acc_length else
+            # TODO is cycle of length > 1 possible?
+            next_date = nth_element_of_range start step (acc_length + 1)
+            if next_date == current_date then Error.throw (Time_Error.Error "The provided step ["+step.to_display_text+"] is malformed - for the date ["+current_date+"] that would be included in the range, it does not progress - the shifted date is the same as the starting date.") else
+                @Tail_Call go next_date (acc_length + 1)
+    go start 0
