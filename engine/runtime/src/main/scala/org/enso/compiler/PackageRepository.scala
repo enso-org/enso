@@ -391,11 +391,12 @@ object PackageRepository {
               s"""|import $modName
                   |export $modName
                   |""".stripMargin
-            (
-              QualifiedName(namespace :: name :: parts, lastModuleName),
+            val syntheticModuleInfo = (
+              QualifiedName(namespace :: name :: parts.reverse, lastModuleName),
               QualifiedName(namespace :: name :: pathElems, exportItem),
               modSource
-            ) :: listAllIntermediateModules(
+            )
+            syntheticModuleInfo :: listAllIntermediateModules(
               namespace,
               name,
               parts,

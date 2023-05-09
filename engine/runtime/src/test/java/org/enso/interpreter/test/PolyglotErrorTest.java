@@ -3,10 +3,9 @@ package org.enso.interpreter.test;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.junit.After;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -24,6 +23,7 @@ public class PolyglotErrorTest extends TestBase {
 
     var code = """
     import Standard.Base.Panic.Panic
+    import Standard.Base.Data.Text.Text
     import Standard.Base.Error.Error
     import Standard.Base.Errors.Illegal_State.Illegal_State
     import Standard.Base.Nothing.Nothing

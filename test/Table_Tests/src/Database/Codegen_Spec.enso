@@ -115,9 +115,9 @@ spec =
 
     Test.group "Helpers" <|
         Test.specify "fresh_names should provide fresh names" <|
-            used_names = ["A", "A_1"]
+            used_names = ["A", "A 1"]
             preferred_names = ["A", "A", "B"]
-            fresh_names used_names preferred_names . should_equal ["A_2", "A_3", "B"]
+            fresh_names used_names preferred_names . should_equal ["A 2", "A 3", "B"]
 
     Test.group "[Codegen] Aggregation" <|
         Test.specify "should allow to count rows" <|

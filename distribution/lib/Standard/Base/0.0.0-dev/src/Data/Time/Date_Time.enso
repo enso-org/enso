@@ -613,6 +613,8 @@ type Date_Time
 
        Arguments:
        - pattern: The pattern that specifies how to format the time.
+       - locale: The locale in which the format should be interpreted.
+         (Defaults to Locale.default.)
 
        ? Pattern Syntax
          A custom pattern string consists of one or more custom date and time
@@ -645,6 +647,16 @@ type Date_Time
 
              example_format =
                 Date_Time.parse "2020-10-08T16:41:13+03:00[Europe/Moscow]" . format "EEE MMM d (HH:mm)"
-    format : Text -> Text
-    format self pattern = @Builtin_Method "Date_Time.format"
 
+       > Example
+         Format "2020-06-21T16:41:13+03:00" with French locale as "21. juin 2020"
+
+             from Standard.Base import Date_Time
+             import Standard.Base.Data.Locale.Locale
+
+             example_format =
+                 Date_Time.parse "2020-06-21T16:41:13+03:00" . format "d. MMMM yyyy" (Locale.new "fr")
+    format : Text -> Locale -> Text
+    format self pattern locale=Locale.default = case locale of
+        Nothing -> Time_Utils.date_time_format self pattern
+        _ -> Time_Utils.date_time_format_with_locale self pattern locale.java_locale

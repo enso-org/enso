@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Runtime.Context
+import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.File_Error.File_Error
 
 from Standard.Base.Data.Ordering import all
@@ -98,15 +100,16 @@ type Image
              image.write path image [Write_Flag.JPEG_Quality 40, Write_Flag.JPEG_Progressive]
     write : (Text | File)  -> (Write_Flag | Vector) -> Nothing ! File_Error
     write self location flags=[] =
-        path = case location of
-            _ : File -> location.path
-            _ -> location
-        write_flags = case flags of
-            _ : Vector -> flags
-            _ -> [flags]
-        int_flags = MatOfInt.new (write_flags.flat_map x-> [x.to_integer, x.value]).to_array
-        Panic.catch JException (Java_Codecs.write path self.opencv_mat int_flags) _->
-            Error.throw (File_Error.IO_Error (File.new path) 'Failed to write to the file')
+        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Writing the image to a file is forbidden as the Output context is disabled.") else
+            path = case location of
+                _ : File -> location.path
+                _ -> location
+            write_flags = case flags of
+                _ : Vector -> flags
+                _ -> [flags]
+            int_flags = MatOfInt.new (write_flags.flat_map x-> [x.to_integer, x.value]).to_array
+            Panic.catch JException (Java_Codecs.write path self.opencv_mat int_flags) _->
+                Error.throw (File_Error.IO_Error (File.new path) 'Failed to write to the file')
 
     ## PRIVATE
 

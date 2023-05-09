@@ -25,7 +25,7 @@
           "primary": false
         },
         "assetsUrl": {
-          "value": "assets",
+          "value": "dynamic-assets",
           "description": "The URL of the dynamic assets directory.",
           "primary": false
         },
