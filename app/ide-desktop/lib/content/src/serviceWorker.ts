@@ -1,5 +1,7 @@
 /** @file A service worker that redirects paths without extensions to `/index.html`.
- * This is only used in the cloud frontend. */
+ * This is required for paths like `/login`, which are handled by client-side routing,
+ * to work when developing locally on `localhost:8080`. */
+// Bring globals and interfaces specific to Web Workers into scope.
 /// <reference lib="WebWorker" />
 import * as common from 'enso-common'
 
