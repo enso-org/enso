@@ -300,7 +300,7 @@ object IR {
     * @param diagnostics compiler diagnostics for this node
     */
   @SerialVersionUID(
-    3667L // removes Vector.Vector_Data constructor
+    6584L // verify ascribed types
   )       // prevents reading broken caches, see PR-3692 for details
   sealed case class Module(
     imports: List[Module.Scope.Import],
