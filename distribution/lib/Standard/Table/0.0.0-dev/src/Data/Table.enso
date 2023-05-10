@@ -1660,6 +1660,21 @@ type Table
     row_count : Integer
     row_count self = self.java_table.rowCount
 
+    ## Returns a materialized dataframe containing rows of this table.
+
+       In the in-memory backend, this returns the same table, truncated to
+       `max_rows`. This is only kept for API compatibility between database and
+       in-memory tables. The `read` operation can be used to ensure that the
+       table is now in-memory, regardless of its origin.
+
+       Arguments:
+       - max_rows: specifies a maximum amount of rows to fetch; if not set, all
+         available rows are fetched.
+    read : (Integer | Nothing) -> Table
+    read self max_rows=Nothing = case max_rows of
+        Nothing -> self
+        _ : Integer -> self.take (First max_rows)
+
     ## Returns a Table describing this table's contents.
 
        The table lists all columns, counts of non-null items and value types of
@@ -1913,7 +1928,7 @@ type Table
         file = File.new path
         case format of
             _ : Auto_Detect ->
-                base_format = format.get_format file
+                base_format = format.get_writing_format file
                 if base_format == Nothing then Error.throw (File_Error.Unsupported_Output_Type file Table) else
                     self.write file format=base_format on_existing_file match_columns on_problems
             _ ->

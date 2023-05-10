@@ -42,6 +42,14 @@ spec =
             t2 = t.split_to_rows "bar" "b"
             t2.should_equal expected
 
+        Test.specify "can do split_to_columns with one output column, no column suffix added" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
+            t = Table.new cols
+            expected_rows = [[0, "abc"], [1, "cbdbef"], [2, "ghbijbu"]]
+            expected = Table.from_rows ["foo", "bar"] expected_rows
+            t2 = t.split_to_columns "bar" "q"
+            t2.should_equal expected
+
     Test.group "Table.tokenize" <|
         Test.specify "can do tokenize_to_columns" <|
             cols = [["foo", [0, 1, 2]], ["bar", ["a12b34r5", "23", "2r4r55"]]]
@@ -73,6 +81,14 @@ spec =
             expected_rows = [[0, "12"], [0, "34"], [0, "5"], [2, "23"], [3, "2"], [3, "4"], [3, "55"]]
             expected = Table.from_rows ["foo", "bar"] expected_rows
             t2 = t.tokenize_to_rows "bar" "\d+"
+            t2.should_equal expected
+
+        Test.specify "can do tokenize_to_columns with one output column, no column suffix needed" <|
+            cols = [["foo", [0, 1, 2]], ["bar", ["a12b", "23", "2r"]]]
+            t = Table.new cols
+            expected_rows = [[0, "12"], [1, "23"], [2, "2"]]
+            expected = Table.from_rows ["foo", "bar"] expected_rows
+            t2 = t.tokenize_to_columns "bar" "\d+"
             t2.should_equal expected
 
         Test.specify "can do tokenize_to_rows with some rows that have no matches" <|

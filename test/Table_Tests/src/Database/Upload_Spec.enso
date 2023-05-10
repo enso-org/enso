@@ -104,14 +104,22 @@ spec make_new_connection prefix persistent_connector=True =
             t1 = Table.new [["X", [1, 2, 1]], ["Y", ['b', 'b', 'a']]]
             r1 = t1.create_database_table connection (Name_Generator.random_name "primary-key-6") temporary=True primary_key=["X"]
             r1.should_fail_with Non_Unique_Primary_Key
+            e1 = r1.catch
+            e1.clashing_primary_key . should_equal [1]
+            e1.clashing_example_row_count . should_equal 2
+            e1.to_display_text . should_equal "The primary key [X] is not unique. The key [1] corresponds to 2 rows."
+
             r2 = t1.create_database_table connection (Name_Generator.random_name "primary-key-6") temporary=True primary_key=["Y"]
             r2.should_fail_with Non_Unique_Primary_Key
+            r2.catch . clashing_primary_key . should_equal ['b']
+
             r3 = t1.create_database_table connection (Name_Generator.random_name "primary-key-7") temporary=True primary_key=["X", "Y"]
             r3.at "X" . to_vector . should_equal [1, 2, 1]
 
             t2 = Table.new [["X", [1, 2, 1]], ["Y", ['a', 'b', 'a']]]
             r4 = t2.create_database_table connection (Name_Generator.random_name "primary-key-7") temporary=True primary_key=["X", "Y"]
             r4.should_fail_with Non_Unique_Primary_Key
+            r4.catch . clashing_primary_key . should_equal [1, 'a']
 
     Test.group prefix+"Persisting a Database Table (query)" <|
         Test.specify "should be able to create a persistent copy of a DB table" <|
@@ -193,6 +201,22 @@ spec make_new_connection prefix persistent_connector=True =
 
             r1 = db_table.create_database_table connection (Name_Generator.random_name "copied-table") temporary=True primary_key=["X"]
             r1.should_fail_with Non_Unique_Primary_Key
+            e1 = r1.catch
+            e1.clashing_primary_key . should_equal [1]
+            e1.clashing_example_row_count . should_equal 2
+
+            t2 = Table.new [["X", [1, 3, 1, 2, 3, 2, 2, 2, 0]], ["Y", ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']]]
+            db_table_2 = t2.create_database_table connection (Name_Generator.random_name "source-table-2") temporary=True primary_key=Nothing
+            Problems.assume_no_problems db_table_2
+
+            r2 = db_table_2.create_database_table connection (Name_Generator.random_name "copied-table-2") temporary=True primary_key=["X"]
+            r2.should_fail_with Non_Unique_Primary_Key
+            e2 = r2.catch
+            e2.clashing_primary_key.length . should_equal 1
+            x = e2.clashing_primary_key.first
+            [1, 2, 3].should_contain x
+            counts = Map.from_vector [[1, 2], [2, 4], [3, 2]]
+            e2.clashing_example_row_count . should_equal (counts.at x)
 
         Test.specify "will not allow to upload tables across connections" <|
             t = Table.new [["X", [1, 2, 1]], ["Y", ['b', 'b', 'a']]]

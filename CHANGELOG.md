@@ -146,11 +146,19 @@
 - [Fixed text visualisations which were being cut off at the last line.][6421]
 - [Fixed a bug where, when scrolling or dragging on a full-screen visualization,
   the view of the graph changed as well.][6530]
+- [Changed the shortcut for restoring to the last saved version of a project
+  from <kbd>cmd</kbd>+<kbd>r</kbd> to
+  <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>r</kbd>][6620] to make it less likely
+  that it would be triggered by accident. As a consequence, the program
+  execution shortcuts changed from
+  <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>t</kbd>/<kbd>r</kbd> to
+  <kbd>cmd</kbd>+<kbd>alt</kbd>+<kbd>t</kbd>/<kbd>r</kbd>.
 - [Fixed a bug where selecting a nested breadcrumb would cause the order of
   breadcrumbs to change incorrectly.][6617]
 
 [6421]: https://github.com/enso-org/enso/pull/6421
 [6530]: https://github.com/enso-org/enso/pull/6530
+[6620]: https://github.com/enso-org/enso/pull/6620
 [6617]: https://github.com/enso-org/enso/pull/6617
 
 #### EnsoGL (rendering engine)
@@ -422,6 +430,7 @@
   `Text.write`.][6459]
 - [Implemented `create_database_table` allowing saving queries as database
   tables.][6467]
+- [Implemented `Column.format` for in-memory `Column`s.][6538]
 - [Added `at_least_one` flag to `Table.tokenize_to_rows`.][6539]
 - [Moved `Redshift` connector into a separate `AWS` library.][6550]
 
@@ -630,6 +639,7 @@
 [6429]: https://github.com/enso-org/enso/pull/6429
 [6459]: https://github.com/enso-org/enso/pull/6459
 [6467]: https://github.com/enso-org/enso/pull/6467
+[6538]: https://github.com/enso-org/enso/pull/6538
 [6539]: https://github.com/enso-org/enso/pull/6539
 [6550]: https://github.com/enso-org/enso/pull/6550
 
