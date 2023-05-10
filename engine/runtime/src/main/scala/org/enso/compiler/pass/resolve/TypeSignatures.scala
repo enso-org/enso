@@ -88,7 +88,7 @@ case object TypeSignatures extends IRPass {
         val newMethod = meth.mapExpressions(resolveExpression)
         newMethod.body match {
           case fn: IR.Function => verifyAscribedArguments(fn.arguments)
-          case _               => newMethod
+          case _               =>
         }
         val res = lastSignature match {
           case Some(asc @ IR.Type.Ascription(typed, sig, _, _, _)) =>
