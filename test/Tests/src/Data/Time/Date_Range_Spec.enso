@@ -42,13 +42,16 @@ spec =
             (Date.new 2023 01 30).up_to (Date.new 2023 06 10) . with_step (Period.new months=2) . to_vector . should_equal [Date.new 2023 01 30, Date.new 2023 03 30, Date.new 2023 05 30]
             (Date.new 2020 02 29).up_to (Date.new 2023) . with_step Date_Period.Year . to_vector . should_equal [Date.new 2020 02 29, Date.new 2021 02 28, Date.new 2022 02 28]
 
-        Test.specify "should handle malformed step edge cases" <|
-            (Date.new 2021 05 05).up_to (Date.new 2021 05 06) . with_step (Period.new months=1 days=(-30)) . to_vector . should_equal [Date.new 2021 05 05]
+        Test.specify "should not allow a step with distinct signs of total_months and days" <|
+            (Date.new 2021 05 05).up_to (Date.new 2021 05 06) . with_step (Period.new months=1 days=(-30)) . should_fail_with Illegal_Argument
+            (Date.new 2021 05 05).up_to (Date.new 2021 05 06) . with_step (Period.new months=1 days=(-1)) . should_fail_with Illegal_Argument
+
+            (Date.new 2021 05 05).up_to (Date.new 2021 05 06) . with_step (Period.new years=-1 months=1) . to_vector . should_equal [Date.new 2021 05 05]
 
             # e.g. 2021-06-05 + 1 month - 30 days == 2021-06-05 --> no progression
-            (Date.new 2021 06 05).up_to (Date.new 2021 06 08) . with_step (Period.new months=1 days=(-30)) . should_fail_with Time_Error
-            (Date.new 2021 05 05).up_to (Date.new 2021 06 08) . with_step (Period.new months=1 days=(-30)) . should_fail_with Time_Error
-            (Date.new 2021 02 28).up_to (Date.new 2021 03 31) . with_step ((Period.new years=1 months=(-11) days=(-28))) . should_fail_with Time_Error
+            (Date.new 2021 06 05).up_to (Date.new 2021 06 08) . with_step (Period.new months=1 days=(-30)) . should_fail_with Illegal_Argument
+            (Date.new 2021 05 05).up_to (Date.new 2021 06 08) . with_step (Period.new months=1 days=(-30)) . should_fail_with Illegal_Argument
+            (Date.new 2021 02 28).up_to (Date.new 2021 03 31) . with_step ((Period.new years=1 months=(-11) days=(-28))) . should_fail_with Illegal_Argument
 
             # just 0 period
             (Date.new 2021 05 05).up_to (Date.new 2021 05 08) . with_step (Period.new) . should_fail_with Time_Error
