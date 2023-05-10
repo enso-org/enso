@@ -10,7 +10,7 @@ import createServer from 'create-servers'
 
 import * as contentConfig from 'enso-content-config'
 
-import * as paths from '../../paths'
+import * as paths from '../paths'
 
 const logger = contentConfig.logger
 
@@ -19,17 +19,6 @@ const logger = contentConfig.logger
 // =================
 
 const HTTP_STATUS_OK = 200
-
-// ======================
-// === URL Parameters ===
-// ======================
-
-/** Construct a URL query string with the given parameters. For each `key` - `value` pair,
- * `key=value` will be added to the query. */
-export function urlParamsFromObject(obj: Record<string, string>) {
-    const params = new URLSearchParams(obj).toString()
-    return params ? '?' + params : ''
-}
 
 // ==============
 // === Config ===
@@ -109,6 +98,9 @@ export class Server {
         } else {
             const url = requestUrl.split('?')[0]
             const resource = url === '/' ? '/index.html' : requestUrl
+            // `preload.cjs` must be specialcased here as it is loaded by electron from the root,
+            // in contrast to all assets loaded by the window, which are loaded from `assets/` via
+            // this server.
             const resourceFile =
                 resource === '/preload.cjs.map'
                     ? `${paths.APP_PATH}${resource}`
