@@ -10,7 +10,7 @@ import project.Data.Time.Period.Period
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
-import project.Errors.Time_Error.Time_Error
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Nothing.Nothing
 
@@ -25,10 +25,15 @@ type Date_Range
 
     ## Create a representation of a right-exclusive range of dates.
 
+       The range is increasing or decreasing, depending on if the start date is
+       before or after the end date.
+
        Arguments:
        - start: The left boundary of the range. Its value is included.
        - end: The right boundary of the range. Its value is excluded.
-       - step: The step between values.
+       - step: The step between dates. It must be positive - to construct a
+         decreasing range, flip the start and the end or use `down_to`, but
+         keeping the positive step.
     new : Date -> Date -> Date_Period|Period -> Date_Range
     new start=Date.now end=Date.now step=Date_Period.Day =
         increasing = start <= end
@@ -38,11 +43,16 @@ type Date_Range
     new_internal : Date -> Date -> Boolean -> Date_Period|Period -> Date_Range
     new_internal start end increasing step =
         one_day = Period.new days=1
-        base_step = if increasing then one_day else one_day.negated
         base_length = start.days_until end . abs
-        Date_Range.Internal_Constructor start end base_step increasing base_length . with_step step
+        Date_Range.Internal_Constructor start end one_day increasing base_length . with_step step
 
     ## Creates a copy of this range with a changed step.
+
+       Arguments:
+       - new_step: The new step to use. It can either be a `Date_Period` or
+         `Period`. The provided `Period` must be positive, i.e. all of `years`,
+         `months` and `days` must be non-negative and at least one of them has
+         to be positive.
 
        > Example
          Create a range representing the first day of every month in a year.
@@ -53,13 +63,11 @@ type Date_Range
          Create a a decreasing range of every other day between two dates.
 
              (Date.new 2022 10 23).down_to (Date.new 2022 10 1) . with_step (Period.new days=2)
-    with_step : Date_Period|Period -> Date_Range
+    with_step : Date_Period|Period -> Date_Range ! Illegal_Argument
     with_step self new_step = case new_step of
         _ : Period ->
-            effective_step = if self.start > self.end then new_step.negated else new_step
-            effective_length = compute_length_and_verify self.start self.end effective_step self.increasing
-            effective_length.if_not_error <|
-                Date_Range.Internal_Constructor self.start self.end effective_step self.increasing effective_length
+            effective_length = compute_length_and_verify self.start self.end new_step self.increasing
+            Date_Range.Internal_Constructor self.start self.end new_step self.increasing effective_length
         _ : Date_Period ->
             self.with_step new_step.to_period
 
@@ -139,7 +147,7 @@ type Date_Range
 
        This method does no bounds checking, it should be used only internally.
     internal_at self i =
-        nth_element_of_range self.start self.step i
+        nth_element_of_range self.start self.step self.increasing i
 
     ## Applies a function to each element in the range, producing a vector of
        results.
@@ -410,10 +418,10 @@ type Date_Range
    Computes the length of the range and verifies its invariants.
 
    If any of the invariants are violated, a dataflow error is raised.
-compute_length_and_verify : Date -> Date -> Period -> Boolean -> Integer ! Time_Error
+compute_length_and_verify : Date -> Date -> Period -> Boolean -> Integer ! Illegal_Argument
 compute_length_and_verify start end step increasing =
-    # First a few heuristics for a fast path.
-    if (step.days == 0) && (step.total_months == 0) then Error.throw (Time_Error.Error "The step must not be zero.") else
+    if is_period_positive step . not then Error.throw (Illegal_Argument.Error "The step `Period` for `Date_Range` must be positive, i.e. all of `years`, `months` and `days` must be non-negative and at least one of them must be strictly positive.") else
+        # First a few heuristics for a fast path.
         # TODO implement heuristics
         #if (step.total_months == 0) then compute_length_step_days start end step.days else
         # TODO check if this is able to handle edge cases correctly
@@ -422,8 +430,14 @@ compute_length_and_verify start end step increasing =
         compute_length_step_brute_force start end step increasing
 
 ## PRIVATE
-nth_element_of_range start step n =
-    start + step*n
+is_period_positive period =
+    if (period.years < 0) || (period.months < 0) || (period.days < 0) then False else
+        (period.total_months > 0) || (period.days > 0)
+
+## PRIVATE
+nth_element_of_range start step increasing n = case increasing of
+    True  -> start + step*n
+    False -> start - step*n
 
 ## PRIVATE
 compute_length_step_brute_force start end step increasing =
@@ -432,8 +446,6 @@ compute_length_step_brute_force start end step increasing =
         False -> (x -> x <= end)
     go current_date acc_length =
         if is_exceeded current_date then acc_length else
-            # TODO is cycle of length > 1 possible?
-            next_date = nth_element_of_range start step (acc_length + 1)
-            if next_date == current_date then Error.throw (Time_Error.Error "The provided step ["+step.to_display_text+"] is malformed - for the date ["+current_date.to_display_text+"] that would be included in the range, it does not progress - the shifted date is the same as the starting date.") else
-                @Tail_Call go next_date (acc_length + 1)
+            next_date = nth_element_of_range start step increasing (acc_length + 1)
+            @Tail_Call go next_date (acc_length + 1)
     go start 0

@@ -100,6 +100,7 @@ import project.Data.Text.Text_Ordering.Text_Ordering
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
+import project.Data.Time.Date_Range.Date_Range
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Day_Of_Week_From
@@ -149,6 +150,7 @@ export project.Data.Text.Text_Ordering.Text_Ordering
 export project.Data.Text.Text_Sub_Range.Text_Sub_Range
 export project.Data.Time.Date.Date
 export project.Data.Time.Date_Period.Date_Period
+export project.Data.Time.Date_Range.Date_Range
 export project.Data.Time.Date_Time.Date_Time
 export project.Data.Time.Day_Of_Week.Day_Of_Week
 export project.Data.Time.Day_Of_Week_From

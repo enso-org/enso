@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Errors.Time_Error.Time_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import Problems, Test, Test_Suite
 import Standard.Test.Extensions
@@ -21,7 +21,13 @@ spec =
             (Date.new 2023 12 31).down_to (Date.new 2023 12 31) . to_vector . should_equal []
             (Date.new 2023 12 31).down_to (Date.new 2023 12 31) include_end=True . to_vector . should_equal [Date.new 2023 12 31]
 
-        Test.specify
+        Test.specify ".new should infer if the range should be increasing or not" <|
+            Date_Range.new (Date.new 2023 10 01) (Date.new 2023 10 04) . to_vector . should_equal [Date.new 2023 10 01, Date.new 2023 10 02, Date.new 2023 10 03]
+            Date_Range.new (Date.new 2023 10 04) (Date.new 2023 10 01) . to_vector . should_equal [Date.new 2023 10 04, Date.new 2023 10 03, Date.new 2023 10 02]
+
+        Test.specify "will be empty if the start and end are swapped with up_to or down_to" <|
+            (Date.new 2023 10 01).down_to (Date.new 2023 10 04) . to_vector . should_equal []
+            (Date.new 2023 10 04).up_to (Date.new 2023 10 01) . to_vector . should_equal []
 
         Test.specify "should allow setting a custom step" <|
             (Date.new 2020 01 10).up_to (Date.new 2020 01 31) . with_step (Period.new days=5) . to_vector . should_equal [Date.new 2020 01 10, Date.new 2020 01 15, Date.new 2020 01 20, Date.new 2020 01 25, Date.new 2020 01 30]
@@ -35,6 +41,8 @@ spec =
             (Date.new 2020 01 01).up_to (Date.new 2026) include_end=True . with_step (Period.new years=2) . to_vector . should_equal [Date.new 2020 01 01, Date.new 2022 01 01, Date.new 2024 01 01, Date.new 2026 01 01]
             (Date.new 2060 11 25).down_to (Date.new 2020 11 24) . with_step (Period.new years=20) . to_vector . should_equal [Date.new 2060 11 25, Date.new 2040 11 25, Date.new 2020 11 25]
 
+            (Date.new 2020).up_to (Date.new 2023) . with_step (Period.new years=1 months=2 days=3) . to_vector . should_equal [Date.new 2020 01 01, Date.new 2021 03 04, Date.new 2022 05 07]
+
         Test.specify "should handle end of month edge cases" <|
             (Date.new 2020 01 31).up_to (Date.new 2020 12 31) include_end=True . with_step Date_Period.Month . to_vector . should_equal [Date.new 2020 01 31, Date.new 2020 02 29, Date.new 2020 03 31, Date.new 2020 04 30, Date.new 2020 05 31, Date.new 2020 06 30, Date.new 2020 07 31, Date.new 2020 08 31, Date.new 2020 09 30, Date.new 2020 10 31, Date.new 2020 11 30, Date.new 2020 12 31]
             (Date.new 2021 01 28).up_to (Date.new 2021 05 10) . with_step Date_Period.Month . to_vector . should_equal [Date.new 2021 01 28, Date.new 2021 02 28, Date.new 2021 03 28, Date.new 2021 04 28]
@@ -42,19 +50,21 @@ spec =
             (Date.new 2023 01 30).up_to (Date.new 2023 06 10) . with_step (Period.new months=2) . to_vector . should_equal [Date.new 2023 01 30, Date.new 2023 03 30, Date.new 2023 05 30]
             (Date.new 2020 02 29).up_to (Date.new 2023) . with_step Date_Period.Year . to_vector . should_equal [Date.new 2020 02 29, Date.new 2021 02 28, Date.new 2022 02 28]
 
-        Test.specify "should not allow a step with distinct signs of total_months and days" <|
-            (Date.new 2021 05 05).up_to (Date.new 2021 05 06) . with_step (Period.new months=1 days=(-30)) . should_fail_with Illegal_Argument
-            (Date.new 2021 05 05).up_to (Date.new 2021 05 06) . with_step (Period.new months=1 days=(-1)) . should_fail_with Illegal_Argument
-
-            (Date.new 2021 05 05).up_to (Date.new 2021 05 06) . with_step (Period.new years=-1 months=1) . to_vector . should_equal [Date.new 2021 05 05]
+        Test.specify "should not allow a non-positive step" <|
+            (Date.new 2010).up_to (Date.new 2050) . with_step (Period.new years=0 months=0 days=0) . should_fail_with Illegal_Argument
+            (Date.new 2010).up_to (Date.new 2050) . with_step (Period.new years=0 months=-1 days=0) . should_fail_with Illegal_Argument
+            (Date.new 2010).up_to (Date.new 2050) . with_step (Period.new years=0 months=0 days=-1) . should_fail_with Illegal_Argument
+            (Date.new 2010).up_to (Date.new 2050) . with_step (Period.new years=-1 months=0 days=0) . should_fail_with Illegal_Argument
+            (Date.new 2010).up_to (Date.new 2050) . with_step (Period.new years=2 months=-1 days=0) . should_fail_with Illegal_Argument
+            (Date.new 2010).up_to (Date.new 2050) . with_step (Period.new years=-1 months=40 days=0) . should_fail_with Illegal_Argument
+            (Date.new 2010).up_to (Date.new 2050) . with_step (Period.new years=1 months=40 days=-20) . should_fail_with Illegal_Argument
+            (Date.new 2010).up_to (Date.new 2050) . with_step (Period.new years=-1 months=-2 days=2) . should_fail_with Illegal_Argument
+            (Date.new 2010).up_to (Date.new 2050) . with_step (Period.new years=-1 months=-2 days=-1) . should_fail_with Illegal_Argument
 
             # e.g. 2021-06-05 + 1 month - 30 days == 2021-06-05 --> no progression
             (Date.new 2021 06 05).up_to (Date.new 2021 06 08) . with_step (Period.new months=1 days=(-30)) . should_fail_with Illegal_Argument
             (Date.new 2021 05 05).up_to (Date.new 2021 06 08) . with_step (Period.new months=1 days=(-30)) . should_fail_with Illegal_Argument
             (Date.new 2021 02 28).up_to (Date.new 2021 03 31) . with_step ((Period.new years=1 months=(-11) days=(-28))) . should_fail_with Illegal_Argument
-
-            # just 0 period
-            (Date.new 2021 05 05).up_to (Date.new 2021 05 08) . with_step (Period.new) . should_fail_with Time_Error
 
         Test.specify "should allow to reverse a range, returning a vector" <|
             (Date.new 2020 01 02).up_to (Date.new 2020 01 02) . reverse . should_equal []
