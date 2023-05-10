@@ -57,7 +57,7 @@ spec =
             (Date.new 2020 01 02).up_to (Date.new 2020 01 02) . reverse . should_equal []
             (Date.new 2020 01 02).up_to (Date.new 2020 01 02) include_end=True . reverse . should_equal [Date.new 2020 01 02]
 
-            (Date.new 2020 01 03).down_to (Date.new 2020 01 01) . reverse . should_equal [Date.new 2020 01 03, Date.new 2020 01 02]
+            (Date.new 2020 01 03).down_to (Date.new 2020 01 01) . reverse . should_equal [Date.new 2020 01 02, Date.new 2020 01 03]
 
             (Date.new 2020 02 29).up_to (Date.new 2023) . with_step Date_Period.Year . reverse . should_equal [Date.new 2022 02 28, Date.new 2021 02 28, Date.new 2020 02 29]
 
@@ -100,4 +100,5 @@ spec =
                 r.running_fold 0 count_mondays . should_equal (r.to_vector.running_fold 0 count_mondays)
 
                 reducer x y = if x > y then x else y
-                r.reduce reducer . should_equal (r.to_vector.reduce reducer)
+                # Catch+to_text to fix Empty_Error equality.
+                r.reduce reducer . catch . to_text . should_equal (r.to_vector.reduce reducer . catch . to_text)

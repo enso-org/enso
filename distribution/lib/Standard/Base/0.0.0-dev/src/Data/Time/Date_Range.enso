@@ -1,5 +1,8 @@
 import project.Any.Any
+import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Numbers.Integer
+import project.Data.Range.Empty_Error
+import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
@@ -8,6 +11,7 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Time_Error.Time_Error
+import project.Function.Function
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
@@ -246,7 +250,7 @@ type Date_Range
 
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . fold 0 acc-> date->
                 if date.day_of_week == Day_Of_Week.Monday then acc+1 else acc
-    fold : Any -> (Any -> Number -> Any) -> Any
+    fold : Any -> (Any -> Date -> Any) -> Any
     fold self init function =
         (0.up_to self.length).fold init acc-> ix->
             function acc (self.internal_at ix)
@@ -258,7 +262,7 @@ type Date_Range
        Arguments:
        - init: The initial value for the fold.
        - function: A function taking two elements and combining them.
-    running_fold : Any -> (Any -> Any -> Any) -> Vector Any
+    running_fold : Any -> (Any -> Date -> Any) -> Vector Any
     running_fold self init function =
         (0.up_to self.length).running_fold init acc-> ix->
             function acc (self.internal_at ix)
@@ -288,7 +292,7 @@ type Date_Range
          Checking that at least one date in the range is after 2020-10-01.
 
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . any (> (Date.new 2020 10 01))
-    any : (Number -> Boolean) -> Boolean
+    any : (Date -> Boolean) -> Boolean
     any self predicate = self.find predicate . is_nothing . not
 
     ## Gets the first index when `predicate` is satisfied this range.
@@ -384,15 +388,6 @@ type Date_Range
          Thus, to preserve the contents we need to return a vector.
     reverse : Vector Date
     reverse self = self.to_vector.reverse
-
-    ## Converts the range to a vector containing the numbers in the range.
-
-       > Example
-         Getting a vector of the numbers 1 to 5.
-
-             1.up_to 6 . to_vector
-    to_vector : Vector Integer
-    to_vector self = self.map x->x
 
     ## Combines all the elements of a non-empty range using a binary operation.
        If the range is empty, returns `if_empty`.
