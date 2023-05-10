@@ -8,7 +8,7 @@ export function fileExtension(fileName: string) {
 }
 
 /** Returns the appropriate icon for a specific file extension. */
-export function fileIcon(_extension: string) {
+export function fileIcon() {
     return svg.FILE_ICON
 }
 
