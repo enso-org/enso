@@ -46,7 +46,7 @@ type Index_Sub_Range
 
        If `count` is greater than the length of the input, a random permutation
        of all elements from the input is selected.
-    Sample (count:Integer) (seed:Integer=Random.get_default_seed)
+    Sample (count:Integer=10) (seed:Integer=Random.get_default_seed)
 
     ## Gets every Nth entry.
 
@@ -54,7 +54,7 @@ type Index_Sub_Range
        - step: The step between consecutive entries that are included.
        - first: The first entry to include. If it is outside of bounds of the
          input, an error is raised.
-    Every (step:Integer) (first:Integer=0)
+    Every (step:Integer=2) (first:Integer=0)
 
     ## PRIVATE
        Convert to a display representation of this Index_Sub_Range.
@@ -169,9 +169,9 @@ sort_and_merge_ranges ranges =
      normalization on its own.
    - range: The `Index_Sub_Range` to take from the collection.
 take_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> (Index_Sub_Range | Range | Integer) -> Any
-take_helper length at single_slice slice_ranges index_sub_range = case index_sub_range of
+take_helper length at single_slice slice_ranges range = case range of
     count : Integer -> take_helper length at single_slice slice_ranges (Index_Sub_Range.First count)
-    _ : Range -> take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index index_sub_range)
+    _ : Range -> take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
     Index_Sub_Range.First count -> single_slice 0 (Math.min length count)
     Index_Sub_Range.Last count -> single_slice length-count length
     Index_Sub_Range.While predicate ->
@@ -193,6 +193,9 @@ take_helper length at single_slice slice_ranges index_sub_range = case index_sub
             if start >= length then single_slice 0 0 else
                 range = start.up_to length . with_step step
                 take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
+    _ ->
+        # TODO [RW] even better handling for unapplied constructors
+        Error.throw (Type_Error.Error "Index_Sub_Range | Range | Integer" range "range")
 
 ## PRIVATE
    A helper that implements dropping from an arbitrary collection using a set of
@@ -219,9 +222,9 @@ take_helper length at single_slice slice_ranges index_sub_range = case index_sub
      normalized.
    - range: The `Index_Sub_Range` to drop from the collection.
 drop_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> (Index_Sub_Range | Range | Integer) -> Any
-drop_helper length at single_slice slice_ranges index_sub_range = case index_sub_range of
-    _ : Integer -> single_slice index_sub_range length
-    _ : Range -> drop_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index index_sub_range)
+drop_helper length at single_slice slice_ranges range = case range of
+    _ : Integer -> single_slice range length
+    _ : Range -> drop_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
     Index_Sub_Range.First count -> single_slice count length
     Index_Sub_Range.Last count -> single_slice 0 length-count
     Index_Sub_Range.While predicate ->
@@ -245,3 +248,6 @@ drop_helper length at single_slice slice_ranges index_sub_range = case index_sub
             if start >= length then single_slice 0 length else
                 range = start.up_to length . with_step step
                 drop_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
+    _ ->
+        # TODO [RW] even better handling for unapplied constructors
+        Error.throw (Type_Error.Error "Index_Sub_Range | Range | Integer" range "range")
