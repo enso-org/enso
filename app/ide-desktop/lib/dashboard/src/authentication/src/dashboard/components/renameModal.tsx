@@ -19,7 +19,7 @@ function RenameModal(props: RenameModalProps) {
     const { unsetModal } = modalProvider.useSetModal()
     const [newName, setNewName] = react.useState<string | null>(null)
     return (
-        <Modal className="bg-opacity-90">
+        <Modal centered className="bg-opacity-90">
             <form
                 className="relative bg-white shadow-soft rounded-lg w-96 p-2"
                 onClick={event => {
