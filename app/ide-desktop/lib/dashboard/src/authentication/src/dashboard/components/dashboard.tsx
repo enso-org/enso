@@ -270,7 +270,8 @@ function Dashboard(props: DashboardProps) {
                 setTab(Tab.dashboard)
                 const ideElement = document.getElementById(IDE_ELEMENT_ID)
                 if (ideElement) {
-                    ideElement.hidden = true
+                    ideElement.style.top = '-100vh'
+                    ideElement.style.display = 'fixed'
                 }
             }
         }
@@ -354,6 +355,14 @@ function Dashboard(props: DashboardProps) {
                             <RenameModal
                                 assetType={projectAsset.type}
                                 name={projectAsset.title}
+                                {...(backend.platform === platformModule.Platform.desktop
+                                    ? {
+                                          namePattern: '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*',
+                                          title:
+                                              'Names must be in Upper_Snake_Case. ' +
+                                              '(Numbers (_0, _1) are also allowed.)',
+                                      }
+                                    : {})}
                                 // TODO: Wait for backend implementation.
                                 doRename={() => Promise.resolve()}
                                 onSuccess={doRefresh}
@@ -370,10 +379,13 @@ function Dashboard(props: DashboardProps) {
                     }}
                     openIde={async () => {
                         setTab(Tab.ide)
-                        setProject(await backend.getProjectDetails(projectAsset.id))
+                        if (project?.projectId !== projectAsset.id) {
+                            setProject(await backend.getProjectDetails(projectAsset.id))
+                        }
                         const ideElement = document.getElementById(IDE_ELEMENT_ID)
                         if (ideElement) {
-                            ideElement.hidden = false
+                            ideElement.style.top = ''
+                            ideElement.style.display = 'absolute'
                         }
                     }}
                 />
@@ -521,8 +533,8 @@ function Dashboard(props: DashboardProps) {
                         const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
                         setModal(() => (
                             <CreateForm
-                                left={buttonPosition.left}
-                                top={buttonPosition.top}
+                                left={buttonPosition.left + window.scrollX}
+                                top={buttonPosition.top + window.scrollY}
                                 directoryId={directoryId}
                                 onSuccess={doRefresh}
                             />
@@ -619,11 +631,11 @@ function Dashboard(props: DashboardProps) {
         return `${prefix}${highestProjectIndex + 1}`
     }
 
-    async function handleCreateProject(templateName?: string | null) {
-        const projectName = getNewProjectName(templateName)
+    async function handleCreateProject(templateId?: string | null) {
+        const projectName = getNewProjectName(templateId)
         const body: backendModule.CreateProjectRequestBody = {
             projectName,
-            projectTemplateName: templateName?.replace(/_/g, '').toLocaleLowerCase() ?? null,
+            projectTemplateName: templateId ?? null,
             parentDirectoryId: directoryId,
         }
         const projectAsset = await backend.createProject(body)
@@ -641,7 +653,7 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div
-            className={`select-none text-primary text-xs min-h-screen p-2 ${
+            className={`relative select-none text-primary text-xs min-h-screen p-2 ${
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
             onClick={event => {
@@ -662,31 +674,35 @@ function Dashboard(props: DashboardProps) {
                         setTab(Tab.ide)
                         const ideElement = document.getElementById(IDE_ELEMENT_ID)
                         if (ideElement) {
-                            ideElement.hidden = false
+                            ideElement.style.top = ''
+                            ideElement.style.display = 'absolute'
                         }
                     } else {
                         setTab(Tab.dashboard)
                         const ideElement = document.getElementById(IDE_ELEMENT_ID)
                         if (ideElement) {
-                            ideElement.hidden = true
+                            ideElement.style.top = '-100vh'
+                            ideElement.style.display = 'fixed'
                         }
                     }
                 }}
                 setBackendPlatform={newBackendPlatform => {
-                    setProjectAssets([])
-                    setDirectoryAssets([])
-                    setSecretAssets([])
-                    setFileAssets([])
-                    switch (newBackendPlatform) {
-                        case platformModule.Platform.desktop:
-                            setBackend(new localBackend.LocalBackend())
-                            break
-                        case platformModule.Platform.cloud: {
-                            const headers = new Headers()
-                            headers.append('Authorization', `Bearer ${accessToken}`)
-                            const client = new http.Client(headers)
-                            setBackend(new remoteBackendModule.RemoteBackend(client, logger))
-                            break
+                    if (newBackendPlatform !== backend.platform) {
+                        setProjectAssets([])
+                        setDirectoryAssets([])
+                        setSecretAssets([])
+                        setFileAssets([])
+                        switch (newBackendPlatform) {
+                            case platformModule.Platform.desktop:
+                                setBackend(new localBackend.LocalBackend())
+                                break
+                            case platformModule.Platform.cloud: {
+                                const headers = new Headers()
+                                headers.append('Authorization', `Bearer ${accessToken}`)
+                                const client = new http.Client(headers)
+                                setBackend(new remoteBackendModule.RemoteBackend(client, logger))
+                                break
+                            }
                         }
                     }
                 }}
@@ -719,6 +735,7 @@ function Dashboard(props: DashboardProps) {
                                     ? 'opacity-50'
                                     : ''
                             }`}
+                            disabled={backend.platform === platformModule.Platform.desktop}
                             onClick={event => {
                                 event.stopPropagation()
                                 setModal(() => (
@@ -732,8 +749,8 @@ function Dashboard(props: DashboardProps) {
                             {svg.UPLOAD_ICON}
                         </button>
                         <button
-                            className={`mx-1 ${selectedAssets.length === 0 ? 'opacity-50' : ''}`}
-                            disabled={selectedAssets.length === 0}
+                            className={`mx-1 opacity-50`}
+                            disabled={true}
                             onClick={event => {
                                 event.stopPropagation()
                                 /* TODO */
@@ -842,9 +859,21 @@ function Dashboard(props: DashboardProps) {
                                     <RenameModal
                                         name={projectAsset.title}
                                         assetType={projectAsset.type}
-                                        // FIXME[sb]: Replace with API call
-                                        // when implemented in backend.
-                                        doRename={() => Promise.resolve()}
+                                        {...(backend.platform === platformModule.Platform.desktop
+                                            ? {
+                                                  namePattern: '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*',
+                                                  title:
+                                                      'Names must be in Upper_Snake_Case. ' +
+                                                      '(Numbers (_0, _1) are also allowed.)',
+                                              }
+                                            : {})}
+                                        doRename={async name => {
+                                            await backend.projectUpdate(projectAsset.id, {
+                                                ami: null,
+                                                ideVersion: null,
+                                                projectName: name,
+                                            })
+                                        }}
                                         onSuccess={doRefresh}
                                     />
                                 ))
@@ -852,18 +881,14 @@ function Dashboard(props: DashboardProps) {
                             // This is not a React component even though it contains JSX.
                             // eslint-disable-next-line no-restricted-syntax
                             function doDelete() {
-                                // The button is disabled when using the desktop backend,
-                                // so this condition should never be `false`.
-                                if (backend.platform === platformModule.Platform.cloud) {
-                                    setModal(() => (
-                                        <ConfirmDeleteModal
-                                            name={projectAsset.title}
-                                            assetType={projectAsset.type}
-                                            doDelete={() => backend.deleteProject(projectAsset.id)}
-                                            onSuccess={doRefresh}
-                                        />
-                                    ))
-                                }
+                                setModal(() => (
+                                    <ConfirmDeleteModal
+                                        name={projectAsset.title}
+                                        assetType={projectAsset.type}
+                                        doDelete={() => backend.deleteProject(projectAsset.id)}
+                                        onSuccess={doRefresh}
+                                    />
+                                ))
                             }
                             setModal(() => (
                                 <ContextMenu event={event}>
@@ -873,15 +898,8 @@ function Dashboard(props: DashboardProps) {
                                     <ContextMenuEntry disabled onClick={doOpenAsFolder}>
                                         Open as folder
                                     </ContextMenuEntry>
-                                    <ContextMenuEntry disabled onClick={doRename}>
-                                        Rename
-                                    </ContextMenuEntry>
-                                    <ContextMenuEntry
-                                        disabled={
-                                            backend.platform === platformModule.Platform.desktop
-                                        }
-                                        onClick={doDelete}
-                                    >
+                                    <ContextMenuEntry onClick={doRename}>Rename</ContextMenuEntry>
+                                    <ContextMenuEntry onClick={doDelete}>
                                         <span className="text-red-700">Delete</span>
                                     </ContextMenuEntry>
                                 </ContextMenu>

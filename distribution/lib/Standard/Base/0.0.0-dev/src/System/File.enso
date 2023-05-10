@@ -245,7 +245,8 @@ type File
     @format format_widget
     read : File_Format -> Problem_Behavior -> Any ! File_Error
     read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
-        format.read self on_problems
+        if self.exists.not then Error.throw (File_Error.Not_Found self) else
+            format.read self on_problems
 
     ## ALIAS Load Bytes, Open Bytes
        Reads all bytes in this file into a byte vector.
@@ -611,6 +612,14 @@ type File
             stream = File_Error.handle_java_exceptions self (self.input_stream opts)
             resource = Managed_Resource.register stream close_stream
             Input_Stream.Value self resource
+
+    ## PRIVATE
+       Reads first `n` bytes from the file (or less if the file is too small)
+       and returns a vector of bytes.
+    read_first_bytes : Integer -> Vector ! File_Error
+    read_first_bytes self n =
+        opts = [File_Access.Read]
+        self.with_input_stream opts (_.read_n_bytes n)
 
     ## PRIVATE
        Reads last `n` bytes from the file (or less if the file is too small) and

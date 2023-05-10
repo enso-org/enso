@@ -29,10 +29,10 @@ interface CurrentlyOpenProjectInfo {
 /** Class for sending requests to the Project Manager API endpoints.
  * This is used instead of the cloud backend API when managing local projects from the dashboard. */
 export class LocalBackend implements Partial<backend.Backend> {
+    static currentlyOpeningProjectId: backend.ProjectId | null = null
+    static currentlyOpenProject: CurrentlyOpenProjectInfo | null = null
     readonly platform = platformModule.Platform.desktop
     private readonly projectManager = projectManager.ProjectManager.default()
-    private currentlyOpeningProjectId: string | null = null
-    private currentlyOpenProject: CurrentlyOpenProjectInfo | null = null
 
     async listDirectory(): Promise<backend.Asset[]> {
         const result = await this.projectManager.listProjects({})
@@ -78,12 +78,18 @@ export class LocalBackend implements Partial<backend.Backend> {
     }
 
     async closeProject(projectId: backend.ProjectId): Promise<void> {
+        if (LocalBackend.currentlyOpeningProjectId === projectId) {
+            LocalBackend.currentlyOpeningProjectId = null
+        }
         await this.projectManager.closeProject({ projectId })
-        this.currentlyOpenProject = null
+        if (projectId === LocalBackend.currentlyOpeningProjectId) {
+            LocalBackend.currentlyOpeningProjectId = null
+            LocalBackend.currentlyOpenProject = null
+        }
     }
 
     async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
-        if (projectId !== this.currentlyOpenProject?.id) {
+        if (projectId !== LocalBackend.currentlyOpenProject?.id) {
             const result = await this.projectManager.listProjects({})
             const project = result.projects.find(listedProject => listedProject.id === projectId)
             const engineVersion = project?.engineVersion
@@ -109,14 +115,14 @@ export class LocalBackend implements Partial<backend.Backend> {
                     projectId,
                     state: {
                         type:
-                            projectId === this.currentlyOpeningProjectId
+                            projectId === LocalBackend.currentlyOpeningProjectId
                                 ? backend.ProjectState.openInProgress
                                 : backend.ProjectState.closed,
                     },
                 })
             }
         } else {
-            const project = this.currentlyOpenProject.project
+            const project = LocalBackend.currentlyOpenProject.project
             return Promise.resolve<backend.Project>({
                 name: project.projectName,
                 engineVersion: {
@@ -140,11 +146,60 @@ export class LocalBackend implements Partial<backend.Backend> {
     }
 
     async openProject(projectId: backend.ProjectId): Promise<void> {
-        this.currentlyOpeningProjectId = projectId
+        LocalBackend.currentlyOpeningProjectId = projectId
         const project = await this.projectManager.openProject({
             projectId,
             missingComponentAction: projectManager.MissingComponentAction.install,
         })
-        this.currentlyOpenProject = { id: projectId, project }
+        LocalBackend.currentlyOpenProject = { id: projectId, project }
+    }
+
+    async projectUpdate(
+        projectId: backend.ProjectId,
+        body: backend.ProjectUpdateRequestBody
+    ): Promise<backend.UpdatedProject> {
+        if (body.ami != null) {
+            throw new Error('Cannot change project AMI on local backend.')
+        } else {
+            if (body.projectName != null) {
+                await this.projectManager.renameProject({
+                    projectId,
+                    name: newtype.asNewtype<projectManager.ProjectName>(body.projectName),
+                })
+            }
+            const result = await this.projectManager.listProjects({})
+            const project = result.projects.find(listedProject => listedProject.id === projectId)
+            const engineVersion = project?.engineVersion
+            if (project == null) {
+                throw new Error(`The project ID '${projectId}' is invalid.`)
+            } else if (engineVersion == null) {
+                throw new Error(`The project '${projectId}' does not have an engine version.`)
+            } else {
+                return {
+                    ami: null,
+                    engineVersion: {
+                        lifecycle: backend.VersionLifecycle.stable,
+                        value: engineVersion,
+                    },
+                    ideVersion: {
+                        lifecycle: backend.VersionLifecycle.stable,
+                        value: engineVersion,
+                    },
+                    name: project.name,
+                    organizationId: '',
+                    projectId,
+                }
+            }
+        }
+    }
+
+    async deleteProject(projectId: backend.ProjectId): Promise<void> {
+        if (LocalBackend.currentlyOpeningProjectId === projectId) {
+            LocalBackend.currentlyOpeningProjectId = null
+        }
+        await this.projectManager.deleteProject({ projectId })
+        if (LocalBackend.currentlyOpenProject?.id === projectId) {
+            LocalBackend.currentlyOpenProject = null
+        }
     }
 }

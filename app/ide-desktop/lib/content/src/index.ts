@@ -150,8 +150,6 @@ class Main implements AppRunner {
             {
                 loader: {
                     wasmUrl: 'pkg-opt.wasm',
-                    jsUrl: 'pkg.js',
-                    assetsUrl: 'dynamic-assets',
                 },
             },
             inputConfig

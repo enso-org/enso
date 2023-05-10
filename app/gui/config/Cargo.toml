@@ -8,7 +8,8 @@ edition = "2021"
 ensogl = { path = "../../../lib/rust/ensogl" }
 enso-prelude = { path = "../../../lib/rust/prelude" }
 enso-json-to-struct = { path = "../../../lib/rust/json-to-struct" }
-semver = "1.0.0"
+semver = { workspace = true }
+thiserror = { workspace = true }
 
 [build-dependencies]
 config-reader = { path = "../../../lib/rust/config-reader" }

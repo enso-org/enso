@@ -11,7 +11,7 @@ import project.Internal.Postgres.Pgpass
 
 polyglot java import org.postgresql.Driver
 
-type Postgres_Options
+type Postgres_Details
     ## Connect to a PostgreSQL database.
 
        Arguments:
@@ -41,7 +41,7 @@ type Postgres_Options
 
         ## Cannot use default argument values as gets in an infinite loop if you do.
         make_new database schema =
-            Postgres_Options.Postgres self.host self.port (database.if_nothing self.database) (schema.if_nothing self.schema) self.credentials self.use_ssl self.client_cert . connect options
+            Postgres_Details.Postgres self.host self.port (database.if_nothing self.database) (schema.if_nothing self.schema) self.credentials self.use_ssl self.client_cert . connect options
 
         Postgres_Connection.create self.jdbc_url properties make_new
 

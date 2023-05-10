@@ -46,7 +46,8 @@ export function run(props: app.AppProps) {
     } else if (ideElement == null) {
         logger.error(`Could not find IDE element with ID '${IDE_ELEMENT_ID}'.`)
     } else {
-        ideElement.hidden = true
+        ideElement.style.top = '-100vh'
+        ideElement.style.display = 'fixed'
         reactDOM.createRoot(root).render(<App {...props} />)
     }
 }
