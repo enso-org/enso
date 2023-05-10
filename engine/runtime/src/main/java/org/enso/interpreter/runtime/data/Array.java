@@ -239,10 +239,10 @@ public final class Array implements TruffleObject {
   }
 
   @ExportMessage
-  boolean reachedMaxWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+  boolean isLimitReached(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
     try {
       int limit = getMaxNumberOfWarnings(EnsoContext.get(warnings));
-      return getWarnings(null, warnings).length == limit;
+      return getWarnings(null, warnings).length >= limit;
     } catch (UnsupportedMessageException e) {
       return false;
     }

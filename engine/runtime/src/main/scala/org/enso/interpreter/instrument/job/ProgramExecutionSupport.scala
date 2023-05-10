@@ -366,7 +366,7 @@ object ProgramExecutionSupport {
                 .Warnings(
                   warningsCount,
                   warning,
-                  withWarnings.reachedMaxWarnings()
+                  withWarnings.isLimitReached()
                 )
             )
           )

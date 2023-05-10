@@ -58,8 +58,8 @@ type Warning
 
     ## ADVANCED
        Returns `True` if the maximal number of reported warnings for a value has been reached, `false` otherwise.
-    reached_max_count : Any -> Boolean
-    reached_max_count value = @Builtin_Method "Warning.reached_max_count"
+    limit_reached : Any -> Boolean
+    limit_reached value = @Builtin_Method "Warning.limit_reached"
 
     ## PRIVATE
        ADVANCED

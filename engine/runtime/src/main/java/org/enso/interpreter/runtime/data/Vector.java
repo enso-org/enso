@@ -223,8 +223,8 @@ public final class Vector implements TruffleObject {
   }
 
   @ExportMessage
-  boolean reachedMaxWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
-    return warnings.reachedMaxWarnings(this.storage);
+  boolean isLimitReached(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    return warnings.isLimitReached(this.storage);
   }
 
   //

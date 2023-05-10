@@ -66,13 +66,13 @@ public abstract class WarningsLibrary extends Library {
   }
 
   /**
-   * Returns the object with all warnings removed.
+   * Checks if the receiver reached a maximal number of warnings that could be reported.
    *
    * @param receiver the receiver to analyze
-   * @return the receiver with all warnings removed, if any
+   * @return whether the receiver reached a maximal number of warnings
    */
   @GenerateLibrary.Abstract(ifExported = {"hasWarnings"})
-  public boolean reachedMaxWarnings(Object receiver) {
+  public boolean isLimitReached(Object receiver) {
     return false;
   }
 }

@@ -17,8 +17,6 @@ import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.collections.EconomicSet;
 import org.graalvm.collections.Equivalence;
 
-import java.util.Arrays;
-
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(WarningsLibrary.class)
 @ExportLibrary(ReflectionLibrary.class)
@@ -27,25 +25,25 @@ public final class WithWarnings implements TruffleObject {
   private final EconomicSet<Warning> warnings;
   private final Object value;
 
-  private final boolean reachedMax;
+  private final boolean limitReached;
   private final int maxWarnings;
 
-  private WithWarnings(Object value, int maxWarnings, boolean reachedMaxCount, Warning... warnings) {
+  private WithWarnings(Object value, int maxWarnings, boolean limitReached, Warning... warnings) {
     assert !(value instanceof WithWarnings);
     this.warnings = createSetFromArray(maxWarnings, warnings);
     this.value = value;
-    this.reachedMax = reachedMaxCount || this.warnings.size() >= maxWarnings;
+    this.limitReached = limitReached || this.warnings.size() >= maxWarnings;
     this.maxWarnings = maxWarnings;
   }
   private WithWarnings(Object value, int maxWarnings, Warning... warnings) {
     this(value, maxWarnings, false, warnings);
   }
 
-  private WithWarnings(Object value, int maxWarnings, EconomicSet<Warning> warnings, boolean reachedMaxCount, Warning... additionalWarnings) {
+  private WithWarnings(Object value, int maxWarnings, EconomicSet<Warning> warnings, boolean limitReached, Warning... additionalWarnings) {
     assert !(value instanceof WithWarnings);
     this.warnings = cloneSetAndAppend(maxWarnings, warnings, additionalWarnings);
     this.value = value;
-    this.reachedMax = reachedMaxCount || this.warnings.size() >= maxWarnings;
+    this.limitReached = limitReached || this.warnings.size() >= maxWarnings;
     this.maxWarnings = maxWarnings;
   }
 
@@ -70,8 +68,8 @@ public final class WithWarnings implements TruffleObject {
     return value;
   }
 
-  public WithWarnings append(EnsoContext ctx, boolean reachedMaxCount, Warning... newWarnings) {
-    return new WithWarnings(value, warningsLimitFromContext(ctx), warnings, reachedMaxCount, newWarnings);
+  public WithWarnings append(EnsoContext ctx, boolean limitReached, Warning... newWarnings) {
+    return new WithWarnings(value, warningsLimitFromContext(ctx), warnings, limitReached, newWarnings);
   }
 
   public WithWarnings append(EnsoContext ctx, Warning... newWarnings) {
@@ -167,8 +165,8 @@ public final class WithWarnings implements TruffleObject {
   }
 
   @ExportMessage
-  public boolean reachedMaxWarnings() {
-    return reachedMax;
+  public boolean isLimitReached() {
+    return limitReached;
   }
 
   @ExportMessage
@@ -229,6 +227,6 @@ public final class WithWarnings implements TruffleObject {
 
   @Override
   public String toString() {
-    return "WithWarnings{" + value + " + " + warnings.size() + " warnings" + (reachedMax ? " (warnings limit reached)}" : "}");
+    return "WithWarnings{" + value + " + " + warnings.size() + " warnings" + (limitReached ? " (warnings limit reached)}" : "}");
   }
 }
