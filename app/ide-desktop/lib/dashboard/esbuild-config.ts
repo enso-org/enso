@@ -119,9 +119,15 @@ export function bundlerOptions(args: Arguments) {
             esbuildPluginGenerateTailwind(),
         ],
         define: {
-            // We are defining a constant, so it should be `CONSTANT_CASE`.
-            // eslint-disable-next-line @typescript-eslint/naming-convention
+            // We are defining constants, so it should be `CONSTANT_CASE`.
+            /* eslint-disable @typescript-eslint/naming-convention */
+            /** Whether the application is being run locally. This enables a service worker that
+             * properly serves `/index.html` to client-side routes like `/login`. */
             IS_DEV_MODE: JSON.stringify(devMode),
+            /** Overrides the redirect URL for OAuth logins in the production environment.
+             * This is needed for logins to work correctly under `./run gui watch`. */
+            REDIRECT_OVERRIDE: 'undefined',
+            /* eslint-enable @typescript-eslint/naming-convention */
         },
         sourcemap: true,
         minify: true,

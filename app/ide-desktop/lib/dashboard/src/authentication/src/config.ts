@@ -17,9 +17,9 @@ const CLOUD_REDIRECTS = {
      * when it is created. In the native app, the port is unpredictable, but this is not a problem
      * because the native app does not use port-based redirects, but deep links. */
     development: newtype.asNewtype<auth.OAuthRedirect>('http://localhost:8081'),
-    // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/428
-    // This URL should switch between `localhost:8080` and `cloud.enso.org` as appropriate.
-    production: newtype.asNewtype<auth.OAuthRedirect>('http://localhost:8080'),
+    production: newtype.asNewtype<auth.OAuthRedirect>(
+        REDIRECT_OVERRIDE ?? 'https://cloud.enso.org'
+    ),
 }
 
 /** All possible API URLs, sorted by environment. */

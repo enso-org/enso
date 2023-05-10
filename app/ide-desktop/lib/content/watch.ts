@@ -34,6 +34,7 @@ async function watch() {
         ...bundler.argumentsFromEnv(),
         devMode: true,
     })
+    opts.define.REDIRECT_OVERRIDE = JSON.stringify('http://localhost:8080')
     opts.entryPoints.push({
         in: path.resolve(THIS_PATH, 'src', 'serviceWorker.ts'),
         out: 'serviceWorker',
