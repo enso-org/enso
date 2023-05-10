@@ -315,6 +315,15 @@ impl ContainerModel {
 
 impl ContainerModel {
     fn set_visibility(&self, visibility: bool) {
+        // This is a workaround for #6600. It ensures the action bar is removed
+        // and receive no further mouse events.
+        if visibility {
+            self.view.add_child(&self.action_bar);
+        } else {
+            self.action_bar.unset_parent();
+        }
+
+        // Show or hide the visualization.
         if visibility {
             self.drag_root.add_child(&self.view);
             self.show_visualisation();

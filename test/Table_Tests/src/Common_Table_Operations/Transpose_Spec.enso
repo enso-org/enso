@@ -73,18 +73,18 @@ spec setup =
         Test.specify "should handle missing columns" <|
             t1 = table_builder [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]]]
 
-            err1 = t1.transpose ["Key", "Missing", "Missing_2"]
+            err1 = t1.transpose ["Key", "Missing", "Missing 2"]
             err1.should_fail_with Missing_Input_Columns
-            err1.catch.criteria . should_equal ["Missing", "Missing_2"]
+            err1.catch.criteria . should_equal ["Missing", "Missing 2"]
 
             err2 = t1.transpose [0, -1, 42, -100]
             err2.should_fail_with Column_Indexes_Out_Of_Range
             err2.catch.indexes . should_equal [42, -100]
 
-            action1 = t1.transpose ["Key", "Missing", "Missing_2"] error_on_missing_columns=False on_problems=_
+            action1 = t1.transpose ["Key", "Missing", "Missing 2"] error_on_missing_columns=False on_problems=_
             tester1 table =
                 table.column_names . should_equal ["Key", "Name", "Value"]
-            problems1 = [Missing_Input_Columns.Error ["Missing", "Missing_2"]]
+            problems1 = [Missing_Input_Columns.Error ["Missing", "Missing 2"]]
             Problems.test_problem_handling action1 problems1 tester1
 
             action2 = t1.transpose [0, -1, 42, -100] error_on_missing_columns=False on_problems=_
@@ -98,13 +98,13 @@ spec setup =
 
             action1 = t1.transpose ["X", "Y", "Z"] name_field="Y" value_field="Z" on_problems=_
             tester1 table =
-                table.column_names . should_equal ["X", "Y", "Z", "Y_1", "Z_1"]
+                table.column_names . should_equal ["X", "Y", "Z", "Y 1", "Z 1"]
             problems1 = [Duplicate_Output_Column_Names.Error ["Y", "Z"]]
             Problems.test_problem_handling action1 problems1 tester1
 
             action2 = t1.transpose ["X"] name_field="F" value_field="F" on_problems=_
             tester2 table =
-                table.column_names . should_equal ["X", "F", "F_1"]
+                table.column_names . should_equal ["X", "F", "F 1"]
             problems2 = [Duplicate_Output_Column_Names.Error ["F"]]
             Problems.test_problem_handling action2 problems2 tester2
 

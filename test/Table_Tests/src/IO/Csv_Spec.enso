@@ -29,13 +29,13 @@ spec =
 
         Test.specify "should correctly infer types of varied-type columns" <|
             varied_column = (enso_project.data / "varied_column.csv") . read
-            c_1 = ["Column_1", ["2005-02-25", "2005-02-28", "4", "2005-03-02", Nothing, "2005-03-04", "2005-03-07", "2005-03-08"]]
+            c_1 = ["Column 1", ["2005-02-25", "2005-02-28", "4", "2005-03-02", Nothing, "2005-03-04", "2005-03-07", "2005-03-08"]]
             # We can re-enable this once date support is improved.
-            #c_2 = ["Column_2", ["2005-02-25", "2005-02-28", "2005-03-01", Nothing, "2005-03-03", "2005-03-04", "2005-03-07", "2005-03-08"]]
-            c_3 = ["Column_3", [1, 2, 3, 4, 5, Nothing, 7, 8]]
-            c_4 = ["Column_4", [1, 2, 3, 4, 5, 6, 7, 8]]
-            c_5 = ["Column_5", [1.0, 2.0, 3.0, 4.0, 5.0, 6.25, 7.0, 8.0]]
-            c_6 = ["Column_6", ['1', '2', '3', '4', '5', '6.25', '7', 'osiem']]
+            #c_2 = ["Column 2", ["2005-02-25", "2005-02-28", "2005-03-01", Nothing, "2005-03-03", "2005-03-04", "2005-03-07", "2005-03-08"]]
+            c_3 = ["Column 3", [1, 2, 3, 4, 5, Nothing, 7, 8]]
+            c_4 = ["Column 4", [1, 2, 3, 4, 5, 6, 7, 8]]
+            c_5 = ["Column 5", [1.0, 2.0, 3.0, 4.0, 5.0, 6.25, 7.0, 8.0]]
+            c_6 = ["Column 6", ['1', '2', '3', '4', '5', '6.25', '7', 'osiem']]
 
             expected = Table.new [c_1, c_3, c_4, c_5, c_6]
             varied_column.select_columns [0, 2, 3, 4, 5] . should_equal expected
@@ -45,14 +45,14 @@ spec =
                 name,x,y,x,y
                 foo,10,20,30,20
             t = Table.from csv (format = Delimited ",")
-            t.columns.map .name . should_equal ['name', 'x', 'y', 'x_1', 'y_1']
+            t.columns.map .name . should_equal ['name', 'x', 'y', 'x 1', 'y 1']
 
     Test.group 'Writing' <|
         Test.specify 'should properly serialize simple tables' <|
             varied_column = (enso_project.data / "varied_column.csv") . read
             res = Text.from varied_column format=(Delimited ",")
             exp = normalize_lines <| '''
-                Column_1,Column_2,Column_3,Column_4,Column_5,Column_6
+                Column 1,Column 2,Column 3,Column 4,Column 5,Column 6
                 2005-02-25,2005-02-25,1,1,1.0,1
                 2005-02-28,2005-02-28,2,2,2.0,2
                 4,2005-03-01,3,3,3.0,3
@@ -98,7 +98,7 @@ spec =
             out.delete_if_exists
             varied_column.write out
             exp = normalize_lines <| '''
-                Column_1,Column_2,Column_3,Column_4,Column_5,Column_6
+                Column 1,Column 2,Column 3,Column 4,Column 5,Column 6
                 2005-02-25,2005-02-25,1,1,1.0,1
                 2005-02-28,2005-02-28,2,2,2.0,2
                 4,2005-03-01,3,3,3.0,3
