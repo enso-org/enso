@@ -366,23 +366,24 @@ type Date_Range
                 ix-> f (self.internal_at ix)
         (0.up_to self.length).last_index_of predicate start
 
-    ## Reverses the range, returning a range with the same elements, but in
-       the opposite order.
+    ## Reverses the range, returning a vector with the same elements as the
+       original range, but in the opposite order.
 
        > Example
          Reverse a range of dates.
 
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . reverse
-    reverse : Date_Range
-    reverse self = case self.is_empty of
-        True ->
-            Date_Range.new_internal self.end self.start self.increasing.not self.step
-        False ->
-            new_start = self.last
-            new_end_inclusive = self.first
-            increasing = new_start <= new_end_inclusive
-            new_end_exclusive = if increasing then new_end_inclusive.next else new_end_inclusive.previous
-            Date_Range.new_internal new_start new_end_exclusive increasing self.step
+
+       ? Returning a `Vector`
+
+         This method cannot return back a `Date_Range`, as some ranges are not
+         reversible. For example, the range `(Date.new 2020 02 29).up_to (Date.new 2023) . with_step Date_Period.Year`
+         will have `2022-02-28` as its last entry. But if we create a
+         range starting at `2022-02-28` and going backwards by a year, its last
+         element will be `2020-02-28` and not `2020-02-29` as in the original.
+         Thus, to preserve the contents we need to return a vector.
+    reverse : Vector Date
+    reverse self = self.to_vector.reverse
 
     ## Converts the range to a vector containing the numbers in the range.
 
