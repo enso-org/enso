@@ -53,7 +53,15 @@ spec =
             # just 0 period
             (Date.new 2021 05 05).up_to (Date.new 2021 05 08) . with_step (Period.new) . should_fail_with Time_Error
 
-        Test.specify "should have length and is_empty consistent with its to_vector representation" <|
+        Test.specify "should allow to reverse a range, returning a vector" <|
+            (Date.new 2020 01 02).up_to (Date.new 2020 01 02) . reverse . should_equal []
+            (Date.new 2020 01 02).up_to (Date.new 2020 01 02) include_end=True . reverse . should_equal [Date.new 2020 01 02]
+
+            (Date.new 2020 01 03).down_to (Date.new 2020 01 01) . reverse . should_equal [Date.new 2020 01 03, Date.new 2020 01 02]
+
+            (Date.new 2020 02 29).up_to (Date.new 2023) . with_step Date_Period.Year . reverse . should_equal [Date.new 2022 02 28, Date.new 2021 02 28, Date.new 2020 02 29]
+
+        Test.specify "should be consistent with its to_vector representation" <|
             r1 = (Date.new 2020 02 28).up_to (Date.new 2020 03 02)
             r2 = (Date.new 2020 02 28).up_to (Date.new 2020 03 02) include_end=True
             r3 = (Date.new 2021 03 01).down_to (Date.new 2021 02 28)
@@ -63,8 +71,33 @@ spec =
             r7 = (Date.new 2023 12 31).down_to (Date.new 2023 12 31)
             r8 = (Date.new 2023 12 31).down_to (Date.new 2023 12 31) include_end=True
 
-            ranges = [r1, r2, r3, r4, r5, r6, r7, r8]
-            ranges.each r->
+            r9 = (Date.new 2020 01 10).down_to (Date.new 2020 01 01) . with_step Date_Period.Week
+            r10 = (Date.new 2020 01 01).up_to (Date.new 2020 12 31) . with_step Date_Period.Month
+            r11 = (Date.new 2020 01 01).up_to (Date.new 2026) . with_step (Period.new years=2)
+            r12 = (Date.new 2020 01 01).up_to (Date.new 2026) include_end=True . with_step (Period.new years=2)
+            r13 = (Date.new 2060 11 25).down_to (Date.new 2020 11 24) . with_step (Period.new years=20)
+
+            r14 = (Date.new 2020 01 31).up_to (Date.new 2020 12 31) include_end=True . with_step Date_Period.Month
+            r15 = (Date.new 2020 02 29).up_to (Date.new 2023) . with_step Date_Period.Year
+
+            ranges = [r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15]
+            ranges.each r-> Test.with_clue r.to_text+": " <|
                 r.length . should_equal r.to_vector.length
                 r.is_empty . should_equal r.to_vector.is_empty
                 r.not_empty . should_equal r.to_vector.not_empty
+
+                r.map .day_of_week . should_equal (r.to_vector.map .day_of_week)
+                p = d-> d.day_of_week == Day_Of_Week.Monday
+                r.filter p . should_equal (r.to_vector.filter p)
+                r.all p . should_equal (r.to_vector.all p)
+                r.any p . should_equal (r.to_vector.any p)
+                r.find p . should_equal (r.to_vector.find p)
+                r.index_of p . should_equal (r.to_vector.index_of p)
+                r.last_index_of p . should_equal (r.to_vector.last_index_of p)
+                count_mondays acc date =
+                    if date.day_of_week == Day_Of_Week.Monday then acc+1 else acc
+                r.fold 0 count_mondays . should_equal (r.to_vector.fold 0 count_mondays)
+                r.running_fold 0 count_mondays . should_equal (r.to_vector.running_fold 0 count_mondays)
+
+                reducer x y = if x > y then x else y
+                r.reduce reducer . should_equal (r.to_vector.reduce reducer)
