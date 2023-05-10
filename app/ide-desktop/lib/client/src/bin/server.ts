@@ -8,6 +8,7 @@ import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
 import createServer from 'create-servers'
 
+import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
 
 const logger = contentConfig.logger
@@ -111,9 +112,9 @@ export class Server {
             const url = requestUrl.split('?')[0]
             const resource = url === '/' ? '/index.html' : requestUrl
             const resourceFile = `${this.config.dir}${resource}`
-            response.setHeader('Cross-Origin-Embedder-Policy', 'require-corp')
-            response.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
-            response.setHeader('Cross-Origin-Resource-Policy', 'same-origin')
+            for (const [header, value] of common.COOP_COEP_CORP_HEADERS) {
+                response.setHeader(header, value)
+            }
             fs.readFile(resourceFile, (err, data) => {
                 if (err) {
                     logger.error(`Resource '${resource}' not found.`)

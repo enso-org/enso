@@ -1,6 +1,7 @@
 /** @file A service worker that redirects paths without extensions to `/index.html`.
  * This is only used in the cloud frontend. */
 /// <reference lib="WebWorker" />
+import * as common from 'enso-common'
 
 // =====================
 // === Fetch handler ===
@@ -16,9 +17,9 @@ self.addEventListener('fetch', event => {
         event.respondWith(
             fetch(event.request.url).then(response => {
                 const clonedResponse = new Response(response.body, response)
-                clonedResponse.headers.set('Cross-Origin-Embedder-Policy', 'require-corp')
-                clonedResponse.headers.set('Cross-Origin-Opener-Policy', 'same-origin')
-                clonedResponse.headers.set('Cross-Origin-Resource-Policy', 'same-origin')
+                for (const [header, value] of common.COOP_COEP_CORP_HEADERS) {
+                    clonedResponse.headers.set(header, value)
+                }
                 return clonedResponse
             })
         )
@@ -27,6 +28,3 @@ self.addEventListener('fetch', event => {
         return false
     }
 })
-
-// Required for TypeScript to consider it a module, instead of in window scope.
-export {}
