@@ -14,12 +14,27 @@ import * as platformModule from '../platform'
 // =================
 
 /** HTTP status indicating that the request was successful. */
-const STATUS_OK = 200
+const STATUS_SUCCESS_FIRST = 200
+/** HTTP status indicating that the request was successful. */
+const STATUS_SUCCESS_LAST = 299
 
 /** Default HTTP body for an "open project" request. */
 const DEFAULT_OPEN_PROJECT_BODY: backend.OpenProjectRequestBody = {
     forceCreate: false,
 }
+
+// ========================
+// === Helper functions ===
+// ========================
+
+/** Returns true if and only if a response has a success HTTP status code (200-299). */
+function responseIsSuccessful(response: Response) {
+    return response.status >= STATUS_SUCCESS_FIRST && response.status <= STATUS_SUCCESS_LAST
+}
+
+// =============
+// === Paths ===
+// =============
 
 /** Relative HTTP path to the "set username" endpoint of the Cloud backend API. */
 const CREATE_USER_PATH = 'users'
@@ -162,7 +177,7 @@ export class RemoteBackend implements backend.Backend {
      * @returns `null` if status code 401 or 404 was received. */
     async usersMe(): Promise<backend.UserOrOrganization | null> {
         const response = await this.get<backend.UserOrOrganization>(USERS_ME_PATH)
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return null
         } else {
             return await response.json()
@@ -182,7 +197,7 @@ export class RemoteBackend implements backend.Backend {
                     ...(query.parentId ? { parent_id: query.parentId } : {}),
                 }).toString()
         )
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             if (query.parentId) {
                 return this.throw(`Unable to list directory with ID '${query.parentId}'.`)
             } else {
@@ -202,7 +217,7 @@ export class RemoteBackend implements backend.Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async createDirectory(body: backend.CreateDirectoryRequestBody): Promise<backend.Directory> {
         const response = await this.post<backend.Directory>(CREATE_DIRECTORY_PATH, body)
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to create directory with name '${body.title}'.`)
         } else {
             return await response.json()
@@ -215,7 +230,7 @@ export class RemoteBackend implements backend.Backend {
      */
     async listProjects(): Promise<backend.ListedProject[]> {
         const response = await this.get<ListProjectsResponseBody>(LIST_PROJECTS_PATH)
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw('Unable to list projects.')
         } else {
             return (await response.json()).projects.map(project => ({
@@ -237,7 +252,7 @@ export class RemoteBackend implements backend.Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async createProject(body: backend.CreateProjectRequestBody): Promise<backend.CreatedProject> {
         const response = await this.post<backend.CreatedProject>(CREATE_PROJECT_PATH, body)
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to create project with name '${body.projectName}'.`)
         } else {
             return await response.json()
@@ -249,7 +264,7 @@ export class RemoteBackend implements backend.Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async closeProject(projectId: backend.ProjectId): Promise<void> {
         const response = await this.post(closeProjectPath(projectId), {})
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to close project with ID '${projectId}'.`)
         } else {
             return
@@ -261,7 +276,7 @@ export class RemoteBackend implements backend.Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
         const response = await this.get<backend.ProjectRaw>(getProjectDetailsPath(projectId))
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to get details of project with ID '${projectId}'.`)
         } else {
             const project = await response.json()
@@ -287,7 +302,7 @@ export class RemoteBackend implements backend.Backend {
         body: backend.OpenProjectRequestBody = DEFAULT_OPEN_PROJECT_BODY
     ): Promise<void> {
         const response = await this.post(openProjectPath(projectId), body)
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to open project with ID '${projectId}'.`)
         } else {
             return
@@ -299,7 +314,7 @@ export class RemoteBackend implements backend.Backend {
         body: backend.ProjectUpdateRequestBody
     ): Promise<backend.UpdatedProject> {
         const response = await this.put<backend.UpdatedProject>(projectUpdatePath(projectId), body)
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to update project with ID '${projectId}'.`)
         } else {
             return await response.json()
@@ -311,7 +326,7 @@ export class RemoteBackend implements backend.Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async deleteProject(projectId: backend.ProjectId): Promise<void> {
         const response = await this.delete(deleteProjectPath(projectId))
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to delete project with ID '${projectId}'.`)
         } else {
             return
@@ -323,7 +338,7 @@ export class RemoteBackend implements backend.Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async checkResources(projectId: backend.ProjectId): Promise<backend.ResourceUsage> {
         const response = await this.get<backend.ResourceUsage>(checkResourcesPath(projectId))
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to get resource usage for project with ID '${projectId}'.`)
         } else {
             return await response.json()
@@ -335,7 +350,7 @@ export class RemoteBackend implements backend.Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async listFiles(): Promise<backend.File[]> {
         const response = await this.get<ListFilesResponseBody>(LIST_FILES_PATH)
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw('Unable to list files.')
         } else {
             return (await response.json()).files
@@ -363,7 +378,7 @@ export class RemoteBackend implements backend.Backend {
                 }).toString(),
             body
         )
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             if (params.fileName) {
                 return this.throw(`Unable to upload file with name '${params.fileName}'.`)
             } else if (params.fileId) {
@@ -381,7 +396,7 @@ export class RemoteBackend implements backend.Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async deleteFile(fileId: backend.FileId): Promise<void> {
         const response = await this.delete(deleteFilePath(fileId))
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to delete file with ID '${fileId}'.`)
         } else {
             return
@@ -393,7 +408,7 @@ export class RemoteBackend implements backend.Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async createSecret(body: backend.CreateSecretRequestBody): Promise<backend.SecretAndInfo> {
         const response = await this.post<backend.SecretAndInfo>(CREATE_SECRET_PATH, body)
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to create secret with name '${body.secretName}'.`)
         } else {
             return await response.json()
@@ -405,7 +420,7 @@ export class RemoteBackend implements backend.Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async getSecret(secretId: backend.SecretId): Promise<backend.Secret> {
         const response = await this.get<backend.Secret>(getSecretPath(secretId))
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to get secret with ID '${secretId}'.`)
         } else {
             return await response.json()
@@ -417,7 +432,7 @@ export class RemoteBackend implements backend.Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async listSecrets(): Promise<backend.SecretInfo[]> {
         const response = await this.get<ListSecretsResponseBody>(LIST_SECRETS_PATH)
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw('Unable to list secrets.')
         } else {
             return (await response.json()).secrets
@@ -429,7 +444,7 @@ export class RemoteBackend implements backend.Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async deleteSecret(secretId: backend.SecretId): Promise<void> {
         const response = await this.delete(deleteSecretPath(secretId))
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to delete secret with ID '${secretId}'.`)
         } else {
             return
@@ -448,7 +463,7 @@ export class RemoteBackend implements backend.Backend {
             object_id: body.objectId,
             /* eslint-enable @typescript-eslint/naming-convention */
         })
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to create create tag with name '${body.name}'.`)
         } else {
             return await response.json()
@@ -467,7 +482,7 @@ export class RemoteBackend implements backend.Backend {
                     tag_type: params.tagType,
                 }).toString()
         )
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to list tags of type '${params.tagType}'.`)
         } else {
             return (await response.json()).tags
@@ -479,7 +494,7 @@ export class RemoteBackend implements backend.Backend {
      * @throws An error if a 401 or 404 status code was received. */
     async deleteTag(tagId: backend.TagId): Promise<void> {
         const response = await this.delete(deleteTagPath(tagId))
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to delete tag with ID '${tagId}'.`)
         } else {
             return
@@ -501,7 +516,7 @@ export class RemoteBackend implements backend.Backend {
                     default: String(params.default),
                 }).toString()
         )
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to list versions of type '${params.versionType}'.`)
         } else {
             return (await response.json()).versions

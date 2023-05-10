@@ -136,6 +136,9 @@
   such as dropdown can now be placed in the node and affect the code text flow.
 - [The IDE UI element for selecting the execution mode of the project is now
   sending messages to the backend.][6341].
+- [Feedback when renaming a project][6366]. When the user tries to rename the
+  project to an invalid name, a helpful error message is shown and the text
+  field stays the same as to give the user the opportunity to fix the mistake.
 - [Area selectionof nodes no longer takes into account the visualisation that
   belongs to the node.][6487].
 - [List Editor Widget][6470]. Now you can edit lists by clicking buttons on
@@ -143,9 +146,17 @@
 - [Fixed text visualisations which were being cut off at the last line.][6421]
 - [Fixed a bug where, when scrolling or dragging on a full-screen visualization,
   the view of the graph changed as well.][6530]
+- [Changed the shortcut for restoring to the last saved version of a project
+  from <kbd>cmd</kbd>+<kbd>r</kbd> to
+  <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>r</kbd>][6620] to make it less likely
+  that it would be triggered by accident. As a consequence, the program
+  execution shortcuts changed from
+  <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>t</kbd>/<kbd>r</kbd> to
+  <kbd>cmd</kbd>+<kbd>alt</kbd>+<kbd>t</kbd>/<kbd>r</kbd>.
 
 [6421]: https://github.com/enso-org/enso/pull/6421
 [6530]: https://github.com/enso-org/enso/pull/6530
+[6620]: https://github.com/enso-org/enso/pull/6620
 
 #### EnsoGL (rendering engine)
 
@@ -209,6 +220,7 @@
 [6035]: https://github.com/enso-org/enso/pull/6035
 [6097]: https://github.com/enso-org/enso/pull/6097
 [6097]: https://github.com/enso-org/enso/pull/6341
+[6366]: https://github.com/enso-org/enso/pull/6366
 [6487]: https://github.com/enso-org/enso/pull/6487
 [6341]: https://github.com/enso-org/enso/pull/6341
 [6470]: https://github.com/enso-org/enso/pull/6470
@@ -415,6 +427,7 @@
   `Text.write`.][6459]
 - [Implemented `create_database_table` allowing saving queries as database
   tables.][6467]
+- [Implemented `Column.format` for in-memory `Column`s.][6538]
 - [Added `at_least_one` flag to `Table.tokenize_to_rows`.][6539]
 - [Moved `Redshift` connector into a separate `AWS` library.][6550]
 
@@ -623,6 +636,7 @@
 [6429]: https://github.com/enso-org/enso/pull/6429
 [6459]: https://github.com/enso-org/enso/pull/6459
 [6467]: https://github.com/enso-org/enso/pull/6467
+[6538]: https://github.com/enso-org/enso/pull/6538
 [6539]: https://github.com/enso-org/enso/pull/6539
 [6550]: https://github.com/enso-org/enso/pull/6550
 

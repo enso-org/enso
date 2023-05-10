@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.Runtime.Context
+import Standard.Base.Errors.File_Error.File_Error
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
@@ -154,7 +155,7 @@ sqlite_spec connection prefix =
 
 spec =
     enso_project.data.create_directory
-    file = enso_project.data / "sqlite_test.db"
+    file = enso_project.data / "transient" / "sqlite_test.db"
     file.delete_if_exists
     in_file_prefix = "[SQLite File] "
     sqlite_spec (Database.connect (SQLite file)) in_file_prefix
@@ -174,11 +175,31 @@ spec =
         connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
         connection.close
 
-        Test.specify "should recognise a db file" <|
-            Auto_Detect.get_format (enso_project.data / "data.db") . should_be_a SQLite_Format
+        Test.specify "should recognise a SQLite database file" <|
+            Auto_Detect.get_reading_format file . should_be_a SQLite_Format
 
-        Test.specify "should recognise a sqlite file" <|
-            Auto_Detect.get_format (enso_project.data / "data.sqlite") . should_be_a SQLite_Format
+        Test.specify "should recognise a sqlite file by extension for writing" <|
+            Auto_Detect.get_writing_format (enso_project.data / "nonexistent-data.db") . should_be_a SQLite_Format
+            Auto_Detect.get_writing_format (enso_project.data / "nonexistent-data.sqlite") . should_be_a SQLite_Format
+
+        Test.specify "should not recognise nonexistent or empty files for reading" <|
+            r1 = Data.read (enso_project.data / "nonexistent-data.db")
+            r1.should_fail_with File_Error
+            r1.catch . should_be_a File_Error.Not_Found
+
+            empty = enso_project.data / "transient" / "empty-data.db"
+            "".write empty on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+            r2 = Data.read empty
+            r2.should_fail_with File_Error
+            r2.catch . should_be_a File_Error.Unsupported_Type
+            empty.delete_if_exists
+
+            broken = enso_project.data / "transient" / "empty-data.db"
+            "SOME_RANDOM_DATA".write empty on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+            r3 = Data.read broken
+            r3.should_fail_with File_Error
+            r3.catch . should_be_a File_Error.Unsupported_Type
+            broken.delete_if_exists
 
         Test.specify "should connect to a db file" <|
             connection = Data.read file

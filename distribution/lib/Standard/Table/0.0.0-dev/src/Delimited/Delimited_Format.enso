@@ -54,13 +54,18 @@ type Delimited_Format
     ## PRIVATE
        ADVANCED
        If the File_Format supports reading from the file, return a configured instance.
-    for_file : File -> Delimited_Format | Nothing
-    for_file file =
+    for_file_read : File -> Delimited_Format | Nothing
+    for_file_read file =
         case file.extension of
             ".csv" -> Delimited_Format.Delimited ','
             ".tab" -> Delimited_Format.Delimited '\t'
             ".tsv" -> Delimited_Format.Delimited '\t'
             _ -> Nothing
+
+    ## PRIVATE
+       If this File_Format should be used for writing to that file, return a configured instance.
+    for_file_write : File -> Delimited_Format | Nothing
+    for_file_write file = Delimited_Format.for_file_read file
 
     ## PRIVATE
        ADVANCED
