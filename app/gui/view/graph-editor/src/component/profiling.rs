@@ -146,8 +146,8 @@ impl Button {
     /// Constructs a new button for toggling the editor's view mode.
     pub fn new(app: &Application) -> Button {
         let scene = &app.display.default_scene;
-        let style_sheet = scene.style_sheet.clone_ref();
-        let styles = StyleWatchFrp::new(&style_sheet);
+        let style_sheet = &scene.style_sheet;
+        let styles = StyleWatchFrp::new(style_sheet);
         let frp = Frp::new();
         let network = &frp.network;
 
