@@ -19,6 +19,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.util.Arrays;
 import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.collections.EconomicSet;
 
 /** A primitive boxed array type for use in the runtime. */
@@ -114,7 +115,7 @@ public final class Array implements TruffleObject {
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
-      return WithWarnings.wrap(v, extracted);
+      return WithWarnings.wrap(EnsoContext.get(warnings), v, extracted);
     }
     return v;
   }
@@ -235,6 +236,16 @@ public final class Array implements TruffleObject {
       }
     }
     return new Array(items);
+  }
+
+  @ExportMessage
+  boolean isLimitReached(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    try {
+      int limit = EnsoContext.get(warnings).getWarningsLimit();
+      return getWarnings(null, warnings).length >= limit;
+    } catch (UnsupportedMessageException e) {
+      return false;
+    }
   }
 
   @ExportMessage

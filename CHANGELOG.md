@@ -748,6 +748,7 @@
   finalizers][6335]
 - [Warning.get_all returns only unique warnings][6372]
 - [Reimplement `enso_project` as a proper builtin][6352]
+- [Limit number of reported warnings per value][6577]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -857,6 +858,7 @@
 [6335]: https://github.com/enso-org/enso/pull/6335
 [6372]: https://github.com/enso-org/enso/pull/6372
 [6352]: https://github.com/enso-org/enso/pull/6352
+[6577]: https://github.com/enso-org/enso/pull/6577
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
