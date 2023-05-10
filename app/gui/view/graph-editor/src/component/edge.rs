@@ -19,24 +19,13 @@ use nalgebra::Rotation2;
 // === Constants ===
 // =================
 
-const LINE_SHAPE_WIDTH: f32 = LINE_WIDTH + 2.0 * PADDING;
-const LINE_SIDE_OVERLAP: f32 = 1.0;
-const LINE_SIDES_OVERLAP: f32 = 2.0 * LINE_SIDE_OVERLAP;
 const LINE_WIDTH: f32 = 4.0;
 const ARROW_SIZE_X: f32 = 20.0;
 const ARROW_SIZE_Y: f32 = 20.0;
 
 const HOVER_EXTENSION: f32 = 10.0;
 
-const MOUSE_OFFSET: f32 = 2.0;
-
-// It was node::SHADOW_SIZE; Should be moved to theme manager and linked to node::shadow.
-const NODE_PADDING: f32 = 10.0;
-
-// The padding needs to be large enough to accommodate the extended hover area without clipping it.
-const PADDING: f32 = 4.0 + HOVER_EXTENSION;
 const RIGHT_ANGLE: f32 = std::f32::consts::PI / 2.0;
-const INFINITE: f32 = 99999.0;
 
 /// The threshold for the y-distance between nodes at which we switch from using the y-distance
 /// only to determine the closest port to using the full cartesian distance.
@@ -162,14 +151,6 @@ const NODE_CORNER_RADIUS: f32 = 14.0;
 
 const MIN_RADIUS: f32 = 20.0;
 const MAX_RADIUS: f32 = 30.0;
-
-fn section() -> Rectangle {
-    let shape = Rectangle::new();
-    shape.set_corner_radius_max();
-    shape.set_inset_border(LINE_WIDTH);
-    shape.set_color(color::Rgba::transparent());
-    shape
-}
 
 
 
@@ -433,6 +414,7 @@ pub struct EdgeModelData {
     color:               Cell<color::Rgba>,
 
     sections: RefCell<Vec<Rectangle>>,
+    hover_sections: RefCell<Vec<Rectangle>>,
 
     scene: Scene,
 }
@@ -452,6 +434,7 @@ impl EdgeModelData {
         let hover_position = default();
         let color = default();
         let sections = default();
+        let hover_sections = default();
 
         let scene = scene.into();
         Self {
@@ -465,6 +448,7 @@ impl EdgeModelData {
             hover_position,
             color,
             sections,
+            hover_sections,
             scene,
         }
     }
@@ -531,14 +515,29 @@ impl EdgeModelData {
     /// Redraws the connection.
     #[profile(Detail)]
     pub fn redraw(&self) {
-        let mut old_shapes = self.sections.take();
-        let mut recycled_shapes = old_shapes.drain(..);
         let new_shape = || {
-            let new = section();
+            let new = Rectangle::new();
+            new.set_corner_radius_max();
+            new.set_inset_border(LINE_WIDTH);
+            new.set_color(color::Rgba::transparent());
             new.set_border_color(self.color.get());
+            new.set_pointer_events(false);
             self.display_object.add_child(&new);
             new
         };
+        let hover_width = LINE_WIDTH + HOVER_EXTENSION;
+        let new_hover = || {
+            let new = Rectangle::new();
+            new.set_corner_radius_max();
+            new.set_inset_border(hover_width);
+            new.set_color(color::Rgba::transparent());
+            new.set_border_color(color::Rgba::black());
+            new.set_pointer_events(true);
+            self.display_object.add_child(&new);
+            new
+        };
+        let mut shapes = self.sections.take().into_iter().chain(iter::repeat_with(new_shape));
+        let mut hovers = self.hover_sections.take().into_iter().chain(iter::repeat_with(new_hover));
 
         let source_half_width = (self.source_width.get() / 2.0 - NODE_CORNER_RADIUS).max(0.0);
         let target_offset = self.target_position.get() - self.display_object.xy();
@@ -550,7 +549,10 @@ impl EdgeModelData {
 
             // The edge can originate anywhere along the length of the node.
             let source_x = target_offset.x().clamp(-source_half_width, source_half_width);
-            let shape = recycled_shapes.next().unwrap_or_else(new_shape);
+            let shape = hovers.next().unwrap();
+            corner(&shape, Vector2(source_x, 0.0), Vector2(target_x, target_y), hover_width);
+            self.hover_sections.borrow_mut().push(shape);
+            let shape = shapes.next().unwrap();
             corner(&shape, Vector2(source_x, 0.0), Vector2(target_x, target_y), LINE_WIDTH);
             self.sections.borrow_mut().push(shape);
         } else {
@@ -578,10 +580,19 @@ impl EdgeModelData {
             let j1 = Vector2(j1_x, top);
             let target = Vector2(target_x, target_y + NODE_CORNER_RADIUS);
             let corners = &[(source, j0), (j1, j0), (j1, target)];
+            let new_hovers = corners
+                .iter()
+                .map(|&(horizontal, vertical)| {
+                    let shape = hovers.next().unwrap();
+                    corner(&shape, horizontal, vertical, hover_width);
+                    shape
+                })
+                .collect_vec();
+            self.hover_sections.replace(new_hovers);
             let new_sections = corners
                 .iter()
                 .map(|&(horizontal, vertical)| {
-                    let shape = recycled_shapes.next().unwrap_or_else(new_shape);
+                    let shape = shapes.next().unwrap();
                     corner(&shape, horizontal, vertical, LINE_WIDTH);
                     shape
                 })
@@ -596,14 +607,11 @@ impl EdgeModelData {
 fn corner(shape: &Rectangle, horizontal: Vector2<f32>, vertical: Vector2<f32>, line_width: f32) {
     let offset = horizontal - vertical;
     let (dx, dy) = (-offset.x(), offset.y());
-
     let (x_clip, y_clip) = (0.5f32.copysign(dx), 0.5f32.copysign(dy));
     shape.set_clip(Vector2(x_clip, y_clip));
-
     let width = (dx.abs() + line_width / 2.0).max(line_width);
     let height = (dy.abs() + line_width / 2.0).max(line_width);
     shape.set_size(Vector2(width, height));
-
     let x = horizontal.x().min(vertical.x() - line_width / 2.0);
     let y = vertical.y().min(horizontal.y() - line_width / 2.0);
     shape.set_xy(Vector2(x, y));
