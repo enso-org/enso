@@ -57,12 +57,6 @@ public abstract class RoundNode extends Node {
 
     private static double round(double self, long decimal_places) {
         double scale = Math.pow(10, decimal_places);
-        System.out.println("SCALE " + scale);
-        double r = Math.floor((self * scale) + 0.5) / scale;
-        System.out.println("R " + (self * scale) + 0.5);
-        System.out.println("R " + Math.floor((self * scale) + 0.5));
-        System.out.println("R " + r);
-        return r;
-        //return BigDecimal.valueOf(rounded).toBigIntegerExact();
+        return Math.floor((self * scale) + 0.5) / scale;
     }
 }
