@@ -19,14 +19,9 @@ public class FloorNode extends Node {
   Object execute(double self) {
     double floor = Math.floor(self);
     if (fitsProfile.profile(BigIntegerOps.fitsInLong(floor))) {
-      var f = (long) floor;
-      System.out.println("FLOOR L" + f);
-      return f;
+      return (long) floor;
     } else {
-      //return new EnsoBigInteger(floor(floor));
-      var f = new EnsoBigInteger(floor(floor));
-      System.out.println("FLOOR B" + f);
-      return f;
+      return new EnsoBigInteger(floor(floor));
     }
   }
 
