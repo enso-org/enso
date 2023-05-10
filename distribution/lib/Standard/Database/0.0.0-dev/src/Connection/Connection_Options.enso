@@ -1,7 +1,9 @@
 from Standard.Base import all
 
 type Connection_Options
-    ## Hold a set of key value pairs used to configure the connection.
+    ## Additional customization options for the JDBC connection.
+
+       Hold a set of key value pairs used to configure the connection.
     Value options:Vector=[]
 
     ## PRIVATE

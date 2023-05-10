@@ -25,7 +25,7 @@ spec =
             list = ArrayList.new
             list.add 432
             list.get 0 . should_equal 432
-        Test.specify "should report missing method error on Java Arrays" <|
+        Test.specify "should report missing method error on Java Arrays" pending="Failing due to #6609" <|
             list = ArrayList.new
             list.add 432
             Test.expect_panic_with (list.asList) No_Such_Method

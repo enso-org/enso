@@ -1,4 +1,6 @@
 /** @file The top-bar of dashboard. */
+import * as react from 'react'
+
 import * as dashboard from './dashboard'
 import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
@@ -28,8 +30,17 @@ interface TopBarProps {
  */
 function TopBar(props: TopBarProps) {
     const { platform, projectName, tab, toggleTab, setBackendPlatform, query, setQuery } = props
-    const { setModal } = modalProvider.useSetModal()
+    const [userMenuVisible, setUserMenuVisible] = react.useState(false)
+    const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
+
+    react.useEffect(() => {
+        if (userMenuVisible) {
+            setModal(() => <UserMenu />)
+        } else {
+            unsetModal()
+        }
+    }, [userMenuVisible])
 
     return (
         <div className="flex mb-2 h-8">
@@ -72,7 +83,7 @@ function TopBar(props: TopBarProps) {
                             tab === dashboard.Tab.dashboard ? 'm-2 w-16' : 'w-0'
                         }`}
                     >
-                        Dashboard
+                        {projectName ?? 'Dashboard'}
                     </span>
                     <div className="bg-white shadow-soft rounded-full px-1.5 py-1">
                         {svg.BARS_ICON}
@@ -101,6 +112,7 @@ function TopBar(props: TopBarProps) {
             <div className="grow" />
             <a
                 href="https://discord.gg/enso"
+                target="_blank"
                 className="flex items-center bg-help rounded-full px-2.5 text-white mx-2"
             >
                 <span>help chat</span>
@@ -113,7 +125,7 @@ function TopBar(props: TopBarProps) {
                     className="rounded-full w-8 h-8 bg-cover cursor-pointer"
                     onClick={event => {
                         event.stopPropagation()
-                        setModal(() => <UserMenu />)
+                        setUserMenuVisible(!userMenuVisible)
                     }}
                 />
             </div>

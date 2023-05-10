@@ -58,7 +58,7 @@ regex = { workspace = true }
 reqwest = { version = "0.11.5", default-features = false, features = [
   "stream"
 ] }
-semver = { version = "1.0.4", features = ["serde"] }
+semver = { workspace = true }
 serde = { version = "1.0.130", features = ["derive"] }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }

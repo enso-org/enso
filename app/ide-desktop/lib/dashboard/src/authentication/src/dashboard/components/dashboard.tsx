@@ -270,7 +270,8 @@ function Dashboard(props: DashboardProps) {
                 setTab(Tab.dashboard)
                 const ideElement = document.getElementById(IDE_ELEMENT_ID)
                 if (ideElement) {
-                    ideElement.hidden = true
+                    ideElement.style.top = '-100vh'
+                    ideElement.style.display = 'fixed'
                 }
             }
         }
@@ -370,10 +371,13 @@ function Dashboard(props: DashboardProps) {
                     }}
                     openIde={async () => {
                         setTab(Tab.ide)
-                        setProject(await backend.getProjectDetails(projectAsset.id))
+                        if (project?.projectId !== projectAsset.id) {
+                            setProject(await backend.getProjectDetails(projectAsset.id))
+                        }
                         const ideElement = document.getElementById(IDE_ELEMENT_ID)
                         if (ideElement) {
-                            ideElement.hidden = false
+                            ideElement.style.top = ''
+                            ideElement.style.display = 'absolute'
                         }
                     }}
                 />
@@ -521,8 +525,8 @@ function Dashboard(props: DashboardProps) {
                         const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
                         setModal(() => (
                             <CreateForm
-                                left={buttonPosition.left}
-                                top={buttonPosition.top}
+                                left={buttonPosition.left + window.scrollX}
+                                top={buttonPosition.top + window.scrollY}
                                 directoryId={directoryId}
                                 onSuccess={doRefresh}
                             />
@@ -619,11 +623,11 @@ function Dashboard(props: DashboardProps) {
         return `${prefix}${highestProjectIndex + 1}`
     }
 
-    async function handleCreateProject(templateName?: string | null) {
-        const projectName = getNewProjectName(templateName)
+    async function handleCreateProject(templateId?: string | null) {
+        const projectName = getNewProjectName(templateId)
         const body: backendModule.CreateProjectRequestBody = {
             projectName,
-            projectTemplateName: templateName?.replace(/_/g, '').toLocaleLowerCase() ?? null,
+            projectTemplateName: templateId ?? null,
             parentDirectoryId: directoryId,
         }
         const projectAsset = await backend.createProject(body)
@@ -641,7 +645,7 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div
-            className={`select-none text-primary text-xs min-h-screen p-2 ${
+            className={`relative select-none text-primary text-xs min-h-screen p-2 ${
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
             onClick={event => {
@@ -662,31 +666,35 @@ function Dashboard(props: DashboardProps) {
                         setTab(Tab.ide)
                         const ideElement = document.getElementById(IDE_ELEMENT_ID)
                         if (ideElement) {
-                            ideElement.hidden = false
+                            ideElement.style.top = ''
+                            ideElement.style.display = 'absolute'
                         }
                     } else {
                         setTab(Tab.dashboard)
                         const ideElement = document.getElementById(IDE_ELEMENT_ID)
                         if (ideElement) {
-                            ideElement.hidden = true
+                            ideElement.style.top = '-100vh'
+                            ideElement.style.display = 'fixed'
                         }
                     }
                 }}
                 setBackendPlatform={newBackendPlatform => {
-                    setProjectAssets([])
-                    setDirectoryAssets([])
-                    setSecretAssets([])
-                    setFileAssets([])
-                    switch (newBackendPlatform) {
-                        case platformModule.Platform.desktop:
-                            setBackend(new localBackend.LocalBackend())
-                            break
-                        case platformModule.Platform.cloud: {
-                            const headers = new Headers()
-                            headers.append('Authorization', `Bearer ${accessToken}`)
-                            const client = new http.Client(headers)
-                            setBackend(new remoteBackendModule.RemoteBackend(client, logger))
-                            break
+                    if (newBackendPlatform !== backend.platform) {
+                        setProjectAssets([])
+                        setDirectoryAssets([])
+                        setSecretAssets([])
+                        setFileAssets([])
+                        switch (newBackendPlatform) {
+                            case platformModule.Platform.desktop:
+                                setBackend(new localBackend.LocalBackend())
+                                break
+                            case platformModule.Platform.cloud: {
+                                const headers = new Headers()
+                                headers.append('Authorization', `Bearer ${accessToken}`)
+                                const client = new http.Client(headers)
+                                setBackend(new remoteBackendModule.RemoteBackend(client, logger))
+                                break
+                            }
                         }
                     }
                 }}
@@ -719,6 +727,7 @@ function Dashboard(props: DashboardProps) {
                                     ? 'opacity-50'
                                     : ''
                             }`}
+                            disabled={backend.platform === platformModule.Platform.desktop}
                             onClick={event => {
                                 event.stopPropagation()
                                 setModal(() => (
@@ -732,8 +741,8 @@ function Dashboard(props: DashboardProps) {
                             {svg.UPLOAD_ICON}
                         </button>
                         <button
-                            className={`mx-1 ${selectedAssets.length === 0 ? 'opacity-50' : ''}`}
-                            disabled={selectedAssets.length === 0}
+                            className={`mx-1 opacity-50`}
+                            disabled={true}
                             onClick={event => {
                                 event.stopPropagation()
                                 /* TODO */

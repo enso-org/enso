@@ -19,7 +19,6 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.Postgres.Postgres_Dialect
-import project.Internal.Redshift.Redshift_Dialect
 import project.Internal.SQLite.SQLite_Dialect
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
@@ -212,12 +211,6 @@ sqlite = SQLite_Dialect.sqlite
    The dialect of PostgreSQL databases.
 postgres : Dialect
 postgres = Postgres_Dialect.postgres
-
-## PRIVATE
-
-   The dialect of Redshift databases.
-redshift : Dialect
-redshift = Redshift_Dialect.redshift
 
 ## PRIVATE
 default_fetch_types_query dialect expression context =

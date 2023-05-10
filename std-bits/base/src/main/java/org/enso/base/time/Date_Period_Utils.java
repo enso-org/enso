@@ -5,6 +5,20 @@ import java.time.YearMonth;
 import java.time.temporal.*;
 
 public class Date_Period_Utils implements TimeUtilsBase {
+  private static final long NANOSECONDS_IN_DAY = 86_400_000_000_000L;
+  public static TemporalAdjuster day_start =
+      (Temporal temporal) -> {
+        return temporal.isSupported(ChronoField.NANO_OF_DAY)
+            ? temporal.with(ChronoField.NANO_OF_DAY, 0)
+            : temporal;
+      };
+
+  public static TemporalAdjuster day_end =
+      (Temporal temporal) -> {
+        return temporal.isSupported(ChronoField.NANO_OF_DAY)
+            ? temporal.with(ChronoField.NANO_OF_DAY, NANOSECONDS_IN_DAY - 1)
+            : temporal;
+      };
 
   public static TemporalAdjuster quarter_start =
       (Temporal temporal) -> {

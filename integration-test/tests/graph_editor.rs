@@ -52,7 +52,7 @@ async fn debug_mode() {
 
     // Turning On
     let expect_mode = project.debug_mode.next_event();
-    let expect_popup_message = project.debug_mode_popup().label().show.next_event();
+    let expect_popup_message = project.debug_mode_popup().content_frp_node().next_event();
     project.enable_debug_mode();
     assert!(expect_mode.expect());
     let message = expect_popup_message.expect();
@@ -68,7 +68,7 @@ async fn debug_mode() {
 
     // Turning Off
     let expect_mode = project.debug_mode.next_event();
-    let expect_popup_message = project.debug_mode_popup().label().show.next_event();
+    let expect_popup_message = project.debug_mode_popup().content_frp_node().next_event();
     project.disable_debug_mode();
     assert!(!expect_mode.expect());
     let message = expect_popup_message.expect();

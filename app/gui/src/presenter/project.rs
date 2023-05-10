@@ -4,6 +4,7 @@
 use crate::prelude::*;
 
 use crate::executor::global::spawn_stream_handler;
+use crate::model::project::synchronized::ProjectNameInvalid;
 use crate::presenter;
 use crate::presenter::graph::ViewNodeId;
 
@@ -159,11 +160,23 @@ impl Model {
         if self.controller.model.name() != name.as_ref() {
             let project = self.controller.model.clone_ref();
             let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
+            let popup = self.view.popup().clone_ref();
             let name = name.into();
             executor::global::spawn(async move {
-                if let Err(e) = project.rename_project(name).await {
-                    error!("The project couldn't be renamed: {e}");
-                    breadcrumbs.cancel_project_name_editing.emit(());
+                if let Err(error) = project.rename_project(name).await {
+                    let error_message = match error.downcast::<ProjectNameInvalid>() {
+                        Ok(error) => error.to_string(),
+                        Err(error) => {
+                            // Other errors aren't geared towards users, so display a generic
+                            // message.
+                            let prefix = "The project couldn't be renamed".to_string();
+                            error!("{prefix}: {error}");
+                            prefix
+                        }
+                    };
+                    popup.set_label.emit(error_message);
+                    // Reset name to old, valid value
+                    breadcrumbs.input.project_name.emit(project.name());
                 }
             });
         }

@@ -65,6 +65,11 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             text = create_new_datetime 1970 (zone = Time_Zone.utc) . format "yyyy-MM-dd'T'HH:mm:ss"
             text . should_equal "1970-01-01T00:00:00"
 
+        Test.specify "should format using provided pattern and locale" <|
+            d = create_new_datetime 2020 6 21
+            d.format "d. MMMM yyyy" (Locale.new "gb") . should_equal "21. Jun 2020"
+            d.format "d. MMMM yyyy" (Locale.new "fr") . should_equal "21. juin 2020
+
         Test.specify "should format using default pattern" <|
             text = create_new_datetime 1970 (zone = Time_Zone.utc) . to_text
             text . should_equal "1970-01-01T00:00:00Z[UTC]"
