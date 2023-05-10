@@ -16,6 +16,8 @@ import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
 
+polyglot java import org.enso.base.Time_Utils
+
 ## Represents a range of dates.
 type Date_Range
     ## PRIVATE
@@ -422,17 +424,30 @@ compute_length_and_verify : Date -> Date -> Period -> Boolean -> Integer ! Illeg
 compute_length_and_verify start end step increasing =
     if is_period_positive step . not then Error.throw (Illegal_Argument.Error "The step `Period` for `Date_Range` must be positive, i.e. all of `years`, `months` and `days` must be non-negative and at least one of them must be strictly positive.") else
         # First a few heuristics for a fast path.
-        # TODO implement heuristics
-        #if (step.total_months == 0) then compute_length_step_days start end step.days else
-        # TODO check if this is able to handle edge cases correctly
-        #if (step.days == 0) then compute_length_step_months start end step.total_months else
-        # Then we go brute force for the general case.
-        compute_length_step_brute_force start end step increasing
+        # If there are no years or months, we can perform a simple computation on day difference.
+        if step.total_months == 0 then compute_length_step_days start end step.days increasing else
+            # TODO check if this is able to handle edge cases correctly
+            #if (step.days == 0) then compute_length_step_months start end step.total_months else
+            # Then we go brute force for the general case.
+            compute_length_step_brute_force start end step increasing
 
 ## PRIVATE
 is_period_positive period =
     if (period.years < 0) || (period.months < 0) || (period.days < 0) then False else
         (period.total_months > 0) || (period.days > 0)
+
+## PRIVATE
+compute_length_step_days : Date -> Date -> Integer -> Boolean -> Integer
+compute_length_step_days start end step increasing =
+    # Logic analogous to `Range.length`.
+    diff = case increasing of
+        True  -> Time_Utils.days_between start end
+        False -> Time_Utils.days_between end start
+    # If the difference is negative, that means the range is actually empty.
+    if diff < 0 then 0 else
+        steps = diff . div step
+        exact_fit = diff % step == 0
+        if exact_fit then steps else steps+1
 
 ## PRIVATE
 nth_element_of_range start step increasing n = case increasing of

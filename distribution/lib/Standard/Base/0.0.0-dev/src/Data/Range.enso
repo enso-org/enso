@@ -83,7 +83,11 @@ type Range
     length self = if self.is_empty then 0 else
         diff = self.end - self.start
         steps = diff . div self.step
-        if self.start + steps*self.step == self.end then steps else steps+1
+        exact_fit = diff % self.step == 0
+        ## The `end` is excluded if it is reached exactly by the last step.
+           If it is not reached, that means that the last step is also included,
+           so we increase by one.
+        if exact_fit then steps else steps+1
 
     ## Gets an element from the Range at a specified index (0-based).
 
