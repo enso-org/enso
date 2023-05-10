@@ -13,6 +13,7 @@ use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeId;
+use crate::popup;
 use crate::project_list::ProjectList;
 use crate::searcher;
 
@@ -147,6 +148,7 @@ struct Model {
     fullscreen_vis:         Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
     project_list:           Rc<ProjectList>,
     debug_mode_popup:       debug_mode_popup::View,
+    popup:                  popup::View,
 }
 
 impl Model {
@@ -158,6 +160,7 @@ impl Model {
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
         let debug_mode_popup = debug_mode_popup::View::new(app);
+        let popup = popup::View::new(app);
         let runs_in_web = ARGS.groups.startup.options.platform.value == "web";
         let window_control_buttons = runs_in_web.as_some_from(|| {
             let window_control_buttons = app.new_view::<crate::window_control_buttons::View>();
@@ -172,6 +175,7 @@ impl Model {
         display_object.add_child(&code_editor);
         display_object.add_child(&searcher);
         display_object.add_child(&debug_mode_popup);
+        display_object.add_child(&popup);
         display_object.remove_child(&searcher);
 
         let app = app.clone_ref();
@@ -186,6 +190,7 @@ impl Model {
             fullscreen_vis,
             project_list,
             debug_mode_popup,
+            popup,
         }
     }
 
@@ -371,10 +376,7 @@ impl View {
         // FIXME[WD]: Think how to refactor it, as it needs to be done before model, as we do not
         //   want shader recompilation. Model uses styles already.
         model.set_style(theme);
-        // TODO[WD]: This should not be needed after the theme switching issue is implemented.
-        //   See: https://github.com/enso-org/ide/issues/795
         let input_change_delay = frp::io::timer::Timeout::new(network);
-        let searcher_open_delay = frp::io::timer::Timeout::new(network);
 
         if let Some(window_control_buttons) = &*model.window_control_buttons {
             let initial_size = &window_control_buttons.size.value();
@@ -477,8 +479,7 @@ impl View {
             existing_node_edited <- graph.node_expression_edited.gate_not(&frp.is_searcher_opened);
             open_searcher <- existing_node_edited.map2(&node_edited_by_user,
                 |(id, _, _), edited| edited.map_or(false, |edited| *id == edited)
-            ).on_true();
-            searcher_open_delay.restart <+ open_searcher.constant(0);
+            ).on_true().debounce();
             cursor_position <- existing_node_edited.map2(
                 &node_edited_by_user,
                 |(node_id, _, selections), edited| {
@@ -490,7 +491,7 @@ impl View {
             ).filter_map(|pos| *pos);
             edited_node <- node_edited_by_user.filter_map(|node| *node);
             position_and_edited_node <- cursor_position.map2(&edited_node, |pos, id| (*pos, *id));
-            prepare_params <- position_and_edited_node.sample(&searcher_open_delay.on_expired);
+            prepare_params <- position_and_edited_node.sample(&open_searcher);
             frp.source.searcher <+ prepare_params.map(|(pos, node_id)| {
                 Some(SearcherParams::new_for_edited_node(*node_id, *pos))
             });
@@ -505,7 +506,7 @@ impl View {
             update_searcher_input_on_commit <- frp.output.editing_committed.constant(());
             input_change_delay.cancel <+ update_searcher_input_on_commit;
             update_searcher_input <- any(&input_change_delay.on_expired, &update_searcher_input_on_commit);
-            input_change_and_searcher <- map2(&searcher_input_change, &frp.searcher,
+            input_change_and_searcher <- all_with(&searcher_input_change, &frp.searcher,
                 |c, s| (c.clone(), *s)
             );
             updated_input <- input_change_and_searcher.sample(&update_searcher_input);
@@ -624,6 +625,10 @@ impl View {
 
             model.debug_mode_popup.enabled <+ frp.enable_debug_mode;
             model.debug_mode_popup.disabled <+ frp.disable_debug_mode;
+
+            // === Error Pop-up ===
+
+            model.popup.set_label <+ model.graph_editor.model.breadcrumbs.project_name_error;
         }
 
         init.emit(());
@@ -654,6 +659,11 @@ impl View {
     /// Debug Mode Popup
     pub fn debug_mode_popup(&self) -> &debug_mode_popup::View {
         &self.model.debug_mode_popup
+    }
+
+    /// Pop-up
+    pub fn popup(&self) -> &popup::View {
+        &self.model.popup
     }
 }
 
@@ -691,14 +701,14 @@ impl application::View for View {
             (Press, "", "cmd alt shift t", "toggle_style"),
             (Press, "", "cmd alt p", "toggle_component_browser_private_entries_visibility"),
             (Press, "", "cmd s", "save_project_snapshot"),
-            (Press, "", "cmd r", "restore_project_snapshot"),
+            (Press, "", "cmd shift r", "restore_project_snapshot"),
             (Press, "", "cmd z", "undo"),
             (Press, "", "cmd y", "redo"),
             (Press, "", "cmd shift z", "redo"),
             (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),
             (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
-            (Press, "", "cmd shift t", "execution_context_interrupt"),
-            (Press, "", "cmd shift r", "execution_context_restart"),
+            (Press, "", "cmd alt t", "execution_context_interrupt"),
+            (Press, "", "cmd alt r", "execution_context_restart"),
             // TODO(#6179): Remove this temporary shortcut when Play button is ready.
             (Press, "", "ctrl shift b", "toggle_read_only"),
         ]

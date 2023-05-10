@@ -149,14 +149,14 @@ spec setup =
         Test.specify "should gracefully handle duplicate aggregate names" <|
             action = table.cross_tab [] "Key" values=[Count new_name="Agg1", Sum "Value" new_name="Agg1"] on_problems=_
             tester table =
-                table.column_names . should_equal ["x Agg1", "x Agg1_1", "y Agg1", "y Agg1_1", "z Agg1", "z Agg1_1"]
+                table.column_names . should_equal ["x Agg1", "x Agg1 1", "y Agg1", "y Agg1 1", "z Agg1", "z Agg1 1"]
             problems = [Duplicate_Output_Column_Names.Error ["x Agg1", "y Agg1", "z Agg1"]]
             Problems.test_problem_handling action problems tester
 
             table3 = table2.rename_columns (Map.from_vector [["Group", "x"]])
             action3 = table3.cross_tab ["x"] "Key" on_problems=_
             tester3 table =
-                table.column_names . should_equal ["x", "x_1", "y", "z"]
+                table.column_names . should_equal ["x", "x 1", "y", "z"]
             problems3 = [Duplicate_Output_Column_Names.Error ["x"]]
             Problems.test_problem_handling action3 problems3 tester3
 

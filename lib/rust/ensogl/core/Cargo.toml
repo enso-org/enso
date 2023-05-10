@@ -40,7 +40,7 @@ num_enum = { version = "0.5.1" }
 num-traits = { version = "0.2" }
 ordered-float = { workspace = true }
 rustc-hash = { version = "1.0.1" }
-semver = { version = "1.0.9" }
+semver = { workspace = true }
 serde = { version = "1" }
 smallvec = { workspace = true }
 typenum = { version = "1.11.2" }

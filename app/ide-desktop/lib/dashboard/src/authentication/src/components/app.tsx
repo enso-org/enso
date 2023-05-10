@@ -144,6 +144,9 @@ function AppRouter(props: AppProps) {
                         path={DASHBOARD_PATH}
                         element={showDashboard && <Dashboard {...props} />}
                     />
+                </router.Route>
+                {/* Semi-protected pages are visible to users currently registering. */}
+                <router.Route element={<authProvider.SemiProtectedLayout />}>
                     <router.Route path={SET_USERNAME_PATH} element={<SetUsername />} />
                 </router.Route>
                 {/* Other pages are visible to unauthenticated and authenticated users. */}
