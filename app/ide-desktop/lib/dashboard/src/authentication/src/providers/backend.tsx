@@ -10,7 +10,7 @@ import * as remoteBackend from '../dashboard/remoteBackend'
 // =============
 
 /** A type representing a backend API that may be of any type. */
-type AnyBackendAPI = localBackend.LocalBackend | remoteBackend.RemoteBackend
+export type AnyBackendAPI = localBackend.LocalBackend | remoteBackend.RemoteBackend
 
 // ======================
 // === BackendContext ===

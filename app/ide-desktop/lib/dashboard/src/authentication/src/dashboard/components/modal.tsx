@@ -9,6 +9,7 @@ import * as modalProvider from '../../providers/modal'
 
 /** Props for a {@link Modal}. */
 export interface ModalProps extends react.PropsWithChildren {
+    centered?: boolean
     className?: string
 }
 
@@ -17,13 +18,14 @@ export interface ModalProps extends react.PropsWithChildren {
  * background transparency can be enabled with Tailwind's `bg-opacity` classes,
  * like `className="bg-opacity-50"` */
 function Modal(props: ModalProps) {
-    const { children } = props
+    const { children, centered, className } = props
     const { unsetModal } = modalProvider.useSetModal()
+
     return (
         <div
-            className={`fixed w-screen h-screen inset-0 bg-primary grid place-items-center ${
-                props.className ?? ''
-            }`}
+            className={`inset-0 bg-primary ${
+                centered ? 'fixed w-screen h-screen grid place-items-center ' : ''
+            }${className ?? ''}`}
             onClick={event => {
                 if (event.currentTarget === event.target) {
                     unsetModal()

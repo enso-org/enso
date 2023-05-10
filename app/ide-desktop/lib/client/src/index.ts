@@ -347,16 +347,17 @@ class App {
     /** Redirect the web view to `localhost:<port>` to see the served website. */
     loadWindowContent() {
         if (this.window != null) {
-            const urlCfg: Record<string, string> = {}
+            const searchParams: Record<string, string> = {}
             for (const option of this.args.optionsRecursive()) {
                 if (option.value !== option.default && option.passToWebApplication) {
-                    urlCfg[option.qualifiedName()] = String(option.value)
+                    searchParams[option.qualifiedName()] = option.value.toString()
                 }
             }
-            const params = server.urlParamsFromObject(urlCfg)
-            const address = `http://localhost:${this.serverPort()}${params}`
-            logger.log(`Loading the window address '${address}'.`)
-            void this.window.loadURL(address)
+            const address = new URL('http://localhost')
+            address.port = this.serverPort().toString()
+            address.search = new URLSearchParams(searchParams).toString()
+            logger.log(`Loading the window address '${address.toString()}'.`)
+            void this.window.loadURL(address.toString())
         }
     }
 
@@ -424,7 +425,7 @@ class App {
 // ===================
 
 process.on('uncaughtException', (err, origin) => {
-    console.error(`Uncaught exception: ${String(err)}\nException origin: ${origin}`)
+    console.error(`Uncaught exception: ${err.toString()}\nException origin: ${origin}`)
     electron.dialog.showErrorBox(common.PRODUCT_NAME, err.stack ?? err.toString())
     electron.app.exit(1)
 })

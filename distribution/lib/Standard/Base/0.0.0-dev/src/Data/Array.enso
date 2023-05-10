@@ -438,6 +438,8 @@ type Array
     flatten : Vector Any
     flatten self = Vector.flatten self
 
+    ## PRIVATE
+       ADVANCED
     short_display_text : Integer -> Text
     short_display_text self max_entries=10 = Vector.short_display_text self max_entries
 
@@ -641,8 +643,14 @@ type Array
     join : Text -> Text -> Text -> Text
     join self separator="" prefix="" suffix="" = Vector.join self separator prefix suffix
 
+    ## PRIVATE
+       Generates a human-readable text representation of the array.
     to_text : Text
     to_text self = self.map .to_text . join ", " "[" "]"
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = self.short_display_text max_entries=40
 
     ## Combines all the elements of a non-empty array using a binary operation.
        If the array is empty, it returns `if_empty`.

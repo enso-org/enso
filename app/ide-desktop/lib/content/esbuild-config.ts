@@ -82,6 +82,7 @@ export function bundlerOptions(args: Arguments) {
         loader: {
             '.html': 'copy',
             '.css': 'copy',
+            '.map': 'copy',
             '.wasm': 'copy',
             '.svg': 'copy',
             '.png': 'copy',

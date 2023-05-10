@@ -20,6 +20,11 @@ spec =
             content = sample_txt.read
             content.should_equal "Hello World!"
 
+        Test.specify "should raise a not-found error when reading a nonexistent file even of unknown format" <|
+            r1 = (File.new "nonexistent.file.of.weird-format").read
+            r1.should_fail_with File_Error
+            r1.catch.should_be_a File_Error.Not_Found
+
     Test.group "Bytes" <|
         Test.specify "should be able to read a file as Bytes" <|
             bytes = sample_xxx.read Bytes
