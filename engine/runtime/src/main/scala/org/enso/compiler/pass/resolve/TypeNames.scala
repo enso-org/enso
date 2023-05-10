@@ -10,7 +10,7 @@ import org.enso.compiler.pass.analyse.BindingAnalysis
 
 import scala.annotation.unused
 
-/** Resolves and desugars referent name occurences in type positions.
+/** Resolves and desugars referent name occurrences in type positions.
   */
 case object TypeNames extends IRPass {
 
@@ -77,23 +77,28 @@ case object TypeNames extends IRPass {
     expression.transformExpressions {
       case expr if SuspendedArguments.representsSuspended(expr) => expr
       case n: IR.Name.Literal =>
-        bindingsMap
-          .resolveName(n.name)
-          .map(res => n.updateMetadata(this -->> Resolution(res)))
-          .fold(
-            error =>
-              IR.Error.Resolution(n, IR.Error.Resolution.ResolverError(error)),
-            n =>
-              n.getMetadata(this).get.target match {
-                case _: ResolvedModule =>
-                  IR.Error.Resolution(
-                    n,
-                    IR.Error.Resolution.UnexpectedModule("type signature")
-                  )
-                case _ => n
-              }
-          )
+        resolveName(bindingsMap, n)
+      case n: IR.Name.Qualified =>
+        resolveName(bindingsMap, n)
     }
+
+  private def resolveName(bindingsMap: BindingsMap, name: IR.Name): IR.Name =
+    bindingsMap
+      .resolveName(name.name)
+      .map(res => name.updateMetadata(this -->> Resolution(res)))
+      .fold(
+        error =>
+          IR.Error.Resolution(name, IR.Error.Resolution.ResolverError(error)),
+        n =>
+          n.getMetadata(this).get.target match {
+            case _: ResolvedModule =>
+              IR.Error.Resolution(
+                n,
+                IR.Error.Resolution.UnexpectedModule("type signature")
+              )
+            case _ => n
+          }
+      )
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir` in an inline context.

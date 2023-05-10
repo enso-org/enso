@@ -183,7 +183,9 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     "build method with an argument" in {
 
       val code =
-        """
+        """import Standard.Base.Data.Text.Text
+          |import Standard.Base.Data.Numbers.Number
+          |
           |foo : Text -> Number
           |foo a = 42""".stripMargin
       val module = code.preprocessModule
@@ -198,10 +200,16 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "foo",
               arguments = Seq(
                 Suggestion.Argument("self", "Unnamed.Test", false, false, None),
-                Suggestion.Argument("a", "Text", false, false, None)
+                Suggestion.Argument(
+                  "a",
+                  "Standard.Base.Data.Text.Text",
+                  false,
+                  false,
+                  None
+                )
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Number",
+              returnType    = "Standard.Base.Data.Numbers.Number",
               isStatic      = true,
               documentation = None
             ),
@@ -1995,6 +2003,77 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   .Argument("f", SuggestionBuilder.Any, false, false, None)
               ),
               selfType      = "Unnamed.Test.Maybe",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build type with ascribed constructor111" in {
+
+      val code =
+        """type X
+          |
+          |type T
+          |    A (x : X)
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "X",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.X",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "T",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.T",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "A",
+              arguments = Seq(
+                Suggestion
+                  .Argument("x", "Unnamed.Test.X", false, false, None)
+              ),
+              returnType    = "Unnamed.Test.T",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "x",
+              arguments = Seq(
+                Suggestion
+                  .Argument("self", "Unnamed.Test.T", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.T",
               returnType    = SuggestionBuilder.Any,
               isStatic      = false,
               documentation = None

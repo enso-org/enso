@@ -23,6 +23,7 @@ import scala.collection.mutable
   *
   * @param source the text source
   * @param typeGraph the type hierarchy
+  * @param compiler the compiler instance
   * @tparam A the type of the text source
   */
 final class SuggestionBuilder[A: IndexedSource](
@@ -636,14 +637,27 @@ final class SuggestionBuilder[A: IndexedSource](
     * @param arg the value argument
     * @return the suggestion argument
     */
-  private def buildArgument(arg: IR.DefinitionArgument): Suggestion.Argument =
+  private def buildArgument(arg: IR.DefinitionArgument): Suggestion.Argument = {
+    val signatureOpt = arg.name.getMetadata(TypeSignatures).map { meta =>
+      buildTypeSignature(meta.signature) match {
+        case Vector(targ) => buildTypeArgumentName(targ)
+        case _            => Any
+      }
+    }
+//    val ascribedType = arg.ascribedType.map { typeExpr =>
+//      buildTypeSignature(typeExpr) match {
+//        case Vector(targ) => buildTypeArgumentName(targ)
+//        case _            => Any
+//      }
+//    }
     Suggestion.Argument(
       name         = arg.name.name,
-      reprType     = Any,
+      reprType     = signatureOpt.getOrElse(Any),
       isSuspended  = arg.suspended,
       hasDefault   = arg.defaultValue.isDefined,
       defaultValue = arg.defaultValue.flatMap(buildDefaultValue)
     )
+  }
 
   /** Build return type from the type definition.
     *
@@ -688,6 +702,7 @@ object SuggestionBuilder {
   /** Creates the suggestion builder for a module.
     *
     * @param module the module to index
+    * @param compiler the compiler instance
     * @return the suggestions builder for the module
     */
   def apply(
@@ -700,6 +715,7 @@ object SuggestionBuilder {
     *
     * @param source the text source
     * @param typeGraph the type hierarchy
+    * @param compiler the compiler instance
     * @tparam A the type of the text source
     */
   def apply[A: IndexedSource](
@@ -712,6 +728,7 @@ object SuggestionBuilder {
   /** Create the suggestion builder.
     *
     * @param source the text source
+    * @param compiler the compiler instance
     * @tparam A the type of the text source
     */
   def apply[A: IndexedSource](
