@@ -123,6 +123,16 @@ public final class Warning implements TruffleObject {
           "Returns `true` if the maximal number of warnings has been reached, `false` otherwise.",
       autoRegister = false)
   @Builtin.Specialize
+  public static boolean reachedMaxCount(WithWarnings value, WarningsLibrary warnings) {
+    return value.reachedMaxWarnings();
+  }
+
+  @Builtin.Method(
+      name = "reached_max_count",
+      description =
+          "Returns `true` if the maximal number of warnings has been reached, `false` otherwise.",
+      autoRegister = false)
+  @Builtin.Specialize(fallback = true)
   public static boolean reachedMaxCount(Object value, WarningsLibrary warnings) {
     return warnings.hasWarnings(value) ? warnings.reachedMaxWarnings(value) : false;
   }

@@ -703,10 +703,13 @@ type_spec name alter = Test.group name <|
             4 -> Date.new
             5 -> []
             6 -> -x
+            7 -> Number.nan
+            8 -> Time_Of_Day.new
             _ -> x
         input = 0.up_to 500 . map gen
         sorted = input.sort on_incomparable=Problem_Behavior.Report_Warning
         Warning.get_all sorted . length . should_equal 10
+        Warning.reached_max_count sorted . should_equal True
 
 spec =
     Test.group "Vector/Array equality" <|
