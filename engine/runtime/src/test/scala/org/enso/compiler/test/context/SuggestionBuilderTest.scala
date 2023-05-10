@@ -633,16 +633,19 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       )
     }
 
-    "build argument tag values111" in {
+    "build argument tag values" in {
 
       val code =
-        """type Value
+        """import Standard.Base.Data.Text.Text
+          |import Standard.Base.Data.Boolean.Boolean
+          |
+          |type Value
           |    A
           |    B
           |
           |type Auto
           |
-          |foo : Value | Auto -> Any
+          |foo : Text | Boolean | Value | Auto -> Any
           |foo a = a
           |""".stripMargin
       val module = code.preprocessModule
@@ -705,12 +708,14 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                 Suggestion.Argument("self", "Unnamed.Test", false, false, None),
                 Suggestion.Argument(
                   "a",
-                  "Unnamed.Test.Value | Unnamed.Test.Auto",
+                  "Standard.Base.Data.Text.Text | Standard.Base.Data.Boolean.Boolean | Unnamed.Test.Value | Unnamed.Test.Auto",
                   false,
                   false,
                   None,
                   Some(
                     Seq(
+                      "Standard.Base.Data.Boolean.Boolean.True",
+                      "Standard.Base.Data.Boolean.Boolean.False",
                       "Unnamed.Test.Value.A",
                       "Unnamed.Test.Value.B",
                       "Unnamed.Test.Auto"
@@ -2686,7 +2691,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       )
       val arg2 = method.get.arguments(2)
       arg2.reprType shouldEqual "Standard.Base.Data.Text.Text | (Standard.Base.Data.Text.Text -> Boolean)"
-      arg2.tagValues shouldEqual Some(Seq("Standard.Base.Data.Text.Text"))
+      arg2.tagValues shouldEqual None
     }
   }
 
@@ -2695,5 +2700,5 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     ir: IR.Module,
     module: QualifiedName = Module
   ): Tree.Root[Suggestion] =
-    SuggestionBuilder(source).build(module, ir)
+    SuggestionBuilder(source, langCtx.getCompiler).build(module, ir)
 }

@@ -381,30 +381,39 @@ final class SuggestionBuilder[A: IndexedSource](
     )
   }
 
-  private def containsValues(resolvedType: BindingsMap.ResolvedType): Boolean =
-    compiler.builtins.getBuiltinType(resolvedType.tp.name).containsValues()
-
-  private def buildResolvedUnionTypeName(
+  /** Build a [[TypeArg]] from the resolved type name.
+    *
+    * @param resolvedName the resolved type name
+    * @return the corresponding type argument
+    */
+  private def buildResolvedTypeName(
     resolvedName: BindingsMap.ResolvedName
   ): TypeArg =
     resolvedName match {
       case tp: BindingsMap.ResolvedType =>
-        if (tp.getVariants.size > 1) {
-          TypeArg.Sum(
-            Some(tp.qualifiedName),
-            tp.getVariants.map(r => TypeArg.Value(r.qualifiedName))
-          )
-        } else if (tp.getVariants.size == 1) {
-          TypeArg.Sum(Some(tp.qualifiedName), Seq())
-        } else {
-          if (containsValues(tp)) {
+        tp.getVariants.size match {
+          case 0 =>
+            val isBuiltinTypeWithValues =
+              tp.tp.builtinType &&
+              Option(compiler.builtins.getBuiltinType(tp.tp.name))
+                .exists(_.containsValues())
+            if (isBuiltinTypeWithValues) {
+              TypeArg.Sum(Some(tp.qualifiedName), Seq())
+            } else {
+              TypeArg.Sum(
+                Some(tp.qualifiedName),
+                Seq(TypeArg.Value(tp.qualifiedName))
+              )
+            }
+
+          case 1 =>
             TypeArg.Sum(Some(tp.qualifiedName), Seq())
-          } else {
+
+          case _ =>
             TypeArg.Sum(
               Some(tp.qualifiedName),
-              Seq(TypeArg.Value(tp.qualifiedName))
+              tp.getVariants.map(r => TypeArg.Value(r.qualifiedName))
             )
-          }
         }
       case _: BindingsMap.ResolvedName =>
         TypeArg.Value(resolvedName.qualifiedName)
@@ -452,7 +461,7 @@ final class SuggestionBuilder[A: IndexedSource](
       case tname: IR.Name =>
         tname
           .getMetadata(TypeNames)
-          .map(t => buildResolvedUnionTypeName(t.target))
+          .map(t => buildResolvedTypeName(t.target))
           .getOrElse(TypeArg.Value(QualifiedName.simpleName(tname.name)))
 
       case _ =>
