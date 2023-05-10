@@ -107,7 +107,7 @@ public class RuntimeOptions {
   public static final String WARNINGS_LIMIT = optionName("warningsLimit");
 
   @Option(
-      help = "Maximal number of warnings reported to the user.",
+      help = "Maximal number of warnings that can be attached to a value.",
       category = OptionCategory.INTERNAL)
   public static final OptionKey<Integer> WARNINGS_LIMIT_KEY = new OptionKey<>(100);
 

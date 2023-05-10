@@ -28,6 +28,15 @@ public final class WithWarnings implements TruffleObject {
   private final boolean limitReached;
   private final int maxWarnings;
 
+  /**
+   * Creates a new instance of value wrapped in warnings. `limitReached` parameter allows for indicating if some
+   * custom warnings filtering on `warnings` have already been performed.
+   *
+   * @param value value to be wrapped in warnings
+   * @param maxWarnings maximal number of warnings allowed to be attached to the value
+   * @param limitReached if `true`, indicates that `warnings` have already been limited for a custom-method, `false` otherwise
+   * @param warnings warnings to be attached to a value
+   */
   private WithWarnings(Object value, int maxWarnings, boolean limitReached, Warning... warnings) {
     assert !(value instanceof WithWarnings);
     this.warnings = createSetFromArray(maxWarnings, warnings);
@@ -39,6 +48,17 @@ public final class WithWarnings implements TruffleObject {
     this(value, maxWarnings, false, warnings);
   }
 
+
+  /**
+   * Creates a new instance of value wrapped in warnings. `limitReached` parameter allows for indicating if some
+   * custom warnings filtering on `additionalWarnings` have already been performed.
+   *
+   * @param value value to be wrapped in warnings
+   * @param maxWarnings maximal number of warnings allowed to be attached to the value
+   * @param warnings warnings originally attached to a value
+   * @param limitReached if `true`, indicates that `warnings` have already been limited for a custom-method, `false` otherwise
+   * @param additionalWarnings additional warnings to be appended to the list of `warnings`
+   */
   private WithWarnings(Object value, int maxWarnings, EconomicSet<Warning> warnings, boolean limitReached, Warning... additionalWarnings) {
     assert !(value instanceof WithWarnings);
     this.warnings = cloneSetAndAppend(maxWarnings, warnings, additionalWarnings);
@@ -51,16 +71,11 @@ public final class WithWarnings implements TruffleObject {
     this(value, maxWarnings, warnings, false, additionalWarnings);
   }
 
-  @CompilerDirectives.TruffleBoundary
-  private static int warningsLimitFromContext(EnsoContext ctx) {
-    return ctx.getEnvironment().getOptions().get(RuntimeOptions.WARNINGS_LIMIT_KEY);
-  }
-
   public static WithWarnings wrap(EnsoContext ctx, Object value, Warning... warnings) {
     if (value instanceof WithWarnings with) {
       return with.append(ctx, warnings);
     } else {
-      return new WithWarnings(value, warningsLimitFromContext(ctx), warnings);
+      return new WithWarnings(value, ctx.getWarningsLimit(), warnings);
     }
   }
 
@@ -69,15 +84,15 @@ public final class WithWarnings implements TruffleObject {
   }
 
   public WithWarnings append(EnsoContext ctx, boolean limitReached, Warning... newWarnings) {
-    return new WithWarnings(value, warningsLimitFromContext(ctx), warnings, limitReached, newWarnings);
+    return new WithWarnings(value, ctx.getWarningsLimit(), warnings, limitReached, newWarnings);
   }
 
   public WithWarnings append(EnsoContext ctx, Warning... newWarnings) {
-    return new WithWarnings(value, warningsLimitFromContext(ctx), warnings, newWarnings);
+    return new WithWarnings(value, ctx.getWarningsLimit(), warnings, newWarnings);
   }
 
   public WithWarnings append(EnsoContext ctx, ArrayRope<Warning> newWarnings) {
-    return new WithWarnings(value, warningsLimitFromContext(ctx), warnings, newWarnings.toArray(Warning[]::new));
+    return new WithWarnings(value, ctx.getWarningsLimit(), warnings, newWarnings.toArray(Warning[]::new));
   }
 
   public Warning[] getWarningsArray(WarningsLibrary warningsLibrary) {
@@ -117,7 +132,7 @@ public final class WithWarnings implements TruffleObject {
     if (target instanceof WithWarnings) {
       return ((WithWarnings) target).append(ctx, warnings.toArray(Warning[]::new));
     } else {
-      return new WithWarnings(target, warningsLimitFromContext(ctx), warnings.toArray(Warning[]::new));
+      return new WithWarnings(target, ctx.getWarningsLimit(), warnings.toArray(Warning[]::new));
     }
   }
 
@@ -129,7 +144,7 @@ public final class WithWarnings implements TruffleObject {
     if (target instanceof WithWarnings) {
       return ((WithWarnings) target).append(ctx, reachedMaxCount, warnings);
     } else {
-      return new WithWarnings(target, warningsLimitFromContext(ctx), reachedMaxCount, warnings);
+      return new WithWarnings(target, ctx.getWarningsLimit(), reachedMaxCount, warnings);
     }
   }
 
