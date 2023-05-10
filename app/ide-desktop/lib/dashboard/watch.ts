@@ -13,8 +13,8 @@ import * as bundler from './esbuild-config'
 
 /** The path of this file. */
 const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
-/** This must be port `8081` because it is defined as such in AWS. */
-const PORT = 8081
+/** This must be port `8080` because it is defined as such in AWS. */
+const PORT = 8080
 const HTTP_STATUS_OK = 200
 // `outputPath` does not have to be a real directory because `write` is `false`,
 // meaning that files will not be written to the filesystem.
