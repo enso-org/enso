@@ -18,6 +18,7 @@ spec =
     almost_max_long_times_three = 27670116110564327418
     almost_max_long_times_three_plus_1 = 27670116110564327419
     almost_max_long_times_three_decimal = 27670116110564327418.8
+    almost_max_long_times_three_plus_1_decimal = 27670116110564327419.8
     hundred_factorial = 93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000
     very_negative = -99223372036854775808
 
@@ -28,6 +29,8 @@ spec =
             almost_max_long_times_three_decimal.floor.to_decimal . should_equal almost_max_long_times_three.to_decimal
             # BAD
             almost_max_long_times_three_decimal.floor.to_decimal . should_equal almost_max_long_times_three_minus_1.to_decimal
+            almost_max_long_times_three_decimal . should_equal almost_max_long_times_three_plus_1_decimal
+            almost_max_long_times_three_decimal.floor.to_decimal . should_equal almost_max_long_times_three_plus_1_decimal.floor.to_decimal
 
     Test.group "Integers" <|
 
