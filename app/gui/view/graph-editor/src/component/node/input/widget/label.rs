@@ -26,6 +26,7 @@ ensogl::define_endpoints_2! {
         content(ImString),
         text_color(ColorState),
         text_weight(text::Weight),
+        text_sdf_weight(f32),
     }
 }
 
@@ -69,6 +70,10 @@ impl SpanWidget for Widget {
         let frp = Frp::new();
         let network = &frp.network;
 
+        let color_anim = color::Animation::new(network);
+        let weight_anim = ensogl::Animation::new(network);
+        weight_anim.precision.emit(0.001);
+
         let styles = ctx.styles();
         frp::extend! { network
             let id = ctx.info.identity;
@@ -80,10 +85,15 @@ impl SpanWidget for Widget {
                 })
             );
 
-            label_color <- label_color.on_change();
+            color_anim.target <+ label_color.on_change();
+            eval color_anim.value((color) label.set_property_default(color));
+
+            weight_anim.target <+ frp.text_sdf_weight.on_change();
+            eval weight_anim.value((weight) label.set_property_default(text::SdfWeight(*weight)));
+
             label_weight <- frp.text_weight.on_change();
-            eval label_color((color) label.set_property_default(color));
             eval label_weight((weight) label.set_property_default(weight));
+
             content_change <- frp.content.on_change();
             eval content_change((content) label.set_content(content));
 
@@ -114,20 +124,25 @@ impl SpanWidget for Widget {
             _ if ctx.info.disabled => ColorState::Disabled,
             _ if is_placeholder => ColorState::Placeholder,
             _ => {
-                let span_node_type = ctx.span_node.kind.tp();
-                let usage_type = ctx.info.usage_type.clone();
-                let ty = usage_type.or_else(|| span_node_type.map(|t| crate::Type(t.into())));
-                let color = crate::type_coloring::compute_for_code(ty.as_ref(), ctx.styles());
-                ColorState::FromType(color)
+                ColorState::Base
+                // let span_node_type = ctx.span_node.kind.tp();
+                // let usage_type = ctx.info.usage_type.clone();
+                // let ty = usage_type.or_else(|| span_node_type.map(|t| crate::Type(t.into())));
+                // let color = crate::type_coloring::compute_for_code(ty.as_ref(), ctx.styles());
+                // ColorState::FromType(color)
             }
         };
 
         let ext = ctx.get_extension_or_default::<Extension>();
-        let text_weight = if ext.bold { text::Weight::Bold } else { text::Weight::Normal };
+        // let text_weight = if ext.bold { text::Weight::Bold } else { text::Weight::Normal };
+        let text_weight = text::Weight::Normal;
+        let sdf_weight = if ext.bold || is_placeholder { 0.03 } else { 0.0 };
+
         let input = &self.frp.public.input;
         input.content.emit(content);
         input.text_color.emit(color_state);
         input.text_weight(text_weight);
+        input.text_sdf_weight(sdf_weight);
     }
 }
 
@@ -155,6 +170,7 @@ pub struct Extension {
 #[derive(Debug, Clone, Copy, Default)]
 pub enum ColorState {
     #[default]
+    Base,
     Connected,
     Disabled,
     Placeholder,
@@ -172,18 +188,18 @@ impl ColorState {
         use theme::code::syntax;
         let profiling_mode = view_mode.is_profiling();
         let profiled = profiling_mode && status.is_finished();
-        let color_path = match self {
-            _ if is_hovered => theme::code::types::selected,
-            ColorState::Connected => theme::code::types::selected,
-            ColorState::Disabled if profiled => syntax::profiling::disabled,
-            ColorState::Placeholder if profiled => syntax::profiling::expected,
-            ColorState::Disabled => syntax::disabled,
-            ColorState::Placeholder => syntax::expected,
-            ColorState::FromType(_) if profiled => syntax::profiling::base,
-            ColorState::FromType(_) if profiling_mode => syntax::base,
+        let base_path = match self {
+            _ if is_hovered => syntax::selection::HERE,
+            ColorState::Base => syntax::base::HERE,
+            ColorState::Connected => syntax::selection::HERE,
+            ColorState::Disabled => syntax::disabled::HERE,
+            ColorState::Placeholder => syntax::expected::HERE,
+            ColorState::FromType(_) if profiling_mode || profiled => syntax::base::HERE,
             ColorState::FromType(typed) => return typed,
-        };
+        }
+        .path();
 
+        let color_path = if profiled { base_path.sub("profiling") } else { base_path.sub("color") };
         styles.get_color(color_path).into()
     }
 }

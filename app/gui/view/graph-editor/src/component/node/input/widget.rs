@@ -329,6 +329,8 @@ define_widget_modules! {
     Hierarchy hierarchy,
     /// Default widget that only displays text.
     Label label,
+    /// A widget for top-level Enso method calls. Displays an icon.
+    Method method,
 }
 
 // =====================

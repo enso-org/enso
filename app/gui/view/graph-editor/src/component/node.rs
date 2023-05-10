@@ -54,17 +54,18 @@ pub use expression::Expression;
 // === Constants ===
 // =================
 
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
+/// Base height of a single-line node.
 pub const HEIGHT: f32 = 32.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub const PADDING: f32 = 40.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
+/// The additional reserved space around base background shape to allow for drawing node backdrop
+/// shapes, such as selection or status.
+pub const BACKDROP_INSET: f32 = 25.0;
+/// Radius of rounded corners of base node background shape. Node also contains other shapes, such
+/// as selection, that will also received rounded corners by growing the background shape.
 pub const CORNER_RADIUS: f32 = HEIGHT / 2.0;
 
 /// Space between the documentation comment and the node.
 pub const COMMENT_MARGIN: f32 = 10.0;
 
-const INFINITE: f32 = 99999.0;
 const ERROR_VISUALIZATION_SIZE: (f32, f32) = visualization::container::DEFAULT_SIZE;
 
 const VISUALIZATION_OFFSET_Y: f32 = -120.0;
@@ -125,6 +126,10 @@ impl Background {
         self.shape.set_border_color(blended);
     }
 
+    fn set_color(&self, color: color::Rgba) {
+        self.shape.set_color(color);
+    }
+
     fn set_size_and_center_xy(&self, size: Vector2<f32>, center: Vector2<f32>) {
         let size_with_inset = size + 2.0 * Vector2(*self.inset, *self.inset);
         let origin = center - size_with_inset / 2.0;
@@ -155,26 +160,21 @@ pub mod error_shape {
         (style:Style,color_rgba:Vector4<f32>) {
             use ensogl_hardcoded_theme::graph_editor::node as node_theme;
 
-            let width  = Var::<Pixels>::from("input_size.x");
-            let height = Var::<Pixels>::from("input_size.y");
-            let zoom   = Var::<f32>::from("1.0/zoom()");
-            let width  = width  - PADDING.px() * 2.0;
-            let height = height - PADDING.px() * 2.0;
-            let radius = CORNER_RADIUS.px();
+            let padded_size = Var::canvas_size();
+            let size = padded_size - Var::from(Vector2::repeat(BACKDROP_INSET.pixels() * 2.0));
+            let base = Rect(size).corners_radius(CORNER_RADIUS.px());
 
+            let zoom   = Var::<f32>::from("1.0/zoom()");
             let error_width         = style.get_number(node_theme::error::width).px();
-            let repeat_x            = style.get_number(node_theme::error::repeat_x).px();
-            let repeat_y            = style.get_number(node_theme::error::repeat_y).px();
+            let stripe_gap          = style.get_number(node_theme::error::stripe_gap).px();
             let stripe_width        = style.get_number(node_theme::error::stripe_width);
             let stripe_angle        = style.get_number(node_theme::error::stripe_angle);
-            let repeat              = Var::<Vector2<Pixels>>::from((repeat_x,repeat_y));
-            let stripe_width        = Var::<Pixels>::from(zoom * stripe_width);
-            let stripe_red          = Rect((&stripe_width,INFINITE.px()));
-            let stripe_angle_rad    = stripe_angle.radians();
-            let pattern             = stripe_red.repeat(repeat).rotate(stripe_angle_rad);
-            let mask                = Rect((&width,&height)).corners_radius(radius);
-            let mask                = mask.grow(error_width);
-            let pattern             = mask.intersection(pattern).fill(color_rgba);
+            let stripe_angle        = Radians::from(stripe_angle.degrees());
+            let repeat              = Var::<Vector2<Pixels>>::from((1.0.px(),stripe_gap));
+            let stripe              = Line(zoom * stripe_width);
+            let mask                = base.grow(error_width);
+            let stripe_pattern      = stripe.repeat(repeat).rotate(stripe_angle);
+            let stripe_pattern      = mask.intersection(stripe_pattern).fill(error_color);
 
             pattern.into()
         }
@@ -376,7 +376,6 @@ impl NodeModel {
     /// Constructor.
     #[profile(Debug)]
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
-        use display::shape::compound::rectangle;
         ensogl::shapes_order_dependencies! {
             app.display.default_scene => {
                 error_shape               -> output::port::single_port;
@@ -388,7 +387,6 @@ impl NodeModel {
 
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
 
-        let error_indicator = error_shape::View::new();
         let profiling_label = ProfilingLabel::new(app);
         let background = Background::new(&style);
         let vcs_indicator = vcs::StatusIndicator::new(app);
@@ -429,7 +427,6 @@ impl NodeModel {
             app,
             display_object,
             background,
-            error_indicator,
             profiling_label,
             input,
             output,
@@ -449,6 +446,10 @@ impl NodeModel {
     fn init(self) -> Self {
         self.set_expression(Expression::new_plain("empty"));
         self.set_layers_for_state(self.interaction_state.get());
+        // TODO: handle color change. Will likely require moving the node background and backdrop
+        // into a widget, which is also necessary to later support "split" nodes, where '.' chains
+        // are displayed as separate shapes.
+        self.set_base_color(&color::Lcha(0.56708, 0.23249, 0.71372, 1.0));
         self
     }
 
@@ -532,7 +533,7 @@ impl NodeModel {
     fn set_width(&self, width: f32) -> Vector2 {
         let height = self.height();
         let size = Vector2(width, height);
-        let padded_size = size + Vector2(PADDING, PADDING) * 2.0;
+        let padded_size = size + Vector2(BACKDROP_INSET, BACKDROP_INSET) * 2.0;
         self.error_indicator.set_size(padded_size);
         self.vcs_indicator.frp.set_size(padded_size);
         let x_offset_to_node_center = x_offset_to_node_center(width);
@@ -571,6 +572,12 @@ impl NodeModel {
         } else {
             self.display_object.add_child(&self.error_indicator);
         }
+    }
+
+    #[profile(Debug)]
+    fn set_base_color(&self, color: &color::Lcha) {
+        let rgba = color::Rgba::from(color);
+        self.background.set_color(rgba);
     }
 
     fn set_selected(&self, degree: f32) {
@@ -635,9 +642,8 @@ impl Node {
 
             // === Selection ===
 
-            deselect_target  <- input.deselect.constant(0.0);
-            select_target    <- input.select.constant(1.0);
-            selection.target <+ any(&deselect_target, &select_target);
+            selected <- bool(&input.deselect, &input.select);
+            selection.target <+ switch_constant(&selected, -0.1, 1.0);
             eval selection.value ((t) model.set_selected(*t));
 
 
@@ -826,45 +832,7 @@ impl Node {
             model.input.set_profiling_status <+ input.set_profiling_status;
         }
 
-        let bg_color_anim = color::Animation::new(network);
-
         frp::extend! { network
-
-            // === Color Handling ===
-
-            let bgg = style_frp.get_color(ensogl_hardcoded_theme::graph_editor::node::background);
-            let profiling_theme = profiling::Theme::from_styles(style_frp,network);
-
-            profiling_color <- all_with5
-                (&input.set_profiling_status,&input.set_profiling_min_global_duration,
-                &input.set_profiling_max_global_duration,&profiling_theme,&bgg,
-                |&status,&min,&max,&theme,&bgg| {
-                    if status.is_finished() {
-                        status.display_color(min,max,theme).with_alpha(1.0)
-                    } else {
-                        color::Lcha::from(bgg)
-                    }
-                });
-
-            bg_color_anim.target <+ all_with3(&bgg,&input.set_view_mode,&profiling_color,
-                |bgg,&mode,&profiling_color| {
-                    match mode {
-                        view::Mode::Normal    => color::Lcha::from(*bgg),
-                        view::Mode::Profiling => profiling_color,
-                    }
-                });
-
-            // FIXME [WD]: Uncomment when implementing disabled icon.
-            // bg_color <- frp.set_disabled.map(f!([model,style](disabled) {
-            //     model.input.frp.set_disabled(*disabled);
-            //     let bg_color_path = ensogl_hardcoded_theme::graph_editor::node::background;
-            //     if *disabled { style.get_color_dim(bg_color_path) }
-            //     else         { style.get_color(bg_color_path) }
-            // }));
-            // bg_color_anim.target <+ bg_color;
-
-            eval bg_color_anim.value ((c) model.background.shape.set_color(c.into()););
-
 
             // === Tooltip ===
 

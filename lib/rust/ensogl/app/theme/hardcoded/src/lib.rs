@@ -447,15 +447,21 @@ define_themes! { [light:0, dark:1]
     }
     code {
         syntax {
-            base      = Lcha(0.09,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,0.7);
-            disabled  = Lcha(0.7,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,0.2);
-            expected  = Lcha(0.7,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,0.3);
-            selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
-            profiling {
-                base      = Lcha(1.0,0.0,0.0,0.9) , Lcha(0.0,0.0,0.0,0.7);
-                disabled  = Lcha(1.0,0.0,0.0,0.5) , Lcha(0.0,0.0,0.0,0.2);
-                expected  = Lcha(1.0,0.0,0.0,0.5) , Lcha(0.0,0.0,0.0,0.3);
-                selection = Lcha(1.0,0.0,0.0,1.0) , Lcha(0.0,0.0,0.0,1.0);
+            base {
+                color = Lcha(1.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,0.7);
+                profiling = Lcha(1.0,0.0,0.0,0.9) , Lcha(0.0,0.0,0.0,0.7);
+            }
+            disabled {
+                color = Lcha(0.95,0.0,0.0,0.9) , Lcha(0.95,0.0,0.0,0.9);
+                profiling = Lcha(0.95,0.0,0.0,0.9) , Lcha(0.95,0.0,0.0,0.9);
+            }
+            expected {
+                color = Lcha(1.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
+                profiling = Lcha(1.0,0.0,0.0,0.5) , Lcha(0.0,0.0,0.0,0.5);
+            }
+            selection {
+                color = Lcha(1.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,1.0);
+                profiling = Lcha(1.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,1.0);
             }
         }
         types {
@@ -463,7 +469,7 @@ define_themes! { [light:0, dark:1]
             hue_shift     = 0.0, 0.0;
             lightness     = 0.72 , 0.7;
             chroma        = 0.7 , 0.4;
-            any           = code::syntax::base , code::syntax::base;
+            any           = Lcha(0.09,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,0.7);
             any.selection = Lcha(0.8,0.0,0.0,1.0) , Lcha(0.5,0.0,0.0,1.0);
             selected      = graph_editor::node::background , graph_editor::node::background;
             overriden {
@@ -504,20 +510,11 @@ define_themes! { [light:0, dark:1]
             right = 300.0, 300.0;
         }
         node {
-            // Original RGB values (for reference after fixing color-conversion issues)
-            // light: rgb(253,254,255), old-dark: Lcha(0.2,0.014,0.18,1.0), dark: rgb(47,48,50)
             background         = Rgba(0.992,0.996,1.0,1.0), Rgba(0.182,0.188,0.196,1.0);
-            background.skipped = graph_editor::node::background , graph_editor::node::background;
-            selection          = selection, selection;
+            text               = Rgba(0.078,0.067,0.137,0.85) , Lcha(1.0,0.0,0.0,0.7);
             selection {
-                size = 3.5 , 3.5;
-                offset = 3.75 , 3.75;
-            }
-            text           = Rgba(0.078,0.067,0.137,0.85) , Lcha(1.0,0.0,0.0,0.7);
-            text {
-                missing_arg    = Rgba(0.078,0.067,0.137,0.25) , Lcha(1.0,0.0,0.0,0.3);
-                variant.dimmed = Lcha(0.7,0.0,0.0,0.7) , Lcha(0.25,0.014,0.18,1.0);
-                selection      = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
+                size = 3.0 , 3.0;
+                opacity = 0.2 , 0.2;
             }
             actions {
                 context_switch {
@@ -534,10 +531,9 @@ define_themes! { [light:0, dark:1]
                 panic        = Rgba(0.7,0.235,0.08,1.0), Rgba(0.7,0.235,0.08,1.0);
                 warning      = Rgba(1.0,0.655,0.141,1.0), Rgba(1.0,0.655,0.141,1.0);
                 width        = 4.0  , 4.0;
-                repeat_x     = 20.0 , 20.0;
-                repeat_y     = 20.0 , 20.0;
                 stripe_width = 10.0 , 10.0;
-                stripe_angle = 45.0 , 45.0;
+                stripe_gap   = 20.0 , 20.0;
+                stripe_angle = 135.0 , 135.0;
             }
             profiling {
                 lightness    = code::types::lightness , code::types::lightness;

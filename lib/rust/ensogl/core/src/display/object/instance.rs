@@ -3058,10 +3058,10 @@ pub trait LayoutOps: Object {
         self.display_object().layout.margin.set(Vector2(margin, margin));
     }
 
-    /// Set vertical and horizontal margins of the object. Margin is the free space around the
+    /// Set horizontal and vertical margins of the object. Margin is the free space around the
     /// object.
-    fn set_margin_vh(&self, vertical: impl Into<Unit>, horizontal: impl Into<Unit>) -> &Self {
-        let margin = Vector2(horizontal.into().into(), vertical.into().into());
+    fn set_margin_xy(&self, margin: impl IntoVectorTrans2<Unit>) -> &Self {
+        let margin = margin.into_vector_trans().into_vector_trans();
         self.display_object().layout.margin.set(margin);
         self
     }
@@ -3100,10 +3100,10 @@ pub trait LayoutOps: Object {
         self.display_object().layout.padding.set(Vector2(horizontal, vertical));
     }
 
-    /// Set vertical and horizontal padding of the object. Padding is the free space inside the
+    /// Set horizontal and vertical padding of the object. Padding is the free space inside the
     /// object.
-    fn set_padding_vh(&self, vertical: impl Into<Unit>, horizontal: impl Into<Unit>) -> &Self {
-        let padding = Vector2(horizontal.into().into(), vertical.into().into());
+    fn set_padding_xy(&self, padding: impl IntoVectorTrans2<Unit>) -> &Self {
+        let padding = padding.into_vector_trans().into_vector_trans();
         self.display_object().layout.padding.set(padding);
         self
     }

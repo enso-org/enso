@@ -479,7 +479,6 @@ impl Area {
         let model = Rc::new(Model::new(app));
         let frp = Frp::new();
         let network = &frp.network;
-        let selection_color = Animation::new(network);
 
         frp::extend! { network
             init <- source::<()>();
@@ -593,14 +592,6 @@ impl Area {
             model.widget_tree.set_read_only <+ frp.set_read_only;
             model.widget_tree.set_view_mode <+ frp.set_view_mode;
             model.widget_tree.set_profiling_status <+ frp.set_profiling_status;
-
-            use theme::code::syntax;
-            let std_selection_color      = model.styles_frp.get_color(syntax::selection);
-            let profiled_selection_color = model.styles_frp.get_color(syntax::profiling::selection);
-            selection_color_rgba <- profiled.switch(&std_selection_color,&profiled_selection_color);
-
-            selection_color.target          <+ selection_color_rgba.map(|c| color::Lcha::from(c));
-            model.edit_mode_label.set_selection_color <+ selection_color.value.map(|c| color::Lch::from(c));
         }
 
         init.emit(());

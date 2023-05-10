@@ -139,7 +139,7 @@ impl Port {
         port_shape
             .set_size_y(BASE_PORT_HEIGHT)
             .allow_grow()
-            .set_margin_vh(0.0, -PORT_PADDING_X)
+            .set_margin_xy((-PORT_PADDING_X, 0.0))
             .set_alignment_left_center();
         hover_shape.set_size_y(BASE_PORT_HOVER_HEIGHT).allow_grow().set_alignment_left_center();
 
@@ -262,7 +262,7 @@ impl Port {
 
         if margin_needs_update {
             self.hover_shape.set_size_y(BASE_PORT_HOVER_HEIGHT + 2.0 * margin_y);
-            self.hover_shape.set_margin_vh(-margin_y, -margin_x);
+            self.hover_shape.set_margin_xy((-margin_x, -margin_y));
         }
     }
 

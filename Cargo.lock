@@ -4354,6 +4354,7 @@ name = "ide-view-component-list-panel-icons"
 version = "0.1.0"
 dependencies = [
  "ensogl-core",
+ "ensogl-hardcoded-theme",
  "failure",
 ]
 
@@ -4417,6 +4418,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-text-msdf",
  "failure",
+ "ide-view-component-list-panel-icons",
  "ide-view-execution-environment-selector",
  "indexmap",
  "js-sys",

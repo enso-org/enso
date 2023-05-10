@@ -114,7 +114,7 @@ impl Icons {
 
         // The appears smaller than the other ones, so this is an aesthetic adjustment.
         visibility.set_size((BUTTON_SIZE * 1.2, BUTTON_SIZE * 1.2));
-        visibility.set_margin_xy((-BUTTON_SIZE * 0.2, -BUTTON_SIZE * 0.2));
+        visibility.set_margin_all(-BUTTON_SIZE * 0.2);
 
         Self { display_object, visibility, context_switch, freeze, skip }
     }
