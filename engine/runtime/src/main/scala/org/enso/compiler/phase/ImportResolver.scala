@@ -40,7 +40,6 @@ class ImportResolver(compiler: Compiler) {
     module: Module,
     bindingsCachingEnabled: Boolean
   ): (List[Module], List[Module]) = {
-
     def analyzeModule(current: Module): List[Module] = {
       val ir = current.getIr
       val currentLocal = ir.unsafeGetMetadata(
@@ -95,11 +94,12 @@ class ImportResolver(compiler: Compiler) {
             // - no - ensure they are parsed (load them from cache) and add them to the import/export resolution
             compiler.importExportBindings(current) match {
               case Some(bindings) =>
-                val converted = bindings
+                val converted: Option[BindingsMap] = bindings
                   .toConcrete(compiler.packageRepository.getModuleMap)
                   .map { concreteBindings =>
                     concreteBindings
                   }
+                current.bindings = converted.getOrElse(null)
                 (
                   converted
                     .map(
