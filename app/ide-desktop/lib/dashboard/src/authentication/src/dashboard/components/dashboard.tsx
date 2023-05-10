@@ -355,6 +355,14 @@ function Dashboard(props: DashboardProps) {
                             <RenameModal
                                 assetType={projectAsset.type}
                                 name={projectAsset.title}
+                                {...(backend.platform === platformModule.Platform.desktop
+                                    ? {
+                                          namePattern: '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*',
+                                          title:
+                                              'Names must be in Upper_Snake_Case. ' +
+                                              '(Numbers (_0, _1) are also allowed.)',
+                                      }
+                                    : {})}
                                 // TODO: Wait for backend implementation.
                                 doRename={() => Promise.resolve()}
                                 onSuccess={doRefresh}
@@ -851,9 +859,21 @@ function Dashboard(props: DashboardProps) {
                                     <RenameModal
                                         name={projectAsset.title}
                                         assetType={projectAsset.type}
-                                        // FIXME[sb]: Replace with API call
-                                        // when implemented in backend.
-                                        doRename={() => Promise.resolve()}
+                                        {...(backend.platform === platformModule.Platform.desktop
+                                            ? {
+                                                  namePattern: '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*',
+                                                  title:
+                                                      'Names must be in Upper_Snake_Case. ' +
+                                                      '(Numbers (_0, _1) are also allowed.)',
+                                              }
+                                            : {})}
+                                        doRename={async name => {
+                                            await backend.projectUpdate(projectAsset.id, {
+                                                ami: null,
+                                                ideVersion: null,
+                                                projectName: name,
+                                            })
+                                        }}
                                         onSuccess={doRefresh}
                                     />
                                 ))
@@ -861,18 +881,14 @@ function Dashboard(props: DashboardProps) {
                             // This is not a React component even though it contains JSX.
                             // eslint-disable-next-line no-restricted-syntax
                             function doDelete() {
-                                // The button is disabled when using the desktop backend,
-                                // so this condition should never be `false`.
-                                if (backend.platform === platformModule.Platform.cloud) {
-                                    setModal(() => (
-                                        <ConfirmDeleteModal
-                                            name={projectAsset.title}
-                                            assetType={projectAsset.type}
-                                            doDelete={() => backend.deleteProject(projectAsset.id)}
-                                            onSuccess={doRefresh}
-                                        />
-                                    ))
-                                }
+                                setModal(() => (
+                                    <ConfirmDeleteModal
+                                        name={projectAsset.title}
+                                        assetType={projectAsset.type}
+                                        doDelete={() => backend.deleteProject(projectAsset.id)}
+                                        onSuccess={doRefresh}
+                                    />
+                                ))
                             }
                             setModal(() => (
                                 <ContextMenu event={event}>
@@ -882,15 +898,8 @@ function Dashboard(props: DashboardProps) {
                                     <ContextMenuEntry disabled onClick={doOpenAsFolder}>
                                         Open as folder
                                     </ContextMenuEntry>
-                                    <ContextMenuEntry disabled onClick={doRename}>
-                                        Rename
-                                    </ContextMenuEntry>
-                                    <ContextMenuEntry
-                                        disabled={
-                                            backend.platform === platformModule.Platform.desktop
-                                        }
-                                        onClick={doDelete}
-                                    >
+                                    <ContextMenuEntry onClick={doRename}>Rename</ContextMenuEntry>
+                                    <ContextMenuEntry onClick={doDelete}>
                                         <span className="text-red-700">Delete</span>
                                     </ContextMenuEntry>
                                 </ContextMenu>
