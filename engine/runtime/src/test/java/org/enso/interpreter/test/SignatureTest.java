@@ -6,6 +6,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.junit.AfterClass;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
@@ -80,5 +81,21 @@ public class SignatureTest extends TestBase {
     } catch (PolyglotException e) {
       assertTrue("It is a syntax error exception", e.isSyntaxError());
     }
+  }
+
+  @Test
+  public void ascribedWithAParameter() throws Exception {
+    final URI uri = new URI("memory://constructor.enso");
+    final Source src = Source.newBuilder("enso", """
+    type Maybe a
+        Nothing
+        Some unwrap:a
+    """, uri.getHost())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var some = module.invokeMember("eval_expression", "Maybe.Some 10");
+    assertEquals("Can read ten", 10, some.getMember("unwrap").asInt());
   }
 }

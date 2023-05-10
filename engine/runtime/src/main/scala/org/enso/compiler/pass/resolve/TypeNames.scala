@@ -45,12 +45,13 @@ case object TypeNames extends IRPass {
     ir.copy(bindings = ir.bindings.map { d =>
       val mapped = d.mapExpressions(resolveExpression(bindingsMap, _))
       doResolveType(
+        List(),
         bindingsMap,
         mapped match {
           case typ: IR.Module.Scope.Definition.Type =>
             typ.members.foreach(m => {
               m.arguments.foreach(a => {
-                doResolveType(bindingsMap, a)
+                doResolveType(typ.params, bindingsMap, a)
               })
             })
             typ
@@ -65,21 +66,27 @@ case object TypeNames extends IRPass {
     ir: IR.Expression
   ): IR.Expression = {
     def go(ir: IR.Expression): IR.Expression = {
-      doResolveType(bindingsMap, ir.mapExpressions(go))
+      doResolveType(List(), bindingsMap, ir.mapExpressions(go))
     }
     go(ir match {
       case fn: IR.Function.Lambda =>
-        fn.copy(arguments = fn.arguments.map(doResolveType(bindingsMap, _)))
+        fn.copy(arguments =
+          fn.arguments.map(doResolveType(List(), bindingsMap, _))
+        )
       case x => x
     })
   }
 
-  private def doResolveType[T <: IR](bindingsMap: BindingsMap, ir: T): T = {
+  private def doResolveType[T <: IR](
+    params: List[IR.DefinitionArgument],
+    bindingsMap: BindingsMap,
+    ir: T
+  ): T = {
     ir.getMetadata(TypeSignatures)
       .map { s =>
         ir.updateMetadata(
           TypeSignatures -->> TypeSignatures.Signature(
-            resolveSignature(bindingsMap, s.signature)
+            resolveSignature(params, bindingsMap, s.signature)
           )
         )
       }
@@ -87,28 +94,34 @@ case object TypeNames extends IRPass {
   }
 
   private def resolveSignature(
+    params: List[IR.DefinitionArgument],
     bindingsMap: BindingsMap,
     expression: IR.Expression
   ): IR.Expression =
     expression.transformExpressions {
       case expr if SuspendedArguments.representsSuspended(expr) => expr
       case n: IR.Name.Literal =>
-        bindingsMap
-          .resolveName(n.name)
-          .map(res => n.updateMetadata(this -->> Resolution(res)))
-          .fold(
-            error =>
-              IR.Error.Resolution(n, IR.Error.Resolution.ResolverError(error)),
-            n =>
-              n.getMetadata(this).get.target match {
-                case _: ResolvedModule =>
-                  IR.Error.Resolution(
-                    n,
-                    IR.Error.Resolution.UnexpectedModule("type signature")
-                  )
-                case _ => n
-              }
-          )
+        if (params.find(_.name.name == n.name).nonEmpty) {
+          n
+        } else {
+          bindingsMap
+            .resolveName(n.name)
+            .map(res => n.updateMetadata(this -->> Resolution(res)))
+            .fold(
+              error =>
+                IR.Error
+                  .Resolution(n, IR.Error.Resolution.ResolverError(error)),
+              n =>
+                n.getMetadata(this).get.target match {
+                  case _: ResolvedModule =>
+                    IR.Error.Resolution(
+                      n,
+                      IR.Error.Resolution.UnexpectedModule("type signature")
+                    )
+                  case _ => n
+                }
+            )
+        }
     }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
