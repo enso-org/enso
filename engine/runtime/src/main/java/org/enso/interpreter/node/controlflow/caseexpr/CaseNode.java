@@ -81,9 +81,10 @@ public abstract class CaseNode extends ExpressionNode {
   Object doWarning(
       VirtualFrame frame, Object object, @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     try {
+      EnsoContext ctx = EnsoContext.get(this);
       Warning[] ws = warnings.getWarnings(object, this);
       Object result = doMatch(frame, warnings.removeWarnings(object), warnings);
-      return WithWarnings.wrap(result, ws);
+      return WithWarnings.wrap(ctx, result, ws);
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }

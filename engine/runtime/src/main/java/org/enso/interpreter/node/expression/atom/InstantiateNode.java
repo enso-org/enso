@@ -10,6 +10,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.atom.unboxing.Layout;
 import org.enso.interpreter.runtime.data.ArrayRope;
@@ -94,7 +95,8 @@ public abstract class InstantiateNode extends ExpressionNode {
       }
     }
     if (anyWarningsProfile.profile(anyWarnings)) {
-      return WithWarnings.appendTo(createInstanceNode.execute(argumentValues), accumulatedWarnings);
+      return WithWarnings.appendTo(
+          EnsoContext.get(this), createInstanceNode.execute(argumentValues), accumulatedWarnings);
     } else {
       return createInstanceNode.execute(argumentValues);
     }

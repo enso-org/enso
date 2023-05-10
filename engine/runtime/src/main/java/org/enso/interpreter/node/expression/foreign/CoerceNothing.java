@@ -35,11 +35,12 @@ public abstract class CoerceNothing extends Node {
       @CachedLibrary(limit = "1") InteropLibrary interop,
       @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary,
       @Cached("createCountingProfile()") ConditionProfile nullWarningProfile) {
-    var nothing = EnsoContext.get(this).getBuiltins().nothing();
+    var ctx = EnsoContext.get(this);
+    var nothing = ctx.getBuiltins().nothing();
     if (nullWarningProfile.profile(warningsLibrary.hasWarnings(value))) {
       try {
         Warning[] attachedWarnings = warningsLibrary.getWarnings(value, null);
-        return WithWarnings.wrap(nothing, attachedWarnings);
+        return WithWarnings.wrap(ctx, nothing, attachedWarnings);
       } catch (UnsupportedMessageException e) {
         return nothing;
       }
