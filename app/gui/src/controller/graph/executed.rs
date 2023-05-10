@@ -228,19 +228,26 @@ impl Handle {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else {
-            for local_call in stack.clone() {
+            let mut successful_calls = Vec::new();
+            let mut result = Ok(());
+            for local_call in stack {
                 debug!("Entering node {}.", local_call.call);
-                self.execution_ctx.push(local_call).await?;
+                if let Err(error) = self.execution_ctx.push(local_call.clone()).await {
+                    result = Err(error);
+                    break;
+                }
+                successful_calls.push(local_call);
             }
-            if let Some(inner_call) = stack.last() {
+            if let Some(last_successful_call) = successful_calls.last() {
                 let graph =
-                    controller::Graph::new_method(&self.project, &inner_call.definition).await?;
+                    controller::Graph::new_method(&self.project, &last_successful_call.definition)
+                        .await?;
                 debug!("Replacing graph with {graph:?}.");
                 self.graph.replace(graph);
                 debug!("Sending graph invalidation signal.");
-                self.notifier.publish(Notification::EnteredStack(stack)).await;
+                self.notifier.publish(Notification::EnteredStack(successful_calls)).await;
             }
-            Ok(())
+            result
         }
     }
 
@@ -267,14 +274,22 @@ impl Handle {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else {
+            let mut successful_pop_count = 0;
+            let mut result = Ok(());
             for _ in 0..frame_count {
-                self.execution_ctx.pop().await?;
+                if let Err(error) = self.execution_ctx.pop().await {
+                    result = Err(error);
+                    break;
+                }
+                successful_pop_count += 1;
             }
-            let method = self.execution_ctx.current_method();
-            let graph = controller::Graph::new_method(&self.project, &method).await?;
-            self.graph.replace(graph);
-            self.notifier.publish(Notification::ExitedStack(frame_count)).await;
-            Ok(())
+            if successful_pop_count > 0 {
+                let method = self.execution_ctx.current_method();
+                let graph = controller::Graph::new_method(&self.project, &method).await?;
+                self.graph.replace(graph);
+                self.notifier.publish(Notification::ExitedStack(successful_pop_count)).await;
+            }
+            result
         }
     }
 

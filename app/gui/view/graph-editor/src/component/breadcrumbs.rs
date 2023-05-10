@@ -475,14 +475,10 @@ impl Breadcrumbs {
             model.project_name.frp.outside_press <+ frp.outside_press;
 
             breadcrumbs_to_pop_count <- frp.output.breadcrumb_select.filter_map(|(pop_count, _)|
-                if *pop_count > 0 { Some(*pop_count) } else { None }
+                (*pop_count > 0).then_some(*pop_count)
             );
             breadcrumbs_to_push <- frp.output.breadcrumb_select.filter_map(|(_, breadcrumbs_to_push)|
-                if !breadcrumbs_to_push.is_empty() {
-                    Some(breadcrumbs_to_push.clone())
-                } else {
-                    None
-                }
+                (!breadcrumbs_to_push.is_empty()).as_some_from(|| breadcrumbs_to_push.clone())
             );
             frp.source.breadcrumb_pop <+ breadcrumbs_to_pop_count;
             frp.source.breadcrumb_push <+ breadcrumbs_to_push;

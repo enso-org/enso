@@ -119,6 +119,8 @@ mod separator {
 // === RelativePosition ===
 // ========================
 
+/// The position of this breadcrumb relative to the selected breadcrumb. We use this to determine
+/// the color.
 #[derive(Debug, Clone, Copy)]
 enum RelativePosition {
     Left,
