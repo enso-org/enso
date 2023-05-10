@@ -21,13 +21,29 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
     const { assetType, name, doDelete, onSuccess } = props
     const { unsetModal } = modalProvider.useSetModal()
 
+    const onSubmit = async () => {
+        unsetModal()
+        await toast.promise(doDelete(), {
+            loading: `Deleting ${assetType}...`,
+            success: `Deleted ${assetType}.`,
+            error: `Could not delete ${assetType}.`,
+        })
+        onSuccess()
+    }
+
     return (
         <Modal centered className="bg-opacity-90">
             <form
-                className="relative bg-white shadow-soft rounded-lg w-96 p-2"
                 onClick={event => {
                     event.stopPropagation()
                 }}
+                onSubmit={async event => {
+                    event.preventDefault()
+                    // Consider not calling `onSubmit()` here to make it harder to accidentally
+                    // delete an important asset.
+                    await onSubmit()
+                }}
+                className="relative bg-white shadow-soft rounded-lg w-96 p-2"
             >
                 <button type="button" className="absolute right-0 top-0 m-2" onClick={unsetModal}>
                     {svg.CLOSE_ICON}
@@ -36,15 +52,7 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                 <div className="m-1">
                     <div
                         className="hover:cursor-pointer inline-block text-white bg-red-500 rounded-full px-4 py-1 m-1"
-                        onClick={async () => {
-                            unsetModal()
-                            await toast.promise(doDelete(), {
-                                loading: `Deleting ${assetType}...`,
-                                success: `Deleted ${assetType}.`,
-                                error: `Could not delete ${assetType}.`,
-                            })
-                            onSuccess()
-                        }}
+                        onClick={onSubmit}
                     >
                         Delete
                     </div>

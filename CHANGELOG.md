@@ -146,11 +146,19 @@
 - [Fixed text visualisations which were being cut off at the last line.][6421]
 - [Fixed a bug where, when scrolling or dragging on a full-screen visualization,
   the view of the graph changed as well.][6530]
+- [Changed the shortcut for restoring to the last saved version of a project
+  from <kbd>cmd</kbd>+<kbd>r</kbd> to
+  <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>r</kbd>][6620] to make it less likely
+  that it would be triggered by accident. As a consequence, the program
+  execution shortcuts changed from
+  <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>t</kbd>/<kbd>r</kbd> to
+  <kbd>cmd</kbd>+<kbd>alt</kbd>+<kbd>t</kbd>/<kbd>r</kbd>.
 - [Added a button to return from an opened project back to the project
   dashboard.][6474]
 
 [6421]: https://github.com/enso-org/enso/pull/6421
 [6530]: https://github.com/enso-org/enso/pull/6530
+[6620]: https://github.com/enso-org/enso/pull/6620
 [6474]: https://github.com/enso-org/enso/pull/6474
 
 #### EnsoGL (rendering engine)
@@ -743,6 +751,7 @@
   finalizers][6335]
 - [Warning.get_all returns only unique warnings][6372]
 - [Reimplement `enso_project` as a proper builtin][6352]
+- [Limit number of reported warnings per value][6577]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -852,6 +861,7 @@
 [6335]: https://github.com/enso-org/enso/pull/6335
 [6372]: https://github.com/enso-org/enso/pull/6372
 [6352]: https://github.com/enso-org/enso/pull/6352
+[6577]: https://github.com/enso-org/enso/pull/6577
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -26,7 +26,11 @@ import esbuildPluginYaml from 'esbuild-plugin-yaml'
 import * as utils from '../../utils'
 import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
-export const THIS_PATH = pathModule.resolve(pathModule.dirname(url.fileURLToPath(import.meta.url)))
+// =================
+// === Constants ===
+// =================
+
+const THIS_PATH = pathModule.resolve(pathModule.dirname(url.fileURLToPath(import.meta.url)))
 
 // =============================
 // === Environment variables ===
@@ -88,6 +92,7 @@ export function bundlerOptions(args: Arguments) {
         loader: {
             '.html': 'copy',
             '.css': 'copy',
+            '.map': 'copy',
             '.wasm': 'copy',
             '.svg': 'copy',
             '.png': 'copy',
