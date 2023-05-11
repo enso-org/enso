@@ -83,7 +83,7 @@ type Range
     length self = if self.is_empty then 0 else
         diff = self.end - self.start
         steps = diff . div self.step
-        exact_fit = diff % self.step == 0
+        exact_fit = (self.start + steps*self.step) == self.end
         ## The `end` is excluded if it is reached exactly by the last step.
            If it is not reached, that means that the last step is also included,
            so we increase by one.

@@ -112,9 +112,8 @@ type Period
     + : Period -> Period ! (Time_Error | Illegal_Argument)
     + self other_period =
         ensure_period other_period <|
-            catch_arithmetic_exception "Period.+" <|
-                catch_date_time_exception "Period.+" <|
-                    Period.Value (self.internal_period.plus other_period.internal_period)
+            catch_java_exceptions "Period.+" <|
+                Period.Value (self.internal_period.plus other_period.internal_period)
 
     ## Subtract a specified amount of time from this period.
 
@@ -132,9 +131,8 @@ type Period
     - : Period -> Period ! (Time_Error | Illegal_Argument)
     - self other_period =
         ensure_period other_period <|
-            catch_arithmetic_exception "Period.-" <|
-                catch_date_time_exception "Period.-" <|
-                    Period.Value (self.internal_period.minus other_period.internal_period)
+            catch_java_exceptions "Period.-" <|
+                Period.Value (self.internal_period.minus other_period.internal_period)
 
     ## Multiply the amount of time in this period by the specified scalar.
 
@@ -149,7 +147,7 @@ type Period
              example_multiply = (Period.new years=1 months=2) * 2
     * : Integer -> Period ! Time_Error
     * self factor =
-        catch_arithmetic_exception "Period.*" <|
+        catch_java_exceptions "Period.*" <|
             Period.Value (self.internal_period.multipliedBy factor)
 
     ## Negate all amounts in the period.
@@ -191,13 +189,11 @@ type Period
         JS_Object.from_pairs b.to_vector
 
 ## PRIVATE
-catch_arithmetic_exception operation ~action =
-    handle_arithmetic_error caught_panic =
+catch_java_exceptions operation ~action =
+    handle_arithmetic_exception caught_panic =
         Error.throw (Time_Error.Error "An overflow has occurred during the "+operation+" operation:"+caught_panic.payload.getMessage)
-    Panic.catch ArithmeticException action handle_arithmetic_error
-
-## PRIVATE
-catch_date_time_exception operation ~action =
-    handler caught_panic =
-        Error.throw Time_Error.Error "The operation "+operation+" has failed:"+caught_panic.payload.getMessage
-    Panic.catch DateTimeException action handler
+    handle_date_time_exception caught_panic =
+        Error.throw (Time_Error.Error "The operation "+operation+" has failed:"+caught_panic.payload.getMessage)
+    Panic.catch ArithmeticException handler=handle_arithmetic_exception <|
+        Panic.catch DateTimeException handler=handle_date_time_exception <|
+            action
