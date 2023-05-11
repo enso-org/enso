@@ -35,7 +35,7 @@ class TableVisualization extends Visualization {
         if (this.row_limit !== row_limit || this.page !== page) {
             this.row_limit = row_limit
             this.page = page
-            this.setPreprocessor('Standard.Visualization.Table.Visualization', 'prepare_visualization', `${this.row_limit}`)
+            this.setPreprocessor('Standard.Visualization.Table.Visualization', 'prepare_visualization', this.row_limit.toString(), this.page.toString())
         }
     }
 
@@ -234,14 +234,14 @@ class TableVisualization extends Visualization {
     makeOption(value, label) {
         const optionElem = document.createElement('option')
         optionElem.value = value
-        optionElem.appendChild(document.createTextNode(label))
+        optionElem.innerHTML = document.createTextNode(label)
         return optionElem
     }
 
     makeButton(label, onclick) {
         const buttonElem = document.createElement('button')
         buttonElem.name = label
-        buttonElem.appendChild(document.createTextNode(label))
+        buttonElem.innerHTML = document.createTextNode(label)
         buttonElem.addEventListener('click', onclick)
         return buttonElem
     }
@@ -276,7 +276,6 @@ class TableVisualization extends Visualization {
 
         // Update row limit dropdown and row count
         const rowCountElem = this.statusElem.getElementsByTagName("span")[0]
-        rowCountElem.innerHTML = ''
         const rowLimitElem = this.statusElem.children.namedItem("row-limit")
         if (all_rows_count > 1000) {
             rowLimitElem.style.display = 'inline-block'
@@ -288,11 +287,10 @@ class TableVisualization extends Visualization {
             })
             rowLimitElem.value = this.row_limit
 
-            const rowCountText = dataTruncated ? ` of ${all_rows_count} rows (Sorting/Filtering disabled).` : ` rows.`
-            rowCountElem.appendChild(document.createTextNode(rowCountText))
+            rowCountElem.innerHTML = dataTruncated ? ` of ${all_rows_count} rows (Sorting/Filtering disabled).` : ` rows.`
         } else {
             rowLimitElem.style.display = 'none'
-            rowCountElem.appendChild(document.createTextNode(`${all_rows_count} rows.`))
+            rowCountElem.innerHTML = all_rows_count === 1 ? "1 row." : `${all_rows_count} rows.`
         }
     }
 

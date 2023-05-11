@@ -17,10 +17,12 @@ import project.Helpers
    Arguments:
    - x: The table to prepare for visualisation.
    - max_rows: The maximum number of rows to display.
+   - page: The page to display.
 
    In case of Database backed data, it materializes a fragment of the data.
-prepare_visualization : Any -> Integer -> Text
-prepare_visualization y max_rows=1000 =
+prepare_visualization : Any -> Integer -> Integer -> Text
+prepare_visualization y max_rows=1000 page=0 =
+    _ = page
     x = Warning.set y []
 
     result = case x of
@@ -39,6 +41,10 @@ prepare_visualization y max_rows=1000 =
             dataframe = x.read max_rows
             all_rows_count = x.row_count
             make_json_for_table dataframe [] all_rows_count
+        _ : Function ->
+            pairs = [['_display_text_', '[Function]']]
+            value = JS_Object.from_pairs pairs
+            JS_Object.from_pairs [["json", value]]
         _ ->
             js_value = x.to_js_object
             value = if js_value.is_a JS_Object . not then js_value else
@@ -184,4 +190,5 @@ make_json_for_value val level=0 = case val of
             truncated = val.columns.take 5 . map _.name
             prepared = if val.column_count > 5 then truncated + ["… " + (val.column_count - 5).to_text+ " more"] else truncated
             "Table{" + val.row_count.to_text + " rows x [" + (prepared.join ", ") + "]}"
+    _ : Function -> "[Function]"
     _ -> val.to_display_text
