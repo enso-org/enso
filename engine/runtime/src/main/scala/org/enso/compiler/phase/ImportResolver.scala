@@ -104,13 +104,16 @@ class ImportResolver(compiler: Compiler) {
                     current.bindings = converted.get
                   } else {
                     val update: BindingsMap = current.bindings
-                    val imports = converted.get.resolvedImports ++ update.resolvedImports
-                    val exports = converted.get.resolvedExports ++ update.resolvedExports
-                    val symbols = converted.get.exportedSymbols ++ update.exportedSymbols
+                    val imports =
+                      converted.get.resolvedImports ++ update.resolvedImports
+                    val exports =
+                      converted.get.resolvedExports ++ update.resolvedExports
+                    val symbols =
+                      converted.get.exportedSymbols ++ update.exportedSymbols
                     converted.get.resolvedImports = imports
                     converted.get.resolvedExports = exports
                     converted.get.exportedSymbols = symbols
-                    current.bindings = converted.get
+                    current.bindings              = converted.get
                   }
                 }
                 (
