@@ -198,8 +198,7 @@ type Range
                     @Tail_Call go current+self.step
             go self.start
 
-    ## PRIVATE
-       Applies a function to each element of the range.
+    ## Applies a function to each element of the range.
 
        Essentially acts like `range.to_vector.each_with_index`, but it is more
        efficient.

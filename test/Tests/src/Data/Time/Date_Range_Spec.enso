@@ -157,3 +157,20 @@ spec =
                 reducer x y = if x > y then x else y
                 # Catch+to_text to fix Empty_Error equality.
                 r.reduce reducer . catch . to_text . should_equal (r.to_vector.reduce reducer . catch . to_text)
+
+        Test.specify "should define friendly text representations" <|
+            r1 = (Date.new 2020 02 28).up_to (Date.new 2020 03 02)
+            r2 = (Date.new 2020 03 20).down_to (Date.new 2020 03 01) include_end=True . with_step Date_Period.Week
+
+            r1.to_text . should_equal '(Date_Range from 2020-02-28 up to 2020-03-02)'
+            r2.to_text . should_equal '(Date_Range from 2020-03-20 down to 2020-03-01 by 7D)'
+
+            r1.pretty . should_equal r1.to_text
+            r2.pretty . should_equal r2.to_text
+
+            r1.to_display_text . should_equal '[2020-02-28 .. 2020-03-02]'
+            r2.to_display_text . should_equal '[2020-03-20 .. 2020-03-01 by -7D]'
+
+        Test.specify "should be serializable to JSON" <|
+            r = (Date.new 2020 01 01).up_to (Date.new 2020 01 03)
+            r.to_json . should_equal 'TODO'
