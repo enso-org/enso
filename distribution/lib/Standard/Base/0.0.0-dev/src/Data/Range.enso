@@ -180,7 +180,9 @@ type Range
                 if predicate elem then builder.append elem else builder
             builder.to_vector
 
-    ## Applies a function for each element in the range.
+    ## PRIVATE
+       ADVANCED
+       Applies a function for each element in the range.
 
        Arguments:
        - function: The function to apply to each integer in the range.
@@ -198,7 +200,9 @@ type Range
                     @Tail_Call go current+self.step
             go self.start
 
-    ## Applies a function to each element of the range.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each element of the range.
 
        Essentially acts like `range.to_vector.each_with_index`, but it is more
        efficient.

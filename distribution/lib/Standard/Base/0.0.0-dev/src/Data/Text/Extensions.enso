@@ -71,7 +71,9 @@ Text.reverse self =
       @Tail_Call iterate next iterator.previous
     iterate iterator.last iterator.previous
 
-## Applies the provided `function` to each character in `self`.
+## PRIVATE
+   ADVANCED
+   Applies the provided `function` to each character in `self`.
 
    Arguments:
    - function: The operation to apply to each character in the text.

@@ -231,7 +231,9 @@ type Date_Range
                 if predicate elem then builder.append elem else builder
             builder.to_vector
 
-    ## Applies a function for each element in the range.
+    ## PRIVATE
+       ADVANCED
+       Applies a function for each element in the range.
 
        Arguments:
        - function: The function to apply to each integer in the range.
@@ -244,7 +246,9 @@ type Date_Range
         (0.up_to self.length).each ix->
             function (self.internal_at ix)
 
-    ## Applies a function to each element of the range.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each element of the range.
 
        Essentially acts like `range.to_vector.each_with_index`, but it is more
        efficient.
