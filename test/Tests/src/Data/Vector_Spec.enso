@@ -13,6 +13,8 @@ from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
+polyglot java import java.util.ArrayList
+
 type T
     Value a b
 
@@ -752,7 +754,11 @@ spec =
             [True, False, 'a'].pretty . should_equal "[True, False, 'a']"
             [Foo.Value True].pretty . should_equal "[(Foo.Value True)]"
 
-    type_spec "Use Vector as vectors" (x -> x)
-    type_spec "Use Array as vectors" (x -> x.to_array)
+    type_spec "Use Vector as vectors" identity
+    type_spec "Use Array as vectors" (v -> v.to_array)
+    type_spec "Use Java ArrayList as vectors" v->
+        arr = ArrayList.new
+        v.each (x -> arr.add x)
+        arr
 
 main = Test_Suite.run_main spec
