@@ -94,7 +94,7 @@ class TableVisualization extends Visualization {
 
             const style =
                 '.ag-theme-alpine { --ag-grid-size: 3px; --ag-list-item-height: 20px; display: inline; }\n' +
-                '.vis-status-bar { height: 20x; background-color: white; font-size:14px; white-space:nowrap; padding: 0 5px; overflow:hidden }\n' +
+                '.vis-status-bar { height: 20x; background-color: white; font-size:14px; white-space:nowrap; padding: 0 5px; overflow:hidden; border-radius: 16px }\n' +
                 '.vis-status-bar > button { width: 12px; margin: 0 2px; display: none }\n' +
                 '.vis-tbl-grid { height: calc(100% - 20px); width: 100%; }\n'
             const styleElem = document.createElement('style')
@@ -128,6 +128,14 @@ class TableVisualization extends Visualization {
                     resizable: true,
                     minWidth: 25,
                     headerValueGetter: params => params.colDef.field,
+                    cellRenderer: params => {
+                        if (params.value === null) {
+                            return '<span style="color:grey; font-style: italic;">Nothing</span>'
+                        } else if (params.value === undefined) {
+                            return ''
+                        }
+                        return params.value.toString()
+                    }
                 },
                 onColumnResized: e => this.lockColumnSize(e),
             }
@@ -234,14 +242,14 @@ class TableVisualization extends Visualization {
     makeOption(value, label) {
         const optionElem = document.createElement('option')
         optionElem.value = value
-        optionElem.innerHTML = document.createTextNode(label)
+        optionElem.appendChild(document.createTextNode(label))
         return optionElem
     }
 
     makeButton(label, onclick) {
         const buttonElem = document.createElement('button')
         buttonElem.name = label
-        buttonElem.innerHTML = document.createTextNode(label)
+        buttonElem.appendChild(document.createTextNode(label))
         buttonElem.addEventListener('click', onclick)
         return buttonElem
     }
