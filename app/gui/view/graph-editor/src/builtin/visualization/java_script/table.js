@@ -28,14 +28,19 @@ class TableVisualization extends Visualization {
 
     constructor(data) {
         super(data)
-        this.setRowLimitAndPage(1000, 0);
+        this.setRowLimitAndPage(1000, 0)
     }
 
     setRowLimitAndPage(row_limit, page) {
         if (this.row_limit !== row_limit || this.page !== page) {
             this.row_limit = row_limit
             this.page = page
-            this.setPreprocessor('Standard.Visualization.Table.Visualization', 'prepare_visualization', this.row_limit.toString(), this.page.toString())
+            this.setPreprocessor(
+                'Standard.Visualization.Table.Visualization',
+                'prepare_visualization',
+                this.row_limit.toString(),
+                this.page.toString()
+            )
         }
     }
 
@@ -135,7 +140,7 @@ class TableVisualization extends Visualization {
                             return ''
                         }
                         return params.value.toString()
-                    }
+                    },
                 },
                 onColumnResized: e => this.lockColumnSize(e),
             }
@@ -229,7 +234,10 @@ class TableVisualization extends Visualization {
         }
 
         // Update Status Bar
-        this.createRowDropdown(parsedData.all_rows_count === undefined ? 1 : parsedData.all_rows_count, dataTruncated);
+        this.createRowDropdown(
+            parsedData.all_rows_count === undefined ? 1 : parsedData.all_rows_count,
+            dataTruncated
+        )
 
         // If data is truncated, we cannot rely on sorting/filtering so will disable.
         this.agGridOptions.defaultColDef.filter = !dataTruncated
@@ -261,33 +269,52 @@ class TableVisualization extends Visualization {
         }
 
         if (this.statusElem.childElementCount === 0) {
-            this.statusElem.appendChild(this.makeButton("«", () => this.setRowLimitAndPage(this.row_limit, 0)))
-            this.statusElem.appendChild(this.makeButton("‹", () => this.setRowLimitAndPage(this.row_limit, this.page - 1)))
+            this.statusElem.appendChild(
+                this.makeButton('«', () => this.setRowLimitAndPage(this.row_limit, 0))
+            )
+            this.statusElem.appendChild(
+                this.makeButton('‹', () => this.setRowLimitAndPage(this.row_limit, this.page - 1))
+            )
 
             const selectElem = document.createElement('select')
-            selectElem.name = "row-limit"
-            selectElem.addEventListener('change', e => { this.setRowLimitAndPage(e.target.value, this.page) })
+            selectElem.name = 'row-limit'
+            selectElem.addEventListener('change', e => {
+                this.setRowLimitAndPage(e.target.value, this.page)
+            })
             this.statusElem.appendChild(selectElem)
 
             const rowCountSpanElem = document.createElement('span')
             this.statusElem.appendChild(rowCountSpanElem)
 
-            this.statusElem.appendChild(this.makeButton("›", () => this.setRowLimitAndPage(this.row_limit, this.page + 1)))
-            this.statusElem.appendChild(this.makeButton("»", () => this.setRowLimitAndPage(this.row_limit, pageLimit - 1)))
+            this.statusElem.appendChild(
+                this.makeButton('›', () => this.setRowLimitAndPage(this.row_limit, this.page + 1))
+            )
+            this.statusElem.appendChild(
+                this.makeButton('»', () => this.setRowLimitAndPage(this.row_limit, pageLimit - 1))
+            )
         }
 
         // Enable/Disable Page buttons
-        this.statusElem.children.namedItem("«").disabled = this.page === 0
-        this.statusElem.children.namedItem("‹").disabled = this.page === 0
-        this.statusElem.children.namedItem("›").disabled = this.page === pageLimit - 1
-        this.statusElem.children.namedItem("»").disabled = this.page === pageLimit - 1
+        this.statusElem.children.namedItem('«').disabled = this.page === 0
+        this.statusElem.children.namedItem('‹').disabled = this.page === 0
+        this.statusElem.children.namedItem('›').disabled = this.page === pageLimit - 1
+        this.statusElem.children.namedItem('»').disabled = this.page === pageLimit - 1
 
         // Update row limit dropdown and row count
-        const rowCountElem = this.statusElem.getElementsByTagName("span")[0]
-        const rowLimitElem = this.statusElem.children.namedItem("row-limit")
+        const rowCountElem = this.statusElem.getElementsByTagName('span')[0]
+        const rowLimitElem = this.statusElem.children.namedItem('row-limit')
         if (all_rows_count > 1000) {
             rowLimitElem.style.display = 'inline-block'
-            const rowCounts = [1000, 2500, 5000, 10000, 25000, 50000, 100000, all_rows_count].filter(r => r <= all_rows_count && r <= 100000)
+            const rowCounts = [
+                1000,
+                2500,
+                5000,
+                10000,
+                25000,
+                50000,
+                100000,
+                all_rows_count,
+            ].filter(r => r <= all_rows_count && r <= 100000)
             rowLimitElem.innerHTML = ''
             rowCounts.forEach(r => {
                 const option = this.makeOption(r, r.toString())
@@ -295,10 +322,12 @@ class TableVisualization extends Visualization {
             })
             rowLimitElem.value = this.row_limit
 
-            rowCountElem.innerHTML = dataTruncated ? ` of ${all_rows_count} rows (Sorting/Filtering disabled).` : ` rows.`
+            rowCountElem.innerHTML = dataTruncated
+                ? ` of ${all_rows_count} rows (Sorting/Filtering disabled).`
+                : ` rows.`
         } else {
             rowLimitElem.style.display = 'none'
-            rowCountElem.innerHTML = all_rows_count === 1 ? "1 row." : `${all_rows_count} rows.`
+            rowCountElem.innerHTML = all_rows_count === 1 ? '1 row.' : `${all_rows_count} rows.`
         }
     }
 
