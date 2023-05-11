@@ -294,10 +294,8 @@ export interface CreateProjectRequestBody {
     parentDirectoryId: DirectoryId | null
 }
 
-/**
- * HTTP request body for the "project update" endpoint.
- * Only updates of the `projectName` or `ami` are allowed.
- */
+/** HTTP request body for the "project update" endpoint.
+ * Only updates of the `projectName` or `ami` are allowed. */
 export interface ProjectUpdateRequestBody {
     projectName: string | null
     ami: Ami | null

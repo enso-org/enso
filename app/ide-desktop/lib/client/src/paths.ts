@@ -18,11 +18,9 @@ import * as paths from '../paths'
  * - for development `…` (just the directory with `index.js`). */
 export const APP_PATH = electron.app.getAppPath()
 
-/**
- * Get the path of the directory where the log files of IDE are stored.
+/** The path of the directory in which the log files of IDE are stored.
  *
- * This is based on the Electron `logs` directory, see {@link Electron.App.getPath}.
- */
+ * This is based on the Electron `logs` directory, see {@link Electron.App.getPath}. */
 export const LOGS_DIRECTORY = electron.app.getPath('logs')
 
 /** The application assets, all files bundled with it. */

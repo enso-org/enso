@@ -1,7 +1,8 @@
 /** @file Module containing the API client for the Cloud backend API.
  *
- * Each exported function in the {@link RemoteBackend} in this module corresponds to an API endpoint. The
- * functions are asynchronous and return a `Promise` that resolves to the response from the API. */
+ * Each exported function in the {@link RemoteBackend} in this module corresponds to
+ * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
+ * the response from the API. */
 import * as backend from './backend'
 import * as config from '../config'
 import * as http from '../http'

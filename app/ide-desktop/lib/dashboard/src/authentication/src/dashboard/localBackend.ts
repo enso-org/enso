@@ -173,6 +173,9 @@ export class LocalBackend implements Partial<backend.Backend> {
         LocalBackend.currentlyOpenProject = { id: projectId, project }
     }
 
+    /** Change the name of a project.
+     *
+     * @throws An error if the JSON-RPC call fails. */
     async projectUpdate(
         projectId: backend.ProjectId,
         body: backend.ProjectUpdateRequestBody
@@ -212,6 +215,9 @@ export class LocalBackend implements Partial<backend.Backend> {
         }
     }
 
+    /** Delete a project.
+     *
+     * @throws An error if the JSON-RPC call fails. */
     async deleteProject(projectId: backend.ProjectId): Promise<void> {
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null

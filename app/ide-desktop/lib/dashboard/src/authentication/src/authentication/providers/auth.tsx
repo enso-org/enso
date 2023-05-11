@@ -406,6 +406,8 @@ export function ProtectedLayout() {
 // === SemiProtectedLayout ===
 // ===========================
 
+/** A React Router layout route containing routes only accessible by users that are
+ * in the process of registering. */
 export function SemiProtectedLayout() {
     const { session } = useAuth()
 
