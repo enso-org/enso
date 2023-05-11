@@ -17,6 +17,7 @@ from project.Data.Boolean import Boolean, True, False
 
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 import project.Data.Text.Span as Span_Module
+from project.Data.Index_Sub_Range import handle_unmatched_type
 
 from project.Metadata.Widget import Single_Choice
 from project.Metadata.Choice import Option
@@ -145,9 +146,7 @@ type Codepoint_Ranges
                 Codepoint_Ranges.resolve text (Index_Sub_Range.By_Index range)
             _ : Integer ->
                 Codepoint_Ranges.resolve text (Index_Sub_Range.First range)
-            _ ->
-                # TODO [RW] even better handling for unapplied constructors
-                Error.throw (Type_Error.Error "Text_Sub_Range | Index_Sub_Range | Range | Integer" range "range")
+            _ -> handle_unmatched_type [Text_Sub_Range, Index_Sub_Range, Range, Integer] range
 
     ## PRIVATE
     default_options : Vector Option

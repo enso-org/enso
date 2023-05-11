@@ -214,9 +214,7 @@ take_helper length at single_slice slice_ranges range = case range of
             if start >= length then single_slice 0 0 else
                 range = start.up_to length . with_step step
                 take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
-    _ ->
-        # TODO [RW] even better handling for unapplied constructors
-        Error.throw (Type_Error.Error "Index_Sub_Range | Range | Integer" range "range")
+    _ -> handle_unmatched_type [Index_Sub_Range, Range, Integer] range
 
 ## PRIVATE
    A helper that implements dropping from an arbitrary collection using a set of
@@ -269,6 +267,11 @@ drop_helper length at single_slice slice_ranges range = case range of
             if start >= length then single_slice 0 length else
                 range = start.up_to length . with_step step
                 drop_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
-    _ ->
-        # TODO [RW] even better handling for unapplied constructors
-        Error.throw (Type_Error.Error "Index_Sub_Range | Range | Integer" range "range")
+    _ -> handle_unmatched_type [Index_Sub_Range, Range, Integer] range
+
+## PRIVATE
+handle_unmatched_type expected_types actual_value =
+    if actual_value.is_a Function then Error.throw (Illegal_Argument.Error "Got a Function instead of a range. Perhaps one of the constructor arguments is missing?") else
+        m = Meta.meta actual_value
+        expected_types_str = expected_types . map .to_text . join " | "
+        Error.throw (Type_Error.Error expected_types_str actual_value "range")
