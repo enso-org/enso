@@ -37,6 +37,7 @@ sourcemap = "6.0"
 span-tree = { path = "../../language/span-tree" }
 uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
 wasm-bindgen = { workspace = true }
+bitflags = { workspace = true }
 
 [dependencies.web-sys]
 version = "0.3.4"

@@ -2220,6 +2220,8 @@ impl InstanceDef {
             }
         }
 
+        self.next_child_index.set(ChildIndex(new_children.len()));
+
         // At this point, all children that were in the new list are in the right position. We
         // only need to remove the children that were not in the new list. All of them are still
         // in the children list, and their indices are past the inserted indices.
@@ -2252,7 +2254,6 @@ impl InstanceDef {
 
             drop(children_borrow);
 
-            self.next_child_index.set(ChildIndex(new_children.len()));
             for (bind, weak) in binds_to_drop {
                 bind.drop_with_removed_element(self, weak)
             }
@@ -3091,6 +3092,14 @@ pub trait LayoutOps: Object {
         let horizontal = SideSpacing::new(left.into(), right.into());
         let vertical = SideSpacing::new(bottom.into(), top.into());
         self.display_object().layout.padding.set(Vector2(horizontal, vertical));
+    }
+
+    /// Set vertical and horizontal padding of the object. Padding is the free space inside the
+    /// object.
+    fn set_padding_vh(&self, vertical: impl Into<Unit>, horizontal: impl Into<Unit>) -> &Self {
+        let padding = Vector2(horizontal.into().into(), vertical.into().into());
+        self.display_object().layout.padding.set(padding);
+        self
     }
 }
 
@@ -4679,6 +4688,7 @@ mod hierarchy_tests {
         assert.new_node_parents([false, false, false, true, false]);
     }
 
+    #[test]
     fn replace_children_replace_all_test() {
         let (root, nodes, assert) = ReplaceChildrenTest::<5>::new();
         root.replace_children(&nodes);

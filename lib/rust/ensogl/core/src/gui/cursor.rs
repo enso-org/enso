@@ -639,7 +639,6 @@ impl CursorModel {
             self.stop_drag_internal();
             Some(item)
         } else {
-            warn!("Can't stop dragging an item because no item is being dragged.");
             None
         }
     }
@@ -659,7 +658,6 @@ impl CursorModel {
                 }
             }
         } else {
-            warn!("Can't stop dragging an item because no item is being dragged.");
             None
         }
     }

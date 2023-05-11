@@ -14,7 +14,6 @@ use crate::view;
 use crate::CallWidgetsConfig;
 use crate::Type;
 
-use super::edge;
 use engine_protocol::language_server::ExecutionEnvironment;
 use enso_frp as frp;
 use enso_frp;
@@ -111,6 +110,7 @@ pub mod backdrop {
 
     ensogl::shape! {
         // Disabled to allow interaction with the output port.
+        below = [compound::rectangle::shape];
         pointer_events = false;
         alignment = center;
         (style:Style, selection:f32) {
@@ -446,27 +446,6 @@ impl NodeModel {
     /// Constructor.
     #[profile(Debug)]
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
-        ensogl::shapes_order_dependencies! {
-            app.display.default_scene => {
-                //TODO[ao] The two lines below should not be needed - the ordering should be
-                //    transitive. But removing them causes a visual glitches described in
-                //    https://github.com/enso-org/ide/issues/1624
-                //    The matter should be further investigated.
-                edge::back::corner         -> backdrop;
-                edge::back::line           -> backdrop;
-                edge::back::arrow          -> backdrop;
-                backdrop                   -> error_shape;
-                backdrop                   -> output::port::single_port;
-                backdrop                   -> output::port::multi_port;
-                backdrop                   -> compound::rectangle::shape;
-                output::port::single_port  -> compound::rectangle::shape;
-                output::port::multi_port   -> compound::rectangle::shape;
-                compound::rectangle::shape -> edge::front::corner;
-                compound::rectangle::shape -> edge::front::line;
-                compound::rectangle::shape -> edge::front::arrow;
-            }
-        }
-
         let scene = &app.display.default_scene;
 
         let error_indicator = error_shape::View::new();

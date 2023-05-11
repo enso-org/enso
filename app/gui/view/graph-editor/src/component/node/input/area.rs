@@ -434,7 +434,7 @@ impl Area {
             let ports_active = &frp.set_ports_active;
             edit_or_ready <- frp.set_edit_ready_mode || set_editing;
             reacts_to_hover <- all_with(&edit_or_ready, ports_active, |e, (a, _)| *e && !a);
-            port_vis <- all_with(&edit_or_ready, ports_active, |e, (a, _)| !e && *a);
+            port_vis <- all_with(&set_editing, ports_active, |e, (a, _)| !e && *a);
             frp.output.source.ports_visible <+ port_vis;
             frp.output.source.editing <+ set_editing;
             model.widget_tree.set_ports_visible <+ frp.ports_visible;

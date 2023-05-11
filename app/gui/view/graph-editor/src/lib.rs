@@ -8,6 +8,7 @@
 #![feature(drain_filter)]
 #![feature(entry_insert)]
 #![feature(fn_traits)]
+#![feature(macro_metavar_expr)]
 #![feature(option_result_contains)]
 #![feature(specialization)]
 #![feature(trait_alias)]

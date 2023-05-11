@@ -17,7 +17,6 @@ use ensogl::display::object;
 use ensogl::display::world::with_context;
 use ensogl_component::list_editor::ListEditor;
 use span_tree::node::Kind;
-use std::fmt::Write;
 
 
 
@@ -25,11 +24,16 @@ use std::fmt::Write;
 // === Constants ===
 // =================
 
+/// The type name that enables the list editor widget.
+pub const VECTOR_TYPE: &str = "Standard.Base.Data.Vector.Vector";
+
 /// Extra space to the left and right of the list that will respond to mouse events. The list
 /// insertion points will only be shown within the list bounding box extended by this margin.
 const LIST_HOVER_MARGIN: f32 = 4.0;
 
-
+const ITEMS_GAP: f32 = 10.0;
+const INSERT_HOVER_MARGIN: f32 = 3.0;
+const ITEM_HOVER_MARGIN: f32 = (ITEMS_GAP - INSERT_HOVER_MARGIN * 2.0) * 0.5;
 
 // ===============
 // === Element ===
@@ -139,7 +143,9 @@ impl Widget {
 
             // Adding elements.
             requested_new <- list.request_new_item.filter_map(|resp| resp.gui_interaction_payload());
-            widgets_frp.value_changed <+ requested_new.filter_map(f!((idx) model.borrow_mut().on_new_item(*idx)));
+            eval requested_new(
+                [model, widgets_frp] (idx) model.borrow_mut().on_new_item(*idx, &widgets_frp)
+            );
 
             // Inserting dragged elements.
             inserted_by_user <- list.on_item_added.filter_map(|resp| resp.gui_interaction_payload());
@@ -161,13 +167,16 @@ impl Widget {
             // - The widgets are not set to read-only mode.
             // - The user is not about to switch to edit mode.
             // - The mouse is hovering the list interaction bounding box.
-            enable_interaction <- all_with3(
-                &widgets_frp.set_edit_ready_mode, &widgets_frp.set_read_only, &init,
-                |edit, read_only, _| !edit && !read_only
+            enable_interaction <- all_with4(
+                &widgets_frp.set_ports_visible,
+                &widgets_frp.set_edit_ready_mode,
+                &widgets_frp.set_read_only,
+                &init,
+                |ports, edit, read_only, _| !ports && !edit && !read_only
             );
-            let list_enter = list.on_event_capturing::<mouse::Enter>();
-            let list_leave = list.on_event_capturing::<mouse::Leave>();
-            is_hovered <- bool(&list_leave, &list_enter);
+            let list_enter = list.on_event::<mouse::Over>();
+            let list_leave = list.on_event::<mouse::Out>();
+            is_hovered <- bool(&list_leave, &list_enter).debounce().on_change();
             enable_insertion <- enable_interaction && is_hovered;
             list.enable_all_insertion_points <+ enable_insertion;
             list.enable_last_insertion_point <+ enable_insertion;
@@ -182,22 +191,24 @@ impl Widget {
 
 #[derive(Debug)]
 struct Model {
-    self_id:           WidgetIdentity,
-    list:              ListEditor<ListItem>,
+    self_id:              WidgetIdentity,
+    list:                 ListEditor<ListItem>,
     #[allow(dead_code)]
-    background:        display::shape::Rectangle,
-    elements:          HashMap<WidgetIdentity, Element>,
-    default_value:     String,
-    expression:        String,
-    crumbs:            span_tree::Crumbs,
-    drag_data_rc:      Rc<RefCell<Option<DragData>>>,
-    received_drag:     Option<DragData>,
-    insertion_indices: Vec<usize>,
+    background:           display::shape::Rectangle,
+    elements:             HashMap<WidgetIdentity, Element>,
+    default_value:        DefaultValue,
+    expression:           String,
+    crumbs:               span_tree::Crumbs,
+    drag_data_rc:         Rc<RefCell<Option<DragData>>>,
+    received_drag:        Option<DragData>,
+    insertion_indices:    Vec<usize>,
+    insert_with_brackets: bool,
 }
 
 impl Model {
     fn new(ctx: &super::ConfigContext, display_object: &object::Instance) -> Self {
         let list = ListEditor::new(&ctx.app().cursor);
+        list.gap(ITEMS_GAP);
         list.set_size_hug_y(TEXT_SIZE).allow_grow_y();
         display_object.use_auto_layout().set_children_alignment_left_center();
         let background = display::shape::Rectangle::new();
@@ -217,14 +228,16 @@ impl Model {
             drag_data_rc: default(),
             received_drag: default(),
             insertion_indices: default(),
+            insert_with_brackets: default(),
         }
     }
 
     fn configure(&mut self, root: &object::Instance, cfg: &Config, mut ctx: super::ConfigContext) {
         self.expression.clear();
-        self.default_value.clear();
+        self.default_value = cfg.item_default.clone();
         self.expression.push_str(ctx.expression_at(ctx.span_node.span()));
         self.crumbs = ctx.span_node.crumbs.clone();
+
 
         // Right now, nested list editors are broken. Prevent them from being created. Whenever
         // a nested list editor is requested, we instead use a hierarchical widget to display the
@@ -234,29 +247,20 @@ impl Model {
         ctx.set_extension(Extension { already_in_list: true });
 
         if already_in_list {
-            let child = ctx.builder.child_widget_of_type(
-                ctx.span_node,
-                ctx.info.nesting_level,
-                Some(&super::Configuration::always(super::hierarchy::Config)),
-            );
+            let child = ctx.builder.child_widget(ctx.span_node, ctx.info.nesting_level);
             root.replace_children(&[&child.root_object]);
         } else if ctx.span_node.is_insertion_point() {
-            write!(self.default_value, "[{}]", cfg.item_default).unwrap();
+            self.insert_with_brackets = true;
             self.configure_insertion_point(root, ctx)
         } else {
-            self.default_value.push_str(&cfg.item_default);
             self.configure_vector(root, cfg, ctx)
         }
     }
 
     fn configure_insertion_point(&mut self, root: &object::Instance, ctx: super::ConfigContext) {
         self.elements.clear();
-        let insertion_point = ctx.builder.child_widget_of_type(
-            ctx.span_node,
-            ctx.info.nesting_level,
-            Some(&super::Configuration::always(super::label::Config)),
-        );
-        root.replace_children(&[self.list.display_object(), &*insertion_point]);
+        let insertion_point = ctx.builder.child_widget(ctx.span_node, ctx.info.nesting_level);
+        root.replace_children(&[&*insertion_point, self.list.display_object()]);
     }
 
     fn configure_vector(
@@ -265,15 +269,13 @@ impl Model {
         cfg: &Config,
         ctx: super::ConfigContext,
     ) {
-        let no_nest = ctx.info.nesting_level;
+        ctx.builder.manage_child_margins();
         let nest = ctx.info.nesting_level.next();
         let child_config = cfg.item_widget.as_deref();
 
-        let mut build_child_widget = |i, nest, config, allow_margin: bool| {
-            let mut node = ctx.span_node.clone().child(i).expect("invalid index");
-            if !allow_margin {
-                node.sibling_offset = 0.into();
-            }
+        let mut build_child_widget = |i, config, hover_padding: f32| {
+            let node = ctx.span_node.clone().child(i).expect("invalid index");
+            ctx.builder.override_port_hover_padding(Some(hover_padding));
             ctx.builder.child_widget_of_type(node, nest, config)
         };
 
@@ -281,6 +283,9 @@ impl Model {
         let mut close_bracket = None;
         let mut last_insert_crumb = None;
         let mut list_items = SmallVec::<[ListItem; 16]>::new();
+
+        let insert_config = Configuration::active_insertion_point();
+        let insert_config = Some(&insert_config);
 
         self.insertion_indices.clear();
         for (index, child) in ctx.span_node.node.children.iter().enumerate() {
@@ -291,11 +296,11 @@ impl Model {
 
             match node.kind {
                 Kind::Token if expr == "[" && open_bracket.is_none() => {
-                    let child = build_child_widget(index, no_nest, None, true);
+                    let child = build_child_widget(index, None, 0.0);
                     open_bracket = Some(child.root_object);
                 }
                 Kind::Token if expr == "]" && close_bracket.is_none() => {
-                    let child = build_child_widget(index, no_nest, None, false);
+                    let child = build_child_widget(index, None, 0.0);
                     close_bracket = Some(child.root_object);
                 }
                 Kind::InsertionPoint(_) => {
@@ -303,11 +308,14 @@ impl Model {
                 }
                 Kind::Argument(_) if last_insert_crumb.is_some() => {
                     let insert_index = last_insert_crumb.take().unwrap();
-                    let insert = build_child_widget(insert_index, no_nest, None, false);
-                    let item = build_child_widget(index, nest, child_config, false);
+                    let insert =
+                        build_child_widget(insert_index, insert_config, INSERT_HOVER_MARGIN);
+                    let item = build_child_widget(index, child_config, ITEM_HOVER_MARGIN);
+
                     let element = self.elements.entry(item.id).or_insert_with(|| {
                         self.received_drag.take().map_or_else(Element::new, |d| d.element)
                     });
+                    set_insertion_margins(&*insert, -ITEMS_GAP * 0.5);
                     element.alive = Some(());
                     element.item_crumb = index;
                     element.expr_range = range;
@@ -323,8 +331,10 @@ impl Model {
             }
         }
 
+        let list_empty = list_items.is_empty();
         self.elements.retain(|_, child| child.alive.take().is_some());
         self.insertion_indices.extend(last_insert_crumb);
+        self.insert_with_brackets = open_bracket.is_none() && close_bracket.is_none();
 
         let current_items = self.list.items();
         list_diff(&current_items, &list_items, |op| match op {
@@ -345,8 +355,13 @@ impl Model {
                 },
         });
 
-        let append_insert = last_insert_crumb
-            .map(|index| build_child_widget(index, no_nest, None, false).root_object);
+
+        let append_insert = last_insert_crumb.map(|index| {
+            let insert = build_child_widget(index, insert_config, INSERT_HOVER_MARGIN).root_object;
+            set_insertion_margins(&insert, if list_empty { 0.0 } else { ITEMS_GAP * 0.5 });
+            insert
+        });
+
         let (open_bracket, close_bracket) = open_bracket.zip(close_bracket).unzip();
         let mut children = SmallVec::<[&object::Instance; 4]>::new();
         children.extend(&open_bracket);
@@ -396,12 +411,41 @@ impl Model {
         }
     }
 
-    fn on_new_item(&mut self, at: usize) -> Option<(span_tree::Crumbs, Option<ImString>)> {
-        let expression: ImString = self.default_value.clone().into();
-        match &self.insertion_indices[..] {
+    fn on_new_item(&mut self, at: usize, frp: &super::WidgetsFrp) {
+        let (mut expression, import) = match &self.default_value {
+            DefaultValue::Tag(tag) => (
+                tag.expression.clone().into(),
+                tag.required_import.as_ref().map(|i| ImString::from(i)),
+            ),
+            DefaultValue::Expression(expr) => (expr.clone(), None),
+            DefaultValue::StaticExpression(expr) => (expr.into(), None),
+        };
+
+        if self.insert_with_brackets {
+            expression = format!("[{expression}]").into();
+        }
+
+        let insertion = match &self.insertion_indices[..] {
             &[] => Some((self.crumbs.clone(), Some(expression))),
             ids => ids.get(at).map(|idx| (self.crumbs.sub(*idx), Some(expression))),
+        };
+
+        if let Some(insertion) = insertion {
+            if let Some(import) = import {
+                frp.request_import.emit(import);
+            }
+            frp.value_changed.emit(insertion);
         }
+    }
+}
+
+fn set_insertion_margins(object: &display::object::Instance, offset: f32) {
+    let margin = object.margin().x();
+    let current_left = margin.start;
+    let current_right = margin.start;
+    if current_left.as_pixels() != Some(offset) && current_right.as_pixels() != Some(-offset) {
+        object.set_margin_left(offset);
+        object.set_margin_right(-offset);
     }
 }
 
@@ -414,8 +458,34 @@ pub struct Config {
     pub item_widget:  Option<Rc<Configuration>>,
     /// Default expression to insert when adding new elements.
     #[allow(dead_code)]
-    pub item_default: ImString,
+    pub item_default: DefaultValue,
 }
+
+/// The value to insert when adding a new element using an "plus" cursor.
+#[derive(Debug, Clone, PartialEq)]
+pub enum DefaultValue {
+    /// Use a tag value, both inserting its expression and requesting import if necessary.
+    Tag(span_tree::TagValue),
+    /// Use an arbitrary expression.
+    Expression(ImString),
+    /// Use a statically defined expression. Allows not allocating a new string for each new
+    /// widget on every reconfigure.
+    StaticExpression(&'static str),
+}
+
+impl Default for DefaultValue {
+    fn default() -> Self {
+        DefaultValue::StaticExpression("_")
+    }
+}
+
+impl From<&str> for DefaultValue {
+    fn from(s: &str) -> Self {
+        DefaultValue::Expression(s.into())
+    }
+}
+
+
 
 impl super::SpanWidget for Widget {
     type Config = Config;
@@ -533,4 +603,85 @@ fn list_diff<'old, 'new, T>(
 #[derive(Clone, Copy, Debug, Default)]
 struct Extension {
     already_in_list: bool,
+}
+
+// ======================
+// === Type inference ===
+// ======================
+
+/// Given an optional expected argument type, infer the default vector insertion value.
+pub fn infer_default_value_from_type(typename: Option<&str>) -> &'static str {
+    let variant = typename.map_or(DefaultVariant::NotDefined, |typename| {
+        let possible_types = typename
+            .split(split_type_groups())
+            .map(remove_outer_parentheses)
+            .filter_map(|t| t.strip_prefix(VECTOR_TYPE))
+            .flat_map(|t| t.split(split_type_groups()).map(remove_outer_parentheses));
+
+        possible_types.fold(DefaultVariant::NotDefined, |acc, ty| acc.fold(ty))
+    });
+    let value = variant.to_default_value();
+    console_log!("Infer vector variant from type: {typename:?}, value: {value:?}");
+    value
+}
+
+fn remove_outer_parentheses(s: &str) -> &str {
+    let s = s.trim();
+    s.strip_prefix('(').and_then(|s| s.strip_suffix(')')).map(|s| s.trim()).unwrap_or(s)
+}
+
+fn split_type_groups() -> impl FnMut(char) -> bool {
+    let mut depth = 0i32;
+    move |c| match c {
+        '(' => {
+            depth += 1;
+            false
+        }
+        ')' => {
+            depth -= 1;
+            false
+        }
+        '|' if depth == 0 => true,
+        _ => false,
+    }
+}
+
+#[derive(Debug, PartialEq)]
+enum DefaultVariant {
+    NotDefined,
+    Numeric,
+    Boolean,
+    Text,
+    Any,
+}
+
+impl DefaultVariant {
+    fn from_single(ty: &str) -> Option<Self> {
+        match ty.strip_prefix("Standard.Base.Data.")? {
+            "Numbers.Integer" | "Numbers.Decimal" | "Numbers.Number" => Some(Self::Numeric),
+            "Boolean.Boolean" => Some(Self::Boolean),
+            "Text.Text" => Some(Self::Text),
+            "Any" => Some(Self::Any),
+            _ => None,
+        }
+    }
+
+    fn fold(self, ty: &str) -> Self {
+        match (self, Self::from_single(ty)) {
+            (a, None) => a,
+            (a, Some(b)) if a == b => a,
+            (Self::NotDefined, Some(b)) => b,
+            (Self::Text, _) | (_, Some(Self::Text)) => Self::Text,
+            _ => DefaultVariant::Any,
+        }
+    }
+
+    fn to_default_value(self) -> &'static str {
+        match self {
+            Self::Numeric => "0",
+            Self::Boolean => "False",
+            Self::Text => "''",
+            Self::Any | Self::NotDefined => "_",
+        }
+    }
 }

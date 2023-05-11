@@ -57,6 +57,7 @@ use ensogl::display::shape::StyleWatch;
 use ensogl::gui::cursor;
 use ensogl_component::drop_down::DropdownValue;
 use span_tree::node::Ref as SpanRef;
+use span_tree::TagValue;
 use text::index::Byte;
 
 
@@ -179,6 +180,25 @@ macro_rules! define_widget_modules(
             ),*
         }
 
+        bitflags::bitflags!{
+            /// A set of flags that determine the widget kind.
+            #[derive(Debug, Default, Clone, Copy)]
+            pub struct DynKindFlags: u32 {
+                $(
+                    #[allow(missing_docs, non_upper_case_globals)]
+                    const $name = 1 << ${index()};
+                )*
+            }
+        }
+
+        impl DynConfig {
+            fn flag(&self) -> DynKindFlags {
+                match self {
+                    $(DynConfig::$name(_) => DynKindFlags::$name,)*
+                }
+            }
+        }
+
         $(
             impl const From<<$module::Widget as SpanWidget>::Config> for DynConfig {
                 fn from(config: <$module::Widget as SpanWidget>::Config) -> Self {
@@ -267,51 +287,80 @@ pub struct Configuration {
 }
 
 impl Configuration {
-    /// Derive widget configuration from Enso expression, node data in span tree and inferred value
-    /// type. When no configuration is provided with an override, this function will be used to
-    /// create a default configuration.
+    /// Derive widget configuration from Enso expression, node data in span tree and inferred node
+    /// info, like value type. When no configuration is provided with an override, this function
+    /// will be used to create a default configuration.
+    ///
+    /// Will never return any configuration kind specified in `disallow` parameter, except for
+    /// [`DynConfig::Label`] as an option of last resort.
     fn from_node(
         span_node: &SpanRef,
-        usage_type: Option<crate::Type>,
+        info: &NodeInfo,
         expression: &str,
-        _is_directly_connected: bool,
+        disallow: DynKindFlags,
     ) -> Self {
         use span_tree::node::Kind;
 
         let kind = &span_node.kind;
         let has_children = !span_node.children.is_empty();
+        let allow = move |kind: DynKindFlags| !disallow.contains(kind);
+        use DynKindFlags as F;
 
-        const VECTOR_TYPE: &str = "Standard.Base.Data.Vector.Vector";
         let node_expr = &expression[span_node.span()];
         let looks_like_vector = node_expr.starts_with('[') && node_expr.ends_with(']');
-        let type_is_vector = |tp: &Option<String>| {
-            usage_type
-                .as_ref()
-                .map(|t| t.as_str())
-                .or(tp.as_deref())
-                .map_or(false, |tp| tp.contains(VECTOR_TYPE))
-        };
 
-        match kind {
-            Kind::Argument(arg) if !arg.tag_values.is_empty() =>
-                Self::static_dropdown(arg.name.as_ref().map(Into::into), &arg.tag_values),
-            Kind::Root | Kind::Argument(_) if looks_like_vector => Self::list_editor(),
-            Kind::InsertionPoint(arg) if arg.kind.is_expected_argument() =>
-                if looks_like_vector || type_is_vector(&arg.tp) {
-                    Self::list_editor()
-                } else if !arg.tag_values.is_empty() {
-                    Self::static_dropdown(arg.name.as_ref().map(Into::into), &arg.tag_values)
-                } else {
-                    Self::always(label::Config::default())
-                },
-            Kind::Operation if !has_children =>
-                Self::maybe_with_port(label::Config::default(), is_directly_connected),
-            Kind::Token if !has_children => Self::inert(label::Config::default()),
-            Kind::NamedArgument => Self::inert(hierarchy::Config),
-            Kind::InsertionPoint(_) => Self::always(insertion_point::Config),
-            _ if has_children => Self::always(hierarchy::Config),
-            _ => Self::always(label::Config::default()),
-        }
+        let usage_type = info.usage_type.as_ref().map(|t| t.as_str());
+        let decl_type = kind.tp().map(|t| t.as_str());
+        let decl_or_usage = decl_type.or_else(|| usage_type);
+
+        let first_decl_is_vector =
+            || decl_type.map_or(false, |t| t.starts_with(list_editor::VECTOR_TYPE));
+        let type_may_be_vector = || {
+            looks_like_vector
+                || decl_type.map_or(false, |t| t.contains(list_editor::VECTOR_TYPE))
+                || usage_type.map_or(false, |t| t.contains(list_editor::VECTOR_TYPE))
+        };
+        let allows_list = allow(F::ListEditor) && info.connection.is_none() && type_may_be_vector();
+        let prefer_list = allows_list && (looks_like_vector || first_decl_is_vector());
+        let tags = kind.tag_values().filter(|tags| !tags.is_empty());
+        let first_tag = tags.and_then(|t| t.first());
+
+        let mut config =
+            match (kind, tags) {
+                (Kind::Argument(_) | Kind::InsertionPoint(_), Some(tags))
+                    if (allow(F::SingleChoice) || prefer_list) =>
+                    Self::static_dropdown(kind.name().as_ref().map(Into::into), tags)
+                        .as_list_item_if(prefer_list, decl_or_usage, first_tag),
+
+                (Kind::Root | Kind::Argument(_), _) if allows_list =>
+                    Self::list_editor(None, decl_or_usage, first_tag),
+
+                (Kind::InsertionPoint(p), _)
+                    if p.kind.is_expected_argument() && (allow(F::Label) || prefer_list) =>
+                    Self::always(label::Config::default()).as_list_item_if(
+                        prefer_list,
+                        decl_or_usage,
+                        first_tag,
+                    ),
+
+                _ if allow(F::Hierarchy) && has_children => Self::always(hierarchy::Config),
+
+                (Kind::Token | Kind::Operation, _) if allow(F::Label) =>
+                    Self::inert(label::Config::default()),
+
+                (Kind::InsertionPoint(_), _) if allow(F::InsertionPoint) =>
+                    Self::inert(insertion_point::Config),
+
+                _ => {
+                    // Option of last resort, label is allowed in this case. Skip assert.
+                    return Self::always(label::Config::default());
+                }
+            };
+
+        config.has_port = config.has_port || info.connection.is_some();
+        let allowed = allow(config.kind.flag());
+        assert!(allowed, "Created widget configuration of a kind that was disallowed.");
+        config
     }
 
     const fn maybe_with_port<C>(kind: C, has_port: bool) -> Self
@@ -331,16 +380,45 @@ impl Configuration {
 
     /// Widget configuration for static dropdown, based on the tag values provided by suggestion
     /// database.
-    fn static_dropdown(
-        label: Option<ImString>,
-        tag_values: &[span_tree::TagValue],
-    ) -> Configuration {
+    fn static_dropdown(label: Option<ImString>, tag_values: &[TagValue]) -> Configuration {
         let entries = Rc::new(tag_values.iter().map(Entry::from).collect());
         Self::always(single_choice::Config { label, entries })
     }
 
-    fn list_editor() -> Configuration {
-        Self::always(list_editor::Config { item_widget: None, item_default: "_".into() })
+    fn as_list_item_if(
+        self,
+        condition: bool,
+        typename: Option<&str>,
+        default_tag: Option<&TagValue>,
+    ) -> Self {
+        if condition {
+            self.as_list_item(typename, default_tag)
+        } else {
+            self
+        }
+    }
+
+    fn as_list_item(self, typename: Option<&str>, default_tag: Option<&TagValue>) -> Self {
+        Self::list_editor(Some(Rc::new(self)), typename, default_tag)
+    }
+
+    /// An insertion point that always has a port.
+    pub const fn active_insertion_point() -> Self {
+        Self::always(insertion_point::Config)
+    }
+
+    fn list_editor(
+        item_widget: Option<Rc<Configuration>>,
+        typename: Option<&str>,
+        default_tag: Option<&TagValue>,
+    ) -> Self {
+        let item_default = match default_tag {
+            Some(tag) => list_editor::DefaultValue::Tag(tag.clone()),
+            None => list_editor::DefaultValue::StaticExpression(
+                list_editor::infer_default_value_from_type(typename).into(),
+            ),
+        };
+        Self::always(list_editor::Config { item_widget, item_default })
     }
 }
 
@@ -373,8 +451,8 @@ pub struct Entry {
     pub label:           ImString,
 }
 
-impl From<&span_tree::TagValue> for Entry {
-    fn from(tag_value: &span_tree::TagValue) -> Self {
+impl From<&TagValue> for Entry {
+    fn from(tag_value: &TagValue) -> Self {
         let value: ImString = (&tag_value.expression).into();
         let label: ImString = tag_value.label.as_ref().map_or_else(|| value.clone(), Into::into);
         let required_import = tag_value.required_import.clone().map(Into::into);
@@ -885,6 +963,7 @@ impl TreeModel {
             parent_info: default(),
             last_ast_depth: default(),
             extensions: default(),
+            node_settings: default(),
         };
 
         let child = builder.child_widget(tree.root_ref(), default());
@@ -972,6 +1051,18 @@ pub(super) struct NodeInfo {
     /// Inferred type of Enso expression at this node's span. May differ from the definition type
     /// stored in the span tree.
     pub usage_type:         Option<crate::Type>,
+}
+
+/// Settings that can be manipulated by the widget during its own configuration, and will impact
+/// how the builder will treat the widget's children.
+#[derive(Debug, Clone, Default)]
+struct NodeSettings {
+    /// Whether the widget is manipulating the child margins itself. Will prevent the builder from
+    /// automatically adding margins calculated from span tree offsets.
+    manage_margins:            bool,
+    /// Override the padding of port hover area, which is used during edge dragging to determine
+    /// which port is being hovered.
+    custom_port_hover_padding: Option<f32>,
 }
 
 /// A collection of common data used by all widgets and ports in the widget tree during
@@ -1180,9 +1271,12 @@ impl WidgetIdentity {
 #[derive(Debug, Default)]
 struct PointerUsage {
     /// Next sequence index that will be assigned to a widget created for the same span tree node.
-    next_index: usize,
+    next_index:   usize,
     /// The pointer index of a widget on this span tree that received a port, if any exist already.
-    port_index: Option<usize>,
+    port_index:   Option<usize>,
+    /// The widget configuration kinds that were already used for this span tree node. Those will
+    /// be excluded from config possibilities of the next widget created for this node.
+    used_configs: DynKindFlags,
 }
 
 impl PointerUsage {
@@ -1223,11 +1317,25 @@ struct TreeBuilder<'a> {
     hierarchy:       Vec<NodeHierarchy>,
     pointer_usage:   HashMap<StableSpanIdentity, PointerUsage>,
     parent_info:     Option<NodeInfo>,
+    node_settings:   NodeSettings,
     last_ast_depth:  usize,
     extensions:      Vec<Box<dyn Any>>,
 }
 
 impl<'a> TreeBuilder<'a> {
+    /// Signal to the builder that this widget manages child margins on its own. This will prevent
+    /// the builder from automatically adding margins to the widget's children based on the offset
+    /// from previous span.
+    pub fn manage_child_margins(&mut self) {
+        self.node_settings.manage_margins = true;
+    }
+
+    /// Override horizontal port hover area margin for ports of this children. The margin is used
+    /// during edge dragging to determine which port is being hovered.
+    pub fn override_port_hover_padding(&mut self, padding: Option<f32>) {
+        self.node_settings.custom_port_hover_padding = padding;
+    }
+
     /// Create a new child widget, along with its whole subtree. The widget type will be
     /// automatically inferred, either based on the node kind, or on the configuration provided
     /// from the language server. If possible, an existing widget will be reused under the same
@@ -1302,35 +1410,6 @@ impl<'a> TreeBuilder<'a> {
         let parent_connection = self.parent_info.as_ref().and_then(|info| info.connection);
         let subtree_connection = connection.or(parent_connection);
 
-        // Get widget configuration. There are three potential sources for configuration, that are
-        // used in order, whichever is available first:
-        // 1. The `config_override` argument, which can be set by the parent widget if it wants to
-        //    override the configuration for its child.
-        // 2. The override stored in the span tree node, located using `OverrideKey`. This can be
-        //    set by an external source, e.g. based on language server.
-        // 3. The default configuration for the widget, which is determined based on the node kind,
-        // usage type and whether it has children.
-        let kind = &span_node.kind;
-        let config_override = || {
-            self.override_map.get(&OverrideKey {
-                call_id:       kind.call_id()?,
-                argument_name: kind.argument_name()?.into(),
-            })
-        };
-        let inferred_config;
-        let configuration = match configuration.or_else(config_override) {
-            Some(config) => config,
-            None => {
-                let ty = usage_type.clone();
-                let expr = &self.node_expression;
-                let connected = connection.is_some();
-                inferred_config = Configuration::from_node(&span_node, ty, expr, connected);
-                &inferred_config
-            }
-        };
-
-        let widget_has_port = ptr_usage.request_port(&widget_id, configuration.has_port);
-
         let insertion_index = self.hierarchy.len();
         self.hierarchy.push(NodeHierarchy {
             identity:          widget_id,
@@ -1338,8 +1417,6 @@ impl<'a> TreeBuilder<'a> {
             // This will be updated later, after the child widgets are created.
             total_descendants: 0,
         });
-
-        let old_node = self.old_nodes.remove(&widget_id).map(|e| e.node);
 
         let disabled = self.node_disabled;
         let info = NodeInfo {
@@ -1352,7 +1429,47 @@ impl<'a> TreeBuilder<'a> {
             usage_type,
         };
 
+        // Get widget configuration. There are three potential sources for configuration, that are
+        // used in order, whichever is available and allowed first:
+        // 1. The `config_override` argument, which can be set by the parent widget if it wants to
+        //    override the configuration for its child.
+        // 2. The override stored in the span tree node, located using `OverrideKey`. This can be
+        //    set by an external source, e.g. based on language server.
+        // 3. The default configuration for the widget, which is determined based on the node kind,
+        // usage type and whether it has children.
+        let kind = &span_node.kind;
+        let disallowed_configs = ptr_usage.used_configs;
+
+        let config_override = || {
+            self.override_map
+                .get(&OverrideKey {
+                    call_id:       kind.call_id()?,
+                    argument_name: kind.argument_name()?.into(),
+                })
+                .filter(|cfg| !disallowed_configs.contains(cfg.kind.flag()))
+        };
+
+
+        let inferred_config;
+        let configuration = match configuration.or_else(config_override) {
+            Some(config) => config,
+            None => {
+                let expr = &self.node_expression;
+                inferred_config =
+                    Configuration::from_node(&span_node, &info, expr, disallowed_configs);
+                &inferred_config
+            }
+        };
+
+        ptr_usage.used_configs |= configuration.kind.flag();
+        let widget_has_port = ptr_usage.request_port(&widget_id, configuration.has_port);
+
+        let old_node = self.old_nodes.remove(&widget_id).map(|e| e.node);
+
         let parent_info = std::mem::replace(&mut self.parent_info, Some(info.clone()));
+
+        let port_pad = self.node_settings.custom_port_hover_padding;
+        let saved_node_settings = std::mem::take(&mut self.node_settings);
         let parent_extensions_len = self.extensions.len();
 
         let ctx = ConfigContext { builder: &mut *self, span_node, info, parent_extensions_len };
@@ -1371,7 +1488,7 @@ impl<'a> TreeBuilder<'a> {
                 Some(TreeNode::Widget(widget)) => Port::new(widget, app, frp),
                 None => Port::new(DynWidget::new(&configuration.kind, &ctx), app, frp),
             };
-            port.configure(&configuration.kind, ctx);
+            port.configure(&configuration.kind, ctx, port_pad);
             TreeNode::Port(port)
         } else {
             let mut widget = match old_node {
@@ -1392,18 +1509,23 @@ impl<'a> TreeBuilder<'a> {
         self.parent_info = parent_info;
         self.last_ast_depth = parent_last_ast_depth;
         self.extensions.truncate(parent_extensions_len);
+        self.node_settings = saved_node_settings;
 
-        // Apply left margin to the widget, based on its offset relative to the previous sibling.
         let child_root = child_node.display_object().clone();
-        let offset = match () {
-            _ if !widget_id.is_first_widget_of_span() => 0,
-            _ if is_placeholder => 1,
-            _ => sibling_offset,
-        };
 
-        let left_margin = offset as f32 * WIDGET_SPACING_PER_OFFSET;
-        if child_root.margin().x.start.as_pixels().map_or(true, |px| px != left_margin) {
-            child_root.set_margin_left(left_margin);
+        if !self.node_settings.manage_margins {
+            // Apply left margin to the widget, based on its offset relative to the previous
+            // sibling.
+            let offset = match () {
+                _ if !widget_id.is_first_widget_of_span() => 0,
+                _ if is_placeholder => 1,
+                _ => sibling_offset,
+            };
+
+            let left_margin = offset as f32 * WIDGET_SPACING_PER_OFFSET;
+            if child_root.margin().x.start.as_pixels().map_or(true, |px| px != left_margin) {
+                child_root.set_margin_left(left_margin);
+            }
         }
 
         let entry = TreeEntry { node: child_node, index: insertion_index };
