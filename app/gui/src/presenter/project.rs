@@ -440,7 +440,7 @@ impl Project {
             eval graph_view.execution_environment((env) model.execution_environment_changed(*env));
             eval_ graph_view.execution_environment_play_button_pressed( model.trigger_clean_live_execution());
 
-            eval_ view.dashboard_button_pressed (model.show_dashboard());
+            eval_ view.go_to_dashboard_button_pressed (model.show_dashboard());
         }
 
         let graph_controller = self.model.graph_controller.clone_ref();

@@ -186,6 +186,7 @@ impl Model {
         let size = Vector2(width, height);
         self.shape.set_xy(Vector2(size.x, -size.y) / 2.0);
         self.shape.set_size(size);
+        self.display_object.set_size(size);
         size
     }
 }
@@ -219,9 +220,10 @@ ensogl::define_endpoints! {
 /// The panel is meant to be displayed only when IDE runs in a cloud environment.
 #[derive(Clone, CloneRef, Debug)]
 pub struct View {
-    frp:   Frp,
-    model: Model,
-    style: StyleWatchFrp,
+    #[allow(missing_docs)]
+    pub frp: Frp,
+    model:   Model,
+    style:   StyleWatchFrp,
 }
 
 impl View {

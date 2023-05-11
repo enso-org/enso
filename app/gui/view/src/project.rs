@@ -29,10 +29,12 @@ use ensogl_component::text;
 use ensogl_component::text::selection::Selection;
 use ensogl_hardcoded_theme::Theme;
 use ide_view_graph_editor::NodeSource;
+use top_bar_component::TopBarComponent;
 
 
 
-mod dashboard_button;
+mod go_to_dashboard_button;
+mod top_bar_component;
 
 
 
@@ -44,9 +46,6 @@ mod dashboard_button;
 /// to send `searcher_input_changed` event. The delay ensures we don't needlessly update Component
 /// Browser when user is quickly typing in the expression input.
 const INPUT_CHANGE_DELAY_MS: i32 = 200;
-
-/// The height for the top bar.
-const TOP_BAR_HEIGHT: f32 = 38.0;
 
 
 
@@ -133,7 +132,7 @@ ensogl::define_endpoints! {
         fullscreen_visualization_shown (bool),
         drop_files_enabled             (bool),
         debug_mode                     (bool),
-        dashboard_button_pressed       (),
+        go_to_dashboard_button_pressed (),
     }
 }
 
@@ -148,8 +147,8 @@ struct Model {
     app:                    Application,
     display_object:         display::object::Instance,
     /// These buttons are present only in a cloud environment.
-    window_control_buttons: Immutable<Option<crate::window_control_buttons::View>>,
-    dashboard_button:       dashboard_button::View,
+    window_control_buttons: TopBarComponent<crate::window_control_buttons::View>,
+    go_to_dashboard_button: go_to_dashboard_button::View,
     graph_editor:           Rc<GraphEditor>,
     searcher:               component_browser::View,
     code_editor:            code_editor::View,
@@ -161,7 +160,6 @@ struct Model {
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
         let searcher = app.new_view::<component_browser::View>();
         let graph_editor = app.new_view::<GraphEditor>();
@@ -169,15 +167,9 @@ impl Model {
         let fullscreen_vis = default();
         let debug_mode_popup = debug_mode_popup::View::new(app);
         let popup = popup::View::new(app);
-        let runs_in_web = ARGS.groups.startup.options.platform.value == "web";
-        let window_control_buttons = runs_in_web.as_some_from(|| {
-            let window_control_buttons = app.new_view::<crate::window_control_buttons::View>();
-            display_object.add_child(&window_control_buttons);
-            scene.layers.panel.add(&window_control_buttons);
-            window_control_buttons
-        });
-        let window_control_buttons = Immutable(window_control_buttons);
-        let dashboard_button = dashboard_button::View::new(app);
+        let window_control_buttons =
+            TopBarComponent::new(app, app.new_view::<crate::window_control_buttons::View>());
+        let go_to_dashboard_button = go_to_dashboard_button::View::new(app);
         let project_list = Rc::new(ProjectList::new(app));
 
         display_object.add_child(&graph_editor);
@@ -185,7 +177,8 @@ impl Model {
         display_object.add_child(&searcher);
         display_object.add_child(&debug_mode_popup);
         display_object.add_child(&popup);
-        display_object.add_child(&dashboard_button);
+        display_object.add_child(&window_control_buttons);
+        display_object.add_child(&go_to_dashboard_button);
         display_object.remove_child(&searcher);
 
         let app = app.clone_ref();
@@ -194,7 +187,7 @@ impl Model {
             app,
             display_object,
             window_control_buttons,
-            dashboard_button,
+            go_to_dashboard_button,
             graph_editor,
             searcher,
             code_editor,
@@ -274,22 +267,26 @@ impl Model {
         }
     }
 
-    // Relayouts the top bar elements and returns the new width of the top bar.
+    // Relayouts the top bar elements and returns the new width of the top bar part of the project
+    // view.
     fn relayout_top_bar(
         &self,
         scene_shape: &display::scene::Shape,
         window_control_buttons_width: f32,
     ) -> f32 {
         let top_left = Vector2(-scene_shape.width, scene_shape.height) / 2.0;
-        if let Some(window_control_buttons) = &*self.window_control_buttons {
-            window_control_buttons.set_xy(top_left);
-        }
-        let dashboard_button_offset = Vector2(window_control_buttons_width, 0.0);
-        let dashboard_button_origin = Vector2(dashboard_button::SIZE, -TOP_BAR_HEIGHT) / 2.0;
-        let dashboard_button_pos = top_left + dashboard_button_offset + dashboard_button_origin;
-        self.dashboard_button.set_xy(dashboard_button_pos);
-        let top_bar_width = dashboard_button_offset.x + dashboard_button::SIZE;
-        top_bar_width
+        self.window_control_buttons.set_xy(top_left);
+        let go_to_dashboard_button_offset = Vector2(window_control_buttons_width, 0.0);
+        let go_to_dashboard_button_origin = Vector2(
+            go_to_dashboard_button::SIZE / 2.0,
+            crate::graph_editor::MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER,
+        );
+        let go_to_dashboard_button_pos =
+            top_left + go_to_dashboard_button_offset + go_to_dashboard_button_origin;
+        self.go_to_dashboard_button.set_xy(go_to_dashboard_button_pos);
+        let project_view_top_bar_width =
+            go_to_dashboard_button_offset.x + go_to_dashboard_button::SIZE;
+        project_view_top_bar_width
     }
 
     fn on_close_clicked(&self) {
@@ -389,6 +386,7 @@ impl View {
         let frp = Frp::new();
         let network = &frp.network;
         let searcher = &model.searcher.frp();
+        let window_control_buttons = &model.window_control_buttons;
         let graph = &model.graph_editor.frp;
         let code_editor = &model.code_editor;
         let project_list = &model.project_list;
@@ -406,27 +404,25 @@ impl View {
 
         // === Top Bar ===
 
-        let window_control_buttons_width = if let Some(window_control_buttons) =
-            &*model.window_control_buttons
-        {
-            frp::extend! { network
-                window_control_buttons_size <- all(init, window_control_buttons.size)._1();
-                window_control_buttons_width <- window_control_buttons_size.map(|size| size.x);
-                eval_ window_control_buttons.close (model.on_close_clicked());
-                eval_ window_control_buttons.fullscreen (model.on_fullscreen_clicked());
-            }
-            window_control_buttons_width
-        } else {
-            frp::extend! { network
-                window_control_buttons_width <- init.constant(crate::graph_editor::TOP_BAR_ITEM_MARGIN);
-            }
-            window_control_buttons_width
-        };
         let scene_shape = scene.shape().clone_ref();
-        let dashboard_button = &model.dashboard_button.frp;
+        let go_to_dashboard_button = &model.go_to_dashboard_button.frp;
         frp::extend! { network
-            frp.source.dashboard_button_pressed <+ dashboard_button.is_pressed.on_true();
-            top_bar_width <- all_with3(
+            window_control_buttons_width_uninitialized <-
+                init.constant(crate::graph_editor::TOP_BAR_ITEM_MARGIN);
+            let window_control_buttons_display_object = window_control_buttons.display_object();
+            window_control_buttons_width_initialized <-
+                window_control_buttons_display_object.on_resized.map(|new_size| new_size.x);
+            window_control_buttons_width <- any(
+                window_control_buttons_width_uninitialized,
+                window_control_buttons_width_initialized
+            );
+            eval_ window_control_buttons.close (model.on_close_clicked());
+            eval_ window_control_buttons.fullscreen (model.on_fullscreen_clicked());
+
+            frp.source.go_to_dashboard_button_pressed <+
+                go_to_dashboard_button.is_pressed.on_true();
+
+            project_view_top_bar_width <- all_with3(
                 &init,
                 &scene_shape,
                 &window_control_buttons_width,
@@ -434,7 +430,7 @@ impl View {
                     model.relayout_top_bar(scene_shape, *window_control_buttons_width)
                 )
             );
-            graph.top_bar_offset_x <+ top_bar_width;
+            graph.graph_editor_top_bar_offset_x <+ project_view_top_bar_width;
         }
 
         frp::extend! { network
@@ -675,6 +671,9 @@ impl View {
         }
 
         init.emit(());
+        if ARGS.groups.startup.options.platform.value == "web" {
+            window_control_buttons.show();
+        }
 
         Self { model, frp }
     }

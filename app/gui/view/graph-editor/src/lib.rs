@@ -110,7 +110,8 @@ const MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH: f32 = 52.0;
 const MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT: f32 = 12.0;
 /// Horizontal and vertical offset between traffic lights and window border
 const MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET: f32 = 13.0;
-const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
+/// The vertical center of the traffic lights, relative to the window border.
+pub const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
     -MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET - MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT / 2.0;
 const MAX_ZOOM: f32 = 1.0;
 /// Space between items in the top bar.
@@ -451,7 +452,9 @@ ensogl::define_endpoints_2! {
 
         // === Layout ===
 
-        top_bar_offset_x (f32),
+        /// The offset in the x-axis at which the part of the top bar of the graph editor should
+        /// start.
+        graph_editor_top_bar_offset_x (f32),
 
 
         // === Read-only mode ===
