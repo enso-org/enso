@@ -13,6 +13,7 @@
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
+#![feature(array_windows)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -1470,6 +1471,7 @@ impl GraphEditorModelWithNetwork {
         let edge_id = edge.id();
         self.add_child(&edge);
         self.edges.insert(edge.clone_ref());
+        /*
         if let Some(network) = &self.network.upgrade_or_warn() {
             frp::extend! { network
                 eval_ edge.view.frp.shape_events.mouse_down_primary (edge_click.emit(edge_id));
@@ -1477,6 +1479,7 @@ impl GraphEditorModelWithNetwork {
                 eval_ edge.view.frp.shape_events.mouse_out (edge_out.emit(edge_id));
             }
         }
+         */
         edge_id
     }
 
@@ -2931,32 +2934,27 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         edge_id.map(|id| (id, *pos))
     ).unwrap();
 
-    // We do not want edge hover to occur for detached edges.
-    set_edge_hover <- edge_over_pos.gate_not(&has_detached_edge);
-
-    eval set_edge_hover ([model]((edge_id,pos)) {
-         if let Some(edge) = model.edges.get_cloned_ref(edge_id){
-            edge.frp.hover_position.emit(Some(*pos));
-            edge.frp.redraw.emit(());
-        }
-    });
-
     remove_split <- any(&edge_out,&edge_mouse_down);
+            /*
     eval remove_split ([model](edge_id) {
          if let Some(edge) = model.edges.get_cloned_ref(edge_id){
             edge.frp.hover_position.emit(None);
             edge.frp.redraw.emit(());
         }
     });
+             */
     edge_click <- map2(&edge_mouse_down,&cursor_pos_in_scene,|edge_id,pos|(*edge_id,*pos));
     valid_edge_disconnect_click <- edge_click.gate_not(&has_detached_edge).gate_not(&inputs.set_read_only);
 
     edge_is_source_click <- valid_edge_disconnect_click.map(f!([model]((edge_id,pos)) {
+            /*
         if let Some(edge) = model.edges.get_cloned_ref(edge_id){
             edge.port_to_detach_for_position(*pos) == component::edge::PortType::OutputPort
         } else {
             false
         }
+             */
+            false
     }));
 
     edge_source_click <- valid_edge_disconnect_click.gate(&edge_is_source_click);
