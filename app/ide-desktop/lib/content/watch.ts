@@ -1,7 +1,4 @@
 /** @file File watch and compile service. */
-import * as path from 'node:path'
-import * as url from 'node:url'
-
 import * as esbuild from 'esbuild'
 import * as portfinder from 'portfinder'
 import chalk from 'chalk'
@@ -15,7 +12,6 @@ import * as dashboardBundler from '../dashboard/esbuild-config'
 
 const PORT = 8080
 const HTTP_STATUS_OK = 200
-const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 
 // ===============
 // === Watcher ===
@@ -32,10 +28,6 @@ async function watch() {
     const opts = bundler.bundlerOptions({
         ...bundler.argumentsFromEnv(),
         devMode: true,
-    })
-    opts.entryPoints.push({
-        in: path.resolve(THIS_PATH, 'src', 'serviceWorker.ts'),
-        out: 'serviceWorker',
     })
     const builder = await esbuild.context(opts)
     await builder.watch()
