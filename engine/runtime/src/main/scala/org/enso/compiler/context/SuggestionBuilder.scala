@@ -1,5 +1,6 @@
 package org.enso.compiler.context
 
+import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.resolve.{
@@ -26,7 +27,8 @@ import scala.collection.mutable
   */
 final class SuggestionBuilder[A: IndexedSource](
   val source: A,
-  val typeGraph: TypeGraph
+  val typeGraph: TypeGraph,
+  val compiler: Compiler
 ) {
 
   import SuggestionBuilder._
@@ -379,21 +381,43 @@ final class SuggestionBuilder[A: IndexedSource](
     )
   }
 
-  private def buildResolvedUnionTypeName(
+  /** Build a [[TypeArg]] from the resolved type name.
+    *
+    * @param resolvedName the resolved type name
+    * @return the corresponding type argument
+    */
+  private def buildResolvedTypeName(
     resolvedName: BindingsMap.ResolvedName
-  ): TypeArg = resolvedName match {
-    case tp: BindingsMap.ResolvedType =>
-      if (tp.getVariants.size > 1) {
-        TypeArg.Sum(
-          Some(tp.qualifiedName),
-          tp.getVariants.map(r => TypeArg.Value(r.qualifiedName))
-        )
-      } else {
-        TypeArg.Sum(Some(tp.qualifiedName), Seq.empty)
-      }
-    case _: BindingsMap.ResolvedName =>
-      TypeArg.Value(resolvedName.qualifiedName)
-  }
+  ): TypeArg =
+    resolvedName match {
+      case tp: BindingsMap.ResolvedType =>
+        tp.getVariants.size match {
+          case 0 =>
+            val isBuiltinTypeWithValues =
+              tp.tp.builtinType &&
+              Option(compiler.builtins.getBuiltinType(tp.tp.name))
+                .exists(_.containsValues())
+            if (isBuiltinTypeWithValues) {
+              TypeArg.Sum(Some(tp.qualifiedName), Seq())
+            } else {
+              TypeArg.Sum(
+                Some(tp.qualifiedName),
+                Seq(TypeArg.Value(tp.qualifiedName))
+              )
+            }
+
+          case 1 =>
+            TypeArg.Sum(Some(tp.qualifiedName), Seq())
+
+          case _ =>
+            TypeArg.Sum(
+              Some(tp.qualifiedName),
+              tp.getVariants.map(r => TypeArg.Value(r.qualifiedName))
+            )
+        }
+      case _: BindingsMap.ResolvedName =>
+        TypeArg.Value(resolvedName.qualifiedName)
+    }
 
   /** Build type signature from the ir metadata.
     *
@@ -437,7 +461,7 @@ final class SuggestionBuilder[A: IndexedSource](
       case tname: IR.Name =>
         tname
           .getMetadata(TypeNames)
-          .map(t => buildResolvedUnionTypeName(t.target))
+          .map(t => buildResolvedTypeName(t.target))
           .getOrElse(TypeArg.Value(QualifiedName.simpleName(tname.name)))
 
       case _ =>
@@ -551,24 +575,29 @@ final class SuggestionBuilder[A: IndexedSource](
       isSuspended  = varg.suspended,
       hasDefault   = varg.defaultValue.isDefined,
       defaultValue = varg.defaultValue.flatMap(buildDefaultValue),
-      tagValues = targ match {
-        case s: TypeArg.Sum => {
-          val tagValues = pluckVariants(s)
-          if (tagValues.nonEmpty) {
-            Some(tagValues)
-          } else {
-            None
-          }
-        }
-        case _ => None
-      }
+      tagValues    = buildTagValues(targ)
     )
 
-  private def pluckVariants(arg: TypeArg): Seq[String] = arg match {
-    case TypeArg.Sum(_, List())   => Seq()
-    case TypeArg.Sum(_, variants) => variants.flatMap(pluckVariants)
-    case TypeArg.Value(n)         => Seq(n.toString)
-    case _                        => Seq()
+  /** Build tag values of type argument.
+    *
+    * @param targ the type argument
+    * @return the list of tag values
+    */
+  private def buildTagValues(targ: TypeArg): Option[Seq[String]] = {
+    def go(arg: TypeArg): Seq[String] = arg match {
+      case TypeArg.Sum(_, List())   => Seq()
+      case TypeArg.Sum(_, variants) => variants.flatMap(go)
+      case TypeArg.Value(n)         => Seq(n.toString)
+      case _                        => Seq()
+    }
+
+    targ match {
+      case s: TypeArg.Sum =>
+        val tagValues = go(s)
+        Option.unless(tagValues.isEmpty)(tagValues)
+      case _ => None
+
+    }
   }
 
   /** Build the name of type argument.
@@ -661,8 +690,11 @@ object SuggestionBuilder {
     * @param module the module to index
     * @return the suggestions builder for the module
     */
-  def apply(module: Module): SuggestionBuilder[CharSequence] =
-    SuggestionBuilder(module.getSource.getCharacters)
+  def apply(
+    module: Module,
+    compiler: Compiler
+  ): SuggestionBuilder[CharSequence] =
+    SuggestionBuilder(module.getSource.getCharacters, compiler)
 
   /** Create the suggestion builder.
     *
@@ -672,17 +704,21 @@ object SuggestionBuilder {
     */
   def apply[A: IndexedSource](
     source: A,
-    typeGraph: TypeGraph
+    typeGraph: TypeGraph,
+    compiler: Compiler
   ): SuggestionBuilder[A] =
-    new SuggestionBuilder[A](source, typeGraph)
+    new SuggestionBuilder[A](source, typeGraph, compiler)
 
   /** Create the suggestion builder.
     *
     * @param source the text source
     * @tparam A the type of the text source
     */
-  def apply[A: IndexedSource](source: A): SuggestionBuilder[A] =
-    new SuggestionBuilder[A](source, Types.getTypeHierarchy)
+  def apply[A: IndexedSource](
+    source: A,
+    compiler: Compiler
+  ): SuggestionBuilder[A] =
+    new SuggestionBuilder[A](source, Types.getTypeHierarchy, compiler)
 
   /** A single level of an `IR`.
     *
@@ -722,7 +758,7 @@ object SuggestionBuilder {
 
     /** Function type, like `A -> A`.
       *
-      * @param signature the list of types defining the function
+      * @param arguments the list of types defining the function
       */
     case class Function(arguments: Vector[TypeArg], result: TypeArg)
         extends TypeArg
