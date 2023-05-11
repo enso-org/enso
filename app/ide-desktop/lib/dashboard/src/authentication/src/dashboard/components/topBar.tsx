@@ -120,14 +120,15 @@ function TopBar(props: TopBarProps) {
             </a>
             {/* User profile and menu. */}
             <div className="transform">
-                <img
-                    src="https://faces-img.xcdn.link/image-lorem-face-4742.jpg"
-                    className="rounded-full w-8 h-8 bg-cover cursor-pointer"
+                <div
                     onClick={event => {
                         event.stopPropagation()
                         setUserMenuVisible(!userMenuVisible)
                     }}
-                />
+                    className="rounded-full w-8 h-8 bg-cover cursor-pointer"
+                >
+                    {svg.DEFAULT_USER_ICON}
+                </div>
             </div>
         </div>
     )

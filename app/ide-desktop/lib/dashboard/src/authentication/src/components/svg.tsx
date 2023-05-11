@@ -254,6 +254,16 @@ export const COMPUTER_ICON = (
     </svg>
 )
 
+/** An icon representing a user without a profile picture. */
+export const DEFAULT_USER_ICON = (
+    <svg height={32} width={32} viewBox="2 2 20 20" xmlns="http://www.w3.org/2000/svg">
+        <path
+            d="M6 20a10 10 0 0 1 6 -18 10 10 0 0 1 6 18 6 6 0 0 0 -4 -5 4.3 4.3 0 0 0 -2 -8 4.3 4.3 0 0 0 -2 8 6 6 0 0 0 -4 5"
+            fill="#888888"
+        />
+    </svg>
+)
+
 export interface StopIconProps {
     className?: string
 }
