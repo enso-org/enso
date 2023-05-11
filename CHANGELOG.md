@@ -153,10 +153,13 @@
   execution shortcuts changed from
   <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>t</kbd>/<kbd>r</kbd> to
   <kbd>cmd</kbd>+<kbd>alt</kbd>+<kbd>t</kbd>/<kbd>r</kbd>.
+- [Fixed a bug where selecting a nested breadcrumb would cause the order of
+  breadcrumbs to change incorrectly.][6617]
 
 [6421]: https://github.com/enso-org/enso/pull/6421
 [6530]: https://github.com/enso-org/enso/pull/6530
 [6620]: https://github.com/enso-org/enso/pull/6620
+[6617]: https://github.com/enso-org/enso/pull/6617
 
 #### EnsoGL (rendering engine)
 
