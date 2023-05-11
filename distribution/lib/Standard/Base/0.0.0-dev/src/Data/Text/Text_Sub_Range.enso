@@ -55,6 +55,24 @@ type Text_Sub_Range
         Text_Sub_Range.After delimiter -> "After " + delimiter.pretty
         Text_Sub_Range.After_Last delimiter -> "After Last " + delimiter.pretty
 
+    ## PRIVATE
+    default_options : Vector Option
+    default_options =
+        o1 = [Option "Before ' '" "(Text_Sub_Range.Before ' ')"]
+        o2 = [Option "Before_Last ' '" "(Text_Sub_Range.Before_Last ' ')"]
+        o3 = [Option "After ' '" "(Text_Sub_Range.After ' ')"]
+        o4 = [Option "After_Last ' '" "(Text_Sub_Range.After_Last ' ')"]
+        [o1, o2, o3, o4]
+
+    ## PRIVATE
+       The widget for `Text_Sub_Range` also displays options for
+       `Index_Sub_Range` since the former is supposed to 'expand' the latter and
+       is always used together with it.
+    default_widget : Single_Choice
+    default_widget =
+        options = Index_Sub_Range.default_options + Text_Sub_Range.default_options
+        Single_Choice display=Display.Always options
+
 type Codepoint_Ranges
     ## PRIVATE
        A list of codepoint ranges corresponding to the matched parts of the
@@ -148,23 +166,6 @@ type Codepoint_Ranges
                 Codepoint_Ranges.resolve text (Index_Sub_Range.First range)
             _ -> handle_unmatched_type [Text_Sub_Range, Index_Sub_Range, Range, Integer] range
 
-    ## PRIVATE
-    default_options : Vector Option
-    default_options =
-        o1 = [Option "Before ' '" "(Text_Sub_Range.Before ' ')"]
-        o2 = [Option "Before_Last ' '" "(Text_Sub_Range.Before_Last ' ')"]
-        o3 = [Option "After ' '" "(Text_Sub_Range.After ' ')"]
-        o4 = [Option "After_Last ' '" "(Text_Sub_Range.After_Last ' ')"]
-        [o1, o2, o3, o4]
-
-    ## PRIVATE
-       The widget for `Text_Sub_Range` also displays options for
-       `Index_Sub_Range` since the former is supposed to 'expand' the latter and
-       is always used together with it.
-    default_widget : Single_Choice
-    default_widget =
-        options = Index_Sub_Range.default_options + Text_Sub_Range.default_options
-        Single_Choice display=Display.Always options
 
 ## PRIVATE
    Utility function to find char indices for Text_Sub_Range.
