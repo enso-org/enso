@@ -105,10 +105,12 @@ case object BindingAnalysis extends IRPass {
       n.exportedSymbols = bp.exportedSymbols
       n
     } else {
-      BindingsMap(
+      val n = BindingsMap(
         definedSumTypes ++ importedPolyglot ++ moduleMethods,
         ModuleReference.Concrete(moduleContext.module)
       )
+      moduleContext.module.bindings = n
+      n
     }
 
     ir.updateMetadata(

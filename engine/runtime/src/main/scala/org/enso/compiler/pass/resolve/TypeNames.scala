@@ -40,8 +40,11 @@ case object TypeNames extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    val bindingsMap =
+    var bindingsMap =
       ir.unsafeGetMetadata(BindingAnalysis, "bindings analysis did not run")
+    if (moduleContext.module.bindings != null) {
+      bindingsMap = moduleContext.module.bindings
+    }
     ir.copy(bindings = ir.bindings.map { d =>
       val mapped = d.mapExpressions(resolveExpression(bindingsMap, _))
       doResolveType(

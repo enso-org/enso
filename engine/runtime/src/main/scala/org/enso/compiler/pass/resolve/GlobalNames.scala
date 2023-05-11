@@ -53,10 +53,13 @@ case object GlobalNames extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    val scopeMap = ir.unsafeGetMetadata(
+    var scopeMap = ir.unsafeGetMetadata(
       BindingAnalysis,
       "No binding analysis on the module"
     )
+    if (moduleContext.module.bindings != null) {
+      scopeMap = moduleContext.module.bindings
+    }
     val freshNameSupply = moduleContext.freshNameSupply.getOrElse(
       throw new CompilerError(
         "No fresh name supply passed to GlobalNames resolver."

@@ -99,8 +99,20 @@ class ImportResolver(compiler: Compiler) {
                   .map { concreteBindings =>
                     concreteBindings
                   }
-                current.bindings = converted.getOrElse(null)
-                current.bindings = converted.getOrElse(null)
+                if (converted.isDefined) {
+                  if (current.bindings == null) {
+                    current.bindings = converted.get
+                  } else {
+                    val update: BindingsMap = current.bindings
+                    val imports = converted.get.resolvedImports ++ update.resolvedImports
+                    val exports = converted.get.resolvedExports ++ update.resolvedExports
+                    val symbols = converted.get.exportedSymbols ++ update.exportedSymbols
+                    converted.get.resolvedImports = imports
+                    converted.get.resolvedExports = exports
+                    converted.get.exportedSymbols = symbols
+                    current.bindings = converted.get
+                  }
+                }
                 (
                   converted
                     .map(
