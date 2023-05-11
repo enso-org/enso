@@ -273,7 +273,17 @@ drop_helper length at single_slice slice_ranges range = case range of
 
 ## PRIVATE
 handle_unmatched_type expected_types actual_value =
-    if actual_value.is_a Function then Error.throw (Illegal_Argument.Error "Got a Function instead of a range. Perhaps one of the constructor arguments is missing?") else
-        m = Meta.meta actual_value
+    m = Meta.meta actual_value
+    return_type_error =
         expected_types_str = expected_types . map .to_text . join " | "
         Error.throw (Type_Error.Error expected_types_str actual_value "range")
+    case m of
+        _ : Meta.Constructor ->
+            parent_type = m.parent_type
+            is_expected_constructor = expected_types.map Meta.meta . contains parent_type
+            if is_expected_constructor.not then return_type_error else
+                msg = "The constructor " + m.name + " is missing some arguments."
+                Error.throw (Illegal_Argument.Error msg)
+        _ -> case actual_value.is_a Function of
+            True  -> Error.throw (Illegal_Argument.Error "Got a Function instead of a range. Perhaps one of the constructor arguments is missing?")
+            False -> return_type_error

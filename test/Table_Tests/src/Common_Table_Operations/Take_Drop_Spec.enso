@@ -174,7 +174,7 @@ spec setup =
 
             r3 = t.take (Index_Sub_Range.First _)
             r3.should_fail_with Illegal_Argument
-            r3.catch.to_display_text . should_equal "Got a Function instead of a range. Perhaps one of the constructor arguments is missing?"
+            r3.catch.to_display_text . should_contain "Got a Function instead of a range. Perhaps one of the constructor arguments is missing?"
 
     Test.group prefix+"Column.take/drop" pending=take_drop_by_pending <|
         table =
@@ -348,4 +348,4 @@ spec setup =
 
             r3 = c.take (Index_Sub_Range.First _)
             r3.should_fail_with Illegal_Argument
-            r3.catch.to_display_text . should_equal "Got a Function instead of a range. Perhaps one of the constructor arguments is missing?"
+            r3.catch.to_display_text . should_contain "Got a Function instead of a range. Perhaps one of the constructor arguments is missing?"
