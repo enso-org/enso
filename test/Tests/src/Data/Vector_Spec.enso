@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Data.Array_Proxy import Array_Proxy
 import Standard.Base.Data.Vector.Empty_Error
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
@@ -760,5 +761,7 @@ spec =
         arr = ArrayList.new
         v.each (x -> arr.add x)
         arr
+    type_spec "Use Array_Proxy as vectors" v->
+        Array_Proxy.new v.length (ix -> v.at ix)
 
 main = Test_Suite.run_main spec
