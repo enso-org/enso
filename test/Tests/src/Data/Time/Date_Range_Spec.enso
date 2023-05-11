@@ -163,14 +163,14 @@ spec =
             r2 = (Date.new 2020 03 20).down_to (Date.new 2020 03 01) include_end=True . with_step Date_Period.Week
 
             r1.to_text . should_equal '(Date_Range from 2020-02-28 up to 2020-03-02)'
-            r2.to_text . should_equal '(Date_Range from 2020-03-20 down to 2020-03-01 by 7D)'
+            r2.to_text . should_equal '(Date_Range from 2020-03-20 down to 2020-02-29 by 7D)'
 
             r1.pretty . should_equal r1.to_text
             r2.pretty . should_equal r2.to_text
 
             r1.to_display_text . should_equal '[2020-02-28 .. 2020-03-02]'
-            r2.to_display_text . should_equal '[2020-03-20 .. 2020-03-01 by -7D]'
+            r2.to_display_text . should_equal '[2020-03-20 .. 2020-02-29 by -7D]'
 
         Test.specify "should be serializable to JSON" <|
             r = (Date.new 2020 01 01).up_to (Date.new 2020 01 03)
-            r.to_json . should_equal 'TODO'
+            r.to_json . should_equal '{"type":"Date_Range","start":{"type":"Date","constructor":"new","day":1,"month":1,"year":2020},"end":{"type":"Date","constructor":"new","day":3,"month":1,"year":2020},"step":{"type":"Period","constructor":"new","days":1},"increasing":true}'

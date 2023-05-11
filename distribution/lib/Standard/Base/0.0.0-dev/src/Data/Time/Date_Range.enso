@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Filter_Condition.Filter_Condition
+import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Range.Empty_Error
 import project.Data.Range.Extensions
@@ -78,7 +79,7 @@ type Date_Range
     to_text self =
         middle = if self.increasing then " up to " else " down to "
         step = if self.step == (Period.new days=1) then "" else
-            " by " + self.step.to_text
+            " by " + self.step.to_display_text
         "(Date_Range from " + self.start.to_text + middle + self.end.to_text + step + ")"
 
     ## Convert to a display representation.
