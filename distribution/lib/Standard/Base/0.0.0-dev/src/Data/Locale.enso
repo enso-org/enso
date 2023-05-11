@@ -25,7 +25,7 @@ type Locale
        Gets the default drop down option for this encoding.
     default_widget : Single_Choice
     default_widget =
-        values = [Locale.from_language_tag "bn-BD", Locale.brazil]
+        values = [Option "bn-BD" 'Locale.from_language_tag "bn-BD"', Option "brazil" "Locale.brazil"]
         Single_Choice values=values display=Display.When_Modified
 
     ## Construct a new locale.
