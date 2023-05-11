@@ -183,7 +183,8 @@ impl Module {
         let this = Rc::new(Module { model, language_server });
         let content = this.model.serialized_content()?;
         let first_invalidation = this.full_invalidation(&summary, content);
-        executor::global::spawn(Self::runner(this.clone_ref(), summary, first_invalidation));
+        let runner = Self::runner(this.clone_ref(), summary, first_invalidation);
+        executor::global::spawn("open module", runner);
         Ok(this)
     }
 
@@ -556,7 +557,7 @@ impl Drop for Module {
     fn drop(&mut self) {
         let file_path = self.path().file_path().clone();
         let language_server = self.language_server.clone_ref();
-        executor::global::spawn(async move {
+        executor::global::spawn("drop module", async move {
             let result = language_server.client.close_text_file(&file_path).await;
             if let Err(err) = result {
                 error!("Error when closing module file {file_path}: {err}");

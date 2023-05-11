@@ -162,7 +162,7 @@ impl Model {
             let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
             let popup = self.view.popup().clone_ref();
             let name = name.into();
-            executor::global::spawn(async move {
+            executor::global::spawn("rename_project", async move {
                 if let Err(error) = project.rename_project(name).await {
                     let error_message = match error.downcast::<ProjectNameInvalid>() {
                         Ok(error) => error.to_string(),
@@ -199,7 +199,7 @@ impl Model {
     fn save_project_snapshot(&self) {
         let controller = self.controller.clone_ref();
         let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
-        executor::global::spawn(async move {
+        executor::global::spawn("save_project_snapshot", async move {
             if let Err(err) = controller.save_project_snapshot().await {
                 error!("Error while saving project snapshot: {err}");
             } else {
@@ -225,7 +225,7 @@ impl Model {
     fn restore_project_snapshot(&self) {
         let controller = self.controller.clone_ref();
         let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
-        executor::global::spawn(async move {
+        executor::global::spawn("restore_project_snapshot", async move {
             if let Err(err) = controller.restore_project_snapshot().await {
                 error!("Error while restoring project snapshot: {err}");
             } else {
@@ -245,7 +245,7 @@ impl Model {
 
     fn execution_context_interrupt(&self) {
         let controller = self.graph_controller.clone_ref();
-        executor::global::spawn(async move {
+        executor::global::spawn("execution_context_interrupt", async move {
             if let Err(err) = controller.interrupt().await {
                 error!("Error interrupting execution context: {err}");
             }
@@ -254,7 +254,7 @@ impl Model {
 
     fn execution_context_restart(&self) {
         let controller = self.graph_controller.clone_ref();
-        executor::global::spawn(async move {
+        executor::global::spawn("execution_context_restart", async move {
             if let Err(err) = controller.restart().await {
                 error!("Error restarting execution context: {err}");
             }
@@ -265,7 +265,7 @@ impl Model {
     fn project_list_opened(&self, project_list_ready: frp::Source<()>) {
         let controller = self.ide_controller.clone_ref();
         let projects_list = self.available_projects.clone_ref();
-        executor::global::spawn(async move {
+        executor::global::spawn("project_list_opened", async move {
             if let Ok(api) = controller.manage_projects() {
                 if let Ok(projects) = api.list_projects().await {
                     let projects = projects.into_iter();
@@ -284,7 +284,7 @@ impl Model {
         let view = self.view.clone_ref();
         let status_bar = self.status_bar.clone_ref();
         let id = *id_in_list;
-        executor::global::spawn(async move {
+        executor::global::spawn("project presenter::open_project", async move {
             let app = js::app_or_panic();
             app.show_progress_indicator(OPEN_PROJECT_SPINNER_PROGRESS);
             view.hide_graph_editor();
@@ -312,7 +312,7 @@ impl Model {
         execution_environment: ide_view::execution_environment_selector::ExecutionEnvironment,
     ) {
         let graph_controller = self.graph_controller.clone_ref();
-        executor::global::spawn(async move {
+        executor::global::spawn("execution_environment_changed", async move {
             if let Err(err) =
                 graph_controller.set_execution_environment(execution_environment).await
             {
@@ -323,7 +323,7 @@ impl Model {
 
     fn trigger_clean_live_execution(&self) {
         let graph_controller = self.graph_controller.clone_ref();
-        executor::global::spawn(async move {
+        executor::global::spawn("trigger_clean_live_execution", async move {
             if let Err(err) = graph_controller.trigger_clean_live_execution().await {
                 error!("Error starting clean live execution: {err}");
             }
@@ -471,38 +471,48 @@ impl Project {
     fn setup_notification_handler(self) -> Self {
         let notifications = self.model.controller.model.subscribe();
         let weak = Rc::downgrade(&self.model);
-        spawn_stream_handler(weak, notifications, |notification, model| {
-            info!("Processing notification {notification:?}");
-            match notification {
-                Notification::ConnectionLost(_) => {
-                    let message = crate::BACKEND_DISCONNECTED_MESSAGE;
-                    let message = view::status_bar::event::Label::from(message);
-                    model.status_bar.add_event(message);
-                }
-                Notification::VcsStatusChanged(VcsStatus::Dirty) => {
-                    model.set_project_changed(true);
-                }
-                Notification::VcsStatusChanged(VcsStatus::Clean) => {
-                    model.set_project_changed(false);
-                }
-                Notification::ExecutionFinished => {
-                    model.execution_finished();
-                }
-            };
-            std::future::ready(())
-        });
+        spawn_stream_handler(
+            "project presenter notifications from controller",
+            weak,
+            notifications,
+            |notification, model| {
+                info!("Processing notification {notification:?}");
+                match notification {
+                    Notification::ConnectionLost(_) => {
+                        let message = crate::BACKEND_DISCONNECTED_MESSAGE;
+                        let message = view::status_bar::event::Label::from(message);
+                        model.status_bar.add_event(message);
+                    }
+                    Notification::VcsStatusChanged(VcsStatus::Dirty) => {
+                        model.set_project_changed(true);
+                    }
+                    Notification::VcsStatusChanged(VcsStatus::Clean) => {
+                        model.set_project_changed(false);
+                    }
+                    Notification::ExecutionFinished => {
+                        model.execution_finished();
+                    }
+                };
+                std::future::ready(())
+            },
+        );
 
         let notifications = self.model.module_model.subscribe();
         let weak = Rc::downgrade(&self.model);
-        spawn_stream_handler(weak, notifications, move |notification, model| {
-            match notification.kind {
-                NotificationKind::Invalidate
-                | NotificationKind::CodeChanged { .. }
-                | NotificationKind::MetadataChanged => model.set_project_changed(true),
-                NotificationKind::Reloaded => model.set_project_changed(false),
-            }
-            futures::future::ready(())
-        });
+        spawn_stream_handler(
+            "project presenter notifications from model",
+            weak,
+            notifications,
+            move |notification, model| {
+                match notification.kind {
+                    NotificationKind::Invalidate
+                    | NotificationKind::CodeChanged { .. }
+                    | NotificationKind::MetadataChanged => model.set_project_changed(true),
+                    NotificationKind::Reloaded => model.set_project_changed(false),
+                }
+                futures::future::ready(())
+            },
+        );
         self
     }
 
@@ -513,12 +523,18 @@ impl Project {
     ) -> Self {
         let weak = Rc::downgrade(&self.model);
         let notifications = graph.subscribe();
-        spawn_stream_handler(weak, notifications, move |notification, _| {
-            if let controller::graph::executed::Notification::ComputedValueInfo(_) = notification {
-                values_computed.emit(());
-            }
-            std::future::ready(())
-        });
+        spawn_stream_handler(
+            "frp_to_values_computed notifications",
+            weak,
+            notifications,
+            move |notification, _| {
+                use controller::graph::executed::Notification;
+                if let Notification::ComputedValueInfo(_) = notification {
+                    values_computed.emit(());
+                }
+                std::future::ready(())
+            },
+        );
         self
     }
 

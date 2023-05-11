@@ -201,7 +201,7 @@ impl Project {
         let status_notifier = self.status_notifications.clone_ref();
         let compiling_process = status_notifier.publish_background_task(COMPILING_STDLIB_LABEL);
         let execution_ready = graph.when_ready();
-        executor::global::spawn(async move {
+        executor::global::spawn("notify_about_compiling_process", async move {
             if execution_ready.await.is_some() {
                 status_notifier.published_background_task_finished(compiling_process);
             } else {

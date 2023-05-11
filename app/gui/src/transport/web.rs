@@ -467,7 +467,7 @@ mod tests {
         }));
 
         // Spawn task to process events stream.
-        executor::global::spawn(handler);
+        executor::global::spawn("websockets handler", handler);
 
         // Close socket after some delay.
         web::sleep(Duration::from_secs(20)).await;

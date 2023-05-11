@@ -360,10 +360,16 @@ impl Project {
         };
 
         let binary_handler = ret.binary_event_handler();
-        crate::executor::global::spawn(binary_protocol_events.for_each(binary_handler));
+        crate::executor::global::spawn(
+            "binary_protocol_events",
+            binary_protocol_events.for_each(binary_handler),
+        );
 
         let json_rpc_handler = ret.json_event_handler();
-        crate::executor::global::spawn(json_rpc_events.for_each(json_rpc_handler));
+        crate::executor::global::spawn(
+            "json_protocol_events",
+            json_rpc_events.for_each(json_rpc_handler),
+        );
 
         ret.initialize_vcs().await.map_err(|err| wrap(err.into()))?;
         ret.acquire_suggestion_db_updates_capability().await.map_err(|err| wrap(err.into()))?;
@@ -384,8 +390,8 @@ impl Project {
         let binary_ws = WebSocket::new_opened(&language_server_bin).await?;
         let client_json = language_server::Client::new(json_ws);
         let client_binary = binary::Client::new(binary_ws);
-        crate::executor::global::spawn(client_json.runner());
-        crate::executor::global::spawn(client_binary.runner());
+        crate::executor::global::spawn("client_json", client_json.runner());
+        crate::executor::global::spawn("client_binary", client_binary.runner());
         let connection_json =
             language_server::Connection::new(client_json, client_id).await.map_err(&wrap)?;
         let connection_binary =
@@ -524,7 +530,7 @@ impl Project {
                 Event::Notification(Notification::TextAutoSave(_)) => {
                     let publisher = publisher.clone_ref();
                     let language_server = language_server.clone_ref();
-                    executor::global::spawn(async move {
+                    executor::global::spawn("check_vcs_status_and_notify", async move {
                         let status = check_vcs_status_and_notify(
                             project_root_id,
                             language_server,
@@ -538,7 +544,7 @@ impl Project {
                 Event::Notification(Notification::TextDidChange(changes)) => {
                     let parser = parser.clone();
                     if let Some(module_registry) = weak_module_registry.upgrade() {
-                        executor::global::spawn(async move {
+                        executor::global::spawn("update_modules_on_file_change", async move {
                             let status =
                                 update_modules_on_file_change(changes, parser, module_registry);
                             if let Err(err) = status.await {

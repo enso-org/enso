@@ -10,3 +10,9 @@ futures = { version = "0.3.1" }
 enso-prelude = { path = "../prelude" }
 ensogl-core = { path = "../ensogl/core" }
 enso-profiler = { path = "../profiler" }
+
+[features]
+# Uncommend the next line to enable debug logging for running async tasks.
+# See crate documentation to learn more.
+# default = ["debug"]
+debug = []

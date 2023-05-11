@@ -38,7 +38,7 @@ impl TestWithLocalPoolExecutor {
     where Task: Future<Output = ()> + 'static {
         self.running_task_count.set(self.running_task_count.get() + 1);
         let running_tasks_clone = self.running_task_count.clone_ref();
-        spawn(async move {
+        spawn("TestWithLocalPoolExecutor::run_task", async move {
             task.await;
             running_tasks_clone.set(running_tasks_clone.get() - 1);
         });

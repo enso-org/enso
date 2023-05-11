@@ -165,7 +165,7 @@ impl Initializer {
         let transport = WebSocket::new_opened(endpoint).await?;
         let mut project_manager = project_manager::Client::new(transport);
         project_manager.set_timeout(std::time::Duration::from_secs(PROJECT_MANAGER_TIMEOUT_SEC));
-        executor::global::spawn(project_manager.runner());
+        executor::global::spawn("project_manager", project_manager.runner());
         Ok(Rc::new(project_manager))
     }
 }

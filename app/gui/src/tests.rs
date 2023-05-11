@@ -27,7 +27,7 @@ fn failure_to_open_project_is_reported() {
     let mut fixture = TestWithMockedTransport::set_up(&transport);
     fixture.run_test(async move {
         let project_manager = Rc::new(project_manager::Client::new(transport));
-        executor::global::spawn(project_manager.runner());
+        executor::global::spawn("project_manager", project_manager.runner());
         let name = ProjectName::new_unchecked(crate::constants::DEFAULT_PROJECT_NAME.to_owned());
         let project_to_open = ProjectToOpen::Name(name);
         let initializer =

@@ -150,7 +150,7 @@ impl ExecutionContext {
                 if !self.model.is_ready.replace(true) {
                     info!("Context {} Became ready", self.id);
                     let this = self.clone();
-                    executor::global::spawn(async move {
+                    executor::global::spawn("execution_context ready", async move {
                         this.load_component_groups().await;
                     });
                 },
@@ -354,7 +354,7 @@ impl Drop for ExecutionContext {
     fn drop(&mut self) {
         let id = self.id;
         let ls = self.language_server.clone_ref();
-        executor::global::spawn(async move {
+        executor::global::spawn("execution_context drop", async move {
             let result = ls.client.destroy_execution_context(&id).await;
             if result.is_err() {
                 error!("Error when destroying Execution Context: {result:?}.");

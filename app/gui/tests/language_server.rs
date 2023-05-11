@@ -260,7 +260,7 @@ async fn file_events() {
     let mut stream = client.events();
     let _executor = enso_executor::setup_global_executor();
 
-    executor::global::spawn(client.runner());
+    executor::global::spawn("client", client.runner());
 
     let client_id = uuid::Uuid::default();
     let session = client.init_protocol_connection(&client_id).await;

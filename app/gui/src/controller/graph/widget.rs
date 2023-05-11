@@ -112,13 +112,18 @@ impl Controller {
 
         let out_widget_data = output.widget_data.clone_ref();
         let weak = Rc::downgrade(&model);
-        spawn_stream_handler(weak, manager_notifications, move |notification, model| {
-            let data = model.borrow_mut().handle_notification(notification);
-            if let Some(data) = data {
-                out_widget_data.emit(data);
-            }
-            std::future::ready(())
-        });
+        spawn_stream_handler(
+            "widget notifications",
+            weak,
+            manager_notifications,
+            move |notification, model| {
+                let data = model.borrow_mut().handle_notification(notification);
+                if let Some(data) = data {
+                    out_widget_data.emit(data);
+                }
+                std::future::ready(())
+            },
+        );
 
         Self { frp, model }
     }

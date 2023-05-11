@@ -566,7 +566,10 @@ impl Searcher {
             if let Actions::Loaded { list } = &data.actions {
                 debug!("Update filtering.");
                 list.update_filtering(filter.pattern);
-                executor::global::spawn(self.notifier.publish(Notification::NewActionList));
+                executor::global::spawn(
+                    "new_action_list",
+                    self.notifier.publish(Notification::NewActionList),
+                );
             }
         }
         Ok(())
@@ -683,7 +686,7 @@ impl Searcher {
                 match self.ide.manage_projects() {
                     Ok(_) => {
                         let ide = self.ide.clone_ref();
-                        executor::global::spawn(async move {
+                        executor::global::spawn("execute project management action", async move {
                             // We checked that manage_projects returns Some just a moment ago, so
                             // unwrapping is safe.
                             let manage_projects = ide.manage_projects().unwrap();
@@ -923,7 +926,10 @@ impl Searcher {
             self.gather_actions_from_engine(this_type, None);
             self.data.borrow_mut().actions = Actions::Loading;
         }
-        executor::global::spawn(self.notifier.publish(Notification::NewActionList));
+        executor::global::spawn(
+            "new_action_list",
+            self.notifier.publish(Notification::NewActionList),
+        );
     }
 
     /// Get the typename of "this" value for current completion context. Returns `Future`, as the
@@ -958,7 +964,7 @@ impl Searcher {
         let graph = self.graph.graph();
         let position = self.my_utf16_location().span.into();
         let this = self.clone_ref();
-        executor::global::spawn(async move {
+        executor::global::spawn("gather_actions_from_engine", async move {
             let this_type = this_type.await;
             let is_static = this_type.is_some().then_some(false);
             info!("Requesting new suggestion list. Type of `self` is {this_type:?}.");

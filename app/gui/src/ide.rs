@@ -61,7 +61,7 @@ impl Ide {
     }
 
     fn init(self) -> Self {
-        executor::global::spawn(self.alive_log_sending_loop());
+        executor::global::spawn("alive_log_sending_loop", self.alive_log_sending_loop());
         self
     }
 

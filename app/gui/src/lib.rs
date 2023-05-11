@@ -181,7 +181,7 @@ pub fn main() {
     let executor = executor::setup_global_executor();
     EXECUTOR.with(move |global_executor| global_executor.replace(Some(executor)));
     let initializer = Initializer::new(config);
-    executor::global::spawn(async move {
+    executor::global::spawn("ide start", async move {
         let ide = initializer.start().await;
         ensogl::system::web::document
             .get_element_by_id("loader")

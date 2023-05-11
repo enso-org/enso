@@ -19,6 +19,12 @@
 //! To learn more about concepts involved in asynchronous programming, like
 //! executors, futures, tasks please refer to
 //! https://rust-lang.github.io/async-book/
+//!
+//! # Debugging
+//!
+//! To see additional logs from the executor, enable `debug` feature of this crate.
+//! This will enable additional logging of task spawning and completion, as well as
+//! a [`print_running_tasks`] function to debug the list of currently running tasks.
 
 use crate::prelude::*;
 
@@ -27,11 +33,17 @@ use futures::task::LocalSpawnExt;
 
 
 
+// =====================
+// === GlobalSpawner ===
+// =====================
+
 /// Global spawner container. This structure is kept in the global variable `SPAWNER`. See module
 /// docs for details.
 #[derive(Default)]
 struct GlobalSpawner {
-    spawner: RefCell<Option<Box<dyn LocalSpawn>>>,
+    spawner:       RefCell<Option<Box<dyn LocalSpawn>>>,
+    #[cfg(feature = "debug")]
+    running_tasks: debug::RunningTasks,
 }
 
 impl GlobalSpawner {
@@ -40,15 +52,33 @@ impl GlobalSpawner {
         *self.spawner.borrow_mut() = Some(Box::new(spawner_to_set))
     }
 
-    fn spawn(&self, f: impl Future<Output = ()> + 'static) {
+    fn spawn_with_name(&self, _name: &'static str, f: impl Future<Output = ()> + 'static) {
         // Note [Global Executor Safety]
         let mut borrowed = self.spawner.borrow_mut();
         if let Some(unwrapped) = borrowed.as_mut() {
+            #[cfg(feature = "debug")]
+            let f = {
+                let running_tasks = self.running_tasks.clone_ref();
+                async move {
+                    running_tasks.start(_name);
+                    f.await;
+                    running_tasks.finish(_name);
+                }
+            };
             if unwrapped.spawn_local(f).is_err() {
                 error!("Failed to spawn the task. Global executor might have been dropped.");
             }
         } else {
             error!("Fail to spawn the task. No global executor has been provided.")
+        }
+    }
+
+    /// Print the list of currently running tasks to the console.
+    #[cfg(feature = "debug")]
+    fn print_running_tasks(&self) {
+        console_log!("Running tasks:");
+        for (name, count) in self.running_tasks.to_vec() {
+            console_log!("{}: {}", name, count);
         }
     }
 }
@@ -74,17 +104,31 @@ pub fn set_spawner(spawner_to_set: impl LocalSpawn + 'static) {
     SPAWNER.with(|s| s.set_spawner(spawner_to_set));
 }
 
+/// Print the list of currently running tasks to the console.
+pub fn print_running_tasks() {
+    #[cfg(feature = "debug")]
+    SPAWNER.with(|s| s.print_running_tasks());
+    #[cfg(not(feature = "debug"))]
+    console_log!("Debug feature is disabled. Enable it to see the list of running tasks.");
+}
+
 /// Spawns a task using the global spawner.
+///
+/// `name` is used for debugging purposes only if `debug` feature is enabled.
+///
 /// Panics, if called when there is no global spawner set or if it fails to
 /// spawn task (e.g. because the connected executor was prematurely dropped).
-pub fn spawn(f: impl Future<Output = ()> + 'static) {
-    SPAWNER.with(|s| s.spawn(f));
+pub fn spawn(name: &'static str, f: impl Future<Output = ()> + 'static) {
+    SPAWNER.with(|s| s.spawn_with_name(name, f));
 }
 
 /// Process stream elements while object under `weak` handle exists.
 ///
+/// `name` is used for debugging purposes only if `debug` feature is enabled.
+///
 /// Like [`utils::channel::process_stream_with_handle`] but automatically spawns the processor.
 pub fn spawn_stream_handler<Weak, Stream, Function, Ret>(
+    name: &'static str,
     weak: Weak,
     stream: Stream,
     handler: Function,
@@ -95,7 +139,48 @@ pub fn spawn_stream_handler<Weak, Stream, Function, Ret>(
     Ret: Future<Output = ()> + 'static,
 {
     let handler = channel::process_stream_with_handle(stream, weak, handler);
-    spawn(handler);
+    spawn(name, handler);
+}
+
+
+
+// =======================
+// === Debug Utilities ===
+// =======================
+
+#[cfg(feature = "debug")]
+mod debug {
+    use super::*;
+    use std::collections::HashMap;
+
+    /// Tracks the currently running async tasks, and logs start and finish of each task spawned
+    /// with [`GlobalSpawner`].
+    #[derive(Debug, Default, Clone, CloneRef)]
+    pub struct RunningTasks(Rc<RefCell<HashMap<&'static str, usize>>>);
+
+    impl RunningTasks {
+        /// Execution of the task started.
+        pub fn start(&self, name: &'static str) {
+            console_log!("Starting task {}.", name);
+            let mut borrowed = self.0.borrow_mut();
+            let entry = borrowed.entry(name).or_insert(0);
+            *entry += 1;
+        }
+
+        /// Execution of the task finished.
+        pub fn finish(&self, name: &'static str) {
+            console_log!("Task {} finished.", name);
+            let mut borrowed = self.0.borrow_mut();
+            let entry = borrowed.entry(name).or_insert(0);
+            *entry = entry.saturating_sub(1);
+        }
+
+        /// The list of currently running tasks.
+        pub fn to_vec(&self) -> Vec<(&'static str, usize)> {
+            let borrowed = self.0.borrow();
+            borrowed.iter().filter(|(_, count)| **count > 0).map(|(n, c)| (*n, *c)).collect_vec()
+        }
+    }
 }
 
 // Note [Global Executor Safety]

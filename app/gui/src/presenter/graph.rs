@@ -824,20 +824,25 @@ impl Graph {
         use crate::controller::graph::Notification;
         let graph_notifications = self.model.controller.subscribe();
         let weak = Rc::downgrade(&self.model);
-        spawn_stream_handler(weak, graph_notifications, move |notification, _model| {
-            debug!("Received controller notification {notification:?}");
-            match notification {
-                executed::Notification::Graph(graph) => match graph {
-                    Notification::Invalidate => update_view.emit(()),
-                    Notification::PortsUpdate => update_view.emit(()),
-                },
-                executed::Notification::ComputedValueInfo(expressions) =>
-                    update_expressions.emit(expressions),
-                executed::Notification::EnteredStack(_)
-                | executed::Notification::ExitedStack(_) => update_view.emit(()),
-            }
-            std::future::ready(())
-        })
+        spawn_stream_handler(
+            "graph_presenter notifications",
+            weak,
+            graph_notifications,
+            move |notification, _model| {
+                debug!("Received controller notification {notification:?}");
+                match notification {
+                    executed::Notification::Graph(graph) => match graph {
+                        Notification::Invalidate => update_view.emit(()),
+                        Notification::PortsUpdate => update_view.emit(()),
+                    },
+                    executed::Notification::ComputedValueInfo(expressions) =>
+                        update_expressions.emit(expressions),
+                    executed::Notification::EnteredStack(_)
+                    | executed::Notification::ExitedStack(_) => update_view.emit(()),
+                }
+                std::future::ready(())
+            },
+        )
     }
 }
 

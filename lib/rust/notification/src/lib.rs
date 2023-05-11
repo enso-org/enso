@@ -76,6 +76,6 @@ where
     /// Use global executor to publish a message.
     pub fn notify(&self, message: Message) {
         let notify = self.publish(message);
-        executor::global::spawn(notify);
+        executor::global::spawn("notify", notify);
     }
 }

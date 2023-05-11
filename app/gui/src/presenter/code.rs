@@ -88,23 +88,28 @@ impl Code {
     fn setup_notification_handler(self, code_in_controller: frp::Source<ImString>) -> Self {
         let weak = Rc::downgrade(&self.model);
         let notifications = self.model.controller.subscribe();
-        spawn_stream_handler(weak, notifications, move |notification, model| {
-            let endpoint_clone = code_in_controller.clone_ref();
-            let model_clone = model.clone_ref();
-            async move {
-                match notification {
-                    Notification::Invalidate =>
-                        model_clone.emit_event_with_controller_code(&endpoint_clone).await,
+        spawn_stream_handler(
+            "code presenter notfications",
+            weak,
+            notifications,
+            move |notification, model| {
+                let endpoint_clone = code_in_controller.clone_ref();
+                let model_clone = model.clone_ref();
+                async move {
+                    match notification {
+                        Notification::Invalidate =>
+                            model_clone.emit_event_with_controller_code(&endpoint_clone).await,
+                    }
                 }
-            }
-        });
+            },
+        );
         self
     }
 
     #[profile(Detail)]
     fn display_initial_code(self, code_in_controller: frp::Source<ImString>) -> Self {
         let model = self.model.clone_ref();
-        executor::global::spawn(async move {
+        executor::global::spawn("display_initial_code", async move {
             model.emit_event_with_controller_code(&code_in_controller).await
         });
         self

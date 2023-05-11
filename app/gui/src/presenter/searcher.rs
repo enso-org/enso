@@ -358,12 +358,17 @@ impl Searcher {
 
         let weak_model = Rc::downgrade(&model);
         let notifications = model.controller.subscribe();
-        spawn_stream_handler(weak_model, notifications, move |notification, _| {
-            match notification {
-                Notification::NewActionList => action_list_changed.emit(()),
-            };
-            std::future::ready(())
-        });
+        spawn_stream_handler(
+            "searcher presenter notifications",
+            weak_model,
+            notifications,
+            move |notification, _| {
+                match notification {
+                    Notification::NewActionList => action_list_changed.emit(()),
+                };
+                std::future::ready(())
+            },
+        );
 
         Self { model, _network: network }
     }

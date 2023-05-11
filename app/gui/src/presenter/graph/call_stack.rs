@@ -36,7 +36,7 @@ impl Model {
     fn push_stack(&self, stack: Vec<view::graph_editor::LocalCall>) {
         let store_stack = self.store_updated_stack_task();
         let controller = self.controller.clone_ref();
-        executor::global::spawn(async move {
+        executor::global::spawn("push_stack", async move {
             let stack = stack
                 .into_iter()
                 .map(|local_call| LocalCall {
@@ -63,7 +63,7 @@ impl Model {
         analytics::remote_log_event("integration::node_exited");
         let controller = self.controller.clone_ref();
         let store_stack = self.store_updated_stack_task();
-        executor::global::spawn(async move {
+        executor::global::spawn("pop_stack", async move {
             info!("Exiting stack.");
             match controller.exit_stack(frame_count).await {
                 Ok(()) => store_stack(),
@@ -87,7 +87,7 @@ impl Model {
                     let controller = self.controller.clone_ref();
                     let local_call = LocalCall { call, definition: method_pointer.clone() };
                     let store_stack = self.store_updated_stack_task();
-                    executor::global::spawn(async move {
+                    executor::global::spawn("node_entered", async move {
                         info!("Entering expression {local_call:?}.");
                         match controller.enter_stack(vec![local_call]).await {
                             Ok(()) => store_stack(),
@@ -186,16 +186,21 @@ impl CallStack {
         use crate::controller::graph::executed::Notification;
         let graph_notifications = self.model.controller.subscribe();
         let weak = Rc::downgrade(&self.model);
-        spawn_stream_handler(weak, graph_notifications, move |notification, model| {
-            info!("Received controller notification {notification:?}");
-            match notification {
-                Notification::EnteredStack(stack) => model.add_breadcrumbs_in_view(stack),
-                Notification::ExitedStack(count) =>
-                    model.view.model.breadcrumbs.pop_breadcrumbs(count),
-                _ => {}
-            }
-            std::future::ready(())
-        });
+        spawn_stream_handler(
+            "call_stack_controller notifications",
+            weak,
+            graph_notifications,
+            move |notification, model| {
+                info!("Received controller notification {notification:?}");
+                match notification {
+                    Notification::EnteredStack(stack) => model.add_breadcrumbs_in_view(stack),
+                    Notification::ExitedStack(count) =>
+                        model.view.model.breadcrumbs.pop_breadcrumbs(count),
+                    _ => {}
+                }
+                std::future::ready(())
+            },
+        );
         self
     }
 

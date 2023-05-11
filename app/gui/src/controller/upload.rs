@@ -193,7 +193,7 @@ impl NodeFromDroppedFileHandler {
     ) -> FallibleResult {
         let node = self.graph.add_node(Self::new_node_info(&file, position))?;
         let this = self.clone_ref();
-        executor::global::spawn(async move {
+        executor::global::spawn("create_node_and_start_uploading", async move {
             if let Err(err) = this.upload_file(node, file).await {
                 error!("Error while uploading file: {err}");
                 this.update_metadata(node, |md| md.error = Some(err.to_string()));

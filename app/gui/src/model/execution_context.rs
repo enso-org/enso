@@ -95,7 +95,7 @@ pub struct ComputedValueInfoRegistry {
 impl ComputedValueInfoRegistry {
     fn emit(&self, update: ComputedValueExpressions) {
         let future = self.updates.publish(update);
-        executor::global::spawn(future);
+        executor::global::spawn("ComputedValueInfoRegistry::emit", future);
     }
 
     /// Store the information from the given update received from the Language Server.

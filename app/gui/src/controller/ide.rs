@@ -59,7 +59,7 @@ impl StatusNotificationPublisher {
     pub fn publish_event(&self, label: impl Into<String>) {
         let label = label.into();
         let notification = StatusNotification::Event { label };
-        executor::global::spawn(self.publisher.publish(notification));
+        executor::global::spawn("publish_event", self.publisher.publish(notification));
     }
 
     /// Publish a notification about new process (see [`StatusNotification::ProcessStarted`]).
@@ -71,7 +71,7 @@ impl StatusNotificationPublisher {
         let handle = self.next_process_handle.get();
         self.next_process_handle.set(handle + 1);
         let notification = StatusNotification::BackgroundTaskStarted { label, handle };
-        executor::global::spawn(self.publisher.publish(notification));
+        executor::global::spawn("publish_background_task", self.publisher.publish(notification));
         handle
     }
 
@@ -80,7 +80,7 @@ impl StatusNotificationPublisher {
     #[profile(Debug)]
     pub fn published_background_task_finished(&self, handle: BackgroundTaskHandle) {
         let notification = StatusNotification::BackgroundTaskFinished { handle };
-        executor::global::spawn(self.publisher.publish(notification));
+        self.publisher.notify(notification);
     }
 
     /// The asynchronous stream of published notifications.

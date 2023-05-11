@@ -379,7 +379,7 @@ impl Manager {
             };
             Some(())
         };
-        spawn(async move {
+        spawn("synchronize visualization", async move {
             task.await;
         });
     }
@@ -400,11 +400,12 @@ impl Manager {
                 let visualization_id = new_visualization.id;
                 let status = Status::Attached(new_visualization);
                 self.update_status(target, status);
-                spawn(update_receiver.for_each(move |data| {
+                let task = update_receiver.for_each(move |data| {
                     let notification = Notification::ValueUpdate { target, visualization_id, data };
                     let _ = notifier.unbounded_send(notification);
                     ready(())
-                }))
+                });
+                spawn("attach_visualization", task);
             }
             Err(error) => {
                 // TODO [mwu]

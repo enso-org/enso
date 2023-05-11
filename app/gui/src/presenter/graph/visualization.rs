@@ -126,7 +126,7 @@ impl Model {
         self.graph_view.reset_visualization_registry();
         let controller = self.controller.clone_ref();
         let graph_editor = self.graph_view.clone_ref();
-        executor::global::spawn(async move {
+        executor::global::spawn("load_visualizations", async move {
             let identifiers = controller.list_visualizations().await;
             let identifiers = identifiers.unwrap_or_default();
             for identifier in identifiers {
@@ -217,43 +217,51 @@ impl Visualization {
         failure_endpoint: frp::Source<ViewNodeId>,
     ) -> Self {
         let weak = Rc::downgrade(&self.model);
-        spawn_stream_handler(weak, notifier, move |notification, model| {
-            info!("Received update for visualization: {notification:?}");
-            match notification {
-                manager::Notification::ValueUpdate { target, data, .. } => {
-                    model.handle_value_update(&update_endpoint, target, data);
-                }
-                manager::Notification::FailedToAttach { visualization, error } => {
-                    error!("Visualization {} failed to attach: {error}.", visualization.id);
-                    model.handle_controller_failure(&failure_endpoint, visualization.expression_id);
-                }
-                manager::Notification::FailedToDetach { visualization, error } => {
-                    error!("Visualization {} failed to detach: {error}.", visualization.id);
-                    // Here we cannot really do much. Failing to detach might mean that
-                    // visualization was already detached, that we detached it
-                    // but failed to observe this (e.g. due to a connectivity
-                    // issue) or that we did something really wrong. For now, we
-                    // will just forget about this visualization. Better to unlikely "leak"
-                    // it rather than likely break visualizations on the node altogether.
-                    let forgotten = manager.forget_visualization(visualization.expression_id);
-                    if let Some(forgotten) = forgotten {
-                        error!("The visualization will be forgotten: {forgotten:?}")
+        spawn_stream_handler(
+            "visualization handler",
+            weak,
+            notifier,
+            move |notification, model| {
+                info!("Received update for visualization: {notification:?}");
+                match notification {
+                    manager::Notification::ValueUpdate { target, data, .. } => {
+                        model.handle_value_update(&update_endpoint, target, data);
+                    }
+                    manager::Notification::FailedToAttach { visualization, error } => {
+                        error!("Visualization {} failed to attach: {error}.", visualization.id);
+                        model.handle_controller_failure(
+                            &failure_endpoint,
+                            visualization.expression_id,
+                        );
+                    }
+                    manager::Notification::FailedToDetach { visualization, error } => {
+                        error!("Visualization {} failed to detach: {error}.", visualization.id);
+                        // Here we cannot really do much. Failing to detach might mean that
+                        // visualization was already detached, that we detached it
+                        // but failed to observe this (e.g. due to a connectivity
+                        // issue) or that we did something really wrong. For now, we
+                        // will just forget about this visualization. Better to unlikely "leak"
+                        // it rather than likely break visualizations on the node altogether.
+                        let forgotten = manager.forget_visualization(visualization.expression_id);
+                        if let Some(forgotten) = forgotten {
+                            error!("The visualization will be forgotten: {forgotten:?}")
+                        }
+                    }
+                    manager::Notification::FailedToModify { desired, error } => {
+                        error!(
+                            "Visualization {} failed to be modified: {error}. Will hide it in GUI.",
+                            desired.id
+                        );
+                        // Actually it would likely have more sense if we had just restored the
+                        // previous visualization, as its LS state should be
+                        // preserved. However, we already scrapped it on the
+                        // GUI side and we don't even know its path anymore.
+                        model.handle_controller_failure(&failure_endpoint, desired.expression_id);
                     }
                 }
-                manager::Notification::FailedToModify { desired, error } => {
-                    error!(
-                        "Visualization {} failed to be modified: {error}. Will hide it in GUI.",
-                        desired.id
-                    );
-                    // Actually it would likely have more sense if we had just restored the previous
-                    // visualization, as its LS state should be preserved. However, we already
-                    // scrapped it on the GUI side and we don't even know its
-                    // path anymore.
-                    model.handle_controller_failure(&failure_endpoint, desired.expression_id);
-                }
-            }
-            std::future::ready(())
-        });
+                std::future::ready(())
+            },
+        );
         self
     }
 
@@ -262,24 +270,29 @@ impl Visualization {
         use controller::graph::executed::Notification;
         let notifications = graph_controller.subscribe();
         let weak = Rc::downgrade(&self.model);
-        spawn_stream_handler(weak, notifications, move |notification, model| {
-            match notification {
-                Notification::Graph(graph::Notification::Invalidate)
-                | Notification::EnteredStack(_)
-                | Notification::ExitedStack(_) => match graph_controller.graph().nodes() {
-                    Ok(nodes) => {
-                        let nodes_set = nodes.into_iter().map(|n| n.id()).collect();
-                        model.manager.retain_visualizations(&nodes_set);
-                        model.error_manager.retain_visualizations(&nodes_set);
-                    }
-                    Err(err) => {
-                        error!("Cannot update visualization after graph change: {err}");
-                    }
-                },
-                _ => {}
-            }
-            std::future::ready(())
-        });
+        spawn_stream_handler(
+            "graph_listener notifications",
+            weak,
+            notifications,
+            move |notification, model| {
+                match notification {
+                    Notification::Graph(graph::Notification::Invalidate)
+                    | Notification::EnteredStack(_)
+                    | Notification::ExitedStack(_) => match graph_controller.graph().nodes() {
+                        Ok(nodes) => {
+                            let nodes_set = nodes.into_iter().map(|n| n.id()).collect();
+                            model.manager.retain_visualizations(&nodes_set);
+                            model.error_manager.retain_visualizations(&nodes_set);
+                        }
+                        Err(err) => {
+                            error!("Cannot update visualization after graph change: {err}");
+                        }
+                    },
+                    _ => {}
+                }
+                std::future::ready(())
+            },
+        );
         self
     }
 }

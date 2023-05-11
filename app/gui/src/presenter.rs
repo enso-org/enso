@@ -68,7 +68,7 @@ impl Model {
             project_view,
             status_bar,
         );
-        crate::executor::global::spawn(async move {
+        crate::executor::global::spawn("initialize project presenter", async move {
             match project_presenter.await {
                 Ok(project) => {
                     *self.current_project.borrow_mut() = Some(project);
@@ -94,7 +94,7 @@ impl Model {
     #[profile(Task)]
     pub fn open_project(&self, project_name: String) {
         let controller = self.controller.clone_ref();
-        crate::executor::global::spawn(async move {
+        crate::executor::global::spawn("open_project", async move {
             if let Ok(managing_api) = controller.manage_projects() {
                 if let Err(err) = managing_api.open_project_by_name(project_name).await {
                     error!("Cannot open project by name: {err}.");
@@ -113,7 +113,7 @@ impl Model {
         if let Ok(template) =
             template.map(double_representation::name::project::Template::from_text).transpose()
         {
-            crate::executor::global::spawn(async move {
+            crate::executor::global::spawn("create_project", async move {
                 if let Ok(managing_api) = controller.manage_projects() {
                     if let Err(err) = managing_api.create_new_project(template.clone()).await {
                         if let Some(template) = template {
@@ -175,7 +175,10 @@ impl Presenter {
         self.setup_status_bar_notification_handler();
         self.setup_controller_notification_handler();
         self.model.clone_ref().setup_and_display_new_project();
-        executor::global::spawn(self.clone_ref().set_projects_list_on_welcome_screen());
+        executor::global::spawn(
+            "set_projects_list_on_welcome_screen",
+            self.clone_ref().set_projects_list_on_welcome_screen(),
+        );
         self
     }
 
@@ -187,42 +190,52 @@ impl Presenter {
         let status_bar = self.model.view.status_bar().clone_ref();
         let status_notifications = self.model.controller.status_notifications().subscribe();
         let weak = Rc::downgrade(&self.model);
-        spawn_stream_handler(weak, status_notifications, move |notification, _| {
-            match notification {
-                StatusNotification::Event { label } => {
-                    status_bar.add_event(ide_view::status_bar::event::Label::new(label));
-                }
-                StatusNotification::BackgroundTaskStarted { label, handle } => {
-                    status_bar.add_process(ide_view::status_bar::process::Label::new(label));
-                    let view_handle = status_bar.last_process.value();
-                    process_map.insert(handle, view_handle);
-                }
-                StatusNotification::BackgroundTaskFinished { handle } => {
-                    if let Some(view_handle) = process_map.remove(&handle) {
-                        status_bar.finish_process(view_handle);
-                    } else {
-                        warn!("Controllers finished process not displayed in view");
+        spawn_stream_handler(
+            "status_bar notifications",
+            weak,
+            status_notifications,
+            move |notification, _| {
+                match notification {
+                    StatusNotification::Event { label } => {
+                        status_bar.add_event(ide_view::status_bar::event::Label::new(label));
+                    }
+                    StatusNotification::BackgroundTaskStarted { label, handle } => {
+                        status_bar.add_process(ide_view::status_bar::process::Label::new(label));
+                        let view_handle = status_bar.last_process.value();
+                        process_map.insert(handle, view_handle);
+                    }
+                    StatusNotification::BackgroundTaskFinished { handle } => {
+                        if let Some(view_handle) = process_map.remove(&handle) {
+                            status_bar.finish_process(view_handle);
+                        } else {
+                            warn!("Controllers finished process not displayed in view");
+                        }
                     }
                 }
-            }
-            futures::future::ready(())
-        });
+                futures::future::ready(())
+            },
+        );
     }
 
     fn setup_controller_notification_handler(&self) {
         let stream = self.model.controller.subscribe();
         let weak = Rc::downgrade(&self.model);
-        spawn_stream_handler(weak, stream, move |notification, model| {
-            match notification {
-                controller::ide::Notification::NewProjectCreated
-                | controller::ide::Notification::ProjectOpened =>
-                    model.setup_and_display_new_project(),
-                controller::ide::Notification::ProjectClosed => {
-                    model.close_project();
+        spawn_stream_handler(
+            "presenter controller notifications",
+            weak,
+            stream,
+            move |notification, model| {
+                match notification {
+                    controller::ide::Notification::NewProjectCreated
+                    | controller::ide::Notification::ProjectOpened =>
+                        model.setup_and_display_new_project(),
+                    controller::ide::Notification::ProjectClosed => {
+                        model.close_project();
+                    }
                 }
-            }
-            futures::future::ready(())
-        });
+                futures::future::ready(())
+            },
+        );
     }
 
     #[profile(Detail)]

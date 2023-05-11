@@ -29,7 +29,7 @@ mod tests {
         let client = Client::new(ws);
         let _executor = enso_executor::setup_global_executor();
 
-        executor::global::spawn(client.runner());
+        executor::global::spawn("client", client.runner());
 
         let name = ProjectName::new_unchecked("TestProject");
         let creation = client.create_project(&name, &None, &None, &Install);
