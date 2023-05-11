@@ -7,7 +7,7 @@ import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{LanguageInfo, MethodNames, RuntimeOptions}
-import org.graalvm.polyglot.{Context, Engine, Value}
+import org.graalvm.polyglot.{Context, Engine}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -76,13 +76,6 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
     }
   }
 
-  // TODO: Add method to execute module
-  private def executeModule(module: runtime.Module): Value = {
-    ctx.eval(module.getSource)
-    module.getSource
-  }
-
-
   before {
     ctx.enter()
   }
@@ -92,7 +85,7 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
     out.reset()
   }
 
-  "Import/export resolution with just two modules in one library" should {
+  "Import resolution with just two modules" should {
     "resolve one import symbol from a module" in {
       val moduleCode =
         """
@@ -189,7 +182,7 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
       mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe true
     }
 
-    "[1] result in error when importing a method from type" in {
+    "result in error when importing a method from type" in {
       """
         |type Other_Type
         |    method self = 42
@@ -204,8 +197,7 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
       mainIr.imports.size shouldEqual 1
-      // TODO: Specify the message
-      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe true
+      mainIr.imports.head.asInstanceOf[IR.Error.ImportExport].reason.asInstanceOf[IR.Error.ImportExport.NoSuchConstructor] shouldEqual IR.Error.ImportExport.NoSuchConstructor("Other_Type", "method")
     }
 
     "resolve static method from a module" in {
@@ -215,30 +207,35 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
         |"""
         .stripMargin
         .createModule(packageQualifiedName.createChild("A_Module"))
-      val bBindingMap =
+      val bIr =
         s"""
            |import $namespace.$packageName.A_Module.static_method
            |"""
           .stripMargin
           .createModule(packageQualifiedName.createChild("B_Module"))
           .getIr
-          .unwrapBindingMap
-      val mainBindingMap =
+      val mainIr =
         s"""
-           |from $namespace.$packageName.Other_Module import static_method
+           |from $namespace.$packageName.A_Module import static_method
            |"""
           .stripMargin
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
-          .unwrapBindingMap
 
+      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
+      bIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
+      val mainBindingMap = mainIr.unwrapBindingMap
+      val bBindingMap = bIr.unwrapBindingMap
       mainBindingMap.resolvedImports.size shouldEqual 2
-      mainBindingMap.resolvedImports(0).target.asInstanceOf[BindingsMap.ResolvedModule].module.getName.path.last shouldEqual "A_Module"
+      mainBindingMap.resolvedImports(0).target.asInstanceOf[BindingsMap.ResolvedModule].module.getName.item shouldEqual "A_Module"
       mainBindingMap.resolvedImports(1).target.asInstanceOf[BindingsMap.ResolvedMethod].method.name shouldEqual "static_method"
-      // TODO: The same should be true for bBindingMap
+      // In B_Module, we only have ResolvedMethod in the resolvedImports, there is no ResolvedModule
+      // But that does not matter.
+      bBindingMap.resolvedImports.size shouldEqual 1
+      bBindingMap.resolvedImports(0).target.asInstanceOf[BindingsMap.ResolvedMethod].method.name shouldEqual "static_method"
     }
 
-    "??" in {
+    "resolve types and methods when importing all from a module" in {
       """
         |type Other_Module_Type
         |static_method =
@@ -254,13 +251,17 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
           .unwrapBindingMap
-      mainBindingMap.resolvedImports.size shouldEqual 3
-      mainBindingMap.resolvedImports(0).target.asInstanceOf[BindingsMap.ResolvedModule].module.getName.path.last shouldEqual "Other_Module"
-      mainBindingMap.resolvedImports(1).target.asInstanceOf[BindingsMap.ResolvedType].tp.name shouldEqual "Other_Module_Type"
-      mainBindingMap.resolvedImports(2).target.asInstanceOf[BindingsMap.ResolvedMethod].method.name shouldEqual "static_method"
+
+      mainBindingMap.resolvedImports.filter(imp => {
+        imp.target match {
+          case BindingsMap.ResolvedType(_, tp) if tp.name == "Other_Module_Type" => true
+          case BindingsMap.ResolvedMethod(_, method) if method.name == "static_method" => true
+          case _ => false
+        }
+      }) should have size 2
     }
 
-    "result in an error when importing all from a type that has some methods" in {
+    "resolve only constructors when importing all symbols from a type (1)" in {
       """
         |type Other_Module_Type
         |    Constructor
@@ -268,15 +269,78 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
         |"""
         .stripMargin
         .createModule(packageQualifiedName.createChild("Other_Module"))
-      val mainIr =
+      val mainBindingMap =
         s"""
-           |from $namespace.$packageName.Other_Module import all
+           |from $namespace.$packageName.Other_Module.Other_Module_Type import all
            |"""
           .stripMargin
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
-      // TODO: Check for a message
-      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe true
+          .unwrapBindingMap
+
+      mainBindingMap.resolvedImports.filter(imp => {
+        imp.target match {
+          case BindingsMap.ResolvedConstructor(_, ctor) if ctor.name == "Constructor" => true
+          case _ => false
+        }
+      }
+      ) should have size 1
+    }
+
+    "resolve only constructors when importing all symbols from a type (2)" in {
+      """
+        |type Other_Module_Type
+        |    Constructor_1
+        |    Constructor_2 val1 val2
+        |    method self = 42
+        |"""
+        .stripMargin
+        .createModule(packageQualifiedName.createChild("Other_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.Other_Module.Other_Module_Type import all
+           |"""
+          .stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
+      val mainBindingMap = mainIr.unwrapBindingMap
+      mainBindingMap.resolvedImports.filter(imp => {
+        imp.target match {
+          case BindingsMap.ResolvedConstructor(_, ctor)
+            if ctor.name == "Constructor_1" || ctor.name == "Constructor_2" => true
+          case _ => false
+        }
+      }
+      ) should have size 2
+    }
+
+    "resolve all constructors from a type" in {
+      """
+        |type Other_Module_Type
+        |    Constructor_1
+        |    Constructor_2 val1 val2
+        |"""
+        .stripMargin
+        .createModule(packageQualifiedName.createChild("Other_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.Other_Module.Other_Module_Type import all
+           |"""
+          .stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
+      val mainBindingMap = mainIr.unwrapBindingMap
+      mainBindingMap.resolvedImports.filter(imp => {
+        imp.target match {
+          case BindingsMap.ResolvedConstructor(_, ctor)
+            if ctor.name == "Constructor_1" || ctor.name == "Constructor_2" => true
+          case _ => false
+        }
+      }
+      ) should have size 2
     }
 
     "result in error when trying to import all from a non-type" in {
@@ -293,31 +357,26 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
           .stripMargin
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
-      // TODO: Check for a message
-      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe true
+      mainIr.imports.head.asInstanceOf[IR.Error.ImportExport].reason.asInstanceOf[IR.Error.ImportExport.TypeDoesNotExist].typeName shouldEqual "static_method"
     }
 
-    "resolve all constructors from a type" in {
+    "result in error when trying to import anything from a non-existing symbol" in {
       """
-        |type Other_Module_Type
-        |    Constructor_1
-        |    Constructor_2 val1 val2
+        |# Left blank on purpose
         |"""
         .stripMargin
         .createModule(packageQualifiedName.createChild("Other_Module"))
-      val mainBindingMap =
+      val mainIr =
         s"""
-           |from $namespace.$packageName.A_Module import all
+           |from $namespace.$packageName.Other_Module.Non_Existing_Symbol import all
            |"""
           .stripMargin
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
-          .unwrapBindingMap
-      mainBindingMap.resolvedImports.size shouldEqual 3
-      mainBindingMap.resolvedImports(0).target.asInstanceOf[BindingsMap.ResolvedModule].module.unsafeAsModule().getName.path.last shouldEqual "Other_Module"
-      mainBindingMap.resolvedImports(1).target.asInstanceOf[BindingsMap.ResolvedConstructor].cons.name shouldEqual "Constructor_1"
-      mainBindingMap.resolvedImports(2).target.asInstanceOf[BindingsMap.ResolvedConstructor].cons.name shouldEqual "Constructor_2"
+      mainIr.imports.head.asInstanceOf[IR.Error.ImportExport].reason
+        .asInstanceOf[IR.Error.ImportExport.ModuleDoesNotExist].name should include ("Non_Existing_Symbol")
     }
+
   }
 
 
@@ -338,17 +397,18 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
            |"""
           .stripMargin
           .createModule(packageQualifiedName.createChild("B_Module"))
-      val mainModule =
+      val mainModuleIr =
         s"""
            |from $namespace.$packageName.B_Module import A_Type
            |"""
           .stripMargin
           .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
       moduleB.getIr.unwrapBindingMap.resolvedImports.size shouldEqual 1
       moduleB.getIr.unwrapBindingMap.resolvedImports.head.target.asInstanceOf[BindingsMap.ResolvedType].tp.name shouldEqual "A_Type"
-      mainModule.getIr.imports.size shouldEqual 1
-      mainModule.getIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe true
-      mainModule.getIr.imports.head.asInstanceOf[IR.Error.ImportExport].reason.message should include("A_Type")
+      mainModuleIr.imports.size shouldEqual 1
+      mainModuleIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe true
+      mainModuleIr.imports.head.asInstanceOf[IR.Error.ImportExport].reason.message should include("A_Type")
     }
 
     "resolve symbol exported from a different module" in {
@@ -358,7 +418,7 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
         |"""
         .stripMargin
         .createModule(packageQualifiedName.createChild("A_Module"))
-      val bModule = s"""
+      s"""
          |import $namespace.$packageName.A_Module.A_Type
          |export $namespace.$packageName.A_Module.A_Type
          |
@@ -367,17 +427,30 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
          |"""
         .stripMargin
         .createModule(packageQualifiedName.createChild("B_Module"))
-      val mainModule =
+      val mainIr =
         s"""
            |from $namespace.$packageName.B_Module import A_Type
            |"""
           .stripMargin
           .createModule(packageQualifiedName.createChild("Main"))
-      mainModule.getIr.imports.size shouldEqual 1
-      mainModule.getIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
-      mainModule.getIr.unwrapBindingMap.resolvedImports.size shouldEqual 2
-      mainModule.getIr.unwrapBindingMap.resolvedImports(0).target.asInstanceOf[BindingsMap.ResolvedModule].module.unsafeAsModule() shouldEqual bModule
-      mainModule.getIr.unwrapBindingMap.resolvedImports(1).target.asInstanceOf[BindingsMap.ResolvedType].tp.name shouldEqual "A_Type"
+          .getIr
+      mainIr.imports.size shouldEqual 1
+      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
+      val mainBindingMap = mainIr.unwrapBindingMap
+      // A_Type is exported
+      mainBindingMap.resolvedImports.exists(imp => {
+        imp.target match {
+          case BindingsMap.ResolvedType(_, tp) if tp.name == "A_Type" => true
+          case _ => false
+        }
+      }) should be(true)
+      // B_Type is not imported
+      mainBindingMap.resolvedImports.exists(imp => {
+        imp.target match {
+          case BindingsMap.ResolvedType(_, tp) if tp.name == "B_Type" => true
+          case _ => false
+        }
+      }) should be(false)
     }
   }
 
