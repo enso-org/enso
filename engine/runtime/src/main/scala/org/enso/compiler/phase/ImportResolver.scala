@@ -4,12 +4,7 @@ import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.{Export, Import}
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{
-  ModuleReference,
-  ResolvedModule,
-  ResolvedType,
-  Type
-}
+import org.enso.compiler.data.BindingsMap.{ImportTarget, ModuleReference, ResolvedMethod, ResolvedModule, ResolvedType, Type}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
@@ -132,12 +127,12 @@ class ImportResolver(compiler: Compiler) {
     go(mutable.Stack(module), mutable.Set(), mutable.Set())
   }
 
-  private def tryResolveAsType(
+  private def tryResolveAsTypeOrStaticMethod(
     name: IR.Name.Qualified
-  ): Option[ResolvedType] = {
-    val tp  = name.parts.last.name
-    val mod = name.parts.dropRight(1).map(_.name).mkString(".")
-    compiler.getModule(mod).flatMap { mod =>
+  ): Option[ImportTarget] = {
+    val nameToImportFromModule  = name.parts.last.name
+    val moduleName = name.parts.dropRight(1).map(_.name).mkString(".")
+    compiler.getModule(moduleName).flatMap { mod =>
       compiler.ensureParsed(mod)
       mod.getIr
         .unsafeGetMetadata(
@@ -145,9 +140,12 @@ class ImportResolver(compiler: Compiler) {
           "impossible: just ensured it's parsed"
         )
         .definedEntities
-        .find(_.name == tp)
-        .collect { case t: Type =>
-          ResolvedType(ModuleReference.Concrete(mod), t)
+        .find(_.name == nameToImportFromModule)
+        .collect {
+          case t: Type =>
+            ResolvedType(ModuleReference.Concrete(mod), t)
+          case m: BindingsMap.ModuleMethod =>
+            ResolvedMethod(ModuleReference.Concrete(mod), m)
         }
     }
   }
@@ -242,9 +240,9 @@ class ImportResolver(compiler: Compiler) {
               )
             )
           case None =>
-            tryResolveAsType(imp.name) match {
-              case Some(tp) =>
-                (imp, Some(BindingsMap.ResolvedImport(imp, exp, tp)))
+            tryResolveAsTypeOrStaticMethod(imp.name) match {
+              case Some(importTarget) =>
+                (imp, Some(BindingsMap.ResolvedImport(imp, exp, importTarget)))
               case None =>
                 (
                   IR.Error.ImportExport(
