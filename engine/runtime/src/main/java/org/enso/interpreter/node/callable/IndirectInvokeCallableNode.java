@@ -87,7 +87,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
               isTail);
 
       Warning[] extracted = warnings.getWarnings(warning, null);
-      return WithWarnings.wrap(result, extracted);
+      return WithWarnings.wrap(EnsoContext.get(this), result, extracted);
     } catch (UnsupportedMessageException e) {
       throw CompilerDirectives.shouldNotReachHere(e);
     }

@@ -363,7 +363,11 @@ object ProgramExecutionSupport {
           Api.ExpressionUpdate.Payload.Value(
             Some(
               Api.ExpressionUpdate.Payload.Value
-                .Warnings(warningsCount, warning)
+                .Warnings(
+                  warningsCount,
+                  warning,
+                  withWarnings.isLimitReached()
+                )
             )
           )
         case _ =>

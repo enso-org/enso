@@ -74,7 +74,7 @@ public abstract class Builtin {
     postInitialize();
   }
 
-  protected boolean containsValues() {
+  public boolean containsValues() {
     return getDeclaredConstructors().size() > 0;
   }
 

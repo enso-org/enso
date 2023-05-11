@@ -18,7 +18,10 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.BenchmarkParams;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode(Mode.AverageTime)
@@ -28,27 +31,49 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 public class WarningBenchmarks extends TestBase {
-    private static final int INPUT_VEC_SIZE = 10000;
+    private static final int INPUT_VEC_SIZE = 10_000;
+    private static final int INPUT_DIFF_VEC_SIZE = 10_000;
     private Context ctx;
     private Value vecSumBench;
 
     private Value createVec;
+    private Value mapVecWithWarnings;
     private Value noWarningsVec;
     private Value sameWarningVec;
-
-    private Value elem;
-
-    private Value elemWithWarning;
+    private Value randomVec;
+    private Value randomElemsWithWarningsVec;
+    private Value constElem;
+    private Value constElemWithWarning;
 
     private String benchmarkName;
+
+    private int randomVectorSum = 0;
+
+    private record GeneratedVector(StringBuilder repr, int sum) {}
+
+    private GeneratedVector generateRandomVector(Random random, String vectorName, long vectorSize, int maxRange) {
+        List<Integer> primitiveValues = new ArrayList<>();
+        random.ints(vectorSize, 0, maxRange).forEach(primitiveValues::add);
+        var sb = new StringBuilder();
+        sb.append(vectorName).append(" = [");
+        var sum = 0;
+        for (Integer intValue : primitiveValues) {
+            sb.append(intValue).append(",");
+            sum += Math.abs(intValue);
+        }
+        sb.setCharAt(sb.length() - 1, ']');
+        sb.append('\n');
+        return new GeneratedVector(sb, sum);
+    }
 
     @Setup
     public void initializeBench(BenchmarkParams params) throws IOException {
         ctx = createDefaultContext();
+        var random = new Random(42);
 
         benchmarkName = SrcUtil.findName(params);
 
-        var code = """
+        var code = new StringBuilder("""
         from Standard.Base import all
 
         vec_sum_bench : Vector Integer -> Integer
@@ -61,18 +86,34 @@ public class WarningBenchmarks extends TestBase {
         elem =
             42
             
-        elem_with_warning =
+        elem_const_with_warning =
             x = 42
             Warning.attach "Foo!" x
-        """;
-        var src = SrcUtil.source(benchmarkName, code);
+
+        elem_with_warning v =
+            Warning.attach "Foo!" v
+
+        map_vector_with_warnings vec =
+            vec.map (e-> elem_with_warning e)
+        """);
+
+        // generate random vector
+        var randomIntVectorName = "vector_with_random_values";
+        var vectorWithRandomValues = generateRandomVector(random, randomIntVectorName, INPUT_DIFF_VEC_SIZE, 3_000);
+        code.append(vectorWithRandomValues.repr());
+        randomVectorSum = vectorWithRandomValues.sum();
+
+        var src = SrcUtil.source(benchmarkName, code.toString());
         Value module = ctx.eval(src);
         vecSumBench = Objects.requireNonNull(module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "vec_sum_bench"));
         createVec = Objects.requireNonNull(module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create_vec"));
-        elem = Objects.requireNonNull(module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "elem"));
-        elemWithWarning = Objects.requireNonNull(module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "elem_with_warning"));
-        noWarningsVec = createVec.execute(INPUT_VEC_SIZE, elem);
-        sameWarningVec = createVec.execute(INPUT_VEC_SIZE, elemWithWarning);
+        mapVecWithWarnings = Objects.requireNonNull(module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "map_vector_with_warnings"));
+        constElem = Objects.requireNonNull(module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "elem"));
+        constElemWithWarning = Objects.requireNonNull(module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "elem_const_with_warning"));
+        noWarningsVec = createVec.execute(INPUT_VEC_SIZE, constElem);
+        sameWarningVec = createVec.execute(INPUT_VEC_SIZE, constElemWithWarning);
+        randomVec = Objects.requireNonNull(module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, randomIntVectorName));
+        randomElemsWithWarningsVec = mapVecWithWarnings.execute(randomVec);
     }
 
     @TearDown
@@ -83,17 +124,30 @@ public class WarningBenchmarks extends TestBase {
     @Benchmark
     public void noWarningsVecSum() {
         Value res = vecSumBench.execute(noWarningsVec);
-        checkResult(res);
+        checkResult(res, INPUT_VEC_SIZE*42);
     }
 
     @Benchmark
     public void sameWarningVecSum() {
         Value res = vecSumBench.execute(sameWarningVec);
-        checkResult(res);
+        checkResult(res, INPUT_VEC_SIZE*42);
     }
 
-    private static void checkResult(Value res) {
-        if (res.asInt() != INPUT_VEC_SIZE*42) {
+    @Benchmark
+    public void randomElementsVecSum() {
+        Value res = vecSumBench.execute(randomVec);
+        checkResult(res, randomVectorSum);
+    }
+
+    @Benchmark
+    public void diffWarningRandomElementsVecSum() {
+        Value res = vecSumBench.execute(randomElemsWithWarningsVec);
+        checkResult(res, randomVectorSum);
+    }
+
+
+    private static void checkResult(Value res, int expected) {
+        if (res.asInt() != expected) {
             throw new AssertionError("Expected result: " + INPUT_VEC_SIZE*42 + ", got: " + res.asInt());
         }
     }

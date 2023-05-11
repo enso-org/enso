@@ -10,7 +10,7 @@ public class Error extends Builtin {
   }
 
   @Override
-  protected boolean containsValues() {
+  public boolean containsValues() {
     return true;
   }
 }
