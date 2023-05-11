@@ -1,5 +1,15 @@
 package org.enso.interpreter.runtime.data;
 
+import java.util.Arrays;
+
+import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.graalvm.collections.EconomicSet;
+
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -130,13 +140,18 @@ public final class Array implements TruffleObject {
     return allocate(0);
   }
 
-  @Builtin.Method(name = "slice", description = "Returns a slice of this Array.")
-  @Builtin.Specialize
-  @Builtin.WrapException(from = UnsupportedMessageException.class)
-  public final Object slice(long start, long end, InteropLibrary interop)
-      throws UnsupportedMessageException {
-    var slice = ArraySlice.createOrNull(this, start, length(), end);
-    return slice == null ? this : slice;
+  /**
+   * Takes a slice from an array like object.
+   *
+   * @param self array like object
+   * @param start start of the slice
+   * @param end end of the slice
+   * @param len the length of the array
+   * @return an array-like object representing the slice
+   */
+  public static Object slice(Object self, long start, long end, long len) {
+    var slice = ArraySlice.createOrNull(self, start, len, end);
+    return slice == null ? self : slice;
   }
 
   /**

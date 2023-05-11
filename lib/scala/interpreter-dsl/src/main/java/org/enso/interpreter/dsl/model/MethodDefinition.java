@@ -1,13 +1,26 @@
 package org.enso.interpreter.dsl.model;
 
-import org.enso.interpreter.dsl.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.*;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
-import java.util.*;
+import javax.tools.Diagnostic.Kind;
+
+import org.enso.interpreter.dsl.AcceptsError;
+import org.enso.interpreter.dsl.AcceptsWarning;
+import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.dsl.Suspend;
 
 /** A domain-specific representation of a builtin method. */
 public class MethodDefinition {
@@ -26,7 +39,7 @@ public class MethodDefinition {
   private final Set<String> imports;
   private final boolean needsCallerInfo;
   private final boolean needsFrame;
-  private final String constructorExpression;
+  private final Object constructorExpression;
 
   /**
    * Creates a new instance of this class.
@@ -70,7 +83,7 @@ public class MethodDefinition {
     }
   }
 
-  private String initConstructor(TypeElement element) {
+  private Object initConstructor(TypeElement element) {
     boolean useBuild =
         element.getEnclosedElements().stream()
             .anyMatch(
@@ -88,7 +101,7 @@ public class MethodDefinition {
     } else {
       boolean isClassAbstract = element.getModifiers().contains(Modifier.ABSTRACT);
       if (isClassAbstract) {
-        throw new RuntimeException(
+        return new RuntimeException(
             "Class "
                 + element.getSimpleName()
                 + " is abstract, and has no static `build()` method.");
@@ -153,6 +166,11 @@ public class MethodDefinition {
    * @return whether the definition is fully valid.
    */
   public boolean validate(ProcessingEnvironment processingEnvironment) {
+    if (this.constructorExpression instanceof Exception ex) {
+      processingEnvironment.getMessager().printMessage(Kind.ERROR, ex.getMessage(), element);
+      return false;
+    }
+
     boolean argsValid = arguments.stream().allMatch(arg -> arg.validate(processingEnvironment));
 
     return argsValid;
@@ -214,7 +232,7 @@ public class MethodDefinition {
   }
 
   public String getConstructorExpression() {
-    return constructorExpression;
+    return (String) constructorExpression;
   }
 
   public boolean isStatic() {
