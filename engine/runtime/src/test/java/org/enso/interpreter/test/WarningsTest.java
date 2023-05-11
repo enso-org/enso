@@ -39,8 +39,8 @@ public class WarningsTest extends TestBase {
     var warn2 = Warning.create(ensoContext, "w2", this);
     var value = 42;
 
-    var with1 = WithWarnings.wrap(42, warn1);
-    var with2 = WithWarnings.wrap(with1, warn2);
+    var with1 = WithWarnings.wrap(ensoContext, 42, warn1);
+    var with2 = WithWarnings.wrap(ensoContext, with1, warn2);
 
     assertEquals(value, with1.getValue());
     assertEquals(value, with2.getValue());

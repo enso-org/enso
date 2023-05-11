@@ -5,7 +5,7 @@ import org.enso.interpreter.dsl.BuiltinType;
 @BuiltinType(name = "Standard.Base.Nothing.Nothing")
 public class Nothing extends Builtin {
   @Override
-  protected boolean containsValues() {
+  public boolean containsValues() {
     return false;
   }
 }

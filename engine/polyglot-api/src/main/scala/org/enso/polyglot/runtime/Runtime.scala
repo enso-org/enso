@@ -417,8 +417,13 @@ object Runtime {
             *
             * @param count the number of attached warnings.
             * @param warning textual representation of the attached warning.
+            * @param reachedMaxCount true when reported a maximal number of allowed warnings, false otherwise.
             */
-          case class Warnings(count: Int, warning: Option[String])
+          case class Warnings(
+            count: Int,
+            warning: Option[String],
+            reachedMaxCount: Boolean
+          )
         }
 
         /** TBD
