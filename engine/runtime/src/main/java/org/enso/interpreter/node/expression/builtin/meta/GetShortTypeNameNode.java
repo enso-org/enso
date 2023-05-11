@@ -12,11 +12,7 @@ import org.enso.interpreter.runtime.data.text.Text;
     name = "get_short_type_name",
     description = "Gets the short name of a Type.",
     autoRegister = false)
-public abstract class GetShortTypeNameNode extends Node {
-  static GetShortTypeNameNode build() {
-    return GetShortTypeNameNodeGen.create();
-  }
-
+public class GetShortTypeNameNode extends Node {
   Text execute(Type type) {
     return Text.create(type.getName());
   }

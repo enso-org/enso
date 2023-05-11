@@ -11,11 +11,7 @@ import org.enso.interpreter.runtime.data.text.Text;
     name = "get_constructor_parent_type",
     description = "Gets the name of a constructor.",
     autoRegister = false)
-public abstract class GetConstructorParentTypeNode extends Node {
-  static GetConstructorParentTypeNode build() {
-    return GetConstructorParentTypeNodeGen.create();
-  }
-
+public class GetConstructorParentTypeNode extends Node {
   Type execute(AtomConstructor cons) {
     return cons.getType();
   }

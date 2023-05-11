@@ -8,7 +8,9 @@ import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Type_Error
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Function.Function
 import project.Math
+import project.Meta
 import project.Panic.Panic
 import project.Random
 import project.Runtime.Ref.Ref
