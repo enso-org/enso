@@ -2163,7 +2163,7 @@ impl<T: EventOutput> OwnedTrace<T> {
 impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedTrace<T> {
     fn on_event(&self, stack: CallStack, event: &Output<T>) {
         console_log!("[FRP] {}: {:?}", self.label(), event);
-        // warn!("[FRP] {}", stack);
+        console_log!("[FRP] {}", stack);
         self.emit_event(stack, event);
     }
 }

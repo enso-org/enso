@@ -438,6 +438,7 @@ impl View {
                 });
             eval searcher_cam_pos ((pos) searcher_cam.set_xy(*pos));
 
+            trace searcher.is_visible;
             eval searcher.is_visible ([model](is_visible) {
                 let is_attached = model.searcher.has_parent();
                 if !is_attached && *is_visible {

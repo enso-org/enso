@@ -487,6 +487,7 @@ impl Searcher {
     /// node, its AST ID is returned.
     #[profile(Task)]
     pub fn commit_editing(self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
+        warn!("Commit editing");
         self.model.commit_editing(entry_id)
     }
 
@@ -500,6 +501,7 @@ impl Searcher {
         self,
         entry_id: Option<component_grid::GroupEntryId>,
     ) -> Option<AstNodeId> {
+        warn!("Expression Accepted");
         self.model.expression_accepted(entry_id)
     }
 
@@ -508,6 +510,7 @@ impl Searcher {
     /// This method takes `self`, as the presenter (with the searcher view) should be dropped once
     /// editing finishes.
     pub fn abort_editing(self) {
+        warn!("Abort Editing");
         self.model.controller.abort_editing()
     }
 
