@@ -18,6 +18,8 @@ use crate::model::execution_context::VisualizationUpdateData;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::MethodPointer;
+use futures::stream;
+use futures::TryStreamExt;
 use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::context::Context;
 
@@ -196,7 +198,7 @@ impl Handle {
             .boxed_local();
 
         let streams = vec![value_stream, graph_stream, self_stream, db_stream, update_stream];
-        futures::stream::select_all(streams)
+        stream::select_all(streams)
     }
 
     // Note [Argument Names-related invalidations]
@@ -229,15 +231,15 @@ impl Handle {
             Err(ReadOnly.into())
         } else {
             let mut successful_calls = Vec::new();
-            let mut result = Ok(());
-            for local_call in stack {
-                debug!("Entering node {}.", local_call.call);
-                if let Err(error) = self.execution_ctx.push(local_call.clone()).await {
-                    result = Err(error);
-                    break;
-                }
-                successful_calls.push(local_call);
-            }
+            let result = stream::iter(stack)
+                .then(|local_call| async {
+                    debug!("Entering node {}.", local_call.call);
+                    self.execution_ctx.push(local_call.clone()).await?;
+                    Ok(local_call)
+                })
+                .map_ok(|local_call| successful_calls.push(local_call))
+                .try_collect::<()>()
+                .await;
             if let Some(last_successful_call) = successful_calls.last() {
                 let graph =
                     controller::Graph::new_method(&self.project, &last_successful_call.definition)
@@ -275,14 +277,11 @@ impl Handle {
             Err(ReadOnly.into())
         } else {
             let mut successful_pop_count = 0;
-            let mut result = Ok(());
-            for _ in 0..frame_count {
-                if let Err(error) = self.execution_ctx.pop().await {
-                    result = Err(error);
-                    break;
-                }
-                successful_pop_count += 1;
-            }
+            let result = stream::iter(0..frame_count)
+                .then(|_| self.execution_ctx.pop())
+                .map_ok(|_| successful_pop_count += 1)
+                .try_collect::<()>()
+                .await;
             if successful_pop_count > 0 {
                 let method = self.execution_ctx.current_method();
                 let graph = controller::Graph::new_method(&self.project, &method).await?;
