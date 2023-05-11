@@ -471,7 +471,10 @@ function Dashboard(props: DashboardProps) {
                         key={user.user.organization_id}
                         permissions={PERMISSION[user.permission]}
                     >
-                        {svg.DEFAULT_USER_ICON}
+                        <img
+                            className="rounded-full h-6"
+                            src="https://faces-img.xcdn.link/image-lorem-face-4742.jpg"
+                        />
                     </PermissionDisplay>
                 ))}
             </>
