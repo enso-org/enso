@@ -1148,6 +1148,7 @@ type Table
          Take rows from the top of the table as long as their values sum to 10.
 
              table.take (While row-> row.to_vector.compute Statistic.Sum == 10)
+    @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Table
     take self range=(First 1) =
         Index_Sub_Range_Module.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
@@ -1170,6 +1171,7 @@ type Table
          Drop rows from the top of the table as long as their values sum to 10.
 
              table.drop (While row-> row.to_vector.compute Statistic.Sum == 10)
+    @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Table
     drop self range=(First 1) =
         Index_Sub_Range_Module.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range

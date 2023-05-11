@@ -6,6 +6,7 @@ import project.Data.Range.Range
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Type_Error
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
@@ -16,6 +17,10 @@ from project.Data.Boolean import Boolean, True, False
 
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 import project.Data.Text.Span as Span_Module
+
+from project.Metadata.Widget import Single_Choice
+from project.Metadata.Choice import Option
+import project.Metadata.Display
 
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import org.enso.base.Text_Utils
@@ -143,6 +148,24 @@ type Codepoint_Ranges
             _ ->
                 # TODO [RW] even better handling for unapplied constructors
                 Error.throw (Type_Error.Error "Text_Sub_Range | Index_Sub_Range | Range | Integer" range "range")
+
+    ## PRIVATE
+    default_options : Vector Option
+    default_options =
+        o1 = [Option "Before ' '" "(Text_Sub_Range.Before ' ')"]
+        o2 = [Option "Before_Last ' '" "(Text_Sub_Range.Before_Last ' ')"]
+        o3 = [Option "After ' '" "(Text_Sub_Range.After ' ')"]
+        o4 = [Option "After_Last ' '" "(Text_Sub_Range.After_Last ' ')"]
+        [o1, o2, o3, o4]
+
+    ## PRIVATE
+       The widget for `Text_Sub_Range` also displays options for
+       `Index_Sub_Range` since the former is supposed to 'expand' the latter and
+       is always used together with it.
+    default_widget : Single_Choice
+    default_widget =
+        options = Index_Sub_Range.default_options + Text_Sub_Range.default_options
+        Single_Choice display=Display.Always options
 
 ## PRIVATE
    Utility function to find char indices for Text_Sub_Range.

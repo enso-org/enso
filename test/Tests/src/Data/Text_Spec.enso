@@ -748,6 +748,10 @@ spec =
             r2.should_fail_with Illegal_Argument
             r2.catch.to_display_text . should_contain "The constructor Before is missing some arguments"
 
+            r3 = "".take (Index_Sub_Range.First _)
+            r3.should_fail_with Illegal_Argument
+            r3.catch.to_display_text . should_equal "Got a Function instead of a range. Perhaps one of the constructor arguments is missing?"
+
         Test.specify "should correctly convert character case" <|
             "FooBar Baz".to_case Case.Lower . should_equal "foobar baz"
             "FooBar Baz".to_case Case.Upper . should_equal "FOOBAR BAZ"

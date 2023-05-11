@@ -5,6 +5,7 @@ import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Type_Error
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Math
@@ -13,6 +14,10 @@ import project.Random
 import project.Runtime.Ref.Ref
 
 from project.Data.Boolean import Boolean, True, False
+
+from project.Metadata.Widget import Single_Choice
+from project.Metadata.Choice import Option
+import project.Metadata.Display
 
 type Index_Sub_Range
     ## Select the first `count` items.
@@ -66,6 +71,22 @@ type Index_Sub_Range
         Index_Sub_Range.By_Index indexes -> "By_Index " + indexes.to_display_text
         Index_Sub_Range.Sample count _ -> "Sample " + count.to_display_text
         Index_Sub_Range.Every step first -> "Every " + step.to_display_text + (if first == 0 then "" else " from " + first.to_display_text)
+
+    ## PRIVATE
+    default_options : Vector Option
+    default_options =
+        o1 = Option "First 1" "(Index_Sub_Range.First 1)"
+        o2 = Option "Last 1" "(Index_Sub_Range.Last 1)"
+        o3 = Option "While" "(Index_Sub_Range.While _)"
+        o4 = Option "By_Index" "(Index_Sub_Range.By_Index [0])"
+        o5 = Option "Sample" "(Index_Sub_Range.Sample 10)"
+        o6 = Option "Every" "(Index_Sub_Range.Every 2)"
+        [o1, o2, o3, o4, o5, o6]
+
+    ## PRIVATE
+    default_widget : Single_Choice
+    default_widget =
+        Single_Choice display=Display.Always Index_Sub_Range.default_options
 
 ## PRIVATE
    Resolves a vector of ranges or indices into a vector of ranges that fit
