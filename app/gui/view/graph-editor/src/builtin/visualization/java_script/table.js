@@ -28,7 +28,15 @@ class TableVisualization extends Visualization {
 
     constructor(data) {
         super(data)
-        this.setPreprocessor('Standard.Visualization.Table.Visualization', 'prepare_visualization')
+        this.setRowLimitAndPage(1000, 0);
+    }
+
+    setRowLimitAndPage(row_limit, page) {
+        if (this.row_limit !== row_limit || this.page !== page) {
+            this.row_limit = row_limit
+            this.page = page
+            this.setPreprocessor('Standard.Visualization.Table.Visualization', 'prepare_visualization', `${this.row_limit}`)
+        }
     }
 
     onDataReceived(data) {
@@ -85,15 +93,29 @@ class TableVisualization extends Visualization {
             }
 
             const style =
-                '.ag-theme-alpine { --ag-grid-size: 3px; --ag-list-item-height: 20px; display: inline; }'
+                '.ag-theme-alpine { --ag-grid-size: 3px; --ag-list-item-height: 20px; display: inline; }\n' +
+                '.vis-status-bar { height: 20x; background-color: white; font-size:14px; white-space:nowrap; padding: 0 5px; overflow:hidden }\n' +
+                '.vis-status-bar > button { width: 12px; margin: 0 2px; display: none }\n' +
+                '.vis-tbl-grid { height: calc(100% - 20px); width: 100%; }\n'
             const styleElem = document.createElement('style')
             styleElem.innerHTML = style
             this.dom.appendChild(styleElem)
 
+            const statusElem = document.createElement('div')
+            statusElem.setAttributeNS(null, 'id', 'vis-tbl-status')
+            statusElem.setAttributeNS(null, 'class', 'vis-status-bar')
+            this.dom.appendChild(statusElem)
+            this.statusElem = statusElem
+
+            const gridElem = document.createElement('div')
+            gridElem.setAttributeNS(null, 'id', 'vis-tbl-grid')
+            gridElem.className = 'vis-tbl-grid'
+            this.dom.appendChild(gridElem)
+
             const tabElem = document.createElement('div')
             tabElem.setAttributeNS(null, 'id', 'vis-tbl-view')
             tabElem.setAttributeNS(null, 'class', 'scrollable ag-theme-alpine')
-            this.dom.appendChild(tabElem)
+            gridElem.appendChild(tabElem)
             this.tabElem = tabElem
 
             this.agGridOptions = {
@@ -198,26 +220,80 @@ class TableVisualization extends Visualization {
             dataTruncated = parsedData.all_rows_count !== rowData.length
         }
 
-        // If the table contains more rows than an upper limit, the engine will send only some of all rows.
+        // Update Status Bar
+        this.createRowDropdown(parsedData.all_rows_count === undefined ? 1 : parsedData.all_rows_count, dataTruncated);
+
         // If data is truncated, we cannot rely on sorting/filtering so will disable.
-        // A pinned row is added to tell the user the row count and that filter/sort is disabled.
-        const col_span = '__COL_SPAN__'
-        if (dataTruncated) {
-            columnDefs[0].colSpan = p => p.data[col_span] || 1
-        }
         this.agGridOptions.defaultColDef.filter = !dataTruncated
         this.agGridOptions.defaultColDef.sortable = !dataTruncated
         this.agGridOptions.api.setColumnDefs(columnDefs)
-        if (dataTruncated) {
-            const field = columnDefs[0].field
-            const extraRow = {
-                [field]: `Showing ${rowData.length} of ${parsedData.all_rows_count} rows. Sorting and filtering disabled.`,
-                [col_span]: columnDefs.length,
-            }
-            this.agGridOptions.api.setPinnedTopRowData([extraRow])
-        }
         this.agGridOptions.api.setRowData(rowData)
         this.updateTableSize(this.dom.getAttributeNS(null, 'width'))
+    }
+
+    makeOption(value, label) {
+        const optionElem = document.createElement('option')
+        optionElem.value = value
+        optionElem.appendChild(document.createTextNode(label))
+        return optionElem
+    }
+
+    makeButton(label, onclick) {
+        const buttonElem = document.createElement('button')
+        buttonElem.name = label
+        buttonElem.appendChild(document.createTextNode(label))
+        buttonElem.addEventListener('click', onclick)
+        return buttonElem
+    }
+
+    createRowDropdown(all_rows_count, dataTruncated) {
+        const pageLimit = Math.ceil(all_rows_count / this.row_limit)
+        if (this.page > pageLimit) {
+            this.page = pageLimit
+        }
+
+        if (this.statusElem.childElementCount === 0) {
+            this.statusElem.appendChild(this.makeButton("«", () => this.setRowLimitAndPage(this.row_limit, 0)))
+            this.statusElem.appendChild(this.makeButton("‹", () => this.setRowLimitAndPage(this.row_limit, this.page - 1)))
+
+            const selectElem = document.createElement('select')
+            selectElem.name = "row-limit"
+            selectElem.addEventListener('change', e => { this.setRowLimitAndPage(e.target.value, this.page) })
+            this.statusElem.appendChild(selectElem)
+
+            const rowCountSpanElem = document.createElement('span')
+            this.statusElem.appendChild(rowCountSpanElem)
+
+            this.statusElem.appendChild(this.makeButton("›", () => this.setRowLimitAndPage(this.row_limit, this.page + 1)))
+            this.statusElem.appendChild(this.makeButton("»", () => this.setRowLimitAndPage(this.row_limit, pageLimit - 1)))
+        }
+
+        // Enable/Disable Page buttons
+        this.statusElem.children.namedItem("«").disabled = this.page === 0
+        this.statusElem.children.namedItem("‹").disabled = this.page === 0
+        this.statusElem.children.namedItem("›").disabled = this.page === pageLimit - 1
+        this.statusElem.children.namedItem("»").disabled = this.page === pageLimit - 1
+
+        // Update row limit dropdown and row count
+        const rowCountElem = this.statusElem.getElementsByTagName("span")[0]
+        rowCountElem.innerHTML = ''
+        const rowLimitElem = this.statusElem.children.namedItem("row-limit")
+        if (all_rows_count > 1000) {
+            rowLimitElem.style.display = 'inline-block'
+            const rowCounts = [1000, 2500, 5000, 10000, 25000, 50000, 100000, all_rows_count].filter(r => r <= all_rows_count && r <= 100000)
+            rowLimitElem.innerHTML = ''
+            rowCounts.forEach(r => {
+                const option = this.makeOption(r, r.toString())
+                rowLimitElem.appendChild(option)
+            })
+            rowLimitElem.value = this.row_limit
+
+            const rowCountText = dataTruncated ? ` of ${all_rows_count} rows (Sorting/Filtering disabled).` : ` rows.`
+            rowCountElem.appendChild(document.createTextNode(rowCountText))
+        } else {
+            rowLimitElem.style.display = 'none'
+            rowCountElem.appendChild(document.createTextNode(`${all_rows_count} rows.`))
+        }
     }
 
     updateTableSize(clientWidth) {
