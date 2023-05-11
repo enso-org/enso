@@ -36,7 +36,6 @@ if (IS_DEV_MODE) {
     new EventSource(ESBUILD_PATH).addEventListener(ESBUILD_EVENT_NAME, () => {
         location.reload()
     })
-    void navigator.serviceWorker.register(SERVICE_WORKER_PATH)
 }
 
 // =============
