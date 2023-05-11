@@ -58,7 +58,7 @@ class ImportResolver(compiler: Compiler) {
         ] =
           ir.imports.map {
             case imp: IR.Module.Scope.Import.Module =>
-              tryResolveImport(ir, imp)
+              tryResolveImport(ir, imp, bindingsCachingEnabled)
             case other => (other, None)
           }
         currentLocal.resolvedImports = importedModules.flatMap(_._2)
@@ -100,6 +100,7 @@ class ImportResolver(compiler: Compiler) {
                     concreteBindings
                   }
                 current.bindings = converted.getOrElse(null)
+                current.bindings = converted.getOrElse(null)
                 (
                   converted
                     .map(
@@ -133,11 +134,13 @@ class ImportResolver(compiler: Compiler) {
   }
 
   private def tryResolveAsType(
-    name: IR.Name.Qualified
+    name: IR.Name.Qualified,
+    bindingsCachingEnabled: Boolean
   ): Option[ResolvedType] = {
     val tp  = name.parts.last.name
     val mod = name.parts.dropRight(1).map(_.name).mkString(".")
     compiler.getModule(mod).flatMap { mod =>
+      mapImports(mod, bindingsCachingEnabled)
       compiler.ensureParsed(mod)
       mod.getIr
         .unsafeGetMetadata(
@@ -154,7 +157,8 @@ class ImportResolver(compiler: Compiler) {
 
   private def tryResolveImport(
     module: IR.Module,
-    imp: Import.Module
+    imp: Import.Module,
+    bindingsCachingEnabled: Boolean
   ): (IR.Module.Scope.Import, Option[BindingsMap.ResolvedImport]) = {
     val impName = imp.name.name
     val exp = module.exports
@@ -242,7 +246,7 @@ class ImportResolver(compiler: Compiler) {
               )
             )
           case None =>
-            tryResolveAsType(imp.name) match {
+            tryResolveAsType(imp.name, bindingsCachingEnabled) match {
               case Some(tp) =>
                 (imp, Some(BindingsMap.ResolvedImport(imp, exp, tp)))
               case None =>
