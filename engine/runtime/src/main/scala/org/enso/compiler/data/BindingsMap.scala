@@ -813,7 +813,8 @@ object BindingsMap {
     * @param cons a representation of the constructor.
     */
   case class ResolvedConstructor(tpe: ResolvedType, cons: Cons)
-      extends ResolvedName {
+      extends ResolvedName
+      with ImportTarget {
 
     /** @inheritdoc */
     override def toAbstract: ResolvedConstructor = {
@@ -833,6 +834,10 @@ object BindingsMap {
 
     /** @inheritdoc */
     override def module: ModuleReference = tpe.module
+
+    override def findExportedSymbolsFor(name: String): List[ResolvedName] = ???
+
+    override def exportedSymbols: Map[String, List[ResolvedName]] = ???
   }
 
   /** A representation of a name being resolved to a module.
@@ -876,7 +881,8 @@ object BindingsMap {
     * @param method the method representation.
     */
   case class ResolvedMethod(module: ModuleReference, method: ModuleMethod)
-      extends ResolvedName {
+      extends ResolvedName
+      with ImportTarget {
 
     /** @inheritdoc */
     override def toAbstract: ResolvedMethod = {
@@ -911,6 +917,10 @@ object BindingsMap {
 
     override def qualifiedName: QualifiedName =
       module.getName.createChild(method.name)
+
+    override def findExportedSymbolsFor(name: String): List[ResolvedName] = ???
+
+    override def exportedSymbols: Map[String, List[ResolvedName]] = ???
   }
 
   /** A representation of a name being resolved to a polyglot symbol.

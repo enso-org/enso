@@ -177,7 +177,9 @@ class IrToTruffle(
 
     bindingsMap.resolvedImports.foreach { imp =>
       imp.target match {
-        case BindingsMap.ResolvedType(_, _) =>
+        case _: BindingsMap.ResolvedType =>
+        case _: BindingsMap.ResolvedMethod =>
+        case _: BindingsMap.ResolvedConstructor =>
         case ResolvedModule(module) =>
           val mod = module.unsafeAsModule()
           val scope: ModuleScope = imp.importDef.onlyNames
