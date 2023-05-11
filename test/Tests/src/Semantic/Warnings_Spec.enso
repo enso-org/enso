@@ -408,4 +408,15 @@ spec = Test.group "Dataflow Warnings" <|
         result_4 = f a 1 + f a 2 + f a 3
         Warning.get_all result_4 . map (x-> x.value.to_text) . should_equal ["Baz!", "Baz!", "Baz!"]
 
+    Test.specify "should only report the first 100 unique warnings" <|
+        vec = (0.up_to 500).map(e -> Warning.attach "Foo!" e)
+        vec_plus_1 = vec.map(e -> e+1)
+        Warning.get_all vec_plus_1 . length . should_equal 100
+        Warning.limit_reached vec . should_equal True
+
+        warn = Warning.attach "Boo!" 42
+        vec_2 = (0.up_to 500).map(e -> if (e < 30) then Warning.attach "Foo!" e else (warn + e))
+        Warning.get_all vec_2 . length . should_equal 31
+        Warning.limit_reached vec_2 . should_equal False
+
 main = Test_Suite.run_main spec

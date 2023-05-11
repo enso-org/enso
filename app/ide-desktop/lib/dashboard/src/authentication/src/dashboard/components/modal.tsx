@@ -8,17 +8,19 @@ import * as modalProvider from '../../providers/modal'
 // =================
 
 export interface ModalProps extends react.PropsWithChildren {
+    centered?: boolean
     className?: string
 }
 
 function Modal(props: ModalProps) {
-    const { children } = props
+    const { children, centered, className } = props
     const { unsetModal } = modalProvider.useSetModal()
+
     return (
         <div
-            className={`fixed w-screen h-screen inset-0 bg-primary grid place-items-center ${
-                props.className ?? ''
-            }`}
+            className={`inset-0 bg-primary ${
+                centered ? 'fixed w-screen h-screen grid place-items-center ' : ''
+            }${className ?? ''}`}
             onClick={event => {
                 if (event.currentTarget === event.target) {
                     unsetModal()

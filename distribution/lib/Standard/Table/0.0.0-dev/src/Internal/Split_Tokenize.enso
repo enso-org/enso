@@ -123,7 +123,7 @@ fan_out_to_columns table input_column_id function column_count=Nothing on_proble
     input_column = table.get input_column_id
     problem_builder = Problem_Builder.new
     new_columns_unrenamed = map_columns_to_multiple input_column function column_count problem_builder
-    new_columns = rename_new_columns table new_columns_unrenamed problem_builder
+    new_columns = rename_new_columns table input_column.name new_columns_unrenamed problem_builder
     new_table = replace_column_with_columns table input_column new_columns
     problem_builder.attach_problems_after on_problems new_table
 
@@ -321,17 +321,22 @@ map_columns_to_multiple input_column function column_count problem_builder =
 
             builders
 
+    # Name columns. If there's only one, use the original column name.
+    new_column_names = case builders.length of
+        1 -> [input_column.name]
+        _ -> 0.up_to builders.length . map i-> default_column_namer input_column.name i
+
     # Build Columns.
-    builders.map .seal . map_with_index i-> storage->
-        name = default_column_namer input_column.name i
-        Column.from_storage name storage
+    storages = builders.map .seal
+    new_column_names.zip storages Column.from_storage
 
 ## PRIVATE
    Rename a vector of columns to be unique when added to a table.
-rename_new_columns : Table -> Vector Column -> Problem_Builder -> Vector Column
-rename_new_columns table columns problem_builder =
+rename_new_columns : Table -> Text -> Vector Column -> Problem_Builder -> Vector Column
+rename_new_columns table removed_column_name columns problem_builder =
     unique = Unique_Name_Strategy.new
-    unique.mark_used <| table.columns.map .name
+    remaining_columns = table.columns . filter (c-> c.name != removed_column_name) . map .name
+    unique.mark_used remaining_columns
     new_columns = columns.map column->
         new_name = unique.make_unique column.name
         column.rename new_name

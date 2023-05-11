@@ -5,6 +5,7 @@ from Standard.Test import Test_Suite
 import project.In_Memory.Aggregate_Column_Spec
 import project.In_Memory.Builders_Spec
 import project.In_Memory.Column_Spec
+import project.In_Memory.Column_Format_Spec
 import project.In_Memory.Common_Spec
 import project.In_Memory.Join_Performance_Spec
 import project.In_Memory.Parse_To_Table_Spec
@@ -17,6 +18,7 @@ import project.In_Memory.Table_Time_Of_Day_Spec
 spec =
     Table_Spec.spec
     Column_Spec.spec
+    Column_Format_Spec.spec
     Common_Spec.spec
     Table_Date_Spec.spec
     Table_Date_Time_Spec.spec

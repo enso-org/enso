@@ -1,0 +1,114 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import project.Data.Column.Column
+import project.Data.Data_Formatter.Data_Formatter
+import project.Data.Type.Storage
+import project.Data.Type.Value_Type.Value_Type
+
+from project.Internal.Java_Exports import make_string_builder
+
+polyglot java import java.lang.IllegalArgumentException
+polyglot java import java.time.temporal.UnsupportedTemporalTypeException
+polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
+polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
+polyglot java import org.enso.table.data.table.Column as Java_Column
+polyglot java import org.enso.table.operations.OrderBuilder
+
+## PRIVATE
+   Create a formatter for the specified `Value_Type`.
+make_value_formatter_for_value_type : Value_Type -> Locale -> (Any -> Text)
+make_value_formatter_for_value_type value_type locale = case value_type of
+    Value_Type.Date -> make_value_formatter locale
+    Value_Type.Date_Time _ -> make_value_formatter locale
+    Value_Type.Time -> make_value_formatter locale
+    Value_Type.Boolean -> make_boolean_formatter
+    Value_Type.Integer _ -> make_value_formatter locale
+    Value_Type.Float _ -> make_value_formatter locale
+    bad_type ->
+        msg = "Cannot format a Column of type " + bad_type.to_text
+        Error.throw (Illegal_Argument.Error msg)
+
+## PRIVATE
+   Create a formatter for the given format string.
+   The `value` parameter has to have a `format` method that takes a format and
+   locale.
+make_value_formatter : Locale -> (Any -> Text)
+make_value_formatter locale = value-> format->
+    handle_illegal_argument_exception format <|
+        if format.is_nothing || format.is_empty then value.to_text else
+            value.format format locale
+## PRIVATE
+   Create a `Boolean` formatter that takes the format string as the second
+   parameter.
+make_boolean_formatter : (Boolean -> Text -> Text)
+make_boolean_formatter = bool-> format->
+    if format.is_nothing || format.is_empty then bool.to_text else
+        data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
+        data_formatter.format bool
+
+## PRIVATE
+   Rethrow a Java IllegalArgumentException as an Illegal_Argument.
+handle_illegal_argument_exception : Text -> Any -> Any
+handle_illegal_argument_exception format_string ~action =
+    handler cause =
+        msg = cause.payload.getMessage + ' in \"' + format_string + '\"'
+        Error.throw (Illegal_Argument.Error msg)
+    Panic.catch IllegalArgumentException handler=handler <|
+        Panic.catch UnsupportedTemporalTypeException handler=handler action
+
+## PRIVATE
+   Iterate over a range, exiting early if the body produces an `Error`.
+each_propagate : Range -> (Number -> Any) -> Nothing ! Error
+each_propagate range function =
+    if range.step == 0 then Error.throw (Illegal_State.Error "A range with step = 0 is ill-formed.") else
+        end_condition = if range.step > 0 then (>=) else (<=)
+        go current =
+            if end_condition current range.end then Nothing else
+                result = function current
+                result.if_not_error <|
+                    @Tail_Call go current+range.step
+        go range.start
+
+## PRIVATE
+   Map a text-returning function over the column values, using Storage directly.
+   The output column has the same name as the input.
+map_over_storage : Column -> (Any -> Text) -> (Integer -> Any) -> Boolean -> Column
+map_over_storage input_column function builder skip_nothing=True =
+    input_storage = input_column.java_column.getStorage
+    num_input_rows = input_storage.size
+    output_storage_builder = builder num_input_rows
+    ok = each_propagate (0.up_to num_input_rows) i->
+        input_value = input_storage.getItemBoxed i
+        if skip_nothing && input_value.is_nothing then output_storage_builder.append Nothing else
+            output_value = function input_value
+            output_value.if_not_error
+                output_storage_builder.append output_value
+    ok.if_not_error <|
+        output_storage = output_storage_builder.seal
+        Column.from_storage input_column.name output_storage
+
+## PRIVATE
+   Map a text-returning function over the values of two columns, using Storage
+   directly. The output column has the same name as the first input column.
+   `skip_nothing` applies to the first input to the function, not both inputs.
+map_2_over_storage : Column -> Column -> (Any -> Any -> Text) -> (Integer -> Any) -> Boolean -> Column
+map_2_over_storage input_column_0 input_column_1 function builder skip_nothing=True =
+    input_storage_0 = input_column_0.java_column.getStorage
+    input_storage_1 = input_column_1.java_column.getStorage
+    case input_storage_0.size != input_storage_1.size of
+        True ->
+            msg = "Column lengths differ: " + input_storage_0.size.to_text + " != " + input_storage_1.size.to_text
+            Error.throw (Illegal_Argument.Error msg)
+        False ->
+            num_input_rows = input_storage_0.size
+            output_storage_builder = builder num_input_rows
+            ok = each_propagate (0.up_to num_input_rows) i->
+                input_value_0 = input_storage_0.getItemBoxed i
+                input_value_1 = input_storage_1.getItemBoxed i
+                if skip_nothing && input_value_0.is_nothing then output_storage_builder.append Nothing else
+                    output_value = function input_value_0 input_value_1
+                    output_storage_builder.append output_value
+            ok.if_not_error <|
+                output_storage = output_storage_builder.seal
+                Column.from_storage input_column_0.name output_storage

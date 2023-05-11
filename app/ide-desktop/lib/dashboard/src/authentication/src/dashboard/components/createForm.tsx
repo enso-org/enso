@@ -31,10 +31,10 @@ function CreateForm(props: CreateFormProps) {
     }
 
     return (
-        <Modal className="bg-opacity-25">
+        <Modal className="absolute overflow-hidden bg-opacity-25 w-full h-full top-0 left-0">
             <form
                 style={{ left, top }}
-                className="absolute bg-white shadow-soft rounded-lg w-60"
+                className="sticky bg-white shadow-soft rounded-lg w-60"
                 onSubmit={onSubmit}
                 onClick={event => {
                     event.stopPropagation()

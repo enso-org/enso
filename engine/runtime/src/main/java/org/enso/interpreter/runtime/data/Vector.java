@@ -123,7 +123,7 @@ public final class Vector implements TruffleObject {
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
-      return WithWarnings.wrap(toEnso.execute(v), extracted);
+      return WithWarnings.wrap(EnsoContext.get(interop), toEnso.execute(v), extracted);
     }
     return toEnso.execute(v);
   }
@@ -220,6 +220,11 @@ public final class Vector implements TruffleObject {
   Vector removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
     return new Vector(warnings.removeWarnings(this.storage));
+  }
+
+  @ExportMessage
+  boolean isLimitReached(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    return warnings.isLimitReached(this.storage);
   }
 
   //

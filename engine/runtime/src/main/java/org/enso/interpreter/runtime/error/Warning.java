@@ -74,7 +74,7 @@ public final class Warning implements TruffleObject {
   @Builtin.Specialize
   public static WithWarnings attach(
       EnsoContext ctx, WithWarnings value, Object warning, Object origin) {
-    return value.append(new Warning(warning, origin, ctx.nextSequenceId()));
+    return value.append(ctx, new Warning(warning, origin, ctx.nextSequenceId()));
   }
 
   @Builtin.Method(
@@ -83,7 +83,7 @@ public final class Warning implements TruffleObject {
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
   public static WithWarnings attach(EnsoContext ctx, Object value, Object warning, Object origin) {
-    return WithWarnings.wrap(value, new Warning(warning, origin, ctx.nextSequenceId()));
+    return WithWarnings.wrap(ctx, value, new Warning(warning, origin, ctx.nextSequenceId()));
   }
 
   @Builtin.Method(
@@ -117,6 +117,24 @@ public final class Warning implements TruffleObject {
     }
   }
 
+  @Builtin.Method(
+      description =
+          "Returns `true` if the maximal number of warnings has been reached, `false` otherwise.",
+      autoRegister = false)
+  @Builtin.Specialize
+  public static boolean limitReached(WithWarnings value, WarningsLibrary warnings) {
+    return value.isLimitReached();
+  }
+
+  @Builtin.Method(
+      description =
+          "Returns `true` if the maximal number of warnings has been reached, `false` otherwise.",
+      autoRegister = false)
+  @Builtin.Specialize(fallback = true)
+  public static boolean limitReached(Object value, WarningsLibrary warnings) {
+    return warnings.hasWarnings(value) ? warnings.isLimitReached(value) : false;
+  }
+
   @CompilerDirectives.TruffleBoundary
   private static void sortArray(Warning[] arr) {
     Arrays.sort(arr, Comparator.comparing(Warning::getSequenceId).reversed());
@@ -133,8 +151,9 @@ public final class Warning implements TruffleObject {
       description = "Sets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize
-  public static Object set(WithWarnings value, Object warnings, InteropLibrary interop) {
-    return setGeneric(value.getValue(), interop, warnings);
+  public static Object set(
+      EnsoContext ctx, WithWarnings value, Object warnings, InteropLibrary interop) {
+    return setGeneric(ctx, value.getValue(), interop, warnings);
   }
 
   @Builtin.Method(
@@ -142,11 +161,12 @@ public final class Warning implements TruffleObject {
       description = "Sets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
-  public static Object set(Object value, Object warnings, InteropLibrary interop) {
-    return setGeneric(value, interop, warnings);
+  public static Object set(EnsoContext ctx, Object value, Object warnings, InteropLibrary interop) {
+    return setGeneric(ctx, value, interop, warnings);
   }
 
-  private static Object setGeneric(Object value, InteropLibrary interop, Object warnings) {
+  private static Object setGeneric(
+      EnsoContext ctx, Object value, InteropLibrary interop, Object warnings) {
     try {
       var size = interop.getArraySize(warnings);
       if (size == 0) {
@@ -156,7 +176,7 @@ public final class Warning implements TruffleObject {
       for (int i = 0; i < warningsCast.length; i++) {
         warningsCast[i] = (Warning) interop.readArrayElement(warnings, i);
       }
-      return WithWarnings.wrap(value, warningsCast);
+      return WithWarnings.wrap(ctx, value, warningsCast);
     } catch (UnsupportedMessageException | InvalidArrayIndexException ex) {
       CompilerDirectives.transferToInterpreter();
       throw new IllegalStateException(ex);

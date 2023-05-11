@@ -62,7 +62,7 @@ In_Memory_Table.create_database_table self connection table_name=Nothing primary
        continue. Otherwise, they could 'leak' to `Panic.rethrow` and be wrongly
        raised as panics.
     upload_status = create_table_statement.if_not_error <|
-        translate_known_upload_errors connection resolved_primary_key <|
+        translate_known_upload_errors self connection resolved_primary_key <|
             connection.jdbc_connection.run_within_transaction <|
                 Panic.rethrow <| connection.execute_update create_table_statement
                 if structure_only.not then
@@ -119,7 +119,7 @@ Database_Table.create_database_table self connection table_name=Nothing primary_
         Error.throw (Unsupported_Database_Operation.Error "The Database table to be uploaded must be coming from the same connection as the connection on which the new table is being created. Cross-connection uploads are currently not supported. To work around this, you can first `.read` the table into memory and then upload it from memory to a different connection.")
 
     upload_status = connection_check.if_not_error <| create_table_statement.if_not_error <|
-        translate_known_upload_errors connection resolved_primary_key <|
+        translate_known_upload_errors self connection resolved_primary_key <|
             connection.jdbc_connection.run_within_transaction <|
                 Panic.rethrow <| connection.execute_update create_table_statement
                 if structure_only.not then
@@ -144,14 +144,34 @@ resolve_primary_key table primary_key = case primary_key of
 ## PRIVATE
    Inspects any `SQL_Error` thrown and replaces it with a more precise error
    type when available.
-translate_known_upload_errors connection primary_key ~action =
+translate_known_upload_errors source_table connection primary_key ~action =
     handler caught_panic =
         error_mapper = connection.dialect.get_error_mapper
         sql_error = caught_panic.payload
         case error_mapper.is_primary_key_violation sql_error of
-            True -> Error.throw (Non_Unique_Primary_Key.Error primary_key)
+            True -> raise_duplicated_primary_key_error source_table primary_key caught_panic
             False -> Panic.throw caught_panic
     Panic.catch SQL_Error action handler
+
+## PRIVATE
+   Creates a `Non_Unique_Primary_Key` error containing information about an
+   example group violating the uniqueness constraint.
+raise_duplicated_primary_key_error source_table primary_key original_panic =
+    agg = source_table.aggregate [Aggregate_Column.Count]+(primary_key.map Aggregate_Column.Group_By)
+    filtered = agg.filter column=0 (Filter_Condition.Greater than=1)
+    materialized = filtered.read max_rows=1
+    case materialized.row_count == 0 of
+        ## If we couldn't find a duplicated key, we give up the translation and
+           rethrow the original panic containing the SQL error. This could
+           happen if the constraint violation is on some non-trivial key, like
+           case insensitive.
+        True -> Panic.throw original_panic
+        False ->
+            row = materialized.first_row.to_vector
+            example_count = row.first
+            example_entry = row.drop 1
+            Error.throw (Non_Unique_Primary_Key.Error primary_key example_entry example_count)
+
 
 ## PRIVATE
    Creates a statement that will create a table with structure determined by the

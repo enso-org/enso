@@ -346,6 +346,8 @@ type_spec name alter = Test.group name <|
         alter [1, 2, 3, 4, 5, 6] . short_display_text max_entries=3 . should_equal "[1, 2, 3 and 3 more elements]"
         alter (0.up_to 100).to_vector . short_display_text max_entries=2 . should_equal "[0, 1 and 98 more elements]"
 
+        alter [1, 2] . to_display_text . should_equal "[1, 2]"
+
         alter [] . short_display_text max_entries=0 . should_fail_with Illegal_Argument
 
     Test.specify "should define equality" <|
@@ -694,6 +696,22 @@ type_spec name alter = Test.group name <|
         expected = "abet".utf_8
         input.sort . should_equal expected
 
+    Test.specify "should report only a limited number of warnings for incomparable values" <|
+        gen x = case (x % 10) of
+            0 -> Nothing
+            1 -> "foo"+x.to_text
+            2 -> x
+            3 -> Number.nan
+            4 -> Date.new
+            5 -> []
+            6 -> -x
+            7 -> Number.nan
+            8 -> Time_Of_Day.new
+            _ -> x
+        input = 0.up_to 500 . map gen
+        sorted = input.sort on_incomparable=Problem_Behavior.Report_Warning
+        Warning.get_all sorted . length . should_equal 10
+        Warning.limit_reached sorted . should_equal True
 
 spec =
     Test.group "Vector/Array equality" <|
