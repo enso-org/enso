@@ -1,9 +1,12 @@
 import project.Any.Any
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Metadata.Display
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, False
+from project.Metadata.Widget import Single_Choice
+from project.Metadata.Choice import Option
 
 polyglot java import java.util.Locale as JavaLocale
 
@@ -18,6 +21,13 @@ polyglot java import java.util.Locale as JavaLocale
    - A country code, which is optional.
    - A variant, which is optional.
 type Locale
+    ## PRIVATE
+       Gets the default drop down option for this encoding.
+    default_widget : Single_Choice
+    default_widget =
+        values = [Locale.from_language_tag "bn-BD", Locale.brazil]
+        Single_Choice values=values display=Display.When_Modified
+
     ## Construct a new locale.
 
        Arguments:
