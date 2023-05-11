@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.immutable;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
 
 import com.oracle.truffle.api.CompilerDirectives;
@@ -12,7 +13,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 
-@BuiltinMethod(type = "Array", name = "slice", description = "Returns a slice of this Array.")
+@BuiltinMethod(type = "Vector", name = "slice", description = "Returns a slice of this Vector.")
 public abstract class SliceArrayVectorNode extends Node {
   SliceArrayVectorNode() {}
 
@@ -27,7 +28,18 @@ public abstract class SliceArrayVectorNode extends Node {
     return Array.slice(self, start, end, self.length());
   }
 
-  @Specialization(replaces = "executeArray")
+  @Specialization
+  Object executeVector(
+      Vector self, long start, long end, @CachedLibrary(limit = "3") InteropLibrary iop) {
+    try {
+      return Array.slice(self, start, end, self.length(iop));
+    } catch (UnsupportedMessageException ex) {
+      CompilerDirectives.transferToInterpreter();
+      throw unsupportedMessageException(self);
+    }
+  }
+
+  @Specialization(replaces = {"executeArray", "executeVector"})
   Object executeArrayLike(
       Object self, long start, long end, @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {
@@ -35,10 +47,14 @@ public abstract class SliceArrayVectorNode extends Node {
       return Array.slice(self, start, end, len);
     } catch (UnsupportedMessageException ex) {
       CompilerDirectives.transferToInterpreter();
-      var ctx = EnsoContext.get(this);
-      var arrayType = ctx.getBuiltins().array();
-      throw new PanicException(
-          ctx.getBuiltins().error().makeTypeError(arrayType, self, "self"), this);
+      throw unsupportedMessageException(self);
     }
+  }
+
+  private PanicException unsupportedMessageException(Object self) throws PanicException {
+    var ctx = EnsoContext.get(this);
+    var arrayType = ctx.getBuiltins().array();
+    throw new PanicException(
+        ctx.getBuiltins().error().makeTypeError(arrayType, self, "self"), this);
   }
 }

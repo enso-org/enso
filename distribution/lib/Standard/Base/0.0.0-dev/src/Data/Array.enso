@@ -574,7 +574,7 @@ type Array
     map_with_index self function = Vector.map_with_index self function
 
     slice : Integer -> Integer -> Vector Any
-    slice self start end = @Builtin_Method "Array.slice"
+    slice self start end = Vector.slice self start end
 
     ## Returns the first element of the array that satisfies the predicate or
        `if_missing` if no elements of the array satisfy it.
