@@ -155,7 +155,8 @@ class ImportResolver(compiler: Compiler) {
     val tp  = name.parts.last.name
     val mod = name.parts.dropRight(1).map(_.name).mkString(".")
     compiler.getModule(mod).flatMap { mod =>
-      mapImports(mod, bindingsCachingEnabled)
+      // mapImports(mod, bindingsCachingEnabled)
+      bindingsCachingEnabled.hashCode()
       compiler.ensureParsed(mod)
       mod.getIr
         .unsafeGetMetadata(
