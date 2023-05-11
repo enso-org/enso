@@ -536,6 +536,18 @@ type_spec name alter = Test.group name <|
         alter ["a", "a", "a"] . drop (Sample 1) . should_equal ["a", "a"]
         alter ["a", "a", "a"] . drop (Sample 100) . should_equal []
 
+    Test.specify "take/drop should gracefully handle missing constructor arguments" <|
+        [].take "FOO" . should_fail_with Type_Error
+        [].drop "FOO" . should_fail_with Type_Error
+
+        r1 = [].take (Index_Sub_Range.While)
+        r1.should_fail_with Illegal_Argument
+        r1.catch.to_display_text . should_contain "The constructor While is missing some arguments"
+
+        r2 = [].drop (Index_Sub_Range.Every ...)
+        r2.should_fail_with Illegal_Argument
+        r2.catch.to_display_text . should_contain "The constructor Every is missing some arguments"
+
     Test.specify "should allow getting the last element of the vector" <|
         non_empty_vec = alter [1, 2, 3, 4, 5]
         singleton_vec = alter [1]
