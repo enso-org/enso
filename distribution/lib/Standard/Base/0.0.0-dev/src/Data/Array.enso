@@ -745,7 +745,9 @@ type Array
     reverse : Vector Any
     reverse self = Vector.reverse self
 
-    ## Applies a function to each element of the array.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each element of the array.
 
        Unlike `map`, this method does not return the individual results,
        therefore it is only useful for side-effecting computations.
@@ -760,7 +762,9 @@ type Array
     each : (Any -> Any) -> Nothing
     each self f = Vector.each self f
 
-    ## Applies a function to each element of the array.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each element of the array.
 
        Arguments:
        - function: A function to apply that takes an index and an item.
