@@ -158,9 +158,9 @@ class ExportsResolution {
     }
     exports.foreach { case (module, exports) =>
       module match {
-        case _: BindingsMap.ResolvedType =>
+        case _: BindingsMap.ResolvedType        =>
         case _: BindingsMap.ResolvedConstructor =>
-        case _: BindingsMap.ResolvedMethod =>
+        case _: BindingsMap.ResolvedMethod      =>
         case ResolvedModule(module) =>
           getBindings(module.unsafeAsModule()).resolvedExports =
             exports.map(ex => ex.copy(symbols = ex.symbols.optimize))

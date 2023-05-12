@@ -4,7 +4,14 @@ import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.{Export, Import}
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{ImportTarget, ModuleReference, ResolvedMethod, ResolvedModule, ResolvedType, Type}
+import org.enso.compiler.data.BindingsMap.{
+  ImportTarget,
+  ModuleReference,
+  ResolvedMethod,
+  ResolvedModule,
+  ResolvedType,
+  Type
+}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
@@ -130,8 +137,8 @@ class ImportResolver(compiler: Compiler) {
   private def tryResolveAsTypeOrStaticMethod(
     name: IR.Name.Qualified
   ): Option[ImportTarget] = {
-    val nameToImportFromModule  = name.parts.last.name
-    val moduleName = name.parts.dropRight(1).map(_.name).mkString(".")
+    val nameToImportFromModule = name.parts.last.name
+    val moduleName             = name.parts.dropRight(1).map(_.name).mkString(".")
     compiler.getModule(moduleName).flatMap { mod =>
       compiler.ensureParsed(mod)
       mod.getIr
