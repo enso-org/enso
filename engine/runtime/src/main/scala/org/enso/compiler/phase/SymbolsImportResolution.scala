@@ -96,6 +96,164 @@ class SymbolsImportResolution(compiler: Compiler) {
   }
 
   /**
+   * TODO: Reword
+   * Tries to resolve all the symbols given in [[symbolsToImport]] from the module
+   * `importedModule`, potentially from the type given in `typeName` and updates
+   * the imported module's BindingMap accordingly.
+   *
+   * In case of a failed resolution, an import error reason IR is returned and no
+   * metadata is updated. When the resolution is successful, the given binding map
+   * is updated and the [[importStatement]] is returned.
+   *
+   * @param importStatement The import statement that is being analyzed
+   * @param bindingMap      The binding map of the current module from which we are analyzing
+   *                        the import. This binding map may be updated as a result of this
+   *                        operation.
+   * @param symbolsToImport The symbols that are being imported from the module or from the type.
+   *                        If None, all the symbols should be imported.
+   * @return Either the import statement given in `importStatement` in case that all the
+   *         symbols were successfuly resolved, or an import error reason IR when some
+   *         symbols failed to resolve.
+   */
+  private def tryResolveSymbolsAndUpdateBindingMap(
+    importStatement: IR.Module.Scope.Import.Module,
+    bindingMap: BindingsMap,
+    importedName: IR.Name.Qualified,
+    symbolsToImport: Option[List[IR.Name.Literal]],
+  ): IR.Module.Scope.Import = {
+    // Check if the import is from a type rather than from a module, i.e.,
+    // `from Module.Type import Constructor` versus `from Module import Some_Type`.
+    val shouldImportFromType = compiler.getModule(importedName.name).isEmpty
+
+    val moduleName = if (shouldImportFromType) {
+      importedName.parts.dropRight(1).map(_.name).mkString(".")
+    } else {
+      importedName.name
+    }
+    val typeName: Option[String] = if (shouldImportFromType) {
+      Some(importedName.parts.last.name)
+    } else {
+      None
+    }
+    logger.log(
+      Level.FINEST,
+      "moduleName = {0}, typeName = {1}",
+      Array[Object](moduleName, typeName)
+    )
+
+    val importedModule = compiler.getModule(moduleName) match {
+      case Some(module) => module
+      case None =>
+        throw new CompilerError(
+          s"Module ${moduleName} should already be imported"
+        )
+    }
+
+    val importedBindingMap =
+      importedModule.getIr.unsafeGetMetadata(BindingAnalysis, "BindingMap should be present")
+
+    val symbolsToImportUnwrapped: List[IR.Name.Literal] = {
+      symbolsToImport match {
+        case Some(symbols) => symbols
+        case None =>
+          typeName match {
+            case Some(typeNameUnwrapped) =>
+              findAllConstructorsFromType(
+                importedModule.getIr.bindings,
+                typeNameUnwrapped
+              )
+            case None =>
+              // TODO: Find also all exported symbols from importedModule
+              findAllStaticMethodsAndTypesDefinedInModule(
+                importedModule.getIr.bindings
+              )
+          }
+      }
+    }
+
+    logger.log(
+      Level.FINER,
+      "Trying to resolve symbols {0} from type {1} from module {2}",
+      Array[Object](symbolsToImportUnwrapped, typeName, importedModule.getName)
+    )
+
+    val symbolsResolution: SymbolsResolution = {
+      // Trying to import any symbols from a non-existing type is an error
+      if (typeName.isDefined && !typeExists(typeName.get, importedBindingMap)) {
+        Left(
+          IR.Error.ImportExport.TypeDoesNotExist(
+            typeName.get,
+            moduleName
+          )
+        )
+      } else {
+        tryResolveSymbols(
+          importedModule,
+          importedBindingMap,
+          symbolsToImportUnwrapped,
+          typeName
+        )
+      }
+    }
+
+    logger.log(
+      Level.FINER,
+      "Got result from symbolsResolution: {0}",
+      Array[Object](
+        symbolsResolution
+      )
+    )
+
+    if (symbolsResolution.isLeft) {
+      // Replace the IR with IR.Error and don't update the binding map
+      IR.Error.ImportExport(
+        ir = importStatement,
+        reason = symbolsResolution.swap.toOption.get
+      )
+    } else {
+      val importingAllSymbols = symbolsToImport.isEmpty
+
+      val allResolvedSymbols: List[ImportTarget] =
+        if (importingAllSymbols) {
+          // Append all exported symbols from the module to the resolved imports.
+          // These are transitively imported symbols
+          val additionalExportedSymbols = findAllExportedSymbolsFromModule(importedBindingMap)
+
+          // Filter away all the symbols that are already resolved.
+          val filteredAdditionalExportedSymbols: List[ImportTarget] =
+            additionalExportedSymbols.filterNot(
+              additionalExportedSymbol =>
+                symbolsResolution.toOption.get.exists(_.qualifiedName == additionalExportedSymbol.qualifiedName)
+            )
+
+          logger.log(
+            Level.FINEST,
+            "Transitive imports that will be added to the module (exported symbols from imported module): {0}",
+            Array[Object](filteredAdditionalExportedSymbols)
+          )
+
+          symbolsResolution.toOption.get ++ filteredAdditionalExportedSymbols
+        } else {
+          symbolsResolution.toOption.get
+        }
+
+      val resolvedImports =
+        allResolvedSymbols.map(importTarget => {
+          BindingsMap.ResolvedImport(
+            importDef = importStatement,
+            exports = List.empty,
+            target = importTarget
+          )
+        }
+        )
+
+      bindingMap.resolvedImports =
+        bindingMap.resolvedImports.appendedAll(resolvedImports)
+      importStatement
+    }
+  }
+
+  /**
    * Tries to resolve symbols from the [[module]], potentially from the [[typeName]] if set.
    * @param module Module from which symbols are imported.
    * @param bindingsMap BindingsMap associated with the [[module]].
@@ -199,163 +357,6 @@ class SymbolsImportResolution(compiler: Compiler) {
     })
   }
 
-  /**
-   * TODO: Reword
-   * Tries to resolve all the symbols given in [[symbolsToImport]] from the module
-   * `importedModule`, potentially from the type given in `typeName` and updates
-   * the imported module's BindingMap accordingly.
-   *
-   * In case of a failed resolution, an import error reason IR is returned and no
-   * metadata is updated. When the resolution is successful, the given binding map
-   * is updated and the [[importStatement]] is returned.
-   *
-   *
-   * @param importStatement The import statement that is being analyzed
-   * @param bindingMap The binding map of the current module from which we are analyzing
-   *                   the import. This binding map may be updated as a result of this
-   *                   operation.
-   * @param symbolsToImport The symbols that are being imported from the module or from the type.
-   *                        If None, all the symbols should be imported.
-   * @return Either the import statement given in `importStatement` in case that all the
-   *         symbols were successfuly resolved, or an import error reason IR when some
-   *         symbols failed to resolve.
-   */
-  private def tryResolveSymbolsAndUpdateBindingMap(
-    importStatement: IR.Module.Scope.Import.Module,
-    bindingMap: BindingsMap,
-    importedName: IR.Name.Qualified,
-    symbolsToImport: Option[List[IR.Name.Literal]],
-  ): IR.Module.Scope.Import = {
-    // Check if the import is from a type rather than from a module, i.e.,
-    // `from Module.Type import Constructor` versus `from Module import Some_Type`.
-    val shouldImportFromType = compiler.getModule(importedName.name).isEmpty
-
-    val moduleName = if (shouldImportFromType) {
-      importedName.parts.dropRight(1).map(_.name).mkString(".")
-    } else {
-      importedName.name
-    }
-    val typeName: Option[String] = if (shouldImportFromType) {
-      Some(importedName.parts.last.name)
-    } else {
-      None
-    }
-    logger.log(
-      Level.FINEST,
-      "moduleName = {0}, typeName = {1}",
-      Array[Object](moduleName, typeName)
-    )
-
-    val importedModule = compiler.getModule(moduleName) match {
-      case Some(module) => module
-      case None =>
-        throw new CompilerError(
-          s"Module ${moduleName} should already be imported"
-        )
-    }
-
-    val importedBindingMap =
-      importedModule.getIr.unsafeGetMetadata(BindingAnalysis, "BindingMap should be present")
-
-    val symbolsToImportUnwrapped: List[IR.Name.Literal] = {
-      symbolsToImport match {
-        case Some(symbols) => symbols
-        case None =>
-          typeName match {
-            case Some(typeNameUnwrapped) =>
-              findAllConstructorsFromType(
-                importedModule.getIr.bindings,
-                typeNameUnwrapped
-              )
-            case None    =>
-              // TODO: Find also all exported symbols from importedModule
-              findAllStaticMethodsAndTypesDefinedInModule(
-                importedModule.getIr.bindings
-              )
-          }
-      }
-    }
-
-    logger.log(
-      Level.FINER,
-      "Trying to resolve symbols {0} from type {1} from module {2}",
-      Array[Object](symbolsToImportUnwrapped, typeName, importedModule.getName)
-    )
-
-    val symbolsResolution: SymbolsResolution = {
-      // Trying to import any symbols from a non-existing type is an error
-      if (typeName.isDefined && !typeExists(typeName.get, importedBindingMap)) {
-        Left(
-          IR.Error.ImportExport.TypeDoesNotExist(
-            typeName.get,
-            moduleName
-          )
-        )
-      } else {
-        tryResolveSymbols(
-          importedModule,
-          importedBindingMap,
-          symbolsToImportUnwrapped,
-          typeName
-        )
-      }
-    }
-
-    logger.log(
-      Level.FINER,
-      "Got result from symbolsResolution: {0}",
-      Array[Object](
-        symbolsResolution
-      )
-    )
-
-    if (symbolsResolution.isLeft) {
-      // Replace the IR with IR.Error and don't update the binding map
-      IR.Error.ImportExport(
-        ir = importStatement,
-        reason = symbolsResolution.swap.toOption.get
-      )
-    } else {
-      val importingAllSymbols = symbolsToImport.isEmpty
-
-      val allResolvedSymbols: List[ImportTarget] =
-        if (importingAllSymbols) {
-          // Append all exported symbols from the module to the resolved imports.
-          // These are transitively imported symbols
-          val additionalExportedSymbols = findAllExportedSymbolsFromModule(importedBindingMap)
-
-          // Filter away all the symbols that are already resolved.
-          val filteredAdditionalExportedSymbols: List[ImportTarget] =
-            additionalExportedSymbols.filterNot(
-              additionalExportedSymbol =>
-                symbolsResolution.toOption.get.exists(_.qualifiedName == additionalExportedSymbol.qualifiedName)
-            )
-
-          logger.log(
-            Level.FINEST,
-            "Transitive imports that will be added to the module (exported symbols from imported module): {0}",
-            Array[Object](filteredAdditionalExportedSymbols)
-          )
-
-          symbolsResolution.toOption.get ++ filteredAdditionalExportedSymbols
-        } else {
-          symbolsResolution.toOption.get
-        }
-
-      val resolvedImports =
-        allResolvedSymbols.map(importTarget => {
-          BindingsMap.ResolvedImport(
-            importDef = importStatement,
-            exports = List.empty,
-            target = importTarget
-          )
-        })
-
-      bindingMap.resolvedImports =
-        bindingMap.resolvedImports.appendedAll(resolvedImports)
-      importStatement
-    }
-  }
 
   /**
    * Tries to resolve a symbol (of a type or a module) from defined entities within
@@ -550,5 +551,4 @@ class SymbolsImportResolution(compiler: Compiler) {
       }
     })
   }
-
 }
