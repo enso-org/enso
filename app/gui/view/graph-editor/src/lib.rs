@@ -562,14 +562,13 @@ ensogl::define_endpoints_2! {
         /// other case, it will be disabled as soon as the `release_visualization_visibility` is
         /// emitted.
         press_visualization_visibility(),
-        /// Simulates a visualization open double press event. This event toggles the visualization
-        /// fullscreen mode.
-        double_press_visualization_visibility(),
         /// Simulates a visualization open release event. See `press_visualization_visibility` to
         /// learn more.
         release_visualization_visibility(),
         /// Cycle the visualization for the selected nodes.
         cycle_visualization_for_selected_node(),
+        /// Opens the visualization for the selected node in full-screen mode.
+        open_fullscreen_visualization (),
         /// The visualization currently displayed as fullscreen is
         close_fullscreen_visualization(),
 
@@ -3536,7 +3535,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     //     - If it was long, disable vis which were disabled (preview mode).
 
     let viz_press_ev      = inputs.press_visualization_visibility.clone_ref();
-    let viz_d_press_ev    = inputs.double_press_visualization_visibility.clone_ref();
+    let viz_open_fs_ev = inputs.open_fullscreen_visualization.clone_ref();
     let viz_release_ev    = inputs.release_visualization_visibility.clone_ref();
     viz_pressed          <- bool(&viz_release_ev,&viz_press_ev);
     viz_was_pressed      <- viz_pressed.previous();
@@ -3581,7 +3580,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     viz_disable_by_press <= viz_tgt_nodes.gate(&viz_tgt_nodes_all_on);
     viz_disable          <- any(viz_disable_by_press,inputs.disable_visualization);
     viz_preview_disable  <= viz_tgt_nodes_off.sample(&viz_preview_mode_end);
-    viz_fullscreen_on    <= viz_d_press_ev.map(f_!(model.nodes.last_selected()));
+    viz_fullscreen_on <= viz_open_fs_ev.map(f_!(model.nodes.last_selected()));
 
     eval viz_enable          ((id) model.enable_visualization(id));
     eval viz_disable         ((id) model.disable_visualization(id));
