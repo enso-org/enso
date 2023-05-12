@@ -92,8 +92,7 @@ final class SuggestionBuilder[A: IndexedSource](
             }
             val getters = members
               .flatMap(_.arguments)
-              .map(_.name.name)
-              .distinct
+              .distinctBy(_.name)
               .map(buildGetter(module, tpName.name, _))
 
             val tpSuggestions = tpe +: conses ++: getters
@@ -361,8 +360,9 @@ final class SuggestionBuilder[A: IndexedSource](
   private def buildGetter(
     module: QualifiedName,
     typeName: String,
-    getterName: String
+    argument: IR.DefinitionArgument
   ): Suggestion = {
+    val getterName = argument.name.name
     val thisArg = IR.DefinitionArgument.Specified(
       name         = IR.Name.Self(None),
       ascribedType = None,
@@ -378,7 +378,7 @@ final class SuggestionBuilder[A: IndexedSource](
       isStatic      = false,
       args          = Seq(thisArg),
       doc           = None,
-      typeSignature = None
+      typeSignature = argument.name.getMetadata(TypeSignatures)
     )
   }
 
