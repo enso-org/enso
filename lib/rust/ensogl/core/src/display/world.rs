@@ -52,7 +52,7 @@ const FRAME_COUNT_CHECK_FOR_SWITCHING_RESOLUTION_MODE: usize = 8;
 
 /// The time threshold for switching to low resolution mode. It will be used on platforms which
 /// allow proper GPU time measurements (currently only Chrome).
-const LOW_RESOLUTION_MODE_GPU_TIME_THRESHOLD: f64 = 1000.0 / 30.0;
+const LOW_RESOLUTION_MODE_GPU_TIME_THRESHOLD_MS: f64 = 1000.0 / 30.0;
 
 /// The FPS threshold for switching to low resolution mode. It will be used on platforms which do
 /// not allow proper GPU time measurements (currently all browsers but Chrome).
@@ -585,7 +585,7 @@ impl WorldData {
             self.stats_monitor.sample_and_draw(stats);
 
             let slow_frame = if let Some(gpu_perf_results) = gpu_perf_results {
-                gpu_perf_results.last().map(|t| t.total > LOW_RESOLUTION_MODE_GPU_TIME_THRESHOLD)
+                gpu_perf_results.last().map(|t| t.total > LOW_RESOLUTION_MODE_GPU_TIME_THRESHOLD_MS)
             } else {
                 Some(stats.fps < LOW_RESOLUTION_MODE_FPS_THRESHOLD as f64)
             };

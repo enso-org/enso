@@ -5,14 +5,19 @@ use std::collections::VecDeque;
 
 
 
-/// A vector with a constant max size, that if full, keeps its element in a loop.
+// ==========================
+// === SizeCappedVecDeque ===
+// ==========================
+
+/// A vector with a cap for its size. If the vector is full, adding a new element will remove an old
+/// one.
 #[derive(Clone, Debug)]
-pub struct CircularVecDeque<T> {
+pub struct SizeCappedVecDeque<T> {
     capacity: usize,
     vec:      VecDeque<T>,
 }
 
-impl<T> CircularVecDeque<T> {
+impl<T> SizeCappedVecDeque<T> {
     /// Constructor.
     pub fn new(capacity: usize) -> Self {
         let vec = VecDeque::with_capacity(capacity);
@@ -72,7 +77,7 @@ impl<T> CircularVecDeque<T> {
         self.vec.get_mut(index)
     }
 
-    /// get the last element of the vector, if any.
+    /// Get the last element of the vector, if any.
     pub fn last(&self) -> Option<&T> {
         self.vec.back()
     }

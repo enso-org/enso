@@ -1183,7 +1183,7 @@ impl Scene {
     }
 
     /// Run the GPU profiler. If the result is [`None`], either the GPU context is not initialized
-    /// ot the profiler is not available at the current platform. In case the resulting vector
+    /// to the profiler is not available at the current platform. In case the resulting vector
     /// is empty, the previous frame measurements are not available yet and they will be
     /// provided in the future.
     pub fn on_frame_start(&self) -> Option<Vec<Results>> {

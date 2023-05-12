@@ -143,8 +143,7 @@ macro_rules! emit_if_integer {
     ($other:ty, $($block:tt)*) => ();
 }
 
-/// Emits the StatsData struct, and extends Stats with accessors to StatsData
-/// fields.
+/// Emits the [`StatsData`] struct, and extends [`Stats`] with accessors to [`StatsData`].
 macro_rules! gen_stats {
     ($($field:ident : $field_type:ty),* $(,)?) => { paste! {
 

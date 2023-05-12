@@ -8,7 +8,7 @@ use crate::system::web;
 use crate::system::web::dom::Shape;
 use crate::system::web::JsValue;
 
-use enso_data_structures::circular_vec::CircularVecDeque;
+use enso_data_structures::size_capped_vec_deque::SizeCappedVecDeque;
 use std::f64;
 
 
@@ -551,7 +551,7 @@ struct Renderer {
     selected_panel: Option<usize>,
     first_draw:     bool,
     paused:         bool,
-    samples:        CircularVecDeque<StatsData>,
+    samples:        SizeCappedVecDeque<StatsData>,
 }
 
 impl Renderer {
@@ -567,7 +567,7 @@ impl Renderer {
         let dom = default();
         let selected_panel = default();
         let paused = default();
-        let samples = CircularVecDeque::new(config.sample_count);
+        let samples = SizeCappedVecDeque::new(config.sample_count);
         let mut out = Self {
             frp,
             user_config,
