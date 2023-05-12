@@ -686,6 +686,8 @@ ops! { HtmlCanvasElementOps for HtmlCanvasElement
         fn get_webgl2_context(&self) -> Option<WebGl2RenderingContext> {
             let options = Object::new();
             Reflect::set(&options, &"antialias".into(), &false.into()).unwrap();
+            // See: https://developer.chrome.com/blog/desynchronized
+            Reflect::set(&options, &"desynchronized".into(), &true.into()).unwrap();
             let context = self.get_context_with_context_options("webgl2", &options).ok().flatten();
             context.and_then(|obj| obj.dyn_into::<WebGl2RenderingContext>().ok())
         }
