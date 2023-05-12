@@ -297,9 +297,9 @@ public abstract class InvokeCallableNode extends BaseNode {
       if (result instanceof DataflowError) {
         return result;
       } else if (result instanceof WithWarnings withWarnings) {
-        return withWarnings.append(extracted);
+        return withWarnings.append(EnsoContext.get(this), extracted);
       } else {
-        return WithWarnings.wrap(result, extracted);
+        return WithWarnings.wrap(EnsoContext.get(this), result, extracted);
       }
     } catch (UnsupportedMessageException e) {
       throw CompilerDirectives.shouldNotReachHere(e);

@@ -134,7 +134,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
             argumentsExecutionMode,
             isTail,
             thisArgumentPosition);
-    return WithWarnings.appendTo(result, warnings);
+    return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
   }
 
   @Specialization

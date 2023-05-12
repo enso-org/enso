@@ -104,6 +104,16 @@ public class RuntimeOptions {
   private static final OptionDescriptor ENABLE_EXECUTION_TIMER_DESCRIPTOR =
       OptionDescriptor.newBuilder(ENABLE_EXECUTION_TIMER_KEY, ENABLE_EXECUTION_TIMER).build();
 
+  public static final String WARNINGS_LIMIT = optionName("warningsLimit");
+
+  @Option(
+      help = "Maximal number of warnings that can be attached to a value.",
+      category = OptionCategory.INTERNAL)
+  public static final OptionKey<Integer> WARNINGS_LIMIT_KEY = new OptionKey<>(100);
+
+  private static final OptionDescriptor WARNINGS_LIMIT_DESCRIPTOR =
+      OptionDescriptor.newBuilder(WARNINGS_LIMIT_KEY, WARNINGS_LIMIT).build();
+
   public static final OptionDescriptors OPTION_DESCRIPTORS =
       OptionDescriptors.create(
           Arrays.asList(
@@ -122,7 +132,8 @@ public class RuntimeOptions {
               PREINITIALIZE_DESCRIPTOR,
               WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESCRIPTOR,
               USE_GLOBAL_IR_CACHE_LOCATION_DESCRIPTOR,
-              ENABLE_EXECUTION_TIMER_DESCRIPTOR));
+              ENABLE_EXECUTION_TIMER_DESCRIPTOR,
+              WARNINGS_LIMIT_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.

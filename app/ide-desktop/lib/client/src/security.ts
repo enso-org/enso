@@ -8,7 +8,13 @@ import * as electron from 'electron'
 // =================
 
 /** The list of hosts that the app can access. They are required for user authentication to work. */
-const TRUSTED_HOSTS = ['accounts.google.com', 'accounts.youtube.com', 'github.com']
+const TRUSTED_HOSTS = [
+    'accounts.google.com',
+    'accounts.youtube.com',
+    'github.com',
+    'production-enso-domain.auth.eu-west-1.amazoncognito.com',
+    'pb-enso-domain.auth.eu-west-1.amazoncognito.com',
+]
 
 /** The list of hosts that the app can open external links to. */
 const TRUSTED_EXTERNAL_HOSTS = ['discord.gg']

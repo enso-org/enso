@@ -56,6 +56,11 @@ type Warning
     get_all : Any -> Vector Warning
     get_all value = Vector.from_polyglot_array (get_all_array value)
 
+    ## ADVANCED
+       Returns `True` if the maximal number of reported warnings for a value has been reached, `False` otherwise.
+    limit_reached : Any -> Boolean
+    limit_reached value = @Builtin_Method "Warning.limit_reached"
+
     ## PRIVATE
        ADVANCED
 

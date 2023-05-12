@@ -277,9 +277,16 @@ spec =
 
             Meta.get_annotation value "my_method" "self" . should_equal "self"
 
-            Meta.get_annotation value "Value" "foo" 7 8 . should_equal 15
+        Test.specify "no constructor annotations on value" <|
+            value = My_Type.Value 99 "bar" True
+            Meta.get_annotation value "Value" "foo" . should_equal Nothing
             Meta.get_annotation value "Value" "bar" . should_equal Nothing
-            Meta.get_annotation value "Value" "baz" . should_equal (My_Type.Value 1 2 3)
+            Meta.get_annotation value "Value" "baz" . should_equal Nothing
+
+        Test.specify "get annotations on constructor" <|
+            Meta.get_annotation My_Type "Value" "foo" 7 8 . should_equal 15
+            Meta.get_annotation My_Type "Value" "bar" . should_equal Nothing
+            Meta.get_annotation My_Type "Value" "baz" . should_equal (My_Type.Value 1 2 3)
 
     Test.group "Check Nothing and NaN" <|
         Test.specify "Nothing.is_a Nothing" <|

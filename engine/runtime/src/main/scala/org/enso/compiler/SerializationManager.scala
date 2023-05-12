@@ -238,7 +238,7 @@ final class SerializationManager(
         compiler.packageRepository
           .getModulesForLibrary(libraryName)
           .flatMap { module =>
-            SuggestionBuilder(module)
+            SuggestionBuilder(module, compiler)
               .build(module.getName, module.getIr)
               .toVector
               .filter(Suggestion.isGlobal)

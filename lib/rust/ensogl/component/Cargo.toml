@@ -23,3 +23,4 @@ ensogl-shadow = { path = "shadow" }
 ensogl-text = { path = "text" }
 ensogl-tooltip = { path = "tooltip" }
 ensogl-toggle-button = { path = "toggle-button" }
+ensogl-spinner = { path = "spinner" }

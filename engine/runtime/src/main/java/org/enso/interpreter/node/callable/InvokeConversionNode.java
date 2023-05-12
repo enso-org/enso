@@ -175,7 +175,7 @@ public abstract class InvokeConversionNode extends BaseNode {
     ArrayRope<Warning> warnings = that.getReassignedWarningsAsRope(this);
     Object result =
         childDispatch.execute(frame, state, conversion, self, that.getValue(), arguments);
-    return WithWarnings.appendTo(result, warnings);
+    return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
   }
 
   @Specialization(guards = "interop.isString(that)")
