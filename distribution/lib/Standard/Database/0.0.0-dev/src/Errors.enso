@@ -155,10 +155,14 @@ type Non_Unique_Primary_Key
 
        Arguments:
        - primary_key: The primary key that is not unique.
-    Error (primary_key : Vector Text)
+       - clashing_primary_key: The values of an example key that corresponds to
+         more than one row.
+       - clashing_example_row_count: The number of rows that correspond to the
+         example key.
+    Error (primary_key : Vector Text) (clashing_primary_key : Vector Any) (clashing_example_row_count : Integer)
 
     ## PRIVATE
        Pretty print the non-unique primary key error.
     to_display_text : Text
     to_display_text self =
-        "The primary key " + self.primary_key.to_display_text + " is not unique."
+        "The primary key " + self.primary_key.to_display_text + " is not unique. The key "+self.clashing_primary_key.to_display_text+" corresponds to "+self.clashing_example_row_count.to_text+" rows."

@@ -197,7 +197,7 @@ function Dashboard(props: DashboardProps) {
             projectTemplateName: templateId ?? null,
             parentDirectoryId: directoryId,
         }
-        const projectAsset = await backend.createProject(body)
+        await backend.createProject(body)
         doRefresh()
     }
 

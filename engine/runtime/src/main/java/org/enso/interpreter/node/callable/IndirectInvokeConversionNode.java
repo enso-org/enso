@@ -156,7 +156,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
             argumentsExecutionMode,
             isTail,
             thatArgumentPosition);
-    return WithWarnings.appendTo(result, warnings);
+    return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
   }
 
   @Specialization(guards = "interop.isString(that)")

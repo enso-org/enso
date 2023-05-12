@@ -18,6 +18,17 @@ import ProjectActionButton from './projectActionButton'
 import RenameModal from './renameModal'
 import Rows from './rows'
 
+// =================
+// === Constants ===
+// =================
+
+/** HTML validation attributes for project names when using the local backend.
+ * There are no such limitations on the remote backend. */
+const DESKTOP_PROJECT_NAME_VALIDATION = {
+    namePattern: '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*',
+    title: 'Names must be in Upper_Snake_Case. (Numbers (_0, _1) are also allowed.)',
+} as const
+
 /** Props for a {@link ProjectCreateForm}. */
 export interface ProjectCreateFormProps extends createForm.CreateFormPassthroughProps {
     directoryId: backendModule.DirectoryId
@@ -158,6 +169,7 @@ function ProjectName(props: ProjectNameProps) {
         item,
         state: { appRunner, onRename, onOpenIde, onCloseIde },
     } = props
+    const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
 
     return (
@@ -169,9 +181,17 @@ function ProjectName(props: ProjectNameProps) {
                         <RenameModal
                             assetType={item.type}
                             name={item.title}
-                            // TODO: Wait for backend implementation.
-                            doRename={() => Promise.resolve()}
+                            doRename={async newName => {
+                                await backend.projectUpdate(item.id, {
+                                    ami: null,
+                                    ideVersion: null,
+                                    projectName: newName,
+                                })
+                            }}
                             onSuccess={onRename}
+                            {...(backend.platform === platform.Platform.desktop
+                                ? DESKTOP_PROJECT_NAME_VALIDATION
+                                : {})}
                         />
                     ))
                 }
@@ -278,27 +298,31 @@ function ProjectRows(props: ProjectRowsProps) {
                             <RenameModal
                                 name={projectAsset.title}
                                 assetType={projectAsset.type}
-                                // FIXME[sb]: Replace with API call when implemented in backend.
-                                doRename={() => Promise.resolve()}
+                                doRename={async newName => {
+                                    await backend.projectUpdate(projectAsset.id, {
+                                        ami: null,
+                                        ideVersion: null,
+                                        projectName: newName,
+                                    })
+                                }}
                                 onSuccess={onRename}
+                                {...(backend.platform === platform.Platform.desktop
+                                    ? DESKTOP_PROJECT_NAME_VALIDATION
+                                    : {})}
                             />
                         ))
                     }
                     // This is not a React component even though it contains JSX.
                     // eslint-disable-next-line no-restricted-syntax
                     const doDelete = () => {
-                        // The button is disabled when using the desktop backend,
-                        // so this condition should never be `false`.
-                        if (backend.platform === platform.Platform.cloud) {
-                            setModal(() => (
-                                <ConfirmDeleteModal
-                                    name={projectAsset.title}
-                                    assetType={projectAsset.type}
-                                    doDelete={() => backend.deleteProject(projectAsset.id)}
-                                    onSuccess={onDelete}
-                                />
-                            ))
-                        }
+                        setModal(() => (
+                            <ConfirmDeleteModal
+                                name={projectAsset.title}
+                                assetType={projectAsset.type}
+                                doDelete={() => backend.deleteProject(projectAsset.id)}
+                                onSuccess={onDelete}
+                            />
+                        ))
                     }
                     setModal(() => (
                         <ContextMenu event={event}>
@@ -311,10 +335,7 @@ function ProjectRows(props: ProjectRowsProps) {
                             <ContextMenuEntry disabled onClick={doRename}>
                                 Rename
                             </ContextMenuEntry>
-                            <ContextMenuEntry
-                                disabled={backend.platform === platform.Platform.desktop}
-                                onClick={doDelete}
-                            >
+                            <ContextMenuEntry onClick={doDelete}>
                                 <span className="text-red-700">Delete</span>
                             </ContextMenuEntry>
                         </ContextMenu>

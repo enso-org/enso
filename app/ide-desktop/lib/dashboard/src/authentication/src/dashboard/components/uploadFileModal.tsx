@@ -48,10 +48,14 @@ function UploadFileModal(props: UploadFileModalProps) {
         return (
             <Modal centered className="bg-opacity-90">
                 <form
-                    className="relative bg-white shadow-soft rounded-lg w-96 h-72 p-2"
                     onClick={event => {
                         event.stopPropagation()
                     }}
+                    onSubmit={async event => {
+                        event.preventDefault()
+                        await onSubmit()
+                    }}
+                    className="relative bg-white shadow-soft rounded-lg w-96 h-72 p-2"
                 >
                     <button
                         type="button"
@@ -65,9 +69,9 @@ function UploadFileModal(props: UploadFileModalProps) {
                             File name
                         </label>
                         <input
+                            required
                             id="uploaded_file_name"
                             type="text"
-                            required
                             className="border-primary bg-gray-200 rounded-full w-2/3 px-2 mx-2"
                             onChange={event => {
                                 setName(event.target.value)
@@ -85,6 +89,7 @@ function UploadFileModal(props: UploadFileModalProps) {
                     </div>
                     <div className="border border-primary rounded-md m-2">
                         <input
+                            required
                             id="uploaded_file"
                             type="file"
                             className="hidden"

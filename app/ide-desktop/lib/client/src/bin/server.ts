@@ -10,6 +10,8 @@ import createServer from 'create-servers'
 
 import * as contentConfig from 'enso-content-config'
 
+import * as paths from '../paths'
+
 const logger = contentConfig.logger
 
 // =================
@@ -17,20 +19,6 @@ const logger = contentConfig.logger
 // =================
 
 const HTTP_STATUS_OK = 200
-
-// ======================
-// === URL Parameters ===
-// ======================
-
-/** Construct URL query with the given parameters. For each `key` - `value` pair,
- * `key=value` will be added to the query. */
-export function urlParamsFromObject(obj: Record<string, string>) {
-    const params = []
-    for (const [key, value] of Object.entries(obj)) {
-        params.push(`${key}=${encodeURIComponent(value)}`)
-    }
-    return params.length === 0 ? '' : '?' + params.join('&')
-}
 
 // ==============
 // === Config ===
@@ -110,7 +98,13 @@ export class Server {
         } else {
             const url = requestUrl.split('?')[0]
             const resource = url === '/' ? '/index.html' : requestUrl
-            const resourceFile = `${this.config.dir}${resource}`
+            // `preload.cjs` must be specialcased here as it is loaded by electron from the root,
+            // in contrast to all assets loaded by the window, which are loaded from `assets/` via
+            // this server.
+            const resourceFile =
+                resource === '/preload.cjs.map'
+                    ? `${paths.APP_PATH}${resource}`
+                    : `${this.config.dir}${resource}`
             fs.readFile(resourceFile, (err, data) => {
                 if (err) {
                     logger.error(`Resource '${resource}' not found.`)

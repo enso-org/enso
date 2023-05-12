@@ -701,14 +701,14 @@ impl application::View for View {
             (Press, "", "cmd alt shift t", "toggle_style"),
             (Press, "", "cmd alt p", "toggle_component_browser_private_entries_visibility"),
             (Press, "", "cmd s", "save_project_snapshot"),
-            (Press, "", "cmd r", "restore_project_snapshot"),
+            (Press, "", "cmd shift r", "restore_project_snapshot"),
             (Press, "", "cmd z", "undo"),
             (Press, "", "cmd y", "redo"),
             (Press, "", "cmd shift z", "redo"),
             (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),
             (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
-            (Press, "", "cmd shift t", "execution_context_interrupt"),
-            (Press, "", "cmd shift r", "execution_context_restart"),
+            (Press, "", "cmd alt t", "execution_context_interrupt"),
+            (Press, "", "cmd alt r", "execution_context_restart"),
             // TODO(#6179): Remove this temporary shortcut when Play button is ready.
             (Press, "", "ctrl shift b", "toggle_read_only"),
         ]

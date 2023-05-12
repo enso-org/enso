@@ -78,7 +78,7 @@ type Period
        Arguments:
        - internal_period: An internal representation of period of type
          java.time.Period.
-    Value internal_period
+    Value (internal_period : Java_Period)
 
     ## Get the portion of the period expressed in years.
     years : Integer
@@ -87,6 +87,11 @@ type Period
     ## Get the portion of the period expressed in months.
     months : Integer
     months self = self.internal_period.getMonths
+
+    ## Get the portion of the period coming from months and years as months
+       (every year is translated to 12 months).
+    total_months : Integer
+    total_months self = self.internal_period.toTotalMonths
 
     ## Get the portion of the period expressed in days.
     days : Integer
@@ -107,10 +112,8 @@ type Period
     + : Period -> Period ! (Time_Error | Illegal_Argument)
     + self other_period =
         ensure_period other_period <|
-            Panic.catch Any (Period.Value (self.internal_period.plus other_period.internal_period)) err->
-                case err of
-                    _ : DateTimeException -> Error.throw Time_Error.Error "Period addition failed:"+err.getMessage
-                    _ : ArithmeticException -> Error.throw Illegal_Argument.Error "Arithmetic error:"+err.getMessage cause=err
+            catch_java_exceptions "Period.+" <|
+                Period.Value (self.internal_period.plus other_period.internal_period)
 
     ## Subtract a specified amount of time from this period.
 
@@ -128,10 +131,31 @@ type Period
     - : Period -> Period ! (Time_Error | Illegal_Argument)
     - self other_period =
         ensure_period other_period <|
-            Panic.catch Any (Period.Value (self.internal_period.minus other_period.internal_period)) err->
-                case err of
-                    DateTimeException -> Error.throw Time_Error.Error "Period subtraction failed"
-                    ArithmeticException -> Error.throw Illegal_Argument.Error "Arithmetic error"
+            catch_java_exceptions "Period.-" <|
+                Period.Value (self.internal_period.minus other_period.internal_period)
+
+    ## Multiply the amount of time in this period by the specified scalar.
+
+       Arguments:
+       - factor: The scalar to multiply by.
+
+       > Example
+         Multiply a period of 1 year and 2 months by 2
+
+             import Standard.Base.Data.Time.Period
+
+             example_multiply = (Period.new years=1 months=2) * 2
+    * : Integer -> Period ! Time_Error
+    * self factor =
+        catch_java_exceptions "Period.*" <|
+            Period.Value (self.internal_period.multipliedBy factor)
+
+    ## Negate all amounts in the period.
+
+       This is useful when a period used for going forward in time needs to be
+       used for going backwards instead.
+    negated : Period
+    negated self = Period.Value (self.internal_period.negated)
 
     ## PRIVATE
        Convert Period to a friendly string.
@@ -163,3 +187,13 @@ type Period
         if self.months==0 . not then b.append ["months", self.months]
         if self.days==0 . not then b.append ["days", self.days]
         JS_Object.from_pairs b.to_vector
+
+## PRIVATE
+catch_java_exceptions operation ~action =
+    handle_arithmetic_exception caught_panic =
+        Error.throw (Time_Error.Error "An overflow has occurred during the "+operation+" operation:"+caught_panic.payload.getMessage)
+    handle_date_time_exception caught_panic =
+        Error.throw (Time_Error.Error "The operation "+operation+" has failed:"+caught_panic.payload.getMessage)
+    Panic.catch ArithmeticException handler=handle_arithmetic_exception <|
+        Panic.catch DateTimeException handler=handle_date_time_exception <|
+            action
