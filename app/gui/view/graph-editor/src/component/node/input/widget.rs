@@ -311,7 +311,7 @@ impl Configuration {
 
         let usage_type = info.usage_type.as_ref().map(|t| t.as_str());
         let decl_type = kind.tp().map(|t| t.as_str());
-        let decl_or_usage = decl_type.or_else(|| usage_type);
+        let decl_or_usage = decl_type.or(usage_type);
 
         let first_decl_is_vector =
             || decl_type.map_or(false, |t| t.starts_with(list_editor::VECTOR_TYPE));
@@ -330,14 +330,14 @@ impl Configuration {
                 (Kind::Argument(_) | Kind::InsertionPoint(_), Some(tags))
                     if (allow(F::SingleChoice) || prefer_list) =>
                     Self::static_dropdown(kind.name().as_ref().map(Into::into), tags)
-                        .as_list_item_if(prefer_list, decl_or_usage, first_tag),
+                        .into_list_item_if(prefer_list, decl_or_usage, first_tag),
 
                 (Kind::Root | Kind::Argument(_), _) if allows_list =>
                     Self::list_editor(None, decl_or_usage, first_tag),
 
                 (Kind::InsertionPoint(p), _)
                     if p.kind.is_expected_argument() && (allow(F::Label) || prefer_list) =>
-                    Self::always(label::Config::default()).as_list_item_if(
+                    Self::always(label::Config::default()).into_list_item_if(
                         prefer_list,
                         decl_or_usage,
                         first_tag,
@@ -385,20 +385,20 @@ impl Configuration {
         Self::always(single_choice::Config { label, entries })
     }
 
-    fn as_list_item_if(
+    fn into_list_item_if(
         self,
         condition: bool,
         typename: Option<&str>,
         default_tag: Option<&TagValue>,
     ) -> Self {
         if condition {
-            self.as_list_item(typename, default_tag)
+            self.into_list_item(typename, default_tag)
         } else {
             self
         }
     }
 
-    fn as_list_item(self, typename: Option<&str>, default_tag: Option<&TagValue>) -> Self {
+    fn into_list_item(self, typename: Option<&str>, default_tag: Option<&TagValue>) -> Self {
         Self::list_editor(Some(Rc::new(self)), typename, default_tag)
     }
 
@@ -415,7 +415,7 @@ impl Configuration {
         let item_default = match default_tag {
             Some(tag) => list_editor::DefaultValue::Tag(tag.clone()),
             None => list_editor::DefaultValue::StaticExpression(
-                list_editor::infer_default_value_from_type(typename).into(),
+                list_editor::infer_default_value_from_type(typename),
             ),
         };
         Self::always(list_editor::Config { item_widget, item_default })

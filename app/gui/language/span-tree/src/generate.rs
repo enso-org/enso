@@ -939,6 +939,7 @@ mod test {
     /// cleaner the expression IDs are removed before comparing trees.
     fn clear_expression_ids<T>(node: &mut Node<T>) {
         node.ast_id = None;
+        node.extended_ast_id = None;
         for child in &mut node.children {
             clear_expression_ids(&mut child.node);
         }

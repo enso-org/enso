@@ -349,7 +349,7 @@ impl Model {
                     }
 
                     let element = entry.or_insert_with(Element::new);
-                    set_insertion_margins(&*insert, -ITEMS_GAP * 0.5);
+                    set_insertion_margins(&insert, -ITEMS_GAP * 0.5);
                     element.alive = Some(());
                     element.item_crumb = index;
                     element.expr_range = range;
@@ -482,7 +482,7 @@ impl Model {
         let (mut expression, import) = match &self.default_value {
             DefaultValue::Tag(tag) => (
                 tag.expression.clone().into(),
-                tag.required_import.as_ref().map(|i| ImString::from(i)),
+                tag.required_import.as_ref().map(ImString::from),
             ),
             DefaultValue::Expression(expr) => (expr.clone(), None),
             DefaultValue::StaticExpression(expr) => (expr.into(), None),
@@ -708,7 +708,7 @@ fn split_type_groups() -> impl FnMut(char) -> bool {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum DefaultVariant {
     NotDefined,
     Numeric,
