@@ -174,7 +174,7 @@ class SymbolsImportResolution(compiler: Compiler) {
   }
 
   /**
-   * Finds all teh constructors from a type. Returns empty list if there is no such type,
+   * Finds all the constructors from a type. Returns empty list if there is no such type,
    * or if the type does not have any constructors.
    * @param moduleBindings
    * @param typeName
@@ -189,19 +189,14 @@ class SymbolsImportResolution(compiler: Compiler) {
       "Finding all constructors from type `{0}`",
       Array[Object](typeName)
     )
-    val ctors: ListBuffer[IR.Name.Literal] = ListBuffer.empty
-    moduleBindings.foreach {
+    moduleBindings.flatMap(_ match {
       case Definition.Type(name, _, members, _, _, _) if name.name == typeName =>
-        members.foreach(_.name match {
-            case ctorName: IR.Name.Literal => ctors += ctorName
-            case _                         => ()
-          }
-        )
-      case _ => ()
-    }
-    // ctors buffer might be empty, in case the type is not in the module.
-    // That is fine, the error will be reported later.
-    ctors.toList
+        members.flatMap(_.name match {
+          case ctorName: IR.Name.Literal => List(ctorName)
+          case _                         => List.empty
+        })
+      case _ => List.empty
+    })
   }
 
   /**
