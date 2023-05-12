@@ -1,6 +1,5 @@
-//! Definition of a circular vector, a vector with a constant max size, that if full, keeps its
-//! element in a loop.
-
+/// A vector with a cap for its size. If the vector is full, adding a new element will remove
+/// an old one.
 use std::collections::VecDeque;
 
 

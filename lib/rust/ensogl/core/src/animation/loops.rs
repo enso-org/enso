@@ -287,8 +287,8 @@ pub fn on_before_rendering() -> enso_frp::Sampler<TimeInfo> {
 /// - **RAF start time.** When the RAF callback is called, it is provided with the frame start time.
 ///   However, this time might be smaller than the time reported by performance.now(). For example,
 ///   in the graph above, the third call to the RAF callback will report the beginning time of frame
-///   4, even though it was performed in the middle of frame 3. If we measured the time at the end
-///   of the second RAF callback with performance.now(), this time would be smaller than the time
+///   4, even though it was performed in the middle of frame 4. If we measured the time at the end
+///   of the second RAF callback with performance.now(), this time would be bigger than the time
 ///   reported by the third RAF callback.
 ///
 ///
