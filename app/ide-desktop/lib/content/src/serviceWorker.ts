@@ -16,15 +16,10 @@ declare const self: ServiceWorkerGlobalScope
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url)
     if (url.hostname === 'localhost' && url.pathname !== '/esbuild') {
-        event.respondWith(
-            fetch(event.request.url).then(response => {
-                const clonedResponse = new Response(response.body, response)
-                for (const [header, value] of common.COOP_COEP_CORP_HEADERS) {
-                    clonedResponse.headers.set(header, value)
-                }
-                return clonedResponse
-            })
-        )
+        const responsePromise = /\/[^.]+$/.test(event.request.url)
+            ? fetch('/index.html')
+            : fetch(event.request.url)
+        event.respondWith(responsePromise)
         return
     } else {
         return false

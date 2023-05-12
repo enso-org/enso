@@ -1,0 +1,15 @@
+[package]
+name = "ensogl-spinner"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+enso-frp = { path = "../../../frp" }
+enso-prelude = { path = "../../../prelude" }
+enso-shapely = { path = "../../../shapely" }
+enso-types = { path = "../../../types" }
+ensogl-core = { path = "../../core" }

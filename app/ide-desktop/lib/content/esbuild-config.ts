@@ -24,11 +24,7 @@ import esbuildPluginYaml from 'esbuild-plugin-yaml'
 import * as utils from '../../utils'
 import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
-// =================
-// === Constants ===
-// =================
-
-const THIS_PATH = pathModule.resolve(pathModule.dirname(url.fileURLToPath(import.meta.url)))
+export const THIS_PATH = pathModule.resolve(pathModule.dirname(url.fileURLToPath(import.meta.url)))
 
 // =============================
 // === Environment variables ===
@@ -132,7 +128,12 @@ export function bundlerOptions(args: Arguments) {
             GIT_HASH: JSON.stringify(git('rev-parse HEAD')),
             GIT_STATUS: JSON.stringify(git('status --short --porcelain')),
             BUILD_INFO: JSON.stringify(BUILD_INFO),
+            /** Whether the application is being run locally. This enables a service worker that
+             * properly serves `/index.html` to client-side routes like `/login`. */
             IS_DEV_MODE: JSON.stringify(devMode),
+            /** Overrides the redirect URL for OAuth logins in the production environment.
+             * This is needed for logins to work correctly under `./run gui watch`. */
+            REDIRECT_OVERRIDE: 'undefined',
         },
         sourcemap: true,
         minify: true,
