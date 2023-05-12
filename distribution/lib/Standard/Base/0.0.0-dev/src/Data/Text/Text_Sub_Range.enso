@@ -58,10 +58,10 @@ type Text_Sub_Range
     ## PRIVATE
     default_options : Vector Option
     default_options =
-        o1 = [Option 'Before " "' '(Text_Sub_Range.Before " ")']
-        o2 = [Option 'Before_Last " "' '(Text_Sub_Range.Before_Last " ")']
-        o3 = [Option 'After " "' '(Text_Sub_Range.After " ")']
-        o4 = [Option 'After_Last " "' '(Text_Sub_Range.After_Last " ")']
+        o1 = [Option 'Before' '(Text_Sub_Range.Before " ")']
+        o2 = [Option 'Before_Last' '(Text_Sub_Range.Before_Last " ")']
+        o3 = [Option 'After' '(Text_Sub_Range.After " ")']
+        o4 = [Option 'After_Last' '(Text_Sub_Range.After_Last " ")']
         [o1, o2, o3, o4]
 
     ## PRIVATE

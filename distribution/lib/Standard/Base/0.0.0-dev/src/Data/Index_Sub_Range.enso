@@ -77,12 +77,12 @@ type Index_Sub_Range
     ## PRIVATE
     default_options : Vector Option
     default_options =
-        o1 = Option "First 1" "(Index_Sub_Range.First 1)"
-        o2 = Option "Last 1" "(Index_Sub_Range.Last 1)"
-        o3 = Option "While" "(Index_Sub_Range.While)"
-        o4 = Option "By_Index [0]" "(Index_Sub_Range.By_Index [0])"
-        o5 = Option "Sample 10" "(Index_Sub_Range.Sample 10)"
-        o6 = Option "Every 2" "(Index_Sub_Range.Every 2)"
+        o1 = Option "First" "(Index_Sub_Range.First 1)"
+        o2 = Option "Last" "(Index_Sub_Range.Last 1)"
+        o3 = Option "While" "(Index_Sub_Range.While (x-> False))"
+        o4 = Option "By_Index" "(Index_Sub_Range.By_Index [0])"
+        o5 = Option "Sample" "(Index_Sub_Range.Sample 10)"
+        o6 = Option "Every" "(Index_Sub_Range.Every 2)"
         [o1, o2, o3, o4, o5, o6]
 
     ## PRIVATE
