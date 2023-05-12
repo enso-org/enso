@@ -143,20 +143,17 @@ class SymbolsImportResolution(compiler: Compiler) {
       Level.FINER,
       "Finding all static methods and types defined in module"
     )
-    val symbolsToImport: ListBuffer[IR.Name.Literal] = ListBuffer.empty
-    moduleBindings.foreach {
+    moduleBindings.flatMap(_ match {
       case Definition.Method.Explicit(methodRef, _, _, _, _)
         if methodRef.methodName.isInstanceOf[Name.Literal] && methodRef.typePointer.isEmpty =>
-        symbolsToImport += methodRef.methodName.asInstanceOf[Name.Literal]
+        List(methodRef.methodName.asInstanceOf[Name.Literal])
       case Definition.Method.Binding(methodRef, _, _, _, _, _)
         if methodRef.methodName.isInstanceOf[Name.Literal] && methodRef.typePointer.isEmpty =>
-        symbolsToImport += methodRef.methodName.asInstanceOf[Name.Literal]
+        List(methodRef.methodName.asInstanceOf[Name.Literal])
       case Definition.Type(name, _, _, _, _, _)
-        if name.isInstanceOf[Name.Literal] =>
-        symbolsToImport += name.asInstanceOf[Name.Literal]
-      case _ => ()
-    }
-    symbolsToImport.toList
+        if name.isInstanceOf[Name.Literal] => List(name.asInstanceOf[Name.Literal])
+      case _ => List.empty
+    })
   }
 
   private def findAllExportedSymbolsFromModule(
