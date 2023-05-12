@@ -374,6 +374,7 @@ function Dashboard(props: DashboardProps) {
                 <ProjectActionButton
                     project={projectAsset}
                     appRunner={appRunner}
+                    doRefresh={doRefresh}
                     onClose={() => {
                         setProject(null)
                     }}
@@ -638,17 +639,8 @@ function Dashboard(props: DashboardProps) {
             projectTemplateName: templateId ?? null,
             parentDirectoryId: directoryId,
         }
-        const projectAsset = await backend.createProject(body)
-        setProjectAssets([
-            ...projectAssets,
-            {
-                type: backendModule.AssetType.project,
-                title: projectAsset.name,
-                id: projectAsset.projectId,
-                parentId: '',
-                permissions: [],
-            },
-        ])
+        await backend.createProject(body)
+        doRefresh()
     }
 
     return (
