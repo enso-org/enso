@@ -1,8 +1,6 @@
 /** @file Container that launches the IDE. */
 import * as react from 'react'
 
-import * as common from 'enso-common'
-
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 
@@ -11,9 +9,9 @@ import * as backendProvider from '../../providers/backend'
 // =================
 
 const IDE_CDN_URL = 'https://ensocdn.s3.us-west-1.amazonaws.com/ide'
-const JS_EXTENSION: Record<common.Platform, string> = {
-    [common.Platform.cloud]: '.js.gz',
-    [common.Platform.desktop]: '.js',
+const JS_EXTENSION: Record<backendModule.BackendType, string> = {
+    [backendModule.BackendType.remote]: '.js.gz',
+    [backendModule.BackendType.local]: '.js',
 } as const
 
 // =================
@@ -60,10 +58,10 @@ function Ide(props: Props) {
                 throw new Error("Could not get the address of the project's binary endpoint.")
             } else {
                 const assetsRoot = (() => {
-                    switch (backend.platform) {
-                        case common.Platform.cloud:
+                    switch (backend.type) {
+                        case backendModule.BackendType.remote:
                             return `${IDE_CDN_URL}/${ideVersion}/`
-                        case common.Platform.desktop:
+                        case backendModule.BackendType.local:
                             return ''
                     }
                 })()
@@ -72,7 +70,7 @@ function Ide(props: Props) {
                         loader: {
                             assetsUrl: `${assetsRoot}dynamic-assets`,
                             wasmUrl: `${assetsRoot}pkg-opt.wasm`,
-                            jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backend.platform]}`,
+                            jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backend.type]}`,
                         },
                         engine: {
                             rpcUrl: jsonAddress,
@@ -84,7 +82,7 @@ function Ide(props: Props) {
                         },
                     })
                 }
-                if (backend.platform === common.Platform.desktop) {
+                if (backend.type === backendModule.BackendType.local) {
                     await runNewProject()
                     return
                 } else {

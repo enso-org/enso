@@ -38,8 +38,6 @@ import * as react from 'react'
 import * as router from 'react-router-dom'
 import * as toast from 'react-hot-toast'
 
-import * as common from 'enso-common'
-
 import * as authService from '../authentication/service'
 
 import * as authProvider from '../authentication/providers/auth'
@@ -82,9 +80,8 @@ export const SET_USERNAME_PATH = '/set-username'
 /** Global configuration for the `App` component. */
 export interface AppProps {
     logger: loggerProvider.Logger
-    /** Whether the application supports deep links. This is only true when using
-     * the installed app on macOS and Windows. */
-    platform: common.Platform
+    /** Whether the application may have the local backend running. */
+    supportsLocalBackend: boolean
     /** Whether the application supports deep links. This is only true when using
      * the installed app on macOS and Windows. */
     supportsDeepLinks: boolean
@@ -100,10 +97,10 @@ export interface AppProps {
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
 function App(props: AppProps) {
-    const { platform } = props
     // This is a React component even though it does not contain JSX.
     // eslint-disable-next-line no-restricted-syntax
-    const Router = platform === common.Platform.desktop ? router.MemoryRouter : router.BrowserRouter
+    const Router =
+        'IS_ELECTRON' in window && IS_ELECTRON ? router.MemoryRouter : router.BrowserRouter
     /** Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
      * will redirect the user between the login/register pages and the dashboard. */
     return (

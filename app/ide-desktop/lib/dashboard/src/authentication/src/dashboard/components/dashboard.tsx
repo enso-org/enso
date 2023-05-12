@@ -2,8 +2,6 @@
  * interactive components. */
 import * as react from 'react'
 
-import * as common from 'enso-common'
-
 import * as backendModule from '../backend'
 import * as fileInfo from '../../fileInfo'
 import * as hooks from '../../hooks'
@@ -199,7 +197,7 @@ function rootDirectoryId(userOrOrganizationId: backendModule.UserOrOrganizationI
 // =================
 
 export interface DashboardProps {
-    platform: common.Platform
+    supportsLocalBackend: boolean
     appRunner: AppRunner | null
 }
 
@@ -207,7 +205,7 @@ export interface DashboardProps {
 // There is currently no way to tell whether a row is selected from a column.
 
 function Dashboard(props: DashboardProps) {
-    const { platform, appRunner } = props
+    const { supportsLocalBackend, appRunner } = props
 
     const logger = loggerProvider.useLogger()
     const { accessToken, organization } = auth.useFullUserSession()
@@ -356,7 +354,7 @@ function Dashboard(props: DashboardProps) {
                             <RenameModal
                                 assetType={projectAsset.type}
                                 name={projectAsset.title}
-                                {...(backend.platform === common.Platform.desktop
+                                {...(backend.type === backendModule.BackendType.local
                                     ? {
                                           namePattern: '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*',
                                           title:
@@ -664,7 +662,7 @@ function Dashboard(props: DashboardProps) {
             onDragEnter={openDropZone}
         >
             <TopBar
-                platform={platform}
+                supportsLocalBackend={supportsLocalBackend}
                 projectName={project?.name ?? null}
                 tab={tab}
                 toggleTab={() => {
@@ -684,17 +682,17 @@ function Dashboard(props: DashboardProps) {
                         }
                     }
                 }}
-                setBackendPlatform={newBackendPlatform => {
-                    if (newBackendPlatform !== backend.platform) {
+                setBackendType={newBackendType => {
+                    if (newBackendType !== backend.type) {
                         setProjectAssets([])
                         setDirectoryAssets([])
                         setSecretAssets([])
                         setFileAssets([])
-                        switch (newBackendPlatform) {
-                            case common.Platform.desktop:
+                        switch (newBackendType) {
+                            case backendModule.BackendType.local:
                                 setBackend(new localBackend.LocalBackend())
                                 break
-                            case common.Platform.cloud: {
+                            case backendModule.BackendType.remote: {
                                 const headers = new Headers()
                                 headers.append('Authorization', `Bearer ${accessToken}`)
                                 const client = new http.Client(headers)
@@ -729,9 +727,9 @@ function Dashboard(props: DashboardProps) {
                     <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
                         <button
                             className={`mx-1 ${
-                                backend.platform === common.Platform.desktop ? 'opacity-50' : ''
+                                backend.type === backendModule.BackendType.local ? 'opacity-50' : ''
                             }`}
-                            disabled={backend.platform === common.Platform.desktop}
+                            disabled={backend.type === backendModule.BackendType.local}
                             onClick={event => {
                                 event.stopPropagation()
                                 setModal(() => (
@@ -855,7 +853,7 @@ function Dashboard(props: DashboardProps) {
                                     <RenameModal
                                         name={projectAsset.title}
                                         assetType={projectAsset.type}
-                                        {...(backend.platform === common.Platform.desktop
+                                        {...(backend.type === backendModule.BackendType.local
                                             ? {
                                                   namePattern: '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*',
                                                   title:
@@ -902,7 +900,7 @@ function Dashboard(props: DashboardProps) {
                             ))
                         }}
                     />
-                    {backend.platform === common.Platform.cloud &&
+                    {backend.type === backendModule.BackendType.remote &&
                         (remoteBackend => (
                             <>
                                 <tr className="h-10" />
@@ -1059,7 +1057,7 @@ function Dashboard(props: DashboardProps) {
                         ))(backend)}
                 </tbody>
             </table>
-            {isFileBeingDragged && backend.platform === common.Platform.cloud ? (
+            {isFileBeingDragged && backend.type === backendModule.BackendType.remote ? (
                 <div
                     className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary grid place-items-center"
                     onDragLeave={() => {

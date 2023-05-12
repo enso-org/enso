@@ -1,11 +1,14 @@
 /** @file Type definitions common between all backends. */
-import * as common from 'enso-common'
-
 import * as newtype from '../newtype'
 
 // =============
 // === Types ===
 // =============
+
+export enum BackendType {
+    local = 'local',
+    remote = 'remote',
+}
 
 /** Unique identifier for a user/organization. */
 export type UserOrOrganizationId = newtype.Newtype<string, 'UserOrOrganizationId'>
@@ -353,7 +356,7 @@ export function assetIsType<Type extends AssetType>(type: Type) {
 
 /** Interface for sending requests to a backend that manages assets and runs projects. */
 export interface Backend {
-    readonly platform: common.Platform
+    readonly type: BackendType
 
     /** Set the username of the current user. */
     createUser: (body: CreateUserRequestBody) => Promise<UserOrOrganization>

@@ -1,8 +1,6 @@
 /** @file An interactive button displaying the status of a project. */
 import * as react from 'react'
 
-import * as common from 'enso-common'
-
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as localBackend from '../localBackend'
@@ -67,7 +65,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     }, [])
 
     react.useEffect(() => {
-        if (backend.platform === common.Platform.desktop) {
+        if (backend.type === backendModule.BackendType.local) {
             if (project.id !== localBackend.LocalBackend.currentlyOpeningProjectId) {
                 setIsCheckingResources(false)
                 setIsCheckingStatus(false)
@@ -148,12 +146,12 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         setTimeout(() => {
             setSpinnerState(SpinnerState.loading)
         }, 0)
-        switch (backend.platform) {
-            case common.Platform.cloud:
+        switch (backend.type) {
+            case backendModule.BackendType.remote:
                 await backend.openProject(project.id)
                 setIsCheckingStatus(true)
                 break
-            case common.Platform.desktop:
+            case backendModule.BackendType.local:
                 await backend.openProject(project.id)
                 setState(backendModule.ProjectState.opened)
                 setSpinnerState(SpinnerState.done)

@@ -1,6 +1,5 @@
 /** @file Entry point into the cloud dashboard. */
 import * as authentication from 'enso-authentication'
-import * as common from 'enso-common'
 
 // =================
 // === Constants ===
@@ -31,9 +30,8 @@ if (IS_DEV_MODE) {
 
 authentication.run({
     logger: console,
-    // This file is only included when building for the cloud,
-    // so it is safe to set `platform` to `cloud`.
-    platform: common.Platform.cloud,
+    // This file is only included when building for the cloud.
+    supportsLocalBackend: false,
     supportsDeepLinks: false,
     showDashboard: true,
     // The `onAuthenticated` parameter is required but we don't need it, so we pass an empty function.

@@ -12,8 +12,6 @@
 import * as React from 'react'
 import * as reactDOM from 'react-dom/client'
 
-import * as common from 'enso-common'
-
 import App, * as app from './components/app'
 
 // =================
@@ -54,6 +52,3 @@ export function run(props: app.AppProps) {
 }
 
 export type AppProps = app.AppProps
-// This export should be `PascalCase` because it is a re-export.
-// eslint-disable-next-line no-restricted-syntax
-export const Platform = common.Platform

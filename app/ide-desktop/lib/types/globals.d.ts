@@ -1,10 +1,6 @@
 /** @file Globals defined outside of TypeScript files.
  * These are from variables defined at build time, environment variables,
- * monkeypatching on `window` and generated code.
- *
- * This file MUST include an `import` or `export {}` for the globals to be visible
- * to other files. */
-import * as common from 'enso-common'
+ * monkeypatching on `window` and generated code. */
 
 interface StringConfig {
     [key: string]: StringConfig | string
@@ -68,6 +64,9 @@ declare global {
     // This will be `undefined` when it is not defined by esbuild.
     // eslint-disable-next-line no-restricted-syntax
     const REDIRECT_OVERRIDE: string | undefined
-    const PLATFORM: common.Platform
+    const IS_ELECTRON: boolean
     /* eslint-disable @typescript-eslint/naming-convention */
 }
+
+// Required for the globals to be visible to other files.
+export {}

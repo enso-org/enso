@@ -16,8 +16,6 @@ import process from 'node:process'
 
 import * as esbuild from 'esbuild'
 
-import * as common from 'enso-common'
-
 import * as clientBundler from './esbuild-config'
 import * as contentBundler from '../content/esbuild-config'
 import * as dashboardBundler from '../dashboard/esbuild-config'
@@ -87,7 +85,7 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
         console.log('Bundling content.')
         const contentOpts = contentBundler.bundlerOptionsFromEnv({
             devMode: true,
-            platform: common.Platform.desktop,
+            supportsLocalBackend: true,
             supportsDeepLinks: false,
         })
         contentOpts.plugins.push({

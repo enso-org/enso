@@ -6,8 +6,6 @@ import * as esbuild from 'esbuild'
 import * as portfinder from 'portfinder'
 import chalk from 'chalk'
 
-import * as common from 'enso-common'
-
 import * as bundler from './esbuild-config'
 import * as dashboardBundler from '../dashboard/esbuild-config'
 
@@ -35,7 +33,7 @@ async function watch() {
     const opts = bundler.bundlerOptions(
         bundler.argumentsFromEnv({
             devMode: true,
-            platform: common.Platform.desktop,
+            supportsLocalBackend: true,
             supportsDeepLinks: false,
         })
     )

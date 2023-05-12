@@ -83,8 +83,6 @@ const AMPLIFY_CONFIGS = {
 export interface AuthConfig {
     /** Logger for the authentication service. */
     logger: loggerProvider.Logger
-    /** Whether the application is running on a desktop (i.e., versus in the Cloud). */
-    platform: common.Platform
     /** Whether the application supports deep links. This is only true when using
      * the installed app on macOS and Windows. */
     supportsDeepLinks: boolean
@@ -114,9 +112,9 @@ export interface AuthService {
  * This function should only be called once, and the returned service should be used throughout the
  * application. This is because it performs global configuration of the Amplify library. */
 export function initAuthService(authConfig: AuthConfig): AuthService {
-    const { logger, platform, supportsDeepLinks, navigate } = authConfig
+    const { logger, supportsDeepLinks, navigate } = authConfig
     const amplifyConfig = loadAmplifyConfig(logger, supportsDeepLinks, navigate)
-    const cognitoClient = new cognito.Cognito(logger, platform, amplifyConfig)
+    const cognitoClient = new cognito.Cognito(logger, amplifyConfig)
     return {
         cognito: cognitoClient,
         registerAuthEventListener: listen.registerAuthEventListener,
@@ -133,19 +131,20 @@ function loadAmplifyConfig(
     let urlOpener = null
     let accessTokenSaver = null
     if ('authenticationApi' in window) {
-        /** If we're running on the desktop, we want to override the default URL opener for OAuth
-         * flows.  This is because the default URL opener opens the URL in the desktop app itself,
-         * but we want the user to be sent to their system browser instead. The user should be sent
-         * to their system browser because:
+        /** When running on destop we want to have option to save access token to a file,
+         * so it can be later reuse when issuing requests to Cloud API. */
+        accessTokenSaver = saveAccessToken
+    }
+    if (supportsDeepLinks) {
+        /** If we support redirecting back here via deep links, we want to override the default
+         * URL opener for OAuth flows.  This is because the default URL opener opens the URL
+         * in the desktop app itself, but we want the user to be sent to their system browser
+         * instead. The user should be sent to their system browser because:
          *
          * - users trust their system browser with their credentials more than they trust our app;
          * - our app can keep itself on the relevant page until the user is sent back to it (i.e.,
          * we avoid unnecessary reloads/refreshes caused by redirects. */
         urlOpener = openUrlWithExternalBrowser
-
-        /** When running on destop we want to have option to save access token to a file,
-         * so it can be later reuse when issuing requests to Cloud API. */
-        accessTokenSaver = saveAccessToken
 
         /** To handle redirects back to the application from the system browser, we also need to
          * register a custom URL handler. */

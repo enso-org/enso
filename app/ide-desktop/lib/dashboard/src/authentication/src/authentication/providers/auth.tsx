@@ -7,8 +7,6 @@ import * as react from 'react'
 import * as router from 'react-router-dom'
 import toast from 'react-hot-toast'
 
-import * as common from 'enso-common'
-
 import * as app from '../../components/app'
 import * as authServiceModule from '../service'
 import * as backendModule from '../../dashboard/backend'
@@ -267,7 +265,7 @@ export function AuthProvider(props: AuthProviderProps) {
         username: string,
         email: string
     ) => {
-        if (backend.platform === common.Platform.desktop) {
+        if (backend.type === backendModule.BackendType.local) {
             toast.error('You cannot set your username on the local backend.')
             return false
         } else {

@@ -23,8 +23,6 @@ import esbuildPluginCopyDirectories from 'esbuild-plugin-copy-directories'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
-import * as common from 'enso-common'
-
 import * as utils from '../../utils'
 import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
@@ -43,9 +41,8 @@ const THIS_PATH = pathModule.resolve(pathModule.dirname(url.fileURLToPath(import
 export interface PassthroughArguments {
     /** `true` if in development mode (live-reload), `false` if in production mode. */
     devMode: boolean
-    /** Whether the application supports deep links. This is only true when using
-     * the installed app on macOS and Windows. */
-    platform: common.Platform
+    /** Whether the application may have the local backend running. */
+    supportsLocalBackend: boolean
     /** Whether the application supports deep links. This is only true when using
      * the installed app on macOS and Windows. */
     supportsDeepLinks: boolean
@@ -102,7 +99,7 @@ export function bundlerOptions(args: Arguments) {
         wasmArtifacts,
         assetsPath,
         devMode,
-        platform,
+        supportsLocalBackend,
         supportsDeepLinks,
     } = args
     const buildOptions = {
@@ -162,7 +159,7 @@ export function bundlerOptions(args: Arguments) {
             /** Overrides the redirect URL for OAuth logins in the production environment.
              * This is needed for logins to work correctly under `./run gui watch`. */
             REDIRECT_OVERRIDE: 'undefined',
-            PLATFORM: JSON.stringify(platform),
+            SUPPORTS_LOCAL_BACKEND: JSON.stringify(supportsLocalBackend),
             SUPPORTS_DEEP_LINKS: JSON.stringify(supportsDeepLinks),
         },
         sourcemap: true,

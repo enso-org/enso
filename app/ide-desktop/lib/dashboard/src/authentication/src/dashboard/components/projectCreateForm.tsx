@@ -2,8 +2,6 @@
 import * as react from 'react'
 import toast from 'react-hot-toast'
 
-import * as common from 'enso-common'
-
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as error from '../../error'
@@ -24,7 +22,7 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
     const [name, setName] = react.useState<string | null>(null)
     const [template, setTemplate] = react.useState<string | null>(null)
 
-    if (backend.platform === common.Platform.desktop) {
+    if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
         const onSubmit = async (event: react.FormEvent) => {

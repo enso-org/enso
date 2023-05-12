@@ -1,8 +1,7 @@
 /** @file The top-bar of dashboard. */
 import * as react from 'react'
 
-import * as common from 'enso-common'
-
+import * as backendModule from '../backend'
 import * as dashboard from './dashboard'
 import * as svg from '../../components/svg'
 
@@ -16,11 +15,11 @@ import UserMenu from './userMenu'
 // ==============
 
 interface TopBarProps {
-    platform: common.Platform
+    supportsLocalBackend: boolean
     projectName: string | null
     tab: dashboard.Tab
     toggleTab: () => void
-    setBackendPlatform: (backendPlatform: common.Platform) => void
+    setBackendType: (backendType: backendModule.BackendType) => void
     query: string
     setQuery: (value: string) => void
 }
@@ -30,7 +29,8 @@ interface TopBarProps {
  * because `searchVal` may change parent component's project list.
  */
 function TopBar(props: TopBarProps) {
-    const { platform, projectName, tab, toggleTab, setBackendPlatform, query, setQuery } = props
+    const { supportsLocalBackend, projectName, tab, toggleTab, setBackendType, query, setQuery } =
+        props
     const [userMenuVisible, setUserMenuVisible] = react.useState(false)
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
@@ -46,14 +46,14 @@ function TopBar(props: TopBarProps) {
     return (
         <div className="flex mb-2 h-8">
             <div className="flex text-primary">
-                {platform === common.Platform.desktop && (
+                {supportsLocalBackend && (
                     <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
                         <button
                             onClick={() => {
-                                setBackendPlatform(common.Platform.desktop)
+                                setBackendType(backendModule.BackendType.local)
                             }}
                             className={`${
-                                backend.platform === common.Platform.desktop
+                                backend.type === backendModule.BackendType.local
                                     ? 'bg-white shadow-soft'
                                     : 'opacity-50'
                             } rounded-full px-1.5 py-1`}
@@ -62,10 +62,10 @@ function TopBar(props: TopBarProps) {
                         </button>
                         <button
                             onClick={() => {
-                                setBackendPlatform(common.Platform.cloud)
+                                setBackendType(backendModule.BackendType.remote)
                             }}
                             className={`${
-                                backend.platform === common.Platform.cloud
+                                backend.type === backendModule.BackendType.remote
                                     ? 'bg-white shadow-soft'
                                     : 'opacity-50'
                             } rounded-full px-1.5 py-1`}

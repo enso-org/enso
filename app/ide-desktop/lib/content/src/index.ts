@@ -191,11 +191,11 @@ class Main implements AppRunner {
                 contentConfig.OPTIONS.groups.startup.options.entry.value ===
                 contentConfig.OPTIONS.groups.startup.options.entry.default
             if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningMainEntryPoint) {
-                const hideAuth = () => {
+                const removeAuth = () => {
                     const auth = document.getElementById('dashboard')
                     const ide = document.getElementById('root')
                     if (auth) {
-                        auth.style.display = 'none'
+                        auth.remove()
                     }
                     if (ide) {
                         ide.hidden = false
@@ -215,7 +215,7 @@ class Main implements AppRunner {
                 let appInstanceRan = false
                 const onAuthenticated = () => {
                     if (!contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) {
-                        hideAuth()
+                        removeAuth()
                         if (!appInstanceRan) {
                             appInstanceRan = true
                             void this.runApp(inputConfig)
@@ -225,7 +225,7 @@ class Main implements AppRunner {
                 authentication.run({
                     appRunner: this,
                     logger,
-                    platform: PLATFORM,
+                    supportsLocalBackend: SUPPORTS_LOCAL_BACKEND,
                     supportsDeepLinks: SUPPORTS_DEEP_LINKS,
                     showDashboard:
                         contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
