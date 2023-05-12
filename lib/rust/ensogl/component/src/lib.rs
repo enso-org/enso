@@ -24,6 +24,7 @@ pub use ensogl_scroll_area as scroll_area;
 pub use ensogl_scrollbar as scrollbar;
 pub use ensogl_selector as selector;
 pub use ensogl_shadow as shadow;
+pub use ensogl_spinner as spinner;
 pub use ensogl_text as text;
 pub use ensogl_toggle_button as toggle_button;
 pub use ensogl_tooltip as tooltip;

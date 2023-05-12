@@ -188,7 +188,7 @@ impl Model {
     }
 
     /// Load an HTML file into the documentation view when user is waiting for data to be received.
-    /// TODO(#184315201): This should be replaced with a EnsoGL spinner.
+    /// TODO(#5214): This should be replaced with a EnsoGL spinner.
     fn load_waiting_screen(&self) {
         let spinner = include_str!("../assets/spinner.html");
         self.inner_dom.dom().set_inner_html(spinner)

@@ -143,6 +143,7 @@
   belongs to the node.][6487].
 - [List Editor Widget][6470]. Now you can edit lists by clicking buttons on
   nodes or by dragging the elements.
+- [Visualisations now show a loading spinner while waiting on data.][6512].
 - [Fixed text visualisations which were being cut off at the last line.][6421]
 - [Fixed a bug where, when scrolling or dragging on a full-screen visualization,
   the view of the graph changed as well.][6530]
@@ -227,6 +228,7 @@
 [6487]: https://github.com/enso-org/enso/pull/6487
 [6341]: https://github.com/enso-org/enso/pull/6341
 [6470]: https://github.com/enso-org/enso/pull/6470
+[6512]: https://github.com/enso-org/enso/pull/6512
 
 #### Enso Standard Library
 
