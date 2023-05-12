@@ -36,6 +36,7 @@ async function watch() {
         bundler.argumentsFromEnv({
             devMode: true,
             platform: common.Platform.desktop,
+            supportsDeepLinks: false,
         })
     )
     opts.define.REDIRECT_OVERRIDE = JSON.stringify('http://localhost:8080')

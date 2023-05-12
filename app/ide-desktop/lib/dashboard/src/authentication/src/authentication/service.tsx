@@ -32,19 +32,15 @@ const LOGIN_PATHNAME = '//auth/login'
 
 /** URL used as the OAuth redirect when running in the desktop app. */
 const DESKTOP_REDIRECT = newtype.asNewtype<auth.OAuthRedirect>(`${common.DEEP_LINK_SCHEME}://auth`)
-/** Map from platform to the OAuth redirect URL that should be used for that platform. */
-const PLATFORM_TO_CONFIG: Record<
-    common.Platform,
-    Pick<auth.AmplifyConfig, 'redirectSignIn' | 'redirectSignOut'>
-> = {
-    [common.Platform.desktop]: {
-        redirectSignIn: DESKTOP_REDIRECT,
-        redirectSignOut: DESKTOP_REDIRECT,
-    },
-    [common.Platform.cloud]: {
-        redirectSignIn: config.ACTIVE_CONFIG.cloudRedirect,
-        redirectSignOut: config.ACTIVE_CONFIG.cloudRedirect,
-    },
+/** OAuth redirect URLs for the electron app. */
+const DEEP_LINK_REDIRECTS: Pick<auth.AmplifyConfig, 'redirectSignIn' | 'redirectSignOut'> = {
+    redirectSignIn: DESKTOP_REDIRECT,
+    redirectSignOut: DESKTOP_REDIRECT,
+}
+/** OAuth redirect URLs for the browser. */
+const CLOUD_REDIRECTS: Pick<auth.AmplifyConfig, 'redirectSignIn' | 'redirectSignOut'> = {
+    redirectSignIn: config.ACTIVE_CONFIG.cloudRedirect,
+    redirectSignOut: config.ACTIVE_CONFIG.cloudRedirect,
 }
 
 const BASE_AMPLIFY_CONFIG = {
@@ -89,6 +85,9 @@ export interface AuthConfig {
     logger: loggerProvider.Logger
     /** Whether the application is running on a desktop (i.e., versus in the Cloud). */
     platform: common.Platform
+    /** Whether the application supports deep links. This is only true when using
+     * the installed app on macOS and Windows. */
+    supportsDeepLinks: boolean
     /** Function to navigate to a given (relative) URL.
      *
      * Used to redirect to pages like the password reset page with the query parameters set in the
@@ -115,8 +114,8 @@ export interface AuthService {
  * This function should only be called once, and the returned service should be used throughout the
  * application. This is because it performs global configuration of the Amplify library. */
 export function initAuthService(authConfig: AuthConfig): AuthService {
-    const { logger, platform, navigate } = authConfig
-    const amplifyConfig = loadAmplifyConfig(logger, platform, navigate)
+    const { logger, platform, supportsDeepLinks, navigate } = authConfig
+    const amplifyConfig = loadAmplifyConfig(logger, supportsDeepLinks, navigate)
     const cognitoClient = new cognito.Cognito(logger, platform, amplifyConfig)
     return {
         cognito: cognitoClient,
@@ -126,14 +125,14 @@ export function initAuthService(authConfig: AuthConfig): AuthService {
 
 function loadAmplifyConfig(
     logger: loggerProvider.Logger,
-    platform: common.Platform,
+    supportsDeepLinks: boolean,
     navigate: (url: string) => void
 ): auth.AmplifyConfig {
     /** Load the environment-specific Amplify configuration. */
     const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT]
     let urlOpener = null
     let accessTokenSaver = null
-    if (platform === common.Platform.desktop) {
+    if ('authenticationApi' in window) {
         /** If we're running on the desktop, we want to override the default URL opener for OAuth
          * flows.  This is because the default URL opener opens the URL in the desktop app itself,
          * but we want the user to be sent to their system browser instead. The user should be sent
@@ -153,7 +152,7 @@ function loadAmplifyConfig(
         setDeepLinkHandler(logger, navigate)
     }
     /** Load the platform-specific Amplify configuration. */
-    const platformConfig = PLATFORM_TO_CONFIG[platform]
+    const platformConfig = supportsDeepLinks ? DEEP_LINK_REDIRECTS : CLOUD_REDIRECTS
     return {
         ...baseConfig,
         ...platformConfig,

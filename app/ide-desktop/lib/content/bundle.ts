@@ -10,6 +10,7 @@ try {
         bundler.bundleOptions({
             devMode: false,
             platform: common.Platform.desktop,
+            supportsDeepLinks: true,
         })
     )
 } catch (error) {

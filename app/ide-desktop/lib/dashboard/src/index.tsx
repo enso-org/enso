@@ -34,6 +34,7 @@ authentication.run({
     // This file is only included when building for the cloud,
     // so it is safe to set `platform` to `cloud`.
     platform: common.Platform.cloud,
+    supportsDeepLinks: false,
     showDashboard: true,
     // The `onAuthenticated` parameter is required but we don't need it, so we pass an empty function.
     // eslint-disable-next-line @typescript-eslint/no-empty-function

@@ -88,6 +88,7 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
         const contentOpts = contentBundler.bundlerOptionsFromEnv({
             devMode: true,
             platform: common.Platform.desktop,
+            supportsDeepLinks: false,
         })
         contentOpts.plugins.push({
             name: 'enso-on-rebuild',

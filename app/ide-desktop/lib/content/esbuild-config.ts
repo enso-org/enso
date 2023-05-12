@@ -43,7 +43,12 @@ const THIS_PATH = pathModule.resolve(pathModule.dirname(url.fileURLToPath(import
 export interface PassthroughArguments {
     /** `true` if in development mode (live-reload), `false` if in production mode. */
     devMode: boolean
+    /** Whether the application supports deep links. This is only true when using
+     * the installed app on macOS and Windows. */
     platform: common.Platform
+    /** Whether the application supports deep links. This is only true when using
+     * the installed app on macOS and Windows. */
+    supportsDeepLinks: boolean
 }
 
 export interface Arguments extends PassthroughArguments {
@@ -91,7 +96,15 @@ function git(command: string): string {
  * Generate the builder options.
  */
 export function bundlerOptions(args: Arguments) {
-    const { outputPath, ensoglAppPath, wasmArtifacts, assetsPath, devMode, platform } = args
+    const {
+        outputPath,
+        ensoglAppPath,
+        wasmArtifacts,
+        assetsPath,
+        devMode,
+        platform,
+        supportsDeepLinks,
+    } = args
     const buildOptions = {
         // Disabling naming convention because these are third-party options.
         /* eslint-disable @typescript-eslint/naming-convention */
@@ -150,6 +163,7 @@ export function bundlerOptions(args: Arguments) {
              * This is needed for logins to work correctly under `./run gui watch`. */
             REDIRECT_OVERRIDE: 'undefined',
             PLATFORM: JSON.stringify(platform),
+            SUPPORTS_DEEP_LINKS: JSON.stringify(supportsDeepLinks),
         },
         sourcemap: true,
         minify: true,

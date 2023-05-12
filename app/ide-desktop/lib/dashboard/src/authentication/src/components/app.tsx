@@ -82,7 +82,12 @@ export const SET_USERNAME_PATH = '/set-username'
 /** Global configuration for the `App` component. */
 export interface AppProps {
     logger: loggerProvider.Logger
+    /** Whether the application supports deep links. This is only true when using
+     * the installed app on macOS and Windows. */
     platform: common.Platform
+    /** Whether the application supports deep links. This is only true when using
+     * the installed app on macOS and Windows. */
+    supportsDeepLinks: boolean
     /** Whether the dashboard should be rendered. */
     showDashboard: boolean
     onAuthenticated: () => void

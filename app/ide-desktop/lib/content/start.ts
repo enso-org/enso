@@ -13,6 +13,7 @@ async function watch() {
     const opts = bundler.bundleOptions({
         devMode: true,
         platform: common.Platform.desktop,
+        supportsDeepLinks: false,
     })
     const builder = await esbuild.context(opts)
     await builder.watch()

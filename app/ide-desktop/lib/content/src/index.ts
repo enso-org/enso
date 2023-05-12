@@ -226,6 +226,7 @@ class Main implements AppRunner {
                     appRunner: this,
                     logger,
                     platform: PLATFORM,
+                    supportsDeepLinks: SUPPORTS_DEEP_LINKS,
                     showDashboard:
                         contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
                     onAuthenticated,
