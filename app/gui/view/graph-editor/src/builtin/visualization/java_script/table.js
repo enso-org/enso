@@ -311,16 +311,13 @@ class TableVisualization extends Visualization {
         const rowLimitElem = this.statusElem.children.namedItem('row-limit')
         if (all_rows_count > 1000) {
             rowLimitElem.style.display = 'inline-block'
-            const rowCounts = [
-                1000,
-                2500,
-                5000,
-                10000,
-                25000,
-                50000,
-                100000,
-            ].filter(r => r <= all_rows_count)
-            if (all_rows_count < rowCounts[rowCounts.length-1] && rowCounts.indexOf(all_rows_count) === -1) {
+            const rowCounts = [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter(
+                r => r <= all_rows_count
+            )
+            if (
+                all_rows_count < rowCounts[rowCounts.length - 1] &&
+                rowCounts.indexOf(all_rows_count) === -1
+            ) {
                 rowCounts.push(all_rows_count)
             }
             rowLimitElem.innerHTML = ''
