@@ -92,6 +92,17 @@ class TableVisualization extends Visualization {
             return content
         }
 
+        function cellRenderer(params) {
+            if (params.value === null) {
+                return '<span style="color:grey; font-style: italic;">Nothing</span>'
+            } else if (params.value === undefined) {
+                return ''
+            } else if (params.value === '') {
+                return '<span style="color:grey; font-style: italic;">Empty</span>'
+            }
+            return params.value.toString()
+        }
+
         if (!this.tabElem) {
             while (this.dom.firstChild) {
                 this.dom.removeChild(this.dom.lastChild)
@@ -133,14 +144,7 @@ class TableVisualization extends Visualization {
                     resizable: true,
                     minWidth: 25,
                     headerValueGetter: params => params.colDef.field,
-                    cellRenderer: params => {
-                        if (params.value === null) {
-                            return '<span style="color:grey; font-style: italic;">Nothing</span>'
-                        } else if (params.value === undefined) {
-                            return ''
-                        }
-                        return params.value.toString()
-                    },
+                    cellRenderer: cellRenderer,
                 },
                 onColumnResized: e => this.lockColumnSize(e),
             }
