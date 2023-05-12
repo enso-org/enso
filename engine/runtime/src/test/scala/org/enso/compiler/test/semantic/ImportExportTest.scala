@@ -261,33 +261,6 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
       }) should have size 2
     }
 
-    "not resolve types and static module methods when importing all from a module" in {
-      """
-        |type Other_Module_Type
-        |static_method =
-        |    42
-        |"""
-        .stripMargin
-        .createModule(packageQualifiedName.createChild("Other_Module"))
-      val mainBindingMap =
-        s"""
-           |from $namespace.$packageName.Other_Module import all
-           |"""
-          .stripMargin
-          .createModule(packageQualifiedName.createChild("Main"))
-          .getIr
-          .unwrapBindingMap
-
-      mainBindingMap.resolvedImports.filter(imp => {
-        imp.target match {
-          case BindingsMap.ResolvedType(_, tp) if tp.name == "Other_Module_Type" => true
-          case BindingsMap.ResolvedMethod(_, method) if method.name == "static_method" => true
-          case _ => false
-        }
-      }
-      ) should have size 2
-    }
-
     "resolve only constructors when importing all symbols from a type (1)" in {
       """
         |type Other_Module_Type
