@@ -413,7 +413,7 @@ type_spec name alter = Test.group name <|
         vec.slice 1 1 . should_equal []
         vec.slice 0 100 . should_equal [1, 2, 3, 4, 5, 6]
         Meta.is_same_object vec (vec.slice 0 100) . should_be_true
-        Meta.meta Vector . name . should_equal (Meta.get_qualified_type_name (vec.slice 1 1))
+        Meta.get_qualified_type_name (vec.slice 1 1) . should_equal (Meta.meta Vector . qualified_name)
 
     Test.specify "should define take and drop family of operations" <|
         vec = alter [1, 2, 3, 4, 5, 6]
@@ -779,5 +779,10 @@ spec =
         arr
     type_spec "Use Array_Proxy as vectors" v->
         Array_Proxy.new v.length (ix -> v.at ix)
+    type_spec "Use a slice of an array as vectors" v->
+        v2 = v+[Nothing]
+        sliced_vector = v2.slice 0 v.length
+        sliced_array = sliced_vector.to_array
+        sliced_array
 
 main = Test_Suite.run_main spec
