@@ -265,8 +265,8 @@ impl Visualization {
         spawn_stream_handler(weak, notifications, move |notification, model| {
             match notification {
                 Notification::Graph(graph::Notification::Invalidate)
-                | Notification::EnteredNode(_)
-                | Notification::SteppedOutOfNode(_) => match graph_controller.graph().nodes() {
+                | Notification::EnteredStack(_)
+                | Notification::ExitedStack(_) => match graph_controller.graph().nodes() {
                     Ok(nodes) => {
                         let nodes_set = nodes.into_iter().map(|n| n.id()).collect();
                         model.manager.retain_visualizations(&nodes_set);

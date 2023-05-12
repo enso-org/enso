@@ -20,6 +20,7 @@ use crate::visualization;
 use action_bar::ActionBar;
 use enso_frp as frp;
 use ensogl::application::Application;
+use ensogl::data::color::Rgba;
 use ensogl::display;
 use ensogl::display::scene;
 use ensogl::display::scene::Scene;
@@ -162,10 +163,11 @@ ensogl::define_endpoints! {
 pub struct View {
     display_object: display::object::Instance,
 
-    background:     background::View,
-    overlay:        overlay::View,
-    background_dom: DomSymbol,
-    scene:          Scene,
+    background:      background::View,
+    overlay:         overlay::View,
+    background_dom:  DomSymbol,
+    scene:           Scene,
+    loading_spinner: ensogl_component::spinner::View,
 }
 
 impl View {
@@ -176,16 +178,38 @@ impl View {
         let overlay = overlay::View::new();
         display_object.add_child(&background);
         display_object.add_child(&overlay);
+        let div = web::document.create_div_or_panic();
+        let background_dom = DomSymbol::new(&div);
+        display_object.add_child(&background_dom);
+        let loading_spinner = ensogl_component::spinner::View::new();
 
         ensogl::shapes_order_dependencies! {
             scene => {
                 background -> overlay;
+                background -> ensogl_component::spinner;
             }
         };
 
+        Self { display_object, background, overlay, background_dom, scene, loading_spinner }.init()
+    }
+
+    fn set_layer(&self, layer: visualization::Layer) {
+        layer.apply_for_html_component(&self.scene, &self.background_dom);
+    }
+
+    fn show_waiting_screen(&self) {
+        self.add_child(&self.loading_spinner);
+    }
+
+    fn disable_waiting_screen(&self) {
+        self.loading_spinner.unset_parent();
+    }
+
+    fn init_background(&self) {
+        let background = &self.background_dom;
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
-        let styles = StyleWatch::new(&scene.style_sheet);
+        let styles = StyleWatch::new(&self.scene.style_sheet);
         let bg_color =
             styles.get_color(ensogl_hardcoded_theme::graph_editor::visualization::background);
         let bg_hex = format!(
@@ -196,29 +220,29 @@ impl View {
             bg_color.alpha
         );
 
-        let div = web::document.create_div_or_panic();
-        let background_dom = DomSymbol::new(&div);
         // TODO : We added a HTML background to the `View`, because "shape" background was
         // overlapping the JS visualization. This should be further investigated
         // while fixing rust visualization displaying. (#796)
-        background_dom.dom().set_style_or_warn("width", "0");
-        background_dom.dom().set_style_or_warn("height", "0");
-        background_dom.dom().set_style_or_warn("z-index", "1");
-        background_dom.dom().set_style_or_warn("overflow-y", "auto");
-        background_dom.dom().set_style_or_warn("overflow-x", "auto");
-        background_dom.dom().set_style_or_warn("background", bg_hex);
-        background_dom.dom().set_style_or_warn("border-radius", "14px");
-        shadow::add_to_dom_element(&background_dom, &styles);
-        display_object.add_child(&background_dom);
-
-        Self { display_object, background, overlay, background_dom, scene }.init()
+        background.dom().set_style_or_warn("width", "0");
+        background.dom().set_style_or_warn("height", "0");
+        background.dom().set_style_or_warn("z-index", "1");
+        background.dom().set_style_or_warn("overflow-y", "auto");
+        background.dom().set_style_or_warn("overflow-x", "auto");
+        background.dom().set_style_or_warn("background", bg_hex);
+        background.dom().set_style_or_warn("border-radius", "14px");
+        shadow::add_to_dom_element(background, &styles);
     }
 
-    fn set_layer(&self, layer: visualization::Layer) {
-        layer.apply_for_html_component(&self.scene, &self.background_dom);
+    fn init_spinner(&self) {
+        let spinner = &self.loading_spinner;
+        spinner.scale.set(5.0);
+        spinner.rgba.set(Rgba::black().into())
     }
 
     fn init(self) -> Self {
+        self.init_background();
+        self.init_spinner();
+        self.show_waiting_screen();
         self.set_layer(visualization::Layer::Default);
         self.scene.layers.viz.add(&self);
         self
@@ -300,6 +324,8 @@ impl ContainerModel {
         // FIXME: These 2 lines fix a bug with display objects visible on stage.
         self.set_visibility(true);
         self.set_visibility(false);
+
+        self.view.show_waiting_screen();
         self
     }
 
@@ -409,6 +435,7 @@ impl ContainerModel {
             self.view.background.radius.set(CORNER_RADIUS);
             self.view.overlay.set_size(size);
             self.view.background.set_size(size + 2.0 * Vector2(PADDING, PADDING));
+            self.view.loading_spinner.set_size(size + 2.0 * Vector2(PADDING, PADDING));
             dom.set_style_or_warn("width", format!("{}px", size[0]));
             dom.set_style_or_warn("height", format!("{}px", size[1]));
             bg_dom.set_style_or_warn("width", "0");
@@ -584,7 +611,15 @@ impl Container {
                 }
                 vis_definition.clone()
             }));
+
+
+        // === Visualisation Loading Spinner ===
+
+        eval_ frp.source.visualisation ( model.view.show_waiting_screen() );
+        eval_ frp.set_data ( model.view.disable_waiting_screen() );
+
         }
+
 
 
         // === Selecting Visualization ===

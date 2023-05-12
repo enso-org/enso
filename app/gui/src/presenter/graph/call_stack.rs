@@ -33,12 +33,49 @@ impl Model {
         Self { controller, view, state }
     }
 
-    fn expression_entered(&self, local_call: &view::graph_editor::LocalCall) {
-        let local_call = LocalCall {
-            definition: (**local_call.definition).clone(),
-            call:       local_call.call,
-        };
-        self.enter_expression(local_call);
+    fn push_stack(&self, stack: Vec<view::graph_editor::LocalCall>) {
+        let store_stack = self.store_updated_stack_task();
+        let controller = self.controller.clone_ref();
+        executor::global::spawn(async move {
+            let stack = stack
+                .into_iter()
+                .map(|local_call| LocalCall {
+                    definition: (**local_call.definition).clone(),
+                    call:       local_call.call,
+                })
+                .collect();
+            info!("Entering call stack {stack:?}.");
+            match controller.enter_stack(stack).await {
+                Ok(()) => store_stack(),
+                Err(error) => {
+                    error!("Entering stack failed: {error}.");
+                    let event = "integration::entering_node_failed";
+                    let field = "error";
+                    let data = analytics::AnonymousData(|| error.to_string());
+                    analytics::remote_log_value(event, field, data);
+                }
+            }
+        });
+    }
+
+    fn pop_stack(&self, frame_count: usize) {
+        debug!("Requesting exiting a part of the call stack.");
+        analytics::remote_log_event("integration::node_exited");
+        let controller = self.controller.clone_ref();
+        let store_stack = self.store_updated_stack_task();
+        executor::global::spawn(async move {
+            info!("Exiting stack.");
+            match controller.exit_stack(frame_count).await {
+                Ok(()) => store_stack(),
+                Err(error) => {
+                    error!("Exiting stack failed: {error}");
+                    let event = "integration::exiting_node_failed";
+                    let field = "error";
+                    let data = analytics::AnonymousData(|| error.to_string());
+                    analytics::remote_log_value(event, field, data)
+                }
+            }
+        });
     }
 
     fn node_entered(&self, node_id: ViewNodeId) {
@@ -47,8 +84,22 @@ impl Model {
         if let Some(call) = self.state.ast_node_id_of_view(node_id) {
             if let Ok(computed_value) = self.controller.node_computed_value(call) {
                 if let Some(method_pointer) = computed_value.method_call.as_ref() {
+                    let controller = self.controller.clone_ref();
                     let local_call = LocalCall { call, definition: method_pointer.clone() };
-                    self.enter_expression(local_call)
+                    let store_stack = self.store_updated_stack_task();
+                    executor::global::spawn(async move {
+                        info!("Entering expression {local_call:?}.");
+                        match controller.enter_stack(vec![local_call]).await {
+                            Ok(()) => store_stack(),
+                            Err(error) => {
+                                error!("Entering node failed: {error}.");
+                                let event = "integration::entering_node_failed";
+                                let field = "error";
+                                let data = analytics::AnonymousData(|| error.to_string());
+                                analytics::remote_log_value(event, field, data);
+                            }
+                        };
+                    });
                 } else {
                     info!("Ignoring request to enter non-enterable node {call}.")
                 }
@@ -61,70 +112,34 @@ impl Model {
     }
 
     fn node_exited(&self) {
-        debug!("Requesting exiting the current node.");
-        analytics::remote_log_event("integration::node_exited");
-        let controller = self.controller.clone_ref();
-        let store_stack = self.store_updated_stack_task();
-        executor::global::spawn(async move {
-            info!("Exiting node.");
-            match controller.exit_node().await {
-                Ok(()) =>
-                    if let Err(err) = store_stack() {
-                        // We cannot really do anything when updating metadata fails.
-                        // Can happen in improbable case of serialization failure.
-                        error!("Failed to store an updated call stack: {err}");
-                    },
-                Err(err) => {
-                    error!("Exiting node failed: {err}");
-
-                    let event = "integration::exiting_node_failed";
-                    let field = "error";
-                    let data = analytics::AnonymousData(|| err.to_string());
-                    analytics::remote_log_value(event, field, data)
-                }
-            }
-        });
+        self.pop_stack(1)
     }
 
-    fn enter_expression(&self, local_call: LocalCall) {
-        let controller = self.controller.clone_ref();
-        let store_stack = self.store_updated_stack_task();
-        executor::global::spawn(async move {
-            info!("Entering expression {local_call:?}.");
-            match controller.enter_method_pointer(&local_call).await {
-                Ok(()) =>
-                    if let Err(err) = store_stack() {
-                        // We cannot really do anything when updating metadata fails.
-                        // Can happen in improbable case of serialization failure.
-                        error!("Failed to store an updated call stack: {err}");
-                    },
-                Err(err) => {
-                    error!("Entering node failed: {err}.");
-                    let event = "integration::entering_node_failed";
-                    let field = "error";
-                    let data = analytics::AnonymousData(|| err.to_string());
-                    analytics::remote_log_value(event, field, data)
-                }
-            };
-        });
-    }
-
-    fn store_updated_stack_task(&self) -> impl FnOnce() -> FallibleResult + 'static {
+    fn store_updated_stack_task(&self) -> impl FnOnce() {
         let main_module = self.controller.graph().module.clone_ref();
         let controller = self.controller.clone_ref();
         move || {
             let new_call_stack = controller.call_stack();
-            main_module.update_project_metadata(|metadata| {
+            let result = main_module.update_project_metadata(|metadata| {
                 metadata.call_stack = new_call_stack;
-            })
+            });
+            if let Err(error) = result {
+                // We cannot really do anything when updating metadata fails.
+                // Can happen in improbable case of serialization failure.
+                error!("Failed to store an updated call stack: {error}");
+            }
         }
     }
 
-    fn add_breadcrumb_in_view(&self, frame: LocalCall) {
-        let definition = frame.definition.clone().into();
-        let call = frame.call;
-        let local_call = view::graph_editor::LocalCall { call, definition };
-        self.view.model.breadcrumbs.push_breadcrumb(local_call);
+    fn add_breadcrumbs_in_view(&self, stack: Vec<LocalCall>) {
+        let view_stack = stack
+            .into_iter()
+            .map(|frame| view::graph_editor::LocalCall {
+                call:       frame.call,
+                definition: frame.definition.into(),
+            })
+            .collect::<Vec<_>>();
+        self.view.model.breadcrumbs.push_breadcrumbs(view_stack);
     }
 }
 
@@ -158,12 +173,8 @@ impl CallStack {
             eval view.node_entered ((node) model.node_entered(*node));
             eval_ view.node_exited (model.node_exited());
 
-            eval_ breadcrumbs.output.breadcrumb_pop(model.node_exited());
-            eval breadcrumbs.output.breadcrumb_push ([model](opt_local_call) {
-                if let Some(local_call) = opt_local_call {
-                    model.expression_entered(local_call);
-                }
-            });
+            eval breadcrumbs.output.breadcrumb_push ((stack) model.push_stack(stack.clone()));
+            eval breadcrumbs.output.breadcrumb_pop ((count) model.pop_stack(*count));
         }
 
         Self { _network: network, model }
@@ -178,8 +189,9 @@ impl CallStack {
         spawn_stream_handler(weak, graph_notifications, move |notification, model| {
             info!("Received controller notification {notification:?}");
             match notification {
-                Notification::EnteredNode(frame) => model.add_breadcrumb_in_view(frame),
-                Notification::SteppedOutOfNode(_) => model.view.model.breadcrumbs.pop_breadcrumb(),
+                Notification::EnteredStack(stack) => model.add_breadcrumbs_in_view(stack),
+                Notification::ExitedStack(count) =>
+                    model.view.model.breadcrumbs.pop_breadcrumbs(count),
                 _ => {}
             }
             std::future::ready(())
@@ -188,9 +200,8 @@ impl CallStack {
     }
 
     fn initialize_breadcrumbs(self) -> Self {
-        for frame in self.model.controller.call_stack() {
-            self.model.add_breadcrumb_in_view(frame)
-        }
+        let stack = self.model.controller.call_stack();
+        self.model.add_breadcrumbs_in_view(stack);
         self
     }
 }

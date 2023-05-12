@@ -566,7 +566,9 @@ type Vector a
     map_with_index : (Integer -> Any -> Any) -> Vector Any
     map_with_index self function = Vector.new self.length i-> function i (self.at i)
 
-    ## Applies a function to each element of the vector.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each element of the vector.
 
        Unlike `map`, this method does not return the individual results,
        therefore it is only useful for side-effecting computations.
@@ -583,7 +585,9 @@ type Vector a
         0.up_to self.length . each ix->
             f (self.at ix)
 
-    ## Applies a function to each element of the vector.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each element of the vector.
 
        Arguments:
        - function: A function to apply that takes an index and an item.

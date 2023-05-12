@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Data.Array_Proxy import Array_Proxy
 import Standard.Base.Data.Vector.Empty_Error
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
@@ -12,6 +13,8 @@ from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, 
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
+
+polyglot java import java.util.ArrayList
 
 type T
     Value a b
@@ -265,9 +268,9 @@ type_spec name alter = Test.group name <|
         boolvec.filter Filter_Condition.Is_False . should_equal [False]
 
     Test.specify "should filter elements with indices" <|
-        alter [0, 10, 2, 2] . filter_with_index (==) . should_equal [0, 2]
+        (alter [0, 10, 2, 2] . filter_with_index (==)) . should_equal [0, 2]
         (alter [1, 2, 3, 4] . filter_with_index ix-> _-> ix < 2) . should_equal [1, 2]
-        alter ([1, 2, 3, 4] . filter_with_index ix-> _-> if ix == 1 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
+        (alter [1, 2, 3, 4] . filter_with_index ix-> _-> if ix == 1 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
 
     Test.specify "should partition elements" <|
         alter [1, 2, 3, 4, 5] . partition (x -> x % 2 == 0) . should_equal <| Pair.new [2, 4] [1, 3, 5]
@@ -752,7 +755,13 @@ spec =
             [True, False, 'a'].pretty . should_equal "[True, False, 'a']"
             [Foo.Value True].pretty . should_equal "[(Foo.Value True)]"
 
-    type_spec "Use Vector as vectors" (x -> x)
-    type_spec "Use Array as vectors" (x -> x.to_array)
+    type_spec "Use Vector as vectors" identity
+    type_spec "Use Array as vectors" (v -> v.to_array)
+    type_spec "Use Java ArrayList as vectors" v->
+        arr = ArrayList.new
+        v.each (x -> arr.add x)
+        arr
+    type_spec "Use Array_Proxy as vectors" v->
+        Array_Proxy.new v.length (ix -> v.at ix)
 
 main = Test_Suite.run_main spec
