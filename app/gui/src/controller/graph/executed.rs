@@ -18,6 +18,8 @@ use crate::model::execution_context::VisualizationUpdateData;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::MethodPointer;
+use futures::stream;
+use futures::TryStreamExt;
 use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::context::Context;
 
@@ -65,10 +67,10 @@ pub enum Notification {
     /// The notification from the execution context about the computed value information
     /// being updated.
     ComputedValueInfo(model::execution_context::ComputedValueExpressions),
-    /// Notification emitted when the node has been entered.
-    EnteredNode(LocalCall),
-    /// Notification emitted when the node was step out.
-    SteppedOutOfNode(double_representation::node::Id),
+    /// Notification emitted when a call stack has been entered.
+    EnteredStack(Vec<LocalCall>),
+    /// Notification emitted when a number of frames of the call stack have been exited.
+    ExitedStack(usize),
 }
 
 
@@ -196,7 +198,7 @@ impl Handle {
             .boxed_local();
 
         let streams = vec![value_stream, graph_stream, self_stream, db_stream, update_stream];
-        futures::stream::select_all(streams)
+        stream::select_all(streams)
     }
 
     // Note [Argument Names-related invalidations]
@@ -216,29 +218,38 @@ impl Handle {
         registry.clone_ref().get_type(id)
     }
 
-    /// Enter node by given node ID and method pointer.
+    /// Enter the given stack of nodes by node ID and method pointer.
     ///
-    /// This will cause pushing a new stack frame to the execution context and changing the graph
-    /// controller to point to a new definition.
+    /// This will push new stack frames to the execution context and change the graph controller to
+    /// point to a new definition.
     ///
     /// ### Errors
     /// - Fails if method graph cannot be created (see `graph_for_method` documentation).
     /// - Fails if the project is in read-only mode.
-    pub async fn enter_method_pointer(&self, local_call: &LocalCall) -> FallibleResult {
+    pub async fn enter_stack(&self, stack: Vec<LocalCall>) -> FallibleResult {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else {
-            debug!("Entering node {}.", local_call.call);
-            let method_ptr = &local_call.definition;
-            let graph = controller::Graph::new_method(&self.project, method_ptr);
-            let graph = graph.await?;
-            self.execution_ctx.push(local_call.clone()).await?;
-            debug!("Replacing graph with {graph:?}.");
-            self.graph.replace(graph);
-            debug!("Sending graph invalidation signal.");
-            self.notifier.publish(Notification::EnteredNode(local_call.clone())).await;
-
-            Ok(())
+            let mut successful_calls = Vec::new();
+            let result = stream::iter(stack)
+                .then(|local_call| async {
+                    debug!("Entering node {}.", local_call.call);
+                    self.execution_ctx.push(local_call.clone()).await?;
+                    Ok(local_call)
+                })
+                .map_ok(|local_call| successful_calls.push(local_call))
+                .try_collect::<()>()
+                .await;
+            if let Some(last_successful_call) = successful_calls.last() {
+                let graph =
+                    controller::Graph::new_method(&self.project, &last_successful_call.definition)
+                        .await?;
+                debug!("Replacing graph with {graph:?}.");
+                self.graph.replace(graph);
+                debug!("Sending graph invalidation signal.");
+                self.notifier.publish(Notification::EnteredStack(successful_calls)).await;
+            }
+            result
         }
     }
 
@@ -255,22 +266,29 @@ impl Handle {
         Ok(node_info)
     }
 
-    /// Leave the current node. Reverse of `enter_node`.
+    /// Leave the given number of stack frames. Reverse of `enter_stack`.
     ///
     /// ### Errors
     /// - Fails if this execution context is already at the stack's root or if the parent graph
     /// cannot be retrieved.
     /// - Fails if the project is in read-only mode.
-    pub async fn exit_node(&self) -> FallibleResult {
+    pub async fn exit_stack(&self, frame_count: usize) -> FallibleResult {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else {
-            let frame = self.execution_ctx.pop().await?;
-            let method = self.execution_ctx.current_method();
-            let graph = controller::Graph::new_method(&self.project, &method).await?;
-            self.graph.replace(graph);
-            self.notifier.publish(Notification::SteppedOutOfNode(frame.call)).await;
-            Ok(())
+            let mut successful_pop_count = 0;
+            let result = stream::iter(0..frame_count)
+                .then(|_| self.execution_ctx.pop())
+                .map_ok(|_| successful_pop_count += 1)
+                .try_collect::<()>()
+                .await;
+            if successful_pop_count > 0 {
+                let method = self.execution_ctx.current_method();
+                let graph = controller::Graph::new_method(&self.project, &method).await?;
+                self.graph.replace(graph);
+                self.notifier.publish(Notification::ExitedStack(successful_pop_count)).await;
+            }
+            result
         }
     }
 

@@ -204,10 +204,15 @@ public class Time_Utils {
 
   /**
    * Counts days within the range from start (inclusive) to end (exclusive).
-   *
-   * <p>If start is before end, it will return 0.
    */
   public static long days_between(LocalDate start, LocalDate end) {
     return ChronoUnit.DAYS.between(start, end);
+  }
+
+  /**
+   * Counts months within the range from start (inclusive) to end (exclusive).
+   */
+  public static long months_between(LocalDate start, LocalDate end) {
+    return ChronoUnit.MONTHS.between(start, end);
   }
 }

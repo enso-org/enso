@@ -13,9 +13,10 @@ import * as dashboardBundler from '../dashboard/esbuild-config'
 // === Constants ===
 // =================
 
+/** The path of this file. */
+const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 const PORT = 8080
 const HTTP_STATUS_OK = 200
-const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 
 // ===============
 // === Watcher ===
@@ -33,6 +34,7 @@ async function watch() {
         ...bundler.argumentsFromEnv(),
         devMode: true,
     })
+    opts.define.REDIRECT_OVERRIDE = JSON.stringify('http://localhost:8080')
     opts.entryPoints.push({
         in: path.resolve(THIS_PATH, 'src', 'serviceWorker.ts'),
         out: 'serviceWorker',

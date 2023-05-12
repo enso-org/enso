@@ -17,12 +17,6 @@ type Time_Period
     Second
 
     ## PRIVATE
-       This method could be replaced with matching on `Date_Period` supertype
-       if/when that is supported.
-    is_date_period : Boolean
-    is_date_period self = False
-
-    ## PRIVATE
     to_java_unit : TemporalUnit
     to_java_unit self = case self of
         Time_Period.Day -> ChronoUnit.DAYS
