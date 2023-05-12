@@ -835,9 +835,11 @@ object BindingsMap {
     /** @inheritdoc */
     override def module: ModuleReference = tpe.module
 
-    override def findExportedSymbolsFor(name: String): List[ResolvedName] = ???
+    override def findExportedSymbolsFor(name: String): List[ResolvedName] =
+      List(this)
 
-    override def exportedSymbols: Map[String, List[ResolvedName]] = ???
+    override def exportedSymbols: Map[String, List[ResolvedName]] =
+      Map(cons.name -> List(this))
   }
 
   /** A representation of a name being resolved to a module.
@@ -918,9 +920,11 @@ object BindingsMap {
     override def qualifiedName: QualifiedName =
       module.getName.createChild(method.name)
 
-    override def findExportedSymbolsFor(name: String): List[ResolvedName] = ???
+    override def findExportedSymbolsFor(name: String): List[ResolvedName] =
+      List(this)
 
-    override def exportedSymbols: Map[String, List[ResolvedName]] = ???
+    override def exportedSymbols: Map[String, List[ResolvedName]] =
+      Map(method.name -> List(this))
   }
 
   /** A representation of a name being resolved to a polyglot symbol.
