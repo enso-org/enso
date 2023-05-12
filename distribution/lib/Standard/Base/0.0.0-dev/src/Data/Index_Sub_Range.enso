@@ -75,6 +75,9 @@ type Index_Sub_Range
         Index_Sub_Range.Every step first -> "Every " + step.to_display_text + (if first == 0 then "" else " from " + first.to_display_text)
 
     ## PRIVATE
+       It includes all constructors of `Index_Sub_Range` but also `Range`, since
+       the `Index_Sub_Range` type is by default used in sum types containing
+       `Range` too.
     default_options : Vector Option
     default_options =
         o1 = Option "First" "(Index_Sub_Range.First 1)"
@@ -83,7 +86,8 @@ type Index_Sub_Range
         o4 = Option "By_Index" "(Index_Sub_Range.By_Index [0])"
         o5 = Option "Sample" "(Index_Sub_Range.Sample 10)"
         o6 = Option "Every" "(Index_Sub_Range.Every 2)"
-        [o1, o2, o3, o4, o5, o6]
+        o7 = Option "Range" "(Range.new 0 100)"
+        [o1, o2, o3, o4, o5, o6, o7]
 
     ## PRIVATE
     default_widget : Single_Choice
@@ -285,5 +289,5 @@ handle_unmatched_type expected_types actual_value =
                 msg = "The constructor " + m.name + " is missing some arguments."
                 Error.throw (Illegal_Argument.Error msg)
         _ -> case actual_value.is_a Function of
-            True  -> Error.throw (Illegal_Argument.Error "Got a Function instead of a range. Perhaps one of the constructor arguments is missing?")
+            True  -> Error.throw (Illegal_Argument.Error "Got a Function instead of a range, is a constructor argument missing?")
             False -> return_type_error

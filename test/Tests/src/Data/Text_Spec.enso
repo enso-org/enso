@@ -750,7 +750,7 @@ spec =
 
             r3 = "".take (Index_Sub_Range.First _)
             r3.should_fail_with Illegal_Argument
-            r3.catch.to_display_text . should_contain "Got a Function instead of a range. Perhaps one of the constructor arguments is missing?"
+            r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"
 
             # Double-check that constructors of _unexpected_ types are still yielding a type error.
             "".take (Case_Sensitivity.Insensitive ...) . should_fail_with Type_Error

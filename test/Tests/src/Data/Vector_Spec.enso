@@ -550,7 +550,7 @@ type_spec name alter = Test.group name <|
 
         r3 = [].take (Index_Sub_Range.First _)
         r3.should_fail_with Illegal_Argument
-        r3.catch.to_display_text . should_contain "Got a Function instead of a range. Perhaps one of the constructor arguments is missing?"
+        r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"
 
     Test.specify "should allow getting the last element of the vector" <|
         non_empty_vec = alter [1, 2, 3, 4, 5]
