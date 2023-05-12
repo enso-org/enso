@@ -44,16 +44,16 @@ type Type
     ## ADVANCED
 
        Returns the fully qualified name of the type.
-    name : Text
-    name self =
+    qualified_name : Text
+    qualified_name self =
         c = self.value
         get_qualified_type_name c
 
     ## ADVANCED
 
        Returns the short name of the type.
-    short_name : Text
-    short_name self =
+    name : Text
+    name self =
         c = self.value
         get_short_type_name c
 
@@ -121,10 +121,10 @@ type Constructor
 
     ## ADVANCED
        Returns the type that this constructor is a part of.
-    parent_type : Type
-    parent_type self =
+    declaring_type : Type
+    declaring_type self =
         c = self.value ...
-        Type.Value (get_constructor_parent_type c)
+        Type.Value (get_constructor_declaring_type c)
 
 type Primitive
     ## PRIVATE
@@ -529,9 +529,9 @@ get_short_type_name : Any -> Text
 get_short_type_name typ = @Builtin_Method "Meta.get_short_type_name"
 
 ## PRIVATE
-   Returns the type that this constructor is a child of.
+   Returns the type that this constructor is a part of.
 
    Arguments:
-   - constructor: the constructor to get the parent type of.
-get_constructor_parent_type : Any -> Any
-get_constructor_parent_type constructor = @Builtin_Method "Meta.get_constructor_parent_type"
+   - constructor: the constructor to get the declaring type of.
+get_constructor_declaring_type : Any -> Any
+get_constructor_declaring_type constructor = @Builtin_Method "Meta.get_constructor_declaring_type"

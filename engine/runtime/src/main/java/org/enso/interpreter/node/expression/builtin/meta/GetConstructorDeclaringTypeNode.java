@@ -4,14 +4,13 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(
     type = "Meta",
-    name = "get_constructor_parent_type",
-    description = "Gets the name of a constructor.",
+    name = "get_constructor_declaring_type",
+    description = "Gets the type that declared this constructor.",
     autoRegister = false)
-public class GetConstructorParentTypeNode extends Node {
+public class GetConstructorDeclaringTypeNode extends Node {
   Type execute(AtomConstructor cons) {
     return cons.getType();
   }

@@ -279,8 +279,8 @@ handle_unmatched_type expected_types actual_value =
         Error.throw (Type_Error.Error expected_types_str actual_value "range")
     case m of
         _ : Meta.Constructor ->
-            parent_type = m.parent_type
-            is_expected_constructor = expected_types.map Meta.meta . contains parent_type
+            declaring_type = m.declaring_type
+            is_expected_constructor = expected_types.map Meta.meta . contains declaring_type
             if is_expected_constructor.not then return_type_error else
                 msg = "The constructor " + m.name + " is missing some arguments."
                 Error.throw (Illegal_Argument.Error msg)
