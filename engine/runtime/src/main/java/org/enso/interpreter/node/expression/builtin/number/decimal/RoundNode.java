@@ -16,7 +16,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(
         type = "Decimal",
-        name = "round",
+        name = "round_builtin",
         description = "Decimal round, converting to a small or big integer depending on size.")
 public abstract class RoundNode extends Node {
     private final ConditionProfile fitsProfile = ConditionProfile.createCountingProfile();
@@ -27,8 +27,18 @@ public abstract class RoundNode extends Node {
         return RoundNodeGen.create();
     }
 
+    static private final long MIN_DECIMAL_PLACES = -15;
+    static private final long MAX_DECIMAL_PLACES = 15;
+
     @Specialization
     Object doLong(double self, long that) {
+        if (that < MIN_DECIMAL_PLACES || that > MAX_DECIMAL_PLACES) {
+            throw new IllegalArgumentException(
+                    "Round: decimal_places must be between " +
+                    MIN_DECIMAL_PLACES + " and " + MAX_DECIMAL_PLACES +
+                    "(inclusive), but was " + that);
+        }
+
         double rounded = round(self, that);
         if (that <= 0) {
             // Returns integer

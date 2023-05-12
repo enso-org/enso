@@ -565,13 +565,10 @@ type Decimal
          - +Inf.round == +Inf
          - -Inf.round == -Inf
     round : Integer -> Decimal
-    round self that = @Builtin_Method "Decimal.round"
+    round self that = self.round_builtin that
 
-    ##
-        enso_round : Integer -> Boolean -> Decimal
-        enso_round self decimal_places=0 use_bankers=False =
-            scale = 10 ^ decimal_places
-            (((self * scale) + 0.5).floor) / scale
+    round_builtin : Integer -> Decimal
+    round_builtin self that = @Builtin_Method "Decimal.round_builtin"
 
     ## Compute the negation of this.
 
