@@ -8,6 +8,7 @@
 #![feature(drain_filter)]
 #![feature(entry_insert)]
 #![feature(fn_traits)]
+#![feature(let_chains)]
 #![feature(option_result_contains)]
 #![feature(specialization)]
 #![feature(trait_alias)]
@@ -2925,8 +2926,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     eval  edge_over((edge_id) edge_hover.emit(Some(*edge_id)));
     eval_ edge_out(edge_hover.emit(None));
 
-    edge_source_click <- edge_source_click.gate_not(&inputs.set_read_only);
-    edge_target_click <- edge_target_click.gate_not(&inputs.set_read_only);
+    edge_source_click <- raw_edge_source_click.gate_not(&inputs.set_read_only);
+    edge_target_click <- raw_edge_target_click.gate_not(&inputs.set_read_only);
     on_edge_source_unset <= edge_source_click.map(f!((id) model.with_edge_source(*id,|t|(*id,t))));
     on_edge_target_unset <= edge_target_click.map(f!((id) model.with_edge_target(*id,|t|(*id,t))));
     out.on_edge_source_unset <+ on_edge_source_unset;
@@ -2958,14 +2959,14 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     deselect_edges <- on_new_edge.gate_not(&keep_selection);
     eval_ deselect_edges ( model.clear_all_detached_edges() );
 
-    new_output_edge <- create_edge_from_output.map(f_!([model,edge_source_click,edge_target_click] {
-        Some(model.new_edge_from_output(&edge_source_click, &edge_target_click))
+    new_output_edge <- create_edge_from_output.map(f_!([model,raw_edge_source_click,raw_edge_target_click] {
+        Some(model.new_edge_from_output(&raw_edge_source_click, &raw_edge_target_click))
     })).unwrap();
-    new_input_edge <- create_edge_from_input.map(f!([model,edge_source_click,edge_target_click]((target)){
+    new_input_edge <- create_edge_from_input.map(f!([model,raw_edge_source_click,raw_edge_target_click]((target)){
         if model.is_node_connected_at_input(target.node_id,&target.port) {
             return None
         };
-        Some(model.new_edge_from_input(&edge_source_click, &edge_target_click))
+        Some(model.new_edge_from_input(&raw_edge_source_click, &raw_edge_target_click))
     })).unwrap();
 
     out.on_edge_add <+ new_output_edge;
@@ -2992,7 +2993,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         out.on_edge_target_set <+ inputs.set_edge_target;
 
         let endpoints            = inputs.connect_nodes.clone_ref();
-        edge                    <- endpoints . map(f_!(model.new_edge_from_output(&edge_source_click,&edge_target_click)));
+        edge                    <- endpoints . map(f_!(model.new_edge_from_output(&raw_edge_source_click,&raw_edge_target_click)));
         new_edge_source         <- endpoints . _0() . map2(&edge, |t,id| (*id,t.clone()));
         new_edge_target         <- endpoints . _1() . map2(&edge, |t,id| (*id,t.clone()));
         out.on_edge_add      <+ edge;

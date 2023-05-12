@@ -191,8 +191,8 @@ impl Edge {
             eval frp.source_height   ((t) model.set_source_height(*t));
 
             // Mouse events.
-            eval mouse_move            ((e) model.on_mouse_move(e.client_centered()));
-            eval_ mouse_out            (model.clear_focus());
+            eval mouse_move            ((e) model.set_mouse_position_and_redraw(e.client_centered()));
+            eval_ mouse_out            (model.clear_focus_and_redraw());
             eval mouse_down            ([model, output] (e) {
                 match model.closer_end_to_screen_pos(e.client_centered()) {
                     Some(EndPoint::Source) => output.target_click.emit(()),
@@ -259,15 +259,26 @@ pub struct EdgeModel {
     color:               Cell<color::Rgba>,
 
     /// The individual [`Corner`]s making up the edge.
-    sections:       RefCell<Vec<Rectangle>>,
+    sections:              RefCell<Vec<Rectangle>>,
     /// Wider versions of the [`sections`], for receiving mouse events.
-    hover_sections: RefCell<Vec<Rectangle>>,
-    /// A focus-colored version of [`sections`], drawn on top in response to hover events.
-    focus_sections: RefCell<Vec<Rectangle>>,
+    hover_sections:        RefCell<Vec<Rectangle>>,
     /// The endpoints of the individual [`Corner`]s making up the edge.
-    corner_points:  RefCell<Vec<Vector2<f32>>>,
+    corner_points:         RefCell<Vec<Vector2<f32>>>,
+    hover_position:        Cell<Option<Vector2<f32>>>,
+    previous_target:       Cell<Option<Vector2<f32>>>,
+    previous_is_hoverable: Cell<Option<bool>>,
+    previous_hover_split:  Cell<Option<EdgeSplit>>,
 
     scene: Scene,
+}
+
+fn update_and_compare<T: Copy + PartialEq<T>, U: Into<Option<T>>>(
+    value: &Cell<Option<T>>,
+    new: U,
+) -> bool {
+    let new = new.into();
+    let old = value.replace(new);
+    old != new
 }
 
 impl EdgeModel {
@@ -288,8 +299,11 @@ impl EdgeModel {
             color: default(),
             sections: default(),
             hover_sections: default(),
-            focus_sections: default(),
             corner_points: default(),
+            hover_position: default(),
+            previous_target: default(),
+            previous_is_hoverable: default(),
+            previous_hover_split: default(),
         }
     }
 
@@ -353,8 +367,9 @@ impl EdgeModel {
         self.source_attached.set(attached);
     }
 
-    fn clear_focus(&self) {
-        self.focus_sections.take();
+    fn clear_focus_and_redraw(&self) {
+        self.hover_position.set(None);
+        self.redraw();
     }
 
     fn closer_end_to_screen_pos(&self, screen_pos: Vector2<f32>) -> Option<EndPoint> {
@@ -364,65 +379,17 @@ impl EdgeModel {
         let pos = scene_pos - self.display_object.xy();
 
         let corners = corners(&*self.corner_points.borrow()).collect_vec();
-        find_position(pos, &corners).map(|(_, closer_end)| closer_end)
+        find_position(pos, &corners).map(|split| split.closer_end)
     }
 
-    fn on_mouse_move(&self, screen_pos: Vector2<f32>) {
+    fn set_mouse_position_and_redraw(&self, screen_pos: Vector2<f32>) {
         // Convert point to local coordinates.
         let screen_pos_3d = Vector3(screen_pos.x(), screen_pos.y(), 0.0);
         let scene_pos = self.scene.screen_to_scene_coordinates(screen_pos_3d).xy();
         let pos = scene_pos - self.display_object.xy();
 
-        // Find the hovered position on the edge.
-        let corners = corners(&*self.corner_points.borrow()).collect_vec();
-        if let Some((partial_corner, closer_end)) = find_position(pos, &corners) {
-            self.redraw_focus(pos, corners, partial_corner, closer_end);
-        } else {
-            // Pointer targets are updated by an asynchronous process, independent of pointer
-            // movement detection. As a result, we can receive mouse events when the pointer is not
-            // within the bounding box of any of our shapes. In this case, we can react faster by
-            // hiding the focus lines when the out-of-bounds mouse event arrives than by waiting for
-            // the [`mouse::Out`] event.
-            self.focus_sections.take();
-        }
-    }
-
-    fn redraw_focus(
-        &self,
-        pos: Vector2<f32>,
-        corners: Vec<Oriented<Corner>>,
-        partial_corner: usize,
-        closer_end: EndPoint,
-    ) {
-        // Make a shape factory that recycles any previous focus shapes.
-        let mut shape_factory = self
-            .focus_sections
-            .take()
-            .into_iter()
-            .chain(iter::repeat_with(|| self.new_focus_section()));
-
-        // Draw the shapes.
-        // Focus from the mouse to whichever end is *farther*.
-        let fully_focused = match closer_end {
-            EndPoint::Target => 0..partial_corner,
-            EndPoint::Source => (partial_corner + 1)..corners.len(),
-        };
-        let partially_focused_count = 1;
-        let mut new_shapes = Vec::with_capacity(fully_focused.len() + partially_focused_count);
-        let full_corners = corners[fully_focused]
-            .iter()
-            .zip(&mut shape_factory)
-            .map(|(corner, shape)| draw_corner(shape, **corner, LINE_WIDTH));
-        new_shapes.extend(full_corners);
-        let shape = shape_factory.next().unwrap();
-        let partial = corners[partial_corner];
-        // Focus from the mouse toward whichever end is *farther*.
-        let shape = match closer_end {
-            EndPoint::Target => partial.draw_to(shape, pos, HOVER_WIDTH, LINE_WIDTH),
-            EndPoint::Source => partial.draw_from(shape, pos, HOVER_WIDTH, LINE_WIDTH),
-        };
-        new_shapes.push(shape);
-        self.focus_sections.replace(new_shapes);
+        self.hover_position.set(Some(pos));
+        self.redraw();
     }
 
     fn new_section(&self) -> Rectangle {
@@ -430,7 +397,6 @@ impl EdgeModel {
         new.set_corner_radius_max();
         new.set_inset_border(LINE_WIDTH);
         new.set_color(color::Rgba::transparent());
-        new.set_border_color(self.color.get());
         new.set_pointer_events(false);
         self.display_object.add_child(&new);
         new
@@ -446,66 +412,115 @@ impl EdgeModel {
         new
     }
 
-    fn new_focus_section(&self) -> Rectangle {
-        let styles = StyleWatch::new(&self.scene.style_sheet);
-        let bg_color = styles.get_color(theme::application::background).into();
-        let color = color::mix(bg_color, self.color.get(), 0.25);
-        let new = Rectangle::new();
-        new.set_corner_radius_max();
-        new.set_inset_border(LINE_WIDTH);
-        new.set_color(color::Rgba::transparent());
-        new.set_border_color(color);
-        new.set_pointer_events(false);
-        self.display_object.add_child(&new);
-        new
+    fn target_offset(&self) -> Vector2<f32> {
+        let target_offset = self.target_position.get() - self.display_object.xy();
+        match self.target_attached.get() {
+            // If the target is a node, connect to a point on its top edge. If the radius is small,
+            // this looks better than connecting to a vertically-centered point.
+            true => target_offset + Vector2(0.0, NODE_CORNER_RADIUS),
+            // If the target is the cursor, connect all the way to it.
+            false => target_offset,
+        }
     }
 
     /// Redraws the connection.
     #[profile(Detail)]
     pub fn redraw(&self) {
         // Calculate the current geometry.
-        let target_offset = self.target_position.get() - self.display_object.xy();
-        warn!("redraw ({target_offset:?})");
-        let target = match self.target_attached.get() {
-            // If the target is a node, connect to a point on its top edge. If the radius is small,
-            // this looks better than connecting to a vertically-centered point.
-            true => target_offset + Vector2(0.0, NODE_CORNER_RADIUS),
-            // If the target is the cursor, connect all the way to it.
-            false => target_offset,
-        };
-        let new_corner_points = self.corner_points_to(target);
-        let new_corners = corners(&new_corner_points).collect_vec();
-        self.corner_points.replace(new_corner_points);
-        let is_hoverable = self.target_attached.get() && self.source_attached.get();
-
-        // Clear the old corner objects, and create factories that recycle the old objects when
-        // available.
-        let section_factory =
-            self.sections.take().into_iter().chain(iter::repeat_with(|| self.new_section()));
-        let hover_factory = self
-            .hover_sections
-            .take()
-            .into_iter()
-            .chain(iter::repeat_with(|| self.new_hover_section()));
-        if !is_hoverable {
-            self.clear_focus();
+        let target = self.target_offset();
+        warn!("redraw ({target:?})");
+        let target_changed = update_and_compare(&self.previous_target, target);
+        if target_changed {
+            let new_corner_points = self.corner_points_to(target);
+            self.corner_points.replace(new_corner_points);
         }
+        let corners = corners(&self.corner_points.borrow()).collect_vec();
+        let is_hoverable = self.target_attached.get() && self.source_attached.get();
+        let is_hoverable_changed = update_and_compare(&self.previous_is_hoverable, is_hoverable);
+        let hover_split = is_hoverable
+            .then(|| {
+                // Pointer targets are updated by an asynchronous process, independent of pointer
+                // movement detection. As a result, we can receive mouse events when the pointer is
+                // not within the bounding box of any of our shapes, in which case `find_position`
+                // here will return `None`. We treat it the same way as a
+                // `mouse::Out` event.
+                self.hover_position.get().and_then(|position| find_position(position, &corners))
+            })
+            .flatten();
+        let hover_split_changed = update_and_compare(&self.previous_hover_split, hover_split);
 
         // Create shape objects for the current geometry.
-        if is_hoverable {
-            let new_hovers = new_corners
-                .iter()
-                .zip(hover_factory)
-                .map(|(corner, shape)| draw_corner(shape, **corner, HOVER_WIDTH))
-                .collect_vec();
-            self.hover_sections.replace(new_hovers);
+        if target_changed || is_hoverable_changed {
+            let hover_factory = self
+                .hover_sections
+                .take()
+                .into_iter()
+                .chain(iter::repeat_with(|| self.new_hover_section()));
+            if is_hoverable {
+                *self.hover_sections.borrow_mut() = corners
+                    .iter()
+                    .zip(hover_factory)
+                    .map(|(corner, shape)| draw_corner(shape, **corner, HOVER_WIDTH))
+                    .collect();
+            }
         }
-        let new_sections = new_corners
-            .iter()
-            .zip(section_factory)
-            .map(|(corner, shape)| draw_corner(shape, **corner, LINE_WIDTH))
-            .collect_vec();
-        self.sections.replace(new_sections);
+        if target_changed || hover_split_changed {
+            let styles = StyleWatch::new(&self.scene.style_sheet);
+            let bg_color = styles.get_color(theme::application::background).into();
+            let focused_color = color::mix(bg_color, self.color.get(), 0.25);
+            let normal_color = self.color.get();
+            let EdgeSplit { corner_index, closer_end, position } =
+                hover_split.unwrap_or_else(|| EdgeSplit {
+                    corner_index: corners.len(),
+                    closer_end:   EndPoint::Source,
+                    position:     default(),
+                });
+            let mut section_factory =
+                self.sections.take().into_iter().chain(iter::repeat_with(|| self.new_section()));
+            let mut new_sections = corners
+                .iter()
+                .enumerate()
+                .filter_map(|(i, corner)| {
+                    if i == corner_index {
+                        None
+                    } else {
+                        let is_focused = match closer_end {
+                            EndPoint::Source => i > corner_index,
+                            EndPoint::Target => i < corner_index,
+                        };
+                        let color = match is_focused {
+                            false => normal_color,
+                            true => focused_color,
+                        };
+                        Some((color, corner))
+                    }
+                })
+                .zip(&mut section_factory)
+                .map(|((color, corner), shape)| {
+                    let shape = draw_corner(shape, **corner, LINE_WIDTH);
+                    shape.set_border_color(color);
+                    shape
+                })
+                .collect_vec();
+            if let Some(corner) = corners.get(corner_index)
+                    && let Some(pos) = self.hover_position.get() {
+                let (source_side, target_side) = corner.split_geometry(pos, HOVER_WIDTH, LINE_WIDTH);
+                let (source_shape, target_shape) = (section_factory.next().unwrap(), section_factory.next().unwrap());
+                match closer_end {
+                    EndPoint::Source => {
+                        source_shape.set_border_color(normal_color);
+                        target_shape.set_border_color(focused_color);
+                    },
+                    EndPoint::Target => {
+                        source_shape.set_border_color(focused_color);
+                        target_shape.set_border_color(normal_color);
+                    },
+                }
+                new_sections.push(draw_geometry(source_shape, source_side));
+                new_sections.push(draw_geometry(target_shape, target_side));
+            }
+            *self.sections.borrow_mut() = new_sections;
+        }
     }
 
     /// Calculate the start and end positions of each 1-corner section composing an edge to the
@@ -550,20 +565,29 @@ impl EdgeModel {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq)]
+struct EdgeSplit {
+    corner_index: usize,
+    closer_end:   EndPoint,
+    position:     Vector2<f32>,
+}
+
 /// Find a point along the edge. Return the index of the corner the point occurs in, and which end
 /// is closer to the point.
 ///
 /// Returns [`None`] if the point is not on the edge.
-fn find_position(pos: Vector2<f32>, corners: &[Oriented<Corner>]) -> Option<(usize, EndPoint)> {
-    corners.iter().position(|&corner| corner.bounding_box(HOVER_WIDTH).contains_inclusive(pos)).map(
-        |partial_corner| {
-            let (full_corners, following_corners) = corners.split_at(partial_corner);
+fn find_position(position: Vector2<f32>, corners: &[Oriented<Corner>]) -> Option<EdgeSplit> {
+    corners
+        .iter()
+        .position(|&corner| corner.bounding_box(HOVER_WIDTH).contains_inclusive(position))
+        .map(|corner_index| {
+            let (full_corners, following_corners) = corners.split_at(corner_index);
             let full_corners_distance: f32 =
                 full_corners.iter().map(|&corner| corner.snake_length()).sum();
             let following_distance: f32 =
                 following_corners.iter().map(|&corner| corner.snake_length()).sum();
             let total_distance = full_corners_distance + following_distance;
-            let offset_from_partial_corner = pos - corners[partial_corner].source_end();
+            let offset_from_partial_corner = position - corners[corner_index].source_end();
             let partial_corner_distance =
                 offset_from_partial_corner.x().abs() + offset_from_partial_corner.y().abs();
             let distance_from_source = full_corners_distance + partial_corner_distance;
@@ -571,12 +595,11 @@ fn find_position(pos: Vector2<f32>, corners: &[Oriented<Corner>]) -> Option<(usi
                 true => EndPoint::Source,
                 false => EndPoint::Target,
             };
-            (partial_corner, closer_end)
-        },
-    )
+            EdgeSplit { corner_index, closer_end, position }
+        })
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum EndPoint {
     Source,
     Target,
@@ -601,10 +624,13 @@ fn corners(points: &[Vector2<f32>]) -> impl Iterator<Item = Oriented<Corner>> + 
 /// [`line_width`]. They are not set here as an optimization: When shapes are reused, the value does
 /// not need to be set again, reducing needed GPU uploads.
 fn draw_corner(shape: Rectangle, corner: Corner, line_width: f32) -> Rectangle {
-    let RectangleGeometry { clip, size, xy } = corner.to_rectangle_geometry(line_width);
-    shape.set_clip(clip);
-    shape.set_size(size);
-    shape.set_xy(xy);
+    draw_geometry(shape, corner.to_rectangle_geometry(line_width))
+}
+
+fn draw_geometry(shape: Rectangle, geometry: RectangleGeometry) -> Rectangle {
+    shape.set_clip(geometry.clip);
+    shape.set_size(geometry.size);
+    shape.set_xy(geometry.xy);
     shape
 }
 
@@ -682,7 +708,7 @@ impl Corner {
 
 // === Rectangle geometry describing a corner ===
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 struct RectangleGeometry {
     clip: Vector2<f32>,
     size: Vector2<f32>,
@@ -730,19 +756,26 @@ impl Oriented<Corner> {
         self
     }
 
+    fn with_source_end(mut self, value: Vector2<f32>) -> Self {
+        *(match self.direction {
+            CornerDirection::VerticalToHorizontal => &mut self.value.vertical,
+            CornerDirection::HorizontalToVertical => &mut self.value.horizontal,
+        }) = value;
+        self
+    }
+
     fn reverse(self) -> Self {
         let Self { value, direction } = self;
         let direction = direction.reverse();
         Self { value, direction }
     }
 
-    fn draw_to(
+    fn split_geometry(
         self,
-        shape: Rectangle,
         end_point: Vector2<f32>,
         snap_line_width: f32,
         line_width: f32,
-    ) -> Rectangle {
+    ) -> (RectangleGeometry, RectangleGeometry) {
         let Corner { horizontal, vertical } = self.value;
         let hv_offset = horizontal - vertical;
         let (dx, dy) = (hv_offset.x().abs(), hv_offset.y().abs());
@@ -760,11 +793,15 @@ impl Oriented<Corner> {
         if y_near_horizontal && x_along_horizontal {
             // The point is along the horizontal line. Snap its y-value, and draw a corner to it.
             let snapped = Vector2(end_point.x(), self.horizontal.y());
-            draw_corner(shape, *self.with_target_end(snapped), line_width)
+            let from_source = self.with_target_end(snapped).to_rectangle_geometry(line_width);
+            let to_target = self.with_source_end(snapped).to_rectangle_geometry(line_width);
+            (from_source, to_target)
         } else if x_near_vertical && y_along_vertical {
             // The point is along the vertical line. Snap its x-value, and draw a corner to it.
             let snapped = Vector2(self.vertical.x(), end_point.y());
-            draw_corner(shape, *self.with_target_end(snapped), line_width)
+            let from_source = self.with_target_end(snapped).to_rectangle_geometry(line_width);
+            let to_target = self.with_source_end(snapped).to_rectangle_geometry(line_width);
+            (from_source, to_target)
         } else {
             // The point is along the arc.
             // Snap it to the arc:
@@ -784,26 +821,21 @@ impl Oriented<Corner> {
                 // up exactly with the visible arc (although inputs may lie anywhere on the larger
                 // hover-extended arc).
                 let adjusted_radius = radius + line_width / 2.0;
-                shape.set_xy(origin - Vector2(adjusted_radius, adjusted_radius));
-                shape.set_clip(Vector2(0.0, 0.0));
-                shape.set_size(Vector2(radius * 2.0 + line_width, radius * 2.0 + line_width));
+                return (
+                    RectangleGeometry {
+                        xy:   origin - Vector2(adjusted_radius, adjusted_radius),
+                        clip: Vector2(0.0, 0.0),
+                        size: Vector2(radius * 2.0 + line_width, radius * 2.0 + line_width),
+                    },
+                    default(),
+                );
             }
             let offset_from_origin = end_point - origin;
             let angle = offset_from_origin.y().atan2(offset_from_origin.x());
             let unitized_angle = angle / (std::f32::consts::PI / 2.0);
             warn!("angle: {unitized_angle}");
-            shape // TODO
+            default()
         }
-    }
-
-    fn draw_from(
-        self,
-        shape: Rectangle,
-        start_point: Vector2<f32>,
-        snap_line_width: f32,
-        line_width: f32,
-    ) -> Rectangle {
-        self.reverse().draw_to(shape, start_point, snap_line_width, line_width)
     }
 }
 
