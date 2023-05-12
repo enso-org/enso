@@ -158,7 +158,6 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
         let flags = 0;
         let sync = context.fence_sync(*condition, flags).unwrap();
         self.sync = Some(sync);
-        context.flush();
     }
 
     #[profile(Detail)]
