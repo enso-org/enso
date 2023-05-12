@@ -476,44 +476,50 @@ spec =
             Number.nan . equals Number.nan . should_fail_with Incomparable_Values
             Number.nan . equals 0 . should_fail_with Incomparable_Values
 
-    Test.group "Decimalround" <|
+    Test.group "Decimal.round" <|
         Test.specify "Can round positive decimals correctly" <|
-            3.0 . round 0 . should_equal 3
+            3.0 . round . should_equal 3
+            3.00001 . round . should_equal 3
+            3.3 . round . should_equal 3
+            3.49999 . round . should_equal 3
+            3.5 . round . should_equal 4
+            3.50001 . round . should_equal 4
+            3.99999 . round . should_equal 4
+
+        Test.specify "Explicit and implicit 0 decimal places work the same" <|
             3.00001 . round 0 . should_equal 3
-            3.3 . round 0 . should_equal 3
-            3.49999 . round 0 . should_equal 3
-            3.5 . round 0 . should_equal 4
-            3.50001 . round 0 . should_equal 4
-            3.99999 . round 0 . should_equal 4
+            3.3 . round . should_equal 3
+            3.00001 . round 0 . should_equal 3
+            3.3 . round . should_equal 3
 
         Test.specify "Can round negative decimals correctly" <|
-            -3.0 . round 0 . should_equal -3
-            -3.00001 . round 0 . should_equal -3
-            -3.3 . round 0 . should_equal -3
-            -3.49999 . round 0 . should_equal -3
-            -3.5 . round 0 . should_equal -3
-            -3.50001 . round 0 . should_equal -4
-            -3.99999 . round 0 . should_equal -4
+            -3.0 . round . should_equal -3
+            -3.00001 . round . should_equal -3
+            -3.3 . round . should_equal -3
+            -3.49999 . round . should_equal -3
+            -3.5 . round . should_equal -3
+            -3.50001 . round . should_equal -4
+            -3.99999 . round . should_equal -4
 
-        Test.specify "Can round zero and small numbers correctly" <|
-            0.0 . round 0 . should_equal 0
-            0.00001 . round 0 . should_equal 0
-            -0.00001 . round 0 . should_equal 0
+        Test.specify "Can round zero and small decimals correctly" <|
+            0.0 . round . should_equal 0
+            0.00001 . round . should_equal 0
+            -0.00001 . round . should_equal 0
 
-        Test.specify "Can round large numbers correctly" pending="Find out what's up with too-large decimals" <|
-            27670116110564327418.0 . round 0 . should_equal 27670116110564327418
-            27670116110564327418.49999 . round 0 . should_equal 27670116110564327418
-            27670116110564327418.5 . round 0 . should_equal 27670116110564327419
-            27670116110564327418.50001 . round 0 . should_equal 27670116110564327419
-            27670116110564327418.8 . round 0 . should_equal 27670116110564327419
-            27670116110564327418.99999 . round 0 . should_equal 27670116110564327419
+        Test.specify "Can round large decimals correctly" pending="Find out what's up with too-large decimals" <|
+            27670116110564327418.0 . round . should_equal 27670116110564327418
+            27670116110564327418.49999 . round . should_equal 27670116110564327418
+            27670116110564327418.5 . round . should_equal 27670116110564327419
+            27670116110564327418.50001 . round . should_equal 27670116110564327419
+            27670116110564327418.8 . round . should_equal 27670116110564327419
+            27670116110564327418.99999 . round . should_equal 27670116110564327419
 
-            -27670116110564327418.0 . round 0 . should_equal -27670116110564327418
-            -27670116110564327418.49999 . round 0 . should_equal -27670116110564327418
-            -27670116110564327418.5 . round 0 . should_equal -27670116110564327418
-            -27670116110564327418.50001 . round 0 . should_equal -27670116110564327419
-            -27670116110564327418.8 . round 0 . should_equal -27670116110564327419
-            -27670116110564327418.99999 . round 0 . should_equal -27670116110564327419
+            -27670116110564327418.0 . round . should_equal -27670116110564327418
+            -27670116110564327418.49999 . round . should_equal -27670116110564327418
+            -27670116110564327418.5 . round . should_equal -27670116110564327418
+            -27670116110564327418.50001 . round . should_equal -27670116110564327419
+            -27670116110564327418.8 . round . should_equal -27670116110564327419
+            -27670116110564327418.99999 . round . should_equal -27670116110564327419
 
         Test.specify "Can round decimals to a specified number of decimal places" <|
             3.0001 . round 2 . should_equal 3.0
@@ -528,7 +534,7 @@ spec =
             3.1416 . round 3 . should_equal 3.142
             3.9999 . round 3 . should_equal 4.0
 
-        Test.specify "Can round positive numbers to a specified negative number of decimal places" <|
+        Test.specify "Can round positive decimals to a specified negative number of decimal places" <|
             1234.0 . round -1 . should_equal 1230
             1234.0 . round -2 . should_equal 1200
             1234.0 . round -3 . should_equal 1000
@@ -543,7 +549,7 @@ spec =
             1495.0 . round -2 . should_equal 1500
             1494.0 . round -2 . should_equal 1500
 
-        Test.specify "Can round negative numbers to a specified negative number of decimal places" <|
+        Test.specify "Can round negative decimals to a specified negative number of decimal places" <|
             -1234.0 . round -1 . should_equal -1230
             -1234.0 . round -2 . should_equal -1200
             -1234.0 . round -3 . should_equal -1000
@@ -561,5 +567,9 @@ spec =
         Test.specify "Decimal places out of range" <|
             3.1 . round 16 . should_fail_with Unsupported_Argument_Types
             3.1 . round -16 . should_fail_with Unsupported_Argument_Types
+
+    Test.group "Integer.round (small)" <|
+        Test.specify "Can round small integers correctly"
+            1 . should_equal 1
 
 main = Test_Suite.run_main spec

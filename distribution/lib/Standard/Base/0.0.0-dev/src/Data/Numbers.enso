@@ -566,7 +566,7 @@ type Decimal
          - +Inf.round == +Inf
          - -Inf.round == -Inf
     round : Integer -> Decimal
-    round self that = self.round_builtin that
+    round self that=0 = self.round_builtin that
 
     round_builtin : Integer -> Decimal
     round_builtin self that = @Builtin_Method "Decimal.round_builtin"
