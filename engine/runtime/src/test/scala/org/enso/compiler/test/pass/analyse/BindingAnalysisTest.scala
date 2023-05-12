@@ -107,7 +107,22 @@ class BindingAnalysisTest extends CompilerTest {
         .filter(_.isInstanceOf[BindingsMap.ModuleMethod]) shouldEqual List(
         ModuleMethod("bar")
       )
+    }
 
+    "assign module-level foreign static method" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        s"""
+           |foreign js js_function = \"\"\"
+           |    return 42
+           |
+           |""".stripMargin.preprocessModule.analyse
+      ir.getMetadata(BindingAnalysis)
+        .get
+        .definedEntities
+        .filter(_.isInstanceOf[BindingsMap.ModuleMethod]) shouldEqual List(
+        ModuleMethod("js_function")
+      )
     }
   }
 }
