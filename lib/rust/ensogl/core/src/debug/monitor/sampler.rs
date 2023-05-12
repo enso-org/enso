@@ -163,7 +163,7 @@ pub const FPS: Sampler = Sampler {
 
 #[allow(missing_docs)]
 pub const FRAME_TIME: Sampler = Sampler {
-    label: "CPU + GPU (ms)",
+    label: "GPU + CPU + Idle (ms)",
     expr: |s| Some(s.frame_time),
     warn_threshold: 1000.0 / 55.0,
     err_threshold: 1000.0 / 25.0,
@@ -173,7 +173,7 @@ pub const FRAME_TIME: Sampler = Sampler {
 
 #[allow(missing_docs)]
 pub const CPU_AND_IDLE_TIME: Sampler = Sampler {
-    label: "CPU + idle time (ms)",
+    label: "CPU + Idle (ms)",
     expr: |s| s.cpu_and_idle_time,
     warn_threshold: 1000.0 / 55.0,
     err_threshold: 1000.0 / 25.0,

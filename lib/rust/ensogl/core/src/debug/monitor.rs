@@ -231,6 +231,7 @@ impl DomData {
         root.set_style_or_warn("z-index", "100");
         root.set_style_or_warn("left", format!("{PADDING_LEFT}px"));
         root.set_style_or_warn("top", format!("{PADDING_TOP}px"));
+        root.set_style_or_warn("pointer-events", "none");
 
         root.set_style_or_warn("display", "flex");
         root.set_style_or_warn("align-items", "stretch");
@@ -251,6 +252,7 @@ impl DomData {
         details.set_style_or_warn("border-radius", "6px");
         details.set_style_or_warn("border", "2px solid #000000c4");
         details.set_style_or_warn("background", &config.background_color);
+        details.set_style_or_warn("pointer-events", "all");
         root.append_child(&details).unwrap();
 
         let control_button = ControlButton::default();
@@ -339,6 +341,7 @@ impl MainArea {
         root.set_style_or_warn("border", "2px solid #000000c4");
         root.set_style_or_warn("box-sizing", "content-box");
         root.set_style_or_warn("position", "relative");
+        root.set_style_or_warn("pointer-events", "all");
 
         let plots = web::document.create_canvas_or_panic();
         plots.set_style_or_warn("display", "block");
