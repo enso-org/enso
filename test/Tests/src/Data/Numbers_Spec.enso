@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Incomparable_Values
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Common.Unsupported_Argument_Types
 
 from Standard.Base.Data.Numbers import Number_Parse_Error
 
@@ -22,8 +22,9 @@ spec =
     very_negative = -99223372036854775808
 
     Test.group "gmt" <|
-        Test.specify "Can round decimals to a specified number of decimal places" <|
-            1 . should_equal 1
+        Test.specify "Decimal places out of range" <|
+            3.1 . round 16 . should_fail_with Unsupported_Argument_Types
+            3.1 . round -16 . should_fail_with Unsupported_Argument_Types
 
     Test.group "Integers" <|
 
@@ -558,7 +559,7 @@ spec =
             -1494.0 . round -2 . should_equal -1500
 
         Test.specify "Decimal places out of range" <|
-            3.1 . round 16 . should_fail_with Illegal_Argument
-            3.1 . round -16 . should_fail_with Illegal_Argument
+            3.1 . round 16 . should_fail_with Unsupported_Argument_Types
+            3.1 . round -16 . should_fail_with Unsupported_Argument_Types
 
 main = Test_Suite.run_main spec

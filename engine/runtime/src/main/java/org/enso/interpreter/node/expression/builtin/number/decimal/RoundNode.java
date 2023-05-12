@@ -10,6 +10,7 @@ import java.math.BigInteger;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -33,10 +34,15 @@ public abstract class RoundNode extends Node {
     @Specialization
     Object doLong(double self, long that) {
         if (that < MIN_DECIMAL_PLACES || that > MAX_DECIMAL_PLACES) {
-            throw new IllegalArgumentException(
-                    "Round: decimal_places must be between " +
-                    MIN_DECIMAL_PLACES + " and " + MAX_DECIMAL_PLACES +
-                    "(inclusive), but was " + that);
+            var ctx = EnsoContext.get(this);
+            var msg = "Round: decimal_places must be between " +
+                      MIN_DECIMAL_PLACES + " and " + MAX_DECIMAL_PLACES +
+                      "(inclusive), but was " + that;
+            var error =
+                    ctx.getBuiltins()
+                            .error()
+                            .makeUnsupportedArgumentsError(new Object[] {that}, msg);
+            return DataflowError.withoutTrace(error, this);
         }
 
         double rounded = round(self, that);

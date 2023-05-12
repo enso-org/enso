@@ -11,6 +11,7 @@ from project.Data.Boolean import Boolean, True, False
 polyglot java import java.lang.Double
 polyglot java import java.lang.Math
 polyglot java import java.lang.Long
+polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.NumberFormatException
 polyglot java import java.text.DecimalFormat
 polyglot java import java.text.DecimalFormatSymbols
