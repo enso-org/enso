@@ -172,6 +172,7 @@ class SymbolsImportResolution(compiler: Compiler) {
           case resolvedModule: BindingsMap.ResolvedModule => exportedSymbols += resolvedModule
           case resolvedMethod: BindingsMap.ResolvedMethod => exportedSymbols += resolvedMethod
           case resolvedCtor: BindingsMap.ResolvedConstructor => exportedSymbols += resolvedCtor
+          case _ => ()
         }
     }
     exportedSymbols.toList
