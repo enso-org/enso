@@ -322,8 +322,6 @@ class SymbolsImportResolution(compiler: Compiler) {
       )
     )
 
-
-
     if (symbolsResolution.errorReason.isDefined) {
       // Replace the IR with IR.Error and don't update the binding map
       IR.Error.ImportExport(
@@ -331,29 +329,40 @@ class SymbolsImportResolution(compiler: Compiler) {
         reason = symbolsResolution.errorReason.get
       )
     } else {
+      val importingAllSymbols = symbolsToImport.isEmpty
+
+      val allResolvedSymbols: List[ImportTarget] =
+        if (importingAllSymbols) {
+          // Append all exported symbols from the module to the resolved imports.
+          // These are transitively imported symbols
+          val additionalExportedSymbols = findAllExportedSymbolsFromModule(importedBindingMap)
+
+          // Filter away all the symbols that are already resolved.
+          val filteredAdditionalExportedSymbols: List[ImportTarget] =
+            additionalExportedSymbols.filterNot(
+              additionalExportedSymbol =>
+                symbolsResolution.resolved.exists(_.qualifiedName == additionalExportedSymbol.qualifiedName)
+            )
+
+          logger.log(
+            Level.FINEST,
+            "Transitive imports that will be added to the module (exported symbols from imported module): {0}",
+            Array[Object](filteredAdditionalExportedSymbols)
+          )
+
+          symbolsResolution.resolved ++ filteredAdditionalExportedSymbols
+        } else {
+          symbolsResolution.resolved
+        }
+
       val resolvedImports =
-        symbolsResolution.resolved.map(importTarget => {
+        allResolvedSymbols.map(importTarget => {
           BindingsMap.ResolvedImport(
             importDef = importStatement,
             exports = List.empty,
             target = importTarget
           )
         })
-
-      // Append all exported symbols from the module to the resolved imports.
-      // These are transitively imported symbols
-      val importingAllSymbols = symbolsToImport.isEmpty
-      if (importingAllSymbols) {
-        val additionalExportedSymbols = findAllExportedSymbolsFromModule(importedBindingMap)
-        logger.log(
-          Level.FINEST,
-          "Importing all symbols from module {0}, will append all the exported symbols from the module, " +
-            "these are transitive imports: {1}",
-          Array[Object](moduleName, additionalExportedSymbols)
-        )
-        bindingMap.resolvedImports =
-          bindingMap.resolvedImports.appendedAll(additionalExportedSymbols)
-      }
 
       bindingMap.resolvedImports =
         bindingMap.resolvedImports.appendedAll(resolvedImports)
