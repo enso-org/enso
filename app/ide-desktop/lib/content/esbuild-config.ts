@@ -26,7 +26,11 @@ import esbuildPluginYaml from 'esbuild-plugin-yaml'
 import * as utils from '../../utils'
 import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
-export const THIS_PATH = pathModule.resolve(pathModule.dirname(url.fileURLToPath(import.meta.url)))
+// =================
+// === Constants ===
+// =================
+
+const THIS_PATH = pathModule.resolve(pathModule.dirname(url.fileURLToPath(import.meta.url)))
 
 // =============================
 // === Environment variables ===
