@@ -1,0 +1,21 @@
+from Standard.Base import all
+
+import Standard.Base.Metadata.Choice
+import Standard.Base.Metadata.Widget
+import Standard.Base.Metadata.Display
+
+import Standard.Visualization.Widgets
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
+
+spec =
+    Test.group "Widgets for the Text type" <|
+        Test.specify "works for `take` and `drop`" <|
+            mock_text = "abc def"
+            default_widget = Text_Sub_Range.default_widget
+            expect = [["range", default_widget]] . to_json
+            Widgets.get_widget_json mock_text "take" ["range"] . should_equal expect
+            Widgets.get_widget_json mock_text "drop" ["range"] . should_equal expect
+
+main = Test_Suite.run_main spec
