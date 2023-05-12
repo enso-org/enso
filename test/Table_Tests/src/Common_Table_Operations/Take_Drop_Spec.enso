@@ -1,6 +1,7 @@
 from Standard.Base import all
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, Sample, Every
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table.Errors import all
