@@ -180,55 +180,59 @@ class Main implements AppRunner {
     }
 
     main(inputConfig?: StringConfig) {
-        contentConfig.OPTIONS.loadAll([app.urlParams()])
-        const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
-        const isUsingNewDashboard =
-            contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
-        const isOpeningMainEntryPoint =
-            contentConfig.OPTIONS.groups.startup.options.entry.value ===
-            contentConfig.OPTIONS.groups.startup.options.entry.default
-        if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningMainEntryPoint) {
-            const hideAuth = () => {
-                const auth = document.getElementById('dashboard')
-                const ide = document.getElementById('root')
-                if (auth) {
-                    auth.style.display = 'none'
-                }
-                if (ide) {
-                    ide.hidden = false
-                }
-            }
-            /** This package is an Electron desktop app (i.e., not in the Cloud), so
-             * we're running on the desktop. */
-            /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
-             * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
-             * should only have one entry point. Right now, we have two. One for the cloud
-             * and one for the desktop. */
-            /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
-             * React hooks rerender themselves multiple times. It is resulting in multiple
-             * Enso main scene being initialized. As a temporary workaround we check whether
-             * appInstance was already ran. Target solution should move running appInstance
-             * where it will be called only once. */
-            let appInstanceRan = false
-            const onAuthenticated = () => {
-                if (!contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) {
-                    hideAuth()
-                    if (!appInstanceRan) {
-                        appInstanceRan = true
-                        void this.runApp(inputConfig)
+        const unrecognized = contentConfig.OPTIONS.loadAll([app.urlParams()])
+        if (unrecognized.length > 0) {
+            app.showConfigOptions(contentConfig.OPTIONS, unrecognized)
+        } else {
+            const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
+            const isUsingNewDashboard =
+                contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
+            const isOpeningMainEntryPoint =
+                contentConfig.OPTIONS.groups.startup.options.entry.value ===
+                contentConfig.OPTIONS.groups.startup.options.entry.default
+            if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningMainEntryPoint) {
+                const hideAuth = () => {
+                    const auth = document.getElementById('dashboard')
+                    const ide = document.getElementById('root')
+                    if (auth) {
+                        auth.style.display = 'none'
+                    }
+                    if (ide) {
+                        ide.hidden = false
                     }
                 }
+                /** This package is an Electron desktop app (i.e., not in the Cloud), so
+                 * we're running on the desktop. */
+                /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
+                 * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
+                 * should only have one entry point. Right now, we have two. One for the cloud
+                 * and one for the desktop. */
+                /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
+                 * React hooks rerender themselves multiple times. It is resulting in multiple
+                 * Enso main scene being initialized. As a temporary workaround we check whether
+                 * appInstance was already ran. Target solution should move running appInstance
+                 * where it will be called only once. */
+                let appInstanceRan = false
+                const onAuthenticated = () => {
+                    if (!contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) {
+                        hideAuth()
+                        if (!appInstanceRan) {
+                            appInstanceRan = true
+                            void this.runApp(inputConfig)
+                        }
+                    }
+                }
+                authentication.run({
+                    appRunner: this,
+                    logger,
+                    platform: PLATFORM,
+                    showDashboard:
+                        contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
+                    onAuthenticated,
+                })
+            } else {
+                void this.runApp(inputConfig)
             }
-            authentication.run({
-                appRunner: this,
-                logger,
-                platform: PLATFORM,
-                showDashboard:
-                    contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
-                onAuthenticated,
-            })
-        } else {
-            void this.runApp(inputConfig)
         }
     }
 }

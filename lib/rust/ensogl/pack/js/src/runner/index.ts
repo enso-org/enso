@@ -22,6 +22,8 @@ export type { LogLevel } from 'runner/log/logger'
 export { logger, Logger, Consumer } from 'runner/log'
 export { Option } from 'runner/config'
 
+export { HelpScreen } from 'runner/debug/help-screen'
+
 export const urlParams: () => config.StringConfig = host.urlParams
 
 // ==============================
@@ -175,6 +177,71 @@ class Scheduler {
     }
 }
 
+// =========================
+// === showConfigOptions ===
+// =========================
+
+export function showConfigOptions(config: config.Options, unknownOptions?: string[]) {
+    logger.log('Showing config options help screen.')
+    let msg = ''
+    if (unknownOptions) {
+        const optionLabel = unknownOptions.length > 1 ? 'options' : 'option'
+        msg = `Unknown config ${optionLabel}: ${unknownOptions.map(t => `'${t}'`).join(', ')}. `
+    }
+    const sectionsData: [string, string, debug.HelpScreenEntry[]][] = Object.entries(
+        config.groups
+    ).map(([groupName, group]) => {
+        const groupOptions = group.optionsRecursive()
+        const entriesData: [string, string, string][] = groupOptions.map(opt => [
+            opt.qualifiedName(),
+            opt.description,
+            String(opt.default),
+        ])
+        entriesData.sort()
+        const entries = entriesData.map(([name, description, def]) => {
+            return new debug.HelpScreenEntry(name, [description, def])
+        })
+        const option = config.options[groupName]
+        if (option != null) {
+            const entry = new debug.HelpScreenEntry(groupName, [
+                option.description,
+                String(option.default),
+            ])
+            entries.unshift(entry)
+        }
+        const name =
+            groupName.charAt(0).toUpperCase() +
+            groupName.slice(1).replace(/([A-Z])/g, ' $1') +
+            ' Options'
+        const description = group.description
+        return [name, description, entries]
+    })
+    sectionsData.sort()
+    const sections = sectionsData.map(
+        ([name, description, entries]) =>
+            new debug.HelpScreenSection({ name, description, entries })
+    )
+
+    const rootEntries = Object.entries(config.options).flatMap(([optionName, option]) => {
+        if (optionName in config.groups) {
+            return []
+        }
+        const entry = new debug.HelpScreenEntry(optionName, [
+            option.description,
+            String(option.default),
+        ])
+        return [entry]
+    })
+    if (rootEntries.length > 0) {
+        const name = 'Other Options'
+        sections.push(new debug.HelpScreenSection({ name, entries: rootEntries }))
+    }
+
+    const title = msg + 'Available options:'
+    const headers = ['Name', 'Description', 'Default']
+    new debug.HelpScreen().display({ title, headers, sections })
+}
+
 // ===========
 // === App ===
 // ===========
@@ -214,7 +281,7 @@ export class App {
         })
         if (unrecognized.length > 0) {
             logger.error(`Unrecognized configuration parameters: ${unrecognized.join(', ')}.`)
-            this.showConfigOptions(unrecognized)
+            showConfigOptions(this.config, unrecognized)
         } else {
             this.initBrowser()
             this.initialized = true
@@ -494,67 +561,6 @@ export class App {
         const sections = [new debug.HelpScreenSection({ name, entries })]
 
         const headers = ['Name', 'Description']
-        new debug.HelpScreen().display({ title, headers, sections })
-    }
-
-    showConfigOptions(unknownOptions?: string[]) {
-        logger.log('Showing config options help screen.')
-        let msg = ''
-        if (unknownOptions) {
-            const optionLabel = unknownOptions.length > 1 ? 'options' : 'option'
-            msg = `Unknown config ${optionLabel}: ${unknownOptions.map(t => `'${t}'`).join(', ')}. `
-        }
-        const sectionsData: [string, string, debug.HelpScreenEntry[]][] = Object.entries(
-            this.config.groups
-        ).map(([groupName, group]) => {
-            const groupOptions = group.optionsRecursive()
-            const entriesData: [string, string, string][] = groupOptions.map(opt => [
-                opt.qualifiedName(),
-                opt.description,
-                String(opt.default),
-            ])
-            entriesData.sort()
-            const entries = entriesData.map(([name, description, def]) => {
-                return new debug.HelpScreenEntry(name, [description, def])
-            })
-            const option = this.config.options[groupName]
-            if (option != null) {
-                const entry = new debug.HelpScreenEntry(groupName, [
-                    option.description,
-                    String(option.default),
-                ])
-                entries.unshift(entry)
-            }
-            const name =
-                groupName.charAt(0).toUpperCase() +
-                groupName.slice(1).replace(/([A-Z])/g, ' $1') +
-                ' Options'
-            const description = group.description
-            return [name, description, entries]
-        })
-        sectionsData.sort()
-        const sections = sectionsData.map(
-            ([name, description, entries]) =>
-                new debug.HelpScreenSection({ name, description, entries })
-        )
-
-        const rootEntries = Object.entries(this.config.options).flatMap(([optionName, option]) => {
-            if (optionName in this.config.groups) {
-                return []
-            }
-            const entry = new debug.HelpScreenEntry(optionName, [
-                option.description,
-                String(option.default),
-            ])
-            return [entry]
-        })
-        if (rootEntries.length > 0) {
-            const name = 'Other Options'
-            sections.push(new debug.HelpScreenSection({ name, entries: rootEntries }))
-        }
-
-        const title = msg + 'Available options:'
-        const headers = ['Name', 'Description', 'Default']
         new debug.HelpScreen().display({ title, headers, sections })
     }
 
