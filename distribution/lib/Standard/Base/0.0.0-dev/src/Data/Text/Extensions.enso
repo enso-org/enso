@@ -40,6 +40,8 @@ from project.Data.Json import Json, Invalid_JSON, JS_Object
 from project.Data.Numbers import Decimal, Integer, Number, Number_Parse_Error
 from project.Data.Text.Text_Sub_Range import Codepoint_Ranges, Text_Sub_Range
 
+from project.Metadata import make_single_choice
+
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 
 polyglot java import com.ibm.icu.lang.UCharacter
@@ -333,7 +335,8 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
      Split with a vector of strings.
 
          'azbzczdzezfzg'.split ['b', 'zez'] == ['az', 'zczd', 'fzg']
-Text.split : Text | Vector Text  -> Case_Sensitivity -> Boolean -> Vector Text | Illegal_Argument
+@delimiter (make_single_choice [',', ';', '|', ['{tab}', "'\t'"], ['{space}', "' '"], ['{newline}', "['\n', '\r\n', '\r']"], ['Custom', ""]])
+Text.split : Text | Vector Text -> Case_Sensitivity -> Boolean -> Vector Text | Illegal_Argument
 Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_regex=False =
     delimiter_is_empty = case delimiter of
         _ : Text -> delimiter.is_empty
