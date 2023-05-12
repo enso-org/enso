@@ -458,9 +458,8 @@ impl Default for Monitor {
         let mut renderer = Renderer::new(&frp.public);
         renderer.add(sampler::FPS);
         renderer.add(sampler::FRAME_TIME);
-        renderer.add(sampler::CPU_TIME);
+        renderer.add(sampler::CPU_AND_IDLE_TIME);
         renderer.add(sampler::GPU_TIME);
-        renderer.add(sampler::IDLE_TIME);
         renderer.add(sampler::WASM_MEMORY_USAGE);
         renderer.add(sampler::GPU_MEMORY_USAGE);
         renderer.add(sampler::DRAW_CALL_COUNT);
@@ -690,14 +689,17 @@ impl Renderer {
 
     fn redraw_historical_data(&mut self, n: usize) {
         if self.visible() && !self.paused {
-            let stats = self.samples.get(self.samples.len() - 1 - n).unwrap();
-            if let Some(dom) = self.dom.clone() {
-                self.with_all_panels(&dom, |_selected, panel| {
-                    if panel.can_be_reported_late() {
-                        panel.sample_and_postprocess(stats);
-                        panel.draw_historical_data(&dom, n);
+            if let Some(index) = self.samples.len().checked_sub(n + 1) {
+                if let Some(stats) = self.samples.get(index) {
+                    if let Some(dom) = self.dom.clone() {
+                        self.with_all_panels(&dom, |_selected, panel| {
+                            if panel.can_be_reported_late() {
+                                panel.sample_and_postprocess(stats);
+                                panel.draw_historical_data(&dom, n);
+                            }
+                        });
                     }
-                });
+                }
             }
         }
     }

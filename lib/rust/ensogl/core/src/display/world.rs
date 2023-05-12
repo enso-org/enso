@@ -348,17 +348,15 @@ impl WorldDataWithLoop {
         let frp = Frp::new();
         let data = WorldData::new(&frp.private.output);
         let on_frame_start = animation::on_frame_start();
-        let on_frame_end = animation::on_frame_end();
         let on_before_layout = animation::on_before_layout();
         let on_before_rendering = animation::on_before_rendering();
         let network = frp.network();
         crate::frp::extend! {network
             eval on_frame_start ([data] (t) {
-                data.stats.calculate_prev_frame_fps(*t);
+                data.stats.calculate_prev_frame_stats(*t);
                 let gpu_perf_results = data.default_scene.on_frame_start();
                 data.update_stats(*t, gpu_perf_results)
             });
-            eval_ on_frame_end (data.stats.end_frame());
             layout_update <- on_before_layout.map(f!((t) data.run_next_frame_layout(*t)));
             _eval <- on_before_rendering.map2(&layout_update,
                 f!((t, early) data.run_next_frame_rendering(*t, *early))
@@ -568,14 +566,14 @@ impl WorldData {
                     if frame_offset == 0 {
                         let stats_data = &mut self.stats.borrow_mut().stats_data;
                         stats_data.gpu_time = Some(result.total);
-                        stats_data.cpu_time = Some(stats_data.frame_time - result.total);
+                        stats_data.cpu_and_idle_time = Some(stats_data.frame_time - result.total);
                     } else {
                         // The last sampler stored in monitor is from 2 frames ago, as the last
                         // frame stats are not submitted yet.
                         let sampler_offset = result.frame_offset - 2;
                         self.stats_monitor.with_last_nth_sample(sampler_offset, |sample| {
                             sample.gpu_time = Some(result.total);
-                            sample.cpu_time = Some(sample.frame_time - result.total);
+                            sample.cpu_and_idle_time = Some(sample.frame_time - result.total);
                         });
                         self.stats_monitor.redraw_historical_data(sampler_offset);
                     }

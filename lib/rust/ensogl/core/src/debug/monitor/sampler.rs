@@ -172,9 +172,9 @@ pub const FRAME_TIME: Sampler = Sampler {
 };
 
 #[allow(missing_docs)]
-pub const CPU_TIME: Sampler = Sampler {
-    label: "CPU time (ms)",
-    expr: |s| s.cpu_time,
+pub const CPU_AND_IDLE_TIME: Sampler = Sampler {
+    label: "CPU + idle time (ms)",
+    expr: |s| s.cpu_and_idle_time,
     warn_threshold: 1000.0 / 55.0,
     err_threshold: 1000.0 / 25.0,
     precision: 2,
@@ -190,19 +190,6 @@ pub const GPU_TIME: Sampler = Sampler {
     err_threshold: 1000.0 / 25.0,
     precision: 2,
     can_be_reported_late: true,
-    ..DEFAULT_SAMPLER
-};
-
-#[allow(missing_docs)]
-pub const IDLE_TIME: Sampler = Sampler {
-    label: "Idle time (ms)",
-    expr: |s| Some(s.idle_time),
-    // Negative idle time can happen due to improper time measurements when high-resolution timers
-    // are not used.
-    warn_threshold: -0.000001,
-    err_threshold: -0.000002,
-    min_size: Some(1.0),
-    precision: 2,
     ..DEFAULT_SAMPLER
 };
 
