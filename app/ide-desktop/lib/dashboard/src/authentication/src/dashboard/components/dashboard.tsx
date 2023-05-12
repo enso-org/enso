@@ -452,8 +452,7 @@ function Dashboard(props: DashboardProps) {
                     }
                 }}
             >
-                {fileInfo.fileIcon()}{' '}
-                <span className="px-2">{file.title}</span>
+                {fileInfo.fileIcon()} <span className="px-2">{file.title}</span>
             </div>
         ),
     }
