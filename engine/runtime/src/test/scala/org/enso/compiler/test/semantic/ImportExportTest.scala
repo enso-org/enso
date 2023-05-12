@@ -517,7 +517,7 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
 
   "Import resolution for three modules" should {
     "resolve all imported symbols in B_Module from A_Module" in {
-      """
+      s"""
         |type A_Type
         |    A_Constructor
         |    instance_method self = 42
@@ -537,7 +537,7 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
         .stripMargin
         .createModule(packageQualifiedName.createChild("A_Module"))
 
-      val bIr =
+      val mainIr =
         s"""
            |from $namespace.$packageName.A_Module import all
            |from $namespace.$packageName.A_Module export static_method
@@ -545,16 +545,16 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
            |type B_Type
            |    B_Constructor val
            |""".stripMargin
-          .createModule(packageQualifiedName.createChild("B_Module"))
+          .createModule(packageQualifiedName.createChild("Main_Module"))
           .getIr
-      bIr.imports.size shouldEqual 1
-      bIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
-      val bBindingMap = bIr.unwrapBindingMap
+      mainIr.imports.size shouldEqual 1
+      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
+      val mainBindingMap = mainIr.unwrapBindingMap
       val resolvedImportTargets =
-        bBindingMap.resolvedImports.map(_.target)
+        mainBindingMap.resolvedImports.map(_.target)
       resolvedImportTargets
         .collect { case rt: BindingsMap.ResolvedType => rt}
-        .map(_.tp.name) should contain allOf ("A_Type", "B_Type")
+        .map(_.tp.name) shouldEqual Iterable("A_Type")
       resolvedImportTargets
         .collect { case rc: BindingsMap.ResolvedConstructor => rc} shouldBe empty
       resolvedImportTargets
@@ -566,7 +566,7 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
     }
 
     "resolve foreign static module method" in {
-      """
+      s"""
         |type A_Type
         |    A_Constructor
         |    instance_method self = 42
@@ -597,10 +597,10 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
         mainBindingMap.resolvedImports.map(_.target)
       resolvedImportTargets
         .collect { case meth: BindingsMap.ResolvedMethod => meth }
-        .map(_.method.name) shouldEqual "js_function"
+        .map(_.method.name) shouldEqual Iterable("js_function")
       resolvedImportTargets
         .collect { case mod: BindingsMap.ResolvedModule => mod }
-        .map(_.module.getName.item) shouldEqual "A_Module"
+        .map(_.module.getName.item) shouldEqual Iterable("A_Module")
     }
 
     "not resolve symbol that is not explicitly exported" in {
@@ -646,7 +646,7 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
     }
 
     "resolve all symbols (types and static module methods) from the module" in {
-      """
+      s"""
         |type A_Type
         |    A_Constructor
         |    instance_method self = 42
@@ -688,6 +688,7 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
       val resolvedImportSymbols: List[String] =
         mainBindingMap.resolvedImports.map(_.target.qualifiedName.item)
       resolvedImportSymbols should contain theSameElementsAs List(
+        "A_Module",
         "A_Type",
         "static_method",
         "glob_var",
@@ -737,7 +738,7 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
       val mainBindingMap = mainIr.unwrapBindingMap
       val resolvedImportSymbols: List[String] =
         mainBindingMap.resolvedImports.map(_.target.qualifiedName.item)
-      resolvedImportSymbols shouldEqual List("static_method")
+      resolvedImportSymbols should contain only("B_Module", "static_method")
     }
 
     "resolve re-exported symbol along with all other symbols" in {
@@ -783,11 +784,9 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
       val resolvedImportSymbols: List[String] =
         mainBindingMap.resolvedImports.map(_.target.qualifiedName.item)
       resolvedImportSymbols should contain theSameElementsAs List(
-        "A_Type",
+        "B_Module",
+        "B_Type",
         "static_method",
-        "glob_var",
-        "js_function",
-        "B_Type"
       )
     }
   }
