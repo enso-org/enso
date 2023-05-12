@@ -347,7 +347,7 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
             _ : Vector -> delimiter.length == 1
             _ -> False
         # If it's a vector of one element, just call it on that one element.
-        if delimiter_is_singleton_vector then self.split delimiter=(delimiter.first) case_sensitivity=case_sensitivity use_regex=use_regex else`
+        if delimiter_is_singleton_vector then self.split delimiter=(delimiter.first) case_sensitivity=case_sensitivity use_regex=use_regex else
             case use_regex of
                 False ->
                     delimiters = split_find_delimiters self delimiter case_sensitivity

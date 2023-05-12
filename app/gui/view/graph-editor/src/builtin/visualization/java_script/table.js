@@ -38,8 +38,7 @@ class TableVisualization extends Visualization {
             this.setPreprocessor(
                 'Standard.Visualization.Table.Visualization',
                 'prepare_visualization',
-                this.row_limit.toString(),
-                this.page.toString()
+                this.row_limit.toString()
             )
         }
     }
@@ -238,7 +237,7 @@ class TableVisualization extends Visualization {
         }
 
         // Update Status Bar
-        this.createRowDropdown(
+        this.updateStatusBarControls(
             parsedData.all_rows_count === undefined ? 1 : parsedData.all_rows_count,
             dataTruncated
         )
@@ -266,7 +265,10 @@ class TableVisualization extends Visualization {
         return buttonElem
     }
 
-    createRowDropdown(all_rows_count, dataTruncated) {
+    // Updates the status bar to reflect the current row limit and page, shown at top of the visualization.
+    // - Creates the row dropdown and page buttons.
+    // - Updated the row counts and filter available options.
+    updateStatusBarControls(all_rows_count, dataTruncated) {
         const pageLimit = Math.ceil(all_rows_count / this.row_limit)
         if (this.page > pageLimit) {
             this.page = pageLimit
@@ -317,8 +319,10 @@ class TableVisualization extends Visualization {
                 25000,
                 50000,
                 100000,
-                all_rows_count,
-            ].filter(r => r <= all_rows_count && r <= 100000)
+            ].filter(r => r <= all_rows_count)
+            if (all_rows_count < rowCounts[rowCounts.length-1] && rowCounts.indexOf(all_rows_count) === -1) {
+                rowCounts.push(all_rows_count)
+            }
             rowLimitElem.innerHTML = ''
             rowCounts.forEach(r => {
                 const option = this.makeOption(r, r.toString())
