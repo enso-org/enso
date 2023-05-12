@@ -101,7 +101,7 @@ class ImportResolver(compiler: Compiler) {
                   }
                 if (converted.isDefined) {
                   if (current.bindings == null) {
-                    current.bindings = converted.get
+                    current.unsafeSetBindingsMap(converted.get)
                   } else {
                     val update: BindingsMap = current.bindings
                     val imports =
@@ -113,7 +113,7 @@ class ImportResolver(compiler: Compiler) {
                     converted.get.resolvedImports = imports
                     converted.get.resolvedExports = exports
                     converted.get.exportedSymbols = symbols
-                    current.bindings              = converted.get
+                    current.unsafeSetBindingsMap(converted.get)
                   }
                 }
                 (

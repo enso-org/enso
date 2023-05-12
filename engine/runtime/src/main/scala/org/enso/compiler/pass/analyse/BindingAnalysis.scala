@@ -109,7 +109,7 @@ case object BindingAnalysis extends IRPass {
         definedSumTypes ++ importedPolyglot ++ moduleMethods,
         ModuleReference.Concrete(moduleContext.module)
       )
-      moduleContext.module.bindings = n
+      moduleContext.module.unsafeSetBindingsMap(n)
       n
     }
 

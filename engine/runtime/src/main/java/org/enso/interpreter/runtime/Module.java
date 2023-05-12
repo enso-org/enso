@@ -104,7 +104,7 @@ public final class Module implements TruffleObject {
   private boolean hasCrossModuleLinks;
   private final boolean synthetic;
   private List<QualifiedName> directModulesRefs;
-  public BindingsMap bindings;
+  private BindingsMap bindings;
 
   /**
    * Creates a new module.
@@ -292,11 +292,14 @@ public final class Module implements TruffleObject {
         var copy = this.ir.mapExpressions(fn);
         this.ir = copy;
         this.uuidsMap = null;
+        this.bindings = null;
         return;
       }
     }
     this.sources = this.sources.newWith(source);
     this.compilationStage = CompilationStage.INITIAL;
+    this.ir = null;
+    this.bindings = null;
   }
 
   /**
@@ -464,6 +467,14 @@ public final class Module implements TruffleObject {
   public void unsafeSetIr(IR.Module ir) {
     this.ir = ir;
     this.uuidsMap = null;
+  }
+
+  public void unsafeSetBindingsMap(BindingsMap map) {
+    this.bindings = map;
+  }
+
+  public BindingsMap bindings() {
+    return bindings;
   }
 
   /** @return the runtime scope of this module. */
