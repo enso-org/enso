@@ -939,6 +939,7 @@ Text.repeat self count=1 =
          "Hello World!".take (By_Index [1, 0, 0, 6, 0]) == "eHHWH"
          "Hello World!".take (By_Index [Range 0 3, 6, Range 6 12 2]) == "HelWWrd"
          "Hello World!".take (Sample 3 seed=42) == "l d"
+@range Text_Sub_Range.default_widget
 Text.take : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index_Out_Of_Bounds
 Text.take self range=(Index_Sub_Range.First 1) =
     ranges = Codepoint_Ranges.resolve self range
@@ -985,6 +986,7 @@ Text.take self range=(Index_Sub_Range.First 1) =
          "Hello World!".drop (By_Index [1, 0, 0, 6, 0]) == "llo orld!"
          "Hello World!".drop (By_Index [Range 0 3, 6, Range 6 12 2]) == "lo ol!"
          "Hello World!".drop (Sample 3 seed=42) == "HeloWorl!"
+@range Text_Sub_Range.default_widget
 Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds
 Text.drop self range=(Index_Sub_Range.First 1) =
     ranges = Codepoint_Ranges.resolve self range
