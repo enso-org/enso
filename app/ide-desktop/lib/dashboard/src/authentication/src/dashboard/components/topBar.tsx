@@ -1,8 +1,9 @@
 /** @file The top-bar of dashboard. */
 import * as react from 'react'
 
+import * as common from 'enso-common'
+
 import * as dashboard from './dashboard'
-import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
 
 import * as backendProvider from '../../providers/backend'
@@ -15,11 +16,11 @@ import UserMenu from './userMenu'
 // ==============
 
 interface TopBarProps {
-    platform: platformModule.Platform
+    platform: common.Platform
     projectName: string | null
     tab: dashboard.Tab
     toggleTab: () => void
-    setBackendPlatform: (backendPlatform: platformModule.Platform) => void
+    setBackendPlatform: (backendPlatform: common.Platform) => void
     query: string
     setQuery: (value: string) => void
 }
@@ -45,14 +46,14 @@ function TopBar(props: TopBarProps) {
     return (
         <div className="flex mb-2 h-8">
             <div className="flex text-primary">
-                {platform === platformModule.Platform.desktop && (
+                {platform === common.Platform.desktop && (
                     <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
                         <button
                             onClick={() => {
-                                setBackendPlatform(platformModule.Platform.desktop)
+                                setBackendPlatform(common.Platform.desktop)
                             }}
                             className={`${
-                                backend.platform === platformModule.Platform.desktop
+                                backend.platform === common.Platform.desktop
                                     ? 'bg-white shadow-soft'
                                     : 'opacity-50'
                             } rounded-full px-1.5 py-1`}
@@ -61,10 +62,10 @@ function TopBar(props: TopBarProps) {
                         </button>
                         <button
                             onClick={() => {
-                                setBackendPlatform(platformModule.Platform.cloud)
+                                setBackendPlatform(common.Platform.cloud)
                             }}
                             className={`${
-                                backend.platform === platformModule.Platform.cloud
+                                backend.platform === common.Platform.cloud
                                     ? 'bg-white shadow-soft'
                                     : 'opacity-50'
                             } rounded-full px-1.5 py-1`}

@@ -2,13 +2,14 @@
  * interactive components. */
 import * as react from 'react'
 
+import * as common from 'enso-common'
+
 import * as backendModule from '../backend'
 import * as fileInfo from '../../fileInfo'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
 import * as localBackend from '../localBackend'
 import * as newtype from '../../newtype'
-import * as platformModule from '../../platform'
 import * as remoteBackendModule from '../remoteBackend'
 import * as svg from '../../components/svg'
 import * as uploadMultipleFiles from '../../uploadMultipleFiles'
@@ -198,7 +199,7 @@ function rootDirectoryId(userOrOrganizationId: backendModule.UserOrOrganizationI
 // =================
 
 export interface DashboardProps {
-    platform: platformModule.Platform
+    platform: common.Platform
     appRunner: AppRunner | null
 }
 
@@ -355,7 +356,7 @@ function Dashboard(props: DashboardProps) {
                             <RenameModal
                                 assetType={projectAsset.type}
                                 name={projectAsset.title}
-                                {...(backend.platform === platformModule.Platform.desktop
+                                {...(backend.platform === common.Platform.desktop
                                     ? {
                                           namePattern: '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*',
                                           title:
@@ -690,10 +691,10 @@ function Dashboard(props: DashboardProps) {
                         setSecretAssets([])
                         setFileAssets([])
                         switch (newBackendPlatform) {
-                            case platformModule.Platform.desktop:
+                            case common.Platform.desktop:
                                 setBackend(new localBackend.LocalBackend())
                                 break
-                            case platformModule.Platform.cloud: {
+                            case common.Platform.cloud: {
                                 const headers = new Headers()
                                 headers.append('Authorization', `Bearer ${accessToken}`)
                                 const client = new http.Client(headers)
@@ -728,11 +729,9 @@ function Dashboard(props: DashboardProps) {
                     <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
                         <button
                             className={`mx-1 ${
-                                backend.platform === platformModule.Platform.desktop
-                                    ? 'opacity-50'
-                                    : ''
+                                backend.platform === common.Platform.desktop ? 'opacity-50' : ''
                             }`}
-                            disabled={backend.platform === platformModule.Platform.desktop}
+                            disabled={backend.platform === common.Platform.desktop}
                             onClick={event => {
                                 event.stopPropagation()
                                 setModal(() => (
@@ -856,7 +855,7 @@ function Dashboard(props: DashboardProps) {
                                     <RenameModal
                                         name={projectAsset.title}
                                         assetType={projectAsset.type}
-                                        {...(backend.platform === platformModule.Platform.desktop
+                                        {...(backend.platform === common.Platform.desktop
                                             ? {
                                                   namePattern: '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*',
                                                   title:
@@ -903,7 +902,7 @@ function Dashboard(props: DashboardProps) {
                             ))
                         }}
                     />
-                    {backend.platform === platformModule.Platform.cloud &&
+                    {backend.platform === common.Platform.cloud &&
                         (remoteBackend => (
                             <>
                                 <tr className="h-10" />
@@ -1060,7 +1059,7 @@ function Dashboard(props: DashboardProps) {
                         ))(backend)}
                 </tbody>
             </table>
-            {isFileBeingDragged && backend.platform === platformModule.Platform.cloud ? (
+            {isFileBeingDragged && backend.platform === common.Platform.cloud ? (
                 <div
                     className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary grid place-items-center"
                     onDragLeave={() => {

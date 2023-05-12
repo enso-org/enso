@@ -1,10 +1,11 @@
 /** @file An interactive button displaying the status of a project. */
 import * as react from 'react'
 
+import * as common from 'enso-common'
+
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as localBackend from '../localBackend'
-import * as platform from '../../platform'
 import * as svg from '../../components/svg'
 
 // =============
@@ -66,7 +67,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     }, [])
 
     react.useEffect(() => {
-        if (backend.platform === platform.Platform.desktop) {
+        if (backend.platform === common.Platform.desktop) {
             if (project.id !== localBackend.LocalBackend.currentlyOpeningProjectId) {
                 setIsCheckingResources(false)
                 setIsCheckingStatus(false)
@@ -148,11 +149,11 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             setSpinnerState(SpinnerState.loading)
         }, 0)
         switch (backend.platform) {
-            case platform.Platform.cloud:
+            case common.Platform.cloud:
                 await backend.openProject(project.id)
                 setIsCheckingStatus(true)
                 break
-            case platform.Platform.desktop:
+            case common.Platform.desktop:
                 await backend.openProject(project.id)
                 setState(backendModule.ProjectState.opened)
                 setSpinnerState(SpinnerState.done)

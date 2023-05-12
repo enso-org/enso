@@ -6,6 +6,8 @@ import * as esbuild from 'esbuild'
 import * as portfinder from 'portfinder'
 import chalk from 'chalk'
 
+import * as common from 'enso-common'
+
 import * as bundler from './esbuild-config'
 import * as dashboardBundler from '../dashboard/esbuild-config'
 
@@ -30,10 +32,12 @@ async function watch() {
     // This MUST be called before `builder.watch()` as `tailwind.css` must be generated
     // before the copy plugin runs.
     await dashboardBuilder.watch()
-    const opts = bundler.bundlerOptions({
-        ...bundler.argumentsFromEnv(),
-        devMode: true,
-    })
+    const opts = bundler.bundlerOptions(
+        bundler.argumentsFromEnv({
+            devMode: true,
+            platform: common.Platform.desktop,
+        })
+    )
     opts.define.REDIRECT_OVERRIDE = JSON.stringify('http://localhost:8080')
     opts.entryPoints.push({
         in: path.resolve(THIS_PATH, 'src', 'serviceWorker.ts'),

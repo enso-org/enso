@@ -204,11 +204,6 @@ class Main implements AppRunner {
              * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
              * should only have one entry point. Right now, we have two. One for the cloud
              * and one for the desktop. */
-            const currentPlatform = contentConfig.OPTIONS.groups.startup.options.platform.value
-            let platform = authentication.Platform.desktop
-            if (currentPlatform === 'web') {
-                platform = authentication.Platform.cloud
-            }
             /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
              * React hooks rerender themselves multiple times. It is resulting in multiple
              * Enso main scene being initialized. As a temporary workaround we check whether
@@ -227,7 +222,7 @@ class Main implements AppRunner {
             authentication.run({
                 appRunner: this,
                 logger,
-                platform,
+                platform: PLATFORM,
                 showDashboard:
                     contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
                 onAuthenticated,

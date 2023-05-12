@@ -38,8 +38,9 @@ import * as react from 'react'
 import * as router from 'react-router-dom'
 import * as toast from 'react-hot-toast'
 
+import * as common from 'enso-common'
+
 import * as authService from '../authentication/service'
-import * as platformModule from '../platform'
 
 import * as authProvider from '../authentication/providers/auth'
 import * as backendProvider from '../providers/backend'
@@ -81,7 +82,7 @@ export const SET_USERNAME_PATH = '/set-username'
 /** Global configuration for the `App` component. */
 export interface AppProps {
     logger: loggerProvider.Logger
-    platform: platformModule.Platform
+    platform: common.Platform
     /** Whether the dashboard should be rendered. */
     showDashboard: boolean
     onAuthenticated: () => void
@@ -97,8 +98,7 @@ function App(props: AppProps) {
     const { platform } = props
     // This is a React component even though it does not contain JSX.
     // eslint-disable-next-line no-restricted-syntax
-    const Router =
-        platform === platformModule.Platform.desktop ? router.MemoryRouter : router.BrowserRouter
+    const Router = platform === common.Platform.desktop ? router.MemoryRouter : router.BrowserRouter
     /** Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
      * will redirect the user between the login/register pages and the dashboard. */
     return (

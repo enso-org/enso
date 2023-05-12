@@ -2,12 +2,13 @@
  *
  * Each exported function in the {@link RemoteBackend} in this module corresponds to an API endpoint. The
  * functions are asynchronous and return a `Promise` that resolves to the response from the API. */
+import * as common from 'enso-common'
+
 import * as backend from './backend'
 import * as config from '../config'
 import * as http from '../http'
 import * as loggerProvider from '../providers/logger'
 import * as newtype from '../newtype'
-import * as platformModule from '../platform'
 
 // =================
 // === Constants ===
@@ -143,7 +144,7 @@ interface ListVersionsResponseBody {
 
 /** Class for sending requests to the Cloud backend API endpoints. */
 export class RemoteBackend implements backend.Backend {
-    readonly platform = platformModule.Platform.cloud
+    readonly platform = common.Platform.cloud
 
     /** Creates a new instance of the {@link RemoteBackend} API client.
      *

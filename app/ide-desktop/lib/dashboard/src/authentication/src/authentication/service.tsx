@@ -12,7 +12,6 @@ import * as config from '../config'
 import * as listen from './listen'
 import * as loggerProvider from '../providers/logger'
 import * as newtype from '../newtype'
-import * as platformModule from '../platform'
 
 // =================
 // === Constants ===
@@ -35,14 +34,14 @@ const LOGIN_PATHNAME = '//auth/login'
 const DESKTOP_REDIRECT = newtype.asNewtype<auth.OAuthRedirect>(`${common.DEEP_LINK_SCHEME}://auth`)
 /** Map from platform to the OAuth redirect URL that should be used for that platform. */
 const PLATFORM_TO_CONFIG: Record<
-    platformModule.Platform,
+    common.Platform,
     Pick<auth.AmplifyConfig, 'redirectSignIn' | 'redirectSignOut'>
 > = {
-    [platformModule.Platform.desktop]: {
+    [common.Platform.desktop]: {
         redirectSignIn: DESKTOP_REDIRECT,
         redirectSignOut: DESKTOP_REDIRECT,
     },
-    [platformModule.Platform.cloud]: {
+    [common.Platform.cloud]: {
         redirectSignIn: config.ACTIVE_CONFIG.cloudRedirect,
         redirectSignOut: config.ACTIVE_CONFIG.cloudRedirect,
     },
@@ -89,7 +88,7 @@ export interface AuthConfig {
     /** Logger for the authentication service. */
     logger: loggerProvider.Logger
     /** Whether the application is running on a desktop (i.e., versus in the Cloud). */
-    platform: platformModule.Platform
+    platform: common.Platform
     /** Function to navigate to a given (relative) URL.
      *
      * Used to redirect to pages like the password reset page with the query parameters set in the
@@ -127,14 +126,14 @@ export function initAuthService(authConfig: AuthConfig): AuthService {
 
 function loadAmplifyConfig(
     logger: loggerProvider.Logger,
-    platform: platformModule.Platform,
+    platform: common.Platform,
     navigate: (url: string) => void
 ): auth.AmplifyConfig {
     /** Load the environment-specific Amplify configuration. */
     const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT]
     let urlOpener = null
     let accessTokenSaver = null
-    if (platform === platformModule.Platform.desktop) {
+    if (platform === common.Platform.desktop) {
         /** If we're running on the desktop, we want to override the default URL opener for OAuth
          * flows.  This is because the default URL opener opens the URL in the desktop app itself,
          * but we want the user to be sent to their system browser instead. The user should be sent

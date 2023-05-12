@@ -16,6 +16,8 @@ import process from 'node:process'
 
 import * as esbuild from 'esbuild'
 
+import * as common from 'enso-common'
+
 import * as clientBundler from './esbuild-config'
 import * as contentBundler from '../content/esbuild-config'
 import * as dashboardBundler from '../dashboard/esbuild-config'
@@ -83,7 +85,10 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
         void dashboardBuilder.watch()
 
         console.log('Bundling content.')
-        const contentOpts = contentBundler.bundlerOptionsFromEnv()
+        const contentOpts = contentBundler.bundlerOptionsFromEnv({
+            devMode: true,
+            platform: common.Platform.desktop,
+        })
         contentOpts.plugins.push({
             name: 'enso-on-rebuild',
             setup: build => {

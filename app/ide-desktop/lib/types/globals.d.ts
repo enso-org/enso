@@ -2,7 +2,9 @@
  * These are from variables defined at build time, environment variables,
  * monkeypatching on `window` and generated code.
  *
- * This file MUST `export {}` for the globals to be visible to other files. */
+ * This file MUST include an `import` or `export {}` for the globals to be visible
+ * to other files. */
+import * as common from 'enso-common'
 
 interface StringConfig {
     [key: string]: StringConfig | string
@@ -66,7 +68,6 @@ declare global {
     // This will be `undefined` when it is not defined by esbuild.
     // eslint-disable-next-line no-restricted-syntax
     const REDIRECT_OVERRIDE: string | undefined
+    const PLATFORM: common.Platform
     /* eslint-disable @typescript-eslint/naming-convention */
 }
-
-export {}

@@ -3,9 +3,10 @@
  * Each exported function in the {@link LocalBackend} in this module corresponds to an API endpoint.
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API. */
+import * as common from 'enso-common'
+
 import * as backend from './backend'
 import * as newtype from '../newtype'
-import * as platformModule from '../platform'
 import * as projectManager from './projectManager'
 
 // ========================
@@ -31,7 +32,7 @@ interface CurrentlyOpenProjectInfo {
 export class LocalBackend implements Partial<backend.Backend> {
     static currentlyOpeningProjectId: backend.ProjectId | null = null
     static currentlyOpenProject: CurrentlyOpenProjectInfo | null = null
-    readonly platform = platformModule.Platform.desktop
+    readonly platform = common.Platform.desktop
     private readonly projectManager = projectManager.ProjectManager.default()
 
     async listDirectory(): Promise<backend.Asset[]> {

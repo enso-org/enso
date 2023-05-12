@@ -2,11 +2,12 @@
 import * as react from 'react'
 import toast from 'react-hot-toast'
 
+import * as common from 'enso-common'
+
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
-import * as platform from '../../platform'
 import CreateForm, * as createForm from './createForm'
 
 export interface ProjectCreateFormProps extends createForm.CreateFormPassthroughProps {
@@ -23,7 +24,7 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
     const [name, setName] = react.useState<string | null>(null)
     const [template, setTemplate] = react.useState<string | null>(null)
 
-    if (backend.platform === platform.Platform.desktop) {
+    if (backend.platform === common.Platform.desktop) {
         return <></>
     } else {
         const onSubmit = async (event: react.FormEvent) => {

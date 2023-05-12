@@ -23,6 +23,8 @@ import esbuildPluginCopyDirectories from 'esbuild-plugin-copy-directories'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
+import * as common from 'enso-common'
+
 import * as utils from '../../utils'
 import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
@@ -36,7 +38,15 @@ const THIS_PATH = pathModule.resolve(pathModule.dirname(url.fileURLToPath(import
 // === Environment variables ===
 // =============================
 
-export interface Arguments {
+/** Arguments that must always be supplied, because they are not defined as
+ * environment variables. */
+export interface PassthroughArguments {
+    /** `true` if in development mode (live-reload), `false` if in production mode. */
+    devMode: boolean
+    platform: common.Platform
+}
+
+export interface Arguments extends PassthroughArguments {
     /** List of files to be copied from WASM artifacts. */
     wasmArtifacts: string
     /** Directory with assets. Its contents are to be copied. */
@@ -45,19 +55,17 @@ export interface Arguments {
     outputPath: string
     /** The main JS bundle to load WASM and JS wasm-pack bundles. */
     ensoglAppPath: string
-    /** `true` if in development mode (live-reload), `false` if in production mode. */
-    devMode: boolean
 }
 
 /**
  * Get arguments from the environment.
  */
-export function argumentsFromEnv(): Arguments {
+export function argumentsFromEnv(passthroughArguments: PassthroughArguments): Arguments {
     const wasmArtifacts = utils.requireEnv('ENSO_BUILD_GUI_WASM_ARTIFACTS')
     const assetsPath = utils.requireEnv('ENSO_BUILD_GUI_ASSETS')
     const outputPath = pathModule.resolve(utils.requireEnv('ENSO_BUILD_GUI'), 'assets')
     const ensoglAppPath = utils.requireEnv('ENSO_BUILD_GUI_ENSOGL_APP')
-    return { wasmArtifacts, assetsPath, outputPath, ensoglAppPath, devMode: false }
+    return { ...passthroughArguments, wasmArtifacts, assetsPath, outputPath, ensoglAppPath }
 }
 
 // ===================
@@ -83,7 +91,7 @@ function git(command: string): string {
  * Generate the builder options.
  */
 export function bundlerOptions(args: Arguments) {
-    const { outputPath, ensoglAppPath, wasmArtifacts, assetsPath, devMode } = args
+    const { outputPath, ensoglAppPath, wasmArtifacts, assetsPath, devMode, platform } = args
     const buildOptions = {
         // Disabling naming convention because these are third-party options.
         /* eslint-disable @typescript-eslint/naming-convention */
@@ -141,6 +149,7 @@ export function bundlerOptions(args: Arguments) {
             /** Overrides the redirect URL for OAuth logins in the production environment.
              * This is needed for logins to work correctly under `./run gui watch`. */
             REDIRECT_OVERRIDE: 'undefined',
+            PLATFORM: JSON.stringify(platform),
         },
         sourcemap: true,
         minify: true,
@@ -168,14 +177,14 @@ export function bundlerOptions(args: Arguments) {
  *
  * Note that they should be further customized as per the needs of the specific workflow (e.g. watch vs. build).
  */
-export function bundlerOptionsFromEnv() {
-    return bundlerOptions(argumentsFromEnv())
+export function bundlerOptionsFromEnv(passthroughArguments: PassthroughArguments) {
+    return bundlerOptions(argumentsFromEnv(passthroughArguments))
 }
 
 /** ESBuild options for bundling (one-off build) the package.
  *
  * Relies on the environment variables to be set.
  */
-export function bundleOptions() {
-    return bundlerOptionsFromEnv()
+export function bundleOptions(passthroughArguments: PassthroughArguments) {
+    return bundlerOptionsFromEnv(passthroughArguments)
 }

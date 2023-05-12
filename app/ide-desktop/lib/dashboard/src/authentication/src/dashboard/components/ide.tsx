@@ -1,18 +1,19 @@
 /** @file Container that launches the IDE. */
 import * as react from 'react'
 
+import * as common from 'enso-common'
+
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
-import * as platformModule from '../../platform'
 
 // =================
 // === Constants ===
 // =================
 
 const IDE_CDN_URL = 'https://ensocdn.s3.us-west-1.amazonaws.com/ide'
-const JS_EXTENSION: Record<platformModule.Platform, string> = {
-    [platformModule.Platform.cloud]: '.js.gz',
-    [platformModule.Platform.desktop]: '.js',
+const JS_EXTENSION: Record<common.Platform, string> = {
+    [common.Platform.cloud]: '.js.gz',
+    [common.Platform.desktop]: '.js',
 } as const
 
 // =================
@@ -60,9 +61,9 @@ function Ide(props: Props) {
             } else {
                 const assetsRoot = (() => {
                     switch (backend.platform) {
-                        case platformModule.Platform.cloud:
+                        case common.Platform.cloud:
                             return `${IDE_CDN_URL}/${ideVersion}/`
-                        case platformModule.Platform.desktop:
+                        case common.Platform.desktop:
                             return ''
                     }
                 })()
@@ -83,7 +84,7 @@ function Ide(props: Props) {
                         },
                     })
                 }
-                if (backend.platform === platformModule.Platform.desktop) {
+                if (backend.platform === common.Platform.desktop) {
                     await runNewProject()
                     return
                 } else {

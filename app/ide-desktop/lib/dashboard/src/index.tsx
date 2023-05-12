@@ -1,7 +1,6 @@
 /** @file Entry point into the cloud dashboard. */
 import * as authentication from 'enso-authentication'
-
-import * as platform from 'enso-authentication/src/platform'
+import * as common from 'enso-common'
 
 // =================
 // === Constants ===
@@ -34,7 +33,7 @@ authentication.run({
     logger: console,
     // This file is only included when building for the cloud,
     // so it is safe to set `platform` to `cloud`.
-    platform: platform.Platform.cloud,
+    platform: common.Platform.cloud,
     showDashboard: true,
     // The `onAuthenticated` parameter is required but we don't need it, so we pass an empty function.
     // eslint-disable-next-line @typescript-eslint/no-empty-function

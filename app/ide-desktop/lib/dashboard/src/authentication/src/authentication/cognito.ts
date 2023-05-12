@@ -33,9 +33,10 @@ import * as amplify from '@aws-amplify/auth'
 import * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
 
+import * as common from 'enso-common'
+
 import * as config from './config'
 import * as loggerProvider from '../providers/logger'
-import * as platformModule from '../platform'
 
 // =================
 // === Constants ===
@@ -132,7 +133,7 @@ function isAuthError(error: unknown): error is AuthError {
 export class Cognito {
     constructor(
         private readonly logger: loggerProvider.Logger,
-        private readonly platform: platformModule.Platform,
+        private readonly platform: common.Platform,
         private readonly amplifyConfig: config.AmplifyConfig
     ) {
         /** Amplify expects `Auth.configure` to be called before any other `Auth` methods are
@@ -252,7 +253,7 @@ export class Cognito {
      *
      * See: https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970 */
     private customState() {
-        return this.platform === platformModule.Platform.desktop ? window.location.pathname : null
+        return this.platform === common.Platform.desktop ? window.location.pathname : null
     }
 }
 
@@ -321,7 +322,7 @@ function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
 // === SignUp ===
 // ==============
 
-function signUp(username: string, password: string, platform: platformModule.Platform) {
+function signUp(username: string, password: string, platform: common.Platform) {
     return results.Result.wrapAsync(async () => {
         const params = intoSignUpParams(username, password, platform)
         await amplify.Auth.signUp(params)
@@ -331,7 +332,7 @@ function signUp(username: string, password: string, platform: platformModule.Pla
 function intoSignUpParams(
     username: string,
     password: string,
-    platform: platformModule.Platform
+    platform: common.Platform
 ): amplify.SignUpParams {
     return {
         username,
@@ -348,7 +349,7 @@ function intoSignUpParams(
              * It is necessary to disable the naming convention rule here, because the key is
              * expected to appear exactly as-is in Cognito, so we must match it. */
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            'custom:fromDesktop': platform === platformModule.Platform.desktop ? 'true' : 'false',
+            'custom:fromDesktop': platform === common.Platform.desktop ? 'true' : 'false',
         },
     }
 }
