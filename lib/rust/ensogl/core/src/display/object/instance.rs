@@ -2144,7 +2144,6 @@ impl InstanceDef {
         let this_weak = self.downgrade();
         let mut children_borrow = self.children.borrow_mut();
         let num_children_before = children_borrow.len();
-
         let mut pushed_out_children = false;
         let mut added_children = 0;
         let mut next_free_index = new_children.len().max(*self.next_child_index.get());
@@ -2209,18 +2208,21 @@ impl InstanceDef {
                 if let Some(strong) = child_at_dest.upgrade() {
                     let mut bind = strong.parent_bind.data.borrow_mut();
                     let bind = bind.as_mut().expect("Child should always have a parent bind.");
-                    bind.child_index = free_index;
-                    children_borrow.insert(free_index, child_at_dest);
-                    // In case we just put a child in its final spot, we have to mark as modified.
-                    // If it ends up being deleted, the flag will be cleared anyway.
-                    if bind.parent == this_weak {
-                        self.dirty.modified_children.set(free_index);
+                    // Check if the removed child's position actually match its parent bind. It is
+                    // possible that this child was already assigned to a different spot in previous
+                    // iteration. In that case, we don't want to update it again.
+                    if bind.child_index == new_child_index {
+                        bind.child_index = free_index;
+                        children_borrow.insert(free_index, child_at_dest);
+                        // In case we just put a child in its final spot, we have to mark as
+                        // modified. If it ends up being deleted, the flag will be cleared anyway.
+                        if bind.parent == this_weak {
+                            self.dirty.modified_children.set(free_index);
+                        }
                     }
                 }
             }
         }
-
-        self.next_child_index.set(ChildIndex(new_children.len()));
 
         // At this point, all children that were in the new list are in the right position. We
         // only need to remove the children that were not in the new list. All of them are still
@@ -2229,6 +2231,8 @@ impl InstanceDef {
         let retained_children = new_children.len() - added_children;
         let has_elements_to_remove = retained_children < num_children_before;
         let need_cleanup = has_elements_to_remove || has_stale_indices;
+
+        self.next_child_index.set(ChildIndex(new_children.len()));
 
         if need_cleanup {
             let mut binds_to_drop = SmallVec::<[(ParentBind, WeakInstance); 8]>::new();

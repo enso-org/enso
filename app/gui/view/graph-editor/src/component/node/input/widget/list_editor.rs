@@ -3,10 +3,13 @@
 // FIXME[ao]: This code miss important documentation (e.g. for `Element`, `DragData` and `ListItem`)
 //  and may be unreadable at some places. It should be improved in several next debugging PRs.
 
+use std::collections::hash_map::Entry;
+
 use crate::prelude::*;
 
 use crate::component::node::input::area::TEXT_SIZE;
 use crate::component::node::input::widget::Configuration;
+use crate::component::node::input::widget::IdentityBase;
 use crate::component::node::input::widget::TransferRequest;
 use crate::component::node::input::widget::TreeNode;
 use crate::component::node::input::widget::WidgetIdentity;
@@ -51,7 +54,7 @@ struct Element {
 }
 
 struct DragData {
-    element_id:    WidgetIdentity,
+    child_id:      WidgetIdentity,
     element:       Element,
     expression:    String,
     #[allow(dead_code)]
@@ -61,7 +64,7 @@ struct DragData {
 impl Debug for DragData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("DragData")
-            .field("element_id", &self.element_id)
+            .field("child_id", &self.child_id)
             .field("element", &self.element)
             .field("expression", &self.expression)
             .field("owned_subtree.len", &self.owned_subtree.len())
@@ -69,23 +72,43 @@ impl Debug for DragData {
     }
 }
 
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
+enum ElementIdentity {
+    UniqueBase(IdentityBase),
+    FullIdentity(WidgetIdentity),
+}
+
+#[derive(Clone, CloneRef)]
 struct ListItem {
-    element_id:     Immutable<WidgetIdentity>,
+    child_id:       Immutable<WidgetIdentity>,
+    element_id:     Immutable<ElementIdentity>,
     display_object: object::Instance,
     drag_data:      Rc<RefCell<Option<DragData>>>,
 }
 
+impl Debug for ListItem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ListItem").field("element_id", &self.child_id).finish()
+    }
+}
+
+#[derive(Debug)]
+struct ListItemCandidate {
+    compare_id: ElementIdentity,
+    assigned:   bool,
+    item:       ListItem,
+}
+
 impl PartialEq for ListItem {
     fn eq(&self, other: &Self) -> bool {
-        self.element_id == other.element_id
+        self.child_id == other.child_id
     }
 }
 
 impl ListItem {
     fn take_drag_data(&self) -> Option<DragData> {
         let mut borrow = self.drag_data.borrow_mut();
-        let can_take = matches!(&*borrow, Some(data) if data.element_id == *self.element_id);
+        let can_take = matches!(&*borrow, Some(data) if data.child_id == *self.child_id);
         can_take.and_option_from(|| borrow.take())
     }
 }
@@ -195,12 +218,11 @@ struct Model {
     list:                 ListEditor<ListItem>,
     #[allow(dead_code)]
     background:           display::shape::Rectangle,
-    elements:             HashMap<WidgetIdentity, Element>,
+    elements:             HashMap<ElementIdentity, Element>,
     default_value:        DefaultValue,
     expression:           String,
     crumbs:               span_tree::Crumbs,
     drag_data_rc:         Rc<RefCell<Option<DragData>>>,
-    received_drag:        Option<DragData>,
     insertion_indices:    Vec<usize>,
     insert_with_brackets: bool,
 }
@@ -226,7 +248,6 @@ impl Model {
             expression: default(),
             crumbs: default(),
             drag_data_rc: default(),
-            received_drag: default(),
             insertion_indices: default(),
             insert_with_brackets: default(),
         }
@@ -282,10 +303,13 @@ impl Model {
         let mut open_bracket = None;
         let mut close_bracket = None;
         let mut last_insert_crumb = None;
-        let mut list_items = SmallVec::<[ListItem; 16]>::new();
+        let mut list_items = SmallVec::<[ListItemCandidate; 16]>::new();
+        let mut new_items_range: Option<Range<usize>> = None;
 
         let insert_config = Configuration::active_insertion_point();
         let insert_config = Some(&insert_config);
+
+        let list_id_base = ctx.info.identity.base;
 
         self.insertion_indices.clear();
         for (index, child) in ctx.span_node.node.children.iter().enumerate() {
@@ -312,49 +336,53 @@ impl Model {
                         build_child_widget(insert_index, insert_config, INSERT_HOVER_MARGIN);
                     let item = build_child_widget(index, child_config, ITEM_HOVER_MARGIN);
 
-                    let element = self.elements.entry(item.id).or_insert_with(|| {
-                        self.received_drag.take().map_or_else(Element::new, |d| d.element)
-                    });
+                    let id = match list_id_base == item.info.identity.base {
+                        true => ElementIdentity::FullIdentity(item.info.identity),
+                        false => ElementIdentity::UniqueBase(item.info.identity.base),
+                    };
+
+                    let entry = self.elements.entry(id);
+                    let exists = matches!(entry, Entry::Occupied(_));
+                    if !exists {
+                        let i = list_items.len();
+                        new_items_range =
+                            Some(new_items_range.map_or(i..i + 1, |r| r.start..i + 1));
+                    }
+
+                    let element = entry.or_insert_with(Element::new);
                     set_insertion_margins(&*insert, -ITEMS_GAP * 0.5);
                     element.alive = Some(());
                     element.item_crumb = index;
                     element.expr_range = range;
                     element.content.replace_children(&[&*insert, &*item]);
                     self.insertion_indices.push(insert_index);
-                    list_items.push(ListItem {
-                        element_id:     Immutable(item.id),
+                    let item = ListItem {
+                        child_id:       Immutable(item.info.identity),
+                        element_id:     Immutable(id),
                         display_object: element.display_object.clone(),
                         drag_data:      self.drag_data_rc.clone(),
-                    });
+                    };
+                    list_items.push(ListItemCandidate { compare_id: id, assigned: exists, item });
                 }
                 _ => {}
             }
         }
 
         let list_empty = list_items.is_empty();
-        self.elements.retain(|_, child| child.alive.take().is_some());
+        let new_items_range = new_items_range.unwrap_or(0..0);
+        let mut non_assigned_items = list_items[new_items_range].iter_mut().filter(|c| !c.assigned);
+
+        self.elements.retain(|key, child| {
+            let alive = child.alive.take().is_some();
+            if !alive {
+                if let Some(candidate) = non_assigned_items.next() {
+                    candidate.compare_id = *key;
+                }
+            }
+            alive
+        });
         self.insertion_indices.extend(last_insert_crumb);
         self.insert_with_brackets = open_bracket.is_none() && close_bracket.is_none();
-
-        let current_items = self.list.items();
-        list_diff(&current_items, &list_items, |op| match op {
-            DiffOp::Delete { at, old, present_later } =>
-                if present_later.is_some()
-                    || list_items.iter().any(|i| i.display_object == old.display_object)
-                {
-                    self.list.take_item(at);
-                } else {
-                    self.list.remove(at);
-                },
-            DiffOp::Insert { at, new } => {
-                self.list.insert_item(at, new.clone_ref());
-            }
-            DiffOp::Update { at, old, new } =>
-                if old.display_object() != new.display_object() {
-                    self.list.replace_item(at, new.clone_ref());
-                },
-        });
-
 
         let append_insert = last_insert_crumb.map(|index| {
             let insert = build_child_widget(index, insert_config, INSERT_HOVER_MARGIN).root_object;
@@ -369,6 +397,41 @@ impl Model {
         children.extend(&append_insert);
         children.extend(&close_bracket);
         root.replace_children(&children);
+
+        let mut need_reposition = false;
+
+        let current_items = self.list.items();
+        list_diff(
+            &current_items,
+            &list_items,
+            |old, new| *old.element_id == new.compare_id,
+            |op| match op {
+                DiffOp::Delete { at, old, present_later } =>
+                    if present_later.is_some()
+                        || list_items.iter().any(|i| i.item.display_object == old.display_object)
+                    {
+                        self.list.take_item_no_reposition(at);
+                        need_reposition = true;
+                    } else {
+                        self.list.trash_item_at(at);
+                    },
+                DiffOp::Insert { at, new } => {
+                    self.list.insert_item_no_reposition(at, new.item.clone_ref());
+                    need_reposition = true;
+                }
+                DiffOp::Update { at, old, new } =>
+                    if old.display_object() != new.item.display_object()
+                        || old.child_id != new.item.child_id
+                    {
+                        self.list.replace_item_no_reposition(at, new.item.clone_ref());
+                        need_reposition = true;
+                    },
+            },
+        );
+
+        if need_reposition {
+            self.list.reposition_items();
+        }
     }
 
     fn on_item_removed(&mut self, item: ListItem) -> Option<(span_tree::Crumbs, TransferRequest)> {
@@ -376,7 +439,7 @@ impl Model {
         let crumbs = self.crumbs.sub(element.item_crumb);
         let request = TransferRequest {
             new_owner:     self.self_id,
-            to_transfer:   *item.element_id,
+            to_transfer:   *item.child_id,
             whole_subtree: true,
         };
         Some((crumbs, request))
@@ -387,11 +450,14 @@ impl Model {
         req: TransferRequest,
         owned_subtree: Vec<(WidgetIdentity, TreeNode)>,
     ) {
-        let element_id = req.to_transfer;
+        let as_full = ElementIdentity::FullIdentity(req.to_transfer);
+        let as_unique = ElementIdentity::UniqueBase(req.to_transfer.base);
+        let element_id = if self.elements.contains_key(&as_unique) { as_unique } else { as_full };
         let element = self.elements.remove(&element_id);
         if let Some(element) = element {
             let expression = self.expression[element.expr_range.clone()].to_owned();
-            let drag_data = DragData { element_id, element, expression, owned_subtree };
+            let drag_data =
+                DragData { child_id: req.to_transfer, element, expression, owned_subtree };
             self.drag_data_rc.replace(Some(drag_data));
         } else {
             error!("Grabbed item not found.");
@@ -403,8 +469,10 @@ impl Model {
         item: ListItem,
         at: usize,
     ) -> Option<(span_tree::Crumbs, Option<ImString>)> {
-        self.received_drag = item.take_drag_data();
-        let expression: ImString = mem::take(&mut self.received_drag.as_mut()?.expression).into();
+        let element_id = *item.element_id;
+        let drag_data = item.take_drag_data()?;
+        let expression: ImString = drag_data.expression.into();
+        self.elements.insert(element_id, drag_data.element);
         match &self.insertion_indices[..] {
             &[] => Some((self.crumbs.clone(), Some(expression))),
             ids => ids.get(at).map(|idx| (self.crumbs.sub(*idx), Some(expression))),
@@ -479,13 +547,11 @@ impl Default for DefaultValue {
     }
 }
 
-impl From<&str> for DefaultValue {
-    fn from(s: &str) -> Self {
-        DefaultValue::Expression(s.into())
+impl From<ImString> for DefaultValue {
+    fn from(s: ImString) -> Self {
+        DefaultValue::Expression(s)
     }
 }
-
-
 
 impl super::SpanWidget for Widget {
     type Config = Config;
@@ -513,19 +579,18 @@ impl super::SpanWidget for Widget {
 }
 
 #[derive(PartialEq)]
-enum DiffOp<'old, 'new, T> {
-    Delete { at: usize, old: &'old T, present_later: Option<usize> },
-    Insert { at: usize, new: &'new T },
-    Update { at: usize, old: &'old T, new: &'new T },
+enum DiffOp<'old, 'new, O, N> {
+    Delete { at: usize, old: &'old O, present_later: Option<usize> },
+    Insert { at: usize, new: &'new N },
+    Update { at: usize, old: &'old O, new: &'new N },
 }
 
-fn list_diff<'old, 'new, T>(
-    old_elements: &'old [T],
-    new_elements: &'new [T],
-    mut f: impl FnMut(DiffOp<'old, 'new, T>),
-) where
-    T: PartialEq,
-{
+fn list_diff<'old, 'new, O, N>(
+    old_elements: &'old [O],
+    new_elements: &'new [N],
+    cmp: impl Fn(&O, &N) -> bool,
+    mut f: impl FnMut(DiffOp<'old, 'new, O, N>),
+) {
     // Indices for next elements to process in both lists.
     let mut current_old = 0;
     let mut current_new = 0;
@@ -539,7 +604,7 @@ fn list_diff<'old, 'new, T>(
         let new = &new_elements[current_new];
 
         // Next pair of elements are equal, so we don't need to do anything.
-        if old == new {
+        if cmp(old, new) {
             f(DiffOp::Update { at, old, new });
             current_old += 1;
             current_new += 1;
@@ -550,14 +615,14 @@ fn list_diff<'old, 'new, T>(
         let remaining_old = &old_elements[current_old + 1..];
         let remaining_new = &new_elements[current_new + 1..];
 
-        let old_still_in_new_list = remaining_new.contains(old);
+        let old_still_in_new_list = remaining_new.iter().any(|new| cmp(old, new));
         if !old_still_in_new_list {
             f(DiffOp::Delete { at, old, present_later: None });
             current_old += 1;
             continue;
         }
 
-        let index_in_remaining_old = remaining_old.iter().position(|x| x == new);
+        let index_in_remaining_old = remaining_old.iter().position(|old| cmp(old, new));
         match index_in_remaining_old {
             // Not present in old, thus it is an insertion.
             None => {
@@ -570,7 +635,7 @@ fn list_diff<'old, 'new, T>(
             Some(advance) => {
                 f(DiffOp::Delete { at, old, present_later: Some(current_old + advance + 1) });
                 for k in 0..advance {
-                    let present_later = remaining_old[k + 1..].iter().position(|old| old == new);
+                    let present_later = remaining_old[k + 1..].iter().position(|old| cmp(old, new));
                     f(DiffOp::Delete { at, old: &remaining_old[k], present_later });
                 }
                 current_old += advance + 1;
@@ -620,9 +685,7 @@ pub fn infer_default_value_from_type(typename: Option<&str>) -> &'static str {
 
         possible_types.fold(DefaultVariant::NotDefined, |acc, ty| acc.fold(ty))
     });
-    let value = variant.to_default_value();
-    console_log!("Infer vector variant from type: {typename:?}, value: {value:?}");
-    value
+    variant.to_default_value()
 }
 
 fn remove_outer_parentheses(s: &str) -> &str {

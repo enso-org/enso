@@ -681,20 +681,32 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         self.model.borrow_mut().insert(index, item);
     }
 
-    pub fn replace_item(&self, index: Index, new_item: T) -> Option<T> {
+    pub fn insert_item_no_reposition(&self, index: Index, item: T) {
+        self.model.borrow_mut().insert_no_reposition(index, item);
+    }
+
+    pub fn replace_item_no_reposition(&self, index: Index, new_item: T) -> Option<T> {
         let mut model = self.model.borrow_mut();
         let index = model.index_to_item_or_placeholder_index(index)?;
         let item = model.items.get_mut(index)?;
         item.replace_element(new_item)
     }
 
-    pub fn take_item(&self, index: Index) -> Option<T> {
+    pub fn trash_item_at(&self, index: Index) -> Option<T> {
+        self.model.borrow_mut().trash_item_at(index)
+    }
+
+    pub fn take_item_no_reposition(&self, index: Index) -> Option<T> {
         let mut model = self.model.borrow_mut();
         let index = model.index_to_item_or_placeholder_index(index)?;
         match model.items.remove(index) {
             ItemOrPlaceholder::Item(item) => Some(item.elem),
             ItemOrPlaceholder::Placeholder(_) => unreachable!(),
         }
+    }
+
+    pub fn reposition_items(&self) {
+        self.model.borrow_mut().reposition_items();
     }
 
     pub fn item_at(&self, index: Index) -> Option<T> {
@@ -819,33 +831,41 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
     }
 
     fn push(&mut self, item: T) -> Index {
-        let index = self.len();
-        let item = Item::new(item);
-        self.items.push(item.into());
+        let index = self.push_no_reposition(item);
         self.reposition_items();
         index
     }
 
+    fn push_no_reposition(&mut self, item: T) -> Index {
+        let index = self.len();
+        let item = Item::new(item);
+        self.items.push(item.into());
+        index
+    }
+
+
     fn insert(&mut self, index: Index, item: T) -> Index {
-        let index = if let Some(index2) = self.index_to_item_or_placeholder_index(index) {
+        self.insert_no_reposition(index, item);
+        self.reposition_items();
+        index
+    }
+
+    fn insert_no_reposition(&mut self, index: Index, item: T) -> Index {
+        if let Some(index2) = self.index_to_item_or_placeholder_index(index) {
             let item = Item::new(item);
             self.items.insert(index2, item.into());
             index
         } else {
-            self.push(item)
-        };
-        self.reposition_items();
-        index
+            self.push_no_reposition(item)
+        }
     }
 
     /// Remove all items and add them again, in order of their current position.
     fn reposition_items(&mut self) {
         self.retain_non_collapsed_items();
-        for item in &self.items {
-            if let Some(display_object) = item.display_object() {
-                self.layout.add_child(&display_object);
-            }
-        }
+        let children: SmallVec<[_; 16]> =
+            self.items.iter().filter_map(|i| i.display_object()).collect();
+        self.layout.replace_children(&children);
         self.recompute_margins();
     }
 

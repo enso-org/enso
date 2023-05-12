@@ -983,34 +983,7 @@ impl TreeModel {
     /// is more stable across changes in the span tree than [`span_tree::Crumbs`]. The pointer is
     /// used to identify the widgets or ports in the widget tree.
     pub fn get_node_widget_pointer(&self, span_node: &SpanRef) -> StableSpanIdentity {
-        if let Some(id) = span_node.ast_id {
-            // This span represents an AST node, return a pointer directly to it.
-            StableSpanIdentity::new(Some(id), &[])
-        } else {
-            let root = span_node.span_tree.root_ref();
-            let root_ast_data = root.ast_id.map(|id| (id, 0));
-
-            // When the node does not represent an AST node, its widget will be identified by the
-            // closest parent AST node, if it exists. We have to find the closest parent node with
-            // AST ID, and then calculate the relative crumbs from it to the current node.
-            let (_, ast_parent_data) = span_node.crumbs.into_iter().enumerate().fold(
-                (root, root_ast_data),
-                |(node, last_seen), (index, crumb)| {
-                    let ast_data = node.node.ast_id.map(|id| (id, index)).or(last_seen);
-                    (node.child(*crumb).expect("Node ref must be valid"), ast_data)
-                },
-            );
-
-            match ast_parent_data {
-                // Parent AST node found, return a pointer relative to it.
-                Some((ast_id, ast_parent_index)) => {
-                    let crumb_slice = &span_node.crumbs[ast_parent_index..];
-                    StableSpanIdentity::new(Some(ast_id), crumb_slice)
-                }
-                // No parent AST node found. Return a pointer from root.
-                None => StableSpanIdentity::new(None, &span_node.crumbs),
-            }
-        }
+        StableSpanIdentity::from_node(span_node)
     }
 
     /// Perform an operation on a shared reference to a tree port under given pointer. When there is
@@ -1215,26 +1188,70 @@ impl NestingLevel {
 /// rebuilding the tree.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct StableSpanIdentity {
-    /// AST ID of either the node itself, or the closest ancestor node which has one. Is [`None`]
-    /// when there is no such parent with assigned AST id.
-    ast_id:        Option<ast::Id>,
+    /// Identity base of either the node itself, or the closest ancestor node which has one.
+    pub base:          IdentityBase,
     /// A hash of remaining data used to distinguish between tree nodes. We store a hash instead of
     /// the data directly, so the type can be trivially copied. The collision is extremely unlikely
     /// due to u64 being extremely large hash space, compared to the size of the used data. Many
     /// nodes are also already fully distinguished by the AST ID alone.
     ///
     /// Currently we are hashing a portion of span-tree crumbs, starting from the closest node with
-    /// assigned AST id up to this node. The widgets should not rely on the exact kind of data
-    /// used, as it may be extended to include more information in the future.
-    identity_hash: u64,
+    /// assigned identity base up to this node. The widgets should not rely on the exact kind of
+    /// data used, as it may be extended to include more information in the future.
+    pub identity_hash: u64,
+}
+
+/// Data that uniquely identifies some span nodes. Not all nodes have unique identity base. To
+/// disambiguate nodes that don't have their own stable base, use [`StableSpanIdentity`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum IdentityBase {
+    /// There isn't any parent with assigned AST id.
+    #[default]
+    FromRoot,
+    /// AST ID of either the node itself, or the closest ancestor node which has one.
+    AstNode(ast::Id),
+    /// AST ID of the node that this span is an extension of. Only present if this span doesn't
+    /// have an unique AST ID assigned.
+    ExtNode(ast::Id),
 }
 
 impl StableSpanIdentity {
-    fn new(ast_id: Option<ast::Id>, crumbs_since_ast: &[span_tree::Crumb]) -> Self {
+    fn from_node(node: &span_tree::node::Ref) -> Self {
+        let (base, base_idx) = if let Some(ast_id) = node.ast_id {
+            (IdentityBase::AstNode(ast_id), node.crumbs.len())
+        } else if let Some(ext_id) = node.extended_ast_id {
+            let base_idx = node
+                .span_tree
+                .find_map_in_chain(&node.crumbs, |idx, node| {
+                    (node.extended_ast_id == Some(ext_id)).then_some(idx)
+                })
+                .unwrap_or(node.crumbs.len());
+            (IdentityBase::ExtNode(ext_id), base_idx)
+        } else {
+            let mut found_base = (IdentityBase::FromRoot, node.crumbs.len());
+            let mut current_ext = None;
+            node.span_tree.find_map_in_chain(&node.crumbs, |idx, node| {
+                if let Some(ast) = node.ast_id {
+                    found_base = (IdentityBase::AstNode(ast), idx);
+                } else if let Some(ext) = node.extended_ast_id {
+                    if current_ext != Some(ext) {
+                        found_base = (IdentityBase::ExtNode(ext), idx);
+                    }
+                }
+                current_ext = node.extended_ast_id;
+                None::<()>
+            });
+            found_base
+        };
+        let identity_hash = Self::hash_crumbs_from_base(&node.crumbs[..], base_idx);
+        Self { base, identity_hash }
+    }
+
+    fn hash_crumbs_from_base(crumbs: &[usize], base_idx: usize) -> u64 {
+        let remaining_crumbs = &crumbs[base_idx..];
         let mut hasher = DefaultHasher::new();
-        crumbs_since_ast.hash(&mut hasher);
-        let identity_hash = hasher.finish();
-        Self { ast_id, identity_hash }
+        remaining_crumbs.hash(&mut hasher);
+        hasher.finish()
     }
 
     /// Convert this pointer to a stable identity of a widget, making it unique among all widgets.
@@ -1380,29 +1397,19 @@ impl<'a> TreeBuilder<'a> {
         // the current layer's state, so it can be restored later after visiting the child node.
         let parent_last_ast_depth = self.last_ast_depth;
         let depth = span_node.crumbs.len();
+        let is_extended_ast = span_node.ast_id.is_none() && span_node.extended_ast_id.is_some();
 
         // Figure out the widget tree pointer for the current node. That pointer determines the
         // widget identity, allowing it to maintain internal state. If the previous tree already
         // contained a widget for this pointer, we have to reuse it.
-        let main_ptr = match span_node.ast_id {
-            Some(ast_id) => {
-                self.last_ast_depth = depth;
-                StableSpanIdentity::new(Some(ast_id), &[])
-            }
-            None => {
-                let ast_id = self.parent_info.as_ref().and_then(|st| st.identity.main.ast_id);
-                let this_crumbs = &span_node.crumbs;
-                let crumbs_since_id = &this_crumbs[parent_last_ast_depth..];
-                StableSpanIdentity::new(ast_id, crumbs_since_id)
-            }
-        };
+        let main_ptr = StableSpanIdentity::from_node(&span_node);
 
         let ptr_usage = self.pointer_usage.entry(main_ptr).or_default();
         let widget_id = main_ptr.to_identity(ptr_usage);
 
         let is_placeholder = span_node.is_expected_argument();
         let sibling_offset = span_node.sibling_offset.as_usize();
-        let usage_type = main_ptr.ast_id.and_then(|id| self.usage_type_map.get(&id)).cloned();
+        let usage_type = span_node.ast_id.and_then(|id| self.usage_type_map.get(&id)).cloned();
 
         // Prepare the widget node info and build context.
         let connection_color = self.connected_map.get(&span_node.crumbs);
@@ -1462,7 +1469,8 @@ impl<'a> TreeBuilder<'a> {
         };
 
         ptr_usage.used_configs |= configuration.kind.flag();
-        let widget_has_port = ptr_usage.request_port(&widget_id, configuration.has_port);
+        let widget_has_port =
+            ptr_usage.request_port(&widget_id, configuration.has_port && !is_extended_ast);
 
         let old_node = self.old_nodes.remove(&widget_id).map(|e| e.node);
 
@@ -1472,7 +1480,12 @@ impl<'a> TreeBuilder<'a> {
         let saved_node_settings = std::mem::take(&mut self.node_settings);
         let parent_extensions_len = self.extensions.len();
 
-        let ctx = ConfigContext { builder: &mut *self, span_node, info, parent_extensions_len };
+        let ctx = ConfigContext {
+            builder: &mut *self,
+            span_node,
+            info: info.clone(),
+            parent_extensions_len,
+        };
         let app = ctx.app();
         let frp = ctx.frp();
 
@@ -1530,7 +1543,7 @@ impl<'a> TreeBuilder<'a> {
 
         let entry = TreeEntry { node: child_node, index: insertion_index };
         self.new_nodes.insert(widget_id, entry);
-        Child { id: widget_id, root_object: child_root }
+        Child { info, root_object: child_root }
     }
 }
 
@@ -1545,11 +1558,10 @@ impl<'a> TreeBuilder<'a> {
 /// hierarchy.
 #[derive(Debug, Clone, Deref)]
 struct Child {
-    /// The widget identity that is stable across rebuilds. The parent might use it to associate
-    /// internal state with any particular child. When a new child is inserted between two existing
-    /// children, their identities will be maintained.
-    #[allow(dead_code)]
-    pub id:          WidgetIdentity,
+    /// The node info used during building of the child widget. The parent might use it to
+    /// associate internal state with any particular child. When a new child is inserted between
+    /// two existing children, their identities will be maintained.
+    pub info:        NodeInfo,
     /// The root object of the widget. In order to make the widget visible, it must be added to the
     /// parent's view hierarchy. Every time a widget is [`configure`d], its root object may change.
     /// The parent must not assume ownership over a root object of a removed child. The widget
