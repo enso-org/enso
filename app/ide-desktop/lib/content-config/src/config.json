@@ -1,7 +1,7 @@
 {
   "options": {
     "authentication": {
-      "value": true,
+      "value": false,
       "description": "Determines whether user authentication is enabled. This option is always true when executed in the cloud."
     },
     "dataCollection": {
@@ -121,7 +121,7 @@
           "primary": false
         },
         "newDashboard": {
-          "value": true,
+          "value": false,
           "description": "Determines whether the new dashboard with cloud integration is enabled."
         },
         "profiling": {
