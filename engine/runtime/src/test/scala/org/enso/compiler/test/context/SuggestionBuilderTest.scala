@@ -2013,7 +2013,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       )
     }
 
-    "build type with ascribed constructor111" in {
+    "build type with ascribed constructor" in {
 
       val code =
         """type X
@@ -2058,6 +2058,71 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               arguments = Seq(
                 Suggestion
                   .Argument("x", "Unnamed.Test.X", false, false, None)
+              ),
+              returnType    = "Unnamed.Test.T",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "x",
+              arguments = Seq(
+                Suggestion
+                  .Argument("self", "Unnamed.Test.T", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.T",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build type with qualified ascribed constructor111" in {
+
+      val code =
+        """import Standard.Base.Data.Numbers
+          |
+          |type T
+          |    A (x : Numbers.Number)
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "T",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.T",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "A",
+              arguments = Seq(
+                Suggestion
+                  .Argument(
+                    "x",
+                    "Standard.Base.Data.Numbers.Number",
+                    false,
+                    false,
+                    None
+                  )
               ),
               returnType    = "Unnamed.Test.T",
               documentation = None

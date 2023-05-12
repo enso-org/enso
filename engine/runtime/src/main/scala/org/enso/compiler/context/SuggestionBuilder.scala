@@ -644,12 +644,6 @@ final class SuggestionBuilder[A: IndexedSource](
         case _            => Any
       }
     }
-//    val ascribedType = arg.ascribedType.map { typeExpr =>
-//      buildTypeSignature(typeExpr) match {
-//        case Vector(targ) => buildTypeArgumentName(targ)
-//        case _            => Any
-//      }
-//    }
     Suggestion.Argument(
       name         = arg.name.name,
       reprType     = signatureOpt.getOrElse(Any),

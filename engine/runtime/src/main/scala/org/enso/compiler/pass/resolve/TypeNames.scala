@@ -77,14 +77,19 @@ case object TypeNames extends IRPass {
     expression.transformExpressions {
       case expr if SuspendedArguments.representsSuspended(expr) => expr
       case n: IR.Name.Literal =>
-        resolveName(bindingsMap, n)
+        processResolvedName(n, bindingsMap.resolveName(n.name))
       case n: IR.Name.Qualified =>
-        resolveName(bindingsMap, n)
+        processResolvedName(
+          n,
+          bindingsMap.resolveQualifiedName(n.parts.map(_.name))
+        )
     }
 
-  private def resolveName(bindingsMap: BindingsMap, name: IR.Name): IR.Name =
-    bindingsMap
-      .resolveName(name.name)
+  private def processResolvedName(
+    name: IR.Name,
+    resolvedName: Either[BindingsMap.ResolutionError, BindingsMap.ResolvedName]
+  ): IR.Name =
+    resolvedName
       .map(res => name.updateMetadata(this -->> Resolution(res)))
       .fold(
         error =>
