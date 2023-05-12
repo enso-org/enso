@@ -1,5 +1,5 @@
-/// A vector with a cap for its size. If the vector is full, adding a new element will remove
-/// an old one.
+//! A vector with a cap for its size. If the vector is full, adding a new element will remove
+//! an old one.
 use std::collections::VecDeque;
 
 
