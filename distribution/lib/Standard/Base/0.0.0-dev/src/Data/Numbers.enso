@@ -2,9 +2,11 @@ import project.Data.Text.Text
 import project.Data.Locale.Locale
 import project.Errors.Common.Arithmetic_Error
 import project.Errors.Common.Incomparable_Values
+import project.Errors.Common.Unsupported_Argument_Types
 import project.Error.Error
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.IO
 
 from project.Data.Boolean import Boolean, True, False
 
@@ -559,17 +561,18 @@ type Decimal
 
        ? Negative decimal place counts
          Rounding to `n` digits can be thought of as "rounding to the nearest
-         multiple of 10^(-n)". For negative decimal counts, this results in rounding to the nearest positive integer power of 10.
+         multiple of 10^(-n)". For negative decimal counts, this results in
+         rounding to the nearest positive integer power of 10.
 
        ? Infinities and NaN
          - NaN.round == 0
          - +Inf.round == +Inf
          - -Inf.round == -Inf
     round : Integer -> Decimal
-    round self that=0 = self.round_builtin that
+    round self decimal_places=0 = self.round_builtin decimal_places
 
     round_builtin : Integer -> Decimal
-    round_builtin self that = @Builtin_Method "Decimal.round_builtin"
+    round_builtin self decimal_places = @Builtin_Method "Decimal.round_builtin"
 
     ## Compute the negation of this.
 
@@ -813,6 +816,47 @@ type Integer
              4.floor
     floor : Integer
     floor self = @Builtin_Method "Integer.floor"
+
+    ## Round to a specified number of decimal places.
+
+       For integers, rounding to 0 or more decimal places simply returns the
+       argument. For negative decimal places, see below.
+
+       By default, rounding uses "asymmetric round-half-up", also known as
+       "round towards positive infinity." If use_bankers=True, then it uses
+       "round-half-even", also known as "banker's rounding".
+
+       Arguments:
+       - decimal_places: The number of decimal places to round to. Can be
+         negative, which results in rounding to positive integer powers of 10.
+       - use_bankers: Use banker's rounding
+
+       ? Negative decimal place counts
+         Rounding to `n` digits can be thought of as "rounding to the nearest
+         multiple of 10^(-n)". For negative decimal counts, this results in
+         rounding to the nearest positive integer power of 10.
+    round : Integer -> Integer
+    round self decimal_places=0 =
+        IO.println "round"
+        IO.println self
+        if decimal_places >= 0 then self else
+            case decimal_places < Integer.min_decimal_places of
+                True ->
+                    msg = "Round: decimal_places must be between " + Integer.min_decimal_places.to_text + " and " + Integer.max_decimal_places.to_text + "(inclusive), but was " + decimal_places;
+                    Error.throw <| Unsupported_Argument_Types.error [decimal_places] msg
+                False ->
+                    scale = 10 ^ decimal_places
+                    (self + (0.5 * scale)).floor
+
+    ## PRIVATE
+       The smallest allowed value for the `decimal_places` argument to `round`
+    min_decimal_places : Integer
+    min_decimal_places = -15
+
+    ## PRIVATE
+       The largest allowed value for the `decimal_places` argument to `round`
+    max_decimal_places : Integer
+    max_decimal_places = 15
 
     ## Compute the negation of this.
 

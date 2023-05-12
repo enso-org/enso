@@ -488,8 +488,8 @@ spec =
 
         Test.specify "Explicit and implicit 0 decimal places work the same" <|
             3.00001 . round 0 . should_equal 3
-            3.3 . round . should_equal 3
-            3.00001 . round 0 . should_equal 3
+            3.3 . round 0 . should_equal 3
+            3.00001 . round . should_equal 3
             3.3 . round . should_equal 3
 
         Test.specify "Can round negative decimals correctly" <|
@@ -569,7 +569,47 @@ spec =
             3.1 . round -16 . should_fail_with Unsupported_Argument_Types
 
     Test.group "Integer.round (small)" <|
-        Test.specify "Can round small integers correctly"
-            1 . should_equal 1
+        Test.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)"
+            0 . round . should_equal 0
+            3 . round . should_equal 3
+            -3 . round . should_equal -3
+            3 . round 0 . should_equal 3
+            -3 . round 0 . should_equal -3
+            3 . round 1 . should_equal 3
+            -3 . round 1 . should_equal -3
+
+        Test.specify "Can round small integers to a specified number of negative places correctly"
+            4 . round -1 . should_equal 0
+            24 . round -1 . should_equal 20
+            25 . round -1 . should_equal 30
+            29 . round -1 . should_equal 30
+            30 . round -1 . should_equal 30
+            31 . round -1 . should_equal 30
+
+            2412 . round -3 . should_equal 2000
+            2499 . round -1 . should_equal 2000
+            2500 . round -1 . should_equal 3000
+            2511 . round -1 . should_equal 3000
+            2907 . round -1 . should_equal 3000
+            3000 . round -1 . should_equal 3000
+            3098 . round -1 . should_equal 3000
+            3101 . round -1 . should_equal 3000
+
+        Test.specify "Can round negative small integers to a specified number of negative places correctly"
+            -4 . round -1 . should_equal 0
+            -24 . round -1 . should_equal -20
+            -25 . round -1 . should_equal -20
+            -29 . round -1 . should_equal -30
+            -30 . round -1 . should_equal -30
+            -31 . round -1 . should_equal -30
+
+            -2412 . round -3 . should_equal -2000
+            -2499 . round -1 . should_equal -2000
+            -2500 . round -1 . should_equal -2000
+            -2511 . round -1 . should_equal -3000
+            -2907 . round -1 . should_equal -3000
+            -3000 . round -1 . should_equal -3000
+            -3098 . round -1 . should_equal -3000
+            -3101 . round -1 . should_equal -3000
 
 main = Test_Suite.run_main spec
