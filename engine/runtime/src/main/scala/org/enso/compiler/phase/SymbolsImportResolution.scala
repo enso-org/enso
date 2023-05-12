@@ -16,6 +16,7 @@ import scala.collection.mutable.ListBuffer
 
 class SymbolsImportResolution(compiler: Compiler) {
   private val logger: TruffleLogger = compiler.context.getLogger(getClass)
+  private type SymbolsResolution = Either[IR.Error.ImportExport.Reason, List[ImportTarget]]
 
   def resolveImportSymbols(
     module: Module
@@ -121,17 +122,14 @@ class SymbolsImportResolution(compiler: Compiler) {
           tryResolveFromExportedSymbols(module, symbolToImport, typeName) match {
             case Left(importTarget) => resolvedSymbols += importTarget
             case Right(errorReason) =>
-              // Report failure
-              return SymbolsResolution(
-                resolvedSymbols.toList,
-                Some(errorReason)
+              return Left(
+                errorReason
               )
           }
       }
     }
-    SymbolsResolution(
+    Right(
       resolvedSymbols.toList,
-      None
     )
   }
 
@@ -292,16 +290,13 @@ class SymbolsImportResolution(compiler: Compiler) {
       Array[Object](symbolsToImportUnwrapped, typeName, importedModule.getName)
     )
 
-    val symbolsResolution = {
+    val symbolsResolution: SymbolsResolution = {
       // Trying to import any symbols from a non-existing type is an error
       if (typeName.isDefined && !typeExists(typeName.get, importedBindingMap)) {
-        SymbolsResolution(
-          resolved = List.empty,
-          errorReason = Some(
-            IR.Error.ImportExport.TypeDoesNotExist(
-              typeName.get,
-              moduleName
-            )
+        Left(
+          IR.Error.ImportExport.TypeDoesNotExist(
+            typeName.get,
+            moduleName
           )
         )
       } else {
@@ -316,18 +311,17 @@ class SymbolsImportResolution(compiler: Compiler) {
 
     logger.log(
       Level.FINER,
-      "Got result from symbolsResolution: Resolved = {0}, Error = {1}",
+      "Got result from symbolsResolution: {0}",
       Array[Object](
-        symbolsResolution.resolved.map(_.qualifiedName.toString),
-        symbolsResolution.errorReason
+        symbolsResolution
       )
     )
 
-    if (symbolsResolution.errorReason.isDefined) {
+    if (symbolsResolution.isLeft) {
       // Replace the IR with IR.Error and don't update the binding map
       IR.Error.ImportExport(
         ir = importStatement,
-        reason = symbolsResolution.errorReason.get
+        reason = symbolsResolution.left.get
       )
     } else {
       val importingAllSymbols = symbolsToImport.isEmpty
@@ -342,7 +336,7 @@ class SymbolsImportResolution(compiler: Compiler) {
           val filteredAdditionalExportedSymbols: List[ImportTarget] =
             additionalExportedSymbols.filterNot(
               additionalExportedSymbol =>
-                symbolsResolution.resolved.exists(_.qualifiedName == additionalExportedSymbol.qualifiedName)
+                symbolsResolution.right.get.exists(_.qualifiedName == additionalExportedSymbol.qualifiedName)
             )
 
           logger.log(
@@ -351,9 +345,9 @@ class SymbolsImportResolution(compiler: Compiler) {
             Array[Object](filteredAdditionalExportedSymbols)
           )
 
-          symbolsResolution.resolved ++ filteredAdditionalExportedSymbols
+          symbolsResolution.right.get ++ filteredAdditionalExportedSymbols
         } else {
-          symbolsResolution.resolved
+          symbolsResolution.right.get
         }
 
       val resolvedImports =
@@ -565,8 +559,4 @@ class SymbolsImportResolution(compiler: Compiler) {
     })
   }
 
-  private case class SymbolsResolution(
-    resolved: List[ImportTarget],
-    errorReason: Option[IR.Error.ImportExport.Reason]
-  )
 }
