@@ -321,7 +321,7 @@ class SymbolsImportResolution(compiler: Compiler) {
       // Replace the IR with IR.Error and don't update the binding map
       IR.Error.ImportExport(
         ir = importStatement,
-        reason = symbolsResolution.left.get
+        reason = symbolsResolution.swap.toOption.get
       )
     } else {
       val importingAllSymbols = symbolsToImport.isEmpty
@@ -336,7 +336,7 @@ class SymbolsImportResolution(compiler: Compiler) {
           val filteredAdditionalExportedSymbols: List[ImportTarget] =
             additionalExportedSymbols.filterNot(
               additionalExportedSymbol =>
-                symbolsResolution.right.get.exists(_.qualifiedName == additionalExportedSymbol.qualifiedName)
+                symbolsResolution.toOption.get.exists(_.qualifiedName == additionalExportedSymbol.qualifiedName)
             )
 
           logger.log(
@@ -345,9 +345,9 @@ class SymbolsImportResolution(compiler: Compiler) {
             Array[Object](filteredAdditionalExportedSymbols)
           )
 
-          symbolsResolution.right.get ++ filteredAdditionalExportedSymbols
+          symbolsResolution.toOption.get ++ filteredAdditionalExportedSymbols
         } else {
-          symbolsResolution.right.get
+          symbolsResolution.toOption.get
         }
 
       val resolvedImports =
