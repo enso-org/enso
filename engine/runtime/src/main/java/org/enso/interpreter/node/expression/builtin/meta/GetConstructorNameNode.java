@@ -12,11 +12,7 @@ import org.enso.interpreter.runtime.data.text.Text;
     name = "get_constructor_name",
     description = "Gets the name of a constructor.",
     autoRegister = false)
-public abstract class GetConstructorNameNode extends Node {
-  static GetConstructorNameNode build() {
-    return GetConstructorNameNodeGen.create();
-  }
-
+public class GetConstructorNameNode extends Node {
   Text execute(AtomConstructor cons) {
     return Text.create(cons.getName());
   }
