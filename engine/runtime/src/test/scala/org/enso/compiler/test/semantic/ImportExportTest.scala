@@ -36,7 +36,7 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
     .allowCreateThread(false)
     .out(out)
     .err(out)
-    .option(RuntimeOptions.LOG_LEVEL, "ALL")
+    .option(RuntimeOptions.LOG_LEVEL, "WARNING")
     .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
     .logHandler(System.err)
     .option(
