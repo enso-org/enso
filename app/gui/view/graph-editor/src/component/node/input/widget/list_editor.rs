@@ -3,8 +3,6 @@
 // FIXME[ao]: This code miss important documentation (e.g. for `Element`, `DragData` and `ListItem`)
 //  and may be unreadable at some places. It should be improved in several next debugging PRs.
 
-use std::collections::hash_map::Entry;
-
 use crate::prelude::*;
 
 use crate::component::node::input::area::TEXT_SIZE;
@@ -14,6 +12,7 @@ use crate::component::node::input::widget::TransferRequest;
 use crate::component::node::input::widget::TreeNode;
 use crate::component::node::input::widget::WidgetIdentity;
 
+use std::collections::hash_map::Entry;
 use ensogl::control::io::mouse;
 use ensogl::display;
 use ensogl::display::object;
