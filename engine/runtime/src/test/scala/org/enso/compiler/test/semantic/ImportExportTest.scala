@@ -541,39 +541,37 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
   }
 
   "Import resolution for three modules" should {
-    ctx.enter()
-    """
-      |type A_Type
-      |    A_Constructor
-      |    instance_method self = 42
-      |
-      |static_method =
-      |    local_var = 42
-      |    local_var
-      |
-      |# Is not really a variable - it is a method returning a constant, so
-      |# it is also considered a static module method
-      |glob_var = 42
-      |
-      |# This is also a static method
-      |foreign js js_function = \"\"\"
-      |    return 42
-      |"""
-      .stripMargin
-      .createModule(packageQualifiedName.createChild("A_Module"))
-
-    val bIr = s"""
-      |from $namespace.$packageName.A_Module import all
-      |from $namespace.$packageName.A_Module export static_method
-      |
-      |type B_Type
-      |    B_Constructor val
-      |""".stripMargin
-      .createModule(packageQualifiedName.createChild("B_Module"))
-      .getIr
-    ctx.leave()
-
     "resolve all imported symbols in B_Module from A_Module" in {
+      """
+        |type A_Type
+        |    A_Constructor
+        |    instance_method self = 42
+        |
+        |static_method =
+        |    local_var = 42
+        |    local_var
+        |
+        |# Is not really a variable - it is a method returning a constant, so
+        |# it is also considered a static module method
+        |glob_var = 42
+        |
+        |# This is also a static method
+        |foreign js js_function = \"\"\"
+        |    return 42
+        |"""
+        .stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bIr =
+        s"""
+           |from $namespace.$packageName.A_Module import all
+           |from $namespace.$packageName.A_Module export static_method
+           |
+           |type B_Type
+           |    B_Constructor val
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+          .getIr
       bIr.imports.size shouldEqual 1
       bIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
       val bBindingMap = bIr.unwrapBindingMap
@@ -593,6 +591,26 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
     }
 
     "resolve foreign static module method" in {
+      """
+        |type A_Type
+        |    A_Constructor
+        |    instance_method self = 42
+        |
+        |static_method =
+        |    local_var = 42
+        |    local_var
+        |
+        |# Is not really a variable - it is a method returning a constant, so
+        |# it is also considered a static module method
+        |glob_var = 42
+        |
+        |# This is also a static method
+        |foreign js js_function = \"\"\"
+        |    return 42
+        |"""
+        .stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
       val mainBindingMap =
           s"""
           |from $namespace.$packageName.A_Module import js_function
@@ -611,6 +629,36 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
     }
 
     "not resolve symbol that is not explicitly exported" in {
+      """
+        |type A_Type
+        |    A_Constructor
+        |    instance_method self = 42
+        |
+        |static_method =
+        |    local_var = 42
+        |    local_var
+        |
+        |# Is not really a variable - it is a method returning a constant, so
+        |# it is also considered a static module method
+        |glob_var = 42
+        |
+        |# This is also a static method
+        |foreign js js_function = \"\"\"
+        |    return 42
+        |"""
+        .stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      s"""
+         |from $namespace.$packageName.A_Module import all
+         |from $namespace.$packageName.A_Module export static_method
+         |
+         |type B_Type
+         |    B_Constructor val
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("B_Module"))
+        .getIr
+
       val mainIr =
         s"""
            |from $namespace.$packageName.B_Module import A_Type
@@ -623,6 +671,36 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
     }
 
     "resolve all symbols (types and static module methods) from the module" in {
+      """
+        |type A_Type
+        |    A_Constructor
+        |    instance_method self = 42
+        |
+        |static_method =
+        |    local_var = 42
+        |    local_var
+        |
+        |# Is not really a variable - it is a method returning a constant, so
+        |# it is also considered a static module method
+        |glob_var = 42
+        |
+        |# This is also a static method
+        |foreign js js_function = \"\"\"
+        |    return 42
+        |"""
+        .stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      s"""
+         |from $namespace.$packageName.A_Module import all
+         |from $namespace.$packageName.A_Module export static_method
+         |
+         |type B_Type
+         |    B_Constructor val
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("B_Module"))
+        .getIr
+
       val mainIr =
         s"""
            |from $namespace.$packageName.A_Module import all
@@ -643,6 +721,36 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
     }
 
     "resolve re-exported symbol" in {
+      """
+        |type A_Type
+        |    A_Constructor
+        |    instance_method self = 42
+        |
+        |static_method =
+        |    local_var = 42
+        |    local_var
+        |
+        |# Is not really a variable - it is a method returning a constant, so
+        |# it is also considered a static module method
+        |glob_var = 42
+        |
+        |# This is also a static method
+        |foreign js js_function = \"\"\"
+        |    return 42
+        |"""
+        .stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      s"""
+         |from $namespace.$packageName.A_Module import all
+         |from $namespace.$packageName.A_Module export static_method
+         |
+         |type B_Type
+         |    B_Constructor val
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("B_Module"))
+        .getIr
+
       val mainIr =
         s"""
            |from $namespace.$packageName.B_Module import static_method
@@ -658,6 +766,36 @@ class ImportExportTest extends AnyWordSpecLike with Matchers with BeforeAndAfter
     }
 
     "resolve re-exported symbol along with all other symbols" in {
+      """
+        |type A_Type
+        |    A_Constructor
+        |    instance_method self = 42
+        |
+        |static_method =
+        |    local_var = 42
+        |    local_var
+        |
+        |# Is not really a variable - it is a method returning a constant, so
+        |# it is also considered a static module method
+        |glob_var = 42
+        |
+        |# This is also a static method
+        |foreign js js_function = \"\"\"
+        |    return 42
+        |"""
+        .stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      s"""
+         |from $namespace.$packageName.A_Module import all
+         |from $namespace.$packageName.A_Module export static_method
+         |
+         |type B_Type
+         |    B_Constructor val
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("B_Module"))
+        .getIr
+
       val mainIr =
         s"""
            |from $namespace.$packageName.B_Module import all
