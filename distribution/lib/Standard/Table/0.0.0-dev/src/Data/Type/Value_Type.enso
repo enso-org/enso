@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Database.Data.SQL_Type.SQL_Type
 
 import project.Data.Type.Value_Type_Helpers
 from project.Errors import Invalid_Value_Type
@@ -133,7 +132,7 @@ type Value_Type
 
        Fallback provided to allow describing types that are not supported by
        Enso at this time.
-    Unsupported_Data_Type type_name:(Text|Nothing)=Nothing (underlying_type:SQL_Type|Nothing=Nothing)
+    Unsupported_Data_Type type_name:(Text|Nothing)=Nothing (underlying_type:Any|Nothing=Nothing)
 
     ## A mix of values can be stored in the Column.
 
