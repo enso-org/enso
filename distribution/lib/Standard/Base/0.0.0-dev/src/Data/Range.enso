@@ -1,7 +1,6 @@
 import project.Any.Any
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Numbers.Integer
-import project.Data.Numbers.Number
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds
@@ -55,18 +54,21 @@ type Range
         _ ->
             Error.throw (Illegal_Argument.Error "Range step should be an integer.")
 
-    ## Returns the first element that is included within the range or `Nothing`
-       if the range is empty.
+    ## Returns the first element that is included within the range.
+
+       It will raise `Index_Out_Of_Bounds` if the range is empty.
     first : Integer ! Index_Out_Of_Bounds
     first self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else self.start
 
-    ## Returns the second element that is included within the range or `Nothing`
-       if the range has less than 2 element
+    ## Returns the second element that is included within the range.
+
+       It will raise `Index_Out_Of_Bounds` if the range has less than two elements.
     second : Integer ! Index_Out_Of_Bounds
     second self = if self.length < 2 then Error.throw (Index_Out_Of_Bounds.Error 1 self.length) else self.start + self.step
 
-    ## Returns the last element that is included within the range or `Nothing`
-       if the range is empty.
+    ## Returns the last element that is included within the range.
+
+       It will raise `Index_Out_Of_Bounds` if the range is empty.
     last : Integer ! Index_Out_Of_Bounds
     last self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
         self.start + self.step*(self.length - 1)
@@ -77,18 +79,22 @@ type Range
          The following range has 100 elements.
 
             0.up_to 100 . length
-    length : Number
+    length : Integer
     length self = if self.is_empty then 0 else
         diff = self.end - self.start
         steps = diff . div self.step
-        if self.start + steps*self.step == self.end then steps else steps+1
+        exact_fit = (self.start + steps*self.step) == self.end
+        ## The `end` is excluded if it is reached exactly by the last step.
+           If it is not reached, that means that the last step is also included,
+           so we increase by one.
+        if exact_fit then steps else steps+1
 
     ## Gets an element from the Range at a specified index (0-based).
 
        Arguments:
        - index: The location in the Range to get the element from. The index is
-         also allowed be negative, then the elements are indexed from the back
-         of the final item, i.e. -1 will correspond to the last element.
+         also allowed be negative, then the elements are indexed from the back,
+         i.e. -1 will correspond to the last element.
 
        > Example
          Get the second element of a range.
@@ -108,8 +114,8 @@ type Range
 
        Arguments:
        - index: The location in the Range to get the element from. The index is
-         also allowed be negative, then the elements are indexed from the back
-         of the Range, i.e. -1 will correspond to the last element.
+         also allowed be negative, then the elements are indexed from the back,
+         i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
     get : Integer -> Any -> Any
     get self index ~if_missing=Nothing =
@@ -149,7 +155,7 @@ type Range
          the range.
 
              1.up_to 10 . map (*2)
-    map : (Number -> Any) -> Vector Any
+    map : (Integer -> Any) -> Vector Any
     map self function =
         Vector.new self.length (i -> function (self.start + i*self.step))
 
@@ -166,7 +172,7 @@ type Range
 
              (0.up_to 7).filter (> 3)
              (0.up_to 7).filter (Filter_Condition.Greater than=3)
-    filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
+    filter : (Filter_Condition | (Integer -> Boolean)) -> Vector Integer
     filter self filter = case filter of
         _ : Filter_Condition -> self.filter filter.to_predicate
         predicate : Function ->
@@ -174,7 +180,9 @@ type Range
                 if predicate elem then builder.append elem else builder
             builder.to_vector
 
-    ## Applies a function for each element in the range.
+    ## PRIVATE
+       ADVANCED
+       Applies a function for each element in the range.
 
        Arguments:
        - function: The function to apply to each integer in the range.
@@ -182,7 +190,7 @@ type Range
        > Example
          To print all the numbers from 1 to 10 use:
              1.up_to 11 . each IO.println
-    each : (Number -> Any) -> Nothing
+    each : (Integer -> Any) -> Nothing
     each self function =
         if self.step == 0 then throw_zero_step_error else
             end_condition = if self.step > 0 then (>=) else (<=)
@@ -193,6 +201,7 @@ type Range
             go self.start
 
     ## PRIVATE
+       ADVANCED
        Applies a function to each element of the range.
 
        Essentially acts like `range.to_vector.each_with_index`, but it is more
@@ -206,7 +215,7 @@ type Range
          Print range elements with their indices within the range.
 
              (10.up_to 13).each_with_index ix-> elem-> IO.println (Pair ix elem) # Will print Pair 0 10, Pair 1 11, Pair 2 12
-    each_with_index : (Integer -> Any -> Any) -> Nothing
+    each_with_index : (Integer -> Integer -> Nothing) -> Nothing
     each_with_index self function =
         if self.step == 0 then throw_zero_step_error else
             end_condition = if self.step > 0 then (>=) else (<=)
@@ -220,7 +229,7 @@ type Range
        passed function with next elements of the range.
 
        Arguments:
-       - init: The initial integral value for the fold.
+       - init: The initial value for the fold.
        - function: A binary function taking an item and a number, and returning
          an item.
 
@@ -234,7 +243,7 @@ type Range
          less than 100.
 
              0.up_to 100 . with_step 2 . fold 0 (+)
-    fold : Any -> (Any -> Number -> Any) -> Any
+    fold : Any -> (Any -> Integer -> Any) -> Any
     fold self init function =
         if self.step == 0 then throw_zero_step_error else
             end_condition = if self.step > 0 then (>=) else (<=)
@@ -253,9 +262,9 @@ type Range
        - function: A function taking two elements and combining them.
 
        > Example
-         Compute the running sum of all of the elements in a vector
+         Compute the running sum of all of the elements in a range.
 
-            [1, 2, 3].running_fold 0 (+)
+            (0.up_to 4).running_fold 0 (+)
     running_fold : Any -> (Any -> Any -> Any) -> Vector Any
     running_fold self init function =
         wrapped builder value =
@@ -275,7 +284,7 @@ type Range
          Checking that all numbers in the range are greater than 5.
 
              10.up_to 100 . all (> 5)
-    all : (Number -> Boolean) -> Boolean
+    all : (Integer -> Boolean) -> Boolean
     all self predicate = self . any (predicate >> .not) . not
 
     ## Checks whether `predicate` is satisfied for any number in this range.
@@ -289,7 +298,7 @@ type Range
          Checking that at least one number in the range is greater than 10.
 
              1.up_to 100 . any (> 10)
-    any : (Number -> Boolean) -> Boolean
+    any : (Integer -> Boolean) -> Boolean
     any self predicate = self.find predicate . is_nothing . not
 
     ## Gets the first index when `predicate` is satisfied this range.
@@ -347,7 +356,7 @@ type Range
              0.up_to 100 . index_of 20 == 20
              0.up_to 100 . with_step 5 . index_of 20 == 4
              0.up_to 100 . with_step 5 . index_of (>10) == 3
-    index_of : (Integer | (Any -> Boolean)) -> Integer -> Integer | Nothing
+    index_of : (Integer | (Integer -> Boolean)) -> Integer -> Integer | Nothing
     index_of self element start=0 =
         check_start_valid start self used_start->
             case element of
@@ -370,7 +379,7 @@ type Range
          Find the last index of an element in a pair.
 
              Pair.new 2 2 . last_index_of 2 == 1
-    last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
+    last_index_of : (Integer | (Integer -> Boolean)) -> Integer -> Integer | Nothing
     last_index_of self element start=-1 =
         if self.is_empty && (start==-1 || start==0) then Nothing else
             check_start_valid start self include_end=False used_start->
@@ -403,21 +412,21 @@ type Range
          Getting a vector of the numbers 1 to 5.
 
              1.up_to 6 . to_vector
-    to_vector : Vector
+    to_vector : Vector Integer
     to_vector self = self.map x->x
 
     ## Combines all the elements of a non-empty range using a binary operation.
        If the range is empty, returns `if_empty`.
 
        Arguments:
-       - function: A binary operation that takes two items and combines them.
+       - function: A binary operation that takes two integers and combines them.
        - if_empty: Value returned if the range is empty.
 
        > Example
          Compute the sum of all the elements in a range.
 
              0.up_to 10 . reduce (+)
-    reduce : (Any -> Any -> Any) -> Any -> Any
+    reduce : (Integer -> Integer -> Integer) -> Any -> Any
     reduce self function ~if_empty=(Error.throw Empty_Error) =
         len = self.length
         case len of

@@ -44,10 +44,18 @@ type Type
     ## ADVANCED
 
        Returns the fully qualified name of the type.
+    qualified_name : Text
+    qualified_name self =
+        c = self.value
+        get_qualified_type_name c
+
+    ## ADVANCED
+
+       Returns the short name of the type.
     name : Text
     name self =
-        c = self.value ...
-        get_constructor_name c
+        c = self.value
+        get_short_type_name c
 
 type Atom
     ## PRIVATE
@@ -110,6 +118,13 @@ type Constructor
     new self fields =
         ctor = self.value ...
         new_atom ctor fields.to_array
+
+    ## ADVANCED
+       Returns the type that this constructor is a part of.
+    declaring_type : Type
+    declaring_type self =
+        c = self.value ...
+        Type.Value (get_constructor_declaring_type c)
 
 type Primitive
     ## PRIVATE
@@ -504,3 +519,19 @@ get_simple_type_name value = @Builtin_Method "Meta.get_simple_type_name"
    - value: the value to get the type of.
 get_qualified_type_name : Any -> Text
 get_qualified_type_name value = @Builtin_Method "Meta.get_qualified_type_name"
+
+## PRIVATE
+   Returns a short name of a type (the last part of its qualified name).
+
+   Arguments:
+   - typ: the type to get the short name of.
+get_short_type_name : Any -> Text
+get_short_type_name typ = @Builtin_Method "Meta.get_short_type_name"
+
+## PRIVATE
+   Returns the type that this constructor is a part of.
+
+   Arguments:
+   - constructor: the constructor to get the declaring type of.
+get_constructor_declaring_type : Any -> Any
+get_constructor_declaring_type constructor = @Builtin_Method "Meta.get_constructor_declaring_type"
