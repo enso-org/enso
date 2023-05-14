@@ -44,20 +44,7 @@ case object TypeNames extends IRPass {
       ir.unsafeGetMetadata(BindingAnalysis, "bindings analysis did not run")
     ir.copy(bindings = ir.bindings.map { d =>
       val mapped = d.mapExpressions(resolveExpression(bindingsMap, _))
-      doResolveType(
-        List(),
-        bindingsMap,
-        mapped match {
-          case typ: IR.Module.Scope.Definition.Type =>
-            typ.members.foreach(
-              _.arguments.foreach(a =>
-                doResolveType(typ.params, bindingsMap, a)
-              )
-            )
-            typ
-          case x => x
-        }
-      )
+      doResolveType(bindingsMap, mapped)
     })
   }
 
@@ -66,27 +53,17 @@ case object TypeNames extends IRPass {
     ir: IR.Expression
   ): IR.Expression = {
     def go(ir: IR.Expression): IR.Expression = {
-      doResolveType(List(), bindingsMap, ir.mapExpressions(go))
+      doResolveType(bindingsMap, ir.mapExpressions(go))
     }
-    go(ir match {
-      case fn: IR.Function.Lambda =>
-        fn.copy(arguments =
-          fn.arguments.map(doResolveType(List(), bindingsMap, _))
-        )
-      case x => x
-    })
+    go(ir)
   }
 
-  private def doResolveType[T <: IR](
-    params: List[IR.DefinitionArgument],
-    bindingsMap: BindingsMap,
-    ir: T
-  ): T = {
+  private def doResolveType[T <: IR](bindingsMap: BindingsMap, ir: T): T = {
     ir.getMetadata(TypeSignatures)
       .map { s =>
         ir.updateMetadata(
           TypeSignatures -->> TypeSignatures.Signature(
-            resolveSignature(params, bindingsMap, s.signature)
+            resolveSignature(bindingsMap, s.signature)
           )
         )
       }
@@ -94,48 +71,39 @@ case object TypeNames extends IRPass {
   }
 
   private def resolveSignature(
-    params: List[IR.DefinitionArgument],
     bindingsMap: BindingsMap,
     expression: IR.Expression
-  ): IR.Expression = {
+  ): IR.Expression =
     expression.transformExpressions {
       case expr if SuspendedArguments.representsSuspended(expr) => expr
       case n: IR.Name.Literal =>
-        processResolvedName(params, n, bindingsMap.resolveName(n.name))
+        processResolvedName(n, bindingsMap.resolveName(n.name))
       case n: IR.Name.Qualified =>
         processResolvedName(
-          params,
           n,
           bindingsMap.resolveQualifiedName(n.parts.map(_.name))
         )
     }
-  }
 
   private def processResolvedName(
-    params: List[IR.DefinitionArgument],
     name: IR.Name,
     resolvedName: Either[BindingsMap.ResolutionError, BindingsMap.ResolvedName]
-  ): IR.Name = {
-    if (params.exists(p => p.name.name == name.name)) {
-      name
-    } else {
-      resolvedName
-        .map(res => name.updateMetadata(this -->> Resolution(res)))
-        .fold(
-          error =>
-            IR.Error.Resolution(name, IR.Error.Resolution.ResolverError(error)),
-          n =>
-            n.getMetadata(this).get.target match {
-              case _: ResolvedModule =>
-                IR.Error.Resolution(
-                  n,
-                  IR.Error.Resolution.UnexpectedModule("type signature")
-                )
-              case _ => n
-            }
-        )
-    }
-  }
+  ): IR.Name =
+    resolvedName
+      .map(res => name.updateMetadata(this -->> Resolution(res)))
+      .fold(
+        error =>
+          IR.Error.Resolution(name, IR.Error.Resolution.ResolverError(error)),
+        n =>
+          n.getMetadata(this).get.target match {
+            case _: ResolvedModule =>
+              IR.Error.Resolution(
+                n,
+                IR.Error.Resolution.UnexpectedModule("type signature")
+              )
+            case _ => n
+          }
+      )
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir` in an inline context.
