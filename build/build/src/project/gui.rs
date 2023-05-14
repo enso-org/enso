@@ -90,13 +90,13 @@ fn override_default_for_authentication(path: &crate::paths::generated::RepoRootA
     // We want to switch that value to true.
     let json_path = ["groups", "featurePreview", "options", "newDashboard", "value"];
     let mut json = ide_ci::fs::read_json::<serde_json::Value>(path)?;
-    let mut current = json.object_mut().ok_or_else(|| anyhow!("Failed to find object in {:?}", path))?;
+    let mut current = json.as_object_mut().ok_or_else(|| anyhow!("Failed to find object in {:?}", path))?;
     for key in &json_path[..json_path.len() - 1] {
         current = current
+            .get_mut(*key)
+            .with_context(|| format!("Failed to find {:?} in {:?}", key, path))?
             .as_object_mut()
-            .and_then(|o| o.get_mut(key))
-            .and_then(|v| v.as_object_mut())
-            .ok_or_else(|| anyhow!("Failed to find key {:?} in {:?}", key, path))?;
+            .with_context(|| format!("Failed to find object at {:?} in {:?}", key, path))?;
     }
     current.insert(
         json_path.last().unwrap().to_string(),
@@ -129,15 +129,16 @@ impl IsTarget for Gui {
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
         let WithDestination { inner, destination } = job;
         async move {
+            if ide_ci::actions::workflow::is_in_env() {
+                let path = &context.repo_root.app.ide_desktop.lib.content_config.src.config_json;
+                warn!("Overriding default for authentication in {}", path.display());
+                override_default_for_authentication(&path)?;
+            }
+
             let ide = ide_desktop_from_context(&context);
             let wasm = Wasm.get(context, inner.wasm);
             let content_env =
                 ide.build_content(wasm, &inner.build_info.await?, &destination).await?;
-
-            if ide_ci::actions::workflow::is_in_env() {
-                // ide_ci::actions::workflow::set_env("CONTENT_CONFIG_JSON", &content_env.config_json)?;
-                override_default_for_authentication(&context.repo_root.app.ide_desktop.lib.content_config.src.config_json)?;
-            }
 
             let ret = Artifact::new(destination.clone());
             let ensogl_app_dir = &ret.0.ensogl_app;
