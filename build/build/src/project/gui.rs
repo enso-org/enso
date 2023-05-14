@@ -102,7 +102,7 @@ fn override_default_for_authentication(path: &crate::paths::generated::RepoRootA
         json_path.last().unwrap().to_string(),
         serde_json::Value::Bool(true),
     );
-    ide_ci::fs::write_json(path, &json);
+    ide_ci::fs::write_json(path, &json)?;
     Ok(())
 }
 
