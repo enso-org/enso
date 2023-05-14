@@ -85,6 +85,26 @@ impl IsWatcher<Gui> for Watcher {
     }
 }
 
+fn override_default_for_authentication(path: &crate::paths::generated::RepoRootAppIdeDesktopLibContentConfigSrcConfigJson) -> Result {
+    // The path in JSON is like groups.featurePreview.options.newDashboard.value.
+    // We want to switch that value to true.
+    let json_path = ["groups", "featurePreview", "options", "newDashboard", "value"];
+    let mut json = ide_ci::fs::read_json::<serde_json::Value>(path)?;
+    let mut current = json.object_mut().ok_or_else(|| anyhow!("Failed to find object in {:?}", path))?;
+    for key in &json_path[..json_path.len() - 1] {
+        current = current
+            .as_object_mut()
+            .and_then(|o| o.get_mut(key))
+            .and_then(|v| v.as_object_mut())
+            .ok_or_else(|| anyhow!("Failed to find key {:?} in {:?}", key, path))?;
+    }
+    current.insert(
+        json_path.last().unwrap().to_string(),
+        serde_json::Value::Bool(true),
+    );
+    ide_ci::fs::write_json(path, &json);
+    Ok(())
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Gui;
@@ -113,6 +133,11 @@ impl IsTarget for Gui {
             let wasm = Wasm.get(context, inner.wasm);
             let content_env =
                 ide.build_content(wasm, &inner.build_info.await?, &destination).await?;
+
+            if ide_ci::actions::workflow::is_in_env() {
+                // ide_ci::actions::workflow::set_env("CONTENT_CONFIG_JSON", &content_env.config_json)?;
+                override_default_for_authentication(&context.repo_root.app.ide_desktop.lib.content_config.src.config_json)?;
+            }
 
             let ret = Artifact::new(destination.clone());
             let ensogl_app_dir = &ret.0.ensogl_app;
