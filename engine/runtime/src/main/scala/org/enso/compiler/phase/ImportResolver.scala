@@ -40,6 +40,7 @@ class ImportResolver(compiler: Compiler) {
     module: Module,
     bindingsCachingEnabled: Boolean
   ): (List[Module], List[Module]) = {
+
     def analyzeModule(current: Module): List[Module] = {
       val ir = current.getIr
       val currentLocal = ir.unsafeGetMetadata(
@@ -58,7 +59,7 @@ class ImportResolver(compiler: Compiler) {
         ] =
           ir.imports.map {
             case imp: IR.Module.Scope.Import.Module =>
-              tryResolveImport(ir, imp, bindingsCachingEnabled)
+              tryResolveImport(ir, imp)
             case other => (other, None)
           }
         currentLocal.resolvedImports = importedModules.flatMap(_._2)
@@ -94,28 +95,11 @@ class ImportResolver(compiler: Compiler) {
             // - no - ensure they are parsed (load them from cache) and add them to the import/export resolution
             compiler.importExportBindings(current) match {
               case Some(bindings) =>
-                val converted: Option[BindingsMap] = bindings
+                val converted = bindings
                   .toConcrete(compiler.packageRepository.getModuleMap)
                   .map { concreteBindings =>
                     concreteBindings
                   }
-                if (converted.isDefined) {
-                  if (current.bindings == null) {
-                    current.unsafeSetBindingsMap(converted.get)
-                  } else {
-                    val update: BindingsMap = current.bindings
-                    val imports =
-                      converted.get.resolvedImports ++ update.resolvedImports
-                    val exports =
-                      converted.get.resolvedExports ++ update.resolvedExports
-                    val symbols =
-                      converted.get.exportedSymbols ++ update.exportedSymbols
-                    converted.get.resolvedImports = imports
-                    converted.get.resolvedExports = exports
-                    converted.get.exportedSymbols = symbols
-                    current.unsafeSetBindingsMap(converted.get)
-                  }
-                }
                 (
                   converted
                     .map(
@@ -149,14 +133,11 @@ class ImportResolver(compiler: Compiler) {
   }
 
   private def tryResolveAsType(
-    name: IR.Name.Qualified,
-    bindingsCachingEnabled: Boolean
+    name: IR.Name.Qualified
   ): Option[ResolvedType] = {
     val tp  = name.parts.last.name
     val mod = name.parts.dropRight(1).map(_.name).mkString(".")
     compiler.getModule(mod).flatMap { mod =>
-      // mapImports(mod, bindingsCachingEnabled)
-      bindingsCachingEnabled.hashCode()
       compiler.ensureParsed(mod)
       mod.getIr
         .unsafeGetMetadata(
@@ -173,8 +154,7 @@ class ImportResolver(compiler: Compiler) {
 
   private def tryResolveImport(
     module: IR.Module,
-    imp: Import.Module,
-    bindingsCachingEnabled: Boolean
+    imp: Import.Module
   ): (IR.Module.Scope.Import, Option[BindingsMap.ResolvedImport]) = {
     val impName = imp.name.name
     val exp = module.exports
@@ -262,7 +242,7 @@ class ImportResolver(compiler: Compiler) {
               )
             )
           case None =>
-            tryResolveAsType(imp.name, bindingsCachingEnabled) match {
+            tryResolveAsType(imp.name) match {
               case Some(tp) =>
                 (imp, Some(BindingsMap.ResolvedImport(imp, exp, tp)))
               case None =>

@@ -93,28 +93,11 @@ case object BindingAnalysis extends IRPass {
       }
       .flatten
       .map(BindingsMap.ModuleMethod)
-
-    val bp = moduleContext.module.bindings
-    val converted = if (moduleContext.module.bindings != null) {
-      val n = bp.copy(
-        definedEntities = definedSumTypes ++ importedPolyglot ++ moduleMethods,
-        currentModule   = ModuleReference.Concrete(moduleContext.module)
-      )
-      n.resolvedImports = bp.resolvedImports
-      n.resolvedExports = bp.resolvedExports
-      n.exportedSymbols = bp.exportedSymbols
-      n
-    } else {
-      val n = BindingsMap(
+    ir.updateMetadata(
+      this -->> BindingsMap(
         definedSumTypes ++ importedPolyglot ++ moduleMethods,
         ModuleReference.Concrete(moduleContext.module)
       )
-      moduleContext.module.unsafeSetBindingsMap(n)
-      n
-    }
-
-    ir.updateMetadata(
-      this -->> converted
     )
   }
 

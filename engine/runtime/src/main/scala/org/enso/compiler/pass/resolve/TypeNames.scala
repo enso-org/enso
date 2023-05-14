@@ -40,11 +40,8 @@ case object TypeNames extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    var bindingsMap =
+    val bindingsMap =
       ir.unsafeGetMetadata(BindingAnalysis, "bindings analysis did not run")
-    if (moduleContext.module.bindings != null) {
-      bindingsMap = moduleContext.module.bindings
-    }
     ir.copy(bindings = ir.bindings.map { d =>
       val mapped = d.mapExpressions(resolveExpression(bindingsMap, _))
       doResolveType(
@@ -101,13 +98,13 @@ case object TypeNames extends IRPass {
     bindingsMap: BindingsMap,
     expression: IR.Expression
   ): IR.Expression = {
-    params.hashCode()
     expression.transformExpressions {
       case expr if SuspendedArguments.representsSuspended(expr) => expr
       case n: IR.Name.Literal =>
-        processResolvedName(n, bindingsMap.resolveName(n.name))
+        processResolvedName(params, n, bindingsMap.resolveName(n.name))
       case n: IR.Name.Qualified =>
         processResolvedName(
+          params,
           n,
           bindingsMap.resolveQualifiedName(n.parts.map(_.name))
         )
@@ -115,24 +112,30 @@ case object TypeNames extends IRPass {
   }
 
   private def processResolvedName(
+    params: List[IR.DefinitionArgument],
     name: IR.Name,
     resolvedName: Either[BindingsMap.ResolutionError, BindingsMap.ResolvedName]
-  ): IR.Name =
-    resolvedName
-      .map(res => name.updateMetadata(this -->> Resolution(res)))
-      .fold(
-        error =>
-          IR.Error.Resolution(name, IR.Error.Resolution.ResolverError(error)),
-        n =>
-          n.getMetadata(this).get.target match {
-            case _: ResolvedModule =>
-              IR.Error.Resolution(
-                n,
-                IR.Error.Resolution.UnexpectedModule("type signature")
-              )
-            case _ => n
-          }
-      )
+  ): IR.Name = {
+    if (params.exists(p => p.name.name == name.name)) {
+      name
+    } else {
+      resolvedName
+        .map(res => name.updateMetadata(this -->> Resolution(res)))
+        .fold(
+          error =>
+            IR.Error.Resolution(name, IR.Error.Resolution.ResolverError(error)),
+          n =>
+            n.getMetadata(this).get.target match {
+              case _: ResolvedModule =>
+                IR.Error.Resolution(
+                  n,
+                  IR.Error.Resolution.UnexpectedModule("type signature")
+                )
+              case _ => n
+            }
+        )
+    }
+  }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir` in an inline context.

@@ -14,7 +14,6 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
@@ -28,7 +27,6 @@ import java.util.logging.Level;
 import org.enso.compiler.ModuleCache;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.data.BindingsMap;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
 import org.enso.interpreter.runtime.builtin.Builtins;
@@ -104,7 +102,6 @@ public final class Module implements TruffleObject {
   private boolean hasCrossModuleLinks;
   private final boolean synthetic;
   private List<QualifiedName> directModulesRefs;
-  private BindingsMap bindings;
 
   /**
    * Creates a new module.
@@ -292,14 +289,11 @@ public final class Module implements TruffleObject {
         var copy = this.ir.mapExpressions(fn);
         this.ir = copy;
         this.uuidsMap = null;
-        this.bindings = null;
         return;
       }
     }
     this.sources = this.sources.newWith(source);
     this.compilationStage = CompilationStage.INITIAL;
-    this.ir = null;
-    this.bindings = null;
   }
 
   /**
@@ -467,14 +461,6 @@ public final class Module implements TruffleObject {
   public void unsafeSetIr(IR.Module ir) {
     this.ir = ir;
     this.uuidsMap = null;
-  }
-
-  public void unsafeSetBindingsMap(BindingsMap map) {
-    this.bindings = map;
-  }
-
-  public BindingsMap bindings() {
-    return bindings;
   }
 
   /** @return the runtime scope of this module. */
