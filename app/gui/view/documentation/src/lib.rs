@@ -17,28 +17,26 @@
 //!
 //! [`Tailwind CSS`]: https://tailwindcss.com/
 
+#![recursion_limit = "1024"]
 // === Features ===
 #![feature(drain_filter)]
 #![feature(option_result_contains)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "1024"]
 
 use ensogl::prelude::*;
 use ensogl::system::web::traits::*;
-
-use graph_editor::component::visualization;
-use ide_view_graph_editor as graph_editor;
 
 use enso_frp as frp;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
@@ -55,15 +53,17 @@ use ensogl::Animation;
 use ensogl_component::shadow;
 use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::documentation as theme;
+use graph_editor::component::visualization;
+use ide_view_graph_editor as graph_editor;
 use web::HtmlElement;
 use web::JsCast;
-
-pub mod html;
 
 
 // ==============
 // === Export ===
 // ==============
+
+pub mod html;
 
 pub use visualization::container::overlay;
 
