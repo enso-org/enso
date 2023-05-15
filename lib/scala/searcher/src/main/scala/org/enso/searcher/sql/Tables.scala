@@ -164,29 +164,12 @@ final class SuggestionsTable(tag: Tag)
     (SuggestionRow.tupled, SuggestionRow.unapply)
 
   def moduleIdx     = index("suggestions_module_idx", module)
-  def name_idx      = index("suggestions_name_idx", name)
+  def nameIdx       = index("suggestions_name_idx", name)
   def selfTypeIdx   = index("suggestions_self_type_idx", selfType)
   def returnTypeIdx = index("suggestions_return_type_idx", returnType)
   def externalIdIdx =
     index("suggestions_external_id_idx", (externalIdLeast, externalIdMost))
   def reexportIdx = index("suggestions_reexport_idx", reexport)
-  // NOTE: unique index should not contain nullable columns because SQLite
-  // teats NULLs as distinct values.
-  def uniqueIdx =
-    index(
-      "suggestions_unique_idx",
-      (
-        kind,
-        module,
-        name,
-        selfType,
-        scopeStartLine,
-        scopeStartOffset,
-        scopeEndLine,
-        scopeEndOffset
-      ),
-      unique = true
-    )
 }
 
 /** An element of unique suggestion index.

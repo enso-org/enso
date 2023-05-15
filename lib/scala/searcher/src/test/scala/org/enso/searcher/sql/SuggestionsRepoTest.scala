@@ -1,9 +1,7 @@
 package org.enso.searcher.sql
 
-import java.nio.file.{Files, Path}
-import java.util.UUID
-import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.searcher.SuggestionEntry
 import org.enso.searcher.data.QueryResult
 import org.enso.searcher.sql.equality.SuggestionsEquality
@@ -12,7 +10,8 @@ import org.scalactic.TripleEqualsSupport
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import java.sql.SQLException
+import java.nio.file.{Files, Path}
+import java.util.UUID
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -125,16 +124,6 @@ class SuggestionsRepoTest
       )
     }
 
-    "fail to insertAll duplicate suggestion" taggedAs Retry in withRepo {
-      repo =>
-        val action =
-          for {
-            _ <- repo.insertAll(Seq(suggestion.local, suggestion.local))
-          } yield ()
-
-        an[SQLException] should be thrownBy Await.result(action, Timeout)
-    }
-
     "select suggestion by id" taggedAs Retry in withRepo { repo =>
       val action =
         for {
@@ -213,21 +202,6 @@ class SuggestionsRepoTest
 
       val (v1, v2) = Await.result(action, Timeout)
       v1 should not equal v2
-    }
-
-    "not change version after failed insert" taggedAs Retry in withRepo {
-      repo =>
-        val action = for {
-          v1 <- repo.currentVersion
-          _  <- repo.insert(suggestion.constructor)
-          v2 <- repo.currentVersion
-          _  <- repo.insert(suggestion.constructor)
-          v3 <- repo.currentVersion
-        } yield (v1, v2, v3)
-
-        val (v1, v2, v3) = Await.result(action, Timeout)
-        v1 should not equal v2
-        v2 shouldEqual v3
     }
 
     "change version after remove" taggedAs Retry in withRepo { repo =>
