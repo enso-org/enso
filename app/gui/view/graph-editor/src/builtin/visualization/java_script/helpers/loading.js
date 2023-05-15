@@ -3,6 +3,7 @@
  */
 function loadScript(url, onload) {
     let script = document.createElement('script')
+    script.crossOrigin = 'anonymous'
     script.onload = onload
     script.src = url
 
@@ -14,6 +15,7 @@ function loadScript(url, onload) {
  */
 function loadStyle(url, onload) {
     let style = document.createElement('link')
+    style.crossOrigin = 'anonymous'
     style.onload = onload
     style.href = url
     style.rel = 'stylesheet'

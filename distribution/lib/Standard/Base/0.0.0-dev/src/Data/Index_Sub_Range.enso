@@ -5,14 +5,21 @@ import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Type_Error
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Function.Function
 import project.Math
+import project.Meta
 import project.Panic.Panic
 import project.Random
 import project.Runtime.Ref.Ref
 
 from project.Data.Boolean import Boolean, True, False
+
+from project.Metadata.Widget import Single_Choice
+from project.Metadata.Choice import Option
+import project.Metadata.Display
 
 type Index_Sub_Range
     ## Select the first `count` items.
@@ -40,7 +47,7 @@ type Index_Sub_Range
        Only ranges with positive step and positive indices are supported.
        Individual integer indices can be negative which allows for indexing
        from the end of the collection.
-    By_Index (indexes : (Integer | Range | Vector (Integer | Range)) = [0])
+    By_Index (indexes : (Integer | Range | Vector (Integer | Range)))
 
     ## Gets a random sample of entries, without repetitions.
 
@@ -66,6 +73,26 @@ type Index_Sub_Range
         Index_Sub_Range.By_Index indexes -> "By_Index " + indexes.to_display_text
         Index_Sub_Range.Sample count _ -> "Sample " + count.to_display_text
         Index_Sub_Range.Every step first -> "Every " + step.to_display_text + (if first == 0 then "" else " from " + first.to_display_text)
+
+    ## PRIVATE
+       It includes all constructors of `Index_Sub_Range` but also `Range`, since
+       the `Index_Sub_Range` type is by default used in sum types containing
+       `Range` too.
+    default_options : Vector Option
+    default_options =
+        o1 = Option "First" "(Index_Sub_Range.First 1)"
+        o2 = Option "Last" "(Index_Sub_Range.Last 1)"
+        o3 = Option "While" "(Index_Sub_Range.While (x-> False))"
+        o4 = Option "By_Index" "(Index_Sub_Range.By_Index [0])"
+        o5 = Option "Sample" "(Index_Sub_Range.Sample 10)"
+        o6 = Option "Every" "(Index_Sub_Range.Every 2)"
+        o7 = Option "Range" "(Range.new 0 100)"
+        [o1, o2, o3, o4, o5, o6, o7]
+
+    ## PRIVATE
+    default_widget : Single_Choice
+    default_widget =
+        Single_Choice display=Display.Always Index_Sub_Range.default_options
 
 ## PRIVATE
    Resolves a vector of ranges or indices into a vector of ranges that fit
@@ -169,9 +196,9 @@ sort_and_merge_ranges ranges =
      normalization on its own.
    - range: The `Index_Sub_Range` to take from the collection.
 take_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> (Index_Sub_Range | Range | Integer) -> Any
-take_helper length at single_slice slice_ranges index_sub_range = case index_sub_range of
+take_helper length at single_slice slice_ranges range = case range of
     count : Integer -> take_helper length at single_slice slice_ranges (Index_Sub_Range.First count)
-    _ : Range -> take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index index_sub_range)
+    _ : Range -> take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
     Index_Sub_Range.First count -> single_slice 0 (Math.min length count)
     Index_Sub_Range.Last count -> single_slice length-count length
     Index_Sub_Range.While predicate ->
@@ -193,6 +220,7 @@ take_helper length at single_slice slice_ranges index_sub_range = case index_sub
             if start >= length then single_slice 0 0 else
                 range = start.up_to length . with_step step
                 take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
+    _ -> handle_unmatched_type [Index_Sub_Range, Range, Integer] range
 
 ## PRIVATE
    A helper that implements dropping from an arbitrary collection using a set of
@@ -219,9 +247,9 @@ take_helper length at single_slice slice_ranges index_sub_range = case index_sub
      normalized.
    - range: The `Index_Sub_Range` to drop from the collection.
 drop_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> (Index_Sub_Range | Range | Integer) -> Any
-drop_helper length at single_slice slice_ranges index_sub_range = case index_sub_range of
-    _ : Integer -> single_slice index_sub_range length
-    _ : Range -> drop_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index index_sub_range)
+drop_helper length at single_slice slice_ranges range = case range of
+    _ : Integer -> single_slice range length
+    _ : Range -> drop_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
     Index_Sub_Range.First count -> single_slice count length
     Index_Sub_Range.Last count -> single_slice 0 length-count
     Index_Sub_Range.While predicate ->
@@ -245,3 +273,21 @@ drop_helper length at single_slice slice_ranges index_sub_range = case index_sub
             if start >= length then single_slice 0 length else
                 range = start.up_to length . with_step step
                 drop_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
+    _ -> handle_unmatched_type [Index_Sub_Range, Range, Integer] range
+
+## PRIVATE
+handle_unmatched_type expected_types actual_value =
+    m = Meta.meta actual_value
+    return_type_error =
+        expected_types_str = expected_types . map .to_text . join " | "
+        Error.throw (Type_Error.Error expected_types_str actual_value "range")
+    case m of
+        _ : Meta.Constructor ->
+            declaring_type = m.declaring_type
+            is_expected_constructor = expected_types.map Meta.meta . contains declaring_type
+            if is_expected_constructor.not then return_type_error else
+                msg = "The constructor " + m.name + " is missing some arguments."
+                Error.throw (Illegal_Argument.Error msg)
+        _ -> case actual_value.is_a Function of
+            True  -> Error.throw (Illegal_Argument.Error "Got a Function instead of a range, is a constructor argument missing?")
+            False -> return_type_error

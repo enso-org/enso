@@ -19,7 +19,15 @@ self.addEventListener('fetch', event => {
         const responsePromise = /\/[^.]+$/.test(event.request.url)
             ? fetch('/index.html')
             : fetch(event.request.url)
-        event.respondWith(responsePromise)
+        event.respondWith(
+            responsePromise.then(response => {
+                const clonedResponse = new Response(response.body, response)
+                for (const [header, value] of common.COOP_COEP_CORP_HEADERS) {
+                    clonedResponse.headers.set(header, value)
+                }
+                return clonedResponse
+            })
+        )
         return
     } else {
         return false

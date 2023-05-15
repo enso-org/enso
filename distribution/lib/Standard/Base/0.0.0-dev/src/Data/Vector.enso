@@ -758,6 +758,7 @@ type Vector a
          If an `Index_Sub_Range`, then the selection is interpreted following
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
+    @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
     take self range=(Index_Sub_Range.First 1) = case range of
         ## We are using a specialized implementation for `take Sample`, because
@@ -777,6 +778,7 @@ type Vector a
          If an `Index_Sub_Range`, then the selection is interpreted following
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
+    @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Vector Any
     drop self range=(Index_Sub_Range.First 1) =
         drop_helper self.length (self.at _) self.slice (slice_ranges self) range

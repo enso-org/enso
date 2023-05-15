@@ -1,15 +1,16 @@
 from Standard.Base import all
 
 import Standard.Database.Data.SQL_Type.SQL_Type
+import Standard.Database.Data.Table.Table
 
 import project.Helpers
 
 ## PRIVATE
 
-   Prepares the query for visualization.
+   Prepares the database table for visualization.
 
    Arguments:
-   - x: The query to prepare for visualisation.
+   - x: The database table to prepare for visualisation.
 
    For each interpolation it provides its value, its actual type name, its
    expected SQL type name and if it was possible to infer it, its expected Enso
@@ -17,7 +18,7 @@ import project.Helpers
 
    Expected Enso types are inferred based on known SQL types and their mapping
    to Enso types.
-prepare_visualization : Table.IR.Query -> Text
+prepare_visualization : Table -> Text
 prepare_visualization x =
     prepared = x.to_sql.prepare
     code = prepared.first
