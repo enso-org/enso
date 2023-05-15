@@ -548,6 +548,11 @@ type Decimal
     floor : Integer
     floor self = @Builtin_Method "Decimal.floor"
 
+    ## Truncate a floating-point number to an integer by dropping the fractional
+       part. This is equivalent to "round-toward-zero".
+    int : Integer
+    int self = @Builtin_Method "Decimal.int_builtin"
+
     ## Round to a specified number of decimal places.
 
        By default, rounding uses "asymmetric round-half-up", also known as
@@ -816,6 +821,11 @@ type Integer
              4.floor
     floor : Integer
     floor self = @Builtin_Method "Integer.floor"
+
+    ## Truncate an `Integer` to an `Integer`, i.e. returns its argument. For
+       compatibility with `Decimal.int`.
+    int : Integer
+    int self = self
 
     ## Round to a specified number of decimal places.
 

@@ -648,4 +648,21 @@ spec =
             # Loses precision
             max_long.round -5 . should_equal 9223372036854800000
 
+    Test.group "Decimal.int"
+        Test.specify "Correctly converts to Integer" <|
+            0.1.int . should_equal 0
+            0.9.int . should_equal 0
+            3.1.int . should_equal 3
+            3.9.int . should_equal 3
+            -0.1.int . should_equal 0
+            -0.9.int . should_equal 0
+            -3.1.int . should_equal -3
+            -3.9.int . should_equal -3
+
+    Test.group "Integer.int"
+        Test.specify "Returns its argument" <|
+            0.int . should_equal 0
+            3.int . should_equal 3
+            -3.int . should_equal -3
+
 main = Test_Suite.run_main spec

@@ -62,7 +62,7 @@ public abstract class RoundNode extends Node {
     @Fallback
     Object doOther(double self, Object that) {
         Builtins builtins = EnsoContext.get(this).getBuiltins();
-        var number = builtins.number().getNumber();
+        var number = builtins.number().getDecimal();
         throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);
     }
 
