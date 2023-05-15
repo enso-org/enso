@@ -746,10 +746,10 @@ class SuggestionsHandlerSpec
               inserted(0),
               inserted(1),
               inserted(2),
+              inserted(3),
               inserted(6),
               inserted(7),
-              inserted(8),
-              inserted(3)
+              inserted(8)
             )
           )
         )
