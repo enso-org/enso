@@ -126,6 +126,19 @@ const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
     [Column.ide]: 'IDE',
 } as const
 
+/** CSS classes for every column. Currently only used to set the widths. */
+const COLUMN_CSS_CLASS: Record<Column, string> = {
+    [Column.name]: 'w-60',
+    [Column.lastModified]: 'w-32',
+    [Column.sharedWith]: 'w-36',
+    [Column.docs]: 'w-96',
+    [Column.labels]: 'w-80',
+    [Column.dataAccess]: 'w-96',
+    [Column.usagePlan]: '',
+    [Column.engine]: 'w-20',
+    [Column.ide]: 'w-20',
+} as const
+
 /** The corresponding `Permissions` for each backend `PermissionAction`. */
 const PERMISSION: Record<backendModule.PermissionAction, permissionDisplay.Permissions> = {
     [backendModule.PermissionAction.own]: { type: permissionDisplay.Permission.owner },
@@ -820,9 +833,13 @@ function Dashboard(props: DashboardProps) {
                     )}
                 </div>
             </div>
-            <table className="items-center w-full bg-transparent border-collapse mt-2">
+            <table className="table-fixed items-center border-collapse mt-2">
                 <tbody>
-                    <tr className="h-10" />
+                    <tr className="h-10">
+                        {columnsFor(columnDisplayMode, backend.platform).map(column => (
+                            <td key={column} className={COLUMN_CSS_CLASS[column]} />
+                        ))}
+                    </tr>
                     <Rows<backendModule.Asset<backendModule.AssetType.project>>
                         items={visibleProjectAssets}
                         getKey={proj => proj.id}
