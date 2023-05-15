@@ -29,7 +29,8 @@ pub fn write(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> Result {
 #[context("Failed to deserialize JSON from path: {}", path.as_ref().display())]
 pub fn read_json<T: DeserializeOwned>(path: impl AsRef<Path>) -> Result<T> {
     let contents = read_to_string(&path)?;
-    serde_json::from_str(&contents).with_context(|| format!("Failed to parse JSON from {}", path.as_ref().display()))
+    serde_json::from_str(&contents)
+        .with_context(|| format!("Failed to parse JSON from {}", path.as_ref().display()))
 }
 
 /// Serialize the data to JSON text and write it to the file.

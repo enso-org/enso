@@ -85,23 +85,22 @@ impl IsWatcher<Gui> for Watcher {
     }
 }
 
-fn override_default_for_authentication(path: &crate::paths::generated::RepoRootAppIdeDesktopLibContentConfigSrcConfigJson) -> Result {
-    // The path in JSON is like groups.featurePreview.options.newDashboard.value.
-    // We want to switch that value to true.
+///
+fn override_default_for_authentication(
+    path: &crate::paths::generated::RepoRootAppIdeDesktopLibContentConfigSrcConfigJson,
+) -> Result {
     let json_path = ["groups", "featurePreview", "options", "newDashboard", "value"];
     let mut json = ide_ci::fs::read_json::<serde_json::Value>(path)?;
-    let mut current = json.as_object_mut().ok_or_else(|| anyhow!("Failed to find object in {:?}", path))?;
+    let mut current =
+        json.as_object_mut().ok_or_else(|| anyhow!("Failed to find object in {:?}", path))?;
     for key in &json_path[..json_path.len() - 1] {
         current = current
             .get_mut(*key)
-            .with_context(|| format!("Failed to find {:?} in {:?}", key, path))?
+            .with_context(|| format!("Failed to find {key:?} in {path:?}"))?
             .as_object_mut()
-            .with_context(|| format!("Failed to find object at {:?} in {:?}", key, path))?;
+            .with_context(|| format!("Failed to find object at {key:?} in {path:?}"))?;
     }
-    current.insert(
-        json_path.last().unwrap().to_string(),
-        serde_json::Value::Bool(true),
-    );
+    current.insert(json_path.last().unwrap().to_string(), serde_json::Value::Bool(true));
     ide_ci::fs::write_json(path, &json)?;
     Ok(())
 }
@@ -132,7 +131,7 @@ impl IsTarget for Gui {
             if ide_ci::actions::workflow::is_in_env() {
                 let path = &context.repo_root.app.ide_desktop.lib.content_config.src.config_json;
                 warn!("Overriding default for authentication in {}", path.display());
-                override_default_for_authentication(&path)?;
+                override_default_for_authentication(path)?;
             }
 
             let ide = ide_desktop_from_context(&context);
