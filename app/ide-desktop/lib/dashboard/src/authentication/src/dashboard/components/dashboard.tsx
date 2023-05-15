@@ -193,6 +193,14 @@ function rootDirectoryId(userOrOrganizationId: backendModule.UserOrOrganizationI
     )
 }
 
+/** Returns the list of columns to be displayed. */
+function columnsFor(displayMode: ColumnDisplayMode, backendPlatform: platformModule.Platform) {
+    const columns = COLUMNS_FOR[displayMode]
+    return backendPlatform === platformModule.Platform.desktop
+        ? columns.filter(column => column !== Column.sharedWith)
+        : columns
+}
+
 // =================
 // === Dashboard ===
 // =================
@@ -824,7 +832,7 @@ function Dashboard(props: DashboardProps) {
                                 above.
                             </span>
                         }
-                        columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                        columns={columnsFor(columnDisplayMode, backend.platform).map(column => ({
                             id: column,
                             heading: ColumnHeading(column, backendModule.AssetType.project),
                             render: renderer(column, backendModule.AssetType.project),
@@ -916,14 +924,19 @@ function Dashboard(props: DashboardProps) {
                                             {query ? ' matching your query' : ''}.
                                         </span>
                                     }
-                                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                                        id: column,
-                                        heading: ColumnHeading(
-                                            column,
-                                            backendModule.AssetType.directory
-                                        ),
-                                        render: renderer(column, backendModule.AssetType.directory),
-                                    }))}
+                                    columns={columnsFor(columnDisplayMode, backend.platform).map(
+                                        column => ({
+                                            id: column,
+                                            heading: ColumnHeading(
+                                                column,
+                                                backendModule.AssetType.directory
+                                            ),
+                                            render: renderer(
+                                                column,
+                                                backendModule.AssetType.directory
+                                            ),
+                                        })
+                                    )}
                                     onClick={(directoryAsset, event) => {
                                         event.stopPropagation()
                                         setSelectedAssets(
@@ -948,14 +961,19 @@ function Dashboard(props: DashboardProps) {
                                             {query ? ' matching your query' : ''}.
                                         </span>
                                     }
-                                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                                        id: column,
-                                        heading: ColumnHeading(
-                                            column,
-                                            backendModule.AssetType.secret
-                                        ),
-                                        render: renderer(column, backendModule.AssetType.secret),
-                                    }))}
+                                    columns={columnsFor(columnDisplayMode, backend.platform).map(
+                                        column => ({
+                                            id: column,
+                                            heading: ColumnHeading(
+                                                column,
+                                                backendModule.AssetType.secret
+                                            ),
+                                            render: renderer(
+                                                column,
+                                                backendModule.AssetType.secret
+                                            ),
+                                        })
+                                    )}
                                     onClick={(secret, event) => {
                                         event.stopPropagation()
                                         setSelectedAssets(
@@ -998,14 +1016,16 @@ function Dashboard(props: DashboardProps) {
                                             {query ? ' matching your query' : ''}.
                                         </span>
                                     }
-                                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                                        id: column,
-                                        heading: ColumnHeading(
-                                            column,
-                                            backendModule.AssetType.file
-                                        ),
-                                        render: renderer(column, backendModule.AssetType.file),
-                                    }))}
+                                    columns={columnsFor(columnDisplayMode, backend.platform).map(
+                                        column => ({
+                                            id: column,
+                                            heading: ColumnHeading(
+                                                column,
+                                                backendModule.AssetType.file
+                                            ),
+                                            render: renderer(column, backendModule.AssetType.file),
+                                        })
+                                    )}
                                     onClick={(file, event) => {
                                         event.stopPropagation()
                                         setSelectedAssets(
