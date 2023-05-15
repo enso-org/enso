@@ -552,11 +552,17 @@ type Inexact_Type_Coercion
     to_text self =
         "Inexact_Type_Coercion.Warning (requested_type = " + self.requested_type.to_text + ") (actual_type = " + self.actual_type.to_text + ")"
 
-## TODO figure out this error in #6112
 type Lossy_Conversion
     ## Indicates that some likely not-insignificant information was lost during
        a conversion.
-    Error
+    Error (target_type : Value_Type) (related_column : Text)
+
+    ## PRIVATE
+
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "When converting the column ["+self.related_column+"], the target type ("+self.target_type.to_display_text+") does not fill all the data, so some information was lost."
 
 type Invalid_Value_For_Type
     ## PRIVATE

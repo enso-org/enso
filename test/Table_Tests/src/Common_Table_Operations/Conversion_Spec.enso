@@ -1,0 +1,272 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Table import Value_Type
+import Standard.Table.Data.Type.Value_Type.Bits
+
+from Standard.Table.Errors import Lossy_Conversion
+from Standard.Database.Errors import Unsupported_Database_Operation
+
+from Standard.Test import Test, Problems
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import run_default_backend
+
+main = run_default_backend spec
+
+type My_Type
+    Value x
+
+    to_text : Text
+    to_text self = "{{{MY Type [x="+self.x.to_text+"] }}}"
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+    materialize = setup.materialize
+    supports_dates = setup.test_selection.date_time
+    Test.group prefix+"Table/Column.cast - to text" <|
+        Test.specify "should allow to cast columns of various basic types to text" <|
+            t = table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]], ["Z", [1.5, 0.0, -2.5]], ["W", ["a", "DEF", "a slightly longer text"]]]
+            t2 = t.cast t.column_names Value_Type.Char
+            t2.at "X" . value_type . is_text . should_be_true
+            t2.at "Y" . value_type . is_text . should_be_true
+            t2.at "Z" . value_type . is_text . should_be_true
+            t2.at "W" . value_type . is_text . should_be_true
+
+            t2.at "X" . to_vector . should_equal ["1", "2", "3000"]
+            t2.at "Y" . to_vector . should_equal ["true", "false", "true"]
+            t2.at "Z" . to_vector . should_equal ["1.5", "0.0", "-2.5"]
+            t2.at "W" . to_vector . should_equal ["a", "DEF", "a slightly longer text"]
+
+        if supports_dates then
+            Test.specify "should allow to cast date/time columns to text" <|
+                t = table_builder [["X", [Date.new 2015 1 1, Date.new 2023 12 31]], ["Y", [Time_Of_Day.new 1 2 3, Time_Of_Day.new 23 57 59]], ["Z", [Date_Time.new 2015 1 1 1 2 3, Date_Time.new 2023 11 30 22 45 44]]]
+                t2 = t.cast t.column_names Value_Type.Char
+                t2.at "X" . value_type . is_text . should_be_true
+                t2.at "Y" . value_type . is_text . should_be_true
+                t2.at "Z" . value_type . is_text . should_be_true
+
+                t2.at "X" . to_vector . should_equal ["2015-01-01", "2023-12-31"]
+                t2.at "Y" . to_vector . should_equal ["01:02:03", "23:57:59"]
+                t2.at "Z" . to_vector . should_equal ["2015-01-01 01:02:03", "2023-11-30 22:45:44"]
+
+        if setup.is_database.not then
+            Test.specify "should allow to cast a column of objects to text" <|
+                t = table_builder [["X", [My_Type.Value 42, My_Type.Value "X"]]]
+                c = t.at "X" . cast Value_Type.Char
+                c.value_type.is_text . should_be_true
+                c.to_vector . should_equal ["{{{MY Type [x=42] }}}", "{{{MY Type [x=X] }}}"]
+
+        Test.specify "should allow to cast a text column to fixed-length" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
+            t = table_builder [["X", ["a", "DEF", "a slightly longer text"]]]
+            c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
+            c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+            c.to_vector . should_equal ["a  ", "DEF", "a s"]
+
+            # No Lossy_Conversion warning here, because we started with text, so it was expected we will trim it if needed.
+            Problems.assume_no_problems c
+
+        Test.specify "should allow casting a non-text column to fixed-length text" <|
+            t = table_builder [["X", [1, 22, 333]]]
+            c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
+            c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+            c.to_vector . should_equal ["1  ", "22 ", "333"]
+            Problems.assume_no_problems c
+
+        Test.specify "should warn when losing data if the fixed-length text length is too short to fit the data" pending=(if setup.is_database then "Lossy_Conversion is not supported in Database yet.") <|
+            t = table_builder [["X", [15, 1000000, 123456]]]
+            c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
+            c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+            c.to_vector . should_equal ["15 ", "100", "123"]
+            Problems.expect_warning Lossy_Conversion c
+
+    Test.group prefix+"Table/Column.cast - numeric" <|
+        Test.specify "should allow to cast a boolean column to integer" <|
+            t = table_builder [["X", [True, False, True]]]
+            c = t.at "X" . cast Value_Type.Integer
+            c.value_type.is_integer . should_be_true
+            c.to_vector . should_equal [1, 0, 1]
+
+        Test.specify "should allow to cast an integer column to floating point" <|
+            t = table_builder [["X", [1, 2, 3]]]
+            c = t.at "X" . cast Value_Type.Float
+            c.value_type.is_floating_point . should_be_true
+            c.to_vector . should_equal [1.0, 2.0, 3.0]
+
+        Test.specify "should allow to cast an integer column to a smaller bit-width and larger bit-width" pending="TODO: #5159" <|
+            t = table_builder [["X", [1, 2, 3]]]
+            c = t.at "X" . cast (Value_Type.Integer Bits.Bits_16)
+            c.value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+            c.to_vector . should_equal [1, 2, 3]
+
+            t2 = table_builder [["X", [1, 2, 12000000]]]
+            c2 = t2.at "X" . cast (Value_Type.Integer Bits.Bits_16)
+            c2.value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+            c2.to_vector . should_equal [1, 2, Nothing]
+            Problems.expect_warning Lossy_Conversion c2
+
+            r3 = t2.at "X" . cast (Value_Type.Integer Bits.Bits_16) on_problems=Problem_Behavior.Report_Error
+            r3.should_fail_with Lossy_Conversion
+
+            # Now converting the 16-bit column `c` into 32 bits.
+            c3 = c.cast (Value_Type.Integer Bits.Bits_32)
+            c3.value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+            c3.to_vector . should_equal [1, 2, 3]
+
+        Test.specify "should allow to cast a floating point column to integer" <|
+            t = table_builder [["X", [1.0001, 2.55, 4.0]]]
+            c = t.at "X" . cast Value_Type.Integer
+            c.value_type.is_integer . should_be_true
+            c.to_vector . should_equal [1, 3, 4]
+            # Not reporting Lossy Conversion as converting floats to integers obviously truncates the value.
+            Problems.assume_no_problems c
+
+    if supports_dates then
+        Test.group prefix+"Table/column.cast - date/time" <|
+            Test.specify "should allow to get the Date part from a Date_Time" <|
+                t = table_builder [["X", [Date_Time.new 2015 1 2 3 4 5, Date_Time.new 2023 12 31 23 56 59]]]
+                c = t.at "X" . cast Value_Type.Date
+                c.value_type . should_equal Value_Type.Date
+                c.to_vector . should_equal [Date.new 2015 1 2, Date.new 2023 12 31]
+
+            Test.specify "should allow to get the Time_Of_Day part from a Date_Time" <|
+                t = table_builder [["X", [Date_Time.new 2015 1 2 3 4 5, Date_Time.new 2023 12 31 23 56 59]]]
+                c = t.at "X" . cast Value_Type.Time
+                c.value_type . should_equal Value_Type.Time
+                c.to_vector . should_equal [Time_Of_Day.new 3 4 5, Time_Of_Day.new 23 56 59]
+
+            Test.specify "should allow to convert a Date into Date_Time" <|
+                t = table_builder [["X", [Date.new 2015 1 2, Date.new 2023 12 31]]]
+                c = t.at "X" . cast Value_Type.Date_Time
+                c.value_type . should_equal Value_Type.Date_Time
+                c.to_vector . should_equal [Date_Time.new 2015 1 2 0 0 0, Date_Time.new 2023 12 31 0 0 0]
+
+    Test.group prefix+"Table/Column.cast - checking invariants" <|
+        Test.specify "should report an error for unsupported conversions" <|
+            t = table_builder [["X", [1, 2, 3]]]
+            r1 = t.at "X" . cast Value_Type.Boolean
+            r1.should_fail_with Illegal_Argument
+
+        Test.specify "should report an error pointing to the Table.parse method where applicable" <|
+            t = table_builder [["X", ["1", "2", "3"]]]
+            r1 = t.at "X" . cast Value_Type.Integer
+            r1.should_fail_with Illegal_Argument
+            r1.to_display_text . should_contain "Use the `parse` method instead."
+
+        Test.specify "should work if the first row is NULL" <|
+            t = table_builder [["X", [Nothing, 1, 2, 3000]], ["Y", [Nothing, True, False, True]]]
+
+            c1 = t.at "X" . cast Value_Type.Char
+            c1.value_type.is_text . should_be_true
+            c1.to_vector . should_equal [Nothing, "1", "2", "3000"]
+
+            c2 = t.at "Y" . cast Value_Type.Integer
+            c2.value_type.is_integer . should_be_true
+            c2.to_vector . should_equal [Nothing, 1, 0, 1]
+
+        Test.specify "should not lose the type after further operations were performed on the result" <|
+            t = table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]]]
+            c1 = t.at "X" . cast Value_Type.Char
+            c2 = t.at "Y" . cast Value_Type.Integer
+
+            c3 = c1 + '_suffix'
+            c3.value_type.is_text . should_be_true
+            c3.to_vector . should_equal ["1_suffix", "2_suffix", "3000_suffix"]
+
+            c4 = c2 + 1000
+            c4.value_type.is_integer . should_be_true
+            c4.to_vector . should_equal [1001, 1000, 1001]
+
+        Test.specify "should not lose the type after further operations were performed on the result, even if the first row is NULL" <|
+            t = table_builder [["X", [Nothing, 1, 2, 3000]], ["Y", [Nothing, True, False, True]]]
+            c1 = t.at "X" . cast Value_Type.Char
+            c2 = t.at "Y" . cast Value_Type.Integer
+
+            c3 = c1 + '_suffix'
+            c3.value_type.is_text . should_be_true
+            c3.to_vector . should_equal [Nothing, "1_suffix", "2_suffix", "3000_suffix"]
+
+            c4 = c2 + 1000
+            c4.value_type.is_integer . should_be_true
+            c4.to_vector . should_equal [Nothing, 1001, 1000, 1001]
+
+        Test.specify 'Table.cast should cast the columns "in-place" and not reorder them' <|
+            t = table_builder [["X", [1, 2, 3000]], ["Y", [4, 5, 6]], ["Z", [7, 8, 9]], ["A", [True, False, True]]]
+            t2 = t.cast ["Z", "Y"] Value_Type.Char
+            t2.column_names . should_equal ["X", "Y", "Z", "A"]
+
+            t2.at "X" . value_type . is_integer . should_be_true
+            t2.at "Y" . value_type . is_text . should_be_true
+            t2.at "Z" . value_type . is_text . should_be_true
+            t2.at "A" . value_type . is_boolean . should_be_true
+
+            t2.at "X" . to_vector . should_equal [1, 2, 3000]
+            t2.at "Y" . to_vector . should_equal ["4", "5", "6"]
+            t2.at "Z" . to_vector . should_equal ["7", "8", "9"]
+            t2.at "A" . to_vector . should_equal [True, False, True]
+
+        if setup.test_selection.fixed_length_text_columns then
+            Test.specify "should preserve the overridden types when materialized" pending="TODO: #5159 needed" <|
+                t = table_builder [["X", [1, 2, 100]], ["Y", ["a", "abcdef", "abc"]]]
+                t2 = t . cast "X" (Value_Type.Integer Bits.Bits_16) . cast "Y" (Value_Type.Char size=3 variable_length=False)
+
+                t3 = materialize t2
+                t3.at "X" . value_type . should_equal (t2.at "X" . value_type)
+                t3.at "Y" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+                t3.at "Y" . to_vector . should_equal ["a  ", "abc", "abc"]
+
+    Test.group prefix+"Simple variant of Table/Column.parse in all backends" <|
+        Test.specify "should be able to parse simple integers" <|
+            t = table_builder [["X", ["42", "0", "-1"]]]
+
+            c1 = t.at "X" . parse Value_Type.Integer
+            c1.value_type.is_integer . should_be_true
+            c1.to_vector . should_equal [42, 0, -1]
+
+            c2 = t.parse ["X"] Value_Type.Integer . at "X"
+            c2.value_type.is_integer . should_be_true
+            c2.to_vector . should_equal [42, 0, -1]
+
+        Test.specify "should be able to parse simple floats" <|
+            t = table_builder [["X", ["42.5", "0.25", "-1.0"]]]
+
+            c1 = t.at "X" . parse Value_Type.Float
+            c1.value_type.is_floating_point . should_be_true
+            c1.to_vector . should_equal [42.5, 0.25, -1.0]
+
+            c2 = t.parse ["X"] Value_Type.Float . at "X"
+            c2.value_type.is_floating_point . should_be_true
+            c2.to_vector . should_equal [42.5, 0.25, -1.0]
+
+        if supports_dates then
+            Test.specify "should be able to parse dates using a default format" <|
+                t = table_builder [["X", ["2018-01-01", "2023-12-31"]]]
+
+                c1 = t.at "X" . parse Value_Type.Date
+                c1.value_type.should_equal Value_Type.Date
+                c1.to_vector . should_equal [Date.new 2018 1 1, Date.new 2023 12 31]
+
+                c2 = t.parse ["X"] Value_Type.Date . at "X"
+                c2.value_type.should_equal Value_Type.Date
+                c2.to_vector . should_equal [Date.new 2018 1 1, Date.new 2023 12 31]
+        if supports_dates.not then
+            Test.specify "should report that date parsing is unsupported" <|
+                t = table_builder [["X", ["2018-01-01", "2023-12-31"]]]
+
+                r1 = t.at "X" . parse Value_Type.Date
+                r1.should_fail_with Unsupported_Database_Operation
+
+                r2 = t.parse ["X"] Value_Type.Date
+                r2.should_fail_with Unsupported_Database_Operation
+
+        Test.specify "should be able to parse booleans with default format" <|
+            t = table_builder [["X", ["true", "false", "true"]]]
+
+            c1 = t.at "X" . parse Value_Type.Boolean
+            c1.value_type.should_equal Value_Type.Boolean
+            c1.to_vector . should_equal [True, False, True]
+
+            c2 = t.parse ["X"] Value_Type.Boolean . at "X"
+            c2.value_type.should_equal Value_Type.Boolean
+            c2.to_vector . should_equal [True, False, True]
