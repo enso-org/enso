@@ -207,6 +207,7 @@ spec =
             Meta.is_atom typ . should_be_false
             meta_typ = Meta.meta typ
             meta_typ . should_be_a Meta.Type
+            meta_typ.name . should_equal "Boolean"
             cons = case meta_typ of
                 Meta.Type.Value _ -> meta_typ.constructors
                 _ -> Test.fail "Should be a Meta.Type.Value: " + meta_typ.to_text
@@ -222,6 +223,7 @@ spec =
             Meta.is_atom typ . should_be_false
             meta_typ = Meta.meta typ
             meta_typ . should_be_a Meta.Type
+            meta_typ.name . should_equal "My_Type"
             cons = case meta_typ of
                 Meta.Type.Value _ -> meta_typ.constructors
                 _ -> Test.fail "Should be a Meta.Type.Value: " + meta_typ.to_text
@@ -229,6 +231,8 @@ spec =
             cons.length . should_equal 1
             cons.at 0 . should_be_a Meta.Constructor
             cons . map (x -> x.name) . sort . should_equal [ "Value" ]
+            cons.each ctor->
+                ctor.declaring_type . should_equal meta_typ
 
         Test.specify "methods of MyType" <|
             typ = My_Type
