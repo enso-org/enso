@@ -4,7 +4,9 @@ import * as reactDom from 'react-dom'
 
 import * as animations from '../../animations'
 import * as authProvider from '../../authentication/providers/auth'
+import * as loggerProvider from '../../providers/logger'
 import * as svg from '../../components/svg'
+
 import Twemoji from './twemoji'
 
 // =================
@@ -21,6 +23,8 @@ export const ANIMATION_DURATION_MS = 1000
 const WIDTH_PX = 300
 /** The size (both width and height) of each reaction button. */
 const REACTION_BUTTON_SIZE = 20
+/** The size (both width and height) of each reaction on a message. */
+const REACTION_SIZE = 16
 // These must be `as const` for type-safety when using the `Twemoji` component.
 /** The list of reaction emojis, in order. */
 // eslint-disable-next-line no-restricted-syntax
@@ -38,11 +42,15 @@ interface ChatDisplayMessage {
     id: string
     avatar: string
     name: string
+    content: string
     timestamp: number
     isStaffMessage: boolean
 }
 
 export enum ChatMessageDataType {
+    // Server-only messages.
+    serverMessage = 'serverMessage',
+    // Client-only messages.
     authenticate = 'authenticate',
     newThread = 'newThread',
     renameThread = 'renameThread',
@@ -54,19 +62,28 @@ interface ChatMessageBaseData<Type extends ChatMessageDataType> {
     type: Type
 }
 
-export interface ChatMessageAuthenticateData
+export interface ChatMessageServerMessageData
+    extends ChatMessageBaseData<ChatMessageDataType.serverMessage> {
+    messageId: string
+    timestamp: number
+    content: string
+}
+
+export type ChatServerMessageData = ChatMessageServerMessageData
+
+export interface ChatAuthenticateMessageData
     extends ChatMessageBaseData<ChatMessageDataType.authenticate> {
     accessToken: string
 }
 
-export interface ChatMessageNewThreadData
+export interface ChatNewThreadMessageData
     extends ChatMessageBaseData<ChatMessageDataType.newThread> {
     title: string
     /** Content of the first message, to reduce the number of round trips. */
     content: string
 }
 
-export interface ChatMessageRenameThreadData
+export interface ChatRenameThreadMessageData
     extends ChatMessageBaseData<ChatMessageDataType.renameThread> {
     title: string
     threadId: string
@@ -77,18 +94,18 @@ export interface ChatMessageMessageData extends ChatMessageBaseData<ChatMessageD
     content: string
 }
 
-export interface ChatMessageReactionData extends ChatMessageBaseData<ChatMessageDataType.reaction> {
+export interface ChatReactionMessageData extends ChatMessageBaseData<ChatMessageDataType.reaction> {
     threadId: string
     messageId: string
     reaction: string
 }
 
-export type ChatMessageData =
-    | ChatMessageAuthenticateData
+export type ChatClientMessageData =
+    | ChatAuthenticateMessageData
     | ChatMessageMessageData
-    | ChatMessageNewThreadData
-    | ChatMessageReactionData
-    | ChatMessageRenameThreadData
+    | ChatNewThreadMessageData
+    | ChatReactionMessageData
+    | ChatRenameThreadMessageData
 
 // ===================
 // === ReactionBar ===
@@ -98,9 +115,10 @@ export type ChatMessageData =
 export interface ReactionBarProps {
     threadId: string
     messageId: string
-    sendMessage: (message: ChatMessageData) => void
+    sendMessage: (message: ChatClientMessageData) => void
 }
 
+/** A list of emoji reactions to choose from. */
 function ReactionBar(props: ReactionBarProps) {
     const { threadId, messageId, sendMessage } = props
 
@@ -125,17 +143,43 @@ function ReactionBar(props: ReactionBarProps) {
     )
 }
 
+// =================
+// === Reactions ===
+// =================
+
+/** Props for a {@link Reactions}. */
+export interface ReactionsProps {
+    reactions: Reaction[]
+}
+
+/** A list of emoji reactions that have been on a message. */
+function Reactions(props: ReactionsProps) {
+    const { reactions } = props
+
+    if (reactions.length === 0) {
+        return null
+    } else {
+        return (
+            <div>
+                {reactions.map(reaction => (
+                    <Twemoji emoji={reaction} size={REACTION_SIZE} />
+                ))}
+            </div>
+        )
+    }
+}
+
 // ====================
 // === ChatMessage ===
 // ====================
 
 /** Props for a {@link ChatMessage}. */
-interface ChatMessageProps {
+export interface ChatMessageProps {
     threadId: string
     message: ChatDisplayMessage
     reactions: Reaction[]
     shouldShowReactionBar: boolean
-    sendMessage: (message: ChatMessageData) => void
+    sendMessage: (message: ChatClientMessageData) => void
 }
 
 function ChatMessage(props: ChatMessageProps) {
@@ -145,6 +189,10 @@ function ChatMessage(props: ChatMessageProps) {
             <div>
                 <img src={message.avatar} />
                 {message.name}
+            </div>
+            <div>
+                {message.content}
+                <Reactions reactions={reactions} />
             </div>
             {shouldShowReactionBar && (
                 <ReactionBar threadId={threadId} messageId={message.id} sendMessage={sendMessage} />
@@ -167,8 +215,13 @@ interface ChatProps {
 function Chat(props: ChatProps) {
     const { isOpen, doClose } = props
     const { accessToken } = authProvider.useFullUserSession()
+    const logger = loggerProvider.useLogger()
+
     const [isPaidUser, setIsPaidUser] = react.useState(true)
     const [messages, setMessages] = react.useState<ChatDisplayMessage[]>([])
+    const [threadId, setThreadId] = react.useState<string | null>(null)
+    const [threadTitle, setThreadTitle] = react.useState('New chat thread')
+    const [isThreadTitleEditable, setIsThreadTitleEditable] = react.useState(false)
     // TODO: proper URL
     const [websocket] = react.useState(() => new WebSocket('ws://localhost:8082'))
     const [right, setTargetRight] = animations.useInterpolateOverTime(
@@ -176,7 +229,9 @@ function Chat(props: ChatProps) {
         ANIMATION_DURATION_MS,
         -WIDTH_PX
     )
-    // This will never be `null` as its value is set immediately.
+    // These will never be `null` as their values are set immediately.
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const titleInput = react.useRef<HTMLInputElement>(null!)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const messageInput = react.useRef<HTMLInputElement>(null!)
 
@@ -188,12 +243,34 @@ function Chat(props: ChatProps) {
     }, [])
 
     react.useEffect(() => {
-        websocket.addEventListener('open', () => {
+        const onMessage = (data: MessageEvent) => {
+            if (typeof data.data !== 'string') {
+                logger.error('Chat cannot handle binary messages.')
+            } else {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                const message: ChatServerMessageData = JSON.parse(data.data)
+                switch (message.type) {
+                    case ChatMessageDataType.serverMessage: {
+                        setMessages([
+                            ...messages,
+                            { id: message.messageId, timestamp: message.timestamp },
+                        ])
+                    }
+                }
+            }
+        }
+        const onOpen = () => {
             sendMessage({
                 type: ChatMessageDataType.authenticate,
                 accessToken,
             })
-        })
+        }
+        websocket.addEventListener('message', onMessage)
+        websocket.addEventListener('open', onOpen)
+        return () => {
+            websocket.removeEventListener('message', onMessage)
+            websocket.removeEventListener('open', onOpen)
+        }
     }, [websocket])
 
     const container = document.getElementById(HELP_CHAT_ID)
@@ -218,33 +295,62 @@ function Chat(props: ChatProps) {
         }
     }, [isOpen])
 
-    // TODO:
-    const currentThreadId: string | null = null
-    const currentThreadTitle = 'New chat thread'
-
     const showThreadList = () => {
-        //
+        // TODO:
     }
 
-    const sendMessage = (message: ChatMessageData) => {
+    const sendMessage = (message: ChatClientMessageData) => {
         websocket.send(JSON.stringify(message))
     }
 
     const sendCurrentMessage = (event: react.FormEvent) => {
         event.preventDefault()
-        if (currentThreadId == null) {
+        if (threadId == null) {
             sendMessage({
                 type: ChatMessageDataType.newThread,
-                title: DEFAULT_THREAD_TITLE,
+                title: threadTitle,
                 content: messageInput.current.value,
             })
-            //
         }
         messageInput.current.value = ''
     }
 
-    const renameThread = (event: react.FormEvent) => {
-        //
+    const createNewThread = () => {
+        sendMessage({
+            type: ChatMessageDataType.newThread,
+            title: threadTitle,
+            content: messageInput.current.value,
+        })
+        setMessages([])
+    }
+
+    const stopEditing = (event: react.KeyboardEvent) => {
+        if (!event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
+            if (event.key === 'Escape') {
+                titleInput.current.value = threadTitle
+                setIsThreadTitleEditable(false)
+            } else if (event.key === 'Enter') {
+                if (threadId) {
+                    sendMessage({
+                        type: ChatMessageDataType.renameThread,
+                        threadId: threadId,
+                        title: threadTitle,
+                    })
+                }
+                setThreadTitle(titleInput.current.value)
+                setIsThreadTitleEditable(false)
+            }
+        }
+    }
+
+    const onThreadTitleClick = (event: react.MouseEvent) => {
+        if (event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
+            setIsThreadTitleEditable(true)
+        }
+    }
+
+    const upgradeToPro = () => {
+        // TODO:
     }
 
     if (container == null) {
@@ -258,30 +364,37 @@ function Chat(props: ChatProps) {
             <div
                 style={{ right }}
                 className="text-xs text-primary flex flex-col fixed top-0 right-0 h-screen bg-ide-bg border-ide-bg-dark border-l-2 w-80 p-1"
+                onKeyDown={stopEditing}
             >
                 <div className="flex">
                     <button
                         className="flex grow items-center text-sm font-semibold"
                         onClick={showThreadList}
                     >
-                        {svg.DOWN_ARROW_ICON} {currentThreadTitle}
+                        {svg.DOWN_ARROW_ICON}{' '}
+                        {/* TODO: reset to current value when editing canceled */}
+                        <input
+                            type="text"
+                            ref={titleInput}
+                            disabled={!isThreadTitleEditable}
+                            defaultValue={threadTitle}
+                            onClick={onThreadTitleClick}
+                        />
                     </button>
                     <button onClick={doClose}>{svg.LARGE_CLOSE_ICON}</button>
                 </div>
                 <div className="grow">
-                    {currentThreadId != null &&
+                    {threadId != null &&
                         messages.map(message => (
                             <ChatMessage
                                 key={message.id}
-                                threadId={currentThreadId}
+                                threadId={threadId}
                                 message={message}
                                 reactions={[]}
                                 sendMessage={sendMessage}
                                 shouldShowReactionBar={message === lastStaffMessage}
                             />
                         ))}
-                    {/* FIXME[sb]: this should only appear on the latest staff message */}
-                    <ReactionBar messageId={''} sendMessage={sendMessage} />
                 </div>
                 <div className="rounded-xl bg-white p-2 m-1">
                     <form onSubmit={sendCurrentMessage}>
@@ -294,7 +407,7 @@ function Chat(props: ChatProps) {
                                 className="w-full rounded-full"
                             ></input>
                             <div className="flex">
-                                <button className="grow">
+                                <button className="grow" onClick={createNewThread}>
                                     New question? Click to start a new thread!
                                 </button>
                                 <button>Reply!</button>
@@ -303,10 +416,13 @@ function Chat(props: ChatProps) {
                     </form>
                 </div>
                 {!isPaidUser && (
-                    <div className="rounded-xl bg-call-to-action text-white p-2 m-1">
+                    <button
+                        className="rounded-xl bg-call-to-action text-white p-2 m-1"
+                        onClick={upgradeToPro}
+                    >
                         Click here to upgrade to Enso Pro and get access to high-priority, live
                         support!
-                    </div>
+                    </button>
                 )}
             </div>,
             container
