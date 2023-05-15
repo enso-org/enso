@@ -345,4 +345,6 @@ public abstract class Storage<T> {
     }
     return new LongStorage(data);
   }
+
+  public abstract Storage<?> cast(StorageType targetType);
 }

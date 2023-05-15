@@ -4,10 +4,12 @@ import java.util.BitSet;
 
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.ObjectBuilder;
+import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.TextType;
 
 /** A column storing arbitrary objects. */
 public final class ObjectStorage extends SpecializedStorage<Object> {
@@ -37,6 +39,27 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
   @Override
   public Builder createDefaultBuilderOfSameType(int capacity) {
     return new ObjectBuilder(capacity);
+  }
+
+  @Override
+  public Storage<?> cast(StorageType targetType) {
+    return switch (targetType) {
+      case AnyObjectType anyObjectType -> this;
+      case TextType textType -> {
+        int n = size();
+        StringBuilder builder = new StringBuilder(n);
+        for (int i = 0; i < n; i++) {
+          Object item = data[i];
+          if (item == null) {
+            builder.appendNulls(1);
+          } else {
+            builder.append(item.toString());
+          }
+        }
+        yield StringStorage.adapt(builder.seal(), textType);
+      }
+      default -> throw new IllegalStateException("Conversion of ObjectStorage to " + targetType + " is not supported");
+    };
   }
 
   private static final MapOpStorage<Object, SpecializedStorage<Object>> ops = buildObjectOps();
