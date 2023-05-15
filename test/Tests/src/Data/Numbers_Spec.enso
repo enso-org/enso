@@ -14,12 +14,14 @@ Decimal.get_fun_factor self = "Wow, " + self.to_text + " is such a fun number!"
 
 spec =
     eps = 0.000001
+    max_long = 9223372036854775807
+    min_long = -99223372036854775808
     almost_max_long = 9223372036854775806
     almost_max_long_times_three = 27670116110564327418
     almost_max_long_times_three_plus_1 = 27670116110564327419
     almost_max_long_times_three_decimal = 27670116110564327418.8
     hundred_factorial = 93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000
-    very_negative = -99223372036854775808
+    very_negative = min_long
 
     Test.group "gmt" <|
         Test.specify "Decimal places out of range" <|
@@ -611,5 +613,39 @@ spec =
             -3000 . round -3 . should_equal -3000
             -3098 . round -3 . should_equal -3000
             -3101 . round -3 . should_equal -3000
+
+        Test.specify "Edge cases"
+            min_long.round . should_equal min_long
+            min_long.round -1 . should_equal -99223372036854775810
+            min_long.round -5 . should_equal -99223372036854800000
+
+            IO.println "----"
+            IO.println <| Meta.type_of <| max_long
+            IO.println <| Meta.type_of <| max_long.round
+            IO.println <| Meta.type_of <| max_long.round -1
+            IO.println <| Meta.type_of <| max_long.round -2
+            IO.println <| Meta.type_of <| max_long.round -3
+            IO.println <| Meta.type_of <| max_long.round -4
+            IO.println <| Meta.type_of <| max_long.round -5
+            max_long.round . should_equal max_long
+            max_long.round -1 . should_equal 9223372036854775810
+            max_long.round -2 . should_equal 9223372036854775800
+            max_long.round -3 . should_equal 9223372036854776000
+            max_long.round -4 . should_equal 9223372036854780000
+
+            min_long-20 . should_equal -99223372036854775828
+            min_long-20 . round . should_equal (min_long - 20)
+            min_long-20 . round -1 . should_equal -99223372036854775830
+            min_long-20 . round -5 . should_equal -99223372036854800000
+
+            max_long+20 . should_equal 9223372036854775827
+            max_long+20 . round . should_equal (max_long + 20)
+            max_long+20 . round -1 . should_equal 9223372036854775830
+
+        Test.specify "Edge cases (failing)" pending="These fail because the result is returned as a double" <|
+            # Loses precision
+            max_long+20 . round -5 . should_equal 9223372036854800000
+            # Loses precision
+            max_long.round -5 . should_equal 9223372036854800000
 
 main = Test_Suite.run_main spec
