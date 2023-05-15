@@ -694,7 +694,7 @@ mod test {
 
     fn module_code_uploading(file_name: &str) -> String {
         format!(
-            "{}\n    operator1 = File_Uploading.file_uploading Enso_Project.data/\"{}\"",
+            "{}\n    operator1 = Visualization.file_uploading Enso_Project.data/\"{}\"",
             mock::data::CODE,
             file_name
         )
