@@ -18,6 +18,9 @@
       lib/:
         client/:
         content/:
+        content-config/:
+          src/:
+            config.json:
         icons/:
         project-manager/:
   build/:

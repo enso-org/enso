@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as backend from './backend'
 import * as modalProvider from '../providers/modal'
 import * as rows from './components/rows'
+import * as svg from '../components/svg'
 
 import PermissionDisplay, * as permissionDisplay from './components/permissionDisplay'
 import ContextMenu from './components/contextMenu'
@@ -134,10 +135,7 @@ export const COLUMN_RENDERER: Record<
                     key={user.user.organization_id}
                     permissions={PERMISSION[user.permission]}
                 >
-                    <img
-                        className="rounded-full h-6"
-                        src="https://faces-img.xcdn.link/image-lorem-face-4742.jpg"
-                    />
+                    {svg.DEFAULT_USER_ICON}
                 </PermissionDisplay>
             ))}
         </>

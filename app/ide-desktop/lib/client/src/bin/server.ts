@@ -8,6 +8,7 @@ import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
 import createServer from 'create-servers'
 
+import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
 
 import * as paths from '../paths'
@@ -105,6 +106,9 @@ export class Server {
                 resource === '/preload.cjs.map'
                     ? `${paths.APP_PATH}${resource}`
                     : `${this.config.dir}${resource}`
+            for (const [header, value] of common.COOP_COEP_CORP_HEADERS) {
+                response.setHeader(header, value)
+            }
             fs.readFile(resourceFile, (err, data) => {
                 if (err) {
                     logger.error(`Resource '${resource}' not found.`)
