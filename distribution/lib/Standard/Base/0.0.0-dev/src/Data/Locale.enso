@@ -3,6 +3,7 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Metadata.Display
 import project.Nothing.Nothing
+import project.IO
 
 from project.Data.Boolean import Boolean, False
 from project.Metadata.Widget import Single_Choice
@@ -21,13 +22,6 @@ polyglot java import java.util.Locale as JavaLocale
    - A country code, which is optional.
    - A variant, which is optional.
 type Locale
-    ## PRIVATE
-       Gets the default drop down option for this encoding.
-    default_widget : Single_Choice
-    default_widget =
-        values = [Option "default" "Locale.default", Option "bangladesh" "Locale.bangladesh", Option "brazil" "Locale.brazil", Option "canada_english" "Locale.canada_english", Option "canada_french" "Locale.canada_french", Option "china" "Locale.china", Option "france" "Locale.france", Option "germany" "Locale.germany", Option "india_hindi" "Locale.india_hindi", Option "india_english" "Locale.india_english", Option "indonesia" "Locale.indonesia", Option "italy" "Locale.italy", Option "japan" "Locale.japan", Option "mexico" "Locale.mexico", Option "nigeria" "Locale.nigeria", Option "pakistan_urdu" "Locale.pakistan_urdu", Option "pakistan_english" "Locale.pakistan_english", Option "poland" "Locale.poland", Option "russia" "Locale.russia", Option "south_korea" "Locale.south_korea", Option "uk" "Locale.uk", Option "us" "Locale.us"]
-        Single_Choice values=values display=Display.When_Modified
-
     ## Construct a new locale.
 
        Arguments:
@@ -431,3 +425,22 @@ type Locale
        Convert Locale to a friendly string.
     to_display_text : Text
     to_display_text self = "Locale(" + self.to_text + ")"
+
+    ## PRIVATE
+       Gets the default drop down option for this encoding.
+    default_widget : Single_Choice
+    default_widget =
+        values = Locale.widget_options
+        IO.println "OPTS"
+        IO.println Locale.widget_options
+        Single_Choice values=values display=Display.When_Modified
+
+    all_predefeined_language_tags : Vector Text
+    all_predefeined_language_tags = ["bn-BD", "pt-BR", "en-CA", "fr-CA", "zh-CN", "fr-FR", "de-DE", "hi-IN", "en-IN", "id-ID", "it-IT", "jp-JP", "es-MX", "en-NG", "ur-PK", "en-PK", "pl-PL", "ru-RU", "ko-KR", "en-GB", "en-US"]
+
+    widget_options : Vector Option
+    widget_options = Locale.all_predefeined_language_tags.map tag->
+        locale = Locale.from_language_tag tag
+        display_string = locale.display_country
+        code_string = 'Locale.from_language_tag \"' + tag + '\"'
+        Option display_string locale code_string

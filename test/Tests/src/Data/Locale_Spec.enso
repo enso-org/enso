@@ -14,7 +14,28 @@ with_locale locale ~test =
     JavaLocale.setDefault default_locale
     result
 
-spec = Test.group "Locale" <|
+spec =
+  Test.group "gmt" <|
+    Test.specify "" <|
+        IO.println <| Locale.widget_options
+        ##
+            case Locale.default of
+                Locale.Value java_locale ->
+                    IO.println java_locale.getAvailableLocales
+        ##
+            IO.println "HI"
+            IO.println Locale
+            IO.println <| Meta.type_of Locale
+            IO.println <| Meta.type_of Locale.default
+            IO.println <| Meta.meta Locale
+            IO.println <| Meta.meta Locale.default
+            IO.println <| (Meta.meta Locale) . methods
+            IO.println <| (Meta.meta Locale.default) . methods
+            IO.println <| (Meta.type_of Locale.default) . methods
+            IO.println <| Meta.methods (Locale)
+            Meta.methods (Locale) . map m-> IO.println m
+
+  Test.group "Locale" <|
     en_gb = Locale.new "en" "GB"
     Test.specify "allow constructing a locale with optional parts" <|
         loc = Locale.new "en"
