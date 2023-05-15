@@ -308,7 +308,7 @@ impl NodeFromDroppedFileHandler {
     }
 
     fn uploading_node_expression(name: &str) -> String {
-        format!("File_Uploading.file_uploading Enso_Project.data/\"{name}\"")
+        format!("Visualization.file_uploading enso_project.data/\"{name}\"")
     }
 
     fn uploaded_node_expression(name: &str) -> String {
