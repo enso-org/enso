@@ -23,7 +23,7 @@ import scala.annotation.unused
   */
 
 @SerialVersionUID(
-  5569L // removes special handling of `enso_project` method
+  6584L // verify ascribed types
 )
 case class BindingsMap(
   definedEntities: List[DefinedEntity],

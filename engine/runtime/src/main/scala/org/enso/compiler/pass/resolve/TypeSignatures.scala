@@ -130,7 +130,14 @@ case object TypeSignatures extends IRPass {
         lastSignature = None
         res
       case ut: IR.Module.Scope.Definition.Type =>
-        Some(ut.mapExpressions(resolveExpression))
+        Some(
+          ut
+            .copy(
+              params  = ut.params.map(resolveArgument),
+              members = ut.members.map(resolveDefinitionData)
+            )
+            .mapExpressions(resolveExpression)
+        )
       case err: IR.Error                  => Some(err)
       case ann: IR.Name.GenericAnnotation => Some(ann)
       case _: IR.Module.Scope.Definition.SugaredType =>
@@ -168,6 +175,36 @@ case object TypeSignatures extends IRPass {
       case sig: IR.Type.Ascription    => resolveAscription(sig)
     }
   }
+
+  private def resolveDefinitionData(
+    data: IR.Module.Scope.Definition.Data
+  ): IR.Module.Scope.Definition.Data = {
+    data.copy(
+      arguments = data.arguments.map(resolveArgument)
+    )
+  }
+
+  private def resolveArgument(
+    argument: IR.DefinitionArgument
+  ): IR.DefinitionArgument =
+    argument match {
+      case specified @ IR.DefinitionArgument.Specified(
+            _,
+            Some(ascribedType),
+            _,
+            _,
+            _,
+            _,
+            _
+          ) =>
+        val sig = resolveExpression(ascribedType.duplicate())
+        specified.copy(
+          name = specified.name.updateMetadata(this -->> Signature(sig)),
+          ascribedType =
+            Some(ascribedType.updateMetadata(this -->> Signature(sig)))
+        )
+      case argument => argument
+    }
 
   /** Resolves type signatures in an ascription.
     *
