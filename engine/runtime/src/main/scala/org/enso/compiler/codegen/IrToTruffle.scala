@@ -27,6 +27,7 @@ import org.enso.compiler.pass.resolve.{
   GlobalNames,
   MethodDefinitions,
   Patterns,
+  TypeNames,
   TypeSignatures
 }
 import org.enso.interpreter.epb.EpbParser
@@ -240,7 +241,22 @@ class IrToTruffle(
 
           for (idx <- atomDefn.arguments.indices) {
             val unprocessedArg = atomDefn.arguments(idx)
-            val arg            = argFactory.run(unprocessedArg, idx)
+            val tpe = unprocessedArg.ascribedType
+              .map(t => {
+                t.getMetadata(TypeNames) match {
+                  case Some(
+                        BindingsMap
+                          .Resolution(BindingsMap.ResolvedType(mod, tpe))
+                      ) => {
+                    val t = mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
+                    t
+                  }
+                  case _ => null
+                }
+              })
+              .getOrElse(null)
+
+            val arg = argFactory.run(unprocessedArg, idx)
             val occInfo = unprocessedArg
               .unsafeGetMetadata(
                 AliasAnalysis,
@@ -250,7 +266,7 @@ class IrToTruffle(
             val slotIdx = localScope.getVarSlotIdx(occInfo.id)
             argDefs(idx) = arg
             val readArg =
-              ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
+              ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null), tpe)
             val assignmentArg = AssignmentNode.build(readArg, slotIdx)
             val argRead =
               ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
@@ -1651,7 +1667,20 @@ class IrToTruffle(
           case (unprocessedArg, idx) =>
             val arg = argFactory.run(unprocessedArg, idx)
             argDefinitions(idx) = arg
-
+            val tpe = unprocessedArg.ascribedType
+              .map(t => {
+                t.getMetadata(TypeNames) match {
+                  case Some(
+                        BindingsMap
+                          .Resolution(BindingsMap.ResolvedType(mod, tpe))
+                      ) => {
+                    val t = mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
+                    t
+                  }
+                  case _ => null
+                }
+              })
+              .getOrElse(null)
             val occInfo = unprocessedArg
               .unsafeGetMetadata(
                 AliasAnalysis,
@@ -1661,7 +1690,7 @@ class IrToTruffle(
 
             val slotIdx = scope.getVarSlotIdx(occInfo.id)
             val readArg =
-              ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
+              ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null), tpe)
             val assignArg = AssignmentNode.build(readArg, slotIdx)
 
             argExpressions.append(assignArg)

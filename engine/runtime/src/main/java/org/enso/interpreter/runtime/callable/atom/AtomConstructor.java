@@ -94,7 +94,7 @@ public final class AtomConstructor implements TruffleObject {
   public AtomConstructor initializeFields(EnsoLanguage language, ArgumentDefinition... args) {
     ExpressionNode[] reads = new ExpressionNode[args.length];
     for (int i = 0; i < args.length; i++) {
-      reads[i] = ReadArgumentNode.build(i, null);
+      reads[i] = ReadArgumentNode.build(i, null, null);
     }
     return initializeFields(
         language, LocalScope.root(), new ExpressionNode[0], reads, new Annotation[0], args);
