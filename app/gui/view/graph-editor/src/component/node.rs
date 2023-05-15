@@ -12,7 +12,6 @@ use crate::view;
 use crate::CallWidgetsConfig;
 use crate::Type;
 
-use super::edge;
 use engine_protocol::language_server::ExecutionEnvironment;
 use enso_frp as frp;
 use enso_frp;
