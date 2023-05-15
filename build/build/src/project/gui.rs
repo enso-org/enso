@@ -85,8 +85,11 @@ impl IsWatcher<Gui> for Watcher {
     }
 }
 
+/// Override the default value of `newDashboard` in `config.json` to `true`.
 ///
-fn override_default_for_authentication(
+/// This is a temporary workaround. We want to enable the new dashboard by default in the CI-built
+/// IDE, but we don't want to enable it by default in the IDE built locally by developers.
+pub fn override_default_for_authentication(
     path: &crate::paths::generated::RepoRootAppIdeDesktopLibContentConfigSrcConfigJson,
 ) -> Result {
     let json_path = ["groups", "featurePreview", "options", "newDashboard", "value"];
@@ -128,6 +131,9 @@ impl IsTarget for Gui {
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
         let WithDestination { inner, destination } = job;
         async move {
+            // TODO: [mwu]
+            //  This is a temporary workaround until https://github.com/enso-org/enso/issues/6662
+            //  is resolved.
             if ide_ci::actions::workflow::is_in_env() {
                 let path = &context.repo_root.app.ide_desktop.lib.content_config.src.config_json;
                 warn!("Overriding default for authentication in {}", path.display());
