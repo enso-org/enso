@@ -156,11 +156,14 @@
   <kbd>cmd</kbd>+<kbd>alt</kbd>+<kbd>t</kbd>/<kbd>r</kbd>.
 - [Fixed a bug where selecting a nested breadcrumb would cause the order of
   breadcrumbs to change incorrectly.][6617]
+- [Cloud Dashboard, which supersedes the startup screen][6279]. Features also
+  added in various other PRs.
 
+[6279]: https://github.com/enso-org/enso/pull/6279
 [6421]: https://github.com/enso-org/enso/pull/6421
 [6530]: https://github.com/enso-org/enso/pull/6530
-[6620]: https://github.com/enso-org/enso/pull/6620
 [6617]: https://github.com/enso-org/enso/pull/6617
+[6620]: https://github.com/enso-org/enso/pull/6620
 
 #### EnsoGL (rendering engine)
 
@@ -217,17 +220,16 @@
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
-[4047]: https://github.com/enso-org/enso/pull/4047
 [4003]: https://github.com/enso-org/enso/pull/4003
+[4047]: https://github.com/enso-org/enso/pull/4047
 [5895]: https://github.com/enso-org/enso/pull/5895
-[5895]: https://github.com/enso-org/enso/pull/6130
 [6035]: https://github.com/enso-org/enso/pull/6035
 [6097]: https://github.com/enso-org/enso/pull/6097
-[6097]: https://github.com/enso-org/enso/pull/6341
+[6130]: https://github.com/enso-org/enso/pull/6130
 [6366]: https://github.com/enso-org/enso/pull/6366
-[6487]: https://github.com/enso-org/enso/pull/6487
 [6341]: https://github.com/enso-org/enso/pull/6341
 [6470]: https://github.com/enso-org/enso/pull/6470
+[6487]: https://github.com/enso-org/enso/pull/6487
 [6512]: https://github.com/enso-org/enso/pull/6512
 
 #### Enso Standard Library
