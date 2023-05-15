@@ -108,7 +108,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
       out.println("public class " + builtinType.name() + " extends Builtin {");
       out.println("""
         @Override
-        protected boolean containsValues() {
+        public boolean containsValues() {
           return true;
         }
       }

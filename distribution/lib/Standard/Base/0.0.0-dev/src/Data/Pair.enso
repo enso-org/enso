@@ -232,7 +232,9 @@ type Pair
     reverse : Pair
     reverse self = Pair.new self.second self.first
 
-    ## Applies a function to each element of the pair.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each element of the pair.
 
        Unlike `map`, this method does not return the individual results,
        therefore it is only useful for side-effecting computations.

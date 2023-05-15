@@ -1,0 +1,176 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Test import Problems, Test, Test_Suite
+import Standard.Test.Extensions
+
+main = Test_Suite.run_main spec
+
+spec =
+    Test.group "Date_Range" <|
+        Test.specify "should be created with up_to and down_to extension methods" <|
+            (Date.new 2020 02 28).up_to (Date.new 2020 03 02) . to_vector . should_equal [Date.new 2020 02 28, Date.new 2020 02 29, Date.new 2020 03 01]
+            (Date.new 2020 02 28).up_to (Date.new 2020 03 02) include_end=True . to_vector . should_equal [Date.new 2020 02 28, Date.new 2020 02 29, Date.new 2020 03 01, Date.new 2020 03 02]
+
+            (Date.new 2021 03 01).down_to (Date.new 2021 02 28) . to_vector . should_equal [Date.new 2021 03 01]
+            (Date.new 2021 03 01).down_to (Date.new 2021 02 28) include_end=True . to_vector . should_equal [Date.new 2021 03 01, Date.new 2021 02 28]
+
+            (Date.new 2023 12 31).up_to (Date.new 2023 12 31) . to_vector . should_equal []
+            (Date.new 2023 12 31).up_to (Date.new 2023 12 31) include_end=True . to_vector . should_equal [Date.new 2023 12 31]
+
+            (Date.new 2023 12 31).down_to (Date.new 2023 12 31) . to_vector . should_equal []
+            (Date.new 2023 12 31).down_to (Date.new 2023 12 31) include_end=True . to_vector . should_equal [Date.new 2023 12 31]
+
+            (Date.new 2023 12 31).down_to (Date.new 2023 12 31) . with_step Date_Period.Month . to_vector . should_equal []
+
+        Test.specify ".new should infer if the range should be increasing or not" <|
+            Date_Range.new (Date.new 2023 10 01) (Date.new 2023 10 04) . to_vector . should_equal [Date.new 2023 10 01, Date.new 2023 10 02, Date.new 2023 10 03]
+            Date_Range.new (Date.new 2023 10 04) (Date.new 2023 10 01) . to_vector . should_equal [Date.new 2023 10 04, Date.new 2023 10 03, Date.new 2023 10 02]
+
+        Test.specify "will be empty if the start and end are swapped with up_to or down_to" <|
+            (Date.new 2023 10 01).down_to (Date.new 2023 10 04) . to_vector . should_equal []
+            (Date.new 2023 10 04).up_to (Date.new 2023 10 01) . to_vector . should_equal []
+
+            (Date.new 2023 10 01).down_to (Date.new 2023 10 04) . with_step Date_Period.Month . to_vector . should_equal []
+            (Date.new 2023 10 04).up_to (Date.new 2023 10 01) . with_step Date_Period.Month . to_vector . should_equal []
+
+        Test.specify "should allow setting a custom step" <|
+            (Date.new 2020 01 10).up_to (Date.new 2020 01 31) . with_step (Period.new days=5) . to_vector . should_equal [Date.new 2020 01 10, Date.new 2020 01 15, Date.new 2020 01 20, Date.new 2020 01 25, Date.new 2020 01 30]
+            (Date.new 2020 01 10).up_to (Date.new 2020 01 30) . with_step (Period.new days=5) . to_vector . should_equal [Date.new 2020 01 10, Date.new 2020 01 15, Date.new 2020 01 20, Date.new 2020 01 25]
+            (Date.new 2020 01 10).up_to (Date.new 2020 01 30) include_end=True . with_step (Period.new days=5) . to_vector . should_equal [Date.new 2020 01 10, Date.new 2020 01 15, Date.new 2020 01 20, Date.new 2020 01 25, Date.new 2020 01 30]
+
+            (Date.new 2020 01 10).down_to (Date.new 2020 01 01) . with_step Date_Period.Week . to_vector . should_equal [Date.new 2020 01 10, Date.new 2020 01 03]
+
+            (Date.new 2020 01 01).up_to (Date.new 2020 12 31) . with_step Date_Period.Month . to_vector . should_equal [Date.new 2020 01 01, Date.new 2020 02 01, Date.new 2020 03 01, Date.new 2020 04 01, Date.new 2020 05 01, Date.new 2020 06 01, Date.new 2020 07 01, Date.new 2020 08 01, Date.new 2020 09 01, Date.new 2020 10 01, Date.new 2020 11 01, Date.new 2020 12 01]
+            (Date.new 2020 01 01).up_to (Date.new 2026) . with_step (Period.new years=2) . to_vector . should_equal [Date.new 2020 01 01, Date.new 2022 01 01, Date.new 2024 01 01]
+            (Date.new 2020 01 01).up_to (Date.new 2026) include_end=True . with_step (Period.new years=2) . to_vector . should_equal [Date.new 2020 01 01, Date.new 2022 01 01, Date.new 2024 01 01, Date.new 2026 01 01]
+            (Date.new 2060 11 25).down_to (Date.new 2020 11 24) . with_step (Period.new years=20) . to_vector . should_equal [Date.new 2060 11 25, Date.new 2040 11 25, Date.new 2020 11 25]
+
+            (Date.new 2020).up_to (Date.new 2023) . with_step (Period.new years=1 months=2 days=3) . to_vector . should_equal [Date.new 2020 01 01, Date.new 2021 03 04, Date.new 2022 05 07]
+
+        Test.specify "should handle end of month edge cases" <|
+            (Date.new 2020 01 31).up_to (Date.new 2020 12 31) include_end=True . with_step Date_Period.Month . to_vector . should_equal [Date.new 2020 01 31, Date.new 2020 02 29, Date.new 2020 03 31, Date.new 2020 04 30, Date.new 2020 05 31, Date.new 2020 06 30, Date.new 2020 07 31, Date.new 2020 08 31, Date.new 2020 09 30, Date.new 2020 10 31, Date.new 2020 11 30, Date.new 2020 12 31]
+            (Date.new 2021 01 28).up_to (Date.new 2021 05 10) . with_step Date_Period.Month . to_vector . should_equal [Date.new 2021 01 28, Date.new 2021 02 28, Date.new 2021 03 28, Date.new 2021 04 28]
+            (Date.new 2023 01 30).up_to (Date.new 2023 06 10) . with_step Date_Period.Month . to_vector . should_equal [Date.new 2023 01 30, Date.new 2023 02 28, Date.new 2023 03 30, Date.new 2023 04 30, Date.new 2023 05 30]
+            (Date.new 2023 01 30).up_to (Date.new 2023 06 10) . with_step (Period.new months=2) . to_vector . should_equal [Date.new 2023 01 30, Date.new 2023 03 30, Date.new 2023 05 30]
+            (Date.new 2020 02 29).up_to (Date.new 2023) . with_step Date_Period.Year . to_vector . should_equal [Date.new 2020 02 29, Date.new 2021 02 28, Date.new 2022 02 28]
+
+        Test.specify "should handle edge cases" <|
+            (Date.new 2020 02 27).up_to (Date.new 2020 03 02) include_end=True . with_step (Period.new days=2) . to_vector . should_equal [Date.new 2020 02 27, Date.new 2020 02 29, Date.new 2020 03 02]
+
+            (Date.new 2020 02 27).up_to (Date.new 2020 02 28) . with_step Date_Period.Month . to_vector . should_equal [Date.new 2020 02 27]
+            (Date.new 2020 02 27).up_to (Date.new 2020 04 27) . with_step Date_Period.Month . to_vector . should_equal [Date.new 2020 02 27, Date.new 2020 03 27]
+            (Date.new 2020 02 27).up_to (Date.new 2020 04 27) include_end=True . with_step Date_Period.Month . to_vector . should_equal [Date.new 2020 02 27, Date.new 2020 03 27, Date.new 2020 04 27]
+            (Date.new 2020 02 27).up_to (Date.new 2020 04 01) . with_step Date_Period.Month . to_vector . should_equal [Date.new 2020 02 27, Date.new 2020 03 27]
+
+            (Date.new 2021 02 01).up_to (Date.new 2021 03 01) include_end=True . with_step Date_Period.Month . to_vector . should_equal [Date.new 2021 02 01, Date.new 2021 03 01]
+
+            (Date.new 2020 01 31).up_to (Date.new 2020 04 30) . with_step Date_Period.Month . to_vector . should_equal [Date.new 2020 01 31, Date.new 2020 02 29, Date.new 2020 03 31]
+            (Date.new 2020 01 31).up_to (Date.new 2020 04 30) include_end=True . with_step Date_Period.Month . to_vector . should_equal [Date.new 2020 01 31, Date.new 2020 02 29, Date.new 2020 03 31, Date.new 2020 04 30]
+            (Date.new 2020 01 31).up_to (Date.new 2020 04 01) include_end=True . with_step Date_Period.Month . to_vector . should_equal [Date.new 2020 01 31, Date.new 2020 02 29, Date.new 2020 03 31]
+
+            v = (Date.new 2020 01 01).up_to (Date.new 2020 12 31) include_end=True . with_step Date_Period.Month . to_vector
+            v.length . should_equal 12
+            v.first . should_equal (Date.new 2020 01 01)
+            v.last . should_equal (Date.new 2020 12 01)
+
+            (Date.new 2020 01 01).up_to (Date.new 2020 12 31) include_end=True . with_step (Period.new months=3) . to_vector . should_equal [Date.new 2020 01 01, Date.new 2020 04 01, Date.new 2020 07 01, Date.new 2020 10 01]
+            (Date.new 2020 01 01).up_to (Date.new 2021 01 01) include_end=True . with_step (Period.new months=3) . to_vector . should_equal [Date.new 2020 01 01, Date.new 2020 04 01, Date.new 2020 07 01, Date.new 2020 10 01, Date.new 2021 01 01]
+            (Date.new 2020 01 01).up_to (Date.new 2021 01 01) include_end=False . with_step (Period.new months=3) . to_vector . should_equal [Date.new 2020 01 01, Date.new 2020 04 01, Date.new 2020 07 01, Date.new 2020 10 01]
+
+            (Date.new 2020 01 31).up_to (Date.new 2020 05 01) . with_step (Period.new months=2) . to_vector . should_equal [Date.new 2020 01 31, Date.new 2020 03 31]
+            (Date.new 2020 01 31).up_to (Date.new 2020 03 31) include_end=True . with_step (Period.new months=2) . to_vector . should_equal [Date.new 2020 01 31, Date.new 2020 03 31]
+            (Date.new 2020 01 31).up_to (Date.new 2020 03 31) . with_step (Period.new months=2) . to_vector . should_equal [Date.new 2020 01 31]
+            (Date.new 2020 01 31).up_to (Date.new 2020 04 02) . with_step (Period.new months=2) . to_vector . should_equal [Date.new 2020 01 31, Date.new 2020 03 31]
+
+            (Date.new 2020 12 31).up_to (Date.new 2021 01 01) . with_step (Period.new years=1) . to_vector . should_equal [Date.new 2020 12 31]
+            (Date.new 2020 12 31).up_to (Date.new 2021 01 01) . with_step (Period.new years=10) . to_vector . should_equal [Date.new 2020 12 31]
+            (Date.new 2020 12 31).up_to (Date.new 2023 01 01) . with_step (Period.new years=1) . to_vector . should_equal [Date.new 2020 12 31, Date.new 2021 12 31, Date.new 2022 12 31]
+            (Date.new 2020 12 31).up_to (Date.new 2023 01 01) . with_step (Period.new years=2) . to_vector . should_equal [Date.new 2020 12 31, Date.new 2022 12 31]
+            (Date.new 2020 12 31).up_to (Date.new 2023 01 01) . with_step (Period.new years=10) . to_vector . should_equal [Date.new 2020 12 31]
+            (Date.new 2021 01 01).up_to (Date.new 2023 12 31) . with_step (Period.new years=1) . to_vector . should_equal [Date.new 2021 01 01, Date.new 2022 01 01, Date.new 2023 01 01]
+            (Date.new 2021 01 01).up_to (Date.new 2023 12 31) . with_step (Period.new years=2) . to_vector . should_equal [Date.new 2021 01 01, Date.new 2023 01 01]
+            (Date.new 2021 01 01).up_to (Date.new 2023 12 31) include_end=True . with_step (Period.new years=2) . to_vector . should_equal [Date.new 2021 01 01, Date.new 2023 01 01]
+
+        Test.specify "should not allow a non-positive step" <|
+            (Date.new 2010).up_to (Date.new 2050) . with_step (Period.new years=0 months=0 days=0) . should_fail_with Illegal_Argument
+            (Date.new 2010).up_to (Date.new 2050) . with_step (Period.new years=0 months=-1 days=0) . should_fail_with Illegal_Argument
+            (Date.new 2010).up_to (Date.new 2050) . with_step (Period.new years=0 months=0 days=-1) . should_fail_with Illegal_Argument
+            (Date.new 2010).up_to (Date.new 2050) . with_step (Period.new years=-1 months=0 days=0) . should_fail_with Illegal_Argument
+            (Date.new 2010).up_to (Date.new 2050) . with_step (Period.new years=2 months=-1 days=0) . should_fail_with Illegal_Argument
+            (Date.new 2010).up_to (Date.new 2050) . with_step (Period.new years=-1 months=40 days=0) . should_fail_with Illegal_Argument
+            (Date.new 2010).up_to (Date.new 2050) . with_step (Period.new years=1 months=40 days=-20) . should_fail_with Illegal_Argument
+            (Date.new 2010).up_to (Date.new 2050) . with_step (Period.new years=-1 months=-2 days=2) . should_fail_with Illegal_Argument
+            (Date.new 2010).up_to (Date.new 2050) . with_step (Period.new years=-1 months=-2 days=-1) . should_fail_with Illegal_Argument
+
+            # e.g. 2021-06-05 + 1 month - 30 days == 2021-06-05 --> no progression
+            (Date.new 2021 06 05).up_to (Date.new 2021 06 08) . with_step (Period.new months=1 days=(-30)) . should_fail_with Illegal_Argument
+            (Date.new 2021 05 05).up_to (Date.new 2021 06 08) . with_step (Period.new months=1 days=(-30)) . should_fail_with Illegal_Argument
+            (Date.new 2021 02 28).up_to (Date.new 2021 03 31) . with_step ((Period.new years=1 months=(-11) days=(-28))) . should_fail_with Illegal_Argument
+
+        Test.specify "should allow to reverse a range, returning a vector" <|
+            (Date.new 2020 01 02).up_to (Date.new 2020 01 02) . reverse . should_equal []
+            (Date.new 2020 01 02).up_to (Date.new 2020 01 02) include_end=True . reverse . should_equal [Date.new 2020 01 02]
+
+            (Date.new 2020 01 03).down_to (Date.new 2020 01 01) . reverse . should_equal [Date.new 2020 01 02, Date.new 2020 01 03]
+
+            (Date.new 2020 02 29).up_to (Date.new 2023) . with_step Date_Period.Year . reverse . should_equal [Date.new 2022 02 28, Date.new 2021 02 28, Date.new 2020 02 29]
+
+        Test.specify "should be consistent with its to_vector representation" <|
+            r1 = (Date.new 2020 02 28).up_to (Date.new 2020 03 02)
+            r2 = (Date.new 2020 02 28).up_to (Date.new 2020 03 02) include_end=True
+            r3 = (Date.new 2021 03 01).down_to (Date.new 2021 02 28)
+            r4 = (Date.new 2021 03 01).down_to (Date.new 2021 02 28) include_end=True
+            r5 = (Date.new 2023 12 31).up_to (Date.new 2023 12 31)
+            r6 = (Date.new 2023 12 31).up_to (Date.new 2023 12 31) include_end=True
+            r7 = (Date.new 2023 12 31).down_to (Date.new 2023 12 31)
+            r8 = (Date.new 2023 12 31).down_to (Date.new 2023 12 31) include_end=True
+
+            r9 = (Date.new 2020 01 10).down_to (Date.new 2020 01 01) . with_step Date_Period.Week
+            r10 = (Date.new 2020 01 01).up_to (Date.new 2020 12 31) . with_step Date_Period.Month
+            r11 = (Date.new 2020 01 01).up_to (Date.new 2026) . with_step (Period.new years=2)
+            r12 = (Date.new 2020 01 01).up_to (Date.new 2026) include_end=True . with_step (Period.new years=2)
+            r13 = (Date.new 2060 11 25).down_to (Date.new 2020 11 24) . with_step (Period.new years=20)
+
+            r14 = (Date.new 2020 01 31).up_to (Date.new 2020 12 31) include_end=True . with_step Date_Period.Month
+            r15 = (Date.new 2020 02 29).up_to (Date.new 2023) . with_step Date_Period.Year
+
+            ranges = [r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15]
+            ranges.each r-> Test.with_clue r.to_text+": " <|
+                r.length . should_equal r.to_vector.length
+                r.is_empty . should_equal r.to_vector.is_empty
+                r.not_empty . should_equal r.to_vector.not_empty
+
+                r.map .day_of_week . should_equal (r.to_vector.map .day_of_week)
+                p = d-> d.day_of_week == Day_Of_Week.Monday
+                r.filter p . should_equal (r.to_vector.filter p)
+                r.all p . should_equal (r.to_vector.all p)
+                r.any p . should_equal (r.to_vector.any p)
+                r.find p . should_equal (r.to_vector.find p)
+                r.index_of p . should_equal (r.to_vector.index_of p)
+                r.last_index_of p . should_equal (r.to_vector.last_index_of p)
+                count_mondays acc date =
+                    if date.day_of_week == Day_Of_Week.Monday then acc+1 else acc
+                r.fold 0 count_mondays . should_equal (r.to_vector.fold 0 count_mondays)
+                r.running_fold 0 count_mondays . should_equal (r.to_vector.running_fold 0 count_mondays)
+
+                reducer x y = if x > y then x else y
+                # Catch+to_text to fix Empty_Error equality.
+                r.reduce reducer . catch . to_text . should_equal (r.to_vector.reduce reducer . catch . to_text)
+
+        Test.specify "should define friendly text representations" <|
+            r1 = (Date.new 2020 02 28).up_to (Date.new 2020 03 02)
+            r2 = (Date.new 2020 03 20).down_to (Date.new 2020 03 01) include_end=True . with_step Date_Period.Week
+
+            r1.to_text . should_equal '(Date_Range from 2020-02-28 up to 2020-03-02)'
+            r2.to_text . should_equal '(Date_Range from 2020-03-20 down to 2020-02-29 by 7D)'
+
+            r1.pretty . should_equal r1.to_text
+            r2.pretty . should_equal r2.to_text
+
+            r1.to_display_text . should_equal '[2020-02-28 .. 2020-03-02]'
+            r2.to_display_text . should_equal '[2020-03-20 .. 2020-02-29 by -7D]'
+
+        Test.specify "should be serializable to JSON" <|
+            r = (Date.new 2020 01 01).up_to (Date.new 2020 01 03)
+            r.to_json . should_equal '{"type":"Date_Range","start":{"type":"Date","constructor":"new","day":1,"month":1,"year":2020},"end":{"type":"Date","constructor":"new","day":3,"month":1,"year":2020},"step":{"type":"Period","constructor":"new","days":1},"increasing":true}'

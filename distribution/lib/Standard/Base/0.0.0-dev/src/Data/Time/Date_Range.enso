@@ -1,0 +1,504 @@
+import project.Any.Any
+import project.Data.Filter_Condition.Filter_Condition
+import project.Data.Json.JS_Object
+import project.Data.Numbers.Integer
+import project.Data.Range.Empty_Error
+import project.Data.Range.Extensions
+import project.Data.Text.Text
+import project.Data.Time.Date.Date
+import project.Data.Time.Date_Period.Date_Period
+import project.Data.Time.Period.Period
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Function.Function
+import project.Nothing.Nothing
+
+from project.Data.Boolean import Boolean, True, False
+
+polyglot java import org.enso.base.Time_Utils
+
+## Represents a range of dates.
+type Date_Range
+    ## PRIVATE
+       Never use the constructor directly to construct a range, as it does not
+       allow to verify invariants and may lead to unexpected behavior.
+    Internal_Constructor (start : Date) (end : Date) (step : Period) (increasing : Boolean) (cached_length : Integer)
+
+    ## Create a representation of a right-exclusive range of dates.
+
+       The range is increasing or decreasing, depending on if the start date is
+       before or after the end date.
+
+       Arguments:
+       - start: The left boundary of the range. Its value is included.
+       - end: The right boundary of the range. Its value is excluded.
+       - step: The step between dates. It must be positive - to construct a
+         decreasing range, flip the start and the end or use `down_to`, but
+         keeping the positive step.
+    new : Date -> Date -> Date_Period|Period -> Date_Range
+    new start=Date.now end=Date.now step=Date_Period.Day =
+        increasing = start <= end
+        Date_Range.new_internal start end increasing step
+
+    ## PRIVATE
+    new_internal : Date -> Date -> Boolean -> Date_Period|Period -> Date_Range
+    new_internal start end increasing step =
+        one_day = Period.new days=1
+        base_length = start.days_until end . abs
+        Date_Range.Internal_Constructor start end one_day increasing base_length . with_step step
+
+    ## Creates a copy of this range with a changed step.
+
+       Arguments:
+       - new_step: The new step to use. It can either be a `Date_Period` or
+         `Period`. The provided `Period` must be positive, i.e. all of `years`,
+         `months` and `days` must be non-negative and at least one of them has
+         to be positive.
+
+       > Example
+         Create a range representing the first day of every month in a year.
+
+             (Date.new 2020 1 1).up_to (Date.new 2020 12 31) . with_step Date_Period.Month
+
+       > Example
+         Create a a decreasing range of every other day between two dates.
+
+             (Date.new 2022 10 23).down_to (Date.new 2022 10 1) . with_step (Period.new days=2)
+    with_step : Date_Period|Period -> Date_Range ! Illegal_Argument
+    with_step self new_step = case new_step of
+        _ : Period ->
+            effective_length = compute_length_and_verify self.start self.end new_step self.increasing
+            Date_Range.Internal_Constructor self.start self.end new_step self.increasing effective_length
+        _ : Date_Period ->
+            self.with_step new_step.to_period
+
+    ## Convert to a textual representation.
+    to_text : Text
+    to_text self =
+        middle = if self.increasing then " up to " else " down to "
+        step = if self.step == (Period.new days=1) then "" else
+            " by " + self.step.to_display_text
+        "(Date_Range from " + self.start.to_text + middle + self.end.to_text + step + ")"
+
+    ## Convert to a display representation.
+    to_display_text : Text
+    to_display_text self =
+        start = "[" + self.start.to_display_text + " .. " + self.end.to_display_text
+        step = if self.step == (Period.new days=1) then "" else
+            effective_step = if self.increasing then self.step else self.step.negated
+            " by " + effective_step.to_display_text
+        start + step + "]"
+
+    ## Convert to a human-readable representation.
+    pretty : Text
+    pretty self = self.to_text
+
+    ## PRIVATE
+       Converts this value to a JSON serializable object.
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Date_Range"], ["start", self.start.to_js_object], ["end", self.end.to_js_object], ["step", self.step.to_js_object], ["increasing", self.increasing]]
+
+    ## Returns the first element that is included within the range or `Nothing`
+       if the range is empty.
+    first : Integer ! Index_Out_Of_Bounds
+    first self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else self.start
+
+    ## Returns the second element that is included within the range or `Nothing`
+       if the range has less than 2 element
+    second : Integer ! Index_Out_Of_Bounds
+    second self = if self.length < 2 then Error.throw (Index_Out_Of_Bounds.Error 1 self.length) else self.start + self.step
+
+    ## Returns the last element that is included within the range or `Nothing`
+       if the range is empty.
+    last : Integer ! Index_Out_Of_Bounds
+    last self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
+        self.start + self.step*(self.length - 1)
+
+    ## Get the number of elements in the range.
+
+       > Example
+         The following range has 2 elements.
+
+            (Date.new 2023 04 05) . up_to (Date.new 2023 04 07) . length
+    length : Integer
+    length self = self.cached_length
+
+    ## Gets an element from the range at a specified index (0-based).
+
+       Arguments:
+       - index: The location in the range to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back,
+         i.e. -1 will correspond to the last element.
+
+       > Example
+         Get the second element of a range.
+
+              (Date.new 2023 04 05) . up_to (Date.new 2023 04 07) . get 1 == (Date.new 2023 04 06)
+
+       > Example
+         Get the last element of a range with step.
+
+            (Date.new 2023 04 05) . up_to (Date.new 2023 10 07) . with_step Date_Period.Month . get -1 == (Date.new 2023 10 05)
+    at : Integer -> Any ! Index_Out_Of_Bounds
+    at self index =
+        self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
+
+    ## Gets an element from the range at a specified index (0-based).
+       If the index is invalid then `if_missing` is returned.
+
+       Arguments:
+       - index: The location in the range to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back,
+         i.e. -1 will correspond to the last element.
+       - if_missing: The value to return if the index is out of bounds.
+    get : Integer -> Any -> Any
+    get self index ~if_missing=Nothing =
+        len = self.length
+        effective_index = if index < 0 then len + index else index
+        if effective_index >= 0 && effective_index < len then self.internal_at effective_index else
+            if_missing
+
+    ## PRIVATE
+       Generates the i-th element of the range.
+
+       This method does no bounds checking, it should be used only internally.
+    internal_at self i =
+        nth_element_of_range self.start self.step self.increasing i
+
+    ## Applies a function to each element in the range, producing a vector of
+       results.
+
+       Arguments:
+       - function: The function to apply to each date in the range.
+
+       > Example
+         Create a vector that contains the numbers twice that of the numbers in
+         the range.
+
+             1.up_to 10 . map (*2)
+    map : (Date -> Any) -> Vector Any
+    map self function =
+        Vector.new self.length (i -> function (self.internal_at i))
+
+    ## Converts the range to a vector containing the dates in the range.
+
+       > Example
+         Getting a vector of dates from 2021-05-07 to 2021-05-10 (exclusive).
+
+             (Date.new 2021 05 07).up_to (Date.new 2021 05 10) . to_vector
+    to_vector : Vector Date
+    to_vector self = self.map x->x
+
+    ## Checks if this range is empty.
+
+       > Example
+         Checking if the range of days from start of 2020 to start of 2023 is empty.
+
+             (Date.new 2020).up_to (Date.new 2023) . is_empty
+    is_empty : Boolean
+    is_empty self = self.length == 0
+
+    ## Checks if this range is not empty.
+
+       > Example
+         Checking if the range of days from start of 2020 to start of 2023 is not empty.
+
+             (Date.new 2020).up_to (Date.new 2023) . is_empty
+    not_empty : Boolean
+    not_empty self = self.is_empty.not
+
+    ## Returns a vector of all elements of this range which satisfy a condition.
+
+       Arguments:
+       - filter: The filter to apply to the range. It can either be an instance
+         of `Filter_Condition` or a predicate taking a value and returning a
+         boolean value indicating whether the corresponding element should be
+         kept or not.
+
+       > Example
+         Selecting all elements that are greater than 2020-10-12.
+
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 15) . filter (> (Date.new 2020 10 12))
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 15) . filter (Filter_Condition.Greater than=(Date.new 2020 10 12))
+    filter : (Filter_Condition | (Date -> Boolean)) -> Vector Date
+    filter self filter = case filter of
+        _ : Filter_Condition -> self.filter filter.to_predicate
+        predicate : Function ->
+            builder = self.fold Vector.new_builder builder-> elem->
+                if predicate elem then builder.append elem else builder
+            builder.to_vector
+
+    ## PRIVATE
+       ADVANCED
+       Applies a function for each element in the range.
+
+       Arguments:
+       - function: The function to apply to each integer in the range.
+
+       > Example
+         To print all dates from 2020-10-01 to 2020-10-05.
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 05) include_end=True . each IO.println
+    each : (Date -> Any) -> Nothing
+    each self function =
+        (0.up_to self.length).each ix->
+            function (self.internal_at ix)
+
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each element of the range.
+
+       Essentially acts like `range.to_vector.each_with_index`, but it is more
+       efficient.
+
+       Arguments:
+       - function: A function to apply that takes two parameters: first the
+         index of a given range element and then the actual range element.
+
+       > Example
+         Print range elements with their indices within the range.
+
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 05).each_with_index ix-> elem-> IO.println (Pair ix elem)
+    each_with_index : (Integer -> Date -> Nothing) -> Nothing
+    each_with_index self function =
+        (0.up_to self.length).each_with_index ix->
+            function ix (self.internal_at ix)
+
+    ## Combines all the elements of the range, by iteratively applying the
+       passed function with next elements of the range.
+
+       Arguments:
+       - init: The initial value for the fold.
+       - function: A binary function taking an item and a date, and returning
+         an item.
+
+       > Example
+         In the following example, we'll compute how many days in the range are
+         a Monday.
+
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . fold 0 acc-> date->
+                if date.day_of_week == Day_Of_Week.Monday then acc+1 else acc
+    fold : Any -> (Any -> Date -> Any) -> Any
+    fold self init function =
+        (0.up_to self.length).fold init acc-> ix->
+            function acc (self.internal_at ix)
+
+    ## Combines all the elements of the range, by iteratively applying the
+       passed function with the next element of the range. After each step the
+       value is stored resulting in a new Vector of the same size as self.
+
+       Arguments:
+       - init: The initial value for the fold.
+       - function: A function taking two elements and combining them.
+    running_fold : Any -> (Any -> Date -> Any) -> Vector Any
+    running_fold self init function =
+        (0.up_to self.length).running_fold init acc-> ix->
+            function acc (self.internal_at ix)
+
+    ## Checks whether `predicate` is satisfied for all dates in this range.
+
+       Arguments:
+       - predicate: A function that takes a list element and returns a boolean
+         value that says whether that value satisfies the conditions of the
+         function.
+
+       > Example
+         Checking that all dates in the range are after 2020-10-01.
+
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . all (> (Date.new 2020 10 01))
+    all : (Date -> Boolean) -> Boolean
+    all self predicate = self . any (predicate >> .not) . not
+
+    ## Checks whether `predicate` is satisfied for any date in this range.
+
+       Arguments:
+       - predicate: A function that takes a list element and returns a boolean
+         value that says whether that value satisfies the conditions of the
+         function.
+
+       > Example
+         Checking that at least one date in the range is after 2020-10-01.
+
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . any (> (Date.new 2020 10 01))
+    any : (Date -> Boolean) -> Boolean
+    any self predicate = self.find predicate . is_nothing . not
+
+    ## Gets the first index when `predicate` is satisfied this range.
+       If no index satisfies the predicate, returns `if_missing`.
+
+       Arguments:
+       - predicate: A function that takes a list element and returns a boolean
+         value that says whether that value satisfies the conditions of the
+         function.
+       - start: The index to start searching from. If the index is negative, it
+         is counted from the end of the range.
+       - if_missing: Value returned if no element satisfies the predicate.
+
+       > Example
+         Get the first date in the range that is a Monday.
+
+                (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . find (d-> d.day_of_week == Day_Of_Week.Monday)
+    find : (Date -> Boolean) -> Integer -> Any -> Any
+    find self predicate start=0 ~if_missing=Nothing =
+        index = self.index_of predicate start
+        case index of
+            Nothing -> if_missing
+            _ : Integer -> self.internal_at index
+
+    ## Checks if the range contains the specified value.
+
+       > Example
+         Check if a particular date is in the range.
+
+              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . with_step (Period.new days=2) . contains (Date.new 2020 10 15)
+    contains : Date -> Boolean
+    contains self value = self.find (== value) . is_nothing . not
+
+    ## Returns the index of an element in the range.
+       Returns Nothing if the element is not found.
+
+       Arguments:
+       - element: The date to search for or a predicate function to test for
+         each element.
+       - start: The index to start searching from. If the index is negative, it
+         is counted from the end of the range.
+
+       > Example
+         Find the index of a first day that is a Monday.
+
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . index_of (d-> d.day_of_week == Day_Of_Week.Monday)
+    index_of : (Date | (Date -> Boolean)) -> Integer -> Integer | Nothing
+    index_of self element start=0 =
+        predicate = case element of
+            d : Date ->
+                ix-> self.internal_at ix == d
+            f : Function ->
+                ix-> f (self.internal_at ix)
+        (0.up_to self.length).index_of predicate start
+
+    ## Returns the last index of an element in the range.
+       Returns Nothing if the element is not found.
+
+       Arguments:
+       - element: The date to search for or a predicate function to test for
+         each element.
+       - start: The index to start searching backwards from. If the index is
+         negative, it is counted from the end of the range.
+
+       > Example
+         Find the index of a first day that is a Monday.
+
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . last_index_of (d-> d.day_of_week == Day_Of_Week.Monday)
+    last_index_of : (Date | (Date -> Boolean)) -> Integer -> Integer | Nothing
+    last_index_of self element start=-1 =
+        predicate = case element of
+            d : Date ->
+                ix-> self.internal_at ix == d
+            f : Function ->
+                ix-> f (self.internal_at ix)
+        (0.up_to self.length).last_index_of predicate start
+
+    ## Reverses the range, returning a vector with the same elements as the
+       original range, but in the opposite order.
+
+       > Example
+         Reverse a range of dates.
+
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . reverse
+
+       ? Returning a `Vector`
+
+         This method cannot return back a `Date_Range`, as some ranges are not
+         reversible. For example, the range `(Date.new 2020 02 29).up_to (Date.new 2023) . with_step Date_Period.Year`
+         will have `2022-02-28` as its last entry. But if we create a
+         range starting at `2022-02-28` and going backwards by a year, its last
+         element will be `2020-02-28` and not `2020-02-29` as in the original.
+         Thus, to preserve the contents we need to return a vector.
+    reverse : Vector Date
+    reverse self = self.to_vector.reverse
+
+    ## Combines all the elements of a non-empty range using a binary operation.
+       If the range is empty, returns `if_empty`.
+
+       Arguments:
+       - function: A binary operation that takes two dates and combines them
+         into a new date.
+       - if_empty: Value returned if the range is empty.
+    reduce : (Date -> Date -> Date) -> Any -> Any
+    reduce self function ~if_empty=(Error.throw Empty_Error) =
+        case self.length of
+            0 -> if_empty
+            1 -> self.start
+            length ->
+                (1.up_to length).fold self.start acc-> ix->
+                    function acc (self.internal_at ix)
+
+
+## PRIVATE
+   Computes the length of the range and verifies its invariants.
+
+   If any of the invariants are violated, a dataflow error is raised.
+compute_length_and_verify : Date -> Date -> Period -> Boolean -> Integer ! Illegal_Argument
+compute_length_and_verify start end step increasing =
+    if is_period_positive step . not then Error.throw (Illegal_Argument.Error "The step `Period` for `Date_Range` must be positive, i.e. all of `years`, `months` and `days` must be non-negative and at least one of them must be strictly positive.") else
+        is_range_empty = case increasing of
+            True -> start >= end
+            False -> start <= end
+        if is_range_empty then 0 else
+            # First a few heuristics for a fast path.
+            # If there are no years or months, we can perform a simple computation on day difference.
+            if step.total_months == 0 then compute_length_step_days start end step.days increasing else
+                # Similarly, if we are only shifting by months, we can rely on a simpler computation.
+                if step.days == 0 then compute_length_step_months start end step.total_months increasing else
+                    # Then we go brute force for the general case.
+                    compute_length_step_brute_force start end step increasing
+
+## PRIVATE
+is_period_positive period =
+    if (period.years < 0) || (period.months < 0) || (period.days < 0) then False else
+        (period.total_months > 0) || (period.days > 0)
+
+## PRIVATE
+   Assumes that the range is not empty.
+compute_length_step_days : Date -> Date -> Integer -> Boolean -> Integer
+compute_length_step_days start end step increasing =
+    # Logic analogous to `Range.length`.
+    diff = case increasing of
+        True  -> Time_Utils.days_between start end
+        False -> Time_Utils.days_between end start
+    # assert (diff >= 0)
+    steps = diff . div step
+    exact_fit = diff % step == 0
+    if exact_fit then steps else steps+1
+
+## PRIVATE
+   Assumes that the range is not empty.
+compute_length_step_months start end step increasing =
+    diff = case increasing of
+        True  -> Time_Utils.months_between start end
+        False -> Time_Utils.months_between end start
+    # assert (diff >= 0)
+    steps = diff . div step
+    exact_fit = case increasing of
+        True  -> start + Period.new months=steps*step == end
+        False -> start - Period.new months=steps*step == end
+    if exact_fit then steps else steps+1
+
+
+## PRIVATE
+nth_element_of_range start step increasing n = case increasing of
+    True  -> start + step*n
+    False -> start - step*n
+
+## PRIVATE
+compute_length_step_brute_force start end step increasing =
+    is_exceeded = case increasing of
+        True -> (x -> x >= end)
+        False -> (x -> x <= end)
+    go current_date acc_length =
+        if is_exceeded current_date then acc_length else
+            next_date = nth_element_of_range start step increasing (acc_length + 1)
+            @Tail_Call go next_date (acc_length + 1)
+    go start 0

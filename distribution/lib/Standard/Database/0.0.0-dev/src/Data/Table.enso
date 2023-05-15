@@ -522,6 +522,7 @@ type Table
 
        Arguments:
        - range: The selection of rows from the table to return.
+    @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Table
     take self range=(First 1) =
         _ = range
@@ -535,6 +536,7 @@ type Table
 
        Arguments:
        - range: The selection of rows from the table to remove.
+    @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Table
     drop self range=(First 1) =
         _ = range

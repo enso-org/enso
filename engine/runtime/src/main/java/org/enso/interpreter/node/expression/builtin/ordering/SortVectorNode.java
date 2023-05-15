@@ -52,6 +52,8 @@ import org.enso.interpreter.runtime.state.State;
 @GenerateUncached
 public abstract class SortVectorNode extends Node {
 
+  private static final int MAX_SORT_WARNINGS = 10;
+
   public static SortVectorNode build() {
     return SortVectorNodeGen.create();
   }
@@ -336,12 +338,14 @@ public abstract class SortVectorNode extends Node {
   }
 
   private Object attachWarnings(Object vector, Set<String> warnings) {
+    var ctx = EnsoContext.get(this);
     var warnArray =
         warnings.stream()
             .map(Text::create)
-            .map(text -> Warning.create(EnsoContext.get(this), text, this))
+            .map(text -> Warning.create(ctx, text, this))
+            .limit(MAX_SORT_WARNINGS)
             .toArray(Warning[]::new);
-    return WithWarnings.appendTo(vector, new ArrayRope<>(warnArray));
+    return WithWarnings.appendTo(ctx, vector, warnArray.length < warnings.size(), warnArray);
   }
 
   private Object attachDifferentComparatorsWarning(Object vector, List<Group> groups) {
@@ -351,8 +355,9 @@ public abstract class SortVectorNode extends Node {
             .map(comparator -> comparator.getQualifiedName().toString())
             .collect(Collectors.joining(", "));
     var text = Text.create("Different comparators: [" + diffCompsMsg + "]");
-    var warn = Warning.create(EnsoContext.get(this), text, this);
-    return WithWarnings.appendTo(vector, new ArrayRope<>(warn));
+    var ctx = EnsoContext.get(this);
+    var warn = Warning.create(ctx, text, this);
+    return WithWarnings.appendTo(ctx, vector, false, warn);
   }
 
   private String getDefaultComparatorQualifiedName() {

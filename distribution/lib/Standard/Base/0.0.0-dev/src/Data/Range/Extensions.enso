@@ -3,20 +3,31 @@ import project.Data.Range.Range
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 
+from project.Data.Boolean import Boolean, True, False
+
 ## ALIAS Range
 
-   Creates an increasing right-exclusive range of integers from `self` to `n`.
+   Creates an increasing range of integers from `self` to `n`.
 
    Arguments:
    - n: The end of the range.
+   - include_end: Specifies if the right end of the range should be included. By
+     default, the range is right-exclusive.
 
    > Example
      Create a range containing the numbers 0, 1, 2, 3, 4.
 
          0.up_to 5
-Integer.up_to : Integer -> Range
-Integer.up_to self n = case n of
-    _ : Integer -> Range.Between self n
+
+   > Example
+     Create a range containing elements 1, 2, 3.
+
+         1.up_to 3 include_end=True
+Integer.up_to : Integer -> Boolean -> Range
+Integer.up_to self n include_end=False = case n of
+    _ : Integer ->
+        effective_end = if include_end then n+1 else n
+        Range.Between self effective_end 1
     _ -> Error.throw (Illegal_Argument.Error "Expected range end to be an Integer.")
 
 ## ALIAS Range
@@ -25,12 +36,21 @@ Integer.up_to self n = case n of
 
    Arguments:
    - n: The end of the range.
+   - include_end: Specifies if the right end of the range should be included. By
+     default, the range is right-exclusive.
 
    > Example
      Create a range containing the numbers 5, 4, 3, 2, 1.
 
          5.down_to 0
-Integer.down_to : Integer -> Range
-Integer.down_to self n = case n of
-    _ : Integer -> Range.Between self n -1
+
+   > Example
+     Create a range containing elements 3, 2, 1.
+
+         3.down_to 1 include_end=True
+Integer.down_to : Integer -> Boolean -> Range
+Integer.down_to self n include_end=False = case n of
+    _ : Integer ->
+        effective_end = if include_end then n-1 else n
+        Range.Between self effective_end -1
     _ -> Error.throw (Illegal_Argument.Error "Expected range end to be an Integer.")

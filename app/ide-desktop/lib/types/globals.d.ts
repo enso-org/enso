@@ -63,6 +63,9 @@ declare global {
     const BUILD_INFO: BuildInfo
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string
     const IS_DEV_MODE: boolean
+    // This will be `undefined` when it is not defined by esbuild.
+    // eslint-disable-next-line no-restricted-syntax
+    const REDIRECT_OVERRIDE: string | undefined
     /* eslint-disable @typescript-eslint/naming-convention */
 }
 

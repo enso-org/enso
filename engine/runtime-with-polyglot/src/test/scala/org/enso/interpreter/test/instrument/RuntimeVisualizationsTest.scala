@@ -2874,7 +2874,9 @@ class RuntimeVisualizationsTest
         idMain,
         ConstantsGen.INTEGER,
         payload = Api.ExpressionUpdate.Payload.Value(
-          Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+          Some(
+            Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+          )
         )
       ),
       context.executionComplete(contextId)
@@ -3074,7 +3076,9 @@ class RuntimeVisualizationsTest
           )
         ),
         payload = Api.ExpressionUpdate.Payload.Value(
-          Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'x'")))
+          Some(
+            Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'x'"), false)
+          )
         )
       ),
       TestMessages.update(
@@ -3082,7 +3086,9 @@ class RuntimeVisualizationsTest
         idRes,
         s"$moduleName.Newtype",
         payload = Api.ExpressionUpdate.Payload.Value(
-          Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'x'")))
+          Some(
+            Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'x'"), false)
+          )
         ),
         methodPointer = Some(
           Api.MethodPointer(moduleName, s"$moduleName.Newtype", "Mk_Newtype")

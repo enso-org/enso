@@ -4,6 +4,7 @@ import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
 import project.Data.Range.Range
 import project.Data.Text.Regex.No_Such_Group
+import project.Data.Text.Regex.Pattern.Pattern
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text

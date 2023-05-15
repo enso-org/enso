@@ -295,7 +295,8 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
         out.println("    if (anyWarnings) {");
         out.println("      internals.anyWarningsProfile.enter();");
         out.println("      Object result = " + executeCall + ";");
-        out.println("      return WithWarnings.appendTo(result, gatheredWarnings);");
+        out.println("      EnsoContext ctx = EnsoContext.get(bodyNode);");
+        out.println("      return WithWarnings.appendTo(ctx, result, gatheredWarnings);");
         out.println("    } else {");
         out.println("      return " + executeCall + ";");
         out.println("    }");
