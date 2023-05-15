@@ -837,8 +837,6 @@ type Integer
          rounding to the nearest positive integer power of 10.
     round : Integer -> Integer
     round self decimal_places=0 =
-        IO.println "round"
-        IO.println self
         if decimal_places >= 0 then self else
             case decimal_places < Integer.min_decimal_places of
                 True ->
@@ -846,7 +844,7 @@ type Integer
                     Error.throw <| Unsupported_Argument_Types.error [decimal_places] msg
                 False ->
                     scale = 10 ^ decimal_places
-                    (self + (0.5 * scale)).floor
+                    (((self * scale) + 0.5).floor) / scale
 
     ## PRIVATE
        The smallest allowed value for the `decimal_places` argument to `round`
