@@ -39,6 +39,10 @@ prepare_visualization y max_rows=1000 =
             dataframe = x.read max_rows
             all_rows_count = x.row_count
             make_json_for_table dataframe [] all_rows_count
+        _ : Function ->
+            pairs = [['_display_text_', '[Function '+x.to_text+']']]
+            value = JS_Object.from_pairs pairs
+            JS_Object.from_pairs [["json", value]]
         _ ->
             js_value = x.to_js_object
             value = if js_value.is_a JS_Object . not then js_value else
@@ -96,7 +100,7 @@ make_json_for_object_matrix current vector idx=0 = if idx == vector.length then 
         _ ->
             js_object = row.to_js_object
             if js_object.is_a JS_Object . not then False else
-                if js_object.field_names.sort == ["type" , "constructor"] then False else
+                if js_object.field_names.sort == ["constructor", "type"] then False else
                     pairs = js_object.field_names.map f-> [f, make_json_for_value (js_object.get f)]
                     JS_Object.from_pairs pairs
     if to_append == False then Nothing else
@@ -184,4 +188,5 @@ make_json_for_value val level=0 = case val of
             truncated = val.columns.take 5 . map _.name
             prepared = if val.column_count > 5 then truncated + ["… " + (val.column_count - 5).to_text+ " more"] else truncated
             "Table{" + val.row_count.to_text + " rows x [" + (prepared.join ", ") + "]}"
+    _ : Function -> "[Function "+val.to_text+"]"
     _ -> val.to_display_text

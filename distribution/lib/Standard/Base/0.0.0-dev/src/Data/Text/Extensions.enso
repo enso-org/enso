@@ -40,6 +40,8 @@ from project.Data.Json import Json, Invalid_JSON, JS_Object
 from project.Data.Numbers import Decimal, Integer, Number, Number_Parse_Error
 from project.Data.Text.Text_Sub_Range import Codepoint_Ranges, Text_Sub_Range
 
+from project.Metadata import make_single_choice
+
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 
 polyglot java import com.ibm.icu.lang.UCharacter
@@ -333,7 +335,8 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
      Split with a vector of strings.
 
          'azbzczdzezfzg'.split ['b', 'zez'] == ['az', 'zczd', 'fzg']
-Text.split : Text | Vector Text  -> Case_Sensitivity -> Boolean -> Vector Text | Illegal_Argument
+@delimiter (make_single_choice [',', ';', '|', ['{tab}', "'\t'"], ['{space}', "' '"], ['{newline}', "['\n', '\r\n', '\r']"], ['Custom', ""]])
+Text.split : Text | Vector Text -> Case_Sensitivity -> Boolean -> Vector Text | Illegal_Argument
 Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_regex=False =
     delimiter_is_empty = case delimiter of
         _ : Text -> delimiter.is_empty
@@ -939,6 +942,7 @@ Text.repeat self count=1 =
          "Hello World!".take (By_Index [1, 0, 0, 6, 0]) == "eHHWH"
          "Hello World!".take (By_Index [Range 0 3, 6, Range 6 12 2]) == "HelWWrd"
          "Hello World!".take (Sample 3 seed=42) == "l d"
+@range Text_Sub_Range.default_widget
 Text.take : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index_Out_Of_Bounds
 Text.take self range=(Index_Sub_Range.First 1) =
     ranges = Codepoint_Ranges.resolve self range
@@ -985,6 +989,7 @@ Text.take self range=(Index_Sub_Range.First 1) =
          "Hello World!".drop (By_Index [1, 0, 0, 6, 0]) == "llo orld!"
          "Hello World!".drop (By_Index [Range 0 3, 6, Range 6 12 2]) == "lo ol!"
          "Hello World!".drop (Sample 3 seed=42) == "HeloWorl!"
+@range Text_Sub_Range.default_widget
 Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds
 Text.drop self range=(Index_Sub_Range.First 1) =
     ranges = Codepoint_Ranges.resolve self range

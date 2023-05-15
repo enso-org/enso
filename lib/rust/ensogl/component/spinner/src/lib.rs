@@ -1,6 +1,12 @@
 //! An animated spinner component that can be used to indicate that a process
 //! is running.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 

@@ -11,6 +11,7 @@ import Standard.Table.Internal.Widget_Helpers
 from Standard.Table import Sort_Column, Data_Formatter, Value_Type, Auto
 from Standard.Table.Errors import Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type, Lossy_Conversion
 
+import project.Connection.Connection.Connection
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.Helpers
@@ -749,6 +750,7 @@ type Column
 
        Arguments:
        - range: The selection of rows from the table to return.
+    @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Column
     take self range=(First 1) =
         _ = range
@@ -761,6 +763,7 @@ type Column
 
        Arguments:
        - range: The selection of rows from the table to remove.
+    @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Column
     drop self range=(First 1) =
         _ = range
