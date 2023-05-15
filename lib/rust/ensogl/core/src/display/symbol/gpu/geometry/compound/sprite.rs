@@ -126,11 +126,11 @@ pub struct SizedObject {
 impl SizedObject {
     fn new(attr: Attribute<Vector2<f32>>, transform: &Attribute<Matrix4<f32>>) -> Self {
         let size = Size::new(attr);
-        let display_object = display::object::Instance::new_named("Sprite");
+        let display_object = display::object::Instance::new_named_no_debug("Sprite");
         let weak_display_object = display_object.downgrade();
         let network = &display_object.network;
         frp::extend! { network
-            eval_ display_object.on_updated ([transform, size] {
+            eval_ display_object.on_transformed ([transform, size] {
                 if let Some(display_object) = weak_display_object.upgrade() {
                     transform.set(display_object.transformation_matrix());
                     size.set(display_object.computed_size());

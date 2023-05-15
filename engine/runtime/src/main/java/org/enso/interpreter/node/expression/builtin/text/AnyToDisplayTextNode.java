@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.text;
 
-import com.ibm.icu.text.BreakIterator;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -13,6 +12,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 @BuiltinMethod(type = "Any", name = "to_display_text")
@@ -36,6 +36,23 @@ public abstract class AnyToDisplayTextNode extends Node {
   }
 
   @Specialization
+  @CompilerDirectives.TruffleBoundary
+  Text convertInteger(long self) {
+    return Text.create(Long.toString(self));
+  }
+
+  @Specialization
+  @CompilerDirectives.TruffleBoundary
+  Text convertDouble(double self) {
+    return Text.create(Double.toString(self));
+  }
+
+  @Specialization
+  Text convertBigInteger(EnsoBigInteger bigInteger) {
+    return Text.create(bigInteger.toString());
+  }
+
+  @Specialization
   Text convertText(Text self) {
     final var limit = 80;
     if (self.length() < limit) {
@@ -47,8 +64,8 @@ public abstract class AnyToDisplayTextNode extends Node {
 
   @CompilerDirectives.TruffleBoundary
   private static Text takePrefix(Text self, final int limit) {
-    var prefix = Core_Text_Utils.take_prefix(self.toString(), limit);
-    return Text.create(prefix);
+    var prefix = Core_Text_Utils.take_prefix(self.toString(), limit - 2);
+    return Text.create(prefix + " …");
   }
 
   @Fallback

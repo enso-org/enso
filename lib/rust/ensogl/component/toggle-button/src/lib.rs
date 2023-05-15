@@ -58,6 +58,8 @@ ensogl_core::define_endpoints! {
         set_size         (Vector2),
         toggle           (),
         set_state        (bool),
+        /// Read only mode forbids changing the state of the button by clicking.
+        set_read_only    (bool),
     }
     Output {
         state      (bool),
@@ -237,7 +239,8 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
 
             // === State ===
 
-            toggle <- any_(frp.toggle, icon.mouse_down_primary);
+            clicked <- icon.mouse_down_primary.gate_not(&frp.set_read_only);
+            toggle <- any_(frp.toggle, clicked);
             frp.source.state <+ frp.state.not().sample(&toggle);
             frp.source.state <+ frp.set_state;
 

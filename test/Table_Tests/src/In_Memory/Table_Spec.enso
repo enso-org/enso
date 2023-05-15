@@ -12,6 +12,7 @@ from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_
 
 import Standard.Visualization
 
+import Standard.Database.Extensions.Upload_Table
 from Standard.Database import Database, SQLite, In_Memory
 
 from Standard.Test import Test, Test_Suite, Problems
@@ -85,6 +86,9 @@ spec =
         Test.specify "should handle error scenarios gracefully" <|
             Table.new [["X", [1,2,3]], ["Y", [4]]] . should_fail_with Illegal_Argument
             Table.new [["X", [1]], ["X", [2]]] . should_fail_with Illegal_Argument
+            Table.new [["X", [1]], ["Y", [2], "Z"]] . should_fail_with Illegal_Argument
+            Table.new [["X"]] . should_fail_with Illegal_Argument
+            Table.new ["X", "Y", "Z"] . should_fail_with Illegal_Argument
             Table.new [] . should_fail_with Illegal_Argument
 
             Table.from_rows ["X", "X"] [] . should_fail_with Illegal_Argument
@@ -193,7 +197,7 @@ spec =
 
             x = Column.from_vector 'a' [1, Nothing, 2, Nothing]
             y = Column.from_vector 'b' [0, 0, 0, 0]
-            r = x.zip y skip_missing=False x-> y-> if x == 1 then x else y
+            r = x.zip y skip_nothing=False x-> y-> if x == 1 then x else y
             r.to_vector.should_equal [1, 0, 0, 0]
             r.value_type . should_equal Value_Type.Integer
 
@@ -287,61 +291,12 @@ spec =
             r.at "b" . to_vector . should_equal [2]
             r.at "c" . to_vector . should_equal [Nothing]
 
-    Test.group "Filling Missing Values" <|
-        Test.specify "should coerce non-coercible types to Object" <|
-            strs = Column.from_vector 'x' ["a", Nothing, "b", Nothing]
-            strs_filled = strs.fill_nothing False
-            strs_filled.to_vector . should_equal ["a", False, "b", False]
-            strs_filled.value_type . should_equal Value_Type.Mixed
-
-            ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
-            ints_filled = ints.fill_nothing "X"
-            ints_filled.to_vector . should_equal [1, "X", 2, "X"]
-            ints_filled.value_type . should_equal Value_Type.Mixed
-
-            bools = Column.from_vector 'x' [True, False, Nothing]
-            bools_filled = bools.fill_nothing "X"
-            bools_filled.to_vector . should_equal [True, False, "X"]
-            bools_filled.value_type . should_equal Value_Type.Mixed
-
-        Test.specify "should coerce long and double types to double" <|
-            ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
-            ints_filled = ints.fill_nothing 0.5
-            ints_filled.to_vector . should_equal [1.0, 0.5, 2.0, 0.5]
-            ints_filled.value_type . should_equal Value_Type.Float
-
-            decimals = Column.from_vector 'x' [0.5, Nothing, Nothing, 0.25]
-            decimals_filled = decimals.fill_nothing 42
-            decimals_filled.to_vector . should_equal [0.5, 42.0, 42.0, 0.25]
-            decimals_filled.value_type . should_equal Value_Type.Float
-
-        Test.specify "should keep String, Boolean, Long and Double type" <|
-            strs = Column.from_vector 'x' ["a", Nothing, "b", Nothing]
-            strs_filled = strs.fill_nothing "X"
-            strs_filled.to_vector . should_equal ["a", "X", "b", "X"]
-            strs_filled.value_type . should_equal Value_Type.Char
-
-            bools = Column.from_vector 'x' [True, False, Nothing]
-            bools_filled = bools.fill_nothing False
-            bools_filled.to_vector . should_equal [True, False, False]
-            bools_filled.value_type . should_equal Value_Type.Boolean
-
-            ints = Column.from_vector 'x' [1, Nothing, 2, Nothing]
-            ints_filled = ints.fill_nothing 42
-            ints_filled.to_vector . should_equal [1, 42, 2, 42]
-            ints_filled.value_type . should_equal Value_Type.Integer
-
-            decimals = Column.from_vector 'x' [0.5, Nothing, Nothing, 0.25]
-            decimals_filled = decimals.fill_nothing 1.0
-            decimals_filled.to_vector . should_equal [0.5, 1.0, 1.0, 0.25]
-            decimals_filled.value_type . should_equal Value_Type.Float
-
     Test.group "Counting Values" <|
         Test.specify "should count missing and non-missing values" <|
             col = Column.from_vector 'x' [1, Nothing, 2]
             col.length . should_equal 3
             col.count . should_equal 2
-            col.count_missing . should_equal 1
+            col.count_nothing . should_equal 1
 
     Test.group "Dropping Missing Values" <|
         Test.specify "should correctly handle NaNs with mixed type columns" <|
@@ -350,6 +305,11 @@ spec =
             t1.at "X" . to_vector . should_equal [1, 4, 5]
             # Comparing text value because `Number.nan != Number.nan`.
             t1.at "Y" . to_vector . to_text . should_equal "[A, NaN, 0]"
+
+            c = t.at "Y" . is_blank treat_nans_as_blank=True
+            c.to_vector . should_equal [False, True, True, True, False]
+            c.value_type . should_equal Value_Type.Boolean
+
             t2 = t.filter_blank_rows when_any=True treat_nans_as_blank=True
             t2.at "X" . to_vector . should_equal [1, 5]
             t2.at "Y" . to_vector . should_equal ['A', 0]
@@ -363,13 +323,6 @@ spec =
             r1 = t.distinct (Column_Selector.Blank_Columns treat_nans_as_blank=True)
             r1.at "Y" . to_vector . to_text . should_equal "[, Nothing, NaN]"
             r1.at "X" . to_vector . should_equal [1, 2, 4]
-
-            # TODO this could be moved to Common_Table_Operations once replace_text is implemented for Database too
-            t2 = Table.new [["X", [1, 2, 3, 4, 5]], ["Y", ["", Nothing, Nothing, Nothing, ""]], ["Z", ["", "---", "-1", "", "foobar"]]]
-            r2 = t2.replace_text (Column_Selector.Blank_Columns when_any=True) "-" "A"
-            r2.at "X" . to_vector . should_equal [1, 2, 3, 4, 5]
-            r2.at "Y" . to_vector . should_equal ["", Nothing, Nothing, Nothing, ""]
-            r2.at "Z" . to_vector . should_equal ["", "AAA", "A1", "", "foobar"]
 
     Test.group "Info" <|
         Test.specify "should return Table information" <|
@@ -578,24 +531,42 @@ spec =
             c_3 = ['Y', [5.3, 56.2, 6.3]]
             c_4 = ['Z', [True, False, True]]
             table = Table.new [c_0, c_1, c_2, c_3, c_4]
-            expect_column_names ["H", "1980-01-01", "1", "5.3", "True"] <| table.use_first_row_as_names
+            expect_column_names ["H", "1980-01-01", "1", "5.3", "True"] table.use_first_row_as_names
 
         Test.specify "should correctly handle problems: invalid names ''" <|
             c_0 = ['A', ["", "B", "C"]]
+            c_1 = ['B', [Date.new 1980, Date.new 1979, Date.new 2000]]
             c_2 = ['x', [1, 2, 3]]
-            table = Table.new [c_0, c_2]
+            c_3 = ['Y', [5.3, 56.2, 6.3]]
+            c_4 = ['Z', [True, False, True]]
+            table = Table.new [c_0, c_1, c_2, c_3, c_4]
             action = table.use_first_row_as_names on_problems=_
-            tester = expect_column_names ["Column_1", "1"]
+            tester = expect_column_names ["Column 1", "1980-01-01", "1", "5.3", "True"]
             problems = [Invalid_Output_Column_Names.Error [""]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: invalid names Nothing" <|
             c_0 = ['A', ["A", "B", "C"]]
+            c_1 = ['B', [Date.new 1980, Date.new 1979, Date.new 2000]]
             c_2 = ['x', [Nothing, 2, 3]]
-            table = Table.new [c_0, c_2]
+            c_3 = ['Y', [5.3, 56.2, 6.3]]
+            c_4 = ['Z', [True, False, True]]
+            table = Table.new [c_0, c_1, c_2, c_3, c_4]
             action = table.use_first_row_as_names on_problems=_
-            tester = expect_column_names ["A", "Column_1"]
+            tester = expect_column_names ["A", "1980-01-01", "Column 1", "5.3", "True"]
             problems = [Invalid_Output_Column_Names.Error [Nothing]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: multiple invalid names" <|
+            c_0 = ['A', ["", "B", "C"]]
+            c_1 = ['B', [Date.new 1980, Date.new 1979, Date.new 2000]]
+            c_2 = ['x', [Nothing, 2, 3]]
+            c_3 = ['Y', [5.3, 56.2, 6.3]]
+            c_4 = ['Z', [True, False, True]]
+            table = Table.new [c_0, c_1, c_2, c_3, c_4]
+            action = table.use_first_row_as_names on_problems=_
+            tester = expect_column_names ["Column 1", "1980-01-01", "Column 2", "5.3", "True"]
+            problems = [Invalid_Output_Column_Names.Error ["", Nothing]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|
@@ -605,60 +576,8 @@ spec =
             c_3 = ['C', ["A", "B", "C"]]
             table = Table.new [c_0, c_1, c_2, c_3]
             action = table.use_first_row_as_names on_problems=_
-            tester = expect_column_names ["A", "A_1", "A_2", "A_3"]
+            tester = expect_column_names ["A", "A 1", "A 2", "A 3"]
             problems = [Duplicate_Output_Column_Names.Error ["A", "A", "A"]]
-            Problems.test_problem_handling action problems tester
-
-    Test.group "Table.replace_text" <|
-        Test.specify "should replace text in full-text table columns" <|
-            bools = ["bools", [False, False, True, True, False]]
-            texts = ["texts", ["foo", "foo", "bar", "baz", "spam"]]
-            table = Table.new [bools, texts]
-            actual = table.replace_text "texts" "a" "o"
-            actual.at "bools" . to_vector . should_equal [False, False, True, True, False]
-            actual.at "texts" . to_vector . should_equal ["foo", "foo", "bor", "boz", "spom"]
-            Problems.assume_no_problems actual
-
-        Test.specify "should replace text in mixed columns" <|
-            bools = ["bools", [False, False, True, True, False]]
-            mixed = ["mixed", ["foo", 5, "bar", False, "spam"]]
-            table = Table.new [bools, mixed]
-            actual = table.replace_text "mixed" "a" "o"
-            actual.at "bools" . to_vector . should_equal [False, False, True, True, False]
-            actual.at "mixed" . to_vector . should_equal ["foo", 5, "bor", False, "spom"]
-            Problems.assume_no_problems actual
-
-        Test.specify "should support operating on multiple columns at once" <|
-            bools = ["bools", [False, False, True]]
-            texts1 = ["texts1", ["foo", "bar", "baz"]]
-            texts2 = ["texts2", ["baz", "quux", "spam"]]
-            table = Table.new [bools, texts1, texts2]
-            actual = table.replace_text ["texts1", "texts2"] "a" "o"
-            actual.at "bools"  . to_vector . should_equal [False, False, True]
-            actual.at "texts1" . to_vector . should_equal ["foo", "bor", "boz"]
-            actual.at "texts2" . to_vector . should_equal ["boz", "quux", "spom"]
-            Problems.assume_no_problems actual
-
-        Test.specify "should support regex replacement" <|
-            bools = ["bools", [False, False, True, True]]
-            texts = ["texts", ["foo", "bar", "baz", "spam"]]
-            table = Table.new [bools, texts]
-            actual = table.replace_text "texts" "(a|o)" "$1e" use_regex=True
-            actual.at "texts" . to_vector . should_equal ["foeoe", "baer", "baez", "spaem"]
-            Problems.assume_no_problems actual
-
-        Test.specify 'should return warnings and errors when passed a non-existent column' <|
-            table = Table.new [["bools", [False, True]], ["texts", ["foo", "bar"]]]
-            action = table.replace_text "invalid_name" "a" "b" on_problems=_
-            tester = _.should_equal table
-            problems = [Missing_Input_Columns.Error ['invalid_name']]
-            Problems.test_problem_handling action problems tester
-
-        Test.specify "should return warnings and errors when selected non-text column" <|
-            table = Table.new [["bools", [False, True]], ["texts", ["foo", "bar"]]]
-            action = table.replace_text "bools" "a" "b" on_problems=_
-            tester = _.should_equal table
-            problems = [Invalid_Value_Type.Error Value_Type.Char Value_Type.Boolean]
             Problems.test_problem_handling action problems tester
 
     Test.group "[In-Memory] Table.aggregate" <|
@@ -878,7 +797,10 @@ spec =
                                 False -> True
                                 Nothing -> Nothing
                             negated_column_vector = column_vector.map not
-                            t = Table.new [["X", column_vector]]
+                            ## A workaround to ensure that X has Boolean type.
+                               It can be removed with
+                            t0 = Table.new [["X", [True]+column_vector]]
+                            t = t0.drop 1
                             in_column = Column.from_vector "in" in_vector
 
                             expected_vector = column_vector.filter (Filter_Condition.Is_In in_vector)
@@ -931,8 +853,8 @@ spec =
             t = Table.new [["X", [1, 2, 3]]]
             t.join 42 . should_fail_with Type_Error
 
-            db = Database.connect (SQLite In_Memory)
-            db_table = db.upload_table "test" (Table.new [["Y", [4, 5, 6]]])
+            db_connection = Database.connect (SQLite In_Memory)
+            db_table = (Table.new [["Y", [4, 5, 6]]]).create_database_table db_connection "test"
 
             r = t.join db_table
             r.should_fail_with Illegal_Argument

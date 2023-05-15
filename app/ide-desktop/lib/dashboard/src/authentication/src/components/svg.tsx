@@ -101,7 +101,7 @@ export const SECRET_ICON = (
         <path
             d="M10.3 13a4 4 0 1 1 0-2h10a1 1 0 0 1 1 1v3a1 1 0 0 1-2 0v-2h-2v2a1 1 0 0 1-2 0v-2ZM3.5 12a1 1 0 1 1 2 0a1 1 0 1 1-2 0"
             fill="currentColor"
-            fill-rule="evenodd"
+            fillRule="evenodd"
         />
     </svg>
 )
@@ -136,7 +136,7 @@ export const PLAY_ICON = (
             width={21}
             height={21}
             rx={10.5}
-            stroke="#3E515F"
+            stroke="currentColor"
             strokeOpacity={0.1}
             strokeWidth={3}
         />
@@ -164,6 +164,36 @@ export const ARROW_UP_ICON = (
     </svg>
 )
 
+/** `+`-shaped icon representing creation of an item. */
+export const ADD_ICON = (
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx={12} cy={12} r={12} fill="currentColor" fillOpacity={0.1} />
+        <g opacity={0.66}>
+            <rect x={11} y={6} width={2} height={12} fill="currentColor" />
+            <rect x={6} y={11} width={12} height={2} fill="currentColor" />
+        </g>
+    </svg>
+)
+
+/** An icon representing creation of an item. */
+export const CIRCLED_PLUS_ICON = (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={80}
+        height={80}
+        viewBox="0 0 24 24"
+        fill="none"
+        strokeWidth={0.5}
+        stroke="currentColor"
+    >
+        <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+    </svg>
+)
+
 /** Icon with three bars. */
 export const BARS_ICON = (
     <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -181,7 +211,7 @@ export const MAGNIFYING_GLASS_ICON = (
                 d="M11.4142 10L15.6569 14.2426L14.2426 15.6569L10 11.4142L11.4142 10Z"
                 fill="currentColor"
             />
-            <circle cx={7} cy={7} r={5} stroke="currentColor" stroke-width={2} />
+            <circle cx={7} cy={7} r={5} stroke="currentColor" strokeWidth={2} />
         </g>
     </svg>
 )
@@ -193,6 +223,92 @@ export const SPEECH_BUBBLE_ICON = (
         <path d="M4.17269e-05 16.5L2 10.5L5.50006 14L4.17269e-05 16.5Z" fill="white" />
     </svg>
 )
+
+/** `x`-shaped icon representing the closing of a window. */
+export const CLOSE_ICON = (
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx={12} cy={12} r={12} fill="currentColor" fillOpacity={0.1} />
+        <g opacity={0.66} transform="rotate(45 12 12)">
+            <rect x={11} y={6} width={2} height={12} fill="currentColor" />
+            <rect x={6} y={11} width={12} height={2} fill="currentColor" />
+        </g>
+    </svg>
+)
+
+export const CLOUD_ICON = (
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+            d="M6.5 16A2.9 2.9 0 1 1 8 10.5 4 4 0 0 1 15.5 11 2 2 0 0 1 17.5 12 1.9 1.9 0 1 1 18.5 16"
+            fill="currentColor"
+        />
+    </svg>
+)
+
+export const COMPUTER_ICON = (
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+            d="M3.5 18.5a1 1 0 0 1 0-2h3.5v-1.5h-3.5a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3.5v1.5h3.5a1 1 0 0 1 0 2ZM4 14a.5.5 0 0 1-.5-.5v-6a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-.5.5ZM17.3 18.5a1 1 0 0 1-1-1v-10.5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v10.5a1 1 0 0 1-1 1ZM17.3 9a.3.3 0 1 1 0-.6h3a.3.3 0 1 1 0 .6ZM18.8 16a.7.7 0 1 1 0-1.4.7.7 0 1 1 0 1.4Z"
+            fill="currentColor"
+            fillRule="evenodd"
+        />
+    </svg>
+)
+
+/** An icon representing a user without a profile picture. */
+export const DEFAULT_USER_ICON = (
+    <svg height={32} width={32} viewBox="2 2 20 20" xmlns="http://www.w3.org/2000/svg">
+        <path
+            d="M6 20a10 10 0 0 1 6 -18 10 10 0 0 1 6 18 6 6 0 0 0 -4 -5 4.3 4.3 0 0 0 -2 -8 4.3 4.3 0 0 0 -2 8 6 6 0 0 0 -4 5"
+            fill="#888888"
+        />
+    </svg>
+)
+
+export interface StopIconProps {
+    className?: string
+}
+
+/** Icon displayed when a project is ready to stop. */
+export function StopIcon(props: StopIconProps) {
+    const { className } = props
+    return (
+        <svg
+            width={24}
+            height={24}
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+        >
+            <path
+                d="m9 8L15 8a1 1 0 0 1 1 1L16 15a1 1 0 0 1 -1 1L9 16a1 1 0 0 1 -1 -1L8 9a1 1 0 0 1 1 -1"
+                fill="currentColor"
+            />
+            <rect
+                x={1.5}
+                y={1.5}
+                width={21}
+                height={21}
+                rx={10.5}
+                stroke="currentColor"
+                strokeOpacity={0.1}
+                strokeWidth={3}
+            />
+            <rect
+                x={1.5}
+                y={1.5}
+                width={21}
+                height={21}
+                rx={10.5}
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeWidth={3}
+                className={`animate-spin-ease origin-center transition-stroke-dasharray ${
+                    className ?? ''
+                }`}
+            />
+        </svg>
+    )
+}
 
 // ===========
 // === Svg ===

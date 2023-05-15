@@ -11,11 +11,11 @@ use crate::component::visualization;
 use crate::selection::BoundingBox;
 use crate::tooltip;
 use crate::view;
-use crate::ExecutionEnvironment;
+use crate::CallWidgetsConfig;
 use crate::Type;
-use crate::WidgetUpdates;
 
 use super::edge;
+use engine_protocol::language_server::ExecutionEnvironment;
 use enso_frp as frp;
 use enso_frp;
 use ensogl::animation::delayed::DelayedAnimation;
@@ -109,6 +109,7 @@ pub mod background {
     use super::*;
 
     ensogl::shape! {
+        pointer_events = false;
         alignment = center;
         (style:Style, bg_color:Vector4) {
             let bg_color = Var::<color::Rgba>::from(bg_color);
@@ -302,7 +303,7 @@ ensogl::define_endpoints_2! {
         disable_visualization (),
         set_visualization     (Option<visualization::Definition>),
         set_disabled          (bool),
-        set_input_connected   (span_tree::Crumbs,Option<Type>,bool),
+        set_input_connected   (span_tree::Crumbs,Option<color::Lcha>),
         set_expression        (Expression),
         edit_expression       (text::Range<text::Byte>, ImString),
         set_skip_macro        (bool),
@@ -315,8 +316,8 @@ ensogl::define_endpoints_2! {
         /// Set the expression USAGE type. This is not the definition type, which can be set with
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
         /// colored if the definition type was present.
-        set_expression_usage_type         (Crumbs,Option<Type>),
-        update_widgets                    (WidgetUpdates),
+        set_expression_usage_type         (ast::Id, Option<Type>),
+        update_widgets                    (CallWidgetsConfig),
         set_output_expression_visibility  (bool),
         set_vcs_status                    (Option<vcs::Status>),
         /// Show visualization preview until either editing of the node is finished or the
@@ -332,6 +333,9 @@ ensogl::define_endpoints_2! {
         /// Indicate whether on hover the quick action icons should appear.
         show_quick_action_bar_on_hover    (bool),
         set_execution_environment         (ExecutionEnvironment),
+
+        /// Set read-only mode for input ports.
+        set_read_only                     (bool),
     }
     Output {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
@@ -369,6 +373,8 @@ ensogl::define_endpoints_2! {
         /// [`visualization_visible`] is updated. Please remember, that the [`position`] is not
         /// immediately updated, only during the Display Object hierarchy update
         bounding_box             (BoundingBox),
+        /// The bounding box of the node without the visualization.
+        inner_bounding_box       (BoundingBox),
         /// A set of widgets attached to a method requires metadata to be queried. The tuple
         /// contains the ID of the call expression the widget is attached to, and the ID of that
         /// call's target expression (`self` or first argument).
@@ -498,9 +504,6 @@ impl NodeModel {
                 background                -> drag_area;
                 drag_area                 -> edge::front::corner;
                 drag_area                 -> edge::front::line;
-                edge::front::corner       -> input::port::hover;
-                edge::front::line         -> input::port::hover;
-                input::port::hover        -> input::port::viz;
             }
         }
 
@@ -512,7 +515,7 @@ impl NodeModel {
         let background = background::View::new();
         let drag_area = drag_area::View::new();
         let vcs_indicator = vcs::StatusIndicator::new(app);
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("Node");
 
         display_object.add_child(&profiling_label);
         display_object.add_child(&drag_area);
@@ -561,13 +564,6 @@ impl NodeModel {
             comment,
         }
         .init()
-    }
-
-    #[profile(Debug)]
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
-        let input_crumbs = self.input.get_crumbs_by_id(id).map(Crumbs::input);
-        input_crumbs.or_else(|| self.output.get_crumbs_by_id(id).map(Crumbs::output))
     }
 
     #[profile(Debug)]
@@ -636,11 +632,9 @@ impl NodeModel {
     }
 
     #[profile(Debug)]
-    fn set_expression_usage_type(&self, crumbs: &Crumbs, tp: &Option<Type>) {
-        match crumbs.endpoint {
-            Endpoint::Input => self.input.set_expression_usage_type(&crumbs.crumbs, tp),
-            Endpoint::Output => self.output.set_expression_usage_type(&crumbs.crumbs, tp),
-        }
+    fn set_expression_usage_type(&self, id: ast::Id, tp: &Option<Type>) {
+        self.input.set_expression_usage_type(id, tp);
+        self.output.set_expression_usage_type(id, tp);
     }
 
     #[profile(Debug)]
@@ -725,10 +719,11 @@ impl Node {
         let action_bar = &model.action_bar.frp;
 
         frp::extend! { network
+            init <- source::<()>();
 
             // Hook up the display object position updates to the node's FRP. Required to calculate
             // the bounding box.
-            out.position <+ display_object.on_updated.map(f_!(display_object.position().xy()));
+            out.position <+ display_object.on_transformed.map(f_!(display_object.position().xy()));
 
             // === Hover ===
             // The hover discovery of a node is an interesting process. First, we discover whether
@@ -762,7 +757,7 @@ impl Node {
             filtered_usage_type <- input.set_expression_usage_type.filter(
                 move |(_,tp)| *tp != unresolved_symbol_type
             );
-            eval filtered_usage_type (((a,b)) model.set_expression_usage_type(a,b));
+            eval filtered_usage_type   (((a,b)) model.set_expression_usage_type(*a,b));
             eval input.set_expression  ((a)     model.set_expression(a));
             model.input.edit_expression <+ input.edit_expression;
             out.on_expression_modified  <+ model.input.frp.on_port_code_update;
@@ -800,7 +795,8 @@ impl Node {
 
             // === Size ===
 
-            new_size <- model.input.frp.width.map(f!((w) model.set_width(*w)));
+            input_width <- all(&model.input.frp.width, &init)._0();
+            new_size <- input_width.map(f!((w) model.set_width(*w)));
             model.output.frp.set_size <+ new_size;
 
 
@@ -827,6 +823,12 @@ impl Node {
             model.vcs_indicator.set_visibility  <+ input.set_view_mode.map(|&mode| {
                 !matches!(mode,view::Mode::Profiling {..})
             });
+
+
+            // === Read-only mode ===
+
+            action_bar.set_read_only <+ input.set_read_only;
+            model.input.set_read_only <+ input.set_read_only;
         }
 
 
@@ -875,9 +877,9 @@ impl Node {
             hover_onset_delay.set_delay <+ preview_show_delay;
             hide_tooltip                <- preview_show_delay.map(|&delay| delay <= EPSILON);
 
-            outout_hover            <- model.output.on_port_hover.map(|s| s.is_on());
-            hover_onset_delay.start <+ outout_hover.on_true();
-            hover_onset_delay.reset <+ outout_hover.on_false();
+            output_hover            <- model.output.on_port_hover.map(|s| s.is_on());
+            hover_onset_delay.start <+ output_hover.on_true();
+            hover_onset_delay.reset <+ output_hover.on_false();
             hover_onset_active <- bool(&hover_onset_delay.on_reset, &hover_onset_delay.on_end);
             hover_preview_visible <- has_expression && hover_onset_active;
             hover_preview_visible <- hover_preview_visible.on_change();
@@ -908,7 +910,6 @@ impl Node {
             eval visualization_visible_on_change ((is_visible)
                 model.visualization.frp.set_visibility(is_visible)
             );
-            init <- source::<()>();
             out.visualization_path <+ model.visualization.frp.visualisation.all_with(&init,|def_opt,_| {
                 def_opt.as_ref().map(|def| def.signature.path.clone_ref())
             });
@@ -1010,7 +1011,10 @@ impl Node {
             visualization_enabled_and_visible <- visualization_enabled && visualization_visible;
             bbox_input <- all4(
                 &out.position,&new_size,&visualization_enabled_and_visible,visualization_size);
-            out.bounding_box <+ bbox_input.map(|(a,b,c,d)| bounding_box(*a,*b,*c,*d));
+            out.bounding_box <+ bbox_input.map(|(a,b,c,d)| bounding_box(*a,*b,c.then(|| *d)));
+
+            inner_bbox_input <- all2(&out.position,&new_size);
+            out.inner_bounding_box <+ inner_bbox_input.map(|(a,b)| bounding_box(*a,*b,None));
 
 
             // === VCS Handling ===
@@ -1070,13 +1074,12 @@ fn visualization_offset(node_width: f32) -> Vector2 {
 fn bounding_box(
     node_position: Vector2,
     node_size: Vector2,
-    visualization_enabled_and_visible: bool,
-    visualization_size: Vector2,
+    visualization_size: Option<Vector2>,
 ) -> BoundingBox {
     let x_offset_to_node_center = x_offset_to_node_center(node_size.x);
     let node_bbox_pos = node_position + Vector2(x_offset_to_node_center, 0.0) - node_size / 2.0;
     let node_bbox = BoundingBox::from_position_and_size(node_bbox_pos, node_size);
-    if visualization_enabled_and_visible {
+    if let Some(visualization_size) = visualization_size {
         let visualization_offset = visualization_offset(node_size.x);
         let visualization_pos = node_position + visualization_offset;
         let visualization_bbox_pos = visualization_pos - visualization_size / 2.0;
@@ -1109,13 +1112,9 @@ pub mod test_utils {
         /// 3. If the output port is [`MultiPortView`].
         fn output_port_shape(&self) -> Option<output::port::SinglePortView>;
 
-        /// Return the `Shape` of the first input port of the node.
-        ///
-        /// Returns `None`:
-        /// 1. If there are no input ports.
-        /// 2. If the port does not have a `Shape`. Some port models does not initialize the
-        ///    `Shape`, see [`input::port::Model::init_shape`].
-        fn input_port_shape(&self) -> Option<input::port::Shape>;
+        /// Return the `Shape` of the first input port of the node. Returns `None` if there are no
+        /// input ports.
+        fn input_port_hover_shape(&self) -> Option<input::port::HoverShape>;
     }
 
     impl NodeModelExt for NodeModel {
@@ -1130,10 +1129,9 @@ pub mod test_utils {
             }
         }
 
-        fn input_port_shape(&self) -> Option<input::port::Shape> {
-            let ports = self.input.model.ports();
-            let port = ports.first()?;
-            port.shape.as_ref().map(CloneRef::clone_ref)
+        fn input_port_hover_shape(&self) -> Option<input::port::HoverShape> {
+            let shapes = self.input.model.port_hover_shapes();
+            shapes.into_iter().next()
         }
     }
 }

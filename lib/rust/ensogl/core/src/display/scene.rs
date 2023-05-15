@@ -15,6 +15,8 @@ use crate::display;
 use crate::display::camera::Camera2d;
 use crate::display::render;
 use crate::display::scene::dom::DomScene;
+use crate::display::scene::layer::LayerSymbolPartition;
+use crate::display::shape::compound::rectangle;
 use crate::display::shape::primitive::glsl;
 use crate::display::style;
 use crate::display::style::data::DataMatch;
@@ -326,8 +328,9 @@ impl Default for Keyboard {
 // === Dom ===
 // ===========
 
-/// DOM element manager
-#[derive(Clone, CloneRef, Debug)]
+/// DOM element manager. Creates root div element containing [`DomLayers`] upon construction and
+/// removes them once dropped.
+#[derive(Clone, Debug)]
 pub struct Dom {
     /// Root DOM element of the scene.
     pub root:   web::dom::WithKnownShape<web::HtmlDivElement>,
@@ -360,6 +363,12 @@ impl Dom {
 impl Default for Dom {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Drop for Dom {
+    fn drop(&mut self) {
+        self.root.remove();
     }
 }
 
@@ -496,14 +505,14 @@ impl Dirty {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Renderer {
-    dom:          Dom,
+    dom:          Rc<Dom>,
     variables:    UniformScope,
     pub pipeline: Rc<CloneCell<render::Pipeline>>,
     pub composer: Rc<RefCell<Option<render::Composer>>>,
 }
 
 impl Renderer {
-    fn new(dom: &Dom, variables: &UniformScope) -> Self {
+    fn new(dom: &Rc<Dom>, variables: &UniformScope) -> Self {
         let dom = dom.clone_ref();
         let variables = variables.clone_ref();
         let pipeline = default();
@@ -582,6 +591,18 @@ impl Renderer {
 // === Layers ===
 // ==============
 
+type RectLayerPartition = Rc<LayerSymbolPartition<rectangle::Shape>>;
+
+/// Create a new layer partition with the given name, wrapped in an `Rc` for use in the
+/// [`HardcodedLayers`] structure.
+fn partition_layer<S: display::shape::primitive::system::Shape>(
+    base_layer: &Layer,
+    name: &str,
+) -> Rc<LayerSymbolPartition<S>> {
+    let partition = base_layer.create_symbol_partition::<S>(name);
+    Rc::new(partition)
+}
+
 /// Please note that currently the `Layers` structure is implemented in a hacky way. It assumes the
 /// existence of several layers, which are needed for the GUI to display shapes properly. This
 /// should be abstracted away in the future.
@@ -590,26 +611,32 @@ impl Renderer {
 pub struct HardcodedLayers {
     /// A special layer used to store shapes not attached to any layer. This layer will not be
     /// rendered. You should not need to use it directly.
-    pub DETACHED:           Layer,
-    pub root:               Layer,
-    pub viz:                Layer,
-    pub below_main:         Layer,
-    pub main:               Layer,
-    pub port_selection:     Layer,
-    pub label:              Layer,
-    pub above_nodes:        Layer,
-    pub above_nodes_text:   Layer,
-    /// Layer containing all panels with fixed position (not moving with the panned scene)
-    /// like status bar, breadcrumbs or similar.
-    pub panel:              Layer,
-    pub panel_text:         Layer,
-    pub node_searcher:      Layer,
+    pub DETACHED: Layer,
+    pub root: Layer,
+    pub viz: Layer,
+    pub below_main: Layer,
+    pub main: Layer,
+    pub widget: Layer,
+    pub port: Layer,
+    pub port_selection: Layer,
+    pub label: Layer,
+    pub port_hover: Layer,
+    pub above_nodes: Layer,
+    pub above_nodes_text: Layer,
+    // `panel_*` layers contains UI elements with fixed position (not moving with the panned scene)
+    // like status bar, breadcrumbs or similar.
+    pub panel_background_rect_level_0: RectLayerPartition,
+    pub panel_background_rect_level_1: RectLayerPartition,
+    pub panel_background: Layer,
+    pub panel: Layer,
+    pub panel_text: Layer,
+    pub node_searcher: Layer,
     pub node_searcher_text: Layer,
-    pub edited_node:        Layer,
-    pub edited_node_text:   Layer,
-    pub tooltip:            Layer,
-    pub tooltip_text:       Layer,
-    pub cursor:             Layer,
+    pub edited_node: Layer,
+    pub edited_node_text: Layer,
+    pub tooltip: Layer,
+    pub tooltip_text: Layer,
+    pub cursor: Layer,
 }
 
 impl Deref for HardcodedLayers {
@@ -635,11 +662,19 @@ impl HardcodedLayers {
         let viz = root.create_sublayer("viz");
         let below_main = root.create_sublayer("below_main");
         let main = root.create_sublayer("main");
+        let widget = root.create_sublayer("widget");
+        let port = root.create_sublayer("port");
         let port_selection =
             root.create_sublayer_with_camera("port_selection", &port_selection_cam);
         let label = root.create_sublayer("label");
+        let port_hover = root.create_sublayer("port_hover");
         let above_nodes = root.create_sublayer("above_nodes");
         let above_nodes_text = root.create_sublayer("above_nodes_text");
+
+
+        let panel_background = root.create_sublayer_with_camera("panel_background", &panel_cam);
+        let panel_background_rect_level_0 = partition_layer(&panel_background, "bottom");
+        let panel_background_rect_level_1 = partition_layer(&panel_background, "top");
         let panel = root.create_sublayer_with_camera("panel", &panel_cam);
         let panel_text = root.create_sublayer_with_camera("panel_text", &panel_cam);
         let node_searcher = root.create_sublayer_with_camera("node_searcher", &node_searcher_cam);
@@ -658,10 +693,14 @@ impl HardcodedLayers {
             viz,
             below_main,
             main,
+            widget,
+            port,
             port_selection,
             label,
+            port_hover,
             above_nodes,
             above_nodes_text,
+            panel_background,
             panel,
             panel_text,
             node_searcher,
@@ -671,6 +710,8 @@ impl HardcodedLayers {
             tooltip,
             tooltip_text,
             cursor,
+            panel_background_rect_level_0,
+            panel_background_rect_level_1,
         }
     }
 }
@@ -698,6 +739,7 @@ pub struct Frp {
     camera_changed_source: frp::Source,
     frame_time_source:     frp::Source<f32>,
     focused_source:        frp::Source<bool>,
+    post_update:           frp::Source,
 }
 
 impl Frp {
@@ -707,6 +749,7 @@ impl Frp {
             camera_changed_source <- source();
             frame_time_source <- source();
             focused_source <- source();
+            post_update <- source();
         }
         let shape = shape.clone_ref();
         let camera_changed = camera_changed_source.clone_ref().into();
@@ -721,6 +764,7 @@ impl Frp {
             camera_changed_source,
             frame_time_source,
             focused_source,
+            post_update,
         }
     }
 }
@@ -770,10 +814,10 @@ pub struct UpdateStatus {
 // === SceneData ===
 // =================
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Debug)]
 pub struct SceneData {
     pub display_object: display::object::Root,
-    pub dom: Dom,
+    pub dom: Rc<Dom>,
     pub context: Rc<RefCell<Option<Context>>>,
     pub context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
     pub variables: UniformScope,
@@ -807,7 +851,7 @@ impl SceneData {
     ) -> Self {
         debug!("Initializing.");
         let display_mode = display_mode.clone_ref();
-        let dom = Dom::new();
+        let dom = default();
         let display_object = display::object::Root::new_named("Scene");
         let variables = world::with_context(|t| t.variables.clone_ref());
         let dirty = Dirty::new(on_mut);
@@ -951,6 +995,7 @@ impl SceneData {
         // Updating all other cameras (the main camera was already updated, so it will be skipped).
         self.layers.iter_sublayers_and_masks_nested(|layer| {
             let dirty = layer.camera().update(scene);
+            layer.update_debug_view();
             was_dirty = was_dirty || dirty;
         });
 
@@ -1005,15 +1050,21 @@ impl SceneData {
         let layer = object.display_layer();
         let camera = layer.map_or(self.camera(), |l| l.camera());
         let origin_clip_space = camera.view_projection_matrix() * origin_world_space;
-        let inv_object_matrix = object.transformation_matrix().try_inverse().unwrap();
-
-        let shape = camera.screen();
-        let clip_space_z = origin_clip_space.z;
-        let clip_space_x = origin_clip_space.w * 2.0 * screen_pos.x / shape.width;
-        let clip_space_y = origin_clip_space.w * 2.0 * screen_pos.y / shape.height;
-        let clip_space = Vector4(clip_space_x, clip_space_y, clip_space_z, origin_clip_space.w);
-        let world_space = camera.inversed_view_projection_matrix() * clip_space;
-        (inv_object_matrix * world_space).xy()
+        if let Some(inv_object_matrix) = object.transformation_matrix().try_inverse() {
+            let shape = camera.screen();
+            let clip_space_z = origin_clip_space.z;
+            let clip_space_x = origin_clip_space.w * 2.0 * screen_pos.x / shape.width;
+            let clip_space_y = origin_clip_space.w * 2.0 * screen_pos.y / shape.height;
+            let clip_space = Vector4(clip_space_x, clip_space_y, clip_space_z, origin_clip_space.w);
+            let world_space = camera.inversed_view_projection_matrix() * clip_space;
+            (inv_object_matrix * world_space).xy()
+        } else {
+            warn!(
+                "The object transformation matrix is not invertible, \
+                this can cause visual artifacts."
+            );
+            default()
+        }
     }
 }
 
@@ -1082,7 +1133,7 @@ impl display::Object for SceneData {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Scene {
-    no_mut_access: SceneData,
+    no_mut_access: Rc<SceneData>,
 }
 
 impl Scene {
@@ -1092,7 +1143,7 @@ impl Scene {
         display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
     ) -> Self {
         let no_mut_access = SceneData::new(stats, on_mut, display_mode);
-        let this = Self { no_mut_access };
+        let this = Self { no_mut_access: Rc::new(no_mut_access) };
         this
     }
 
@@ -1204,31 +1255,58 @@ impl Deref for Scene {
 }
 
 impl Scene {
+    /// Perform layout phase of scene update. This includes updating camera and the layout of all
+    /// display objects. No GPU buffers are updated yet, giving the opportunity to perform
+    /// additional updates that affect the layout of display objects after the main scene layout
+    /// has been performed.
+    ///
+    /// During this phase, the layout updates can be observed using `on_transformed` FRP events on
+    /// each individual display object. Any further updates to the scene may require the `update`
+    /// method to be manually called on affected objects in order to affect rendering
+    /// during this frame.
     #[profile(Debug)]
-    // FIXME:
-    #[allow(unused_assignments)]
-    pub fn update(&self, time: animation::TimeInfo) -> UpdateStatus {
-        if let Some(context) = &*self.context.borrow() {
-            debug_span!("Updating.").in_scope(|| {
+    pub fn update_layout(&self, time: animation::TimeInfo) -> UpdateStatus {
+        if self.context.borrow().is_some() {
+            debug_span!("Early update.").in_scope(|| {
                 let mut scene_was_dirty = false;
                 self.frp.frame_time_source.emit(time.since_animation_loop_started.unchecked_raw());
                 // Please note that `update_camera` is called first as it may trigger FRP events
                 // which may change display objects layout.
-                scene_was_dirty = self.update_camera(self) || scene_was_dirty;
+                scene_was_dirty |= self.update_camera(self);
                 self.display_object.update(self);
-                scene_was_dirty = self.layers.update() || scene_was_dirty;
-                scene_was_dirty = self.update_shape() || scene_was_dirty;
-                scene_was_dirty = self.update_symbols() || scene_was_dirty;
-                self.handle_mouse_over_and_out_events();
-                scene_was_dirty = self.shader_compiler.run(context, time) || scene_was_dirty;
+                UpdateStatus { scene_was_dirty, pointer_position_changed: false }
+            })
+        } else {
+            default()
+        }
+    }
 
-                let pointer_position_changed = self.pointer_position_changed.get();
+    /// Perform rendering phase of scene update. At this point, all display object state is being
+    /// committed for rendering. This includes updating the layer stack, refreshing GPU buffers and
+    /// handling mouse events.
+    #[profile(Debug)]
+    pub fn update_rendering(
+        &self,
+        time: animation::TimeInfo,
+        early_status: UpdateStatus,
+    ) -> UpdateStatus {
+        if let Some(context) = &*self.context.borrow() {
+            debug_span!("Late update.").in_scope(|| {
+                let UpdateStatus { mut scene_was_dirty, mut pointer_position_changed } =
+                    early_status;
+                scene_was_dirty |= self.layers.update();
+                scene_was_dirty |= self.update_shape();
+                scene_was_dirty |= self.update_symbols();
+                self.handle_mouse_over_and_out_events();
+                scene_was_dirty |= self.shader_compiler.run(context, time);
+
+                pointer_position_changed |= self.pointer_position_changed.get();
                 self.pointer_position_changed.set(false);
 
                 // FIXME: setting it to true for now in order to make cursor blinking work.
                 //   Text cursor animation is in GLSL. To be handled properly in this PR:
                 //   #183406745
-                let scene_was_dirty = true;
+                scene_was_dirty |= true;
                 UpdateStatus { scene_was_dirty, pointer_position_changed }
             })
         } else {

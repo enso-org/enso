@@ -244,7 +244,6 @@ impl Presenter {
             });
         }
 
-
         Self { model, network }.init()
     }
 

@@ -2,7 +2,7 @@ package src.main.scala.licenses
 
 import java.nio.file.Path
 
-import com.typesafe.sbt.license.{DepModuleInfo, LicenseInfo}
+import sbtlicensereport.license.{DepModuleInfo, LicenseInfo}
 import src.main.scala.licenses.report.Review
 
 /** Defines a way to access sources of a dependency.

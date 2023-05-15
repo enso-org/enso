@@ -14,6 +14,7 @@ pub mod instance;
 pub mod layout;
 pub mod transformation;
 
+pub use event::Event;
 pub use instance::Any;
 pub use instance::*;
 

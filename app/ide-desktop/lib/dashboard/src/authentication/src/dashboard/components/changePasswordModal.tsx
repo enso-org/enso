@@ -20,7 +20,8 @@ function ChangePasswordModal() {
     const [oldPassword, setOldPassword] = react.useState('')
     const [newPassword, setNewPassword] = react.useState('')
     const [confirmNewPassword, setConfirmNewPassword] = react.useState('')
-    const handleSubmit = async () => {
+
+    const onSubmit = async () => {
         if (newPassword !== confirmNewPassword) {
             toast.error('Passwords do not match.')
         } else {
@@ -32,10 +33,14 @@ function ChangePasswordModal() {
     }
 
     return (
-        <Modal className="bg-opacity-30">
+        <Modal centered className="bg-opacity-30">
             <div
                 onClick={event => {
                     event.stopPropagation()
+                }}
+                onSubmit={async event => {
+                    event.preventDefault()
+                    await onSubmit()
                 }}
                 className="flex flex-col bg-white shadow-md px-4 sm:px-6 md:px-8 lg:px-10 py-8 rounded-md w-full max-w-md"
             >
@@ -46,7 +51,7 @@ function ChangePasswordModal() {
                     <form
                         onSubmit={event => {
                             event.preventDefault()
-                            void handleSubmit()
+                            void onSubmit()
                         }}
                     >
                         <div className="flex flex-col mb-6">
@@ -62,6 +67,8 @@ function ChangePasswordModal() {
                                 </div>
 
                                 <input
+                                    autoFocus
+                                    required
                                     id="old_password"
                                     type="password"
                                     name="old_password"
@@ -87,6 +94,7 @@ function ChangePasswordModal() {
                                 </div>
 
                                 <input
+                                    required
                                     id="new_password"
                                     type="password"
                                     name="new_password"
@@ -112,6 +120,7 @@ function ChangePasswordModal() {
                                 </div>
 
                                 <input
+                                    required
                                     id="confirm_new_password"
                                     type="password"
                                     name="confirm_new_password"

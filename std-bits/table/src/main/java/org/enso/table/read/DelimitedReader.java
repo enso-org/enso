@@ -327,14 +327,14 @@ public class DelimitedReader {
         Arrays.stream(row).map(this::parseHeader).collect(Collectors.toList());
 
     NameDeduplicator deduplicator = new NameDeduplicator();
-    List<String> names = deduplicator.makeUnique(preprocessedHeaders);
+    List<String> names = deduplicator.makeUniqueList(preprocessedHeaders);
     return new WithProblems<>(names, deduplicator.getProblems());
   }
 
   private WithProblems<List<String>> generateDefaultHeaders(int columnCount) {
     List<String> headerNames = new ArrayList<>(columnCount);
     for (int i = 0; i < columnCount; ++i) {
-      headerNames.add(COLUMN_NAME + "_" + (i + 1));
+      headerNames.add(COLUMN_NAME + " " + (i + 1));
     }
     return new WithProblems<>(headerNames, Collections.emptyList());
   }

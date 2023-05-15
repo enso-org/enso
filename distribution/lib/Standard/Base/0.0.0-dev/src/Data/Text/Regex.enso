@@ -78,3 +78,8 @@ type Regex_Syntax_Error
        Arguments:
        - message: A description of the erroneous syntax.
     Error message
+
+    ## PRIVATE
+       Provides a human-readable representation of the `Regex_Syntax_Error`.
+    to_display_text : Text
+    to_display_text self = "Regex Syntax Error:" + self.message

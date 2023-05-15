@@ -744,7 +744,9 @@ pub mod test {
             repository: Rc<model::undo_redo::Repository>,
         ) -> Module {
             let ast = parser.parse_module(&self.code, self.id_map.clone()).unwrap();
-            let module = Plain::new(self.path.clone(), ast, self.metadata.clone(), repository);
+            let path = self.path.clone();
+            let metadata = self.metadata.clone();
+            let module = Plain::new(path, ast, metadata, repository, default());
             Rc::new(module)
         }
     }

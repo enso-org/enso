@@ -342,6 +342,30 @@ pub struct Z;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct W;
 
+/// An axis in 2D space.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[allow(missing_docs)]
+pub enum Axis2 {
+    X,
+    Y,
+}
+
+impl Default for Axis2 {
+    fn default() -> Self {
+        Self::X
+    }
+}
+
+impl Axis2 {
+    /// The orthogonal axis to the current one.
+    pub fn orthogonal(self) -> Self {
+        match self {
+            Self::X => Self::Y,
+            Self::Y => Self::X,
+        }
+    }
+}
+
 /// Component getter for the given dimension.
 #[allow(missing_docs)]
 pub trait Dim<D>: Dim1 {
@@ -432,6 +456,79 @@ gen_dim_impl_for_vector!(Vector2, x, y);
 gen_dim_impl_for_vector!(Vector3, x, y, z);
 gen_dim_impl_for_vector!(Vector4, x, y, z, w);
 
+impl<T: Scalar + Copy> Dim<Axis2> for Vector2<T> {
+    fn get_dim(&self, dim: Axis2) -> Self::Dim1Type {
+        match dim {
+            Axis2::X => self.x(),
+            Axis2::Y => self.y(),
+        }
+    }
+}
+
+impl<T: Scalar + Copy> DimSetter<Axis2> for Vector2<T> {
+    fn set_dim(&mut self, dim: Axis2, value: Self::Dim1Type) {
+        match dim {
+            Axis2::X => self.set_x(value),
+            Axis2::Y => self.set_y(value),
+        }
+    }
+
+    fn set_dim_checked(&mut self, dim: Axis2, value: Self::Dim1Type) -> bool {
+        match dim {
+            Axis2::X =>
+                if self.x() == value {
+                    false
+                } else {
+                    self.set_x(value);
+                    true
+                },
+            Axis2::Y =>
+                if self.y() == value {
+                    false
+                } else {
+                    self.set_y(value);
+                    true
+                },
+        }
+    }
+}
+
+impl<T: Scalar + Copy> Dim<&Axis2> for Vector2<T> {
+    fn get_dim(&self, dim: &Axis2) -> Self::Dim1Type {
+        match dim {
+            Axis2::X => self.x(),
+            Axis2::Y => self.y(),
+        }
+    }
+}
+
+impl<T: Scalar + Copy> DimSetter<&Axis2> for Vector2<T> {
+    fn set_dim(&mut self, dim: &Axis2, value: Self::Dim1Type) {
+        match dim {
+            Axis2::X => self.set_x(value),
+            Axis2::Y => self.set_y(value),
+        }
+    }
+
+    fn set_dim_checked(&mut self, dim: &Axis2, value: Self::Dim1Type) -> bool {
+        match dim {
+            Axis2::X =>
+                if self.x() == value {
+                    false
+                } else {
+                    self.set_x(value);
+                    true
+                },
+            Axis2::Y =>
+                if self.y() == value {
+                    false
+                } else {
+                    self.set_y(value);
+                    true
+                },
+        }
+    }
+}
 
 
 // =====================================================

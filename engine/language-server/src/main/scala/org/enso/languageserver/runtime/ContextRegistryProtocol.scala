@@ -205,8 +205,13 @@ object ContextRegistryProtocol {
           *
           * @param count the number of attached warnings
           * @param value textual representation of the attached warning
+          * @param reachedMaxCount indicated whether maximal number of warnings has been reached
           */
-        case class Warnings(count: Int, value: Option[String])
+        case class Warnings(
+          count: Int,
+          value: Option[String],
+          reachedMaxCount: Boolean
+        )
       }
 
       case class Pending(message: Option[String], progress: Option[Double])

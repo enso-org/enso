@@ -27,6 +27,17 @@ use std::collections::hash_map::Entry;
 
 
 // ==============
+// === Errors ===
+// ==============
+
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Copy, Fail)]
+#[fail(display = "Attempt to edit a read-only module")]
+pub struct EditInReadOnly;
+
+
+
+// ==============
 // === Module ===
 // ==============
 
@@ -41,6 +52,7 @@ pub struct Module {
     content:       RefCell<Content>,
     notifications: notification::Publisher<Notification>,
     repository:    Rc<model::undo_redo::Repository>,
+    read_only:     Rc<Cell<bool>>,
 }
 
 impl Module {
@@ -50,36 +62,44 @@ impl Module {
         ast: ast::known::Module,
         metadata: Metadata,
         repository: Rc<model::undo_redo::Repository>,
+        read_only: Rc<Cell<bool>>,
     ) -> Self {
         Module {
             content: RefCell::new(ParsedSourceFile { ast, metadata }),
             notifications: default(),
             path,
             repository,
+            read_only,
         }
     }
 
     /// Replace the module's content with the new value and emit notification of given kind.
     ///
-    /// Fails if the `new_content` is so broken that it cannot be serialized to text. In such case
+    /// ### Errors
+    /// - Fails if the `new_content` is so broken that it cannot be serialized to text. In such case
     /// the module's state is guaranteed to remain unmodified and the notification will not be
     /// emitted.
+    /// - Fails if the module is read-only. Metadata-only changes are allowed in read-only mode.
     #[profile(Debug)]
     fn set_content(&self, new_content: Content, kind: NotificationKind) -> FallibleResult {
         if new_content == *self.content.borrow() {
             debug!("Ignoring spurious update.");
             return Ok(());
         }
-        trace!("Updating module's content: {kind:?}. New content:\n{new_content}");
-        let transaction = self.repository.transaction("Setting module's content");
-        transaction.fill_content(self.id(), self.content.borrow().clone());
+        if self.read_only.get() && kind != NotificationKind::MetadataChanged {
+            Err(EditInReadOnly.into())
+        } else {
+            trace!("Updating module's content: {kind:?}. New content:\n{new_content}");
+            let transaction = self.repository.transaction("Setting module's content");
+            transaction.fill_content(self.id(), self.content.borrow().clone());
 
-        // We want the line below to fail before changing state.
-        let new_file = new_content.serialize()?;
-        let notification = Notification::new(new_file, kind);
-        self.content.replace(new_content);
-        self.notifications.notify(notification);
-        Ok(())
+            // We want the line below to fail before changing state.
+            let new_file = new_content.serialize()?;
+            let notification = Notification::new(new_file, kind);
+            self.content.replace(new_content);
+            self.notifications.notify(notification);
+            Ok(())
+        }
     }
 
     /// Use `f` to update the module's content.

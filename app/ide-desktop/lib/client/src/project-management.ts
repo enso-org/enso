@@ -34,7 +34,8 @@ const logger = config.logger
  * @throws `Error` if the path does not belong to a valid project.
  */
 export function importProjectFromPath(openedPath: string): string {
-    if (pathModule.extname(openedPath).endsWith(fileAssociations.BUNDLED_PROJECT_EXTENSION)) {
+    if (pathModule.extname(openedPath).endsWith(fileAssociations.BUNDLED_PROJECT_SUFFIX)) {
+        logger.log(`Path '${openedPath}' denotes a bundled project.`)
         // The second part of condition is for the case when someone names a directory like `my-project.enso-project`
         // and stores the project there. Not the most fortunate move, but...
         if (isProjectRoot(openedPath)) {
@@ -44,15 +45,16 @@ export function importProjectFromPath(openedPath: string): string {
             return importBundle(openedPath)
         }
     } else {
-        logger.log(`Opening file: '${openedPath}'.`)
+        logger.log(`Opening non-bundled file: '${openedPath}'.`)
         const rootPath = getProjectRoot(openedPath)
         // Check if the project root is under the projects directory. If it is, we can open it.
         // Otherwise, we need to install it first.
         if (rootPath == null) {
             const message = `File '${openedPath}' does not belong to the ${common.PRODUCT_NAME} project.`
             throw new Error(message)
+        } else {
+            return importDirectory(rootPath)
         }
-        return importDirectory(rootPath)
     }
 }
 
@@ -61,6 +63,7 @@ export function importProjectFromPath(openedPath: string): string {
  * @returns Project ID (from Project Manager's metadata) identifying the imported project.
  */
 export function importBundle(bundlePath: string): string {
+    logger.log(`Importing project from bundle: '${bundlePath}'.`)
     // The bundle is a tarball, so we just need to extract it to the right location.
     const bundleRoot = directoryWithinBundle(bundlePath)
     const targetDirectory = generateDirectoryName(bundleRoot ?? bundlePath)
@@ -99,13 +102,13 @@ export function importDirectory(rootPath: string): string {
         if (fsSync.existsSync(targetDirectory)) {
             const message = `Project directory already exists: ${targetDirectory}.`
             throw new Error(message)
+        } else {
+            logger.log(`Copying: '${rootPath}' -> '${targetDirectory}'.`)
+            fsSync.cpSync(rootPath, targetDirectory, { recursive: true })
+            // Update the project ID, so we are certain that it is unique. This would be violated, if we imported the same
+            // project multiple times.
+            return updateId(targetDirectory)
         }
-
-        logger.log(`Copying: '${rootPath}' -> '${targetDirectory}'.`)
-        fsSync.cpSync(rootPath, targetDirectory, { recursive: true })
-        // Update the project ID, so we are certain that it is unique. This would be violated, if we imported the same
-        // project multiple times.
-        return updateId(targetDirectory)
     }
 }
 

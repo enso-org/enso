@@ -12,12 +12,13 @@ use crate::SpanTree;
 use ast::opr::match_named_argument;
 use ast::opr::ArgWithOffset;
 use ast::Ast;
+use ast::SpanSeed;
 
 
 
-/// ==============
-/// === Errors ===
-/// ==============
+// ==============
+// === Errors ===
+// ==============
 
 /// Error returned when tried to perform an action which is not available for specific SpanTree
 /// node.
@@ -35,9 +36,9 @@ pub struct AstSpanTreeMismatch;
 
 
 
-/// =====================
-/// === Actions Trait ===
-/// =====================
+// =====================
+// === Actions Trait ===
+// =====================
 
 /// Action enum used mainly for error messages.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -142,6 +143,33 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                             ),
                         };
                         Ok(infix.into_ast())
+                    } else if let ast::Shape::Tree(tree) = ast.shape() {
+                        let mut tree = tree.clone();
+                        let span_info = &mut tree.span_info;
+                        let has_children =
+                            span_info.iter().any(|span| matches!(span, ast::SpanSeed::Child(_)));
+                        match *kind {
+                            BeforeArgument(index) => {
+                                span_info.insert(index, ast::SpanSeed::child(new));
+                                span_info.insert(index + 1, ast::SpanSeed::token(",".to_owned()));
+                                span_info.insert(index + 2, ast::SpanSeed::space(1).unwrap());
+                            }
+                            Append => {
+                                let last_token_index = span_info
+                                    .iter()
+                                    .rposition(|span| matches!(span, ast::SpanSeed::Token(_)));
+                                let index = last_token_index.unwrap_or(0);
+                                if has_children {
+                                    span_info.insert(index, ast::SpanSeed::token(",".to_owned()));
+                                    span_info.insert(index + 1, ast::SpanSeed::space(1).unwrap());
+                                    span_info.insert(index + 2, ast::SpanSeed::child(new));
+                                } else {
+                                    span_info.insert(index, ast::SpanSeed::child(new));
+                                }
+                            }
+                            _ => unreachable!("Wrong insertion point in tree."),
+                        }
+                        Ok(ast.with_shape(tree))
                     } else {
                         let mut prefix = ast::prefix::Chain::from_ast_non_strict(&ast);
                         let item = ast::prefix::Argument::new(new, DEFAULT_OFFSET, None);
@@ -236,7 +264,6 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
         }
     }
 
-
     fn erase_impl<C: Context>(&self) -> Option<EraseOperation<C>> {
         if self.node.kind.removable() {
             Some(Box::new(move |root, context| {
@@ -244,6 +271,11 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                     self.ast_crumbs.split_last().expect("Erase target must have parent AST node");
                 let mut ast = root.get_traversing(parent_crumbs)?;
                 let is_named_argument = match_named_argument(ast).is_some();
+
+                // When an element is removed, we have to find an adequate span tree node that
+                // could become a new temporary target of dragged edge. It should be a node that
+                // has an reverse set operation to the erase we are performing now.
+                let mut reinsert_crumbs = None;
 
                 if is_named_argument {
                     // When erasing named argument, we need to remove the whole argument, not only
@@ -266,6 +298,28 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                             infix.args.pop();
                         }
                         Ok(infix.into_ast())
+                    } else if let (Crumb::Tree(crumb), ast::Shape::Tree(tree)) =
+                        (last_crumb, ast.shape())
+                    {
+                        let index = crumb.index;
+                        let mut tree = tree.clone();
+                        let span_info: &mut Vec<_> = &mut tree.span_info;
+                        let after = &span_info[index + 1..];
+                        let before = &span_info[..index];
+                        let is_child = |span: &SpanSeed<Ast>| span.is_child();
+                        let child_after_offset = after.iter().position(is_child);
+                        let child_before_offset = before.iter().rposition(is_child);
+                        let (insertion_point_offset, removed_range) =
+                            match (child_after_offset, child_before_offset) {
+                                (Some(after), _) => (-1, index..=index + after),
+                                (None, Some(before)) => (-2, before + 1..=index),
+                                (None, None) => (-1, index..=index),
+                            };
+
+                        reinsert_crumbs =
+                            Some(self.crumbs.relative_sibling(insertion_point_offset));
+                        span_info.drain(removed_range);
+                        Ok(ast.with_shape(tree))
                     } else {
                         let mut prefix = ast::prefix::Chain::from_ast_non_strict(&ast);
                         prefix.args.pop();
@@ -275,7 +329,7 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                 let mut new_root = root.set_traversing(parent_crumbs, new_ast?)?;
 
 
-                // when erasing a positional or named argument, all further positional arguments
+                // When erasing a positional or named argument, all further positional arguments
                 // past its definition order will end up in wrong position. To fix that, we need to
                 // rewrite them as named arguments.
                 if let Some(erased_definition_index) = self.kind.definition_index() {
@@ -286,8 +340,39 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                         })
                         .map(|found| found.node);
 
+                    // To better understand the code, it's important to know the structure of
+                    // the [`SpanTree`] for prefix chains:
+                    //
+                    // Root
+                    // ├─Chained
+                    // │ ├─Chained
+                    // │ │ ├─Chained
+                    // │ │ │ └─ Argument1
+                    // │ │ └─ Argument2
+                    // │ └─ Argument3
+                    // └─ Argument4
+                    //
+                    // Note that the order of arguments is reversed.
+                    //
+                    // Usually, all modifications of the AST must also modify the SpanTree of the
+                    // expression. In this case, however, we are iterating over the old SpanTree
+                    // while modifying the AST, and we don't update the SpanTree in the process. The
+                    // assumption here is that as we go, we only change the SpanTree deeper than we
+                    // will look at in future iterations. That way, we can be sure that the
+                    // SpanTree's "outer layers" still correspond to the original. It is done that
+                    // way because we cannot dynamically adjust the span tree to be entirely correct
+                    // on every step.
+                    //
+                    // This loop traverses the tree bottom to top, starting at one of the arguments,
+                    // and continues until all arguments are covered. It operates as follows:
+                    // 1. Retrieve the argument from the current level of the [`SpanTree`].
+                    // 2. Rewrite the argument as necessary.
+                    // 3. Update `next_parent` to be the parent of the current node. We use
+                    // [`Ref::ast_parent`] instead of [`Ref::parent`] because a single AST node
+                    // can contain multiple span tree levels, and iterating over all of them
+                    // would cause multiple rewrites of the same argument.
                     while let Some(node) = next_parent {
-                        next_parent = node.parent()?;
+                        next_parent = node.ast_parent()?;
                         let argument_node = node
                             .get_descendant_by_ast_crumbs(&[Crumb::Prefix(PrefixCrumb::Arg)])
                             .filter(|found| found.ast_crumbs.is_empty());
@@ -327,17 +412,19 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                 // placeholder. The position of placeholder is not guaranteed to be in the same
                 // place as the removed argument, as it might have been out of order. To find
                 // the correct placeholder position, we need to search regenerated span-tree.
-                let reinsert_crumbs = self.kind.definition_index().and_then(|_| {
-                    let call_id = self.kind.call_id();
-                    let name = self.kind.argument_name();
+                let reinsert_crumbs = reinsert_crumbs.or_else(|| {
+                    self.kind.definition_index().and_then(|_| {
+                        let call_id = self.kind.call_id();
+                        let name = self.kind.argument_name();
 
-                    let found = new_span_tree.root_ref().find_node(|node| {
-                        node.kind.is_insertion_point()
-                            && node.kind.call_id() == call_id
-                            && node.kind.argument_name() == name
-                    });
+                        let found = new_span_tree.root_ref().find_node(|node| {
+                            node.kind.is_insertion_point()
+                                && node.kind.call_id() == call_id
+                                && node.kind.argument_name() == name
+                        });
 
-                    found.map(|found| found.crumbs)
+                        found.map(|found| found.crumbs)
+                    })
                 });
 
                 // For non-resolved arguments, use the preceding insertion point. After the

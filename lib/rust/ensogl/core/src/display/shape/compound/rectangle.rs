@@ -7,6 +7,9 @@ use crate::prelude::*;
 
 use crate::data::color;
 use crate::display;
+use crate::display::shape::StyleWatchFrp;
+use crate::display::style::data::DataMatch;
+use crate::display::style::Path;
 
 
 // ==============
@@ -21,9 +24,11 @@ pub use shape::Shape;
 // === Shape ===
 // =============
 
-mod shape {
+/// Shape definition.
+pub mod shape {
     use super::*;
     crate::shape! {
+        pointer_events_instanced = true,
         (
             style: Style,
             color: Vector4,
@@ -101,7 +106,9 @@ impl Rectangle {
 
     /// Constructor.
     pub fn new() -> Self {
-        Self::default()
+        Self::default().build(|r| {
+            r.set_border_color(display::shape::INVISIBLE_HOVER_COLOR);
+        })
     }
 
     /// Builder-style modifier, allowing setting shape properties without creating a temporary
@@ -140,13 +147,15 @@ impl Rectangle {
 
     /// Set the border size of the shape. If you want to use border, you should always set the inset
     /// at least of the size of the border. If you do not want the border to be animated, you can
-    /// use [`Self::set_inset_border`] instead.
+    /// use [`Self::set_inset_border`] instead. To make the border visible, you also need to set the
+    /// border color using [`Self::set_border_color`].
     pub fn set_border(&self, border: f32) -> &Self {
         self.modify_view(|view| view.border.set(border))
     }
 
     /// Set both the inset and border at once. See documentation of [`Self::set_border`] and
-    /// [`Self::set_inset`] to learn more.
+    /// [`Self::set_inset`] to learn more. To make the border visible, you also need to set the
+    /// border color using [`Self::set_border_color`].
     pub fn set_inset_border(&self, border: f32) -> &Self {
         self.set_inset(border).set_border(border)
     }
@@ -154,6 +163,15 @@ impl Rectangle {
     /// Set the border color.
     pub fn set_border_color(&self, color: color::Rgba) -> &Self {
         self.modify_view(|view| view.border_color.set(color.into()))
+    }
+
+    /// Set whether the shape interacts with the mouse.
+    pub fn set_pointer_events(&self, enabled: bool) -> &Self {
+        let disabled = match enabled {
+            true => 0.0,
+            false => 1.0,
+        };
+        self.modify_view(|view| view.disable_pointer_events.set(disabled))
     }
 
     /// Set clipping of the shape. The clipping is normalized, which means, that the value of 0.5
@@ -203,6 +221,22 @@ impl Rectangle {
     /// Keep only the top left quarter of the shape.
     pub fn keep_top_left_quarter(&self) -> &Self {
         self.set_clip(Vector2(-0.5, 0.5))
+    }
+
+    /// Set the style properties from the given [`StyleWatchFrp`].
+    pub fn set_style(&self, path: impl Into<Path>, style: &StyleWatchFrp) {
+        let path = path.into();
+        macro_rules! set_property {
+            ($name:ident: $ty:ident) => {{
+                let value = style.get(path.sub(stringify!($name))).value();
+                let value = value.and_then(|value| value.$ty());
+                if let Some(value) = value {
+                    self.view.$name.set(value.into());
+                }
+            }};
+        }
+        set_property!(corner_radius: number);
+        set_property!(color: color);
     }
 }
 

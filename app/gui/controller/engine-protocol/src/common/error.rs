@@ -30,4 +30,7 @@ pub mod code {
 
     /// Signals that requested project is already under version control.
     pub const VCS_ALREADY_EXISTS: i64 = 1005;
+
+    /// Signals that project name is invalid.
+    pub const PROJECT_NAME_INVALID: i64 = 4001;
 }

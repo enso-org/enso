@@ -28,7 +28,7 @@ type Warning
 
     ## ADVANCED
        Are any warnings attached to the value?
-    has_warnings : Any -> Boolean
+    has_warnings : Any -> Any -> Boolean
     has_warnings value warning_type=Any =
         Warning.get_all value . any (w-> w.value.is_a warning_type)
 
@@ -36,7 +36,7 @@ type Warning
 
        Arguments:
        - warning_type: The type to remove if attached to the value. Defaults to all warnings.
-    remove_warnings : Any -> Any
+    remove_warnings : Any -> Any -> Any
     remove_warnings value warning_type=Any =
         Warning.detach_selected_warnings value (w-> w.is_a warning_type) . first
 
@@ -55,6 +55,11 @@ type Warning
        reverse-chronological order with respect to their attachment time.
     get_all : Any -> Vector Warning
     get_all value = Vector.from_polyglot_array (get_all_array value)
+
+    ## ADVANCED
+       Returns `True` if the maximal number of reported warnings for a value has been reached, `False` otherwise.
+    limit_reached : Any -> Boolean
+    limit_reached value = @Builtin_Method "Warning.limit_reached"
 
     ## PRIVATE
        ADVANCED

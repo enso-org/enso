@@ -40,11 +40,14 @@ export function run(props: app.AppProps) {
     logger.log('Starting authentication/dashboard UI.')
     /** The root element that the authentication/dashboard app will be rendered into. */
     const root = document.getElementById(ROOT_ELEMENT_ID)
+    const ideElement = document.getElementById(IDE_ELEMENT_ID)
     if (root == null) {
         logger.error(`Could not find root element with ID '${ROOT_ELEMENT_ID}'.`)
+    } else if (ideElement == null) {
+        logger.error(`Could not find IDE element with ID '${IDE_ELEMENT_ID}'.`)
     } else {
-        // This element is re-added by the `Ide` component.
-        document.getElementById(IDE_ELEMENT_ID)?.remove()
+        ideElement.style.top = '-100vh'
+        ideElement.style.display = 'fixed'
         reactDOM.createRoot(root).render(<App {...props} />)
     }
 }

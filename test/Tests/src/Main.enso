@@ -51,6 +51,7 @@ import project.Data.Regression_Spec
 import project.Data.Text_Spec
 import project.Data.Text.Text_Sub_Range_Spec
 import project.Data.Text.Encoding_Spec
+import project.Data.Text.Parse_Spec
 import project.Data.Text.Regex_Spec
 import project.Data.Text.Span_Spec
 import project.Data.Text.Utils_Spec
@@ -121,6 +122,7 @@ main = Test_Suite.run_main <|
     Python_Interop_Spec.spec
     R_Interop_Spec.spec
     Pair_Spec.spec
+    Parse_Spec.spec
     Problems_Spec.spec
     Range_Spec.spec
     Ref_Spec.spec

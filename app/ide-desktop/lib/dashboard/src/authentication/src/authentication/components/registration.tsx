@@ -19,7 +19,7 @@ function Registration() {
     const [password, setPassword] = react.useState('')
     const [confirmPassword, setConfirmPassword] = react.useState('')
 
-    const handleSubmit = () => {
+    const onSubmit = () => {
         /** The password & confirm password fields must match. */
         if (password !== confirmPassword) {
             toast.error('Passwords do not match.')
@@ -44,7 +44,7 @@ function Registration() {
                 <form
                     onSubmit={async event => {
                         event.preventDefault()
-                        await handleSubmit()
+                        await onSubmit()
                     }}
                 >
                     <div className="flex flex-col mb-4">

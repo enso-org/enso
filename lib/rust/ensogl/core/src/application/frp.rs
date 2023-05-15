@@ -1035,7 +1035,7 @@ macro_rules! define_endpoints_2_normalized_public {
         /// `public::Output` struct. For convenience there is also a `public::Combined` struct
         /// that contains both input and output nodes and which is accessible via a `Deref`
         /// implementation on `Public`.
-        #[derive(Debug, CloneRef, Clone)]
+        #[derive(Debug, CloneRef)]
         pub struct Public $($ctx)* {
             pub input: public::Input $($param)*,
             pub output: public::Output $($param)*,
@@ -1056,6 +1056,15 @@ macro_rules! define_endpoints_2_normalized_public {
             type Target = public::Combined $($param)*;
             fn deref(&self) -> &Self::Target {
                 &self.combined
+            }
+        }
+
+        impl $($ctx)* Clone for Public $($param)* {
+            fn clone(&self) -> Self {
+                let input = self.input.clone();
+                let output = self.output.clone();
+                let combined = self.combined.clone();
+                Self {input, output, combined}
             }
         }
 
@@ -1192,7 +1201,7 @@ macro_rules! define_endpoints_2_normalized_private {
             ),*
         }
     }) => {
-        #[derive(Debug, Clone, CloneRef)]
+        #[derive(Debug, CloneRef)]
         pub struct Private $($ctx)* {
             pub input: private::Input $($param)*,
             pub output: private::Output $($param)*,
@@ -1203,6 +1212,14 @@ macro_rules! define_endpoints_2_normalized_private {
                 input: private::Input $($param)*,
                 output: private::Output $($param)*,
             ) -> Self {
+                Self {input, output}
+            }
+        }
+
+        impl $($ctx)* Clone for Private $($param)* {
+            fn clone(&self) -> Self {
+                let input = self.input.clone();
+                let output = self.output.clone();
                 Self {input, output}
             }
         }

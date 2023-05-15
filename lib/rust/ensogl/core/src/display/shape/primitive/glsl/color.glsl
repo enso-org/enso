@@ -258,13 +258,16 @@ DEF_TRANSITIVE_CONVERSIONS(Srgb, Srgba, srgb, srgba, HSV, HSVA, hsv, hsva)
 // =================================================================================================
 
 Rgb mix(Rgb color1, Rgb color2, float t) {
-    return rgb(mix(color1.raw,color2.raw,t));
+    return rgb(mix(color1.raw, color2.raw, t));
 }
 
 Rgba mix(Rgba color1, Rgba color2, float t) {
-    return rgba(mix(color1.raw,color2.raw,t));
+    return rgba(mix(color1.raw, color2.raw, t));
 }
 
+Srgba mix(Srgba color1, Srgba color2, float t) {
+    return srgba(mix(rgba(color1), rgba(color2), t));
+}
 
 
 

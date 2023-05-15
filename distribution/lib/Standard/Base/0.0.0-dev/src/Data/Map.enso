@@ -1,19 +1,28 @@
+import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Vector.Vector
 import project.Data.Pair.Pair
 import project.Data.Text.Extensions
 import project.Data.Text.Text
+import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.No_Such_Key.No_Such_Key
+import project.Nothing.Nothing
+import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
-from project import Error, Nothing, Any, Panic
 
 ## A key-value store. It is possible to use any type as keys and values and mix them in
    one Map. Keys are checked for equality based on their hash code and `==` operator, which
    is both an internal part of Enso. Enso is capable of computing a hash code, and checking
    for equality any objects that can appear in Enso - primitives, Atoms, values coming from
    different languages, etc.
+
+   For keys that are not reflexive, like `Number.nan`,
+   [Same Value equality specification](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Equality_comparisons_and_sameness#same-value-zero_equality)
+   is used. This means that both `Number.nan` and types with comparators that violate
+   reflexivity (e.g. their `compare` method always returns `Nothing`) can be used as keys
+   in the Map.
 
    A single key-value pair is called an *entry*.
 
@@ -299,7 +308,9 @@ type Map key value
         self.to_vector.fold init acc-> pair->
             function acc pair.first pair.last
 
-    ## Applies a function to each value in the map.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each value in the map.
 
        Arguments:
        - function: The function to apply to each value in the map, taking a
@@ -320,7 +331,9 @@ type Map key value
         kv_func = _ -> function
         self.each_with_key kv_func
 
-    ## Applies a function to each key-value pair in the map.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each key-value pair in the map.
 
        Arguments:
        - function: The function to apply to each key-value pair in the map,

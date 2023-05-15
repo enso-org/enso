@@ -1,6 +1,8 @@
 package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.ThreadLocalAction;
+import com.oracle.truffle.api.TruffleSafepoint;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import org.enso.interpreter.runtime.data.ManagedResource;
 
@@ -9,8 +11,10 @@ import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /** Allows the context to attach garbage collection hooks on the removal of certain objects. */
 public class ResourceManager {
@@ -59,7 +63,7 @@ public class ResourceManager {
       return;
     }
     it.getParkedCount().decrementAndGet();
-    tryFinalize(it);
+    scheduleFinalizationAtSafepoint(it);
   }
 
   /**
@@ -75,7 +79,7 @@ public class ResourceManager {
       return;
     }
     // Unconditional finalization – user controls the resource manually.
-    it.doFinalize(context);
+    it.finalizeNow(context);
   }
 
   /**
@@ -89,7 +93,7 @@ public class ResourceManager {
     items.remove(resource.getPhantomReference());
   }
 
-  private void tryFinalize(Item it) {
+  private void scheduleFinalizationAtSafepoint(Item it) {
     if (it.isFlaggedForFinalization().get()) {
       if (it.getParkedCount().get() == 0) {
         // We already know that isFlaggedForFinalization was true at some
@@ -101,8 +105,21 @@ public class ResourceManager {
         // no further attempts are made.
         boolean continueFinalizing = it.isFlaggedForFinalization().compareAndSet(true, false);
         if (continueFinalizing) {
-          it.doFinalize(context);
-          items.remove(it.reference);
+          var futureToCancel = new AtomicReference<Future<Void>>(null);
+          var performFinalizeNow =
+              new ThreadLocalAction(false, false, true) {
+                @Override
+                protected void perform(ThreadLocalAction.Access access) {
+                  var tmp = futureToCancel.getAndSet(null);
+                  if (tmp == null) {
+                    return;
+                  }
+                  tmp.cancel(false);
+                  it.finalizeNow(context);
+                  items.remove(it.reference);
+                }
+              };
+          futureToCancel.set(context.getEnvironment().submitThreadLocal(null, performFinalizeNow));
         }
       }
     }
@@ -124,7 +141,7 @@ public class ResourceManager {
     }
     if (workerThread == null || !workerThread.isAlive()) {
       worker.setKilled(false);
-      workerThread = context.getEnvironment().createThread(worker);
+      workerThread = context.getEnvironment().createSystemThread(worker);
       workerThread.start();
     }
     ManagedResource resource = new ManagedResource(object);
@@ -158,7 +175,7 @@ public class ResourceManager {
       Item it = items.remove(key);
       if (it != null) {
         // Finalize unconditionally – all other threads are dead by now.
-        it.doFinalize(context);
+        it.finalizeNow(context);
       }
     }
   }
@@ -181,7 +198,7 @@ public class ResourceManager {
               continue;
             }
             it.isFlaggedForFinalization().set(true);
-            tryFinalize(it);
+            scheduleFinalizationAtSafepoint(it);
           }
           if (killed) {
             return;
@@ -229,18 +246,16 @@ public class ResourceManager {
     }
 
     /**
-     * Unconditionally performs the finalization action of this resource.
+     * Performs the finalization action of this resource right now. The thread must be inside of a
+     * context.
      *
      * @param context current execution context
      */
-    public void doFinalize(EnsoContext context) {
-      Object p = context.getThreadManager().enter();
+    public void finalizeNow(EnsoContext context) {
       try {
         InteropLibrary.getUncached(finalizer).execute(finalizer, underlying);
       } catch (Exception e) {
         context.getErr().println("Exception in finalizer: " + e.getMessage());
-      } finally {
-        context.getThreadManager().leave(p);
       }
     }
 

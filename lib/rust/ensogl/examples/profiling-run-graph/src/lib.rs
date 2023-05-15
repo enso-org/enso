@@ -232,8 +232,6 @@ async fn get_data_file() -> Option<String> {
 
 /// Read the `PROFILER_LOG_NAME` data from a file.
 async fn get_data_http() -> Option<String> {
-    use wasm_bindgen::JsCast;
-
     let file_name = get_target_file_from_url();
     let file_name = file_name.as_deref().unwrap_or(DEFAULT_LOG_NAME);
     let url = &["assets/", file_name].concat();

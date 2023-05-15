@@ -49,6 +49,11 @@ make_partially_sorted_vec n =
                 run_length.put (run_length.get - 1)
                 num
 
+type Int
+    Value v
+
+    identity self = self
+
 
 # The Benchmarks ==============================================================
 
@@ -56,6 +61,7 @@ bench =
     sorted_vec = make_sorted_ascending_vec vector_size
     partially_sorted_vec = make_partially_sorted_vec vector_size
     random_vec = Utils.make_random_vec vector_size
+    random_vec_wrapped = random_vec.map (v -> Int.Value v)
     projection = x -> x % 10
     comparator = l -> r -> Ordering.compare l r
 
@@ -66,6 +72,8 @@ bench =
     Bench.measure (random_vec.sort) "Random Elements Ascending" iter_size num_iterations
     Bench.measure (random_vec.sort Sort_Direction.Descending) "Random Elements Descending" iter_size num_iterations
     Bench.measure (random_vec.sort on=projection) "Sorting with a Custom Projection" iter_size num_iterations
+    Bench.measure (random_vec_wrapped.sort on=(_.identity)) "Sorting with an identity function" iter_size num_iterations
+    Bench.measure (random_vec_wrapped.sort on=(.identity)) "Sorting with an (unresolved) identity function" iter_size num_iterations
     Bench.measure (random_vec.sort by=comparator) "Sorting with the Default_Ordered_Comparator" iter_size num_iterations
 
 main = bench

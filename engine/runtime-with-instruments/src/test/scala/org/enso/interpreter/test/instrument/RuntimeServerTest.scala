@@ -331,6 +331,11 @@ class RuntimeServerTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
+  override protected def afterEach(): Unit = {
+    context.executionContext.context.close()
+    context.runtimeServerEmulator.terminate()
+  }
+
   "RuntimeServer" should "push and pop functions on the stack" in {
     val contents  = context.Main.code
     val mainFile  = context.writeMain(contents)
@@ -2989,7 +2994,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Type error: expected a function, but got 42 (Integer).",
+              "Type error: expected a function, but got 42.",
               Some(mainFile),
               Some(model.Range(model.Position(1, 7), model.Position(1, 19))),
               None,
@@ -3136,7 +3141,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Method `+` of x (Unresolved_Symbol) could not be found.",
+              "Method `+` of type Function could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 14), model.Position(3, 23))),
               None,
@@ -3440,7 +3445,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Method `pi` of Number could not be found.",
+              "Method `pi` of type Number.type could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 7), model.Position(3, 16))),
               None,
@@ -4382,7 +4387,9 @@ class RuntimeServerTest
           methodPointer =
             Some(Api.MethodPointer(moduleName, moduleName, "attach")),
           payload = Api.ExpressionUpdate.Payload.Value(
-            Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+            Some(
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+            )
           )
         ),
       TestMessages
@@ -4395,7 +4402,7 @@ class RuntimeServerTest
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
               Api.ExpressionUpdate.Payload.Value
-                .Warnings(1, Some("(My_Warning.Value 42)"))
+                .Warnings(1, Some("(My_Warning.Value 42)"), false)
             )
           )
         ),
@@ -4407,7 +4414,9 @@ class RuntimeServerTest
           methodPointer =
             Some(Api.MethodPointer(moduleName, moduleName, "attach")),
           payload = Api.ExpressionUpdate.Payload
-            .Value(Some(Api.ExpressionUpdate.Payload.Value.Warnings(2, None)))
+            .Value(
+              Some(Api.ExpressionUpdate.Payload.Value.Warnings(2, None, false))
+            )
         ),
       context.executionComplete(contextId)
     )
@@ -4468,7 +4477,9 @@ class RuntimeServerTest
           idX,
           ConstantsGen.INTEGER,
           payload = Api.ExpressionUpdate.Payload.Value(
-            Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+            Some(
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+            )
           )
         ),
       TestMessages
@@ -4477,7 +4488,9 @@ class RuntimeServerTest
           idY,
           ConstantsGen.INTEGER,
           payload = Api.ExpressionUpdate.Payload.Value(
-            Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+            Some(
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+            )
           )
         ),
       TestMessages
@@ -4486,7 +4499,9 @@ class RuntimeServerTest
           idRes,
           ConstantsGen.NOTHING,
           payload = Api.ExpressionUpdate.Payload.Value(
-            Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+            Some(
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+            )
           )
         ),
       context.executionComplete(contextId)

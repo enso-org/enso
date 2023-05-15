@@ -1,13 +1,26 @@
 package org.enso.interpreter.dsl.model;
 
-import org.enso.interpreter.dsl.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.*;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
-import java.util.*;
+import javax.tools.Diagnostic.Kind;
+
+import org.enso.interpreter.dsl.AcceptsError;
+import org.enso.interpreter.dsl.AcceptsWarning;
+import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.dsl.Suspend;
 
 /** A domain-specific representation of a builtin method. */
 public class MethodDefinition {
@@ -26,7 +39,7 @@ public class MethodDefinition {
   private final Set<String> imports;
   private final boolean needsCallerInfo;
   private final boolean needsFrame;
-  private final String constructorExpression;
+  private final Object constructorExpression;
 
   /**
    * Creates a new instance of this class.
@@ -34,8 +47,11 @@ public class MethodDefinition {
    * @param packageName the name of the package this method is declared in.
    * @param element the element (class) declaring this method.
    * @param execute the element (method) containing the logic.
+   * @param needsFrame optionally specify if we need own frame, if {@code null} the value is derived
+   *     from presence/absence of {@code VirtualFrame} argument
    */
-  public MethodDefinition(String packageName, TypeElement element, ExecutableElement execute) {
+  public MethodDefinition(
+      String packageName, TypeElement element, ExecutableElement execute, Boolean needsFrame) {
     this.annotation = element.getAnnotation(BuiltinMethod.class);
     this.element = element;
     this.executeMethod = execute;
@@ -46,7 +62,8 @@ public class MethodDefinition {
     this.arguments = initArguments(execute);
     this.imports = initImports();
     this.needsCallerInfo = arguments.stream().anyMatch(ArgumentDefinition::isCallerInfo);
-    this.needsFrame = arguments.stream().anyMatch(ArgumentDefinition::isFrame);
+    this.needsFrame =
+        needsFrame != null ? needsFrame : arguments.stream().anyMatch(ArgumentDefinition::isFrame);
     this.constructorExpression = initConstructor(element);
   }
 
@@ -66,7 +83,7 @@ public class MethodDefinition {
     }
   }
 
-  private String initConstructor(TypeElement element) {
+  private Object initConstructor(TypeElement element) {
     boolean useBuild =
         element.getEnclosedElements().stream()
             .anyMatch(
@@ -82,7 +99,15 @@ public class MethodDefinition {
     if (useBuild) {
       return originalClassName + ".build()";
     } else {
-      return "new " + originalClassName + "()";
+      boolean isClassAbstract = element.getModifiers().contains(Modifier.ABSTRACT);
+      if (isClassAbstract) {
+        return new RuntimeException(
+            "Class "
+                + element.getSimpleName()
+                + " is abstract, and has no static `build()` method.");
+      } else {
+        return "new " + originalClassName + "()";
+      }
     }
   }
 
@@ -141,6 +166,11 @@ public class MethodDefinition {
    * @return whether the definition is fully valid.
    */
   public boolean validate(ProcessingEnvironment processingEnvironment) {
+    if (this.constructorExpression instanceof Exception ex) {
+      processingEnvironment.getMessager().printMessage(Kind.ERROR, ex.getMessage(), element);
+      return false;
+    }
+
     boolean argsValid = arguments.stream().allMatch(arg -> arg.validate(processingEnvironment));
 
     return argsValid;
@@ -202,7 +232,7 @@ public class MethodDefinition {
   }
 
   public String getConstructorExpression() {
-    return constructorExpression;
+    return (String) constructorExpression;
   }
 
   public boolean isStatic() {
@@ -549,11 +579,11 @@ public class MethodDefinition {
     }
 
     public boolean shouldCheckErrors() {
-      return isPositional() && !isSelf() && !acceptsError();
+      return isPositional() && !isSelf() && !acceptsError() && !isSuspended();
     }
 
     public boolean shouldCheckWarnings() {
-      return isPositional() && !isSelf() && !acceptsWarning();
+      return isPositional() && !isSelf() && !acceptsWarning() && !isSuspended();
     }
 
     public boolean isImplicit() {

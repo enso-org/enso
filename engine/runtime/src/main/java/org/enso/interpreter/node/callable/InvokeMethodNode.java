@@ -11,10 +11,12 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
@@ -51,6 +53,7 @@ import java.util.concurrent.locks.Lock;
 
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class InvokeMethodNode extends BaseNode {
+  protected static final int CACHE_SIZE = 10;
   private @Child InvokeFunctionNode invokeFunctionNode;
   private final ConditionProfile errorReceiverProfile = ConditionProfile.createCountingProfile();
   private @Child InvokeMethodNode childDispatch;
@@ -102,16 +105,78 @@ public abstract class InvokeMethodNode extends BaseNode {
   public abstract Object execute(
       VirtualFrame frame, State state, UnresolvedSymbol symbol, Object self, Object[] arguments);
 
-  @Specialization(guards = {"dispatch.hasType(self)", "!dispatch.hasSpecialDispatch(self)"})
-  Object doFunctionalDispatch(
+  @Specialization(guards = {
+          "typesLibrary.hasType(self)",
+          "!typesLibrary.hasSpecialDispatch(self)",
+          "cachedSymbol == symbol",
+          "cachedSelfTpe == typesLibrary.getType(self)",
+          "function != null"
+  }, limit = "CACHE_SIZE")
+  Object doFunctionalDispatchCachedSymbol(
       VirtualFrame frame,
       State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") TypesLibrary dispatch,
-      @Cached MethodResolverNode methodResolverNode) {
-    Function function = methodResolverNode.expectNonNull(self, dispatch.getType(self), symbol);
+      @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
+      @Cached MethodResolverNode methodResolverNode,
+      @Cached("symbol") UnresolvedSymbol cachedSymbol,
+      @Cached("typesLibrary.getType(self)") Type cachedSelfTpe,
+      @Cached("resolveFunction(cachedSymbol, cachedSelfTpe, methodResolverNode)") Function function) {
+    return invokeFunctionNode.execute(function, frame, state, arguments);
+  }
+
+  Function resolveFunction(UnresolvedSymbol symbol, Type selfTpe, MethodResolverNode methodResolverNode) {
+    Function function = methodResolverNode.execute(selfTpe, symbol);
+    if (function == null) {
+      return null;
+    }
+
+    RootNode where = function.getCallTarget().getRootNode();
+    // If both Any and the type where `function` is declared, define `symbol`
+    // and the method is invoked statically, i.e. type of self is the eigentype,
+    // then we want to disambiguate method resolution by always resolved to the one in Any.
+    EnsoContext ctx = EnsoContext.get(this);
+    if (where instanceof MethodRootNode node && typeCanOverride(node, ctx)) {
+      Type any = ctx.getBuiltins().any();
+      Function anyFun = symbol.getScope().lookupMethodDefinition(any, symbol.getName());
+      if (anyFun != null) {
+        function = anyFun;
+      }
+    }
+    return function;
+  }
+
+  private boolean typeCanOverride(MethodRootNode node, EnsoContext ctx) {
+    Type methodOwnerType = node.getType();
+    Builtins builtins = ctx.getBuiltins();
+    Type any = builtins.any();
+    Type warning = builtins.warning();
+    Type panic = builtins.panic();
+    return methodOwnerType.isEigenType()
+            && builtins.nothing() != methodOwnerType
+            && any.getEigentype() != methodOwnerType
+            && panic.getEigentype() != methodOwnerType
+            && warning.getEigentype() != methodOwnerType;
+  }
+
+  @Specialization(
+          replaces = "doFunctionalDispatchCachedSymbol",
+          guards = {"typesLibrary.hasType(self)", "!typesLibrary.hasSpecialDispatch(self)"})
+  Object doFunctionalDispatchUncachedSymbol(
+          VirtualFrame frame,
+          State state,
+          UnresolvedSymbol symbol,
+          Object self,
+          Object[] arguments,
+          @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
+          @Cached MethodResolverNode methodResolverNode) {
+    Type selfTpe = typesLibrary.getType(self);
+    Function function = resolveFunction(symbol, selfTpe, methodResolverNode);
+    if (function == null) {
+      throw new PanicException(
+              EnsoContext.get(this).getBuiltins().error().makeNoSuchMethod(self, symbol), this);
+    }
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
@@ -275,7 +340,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     arguments[thisArgumentPosition] = selfWithoutWarnings;
 
     Object result = childDispatch.execute(frame, state, symbol, selfWithoutWarnings, arguments);
-    return WithWarnings.prependTo(result, arrOfWarnings);
+    return WithWarnings.appendTo(EnsoContext.get(this), result, arrOfWarnings);
   }
 
   @ExplodeLoop
@@ -307,7 +372,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     boolean anyWarnings = false;
     ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
     for (int i = 0; i < argExecutors.length; i++) {
-      var r = argExecutors[i].executeThunk(arguments[i + 1], state, TailStatus.NOT_TAIL);
+      var r = argExecutors[i].executeThunk(frame, arguments[i + 1], state, TailStatus.NOT_TAIL);
       if (r instanceof DataflowError) {
         profiles[i].enter();
         return r;
@@ -327,7 +392,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     Object res = hostMethodCallNode.execute(polyglotCallType, symbol.getName(), self, args);
     if (anyWarnings) {
       anyWarningsProfile.enter();
-      res = WithWarnings.prependTo(res, accumulatedWarnings);
+      res = WithWarnings.appendTo(EnsoContext.get(this), res, accumulatedWarnings);
     }
     return res;
   }
@@ -620,9 +685,9 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Cached MethodResolverNode anyResolverNode) {
+      @Cached MethodResolverNode resolverNode) {
     var ctx = EnsoContext.get(this);
-    Function function = anyResolverNode.expectNonNull(self, ctx.getBuiltins().any(), symbol);
+    Function function = resolverNode.expectNonNull(self, ctx.getBuiltins().function(), symbol);
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 

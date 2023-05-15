@@ -4,9 +4,11 @@
 use crate::prelude::*;
 
 use crate::executor::global::spawn_stream_handler;
+use crate::model::project::synchronized::ProjectNameInvalid;
 use crate::presenter;
 use crate::presenter::graph::ViewNodeId;
 
+use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::project_manager::ProjectMetadata;
 use enso_frp as frp;
 use ide_view as view;
@@ -148,11 +150,23 @@ impl Model {
         if self.controller.model.name() != name.as_ref() {
             let project = self.controller.model.clone_ref();
             let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
+            let popup = self.view.popup().clone_ref();
             let name = name.into();
             executor::global::spawn(async move {
-                if let Err(e) = project.rename_project(name).await {
-                    error!("The project couldn't be renamed: {e}");
-                    breadcrumbs.cancel_project_name_editing.emit(());
+                if let Err(error) = project.rename_project(name).await {
+                    let error_message = match error.downcast::<ProjectNameInvalid>() {
+                        Ok(error) => error.to_string(),
+                        Err(error) => {
+                            // Other errors aren't geared towards users, so display a generic
+                            // message.
+                            let prefix = "The project couldn't be renamed".to_string();
+                            error!("{prefix}: {error}");
+                            prefix
+                        }
+                    };
+                    popup.set_label.emit(error_message);
+                    // Reset name to old, valid value
+                    breadcrumbs.input.project_name.emit(project.name());
                 }
             });
         }
@@ -189,6 +203,15 @@ impl Model {
         self.ide_controller.set_component_browser_private_entries_visibility(!visibility);
     }
 
+    /// Toggle the read-only mode, return the new state.
+    fn toggle_read_only(&self) -> bool {
+        let current_state = self.controller.model.read_only();
+        let new_state = !current_state;
+        self.controller.model.set_read_only(new_state);
+        info!("New read only state: {}.", new_state);
+        new_state
+    }
+
     fn restore_project_snapshot(&self) {
         let controller = self.controller.clone_ref();
         let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
@@ -203,6 +226,11 @@ impl Model {
 
     fn set_project_changed(&self, changed: bool) {
         self.view.graph().model.breadcrumbs.set_project_changed(changed);
+    }
+
+    fn execution_finished(&self) {
+        self.view.graph().frp.set_read_only(false);
+        self.view.graph().frp.execution_finished.emit(());
     }
 
     fn execution_context_interrupt(&self) {
@@ -235,6 +263,29 @@ impl Model {
                 }
             }
         })
+    }
+
+    fn execution_environment_changed(
+        &self,
+        execution_environment: ide_view::execution_environment_selector::ExecutionEnvironment,
+    ) {
+        let graph_controller = self.graph_controller.clone_ref();
+        executor::global::spawn(async move {
+            if let Err(err) =
+                graph_controller.set_execution_environment(execution_environment).await
+            {
+                error!("Error setting execution environment: {err}");
+            }
+        });
+    }
+
+    fn trigger_clean_live_execution(&self) {
+        let graph_controller = self.graph_controller.clone_ref();
+        executor::global::spawn(async move {
+            if let Err(err) = graph_controller.trigger_clean_live_execution().await {
+                error!("Error starting clean live execution: {err}");
+            }
+        });
     }
 }
 
@@ -319,13 +370,26 @@ impl Project {
             eval_ view.execution_context_interrupt(model.execution_context_interrupt());
 
             eval_ view.execution_context_restart(model.execution_context_restart());
+
+            view.set_read_only <+ view.toggle_read_only.map(f_!(model.toggle_read_only()));
+            eval graph_view.execution_environment((env) model.execution_environment_changed(*env));
+            eval_ graph_view.execution_environment_play_button_pressed( model.trigger_clean_live_execution());
         }
 
         let graph_controller = self.model.graph_controller.clone_ref();
 
         self.init_analytics()
+            .init_execution_environments()
             .setup_notification_handler()
             .attach_frp_to_values_computed_notifications(graph_controller, values_computed)
+    }
+
+    /// Initialises execution environment.
+    fn init_execution_environments(self) -> Self {
+        let graph = &self.model.view.graph();
+        let entries = Rc::new(ExecutionEnvironment::list_all());
+        graph.set_available_execution_environments(entries);
+        self
     }
 
     fn init_analytics(self) -> Self {
@@ -365,6 +429,9 @@ impl Project {
                 }
                 Notification::VcsStatusChanged(VcsStatus::Clean) => {
                     model.set_project_changed(false);
+                }
+                Notification::ExecutionFinished => {
+                    model.execution_finished();
                 }
             };
             std::future::ready(())

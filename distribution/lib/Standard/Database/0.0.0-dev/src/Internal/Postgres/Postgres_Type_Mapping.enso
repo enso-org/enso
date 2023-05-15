@@ -9,6 +9,7 @@ import project.Data.SQL_Type.SQL_Type
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+from project.Errors import Unsupported_Database_Operation
 
 polyglot java import java.sql.Types
 
@@ -37,9 +38,11 @@ type Postgres_Type_Mapping
                 SQL_Type.Value Types.DECIMAL "decimal" precision scale
             Value_Type.Char size variable ->
                 case variable of
-                    True  -> case size of
-                        Nothing -> SQL_Type.Value Types.VARCHAR "text"
-                        _       -> SQL_Type.Value Types.VARCHAR "varchar" size
+                    True  ->
+                        is_unbounded = size.is_nothing || (size == max_precision)
+                        case is_unbounded of
+                            True  -> SQL_Type.Value Types.VARCHAR "text"
+                            False -> SQL_Type.Value Types.VARCHAR "varchar" size
                     False -> SQL_Type.Value Types.CHAR "char" size
             Value_Type.Time ->
                 SQL_Type.Value Types.TIME "time"
@@ -51,7 +54,7 @@ type Postgres_Type_Mapping
             Value_Type.Binary _ _ ->
                 SQL_Type.Value Types.BINARY "bytea" precision=max_precision
             Value_Type.Mixed ->
-                Error.throw (Illegal_Argument.Error "Postgres tables do not support Mixed types.")
+                Error.throw (Unsupported_Database_Operation.Error "Postgres tables do not support Mixed types.")
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
                 underlying_type.if_nothing <|
                     Error.throw <|
@@ -115,7 +118,8 @@ complex_types_map = Map.from_vector <|
     make_decimal sql_type =
         Value_Type.Decimal sql_type.precision sql_type.scale
     make_varchar sql_type =
-        Value_Type.Char size=sql_type.precision variable_length=True
+        effective_size = if sql_type.precision == max_precision then Nothing else sql_type.precision
+        Value_Type.Char size=effective_size variable_length=True
     make_char sql_type =
         Value_Type.Char size=sql_type.precision variable_length=False
     make_binary variable sql_type =

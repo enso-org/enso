@@ -42,7 +42,7 @@ public class CurriedFunctionBenchmarks {
         Paths.get("../../distribution/component").toFile().getAbsolutePath()
       ).build();
 
-    var benchmarkName = params.getBenchmark().replaceFirst(".*\\.", "");
+    var benchmarkName = SrcUtil.findName(params);
     var code = """
         avg fn len =
             sum acc i = if i == len then acc else

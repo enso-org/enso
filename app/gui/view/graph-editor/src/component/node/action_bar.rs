@@ -3,8 +3,7 @@
 use crate::prelude::*;
 use ensogl::display::shape::*;
 
-use crate::ExecutionEnvironment;
-
+use engine_protocol::language_server::ExecutionEnvironment;
 use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application::tooltip;
@@ -79,6 +78,8 @@ ensogl::define_endpoints! {
         set_action_context_switch_state (Option<bool>),
         show_on_hover                   (bool),
         set_execution_environment       (ExecutionEnvironment),
+        /// Set the read-only mode for the buttons.
+        set_read_only                   (bool),
     }
 
     Output {
@@ -127,6 +128,12 @@ impl Icons {
         self.context_switch.set_visibility(visible);
         self.freeze.frp.set_visibility(visible);
         self.skip.frp.set_visibility(visible);
+    }
+
+    fn set_read_only(&self, read_only: bool) {
+        self.context_switch.set_read_only(read_only);
+        self.freeze.frp.set_read_only(read_only);
+        self.skip.frp.set_read_only(read_only);
     }
 
     fn set_color_scheme(&self, color_scheme: &toggle_button::ColorScheme) {
@@ -205,6 +212,11 @@ impl ContextSwitchButton {
     fn set_visibility(&self, visible: bool) {
         self.disable_button.set_visibility(visible);
         self.enable_button.set_visibility(visible);
+    }
+
+    fn set_read_only(&self, read_only: bool) {
+        self.disable_button.set_read_only(read_only);
+        self.enable_button.set_read_only(read_only);
     }
 
     fn set_color_scheme(&self, color_scheme: &toggle_button::ColorScheme) {
@@ -375,6 +387,10 @@ impl ActionBar {
         let model = &self.model;
 
         frp::extend! { network
+            // === Read-only mode ===
+
+            eval frp.set_read_only((read_only) model.icons.set_read_only(*read_only));
+
 
             // === Input Processing ===
 
@@ -443,22 +459,21 @@ impl ActionBar {
             );
         }
 
+        use theme::graph_editor::node::actions;
         let color_scheme = toggle_button::ColorScheme {
-            non_toggled: Some(
-                model
-                    .styles
-                    .get_color(theme::graph_editor::node::actions::button::non_toggled)
-                    .into(),
-            ),
-            toggled: Some(
-                model.styles.get_color(theme::graph_editor::node::actions::button::toggled).into(),
-            ),
-            hovered: Some(
-                model.styles.get_color(theme::graph_editor::node::actions::button::hovered).into(),
-            ),
+            non_toggled: Some(model.styles.get_color(actions::button::non_toggled).into()),
+            toggled: Some(model.styles.get_color(actions::button::toggled).into()),
+            hovered: Some(model.styles.get_color(actions::button::hovered).into()),
+            ..default()
+        };
+        let context_switch_color_scheme = toggle_button::ColorScheme {
+            non_toggled: Some(model.styles.get_color(actions::context_switch::non_toggled).into()),
+            toggled: Some(model.styles.get_color(actions::context_switch::toggled).into()),
+            hovered: Some(model.styles.get_color(actions::context_switch::hovered).into()),
             ..default()
         };
         model.icons.set_color_scheme(&color_scheme);
+        model.icons.context_switch.set_color_scheme(&context_switch_color_scheme);
 
         frp.show_on_hover.emit(true);
         visibility_init.emit(false);

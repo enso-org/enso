@@ -1084,6 +1084,9 @@ final class TreeToIr {
       }
       case Tree.OprApp app -> {
         var op = app.getOpr().getRight();
+        if (op == null) {
+          yield translateSyntaxError(app, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
+        }
         yield switch (op.codeRepr()) {
           case "." -> {
             final Option<IdentifiedLocation> loc = getIdentifiedLocation(tree);
@@ -1138,7 +1141,7 @@ final class TreeToIr {
       }
       case Tree.Ident id when insideTypeAscription -> {
         try {
-          yield buildQualifiedName(id, getIdentifiedLocation(id), false);
+          yield buildNameOrQualifiedName(id, getIdentifiedLocation(id));
         } catch (SyntaxException ex) {
           yield ex.toError();
         }
@@ -1409,11 +1412,14 @@ final class TreeToIr {
     return new IR$Name$Qualified(qualifiedNameSegments(t, generateId), loc, meta(), diag());
   }
   private IR.Name buildNameOrQualifiedName(Tree t) throws SyntaxException {
+    return buildNameOrQualifiedName(t, Option.empty());
+  }
+  private IR.Name buildNameOrQualifiedName(Tree t, Option<IdentifiedLocation> loc) throws SyntaxException {
     var segments = qualifiedNameSegments(t, false);
     if (segments.length() == 1) {
       return segments.head();
     } else {
-      return new IR$Name$Qualified(segments, Option.empty(), meta(), diag());
+      return new IR$Name$Qualified(segments, loc, meta(), diag());
     }
   }
   private java.util.List<Tree> unrollOprRhs(Tree list, String operator) throws SyntaxException {

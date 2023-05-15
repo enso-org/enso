@@ -1,4 +1,5 @@
 //! Example scene showing simple shape component that logs all its mouse events.
+//! A partially-transparent shape partially covering it is transparent to mouse events.
 
 #![recursion_limit = "1024"]
 // === Features ===
@@ -28,28 +29,12 @@ use ensogl_core::prelude::*;
 use enso_frp as frp;
 use ensogl_core::application;
 use ensogl_core::application::Application;
+use ensogl_core::data::color::Rgb;
+use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::shape;
 use ensogl_text_msdf::run_once_initialized;
-
-
-
-// ==============
-// === Shapes ===
-// ==============
-
-mod shape {
-    use super::*;
-
-    shape! {
-        alignment = center;
-        (style: Style) {
-            Circle(100.px()).fill(color::Rgb(1.0,0.0,0.0)).into()
-        }
-    }
-}
 
 
 
@@ -61,17 +46,29 @@ mod shape {
 struct Model {
     app:            Application,
     display_object: display::object::Instance,
-    shape:          shape::View,
+    shape:          Rectangle,
+    cover:          Rectangle,
 }
 
 impl Model {
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
         let display_object = display::object::Instance::new();
-        let shape = shape::View::new();
-        shape.set_size(Vector2::new(100.0, 100.0));
+        let shape: Rectangle = default();
+        shape.set_size(Vector2(300.0, 300.0));
+        shape.set_color(Rgb(1.0, 0.0, 0.0).into());
+        shape.set_corner_radius_max();
         display_object.add_child(&shape);
-        Self { app, display_object, shape }
+        let cover: Rectangle = default();
+        // We need a value that will make the covering shape a bit smaller than the main shape.
+        // Euclid found a good one.
+        const INVERSE_PHI: f32 = 0.618_033;
+        cover.set_size(Vector2(300.0 * INVERSE_PHI, 300.0 * INVERSE_PHI));
+        cover.set_color(Rgba(0.0, 0.0, 0.0, 0.5));
+        cover.set_corner_radius_max();
+        cover.set_pointer_events(false);
+        display_object.add_child(&cover);
+        Self { app, display_object, shape, cover }
     }
 }
 
@@ -162,7 +159,6 @@ pub fn main() {
     run_once_initialized(|| {
         let app = Application::new("root");
         let shape: View = app.new_view();
-        shape.model.shape.set_size((300.0, 300.0));
         app.display.add_child(&shape);
 
         let scene = &app.display.default_scene;

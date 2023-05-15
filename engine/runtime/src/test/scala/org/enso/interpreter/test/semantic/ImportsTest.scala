@@ -14,7 +14,7 @@ class ImportsTest extends PackageTest {
   "Overloaded methods" should "not be visible when not imported" in {
     the[InterpreterException] thrownBy evalTestProject(
       "TestNonImportedOverloads"
-    ) should have message "Method `method` of Mk_X could not be found."
+    ) should have message "Method `method` of type X could not be found."
   }
 
   "Import statements" should "report errors when they cannot be resolved" in {
@@ -101,13 +101,13 @@ class ImportsTest extends PackageTest {
   "Importing module's types" should "not bring extension methods into the scope " in {
     the[InterpreterException] thrownBy evalTestProject(
       "Test_Extension_Methods_Failure"
-    ) should have message "Method `foo` of 1 (Integer) could not be found."
+    ) should have message "Method `foo` of type Integer could not be found."
   }
 
   "Compiler" should "detect name conflicts preventing users from importing submodules" in {
     the[InterpreterException] thrownBy evalTestProject(
       "TestSubmodulesNameConflict"
-    ) should have message "Method `c_mod_method` of C could not be found."
+    ) should have message "Method `c_mod_method` of type C.type could not be found."
     val outLines = consumeOut
     outLines(2) should include
     "Declaration of type C shadows module local.TestSubmodulesNameConflict.A.B.C making it inaccessible via a qualified name."
@@ -183,12 +183,23 @@ class ImportsTest extends PackageTest {
   "Fully qualified names" should "detect conflicts with the exported types sharing the namespace" in {
     the[InterpreterException] thrownBy evalTestProject(
       "Test_Fully_Qualified_Name_Conflict"
-    ) should have message "Method `Foo` of Atom could not be found."
+    ) should have message "Method `Foo` of type Atom.type could not be found."
     val outLines = consumeOut
     outLines should have length 3
     outLines(
       2
     ) shouldEqual "Main.enso[2:1-2:57]: The exported type `Atom` in `local.Test_Fully_Qualified_Name_Conflict.Atom` module will cause name conflict when attempting to use a fully qualified name of the `local.Test_Fully_Qualified_Name_Conflict.Atom.Foo` module."
+  }
+
+  "Deeply nested modules" should "infer correct synthetic modules" in {
+    evalTestProject(
+      "Test_Deeply_Nested_Modules"
+    ).toString shouldEqual "0"
+    val outLines = consumeOut
+    outLines should have length 3
+    outLines(0) shouldEqual "(A_Mod.Value 1)"
+    outLines(1) shouldEqual "(C_Mod.Value 1)"
+    outLines(2) shouldEqual "(D_Mod.Value 1)"
   }
 
 }

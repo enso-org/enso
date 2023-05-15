@@ -439,13 +439,18 @@ pub struct DomBindings {
 
 impl DomBindings {
     /// Create new Keyboard and Frp bindings.
+    ///
+    /// We're preventing default on keyboard events, because we don't want the browser to handle
+    /// them.
     pub fn new(keyboard: &Keyboard) -> Self {
-        let key_down = Listener::new_key_down(
-            f!((event:&KeyboardEvent) keyboard.source.down.emit(KeyWithCode::from(event))),
-        );
-        let key_up = Listener::new_key_up(
-            f!((event:&KeyboardEvent) keyboard.source.up.emit(KeyWithCode::from(event))),
-        );
+        let key_down = Listener::new_key_down(f!([keyboard](event:&KeyboardEvent) {
+            event.prevent_default();
+            keyboard.source.down.emit(KeyWithCode::from(event));
+        }));
+        let key_up = Listener::new_key_up(f!([keyboard](event:&KeyboardEvent) {
+            event.prevent_default();
+            keyboard.source.up.emit(KeyWithCode::from(event));
+        }));
         let blur = Listener::new_blur(f_!(keyboard.source.window_defocused.emit(())));
         Self { key_down, key_up, blur }
     }

@@ -12,6 +12,7 @@ import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
+import org.enso.table.data.column.operation.map.text.StringStringOp;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.graalvm.polyglot.Value;
@@ -139,6 +140,12 @@ public final class StringStorage extends SpecializedStorage<String> {
         });
     t.add(new LikeOp());
     t.add(new StringIsInOp<>());
+    t.add(new StringStringOp(Maps.ADD) {
+      @Override
+      protected String doString(String a, String b) {
+        return a + b;
+      }
+    });
     return t;
   }
 }

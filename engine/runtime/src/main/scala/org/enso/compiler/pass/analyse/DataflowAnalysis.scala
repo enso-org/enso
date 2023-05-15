@@ -10,6 +10,7 @@ import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
 
+import scala.collection.immutable.ListSet
 import scala.collection.mutable
 
 /** This pass implements dataflow analysis for Enso.
@@ -826,23 +827,39 @@ case object DataflowAnalysis extends IRPass {
       * @return the set of all associations with `key`, if key exists
       */
     def get(key: DependencyInfo.Type): Option[Set[DependencyInfo.Type]] = {
-      val visited = mutable.LinkedHashSet[DependencyInfo.Type]()
 
-      def go(key: DependencyInfo.Type): Set[DependencyInfo.Type] = {
-        if (!visited.contains(key)) {
-          visited += key
-
-          mapping.get(key) match {
-            case Some(deps) => deps ++ deps.map(go).reduceLeft(_ ++ _)
-            case None       => Set()
+      @scala.annotation.tailrec
+      def go(
+        queue: mutable.Queue[DependencyInfo.Type],
+        visited: mutable.Set[DependencyInfo.Type],
+        result: mutable.Set[DependencyInfo.Type]
+      ): Set[DependencyInfo.Type] =
+        if (queue.isEmpty) result.to(ListSet)
+        else {
+          val elem = queue.dequeue()
+          if (visited.contains(elem)) go(queue, visited, result)
+          else {
+            mapping.get(elem) match {
+              case Some(deps) =>
+                go(
+                  queue.enqueueAll(deps),
+                  visited.addOne(elem),
+                  result.addAll(deps)
+                )
+              case None =>
+                go(queue, visited.addOne(elem), result)
+            }
           }
-        } else {
-          Set()
         }
-      }
 
       if (mapping.contains(key)) {
-        Some(go(key))
+        Some(
+          go(
+            mutable.Queue(key),
+            mutable.HashSet(),
+            mutable.LinkedHashSet()
+          )
+        )
       } else {
         None
       }

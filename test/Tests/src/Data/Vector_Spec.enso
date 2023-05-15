@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Data.Array_Proxy import Array_Proxy
 import Standard.Base.Data.Vector.Empty_Error
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
@@ -13,6 +14,8 @@ from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
+polyglot java import java.util.ArrayList
+
 type T
     Value a b
 
@@ -21,6 +24,16 @@ type T_Comparator
     hash t = Comparable.from t.a . hash t.a
 
 Comparable.from (_:T) = T_Comparator
+
+## Type that violates reflexivity
+type My_Nan
+    Value value
+
+type My_Nan_Comparator
+    compare _ _ = Nothing
+    hash _ = 0
+
+Comparable.from (_:My_Nan) = My_Nan_Comparator
 
 type My_Error
     Value a
@@ -255,9 +268,9 @@ type_spec name alter = Test.group name <|
         boolvec.filter Filter_Condition.Is_False . should_equal [False]
 
     Test.specify "should filter elements with indices" <|
-        alter [0, 10, 2, 2] . filter_with_index (==) . should_equal [0, 2]
+        (alter [0, 10, 2, 2] . filter_with_index (==)) . should_equal [0, 2]
         (alter [1, 2, 3, 4] . filter_with_index ix-> _-> ix < 2) . should_equal [1, 2]
-        alter ([1, 2, 3, 4] . filter_with_index ix-> _-> if ix == 1 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
+        (alter [1, 2, 3, 4] . filter_with_index ix-> _-> if ix == 1 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
 
     Test.specify "should partition elements" <|
         alter [1, 2, 3, 4, 5] . partition (x -> x % 2 == 0) . should_equal <| Pair.new [2, 4] [1, 3, 5]
@@ -336,6 +349,8 @@ type_spec name alter = Test.group name <|
         alter [1, 2, 3, 4, 5, 6] . short_display_text max_entries=3 . should_equal "[1, 2, 3 and 3 more elements]"
         alter (0.up_to 100).to_vector . short_display_text max_entries=2 . should_equal "[0, 1 and 98 more elements]"
 
+        alter [1, 2] . to_display_text . should_equal "[1, 2]"
+
         alter [] . short_display_text max_entries=0 . should_fail_with Illegal_Argument
 
     Test.specify "should define equality" <|
@@ -398,7 +413,7 @@ type_spec name alter = Test.group name <|
         vec.slice 1 1 . should_equal []
         vec.slice 0 100 . should_equal [1, 2, 3, 4, 5, 6]
         Meta.is_same_object vec (vec.slice 0 100) . should_be_true
-        Meta.meta Vector . name . should_equal (Meta.get_qualified_type_name (vec.slice 1 1))
+        Meta.get_qualified_type_name (vec.slice 1 1) . should_equal (Meta.meta Vector . qualified_name)
 
     Test.specify "should define take and drop family of operations" <|
         vec = alter [1, 2, 3, 4, 5, 6]
@@ -521,6 +536,22 @@ type_spec name alter = Test.group name <|
         alter ["a", "a", "a"] . drop (Sample 1) . should_equal ["a", "a"]
         alter ["a", "a", "a"] . drop (Sample 100) . should_equal []
 
+    Test.specify "take/drop should gracefully handle missing constructor arguments" <|
+        [].take "FOO" . should_fail_with Type_Error
+        [].drop "FOO" . should_fail_with Type_Error
+
+        r1 = [].take (Index_Sub_Range.While)
+        r1.should_fail_with Illegal_Argument
+        r1.catch.to_display_text . should_contain "The constructor While is missing some arguments"
+
+        r2 = [].drop (Index_Sub_Range.Every ...)
+        r2.should_fail_with Illegal_Argument
+        r2.catch.to_display_text . should_contain "The constructor Every is missing some arguments"
+
+        r3 = [].take (Index_Sub_Range.First _)
+        r3.should_fail_with Illegal_Argument
+        r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"
+
     Test.specify "should allow getting the last element of the vector" <|
         non_empty_vec = alter [1, 2, 3, 4, 5]
         singleton_vec = alter [1]
@@ -579,6 +610,7 @@ type_spec name alter = Test.group name <|
         small_vec = alter [T.Value 1 8, T.Value 1 3, T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 4 0]
         small_expected = [T.Value -20 0, T.Value 4 0, T.Value -1 1, T.Value 1 3, T.Value 1 8, T.Value -1 10]
         small_vec.sort (on = _.b) . should_equal small_expected
+        small_vec.sort (on = .b) . should_equal small_expected
 
     Test.specify "should be able to use a custom compare function" <|
         small_vec = alter [2, 7, -3, 383, -392, 28, -90]
@@ -654,8 +686,26 @@ type_spec name alter = Test.group name <|
         alter [1, 1.0, 2, 2.0] . distinct . should_equal [1, 2]
         alter [] . distinct . should_equal []
 
+    Test.specify "should be able to handle distinct on different primitive values" <|
+        alter [1, "a"] . distinct . should_equal [1, "a"]
+        alter ["a", 1] . distinct . should_equal ["a", 1]
+        alter [Nothing, Nothing] . distinct . should_equal [Nothing]
+        alter [Number.nan, Number.nan] . distinct . to_text . should_equal "[NaN]"
+        alter [Nothing, Number.nan, Nothing, Number.nan] . distinct . to_text . should_equal "[Nothing, NaN]"
+        alter [1, Nothing] . distinct . should_equal [1, Nothing]
+        alter [Nothing, 1, Nothing] . distinct . should_equal [Nothing, 1]
+        alter [1, Number.nan] . distinct . to_text . should_equal "[1, NaN]"
+        alter [Number.nan, 1, Number.nan] . distinct . to_text . should_equal "[NaN, 1]"
+        alter [1, Number.nan, 1] . distinct . to_text . should_equal "[1, NaN]"
+        alter [Number.nan, My_Nan.Value 42, My_Nan.Value 23] . distinct . to_text . should_equal "[NaN, (My_Nan.Value 42), (My_Nan.Value 23)]"
+        my_nan = My_Nan.Value 42
+        alter [my_nan, Number.nan, my_nan] . distinct . to_text . should_equal "[(My_Nan.Value 42), NaN]"
+
     Test.specify "should correctly handle distinct with types that have custom comparators" <|
         alter [T.Value 1 2, T.Value 3 3, T.Value 1 2] . distinct . should_equal [T.Value 1 2, T.Value 3 3]
+        alter [T.Value 1 2, T.Value 3 3, T.Value 1 2, Nothing] . distinct . should_equal [T.Value 1 2, T.Value 3 3, Nothing]
+        alter [Nothing, T.Value 1 2, T.Value 3 3, T.Value 1 2, Nothing] . distinct . should_equal [Nothing, T.Value 1 2, T.Value 3 3]
+        alter [T.Value 1 2, Date.new hours=3] . distinct . should_equal [T.Value 1 2, Date.new hours=3]
 
     Test.specify "should return a vector containing only unique elements up to some criteria" <|
         alter [Pair.new 1 "a", Pair.new 2 "b", Pair.new 1 "c"] . distinct (on = _.first) . should_equal [Pair.new 1 "a", Pair.new 2 "b"]
@@ -665,6 +715,22 @@ type_spec name alter = Test.group name <|
         expected = "abet".utf_8
         input.sort . should_equal expected
 
+    Test.specify "should report only a limited number of warnings for incomparable values" <|
+        gen x = case (x % 10) of
+            0 -> Nothing
+            1 -> "foo"+x.to_text
+            2 -> x
+            3 -> Number.nan
+            4 -> Date.new
+            5 -> []
+            6 -> -x
+            7 -> Number.nan
+            8 -> Time_Of_Day.new
+            _ -> x
+        input = 0.up_to 500 . map gen
+        sorted = input.sort on_incomparable=Problem_Behavior.Report_Warning
+        Warning.get_all sorted . length . should_equal 10
+        Warning.limit_reached sorted . should_equal True
 
 spec =
     Test.group "Vector/Array equality" <|
@@ -705,7 +771,18 @@ spec =
             [True, False, 'a'].pretty . should_equal "[True, False, 'a']"
             [Foo.Value True].pretty . should_equal "[(Foo.Value True)]"
 
-    type_spec "Use Vector as vectors" (x -> x)
-    type_spec "Use Array as vectors" (x -> x.to_array)
+    type_spec "Use Vector as vectors" identity
+    type_spec "Use Array as vectors" (v -> v.to_array)
+    type_spec "Use Java ArrayList as vectors" v->
+        arr = ArrayList.new
+        v.each (x -> arr.add x)
+        arr
+    type_spec "Use Array_Proxy as vectors" v->
+        Array_Proxy.new v.length (ix -> v.at ix)
+    type_spec "Use a slice of an array as vectors" v->
+        v2 = v+[Nothing]
+        sliced_vector = v2.slice 0 v.length
+        sliced_array = sliced_vector.to_array
+        sliced_array
 
 main = Test_Suite.run_main spec

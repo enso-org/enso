@@ -18,10 +18,10 @@ import * as platformModule from '../platform'
 // === Constants ===
 // =================
 
-/** Pathname of the {@link URL} for deep links to the sign in page, after a redirect from a
+/** Pathname of the {@link URL} for deep links to the sign-in page, after a redirect from a
  * federated identity provider. */
 const SIGN_IN_PATHNAME = '//auth'
-/** Pathname of the {@link URL} for deep links to the sign out page, after a redirect from a
+/** Pathname of the {@link URL} for deep links to the sign-out page, after a redirect from a
  * federated identity provider. */
 const SIGN_OUT_PATHNAME = '//auth'
 /** Pathname of the {@link URL} for deep links to the registration confirmation page, after a
@@ -191,8 +191,11 @@ function saveAccessToken(accessToken: string) {
 function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: string) => void) {
     const onDeepLink = (url: string) => {
         const parsedUrl = new URL(url)
-
-        switch (parsedUrl.pathname) {
+        logger.log(`Parsed pathname: ${parsedUrl.pathname}`)
+        // We need to get rid of the trailing slash in the pathname, because it is inconsistent
+        // between the platforms. On Windows it is present, on macOS it is not.
+        const pathname = parsedUrl.pathname.replace(/\/$/, '')
+        switch (pathname) {
             /** If the user is being redirected after clicking the registration confirmation link in their
              * email, then the URL will be for the confirmation page path. */
             case CONFIRM_REGISTRATION_PATHNAME: {

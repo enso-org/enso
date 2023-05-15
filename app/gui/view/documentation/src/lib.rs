@@ -17,37 +17,26 @@
 //!
 //! [`Tailwind CSS`]: https://tailwindcss.com/
 
+#![recursion_limit = "1024"]
 // === Features ===
-#![feature(associated_type_bounds)]
-#![feature(associated_type_defaults)]
 #![feature(drain_filter)]
-#![feature(fn_traits)]
 #![feature(option_result_contains)]
-#![feature(specialization)]
-#![feature(trait_alias)]
-#![feature(type_alias_impl_trait)]
-#![feature(unboxed_closures)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
-#![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "1024"]
 
 use ensogl::prelude::*;
 use ensogl::system::web::traits::*;
-
-use graph_editor::component::visualization;
-use ide_view_graph_editor as graph_editor;
 
 use enso_frp as frp;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
@@ -64,17 +53,17 @@ use ensogl::Animation;
 use ensogl_component::shadow;
 use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::documentation as theme;
-use web::Closure;
+use graph_editor::component::visualization;
+use ide_view_graph_editor as graph_editor;
 use web::HtmlElement;
 use web::JsCast;
-use web::MouseEvent;
-
-pub mod html;
 
 
 // ==============
 // === Export ===
 // ==============
+
+pub mod html;
 
 pub use visualization::container::overlay;
 
@@ -88,6 +77,7 @@ pub use visualization::container::overlay;
 const MIN_CAPTION_HEIGHT: f32 = 1.0;
 /// Delay before updating the displayed documentation.
 const DISPLAY_DELAY_MS: i32 = 0;
+
 
 // === Style ===
 
@@ -108,23 +98,19 @@ pub struct Style {
 // === Model ===
 // =============
 
-type CodeCopyClosure = Closure<dyn FnMut(MouseEvent)>;
-
 /// Model of Native visualization that generates documentation for given Enso code and embeds
 /// it in a HTML container.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Model {
-    outer_dom:          DomSymbol,
-    caption_dom:        DomSymbol,
-    inner_dom:          DomSymbol,
+    outer_dom:      DomSymbol,
+    caption_dom:    DomSymbol,
+    inner_dom:      DomSymbol,
     /// The purpose of this overlay is stop propagating mouse events under the documentation panel
     /// to EnsoGL shapes, and pass them to the DOM instead.
-    overlay:            overlay::View,
-    display_object:     display::object::Instance,
-    code_copy_closures: Rc<CloneCell<Vec<CodeCopyClosure>>>,
+    overlay:        overlay::View,
+    display_object: display::object::Instance,
 }
-
 
 impl Model {
     /// Constructor.
@@ -164,9 +150,7 @@ impl Model {
         scene.dom.layers.node_searcher.manage(&inner_dom);
         scene.dom.layers.node_searcher.manage(&caption_dom);
 
-        let code_copy_closures = default();
-        Model { outer_dom, inner_dom, caption_dom, overlay, display_object, code_copy_closures }
-            .init()
+        Model { outer_dom, inner_dom, caption_dom, overlay, display_object }.init()
     }
 
     fn init(self) -> Self {
@@ -204,7 +188,7 @@ impl Model {
     }
 
     /// Load an HTML file into the documentation view when user is waiting for data to be received.
-    /// TODO(#184315201): This should be replaced with a EnsoGL spinner.
+    /// TODO(#5214): This should be replaced with a EnsoGL spinner.
     fn load_waiting_screen(&self) {
         let spinner = include_str!("../assets/spinner.html");
         self.inner_dom.dom().set_inner_html(spinner)

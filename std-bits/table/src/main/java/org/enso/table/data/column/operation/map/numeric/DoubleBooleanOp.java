@@ -79,7 +79,7 @@ public abstract class DoubleBooleanOp extends MapOperation<Double, DoubleStorage
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNa(i) && i < v.size() && !v.isNa(i)) {
-          if (doDouble(storage.getItem(i), v.getItem(i))) {
+          if (doDouble(storage.getItem(i), v.getItemDouble(i))) {
             newVals.set(i);
           }
         } else {

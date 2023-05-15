@@ -12,14 +12,24 @@ polyglot java import org.enso.table.error.EmptySheetException
 type Missing_Input_Columns
     ## PRIVATE
        One or more columns not found in the input table.
-    Error (criteria : [Text])
+
+       Arguments:
+       - criteria: the names of the columns or regular expressions that did not
+         have any matches.
+       - where: an optional text describing to which object this error is
+         related to (for example in join, whether the reported error is for the
+         left or right table).
+    Error (criteria : [Text]) (where:Text|Nothing = Nothing)
 
     ## PRIVATE
 
        Convert a missing input error to a human-readable form.
     to_display_text : Text
     to_display_text self =
-        "The criteria "+self.criteria.to_text+" did not match any columns."
+        where = case self.where of
+            Nothing -> "."
+            location : Text -> " in "+location+"."
+        "The criteria "+self.criteria.to_text+" did not match any columns"+where
 
 type Column_Indexes_Out_Of_Range
     ## PRIVATE
@@ -50,7 +60,7 @@ type Too_Many_Column_Names_Provided
 
 ## One or more column names were invalid during a rename operation.
 type Invalid_Output_Column_Names
-    Error (column_names : [Text])
+    Error (column_names : Vector Text)
 
     ## PRIVATE
 
@@ -249,29 +259,13 @@ type Invalid_Location
      format.
 type Invalid_Format
     ## PRIVATE
-    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Time|Time_Of_Day|Boolean) (cells:[Text])
+    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean) (cells:[Text])
 
     ## PRIVATE
        Pretty print the invalid format error.
     to_display_text : Text
     to_display_text self =
-        self.cells.length+" cells in column "+self.column+" had invalid format for type "+self.value_type.to_text+"."
-
-## Indicates that some values contained leading zeros even though these were not allowed.
-
-   Arguments:
-   - column: the column in which the problematic cells appeared, if applicable.
-     It may be empty if the value is parsed outside of a context of a column.
-   - datatype: The expected datatype.
-   - cells: Contents of the cells that contained leading zeros.
-type Leading_Zeros
-    ## PRIVATE
-    Error column:(Text|Nothing) (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
-
-    ## PRIVATE
-       Pretty print the leading zeros error.
-    to_display_text : Text
-    to_display_text self = "Leading zeros in column "+self.column+" with datatype "+self.value_type.to_text+"."
+        self.cells.length.to_text+" cells in column "+self.column+" had invalid format for type "+self.value_type.to_text+"."
 
 ## Indicates that an empty file was encountered, so no data could be loaded.
 type Empty_File_Error
@@ -408,20 +402,34 @@ type No_Index_Set_Error
 
 type Invalid_Value_Type
     ## PRIVATE
-    Error expected actual related_column=Nothing
+       Indicates that a column with an unexpected value type has been encountered.
+    Column (expected:Value_Type|Text) (actual:Value_Type) (related_column:Text)
+
+    ## PRIVATE
+       Indicates that a value with an unexpected value type has been encountered.
+    Value (expected:Value_Type|Text) (actual:Value_Type) (value:Any)
+
+    ## PRIVATE
+       Indicates that a value type does not support comparisons.
+    Not_Ordered (actual:Value_Type)
+
+    ## PRIVATE
+       Indicates that the two value types cannot be compared with each other.
+    Incomparable (type_1:Value_Type) (type_2:Value_Type)
 
     ## PRIVATE
 
        Create a human-readable version of the error.
     to_display_text : Text
-    to_display_text self =
-        prefix = case self.related_column of
-            Nothing -> "Expected "
-            column_name -> "Expected " + column_name + " column to have "
-        expected_type = case self.expected of
-            msg : Text -> msg
-            other -> other.to_display_text
-        prefix + expected_type + " type, but got " + self.actual.to_display_text + "."
+    to_display_text self = case self of
+        Invalid_Value_Type.Column expected actual related_column ->
+            "Expected type "+expected.to_display_text+", but got a column ["+related_column+"] of type "+actual.to_display_text+"."
+        Invalid_Value_Type.Value expected actual value ->
+            "Expected type "+expected.to_display_text+", but got a value "+value.to_text+" of type "+actual.to_display_text+"."
+        Invalid_Value_Type.Not_Ordered actual ->
+            "Type "+actual.to_display_text+" does not support comparisons."
+        Invalid_Value_Type.Incomparable type_1 type_2 ->
+            "Types "+type_1.to_display_text+" and "+type_2.to_display_text+" cannot be compared to each other."
 
 ## UNSTABLE
 
@@ -451,16 +459,26 @@ type Column_Type_Mismatch
 
 type No_Common_Type
     ## PRIVATE
-       An error indicating that no common type could be found for the merged
-       columns.
-    Error (column_name : Text)
+       An error indicating that no common type could be found.
+
+       Arguments:
+       - types: The types that were tried to be unified.
+       - related_column_name: The name of the resulting column that was being
+         unified, if applicable.
+    Error (types : Vector Value_Type) (related_column_name : Nothing|Text)
 
     ## PRIVATE
 
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        "No common type could have been found for the columns corresponding to ["+self.column_name+"]. If you want to allow mixed types, please retype the columns to the `Mixed` before the concatenation (note however that most Database backends do not support `Mixed` types, so it may work only for the in-memory backend)."
+        types = self.types.map .to_display_text . join ", "
+        prefix = "No common type could have been found for the types: "+types
+        infix = case self.related_column_name of
+            column_name : Text -> " when unifying the column ["+column_name+"]."
+            _ -> "."
+        suffix = "If you want to allow mixed types, please retype the columns to the `Mixed` before the concatenation (note however that most Database backends do not support `Mixed` types, so it may work only for the in-memory backend)."
+        prefix + infix + suffix
 
 type Unmatched_Columns
     ## PRIVATE

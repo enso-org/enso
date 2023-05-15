@@ -82,6 +82,8 @@ public class EnsoContext {
   private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
   private ExecutionEnvironment executionEnvironment;
 
+  private final int warningsLimit;
+
   /**
    * Creates a new Enso context.
    *
@@ -127,6 +129,7 @@ public class EnsoContext {
     this.notificationHandler = notificationHandler;
     this.lockManager = lockManager;
     this.distributionManager = distributionManager;
+    this.warningsLimit = getOption(RuntimeOptions.WARNINGS_LIMIT_KEY);
   }
 
   /** Perform expensive initialization logic for the context. */
@@ -504,7 +507,7 @@ public class EnsoContext {
    *
    * <p>The counter is used to track the creation time of warnings.
    */
-  public long clockTick() {
+  public long nextSequenceId() {
     return clock.getAndIncrement();
   }
 
@@ -515,6 +518,11 @@ public class EnsoContext {
   /** Set the runtime execution environment of this context. */
   public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
     this.executionEnvironment = executionEnvironment;
+  }
+
+  /** Returns a maximal number of warnings that can be attached to a value */
+  public int getWarningsLimit() {
+    return this.warningsLimit;
   }
 
   public Shape getRootStateShape() {

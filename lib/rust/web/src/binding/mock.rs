@@ -537,6 +537,7 @@ mock_data! { Document => EventTarget
 
 // === Window ===
 mock_data! { Window => EventTarget
+    fn document(&self) -> Option<Document>;
     fn open_with_url_and_target(&self, url: &str, target: &str)
         -> Result<Option<Window>, JsValue>;
     fn request_animation_frame(&self, callback: &Function) -> Result<i32, JsValue>;
@@ -601,6 +602,8 @@ mock_data! { MouseEvent => Event
     fn offset_y(&self) -> i32;
     fn screen_x(&self) -> i32;
     fn screen_y(&self) -> i32;
+    fn movement_x(&self) -> i32;
+    fn movement_y(&self) -> i32;
 }
 
 
@@ -683,6 +686,11 @@ mock_data! { HtmlDivElement => HtmlElement }
 impl From<HtmlDivElement> for EventTarget {
     fn from(_: HtmlDivElement) -> Self {
         default()
+    }
+}
+impl PartialEq<HtmlDivElement> for HtmlDivElement {
+    fn eq(&self, _: &HtmlDivElement) -> bool {
+        true
     }
 }
 

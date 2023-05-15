@@ -95,6 +95,26 @@ public class Time_Utils {
     return DateTimeFormatter.ofPattern(format.toString()).format(date);
   }
 
+  public static String local_date_format_with_locale(LocalDate date, Object format, Locale locale) {
+    return DateTimeFormatter.ofPattern(format.toString()).withLocale(locale).format(date);
+  }
+
+  public static String date_time_format(ZonedDateTime dateTime, Object format) {
+    return DateTimeFormatter.ofPattern(format.toString()).format(dateTime);
+  }
+
+  public static String date_time_format_with_locale(ZonedDateTime dateTime, Object format, Locale locale) {
+    return DateTimeFormatter.ofPattern(format.toString()).withLocale(locale).format(dateTime);
+  }
+
+  public static String time_of_day_format_with_locale(LocalTime localTime, Object format, Locale locale) {
+    return DateTimeFormatter.ofPattern(format.toString()).withLocale(locale).format(localTime);
+  }
+
+  public static String time_of_day_format(LocalTime localTime, Object format) {
+    return DateTimeFormatter.ofPattern(format.toString()).format(localTime);
+  }
+
   public static LocalDate date_adjust(LocalDate date, AdjustOp op, Period period) {
     return switch (op) {
       case PLUS -> date.plus(period);
@@ -184,10 +204,15 @@ public class Time_Utils {
 
   /**
    * Counts days within the range from start (inclusive) to end (exclusive).
-   *
-   * <p>If start is before end, it will return 0.
    */
   public static long days_between(LocalDate start, LocalDate end) {
     return ChronoUnit.DAYS.between(start, end);
+  }
+
+  /**
+   * Counts months within the range from start (inclusive) to end (exclusive).
+   */
+  public static long months_between(LocalDate start, LocalDate end) {
+    return ChronoUnit.MONTHS.between(start, end);
   }
 }

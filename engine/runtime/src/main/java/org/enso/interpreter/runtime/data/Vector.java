@@ -1,5 +1,15 @@
 package org.enso.interpreter.runtime.data;
 
+import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.ArityException;
@@ -11,14 +21,7 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.error.*;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -62,15 +65,6 @@ public final class Vector implements TruffleObject {
       description = "Returns an Array representation of this Vector.")
   public final Object toArray() {
     return this.storage;
-  }
-
-  @Builtin.Method(name = "slice", description = "Returns a slice of this Vector.")
-  @Builtin.Specialize
-  @Builtin.WrapException(from = UnsupportedMessageException.class)
-  public final Vector slice(long start, long end, InteropLibrary interop)
-      throws UnsupportedMessageException {
-    var slice = ArraySlice.createOrNull(storage, start, length(interop), end);
-    return slice == null ? this : slice;
   }
 
   @Builtin.Method(description = "Returns the length of this Vector.")
@@ -120,7 +114,7 @@ public final class Vector implements TruffleObject {
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
-      return new WithWarnings(toEnso.execute(v), extracted);
+      return WithWarnings.wrap(EnsoContext.get(interop), toEnso.execute(v), extracted);
     }
     return toEnso.execute(v);
   }
@@ -217,6 +211,11 @@ public final class Vector implements TruffleObject {
   Vector removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
     return new Vector(warnings.removeWarnings(this.storage));
+  }
+
+  @ExportMessage
+  boolean isLimitReached(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    return warnings.isLimitReached(this.storage);
   }
 
   //

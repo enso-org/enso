@@ -135,6 +135,7 @@ pub mod mock {
         pub suggestions:  HashMap<suggestion_database::entry::Id, suggestion_database::Entry>,
         pub context_id:   model::execution_context::Id,
         pub parser:       parser::Parser,
+        pub read_only:    Rc<Cell<bool>>,
         code:             String,
         id_map:           ast::IdMap,
         metadata:         crate::model::module::Metadata,
@@ -172,6 +173,7 @@ pub mod mock {
                 context_id: CONTEXT_ID,
                 root_definition: definition_name(),
                 parser: parser::Parser::new(),
+                read_only: default(),
             }
         }
 
@@ -184,8 +186,14 @@ pub mod mock {
             let path = self.module_path.clone();
             let metadata = self.metadata.clone();
             let repository = urm.repository.clone_ref();
-            let module = Rc::new(model::module::Plain::new(path, ast, metadata, repository));
-            urm.module_opened(module.clone());
+            let module = Rc::new(model::module::Plain::new(
+                path,
+                ast,
+                metadata,
+                repository,
+                self.read_only.clone_ref(),
+            ));
+            urm.module_opened(module.clone_ref());
             module
         }
 
@@ -242,6 +250,7 @@ pub mod mock {
             // Root ID is needed to generate module path used to get the module.
             model::project::test::expect_root_id(&mut project, crate::test::mock::data::ROOT_ID);
             model::project::test::expect_suggestion_db(&mut project, suggestion_database);
+            model::project::test::expect_read_only(&mut project, self.read_only.clone_ref());
             let json_rpc = language_server::Connection::new_mock_rc(json_client);
             model::project::test::expect_json_rpc(&mut project, json_rpc);
             let binary_rpc = binary::Connection::new_mock_rc(binary_client);
@@ -301,6 +310,7 @@ pub mod mock {
                 position_in_code,
             )
             .unwrap();
+            let read_only = self.read_only.clone_ref();
             executor.run_until_stalled();
             Fixture {
                 executor,
@@ -313,6 +323,7 @@ pub mod mock {
                 project,
                 searcher,
                 ide,
+                read_only,
             }
         }
 
@@ -360,6 +371,7 @@ pub mod mock {
         pub executed_graph: controller::ExecutedGraph,
         pub suggestion_db:  Rc<model::SuggestionDatabase>,
         pub project:        model::Project,
+        pub read_only:      Rc<Cell<bool>>,
         pub ide:            controller::Ide,
         pub searcher:       controller::Searcher,
         #[deref]
@@ -384,7 +396,8 @@ pub mod mock {
             let path = self.data.module_path.clone();
             let ls = self.project.json_rpc();
             let repository = self.project.urm().repository.clone_ref();
-            let module_future = model::module::Synchronized::open(path, ls, parser, repository);
+            let ro = self.read_only.clone_ref();
+            let module_future = model::module::Synchronized::open(path, ls, parser, repository, ro);
             // We can `expect_ready`, because in fact this is synchronous in test conditions.
             // (there's no real asynchronous connection beneath, just the `MockClient`)
             let module = module_future.boxed_local().expect_ready().unwrap();

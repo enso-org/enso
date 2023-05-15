@@ -19,6 +19,7 @@ use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
 use ensogl_component::text::formatting::Size as TextSize;
 use ensogl_hardcoded_theme::graph_editor::breadcrumbs as breadcrumbs_theme;
+use parser::Parser;
 
 
 
@@ -66,8 +67,8 @@ ensogl::define_endpoints_2! {
        cancel_editing (),
        /// Enable editing the project name field and add a cursor at the mouse position.
        start_editing  (),
-       /// Commit current project name.
-       commit             (),
+       /// Try committing current project name.
+       try_commit         (),
        outside_press      (),
        /// Indicates that this is the currently active breadcrumb.
        select             (),
@@ -78,6 +79,8 @@ ensogl::define_endpoints_2! {
        ide_text_edit_mode (bool),
        /// Set whether the project was changed since the last snapshot save.
        set_project_changed(bool),
+       /// Set the read-only mode for this component.
+       set_read_only(bool),
     }
 
     Output {
@@ -88,6 +91,8 @@ ensogl::define_endpoints_2! {
         edit_mode     (bool),
         selected      (bool),
         is_hovered    (bool),
+        error         (String),
+        read_only     (bool),
     }
 }
 
@@ -214,6 +219,24 @@ impl ProjectNameModel {
         self.commit(name);
     }
 
+    /// Confirm the given name as the current project name if it's valid.
+    fn try_commit(&self, name: impl Str) -> Result<(), String> {
+        let name = name.into();
+        Self::validate(&name)
+            .map_err(|error| format!("The project couldn't be renamed. {error}"))?;
+        self.commit(name);
+        Ok(())
+    }
+
+    /// Check whether the given name is a valid project name.
+    fn validate(name: impl Str) -> Result<(), String> {
+        let parser = Parser::new();
+        match parser.parse_line_ast(name).map(|ast| ast.shape().clone()) {
+            Ok(ast::Shape::Cons(_)) => Ok(()),
+            _ => Err("The project name should use the 'Upper_Snake' case.".to_owned()),
+        }
+    }
+
     /// Confirm the given name as the current project name.
     fn commit<T: Into<String>>(&self, name: T) {
         let name = name.into();
@@ -265,6 +288,10 @@ impl ProjectName {
         let input = &frp.private.input;
         let output = &frp.private.output;
         frp::extend! { network
+            // === Read-only mode ===
+
+            output.read_only <+ input.set_read_only;
+
 
             // === Mouse IO ===
 
@@ -316,11 +343,15 @@ impl ProjectName {
 
             // === Commit ===
 
-            do_commit <- any(&frp.commit,&frp.outside_press).gate(&frp.output.edit_mode);
-            commit_text <- text_content.sample(&do_commit);
-            output.name <+ commit_text;
-            eval commit_text((text) model.commit(text));
-            on_commit <- commit_text.constant(());
+            try_commit <- any(&frp.try_commit, &frp.outside_press).gate(&frp.output.edit_mode);
+            commit_result <- try_commit.map2(&text_content, f!([model] (_, text) {
+                let result = model.try_commit(text);
+                (result.as_ref().ok().copied(), result.err())
+            }));
+            commit_success <- commit_result.filter_map(|(ok, _)| *ok);
+            commit_failure <- commit_result.filter_map(|(_, error)| error.clone());
+            output.name <+ text_content.sample(&commit_success);
+            output.error <+ commit_failure;
 
             not_selected <- frp.output.selected.map(|selected| !selected);
             on_deselect <- not_selected.gate(&not_selected).constant(());
@@ -330,7 +361,7 @@ impl ProjectName {
             // === Selection ===
 
             output.selected <+ frp.select.to_true();
-            set_inactive <- any(&frp.deselect,&on_commit);
+            set_inactive <- any(&frp.deselect, &commit_success);
             eval_ set_inactive ([text,model] {
                 text.deprecated_set_focus(false);
                 text.remove_all_cursors();
@@ -402,9 +433,9 @@ impl View for ProjectName {
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [
-            (Press, "", "enter", "commit"),
+            (Press, "!read_only", "enter", "try_commit"),
             (Release, "", "escape", "cancel_editing"),
-            (DoublePress, "is_hovered", "left-mouse-button", "start_editing"),
+            (DoublePress, "is_hovered & !read_only", "left-mouse-button", "start_editing"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

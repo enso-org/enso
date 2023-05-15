@@ -26,6 +26,12 @@ spec =
         Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax" <|
             Regex.compile "ab(c(((((((" . should_fail_with Regex_Syntax_Error
 
+        Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax (space in capture group name)" <|
+            Regex.compile "(?<dot s>..)" . should_fail_with Regex_Syntax_Error
+
+        Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax (duplicate name)" <|
+            Regex.compile "(?<foo>.)(?<foo>.)" . should_fail_with Regex_Syntax_Error
+
         Test.specify "should disallow empty patterns in `compile`" <|
             Regex.compile "" . should_fail_with Illegal_Argument
 
@@ -359,6 +365,10 @@ spec =
         input = "aa ab abc a bc bcd"
         match = pattern.match input
         match . should_be_a Match.Value
+
+        Test.specify "should provide access to info about group names" <|
+            pattern.named_groups.sort . should_equal ["empty", "letters"]
+            pattern.group_nums_to_names . should_equal <| Map.from_vector [[2, "letters"],[4, "empty"]]
 
         Test.specify "should return the results of all named groups" <|
             groups = match.named_groups

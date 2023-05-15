@@ -98,6 +98,10 @@ where
         self.vec.insert(index.into(), element)
     }
 
+    pub fn remove(&mut self, index: I) -> T {
+        self.vec.remove(index.into())
+    }
+
     ranged_fn! {drain() -> std::vec::Drain<'_, T, A>}
     ranged_fn! {splice[Iter: IntoIterator<Item = T>](replace_with: Iter) -> std::vec::Splice<'_, Iter::IntoIter, A>}
 }

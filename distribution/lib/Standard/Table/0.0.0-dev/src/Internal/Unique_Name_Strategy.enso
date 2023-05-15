@@ -56,10 +56,10 @@ type Unique_Name_Strategy
        > Example
          Rename names from a second list to avoid clashing with the first one.
 
-             first = ["A", "B", "second_A"]
-             second = ["A", "B", "second_A_1", "C"]
+             first = ["A", "B", "second A"]
+             second = ["A", "B", "second A 1", "C"]
              unique_second = Unique_Name_Strategy.combine_with_prefix first second "second_"
-             unique_second == ["second_A_2", "second_B", "second_A_1", "C"]
+             unique_second == ["second A 2", "second_B", "second A 1", "C"]
     combine_with_prefix : Vector Text -> Vector Text -> Text -> Unique_Name_Strategy
     combine_with_prefix self first second second_prefix =
         Vector.from_polyglot_array <|
@@ -110,7 +110,7 @@ type Unique_Name_Strategy
        > Example
              strategy = Unique_Name_Strategy.new
              strategy.make_unique "A" # returns "A"
-             strategy.make_unique "A" # returns "A_1"
+             strategy.make_unique "A" # returns "A 1"
     make_unique : Text -> Text
     make_unique self name = self.deduplicator.makeUnique name
 

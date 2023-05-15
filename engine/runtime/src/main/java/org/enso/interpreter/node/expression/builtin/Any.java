@@ -10,7 +10,7 @@ public class Any extends Builtin {
   }
 
   @Override
-  protected boolean containsValues() {
+  public boolean containsValues() {
     return true;
   }
 }
