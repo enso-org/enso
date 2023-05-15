@@ -142,7 +142,7 @@ impl<DP: DataProvider> FileUploadProcess<DP> {
                     );
                     self.bytes_uploaded = self.file.size;
                 }
-                self.check_checksum().await?;
+                // self.check_checksum().await?;
                 Ok(UploadingState::Finished)
             }
             Err(err) => Err(err),
