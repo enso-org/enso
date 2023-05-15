@@ -566,7 +566,9 @@ type Vector a
     map_with_index : (Integer -> Any -> Any) -> Vector Any
     map_with_index self function = Vector.new self.length i-> function i (self.at i)
 
-    ## Applies a function to each element of the vector.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each element of the vector.
 
        Unlike `map`, this method does not return the individual results,
        therefore it is only useful for side-effecting computations.
@@ -583,7 +585,9 @@ type Vector a
         0.up_to self.length . each ix->
             f (self.at ix)
 
-    ## Applies a function to each element of the vector.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each element of the vector.
 
        Arguments:
        - function: A function to apply that takes an index and an item.
@@ -754,6 +758,7 @@ type Vector a
          If an `Index_Sub_Range`, then the selection is interpreted following
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
+    @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
     take self range=(Index_Sub_Range.First 1) = case range of
         ## We are using a specialized implementation for `take Sample`, because
@@ -773,6 +778,7 @@ type Vector a
          If an `Index_Sub_Range`, then the selection is interpreted following
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
+    @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Vector Any
     drop self range=(Index_Sub_Range.First 1) =
         drop_helper self.length (self.at _) self.slice (slice_ranges self) range

@@ -6,6 +6,7 @@ import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
 import project.Data.Text.Text
 import project.Data.Time.Date_Period.Date_Period
+import project.Data.Time.Date_Range.Date_Range
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Day_Of_Week_From
@@ -444,6 +445,56 @@ type Date
                 Error.throw (Time_Error.Error "Date does not support adding/subtracting Duration. Use Period instead.")
             _ ->
                 Error.throw (Illegal_Argument.Error "Illegal period argument")
+
+    ## ALIAS Date Range
+
+       Creates an increasing range of dates from `self` to `end`.
+
+       Arguments:
+       - end: The end of the range.
+       - include_end: Specifies if the right end of the range should be included. By
+         default, the range is right-exclusive.
+
+       > Example
+         Create a range of dates.
+
+             (Date.new 2021 12 05).up_to (Date.new 2021 12 10)
+
+       > Example
+         Create a range containing dates [2021-12-05, 2021-12-06].
+
+             (Date.new 2021 12 05).up_to (Date.new 2021 12 06) include_end=True
+    up_to : Date -> Boolean -> Date_Range
+    up_to self end include_end=False = case end of
+        _ : Date ->
+            effective_end = if include_end then end.next else end
+            Date_Range.new_internal self effective_end increasing=True step=(Period.new days=1)
+        _ -> Error.throw (Type_Error.Error Date end "end")
+
+    ## ALIAS Date Range
+
+       Creates a decreasing range of dates from `self` to `end`.
+
+       Arguments:
+       - end: The end of the range.
+       - include_end: Specifies if the right end of the range should be included. By
+         default, the range is right-exclusive.
+
+       > Example
+         Create a reverse range of dates.
+
+             (Date.new 2021 12 10).down_to (Date.new 2021 12 05)
+
+       > Example
+         Create a range containing dates [2021-12-06, 2021-12-05].
+
+             (Date.new 2021 12 06).down_to (Date.new 2021 12 05) include_end=True
+    down_to : Date -> Boolean -> Date_Range
+    down_to self end include_end=False = case end of
+        _ : Date ->
+            effective_end = if include_end then end.previous else end
+            Date_Range.new_internal self effective_end increasing=False step=(Period.new days=1)
+        _ -> Error.throw (Type_Error.Error Date end "end")
 
     ## Shift the date by the specified amount of business days.
 

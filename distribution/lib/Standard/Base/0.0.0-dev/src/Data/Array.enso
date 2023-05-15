@@ -241,6 +241,7 @@ type Array
          If an `Index_Sub_Range`, then the selection is interpreted following
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
+    @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
     take self range=(Index_Sub_Range.First 1) = Vector.take self range
 
@@ -251,6 +252,7 @@ type Array
          If an `Index_Sub_Range`, then the selection is interpreted following
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
+    @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Vector Any
     drop self range=(Index_Sub_Range.First 1) = Vector.drop self range
 
@@ -745,7 +747,9 @@ type Array
     reverse : Vector Any
     reverse self = Vector.reverse self
 
-    ## Applies a function to each element of the array.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each element of the array.
 
        Unlike `map`, this method does not return the individual results,
        therefore it is only useful for side-effecting computations.
@@ -760,7 +764,9 @@ type Array
     each : (Any -> Any) -> Nothing
     each self f = Vector.each self f
 
-    ## Applies a function to each element of the array.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each element of the array.
 
        Arguments:
        - function: A function to apply that takes an index and an item.

@@ -29,6 +29,13 @@ spec = Test.group "Range" <|
         range_3.end . should_equal 0
         range_3.step  . should_equal -1
 
+    Test.specify "should allow to include the end" <|
+        1.up_to 3 include_end=True . to_vector . should_equal [1, 2, 3]
+        3.down_to 1 include_end=True . to_vector . should_equal [3, 2, 1]
+
+        1.up_to 1 include_end=True . to_vector . should_equal [1]
+        1.down_to 1 include_end=True . to_vector . should_equal [1]
+
     Test.specify "should allow creation with Range.new" <|
         Range.new . should_equal (Range.Between 0 100 1)
         Range.new 5 20 . should_equal (Range.Between 5 20 1)

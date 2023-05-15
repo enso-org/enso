@@ -297,6 +297,9 @@ class LanguageServerController(
           s"Received client ($clientId) disconnect request during shutdown. Ignoring."
         )
 
+      case ShutDownServer =>
+        logger.debug(s"Received shutdown request during shutdown. Ignoring.")
+
       case m: StartServer =>
         // This instance has not yet been shut down. Retry
         context.parent.forward(Retry(m))

@@ -1,7 +1,7 @@
 /** Heatmap Visualization. */
 // TODO refactor this to avoid loading on startup. See issue #985 .
 loadScript('https://d3js.org/d3.v4.min.js')
-loadStyle('https://fontlibrary.org/face/dejavu-sans-mono')
+loadStyle('https://fonts.cdnfonts.com/css/dejavu-sans-mono')
 
 /**
  * A d3.js heatmap visualization.

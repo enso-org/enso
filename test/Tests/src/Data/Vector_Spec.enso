@@ -413,7 +413,7 @@ type_spec name alter = Test.group name <|
         vec.slice 1 1 . should_equal []
         vec.slice 0 100 . should_equal [1, 2, 3, 4, 5, 6]
         Meta.is_same_object vec (vec.slice 0 100) . should_be_true
-        Meta.meta Vector . name . should_equal (Meta.get_qualified_type_name (vec.slice 1 1))
+        Meta.get_qualified_type_name (vec.slice 1 1) . should_equal (Meta.meta Vector . qualified_name)
 
     Test.specify "should define take and drop family of operations" <|
         vec = alter [1, 2, 3, 4, 5, 6]
@@ -535,6 +535,22 @@ type_spec name alter = Test.group name <|
         alter ["a"] . drop (Sample 1) . should_equal []
         alter ["a", "a", "a"] . drop (Sample 1) . should_equal ["a", "a"]
         alter ["a", "a", "a"] . drop (Sample 100) . should_equal []
+
+    Test.specify "take/drop should gracefully handle missing constructor arguments" <|
+        [].take "FOO" . should_fail_with Type_Error
+        [].drop "FOO" . should_fail_with Type_Error
+
+        r1 = [].take (Index_Sub_Range.While)
+        r1.should_fail_with Illegal_Argument
+        r1.catch.to_display_text . should_contain "The constructor While is missing some arguments"
+
+        r2 = [].drop (Index_Sub_Range.Every ...)
+        r2.should_fail_with Illegal_Argument
+        r2.catch.to_display_text . should_contain "The constructor Every is missing some arguments"
+
+        r3 = [].take (Index_Sub_Range.First _)
+        r3.should_fail_with Illegal_Argument
+        r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"
 
     Test.specify "should allow getting the last element of the vector" <|
         non_empty_vec = alter [1, 2, 3, 4, 5]
@@ -763,5 +779,10 @@ spec =
         arr
     type_spec "Use Array_Proxy as vectors" v->
         Array_Proxy.new v.length (ix -> v.at ix)
+    type_spec "Use a slice of an array as vectors" v->
+        v2 = v+[Nothing]
+        sliced_vector = v2.slice 0 v.length
+        sliced_array = sliced_vector.to_array
+        sliced_array
 
 main = Test_Suite.run_main spec

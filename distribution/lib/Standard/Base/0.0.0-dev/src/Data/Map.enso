@@ -308,7 +308,9 @@ type Map key value
         self.to_vector.fold init acc-> pair->
             function acc pair.first pair.last
 
-    ## Applies a function to each value in the map.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each value in the map.
 
        Arguments:
        - function: The function to apply to each value in the map, taking a
@@ -329,7 +331,9 @@ type Map key value
         kv_func = _ -> function
         self.each_with_key kv_func
 
-    ## Applies a function to each key-value pair in the map.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each key-value pair in the map.
 
        Arguments:
        - function: The function to apply to each key-value pair in the map,
