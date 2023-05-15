@@ -27,7 +27,7 @@ spec setup =
     supports_dates = setup.test_selection.date_time
     Test.group prefix+"Table/Column.cast - to text" <|
         Test.specify "should allow to cast columns of various basic types to text" <|
-            t = table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]], ["Z", [1.5, 0.0, -2.5]], ["W", ["a", "DEF", "a slightly longer text"]]]
+            t = table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]], ["Z", [1.5, 0.125, -2.5]], ["W", ["a", "DEF", "a slightly longer text"]]]
             t2 = t.cast t.column_names Value_Type.Char
             t2.at "X" . value_type . is_text . should_be_true
             t2.at "Y" . value_type . is_text . should_be_true
@@ -36,7 +36,7 @@ spec setup =
 
             t2.at "X" . to_vector . should_equal ["1", "2", "3000"]
             t2.at "Y" . to_vector . should_equal ["true", "false", "true"]
-            t2.at "Z" . to_vector . should_equal ["1.5", "0.0", "-2.5"]
+            t2.at "Z" . to_vector . should_equal ["1.5", "0.125", "-2.5"]
             t2.at "W" . to_vector . should_equal ["a", "DEF", "a slightly longer text"]
 
         if supports_dates then
@@ -58,28 +58,29 @@ spec setup =
                 c.value_type.is_text . should_be_true
                 c.to_vector . should_equal ["{{{MY Type [x=42] }}}", "{{{MY Type [x=X] }}}"]
 
-        Test.specify "should allow to cast a text column to fixed-length" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
-            t = table_builder [["X", ["a", "DEF", "a slightly longer text"]]]
-            c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
-            c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
-            c.to_vector . should_equal ["a  ", "DEF", "a s"]
+        if setup.test_selection.fixed_length_text_columns then
+            Test.specify "should allow to cast a text column to fixed-length"  <|
+                t = table_builder [["X", ["a", "DEF", "a slightly longer text"]]]
+                c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
+                c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+                c.to_vector . should_equal ["a  ", "DEF", "a s"]
 
-            # No Lossy_Conversion warning here, because we started with text, so it was expected we will trim it if needed.
-            Problems.assume_no_problems c
+                # No Lossy_Conversion warning here, because we started with text, so it was expected we will trim it if needed.
+                Problems.assume_no_problems c
 
-        Test.specify "should allow casting a non-text column to fixed-length text" <|
-            t = table_builder [["X", [1, 22, 333]]]
-            c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
-            c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
-            c.to_vector . should_equal ["1  ", "22 ", "333"]
-            Problems.assume_no_problems c
+            Test.specify "should allow casting a non-text column to fixed-length text" <|
+                t = table_builder [["X", [1, 22, 333]]]
+                c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
+                c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+                c.to_vector . should_equal ["1  ", "22 ", "333"]
+                Problems.assume_no_problems c
 
-        Test.specify "should warn when losing data if the fixed-length text length is too short to fit the data" pending=(if setup.is_database then "Lossy_Conversion is not supported in Database yet.") <|
-            t = table_builder [["X", [15, 1000000, 123456]]]
-            c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
-            c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
-            c.to_vector . should_equal ["15 ", "100", "123"]
-            Problems.expect_warning Lossy_Conversion c
+            Test.specify "should warn when losing data if the fixed-length text length is too short to fit the data" pending=(if setup.is_database then "Lossy_Conversion is not supported in Database yet.") <|
+                t = table_builder [["X", [15, 1000000, 123456]]]
+                c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
+                c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+                c.to_vector . should_equal ["15 ", "100", "123"]
+                Problems.expect_warning Lossy_Conversion c
 
     Test.group prefix+"Table/Column.cast - numeric" <|
         Test.specify "should allow to cast a boolean column to integer" <|
@@ -115,15 +116,15 @@ spec setup =
             c3.to_vector . should_equal [1, 2, 3]
 
         Test.specify "should allow to cast a floating point column to integer" <|
-            t = table_builder [["X", [1.0001, 2.55, 4.0]]]
+            t = table_builder [["X", [1.0001, 2.9, 4.0]]]
             c = t.at "X" . cast Value_Type.Integer
             c.value_type.is_integer . should_be_true
-            c.to_vector . should_equal [1, 3, 4]
+            c.to_vector . should_equal [1, 2, 4]
             # Not reporting Lossy Conversion as converting floats to integers obviously truncates the value.
             Problems.assume_no_problems c
 
     if supports_dates then
-        Test.group prefix+"Table/column.cast - date/time" <|
+        Test.group prefix+"Table/Column.cast - date/time" <|
             Test.specify "should allow to get the Date part from a Date_Time" <|
                 t = table_builder [["X", [Date_Time.new 2015 1 2 3 4 5, Date_Time.new 2023 12 31 23 56 59]]]
                 c = t.at "X" . cast Value_Type.Date
@@ -152,7 +153,7 @@ spec setup =
             t = table_builder [["X", ["1", "2", "3"]]]
             r1 = t.at "X" . cast Value_Type.Integer
             r1.should_fail_with Illegal_Argument
-            r1.to_display_text . should_contain "Use the `parse` method instead."
+            r1.to_display_text . should_contain "`parse` should be used instead"
 
         Test.specify "should work if the first row is NULL" <|
             t = table_builder [["X", [Nothing, 1, 2, 3000]], ["Y", [Nothing, True, False, True]]]
@@ -216,7 +217,7 @@ spec setup =
                 t3.at "Y" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
                 t3.at "Y" . to_vector . should_equal ["a  ", "abc", "abc"]
 
-    Test.group prefix+"Simple variant of Table/Column.parse in all backends" <|
+    Test.group prefix+"Simple variant of Table/Column.parse in all backends" pending=(if setup.is_database then "parse is not yet implemented in DB") <|
         Test.specify "should be able to parse simple integers" <|
             t = table_builder [["X", ["42", "0", "-1"]]]
 

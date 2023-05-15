@@ -10,6 +10,7 @@ import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table import Sort_Column, Data_Formatter, Value_Type, Auto
 from Standard.Table.Errors import Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type, Lossy_Conversion
+from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 
 import project.Connection.Connection.Connection
 import project.Data.SQL_Statement.SQL_Statement
@@ -1002,17 +1003,12 @@ type Column
         _ = [format, locale]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.format` is not implemented yet for the Database backends."
 
-    ## PRIVATE
-       UNSTABLE
-       Cast the column to a specific type.
+    ## Cast the column to a specific type.
 
        Arguments:
        - value_type: The `Value_Type` to cast the column to.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
-
-       TODO [RW] this is a prototype needed for debugging, proper implementation
-       and testing will come with #6112.
 
        In the Database backend, this will boil down to a CAST operation.
        In the in-memory backend, a conversion will be performed according to
@@ -1023,7 +1019,10 @@ type Column
          padded on the right with the space character to match the desired
          length.
        - Conversion between numeric types will replace values exceeding the
-         range of the target type with `Nothing`.
+         range of the target type with `Nothing`. Note that converting floating
+         point numbers into integers may either truncate them or round them,
+         depending on the backend - if more control is needed, `round` should be
+         used instead.
        - Booleans may also be converted to numbers, with `True` being converted
          to `1` and `False` to `0`. The reverse is not supported - use `iif`
          instead.
@@ -1050,14 +1049,15 @@ type Column
          reported.
     cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument | Inexact_Type_Coercion | Lossy_Conversion
     cast self value_type=self.value_type on_problems=Problem_Behavior.Report_Warning =
-        dialect = self.connection.dialect
-        type_mapping = dialect.get_type_mapping
-        target_sql_type = type_mapping.value_type_to_sql value_type on_problems
-        target_sql_type.if_not_error <|
-            infer_from_database new_expression =
-                SQL_Type_Reference.new self.connection self.context new_expression
-            new_column = dialect.make_cast self.as_internal target_sql_type infer_from_database
-            Column.Value new_column.name self.connection new_column.sql_type_reference new_column.expression self.context
+        check_cast_compatibility self.value_type value_type . if_not_error <|
+            dialect = self.connection.dialect
+            type_mapping = dialect.get_type_mapping
+            target_sql_type = type_mapping.value_type_to_sql value_type on_problems
+            target_sql_type.if_not_error <|
+                infer_from_database new_expression =
+                    SQL_Type_Reference.new self.connection self.context new_expression
+                new_column = dialect.make_cast self.as_internal target_sql_type infer_from_database
+                Column.Value new_column.name self.connection new_column.sql_type_reference new_column.expression self.context
 
     ## ALIAS Transform Column
 

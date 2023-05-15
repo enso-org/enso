@@ -1526,9 +1526,7 @@ type Table
         _ = [column, pattern, case_sensitivity, parse_values, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.parse_to_columns is not implemented yet for the Database backends.")
 
-    ## PRIVATE
-       UNSTABLE
-       Cast the selected columns to a specific type.
+    ## Cast the selected columns to a specific type.
 
        Returns a new table in which the selected columns are replaced with
        columns having the new types.
@@ -1539,9 +1537,6 @@ type Table
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-       TODO [RW] this is a prototype needed for debugging, proper implementation
-       and testing will come with #6112.
-
        In the Database backend, this will boil down to a CAST operation.
        In the in-memory backend, a conversion will be performed according to
        the following rules:
@@ -1551,7 +1546,10 @@ type Table
          padded on the right with the space character to match the desired
          length.
        - Conversion between numeric types will replace values exceeding the
-         range of the target type with `Nothing`.
+         range of the target type with `Nothing`. Note that converting floating
+         point numbers into integers may either truncate them or round them,
+         depending on the backend - if more control is needed, `round` should be
+         used instead.
        - Booleans may also be converted to numbers, with `True` being converted
          to `1` and `False` to `0`. The reverse is not supported - use `iif`
          instead.
