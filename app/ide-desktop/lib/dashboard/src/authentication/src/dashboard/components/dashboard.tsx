@@ -250,6 +250,7 @@ function Dashboard(props: DashboardProps) {
     const [selectedAssets, setSelectedAssets] = react.useState<backendModule.Asset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = react.useState(false)
 
+    const [isLoadingAssets, setIsLoadingAssets] = react.useState(true)
     const [projectAssets, setProjectAssetsRaw] = react.useState<
         backendModule.Asset<backendModule.AssetType.project>[]
     >([])
@@ -595,8 +596,10 @@ function Dashboard(props: DashboardProps) {
     hooks.useAsyncEffect(
         null,
         async signal => {
+            setIsLoadingAssets(true)
             const assets = await backend.listDirectory({ parentId: directoryId })
             if (!signal.aborted) {
+                setIsLoadingAssets(false)
                 setAssets(assets)
             }
         },
@@ -706,6 +709,7 @@ function Dashboard(props: DashboardProps) {
                 }}
                 setBackendPlatform={newBackendPlatform => {
                     if (newBackendPlatform !== backend.platform) {
+                        setIsLoadingAssets(true)
                         setProjectAssets([])
                         setDirectoryAssets([])
                         setSecretAssets([])
@@ -843,6 +847,7 @@ function Dashboard(props: DashboardProps) {
                     <Rows<backendModule.Asset<backendModule.AssetType.project>>
                         items={visibleProjectAssets}
                         getKey={proj => proj.id}
+                        isLoading={isLoadingAssets}
                         placeholder={
                             <span className="opacity-75">
                                 You have no project yet. Go ahead and create one using the form
@@ -935,6 +940,7 @@ function Dashboard(props: DashboardProps) {
                                 <Rows<backendModule.Asset<backendModule.AssetType.directory>>
                                     items={visibleDirectoryAssets}
                                     getKey={dir => dir.id}
+                                    isLoading={isLoadingAssets}
                                     placeholder={
                                         <span className="opacity-75">
                                             This directory does not contain any subdirectories
@@ -972,6 +978,7 @@ function Dashboard(props: DashboardProps) {
                                 <Rows<backendModule.Asset<backendModule.AssetType.secret>>
                                     items={visibleSecretAssets}
                                     getKey={secret => secret.id}
+                                    isLoading={isLoadingAssets}
                                     placeholder={
                                         <span className="opacity-75">
                                             This directory does not contain any secrets
@@ -1027,6 +1034,7 @@ function Dashboard(props: DashboardProps) {
                                 <Rows<backendModule.Asset<backendModule.AssetType.file>>
                                     items={visibleFileAssets}
                                     getKey={file => file.id}
+                                    isLoading={isLoadingAssets}
                                     placeholder={
                                         <span className="opacity-75">
                                             This directory does not contain any files

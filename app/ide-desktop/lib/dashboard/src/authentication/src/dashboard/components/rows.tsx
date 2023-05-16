@@ -1,6 +1,19 @@
 /** @file Table that projects an object into each column. */
 import * as react from 'react'
 
+import * as svg from '../../components/svg'
+
+// =================
+// === Constants ===
+// =================
+
+/** The size of the loading spinner. */
+const LOADING_SPINNER_SIZE = 36
+/** The classes for the initial state of the spinner. */
+const SPINNER_INITIAL_CLASSES = 'grow dasharray-5 ease-linear'
+/** The classes for the final state of the spinner. */
+const SPINNER_LOADING_CLASSES = 'grow dasharray-75 duration-1000 ease-linear'
+
 // =============
 // === Types ===
 // =============
@@ -19,6 +32,7 @@ export interface Column<T> {
 interface Props<T> {
     items: T[]
     getKey: (item: T) => string
+    isLoading: boolean
     placeholder: JSX.Element
     columns: Column<T>[]
     onClick: (item: T, event: react.MouseEvent<HTMLTableRowElement>) => void
@@ -27,44 +41,69 @@ interface Props<T> {
 
 /** Table that projects an object into each column. */
 function Rows<T>(props: Props<T>) {
-    const { columns, items, getKey, placeholder, onClick, onContextMenu } = props
-    const headerRow = columns.map(({ heading }, index) => (
-        <th
-            key={index}
-            className="text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-semibold text-left"
-        >
-            {heading}
-        </th>
-    ))
-    const itemRows =
-        items.length === 0 ? (
-            <tr className="h-10">
-                <td colSpan={columns.length}>{placeholder}</td>
-            </tr>
-        ) : (
-            items.map((item, index) => (
-                <tr
-                    key={getKey(item)}
-                    tabIndex={-1}
-                    onClick={event => {
-                        onClick(item, event)
-                    }}
-                    onContextMenu={event => {
-                        onContextMenu(item, event)
-                    }}
-                    className="h-10 transition duration-300 ease-in-out hover:bg-gray-100 focus:bg-gray-200"
+    const { columns, items, isLoading, getKey, placeholder, onClick, onContextMenu } = props
+    const [spinnerClasses, setSpinnerClasses] = react.useState(SPINNER_INITIAL_CLASSES)
+
+    const headerRow = (
+        <tr>
+            {columns.map(({ heading }, index) => (
+                <th
+                    key={index}
+                    className="text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-semibold text-left"
                 >
-                    {columns.map(({ id, render }) => (
-                        <td key={id} className="px-4 border-0 border-r">
-                            {render(item, index)}
-                        </td>
-                    ))}
-                </tr>
-            ))
-        )
+                    {heading}
+                </th>
+            ))}
+        </tr>
+    )
+
+    react.useEffect(() => {
+        if (isLoading) {
+            // Ensure the spinner stays in the "initial" state for at least one frame.
+            requestAnimationFrame(() => {
+                setSpinnerClasses(SPINNER_LOADING_CLASSES)
+            })
+        } else {
+            setSpinnerClasses(SPINNER_INITIAL_CLASSES)
+        }
+    }, [isLoading])
+
+    const itemRows = isLoading ? (
+        <tr className="h-10">
+            <td colSpan={columns.length}>
+                <div className="grid justify-around w-full">
+                    <svg.Spinner size={LOADING_SPINNER_SIZE} className={spinnerClasses} />
+                </div>
+            </td>
+        </tr>
+    ) : items.length === 0 ? (
+        <tr className="h-10">
+            <td colSpan={columns.length}>{placeholder}</td>
+        </tr>
+    ) : (
+        items.map((item, index) => (
+            <tr
+                key={getKey(item)}
+                tabIndex={-1}
+                onClick={event => {
+                    onClick(item, event)
+                }}
+                onContextMenu={event => {
+                    onContextMenu(item, event)
+                }}
+                className="h-10 transition duration-300 ease-in-out hover:bg-gray-100 focus:bg-gray-200"
+            >
+                {columns.map(({ id, render }) => (
+                    <td key={id} className="px-4 border-0 border-r">
+                        {render(item, index)}
+                    </td>
+                ))}
+            </tr>
+        ))
+    )
     return (
         <>
-            <tr>{headerRow}</tr>
+            {headerRow}
             {itemRows}
         </>
     )
