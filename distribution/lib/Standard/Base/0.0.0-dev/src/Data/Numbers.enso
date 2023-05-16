@@ -551,7 +551,7 @@ type Decimal
     ## Truncate a floating-point number to an integer by dropping the fractional
        part. This is equivalent to "round-toward-zero".
     int : Integer
-    int self = @Builtin_Method "Decimal.int_builtin"
+    int self = @Builtin_Method "Decimal.int"
 
     ## Round to a specified number of decimal places.
 
