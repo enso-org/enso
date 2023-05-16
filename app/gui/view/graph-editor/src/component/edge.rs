@@ -27,6 +27,9 @@ const NODE_CORNER_RADIUS: f32 = 14.0;
 const MIN_RADIUS: f32 = 20.0;
 const MAX_RADIUS: f32 = 30.0;
 const TARGET_ATTACHMENT_LENGTH: f32 = 6.0;
+const BACKWARD_EDGE_ARROW_THRESHOLD: f32 = 300.0;
+const ARROW_ARM_LENGTH: f32 = 24.0;
+const ARROW_ARM_WIDTH: f32 = LINE_WIDTH;
 
 
 
@@ -88,8 +91,8 @@ define_endpoints_2! {
         source_attached(bool),
         /// Value used in subsequent `redraw`s.
         set_disabled(bool),
-        /// The typical color of the node; also used to derive the focus color.
-        /// Value used in subsequent `redraw`s.
+        /// The typical color of the node; also used to derive the focus color. Changing this will
+        /// immediately start an animation approaching the target value.
         set_color(color::Lcha),
     }
     Output {
@@ -227,6 +230,8 @@ pub struct EdgeModel {
     /// The end of the edge that is drawn on top of the node and connects to the target node's
     /// input port.
     target_attachment: RefCell<Option<Rectangle>>,
+    /// Arrow drawn on long backward edges to indicate data flow direction.
+    dataflow_arrow:    RefCell<Option<Rectangle>>,
 
     // === Change detection ===
     previous_target:          Cell<Option<Vector2<f32>>>,
@@ -268,6 +273,7 @@ impl EdgeModel {
             hover_sections: default(),
             corner_points: default(),
             target_attachment: default(),
+            dataflow_arrow: default(),
             hover_position: default(),
             disabled: default(),
             previous_target: default(),
@@ -280,6 +286,8 @@ impl EdgeModel {
 
     /// Set the color of the edge.
     fn set_color_and_redraw(&self, color: color::Lcha) {
+        // We must never use alpha in edges, as it will show artifacts with overlapping sub-parts.
+        let color: color::Lcha = color.opaque.into();
         let color_rgba = color::Rgba::from(color);
         self.color.set(color_rgba);
         self.redraw();
@@ -384,6 +392,19 @@ impl EdgeModel {
         new
     }
 
+    fn new_dataflow_arrow(&self) -> Rectangle {
+        let new = Rectangle::new();
+        new.set_size(Vector2(ARROW_ARM_LENGTH, ARROW_ARM_LENGTH));
+        new.set_inset_border(ARROW_ARM_WIDTH);
+        new.set_color(color::Rgba::transparent());
+        new.set_border_color(color::Rgba::transparent());
+        new.set_pointer_events(false);
+        new.set_rotation_z(std::f32::consts::FRAC_PI_4);
+        new.set_clip(Vector2(0.5, 0.5));
+        self.display_object.add_child(&new);
+        new
+    }
+
     fn target_offset(&self) -> Vector2<f32> {
         let target_offset = self.target_position.get() - self.display_object.xy();
         match self.target_attached.get() {
@@ -421,23 +442,64 @@ impl EdgeModel {
             })
             .flatten();
         let hover_split_changed = update_and_compare(&self.previous_hover_split, hover_split);
+        let styles = StyleWatch::new(&self.scene.style_sheet);
         let normal_color = if self.disabled.get() {
-            let styles = StyleWatch::new(&self.scene.style_sheet);
             styles.get_color(theme::code::syntax::disabled)
         } else {
             self.color.get()
         };
         let color_changed = update_and_compare(&self.previous_color, normal_color);
+        let bg_color = styles.get_color(theme::application::background);
+        let focused_color = color::mix(bg_color, normal_color, 0.25);
+        let (source_color, target_color) = match hover_split.map(|split| split.closer_end) {
+            Some(EndPoint::Target) => (focused_color, normal_color),
+            Some(EndPoint::Source) => (normal_color, focused_color),
+            None => (normal_color, normal_color),
+        };
 
         // Create shape objects for the current geometry.
         if target_changed || is_hoverable_changed {
             self.redraw_hover_sections(is_hoverable.then_some(&corners[..]).unwrap_or_default());
         }
         if target_changed || color_changed || hover_split_changed {
-            self.redraw_sections(&corners, normal_color, hover_split);
+            self.redraw_sections(&corners, source_color, target_color, hover_split);
+            self.redraw_dataflow_arrow(target, source_color, target_color, hover_split);
         }
         if target_changed || color_changed || target_attachment_changed {
-            self.redraw_target_attachment(target, normal_color);
+            self.redraw_target_attachment(target, target_color);
+        }
+    }
+
+    fn redraw_dataflow_arrow(
+        &self,
+        offset: Vector2<f32>,
+        source_color: color::Rgba,
+        target_color: color::Rgba,
+        hover_split: Option<EdgeSplit>,
+    ) {
+        let shape = self.dataflow_arrow.take();
+        let points = self.corner_points.borrow();
+        let long_backward_edge = (offset.y() > BACKWARD_EDGE_ARROW_THRESHOLD)
+            || (offset.y() + offset.x().abs() / 2.0 > BACKWARD_EDGE_ARROW_THRESHOLD
+                && offset.y() > 3.0 * ARROW_ARM_LENGTH);
+        let multicorner_layout = points.len() > 2;
+        if long_backward_edge && multicorner_layout {
+            // The points are ordered from source end to destination, and are alternately horizontal
+            // and vertical junctions. The arrow must be in a vertical part of the edge. Place it at
+            // the first vertical junction.
+            let arrow_origin = points[1];
+            let arrow_origin_to_center_of_tip =
+                Vector2(0.0, -(ARROW_ARM_LENGTH - ARROW_ARM_WIDTH) * std::f32::consts::SQRT_2);
+            // The arrow will have the same color as the target-end of the first corner from the
+            // source (this is the `arrow_origin` point).
+            let color = match hover_split.map(|split| split.corner_index) {
+                Some(0) => target_color,
+                _ => source_color,
+            };
+            let shape = shape.unwrap_or_else(|| self.new_dataflow_arrow());
+            shape.set_xy(arrow_origin + arrow_origin_to_center_of_tip);
+            shape.set_border_color(color);
+            self.dataflow_arrow.set(shape);
         }
     }
 
@@ -457,20 +519,13 @@ impl EdgeModel {
     fn redraw_sections(
         &self,
         corners: &[Oriented<Corner>],
-        normal_color: color::Rgba,
+        source_color: color::Rgba,
+        target_color: color::Rgba,
         hover_split: Option<EdgeSplit>,
     ) {
-        let focused_color =
-            color::Rgba(normal_color.red, normal_color.green, normal_color.blue, 0.25);
         let corner_index =
             hover_split.map(|split| split.corner_index).unwrap_or_else(|| corners.len());
-        let closer_end =
-            hover_split.map(|split| split.closer_end).unwrap_or_else(|| EndPoint::Source);
         let split_corner = hover_split.map(|split| split.split_corner);
-        let (source_color, target_color) = match closer_end {
-            EndPoint::Source => (normal_color, focused_color),
-            EndPoint::Target => (focused_color, normal_color),
-        };
         let mut section_factory =
             self.sections.take().into_iter().chain(iter::repeat_with(|| self.new_section()));
         let mut new_sections = self.redraw_complete_sections(
