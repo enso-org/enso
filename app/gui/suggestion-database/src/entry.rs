@@ -432,7 +432,7 @@ impl Entry {
 
     fn code_with_static_this(&self) -> String {
         if let Some(self_type) = &self.self_type {
-            format!("{}{}{}", self_type.alias_name(), opr::predefined::ACCESS, self.name)
+            format!("{}{}{}", self_type.name(), opr::predefined::ACCESS, self.name)
         } else {
             format!("_{}{}", opr::predefined::ACCESS, self.name)
         }
@@ -1085,7 +1085,7 @@ mod test {
         assert_eq!(module_method.code_to_insert(false), "module_method");
         assert_eq!(module_method.code_to_insert(true), "Module.module_method");
         assert_eq!(main_module_method.code_to_insert(false), "module_method");
-        assert_eq!(main_module_method.code_to_insert(true), "Project.module_method");
+        assert_eq!(main_module_method.code_to_insert(true), "Main.module_method");
     }
 
     #[test]

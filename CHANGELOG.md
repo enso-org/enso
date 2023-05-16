@@ -156,11 +156,16 @@
   <kbd>cmd</kbd>+<kbd>alt</kbd>+<kbd>t</kbd>/<kbd>r</kbd>.
 - [Fixed a bug where selecting a nested breadcrumb would cause the order of
   breadcrumbs to change incorrectly.][6617]
+- [When selecting a function from the main module through the component browser,
+  it is now referenced via the `Main` namespace instead of the project
+  namespace,][6719] e.g. `Main.func1` instead of `MyProject.func1`. This makes
+  it robust against project name changes.
 
 [6421]: https://github.com/enso-org/enso/pull/6421
 [6530]: https://github.com/enso-org/enso/pull/6530
 [6620]: https://github.com/enso-org/enso/pull/6620
 [6617]: https://github.com/enso-org/enso/pull/6617
+[6719]: https://github.com/enso-org/enso/pull/6719
 
 #### EnsoGL (rendering engine)
 
