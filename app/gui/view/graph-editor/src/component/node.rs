@@ -103,8 +103,8 @@ pub type Comment = ImString;
 /// A node's background area and selection.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Background {
-    shape: Rectangle,
-    inset: Immutable<f32>,
+    shape:           Rectangle,
+    inset:           Immutable<f32>,
     selection_color: Immutable<color::Rgba>,
 }
 
@@ -122,11 +122,7 @@ impl Background {
         shape.set_border(selection_size);
         shape.set_border_color(color::Rgba::transparent());
         shape.set_inset(inset);
-        Self {
-            shape,
-            inset: Immutable(inset),
-            selection_color: Immutable(selection_color),
-        }
+        Self { shape, inset: Immutable(inset), selection_color: Immutable(selection_color) }
     }
 
     fn set_selected(&self, degree: f32) {
@@ -482,7 +478,7 @@ impl NodeModel {
             style,
             comment,
         }
-            .init()
+        .init()
     }
 
     #[profile(Debug)]

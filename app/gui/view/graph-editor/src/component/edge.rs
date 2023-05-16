@@ -70,17 +70,32 @@ mod arc {
 
 define_endpoints_2! {
     Input {
-        source_width(f32),
-        source_height(f32),
-        target_position(Vector2<f32>),
-        target_attached(bool),
-        source_attached(bool),
+        /// Recompute the layout and update the displayed shapes. As multiple inputs may be changed
+        /// at the same time, this is not performed automatically when any input is changed.
         redraw(),
+        /// The width of the source node in pixels. Value used in subsequent `redraw`s.
+        source_width(f32),
+        /// The height of the source node in pixels. Value used in subsequent `redraw`s.
+        source_height(f32),
+        /// The location of the center of the target node's input port.
+        /// Value used in subsequent `redraw`s.
+        target_position(Vector2<f32>),
+        /// Whether the target end of the edge is attached to a node (If `false`, it is being
+        /// dragged by the mouse.) Value used in subsequent `redraw`s.
+        target_attached(bool),
+        /// Whether the source end of the edge is attached to a node (If `false`, it is being
+        /// dragged by the mouse.) Value used in subsequent `redraw`s.
+        source_attached(bool),
+        /// Value used in subsequent `redraw`s.
         set_disabled(bool),
+        /// The typical color of the node; also used to derive the focus color.
+        /// Value used in subsequent `redraw`s.
         set_color(color::Lcha),
     }
     Output {
+        /// The mouse has clicked to detach the source end of the edge.
         source_click(),
+        /// The mouse has clicked to detach the target end of the edge.
         target_click(),
     }
 }
@@ -129,14 +144,14 @@ impl Edge {
             eval frp.target_position ((t) model.set_target_position(*t));
             eval frp.source_attached ((t) model.set_source_attached(*t));
             eval frp.target_attached ((t) model.set_target_attached(*t));
-            eval frp.source_width    ((t) model.set_source_width(*t));
-            eval frp.source_height   ((t) model.set_source_height(*t));
-            eval frp.set_disabled    ((t) model.set_disabled(*t));
+            eval frp.source_width ((t) model.set_source_width(*t));
+            eval frp.source_height ((t) model.set_source_height(*t));
+            eval frp.set_disabled ((t) model.set_disabled(*t));
 
             // Mouse events.
-            eval mouse_move            ((e) model.set_mouse_position_and_redraw(e.client_centered()));
-            eval_ mouse_out            (model.clear_focus_and_redraw());
-            eval mouse_down            ([model, output] (e) {
+            eval mouse_move ((e) model.set_mouse_position_and_redraw(e.client_centered()));
+            eval_ mouse_out (model.clear_focus_and_redraw());
+            eval mouse_down ([model, output] (e) {
                 match model.closer_end_to_screen_pos(e.client_centered()) {
                     Some(EndPoint::Source) => output.target_click.emit(()),
                     Some(EndPoint::Target) => output.source_click.emit(()),
@@ -146,13 +161,13 @@ impl Edge {
             });
 
             // Redraw event.
-            eval_ frp.redraw                    (model.redraw());
+            eval_ frp.redraw (model.redraw());
 
 
             // === Colors ===
 
-            edge_color.target       <+ frp.set_color;
-            eval edge_color.value       ((color) model.set_color_and_redraw(color.into()));
+            edge_color.target <+ frp.set_color;
+            eval edge_color.value ((color) model.set_color_and_redraw(color.into()));
         }
         Self { model, frp }
     }
@@ -209,8 +224,8 @@ pub struct EdgeModel {
     split_arc:         RefCell<Option<[arc::View; 2]>>,
     /// Wider versions of the [`sections`], for receiving mouse events.
     hover_sections:    RefCell<Vec<Rectangle>>,
-    /// The end of the edge that is drawn on top of the node and connects to the target node's input
-    /// port.
+    /// The end of the edge that is drawn on top of the node and connects to the target node's
+    /// input port.
     target_attachment: RefCell<Option<Rectangle>>,
 
     // === Change detection ===
@@ -282,7 +297,9 @@ impl EdgeModel {
         self.disabled.set(disabled);
     }
 
-    fn source_x_range(&self) -> f32 {
+    /// Return the maximum x-distance from the source (our local coordinate origin) for the point
+    /// where the edge will begin.
+    fn source_max_x_offset(&self) -> f32 {
         match self.source_attached.get() {
             // When attached to a node, our origination point can be anywhere along the length of
             // the node, excluding the rounded edges.
@@ -529,7 +546,7 @@ impl EdgeModel {
     /// Calculate the start and end positions of each 1-corner section composing an edge to the
     /// given offset from this object's `display_object`.
     fn corner_points_to(&self, target: Vector2<f32>) -> Vec<Vector2<f32>> {
-        let source_half_width = self.source_x_range();
+        let source_half_width = self.source_max_x_offset();
         let (target_x, target_y) = (target.x(), target.y());
         if target_y < -MIN_RADIUS
             || (target_y <= 0.0 && target_x.abs() <= source_half_width + 3.0 * MAX_RADIUS)
