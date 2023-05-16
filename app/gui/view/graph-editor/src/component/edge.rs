@@ -23,11 +23,10 @@ use ensogl_hardcoded_theme as theme;
 const LINE_WIDTH: f32 = 4.0;
 const HOVER_EXTENSION: f32 = 10.0;
 const HOVER_WIDTH: f32 = LINE_WIDTH + HOVER_EXTENSION;
-const ARROW_SIZE_X: f32 = 20.0;
-const ARROW_SIZE_Y: f32 = 20.0;
 const NODE_CORNER_RADIUS: f32 = 14.0;
 const MIN_RADIUS: f32 = 20.0;
 const MAX_RADIUS: f32 = 30.0;
+const TARGET_ATTACHMENT_LENGTH: f32 = 6.0;
 
 
 
@@ -62,78 +61,6 @@ mod arc {
         }
     }
 }
-
-macro_rules! define_arrow { () => {
-    /// Shape definition.
-    pub mod arrow {
-        use super::*;
-        ensogl::shape! {
-            above = [joint];
-            alignment = center;
-            (
-                style: Style,
-                focus_split_center: Vector2<f32>,
-                focus_split_angle: f32,
-                color_rgba: Vector4<f32>,
-                focus_color_rgba: Vector4<f32>
-            ) {
-                let width  : Var<Pixels> = "input_size.x".into();
-                let height : Var<Pixels> = "input_size.y".into();
-                let color                = Var::<color::Rgba>::from(color_rgba);
-                let focus_color          = Var::<color::Rgba>::from(focus_color_rgba);
-                let focus_split_angle    = focus_split_angle.into();
-                let focus_split_center   = focus_split_center.px();
-
-                let shape_padding = -1.px();
-                let shape         = Triangle(width+&shape_padding,height+&shape_padding);
-                let shape         = FocusedEdge::new(shape,&focus_split_center,&focus_split_angle);
-                let shape         = shape.fill(&color, &focus_color);
-                shape.into()
-            }
-        }
-
-        impl EdgeShape for View {
-            fn set_focus_split_center_local(&self, center:Vector2<f32>) {
-                // We don't want the arrow to be half-focused. The focus split point is set to the
-                // closest edge (all or nothing).
-                let min = -Vector2(ARROW_SIZE_X,ARROW_SIZE_Y);
-                let max =  Vector2(ARROW_SIZE_X,ARROW_SIZE_Y);
-                let mid =  Vector2::<f32>::zero();
-                let x   = if center.x < mid.x { min.x } else { max.x };
-                let y   = if center.y < mid.y { min.y } else { max.y };
-                self.focus_split_center.set(Vector2(x,y));
-            }
-
-            fn set_focus_split_angle(&self, angle:f32) {
-                 self.focus_split_angle.set(angle);
-            }
-
-            fn events(&self) -> &PointerTarget_DEPRECATED {
-                &self.events_deprecated
-            }
-
-            fn set_color(&self, color:color::Rgba) {
-                self.color_rgba.set(Vector4(color.red,color.green,color.blue,color.alpha));
-            }
-
-            fn set_color_focus(&self, color:color::Rgba) {
-                self.focus_color_rgba.set(Vector4(color.red,color.green,color.blue,color.alpha));
-            }
-
-            fn normal_local(&self, _:Vector2<f32>) -> Rotation2<f32> {
-                Rotation2::new(0.0)
-            }
-
-            fn normal(&self, _point:Vector2<f32>) -> Rotation2<f32> {
-                 Rotation2::new(-RIGHT_ANGLE)
-            }
-
-            fn snap_local(&self, point:Vector2<f32>) -> Option<Vector2<f32>> {
-                Some(Vector2(0.0, point.y))
-            }
-        }
-    }
-}}
 
 
 
@@ -276,18 +203,22 @@ pub struct EdgeModel {
     // === Shapes ===
     /// The individual [`Corner`]s making up the edge. Each is drawn in the focused or unfocused
     /// color.
-    sections:       RefCell<Vec<Rectangle>>,
+    sections:          RefCell<Vec<Rectangle>>,
     /// A pair of [`arc`] shapes used when the mouse is over the rounded corner, and the edge must
     /// must be split into focused and unfocused sides at a certain angle along the arc.
-    split_arc:      RefCell<Option<[arc::View; 2]>>,
+    split_arc:         RefCell<Option<[arc::View; 2]>>,
     /// Wider versions of the [`sections`], for receiving mouse events.
-    hover_sections: RefCell<Vec<Rectangle>>,
+    hover_sections:    RefCell<Vec<Rectangle>>,
+    /// The end of the edge that is drawn on top of the node and connects to the target node's input
+    /// port.
+    target_attachment: RefCell<Option<Rectangle>>,
 
     // === Change detection ===
-    previous_target:       Cell<Option<Vector2<f32>>>,
-    previous_is_hoverable: Cell<Option<bool>>,
-    previous_hover_split:  Cell<Option<EdgeSplit>>,
-    previous_color:        Cell<Option<color::Rgba>>,
+    previous_target:          Cell<Option<Vector2<f32>>>,
+    previous_is_hoverable:    Cell<Option<bool>>,
+    previous_hover_split:     Cell<Option<EdgeSplit>>,
+    previous_color:           Cell<Option<color::Rgba>>,
+    previous_target_attached: Cell<Option<bool>>,
 }
 
 fn update_and_compare<T: Copy + PartialEq<T>, U: Into<Option<T>>>(
@@ -321,12 +252,14 @@ impl EdgeModel {
             split_arc: default(),
             hover_sections: default(),
             corner_points: default(),
+            target_attachment: default(),
             hover_position: default(),
             disabled: default(),
             previous_target: default(),
             previous_is_hoverable: default(),
             previous_hover_split: default(),
             previous_color: default(),
+            previous_target_attached: default(),
         }
     }
 
@@ -424,6 +357,16 @@ impl EdgeModel {
         arc
     }
 
+    fn new_target_attachment(&self) -> Rectangle {
+        let new = Rectangle::new();
+        new.set_size(Vector2(LINE_WIDTH, TARGET_ATTACHMENT_LENGTH));
+        new.set_border_color(color::Rgba::transparent());
+        new.set_pointer_events(false);
+        self.display_object.add_child(&new);
+        self.scene.layers.main_edge_port_attachments_level.add(&new);
+        new
+    }
+
     fn target_offset(&self) -> Vector2<f32> {
         let target_offset = self.target_position.get() - self.display_object.xy();
         match self.target_attached.get() {
@@ -446,6 +389,8 @@ impl EdgeModel {
             self.corner_points.replace(new_corner_points);
         }
         let corners = corners(&self.corner_points.borrow()).collect_vec();
+        let target_attachment_changed =
+            update_and_compare(&self.previous_target_attached, self.target_attached.get());
         let is_hoverable = self.target_attached.get() && self.source_attached.get();
         let is_hoverable_changed = update_and_compare(&self.previous_is_hoverable, is_hoverable);
         let hover_split = is_hoverable
@@ -474,6 +419,9 @@ impl EdgeModel {
         if target_changed || color_changed || hover_split_changed {
             self.redraw_sections(&corners, normal_color, hover_split);
         }
+        if target_changed || color_changed || target_attachment_changed {
+            self.redraw_target_attachment(target, normal_color);
+        }
     }
 
     fn redraw_hover_sections(&self, corners: &[Oriented<Corner>]) {
@@ -496,7 +444,7 @@ impl EdgeModel {
         hover_split: Option<EdgeSplit>,
     ) {
         let focused_color =
-            color::Rgba(normal_color.red, normal_color.green, normal_color.blue, 0.75);
+            color::Rgba(normal_color.red, normal_color.green, normal_color.blue, 0.25);
         let corner_index =
             hover_split.map(|split| split.corner_index).unwrap_or_else(|| corners.len());
         let closer_end =
@@ -566,6 +514,16 @@ impl EdgeModel {
                 shape
             })
             .collect()
+    }
+
+    fn redraw_target_attachment(&self, target: Vector2<f32>, color: color::Rgba) {
+        let shape = self.target_attachment.take();
+        if self.target_attached.get() {
+            let shape = shape.unwrap_or_else(|| self.new_target_attachment());
+            shape.set_xy(target + Vector2(-LINE_WIDTH / 2.0, 0.5 - TARGET_ATTACHMENT_LENGTH));
+            shape.set_color(color);
+            self.target_attachment.set(shape);
+        }
     }
 
     /// Calculate the start and end positions of each 1-corner section composing an edge to the
