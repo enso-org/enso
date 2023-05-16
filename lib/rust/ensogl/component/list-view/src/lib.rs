@@ -141,11 +141,12 @@ impl<E: Entry> Model<E> {
         let entries = entry::List::new(&app);
         let background = Rectangle();
         background.set_border_color(color::Rgba::transparent());
+        background.set_pointer_events(false);
         let overlay = Rectangle();
         overlay.set_border_color(color::Rgba::transparent());
         overlay.set_color(INVISIBLE_HOVER_COLOR);
-        let selection = default();
-        background.set_border_color(color::Rgba::transparent());
+        let selection = Selection::default();
+        selection.shape.set_pointer_events(false);
         display_object.add_child(&background);
         display_object.add_child(&overlay);
         display_object.add_child(&scrolled_area);
