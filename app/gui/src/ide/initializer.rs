@@ -3,14 +3,17 @@
 use crate::prelude::*;
 
 use crate::config;
+use crate::config::ProjectToOpen;
 use crate::ide::Ide;
 use crate::transport::web::WebSocket;
 use crate::FailedIde;
 
 use engine_protocol::project_manager;
+use engine_protocol::project_manager::ProjectName;
 use enso_web::sleep;
 use ensogl::application::Application;
 use std::time::Duration;
+use uuid::Uuid;
 
 
 
@@ -29,6 +32,19 @@ const PROJECT_MANAGER_TIMEOUT_SEC: u64 = 2 * 60 * 60;
 /// The number of retries is equal to this slice length.
 const INITIALIZATION_RETRY_TIMES: &[Duration] =
     &[Duration::from_secs(1), Duration::from_secs(2), Duration::from_secs(4)];
+
+
+
+// ==============
+// === Errors ===
+// ==============
+
+/// Error raised when project with given name was not found.
+#[derive(Clone, Debug, Fail)]
+#[fail(display = "Project '{}' was not found.", name)]
+pub struct ProjectNotFound {
+    name: ProjectToOpen,
+}
 
 
 
@@ -78,36 +94,26 @@ impl Initializer {
         //      issues to user, such information should be properly passed
         //      in case of setup failure.
 
-        match self.initialize_ide_controller_with_retries().await {
-            Ok(controller) => {
-                let ide = Ide::new(ensogl_app, view.clone_ref(), controller);
-                if let Some(project) = &self.config.project_to_open {
-                    ide.open_or_create_project(project.clone());
-                }
-                info!("IDE was successfully initialized.");
-                Ok(ide)
-            }
-            Err(error) => {
-                let message = format!("Failed to initialize application: {error}");
-                status_bar.add_event(ide_view::status_bar::event::Label::new(message));
-                Err(FailedIde { view })
-            }
-        }
-    }
-
-    async fn initialize_ide_controller_with_retries(&self) -> FallibleResult<controller::Ide> {
         let mut retry_after = INITIALIZATION_RETRY_TIMES.iter();
         loop {
             match self.initialize_ide_controller().await {
-                Ok(controller) => break Ok(controller),
+                Ok(controller) => {
+                    let ide = Ide::new(ensogl_app, view.clone_ref(), controller);
+                    info!("Setup done.");
+                    break Ok(ide);
+                }
                 Err(error) => {
-                    error!("Failed to initialize controller: {error}");
+                    let message = format!("Failed to initialize application: {error}");
+                    error!("{message}");
                     match retry_after.next() {
                         Some(time) => {
                             error!("Retrying after {} seconds", time.as_secs_f32());
                             sleep(*time).await;
                         }
-                        None => break Err(error),
+                        None => {
+                            status_bar.add_event(ide_view::status_bar::event::Label::new(message));
+                            break Err(FailedIde { view });
+                        }
                     }
                 }
             }
@@ -124,8 +130,9 @@ impl Initializer {
         match &self.config.backend {
             ProjectManager { endpoint } => {
                 let project_manager = self.setup_project_manager(endpoint).await?;
-                let controller = controller::ide::Desktop::new(project_manager)?;
-                Ok(Rc::new(controller))
+                let project_to_open = self.config.project_to_open.clone();
+                let controller = controller::ide::Desktop::new(project_manager, project_to_open);
+                Ok(Rc::new(controller.await?))
             }
             LanguageServer { json_endpoint, binary_endpoint, namespace, project_name } => {
                 let json_endpoint = json_endpoint.clone();
@@ -160,6 +167,81 @@ impl Initializer {
         project_manager.set_timeout(std::time::Duration::from_secs(PROJECT_MANAGER_TIMEOUT_SEC));
         executor::global::spawn(project_manager.runner());
         Ok(Rc::new(project_manager))
+    }
+}
+
+
+
+// ==========================
+// === WithProjectManager ===
+// ==========================
+
+/// Ide Initializer with project manager.
+///
+/// This structure do the specific initialization part when we are connected to Project Manager,
+/// like list projects, find the one we want to open, open it, or create new one if it does not
+/// exist.
+#[allow(missing_docs)]
+#[derive(Clone, Derivative)]
+#[derivative(Debug)]
+pub struct WithProjectManager {
+    #[derivative(Debug = "ignore")]
+    pub project_manager: Rc<dyn project_manager::API>,
+    pub project_to_open: ProjectToOpen,
+}
+
+impl WithProjectManager {
+    /// Constructor.
+    pub fn new(
+        project_manager: Rc<dyn project_manager::API>,
+        project_to_open: ProjectToOpen,
+    ) -> Self {
+        Self { project_manager, project_to_open }
+    }
+
+    /// Create and initialize a new Project Model, for a project with name passed in constructor.
+    ///
+    /// If the project with given name does not exist yet, it will be created.
+    pub async fn initialize_project_model(self) -> FallibleResult<model::Project> {
+        let project_id = self.get_project_or_create_new().await?;
+        let project_manager = self.project_manager;
+        model::project::Synchronized::new_opened(project_manager, project_id).await
+    }
+
+    /// Creates a new project and returns its id, so the newly connected project can be opened.
+    pub async fn create_project(&self, project_name: &ProjectName) -> FallibleResult<Uuid> {
+        use project_manager::MissingComponentAction::Install;
+        info!("Creating a new project named '{}'.", project_name);
+        let version = &enso_config::ARGS.groups.engine.options.preferred_version.value;
+        let version = (!version.is_empty()).as_some_from(|| version.clone());
+        let response = self.project_manager.create_project(project_name, &None, &version, &Install);
+        Ok(response.await?.project_id)
+    }
+
+    async fn lookup_project(&self) -> FallibleResult<Uuid> {
+        let response = self.project_manager.list_projects(&None).await?;
+        let mut projects = response.projects.iter();
+        projects
+            .find(|project_metadata| self.project_to_open.matches(project_metadata))
+            .map(|md| md.id)
+            .ok_or_else(|| ProjectNotFound { name: self.project_to_open.clone() }.into())
+    }
+
+    /// Look for the project with the name specified when constructing this initializer,
+    /// or, if it does not exist, create it. The id of found/created project is returned.
+    pub async fn get_project_or_create_new(&self) -> FallibleResult<Uuid> {
+        let project = self.lookup_project().await;
+        if let Ok(project_id) = project {
+            Ok(project_id)
+        } else if let ProjectToOpen::Name(name) = &self.project_to_open {
+            info!("Attempting to create {}", name);
+            self.create_project(name).await
+        } else {
+            // This can happen only if we are told to open project by id but it cannot be found.
+            // We cannot fallback to creating a new project in this case, as we cannot create a
+            // project with a given id. Thus, we simply propagate the lookup result.
+            project
+        }
     }
 }
 
@@ -208,10 +290,6 @@ pub fn register_views(app: &Application) {
 mod test {
     use super::*;
 
-    use crate::config::ProjectToOpen;
-    use crate::controller::ide::ManagingProjectAPI;
-    use crate::engine_protocol::project_manager::ProjectName;
-
     use json_rpc::expect_call;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -235,10 +313,9 @@ mod test {
         expect_call!(mock_client.list_projects(count) => Ok(project_lists));
 
         let project_manager = Rc::new(mock_client);
-        let ide_controller = controller::ide::Desktop::new(project_manager).unwrap();
         let project_to_open = ProjectToOpen::Name(project_name);
-        let project_id =
-            ide_controller.find_project(&project_to_open).await.expect("Couldn't get project.");
-        assert_eq!(project_id, expected_id);
+        let initializer = WithProjectManager { project_manager, project_to_open };
+        let project = initializer.get_project_or_create_new().await;
+        assert_eq!(expected_id, project.expect("Couldn't get project."))
     }
 }
