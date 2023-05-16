@@ -113,22 +113,19 @@ impl ParsedContentSummary {
     }
 }
 
-/// The information about state of the module currently held in LanguageServer.
+/// The information about module's state currently held in LanguageServer.
 #[derive(Clone, Debug)]
 enum LanguageServerContent {
     /// The content is synchronized with our module state after last fully handled notification.
     Synchronized(ParsedContentSummary),
-    /// The content is not synchronized with our module state after last fully handled
-    /// notification, probably due to connection error when sending update.
-    Desynchronized(ContentSummary),
+    /// The content is not known due to unrecognized error received from the Language Server after
+    /// applying last update. We don't know if, and in what extend was it applied.
+    Unknown,
 }
 
-impl LanguageServerContent {
-    fn summary(&self) -> &ContentSummary {
-        match self {
-            LanguageServerContent::Synchronized(content) => &content.summary,
-            LanguageServerContent::Desynchronized(content) => content,
-        }
+impl Default for LanguageServerContent {
+    fn default() -> Self {
+        Self::Unknown
     }
 }
 
@@ -141,13 +138,15 @@ impl LanguageServerContent {
 /// A Module which state is synchronized with Language Server using its textual API.
 ///
 /// This struct owns  `model::Module`, load the state during creation and updates LS about all
-/// changes done to it. On drop the module is closed in Language Server.
+/// changes done to it. On drop the module is closed in the Language Server.
 ///
 /// See also (enso protocol documentation)
 /// [https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md].
 #[derive(Debug)]
 pub struct Module {
     model:           model::module::Plain,
+    parser:          Parser,
+    ls_content:      Rc<RefCell<LanguageServerContent>>,
     language_server: Rc<language_server::Connection>,
 }
 
@@ -172,18 +171,22 @@ impl Module {
         let opened = language_server.client.open_text_file(&file_path).await?;
         let content: text::Rope = (&opened.content).into();
         info!("Read content of the module {path}, digest is {:?}", opened.current_version);
+
         let end_of_file_byte = content.last_line_end_location();
         let end_of_file = content.utf16_code_unit_location_of_location(end_of_file_byte);
         let source = parser.parse_with_metadata(opened.content);
         let digest = opened.current_version;
-        let summary = ContentSummary { digest, end_of_file };
+        // FIXME[ao] Two names below are very confusing.
+        let ls_content_summary = ContentSummary { digest, end_of_file };
+
+        let ls_content = default();
         let metadata = source.metadata;
         let ast = source.ast;
         let model = model::module::Plain::new(path, ast, metadata, repository, read_only);
-        let this = Rc::new(Module { model, language_server });
+        let this = Rc::new(Module { model, ls_content, parser, language_server });
+
         let content = this.model.serialized_content()?;
-        let first_invalidation = this.full_invalidation(&summary, content);
-        executor::global::spawn(Self::runner(this.clone_ref(), summary, first_invalidation));
+        executor::global::spawn(Self::runner(this.clone_ref(), content, ls_content_summary));
         Ok(this)
     }
 
@@ -193,23 +196,24 @@ impl Module {
         client.expect.close_text_file(|_| Ok(()));
         // We don't expect any other call, because we don't execute `runner()`.
         let language_server = language_server::Connection::new_mock_rc(client);
-        Rc::new(Module { model, language_server })
+        let ls_content = default();
+        let parser = Parser::new();
+        Rc::new(Module { model, language_server, ls_content, parser })
     }
 
     /// Reload text file from the language server.
-    pub async fn reload_text_file_from_ls(&self, parser: &Parser) -> FallibleResult {
+    pub async fn reload_text_file_from_ls(&self) -> FallibleResult {
         let file_path = self.path();
-        self.language_server.client.close_text_file(file_path).await?;
+        info!("Reloading file {file_path}.");
+        if let Err(error) = self.language_server.client.close_text_file(file_path).await {
+            error!("Error while reloading file {file_path}: Closing operation failed: {error} Trying to open the file anyway.");
+        }
         let opened = self.language_server.client.open_text_file(file_path).await?;
-        self.set_module_content_from_ls(opened.content.into(), parser).await
+        self.set_module_content_from_ls(opened.content.into()).await
     }
 
     /// Apply text changes received from the language server.
-    pub async fn apply_text_change_from_ls(
-        &self,
-        edits: Vec<TextEdit>,
-        parser: &Parser,
-    ) -> FallibleResult {
+    pub async fn apply_text_change_from_ls(&self, edits: Vec<TextEdit>) -> FallibleResult {
         let mut content: text::Rope = self.serialized_content()?.content.into();
         for TextEdit { range, text } in edits {
             let start = content.location_of_utf16_code_unit_location_snapped(range.start.into());
@@ -220,7 +224,7 @@ impl Module {
             let change = TextChange { range, text };
             content.apply_change(change);
         }
-        self.set_module_content_from_ls(content, parser).await
+        self.set_module_content_from_ls(content).await
     }
 
     /// Update the module with content received from the language server. This function takes the
@@ -229,19 +233,16 @@ impl Module {
     /// The module content changes during parsing, and the language server is notified of this
     /// change. Lastly, a notification of `NotificationKind::Reloaded` is emitted to synchronize the
     /// notification handler.
-    async fn set_module_content_from_ls(
-        &self,
-        content: text::Rope,
-        parser: &Parser,
-    ) -> FallibleResult {
+    async fn set_module_content_from_ls(&self, content: text::Rope) -> FallibleResult {
         let transaction = self.undo_redo_repository().transaction("Setting module's content");
         transaction.fill_content(self.id(), self.content().borrow().clone());
-        let parsed_source = parser.parse_with_metadata(content.to_string());
+        let parsed_source = self.parser.parse_with_metadata(content.to_string());
         let source = parsed_source.serialize()?;
         self.content().replace(parsed_source);
         let summary = ContentSummary::new(&content);
         let change = TextEdit::from_prefix_postfix_differences(&content, &source.content);
-        self.notify_language_server(&summary, &source, vec![change], true).await?;
+        // FIXME[ao]: Think about comment here, or a better name for `notify_language_server`/
+        self.notify_language_server(summary.digest, &source, vec![change], true).await;
         let notification = Notification::new(source, NotificationKind::Reloaded);
         self.notify(notification);
         Ok(())
@@ -346,70 +347,43 @@ impl API for Module {
 // === Synchronizing Language Server ===
 
 impl Module {
-    /// Returns the asynchronous task which listens for all module changes and sends proper updates
-    /// to Language Server.
-    fn runner(
-        self: Rc<Self>,
-        initial_ls_content: ContentSummary,
-        first_invalidation: impl Future<Output = FallibleResult<ParsedContentSummary>>,
-    ) -> impl Future<Output = ()> {
+    /// Listen for all module changes and sends proper updates to the Language Server.
+    ///
+    /// This function returns once the  notifications from underlying [module model](plain::Module)
+    /// stream is exhausted. The `self` argument is kept as `Weak` when waiting for next
+    /// notification, so there is no risk of leak.
+    async fn runner(self: Rc<Self>, content: SourceFile, ls_content: ContentSummary) {
+        self.full_invalidation(ls_content, content).await;
+
         let mut subscriber = self.model.subscribe();
-
-        async move {
-            let first_invalidation = first_invalidation.await;
-            let mut ls_content = self.new_ls_content_info(initial_ls_content, first_invalidation);
-            let weak = Rc::downgrade(&self);
-            drop(self);
-
-            loop {
-                let notification = subscriber.next().await;
-                let this = weak.upgrade();
-                match (notification, this) {
-                    (Some(notification), Some(this)) => {
-                        debug!("Processing a notification: {notification:?}");
-                        let result = this.handle_notification(&ls_content, notification).await;
-                        ls_content = this.new_ls_content_info(ls_content.summary().clone(), result)
-                    }
-                    _ => break,
+        let weak = Rc::downgrade(&self);
+        drop(self);
+        loop {
+            let notification = subscriber.next().await;
+            let this = weak.upgrade();
+            match (notification, this) {
+                (Some(notification), Some(this)) => {
+                    debug!("Processing a notification: {notification:?}");
+                    this.handle_notification(notification).await;
                 }
-            }
-        }
-    }
-
-    /// Get the updated Language Server content summary basing on result of some updating function
-    /// (`handle_notification` or `full_invalidation`. If the result is Error, then we assume that
-    /// any change was not applied to Language Server state, and mark the state as `Desynchronized`,
-    /// so any new update attempt should perform full invalidation.
-    fn new_ls_content_info(
-        &self,
-        old_content: ContentSummary,
-        new_content: FallibleResult<ParsedContentSummary>,
-    ) -> LanguageServerContent {
-        match new_content {
-            Ok(new_content) => {
-                debug!("Updating the LS content digest to: {:?}", new_content.summary);
-                LanguageServerContent::Synchronized(new_content)
-            }
-            Err(err) => {
-                error!("Error during sending text change to Language Server: {err}");
-                LanguageServerContent::Desynchronized(old_content)
+                _ => break,
             }
         }
     }
 
     /// Send to LanguageServer update about received notification about module. Returns the new
     /// content summery of Language Server state.
-    async fn handle_notification(
-        &self,
-        content: &LanguageServerContent,
-        notification: Notification,
-    ) -> FallibleResult<ParsedContentSummary> {
+    async fn handle_notification(&self, notification: Notification) {
         let Notification { new_file, kind, profiler } = notification;
         let _profiler = profiler::start_debug!(profiler, "handle_notification");
-        debug!("Handling notification: {content:?}.");
-        match content {
-            LanguageServerContent::Desynchronized(summary) =>
-                profiler::await_!(self.full_invalidation(summary, new_file), _profiler),
+        let current_ls_content = self.ls_content.take();
+        debug!("Handling notification when known LS content is {current_ls_content:?}.");
+        match current_ls_content {
+            LanguageServerContent::Unknown => {
+                if let Err(error) = profiler::await_!(self.reload_text_file_from_ls(), _profiler) {
+                    error!("Error while reloading module model: {error}");
+                }
+            }
             LanguageServerContent::Synchronized(summary) => match kind {
                 NotificationKind::Invalidate =>
                     profiler::await_!(self.partial_invalidation(summary, new_file), _profiler),
@@ -426,8 +400,9 @@ impl Module {
                     };
                     //id_map goes first, because code change may alter its position.
                     let edits = vec![id_map_change, code_change];
-                    let summary = &summary.summary;
-                    let notify_ls = self.notify_language_server(summary, &new_file, edits, true);
+                    let summary_digest = summary.summary.digest;
+                    let notify_ls =
+                        self.notify_language_server(summary_digest, &new_file, edits, true);
                     profiler::await_!(notify_ls, _profiler)
                 }
                 NotificationKind::MetadataChanged => {
@@ -435,27 +410,27 @@ impl Module {
                         range: summary.metadata_engine_range().into(),
                         text:  new_file.metadata_slice().to_string(),
                     }];
-                    let summary = &summary.summary;
-                    let notify_ls = self.notify_language_server(summary, &new_file, edits, false);
+                    let summary_digest = summary.summary.digest;
+                    let notify_ls =
+                        self.notify_language_server(summary_digest, &new_file, edits, false);
                     profiler::await_!(notify_ls, _profiler)
                 }
-                NotificationKind::Reloaded => Ok(ParsedContentSummary::from_source(&new_file)),
+                NotificationKind::Reloaded => {}
             },
         }
     }
 
-    /// Send update to Language Server with the entire file content. Returns the new content summary
-    /// of Language Server state.
+    /// Send update to Language Server with the entire file content.
     #[profile(Debug)]
     fn full_invalidation(
         &self,
-        ls_content: &ContentSummary,
+        ls_content: ContentSummary,
         new_file: SourceFile,
-    ) -> impl Future<Output = FallibleResult<ParsedContentSummary>> + 'static {
+    ) -> impl Future<Output = ()> + 'static {
         debug!("Handling full invalidation: {ls_content:?}.");
         let range = Range::new(Location::default(), ls_content.end_of_file);
         let edits = vec![TextEdit { range: range.into(), text: new_file.content.clone() }];
-        self.notify_language_server(ls_content, &new_file, edits, true)
+        self.notify_language_server(ls_content.digest, &new_file, edits, true)
     }
 
     fn edit_for_snipped(
@@ -502,52 +477,63 @@ impl Module {
         )
     }
 
-    /// Send update to Language Server with the changed file content. Returns the new content
-    /// summary of Language Server state.
+    /// Send update to Language Server with the changed file content.
     ///
     /// Note that a heuristic is used to determine the changed file content. The indicated change
     /// might not be the minimal diff, but will contain all changes.
     #[profile(Debug)]
     fn partial_invalidation(
         &self,
-        ls_content: &ParsedContentSummary,
+        ls_content: ParsedContentSummary,
         new_file: SourceFile,
-    ) -> impl Future<Output = FallibleResult<ParsedContentSummary>> + 'static {
+    ) -> impl Future<Output = ()> + 'static {
         debug!("Handling partial invalidation: {ls_content:?}.");
         let edits = vec![
             //id_map and metadata go first, because code change may alter their position.
-            Self::edit_for_idmap(ls_content, &new_file),
-            Self::edit_for_metadata(ls_content, &new_file),
-            Self::edit_for_code(ls_content, &new_file),
+            Self::edit_for_idmap(&ls_content, &new_file),
+            Self::edit_for_metadata(&ls_content, &new_file),
+            Self::edit_for_code(&ls_content, &new_file),
         ]
         .into_iter()
         .flatten()
         .collect_vec();
-        self.notify_language_server(&ls_content.summary, &new_file, edits, true)
+        self.notify_language_server(ls_content.summary.digest, &new_file, edits, true)
     }
 
     /// This is a helper function with all common logic regarding sending the update to
-    /// Language Server. Returns the new summary of Language Server state.
+    /// Language Server.
+    ///
+    /// The current value of `Self::ls_content` field s not used in this function, but replaced
+    /// with the new one basing on `new_file` argument.
     #[profile(Debug)]
     fn notify_language_server(
         &self,
-        ls_content: &ContentSummary,
+        ls_content_digest: Sha3_224,
         new_file: &SourceFile,
         edits: Vec<TextEdit>,
         execute: bool,
-    ) -> impl Future<Output = FallibleResult<ParsedContentSummary>> + 'static {
+    ) -> impl Future<Output = ()> + 'static {
         let summary = ParsedContentSummary::from_source(new_file);
         let edit = FileEdit {
             edits,
             path: self.path().file_path().clone(),
-            old_version: ls_content.digest.clone(),
+            old_version: ls_content_digest,
             new_version: Sha3_224::new(new_file.content.as_bytes()),
         };
-        debug!("Notifying LS with edit: {edit:#?}.");
         let ls_future_reply = self.language_server.client.apply_text_file_edit(&edit, &execute);
+        let ls_content = self.ls_content.clone_ref();
         async move {
-            ls_future_reply.await?;
-            Ok(summary)
+            debug!("Notifying LS with edit: {edit:#?}.");
+            match ls_future_reply.await {
+                Ok(()) => {
+                    debug!("Updating the LS content digest to: {:?}", summary);
+                    ls_content.replace(LanguageServerContent::Synchronized(summary));
+                }
+                Err(err) => {
+                    error!("Error during sending text change to Language Server: {err}");
+                    ls_content.replace(LanguageServerContent::Unknown);
+                }
+            }
         }
     }
 }
@@ -753,7 +739,7 @@ pub mod test {
 
     // === Test cases ===
 
-    #[wasm_bindgen_test]
+    #[test]
     fn handling_notifications() {
         // The test starts with code as below. Then it replaces the whole AST to print "Test".
         // Then partial edit happens to change Test into Test 2.
@@ -822,7 +808,7 @@ pub mod test {
         Runner::run(test);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn handling_language_server_file_changes() {
         // The test starts with code as below, followed by a full invalidation replacing the whole
         // AST to print "Test". Then the file is changed on the language server side, simulating
@@ -874,18 +860,14 @@ pub mod test {
             };
             edit_handler.update_ls_content(&edit);
             fixture.run_until_stalled();
-            module
-                .apply_text_change_from_ls(vec![edit], &parser)
-                .boxed_local()
-                .expect_ready()
-                .unwrap();
+            module.apply_text_change_from_ls(vec![edit]).boxed_local().expect_ready().unwrap();
             fixture.run_until_stalled();
         };
 
         Runner::run(test);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn handling_notification_after_failure() {
         let initial_code = "main =\n    println \"Hello World!\"";
         let mut data = crate::test::mock::Unified::new();

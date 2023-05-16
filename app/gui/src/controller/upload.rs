@@ -77,6 +77,8 @@ pub struct FileToUpload<DataProvider> {
 #[derive(Clone, Debug)]
 pub struct FileUploadProcess<DataProvider> {
     bin_connection:  Rc<binary::Connection>,
+    // See FIXME in upload_chunk method.
+    #[allow(dead_code)]
     json_connection: Rc<language_server::Connection>,
     file:            FileToUpload<DataProvider>,
     remote_path:     Path,
@@ -149,6 +151,8 @@ impl<DP: DataProvider> FileUploadProcess<DP> {
         }
     }
 
+    // See FIXME in upload_chunk method.
+    #[allow(dead_code)]
     async fn check_checksum(&mut self) -> FallibleResult {
         let remote = self.json_connection.file_checksum(&self.remote_path).await?.checksum;
         let local = Into::<Sha3_224>::into(std::mem::take(&mut self.checksum));
