@@ -835,8 +835,13 @@ object BindingsMap {
     /** @inheritdoc */
     override def module: ModuleReference = tpe.module
 
-    override def findExportedSymbolsFor(name: String): List[ResolvedName] =
-      List(this)
+    override def findExportedSymbolsFor(name: String): List[ResolvedName] = {
+      if (cons.name == name) {
+        List(this)
+      } else {
+        List()
+      }
+    }
 
     override def exportedSymbols: Map[String, List[ResolvedName]] =
       Map(cons.name -> List(this))
@@ -920,8 +925,13 @@ object BindingsMap {
     override def qualifiedName: QualifiedName =
       module.getName.createChild(method.name)
 
-    override def findExportedSymbolsFor(name: String): List[ResolvedName] =
-      List(this)
+    override def findExportedSymbolsFor(name: String): List[ResolvedName] = {
+      if (method.name == name) {
+        List(this)
+      } else {
+        List()
+      }
+    }
 
     override def exportedSymbols: Map[String, List[ResolvedName]] =
       Map(method.name -> List(this))
