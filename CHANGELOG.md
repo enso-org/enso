@@ -156,8 +156,10 @@
   <kbd>cmd</kbd>+<kbd>alt</kbd>+<kbd>t</kbd>/<kbd>r</kbd>.
 - [Fixed a bug where selecting a nested breadcrumb would cause the order of
   breadcrumbs to change incorrectly.][6617]
-- [Cloud Dashboard, which supersedes the startup screen][6279]. Features also
-  added in various other PRs.
+- [Cloud dashboard, which supersedes the startup screen][6279]. Features also
+  added in various other PRs. The new dashboard includes tables for projects,
+  folders, files and secrets, a list of templates from which new projects can be
+  created, a user menu, and a search bar.
 
 [6279]: https://github.com/enso-org/enso/pull/6279
 [6421]: https://github.com/enso-org/enso/pull/6421
