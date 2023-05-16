@@ -341,7 +341,7 @@ impl EdgeModel {
         let pos = scene_pos - self.display_object.xy();
 
         let corners = corners(&self.corner_points.borrow()).collect_vec();
-        find_position(pos, &corners).map(|split| split.closer_end)
+        find_position(pos, &corners, self.source_height.get()).map(|split| split.closer_end)
     }
 
     fn set_mouse_position_and_redraw(&self, screen_pos: Vector2<f32>) {
@@ -438,7 +438,9 @@ impl EdgeModel {
                 // not within the bounding box of any of our shapes, in which case `find_position`
                 // here will return `None`. We treat it the same way as a
                 // `mouse::Out` event.
-                self.hover_position.get().and_then(|position| find_position(position, &corners))
+                self.hover_position.get().and_then(|position| {
+                    find_position(position, &corners, self.source_height.get())
+                })
             })
             .flatten();
         let hover_split_changed = update_and_compare(&self.previous_hover_split, hover_split);
@@ -660,7 +662,11 @@ enum EndPoint {
 /// is closer to the point, and information about how the corner under the point has been split.
 ///
 /// Returns [`None`] if the point is not on the edge.
-fn find_position(position: Vector2<f32>, corners: &[Oriented<Corner>]) -> Option<EdgeSplit> {
+fn find_position(
+    position: Vector2<f32>,
+    corners: &[Oriented<Corner>],
+    source_height: f32,
+) -> Option<EdgeSplit> {
     let corner_index = corners
         .iter()
         .position(|&corner| corner.bounding_box(HOVER_WIDTH).contains_inclusive(position))?;
@@ -670,11 +676,19 @@ fn find_position(position: Vector2<f32>, corners: &[Oriented<Corner>]) -> Option
         full_corners.iter().map(|&corner| corner.rectilinear_length()).sum();
     let following_distance: f32 =
         following_corners.iter().map(|&corner| corner.rectilinear_length()).sum();
-    let total_distance = full_corners_distance + following_distance;
+    let target_attachment_distance = TARGET_ATTACHMENT_LENGTH;
+    // The source end of the edge is on a horizontal line through the center of the source node
+    // (this gives nice behavior when the edge exits the end at an angle). To accurately determine
+    // which end a point appears closer to, we must exclude the portion of the edge that is hidden
+    // under the source node.
+    let hidden_source_distance = source_height / 2.0;
+    let total_distance = full_corners_distance + following_distance - hidden_source_distance
+        + target_attachment_distance;
     let offset_from_partial_corner = position - corners[corner_index].source_end();
     let partial_corner_distance =
         offset_from_partial_corner.x().abs() + offset_from_partial_corner.y().abs();
-    let distance_from_source = full_corners_distance + partial_corner_distance;
+    let distance_from_source =
+        full_corners_distance + partial_corner_distance - hidden_source_distance;
     let closer_end = match distance_from_source * 2.0 < total_distance {
         true => EndPoint::Source,
         false => EndPoint::Target,
