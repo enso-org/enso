@@ -2,6 +2,7 @@
  * provider via the shared React context. */
 import * as react from 'react'
 
+import * as backendModule from '../dashboard/backend'
 import * as localBackend from '../dashboard/localBackend'
 import * as remoteBackend from '../dashboard/remoteBackend'
 
@@ -25,9 +26,7 @@ export interface BackendContextType {
 // as `backend` will always be accessed using `useBackend`.
 const BackendContext = react.createContext<BackendContextType>(null)
 
-export interface BackendProviderProps extends React.PropsWithChildren<object> {
-    initialBackend: AnyBackendAPI
-}
+export interface BackendProviderProps extends React.PropsWithChildren<object> {}
 
 // =======================
 // === BackendProvider ===
@@ -35,10 +34,14 @@ export interface BackendProviderProps extends React.PropsWithChildren<object> {
 
 /** A React Provider that lets components get and set the current backend. */
 export function BackendProvider(props: BackendProviderProps) {
-    const { initialBackend, children } = props
+    const { children } = props
     const [backend, setBackend] = react.useState<
         localBackend.LocalBackend | remoteBackend.RemoteBackend
-    >(initialBackend)
+    >(() => new localBackend.LocalBackend())
+    react.useEffect(() => {
+        localStorage.setItem(backendModule.BACKEND_TYPE_KEY, backend.platform)
+    }, [backend])
+
     return (
         <BackendContext.Provider value={{ backend, setBackend }}>
             {children}

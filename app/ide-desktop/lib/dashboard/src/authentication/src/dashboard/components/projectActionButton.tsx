@@ -40,19 +40,22 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
 export interface ProjectActionButtonProps {
     project: backendModule.Asset<backendModule.AssetType.project>
     appRunner: AppRunner | null
+    /** Whether this Project should open immediately. */
+    shouldOpenImmediately: boolean
     onClose: () => void
     openIde: () => void
 }
 
 /** An interactive button displaying the status of a project. */
 function ProjectActionButton(props: ProjectActionButtonProps) {
-    const { project, onClose, appRunner, openIde } = props
+    const { project, onClose, shouldOpenImmediately, appRunner, openIde } = props
     const { backend } = backendProvider.useBackend()
 
     const [state, setState] = react.useState(backendModule.ProjectState.created)
     const [isCheckingStatus, setIsCheckingStatus] = react.useState(false)
     const [isCheckingResources, setIsCheckingResources] = react.useState(false)
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
+    const [shouldOpenWhenReady, setShouldOpenWhenReady] = react.useState(false)
 
     react.useEffect(() => {
         void (async () => {
@@ -64,6 +67,32 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             }
         })()
     }, [])
+
+    react.useEffect(() => {
+        if (shouldOpenImmediately) {
+            setShouldOpenWhenReady(true)
+            switch (state) {
+                case backendModule.ProjectState.opened: {
+                    setIsCheckingResources(true)
+                    break
+                }
+                case backendModule.ProjectState.openInProgress: {
+                    break
+                }
+                default: {
+                    void openProject()
+                    break
+                }
+            }
+        }
+    }, [shouldOpenImmediately])
+
+    react.useEffect(() => {
+        if (shouldOpenWhenReady && state === backendModule.ProjectState.opened) {
+            openIde()
+            setShouldOpenWhenReady(false)
+        }
+    }, [shouldOpenWhenReady, state])
 
     react.useEffect(() => {
         if (backend.platform === platform.Platform.desktop) {

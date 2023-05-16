@@ -1,6 +1,15 @@
 /** @file Type definitions common between all backends. */
+import * as common from 'enso-common'
+
 import * as newtype from '../newtype'
 import * as platform from '../platform'
+
+// =================
+// === Constants ===
+// =================
+
+/** The `localStorage` key under which the type of the current backend is stored. */
+export const BACKEND_TYPE_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-backend-type`
 
 // =============
 // === Types ===

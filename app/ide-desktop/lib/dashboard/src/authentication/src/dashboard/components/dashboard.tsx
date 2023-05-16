@@ -94,8 +94,6 @@ const EXPERIMENTAL = {
 const IDE_ELEMENT_ID = 'root'
 /** The `localStorage` key under which the ID of the current directory is stored. */
 const DIRECTORY_STACK_KEY = 'enso-dashboard-directory-stack'
-/** The `localStorage` key under which the type of the current backend is stored. */
-const BACKEND_TYPE_KEY = 'enso-dashboard-backend-type'
 
 /** English names for the name column. */
 const ASSET_TYPE_NAME: Record<backendModule.AssetType, string> = {
@@ -241,7 +239,8 @@ function Dashboard(props: DashboardProps) {
 
     const [refresh, doRefresh] = hooks.useRefresh()
 
-    const [isBackendRestored, setIsBackendRestored] = react.useState(false)
+    const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
+        react.useState(initialProjectName)
     const [query, setQuery] = react.useState('')
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
     const [directoryStack, setDirectoryStack] = react.useState<
@@ -305,38 +304,6 @@ function Dashboard(props: DashboardProps) {
             document.removeEventListener('keydown', onKeyDown)
         }
     }, [])
-
-    react.useEffect(() => {
-        const backendType = localStorage.getItem(BACKEND_TYPE_KEY)
-        if (backendType != null) {
-            // This is fully safe as the `localStorage` key is only set in the `useEffect` right
-            // below this one.
-            // eslint-disable-next-line no-restricted-syntax
-            setBackendPlatform(backendType as platformModule.Platform)
-            setIsBackendRestored(true)
-        }
-    }, [])
-
-    react.useEffect(() => {
-        localStorage.setItem(BACKEND_TYPE_KEY, backend.platform)
-    }, [backend])
-
-    react.useEffect(() => {
-        if (initialProjectName != null && isBackendRestored) {
-            void (async () => {
-                const listedProjects = await backend.listProjects()
-                const foundProject = listedProjects.find(
-                    listedProject => listedProject.name === initialProjectName
-                )
-                if (!foundProject) {
-                    logger.error(`Could not find project with name '${initialProjectName}'.`)
-                } else {
-                    await backend.openProject(foundProject.projectId)
-                    await openIde(foundProject.projectId)
-                }
-            })()
-        }
-    }, [initialProjectName, isBackendRestored])
 
     const openIde = async (projectId: backendModule.ProjectId) => {
         setTab(Tab.ide)
@@ -464,6 +431,7 @@ function Dashboard(props: DashboardProps) {
                 <ProjectActionButton
                     project={projectAsset}
                     appRunner={appRunner}
+                    shouldOpenImmediately={nameOfProjectToImmediatelyOpen === projectAsset.title}
                     onClose={() => {
                         setProject(null)
                     }}
@@ -649,6 +617,9 @@ function Dashboard(props: DashboardProps) {
         setDirectoryAssets(newDirectoryAssets)
         setSecretAssets(newSecretAssets)
         setFileAssets(newFileAssets)
+        setTimeout(() => {
+            setNameOfProjectToImmediatelyOpen(null)
+        }, 0)
     }
 
     hooks.useAsyncEffect(

@@ -7,6 +7,8 @@ import * as react from 'react'
 import * as router from 'react-router-dom'
 import toast from 'react-hot-toast'
 
+import * as common from 'enso-common'
+
 import * as app from '../../components/app'
 import * as authServiceModule from '../service'
 import * as backendModule from '../../dashboard/backend'
@@ -34,6 +36,8 @@ const MESSAGES = {
     signOutSuccess: 'Successfully logged out!',
     pleaseWait: 'Please wait...',
 } as const
+/** The `localStorage` key under which the type of the current backend is stored. */
+const BACKEND_TYPE_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-backend-type`
 
 // =============
 // === Types ===
@@ -169,7 +173,11 @@ export function AuthProvider(props: AuthProviderProps) {
                 headers.append('Authorization', `Bearer ${accessToken}`)
                 const client = new http.Client(headers)
                 const backend = new remoteBackend.RemoteBackend(client, logger)
-                setBackend(backend)
+                // This will catch all invalid values, and `null`. It will not mistakenly catch
+                // any valid values, as there are currently only two valid platforms.
+                if (localStorage.getItem(BACKEND_TYPE_KEY) !== platform.Platform.desktop) {
+                    setBackend(backend)
+                }
                 const organization = await backend.usersMe().catch(() => null)
                 let newUserSession: UserSession
                 if (!organization) {

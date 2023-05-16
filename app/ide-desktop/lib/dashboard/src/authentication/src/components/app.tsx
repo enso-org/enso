@@ -39,7 +39,6 @@ import * as router from 'react-router-dom'
 import * as toast from 'react-hot-toast'
 
 import * as authService from '../authentication/service'
-import * as localBackend from '../dashboard/localBackend'
 import * as platformModule from '../platform'
 
 import * as authProvider from '../authentication/providers/auth'
@@ -166,7 +165,7 @@ function AppRouter(props: AppProps) {
                 userSession={userSession}
                 registerAuthEventListener={registerAuthEventListener}
             >
-                <backendProvider.BackendProvider initialBackend={new localBackend.LocalBackend()}>
+                <backendProvider.BackendProvider>
                     <authProvider.AuthProvider
                         authService={memoizedAuthService}
                         onAuthenticated={onAuthenticated}
