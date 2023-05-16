@@ -9,11 +9,11 @@ import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(
     type = "Meta",
-    name = "get_constructor_name",
-    description = "Gets the name of a constructor.",
+    name = "get_short_type_name",
+    description = "Gets the short name of a Type.",
     autoRegister = false)
-public class GetConstructorNameNode extends Node {
-  Text execute(AtomConstructor cons) {
-    return Text.create(cons.getName());
+public class GetShortTypeNameNode extends Node {
+  Text execute(Type type) {
+    return Text.create(type.getName());
   }
 }

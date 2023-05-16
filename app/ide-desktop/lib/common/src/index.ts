@@ -5,10 +5,6 @@
  * here when it is not possible for a sibling package to own that code without introducing a
  * circular dependency in our packages. */
 
-// ================
-// === Platform ===
-// ================
-
 /** URL protocol scheme for deep links to authentication flow pages, without the `:` suffix.
  *
  * For example: the deep link URL

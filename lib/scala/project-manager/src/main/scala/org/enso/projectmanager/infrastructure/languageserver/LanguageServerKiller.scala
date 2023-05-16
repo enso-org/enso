@@ -2,6 +2,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import akka.actor.{Actor, ActorRef, Cancellable, PoisonPill, Props, Terminated}
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.projectmanager.event.ProjectEvent.ProjectClosed
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.ShutDownServer
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerKiller.KillTimeout
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
@@ -10,6 +11,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProto
 }
 import org.enso.projectmanager.util.UnhandledLogging
 
+import java.util.UUID
 import scala.concurrent.duration.FiniteDuration
 
 /** An actor that shuts all running language servers. It orchestrates all
@@ -20,7 +22,7 @@ import scala.concurrent.duration.FiniteDuration
   * @param shutdownTimeout a shutdown timeout
   */
 class LanguageServerKiller(
-  controllers: List[ActorRef],
+  controllers: Map[UUID, ActorRef],
   shutdownTimeout: FiniteDuration
 ) extends Actor
     with LazyLogging
@@ -34,20 +36,22 @@ class LanguageServerKiller(
       context.stop(self)
     } else {
       logger.info("Killing all servers [{}].", controllers)
-      controllers.foreach(context.watch)
-      controllers.foreach(_ ! ShutDownServer)
+      controllers.foreach { case (_, ref) =>
+        context.watch(ref)
+        ref ! ShutDownServer
+      }
       val cancellable =
         context.system.scheduler.scheduleOnce(
           shutdownTimeout,
           self,
           KillTimeout
         )
-      context.become(killing(controllers.toSet, cancellable, sender()))
+      context.become(killing(controllers.map(_.swap), cancellable, sender()))
     }
   }
 
   private def killing(
-    liveControllers: Set[ActorRef],
+    liveControllers: Map[ActorRef, UUID],
     cancellable: Cancellable,
     replyTo: ActorRef
   ): Receive = {
@@ -63,7 +67,13 @@ class LanguageServerKiller(
       }
 
     case KillTimeout =>
-      liveControllers.foreach(_ ! PoisonPill)
+      logger.warn(
+        s"Not all language servers' controllers finished on time. Forcing termination."
+      )
+      liveControllers.foreach { case (actorRef, projectId) =>
+        actorRef ! PoisonPill
+        context.system.eventStream.publish(ProjectClosed(projectId))
+      }
       context.stop(self)
   }
 
@@ -80,7 +90,7 @@ object LanguageServerKiller {
     * @return a configuration object
     */
   def props(
-    controllers: List[ActorRef],
+    controllers: Map[UUID, ActorRef],
     shutdownTimeout: FiniteDuration
   ): Props = Props(new LanguageServerKiller(controllers, shutdownTimeout))
 

@@ -143,7 +143,7 @@ type Test
 
     ## PRIVATE
        Reports an unexpected dataflow error has occurred.
-    fail_match_on_unexpected_error : Error.Error -> Integer -> Nothing
+    fail_match_on_unexpected_error : Error -> Integer -> Nothing
     fail_match_on_unexpected_error error frames_to_skip =
         payload = error.catch
         loc = Meta.get_source_location 1+frames_to_skip
