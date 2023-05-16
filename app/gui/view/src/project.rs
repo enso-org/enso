@@ -29,12 +29,14 @@ use ensogl_component::text;
 use ensogl_component::text::selection::Selection;
 use ensogl_hardcoded_theme::Theme;
 use ide_view_graph_editor::NodeSource;
-use top_bar_component::TopBarComponent;
+use project_view_top_bar::ProjectViewTopBar;
 
 
+// ==============
+// === Export ===
+// ==============
 
-mod go_to_dashboard_button;
-mod top_bar_component;
+pub mod project_view_top_bar;
 
 
 
@@ -144,18 +146,16 @@ ensogl::define_endpoints! {
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    app:                    Application,
-    display_object:         display::object::Instance,
-    /// These buttons are present only in a cloud environment.
-    window_control_buttons: TopBarComponent<crate::window_control_buttons::View>,
-    go_to_dashboard_button: go_to_dashboard_button::View,
-    graph_editor:           Rc<GraphEditor>,
-    searcher:               component_browser::View,
-    code_editor:            code_editor::View,
-    fullscreen_vis:         Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
-    project_list:           Rc<ProjectList>,
-    debug_mode_popup:       debug_mode_popup::View,
-    popup:                  popup::View,
+    app:                  Application,
+    display_object:       display::object::Instance,
+    project_view_top_bar: ProjectViewTopBar,
+    graph_editor:         Rc<GraphEditor>,
+    searcher:             component_browser::View,
+    code_editor:          code_editor::View,
+    fullscreen_vis:       Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
+    project_list:         Rc<ProjectList>,
+    debug_mode_popup:     debug_mode_popup::View,
+    popup:                popup::View,
 }
 
 impl Model {
@@ -167,9 +167,7 @@ impl Model {
         let fullscreen_vis = default();
         let debug_mode_popup = debug_mode_popup::View::new(app);
         let popup = popup::View::new(app);
-        let window_control_buttons =
-            TopBarComponent::new(app, app.new_view::<crate::window_control_buttons::View>());
-        let go_to_dashboard_button = go_to_dashboard_button::View::new(app);
+        let project_view_top_bar = ProjectViewTopBar::new(app);
         let project_list = Rc::new(ProjectList::new(app));
 
         display_object.add_child(&graph_editor);
@@ -177,8 +175,7 @@ impl Model {
         display_object.add_child(&searcher);
         display_object.add_child(&debug_mode_popup);
         display_object.add_child(&popup);
-        display_object.add_child(&window_control_buttons);
-        display_object.add_child(&go_to_dashboard_button);
+        display_object.add_child(&project_view_top_bar);
         display_object.remove_child(&searcher);
 
         let app = app.clone_ref();
@@ -186,8 +183,7 @@ impl Model {
         Self {
             app,
             display_object,
-            window_control_buttons,
-            go_to_dashboard_button,
+            project_view_top_bar,
             graph_editor,
             searcher,
             code_editor,
@@ -267,26 +263,18 @@ impl Model {
         }
     }
 
-    // Relayouts the top bar elements and returns the new width of the top bar part of the project
-    // view.
-    fn relayout_top_bar(
+    fn position_project_view_top_bar(
         &self,
         scene_shape: &display::scene::Shape,
-        window_control_buttons_width: f32,
-    ) -> f32 {
+        project_view_top_bar_size: Vector2,
+    ) {
         let top_left = Vector2(-scene_shape.width, scene_shape.height) / 2.0;
-        self.window_control_buttons.set_xy(top_left);
-        let go_to_dashboard_button_offset = Vector2(window_control_buttons_width, 0.0);
-        let go_to_dashboard_button_origin = Vector2(
-            go_to_dashboard_button::SIZE / 2.0,
-            crate::graph_editor::MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER,
+        let project_view_top_bar_origin = Vector2(
+            0.0,
+            crate::graph_editor::MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER
+                - project_view_top_bar_size.y / 2.0,
         );
-        let go_to_dashboard_button_pos =
-            top_left + go_to_dashboard_button_offset + go_to_dashboard_button_origin;
-        self.go_to_dashboard_button.set_xy(go_to_dashboard_button_pos);
-        let project_view_top_bar_width =
-            go_to_dashboard_button_offset.x + go_to_dashboard_button::SIZE;
-        project_view_top_bar_width
+        self.project_view_top_bar.set_xy(top_left + project_view_top_bar_origin);
     }
 
     fn on_close_clicked(&self) {
@@ -386,7 +374,7 @@ impl View {
         let frp = Frp::new();
         let network = &frp.network;
         let searcher = &model.searcher.frp();
-        let window_control_buttons = &model.window_control_buttons;
+        let project_view_top_bar = &model.project_view_top_bar;
         let graph = &model.graph_editor.frp;
         let code_editor = &model.code_editor;
         let project_list = &model.project_list;
@@ -399,43 +387,32 @@ impl View {
 
         frp::extend! { network
             init <- source_();
-        }
+
+            eval_ frp.show_graph_editor(model.show_graph_editor());
+            eval_ frp.hide_graph_editor(model.hide_graph_editor());
 
 
-        // === Top Bar ===
+            // === Project View Top Bar ===
 
-        let scene_shape = scene.shape().clone_ref();
-        let go_to_dashboard_button = &model.go_to_dashboard_button.frp;
-        frp::extend! { network
-            window_control_buttons_width_uninitialized <-
-                init.constant(crate::graph_editor::TOP_BAR_ITEM_MARGIN);
-            let window_control_buttons_display_object = window_control_buttons.display_object();
-            window_control_buttons_width_initialized <-
-                window_control_buttons_display_object.on_resized.map(|new_size| new_size.x);
-            window_control_buttons_width <- any(
-                window_control_buttons_width_uninitialized,
-                window_control_buttons_width_initialized
-            );
+            let window_control_buttons = &project_view_top_bar.window_control_buttons;
             eval_ window_control_buttons.close (model.on_close_clicked());
             eval_ window_control_buttons.fullscreen (model.on_fullscreen_clicked());
-
+            let go_to_dashboard_button = &project_view_top_bar.go_to_dashboard_button;
             frp.source.go_to_dashboard_button_pressed <+
                 go_to_dashboard_button.is_pressed.on_true();
 
-            project_view_top_bar_width <- all_with3(
+            let project_view_top_bar_display_object = project_view_top_bar.display_object();
+            _eval <- all_with3(
                 &init,
-                &scene_shape,
-                &window_control_buttons_width,
-                f!((_, scene_shape, window_control_buttons_width)
-                    model.relayout_top_bar(scene_shape, *window_control_buttons_width)
+                scene.shape(),
+                &project_view_top_bar_display_object.on_resized,
+                f!((_, scene_shape, project_view_top_bar_size)
+                   model.position_project_view_top_bar(scene_shape, *project_view_top_bar_size)
                 )
             );
+            project_view_top_bar_width <-
+                project_view_top_bar_display_object.on_resized.map(|new_size| new_size.x);
             graph.graph_editor_top_bar_offset_x <+ project_view_top_bar_width;
-        }
-
-        frp::extend! { network
-            eval_ frp.show_graph_editor(model.show_graph_editor());
-            eval_ frp.hide_graph_editor(model.hide_graph_editor());
 
 
             // === Read-only mode ===
@@ -671,9 +648,6 @@ impl View {
         }
 
         init.emit(());
-        if ARGS.groups.startup.options.platform.value == "web" {
-            window_control_buttons.show();
-        }
 
         Self { model, frp }
     }

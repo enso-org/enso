@@ -115,7 +115,7 @@ pub const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
     -MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET - MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT / 2.0;
 const MAX_ZOOM: f32 = 1.0;
 /// Space between items in the top bar.
-pub const TOP_BAR_ITEM_MARGIN: f32 = 10.0;
+const TOP_BAR_ITEM_MARGIN: f32 = 10.0;
 
 fn traffic_lights_gap_width() -> f32 {
     let platform_str = ARGS.groups.startup.options.platform.value.as_str();
@@ -124,7 +124,7 @@ fn traffic_lights_gap_width() -> f32 {
     if is_macos && !ARGS.groups.window.options.frame.value {
         MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH + MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET
     } else {
-        TOP_BAR_ITEM_MARGIN
+        0.0
     }
 }
 

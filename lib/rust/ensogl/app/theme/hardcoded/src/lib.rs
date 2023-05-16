@@ -405,12 +405,6 @@ define_themes! { [light:0, dark:1]
         window_control_buttons {
             radius  = 6.5, 6.5;
             spacing = application::window_control_buttons::radius, application::window_control_buttons::radius;
-            padding {
-                left   = 13.0, 13.0;
-                top    = 13.0, 13.0;
-                right  = 13.0, 13.0;
-                bottom = 13.0, 13.0;
-            }
 
             close {
                 normal {
