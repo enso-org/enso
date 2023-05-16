@@ -24,7 +24,6 @@ import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.File_Access.File_Access
 import project.System.File.File_Permissions.File_Permissions
 
-from project.Data.Boolean import Boolean, True, False
 from project.System.File_Format import Auto_Detect, File_Format, format_widget
 
 import project.Metadata.Widget
