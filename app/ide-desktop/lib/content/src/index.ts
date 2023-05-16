@@ -187,13 +187,7 @@ class Main implements AppRunner {
         const isOpeningMainEntryPoint =
             contentConfig.OPTIONS.groups.startup.options.entry.value ===
             contentConfig.OPTIONS.groups.startup.options.entry.default
-        const isNotOpeningProject =
-            contentConfig.OPTIONS.groups.startup.options.project.value === ''
-        if (
-            (isUsingAuthentication || isUsingNewDashboard) &&
-            isOpeningMainEntryPoint &&
-            isNotOpeningProject
-        ) {
+        if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningMainEntryPoint) {
             const hideAuth = () => {
                 const auth = document.getElementById('dashboard')
                 const ide = document.getElementById('root')
@@ -230,12 +224,18 @@ class Main implements AppRunner {
                     }
                 }
             }
+            let initialProjectName: string | null =
+                contentConfig.OPTIONS.groups.startup.options.project.value
+            if (initialProjectName === '') {
+                initialProjectName = null
+            }
             authentication.run({
                 appRunner: this,
                 logger,
                 platform,
                 showDashboard:
                     contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
+                initialProjectName: initialProjectName,
                 onAuthenticated,
             })
         } else {

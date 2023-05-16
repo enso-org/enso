@@ -39,6 +39,7 @@ import * as router from 'react-router-dom'
 import * as toast from 'react-hot-toast'
 
 import * as authService from '../authentication/service'
+import * as localBackend from '../dashboard/localBackend'
 import * as platformModule from '../platform'
 
 import * as authProvider from '../authentication/providers/auth'
@@ -84,6 +85,8 @@ export interface AppProps {
     platform: platformModule.Platform
     /** Whether the dashboard should be rendered. */
     showDashboard: boolean
+    /** The name of the project to open on startup, if any. */
+    initialProjectName: string | null
     onAuthenticated: () => void
     appRunner: AppRunner | null
 }
@@ -163,8 +166,7 @@ function AppRouter(props: AppProps) {
                 userSession={userSession}
                 registerAuthEventListener={registerAuthEventListener}
             >
-                {/* @ts-expect-error Auth will always set this before dashboard is rendered. */}
-                <backendProvider.BackendProvider initialBackend={null}>
+                <backendProvider.BackendProvider initialBackend={new localBackend.LocalBackend()}>
                     <authProvider.AuthProvider
                         authService={memoizedAuthService}
                         onAuthenticated={onAuthenticated}

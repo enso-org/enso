@@ -94,6 +94,8 @@ const EXPERIMENTAL = {
 const IDE_ELEMENT_ID = 'root'
 /** The `localStorage` key under which the ID of the current directory is stored. */
 const DIRECTORY_STACK_KEY = 'enso-dashboard-directory-stack'
+/** The `localStorage` key under which the type of the current backend is stored. */
+const BACKEND_TYPE_KEY = 'enso-dashboard-backend-type'
 
 /** English names for the name column. */
 const ASSET_TYPE_NAME: Record<backendModule.AssetType, string> = {
@@ -221,13 +223,14 @@ function columnsFor(displayMode: ColumnDisplayMode, backendPlatform: platformMod
 export interface DashboardProps {
     platform: platformModule.Platform
     appRunner: AppRunner | null
+    initialProjectName: string | null
 }
 
 // TODO[sb]: Implement rename when clicking name of a selected row.
 // There is currently no way to tell whether a row is selected from a column.
 
 function Dashboard(props: DashboardProps) {
-    const { platform, appRunner } = props
+    const { platform, appRunner, initialProjectName } = props
 
     const logger = loggerProvider.useLogger()
     const { accessToken, organization } = auth.useFullUserSession()
@@ -238,6 +241,7 @@ function Dashboard(props: DashboardProps) {
 
     const [refresh, doRefresh] = hooks.useRefresh()
 
+    const [isBackendRestored, setIsBackendRestored] = react.useState(false)
     const [query, setQuery] = react.useState('')
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
     const [directoryStack, setDirectoryStack] = react.useState<
@@ -301,6 +305,71 @@ function Dashboard(props: DashboardProps) {
             document.removeEventListener('keydown', onKeyDown)
         }
     }, [])
+
+    react.useEffect(() => {
+        const backendType = localStorage.getItem(BACKEND_TYPE_KEY)
+        if (backendType != null) {
+            // This is fully safe as the `localStorage` key is only set in the `useEffect` right
+            // below this one.
+            // eslint-disable-next-line no-restricted-syntax
+            setBackendPlatform(backendType as platformModule.Platform)
+            setIsBackendRestored(true)
+        }
+    }, [])
+
+    react.useEffect(() => {
+        localStorage.setItem(BACKEND_TYPE_KEY, backend.platform)
+    }, [backend])
+
+    react.useEffect(() => {
+        if (initialProjectName != null && isBackendRestored) {
+            void (async () => {
+                const listedProjects = await backend.listProjects()
+                const foundProject = listedProjects.find(
+                    listedProject => listedProject.name === initialProjectName
+                )
+                if (!foundProject) {
+                    logger.error(`Could not find project with name '${initialProjectName}'.`)
+                } else {
+                    await backend.openProject(foundProject.projectId)
+                    await openIde(foundProject.projectId)
+                }
+            })()
+        }
+    }, [initialProjectName, isBackendRestored])
+
+    const openIde = async (projectId: backendModule.ProjectId) => {
+        setTab(Tab.ide)
+        if (project?.projectId !== projectId) {
+            setProject(await backend.getProjectDetails(projectId))
+        }
+        const ideElement = document.getElementById(IDE_ELEMENT_ID)
+        if (ideElement) {
+            ideElement.style.top = ''
+            ideElement.style.display = 'absolute'
+        }
+    }
+
+    const setBackendPlatform = (newBackendPlatform: platformModule.Platform) => {
+        if (newBackendPlatform !== backend.platform) {
+            setProjectAssets([])
+            setDirectoryAssets([])
+            setSecretAssets([])
+            setFileAssets([])
+            switch (newBackendPlatform) {
+                case platformModule.Platform.desktop:
+                    setBackend(new localBackend.LocalBackend())
+                    break
+                case platformModule.Platform.cloud: {
+                    const headers = new Headers()
+                    headers.append('Authorization', `Bearer ${accessToken}`)
+                    const client = new http.Client(headers)
+                    setBackend(new remoteBackendModule.RemoteBackend(client, logger))
+                    break
+                }
+            }
+        }
+    }
 
     function setProjectAssets(
         newProjectAssets: backendModule.Asset<backendModule.AssetType.project>[]
@@ -398,17 +467,7 @@ function Dashboard(props: DashboardProps) {
                     onClose={() => {
                         setProject(null)
                     }}
-                    openIde={async () => {
-                        setTab(Tab.ide)
-                        if (project?.projectId !== projectAsset.id) {
-                            setProject(await backend.getProjectDetails(projectAsset.id))
-                        }
-                        const ideElement = document.getElementById(IDE_ELEMENT_ID)
-                        if (ideElement) {
-                            ideElement.style.top = ''
-                            ideElement.style.display = 'absolute'
-                        }
-                    }}
+                    openIde={() => openIde(projectAsset.id)}
                 />
                 <span className="px-2">{projectAsset.title}</span>
             </div>
@@ -704,26 +763,7 @@ function Dashboard(props: DashboardProps) {
                         }
                     }
                 }}
-                setBackendPlatform={newBackendPlatform => {
-                    if (newBackendPlatform !== backend.platform) {
-                        setProjectAssets([])
-                        setDirectoryAssets([])
-                        setSecretAssets([])
-                        setFileAssets([])
-                        switch (newBackendPlatform) {
-                            case platformModule.Platform.desktop:
-                                setBackend(new localBackend.LocalBackend())
-                                break
-                            case platformModule.Platform.cloud: {
-                                const headers = new Headers()
-                                headers.append('Authorization', `Bearer ${accessToken}`)
-                                const client = new http.Client(headers)
-                                setBackend(new remoteBackendModule.RemoteBackend(client, logger))
-                                break
-                            }
-                        }
-                    }
-                }}
+                setBackendPlatform={setBackendPlatform}
                 query={query}
                 setQuery={setQuery}
             />
