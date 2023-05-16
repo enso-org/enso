@@ -120,11 +120,12 @@ emulators this will clog the terminal and hence the whole backend. To avoid
 this, we recommend redirecting the output to `/dev/null`, via a command like
 `enso -debug.verbose > /dev/null 2>&1`.
 
-The logs are kept in a central location - on Linux, they are in
-`$XDG_DATA_HOME/enso/log` ( usually `~/.local/share/enso/log`), and on Windows
-they are in `%APPDATA%\enso\log`. The log level name consists of the timestamp
-of the log file creation. There is no automatic log rotation, so you may want to
-delete the old logs from time to time.
+The logs are kept in a central location `$ENSO_DATA_DIRECTORY/log` - on Linux,
+they are in `$XDG_DATA_HOME/enso/log` (usually `~/.local/share/enso/log`), and
+on Windows they are in `%APPDATA%\enso\log`, see
+[distribution.md](distribution/distribution.md) for details. The log level name
+consists of the timestamp of the log file creation. There is no automatic log
+rotation, so you may want to delete the old logs from time to time.
 
 ## Hacking on Enso
 
