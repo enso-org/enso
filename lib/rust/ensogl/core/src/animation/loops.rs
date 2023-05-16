@@ -304,6 +304,7 @@ fn on_frame_closure(
     let fixed_fps_sampler = Rc::new(RefCell::new(FixedFrameRateSampler::default()));
 
     move |frame_time: Duration| {
+        let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
         let time_info = time_info.next_frame(frame_time);
         let on_frame_start = output.on_frame_start.clone_ref();
         let on_before_animations = output.on_before_animations.clone_ref();
@@ -313,7 +314,6 @@ fn on_frame_closure(
         let frame_end = output.frame_end.clone_ref();
         let before_animations = before_animations.clone_ref();
         let animations = animations.clone_ref();
-        let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
         let fixed_fps_sampler = fixed_fps_sampler.clone_ref();
 
         TickPhases::new(&h_cell)
