@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.number.decimal;
+package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -10,6 +10,7 @@ import java.math.BigInteger;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.SmallIntegerOps;
+import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -23,6 +24,8 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public abstract class RoundNode extends Node {
     private final ConditionProfile fitsProfile = ConditionProfile.createCountingProfile();
 
+    private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
+
     abstract Object execute(long self, Object that);
 
     static RoundNode build() {
@@ -30,6 +33,7 @@ public abstract class RoundNode extends Node {
     }
 
     static private final long MIN_DECIMAL_PLACES = -15;
+    static private final long MAX_DECIMAL_PLACES = 15;
 
     // We will use either Double or BigDecimal for intermediate values. For
     // integers 15 digits or less, using Double will have no loss of precision.
@@ -58,14 +62,9 @@ public abstract class RoundNode extends Node {
             return DataflowError.withoutTrace(error, this);
         }
 
-        bool more_than_15_digits = self < MIN_LONG_FOR_FAST_PATH || self > MAX_LONG_FOR_FAST_PATH;
-        if (more_than_15_digits) {
-            BigInteger rounded = BigIntegerOps.round(new BigInteger(self), that);
-            if (fitsProfile.profile(BigIntegerOps.fitsInLong(rounded))) {
-                return rounded.longValueExact();
-            } else {
-                return rounded;
-            }
+        if (self < MIN_LONG_FOR_FAST_PATH || self > MAX_LONG_FOR_FAST_PATH) {
+            BigInteger rounded = BigIntegerOps.round(BigInteger.valueOf(self), that);
+            return toEnsoNumberNode.execute(rounded);
         } else {
             return SmallIntegerOps.round(self, that);
         }

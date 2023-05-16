@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.number.decimal;
+package org.enso.interpreter.node.expression.builtin.number.bigInteger;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
+import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -22,16 +23,19 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public abstract class RoundNode extends Node {
     private final ConditionProfile fitsProfile = ConditionProfile.createCountingProfile();
 
-    abstract Object execute(BigInteger self, Object that);
+    private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
+
+    abstract Object execute(EnsoBigInteger self, Object that);
 
     static RoundNode build() {
         return RoundNodeGen.create();
     }
 
     static private final long MIN_DECIMAL_PLACES = -15;
+    static private final long MAX_DECIMAL_PLACES = 15;
 
     @Specialization
-    Object doLong(BigInteger self, long that) {
+    Object doLong(EnsoBigInteger self, long that) {
         if (that >= 0) {
             return self;
         }
@@ -50,16 +54,12 @@ public abstract class RoundNode extends Node {
             return DataflowError.withoutTrace(error, this);
         }
 
-        BigInteger rounded = BigIntegerOps.round(self, that);
-        if (fitsProfile.profile(BigIntegerOps.fitsInLong(rounded))) {
-            return rounded.longValueExact();
-        } else {
-            return rounded;
-        }
+        BigInteger rounded = BigIntegerOps.round(self.getValue(), that);
+        return toEnsoNumberNode.execute(rounded);
     }
 
     @Fallback
-    Object doOther(BigInteger self, Object that) {
+    Object doOther(EnsoBigInteger self, Object that) {
         Builtins builtins = EnsoContext.get(this).getBuiltins();
         var number = builtins.number().getSmallInteger();
         throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);

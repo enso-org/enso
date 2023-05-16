@@ -256,6 +256,6 @@ public class BigIntegerOps {
     BigDecimal scale = new BigDecimal(Math.pow(10, decimal_places));
     BigDecimal half = new BigDecimal(0.5);
     //(((n * scale) + 0.5).floor) / scale
-    return a_big_decimal.multiply(scale).add(half).round(mathContext).divide(scale);
+    return a_big_decimal.multiply(scale).add(half).round(mathContext).divide(scale).toBigIntegerExact();
   }
 }

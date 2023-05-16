@@ -7,8 +7,8 @@ public class SmallIntegerOps {
     // This assumes decimal places is between -15 and 15 (inclusive). The caller
     // must ensure this.
     @CompilerDirectives.TruffleBoundary
-    public static BigInteger round(long a, long decimal_places) {
+    public static long round(long a, long decimal_places) {
         double scale = Math.pow(10, decimal_places);
-        return (long) (((a * scale) + 0.5).floor() / scale);
+        return (long) (Math.floor((a * scale) + 0.5) / scale);
     }
 }
