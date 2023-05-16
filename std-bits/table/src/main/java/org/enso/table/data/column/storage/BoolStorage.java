@@ -422,7 +422,7 @@ public final class BoolStorage extends Storage<Boolean> {
         for (int i = 0; i < n; i++) {
           newData[i] = values.get(i) ? 1 : 0;
         }
-        yield new DoubleStorage(newData, n, isMissing);
+        yield new LongStorage(newData, n, isMissing);
       }
       case TextType textType -> {
         int n = size();
