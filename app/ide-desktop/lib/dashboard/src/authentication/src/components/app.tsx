@@ -39,6 +39,7 @@ import * as router from 'react-router-dom'
 import * as toast from 'react-hot-toast'
 
 import * as authService from '../authentication/service'
+import * as detect from '../detect'
 
 import * as authProvider from '../authentication/providers/auth'
 import * as backendProvider from '../providers/backend'
@@ -99,8 +100,7 @@ export interface AppProps {
 function App(props: AppProps) {
     // This is a React component even though it does not contain JSX.
     // eslint-disable-next-line no-restricted-syntax
-    const Router =
-        'IS_ELECTRON' in window && IS_ELECTRON ? router.MemoryRouter : router.BrowserRouter
+    const Router = detect.isRunningInElectron() ? router.MemoryRouter : router.BrowserRouter
     /** Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
      * will redirect the user between the login/register pages and the dashboard. */
     return (

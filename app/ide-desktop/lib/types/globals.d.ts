@@ -64,7 +64,6 @@ declare global {
     // This will be `undefined` when it is not defined by esbuild.
     // eslint-disable-next-line no-restricted-syntax
     const REDIRECT_OVERRIDE: string | undefined
-    const IS_ELECTRON: boolean
     /* eslint-disable @typescript-eslint/naming-convention */
 }
 

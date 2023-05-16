@@ -114,5 +114,3 @@ const AUTHENTICATION_API = {
     },
 }
 electron.contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, AUTHENTICATION_API)
-
-electron.contextBridge.exposeInMainWorld('IS_ELECTRON', true)

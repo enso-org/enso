@@ -180,10 +180,8 @@ class Main implements AppRunner {
     }
 
     main(inputConfig?: StringConfig) {
-        const unrecognized = contentConfig.OPTIONS.loadAll([app.urlParams()])
-        if (unrecognized.length > 0) {
-            app.showConfigOptions(contentConfig.OPTIONS, unrecognized)
-        } else {
+        const parseOk = contentConfig.OPTIONS.loadAll([app.urlParams()])
+        if (parseOk) {
             const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
             const isUsingNewDashboard =
                 contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
@@ -207,8 +205,6 @@ class Main implements AppRunner {
                         ide.hidden = false
                     }
                 }
-                /** This package is an Electron desktop app (i.e., not in the Cloud), so
-                 * we're running on the desktop. */
                 /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
                  * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
                  * should only have one entry point. Right now, we have two. One for the cloud

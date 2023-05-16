@@ -114,7 +114,7 @@ export interface AuthService {
 export function initAuthService(authConfig: AuthConfig): AuthService {
     const { logger, supportsDeepLinks, navigate } = authConfig
     const amplifyConfig = loadAmplifyConfig(logger, supportsDeepLinks, navigate)
-    const cognitoClient = new cognito.Cognito(logger, amplifyConfig)
+    const cognitoClient = new cognito.Cognito(logger, supportsDeepLinks, amplifyConfig)
     return {
         cognito: cognitoClient,
         registerAuthEventListener: listen.registerAuthEventListener,

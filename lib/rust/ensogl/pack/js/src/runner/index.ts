@@ -177,71 +177,6 @@ class Scheduler {
     }
 }
 
-// =========================
-// === showConfigOptions ===
-// =========================
-
-export function showConfigOptions(config: config.Options, unknownOptions?: string[]) {
-    logger.log('Showing config options help screen.')
-    let msg = ''
-    if (unknownOptions) {
-        const optionLabel = unknownOptions.length > 1 ? 'options' : 'option'
-        msg = `Unknown config ${optionLabel}: ${unknownOptions.map(t => `'${t}'`).join(', ')}. `
-    }
-    const sectionsData: [string, string, debug.HelpScreenEntry[]][] = Object.entries(
-        config.groups
-    ).map(([groupName, group]) => {
-        const groupOptions = group.optionsRecursive()
-        const entriesData: [string, string, string][] = groupOptions.map(opt => [
-            opt.qualifiedName(),
-            opt.description,
-            String(opt.default),
-        ])
-        entriesData.sort()
-        const entries = entriesData.map(([name, description, def]) => {
-            return new debug.HelpScreenEntry(name, [description, def])
-        })
-        const option = config.options[groupName]
-        if (option != null) {
-            const entry = new debug.HelpScreenEntry(groupName, [
-                option.description,
-                String(option.default),
-            ])
-            entries.unshift(entry)
-        }
-        const name =
-            groupName.charAt(0).toUpperCase() +
-            groupName.slice(1).replace(/([A-Z])/g, ' $1') +
-            ' Options'
-        const description = group.description
-        return [name, description, entries]
-    })
-    sectionsData.sort()
-    const sections = sectionsData.map(
-        ([name, description, entries]) =>
-            new debug.HelpScreenSection({ name, description, entries })
-    )
-
-    const rootEntries = Object.entries(config.options).flatMap(([optionName, option]) => {
-        if (optionName in config.groups) {
-            return []
-        }
-        const entry = new debug.HelpScreenEntry(optionName, [
-            option.description,
-            String(option.default),
-        ])
-        return [entry]
-    })
-    if (rootEntries.length > 0) {
-        const name = 'Other Options'
-        sections.push(new debug.HelpScreenSection({ name, entries: rootEntries }))
-    }
-
-    const title = msg + 'Available options:'
-    const headers = ['Name', 'Description', 'Default']
-    new debug.HelpScreen().display({ title, headers, sections })
-}
-
 // ===========
 // === App ===
 // ===========
@@ -270,19 +205,16 @@ export class App {
     }) {
         this.packageInfo = new debug.PackageInfo(opts?.packageInfo ?? {})
         this.config = config.options
-        const unrecognized = log.Task.runCollapsed('Resolving application configuration.', () => {
+        const parseOk = log.Task.runCollapsed('Resolving application configuration.', () => {
             const inputConfig = opts?.configOptions
             if (inputConfig != null) {
                 this.config = inputConfig
             }
-            const unrecognized = this.config.loadAll([opts?.config, host.urlParams()])
+            const parseOk = this.config.loadAll([opts?.config, host.urlParams()])
             logger.log(this.config.prettyPrint())
-            return unrecognized
+            return parseOk
         })
-        if (unrecognized.length > 0) {
-            logger.error(`Unrecognized configuration parameters: ${unrecognized.join(', ')}.`)
-            showConfigOptions(this.config, unrecognized)
-        } else {
+        if (parseOk) {
             this.initBrowser()
             this.initialized = true
         }
