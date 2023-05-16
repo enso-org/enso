@@ -30,14 +30,17 @@ pub const PORT_PADDING_X: f32 = 4.0;
 
 /// The default horizontal padding of port hover areas. It affects how the port hover should extend
 /// the target text boundary on both sides.
-pub const HOVER_PADDING_X: f32 = 2.0;
+const HOVER_PADDING_X: f32 = 2.0;
 
 /// The minimum size of the port visual area.
 pub const BASE_PORT_HEIGHT: f32 = 18.0;
 
+/// The minimum size of the port hover area.
+const BASE_PORT_HOVER_HEIGHT: f32 = 16.0;
+
 /// The vertical hover padding of ports at low depth. It affects how the port hover should extend
 /// the target text boundary on both sides.
-pub const PRIMARY_PORT_HOVER_PADDING_Y: f32 = (crate::node::HEIGHT - BASE_PORT_HEIGHT) / 2.0;
+const PRIMARY_PORT_HOVER_PADDING_Y: f32 = (crate::node::HEIGHT - BASE_PORT_HOVER_HEIGHT) / 2.0;
 
 
 
@@ -136,10 +139,9 @@ impl Port {
         port_shape
             .set_size_y(BASE_PORT_HEIGHT)
             .allow_grow()
-            .set_margin_left(-PORT_PADDING_X)
-            .set_margin_right(-PORT_PADDING_X)
+            .set_margin_vh(0.0, -PORT_PADDING_X)
             .set_alignment_left_center();
-        hover_shape.set_size_y(BASE_PORT_HEIGHT).allow_grow().set_alignment_left_center();
+        hover_shape.set_size_y(BASE_PORT_HOVER_HEIGHT).allow_grow().set_alignment_left_center();
 
         let layers = app.display.default_scene.extension::<PortLayers>();
         layers.add_to_partition(port_shape.display_object(), hover_shape.display_object(), 0);
@@ -211,7 +213,7 @@ impl Port {
     ) {
         self.crumbs.replace(ctx.span_node.crumbs.clone());
         self.set_connected(ctx.info.connection);
-        self.set_port_layout(&ctx, pad_x_override.unwrap_or(PORT_PADDING_X));
+        self.set_port_layout(&ctx, pad_x_override.unwrap_or(HOVER_PADDING_X));
         self.widget.configure(config, ctx);
         self.update_root();
     }
@@ -258,7 +260,7 @@ impl Port {
             || current_margin.y().start.as_pixels() != Some(-margin_y);
 
         if margin_needs_update {
-            self.hover_shape.set_size_y(BASE_PORT_HEIGHT + 2.0 * margin_y);
+            self.hover_shape.set_size_y(BASE_PORT_HOVER_HEIGHT + 2.0 * margin_y);
             self.hover_shape.set_margin_vh(-margin_y, -margin_x);
         }
     }

@@ -365,6 +365,7 @@ impl Cursor {
             }));
             frp.set_style_override <+ should_trash.then_constant(Style::trash());
             perform_trash <- on_up.gate(&should_trash);
+            frp.set_style_override <+ perform_trash.constant(None);
             eval_ perform_trash (model.trash_dragged_item());
 
 

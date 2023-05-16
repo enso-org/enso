@@ -687,7 +687,8 @@ impl Node {
 
             let background_press = model.background.on_event::<mouse::Down>();
             let input_press = model.input.on_event::<mouse::Down>();
-            input_as_background_press <- input_press.gate(&input.set_edit_ready_mode);
+            ports_were_visible <- model.input.ports_visible.debounce();
+            input_as_background_press <- input_press.gate_not(&ports_were_visible);
             any_background_press <- any(&background_press, &input_as_background_press);
             any_primary_press <- any_background_press.filter(mouse::event::is_primary);
             out.background_press <+ any_primary_press.constant(());

@@ -12,13 +12,13 @@ use crate::component::node::input::widget::TransferRequest;
 use crate::component::node::input::widget::TreeNode;
 use crate::component::node::input::widget::WidgetIdentity;
 
-use std::collections::hash_map::Entry;
 use ensogl::control::io::mouse;
 use ensogl::display;
 use ensogl::display::object;
 use ensogl::display::world::with_context;
 use ensogl_component::list_editor::ListEditor;
 use span_tree::node::Kind;
+use std::collections::hash_map::Entry;
 
 
 
@@ -36,6 +36,7 @@ const LIST_HOVER_MARGIN: f32 = 4.0;
 const ITEMS_GAP: f32 = 10.0;
 const INSERT_HOVER_MARGIN: f32 = 3.0;
 const ITEM_HOVER_MARGIN: f32 = (ITEMS_GAP - INSERT_HOVER_MARGIN * 2.0) * 0.5;
+const INSERTION_OFFSET: f32 = ITEMS_GAP * 0.5;
 
 // ===============
 // === Element ===
@@ -159,6 +160,9 @@ impl Widget {
         let network = &self.network;
         let model = &self.model;
         let list = self.model.borrow().list.clone_ref();
+        let scene = scene();
+        let on_down = scene.on_event::<mouse::Down>();
+        let on_up = scene.on_event::<mouse::Up>();
 
         frp::extend! { network
             init <- source_();
@@ -185,12 +189,19 @@ impl Widget {
             widgets_frp.transfer_ownership <+ remove_request._1();
             widgets_frp.value_changed <+ remove_request._0().map(|crumb| (crumb.clone(), None));
 
+            mouse_is_up <- bool(&on_down, &on_up);
+            ports_made_visible <- widgets_frp.set_ports_visible.on_true();
+            ports_made_invisible <- widgets_frp.set_ports_visible.on_false();
+            gated_invisible <- ports_made_invisible.buffered_gate(&mouse_is_up);
+            ports_were_active_during_interaction <- bool(&gated_invisible, &ports_made_visible);
+
             // Enable list interactions only under specific conditions:
+            // - We are not dragging an edge, and it was not dragged during this mouse click.
             // - The widgets are not set to read-only mode.
             // - The user is not about to switch to edit mode.
             // - The mouse is hovering the list interaction bounding box.
             enable_interaction <- all_with4(
-                &widgets_frp.set_ports_visible,
+                &ports_were_active_during_interaction,
                 &widgets_frp.set_edit_ready_mode,
                 &widgets_frp.set_read_only,
                 &init,
@@ -281,6 +292,7 @@ impl Model {
         self.elements.clear();
         let insertion_point = ctx.builder.child_widget(ctx.span_node, ctx.info.nesting_level);
         root.replace_children(&[&*insertion_point, self.list.display_object()]);
+        set_margins(self.list.display_object(), 0.0, 0.0);
     }
 
     fn configure_vector(
@@ -349,7 +361,7 @@ impl Model {
                     }
 
                     let element = entry.or_insert_with(Element::new);
-                    set_insertion_margins(&insert, -ITEMS_GAP * 0.5);
+                    set_margins(&insert, -INSERTION_OFFSET, INSERTION_OFFSET);
                     element.alive = Some(());
                     element.item_crumb = index;
                     element.expr_range = range;
@@ -367,7 +379,7 @@ impl Model {
             }
         }
 
-        let list_empty = list_items.is_empty();
+        let has_elements = !list_items.is_empty();
         let new_items_range = new_items_range.unwrap_or(0..0);
         let mut non_assigned_items = list_items[new_items_range].iter_mut().filter(|c| !c.assigned);
 
@@ -383,11 +395,14 @@ impl Model {
         self.insertion_indices.extend(last_insert_crumb);
         self.insert_with_brackets = open_bracket.is_none() && close_bracket.is_none();
 
+        let border_margins = has_elements.then_val_or_default(INSERTION_OFFSET);
         let append_insert = last_insert_crumb.map(|index| {
             let insert = build_child_widget(index, insert_config, INSERT_HOVER_MARGIN).root_object;
-            set_insertion_margins(&insert, if list_empty { 0.0 } else { ITEMS_GAP * 0.5 });
+            set_margins(&insert, border_margins, 0.0);
             insert
         });
+        let list_right_margin = append_insert.is_none().then_val_or_default(border_margins);
+        set_margins(self.list.display_object(), border_margins, list_right_margin);
 
         let (open_bracket, close_bracket) = open_bracket.zip(close_bracket).unzip();
         let mut children = SmallVec::<[&object::Instance; 4]>::new();
@@ -480,10 +495,8 @@ impl Model {
 
     fn on_new_item(&mut self, at: usize, frp: &super::WidgetsFrp) {
         let (mut expression, import) = match &self.default_value {
-            DefaultValue::Tag(tag) => (
-                tag.expression.clone().into(),
-                tag.required_import.as_ref().map(ImString::from),
-            ),
+            DefaultValue::Tag(tag) =>
+                (tag.expression.clone().into(), tag.required_import.as_ref().map(ImString::from)),
             DefaultValue::Expression(expr) => (expr.clone(), None),
             DefaultValue::StaticExpression(expr) => (expr.into(), None),
         };
@@ -506,13 +519,13 @@ impl Model {
     }
 }
 
-fn set_insertion_margins(object: &display::object::Instance, offset: f32) {
+fn set_margins(object: &display::object::Instance, left: f32, right: f32) {
     let margin = object.margin().x();
-    let current_left = margin.start;
-    let current_right = margin.start;
-    if current_left.as_pixels() != Some(offset) && current_right.as_pixels() != Some(-offset) {
-        object.set_margin_left(offset);
-        object.set_margin_right(-offset);
+    let current_left = margin.start.as_pixels();
+    let current_right = margin.end.as_pixels();
+    if current_left != Some(left) || current_right != Some(right) {
+        object.set_margin_left(left);
+        object.set_margin_right(right);
     }
 }
 

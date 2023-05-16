@@ -308,20 +308,24 @@ impl Configuration {
 
         let node_expr = &expression[span_node.span()];
         let looks_like_vector = node_expr.starts_with('[') && node_expr.ends_with(']');
+        let is_expected_arg = kind.is_expected_argument();
 
         let usage_type = info.usage_type.as_ref().map(|t| t.as_str());
         let decl_type = kind.tp().map(|t| t.as_str());
         let decl_or_usage = decl_type.or(usage_type);
 
-        let first_decl_is_vector =
-            || decl_type.map_or(false, |t| t.starts_with(list_editor::VECTOR_TYPE));
+        let first_decl_is_vector = || {
+            decl_type
+                .map_or(false, |t| t.trim_start_matches("(").starts_with(list_editor::VECTOR_TYPE))
+        };
         let type_may_be_vector = || {
-            looks_like_vector
-                || decl_type.map_or(false, |t| t.contains(list_editor::VECTOR_TYPE))
+            decl_type.map_or(false, |t| t.contains(list_editor::VECTOR_TYPE))
                 || usage_type.map_or(false, |t| t.contains(list_editor::VECTOR_TYPE))
         };
-        let allows_list = allow(F::ListEditor) && info.connection.is_none() && type_may_be_vector();
-        let prefer_list = allows_list && (looks_like_vector || first_decl_is_vector());
+        let allows_list = allow(F::ListEditor)
+            && info.connection.is_none()
+            && (looks_like_vector || (is_expected_arg && type_may_be_vector()));
+        let prefer_list = allows_list && first_decl_is_vector();
         let tags = kind.tag_values().filter(|tags| !tags.is_empty());
         let first_tag = tags.and_then(|t| t.first());
 
@@ -336,9 +340,9 @@ impl Configuration {
                     Self::list_editor(None, decl_or_usage, first_tag),
 
                 (Kind::InsertionPoint(p), _)
-                    if p.kind.is_expected_argument() && (allow(F::Label) || prefer_list) =>
+                    if p.kind.is_expected_argument() && (allow(F::Label) || allows_list) =>
                     Self::always(label::Config::default()).into_list_item_if(
-                        prefer_list,
+                        allows_list,
                         decl_or_usage,
                         first_tag,
                     ),
