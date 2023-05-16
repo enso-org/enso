@@ -41,27 +41,6 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
     return new ObjectBuilder(capacity);
   }
 
-  @Override
-  public Storage<?> cast(StorageType targetType) {
-    return switch (targetType) {
-      case AnyObjectType anyObjectType -> this;
-      case TextType textType -> {
-        int n = size();
-        StringBuilder builder = new StringBuilder(n);
-        for (int i = 0; i < n; i++) {
-          Object item = data[i];
-          if (item == null) {
-            builder.appendNulls(1);
-          } else {
-            builder.append(item.toString());
-          }
-        }
-        yield StringStorage.adapt(builder.seal(), textType);
-      }
-      default -> throw new IllegalStateException("Conversion of ObjectStorage to " + targetType + " is not supported");
-    };
-  }
-
   private static final MapOpStorage<Object, SpecializedStorage<Object>> ops = buildObjectOps();
 
   static <T, S extends SpecializedStorage<T>> MapOpStorage<T, S> buildObjectOps() {

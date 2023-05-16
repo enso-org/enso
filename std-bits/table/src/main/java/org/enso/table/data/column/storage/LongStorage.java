@@ -460,7 +460,7 @@ public final class LongStorage extends NumericStorage<Long> {
   @Override
   public Storage<?> cast(StorageType targetType) {
     return switch (targetType) {
-      case AnyObjectType anyObjectType -> new MixedStorageFacade(this);
+      case AnyObjectType any -> new MixedStorageFacade(this);
       case IntegerType integerType -> this;
       case FloatType floatType -> {
         int n = size();

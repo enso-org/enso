@@ -12,6 +12,8 @@ import Standard.Test.Extensions
 
 from project.Common_Table_Operations.Util import run_default_backend
 
+polyglot java import java.lang.Long as Java_Long
+
 main = run_default_backend spec
 
 type My_Type
@@ -105,6 +107,7 @@ spec setup =
             c2 = t2.at "X" . cast (Value_Type.Integer Bits.Bits_16)
             c2.value_type . should_equal (Value_Type.Integer Bits.Bits_16)
             c2.to_vector . should_equal [1, 2, Nothing]
+            # This can likely only be checked on in-memory.
             Problems.expect_warning Lossy_Conversion c2
 
             r3 = t2.at "X" . cast (Value_Type.Integer Bits.Bits_16) on_problems=Problem_Behavior.Report_Error
@@ -122,6 +125,26 @@ spec setup =
             c.to_vector . should_equal [1, 2, 4]
             # Not reporting Lossy Conversion as converting floats to integers obviously truncates the value.
             Problems.assume_no_problems c
+
+        if setup.is_database.not then
+            Test.specify "should report Lossy_Conversion if converting a huge float to an integer overflows it" <|
+                max_long = Java_Long.MAX_VALUE
+                too_big_double = (max_long + 1.0) * 1000.0
+                (too_big_double > max_long) . should_be_true
+
+                min_long = Java_Long.MIN_VALUE
+                too_small_double = (min_long - 1.0) * 1000.0
+                (too_small_double < min_long) . should_be_true
+
+                v = [1.0, 2.1, max_long, too_big_double, min_long, too_small_double, 4.0]
+                t = table_builder [["X", v]]
+                t.at "X" . to_vector . should_equal v
+                t.at "X" . value_type . should_equal Value_Type.Float
+
+                c = t.at "X" . cast Value_Type.Integer
+                c.value_type . should_equal Value_Type.Integer
+                c.to_vector . should_equal [1, 2, max_long, Nothing, min_long, Nothing, 4]
+                Problems.expect_warning Lossy_Conversion c
 
     if supports_dates then
         Test.group prefix+"Table/Column.cast - date/time" <|

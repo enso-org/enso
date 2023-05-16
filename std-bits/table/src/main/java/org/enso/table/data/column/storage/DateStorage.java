@@ -1,12 +1,16 @@
 package org.enso.table.data.column.storage;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.DateBuilder;
+import org.enso.table.data.column.builder.object.DateTimeBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryIntegerOp;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
+import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
 
@@ -66,5 +70,25 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
   @Override
   public Builder createDefaultBuilderOfSameType(int capacity) {
     return new DateBuilder(capacity);
+  }
+
+  @Override
+  public Storage<?> cast(StorageType targetType) {
+    if (targetType instanceof DateTimeType) {
+      int n = size();
+      DateTimeBuilder builder = new DateTimeBuilder(n);
+      for (int i = 0; i < n; i++) {
+        LocalDate date = data[i];
+        if (date == null) {
+          builder.appendNulls(1);
+        } else {
+          ZonedDateTime converted = date.atStartOfDay().atZone(ZoneId.systemDefault());
+          builder.append(converted);
+        }
+      }
+      return builder.seal();
+    } else {
+      return super.cast(targetType);
+    }
   }
 }

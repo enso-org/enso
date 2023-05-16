@@ -402,7 +402,7 @@ public final class BoolStorage extends Storage<Boolean> {
   @Override
   public Storage<?> cast(StorageType targetType) {
     return switch (targetType) {
-      case AnyObjectType anyObjectType ->
+      case AnyObjectType any ->
         new MixedStorageFacade(this);
       case BooleanType booleanType ->
         this;

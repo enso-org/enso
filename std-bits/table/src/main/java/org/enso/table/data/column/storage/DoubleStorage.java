@@ -371,13 +371,14 @@ public final class DoubleStorage extends NumericStorage<Double> {
   @Override
   public Storage<?> cast(StorageType targetType) {
     return switch (targetType) {
-      case AnyObjectType anyObjectType -> new MixedStorageFacade(this);
+      case AnyObjectType any -> new MixedStorageFacade(this);
       case FloatType floatType -> this;
       case IntegerType integerType -> {
         int n = size();
         long[] newData = new long[n];
         for (int i = 0; i < n; i++) {
           if (!isMissing.get(i)) {
+            // TODO overflow detection
             newData[i] = (long) getItem(i);
           }
         }

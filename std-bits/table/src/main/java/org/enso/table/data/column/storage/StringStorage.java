@@ -75,7 +75,7 @@ public final class StringStorage extends SpecializedStorage<String> {
   @Override
   public Storage<?> cast(StorageType targetType) {
     return switch (targetType) {
-      case AnyObjectType() -> new MixedStorageFacade(this);
+      case AnyObjectType any -> new MixedStorageFacade(this);
       case TextType textType -> adapt(this, textType);
       default -> throw new IllegalStateException("Conversion of StringStorage to " + targetType + " is not supported");
     };
