@@ -506,12 +506,11 @@ impl EdgeModel {
             let styles = StyleWatch::new(&self.scene.style_sheet);
             let bg_color = styles.get_color(theme::application::background).into();
             let focused_color = color::mix(bg_color, normal_color, 0.25);
-            let EdgeSplit { corner_index, closer_end, position } =
-                hover_split.unwrap_or_else(|| EdgeSplit {
-                    corner_index: corners.len(),
-                    closer_end:   EndPoint::Source,
-                    position:     default(),
-                });
+            let corner_index =
+                hover_split.map(|split| split.corner_index).unwrap_or_else(|| corners.len());
+            let closer_end =
+                hover_split.map(|split| split.closer_end).unwrap_or_else(|| EndPoint::Source);
+            let split_corner = hover_split.map(|split| split.split_corner);
             let mut section_factory =
                 self.sections.take().into_iter().chain(iter::repeat_with(|| self.new_section()));
             let mut new_sections = corners
@@ -540,10 +539,10 @@ impl EdgeModel {
                 })
                 .collect_vec();
             let arc_shapes = self.split_arc.take();
-            if let Some(corner) = corners.get(corner_index)
-                    && let Some(pos) = self.hover_position.get() {
-                let (source_side, target_side, split_arc) =
-                    corner.split_geometry(pos, HOVER_WIDTH, LINE_WIDTH);
+            if let Some(split_corner) = split_corner {
+                let source_side = split_corner.source_end.to_rectangle_geometry(LINE_WIDTH);
+                let target_side = split_corner.target_end.to_rectangle_geometry(LINE_WIDTH);
+                let split_arc = split_corner.split_arc;
                 let (source_color, target_color) = match closer_end {
                     EndPoint::Source => (normal_color, focused_color),
                     EndPoint::Target => (focused_color, normal_color),
@@ -630,34 +629,33 @@ impl EdgeModel {
 struct EdgeSplit {
     corner_index: usize,
     closer_end:   EndPoint,
-    position:     Vector2<f32>,
+    split_corner: SplitCorner,
 }
 
 /// Find a point along the edge. Return the index of the corner the point occurs in, and which end
-/// is closer to the point.
+/// is closer to the point, and information about how the corner under the point has been split.
 ///
 /// Returns [`None`] if the point is not on the edge.
 fn find_position(position: Vector2<f32>, corners: &[Oriented<Corner>]) -> Option<EdgeSplit> {
-    corners
+    let corner_index = corners
         .iter()
-        .position(|&corner| corner.bounding_box(HOVER_WIDTH).contains_inclusive(position))
-        .map(|corner_index| {
-            let (full_corners, following_corners) = corners.split_at(corner_index);
-            let full_corners_distance: f32 =
-                full_corners.iter().map(|&corner| corner.snake_length()).sum();
-            let following_distance: f32 =
-                following_corners.iter().map(|&corner| corner.snake_length()).sum();
-            let total_distance = full_corners_distance + following_distance;
-            let offset_from_partial_corner = position - corners[corner_index].source_end();
-            let partial_corner_distance =
-                offset_from_partial_corner.x().abs() + offset_from_partial_corner.y().abs();
-            let distance_from_source = full_corners_distance + partial_corner_distance;
-            let closer_end = match distance_from_source * 2.0 < total_distance {
-                true => EndPoint::Source,
-                false => EndPoint::Target,
-            };
-            EdgeSplit { corner_index, closer_end, position }
-        })
+        .position(|&corner| corner.bounding_box(HOVER_WIDTH).contains_inclusive(position))?;
+    let split_corner = corners[corner_index].split(position, HOVER_WIDTH)?;
+    let (full_corners, following_corners) = corners.split_at(corner_index);
+    let full_corners_distance: f32 =
+        full_corners.iter().map(|&corner| corner.snake_length()).sum();
+    let following_distance: f32 =
+        following_corners.iter().map(|&corner| corner.snake_length()).sum();
+    let total_distance = full_corners_distance + following_distance;
+    let offset_from_partial_corner = position - corners[corner_index].source_end();
+    let partial_corner_distance =
+        offset_from_partial_corner.x().abs() + offset_from_partial_corner.y().abs();
+    let distance_from_source = full_corners_distance + partial_corner_distance;
+    let closer_end = match distance_from_source * 2.0 < total_distance {
+        true => EndPoint::Source,
+        false => EndPoint::Target,
+    };
+    Some(EdgeSplit { corner_index, closer_end, split_corner })
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -701,7 +699,7 @@ fn draw_geometry(shape: Rectangle, geometry: RectangleGeometry) -> Rectangle {
 // === Corner ===
 // ==============
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 struct Corner {
     horizontal: Vector2<f32>,
     vertical:   Vector2<f32>,
@@ -795,8 +793,8 @@ struct RectangleGeometry {
 
 // === Parameters for drawing the arc portion of a corner in two parts ===
 
-#[derive(Debug, Copy, Clone, Default)]
-struct SplitArcGeometry {
+#[derive(Debug, Copy, Clone, Default, PartialEq)]
+struct SplitArc {
     origin:           Vector2<f32>,
     radius:           f32,
     source_end_angle: f32,
@@ -810,7 +808,7 @@ struct SplitArcGeometry {
 // === Oriented corners ===
 // ========================
 
-#[derive(Debug, Copy, Clone, Deref)]
+#[derive(Debug, Copy, Clone, Deref, PartialEq)]
 struct Oriented<T> {
     #[deref]
     value:     T,
@@ -860,92 +858,81 @@ impl Oriented<Corner> {
         Self { value, direction }
     }
 
-    fn split_geometry(
-        self,
-        end_point: Vector2<f32>,
-        snap_line_width: f32,
-        line_width: f32,
-    ) -> (RectangleGeometry, RectangleGeometry, Option<SplitArcGeometry>) {
+    /// Split the shape at the given point, if the point is within the tolerance specified by
+    /// `snap_line_width` of the shape.
+    fn split(self, split_point: Vector2<f32>, snap_line_width: f32) -> Option<SplitCorner> {
         let Corner { horizontal, vertical } = self.value;
         let hv_offset = horizontal - vertical;
         let (dx, dy) = (hv_offset.x().abs(), hv_offset.y().abs());
         let radius = min(dx, dy);
+
+        // Calculate closeness to the straight segments.
         let (linear_x, linear_y) = (dx - radius, dy - radius);
         let snap_distance = snap_line_width / 2.0;
+        let y_along_vertical = (self.vertical.y() - split_point.y()).abs() <= linear_y;
+        let x_along_horizontal = (self.horizontal.x() - split_point.x()).abs() <= linear_x;
+        let y_near_horizontal = (self.horizontal.y() - split_point.y()).abs() <= snap_distance;
+        let x_near_vertical = (self.vertical.x() - split_point.x()).abs() <= snap_distance;
 
-        let y_along_vertical = (self.vertical.y() - end_point.y()).abs() <= linear_y;
-        let x_along_horizontal = (self.horizontal.x() - end_point.x()).abs() <= linear_x;
-        let y_near_horizontal = (self.horizontal.y() - end_point.y()).abs() <= snap_distance;
-        let x_near_vertical = (self.vertical.x() - end_point.x()).abs() <= snap_distance;
+        // Calculate closeness to the arc.
+        // 1. Find the origin of the circle the arc is part of.
+        // The corner of our bounding box that is immediately outside the arc.
+        let point_outside_arc = Vector2(self.vertical.x(), self.horizontal.y());
+        // The opposite corner of our bounding box, far inside the arc.
+        // Used to find the direction from outside the arc to the origin of the arc's circle.
+        let point_inside_arc = Vector2(self.horizontal.x(), self.vertical.y());
+        let outside_to_inside = point_inside_arc - point_outside_arc;
+        let outside_to_origin = Vector2(
+            radius.copysign(outside_to_inside.x()),
+            radius.copysign(outside_to_inside.y()),
+        );
+        let origin = point_outside_arc + outside_to_origin;
+        // 2. Check if the point is on the arc.
+        let input_to_origin = split_point - origin;
+        let distance_squared_from_origin = input_to_origin.x().powi(2) + input_to_origin.y().powi(2);
+        let min_radius = radius - snap_line_width / 2.0;
+        let max_radius = radius + snap_line_width / 2.0;
+        let too_close = distance_squared_from_origin < min_radius.powi(2);
+        let too_far = distance_squared_from_origin > max_radius.powi(2);
+        let on_arc = !(too_close || too_far);
 
         if y_near_horizontal && x_along_horizontal {
             // The point is along the horizontal line. Snap its y-value, and draw a corner to it.
-            let snapped = Vector2(end_point.x(), self.horizontal.y());
-            let from_source = self.with_target_end(snapped).to_rectangle_geometry(line_width);
-            let to_target = self.with_source_end(snapped).to_rectangle_geometry(line_width);
-            (from_source, to_target, default())
+            let snapped = Vector2(split_point.x(), self.horizontal.y());
+            let source_end = self.with_target_end(snapped);
+            let target_end = self.with_source_end(snapped);
+            Some(SplitCorner { source_end, target_end, split_arc: None })
         } else if x_near_vertical && y_along_vertical {
             // The point is along the vertical line. Snap its x-value, and draw a corner to it.
-            let snapped = Vector2(self.vertical.x(), end_point.y());
-            let from_source = self.with_target_end(snapped).to_rectangle_geometry(line_width);
-            let to_target = self.with_source_end(snapped).to_rectangle_geometry(line_width);
-            (from_source, to_target, default())
-        } else {
-            // The point is along the arc. Snap it to the arc.
-            // 1. Find the origin of the circle the arc is part of.
-            // The corner of our bounding box that is immediately outside the arc.
-            let point_outside_arc = Vector2(self.vertical.x(), self.horizontal.y());
-            // The opposite corner of our bounding box, far inside the arc.
-            // Used to find the direction from outside the arc to the origin of the arc's circle.
-            let point_inside_arc = Vector2(self.horizontal.x(), self.vertical.y());
-            let outside_to_inside = point_inside_arc - point_outside_arc;
-            let outside_to_origin = Vector2(
-                radius.copysign(outside_to_inside.x()),
-                radius.copysign(outside_to_inside.y()),
-            );
-            let origin = point_outside_arc + outside_to_origin;
-            // 2. Find the input point's angle along the arc.
-            let offset_from_origin = end_point - origin;
+            let snapped = Vector2(self.vertical.x(), split_point.y());
+            let source_end = self.with_target_end(snapped);
+            let target_end = self.with_source_end(snapped);
+            Some(SplitCorner { source_end, target_end, split_arc: None })
+        } else if on_arc {
+            // Find the input point's angle along the arc.
+            let offset_from_origin = split_point - origin;
             let split_angle = offset_from_origin.y().atan2(offset_from_origin.x());
-            // 3. Find the true arc point at the input point's angle.
-            let (sin, cos) = split_angle.sin_cos();
-            let snapped_offset = Vector2(cos * radius, sin * radius);
-            let snapped = origin + snapped_offset;
-            const DEBUG_ARC_SNAP: bool = false;
-            if DEBUG_ARC_SNAP {
-                // Draw the circle that is being used for the arc-snap computation. It should line
-                // up exactly with the visible arc (although inputs may lie anywhere on the larger
-                // hover-extended arc).
-                let adjusted_radius = radius + line_width / 2.0;
-                let snap_circle = RectangleGeometry {
-                    xy:   origin - Vector2(adjusted_radius, adjusted_radius),
-                    clip: Vector2(0.0, 0.0),
-                    size: Vector2(radius * 2.0 + line_width, radius * 2.0 + line_width),
-                };
-                // Draw a corner from the snapped point calculated from the circle above to the
-                // target side.
-                let corner_from_snapped_point =
-                    self.with_source_end(snapped).to_rectangle_geometry(line_width);
-                return (snap_circle, corner_from_snapped_point, default());
-            }
+            // Split the arc on the angle.
             let arc_horizontal_end = origin - Vector2(0.0, radius.copysign(outside_to_inside.y()));
             let arc_vertical_end = origin - Vector2(radius.copysign(outside_to_inside.x()), 0.0);
             let (arc_begin, arc_end) = match self.direction {
                 CornerDirection::HorizontalToVertical => (arc_horizontal_end, arc_vertical_end),
                 CornerDirection::VerticalToHorizontal => (arc_vertical_end, arc_horizontal_end),
             };
-            let source_to_arc = self.with_target_end(arc_begin).to_rectangle_geometry(line_width);
-            let target_from_arc = self.with_source_end(arc_end).to_rectangle_geometry(line_width);
+            let source_end = self.with_target_end(arc_begin);
+            let target_end = self.with_source_end(arc_end);
             let source_end_angle = self.source_end_angle();
             let target_end_angle = self.target_end_angle();
-            let split = SplitArcGeometry {
+            let split = SplitArc {
                 origin,
                 radius,
                 source_end_angle,
                 split_angle,
                 target_end_angle,
             };
-            (source_to_arc, target_from_arc, Some(split))
+            Some(SplitCorner { source_end, target_end, split_arc: Some(split) })
+        } else {
+            None
         }
     }
 
@@ -961,10 +948,17 @@ impl Oriented<Corner> {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq)]
+struct SplitCorner {
+    source_end: Oriented<Corner>,
+    target_end: Oriented<Corner>,
+    split_arc: Option<SplitArc>,
+}
+
 
 // === Corner direction ===
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 enum CornerDirection {
     HorizontalToVertical,
     VerticalToHorizontal,
