@@ -375,14 +375,24 @@ public final class DoubleStorage extends NumericStorage<Double> {
       case FloatType floatType -> this;
       case IntegerType integerType -> {
         int n = size();
-        long[] newData = new long[n];
+        NumericBuilder builder = NumericBuilder.createLongBuilder(n);
+        double min = (double) integerType.getMinValue();
+        double max = (double) integerType.getMaxValue();
         for (int i = 0; i < n; i++) {
-          if (!isMissing.get(i)) {
-            // TODO overflow detection
-            newData[i] = (long) getItem(i);
+          if (isMissing.get(i)) {
+            builder.appendNulls(1);
+          } else {
+            double value = getItem(i);
+            if (value < min || value > max) {
+              // TODO report warning
+              builder.appendNulls(1);
+            } else {
+              long converted = (long) value;
+              builder.appendLong(converted);
+            }
           }
         }
-        yield new LongStorage(newData, n, isMissing);
+        yield builder.seal();
       }
       case TextType textType -> {
         int n = size();

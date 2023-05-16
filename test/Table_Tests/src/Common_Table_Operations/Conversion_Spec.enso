@@ -128,7 +128,9 @@ spec setup =
         Test.specify "should allow to cast a floating point column to integer" <|
             t = table_builder [["X", [1.0001, 2.25, 4.0]]]
             c = t.at "X" . cast Value_Type.Integer
-            c.value_type.is_integer . should_be_true
+            vt = c.value_type
+            Test.with_clue "Expecting "+vt.to_display_text+" to be Integer. " <|
+                vt.is_integer . should_be_true
             c.to_vector . should_equal [1, 2, 4]
             # Not reporting Lossy Conversion as converting floats to integers obviously truncates the value.
             Problems.assume_no_problems c
