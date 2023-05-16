@@ -128,7 +128,6 @@ struct Model<E: Entry> {
     entries:        entry::List<E>,
     selection:      Selection,
     background:     Rectangle,
-    overlay:        Rectangle,
     scrolled_area:  display::object::Instance,
     display_object: display::object::Instance,
 }
@@ -141,18 +140,13 @@ impl<E: Entry> Model<E> {
         let entries = entry::List::new(&app);
         let background = Rectangle();
         background.set_border_color(color::Rgba::transparent());
-        background.set_pointer_events(false);
-        let overlay = Rectangle();
-        overlay.set_border_color(color::Rgba::transparent());
-        overlay.set_color(INVISIBLE_HOVER_COLOR);
         let selection = Selection::default();
         selection.shape.set_pointer_events(false);
         display_object.add_child(&background);
-        display_object.add_child(&overlay);
         display_object.add_child(&scrolled_area);
         scrolled_area.add_child(&entries);
         scrolled_area.add_child(&selection);
-        Model { app, entries, selection, background, overlay, scrolled_area, display_object }
+        Model { app, entries, selection, background, scrolled_area, display_object }
     }
 
     /// Update the displayed entries list when _view_ has changed - the list was scrolled or
@@ -171,8 +165,6 @@ impl<E: Entry> Model<E> {
         let background_size = view.size + padding;
         self.background.set_size(background_size);
         self.background.set_xy(-background_size / 2.0);
-        self.overlay.set_size(background_size);
-        self.overlay.set_xy(-background_size / 2.0);
         self.scrolled_area.set_y(view.size.y / 2.0 - view.position_y + SHAPE_MARGIN / 2.0);
         self.entries.update_entries(visible_entries, entry_width, style_prefix);
     }
@@ -429,8 +421,8 @@ where E::Model: Default
 
             // === Mouse Position ===
 
-            let overlay_events = &model.overlay.events_deprecated;
-            mouse_in <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
+            let mouse_events = &model.background.events_deprecated;
+            mouse_in <- bool(&mouse_events.mouse_out, &mouse_events.mouse_over);
             frp.source.is_mouse_over <+ mouse_in;
             mouse_moved <- mouse.distance.map(|dist| *dist > MOUSE_MOVE_THRESHOLD ).on_true();
             mouse_moved_in <- mouse_in.on_true();
