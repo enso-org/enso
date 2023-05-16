@@ -315,7 +315,7 @@ class TableVisualization extends Visualization {
                 r => r <= all_rows_count
             )
             if (
-                all_rows_count < rowCounts[rowCounts.length - 1] &&
+                all_rows_count < 100000 &&
                 rowCounts.indexOf(all_rows_count) === -1
             ) {
                 rowCounts.push(all_rows_count)
