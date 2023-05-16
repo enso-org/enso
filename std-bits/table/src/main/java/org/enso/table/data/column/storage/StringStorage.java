@@ -12,6 +12,7 @@ import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
+import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.graalvm.polyglot.Value;
@@ -69,6 +70,15 @@ public final class StringStorage extends SpecializedStorage<String> {
   @Override
   public Builder createDefaultBuilderOfSameType(int capacity) {
     return new StringBuilder(capacity);
+  }
+
+  @Override
+  public Storage<?> cast(StorageType targetType) {
+    return switch (targetType) {
+      case AnyObjectType() -> new MixedStorageFacade(this);
+      case TextType textType -> adapt(this, textType);
+      default -> throw new IllegalStateException("Conversion of StringStorage to " + targetType + " is not supported");
+    };
   }
 
   private static MapOpStorage<String, SpecializedStorage<String>> buildOps() {
