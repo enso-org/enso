@@ -4,6 +4,8 @@ import com.oracle.truffle.api.CompilerDirectives;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
+import java.math.RoundingMode;
 
 /** Re-exposes big-integer operations behind a truffle boundary. */
 public class BigIntegerOps {
@@ -241,5 +243,19 @@ public class BigIntegerOps {
 
   public static boolean fitsInInt(long number) {
     return number >= Integer.MIN_VALUE && number <= Integer.MAX_VALUE;
+  }
+
+  // This assumes decimal places is between -15 and 15 (inclusive). The caller
+  // must ensure this.
+  @CompilerDirectives.TruffleBoundary
+  public static BigInteger round(BigInteger a, long decimal_places) {
+    // To implement a regular .floor() for BigDecimal.
+    MathContext mathContext = new MathContext(0, RoundingMode.FLOOR);
+
+    BigDecimal a_big_decimal = new BigDecimal(a);
+    BigDecimal scale = new BigDecimal(Math.pow(10, decimal_places));
+    BigDecimal half = new BigDecimal(0.5);
+    //(((n * scale) + 0.5).floor) / scale
+    return a_big_decimal.multiply(scale).add(half).round(mathContext).divide(scale);
   }
 }

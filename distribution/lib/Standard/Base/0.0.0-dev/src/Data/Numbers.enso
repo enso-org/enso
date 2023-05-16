@@ -847,30 +847,10 @@ type Integer
          multiple of 10^(-n)". For negative decimal counts, this results in
          rounding to the nearest positive integer power of 10.
     round : Integer -> Integer
-    round self decimal_places=0 =
-        if decimal_places >= 0 then self else
-            case decimal_places < Integer.min_decimal_places of
-                True ->
-                    msg = "Round: decimal_places must be between " + Integer.min_decimal_places.to_text + " and " + Integer.max_decimal_places.to_text + "(inclusive), but was " + decimal_places;
-                    Error.throw <| Unsupported_Argument_Types.error [decimal_places] msg
-                False ->
-                    #scale = 10 ^ decimal_places
-                    #(((self * scale) + 0.5).floor.int) / scale
-                    rept "self" self
-                    scale_reciprocal = 10 ^ (-decimal_places)
-                    rept "scale_reciprocal" scale_reciprocal
-                    #k = (self + ((0.5 * scale_reciprocal).int)).div scale_reciprocal
-                    upt = (self + ((0.5 * scale_reciprocal).int))
-                    rept "upt" upt
-                    #k = upt / scale_reciprocal # upt.div scale_reciprocal
-                    #rept "k" k
-                    #kf = k.floor.int
-                    #rept "kf" kf
-                    kf = (upt / scale_reciprocal).floor.int
-                    rept "kf" kf
-                    pkf = kf * scale_reciprocal
-                    rept "pkf" pkf
-                    pkf
+    round self decimal_places=0 = self.round_builtin decimal_places
+
+    round_builtin : Integer -> Integer
+    round_builtin self decimal_places = @Builtin_Method "Integer.round_builtin"
 
     ## PRIVATE
        The smallest allowed value for the `decimal_places` argument to `round`
