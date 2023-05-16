@@ -324,7 +324,9 @@ impl EdgeModel {
     pub fn new(scene: &Scene) -> Self {
         let display_object = display::object::Instance::new_named("Edge");
         let source_attached = Cell::new(true);
-        let scene = scene.into();
+        let scene = scene.clone_ref();
+        let layer = &scene.layers.main_edges_level;
+        layer.add(&display_object);
         Self {
             display_object,
             source_attached,

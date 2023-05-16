@@ -469,7 +469,6 @@ impl NodeModel {
 
         let action_bar = action_bar::ActionBar::new(app);
         display_object.add_child(&action_bar);
-        scene.layers.above_nodes.add(&action_bar);
 
         let output = output::Area::new(app);
         display_object.add_child(&output);
@@ -499,12 +498,12 @@ impl NodeModel {
     #[profile(Debug)]
     fn init(self) -> Self {
         self.set_expression(Expression::new_plain("empty"));
+        self.move_to_main_layer();
         self
     }
 
     #[profile(Debug)]
-    fn set_layers(&self, layer: &Layer, text_layer: &Layer, action_bar_layer: &Layer) {
-        layer.add(&self.display_object);
+    fn set_special_layers(&self, text_layer: &Layer, action_bar_layer: &Layer) {
         action_bar_layer.add(&self.action_bar);
         self.output.set_label_layer(text_layer);
         self.input.set_label_layer(text_layer);
@@ -519,13 +518,13 @@ impl NodeModel {
     ///
     /// `action_bar` is moved to the `edited_node` layer as well, though normally it lives on a
     /// separate `above_nodes` layer, unlike every other node component.
-    #[profile(Debug)]
     pub fn move_to_edited_node_layer(&self) {
         let scene = &self.app.display.default_scene;
         let layer = &scene.layers.edited_node;
         let text_layer = &scene.layers.edited_node_text;
         let action_bar_layer = &scene.layers.edited_node;
-        self.set_layers(layer, text_layer, action_bar_layer);
+        layer.add(&self.display_object);
+        self.set_special_layers(text_layer, action_bar_layer);
     }
 
     /// Move all sub-components to `main` layer.
@@ -535,13 +534,13 @@ impl NodeModel {
     ///
     /// `action_bar` is handled separately, as it uses `above_nodes` scene layer unlike any other
     /// node component.
-    #[profile(Debug)]
     pub fn move_to_main_layer(&self) {
         let scene = &self.app.display.default_scene;
-        let layer = &scene.layers.main;
+        let layer = &scene.layers.main_nodes_level;
         let text_layer = &scene.layers.label;
         let action_bar_layer = &scene.layers.above_nodes;
-        self.set_layers(layer, text_layer, action_bar_layer);
+        layer.add(&self.display_object);
+        self.set_special_layers(text_layer, action_bar_layer);
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
