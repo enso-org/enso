@@ -1547,6 +1547,7 @@ type Column
 
        Arguments:
        - range: The selection of rows from the table to return.
+    @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Column
     take self range=(First 1) =
         Index_Sub_Range_Module.take_helper self.length self.at self.slice (slice_ranges self) range
@@ -1556,6 +1557,7 @@ type Column
 
        Arguments:
        - range: The selection of rows from the table to remove.
+    @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Column
     drop self range=(First 1) =
         Index_Sub_Range_Module.drop_helper self.length self.at self.slice (slice_ranges self) range

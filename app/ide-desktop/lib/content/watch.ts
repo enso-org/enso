@@ -1,4 +1,7 @@
 /** @file File watch and compile service. */
+import * as path from 'node:path'
+import * as url from 'node:url'
+
 import * as esbuild from 'esbuild'
 import * as portfinder from 'portfinder'
 import chalk from 'chalk'
@@ -10,6 +13,8 @@ import * as dashboardBundler from '../dashboard/esbuild-config'
 // === Constants ===
 // =================
 
+/** The path of this file. */
+const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 const PORT = 8080
 const HTTP_STATUS_OK = 200
 
@@ -28,6 +33,11 @@ async function watch() {
     const opts = bundler.bundlerOptions({
         ...bundler.argumentsFromEnv(),
         devMode: true,
+    })
+    opts.define.REDIRECT_OVERRIDE = JSON.stringify('http://localhost:8080')
+    opts.entryPoints.push({
+        in: path.resolve(THIS_PATH, 'src', 'serviceWorker.ts'),
+        out: 'serviceWorker',
     })
     const builder = await esbuild.context(opts)
     await builder.watch()

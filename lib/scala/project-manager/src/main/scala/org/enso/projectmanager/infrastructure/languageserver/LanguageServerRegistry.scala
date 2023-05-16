@@ -88,7 +88,7 @@ class LanguageServerRegistry(
     case msg @ KillThemAll =>
       val killer = context.actorOf(
         LanguageServerKiller.props(
-          serverControllers.values.toList,
+          serverControllers,
           timeoutConfig.shutdownTimeout
         ),
         "language-server-killer"

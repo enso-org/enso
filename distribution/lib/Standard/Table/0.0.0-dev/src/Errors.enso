@@ -12,6 +12,13 @@ polyglot java import org.enso.table.error.EmptySheetException
 type Missing_Input_Columns
     ## PRIVATE
        One or more columns not found in the input table.
+
+       Arguments:
+       - criteria: the names of the columns or regular expressions that did not
+         have any matches.
+       - where: an optional text describing to which object this error is
+         related to (for example in join, whether the reported error is for the
+         left or right table).
     Error (criteria : [Text]) (where:Text|Nothing = Nothing)
 
     ## PRIVATE
@@ -252,7 +259,7 @@ type Invalid_Location
      format.
 type Invalid_Format
     ## PRIVATE
-    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Time|Time_Of_Day|Boolean) (cells:[Text])
+    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean) (cells:[Text])
 
     ## PRIVATE
        Pretty print the invalid format error.

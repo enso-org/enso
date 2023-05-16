@@ -833,8 +833,8 @@ impl Graph {
                 },
                 executed::Notification::ComputedValueInfo(expressions) =>
                     update_expressions.emit(expressions),
-                executed::Notification::EnteredNode(_) => update_view.emit(()),
-                executed::Notification::SteppedOutOfNode(_) => update_view.emit(()),
+                executed::Notification::EnteredStack(_)
+                | executed::Notification::ExitedStack(_) => update_view.emit(()),
             }
             std::future::ready(())
         })

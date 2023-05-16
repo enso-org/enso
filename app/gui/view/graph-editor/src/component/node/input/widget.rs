@@ -306,7 +306,9 @@ impl Configuration {
                 } else {
                     Self::always(label::Config::default())
                 },
-            Kind::Token | Kind::Operation if !has_children => Self::inert(label::Config::default()),
+            Kind::Operation if !has_children =>
+                Self::maybe_with_port(label::Config::default(), is_directly_connected),
+            Kind::Token if !has_children => Self::inert(label::Config::default()),
             Kind::NamedArgument => Self::inert(hierarchy::Config),
             Kind::InsertionPoint(_) =>
                 Self::maybe_with_port(insertion_point::Config, is_directly_connected),

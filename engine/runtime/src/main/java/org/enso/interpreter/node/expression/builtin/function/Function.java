@@ -6,7 +6,7 @@ import org.enso.interpreter.node.expression.builtin.Builtin;
 @BuiltinType(name = "Standard.Base.Function.Function")
 public class Function extends Builtin {
   @Override
-  protected boolean containsValues() {
+  public boolean containsValues() {
     return true;
   }
 }

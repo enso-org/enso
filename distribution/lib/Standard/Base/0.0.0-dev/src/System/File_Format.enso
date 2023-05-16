@@ -58,14 +58,26 @@ type Auto_Detect
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any ! File_Error
     read self file on_problems =
-        reader = Auto_Detect.get_format file
+        reader = Auto_Detect.get_reading_format file
         if reader == Nothing then Error.throw (File_Error.Unsupported_Type file) else
             reader.read file on_problems
 
     ## PRIVATE
-    get_format : File -> Any | Nothing
-    get_format file =
-        get_format f-> f.for_file file
+       Finds a matching format for reading the file.
+
+       It assumes that `file` already exists.
+    get_reading_format : File -> Any | Nothing
+    get_reading_format file =
+        get_format f-> f.for_file_read file
+
+    ## PRIVATE
+       Finds a matching format for reading the file.
+
+       It may not assume that the `file` exists, so it must only rely on the
+       file path (extension in particular), but not the contents.
+    get_writing_format : File -> Any | Nothing
+    get_writing_format file =
+        get_format f-> f.for_file_write file
 
     ## PRIVATE
     get_web_parser : Text -> URI -> Any | Nothing
@@ -91,12 +103,17 @@ type Plain_Text_Format
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file : File -> Plain_Text_Format | Nothing
-    for_file file =
+    for_file_read : File -> Plain_Text_Format | Nothing
+    for_file_read file =
         case file.extension of
             ".txt" -> Plain_Text_Format.Plain_Text
             ".log" -> Plain_Text_Format.Plain_Text
             _ -> Nothing
+
+    ## PRIVATE
+       If this File_Format should be used for writing to that file, return a configured instance.
+    for_file_write : File -> Plain_Text_Format | Nothing
+    for_file_write file = Plain_Text_Format.for_file_read file
 
     ## PRIVATE
        If the File_Format supports reading from the web response, return a configured instance.
@@ -127,11 +144,16 @@ type Plain_Text_Format
 type Bytes
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file : File -> Bytes | Nothing
-    for_file file =
+    for_file_read : File -> Bytes | Nothing
+    for_file_read file =
         case file.extension of
             ".dat" -> Bytes
             _ -> Nothing
+
+    ## PRIVATE
+       If this File_Format should be used for writing to that file, return a configured instance.
+    for_file_write : File -> Bytes | Nothing
+    for_file_write file = Bytes.for_file_read file
 
     ## PRIVATE
        If the File_Format supports reading from the web response, return a configured instance.
@@ -148,12 +170,17 @@ type Bytes
 type JSON_Format
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file : File -> JSON_Format | Nothing
-    for_file file =
+    for_file_read : File -> JSON_Format | Nothing
+    for_file_read file =
         case file.extension of
             ".json" -> JSON_Format
             ".geojson" -> JSON_Format
             _ -> Nothing
+
+    ## PRIVATE
+       If this File_Format should be used for writing to that file, return a configured instance.
+    for_file_write : File -> JSON_Format | Nothing
+    for_file_write file = JSON_Format.for_file_read file
 
     ## PRIVATE
        If the File_Format supports reading from the web response, return a configured instance.

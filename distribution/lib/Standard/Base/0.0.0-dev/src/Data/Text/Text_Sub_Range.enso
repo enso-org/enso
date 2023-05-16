@@ -6,6 +6,7 @@ import project.Data.Range.Range
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Type_Error
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
@@ -16,6 +17,11 @@ from project.Data.Boolean import Boolean, True, False
 
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 import project.Data.Text.Span as Span_Module
+from project.Data.Index_Sub_Range import handle_unmatched_type
+
+from project.Metadata.Widget import Single_Choice
+from project.Metadata.Choice import Option
+import project.Metadata.Display
 
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import org.enso.base.Text_Utils
@@ -41,13 +47,31 @@ type Text_Sub_Range
     After_Last (delimiter : Text)
 
     ## PRIVATE
-       Convert to a display representation of this Index_Sub_Range.
+       Convert to a display representation of this `Text_Sub_Range`.
     to_display_text : Text
     to_display_text self = case self of
-        Text_Sub_Range.Before delimiter -> "Before " + delimiter.to_display_text
-        Text_Sub_Range.Before_Last delimiter -> "Before Last " + delimiter.to_display_text
-        Text_Sub_Range.After delimiter -> "After " + delimiter.to_display_text
-        Text_Sub_Range.After_Last delimiter -> "After Last " + delimiter.to_display_text
+        Text_Sub_Range.Before delimiter -> "Before " + delimiter.pretty
+        Text_Sub_Range.Before_Last delimiter -> "Before Last " + delimiter.pretty
+        Text_Sub_Range.After delimiter -> "After " + delimiter.pretty
+        Text_Sub_Range.After_Last delimiter -> "After Last " + delimiter.pretty
+
+    ## PRIVATE
+    default_options : Vector Option
+    default_options =
+        o1 = Option "Before" "(Text_Sub_Range.Before ' ')"
+        o2 = Option "Before_Last" "(Text_Sub_Range.Before_Last ' ')"
+        o3 = Option "After" "(Text_Sub_Range.After ' ')"
+        o4 = Option "After_Last" "(Text_Sub_Range.After_Last ' ')"
+        [o1, o2, o3, o4]
+
+    ## PRIVATE
+       The widget for `Text_Sub_Range` also displays options for
+       `Index_Sub_Range` since the former is supposed to 'expand' the latter and
+       is always used together with it.
+    default_widget : Single_Choice
+    default_widget =
+        options = Index_Sub_Range.default_options + Text_Sub_Range.default_options
+        Single_Choice display=Display.Always options
 
 type Codepoint_Ranges
     ## PRIVATE
@@ -64,7 +88,7 @@ type Codepoint_Ranges
        Returns a new sorted list of ranges where intersecting ranges have been
        merged.
 
-       Empty subranges are not discarded.
+       Empty ranges are not discarded.
     sorted_and_distinct_ranges : Vector Range
     sorted_and_distinct_ranges self = if self.is_sorted_and_distinct then self.ranges else
         Index_Sub_Range_Module.sort_and_merge_ranges self.ranges
@@ -80,8 +104,8 @@ type Codepoint_Ranges
        in such a way that the ranges returned by this method always have a step
        equal to 1.
     resolve : Text -> (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> (Range | Codepoint_Ranges)
-    resolve text subrange =
-        case subrange of
+    resolve text range =
+        case range of
             Text_Sub_Range.Before delimiter ->
                 if delimiter.is_empty then (0.up_to 0) else
                     span = Text_Utils.span_of text delimiter
@@ -134,12 +158,14 @@ type Codepoint_Ranges
                 if step <= 0 then Error.throw (Illegal_Argument.Error "Step within Every must be positive.") else
                     len = text.length
                     if start >= len then 0.up_to 0 else
-                        range = start.up_to text.length . with_step step
-                        Codepoint_Ranges.resolve text (Index_Sub_Range.By_Index range)
+                        simple_range = start.up_to text.length . with_step step
+                        Codepoint_Ranges.resolve text (Index_Sub_Range.By_Index simple_range)
             _ : Range ->
-                Codepoint_Ranges.resolve text (Index_Sub_Range.By_Index subrange)
+                Codepoint_Ranges.resolve text (Index_Sub_Range.By_Index range)
             _ : Integer ->
-                Codepoint_Ranges.resolve text (Index_Sub_Range.First subrange)
+                Codepoint_Ranges.resolve text (Index_Sub_Range.First range)
+            _ -> handle_unmatched_type [Text_Sub_Range, Index_Sub_Range, Range, Integer] range
+
 
 ## PRIVATE
    Utility function to find char indices for Text_Sub_Range.

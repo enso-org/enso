@@ -4387,7 +4387,9 @@ class RuntimeServerTest
           methodPointer =
             Some(Api.MethodPointer(moduleName, moduleName, "attach")),
           payload = Api.ExpressionUpdate.Payload.Value(
-            Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+            Some(
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+            )
           )
         ),
       TestMessages
@@ -4400,7 +4402,7 @@ class RuntimeServerTest
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
               Api.ExpressionUpdate.Payload.Value
-                .Warnings(1, Some("(My_Warning.Value 42)"))
+                .Warnings(1, Some("(My_Warning.Value 42)"), false)
             )
           )
         ),
@@ -4412,7 +4414,9 @@ class RuntimeServerTest
           methodPointer =
             Some(Api.MethodPointer(moduleName, moduleName, "attach")),
           payload = Api.ExpressionUpdate.Payload
-            .Value(Some(Api.ExpressionUpdate.Payload.Value.Warnings(2, None)))
+            .Value(
+              Some(Api.ExpressionUpdate.Payload.Value.Warnings(2, None, false))
+            )
         ),
       context.executionComplete(contextId)
     )
@@ -4473,7 +4477,9 @@ class RuntimeServerTest
           idX,
           ConstantsGen.INTEGER,
           payload = Api.ExpressionUpdate.Payload.Value(
-            Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+            Some(
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+            )
           )
         ),
       TestMessages
@@ -4482,7 +4488,9 @@ class RuntimeServerTest
           idY,
           ConstantsGen.INTEGER,
           payload = Api.ExpressionUpdate.Payload.Value(
-            Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+            Some(
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+            )
           )
         ),
       TestMessages
@@ -4491,7 +4499,9 @@ class RuntimeServerTest
           idRes,
           ConstantsGen.NOTHING,
           payload = Api.ExpressionUpdate.Payload.Value(
-            Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+            Some(
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+            )
           )
         ),
       context.executionComplete(contextId)

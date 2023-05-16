@@ -234,7 +234,7 @@ final class ContextEventsListener(
     payload: Api.ExpressionUpdate.Payload.Value.Warnings
   ): ContextRegistryProtocol.ExpressionUpdate.Payload.Value.Warnings =
     ContextRegistryProtocol.ExpressionUpdate.Payload.Value
-      .Warnings(payload.count, payload.warning)
+      .Warnings(payload.count, payload.warning, payload.reachedMaxCount)
 
   /** Convert the runtime profiling info to the context registry protocol
     * representation.
