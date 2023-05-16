@@ -24,9 +24,13 @@ spec =
     very_negative = min_long
 
     Test.group "gmt" <|
-        Test.specify "Decimal places out of range" <|
-            3.1 . round 16 . should_fail_with Unsupported_Argument_Types
-            3.1 . round -16 . should_fail_with Unsupported_Argument_Types
+        Test.specify "Edge cases"
+            #IO.println <| (-580.8).floor
+            #IO.println <| (-580.8).floor.int
+            #IO.println <| (-580.3).floor
+            #IO.println <| (-580.3).floor.int
+            (-5808).round -1 . should_equal -5810
+            min_long.round -1 . should_equal -99223372036854775810
 
     Test.group "Integers" <|
 
@@ -642,7 +646,7 @@ spec =
             max_long+20 . round . should_equal (max_long + 20)
             max_long+20 . round -1 . should_equal 9223372036854775830
 
-        Test.specify "Edge cases (failing)" pending="These fail because the result is returned as a double" <|
+        Test.specify "Edge cases" <|
             # Loses precision
             max_long+20 . round -5 . should_equal 9223372036854800000
             # Loses precision

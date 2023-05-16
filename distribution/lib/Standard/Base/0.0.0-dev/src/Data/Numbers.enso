@@ -7,6 +7,7 @@ import project.Error.Error
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.IO
+import project.Meta
 
 from project.Data.Boolean import Boolean, True, False
 
@@ -853,8 +854,23 @@ type Integer
                     msg = "Round: decimal_places must be between " + Integer.min_decimal_places.to_text + " and " + Integer.max_decimal_places.to_text + "(inclusive), but was " + decimal_places;
                     Error.throw <| Unsupported_Argument_Types.error [decimal_places] msg
                 False ->
-                    scale = 10 ^ decimal_places
-                    (((self * scale) + 0.5).floor) / scale
+                    #scale = 10 ^ decimal_places
+                    #(((self * scale) + 0.5).floor.int) / scale
+                    rept "self" self
+                    scale_reciprocal = 10 ^ (-decimal_places)
+                    rept "scale_reciprocal" scale_reciprocal
+                    #k = (self + ((0.5 * scale_reciprocal).int)).div scale_reciprocal
+                    upt = (self + ((0.5 * scale_reciprocal).int))
+                    rept "upt" upt
+                    #k = upt / scale_reciprocal # upt.div scale_reciprocal
+                    #rept "k" k
+                    #kf = k.floor.int
+                    #rept "kf" kf
+                    kf = (upt / scale_reciprocal).floor.int
+                    rept "kf" kf
+                    pkf = kf * scale_reciprocal
+                    rept "pkf" pkf
+                    pkf
 
     ## PRIVATE
        The smallest allowed value for the `decimal_places` argument to `round`
@@ -1035,3 +1051,10 @@ type Number_Parse_Error
     to_display_text : Text
     to_display_text =
         "Could not parse " + self.text.to_text + " as a double."
+
+rept s x =
+    IO.println "----"
+    IO.println s
+    IO.println x
+    IO.println (Meta.type_of x)
+    IO.println (Meta.meta x)
