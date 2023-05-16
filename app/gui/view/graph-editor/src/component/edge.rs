@@ -465,7 +465,7 @@ impl EdgeModel {
             self.redraw_sections(&corners, source_color, target_color, hover_split);
             self.redraw_dataflow_arrow(target, source_color, target_color, hover_split);
         }
-        if target_changed || color_changed || target_attachment_changed {
+        if target_changed || color_changed || hover_split_changed || target_attachment_changed {
             self.redraw_target_attachment(target, target_color);
         }
     }
