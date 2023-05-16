@@ -977,6 +977,13 @@ impl Oriented<Corner> {
             let target_end = self.with_source_end(arc_end);
             let source_end_angle = self.source_end_angle();
             let target_end_angle = self.target_end_angle();
+            // Snap the angle to the arc's quadrant, so that the signs don't come out wrong if we
+            // handle an event slightly outside the expected bounds.
+            let (low, high) = match source_end_angle < target_end_angle {
+                true => (source_end_angle, target_end_angle),
+                false => (target_end_angle, source_end_angle),
+            };
+            let split_angle = split_angle.clamp(low, high);
             let split =
                 SplitArc { origin, radius, source_end_angle, split_angle, target_end_angle };
             Some(SplitCorner { source_end, target_end, split_arc: Some(split) })
