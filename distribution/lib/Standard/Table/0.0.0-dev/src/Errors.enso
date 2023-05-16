@@ -555,14 +555,17 @@ type Inexact_Type_Coercion
 type Lossy_Conversion
     ## Indicates that some likely not-insignificant information was lost during
        a conversion.
-    Error (target_type : Value_Type) (related_column : Text)
+    Error (target_type : Value_Type) (related_column : Text) (affected_rows_count : Nothing|Integer)
 
     ## PRIVATE
 
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        "When converting the column ["+self.related_column+"], the target type ("+self.target_type.to_display_text+") does not fill all the data, so some information was lost."
+        rows_info = case self.affected_rows_count of
+            Nothing -> ""
+            Just count -> " in "+count.to_text+" rows"
+        "When converting the column ["+self.related_column+"], the target type ("+self.target_type.to_display_text+") does not fill all the data, so some information was lost"+rows_info+"."
 
 type Invalid_Value_For_Type
     ## PRIVATE

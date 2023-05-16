@@ -159,7 +159,8 @@ spec setup =
                 c = t.at "X" . cast Value_Type.Integer
                 c.value_type . should_equal Value_Type.Integer
                 c.to_vector . should_equal [1, 2, max_long, Nothing, min_long, Nothing, 4]
-                Problems.expect_warning Lossy_Conversion c
+                warning = Problems.expect_warning Lossy_Conversion c
+                warning.to_display_text . should_contain "information was lost in 2 rows"
 
     if supports_dates then
         Test.group prefix+"Table/Column.cast - date/time" <|
