@@ -33,7 +33,6 @@ import UploadFileModal from './uploadFileModal'
 
 import DirectoryCreateForm from './directoryCreateForm'
 import FileCreateForm from './fileCreateForm'
-import ProjectCreateForm from './projectCreateForm'
 import SecretCreateForm from './secretCreateForm'
 
 // =============
@@ -105,10 +104,9 @@ const ASSET_TYPE_NAME: Record<backendModule.AssetType, string> = {
 
 /** Forms to create each asset type. */
 const ASSET_TYPE_CREATE_FORM: Record<
-    backendModule.AssetType,
+    Exclude<backendModule.AssetType, backendModule.AssetType.project>,
     (props: CreateFormProps) => JSX.Element
 > = {
-    [backendModule.AssetType.project]: ProjectCreateForm,
     [backendModule.AssetType.file]: FileCreateForm,
     [backendModule.AssetType.secret]: SecretCreateForm,
     [backendModule.AssetType.directory]: DirectoryCreateForm,
@@ -536,32 +534,36 @@ function Dashboard(props: DashboardProps) {
     /** Heading element for every column. */
     function ColumnHeading(column: Column, assetType: backendModule.AssetType) {
         return column === Column.name ? (
-            <div className="inline-flex">
-                {ASSET_TYPE_NAME[assetType]}
-                <button
-                    className="mx-1"
-                    onClick={event => {
-                        event.stopPropagation()
-                        const buttonPosition =
-                            // This type assertion is safe as this event handler is on a `button`.
+            assetType === backendModule.AssetType.project ? (
+                <>{ASSET_TYPE_NAME[assetType]}</>
+            ) : (
+                <div className="inline-flex">
+                    {ASSET_TYPE_NAME[assetType]}
+                    <button
+                        className="mx-1"
+                        onClick={event => {
+                            event.stopPropagation()
+                            const buttonPosition =
+                                // This type assertion is safe as this event handler is on a button.
+                                // eslint-disable-next-line no-restricted-syntax
+                                (event.target as HTMLButtonElement).getBoundingClientRect()
+                            // This is a React component even though it doesn't contain JSX.
                             // eslint-disable-next-line no-restricted-syntax
-                            (event.target as HTMLButtonElement).getBoundingClientRect()
-                        // This is a React component even though it doesn't contain JSX.
-                        // eslint-disable-next-line no-restricted-syntax
-                        const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
-                        setModal(() => (
-                            <CreateForm
-                                left={buttonPosition.left + window.scrollX}
-                                top={buttonPosition.top + window.scrollY}
-                                directoryId={directoryId}
-                                onSuccess={doRefresh}
-                            />
-                        ))
-                    }}
-                >
-                    {svg.ADD_ICON}
-                </button>
-            </div>
+                            const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
+                            setModal(() => (
+                                <CreateForm
+                                    left={buttonPosition.left + window.scrollX}
+                                    top={buttonPosition.top + window.scrollY}
+                                    directoryId={directoryId}
+                                    onSuccess={doRefresh}
+                                />
+                            ))
+                        }}
+                    >
+                        {svg.ADD_ICON}
+                    </button>
+                </div>
+            )
         ) : (
             <>{COLUMN_NAME[column]}</>
         )
