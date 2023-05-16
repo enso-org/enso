@@ -1,0 +1,16 @@
+[package]
+name = "enso-frp2"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[dependencies]
+enso-prelude = { path = "../prelude" }
+bumpalo = { version = "3.12.2", features = ["allocator_api"] }
+ouroboros = "0.15.6"
+smallvec = "1.10.0"
+slotmap = "1.0.6"
+
+[features]
+stack-trace = []
+default = ["stack-trace"]
