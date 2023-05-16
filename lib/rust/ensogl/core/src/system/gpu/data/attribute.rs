@@ -541,13 +541,11 @@ mod allocator_tests {
         instances.resize(partitions, default());
         macro_rules! check_live_instances {
             () => {{
-                if let Some(freed_index) = FREED_INDEX {
-                    let scope = scope.rc.borrow();
-                    let indexes = scope.indexes.borrow();
-                    for (_partition, instances) in instances.iter().enumerate() {
-                        for instance in instances {
-                            assert_ne!(indexes[instance.raw].raw, freed_index);
-                        }
+                let scope = scope.rc.borrow();
+                let indexes = scope.indexes.borrow();
+                for (_partition, instances) in instances.iter().enumerate() {
+                    for instance in instances {
+                        assert_ne!(indexes[instance.raw].raw, FREED_INDEX);
                     }
                 }
             }};
@@ -559,9 +557,7 @@ mod allocator_tests {
                 let indexes = scope.indexes.borrow();
                 for (_partition, instances) in instances.iter().enumerate() {
                     for instance in instances {
-                        if let Some(freed_index) = FREED_INDEX {
-                            assert_ne!(indexes[instance.raw].raw, freed_index);
-                        }
+                        assert_ne!(indexes[instance.raw].raw, FREED_INDEX);
                         let no_collision = locations_used.insert(indexes[instance.raw].raw);
                         assert!(no_collision);
                     }

@@ -110,7 +110,6 @@ pub struct Background {
 
 impl Background {
     fn new(style: &StyleWatchFrp) -> Self {
-        // TODO: Set style properties through Node FRP.
         let selection_color =
             style.get_color(ensogl_hardcoded_theme::graph_editor::node::selection).value();
         let selection_size =
@@ -131,12 +130,9 @@ impl Background {
     }
 
     fn set_selected(&self, degree: f32) {
-        // TODO: Support degree from 0-1 for animation.
-        self.shape.set_border_color(*self.selection_color);
-    }
-
-    fn set_unselected(&self) {
-        self.shape.set_border_color(color::Rgba::transparent());
+        let selected = self.selection_color;
+        let blended = color::Rgba(selected.red, selected.green, selected.blue, degree);
+        self.shape.set_border_color(blended);
     }
 
     fn set_size_and_center_xy(&self, size: Vector2<f32>, center: Vector2<f32>) {
@@ -432,18 +428,12 @@ impl NodeModel {
         use display::shape::compound::rectangle;
         ensogl::shapes_order_dependencies! {
             app.display.default_scene => {
-                //edge::back::corner        -> error_shape;
-                //edge::back::line          -> error_shape;
                 error_shape               -> output::port::single_port;
                 error_shape               -> output::port::multi_port;
                 output::port::single_port -> rectangle;
                 output::port::multi_port  -> rectangle;
-                //rectangle                 -> edge::front::corner;
-                //rectangle                 -> edge::front::line;
             }
         }
-
-        let scene = &app.display.default_scene;
 
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
 
@@ -623,11 +613,7 @@ impl NodeModel {
     }
 
     fn set_selected(&self, degree: f32) {
-        if degree == 0.0 {
-            self.background.set_unselected();
-        } else {
-            self.background.set_selected(degree);
-        }
+        self.background.set_selected(degree);
     }
 }
 
@@ -918,8 +904,7 @@ impl Node {
             //     model.background.bg_color.set(color::Rgba::from(c).into())
             // );
 
-            eval bg_color_anim.value ((c)
-                model.background.shape.set_color(color::Rgba::from(c).into()););
+            eval bg_color_anim.value ((c) model.background.shape.set_color(color::Rgba::from(c)););
 
 
             // === Tooltip ===

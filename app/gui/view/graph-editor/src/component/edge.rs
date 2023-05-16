@@ -21,11 +21,13 @@ use ensogl_hardcoded_theme as theme;
 // =================
 
 const LINE_WIDTH: f32 = 4.0;
-const ARROW_SIZE_X: f32 = 20.0;
-const ARROW_SIZE_Y: f32 = 20.0;
-
 const HOVER_EXTENSION: f32 = 10.0;
 const HOVER_WIDTH: f32 = LINE_WIDTH + HOVER_EXTENSION;
+const ARROW_SIZE_X: f32 = 20.0;
+const ARROW_SIZE_Y: f32 = 20.0;
+const NODE_CORNER_RADIUS: f32 = 14.0;
+const MIN_RADIUS: f32 = 20.0;
+const MAX_RADIUS: f32 = 30.0;
 
 
 
@@ -35,7 +37,8 @@ const HOVER_WIDTH: f32 = LINE_WIDTH + HOVER_EXTENSION;
 
 /// An arc around the origin. `outer_radius` determines the distance from the origin to the outer
 /// edge of the arc, `stroke_width` the width of the arc. The arc starts at `start_angle`, relative
-/// to the origin and ends at `end_angle`. The ends are flat not rounded, as in [`RoundedArc`].
+/// to the origin. Its radial size is `sector_angle`. The ends are flat, not rounded as in
+/// [`RoundedArc`].
 mod arc {
     use super::*;
     ensogl::shape! {
@@ -132,11 +135,6 @@ macro_rules! define_arrow { () => {
     }
 }}
 
-const NODE_CORNER_RADIUS: f32 = 14.0;
-
-const MIN_RADIUS: f32 = 20.0;
-const MAX_RADIUS: f32 = 30.0;
-
 
 
 // ===========
@@ -171,6 +169,7 @@ define_endpoints_2! {
 pub struct Edge {
     #[deref]
     model:   Rc<EdgeModel>,
+    /// The FRP network.
     pub frp: Frp,
 }
 
@@ -190,30 +189,22 @@ impl Edge {
         let network = &frp.network;
 
         let edge_color = color::Animation::new(network);
-        let edge_focus_color = color::Animation::new(network);
 
         use ensogl::control::io::mouse;
         let display_object = &model.display_object;
         let mouse_move = display_object.on_event::<mouse::Move>();
         let mouse_down = display_object.on_event::<mouse::Down>();
-
-        // These events never fire.
-        //let mouse_enter = display_object.on_event::<mouse::Enter>();
-        //let mouse_leave = display_object.on_event::<mouse::Leave>();
-
-        let mouse_over = display_object.on_event::<mouse::Over>();
         let mouse_out = display_object.on_event::<mouse::Out>();
-
-        //app.display.default_scene.layers.main.add(display_object);
 
         let output = &frp.private.output;
         frp::extend! { network
-            // Setter inputs.
+            // Setters. Changes to these values don't automatically trigger a redraw.
             eval frp.target_position ((t) model.set_target_position(*t));
             eval frp.source_attached ((t) model.set_source_attached(*t));
             eval frp.target_attached ((t) model.set_target_attached(*t));
             eval frp.source_width    ((t) model.set_source_width(*t));
             eval frp.source_height   ((t) model.set_source_height(*t));
+            eval frp.set_disabled    ((t) model.set_disabled(*t));
 
             // Mouse events.
             eval mouse_move            ((e) model.set_mouse_position_and_redraw(e.client_centered()));
@@ -234,18 +225,7 @@ impl Edge {
             // === Colors ===
 
             edge_color.target       <+ frp.set_color;
-            eval edge_color.value       ((color) model.set_color(color.into()));
-
-            /*
-            new_color       <- all_with(&frp.set_color,&frp.set_disabled,
-                f!((c,t)model.base_color(*c,*t)));
-            new_focus_color <- new_color.map(f!((color) model.focus_color(*color)));
-            focus_color     <- switch(&is_hovered,&new_color,&new_focus_color);
-
-            edge_focus_color.target <+ focus_color;
-
-            eval edge_focus_color.value ((color) model.set_focus_color(color.into()));
-             */
+            eval edge_color.value       ((color) model.set_color_and_redraw(color.into()));
         }
         Self { model, frp }
     }
@@ -287,6 +267,7 @@ pub struct EdgeModel {
     color:               Cell<color::Rgba>,
     /// The location of the mouse over the edge.
     hover_position:      Cell<Option<Vector2<f32>>>,
+    disabled:            Cell<bool>,
 
     // === Cached state ===
     /// The endpoints of the individual [`Corner`]s making up the edge.
@@ -341,6 +322,7 @@ impl EdgeModel {
             hover_sections: default(),
             corner_points: default(),
             hover_position: default(),
+            disabled: default(),
             previous_target: default(),
             previous_is_hoverable: default(),
             previous_hover_split: default(),
@@ -349,31 +331,10 @@ impl EdgeModel {
     }
 
     /// Set the color of the edge.
-    fn set_color(&self, color: color::Lcha) {
-        // We must never use alpha in edges, as it will show artifacts with overlapping sub-parts.
-        // XXX: This should no longer be necessary.
-        let color: color::Lcha = color.opaque.into();
+    fn set_color_and_redraw(&self, color: color::Lcha) {
         let color_rgba = color::Rgba::from(color);
         self.color.set(color_rgba);
         self.redraw();
-    }
-
-    fn base_color(&self, color: color::Lcha, is_disabled: bool) -> color::Lcha {
-        let color: color::Lcha = color.opaque.into();
-        if !is_disabled {
-            color
-        } else {
-            let styles = StyleWatch::new(&self.scene.style_sheet);
-            styles.get_color(theme::code::syntax::disabled).into()
-        }
-    }
-
-    fn focus_color(&self, color: color::Lcha) -> color::Lcha {
-        // We must never use alpha in edges, as it will show artifacts with overlapping sub-parts.
-        let color: color::Lcha = color.opaque.into();
-        let styles = StyleWatch::new(&self.scene.style_sheet);
-        let bg_color = styles.get_color(theme::application::background).into();
-        color::mix(bg_color, color, 0.25)
     }
 
     fn set_source_width(&self, width: f32) {
@@ -382,6 +343,10 @@ impl EdgeModel {
 
     fn set_source_height(&self, height: f32) {
         self.source_height.set(height);
+    }
+
+    fn set_disabled(&self, disabled: bool) {
+        self.disabled.set(disabled);
     }
 
     fn source_x_range(&self) -> f32 {
@@ -417,7 +382,7 @@ impl EdgeModel {
         let scene_pos = self.scene.screen_to_scene_coordinates(screen_pos_3d).xy();
         let pos = scene_pos - self.display_object.xy();
 
-        let corners = corners(&*self.corner_points.borrow()).collect_vec();
+        let corners = corners(&self.corner_points.borrow()).collect_vec();
         find_position(pos, &corners).map(|split| split.closer_end)
     }
 
@@ -449,6 +414,14 @@ impl EdgeModel {
         new.set_border_color(INVISIBLE_HOVER_COLOR);
         self.display_object.add_child(&new);
         new
+    }
+
+    fn new_arc(&self) -> arc::View {
+        let arc = arc::View::new();
+        arc.stroke_width.set(LINE_WIDTH);
+        self.display_object.add_child(&arc);
+        self.scene.layers.below_main.add(&arc);
+        arc
     }
 
     fn target_offset(&self) -> Vector2<f32> {
@@ -486,103 +459,113 @@ impl EdgeModel {
             })
             .flatten();
         let hover_split_changed = update_and_compare(&self.previous_hover_split, hover_split);
-        let normal_color = self.color.get();
+        let normal_color = if self.disabled.get() {
+            let styles = StyleWatch::new(&self.scene.style_sheet);
+            styles.get_color(theme::code::syntax::disabled)
+        } else {
+            self.color.get()
+        };
         let color_changed = update_and_compare(&self.previous_color, normal_color);
 
         // Create shape objects for the current geometry.
         if target_changed || is_hoverable_changed {
-            let hover_factory = self
-                .hover_sections
-                .take()
-                .into_iter()
-                .chain(iter::repeat_with(|| self.new_hover_section()));
-            if is_hoverable {
-                *self.hover_sections.borrow_mut() = corners
-                    .iter()
-                    .zip(hover_factory)
-                    .map(|(corner, shape)| draw_corner(shape, **corner, HOVER_WIDTH))
-                    .collect();
-            }
+            self.redraw_hover_sections(is_hoverable.then_some(&corners[..]).unwrap_or_default());
         }
-        if target_changed || hover_split_changed || color_changed {
-            let styles = StyleWatch::new(&self.scene.style_sheet);
-            let bg_color = styles.get_color(theme::application::background).into();
-            let focused_color = color::mix(bg_color, normal_color, 0.25);
-            let corner_index =
-                hover_split.map(|split| split.corner_index).unwrap_or_else(|| corners.len());
-            let closer_end =
-                hover_split.map(|split| split.closer_end).unwrap_or_else(|| EndPoint::Source);
-            let split_corner = hover_split.map(|split| split.split_corner);
-            let mut section_factory =
-                self.sections.take().into_iter().chain(iter::repeat_with(|| self.new_section()));
-            let mut new_sections = corners
-                .iter()
-                .enumerate()
-                .filter_map(|(i, corner)| {
-                    if i == corner_index {
-                        None
-                    } else {
-                        let is_focused = match closer_end {
-                            EndPoint::Source => i > corner_index,
-                            EndPoint::Target => i < corner_index,
-                        };
-                        let color = match is_focused {
-                            false => normal_color,
-                            true => focused_color,
-                        };
-                        Some((color, corner))
-                    }
-                })
-                .zip(&mut section_factory)
-                .map(|((color, corner), shape)| {
-                    let shape = draw_corner(shape, **corner, LINE_WIDTH);
-                    shape.set_border_color(color);
-                    shape
-                })
-                .collect_vec();
-            let arc_shapes = self.split_arc.take();
-            if let Some(split_corner) = split_corner {
-                let source_side = split_corner.source_end.to_rectangle_geometry(LINE_WIDTH);
-                let target_side = split_corner.target_end.to_rectangle_geometry(LINE_WIDTH);
-                let split_arc = split_corner.split_arc;
-                let (source_color, target_color) = match closer_end {
-                    EndPoint::Source => (normal_color, focused_color),
-                    EndPoint::Target => (focused_color, normal_color),
-                };
-                if let Some(split_arc) = split_arc {
-                    let arc_shapes = arc_shapes.unwrap_or_else(|| [self.new_arc(), self.new_arc()]);
-                    let outer_radius = split_arc.radius + LINE_WIDTH / 2.0;
-                    let arc_box = Vector2(outer_radius * 2.0, outer_radius * 2.0);
-                    let arc_offset = Vector2(-outer_radius, -outer_radius);
-                    for shape in &arc_shapes {
-                        shape.set_xy(split_arc.origin + arc_offset);
-                        shape.set_size(arc_box);
-                        shape.outer_radius.set(split_arc.radius + LINE_WIDTH / 2.0);
-                    }
-                    let (source, target) = (&arc_shapes[0], &arc_shapes[1]);
-                    source.start_angle.set(split_arc.split_angle.rem_euclid(std::f32::consts::TAU).min(split_arc.source_end_angle.rem_euclid(std::f32::consts::TAU)));
-                    source.sector_angle.set((split_arc.split_angle.abs() - split_arc.source_end_angle.abs()).abs());
-                    target.start_angle.set(split_arc.split_angle.rem_euclid(std::f32::consts::TAU).min(split_arc.target_end_angle.rem_euclid(std::f32::consts::TAU)));
-                    target.sector_angle.set((split_arc.target_end_angle.abs() - split_arc.split_angle.abs()).abs());
-                    source.color.set(source_color.into());
-                    target.color.set(target_color.into());
-                    self.split_arc.set(arc_shapes);
-                }
-                let (source_shape, target_shape) = (section_factory.next().unwrap(), section_factory.next().unwrap());
-                source_shape.set_border_color(source_color);
-                target_shape.set_border_color(target_color);
-                new_sections.push(draw_geometry(source_shape, source_side));
-                new_sections.push(draw_geometry(target_shape, target_side));
-            }
-            *self.sections.borrow_mut() = new_sections;
+        if target_changed || color_changed || hover_split_changed {
+            self.redraw_sections(&corners, normal_color, hover_split);
         }
     }
 
-    fn new_arc(&self) -> arc::View {
-        let arc = arc::View::new();
-        arc.stroke_width.set(LINE_WIDTH);
-        self.display_object.add_child(&arc);
-        arc
+    fn redraw_hover_sections(&self, corners: &[Oriented<Corner>]) {
+        let hover_factory = self
+            .hover_sections
+            .take()
+            .into_iter()
+            .chain(iter::repeat_with(|| self.new_hover_section()));
+        *self.hover_sections.borrow_mut() = corners
+            .iter()
+            .zip(hover_factory)
+            .map(|(corner, shape)| draw_corner(shape, **corner, HOVER_WIDTH))
+            .collect();
+    }
+
+    fn redraw_sections(
+        &self,
+        corners: &[Oriented<Corner>],
+        normal_color: color::Rgba,
+        hover_split: Option<EdgeSplit>,
+    ) {
+        let focused_color =
+            color::Rgba(normal_color.red, normal_color.green, normal_color.blue, 0.75);
+        let corner_index =
+            hover_split.map(|split| split.corner_index).unwrap_or_else(|| corners.len());
+        let closer_end =
+            hover_split.map(|split| split.closer_end).unwrap_or_else(|| EndPoint::Source);
+        let split_corner = hover_split.map(|split| split.split_corner);
+        let (source_color, target_color) = match closer_end {
+            EndPoint::Source => (normal_color, focused_color),
+            EndPoint::Target => (focused_color, normal_color),
+        };
+        let mut section_factory =
+            self.sections.take().into_iter().chain(iter::repeat_with(|| self.new_section()));
+        let mut new_sections = self.redraw_complete_sections(
+            &mut section_factory,
+            corners,
+            corner_index,
+            source_color,
+            target_color,
+        );
+        let arc_shapes = self.split_arc.take();
+        if let Some(split_corner) = split_corner {
+            let source_side = split_corner.source_end.to_rectangle_geometry(LINE_WIDTH);
+            let target_side = split_corner.target_end.to_rectangle_geometry(LINE_WIDTH);
+            let split_arc = split_corner.split_arc;
+            if let Some(split_arc) = split_arc {
+                let arc_shapes = arc_shapes.unwrap_or_else(|| [self.new_arc(), self.new_arc()]);
+                let arc_shapes = draw_split_arc(arc_shapes, split_arc);
+                arc_shapes[0].color.set(source_color.into());
+                arc_shapes[1].color.set(target_color.into());
+                self.split_arc.set(arc_shapes);
+            }
+            let (source_shape, target_shape) =
+                (section_factory.next().unwrap(), section_factory.next().unwrap());
+            source_shape.set_border_color(source_color);
+            target_shape.set_border_color(target_color);
+            new_sections.push(draw_geometry(source_shape, source_side));
+            new_sections.push(draw_geometry(target_shape, target_side));
+        }
+        *self.sections.borrow_mut() = new_sections;
+    }
+
+    fn redraw_complete_sections(
+        &self,
+        section_factory: impl Iterator<Item = Rectangle>,
+        corners: &[Oriented<Corner>],
+        corner_index: usize,
+        source_color: color::Rgba,
+        target_color: color::Rgba,
+    ) -> Vec<Rectangle> {
+        corners
+            .iter()
+            .enumerate()
+            .filter_map(|(i, corner)| {
+                if i == corner_index {
+                    None
+                } else {
+                    let color = match i < corner_index {
+                        true => source_color,
+                        false => target_color,
+                    };
+                    Some((color, corner))
+                }
+            })
+            .zip(section_factory)
+            .map(|((color, corner), shape)| {
+                let shape = draw_corner(shape, **corner, LINE_WIDTH);
+                shape.set_border_color(color);
+                shape
+            })
+            .collect()
     }
 
     /// Calculate the start and end positions of each 1-corner section composing an edge to the
@@ -627,11 +610,20 @@ impl EdgeModel {
     }
 }
 
+
+// === Splitting edges ===
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 struct EdgeSplit {
     corner_index: usize,
     closer_end:   EndPoint,
     split_corner: SplitCorner,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum EndPoint {
+    Source,
+    Target,
 }
 
 /// Find a point along the edge. Return the index of the corner the point occurs in, and which end
@@ -645,9 +637,9 @@ fn find_position(position: Vector2<f32>, corners: &[Oriented<Corner>]) -> Option
     let split_corner = corners[corner_index].split(position, HOVER_WIDTH)?;
     let (full_corners, following_corners) = corners.split_at(corner_index);
     let full_corners_distance: f32 =
-        full_corners.iter().map(|&corner| corner.snake_length()).sum();
+        full_corners.iter().map(|&corner| corner.rectilinear_length()).sum();
     let following_distance: f32 =
-        following_corners.iter().map(|&corner| corner.snake_length()).sum();
+        following_corners.iter().map(|&corner| corner.rectilinear_length()).sum();
     let total_distance = full_corners_distance + following_distance;
     let offset_from_partial_corner = position - corners[corner_index].source_end();
     let partial_corner_distance =
@@ -660,11 +652,8 @@ fn find_position(position: Vector2<f32>, corners: &[Oriented<Corner>]) -> Option
     Some(EdgeSplit { corner_index, closer_end, split_corner })
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-enum EndPoint {
-    Source,
-    Target,
-}
+
+// === Connecting points with corners ===
 
 fn corners(points: &[Vector2<f32>]) -> impl Iterator<Item = Oriented<Corner>> + '_ {
     let mut next_direction = CornerDirection::HorizontalToVertical;
@@ -678,6 +667,9 @@ fn corners(points: &[Vector2<f32>]) -> impl Iterator<Item = Oriented<Corner>> + 
         Oriented::new(corner, direction)
     })
 }
+
+
+// === Applying geometry parameters to shapes ===
 
 /// Set the given [`Rectangle`]'s geometry to draw this corner shape.
 ///
@@ -693,6 +685,34 @@ fn draw_geometry(shape: Rectangle, geometry: RectangleGeometry) -> Rectangle {
     shape.set_size(geometry.size);
     shape.set_xy(geometry.xy);
     shape
+}
+
+/// Apply the specified arc-splitting parameters to the given arc shapes.
+fn draw_split_arc(arc_shapes: [arc::View; 2], split_arc: SplitArc) -> [arc::View; 2] {
+    let outer_radius = split_arc.radius + LINE_WIDTH / 2.0;
+    let arc_box = Vector2(outer_radius * 2.0, outer_radius * 2.0);
+    let arc_offset = Vector2(-outer_radius, -outer_radius);
+    for shape in &arc_shapes {
+        shape.set_xy(split_arc.origin + arc_offset);
+        shape.set_size(arc_box);
+        shape.outer_radius.set(split_arc.radius + LINE_WIDTH / 2.0);
+    }
+    let (source, target) = (&arc_shapes[0], &arc_shapes[1]);
+    source.start_angle.set(
+        split_arc
+            .split_angle
+            .rem_euclid(std::f32::consts::TAU)
+            .min(split_arc.source_end_angle.rem_euclid(std::f32::consts::TAU)),
+    );
+    source.sector_angle.set((split_arc.split_angle.abs() - split_arc.source_end_angle.abs()).abs());
+    target.start_angle.set(
+        split_arc
+            .split_angle
+            .rem_euclid(std::f32::consts::TAU)
+            .min(split_arc.target_end_angle.rem_euclid(std::f32::consts::TAU)),
+    );
+    target.sector_angle.set((split_arc.target_end_angle.abs() - split_arc.split_angle.abs()).abs());
+    arc_shapes
 }
 
 
@@ -748,6 +768,7 @@ impl Corner {
         BoundingBox::from_position_and_size_unchecked(origin, size)
     }
 
+    #[allow(unused)]
     fn euclidean_length(self) -> f32 {
         let Corner { horizontal, vertical } = self;
         let offset = horizontal - vertical;
@@ -759,26 +780,27 @@ impl Corner {
         arc + linear_x + linear_y
     }
 
-    fn snake_length(self) -> f32 {
+    fn rectilinear_length(self) -> f32 {
         let Corner { horizontal, vertical } = self;
         let offset = horizontal - vertical;
         offset.x().abs() + offset.y().abs()
     }
 
+    #[allow(unused)]
     fn transpose(self) -> Self {
         let Corner { horizontal, vertical } = self;
-        Corner { horizontal: vertical.yx().into(), vertical: horizontal.yx().into() }
+        Corner { horizontal: vertical.yx(), vertical: horizontal.yx() }
     }
 
     fn vertical_end_angle(self) -> f32 {
         match self.vertical.x() > self.horizontal.x() {
             true => 0.0,
-            false => std::f32::consts::PI.copysign(self.horizontal.y()-self.vertical.y())
+            false => std::f32::consts::PI.copysign(self.horizontal.y() - self.vertical.y()),
         }
     }
 
     fn horizontal_end_angle(self) -> f32 {
-        std::f32::consts::FRAC_PI_2.copysign(self.horizontal.y()-self.vertical.y())
+        std::f32::consts::FRAC_PI_2.copysign(self.horizontal.y() - self.vertical.y())
     }
 }
 
@@ -831,6 +853,7 @@ impl Oriented<Corner> {
         }
     }
 
+    #[allow(unused)]
     fn target_end(self) -> Vector2<f32> {
         match self.direction {
             CornerDirection::VerticalToHorizontal => self.value.horizontal,
@@ -884,14 +907,13 @@ impl Oriented<Corner> {
         // Used to find the direction from outside the arc to the origin of the arc's circle.
         let point_inside_arc = Vector2(self.horizontal.x(), self.vertical.y());
         let outside_to_inside = point_inside_arc - point_outside_arc;
-        let outside_to_origin = Vector2(
-            radius.copysign(outside_to_inside.x()),
-            radius.copysign(outside_to_inside.y()),
-        );
+        let outside_to_origin =
+            Vector2(radius.copysign(outside_to_inside.x()), radius.copysign(outside_to_inside.y()));
         let origin = point_outside_arc + outside_to_origin;
         // 2. Check if the point is on the arc.
         let input_to_origin = split_point - origin;
-        let distance_squared_from_origin = input_to_origin.x().powi(2) + input_to_origin.y().powi(2);
+        let distance_squared_from_origin =
+            input_to_origin.x().powi(2) + input_to_origin.y().powi(2);
         let min_radius = radius - snap_line_width / 2.0;
         let max_radius = radius + snap_line_width / 2.0;
         let too_close = distance_squared_from_origin < min_radius.powi(2);
@@ -925,13 +947,8 @@ impl Oriented<Corner> {
             let target_end = self.with_source_end(arc_end);
             let source_end_angle = self.source_end_angle();
             let target_end_angle = self.target_end_angle();
-            let split = SplitArc {
-                origin,
-                radius,
-                source_end_angle,
-                split_angle,
-                target_end_angle,
-            };
+            let split =
+                SplitArc { origin, radius, source_end_angle, split_angle, target_end_angle };
             Some(SplitCorner { source_end, target_end, split_arc: Some(split) })
         } else {
             None
@@ -950,13 +967,6 @@ impl Oriented<Corner> {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-struct SplitCorner {
-    source_end: Oriented<Corner>,
-    target_end: Oriented<Corner>,
-    split_arc: Option<SplitArc>,
-}
-
 
 // === Corner direction ===
 
@@ -973,4 +983,14 @@ impl CornerDirection {
             CornerDirection::VerticalToHorizontal => CornerDirection::HorizontalToVertical,
         }
     }
+}
+
+
+// === Split (oriented) corners ====
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+struct SplitCorner {
+    source_end: Oriented<Corner>,
+    target_end: Oriented<Corner>,
+    split_arc:  Option<SplitArc>,
 }
