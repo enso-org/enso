@@ -2126,6 +2126,7 @@ version = "0.1.0"
 dependencies = [
  "bumpalo",
  "derivative",
+ "enso-prelude",
  "frp-macros",
  "slotmap",
  "smallvec 1.10.0",
