@@ -16,6 +16,9 @@ check_cast_compatibility source_type target_type =
                         Value_Type.Date_Time _ ->
                             (target_type == Value_Type.Date) || (target_type == Value_Type.Time)
                         Value_Type.Date -> target_type.has_date
+                        Value_Type.Binary _ _ -> case target_type of
+                            Value_Type.Binary _ _ -> True
+                            _ -> False
                         _ -> Error.throw (Illegal_Argument.Error "Cannot cast "+source_type.to_display_text+" type into "+target_type.to_display_text+" type.")
 
 ## PRIVATE
