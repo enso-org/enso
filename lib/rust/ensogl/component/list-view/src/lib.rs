@@ -140,9 +140,12 @@ impl<E: Entry> Model<E> {
         let scrolled_area = display::object::Instance::new();
         let entries = entry::List::new(&app);
         let background = Rectangle();
+        background.set_border_color(color::Rgba::transparent());
         let overlay = Rectangle();
-        let selection = default();
+        overlay.set_border_color(color::Rgba::transparent());
         overlay.set_color(INVISIBLE_HOVER_COLOR);
+        let selection = default();
+        background.set_border_color(color::Rgba::transparent());
         display_object.add_child(&background);
         display_object.add_child(&overlay);
         display_object.add_child(&scrolled_area);
@@ -526,8 +529,7 @@ where E::Model: Default
             }));
             selection_size_and_y <- all_with(&frp.selection_size, &selection_sprite_y, |size, y| (*size, *y));
             eval selection_size_and_y ([model]((size, y)) {
-                let margin = Vector2(SHAPE_MARGIN, SHAPE_MARGIN);
-                model.selection.set_size_and_center_y(*size + 2.0 * margin, *y);
+                model.selection.set_size_and_center_y(*size, *y);
             });
             eval_ frp.hide_selection (model.selection.unset_parent());
 
