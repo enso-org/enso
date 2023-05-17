@@ -72,9 +72,11 @@ make_order_by_selector table display=Display.Always =
 ## PRIVATE
    Selector for type argument on `Column.parse`.
 parse_type_selector : Single_Choice
-parse_type_selector =
+parse_type_selector include_auto=True =
     valid_parse_targets = Parse_Values_Helper.valid_parse_targets
-    choice = ['Auto'] + (valid_parse_targets.map t-> 'Value_Type.'+t)
-    names = ['Auto'] + valid_parse_targets
+
+    prefix = if include_auto then ['Auto'] else []
+    choice = prefix + (valid_parse_targets.map t-> 'Value_Type.'+t)
+    names = prefix + valid_parse_targets
     options = names.zip choice . map pair-> Option pair.first pair.second
     Single_Choice display=Display.Always values=options

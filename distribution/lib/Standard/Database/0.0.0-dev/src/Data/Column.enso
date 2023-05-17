@@ -990,10 +990,44 @@ type Column
                     Error.throw (Illegal_State.Error "The dialect "+self.connection.dialect.name+" does not support a boolean type. The implementation of `is_in` should be revised to account for this. This is an internal issue with the Database library.")
                 Column.Value new_name self.connection new_type_ref new_expr self.context
 
-    ## Parsing values is not supported in database columns.
-    @type Widget_Helpers.parse_type_selector
-    parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
-    parse self type=Auto format=Data_Formatter.Value on_problems=Report_Warning =
+    ## Parses a text column into values.
+
+       In the Database backends, the default formatting settings of the
+       particular database are used.
+
+       In the in-memory backend, the default parser options only parse values
+       where the process is reversible (e.g., 0123 would not be converted to an
+       integer as there is a leading 0). However, settings in the
+       `Data_Formatter` can control this.
+
+       Arguments:
+       - type: The type to parse the column to. Defaults to `Auto` meaning that
+         the type will be inferred from the data. In the Database backends,
+         `Auto` is not supported, so a specific type must be selected.
+       - format: The formatting settings to use when parsing the column.
+         For `Date`, `Time_Of_Day` and `Date_Time`, a Java date time style
+         can be used. For `Boolean`, it should be two values that represent true
+         and false, separated by a `|`. Alternatively, a `Data_Formatter` can be
+         passed to provide complete customisation of the formatting. If
+         `Nothing` is provided, the default formatting settings of the backend
+         will be used. `Nothing` is currently the only setting accepted by the
+         Database backends.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
+
+       ! Error Conditions
+
+         - If the column is not a text column, an `Invalid_Value_Type` error is
+           raised.
+         - If some values in the column did not match the expected datatype
+           format, an `Invalid_Format` problem is reported. The problematic
+           cells are replaced with `Nothing`.
+         - If custom formatting settings were provided, but the database backend
+           does not support customization, an `Illegal_Argument` error is
+           reported.
+    @type (Widget_Helpers.parse_type_selector include_auto=False)
+    parse : Value_Type | Auto -> Text | Data_Formatter | Nothing -> Problem_Behavior -> Column
+    parse self type format=Nothing on_problems=Report_Warning =
         _ = [type, format, on_problems]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.parse` is not implemented yet for the Database backends."
 

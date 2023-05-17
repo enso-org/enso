@@ -267,7 +267,7 @@ spec setup =
                 t3.at "Y" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
                 t3.at "Y" . to_vector . should_equal ["a  ", "abc", "abc"]
 
-    Test.group prefix+"Simple variant of Table/Column.parse in all backends" pending=(if setup.is_database then "parse is not yet implemented in DB") <|
+    Test.group prefix+"Simple variant of Table/Column.parse in all backends" <|
         Test.specify "should be able to parse simple integers" <|
             t = table_builder [["X", ["42", "0", "-1"]]]
 
