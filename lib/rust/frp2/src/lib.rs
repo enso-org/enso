@@ -133,7 +133,7 @@ impl NodeData {
         Self { tp, network_id, def, inputs: default(), outputs: default() }
     }
 
-    fn on_event(&self, rt: Rt, node_id: NodeId, event: Data) -> Option<Data> {
+    fn on_event(&self, rt: &Runtime, node_id: NodeId, event: Data) -> Option<Data> {
         match &self.tp {
             NodeType::Source => None,
             NodeType::Inc => Some(Data(event.0 + 1)),
@@ -152,46 +152,6 @@ slotmap::new_key_type! { pub struct NodeId; }
 type TargetsVec = SmallVec<[NodeId; 1]>;
 
 
-// ==========
-// === Rt ===
-// ==========
-
-/// Public-facing opaque handle to a runtime. Provides no access to internals. Allows to cut down
-/// on `with_runtime` calls across the codebase, allowing for more performant code which is easier
-/// for the compiler to optimize.
-#[derive(Clone, Copy)]
-#[repr(transparent)]
-pub struct Rt<'a>(&'a Runtime);
-
-impl<'a> From<&'a Runtime> for Rt<'a> {
-    fn from(runtime: &'a Runtime) -> Self {
-        Rt(runtime)
-    }
-}
-
-impl<'a> Rt<'a> {
-    pub fn stack_trace(&self) -> &CallStack {
-        &self.0.stack
-    }
-
-    pub fn in_stack_frame<T>(&self, _def: DefInfo, f: impl FnOnce() -> T) -> T {
-        #[cfg(feature = "stack-trace")]
-        {
-            self.0.stack.with(_def, || f())
-        }
-
-        #[cfg(not(feature = "stack-trace"))]
-        {
-            f()
-        }
-    }
-
-    pub fn metrics(&self) -> Metrics {
-        self.0.metrics.clone()
-    }
-}
-
-
 
 // ===============
 // === Runtime ===
@@ -202,8 +162,8 @@ thread_local! {
 }
 
 #[inline(always)]
-pub fn with_runtime<T>(f: impl FnOnce(Rt) -> T) -> T {
-    RUNTIME.with(|runtime| f(Rt(runtime)))
+pub fn with_runtime<T>(f: impl FnOnce(&Runtime) -> T) -> T {
+    RUNTIME.with(|runtime| f(runtime))
 }
 
 fn rc_runtime() -> Rc<Runtime> {
@@ -212,7 +172,7 @@ fn rc_runtime() -> Rc<Runtime> {
 
 
 #[derive(Default)]
-pub(crate) struct Runtime {
+pub struct Runtime {
     networks:          RefCell<SlotMap<NetworkId, NetworkData>>,
     nodes:             RefCell<SlotMap<NodeId, NodeData>>,
     // consumers:         RefCell<SecondaryMap<NodeId, BumpRc<dyn RawEventConsumer>>>,
@@ -287,7 +247,7 @@ impl Runtime {
                         let nodes = self.nodes.borrow();
                         let node_output = nodes.get(node_output_id);
                         if let Some(node_output) = node_output {
-                            if let Some(output) = node_output.on_event(Rt(self), node_id, event) {
+                            if let Some(output) = node_output.on_event(self, node_id, event) {
                                 nodes_to_eval.push((node_output_id, output));
                             }
                         } else {
@@ -356,23 +316,23 @@ mod tests {
     fn test() {
         println!("hello");
         let net = Network::new();
-        let src = with_runtime(|rt| rt.0.new_node(NodeType::Source, net.id, DefInfo::unlabelled()));
-        let inc = with_runtime(|rt| rt.0.new_node(NodeType::Inc, net.id, DefInfo::unlabelled()));
-        let trc = with_runtime(|rt| rt.0.new_node(NodeType::Trace, net.id, DefInfo::unlabelled()));
+        let src = with_runtime(|rt| rt.new_node(NodeType::Source, net.id, DefInfo::unlabelled()));
+        let inc = with_runtime(|rt| rt.new_node(NodeType::Inc, net.id, DefInfo::unlabelled()));
+        let trc = with_runtime(|rt| rt.new_node(NodeType::Trace, net.id, DefInfo::unlabelled()));
         let inc2 = with_runtime(|rt| {
-            rt.0.new_node(
+            rt.new_node(
                 NodeType::Map(Box::new(|t: Data| Data(t.0 * 2))),
                 net.id,
                 DefInfo::unlabelled(),
             )
         });
-        let trc2 = with_runtime(|rt| rt.0.new_node(NodeType::Trace, net.id, DefInfo::unlabelled()));
+        let trc2 = with_runtime(|rt| rt.new_node(NodeType::Trace, net.id, DefInfo::unlabelled()));
 
-        with_runtime(|rt| rt.0.connect(src, inc));
-        with_runtime(|rt| rt.0.connect(inc, trc));
-        with_runtime(|rt| rt.0.connect(trc, inc2));
-        with_runtime(|rt| rt.0.connect(inc2, trc2));
-        with_runtime(|rt| rt.0.emit_event(src, Data(1)));
+        with_runtime(|rt| rt.connect(src, inc));
+        with_runtime(|rt| rt.connect(inc, trc));
+        with_runtime(|rt| rt.connect(trc, inc2));
+        with_runtime(|rt| rt.connect(inc2, trc2));
+        with_runtime(|rt| rt.emit_event(src, Data(1)));
         // let source = net.source::<i32>();
         assert_eq!(1, 2);
     }
