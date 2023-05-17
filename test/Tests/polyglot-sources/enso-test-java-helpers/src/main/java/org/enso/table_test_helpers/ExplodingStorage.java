@@ -111,6 +111,6 @@ public class ExplodingStorage extends Storage<Long> {
 
   @Override
   public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
-        return null;
-    }
+    return null;
+  }
 }
