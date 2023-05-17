@@ -180,8 +180,14 @@ class Main implements AppRunner {
     }
 
     main(inputConfig?: StringConfig) {
-        const parseOk = contentConfig.OPTIONS.loadAllAndDisplayHelpIfUnsuccessful([app.urlParams()])
-        if (parseOk) {
+        const url = new URL(location.href)
+        const isInAuthenticationFlow = url.searchParams.has('code') && url.searchParams.has('state')
+        const parseOk =
+            isInAuthenticationFlow ||
+            contentConfig.OPTIONS.loadAllAndDisplayHelpIfUnsuccessful([app.urlParams()])
+        if (isInAuthenticationFlow) {
+            this.runAuthentication(inputConfig)
+        } else if (parseOk) {
             const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
             const isUsingNewDashboard =
                 contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
@@ -195,45 +201,45 @@ class Main implements AppRunner {
                 isOpeningMainEntryPoint &&
                 isNotOpeningProject
             ) {
-                const removeAuth = () => {
-                    const auth = document.getElementById('dashboard')
-                    const ide = document.getElementById('root')
-                    if (auth) {
-                        auth.remove()
-                    }
-                    if (ide) {
-                        ide.hidden = false
-                    }
-                }
-                /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
-                 * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
-                 * should only have one entry point. Right now, we have two. One for the cloud
-                 * and one for the desktop. */
-                /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
-                 * React hooks rerender themselves multiple times. It is resulting in multiple
-                 * Enso main scene being initialized. As a temporary workaround we check whether
-                 * appInstance was already ran. Target solution should move running appInstance
-                 * where it will be called only once. */
-                let appInstanceRan = false
-                const onAuthenticated = () => {
-                    if (!contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) {
-                        removeAuth()
-                        if (!appInstanceRan) {
-                            appInstanceRan = true
-                            void this.runApp(inputConfig)
-                        }
-                    }
-                }
-                authentication.run({
-                    appRunner: this,
-                    logger,
-                    supportsLocalBackend: SUPPORTS_LOCAL_BACKEND,
-                    supportsDeepLinks: SUPPORTS_DEEP_LINKS,
-                    showDashboard:
-                        contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
-                    onAuthenticated,
-                })
+                this.runAuthentication(inputConfig)
             } else {
+                void this.runApp(inputConfig)
+            }
+        }
+    }
+
+    /** Begins the authentication UI flow. */
+    runAuthentication(inputConfig?: StringConfig) {
+        /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
+         * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
+         * should only have one entry point. Right now, we have two. One for the cloud
+         * and one for the desktop. */
+        /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
+         * React hooks rerender themselves multiple times. It is resulting in multiple
+         * Enso main scene being initialized. As a temporary workaround we check whether
+         * appInstance was already ran. Target solution should move running appInstance
+         * where it will be called only once. */
+        authentication.run({
+            appRunner: this,
+            logger,
+            supportsLocalBackend: SUPPORTS_LOCAL_BACKEND,
+            supportsDeepLinks: SUPPORTS_DEEP_LINKS,
+            showDashboard: contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
+            onAuthenticated: () => {
+                this.onAuthenticated(inputConfig)
+            },
+        })
+    }
+
+    /** Callback called when the user is signed in. */
+    onAuthenticated(inputConfig?: StringConfig) {
+        if (!contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) {
+            document.getElementById('enso-dashboard')?.remove()
+            const ide = document.getElementById('root')
+            if (ide) {
+                ide.hidden = false
+            }
+            if (this.app == null) {
                 void this.runApp(inputConfig)
             }
         }
