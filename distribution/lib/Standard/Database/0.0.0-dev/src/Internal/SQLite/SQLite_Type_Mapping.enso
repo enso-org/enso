@@ -6,7 +6,7 @@ import Standard.Table.Data.Type.Enso_Types
 import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
 import Standard.Table.Data.Type.Value_Type_Helpers
-from Standard.Table.Errors import Inexact_Type_Coercion
+from Standard.Table.Errors import Inexact_Type_Coercion, Unsupported_Database_Operation
 
 import project.Data.Column.Column
 import project.Data.SQL_Type.SQL_Type
@@ -59,9 +59,9 @@ type SQLite_Type_Mapping
             Value_Type.Float _ -> SQLite_Types.real
             Value_Type.Decimal _ _ -> SQLite_Types.numeric
             Value_Type.Char _ _ -> SQLite_Types.text
-            Value_Type.Time -> SQLite_Types.text
-            Value_Type.Date -> SQLite_Types.text
-            Value_Type.Date_Time _ -> SQLite_Types.text
+            Value_Type.Time -> unsupported_date_time
+            Value_Type.Date -> unsupported_date_time
+            Value_Type.Date_Time _ -> unsupported_date_time
             Value_Type.Binary _ _ -> SQLite_Types.blob
             Value_Type.Mixed -> SQLite_Types.text
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
@@ -206,3 +206,7 @@ default_float = Value_Type.Float Bits.Bits_64
 
 ## PRIVATE
 default_integer = Value_Type.Integer Bits.Bits_64
+
+## PRIVATE
+unsupported_date_time =
+    Error.throw (Unsupported_Database_Operation.Error "Date/time types are not supported by the SQLite backend.")
