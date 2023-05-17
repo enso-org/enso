@@ -4,6 +4,7 @@ import java.util.BitSet;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.StringBuilder;
+import org.enso.table.data.column.operation.CastProblemBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
@@ -73,7 +74,7 @@ public final class StringStorage extends SpecializedStorage<String> {
   }
 
   @Override
-  public Storage<?> cast(StorageType targetType) {
+  public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
     return switch (targetType) {
       case AnyObjectType any -> new MixedStorageFacade(this);
       case TextType textType -> adapt(this, textType);

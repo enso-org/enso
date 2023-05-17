@@ -1328,9 +1328,11 @@ type Column
     cast self value_type=Value_Type.Char on_problems=Problem_Behavior.Report_Warning =
         Cast_Helpers.check_cast_compatibility self.value_type value_type . if_not_error <|
             target_storage_type = Storage.from_value_type value_type on_problems
-            # TODO problem handling will be handled as part of #5159
-            new_storage = self.java_column.getStorage.cast target_storage_type
-            Column.from_storage self.name new_storage
+            cast_problem_builder = Cast_Helpers.new_java_problem_builder self.name value_type
+            new_storage = self.java_column.getStorage.cast target_storage_type cast_problem_builder.to_java
+            problems = cast_problem_builder.get_problems
+            on_problems.attach_problems_before problems <|
+                Column.from_storage self.name new_storage
 
     ## ALIAS Transform Column
 

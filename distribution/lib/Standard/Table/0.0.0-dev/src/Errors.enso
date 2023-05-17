@@ -564,7 +564,7 @@ type Lossy_Conversion
     to_display_text self =
         rows_info = case self.affected_rows_count of
             Nothing -> ""
-            Just count -> " in "+count.to_text+" rows"
+            count -> " in "+count.to_text+" rows"
         "When converting the column ["+self.related_column+"], the target type ("+self.target_type.to_display_text+") does not fill all the data, so some information was lost"+rows_info+"."
 
 type Invalid_Value_For_Type

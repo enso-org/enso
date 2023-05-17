@@ -4,6 +4,7 @@ import java.util.BitSet;
 import java.util.List;
 
 import org.enso.table.data.column.builder.object.StringBuilder;
+import org.enso.table.data.column.operation.CastProblemBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.type.AnyObjectType;
@@ -155,7 +156,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public Storage<?> cast(StorageType targetType) {
+  public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
     if (targetType == getType()) {
       return this;
     } else if (targetType instanceof AnyObjectType) {

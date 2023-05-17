@@ -7,6 +7,7 @@ import java.time.ZonedDateTime;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.DateBuilder;
 import org.enso.table.data.column.builder.object.DateTimeBuilder;
+import org.enso.table.data.column.operation.CastProblemBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryIntegerOp;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
@@ -73,7 +74,7 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
   }
 
   @Override
-  public Storage<?> cast(StorageType targetType) {
+  public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
     if (targetType instanceof DateTimeType) {
       int n = size();
       DateTimeBuilder builder = new DateTimeBuilder(n);
@@ -88,7 +89,7 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
       }
       return builder.seal();
     } else {
-      return super.cast(targetType);
+      return super.cast(targetType, castProblemBuilder);
     }
   }
 }

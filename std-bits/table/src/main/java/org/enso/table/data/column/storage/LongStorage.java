@@ -4,6 +4,7 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.builder.object.StringBuilder;
+import org.enso.table.data.column.operation.CastProblemBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
@@ -458,7 +459,7 @@ public final class LongStorage extends NumericStorage<Long> {
   }
 
   @Override
-  public Storage<?> cast(StorageType targetType) {
+  public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
     return switch (targetType) {
       case AnyObjectType any -> new MixedStorageFacade(this);
       case IntegerType integerType -> this;

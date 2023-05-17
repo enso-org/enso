@@ -3,6 +3,9 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Parse_Values_Helper
+from project.Errors import Lossy_Conversion
+
+polyglot java import org.enso.table.data.column.operation.CastProblemBuilder
 
 ## PRIVATE
    Checks if one type can be cast into another and returns a dataflow error
@@ -28,3 +31,26 @@ is_a_valid_parse_target target_type =
         atom : Meta.Atom ->
             Parse_Values_Helper.valid_parse_targets.contains atom.constructor.name
         _ -> False
+
+## PRIVATE
+type Cast_Problem_Builder
+    ## PRIVATE
+    Value column_name target_type to_java
+
+    ## PRIVATE
+       Returns a vector of all reported problems.
+    get_problems : Vector
+    get_problems self =
+        builder = Vector.new_builder
+        java_instance = self.to_java
+
+        lossy_conversion_rows = java_instance.getLossyConversionRowCount
+        if lossy_conversion_rows > 0 then
+            builder.append (Lossy_Conversion.Error self.target_type self.column_name lossy_conversion_rows)
+
+        builder.to_vector
+
+## PRIVATE
+new_java_problem_builder : Text -> Value_Type -> Cast_Problem_Builder
+new_java_problem_builder column_name target_type =
+    Cast_Problem_Builder.Value column_name target_type CastProblemBuilder.new
