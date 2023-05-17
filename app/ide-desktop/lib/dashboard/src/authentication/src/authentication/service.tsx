@@ -13,6 +13,12 @@ import * as listen from './listen'
 import * as loggerProvider from '../providers/logger'
 import * as newtype from '../newtype'
 
+// =============
+// === Types ===
+// =============
+
+interface AmplifyRedirects extends Pick<auth.AmplifyConfig, 'redirectSignIn' | 'redirectSignOut'> {}
+
 // =================
 // === Constants ===
 // =================
@@ -30,15 +36,17 @@ const CONFIRM_REGISTRATION_PATHNAME = '//auth/confirmation'
  * password email. */
 const LOGIN_PATHNAME = '//auth/login'
 
-/** URL used as the OAuth redirect when running in the desktop app. */
-const DESKTOP_REDIRECT = newtype.asNewtype<auth.OAuthRedirect>(`${common.DEEP_LINK_SCHEME}://auth`)
+/** URI used as the OAuth redirect when deep links are supported. */
+const DEEP_LINK_REDIRECT = newtype.asNewtype<auth.OAuthRedirect>(
+    `${common.DEEP_LINK_SCHEME}://auth`
+)
 /** OAuth redirect URLs for the electron app. */
-const DEEP_LINK_REDIRECTS: Pick<auth.AmplifyConfig, 'redirectSignIn' | 'redirectSignOut'> = {
-    redirectSignIn: DESKTOP_REDIRECT,
-    redirectSignOut: DESKTOP_REDIRECT,
+const DEEP_LINK_REDIRECTS: AmplifyRedirects = {
+    redirectSignIn: DEEP_LINK_REDIRECT,
+    redirectSignOut: DEEP_LINK_REDIRECT,
 }
 /** OAuth redirect URLs for the browser. */
-const CLOUD_REDIRECTS: Pick<auth.AmplifyConfig, 'redirectSignIn' | 'redirectSignOut'> = {
+const CLOUD_REDIRECTS: AmplifyRedirects = {
     redirectSignIn: config.ACTIVE_CONFIG.cloudRedirect,
     redirectSignOut: config.ACTIVE_CONFIG.cloudRedirect,
 }
@@ -128,8 +136,8 @@ function loadAmplifyConfig(
 ): auth.AmplifyConfig {
     /** Load the environment-specific Amplify configuration. */
     const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT]
-    let urlOpener = null
-    let accessTokenSaver = null
+    let urlOpener: ((url: string) => void) | null = null
+    let accessTokenSaver: ((accessToken: string) => void) | null = null
     if ('authenticationApi' in window) {
         /** When running on destop we want to have option to save access token to a file,
          * so it can be later reuse when issuing requests to Cloud API. */
@@ -237,19 +245,19 @@ function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: strin
  * URL to the Amplify library, which will parse the URL and complete the OAuth flow. */
 function handleAuthResponse(url: string) {
     void (async () => {
-        /** Temporarily override the `window.location` object so that Amplify doesn't try to call
-         * `window.location.replaceState` (which doesn't work in the renderer process because of
+        /** Temporarily override the `history` object so that Amplify doesn't try to call
+         * `history.replaceState` (which doesn't work in the renderer process because of
          * Electron's `webSecurity`). This is a hack, but it's the only way to get Amplify to work
          * with a custom URL protocol in Electron.
          *
          * # Safety
          *
          * It is safe to disable the `unbound-method` lint here because we intentionally want to use
-         * the original `window.history.replaceState` function, which is not bound to the
-         * `window.history` object. */
+         * the original `history.replaceState` function, which is not bound to the
+         * `history` object. */
         // eslint-disable-next-line @typescript-eslint/unbound-method
-        const replaceState = window.history.replaceState
-        window.history.replaceState = () => false
+        const replaceState = history.replaceState
+        history.replaceState = () => false
         try {
             /** # Safety
              *
@@ -261,8 +269,8 @@ function handleAuthResponse(url: string) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             await amplify.Auth._handleAuthResponse(url)
         } finally {
-            /** Restore the original `window.location.replaceState` function. */
-            window.history.replaceState = replaceState
+            /** Restore the original `history.replaceState` function. */
+            history.replaceState = replaceState
         }
     })()
 }

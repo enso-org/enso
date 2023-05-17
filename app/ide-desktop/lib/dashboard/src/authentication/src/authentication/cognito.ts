@@ -144,7 +144,6 @@ export class Cognito {
     }
 
     /** Saves the access token to a file for further reuse. */
-
     saveAccessToken(accessToken: string) {
         if (this.amplifyConfig.accessTokenSaver) {
             this.amplifyConfig.accessTokenSaver(accessToken)

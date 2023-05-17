@@ -5,6 +5,7 @@
 import * as semver from 'semver'
 
 import * as authentication from 'enso-authentication'
+import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
@@ -16,6 +17,8 @@ const logger = app.log.logger
 // === Constants ===
 // =================
 
+/** The name of the `localStorage` key storing the initial URL of the app. */
+const INITIAL_URL_KEY = `${common.PRODUCT_NAME.toLowerCase()}-initial-url`
 /** Path to the SSE endpoint over which esbuild sends events. */
 const ESBUILD_PATH = '/esbuild'
 /** SSE event indicating a build has finished. */
@@ -180,14 +183,25 @@ class Main implements AppRunner {
     }
 
     main(inputConfig?: StringConfig) {
+        /** Note: Signing out always redirects to `/`. It is impossible to make this work,
+         * as it is not possible to distinguish between having just logged out, and explicitly
+         * opening a page with no URL parameters set.
+         *
+         * Client-side routing endpoints are explicitly not supported for live-reload, as they are
+         * transitional pages that should not need live-reload when running `gui watch`. */
         const url = new URL(location.href)
         const isInAuthenticationFlow = url.searchParams.has('code') && url.searchParams.has('state')
-        const parseOk =
-            isInAuthenticationFlow ||
-            contentConfig.OPTIONS.loadAllAndDisplayHelpIfUnsuccessful([app.urlParams()])
+        const authenticationUrl = location.href
         if (isInAuthenticationFlow) {
-            this.runAuthentication(inputConfig)
-        } else if (parseOk) {
+            history.replaceState(null, '', localStorage.getItem(INITIAL_URL_KEY))
+        }
+        const parseOk = contentConfig.OPTIONS.loadAllAndDisplayHelpIfUnsuccessful([app.urlParams()])
+        if (isInAuthenticationFlow) {
+            history.replaceState(null, '', authenticationUrl)
+        } else {
+            localStorage.setItem(INITIAL_URL_KEY, location.href)
+        }
+        if (parseOk) {
             const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
             const isUsingNewDashboard =
                 contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
@@ -201,7 +215,7 @@ class Main implements AppRunner {
                 isOpeningMainEntryPoint &&
                 isNotOpeningProject
             ) {
-                this.runAuthentication(inputConfig)
+                this.runAuthentication(isInAuthenticationFlow, inputConfig)
             } else {
                 void this.runApp(inputConfig)
             }
@@ -209,7 +223,7 @@ class Main implements AppRunner {
     }
 
     /** Begins the authentication UI flow. */
-    runAuthentication(inputConfig?: StringConfig) {
+    runAuthentication(isInAuthenticationFlow: boolean, inputConfig?: StringConfig) {
         /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
          * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
          * should only have one entry point. Right now, we have two. One for the cloud
@@ -226,23 +240,26 @@ class Main implements AppRunner {
             supportsDeepLinks: SUPPORTS_DEEP_LINKS,
             showDashboard: contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
             onAuthenticated: () => {
-                this.onAuthenticated(inputConfig)
+                if (isInAuthenticationFlow) {
+                    const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
+                    if (initialUrl != null) {
+                        // This is not used past this point, however it is set to the initial URL
+                        // to make refreshing work as expected.
+                        history.replaceState(null, '', initialUrl)
+                    }
+                }
+                if (!contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) {
+                    document.getElementById('enso-dashboard')?.remove()
+                    const ide = document.getElementById('root')
+                    if (ide) {
+                        ide.hidden = false
+                    }
+                    if (this.app == null) {
+                        void this.runApp(inputConfig)
+                    }
+                }
             },
         })
-    }
-
-    /** Callback called when the user is signed in. */
-    onAuthenticated(inputConfig?: StringConfig) {
-        if (!contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) {
-            document.getElementById('enso-dashboard')?.remove()
-            const ide = document.getElementById('root')
-            if (ide) {
-                ide.hidden = false
-            }
-            if (this.app == null) {
-                void this.runApp(inputConfig)
-            }
-        }
     }
 }
 
