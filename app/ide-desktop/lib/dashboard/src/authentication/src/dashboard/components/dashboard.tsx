@@ -33,7 +33,6 @@ import UploadFileModal from './uploadFileModal'
 
 import DirectoryCreateForm from './directoryCreateForm'
 import FileCreateForm from './fileCreateForm'
-import ProjectCreateForm from './projectCreateForm'
 import SecretCreateForm from './secretCreateForm'
 
 // =============
@@ -105,10 +104,9 @@ const ASSET_TYPE_NAME: Record<backendModule.AssetType, string> = {
 
 /** Forms to create each asset type. */
 const ASSET_TYPE_CREATE_FORM: Record<
-    backendModule.AssetType,
+    Exclude<backendModule.AssetType, backendModule.AssetType.project>,
     (props: CreateFormProps) => JSX.Element
 > = {
-    [backendModule.AssetType.project]: ProjectCreateForm,
     [backendModule.AssetType.file]: FileCreateForm,
     [backendModule.AssetType.secret]: SecretCreateForm,
     [backendModule.AssetType.directory]: DirectoryCreateForm,
@@ -124,6 +122,19 @@ const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
     [Column.usagePlan]: 'Usage plan',
     [Column.engine]: 'Engine',
     [Column.ide]: 'IDE',
+} as const
+
+/** CSS classes for every column. Currently only used to set the widths. */
+const COLUMN_CSS_CLASS: Record<Column, string> = {
+    [Column.name]: 'w-60',
+    [Column.lastModified]: 'w-32',
+    [Column.sharedWith]: 'w-36',
+    [Column.docs]: 'w-96',
+    [Column.labels]: 'w-80',
+    [Column.dataAccess]: 'w-96',
+    [Column.usagePlan]: '',
+    [Column.engine]: 'w-20',
+    [Column.ide]: 'w-20',
 } as const
 
 /** The corresponding `Permissions` for each backend `PermissionAction`. */
@@ -191,6 +202,14 @@ function rootDirectoryId(userOrOrganizationId: backendModule.UserOrOrganizationI
     return newtype.asNewtype<backendModule.DirectoryId>(
         userOrOrganizationId.replace(/^organization-/, `${backendModule.AssetType.directory}-`)
     )
+}
+
+/** Returns the list of columns to be displayed. */
+function columnsFor(displayMode: ColumnDisplayMode, backendPlatform: platformModule.Platform) {
+    const columns = COLUMNS_FOR[displayMode]
+    return backendPlatform === platformModule.Platform.desktop
+        ? columns.filter(column => column !== Column.sharedWith)
+        : columns
 }
 
 // =================
@@ -515,32 +534,36 @@ function Dashboard(props: DashboardProps) {
     /** Heading element for every column. */
     function ColumnHeading(column: Column, assetType: backendModule.AssetType) {
         return column === Column.name ? (
-            <div className="inline-flex">
-                {ASSET_TYPE_NAME[assetType]}
-                <button
-                    className="mx-1"
-                    onClick={event => {
-                        event.stopPropagation()
-                        const buttonPosition =
-                            // This type assertion is safe as this event handler is on a `button`.
+            assetType === backendModule.AssetType.project ? (
+                <>{ASSET_TYPE_NAME[assetType]}</>
+            ) : (
+                <div className="inline-flex">
+                    {ASSET_TYPE_NAME[assetType]}
+                    <button
+                        className="mx-1"
+                        onClick={event => {
+                            event.stopPropagation()
+                            const buttonPosition =
+                                // This type assertion is safe as this event handler is on a button.
+                                // eslint-disable-next-line no-restricted-syntax
+                                (event.target as HTMLButtonElement).getBoundingClientRect()
+                            // This is a React component even though it doesn't contain JSX.
                             // eslint-disable-next-line no-restricted-syntax
-                            (event.target as HTMLButtonElement).getBoundingClientRect()
-                        // This is a React component even though it doesn't contain JSX.
-                        // eslint-disable-next-line no-restricted-syntax
-                        const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
-                        setModal(() => (
-                            <CreateForm
-                                left={buttonPosition.left + window.scrollX}
-                                top={buttonPosition.top + window.scrollY}
-                                directoryId={directoryId}
-                                onSuccess={doRefresh}
-                            />
-                        ))
-                    }}
-                >
-                    {svg.ADD_ICON}
-                </button>
-            </div>
+                            const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
+                            setModal(() => (
+                                <CreateForm
+                                    left={buttonPosition.left + window.scrollX}
+                                    top={buttonPosition.top + window.scrollY}
+                                    directoryId={directoryId}
+                                    onSuccess={doRefresh}
+                                />
+                            ))
+                        }}
+                    >
+                        {svg.ADD_ICON}
+                    </button>
+                </div>
+            )
         ) : (
             <>{COLUMN_NAME[column]}</>
         )
@@ -812,9 +835,13 @@ function Dashboard(props: DashboardProps) {
                     )}
                 </div>
             </div>
-            <table className="items-center w-full bg-transparent border-collapse mt-2">
+            <table className="table-fixed items-center border-collapse mt-2">
                 <tbody>
-                    <tr className="h-10" />
+                    <tr className="h-10">
+                        {columnsFor(columnDisplayMode, backend.platform).map(column => (
+                            <td key={column} className={COLUMN_CSS_CLASS[column]} />
+                        ))}
+                    </tr>
                     <Rows<backendModule.Asset<backendModule.AssetType.project>>
                         items={visibleProjectAssets}
                         getKey={proj => proj.id}
@@ -824,7 +851,7 @@ function Dashboard(props: DashboardProps) {
                                 above.
                             </span>
                         }
-                        columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                        columns={columnsFor(columnDisplayMode, backend.platform).map(column => ({
                             id: column,
                             heading: ColumnHeading(column, backendModule.AssetType.project),
                             render: renderer(column, backendModule.AssetType.project),
@@ -916,14 +943,19 @@ function Dashboard(props: DashboardProps) {
                                             {query ? ' matching your query' : ''}.
                                         </span>
                                     }
-                                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                                        id: column,
-                                        heading: ColumnHeading(
-                                            column,
-                                            backendModule.AssetType.directory
-                                        ),
-                                        render: renderer(column, backendModule.AssetType.directory),
-                                    }))}
+                                    columns={columnsFor(columnDisplayMode, backend.platform).map(
+                                        column => ({
+                                            id: column,
+                                            heading: ColumnHeading(
+                                                column,
+                                                backendModule.AssetType.directory
+                                            ),
+                                            render: renderer(
+                                                column,
+                                                backendModule.AssetType.directory
+                                            ),
+                                        })
+                                    )}
                                     onClick={(directoryAsset, event) => {
                                         event.stopPropagation()
                                         setSelectedAssets(
@@ -948,14 +980,19 @@ function Dashboard(props: DashboardProps) {
                                             {query ? ' matching your query' : ''}.
                                         </span>
                                     }
-                                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                                        id: column,
-                                        heading: ColumnHeading(
-                                            column,
-                                            backendModule.AssetType.secret
-                                        ),
-                                        render: renderer(column, backendModule.AssetType.secret),
-                                    }))}
+                                    columns={columnsFor(columnDisplayMode, backend.platform).map(
+                                        column => ({
+                                            id: column,
+                                            heading: ColumnHeading(
+                                                column,
+                                                backendModule.AssetType.secret
+                                            ),
+                                            render: renderer(
+                                                column,
+                                                backendModule.AssetType.secret
+                                            ),
+                                        })
+                                    )}
                                     onClick={(secret, event) => {
                                         event.stopPropagation()
                                         setSelectedAssets(
@@ -998,14 +1035,16 @@ function Dashboard(props: DashboardProps) {
                                             {query ? ' matching your query' : ''}.
                                         </span>
                                     }
-                                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                                        id: column,
-                                        heading: ColumnHeading(
-                                            column,
-                                            backendModule.AssetType.file
-                                        ),
-                                        render: renderer(column, backendModule.AssetType.file),
-                                    }))}
+                                    columns={columnsFor(columnDisplayMode, backend.platform).map(
+                                        column => ({
+                                            id: column,
+                                            heading: ColumnHeading(
+                                                column,
+                                                backendModule.AssetType.file
+                                            ),
+                                            render: renderer(column, backendModule.AssetType.file),
+                                        })
+                                    )}
                                     onClick={(file, event) => {
                                         event.stopPropagation()
                                         setSelectedAssets(

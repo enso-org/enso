@@ -92,7 +92,8 @@ body:
       description: "On which browser do you experience this issue?"
       multiple: true
       options:
-        - "Standalone distribution"
+        - "Standalone distribution (local project)"
+        - "Standalone distribution (cloud project)"
         - "Chrome"
         - "Chromium"
         - "Safari (not supported officialy, but should work)"

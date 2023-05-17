@@ -88,6 +88,7 @@ function Ide(props: Props) {
                     return
                 } else {
                     const script = document.createElement('script')
+                    script.crossOrigin = 'anonymous'
                     script.src = `${IDE_CDN_URL}/${engineVersion}/index.js.gz`
                     script.onload = async () => {
                         document.body.removeChild(script)
@@ -101,6 +102,7 @@ function Ide(props: Props) {
                     }
                     document.body.appendChild(script)
                     const style = document.createElement('link')
+                    style.crossOrigin = 'anonymous'
                     style.rel = 'stylesheet'
                     style.href = `${IDE_CDN_URL}/${engineVersion}/style.css`
                     document.body.appendChild(style)
