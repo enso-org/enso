@@ -115,11 +115,6 @@
           "description": "Color theme.",
           "primary": false
         },
-        "vectorEditor": {
-          "value": true,
-          "description": "Show Vector Editor widget on nodes.",
-          "primary": false
-        },
         "newDashboard": {
           "value": false,
           "description": "Determines whether the new dashboard with cloud integration is enabled."

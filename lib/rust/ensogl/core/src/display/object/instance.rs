@@ -2144,7 +2144,6 @@ impl InstanceDef {
         let this_weak = self.downgrade();
         let mut children_borrow = self.children.borrow_mut();
         let num_children_before = children_borrow.len();
-
         let mut pushed_out_children = false;
         let mut added_children = 0;
         let mut next_free_index = new_children.len().max(*self.next_child_index.get());
@@ -2209,12 +2208,17 @@ impl InstanceDef {
                 if let Some(strong) = child_at_dest.upgrade() {
                     let mut bind = strong.parent_bind.data.borrow_mut();
                     let bind = bind.as_mut().expect("Child should always have a parent bind.");
-                    bind.child_index = free_index;
-                    children_borrow.insert(free_index, child_at_dest);
-                    // In case we just put a child in its final spot, we have to mark as modified.
-                    // If it ends up being deleted, the flag will be cleared anyway.
-                    if bind.parent == this_weak {
-                        self.dirty.modified_children.set(free_index);
+                    // Check if the removed child's position actually match its parent bind. It is
+                    // possible that this child was already assigned to a different spot in previous
+                    // iteration. In that case, we don't want to update it again.
+                    if bind.child_index == new_child_index {
+                        bind.child_index = free_index;
+                        children_borrow.insert(free_index, child_at_dest);
+                        // In case we just put a child in its final spot, we have to mark as
+                        // modified. If it ends up being deleted, the flag will be cleared anyway.
+                        if bind.parent == this_weak {
+                            self.dirty.modified_children.set(free_index);
+                        }
                     }
                 }
             }
@@ -2227,6 +2231,8 @@ impl InstanceDef {
         let retained_children = new_children.len() - added_children;
         let has_elements_to_remove = retained_children < num_children_before;
         let need_cleanup = has_elements_to_remove || has_stale_indices;
+
+        self.next_child_index.set(ChildIndex(new_children.len()));
 
         if need_cleanup {
             let mut binds_to_drop = SmallVec::<[(ParentBind, WeakInstance); 8]>::new();
@@ -2252,7 +2258,6 @@ impl InstanceDef {
 
             drop(children_borrow);
 
-            self.next_child_index.set(ChildIndex(new_children.len()));
             for (bind, weak) in binds_to_drop {
                 bind.drop_with_removed_element(self, weak)
             }
@@ -2455,13 +2460,11 @@ impl InstanceDef {
         // This implementation is a bit complex because we do not want to clone network to the FRP
         // closure in order to avoid a memory leak.
         let network = &self.network;
-        let parent_bind = &self.parent_bind;
-        let capturing_event_fan = &self.event.capturing_fan;
-        let bubbling_event_fan = &self.event.bubbling_fan;
+        let weak = self.downgrade();
         frp::extend! { network
-            eval self.event.source ([parent_bind, capturing_event_fan, bubbling_event_fan] (event) {
-                let parent = parent_bind.parent();
-                Self::emit_event_impl(event, parent, &capturing_event_fan, &bubbling_event_fan);
+            eval self.event.source ([] (event) {
+                weak.upgrade().map(|instance| instance.emit_event_impl(event));
+                event.finish_propagation();
             });
         }
         self
@@ -2538,40 +2541,77 @@ impl InstanceDef {
         self
     }
 
-    fn emit_event_impl(
-        event: &event::SomeEvent,
-        parent: Option<Instance>,
-        capturing_event_fan: &frp::Fan,
-        bubbling_event_fan: &frp::Fan,
-    ) {
-        let rev_parent_chain = parent.map(|p| p.rev_parent_chain()).unwrap_or_default();
-        if event.captures.get() {
-            for object in &rev_parent_chain {
-                if !event.is_cancelled() {
-                    event.set_current_target(Some(object));
-                    object.event.capturing_fan.emit(&event.data);
-                } else {
-                    break;
-                }
+    /// The main event propagation implementation. Propagates the event through the display object
+    /// hierarchy in two phases: capturing and bubbling. See [`crate::display::object::event`]
+    /// module to learn more about event phases.
+    ///
+    /// The propagation itself is done in following steps:
+    /// - If event has been previously cancelled, figure out where to resume the propagation.
+    /// - Collect the parent chain of the event target.
+    /// - Execute capturing phase - propagate event from the root to the target.
+    /// - Execute bubbling phase - propagate event from the target to the root.
+    /// - If event has been cancelled, store the phase and target to resume the propagation.
+    fn emit_event_impl(&self, event: &event::SomeEvent) {
+        let Some((resume_phase, mut resume_target)) = event.begin_propagation() else { return; };
+
+        let rev_parent_chain = self.rev_parent_chain();
+        let only_target = &rev_parent_chain[rev_parent_chain.len().saturating_sub(1)..];
+
+        if resume_phase <= event::Phase::Capturing {
+            event.enter_phase(event::Phase::Capturing);
+
+            // If capturing phase is disabled, process only target.
+            let chain = if event.captures.get() { &rev_parent_chain } else { only_target };
+
+            // When resuming capturing phase, if the target is no longer in the parent chain, we
+            // start the capturing again from the root.
+            let resume_index = resume_target.take().map(|t| chain.iter().position(|o| o == &t));
+            let resume_position = match resume_index {
+                // Resumed and the last target is still in chain. Continue capturing past it.
+                // targets: a b c d | d c b a
+                // index:   0 1 2 3 | 3 2 1 0
+                // resume:      >...|........
+                Some(Some(index)) => (index + 1).min(chain.len()),
+                // Either starting from scratch, or resumed but the last target is no longer in
+                // chain. In that case start the capturing from the root.
+                Some(None) | None => 0,
+            };
+
+            for object in &chain[resume_position..] {
+                let false = event.is_cancelled() else { return };
+                event.set_current_target(Some(object));
+                object.event.capturing_fan.emit(&event.data);
             }
         }
-        if !event.is_cancelled() {
-            capturing_event_fan.emit(&event.data);
-        }
-        if !event.is_cancelled() {
-            bubbling_event_fan.emit(&event.data);
-        }
-        if event.bubbles.get() {
-            for object in rev_parent_chain.iter().rev() {
-                if !event.is_cancelled() {
-                    event.set_current_target(Some(object));
-                    object.event.bubbling_fan.emit(&event.data);
-                } else {
-                    break;
-                }
+
+        if resume_phase <= event::Phase::Bubbling {
+            event.enter_phase(event::Phase::Bubbling);
+
+            // If bubbling phase is disabled, process only target.
+            let chain = if event.bubbles.get() { &rev_parent_chain } else { only_target };
+
+            // When resuming bubbling phase, if the target is no longer in the parent chain, we
+            // end bubbling completely.
+            let resume_index = resume_target.take().map(|t| chain.iter().position(|o| o == &t));
+            let resume_position = match resume_index {
+                // Resumed and the last target is still in chain. Continue bubbling past it.
+                // targets: a b c d | d c b a
+                // index:   0 1 2 3 | 3 2 1 0
+                // resume:          |   >....
+                Some(Some(index)) => index.saturating_sub(1),
+                // Starting from scratch. Start bubbling from the last object in the chain.
+                None => chain.len(),
+                // Resumed in bubbling phase, but the last target is no longer in chain. Stop
+                // bubbling phase immediately.
+                Some(None) => 0,
+            };
+
+            for object in chain[..resume_position].iter().rev() {
+                let false = event.is_cancelled() else { return };
+                event.set_current_target(Some(object));
+                object.event.bubbling_fan.emit(&event.data);
             }
         }
-        event.set_current_target(None);
     }
 
     fn new_event<T>(&self, payload: T) -> event::SomeEvent
@@ -2589,6 +2629,10 @@ impl InstanceDef {
     where T: 'static {
         let event = self.new_event(payload);
         event.set_bubbling(false);
+        self.event.source.emit(event);
+    }
+
+    pub(crate) fn resume_event(&self, event: event::SomeEvent) {
         self.event.source.emit(event);
     }
 
@@ -3012,6 +3056,14 @@ pub trait LayoutOps: Object {
         self.display_object().layout.margin.set(Vector2(margin, margin));
     }
 
+    /// Set vertical and horizontal margins of the object. Margin is the free space around the
+    /// object.
+    fn set_margin_vh(&self, vertical: impl Into<Unit>, horizontal: impl Into<Unit>) -> &Self {
+        let margin = Vector2(horizontal.into().into(), vertical.into().into());
+        self.display_object().layout.margin.set(margin);
+        self
+    }
+
     /// Set margin of all sides of the object. Margin is the free space around the object.
     fn set_margin_trbl(
         &self,
@@ -3044,6 +3096,14 @@ pub trait LayoutOps: Object {
         let horizontal = SideSpacing::new(left.into(), right.into());
         let vertical = SideSpacing::new(bottom.into(), top.into());
         self.display_object().layout.padding.set(Vector2(horizontal, vertical));
+    }
+
+    /// Set vertical and horizontal padding of the object. Padding is the free space inside the
+    /// object.
+    fn set_padding_vh(&self, vertical: impl Into<Unit>, horizontal: impl Into<Unit>) -> &Self {
+        let padding = Vector2(horizontal.into().into(), vertical.into().into());
+        self.display_object().layout.padding.set(padding);
+        self
     }
 }
 
@@ -4632,6 +4692,7 @@ mod hierarchy_tests {
         assert.new_node_parents([false, false, false, true, false]);
     }
 
+    #[test]
     fn replace_children_replace_all_test() {
         let (root, nodes, assert) = ReplaceChildrenTest::<5>::new();
         root.replace_children(&nodes);
