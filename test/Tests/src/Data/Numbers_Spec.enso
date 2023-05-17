@@ -481,12 +481,6 @@ spec =
             3.50001 . round . should_equal 4
             3.99999 . round . should_equal 4
 
-        Test.specify "Explicit and implicit 0 decimal places work the same" <|
-            3.00001 . round 0 . should_equal 3
-            3.3 . round 0 . should_equal 3
-            3.00001 . round . should_equal 3
-            3.3 . round . should_equal 3
-
         Test.specify "Can round negative decimals correctly" <|
             -3.0 . round . should_equal -3
             -3.00001 . round . should_equal -3
@@ -495,6 +489,12 @@ spec =
             -3.5 . round . should_equal -3
             -3.50001 . round . should_equal -4
             -3.99999 . round . should_equal -4
+
+        Test.specify "Explicit and implicit 0 decimal places work the same" <|
+            3.00001 . round 0 . should_equal 3
+            3.3 . round 0 . should_equal 3
+            3.00001 . round . should_equal 3
+            3.3 . round . should_equal 3
 
         Test.specify "Can round zero and small decimals correctly" <|
             0.0 . round . should_equal 0
@@ -606,7 +606,7 @@ spec =
             3.1 . round -16 . should_fail_with Illegal_Argument
 
         Test.specify "Banker's rounding failure" pending="Fails because of basic floating-point inaccuracy when adding 0.5" <|
-            1.225 . round 2 use_bankers=True . should_equal 1.22 # Result is actually 1.23
+            1.225 . round 2 use_bankers=True . should_equal 1.22 # Actual result 1.23
 
     Test.group "Integer.round" <|
         Test.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)"

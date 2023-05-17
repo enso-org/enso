@@ -2,20 +2,16 @@ import project.Data.Text.Text
 import project.Data.Locale.Locale
 import project.Errors.Common.Arithmetic_Error
 import project.Errors.Common.Incomparable_Values
-import project.Errors.Common.Unsupported_Argument_Types
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Error.Error
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.IO
-import project.Meta
 
 from project.Data.Boolean import Boolean, True, False
 
 polyglot java import java.lang.Double
 polyglot java import java.lang.Math
 polyglot java import java.lang.Long
-polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.NumberFormatException
 polyglot java import java.text.DecimalFormat
 polyglot java import java.text.DecimalFormatSymbols
@@ -620,9 +616,9 @@ type Decimal
                         scale = 10 ^ decimal_places
                         ((self * scale) + 0.5).floor / scale
                     True ->
-                        ## If the largest integer <= self is odd, us normal
-                           round-towards-positive-infinity rounding; otherwise, use
-                           round-towards-negative-infinity rounding.
+                        ## If the largest integer <= self is odd, use normal
+                           round-towards-positive-infinity rounding; otherwise,
+                           use round-towards-negative-infinity rounding.
                         scale = 10 ^ decimal_places
                         scaled_self = self * scale
                         self_scaled_floor = scaled_self.floor
@@ -940,11 +936,11 @@ type Integer
             False ->
                 case self < round_min_long || self > round_max_long of
                     True ->
-                        msg = "Error: Integer.round can only accept values between " + round_min_long.to_text + " and " + round_max_long.to_text + ": " + self.to_text
+                        msg = "Error: Integer.round can only accept values between " + round_min_long.to_text + " and " + round_max_long.to_text + "(inclusive), but was " + self.to_text
                         Error.throw (Illegal_Argument.Error msg)
                     False ->
-                        ## It's already an integer so unless decimal_places is negative, the
-                           value is unchanged.
+                        ## It's already an integer so unless decimal_places is
+                           negative, the value is unchanged.
                         if decimal_places >= 0 then self else
                             self.to_decimal.round decimal_places use_bankers . int
 
@@ -1133,6 +1129,7 @@ round_max_decimal_places = 15
    digits, it is possible that the underlying long, converted to double in the
    rounding process, would lose precision in the least significant bits.
    (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
+round_max_long : Integer
 round_max_long = 99999999999999
 
 ## PRIVATE
@@ -1140,4 +1137,5 @@ round_max_long = 99999999999999
    digits, it is possible that the underlying long, converted to double in the
    rounding process, would lose precision in the least significant bits.
    (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
+round_min_long : Integer
 round_min_long = -99999999999999
