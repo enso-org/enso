@@ -686,6 +686,12 @@ spec =
             -12430 . round -2 use_bankers=True . should_equal -12400
             -12470 . round -2 use_bankers=True . should_equal -12500
 
+        Test.specify "Out of range" <|
+            100000000000000 . round . should_fail_with Illegal_Argument
+            -100000000000000 . round . should_fail_with Illegal_Argument
+            100000000000000 . round -2 . should_fail_with Illegal_Argument
+            -100000000000000 . round -2 . should_fail_with Illegal_Argument
+
     Test.group "Decimal.int"
         Test.specify "Correctly converts to Integer" <|
             0.1.int . should_equal 0
