@@ -249,13 +249,19 @@ public class BigIntegerOps {
   // must ensure this.
   @CompilerDirectives.TruffleBoundary
   public static BigInteger round(BigInteger a, long decimal_places) {
-    // To implement a regular .floor() for BigDecimal.
-    MathContext mathContext = new MathContext(0, RoundingMode.FLOOR);
-
-    BigDecimal a_big_decimal = new BigDecimal(a);
-    BigDecimal scale = new BigDecimal(Math.pow(10, decimal_places));
-    BigDecimal half = new BigDecimal(0.5);
-    //(((n * scale) + 0.5).floor) / scale
-    return a_big_decimal.multiply(scale).add(half).round(mathContext).divide(scale).toBigIntegerExact();
+    // Scale down all but one of the steps
+    int half = a.compareTo(BigInteger.ZERO) == -1 ? -4 : 5;
+    System.out.println("a " + a);
+    BigInteger scale_but_one_reciprocal = BigInteger.valueOf((long) Math.pow(10, -decimal_places-1));
+    System.out.println("scale_but_one_reciprocal " + scale_but_one_reciprocal);
+    BigInteger scaled = a.divide(scale_but_one_reciprocal);
+    System.out.println("scaled " + scaled);
+    BigInteger plusHalf = scaled.add(BigInteger.valueOf(half));
+    System.out.println("plusHalf " + plusHalf);
+    BigInteger fullyScaled = plusHalf.divide(BigInteger.valueOf(10));
+    System.out.println("fullyScaled " + fullyScaled);
+    BigInteger result = fullyScaled.multiply(scale_but_one_reciprocal).multiply(BigInteger.valueOf(10));
+    System.out.println("result " + result);
+    return result;
   }
 }

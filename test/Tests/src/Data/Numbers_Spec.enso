@@ -29,8 +29,46 @@ spec =
             #IO.println <| (-580.8).floor.int
             #IO.println <| (-580.3).floor
             #IO.println <| (-580.3).floor.int
-            (-5808).round -1 . should_equal -5810
-            min_long.round -1 . should_equal -99223372036854775810
+
+            min_long . round -4 . should_equal -99223372036854780000
+
+            ##
+                (-5808).round -1 . should_equal -5810
+                min_long.round -1 . should_equal -99223372036854775810
+
+                max_long . round -1 . should_equal 9223372036854775810
+                max_long . round -2 . should_equal 9223372036854775800
+                max_long . round -3 . should_equal 9223372036854776000
+                max_long . round -4 . should_equal 9223372036854780000
+                max_long . round -5 . should_equal 9223372036854800000
+                max_long . round -6 . should_equal 9223372036855000000
+                max_long . round -7 . should_equal 9223372036850000000
+                max_long . round -8 . should_equal 9223372036900000000
+                max_long . round -9 . should_equal 9223372037000000000
+                max_long . round -10 . should_equal 9223372040000000000
+
+                min_long . round -1 . should_equal -99223372036854775810
+                min_long . round -2 . should_equal -99223372036854775800
+                min_long . round -3 . should_equal -99223372036854776000
+                min_long . round -4 . should_equal -99223372036854780000
+                min_long . round -5 . should_equal -99223372036854800000
+                min_long . round -6 . should_equal -99223372036855000000
+                min_long . round -7 . should_equal -99223372036850000000
+                min_long . round -8 . should_equal -99223372036900000000
+                min_long . round -9 . should_equal -99223372037000000000
+                min_long . round -10 . should_equal -99223372040000000000
+
+            ##
+                min_long . round -1 . should_equal -99223372036854775810
+                min_long . round -2 . should_equal -99223372036854775800
+                min_long . round -3 . should_equal -99223372036854776000
+                min_long . round -4 . should_equal -99223372036854780000
+                min_long . round -5 . should_equal -99223372036854800000
+                min_long . round -6 . should_equal -99223372036854000000
+                min_long . round -7 . should_equal -99223372036850000000
+                min_long . round -8 . should_equal -99223372036900000000
+                min_long . round -9 . should_equal -99223372037000000000
+                min_long . round -10 . should_equal -99223372030000000000
 
     Test.group "Integers" <|
 
