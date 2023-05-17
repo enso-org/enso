@@ -41,7 +41,7 @@ export class LocalBackend implements Partial<backend.Backend> {
             type: backend.AssetType.project,
             id: project.id,
             title: project.name,
-            modifiedAt: project.lastOpened ?? dateTime.toRfc3339(new Date(0)),
+            modifiedAt: project.lastOpened,
             parentId: newtype.asNewtype<backend.AssetId>(''),
             permissions: [],
         }))

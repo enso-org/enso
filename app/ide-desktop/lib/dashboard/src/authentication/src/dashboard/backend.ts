@@ -238,7 +238,7 @@ export interface UserPermission {
 export interface BaseAsset {
     id: AssetId
     title: string
-    modifiedAt: Rfc3339DateTime
+    modifiedAt: Rfc3339DateTime | null
     parentId: AssetId
     permissions: UserPermission[] | null
 }

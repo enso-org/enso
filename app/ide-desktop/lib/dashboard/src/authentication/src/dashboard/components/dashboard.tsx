@@ -462,9 +462,10 @@ function Dashboard(props: DashboardProps) {
     /** React components for every column except for the name column. */
     const columnRenderer: Record<
         Exclude<Column, Column.name>,
-        (asset: backendModule.Asset) => JSX.Element
+        (asset: backendModule.Asset) => react.ReactNode
     > = {
-        [Column.lastModified]: asset => <>{dateTime.formatDateTime(new Date(asset.modifiedAt))}</>,
+        [Column.lastModified]: asset =>
+            asset.modifiedAt && <>{dateTime.formatDateTime(new Date(asset.modifiedAt))}</>,
         [Column.sharedWith]: asset => (
             <>
                 {(asset.permissions ?? []).map(user => (
