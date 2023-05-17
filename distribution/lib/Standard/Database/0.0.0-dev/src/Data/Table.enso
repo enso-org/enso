@@ -1460,10 +1460,14 @@ type Table
     @columns Widget_Helpers.make_column_name_vector_selector
     parse : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> Value_Type | Auto -> Text | Data_Formatter | Nothing -> Boolean -> Problem_Behavior -> Table
     parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type format=Nothing error_on_missing_columns=True on_problems=Report_Warning =
-        selected = self.select_columns columns error_on_missing_columns=error_on_missing_columns
-        selected.columns.fold self table-> column_to_parse->
+        selected = self.select_columns columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+        IO.println "columns="+columns.to_text+"; selected="+selected.column_names.to_text+"; warnings="+(Warning.get_all selected . map .value . to_text)
+        result = selected.columns.fold self table-> column_to_parse->
             new_column = column_to_parse.parse type format on_problems
             table.set new_column new_name=column_to_parse.name set_mode=Set_Mode.Update
+
+        IO.println "result.warnings="+(Warning.get_all result . map .value . to_text)
+        result
 
     ## Splits a column of text into a set of new columns.
        The original column will be removed from the table.
