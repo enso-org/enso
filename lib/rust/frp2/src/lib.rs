@@ -24,27 +24,18 @@ pub use enso_prelude as prelude;
 pub struct Data(usize);
 
 
-pub trait Data2: Debug {
-    fn clone(&self) -> Box<dyn Data2>;
-}
-
-
-pub trait A {}
-impl<T> A for T {}
-
-pub struct Foo;
-impl Drop for Foo {
-    fn drop(&mut self) {
-        println!("dropped");
-    }
-}
-
-fn test() {
-    let u = Foo;
-    let v: &dyn A = &u;
-}
-
-
+// pub trait Data: Debug {
+//     fn clone(&self) -> Box<dyn Data>;
+// }
+//
+//
+// impl<T> Data for T
+// where T: Debug + Clone + 'static
+// {
+//     fn clone(&self) -> Box<dyn Data> {
+//         Box::new(self.clone())
+//     }
+// }
 
 // ===============
 // === Metrics ===
@@ -110,7 +101,7 @@ enum NodeType {
     Source,
     Inc,
     Trace,
-    Map(Box<dyn Fn(Data) -> Data>),
+    // Map(Box<dyn Fn(Data) -> Data>),
 }
 
 impl Debug for NodeType {
@@ -133,15 +124,20 @@ impl NodeData {
         Self { tp, network_id, def, inputs: default(), outputs: default() }
     }
 
-    fn on_event(&self, rt: &Runtime, node_id: NodeId, event: Data) -> Option<Data> {
+    fn on_event(&self, rt: &Runtime, node_id: NodeId, event: Data) {
         match &self.tp {
-            NodeType::Source => None,
-            NodeType::Inc => Some(Data(event.0 + 1)),
-            NodeType::Trace => {
-                println!("TRACE: {:?}", event);
-                Some(event)
+            NodeType::Source => {}
+            NodeType::Inc => {
+                // println!("Inc: {:?}", event);
+                rt.emit_event(node_id, Data(event.0 + 1));
             }
-            NodeType::Map(f) => Some(f(event)),
+            NodeType::Trace => {
+                // println!("TRACE: {:?}", event);
+                rt.emit_event(node_id, Data(event.0));
+            } /* NodeType::Map(f) => {
+               *     let event = f(event);
+               *     rt.emit_event(node_id, event);
+               * } */
         }
     }
 }
@@ -222,56 +218,51 @@ impl Runtime {
         });
     }
 
-    fn emit_event(&self, init_node_id: NodeId, init_event: Data) {
-        let mut nodes_to_eval = vec![(init_node_id, init_event)];
+    fn emit_event(&self, node_id: NodeId, event: Data) {
+        // println!("emit_event {:?} {:?}", node_id, event);
+        let node_outputs = self.nodes.with_borrowed(|nodes| {
+            nodes.get(node_id).map(|node| {
+                let vec_from_pool = self.target_store_pool.borrow_mut().pop();
+                let mut node_outputs = vec_from_pool.unwrap_or_default();
+                node_outputs.extend_from_slice(node.outputs.as_slice());
+                (node_outputs, node.def)
+            })
+        });
+        if let Some((mut node_outputs, def)) = node_outputs {
+            // Emit events to all targets. In case there are no targets, we are done.
 
-        while let Some((node_id, event)) = nodes_to_eval.pop() {
-            let node_outputs = self.nodes.with_borrowed(|nodes| {
-                nodes.get(node_id).map(|node| {
-                    let vec_from_pool = self.target_store_pool.borrow_mut().pop();
-                    let mut node_outputs = vec_from_pool.unwrap_or_default();
-                    node_outputs.extend_from_slice(node.outputs.as_slice());
-                    (node_outputs, node.def)
-                })
-            });
-            if let Some((mut node_outputs, def)) = node_outputs {
-                // Emit events to all targets. In case there are no targets, we are done.
-
-                // store the targets to emit to in a temporary buffer, so we can
-                // release the borrow.
+            // store the targets to emit to in a temporary buffer, so we can
+            // release the borrow.
 
 
-                let cleanup_targets = self.stack.with(def, || {
-                    let mut cleanup_targets = false;
-                    for &node_output_id in &node_outputs {
-                        let nodes = self.nodes.borrow();
-                        let node_output = nodes.get(node_output_id);
-                        if let Some(node_output) = node_output {
-                            if let Some(output) = node_output.on_event(self, node_id, event) {
-                                nodes_to_eval.push((node_output_id, output));
-                            }
-                        } else {
-                            cleanup_targets = true;
-                        }
+            let cleanup_targets = self.stack.with(def, || {
+                let mut cleanup_targets = false;
+                for &node_output_id in &node_outputs {
+                    let nodes = self.nodes.borrow();
+                    let node_output = nodes.get(node_output_id);
+                    if let Some(node_output) = node_output {
+                        node_output.on_event(self, node_output_id, event);
+                    } else {
+                        cleanup_targets = true;
                     }
-                    cleanup_targets
-                });
-                //
-                // Return temporary buffer to pool.
-                node_outputs.clear();
-                self.target_store_pool.borrow_mut().push(node_outputs);
-            }
+                }
+                cleanup_targets
+            });
             //
-            // // Remove targets that have been dropped.
-            // if cleanup_targets {
-            //     let mut targets = self.targets.borrow_mut();
-            //     let node_targets = targets.get_mut(node_id);
-            //     if let Some(targets) = node_targets {
-            //         let consumers = self.consumers.borrow();
-            //         targets.retain(|target| consumers.contains_key(*target));
-            //     }
-            // }
+            // Return temporary buffer to pool.
+            node_outputs.clear();
+            self.target_store_pool.borrow_mut().push(node_outputs);
         }
+        //
+        // // Remove targets that have been dropped.
+        // if cleanup_targets {
+        //     let mut targets = self.targets.borrow_mut();
+        //     let node_targets = targets.get_mut(node_id);
+        //     if let Some(targets) = node_targets {
+        //         let consumers = self.consumers.borrow();
+        //         targets.retain(|target| consumers.contains_key(*target));
+        //     }
+        // }
     }
 }
 
@@ -319,21 +310,51 @@ mod tests {
         let src = with_runtime(|rt| rt.new_node(NodeType::Source, net.id, DefInfo::unlabelled()));
         let inc = with_runtime(|rt| rt.new_node(NodeType::Inc, net.id, DefInfo::unlabelled()));
         let trc = with_runtime(|rt| rt.new_node(NodeType::Trace, net.id, DefInfo::unlabelled()));
-        let inc2 = with_runtime(|rt| {
-            rt.new_node(
-                NodeType::Map(Box::new(|t: Data| Data(t.0 * 2))),
-                net.id,
-                DefInfo::unlabelled(),
-            )
-        });
-        let trc2 = with_runtime(|rt| rt.new_node(NodeType::Trace, net.id, DefInfo::unlabelled()));
+        // let inc2 = with_runtime(|rt| {
+        //     rt.new_node(
+        //         NodeType::Map(Box::new(|t: Data| Data(t.0 * 2))),
+        //         net.id,
+        //         DefInfo::unlabelled(),
+        //     )
+        // });
+        // let trc2 = with_runtime(|rt| rt.new_node(NodeType::Trace, net.id,
+        // DefInfo::unlabelled()));
 
         with_runtime(|rt| rt.connect(src, inc));
         with_runtime(|rt| rt.connect(inc, trc));
-        with_runtime(|rt| rt.connect(trc, inc2));
-        with_runtime(|rt| rt.connect(inc2, trc2));
+        // with_runtime(|rt| rt.connect(trc, inc2));
+        // with_runtime(|rt| rt.connect(inc2, trc2));
         with_runtime(|rt| rt.emit_event(src, Data(1)));
-        // let source = net.source::<i32>();
         assert_eq!(1, 2);
     }
 }
+
+
+
+#[cfg(test)]
+mod benches {
+    use super::*;
+    extern crate test;
+    use test::Bencher;
+
+    const REPS: usize = 100_000;
+
+    #[bench]
+    fn bench_dyn_trait(bencher: &mut Bencher) {
+        let net = Network::new();
+        let src = with_runtime(|rt| rt.new_node(NodeType::Source, net.id, DefInfo::unlabelled()));
+        let inc = with_runtime(|rt| rt.new_node(NodeType::Inc, net.id, DefInfo::unlabelled()));
+        let trc = with_runtime(|rt| rt.new_node(NodeType::Trace, net.id, DefInfo::unlabelled()));
+        with_runtime(|rt| rt.connect(src, inc));
+        with_runtime(|rt| rt.connect(inc, trc));
+        bencher.iter(move || {
+            for _ in 0..REPS {
+                with_runtime(|rt| rt.emit_event(src, Data(1)));
+            }
+        });
+    }
+}
+
+// 4835920
+// 4134314
+// 4146143
