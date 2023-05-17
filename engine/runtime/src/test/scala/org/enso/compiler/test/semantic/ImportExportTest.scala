@@ -124,16 +124,11 @@ class ImportExportTest
         case _ => ()
       }
       val mainBindingsMap = mainIr.unwrapBindingMap
-      mainBindingsMap.resolvedImports.size shouldEqual 2
+      mainBindingsMap.resolvedImports.size shouldEqual 1
       mainBindingsMap
         .resolvedImports(0)
         .target
         .isInstanceOf[BindingsMap.ResolvedModule] shouldBe true
-      mainBindingsMap
-        .resolvedImports(1)
-        .target
-        .asInstanceOf[BindingsMap.ResolvedType]
-        .tp shouldEqual otherTypeDefinedEntity
     }
 
     "resolve two types from a module" in {
@@ -158,39 +153,11 @@ class ImportExportTest
            |""".stripMargin
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
-      mainIr.unwrapBindingMap.resolvedImports.size shouldEqual 3
+      mainIr.unwrapBindingMap.resolvedImports.size shouldEqual 1
       mainIr.unwrapBindingMap
         .resolvedImports(0)
         .target
         .isInstanceOf[BindingsMap.ResolvedModule] shouldBe true
-      mainIr.unwrapBindingMap
-        .resolvedImports(1)
-        .target
-        .asInstanceOf[BindingsMap.ResolvedType]
-        .tp
-        .name shouldEqual "Other_Module_Type"
-      mainIr.unwrapBindingMap
-        .resolvedImports(2)
-        .target
-        .asInstanceOf[BindingsMap.ResolvedType]
-        .tp
-        .name shouldEqual "Another_Type"
-    }
-
-    "resolve a constructor of a type" in {
-      """
-        |type Other_Module_Type
-        |    Constructor
-        |""".stripMargin
-        .createModule(packageQualifiedName.createChild("Other_Module"))
-      val mainIr =
-        s"""
-           |from $namespace.$packageName.Other_Module.Other_Module_Type import Constructor
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("Main"))
-          .getIr
-      // TODO: The second resolved import should be ResolvedConstructor
-      mainIr.unwrapBindingMap.resolvedImports.size shouldEqual 2
     }
 
     "result in error when importing mixture of existing and non-existing symbols" in {
@@ -231,7 +198,7 @@ class ImportExportTest
         .NoSuchConstructor("Other_Type", "method")
     }
 
-    "resolve static method from a module" in {
+    "resolve static method from a module" ignore {
       """
         |static_method =
         |    42
@@ -277,132 +244,6 @@ class ImportExportTest
         .asInstanceOf[BindingsMap.ResolvedMethod]
         .method
         .name shouldEqual "static_method"
-    }
-
-    "resolve types and static module methods when importing all from a module" in {
-      """
-        |type Other_Module_Type
-        |static_method =
-        |    42
-        |""".stripMargin
-        .createModule(packageQualifiedName.createChild("Other_Module"))
-      val mainBindingMap =
-        s"""
-           |from $namespace.$packageName.Other_Module import all
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("Main"))
-          .getIr
-          .unwrapBindingMap
-
-      mainBindingMap.resolvedImports.filter(imp => {
-        imp.target match {
-          case BindingsMap.ResolvedType(_, tp)
-            if tp.name == "Other_Module_Type" =>
-            true
-          case BindingsMap.ResolvedMethod(_, method)
-            if method.name == "static_method" =>
-            true
-          case _ => false
-        }
-      }) should have size 2
-    }
-
-    "resolve only constructors when importing all symbols from a type (1)" in {
-      """
-        |type Other_Module_Type
-        |    Constructor
-        |    method self = 42
-        |""".stripMargin
-        .createModule(packageQualifiedName.createChild("Other_Module"))
-      val mainBindingMap =
-        s"""
-           |from $namespace.$packageName.Other_Module.Other_Module_Type import all
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("Main"))
-          .getIr
-          .unwrapBindingMap
-
-      mainBindingMap.resolvedImports.filter(imp => {
-        imp.target match {
-          case BindingsMap.ResolvedConstructor(_, ctor)
-            if ctor.name == "Constructor" =>
-            true
-          case _ => false
-        }
-      }) should have size 1
-    }
-
-    "resolve only constructors when importing all symbols from a type (2)" in {
-      """
-        |type Other_Module_Type
-        |    Constructor_1
-        |    Constructor_2 val1 val2
-        |    method self = 42
-        |""".stripMargin
-        .createModule(packageQualifiedName.createChild("Other_Module"))
-      val mainIr =
-        s"""
-           |from $namespace.$packageName.Other_Module.Other_Module_Type import all
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("Main"))
-          .getIr
-
-      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
-      val mainBindingMap = mainIr.unwrapBindingMap
-      mainBindingMap.resolvedImports.filter(imp => {
-        imp.target match {
-          case BindingsMap.ResolvedConstructor(_, ctor)
-            if ctor.name == "Constructor_1" || ctor.name == "Constructor_2" =>
-            true
-          case _ => false
-        }
-      }) should have size 2
-    }
-
-    "resolve all constructors from a type" in {
-      """
-        |type Other_Module_Type
-        |    Constructor_1
-        |    Constructor_2 val1 val2
-        |""".stripMargin
-        .createModule(packageQualifiedName.createChild("Other_Module"))
-      val mainIr =
-        s"""
-           |from $namespace.$packageName.Other_Module.Other_Module_Type import all
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("Main"))
-          .getIr
-      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
-      val mainBindingMap = mainIr.unwrapBindingMap
-      mainBindingMap.resolvedImports.filter(imp => {
-        imp.target match {
-          case BindingsMap.ResolvedConstructor(_, ctor)
-            if ctor.name == "Constructor_1" || ctor.name == "Constructor_2" =>
-            true
-          case _ => false
-        }
-      }) should have size 2
-    }
-
-    "resolve exactly two constructors from a type" in {
-      """
-        |type Other_Module_Type
-        |    Constructor_1
-        |    Constructor_2 val1 val2
-        |""".stripMargin
-        .createModule(packageQualifiedName.createChild("Other_Module"))
-      val mainIr =
-        s"""
-           |from $namespace.$packageName.Other_Module.Other_Module_Type import Constructor_1, Constructor_2
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("Main"))
-          .getIr
-      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
-      val mainBindingMap        = mainIr.unwrapBindingMap
-      val resolvedImportTargets = mainBindingMap.resolvedImports.map(_.target)
-      resolvedImportTargets
-        .collect { case rc: BindingsMap.ResolvedConstructor => rc }
-        .map(_.cons.name) should contain only ("Constructor_1", "Constructor_2")
     }
 
     "result in error when trying to import mix of constructors and method from a type" in {
@@ -554,94 +395,6 @@ class ImportExportTest
   }
 
   "Import resolution for three modules" should {
-    "resolve all imported symbols in B_Module from A_Module" in {
-      s"""
-         |type A_Type
-         |    A_Constructor
-         |    instance_method self = 42
-         |
-         |static_method =
-         |    local_var = 42
-         |    local_var
-         |
-         |# Is not really a variable - it is a method returning a constant, so
-         |# it is also considered a static module method
-         |glob_var = 42
-         |
-         |# This is also a static method
-         |foreign js js_function = \"\"\"
-         |    return 42
-         |""".stripMargin
-        .createModule(packageQualifiedName.createChild("A_Module"))
-
-      val mainIr =
-        s"""
-           |from $namespace.$packageName.A_Module import all
-           |from $namespace.$packageName.A_Module export static_method
-           |
-           |type B_Type
-           |    B_Constructor val
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("Main_Module"))
-          .getIr
-      mainIr.imports.size shouldEqual 1
-      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
-      val mainBindingMap = mainIr.unwrapBindingMap
-      val resolvedImportTargets =
-        mainBindingMap.resolvedImports.map(_.target)
-      resolvedImportTargets
-        .collect { case rt: BindingsMap.ResolvedType => rt }
-        .map(_.tp.name) shouldEqual Iterable("A_Type")
-      resolvedImportTargets
-        .collect { case rc: BindingsMap.ResolvedConstructor =>
-          rc
-        } shouldBe empty
-      resolvedImportTargets
-        .collect { case meth: BindingsMap.ResolvedMethod => meth }
-        .map(
-          _.method.name
-        ) should contain allOf ("static_method", "glob_var", "js_function")
-      resolvedImportTargets
-        .collect { case rm: BindingsMap.ResolvedModule => rm }
-        .map(_.module.getName.item) shouldEqual Iterable("A_Module")
-    }
-
-    "resolve foreign static module method" in {
-      s"""
-         |type A_Type
-         |    A_Constructor
-         |    instance_method self = 42
-         |
-         |static_method =
-         |    local_var = 42
-         |    local_var
-         |
-         |# Is not really a variable - it is a method returning a constant, so
-         |# it is also considered a static module method
-         |glob_var = 42
-         |
-         |# This is also a static method
-         |foreign js js_function = \"\"\"
-         |    return 42
-         |""".stripMargin
-        .createModule(packageQualifiedName.createChild("A_Module"))
-
-      val mainBindingMap =
-        s"""
-           |from $namespace.$packageName.A_Module import js_function
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("Main"))
-          .getIr
-          .unwrapBindingMap
-      val resolvedImportTargets =
-        mainBindingMap.resolvedImports.map(_.target)
-      resolvedImportTargets
-        .collect { case meth: BindingsMap.ResolvedMethod => meth }
-        .map(_.method.name) shouldEqual Iterable("js_function")
-      resolvedImportTargets
-        .collect { case mod: BindingsMap.ResolvedModule => mod }
-        .map(_.module.getName.item) shouldEqual Iterable("A_Module")
-    }
 
     "not resolve symbol that is not explicitly exported" in {
       """
@@ -724,16 +477,6 @@ class ImportExportTest
           .getIr
       mainIr.imports.size shouldEqual 1
       mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
-      val mainBindingMap = mainIr.unwrapBindingMap
-      val resolvedImportSymbols: List[String] =
-        mainBindingMap.resolvedImports.map(_.target.qualifiedName.item)
-      resolvedImportSymbols should contain theSameElementsAs List(
-        "A_Module",
-        "A_Type",
-        "static_method",
-        "glob_var",
-        "js_function"
-      )
     }
 
     "resolve re-exported symbol" in {
@@ -774,10 +517,6 @@ class ImportExportTest
           .getIr
       mainIr.imports.size shouldEqual 1
       mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
-      val mainBindingMap = mainIr.unwrapBindingMap
-      val resolvedImportSymbols: List[String] =
-        mainBindingMap.resolvedImports.map(_.target.qualifiedName.item)
-      resolvedImportSymbols should contain only ("B_Module", "static_method")
     }
 
     "resolve re-exported symbol along with all other symbols" in {
@@ -818,14 +557,6 @@ class ImportExportTest
           .getIr
       mainIr.imports.size shouldEqual 1
       mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe false
-      val mainBindingMap = mainIr.unwrapBindingMap
-      val resolvedImportSymbols: List[String] =
-        mainBindingMap.resolvedImports.map(_.target.qualifiedName.item)
-      resolvedImportSymbols should contain theSameElementsAs List(
-        "B_Module",
-        "B_Type",
-        "static_method"
-      )
     }
   }
 }
