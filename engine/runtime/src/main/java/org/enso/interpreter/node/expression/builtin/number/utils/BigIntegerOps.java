@@ -4,8 +4,6 @@ import com.oracle.truffle.api.CompilerDirectives;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.MathContext;
-import java.math.RoundingMode;
 
 /** Re-exposes big-integer operations behind a truffle boundary. */
 public class BigIntegerOps {
@@ -243,25 +241,5 @@ public class BigIntegerOps {
 
   public static boolean fitsInInt(long number) {
     return number >= Integer.MIN_VALUE && number <= Integer.MAX_VALUE;
-  }
-
-  // This assumes decimal places is between -15 and 15 (inclusive). The caller
-  // must ensure this.
-  @CompilerDirectives.TruffleBoundary
-  public static BigInteger round(BigInteger a, long decimal_places) {
-    // Scale down all but one of the steps
-    int half = a.compareTo(BigInteger.ZERO) == -1 ? -4 : 5;
-    System.out.println("a " + a);
-    BigInteger scale_but_one_reciprocal = BigInteger.valueOf((long) Math.pow(10, -decimal_places-1));
-    System.out.println("scale_but_one_reciprocal " + scale_but_one_reciprocal);
-    BigInteger scaled = a.divide(scale_but_one_reciprocal);
-    System.out.println("scaled " + scaled);
-    BigInteger plusHalf = scaled.add(BigInteger.valueOf(half));
-    System.out.println("plusHalf " + plusHalf);
-    BigInteger fullyScaled = plusHalf.divide(BigInteger.valueOf(10));
-    System.out.println("fullyScaled " + fullyScaled);
-    BigInteger result = fullyScaled.multiply(scale_but_one_reciprocal).multiply(BigInteger.valueOf(10));
-    System.out.println("result " + result);
-    return result;
   }
 }

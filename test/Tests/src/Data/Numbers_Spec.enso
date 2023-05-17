@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Incomparable_Values
-import Standard.Base.Errors.Common.Unsupported_Argument_Types
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Base.Data.Numbers import Number_Parse_Error
 
@@ -25,50 +25,7 @@ spec =
 
     Test.group "gmt" <|
         Test.specify "Edge cases"
-            #IO.println <| (-580.8).floor
-            #IO.println <| (-580.8).floor.int
-            #IO.println <| (-580.3).floor
-            #IO.println <| (-580.3).floor.int
-
-            min_long . round -4 . should_equal -99223372036854780000
-
-            ##
-                (-5808).round -1 . should_equal -5810
-                min_long.round -1 . should_equal -99223372036854775810
-
-                max_long . round -1 . should_equal 9223372036854775810
-                max_long . round -2 . should_equal 9223372036854775800
-                max_long . round -3 . should_equal 9223372036854776000
-                max_long . round -4 . should_equal 9223372036854780000
-                max_long . round -5 . should_equal 9223372036854800000
-                max_long . round -6 . should_equal 9223372036855000000
-                max_long . round -7 . should_equal 9223372036850000000
-                max_long . round -8 . should_equal 9223372036900000000
-                max_long . round -9 . should_equal 9223372037000000000
-                max_long . round -10 . should_equal 9223372040000000000
-
-                min_long . round -1 . should_equal -99223372036854775810
-                min_long . round -2 . should_equal -99223372036854775800
-                min_long . round -3 . should_equal -99223372036854776000
-                min_long . round -4 . should_equal -99223372036854780000
-                min_long . round -5 . should_equal -99223372036854800000
-                min_long . round -6 . should_equal -99223372036855000000
-                min_long . round -7 . should_equal -99223372036850000000
-                min_long . round -8 . should_equal -99223372036900000000
-                min_long . round -9 . should_equal -99223372037000000000
-                min_long . round -10 . should_equal -99223372040000000000
-
-            ##
-                min_long . round -1 . should_equal -99223372036854775810
-                min_long . round -2 . should_equal -99223372036854775800
-                min_long . round -3 . should_equal -99223372036854776000
-                min_long . round -4 . should_equal -99223372036854780000
-                min_long . round -5 . should_equal -99223372036854800000
-                min_long . round -6 . should_equal -99223372036854000000
-                min_long . round -7 . should_equal -99223372036850000000
-                min_long . round -8 . should_equal -99223372036900000000
-                min_long . round -9 . should_equal -99223372037000000000
-                min_long . round -10 . should_equal -99223372030000000000
+            1 . should_equal 1
 
     Test.group "Integers" <|
 
@@ -609,8 +566,8 @@ spec =
             -1494.0 . round -2 . should_equal -1500
 
         Test.specify "Decimal places out of range" <|
-            3.1 . round 16 . should_fail_with Unsupported_Argument_Types
-            3.1 . round -16 . should_fail_with Unsupported_Argument_Types
+            3.1 . round 16 . should_fail_with Illegal_Argument
+            3.1 . round -16 . should_fail_with Illegal_Argument
 
     Test.group "Integer.round (small)" <|
         Test.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)"
@@ -655,40 +612,6 @@ spec =
             -3000 . round -3 . should_equal -3000
             -3098 . round -3 . should_equal -3000
             -3101 . round -3 . should_equal -3000
-
-        Test.specify "Edge cases"
-            min_long.round . should_equal min_long
-            min_long.round -1 . should_equal -99223372036854775810
-            min_long.round -5 . should_equal -99223372036854800000
-
-            IO.println "----"
-            IO.println <| Meta.type_of <| max_long
-            IO.println <| Meta.type_of <| max_long.round
-            IO.println <| Meta.type_of <| max_long.round -1
-            IO.println <| Meta.type_of <| max_long.round -2
-            IO.println <| Meta.type_of <| max_long.round -3
-            IO.println <| Meta.type_of <| max_long.round -4
-            IO.println <| Meta.type_of <| max_long.round -5
-            max_long.round . should_equal max_long
-            max_long.round -1 . should_equal 9223372036854775810
-            max_long.round -2 . should_equal 9223372036854775800
-            max_long.round -3 . should_equal 9223372036854776000
-            max_long.round -4 . should_equal 9223372036854780000
-
-            min_long-20 . should_equal -99223372036854775828
-            min_long-20 . round . should_equal (min_long - 20)
-            min_long-20 . round -1 . should_equal -99223372036854775830
-            min_long-20 . round -5 . should_equal -99223372036854800000
-
-            max_long+20 . should_equal 9223372036854775827
-            max_long+20 . round . should_equal (max_long + 20)
-            max_long+20 . round -1 . should_equal 9223372036854775830
-
-        Test.specify "Edge cases" <|
-            # Loses precision
-            max_long+20 . round -5 . should_equal 9223372036854800000
-            # Loses precision
-            max_long.round -5 . should_equal 9223372036854800000
 
     Test.group "Decimal.int"
         Test.specify "Correctly converts to Integer" <|

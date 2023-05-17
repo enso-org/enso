@@ -3,6 +3,7 @@ import project.Data.Locale.Locale
 import project.Errors.Common.Arithmetic_Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Unsupported_Argument_Types
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Error.Error
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -575,10 +576,22 @@ type Decimal
          - +Inf.round == +Inf
          - -Inf.round == -Inf
     round : Integer -> Decimal
-    round self decimal_places=0 = self.round_builtin decimal_places
-
-    round_builtin : Integer -> Decimal
-    round_builtin self decimal_places = @Builtin_Method "Decimal.round_builtin"
+    round self decimal_places=0 =
+        case decimal_places < min_round_decimal_places || decimal_places > max_round_decimal_places of
+            True ->
+                msg = "round: decimal_places must be between " + min_round_decimal_places.to_text + " and " + max_round_decimal_places.to_text + "(inclusive), but was " + decimal_places.to_text
+                Error.throw (Illegal_Argument.Error msg)
+            False ->
+                scale = 10 ^ decimal_places
+                ##
+                    IO.println <| "----"
+                    IO.println <| scale
+                    IO.println <| self
+                    IO.println <| self * scale
+                    IO.println <| (self * scale) + 0.5
+                    IO.println <| ((self * scale) + 0.5).floor
+                    IO.println <| ((self * scale) + 0.5).floor / scale
+                ((self * scale) + 0.5).floor / scale
 
     ## Compute the negation of this.
 
@@ -847,20 +860,8 @@ type Integer
          multiple of 10^(-n)". For negative decimal counts, this results in
          rounding to the nearest positive integer power of 10.
     round : Integer -> Integer
-    round self decimal_places=0 = self.round_builtin decimal_places
-
-    round_builtin : Integer -> Integer
-    round_builtin self decimal_places = @Builtin_Method "Integer.round_builtin"
-
-    ## PRIVATE
-       The smallest allowed value for the `decimal_places` argument to `round`
-    min_decimal_places : Integer
-    min_decimal_places = -15
-
-    ## PRIVATE
-       The largest allowed value for the `decimal_places` argument to `round`
-    max_decimal_places : Integer
-    max_decimal_places = 15
+    round self decimal_places=0 =
+        self.to_decimal.round decimal_places . int
 
     ## Compute the negation of this.
 
@@ -1032,9 +1033,12 @@ type Number_Parse_Error
     to_display_text =
         "Could not parse " + self.text.to_text + " as a double."
 
-rept s x =
-    IO.println "----"
-    IO.println s
-    IO.println x
-    IO.println (Meta.type_of x)
-    IO.println (Meta.meta x)
+## PRIVATE
+   The smallest allowed value for the `decimal_places` argument to `round`
+min_round_decimal_places : Integer
+min_round_decimal_places = -15
+
+## PRIVATE
+   The largest allowed value for the `decimal_places` argument to `round`
+max_round_decimal_places : Integer
+max_round_decimal_places = 15
