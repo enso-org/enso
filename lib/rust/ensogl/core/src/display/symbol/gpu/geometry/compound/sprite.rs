@@ -2,7 +2,6 @@
 //! differ in size and can have different attributes driving the look and feel of the material.
 //! Sprites are very fast to render. You can expect even millions of sprites to be rendered 60 FPS.
 
-use crate::display::traits::*;
 use crate::prelude::*;
 use crate::system::gpu::types::*;
 
@@ -112,71 +111,6 @@ impl Size {
 
 
 
-// ===================
-// === SizedObject ===
-// ===================
-
-/// A display object bound with [`Size`].
-#[derive(Debug)]
-pub struct SizedObject {
-    size:           Size,
-    display_object: display::object::Instance,
-}
-
-impl SizedObject {
-    fn new(attr: Attribute<Vector2<f32>>, transform: &Attribute<Matrix4<f32>>) -> Self {
-        let size = Size::new(attr);
-        let display_object = display::object::Instance::new_named_no_debug("Sprite");
-        let weak_display_object = display_object.downgrade();
-        let network = &display_object.network;
-        frp::extend! { network
-            eval_ display_object.on_transformed ([transform, size] {
-                if let Some(display_object) = weak_display_object.upgrade() {
-                    transform.set(display_object.transformation_matrix());
-                    size.set(display_object.computed_size());
-                }
-            });
-        }
-        Self { size, display_object }.init()
-    }
-
-    /// Init display object bindings. In particular define the behavior of the show and hide
-    /// callbacks.
-    fn init(self) -> Self {
-        let size = &self.size;
-        let display_object = &self.display_object;
-        let network = &display_object.network;
-        frp::extend! { network
-            eval_ display_object.on_show(size.show());
-            eval_ display_object.on_hide(size.hide());
-        }
-        self
-    }
-
-    /// Clone ref the underlying [`Size`].
-    pub fn clone_ref(&self) -> Size {
-        self.size.clone_ref()
-    }
-}
-
-impl HasItem for SizedObject {
-    type Item = Vector2;
-}
-
-impl CellGetter for SizedObject {
-    fn get(&self) -> Vector2 {
-        self.size.get()
-    }
-}
-
-impl CellSetter for SizedObject {
-    fn set(&self, v: Vector2) {
-        self.size.set(v);
-    }
-}
-
-
-
 // ==============
 // === Sprite ===
 // ==============
@@ -198,11 +132,10 @@ pub struct SpriteModel {
     #[deref]
     pub instance:         SymbolInstance,
     pub symbol:           Symbol,
-    size:                 SizedObject,
+    size:                 Size,
     transform:            Attribute<Matrix4<f32>>,
     stats:                SpriteStats,
     erase_on_drop:        EraseOnDrop<Attribute<Vector2<f32>>>,
-    unset_parent_on_drop: display::object::UnsetParentOnDrop,
 }
 
 impl SpriteModel {
@@ -217,11 +150,10 @@ impl SpriteModel {
         let symbol = symbol.clone_ref();
         let stats = SpriteStats::new(stats);
         let erase_on_drop = EraseOnDrop::new(size.clone_ref());
-        let size = SizedObject::new(size, &transform);
-        let unset_parent_on_drop = display::object::UnsetParentOnDrop::new(&size.display_object);
+        let size = Size::new(size);
         let default_size = Vector2(DEFAULT_SPRITE_SIZE.0, DEFAULT_SPRITE_SIZE.1);
         size.set(default_size);
-        Self { symbol, instance, size, transform, stats, erase_on_drop, unset_parent_on_drop }
+        Self { symbol, instance, size, transform, stats, erase_on_drop }
     }
 }
 
@@ -250,17 +182,21 @@ impl Sprite {
             display::scene::PointerTargetId::Symbol { id } => self.global_instance_id == id,
         }
     }
-}
 
-impl display::Object for SpriteModel {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.size.display_object
+    pub(crate) fn show(&self) {
+        self.size.show();
     }
-}
 
-impl display::Object for Sprite {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
+    pub(crate) fn hide(&self) {
+        self.size.hide();
+    }
+
+    pub(crate) fn set_transform(&self, transform: Matrix4<f32>) {
+        self.transform.set(transform);
+    }
+
+    pub(crate) fn set_size(&self, size: Vector2<f32>) {
+        self.size.set(size);
     }
 }
 
@@ -318,9 +254,7 @@ impl SpriteSystem {
         let instance = self.symbol.new_instance(buffer_partition);
         let transform = self.transform.at(instance.instance_id);
         let size = self.size.at(instance.instance_id);
-        let sprite = Sprite::new(&self.symbol, instance, transform, size, &self.stats);
-        self.add_child(&sprite);
-        sprite
+        Sprite::new(&self.symbol, instance, transform, size, &self.stats)
     }
 
     /// Hide the symbol. Hidden symbols will not be rendered.
