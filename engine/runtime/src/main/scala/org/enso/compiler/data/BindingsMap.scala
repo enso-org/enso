@@ -650,7 +650,15 @@ object BindingsMap {
   sealed trait ImportTarget extends ResolvedName {
     override def toAbstract:                       ImportTarget
     override def toConcrete(moduleMap: ModuleMap): Option[ImportTarget]
-    def findExportedSymbolsFor(name: String):      List[ResolvedName]
+
+    /** Find all exported symbols for a given name.
+      * More specifically, this method answers the following question: "If all symbols are imported
+      * from this import target via `from <ImportTarget> import all` statement, is `name` one of
+      * these symbols?"
+      * @param name the name to search for
+      * @return a list of all exported symbols with the given name
+      */
+    def findExportedSymbolsFor(name: String): List[ResolvedName]
     def resolveExportedSymbol(
       name: String
     ): Either[ResolutionError, ResolvedName] =
@@ -721,7 +729,7 @@ object BindingsMap {
   /** A representation of a sum type
     *
     * @param name the type name
-    * @param members the member names
+    * @param members the member names - constructors only.
     * @param builtinType true if constructor is annotated with @Builtin_Type, false otherwise.
     */
   case class Type(
@@ -835,13 +843,8 @@ object BindingsMap {
     /** @inheritdoc */
     override def module: ModuleReference = tpe.module
 
-    override def findExportedSymbolsFor(name: String): List[ResolvedName] = {
-      if (cons.name == name) {
-        List(this)
-      } else {
-        List()
-      }
-    }
+    override def findExportedSymbolsFor(name: String): List[ResolvedName] =
+      List()
 
     override def exportedSymbols: Map[String, List[ResolvedName]] =
       Map(cons.name -> List(this))
@@ -925,13 +928,8 @@ object BindingsMap {
     override def qualifiedName: QualifiedName =
       module.getName.createChild(method.name)
 
-    override def findExportedSymbolsFor(name: String): List[ResolvedName] = {
-      if (method.name == name) {
-        List(this)
-      } else {
-        List()
-      }
-    }
+    override def findExportedSymbolsFor(name: String): List[ResolvedName] =
+      List()
 
     override def exportedSymbols: Map[String, List[ResolvedName]] =
       Map(method.name -> List(this))
