@@ -696,6 +696,8 @@ spec =
             -100000000000000 . round . should_fail_with Illegal_Argument
             100000000000000 . round -2 . should_fail_with Illegal_Argument
             -100000000000000 . round -2 . should_fail_with Illegal_Argument
+            99999999999999 . round -2 . should_equal 100000000000000
+            -99999999999999 . round -2 . should_equal -100000000000000
 
     Test.group "Decimal.int"
         Test.specify "Correctly converts to Integer" <|
