@@ -508,21 +508,6 @@ spec =
             0.00001 . round . should_equal 0
             -0.00001 . round . should_equal 0
 
-        Test.specify "Can round large decimals correctly" pending="Find out what's up with too-large decimals" <|
-            27670116110564327418.0 . round . should_equal 27670116110564327418
-            27670116110564327418.49999 . round . should_equal 27670116110564327418
-            27670116110564327418.5 . round . should_equal 27670116110564327419
-            27670116110564327418.50001 . round . should_equal 27670116110564327419
-            27670116110564327418.8 . round . should_equal 27670116110564327419
-            27670116110564327418.99999 . round . should_equal 27670116110564327419
-
-            -27670116110564327418.0 . round . should_equal -27670116110564327418
-            -27670116110564327418.49999 . round . should_equal -27670116110564327418
-            -27670116110564327418.5 . round . should_equal -27670116110564327418
-            -27670116110564327418.50001 . round . should_equal -27670116110564327419
-            -27670116110564327418.8 . round . should_equal -27670116110564327419
-            -27670116110564327418.99999 . round . should_equal -27670116110564327419
-
         Test.specify "Can round decimals to a specified number of decimal places" <|
             3.0001 . round 2 . should_equal 3.0
             3.1414 . round 2 . should_equal 3.14
@@ -605,9 +590,6 @@ spec =
             -3.50001 . round . should_equal -4
             -3.99999 . round . should_equal -4
 
-        Test.specify "Banker's rounding failure" pending="Fails because of basic floating-point inaccuracy when adding 0.5" <|
-            1.225 . round 2 use_bankers=True . should_equal 1.22 # Result is actually 1.23
-
         Test.specify "Special values" <|
             Number.nan . round . should_equal Number.nan
             Number.positive_infinity . round . should_equal Number.positive_infinity
@@ -629,6 +611,9 @@ spec =
             neg_max_double_minus_one = -179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858367.0
             neg_max_double_minus_point_four . round . should_equal neg_max_double
             neg_max_double_minus_point_five . round . should_equal neg_max_double_minus_one
+
+        Test.specify "Banker's rounding failure" pending="Fails because of basic floating-point inaccuracy when adding 0.5" <|
+            1.225 . round 2 use_bankers=True . should_equal 1.22 # Result is actually 1.23
 
     Test.group "Integer.round" <|
         Test.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)"
