@@ -571,27 +571,34 @@ type Decimal
          multiple of 10^(-n)". For negative decimal counts, this results in
          rounding to the nearest positive integer power of 10.
 
+       ? Banker's rounding
+         Banker's rounding rounds half-way values to the nearest even number.
+
        ? Infinities and NaN
          - NaN.round == 0
          - +Inf.round == +Inf
          - -Inf.round == -Inf
     round : Integer -> Decimal
-    round self decimal_places=0 =
+    round self decimal_places=0 use_bankers=False =
         case decimal_places < min_round_decimal_places || decimal_places > max_round_decimal_places of
             True ->
                 msg = "round: decimal_places must be between " + min_round_decimal_places.to_text + " and " + max_round_decimal_places.to_text + "(inclusive), but was " + decimal_places.to_text
                 Error.throw (Illegal_Argument.Error msg)
-            False ->
-                scale = 10 ^ decimal_places
-                ##
-                    IO.println <| "----"
-                    IO.println <| scale
-                    IO.println <| self
-                    IO.println <| self * scale
-                    IO.println <| (self * scale) + 0.5
-                    IO.println <| ((self * scale) + 0.5).floor
-                    IO.println <| ((self * scale) + 0.5).floor / scale
-                ((self * scale) + 0.5).floor / scale
+            False -> case use_bankers of
+                False ->
+                    scale = 10 ^ decimal_places
+                    ((self * scale) + 0.5).floor / scale
+                True ->
+                    ## If the largest integer <= self is odd, us normal
+                       round-towards-positive-infinity rounding; otherwise, use
+                       round-towards-negative-infinity rounding.
+                    floor_int = self.floor.int
+                    is_even = (floor_int % 2) == 0
+                    case is_even of
+                        False -> self.round decimal_places
+                        True ->
+                            scale = 10 ^ decimal_places
+                            ((self * scale) - 0.5).ceil / scale
 
     ## Compute the negation of this.
 
@@ -859,8 +866,11 @@ type Integer
          Rounding to `n` digits can be thought of as "rounding to the nearest
          multiple of 10^(-n)". For negative decimal counts, this results in
          rounding to the nearest positive integer power of 10.
+
+       ? Banker's rounding
+         Banker's rounding rounds half-way values to the nearest even number.
     round : Integer -> Integer
-    round self decimal_places=0 =
+    round self decimal_places=0 use_bankers=False =
         self.to_decimal.round decimal_places . int
 
     ## Compute the negation of this.

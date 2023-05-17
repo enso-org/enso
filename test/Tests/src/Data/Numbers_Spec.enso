@@ -569,7 +569,32 @@ spec =
             3.1 . round 16 . should_fail_with Illegal_Argument
             3.1 . round -16 . should_fail_with Illegal_Argument
 
-    Test.group "Integer.round (small)" <|
+        Test.specify "Banker's rounding handles half-way values correctly" <|
+            -3.5 . round use_bankers=True . should_equal -4
+            -2.5 . round use_bankers=True . should_equal -2
+            -1.5 . round use_bankers=True . should_equal -2
+            -0.5 . round use_bankers=True . should_equal 0
+            0.5 . round use_bankers=True . should_equal 0
+            1.5 . round use_bankers=True . should_equal 2
+            2.5 . round use_bankers=True . should_equal 2
+            3.5 . round use_bankers=True . should_equal 4
+
+        Test.specify "Banker's rounding handles non-half-way values just like normal rounding" <|
+            3.0 . round use_bankers=True . should_equal 3
+            3.00001 . round use_bankers=True . should_equal 3
+            3.3 . round use_bankers=True . should_equal 3
+            3.49999 . round use_bankers=True . should_equal 3
+            3.50001 . round use_bankers=True . should_equal 4
+            3.99999 . round use_bankers=True . should_equal 4
+
+            -3.0 . round . should_equal -3
+            -3.00001 . round . should_equal -3
+            -3.3 . round . should_equal -3
+            -3.49999 . round . should_equal -3
+            -3.50001 . round . should_equal -4
+            -3.99999 . round . should_equal -4
+
+    Test.group "Integer.round" <|
         Test.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)"
             0 . round . should_equal 0
             3 . round . should_equal 3
