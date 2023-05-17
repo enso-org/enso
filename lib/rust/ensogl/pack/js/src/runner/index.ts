@@ -210,7 +210,10 @@ export class App {
             if (inputConfig != null) {
                 this.config = inputConfig
             }
-            const parseOk = this.config.loadAll([opts?.config, host.urlParams()])
+            const parseOk = this.config.loadAllAndDisplayHelpIfUnsuccessful([
+                opts?.config,
+                host.urlParams(),
+            ])
             logger.log(this.config.prettyPrint())
             return parseOk
         })

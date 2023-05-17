@@ -180,7 +180,7 @@ class Main implements AppRunner {
     }
 
     main(inputConfig?: StringConfig) {
-        const parseOk = contentConfig.OPTIONS.loadAll([app.urlParams()])
+        const parseOk = contentConfig.OPTIONS.loadAllAndDisplayHelpIfUnsuccessful([app.urlParams()])
         if (parseOk) {
             const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
             const isUsingNewDashboard =

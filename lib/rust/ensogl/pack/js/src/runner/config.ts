@@ -291,7 +291,7 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
         return unrecognized
     }
 
-    loadAll(configs: (StringConfig | null | undefined)[]): boolean {
+    loadAllAndDisplayHelpIfUnsuccessful(configs: (StringConfig | null | undefined)[]): boolean {
         let unrecognized: string[] = []
         for (const config of configs) {
             if (config != null) {
