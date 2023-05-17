@@ -6,7 +6,7 @@ import Standard.Table.Data.Type.Enso_Types
 import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
 import Standard.Table.Data.Type.Value_Type_Helpers
-from Standard.Table.Errors import Inexact_Type_Coercion, Unsupported_Database_Operation
+from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.Data.Column.Column
 import project.Data.SQL_Type.SQL_Type
@@ -14,6 +14,7 @@ import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+from project.Errors import Unsupported_Database_Operation
 
 polyglot java import java.sql.Types
 
