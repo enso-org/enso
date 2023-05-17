@@ -21,12 +21,6 @@ spec =
     hundred_factorial = 93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000
     very_negative = -99223372036854775808
 
-    Test.group "gmt" <|
-        Test.specify "Edge cases"
-            1 . should_equal 1
-            0.225 . round 2 use_bankers=True . should_equal 0.22
-            #1.225 . round 2 use_bankers=True . should_equal 1.22
-
     Test.group "Integers" <|
 
         Test.specify "should be of unbound size when multiplied" <|

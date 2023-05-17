@@ -10,22 +10,22 @@ import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(
-        type = "Decimal",
-        name = "int",
-        description = "Truncate a floating-point number to an integer by dropping the fractional part.")
+    type = "Decimal",
+    name = "int",
+    description = "Truncate a floating-point number to an integer by dropping the fractional part.")
 public class IntNode extends Node {
-    private final ConditionProfile fitsProfile = ConditionProfile.createCountingProfile();
+  private final ConditionProfile fitsProfile = ConditionProfile.createCountingProfile();
 
-    Object execute(double self) {
-        if (fitsProfile.profile(BigIntegerOps.fitsInLong(self))) {
-            return (long) self;
-        } else {
-            return new EnsoBigInteger(toBigInteger(self));
-        }
+  Object execute(double self) {
+    if (fitsProfile.profile(BigIntegerOps.fitsInLong(self))) {
+      return (long) self;
+    } else {
+      return new EnsoBigInteger(toBigInteger(self));
     }
+  }
 
-    @CompilerDirectives.TruffleBoundary
-    private static BigInteger toBigInteger(double self) {
-        return BigDecimal.valueOf(self).toBigIntegerExact();
-    }
+  @CompilerDirectives.TruffleBoundary
+  private static BigInteger toBigInteger(double self) {
+    return BigDecimal.valueOf(self).toBigIntegerExact();
+  }
 }
