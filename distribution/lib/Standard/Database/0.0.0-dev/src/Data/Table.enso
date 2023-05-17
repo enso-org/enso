@@ -1449,8 +1449,8 @@ type Table
          - If no columns have been selected for parsing,
            a `No_Input_Columns_Selected` error is raised.
          - If custom formatting settings were provided, but the database backend
-           does not support customization, an `Illegal_Argument` error is
-           reported.
+           does not support customization, an `Unsupported_Database_Operation`
+           error is reported.
 
        > Example
          Parse dates in a column.
@@ -1459,12 +1459,11 @@ type Table
     @type (Widget_Helpers.parse_type_selector include_auto=False)
     @columns Widget_Helpers.make_column_name_vector_selector
     parse : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> Value_Type | Auto -> Text | Data_Formatter | Nothing -> Boolean -> Problem_Behavior -> Table
-    parse columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type format=Nothing error_on_missing_columns=True on_problems=Report_Warning =
-        ## Avoid unused arguments warning. We cannot rename arguments to `_`,
-           because we need to keep the API consistent with the in-memory table.
-        _ = [columns, type, format, error_on_missing_columns, on_problems]
-        msg = "Parsing values is not supported in database tables, the table has to be materialized first with `read`."
-        Error.throw (Unsupported_Database_Operation.Error msg)
+    parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type format=Nothing error_on_missing_columns=True on_problems=Report_Warning =
+        selected = self.select_columns columns error_on_missing_columns=error_on_missing_columns
+        selected.columns.fold self table-> column_to_parse->
+            new_column = column_to_parse.parse type format on_problems
+            table.set new_column new_name=column_to_parse.name set_mode=Set_Mode.Update
 
     ## Splits a column of text into a set of new columns.
        The original column will be removed from the table.

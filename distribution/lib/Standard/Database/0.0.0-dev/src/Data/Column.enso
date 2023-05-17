@@ -1023,13 +1023,22 @@ type Column
            format, an `Invalid_Format` problem is reported. The problematic
            cells are replaced with `Nothing`.
          - If custom formatting settings were provided, but the database backend
-           does not support customization, an `Illegal_Argument` error is
-           reported.
+           does not support customization, an `Unsupported_Database_Operation`
+           error is reported.
     @type (Widget_Helpers.parse_type_selector include_auto=False)
     parse : Value_Type | Auto -> Text | Data_Formatter | Nothing -> Problem_Behavior -> Column
     parse self type format=Nothing on_problems=Report_Warning =
-        _ = [type, format, on_problems]
-        Error.throw <| Unsupported_Database_Operation.Error "`Column.parse` is not implemented yet for the Database backends."
+        check_parameters =
+            if type == Auto then Error.throw (Unsupported_Database_Operation.Error "The `Auto` parse type is not supported by the Database backend. Either pick a specific type or materialize the table to memory using `.read`.") else
+                case format of
+                    Nothing -> Nothing
+                    _ -> Error.throw (Unsupported_Database_Operation.Error "Custom formatting is not supported by the Database backend. Please set the format to `Nothing` to indicate that the default Database settings can be used, or if custom formatting is needed, materialize the table to memory using `.read` first.")
+        check_parameters.if_not_error <|
+            Value_Type.expect_text self <|
+                ## In the future we may have some specific logic, for example
+                   allowing to support formatting settings. For now, the
+                   Database parse just boils down to a simple CAST.
+                self.internal_do_cast type on_problems
 
     ## Formatting values is not supported in database columns.
     format : Text | Column -> Locale -> Column ! Illegal_Argument
@@ -1078,14 +1087,20 @@ type Column
     cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
     cast self value_type on_problems=Problem_Behavior.Report_Warning =
         check_cast_compatibility self.value_type value_type <|
-            dialect = self.connection.dialect
-            type_mapping = dialect.get_type_mapping
-            target_sql_type = type_mapping.value_type_to_sql value_type on_problems
-            target_sql_type.if_not_error <|
-                infer_from_database new_expression =
-                    SQL_Type_Reference.new self.connection self.context new_expression
-                new_column = dialect.make_cast self.as_internal target_sql_type infer_from_database
-                Column.Value new_column.name self.connection new_column.sql_type_reference new_column.expression self.context
+            self.internal_do_cast value_type on_problems
+
+    ## PRIVATE
+       Shares the core CAST logic between `cast` and `parse`.
+    internal_do_cast : Value_Type -> Problem_Behavior -> Column
+    internal_do_cast self value_type on_problems =
+        dialect = self.connection.dialect
+        type_mapping = dialect.get_type_mapping
+        target_sql_type = type_mapping.value_type_to_sql value_type on_problems
+        target_sql_type.if_not_error <|
+            infer_from_database new_expression =
+                SQL_Type_Reference.new self.connection self.context new_expression
+            new_column = dialect.make_cast self.as_internal target_sql_type infer_from_database
+            Column.Value new_column.name self.connection new_column.sql_type_reference new_column.expression self.context
 
     ## ALIAS Transform Column
 

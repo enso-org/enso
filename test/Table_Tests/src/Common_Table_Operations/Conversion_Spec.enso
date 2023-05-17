@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
 
-from Standard.Table.Errors import Conversion_Failure
+from Standard.Table.Errors import Missing_Input_Columns, Conversion_Failure
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test, Problems
@@ -321,3 +321,19 @@ spec setup =
             c2 = t.parse ["X"] Value_Type.Boolean . at "X"
             c2.value_type.should_equal Value_Type.Boolean
             c2.to_vector . should_equal [True, False, True]
+
+        Test.specify "should report missing columns" <|
+            t = table_builder [["X", ["42", "0", "-1"]]]
+
+            t1 = t.parse ["X", "Y"] Value_Type.Integer error_on_missing_columns=False
+            t1.at "X" . to_vector . should_equal [42, 0, -1]
+            t1.at "X" . value_type . is_integer . should_be_true
+            Problems.expect_warning Missing_Input_Columns t1
+
+            t2 = t.parse ["Y"] Value_Type.Integer error_on_missing_columns=False
+            Problems.expect_warning Missing_Input_Columns t2
+            t2.at "X" . to_vector . should_equal ["42", "0", "-1"]
+
+            r3 = t.parse ["X", "Y"] Value_Type.Integer
+            r3.should_fail_with Missing_Input_Columns
+            r3.catch.criteria . should_equal ["Y"]
