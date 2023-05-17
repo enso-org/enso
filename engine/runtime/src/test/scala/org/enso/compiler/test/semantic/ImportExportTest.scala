@@ -559,8 +559,6 @@ class ImportExportTest
         |type A_Type
         |""".stripMargin
         .createModule(packageQualifiedName.createChild("A_Module"))
-        .getIr
-        .unwrapBindingMap
 
       // B_Module is exporting just A_Type, not A_Module
       val bindingMap = s"""
@@ -587,10 +585,7 @@ class ImportExportTest
         |type A_Type
         |""".stripMargin
         .createModule(packageQualifiedName.createChild("A_Module"))
-        .getIr
-        .unwrapBindingMap
 
-      // B_Module is exporting just A_Type, not A_Module
       val bindingMap =
         s"""
            |import $namespace.$packageName.A_Module

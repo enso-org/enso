@@ -253,9 +253,6 @@ case class BindingsMap(
 
   /** Dumps the export statements from this module into a structure ready for
     * further analysis.
-    *
-    * @return a list of triples of the exported module, the name it is exported
-    *         as and any further symbol restrictions.
     */
   def getDirectlyExportedModules: List[ExportedModule] =
     resolvedImports.collect { case ResolvedImport(_, exports, mod) =>
