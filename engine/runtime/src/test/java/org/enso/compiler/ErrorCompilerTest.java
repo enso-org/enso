@@ -221,7 +221,7 @@ public class ErrorCompilerTest extends CompilerTest {
   @Test
   public void malformedImport14() throws Exception {
     var ir = parse("from Foo import Some.Nested.Module.Path");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 20, 39);
+    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 16, 39);
   }
 
   @Test
