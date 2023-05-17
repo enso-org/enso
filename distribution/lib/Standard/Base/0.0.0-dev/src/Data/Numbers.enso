@@ -592,13 +592,15 @@ type Decimal
                     ## If the largest integer <= self is odd, us normal
                        round-towards-positive-infinity rounding; otherwise, use
                        round-towards-negative-infinity rounding.
-                    floor_int = self.floor.int
-                    is_even = (floor_int % 2) == 0
+                    scale = 10 ^ decimal_places
+                    scaled_self = self * scale
+                    self_scaled_floor = scaled_self.floor.int
+                    is_even = (self_scaled_floor % 2) == 0
                     case is_even of
-                        False -> self.round decimal_places
+                        False ->
+                            (scaled_self + 0.5).floor / scale
                         True ->
-                            scale = 10 ^ decimal_places
-                            ((self * scale) - 0.5).ceil / scale
+                            (scaled_self - 0.5).ceil / scale
 
     ## Compute the negation of this.
 
@@ -871,7 +873,10 @@ type Integer
          Banker's rounding rounds half-way values to the nearest even number.
     round : Integer -> Integer
     round self decimal_places=0 use_bankers=False =
-        self.to_decimal.round decimal_places . int
+        ## It's already an integer so unless decimal_places is negative, the
+           value is unchanged.
+        if decimal_places >= 0 then self else
+            self.to_decimal.round decimal_places use_bankers . int
 
     ## Compute the negation of this.
 

@@ -14,7 +14,6 @@ Decimal.get_fun_factor self = "Wow, " + self.to_text + " is such a fun number!"
 
 spec =
     eps = 0.000001
-    max_long = 9223372036854775807
     min_long = -99223372036854775808
     almost_max_long = 9223372036854775806
     almost_max_long_times_three = 27670116110564327418
@@ -26,6 +25,8 @@ spec =
     Test.group "gmt" <|
         Test.specify "Edge cases"
             1 . should_equal 1
+            0.225 . round 2 use_bankers=True . should_equal 0.22
+            #1.225 . round 2 use_bankers=True . should_equal 1.22
 
     Test.group "Integers" <|
 
@@ -579,6 +580,16 @@ spec =
             2.5 . round use_bankers=True . should_equal 2
             3.5 . round use_bankers=True . should_equal 4
 
+            0.235 . round 2 use_bankers=True . should_equal 0.24
+            0.225 . round 2 use_bankers=True . should_equal 0.22
+            -0.235 . round 2 use_bankers=True . should_equal -0.24
+            -0.225 . round 2 use_bankers=True . should_equal -0.22
+
+            12350.0 . round -2 use_bankers=True . should_equal 12400
+            12250.0 . round -2 use_bankers=True . should_equal 12200
+            -12350.0 . round -2 use_bankers=True . should_equal -12400
+            -12250.0 . round -2 use_bankers=True . should_equal -12200
+
         Test.specify "Banker's rounding handles non-half-way values just like normal rounding" <|
             3.0 . round use_bankers=True . should_equal 3
             3.00001 . round use_bankers=True . should_equal 3
@@ -593,6 +604,9 @@ spec =
             -3.49999 . round . should_equal -3
             -3.50001 . round . should_equal -4
             -3.99999 . round . should_equal -4
+
+        Test.specify "Banker's rounding failure" pending="Fails because of basic floating-point inaccuracy when adding 0.5" <|
+            1.225 . round 2 use_bankers=True . should_equal 1.22 # Result is actually 1.23
 
     Test.group "Integer.round" <|
         Test.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)"
@@ -637,6 +651,23 @@ spec =
             -3000 . round -3 . should_equal -3000
             -3098 . round -3 . should_equal -3000
             -3101 . round -3 . should_equal -3000
+
+        Test.specify "Banker's rounding handles half-way values correctly" <|
+            12350 . round -2 use_bankers=True . should_equal 12400
+            12250 . round -2 use_bankers=True . should_equal 12200
+            -12350 . round -2 use_bankers=True . should_equal -12400
+            -12250 . round -2 use_bankers=True . should_equal -12200
+
+        Test.specify "Banker's rounding handles non-half-way values just like normal rounding" <|
+            12330 . round -2 use_bankers=True . should_equal 12300
+            12370 . round -2 use_bankers=True . should_equal 12400
+            12430 . round -2 use_bankers=True . should_equal 12400
+            12470 . round -2 use_bankers=True . should_equal 12500
+
+            -12330 . round -2 use_bankers=True . should_equal -12300
+            -12370 . round -2 use_bankers=True . should_equal -12400
+            -12430 . round -2 use_bankers=True . should_equal -12400
+            -12470 . round -2 use_bankers=True . should_equal -12500
 
     Test.group "Decimal.int"
         Test.specify "Correctly converts to Integer" <|
