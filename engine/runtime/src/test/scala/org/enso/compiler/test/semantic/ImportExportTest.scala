@@ -553,6 +553,152 @@ class ImportExportTest
     }
   }
 
+  "Export resolution" should {
+    "not export module when exporting a type (1)" in {
+      """
+        |type A_Type
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+        .getIr
+        .unwrapBindingMap
+
+      // B_Module is exporting just A_Type, not A_Module
+      val bindingMap = s"""
+         |import $namespace.$packageName.A_Module.A_Type
+         |export $namespace.$packageName.A_Module.A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("B_Module"))
+        .getIr
+        .unwrapBindingMap
+
+      val resolvedImportTargets =
+        bindingMap.resolvedImports
+          .map(_.target)
+      val resolvedImportNames =
+          resolvedImportTargets
+          .map(_.qualifiedName.item)
+      bindingMap.exportedSymbols.get("A_Module") shouldBe None
+      bindingMap.exportedSymbols.get("A_Type") shouldNot be(None)
+      resolvedImportNames should contain theSameElementsAs List("A_Type")
+    }
+
+    "not export module when exporting a type (2)" in {
+      """
+        |type A_Type
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+        .getIr
+        .unwrapBindingMap
+
+      // B_Module is exporting just A_Type, not A_Module
+      val bindingMap =
+        s"""
+           |import $namespace.$packageName.A_Module
+           |from $namespace.$packageName.A_Module export A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+          .getIr
+          .unwrapBindingMap
+
+      val resolvedImportNames =
+        bindingMap.resolvedImports
+          .map(_.target)
+          .map(_.qualifiedName.item)
+      bindingMap.exportedSymbols.get("A_Module") should be(None)
+      bindingMap.exportedSymbols.get("A_Type") shouldNot be(None)
+      resolvedImportNames should contain theSameElementsAs List("A_Module")
+    }
+
+    "findExportedSymbolsFor method works for all import target types" in {
+      s"""
+         |type A_Type
+         |    A_Constructor
+         |    instance_method self = 42
+         |
+         |static_method =
+         |    local_var = 42
+         |    local_var
+         |
+         |# Is not really a variable - it is a method returning a constant, so
+         |# it is also considered a static module method
+         |glob_var = 42
+         |
+         |# This is also a static method
+         |foreign js js_function = \"\"\"
+         |    return 42
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bindingMap = s"""
+         |from $namespace.$packageName.A_Module import all
+         |from $namespace.$packageName.A_Module.A_Type import A_Constructor
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("B_Module"))
+        .getIr
+        .unwrapBindingMap
+
+      val resolvedImportTargets =
+        bindingMap.resolvedImports.map(_.target)
+
+      val resolvedAType = resolvedImportTargets.collect { case t: BindingsMap.ResolvedType => t }.head
+      resolvedAType.tp.name shouldEqual "A_Type"
+      resolvedAType.findExportedSymbolsFor("A_Type") should be(Nil)
+      resolvedAType.findExportedSymbolsFor("A_Constructor").head.qualifiedName.item shouldEqual "A_Constructor"
+      resolvedAType.findExportedSymbolsFor("NonExistingSymbol") should be(Nil)
+
+      val resolvedStaticMethod = resolvedImportTargets.collect { case m: BindingsMap.ResolvedMethod => m }.head
+      resolvedStaticMethod.method.name shouldEqual "static_method"
+      resolvedStaticMethod.findExportedSymbolsFor("static_method") should be(Nil)
+      resolvedStaticMethod.findExportedSymbolsFor("NonExistingSymbol") should be(Nil)
+
+      val resolvedConstructor = resolvedImportTargets.collect { case c: BindingsMap.ResolvedConstructor => c }.head
+      resolvedConstructor.cons.name shouldEqual "A_Constructor"
+      resolvedConstructor.findExportedSymbolsFor("A_Constructor") should be(Nil)
+      resolvedConstructor.findExportedSymbolsFor("NonExistingSymbol") should be(Nil)
+    }
+
+    "findExportedSymbolsFor method works for ResolvedModule" in {
+      s"""
+         |type A_Type
+         |    A_Constructor
+         |    instance_method self = 42
+         |
+         |static_method =
+         |    local_var = 42
+         |    local_var
+         |
+         |# Is not really a variable - it is a method returning a constant, so
+         |# it is also considered a static module method
+         |glob_var = 42
+         |
+         |# This is also a static method
+         |foreign js js_function = \"\"\"
+         |    return 42
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bindingMap =
+        s"""
+           |import $namespace.$packageName.A_Module
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+          .getIr
+          .unwrapBindingMap
+
+      val resolvedImportTargets =
+        bindingMap.resolvedImports.map(_.target)
+
+      val resolvedModule = resolvedImportTargets.collect { case m: BindingsMap.ResolvedModule => m }.head
+      resolvedModule.module.getName.item shouldEqual "A_Module"
+      resolvedModule.findExportedSymbolsFor("static_method").head.asInstanceOf[BindingsMap.ResolvedMethod].method.name shouldEqual "static_method"
+      resolvedModule.findExportedSymbolsFor("glob_var").head.asInstanceOf[BindingsMap.ResolvedMethod].method.name shouldEqual "glob_var"
+      resolvedModule.findExportedSymbolsFor("js_function").head.asInstanceOf[BindingsMap.ResolvedMethod].method.name shouldEqual "js_function"
+      resolvedModule.findExportedSymbolsFor("NonExistingSymbol") should be(Nil)
+      resolvedModule.findExportedSymbolsFor("instance_method") should be(Nil)
+      resolvedModule.findExportedSymbolsFor("A_Constructor") should be(Nil)
+    }
+  }
+
   "Import resolution for three modules" should {
     "resolve all imported symbols in B_Module from A_Module" in {
       s"""
