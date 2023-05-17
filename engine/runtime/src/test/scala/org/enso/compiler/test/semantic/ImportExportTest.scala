@@ -193,9 +193,9 @@ class ImportExportTest
         .asInstanceOf[IR.Error.ImportExport]
         .reason
         .asInstanceOf[
-        IR.Error.ImportExport.NoSuchConstructor
+        IR.Error.ImportExport.NoSuchConstructors
       ] shouldEqual IR.Error.ImportExport
-        .NoSuchConstructor("Other_Type", "method")
+        .NoSuchConstructors("Other_Type", List("method"))
     }
 
     // TODO[pm]: will be addressed in https://github.com/enso-org/enso/issues/6729
@@ -247,7 +247,7 @@ class ImportExportTest
         .name shouldEqual "static_method"
     }
 
-    "result in error when trying to import mix of constructors and method from a type" in {
+    "result in error when trying to import mix of constructors and methods from a type" in {
       """
         |type Other_Module_Type
         |    Constructor_1
@@ -257,7 +257,7 @@ class ImportExportTest
         .createModule(packageQualifiedName.createChild("Other_Module"))
       val mainIr =
         s"""
-           |from $namespace.$packageName.Other_Module.Other_Module_Type import Constructor_1, method, Constructor_2
+           |from $namespace.$packageName.Other_Module.Other_Module_Type import Constructor_1, method, Constructor_2, non_existing_method
            |""".stripMargin
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
@@ -265,8 +265,8 @@ class ImportExportTest
       mainIr.imports.head
         .asInstanceOf[IR.Error.ImportExport]
         .reason
-        .asInstanceOf[IR.Error.ImportExport.NoSuchConstructor] shouldEqual
-        IR.Error.ImportExport.NoSuchConstructor("Other_Module_Type", "method")
+        .asInstanceOf[IR.Error.ImportExport.NoSuchConstructors] shouldEqual
+        IR.Error.ImportExport.NoSuchConstructors("Other_Module_Type", List("method", "non_existing_method"))
     }
 
     "result in error when trying to import all from a non-type" in {
@@ -284,8 +284,8 @@ class ImportExportTest
       mainIr.imports.head
         .asInstanceOf[IR.Error.ImportExport]
         .reason
-        .asInstanceOf[IR.Error.ImportExport.TypeDoesNotExist]
-        .typeName shouldEqual "static_method"
+        .asInstanceOf[IR.Error.ImportExport.ModuleDoesNotExist]
+        .name should include("static_method")
     }
 
     "result in error when trying to import anything from a non-existing symbol" in {
