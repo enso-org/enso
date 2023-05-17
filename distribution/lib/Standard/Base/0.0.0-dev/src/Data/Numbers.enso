@@ -584,23 +584,24 @@ type Decimal
             True ->
                 msg = "round: decimal_places must be between " + round_min_decimal_places.to_text + " and " + round_max_decimal_places.to_text + "(inclusive), but was " + decimal_places.to_text
                 Error.throw (Illegal_Argument.Error msg)
-            False -> case use_bankers of
-                False ->
-                    scale = 10 ^ decimal_places
-                    ((self * scale) + 0.5).floor / scale
-                True ->
-                    ## If the largest integer <= self is odd, us normal
-                       round-towards-positive-infinity rounding; otherwise, use
-                       round-towards-negative-infinity rounding.
-                    scale = 10 ^ decimal_places
-                    scaled_self = self * scale
-                    self_scaled_floor = scaled_self.floor
-                    is_even = (self_scaled_floor % 2) == 0
-                    case is_even of
-                        False ->
-                            (scaled_self + 0.5).floor / scale
-                        True ->
-                            (scaled_self - 0.5).ceil / scale
+            False -> if self.is_nan || self.is_infinite then self else
+                case use_bankers of
+                    False ->
+                        scale = 10 ^ decimal_places
+                        ((self * scale) + 0.5).floor / scale
+                    True ->
+                        ## If the largest integer <= self is odd, us normal
+                           round-towards-positive-infinity rounding; otherwise, use
+                           round-towards-negative-infinity rounding.
+                        scale = 10 ^ decimal_places
+                        scaled_self = self * scale
+                        self_scaled_floor = scaled_self.floor
+                        is_even = (self_scaled_floor % 2) == 0
+                        case is_even of
+                            False ->
+                                (scaled_self + 0.5).floor / scale
+                            True ->
+                                (scaled_self - 0.5).ceil / scale
 
     ## Compute the negation of this.
 

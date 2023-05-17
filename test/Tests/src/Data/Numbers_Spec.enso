@@ -608,6 +608,11 @@ spec =
         Test.specify "Banker's rounding failure" pending="Fails because of basic floating-point inaccuracy when adding 0.5" <|
             1.225 . round 2 use_bankers=True . should_equal 1.22 # Result is actually 1.23
 
+        Test.specify "Special values" <|
+            Number.nan . round . should_equal Number.nan
+            Number.positive_infinity . round . should_equal Number.positive_infinity
+            Number.negative_infinity . round . should_equal Number.negative_infinity
+
         Test.specify "Edge cases" <|
             max_double = 179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368.0
             max_double . should_equal max_double
