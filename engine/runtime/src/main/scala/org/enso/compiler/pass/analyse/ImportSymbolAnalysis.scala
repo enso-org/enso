@@ -9,11 +9,10 @@ import org.enso.compiler.pass.desugar.GenerateMethodBodies
 
 import scala.annotation.unused
 
-/**
- * Performs analysis of `from ... import sym1, sym2, ...` statements - checks that all
- * the symbols imported from the module can be resolved, i.e., exists.
- * In case of unresolved symbols, replaces the IR import with [[IR.Error.ImportExport]].
- */
+/** Performs analysis of `from ... import sym1, sym2, ...` statements - checks that all
+  * the symbols imported from the module can be resolved, i.e., exists.
+  * In case of unresolved symbols, replaces the IR import with [[IR.Error.ImportExport]].
+  */
 case object ImportSymbolAnalysis extends IRPass {
 
   override type Metadata = BindingsMap
@@ -26,23 +25,23 @@ case object ImportSymbolAnalysis extends IRPass {
   override val invalidatedPasses: Seq[IRPass] =
     Seq()
 
-  /**
-   * @inheritdoc
-   */
+  /** @inheritdoc
+    */
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    val bindingMap = ir.unsafeGetMetadata(BindingAnalysis, "BindingMap should already be present")
+    val bindingMap = ir.unsafeGetMetadata(
+      BindingAnalysis,
+      "BindingMap should already be present"
+    )
     ir.copy(
-      imports =
-        ir.imports.map(analyseSymbolsFromImport(_, bindingMap))
+      imports = ir.imports.map(analyseSymbolsFromImport(_, bindingMap))
     )
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @inheritdoc
+    */
   override def runExpression(
     ir: IR.Expression,
     inlineContext: InlineContext
@@ -53,19 +52,18 @@ case object ImportSymbolAnalysis extends IRPass {
     bindingMap: BindingsMap
   ): IR.Module.Scope.Import = {
     imp match {
-      case imp@IR.Module.Scope.Import.Module(
-      _,
-      _,
-      _,
-      Some(onlyNames),
-      _,
-      _,
-      _,
-      _,
-      _
-      ) =>
-        val importedTarget = bindingMap
-          .resolvedImports
+      case imp @ IR.Module.Scope.Import.Module(
+            _,
+            _,
+            _,
+            Some(onlyNames),
+            _,
+            _,
+            _,
+            _,
+            _
+          ) =>
+        val importedTarget = bindingMap.resolvedImports
           .find(_.importDef == imp)
           .getOrElse(throw new CompilerError("Imported module not found"))
           .target
@@ -87,7 +85,7 @@ case object ImportSymbolAnalysis extends IRPass {
                 imp,
                 IR.Error.ImportExport.NoSuchConstructors(
                   tp.name,
-                  notFoundSymbols,
+                  notFoundSymbols
                 )
               )
           }

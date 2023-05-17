@@ -16,11 +16,11 @@ import java.io.ByteArrayOutputStream
 import java.nio.file.Paths
 
 /** Tests a single package with multiple modules for import/export resolution.
- * Checks whether the exported symbols and defined entities metadata of the modules
- * are correct.
- */
+  * Checks whether the exported symbols and defined entities metadata of the modules
+  * are correct.
+  */
 class ImportExportTest
-  extends AnyWordSpecLike
+    extends AnyWordSpecLike
     with Matchers
     with BeforeAndAfter {
   private val out = new ByteArrayOutputStream()
@@ -193,8 +193,8 @@ class ImportExportTest
         .asInstanceOf[IR.Error.ImportExport]
         .reason
         .asInstanceOf[
-        IR.Error.ImportExport.NoSuchConstructors
-      ] shouldEqual IR.Error.ImportExport
+          IR.Error.ImportExport.NoSuchConstructors
+        ] shouldEqual IR.Error.ImportExport
         .NoSuchConstructors("Other_Type", List("method"))
     }
 
@@ -266,7 +266,10 @@ class ImportExportTest
         .asInstanceOf[IR.Error.ImportExport]
         .reason
         .asInstanceOf[IR.Error.ImportExport.NoSuchConstructors] shouldEqual
-        IR.Error.ImportExport.NoSuchConstructors("Other_Module_Type", List("method", "non_existing_method"))
+      IR.Error.ImportExport.NoSuchConstructors(
+        "Other_Module_Type",
+        List("method", "non_existing_method")
+      )
     }
 
     "result in error when trying to import all from a non-type" in {
