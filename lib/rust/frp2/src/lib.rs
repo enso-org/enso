@@ -24,6 +24,28 @@ pub use enso_prelude as prelude;
 pub struct Data(usize);
 
 
+pub trait Data2: Debug {
+    fn clone(&self) -> Box<dyn Data2>;
+}
+
+
+pub trait A {}
+impl<T> A for T {}
+
+pub struct Foo;
+impl Drop for Foo {
+    fn drop(&mut self) {
+        println!("dropped");
+    }
+}
+
+fn test() {
+    let u = Foo;
+    let v: &dyn A = &u;
+}
+
+
+
 // ===============
 // === Metrics ===
 // ===============
