@@ -9,6 +9,11 @@ import org.enso.compiler.pass.desugar.GenerateMethodBodies
 
 import scala.annotation.unused
 
+/**
+ * Performs analysis of `from ... import sym1, sym2, ...` statements - checks that all
+ * the symbols imported from the module can be resolved, i.e., exists.
+ * In case of unresolved symbols, replaces the IR import with [[IR.Error.ImportExport]].
+ */
 case object ImportSymbolAnalysis extends IRPass {
 
   override type Metadata = BindingsMap
