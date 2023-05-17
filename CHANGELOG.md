@@ -441,6 +441,7 @@
 - [Added `at_least_one` flag to `Table.tokenize_to_rows`.][6539]
 - [Moved `Redshift` connector into a separate `AWS` library.][6550]
 - [Added `Date_Range`.][6621]
+- [Added `.round` and `.int` to `Integer` and `Decimal`.][6743]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -651,6 +652,7 @@
 [6539]: https://github.com/enso-org/enso/pull/6539
 [6550]: https://github.com/enso-org/enso/pull/6550
 [6621]: https://github.com/enso-org/enso/pull/6621
+[6743]: https://github.com/enso-org/enso/pull/6743
 
 #### Enso Compiler
 
