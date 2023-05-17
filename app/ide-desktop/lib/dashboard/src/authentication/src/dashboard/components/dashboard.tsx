@@ -239,7 +239,7 @@ function Dashboard(props: DashboardProps) {
 
     const [refresh, doRefresh] = hooks.useRefresh()
 
-    const [initialized, setInitialized] = react.useState(false)
+    const [isInitialized, setIsInitialized] = react.useState(false)
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         react.useState(initialProjectName)
     const [query, setQuery] = react.useState('')
@@ -307,10 +307,10 @@ function Dashboard(props: DashboardProps) {
     }, [])
 
     react.useEffect(() => {
-        if (initialized) {
+        if (isInitialized) {
             setNameOfProjectToImmediatelyOpen(null)
         }
-    }, [initialized, nameOfProjectToImmediatelyOpen])
+    }, [isInitialized, nameOfProjectToImmediatelyOpen])
 
     const openIde = async (projectId: backendModule.ProjectId) => {
         setTab(Tab.ide)
@@ -633,8 +633,9 @@ function Dashboard(props: DashboardProps) {
         setDirectoryAssets(newDirectoryAssets)
         setSecretAssets(newSecretAssets)
         setFileAssets(newFileAssets)
-        setInitialized(true)
+        setIsInitialized(true)
         if (
+            !isInitialized &&
             initialProjectName != null &&
             !newProjectAssets.some(projectAsset => projectAsset.title === initialProjectName)
         ) {

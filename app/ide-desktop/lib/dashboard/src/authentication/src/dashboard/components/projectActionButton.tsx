@@ -127,6 +127,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                     break
                 }
                 case backendModule.ProjectState.openInProgress: {
+                    setIsCheckingStatus(true)
                     break
                 }
                 default: {
@@ -162,24 +163,35 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             return
         } else {
             let handle: number | null = null
-            let aborted = false
+            let continuePolling = true
             let previousTimestamp = 0
             const checkProjectStatus = async () => {
-                const response = await backend.getProjectDetails(project.id)
-                if (!aborted) {
-                    if (response.state.type === backendModule.ProjectState.opened) {
+                try {
+                    const response = await backend.getProjectDetails(project.id)
+                    handle = null
+                    if (
+                        continuePolling &&
+                        response.state.type === backendModule.ProjectState.opened
+                    ) {
+                        continuePolling = false
                         setIsCheckingStatus(false)
                         setIsCheckingResources(true)
                     }
-                    const nowTimestamp = Number(new Date())
-                    const delay = CHECK_STATUS_INTERVAL_MS - (nowTimestamp - previousTimestamp)
-                    previousTimestamp = nowTimestamp
-                    handle = window.setTimeout(() => void checkProjectStatus(), Math.max(0, delay))
+                } finally {
+                    if (continuePolling) {
+                        const nowTimestamp = Number(new Date())
+                        const delay = CHECK_STATUS_INTERVAL_MS - (nowTimestamp - previousTimestamp)
+                        previousTimestamp = nowTimestamp
+                        handle = window.setTimeout(
+                            () => void checkProjectStatus(),
+                            Math.max(0, delay)
+                        )
+                    }
                 }
             }
             void checkProjectStatus()
             return () => {
-                aborted = true
+                continuePolling = false
                 if (handle != null) {
                     clearTimeout(handle)
                 }
@@ -192,7 +204,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             return
         } else {
             let handle: number | null = null
-            let aborted = false
+            let continuePolling = true
             let previousTimestamp = 0
             const checkProjectResources = async () => {
                 if (backend.platform === platform.Platform.desktop) {
@@ -203,25 +215,28 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                         // This call will error if the VM is not ready yet.
                         await backend.checkResources(project.id)
                         handle = null
-                        if (!aborted) {
+                        if (continuePolling) {
+                            continuePolling = false
                             setState(backendModule.ProjectState.opened)
                             setIsCheckingResources(false)
                         }
                     } catch {
-                        const nowTimestamp = Number(new Date())
-                        const delay =
-                            CHECK_RESOURCES_INTERVAL_MS - (nowTimestamp - previousTimestamp)
-                        previousTimestamp = nowTimestamp
-                        handle = window.setTimeout(
-                            () => void checkProjectResources(),
-                            Math.max(0, delay)
-                        )
+                        if (continuePolling) {
+                            const nowTimestamp = Number(new Date())
+                            const delay =
+                                CHECK_RESOURCES_INTERVAL_MS - (nowTimestamp - previousTimestamp)
+                            previousTimestamp = nowTimestamp
+                            handle = window.setTimeout(
+                                () => void checkProjectResources(),
+                                Math.max(0, delay)
+                            )
+                        }
                     }
                 }
             }
             void checkProjectResources()
             return () => {
-                aborted = true
+                continuePolling = false
                 if (handle != null) {
                     clearTimeout(handle)
                 }

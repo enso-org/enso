@@ -181,6 +181,13 @@ class Main implements AppRunner {
 
     main(inputConfig?: StringConfig) {
         contentConfig.OPTIONS.loadAll([app.urlParams()])
+        const parsedUrl = new URL(location.href)
+        // This MUST be removed as it would otherwise override the `startup.project` passed
+        // explicitly in `ide.tsx`.
+        if (parsedUrl.searchParams.has('startup.project')) {
+            parsedUrl.searchParams.delete('startup.project')
+            history.replaceState(null, '', parsedUrl.toString())
+        }
         const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
         const isUsingNewDashboard =
             contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
