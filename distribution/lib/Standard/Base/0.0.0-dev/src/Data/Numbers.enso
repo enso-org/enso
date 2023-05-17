@@ -594,7 +594,7 @@ type Decimal
                        round-towards-negative-infinity rounding.
                     scale = 10 ^ decimal_places
                     scaled_self = self * scale
-                    self_scaled_floor = scaled_self.floor.int
+                    self_scaled_floor = scaled_self.floor
                     is_even = (self_scaled_floor % 2) == 0
                     case is_even of
                         False ->
