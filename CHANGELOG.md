@@ -156,6 +156,10 @@
   <kbd>cmd</kbd>+<kbd>alt</kbd>+<kbd>t</kbd>/<kbd>r</kbd>.
 - [Fixed a bug where selecting a nested breadcrumb would cause the order of
   breadcrumbs to change incorrectly.][6617]
+- [Changed the shortcut to show the full-screen visualization for a node from
+  <kbd>space</kbd> <kbd>space</kbd> to <kbd>shift</kbd>+<kbd>space</kbd>.][6663]
+  so that it doesn't interfere with the shortcut for toggling the small
+  visualization.
 - [Cloud dashboard, which supersedes the startup screen][6279]. Features also
   added in various other PRs. The new dashboard includes tables for projects,
   folders, files and secrets, a list of templates from which new projects can be
@@ -166,6 +170,7 @@
 [6530]: https://github.com/enso-org/enso/pull/6530
 [6617]: https://github.com/enso-org/enso/pull/6617
 [6620]: https://github.com/enso-org/enso/pull/6620
+[6663]: https://github.com/enso-org/enso/pull/6663
 
 #### EnsoGL (rendering engine)
 

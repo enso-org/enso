@@ -187,7 +187,13 @@ class Main implements AppRunner {
         const isOpeningMainEntryPoint =
             contentConfig.OPTIONS.groups.startup.options.entry.value ===
             contentConfig.OPTIONS.groups.startup.options.entry.default
-        if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningMainEntryPoint) {
+        const isNotOpeningProject =
+            contentConfig.OPTIONS.groups.startup.options.project.value === ''
+        if (
+            (isUsingAuthentication || isUsingNewDashboard) &&
+            isOpeningMainEntryPoint &&
+            isNotOpeningProject
+        ) {
             const hideAuth = () => {
                 const auth = document.getElementById('dashboard')
                 const ide = document.getElementById('root')
