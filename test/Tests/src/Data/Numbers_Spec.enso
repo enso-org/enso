@@ -550,10 +550,6 @@ spec =
             -1495.0 . round -2 . should_equal -1500
             -1494.0 . round -2 . should_equal -1500
 
-        Test.specify "Decimal places out of range" <|
-            3.1 . round 16 . should_fail_with Illegal_Argument
-            3.1 . round -16 . should_fail_with Illegal_Argument
-
         Test.specify "Banker's rounding handles half-way values correctly" <|
             -3.5 . round use_bankers=True . should_equal -4
             -2.5 . round use_bankers=True . should_equal -2
@@ -610,6 +606,10 @@ spec =
             neg_max_double_minus_one = -179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858367.0
             neg_max_double_minus_point_four . round . should_equal neg_max_double
             neg_max_double_minus_point_five . round . should_equal neg_max_double_minus_one
+
+        Test.specify "Decimal places out of range" <|
+            3.1 . round 16 . should_fail_with Illegal_Argument
+            3.1 . round -16 . should_fail_with Illegal_Argument
 
         Test.specify "Banker's rounding failure" pending="Fails because of basic floating-point inaccuracy when adding 0.5" <|
             1.225 . round 2 use_bankers=True . should_equal 1.22 # Result is actually 1.23
@@ -675,7 +675,11 @@ spec =
             -12430 . round -2 use_bankers=True . should_equal -12400
             -12470 . round -2 use_bankers=True . should_equal -12500
 
-        Test.specify "Out of range" <|
+        Test.specify "Decimal places out of range" <|
+            3 . round 16 . should_fail_with Illegal_Argument
+            3 . round -16 . should_fail_with Illegal_Argument
+
+        Test.specify "Number out of range" <|
             100000000000000 . round . should_fail_with Illegal_Argument
             -100000000000000 . round . should_fail_with Illegal_Argument
             100000000000000 . round -2 . should_fail_with Illegal_Argument
