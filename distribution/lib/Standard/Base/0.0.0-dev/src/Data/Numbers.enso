@@ -578,6 +578,30 @@ type Decimal
          - NaN.round == 0
          - +Inf.round == +Inf
          - -Inf.round == -Inf
+
+       > Example
+         Round to the nearest integer.
+
+            3.3 . round
+            # ==> 3
+
+       > Example
+         Round to two decimal places.
+
+            3.1415 . round 2
+            # ==> 3.14
+
+       > Example
+         Round to the nearest hundred.
+
+            1234.0 . round -2
+            # ==> 1200
+
+       > Example
+         Use Banker's Rounding.
+
+            2.5 . round use_bankers=True
+            # ==> 2
     round : Integer -> Decimal
     round self decimal_places=0 use_bankers=False =
         case decimal_places < round_min_decimal_places || decimal_places > round_max_decimal_places of
@@ -872,6 +896,24 @@ type Integer
 
        ? Banker's rounding
          Banker's rounding rounds half-way values to the nearest even number.
+
+       > Example
+         Round an integer (returns the value unchanged).
+
+            3 . round
+            # ==> 3
+
+       > Example
+         Round to the nearest thousand.
+
+            2511 . round -3
+            # ==> 3000
+
+       > Example
+         Round to the nearest hundred, using Banker's Rounding.
+
+            12250 . round -2 use_bankers=True
+            # ==> 12200
     round : Integer -> Integer
     round self decimal_places=0 use_bankers=False =
         case self < round_min_long || self > round_max_long of
