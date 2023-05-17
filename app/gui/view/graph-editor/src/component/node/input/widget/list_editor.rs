@@ -34,7 +34,7 @@ pub const VECTOR_TYPE: &str = "Standard.Base.Data.Vector.Vector";
 const LIST_HOVER_MARGIN: f32 = 4.0;
 
 const ITEMS_GAP: f32 = 10.0;
-const INSERT_HOVER_MARGIN: f32 = 3.0;
+const INSERT_HOVER_MARGIN: f32 = 4.0;
 const ITEM_HOVER_MARGIN: f32 = (ITEMS_GAP - INSERT_HOVER_MARGIN * 2.0) * 0.5;
 const INSERTION_OFFSET: f32 = ITEMS_GAP * 0.5;
 

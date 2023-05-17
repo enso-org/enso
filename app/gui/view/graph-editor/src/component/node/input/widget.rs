@@ -316,7 +316,7 @@ impl Configuration {
 
         let first_decl_is_vector = || {
             decl_type
-                .map_or(false, |t| t.trim_start_matches("(").starts_with(list_editor::VECTOR_TYPE))
+                .map_or(false, |t| t.trim_start_matches('(').starts_with(list_editor::VECTOR_TYPE))
         };
         let type_may_be_vector = || {
             decl_type.map_or(false, |t| t.contains(list_editor::VECTOR_TYPE))
