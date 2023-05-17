@@ -609,6 +609,84 @@ class ImportExportTest
       resolvedImportNames should contain theSameElementsAs List("A_Module")
     }
 
+    "not export module when exporting a type with same name" in {
+      """
+        |type A_Module
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val bindingMap =
+        s"""
+           |import $namespace.$packageName.A_Module
+           |from $namespace.$packageName.A_Module export A_Module
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("B_Module"))
+          .getIr
+          .unwrapBindingMap
+
+      val exportedModule = bindingMap.exportedSymbols("A_Module")
+      exportedModule.size shouldEqual 1
+      exportedModule.head.asInstanceOf[BindingsMap.ResolvedType].tp.name shouldEqual "A_Module"
+    }
+
+    "import re-exported constructor" in {
+      val aBindingMap = s"""
+        |from $namespace.$packageName.A_Module.A_Type import A_Constructor
+        |from $namespace.$packageName.A_Module.A_Type export A_Constructor
+        |
+        |type A_Type
+        |    A_Constructor
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+        .getIr
+        .unwrapBindingMap
+
+      val bBindingMap = s"""
+         |import $namespace.$packageName.A_Module
+         |from $namespace.$packageName.A_Module export A_Constructor
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("B_Module"))
+        .getIr
+        .unwrapBindingMap
+
+      val cBindingMap = s"""
+         |from $namespace.$packageName.B_Module import A_Constructor
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("C_Module"))
+        .getIr
+        .unwrapBindingMap
+
+      val dBindingMap =
+        s"""
+           |from $namespace.$packageName.B_Module import all
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("D_Module"))
+          .getIr
+          .unwrapBindingMap
+
+      aBindingMap.exportedSymbols.get("A_Constructor") shouldNot be(None)
+
+      val bResolvedImportNames = bBindingMap.resolvedImports
+        .map(_.target)
+        .map(_.qualifiedName.item)
+      bResolvedImportNames should contain theSameElementsAs List("A_Module")
+      bBindingMap.exportedSymbols.size shouldEqual 1
+      bBindingMap.exportedSymbols("A_Constructor").size shouldEqual 1
+      bBindingMap.exportedSymbols("A_Constructor").head.asInstanceOf[BindingsMap.ResolvedConstructor].cons.name shouldEqual "A_Constructor"
+
+      val cResolvedImportNames = cBindingMap.resolvedImports
+        .map(_.target)
+        .map(_.qualifiedName.item)
+      cResolvedImportNames should contain theSameElementsAs List("B_Module", "A_Constructor")
+      cBindingMap.exportedSymbols shouldBe empty
+
+      val dResolvedImportNames = dBindingMap.resolvedImports
+        .map(_.target)
+        .map(_.qualifiedName.item)
+      dResolvedImportNames should contain theSameElementsAs List("B_Module", "A_Constructor")
+      dBindingMap.exportedSymbols shouldBe empty
+    }
+
     "findExportedSymbolsFor method works for all import target types" in {
       s"""
          |type A_Type
