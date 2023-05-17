@@ -39,7 +39,15 @@ type Row
     to_vector : Vector
     to_vector self = Vector.from_polyglot_array (Array_Proxy.from_proxy_object self)
 
+    ## Gets the row as a Map.
+    to_map : Map
+    to_map self =
+        pairs = self.table.column_names.map n-> [n, self.get n]
+        Map.from_vector pairs
+
     ## PRIVATE
        Converts this row into a JS_Object.
-    to_js_object : Vector
-    to_js_object self = self.to_vector.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        pairs = self.table.column_names.map n-> [n, self.get n]
+        JS_Object.from_pairs pairs
