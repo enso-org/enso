@@ -198,6 +198,7 @@ class ImportExportTest
         .NoSuchConstructor("Other_Type", "method")
     }
 
+    // TODO[pm]: will be addressed in https://github.com/enso-org/enso/issues/6729
     "resolve static method from a module" ignore {
       """
         |static_method =
