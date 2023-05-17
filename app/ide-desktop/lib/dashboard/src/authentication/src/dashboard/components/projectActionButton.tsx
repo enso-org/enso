@@ -1,5 +1,6 @@
 /** @file An interactive button displaying the status of a project. */
 import * as react from 'react'
+import toast from 'react-hot-toast'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
@@ -22,10 +23,22 @@ enum SpinnerState {
 // === Constants ===
 // =================
 
+const LOADING_MESSAGE =
+    'Your environment is being created. It will take some time, please be patient.'
 /** The interval between requests checking whether the IDE is ready. */
 const CHECK_STATUS_INTERVAL_MS = 5000
 /** The interval between requests checking whether the VM is ready. */
 const CHECK_RESOURCES_INTERVAL_MS = 1000
+/** The fallback project state, when it is set to `null` before it is first set. */
+const DEFAULT_PROJECT_STATE = backendModule.ProjectState.created
+/** The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState}. */
+const SPINNER_STATE: Record<backendModule.ProjectState, SpinnerState> = {
+    [backendModule.ProjectState.closed]: SpinnerState.initial,
+    [backendModule.ProjectState.created]: SpinnerState.initial,
+    [backendModule.ProjectState.new]: SpinnerState.initial,
+    [backendModule.ProjectState.openInProgress]: SpinnerState.loading,
+    [backendModule.ProjectState.opened]: SpinnerState.done,
+}
 
 const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
     [SpinnerState.initial]: 'dasharray-5 ease-linear',
@@ -42,33 +55,70 @@ export interface ProjectActionButtonProps {
     appRunner: AppRunner | null
     /** Whether this Project should open immediately. */
     shouldOpenImmediately: boolean
+    /** Whether this Project should cancel opening immediately.
+     * This would happen if another project is being opened immediately instead. */
+    shouldCancelOpeningImmediately: boolean
     onClose: () => void
     openIde: () => void
 }
 
 /** An interactive button displaying the status of a project. */
 function ProjectActionButton(props: ProjectActionButtonProps) {
-    const { project, onClose, shouldOpenImmediately, appRunner, openIde } = props
+    const {
+        project,
+        onClose,
+        shouldOpenImmediately,
+        shouldCancelOpeningImmediately,
+        appRunner,
+        openIde,
+    } = props
     const { backend } = backendProvider.useBackend()
 
-    const [state, setState] = react.useState(backendModule.ProjectState.created)
+    const [state, setState] = react.useState<backendModule.ProjectState | null>(null)
     const [isCheckingStatus, setIsCheckingStatus] = react.useState(false)
     const [isCheckingResources, setIsCheckingResources] = react.useState(false)
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
     const [shouldOpenWhenReady, setShouldOpenWhenReady] = react.useState(false)
+    const [toastId, setToastId] = react.useState<string | null>(null)
+
+    react.useEffect(() => {
+        // Ensure that the previous spinner state is visible for at least one frame.
+        requestAnimationFrame(() => {
+            setSpinnerState(SPINNER_STATE[state ?? DEFAULT_PROJECT_STATE])
+        })
+    }, [state])
+
+    react.useEffect(() => {
+        if (toastId != null && state !== backendModule.ProjectState.openInProgress) {
+            toast.dismiss(toastId)
+        }
+    }, [state])
 
     react.useEffect(() => {
         void (async () => {
             const projectDetails = await backend.getProjectDetails(project.id)
-            setState(projectDetails.state.type)
-            if (projectDetails.state.type === backendModule.ProjectState.openInProgress) {
-                setSpinnerState(SpinnerState.initial)
-                setIsCheckingStatus(true)
+            switch (projectDetails.state.type) {
+                case backendModule.ProjectState.openInProgress:
+                    setState(projectDetails.state.type)
+                    setIsCheckingStatus(true)
+                    break
+                case backendModule.ProjectState.opened:
+                    setState(backendModule.ProjectState.openInProgress)
+                    setIsCheckingResources(true)
+                    break
+                default:
+                    // Some functions below set the state to something different to
+                    // the backend state. In that case, the state should not be overridden.
+                    setState(previousState => previousState ?? projectDetails.state.type)
+                    break
             }
         })()
     }, [])
 
     react.useEffect(() => {
+        // `shouldOpenImmediately` (set to `true` for the relevant project) takes precedence over
+        // `shouldCancelOpeningImmediately` (set to `true` for all projects, including the relevant
+        // project).
         if (shouldOpenImmediately) {
             setShouldOpenWhenReady(true)
             switch (state) {
@@ -84,8 +134,10 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                     break
                 }
             }
+        } else if (shouldCancelOpeningImmediately) {
+            setShouldOpenWhenReady(false)
         }
-    }, [shouldOpenImmediately])
+    }, [shouldOpenImmediately, shouldCancelOpeningImmediately])
 
     react.useEffect(() => {
         if (shouldOpenWhenReady && state === backendModule.ProjectState.opened) {
@@ -95,13 +147,13 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     }, [shouldOpenWhenReady, state])
 
     react.useEffect(() => {
-        if (backend.platform === platform.Platform.desktop) {
-            if (project.id !== localBackend.LocalBackend.currentlyOpeningProjectId) {
-                setIsCheckingResources(false)
-                setIsCheckingStatus(false)
-                setState(backendModule.ProjectState.closed)
-                setSpinnerState(SpinnerState.done)
-            }
+        if (
+            backend.platform === platform.Platform.desktop &&
+            project.id !== localBackend.LocalBackend.currentlyOpeningProjectId
+        ) {
+            setIsCheckingResources(false)
+            setIsCheckingStatus(false)
+            setState(backendModule.ProjectState.closed)
         }
     }, [project, state, localBackend.LocalBackend.currentlyOpeningProjectId])
 
@@ -109,21 +161,28 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         if (!isCheckingStatus) {
             return
         } else {
+            let handle: number | null = null
+            let aborted = false
+            let previousTimestamp = 0
             const checkProjectStatus = async () => {
                 const response = await backend.getProjectDetails(project.id)
-                if (response.state.type === backendModule.ProjectState.opened) {
-                    setIsCheckingStatus(false)
-                    setIsCheckingResources(true)
-                } else {
-                    setState(response.state.type)
+                if (!aborted) {
+                    if (response.state.type === backendModule.ProjectState.opened) {
+                        setIsCheckingStatus(false)
+                        setIsCheckingResources(true)
+                    }
+                    const nowTimestamp = Number(new Date())
+                    const delay = CHECK_STATUS_INTERVAL_MS - (nowTimestamp - previousTimestamp)
+                    previousTimestamp = nowTimestamp
+                    handle = window.setTimeout(() => void checkProjectStatus(), Math.max(0, delay))
                 }
             }
-            const handle = window.setInterval(
-                () => void checkProjectStatus(),
-                CHECK_STATUS_INTERVAL_MS
-            )
+            void checkProjectStatus()
             return () => {
-                clearInterval(handle)
+                aborted = true
+                if (handle != null) {
+                    clearTimeout(handle)
+                }
             }
         }
     }, [isCheckingStatus])
@@ -132,29 +191,40 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         if (!isCheckingResources) {
             return
         } else {
+            let handle: number | null = null
+            let aborted = false
+            let previousTimestamp = 0
             const checkProjectResources = async () => {
-                if (!('checkResources' in backend)) {
+                if (backend.platform === platform.Platform.desktop) {
                     setState(backendModule.ProjectState.opened)
                     setIsCheckingResources(false)
-                    setSpinnerState(SpinnerState.done)
                 } else {
                     try {
                         // This call will error if the VM is not ready yet.
                         await backend.checkResources(project.id)
-                        setState(backendModule.ProjectState.opened)
-                        setIsCheckingResources(false)
-                        setSpinnerState(SpinnerState.done)
+                        handle = null
+                        if (!aborted) {
+                            setState(backendModule.ProjectState.opened)
+                            setIsCheckingResources(false)
+                        }
                     } catch {
-                        // Ignored.
+                        const nowTimestamp = Number(new Date())
+                        const delay =
+                            CHECK_RESOURCES_INTERVAL_MS - (nowTimestamp - previousTimestamp)
+                        previousTimestamp = nowTimestamp
+                        handle = window.setTimeout(
+                            () => void checkProjectResources(),
+                            Math.max(0, delay)
+                        )
                     }
                 }
             }
-            const handle = window.setInterval(
-                () => void checkProjectResources(),
-                CHECK_RESOURCES_INTERVAL_MS
-            )
+            void checkProjectResources()
             return () => {
-                clearInterval(handle)
+                aborted = true
+                if (handle != null) {
+                    clearTimeout(handle)
+                }
             }
         }
     }, [isCheckingResources])
@@ -164,32 +234,27 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         appRunner?.stopApp()
         void backend.closeProject(project.id)
         setIsCheckingStatus(false)
+        setIsCheckingResources(false)
         onClose()
     }
 
     async function openProject() {
         setState(backendModule.ProjectState.openInProgress)
-        setSpinnerState(SpinnerState.initial)
-        // The `setTimeout` is required so that the completion percentage goes from
-        // the `initial` fraction to the `loading` fraction,
-        // rather than starting at the `loading` fraction.
-        setTimeout(() => {
-            setSpinnerState(SpinnerState.loading)
-        }, 0)
         switch (backend.platform) {
             case platform.Platform.cloud:
                 await backend.openProject(project.id)
+                setToastId(toast.loading(LOADING_MESSAGE))
                 setIsCheckingStatus(true)
                 break
             case platform.Platform.desktop:
                 await backend.openProject(project.id)
                 setState(backendModule.ProjectState.opened)
-                setSpinnerState(SpinnerState.done)
                 break
         }
     }
 
     switch (state) {
+        case null:
         case backendModule.ProjectState.created:
         case backendModule.ProjectState.new:
         case backendModule.ProjectState.closed:

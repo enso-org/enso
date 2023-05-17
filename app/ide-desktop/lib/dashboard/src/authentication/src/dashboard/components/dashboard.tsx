@@ -239,6 +239,7 @@ function Dashboard(props: DashboardProps) {
 
     const [refresh, doRefresh] = hooks.useRefresh()
 
+    const [initialized, setInitialized] = react.useState(false)
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         react.useState(initialProjectName)
     const [query, setQuery] = react.useState('')
@@ -304,6 +305,12 @@ function Dashboard(props: DashboardProps) {
             document.removeEventListener('keydown', onKeyDown)
         }
     }, [])
+
+    react.useEffect(() => {
+        if (initialized) {
+            setNameOfProjectToImmediatelyOpen(null)
+        }
+    }, [initialized, nameOfProjectToImmediatelyOpen])
 
     const openIde = async (projectId: backendModule.ProjectId) => {
         setTab(Tab.ide)
@@ -407,7 +414,15 @@ function Dashboard(props: DashboardProps) {
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
-                    if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
+                    if (event.detail === 2) {
+                        // It is a double click; open the project.
+                        setNameOfProjectToImmediatelyOpen(projectAsset.title)
+                    } else if (
+                        event.ctrlKey &&
+                        !event.altKey &&
+                        !event.shiftKey &&
+                        !event.metaKey
+                    ) {
                         setModal(() => (
                             <RenameModal
                                 assetType={projectAsset.type}
@@ -432,6 +447,7 @@ function Dashboard(props: DashboardProps) {
                     project={projectAsset}
                     appRunner={appRunner}
                     shouldOpenImmediately={nameOfProjectToImmediatelyOpen === projectAsset.title}
+                    shouldCancelOpeningImmediately={Boolean(nameOfProjectToImmediatelyOpen)}
                     onClose={() => {
                         setProject(null)
                     }}
@@ -617,9 +633,13 @@ function Dashboard(props: DashboardProps) {
         setDirectoryAssets(newDirectoryAssets)
         setSecretAssets(newSecretAssets)
         setFileAssets(newFileAssets)
-        setTimeout(() => {
-            setNameOfProjectToImmediatelyOpen(null)
-        }, 0)
+        setInitialized(true)
+        if (
+            initialProjectName != null &&
+            !newProjectAssets.some(projectAsset => projectAsset.title === initialProjectName)
+        ) {
+            logger.error(`Startup project '${initialProjectName}' not found.`)
+        }
     }
 
     hooks.useAsyncEffect(
@@ -875,8 +895,8 @@ function Dashboard(props: DashboardProps) {
                             event.preventDefault()
                             event.stopPropagation()
                             function doOpenForEditing() {
-                                // FIXME[sb]: Switch to IDE tab
-                                // once merged with `show-and-open-workspace` branch.
+                                unsetModal()
+                                setNameOfProjectToImmediatelyOpen(projectAsset.title)
                             }
                             function doOpenAsFolder() {
                                 // FIXME[sb]: Uncomment once backend support
@@ -925,7 +945,7 @@ function Dashboard(props: DashboardProps) {
                             }
                             setModal(() => (
                                 <ContextMenu event={event}>
-                                    <ContextMenuEntry disabled onClick={doOpenForEditing}>
+                                    <ContextMenuEntry onClick={doOpenForEditing}>
                                         Open for editing
                                     </ContextMenuEntry>
                                     <ContextMenuEntry disabled onClick={doOpenAsFolder}>
