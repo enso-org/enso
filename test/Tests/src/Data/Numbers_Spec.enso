@@ -14,13 +14,12 @@ Decimal.get_fun_factor self = "Wow, " + self.to_text + " is such a fun number!"
 
 spec =
     eps = 0.000001
-    min_long = -99223372036854775808
     almost_max_long = 9223372036854775806
     almost_max_long_times_three = 27670116110564327418
     almost_max_long_times_three_plus_1 = 27670116110564327419
     almost_max_long_times_three_decimal = 27670116110564327418.8
     hundred_factorial = 93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000
-    very_negative = min_long
+    very_negative = -99223372036854775808
 
     Test.group "gmt" <|
         Test.specify "Edge cases"
