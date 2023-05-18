@@ -145,7 +145,7 @@ impl<T: Payload> ChildGenerator<T> {
         let kind = kind.into();
         let size = self.current_offset;
         let children = self.children;
-        Node { kind, size, children, ast_id, parenthesized: false, payload: default() }
+        Node { kind, size, children, ast_id, ..default() }
     }
 }
 
@@ -498,12 +498,11 @@ fn generate_node_for_opr_chain<T: Payload>(
 
         Ok((
             Node {
-                kind:          if is_last { kind.clone() } else { node::Kind::chained().into() },
-                parenthesized: false,
-                size:          gen.current_offset,
-                children:      gen.children,
-                ast_id:        elem.infix_id,
-                payload:       default(),
+                kind: if is_last { kind.clone() } else { node::Kind::chained().into() },
+                size: gen.current_offset,
+                children: gen.children,
+                ast_id: elem.infix_id,
+                ..default()
             },
             elem.offset,
         ))
@@ -778,11 +777,12 @@ fn generate_expected_argument<T: Payload>(
     argument_info: ArgumentInfo,
 ) -> Node<T> {
     let mut gen = ChildGenerator::default();
+    let extended_ast_id = node.ast_id.or(node.extended_ast_id);
     gen.add_node(ast::Crumbs::new(), node);
     let arg_node = gen.generate_empty_node(InsertionPointType::ExpectedArgument { index, named });
     arg_node.node.set_argument_info(argument_info);
     let kind = node::Kind::chained().into();
-    Node { kind, size: gen.current_offset, children: gen.children, ..default() }
+    Node { kind, size: gen.current_offset, children: gen.children, extended_ast_id, ..default() }
 }
 
 /// Build a prefix application-like span tree structure where no prefix argument has been provided
@@ -873,8 +873,7 @@ fn tree_generate_node<T: Payload>(
         }
         size = parent_offset;
     }
-    let payload = default();
-    Ok(Node { kind, parenthesized, size, children, ast_id, payload })
+    Ok(Node { kind, parenthesized, size, children, ast_id, ..default() })
 }
 
 
@@ -940,6 +939,7 @@ mod test {
     /// cleaner the expression IDs are removed before comparing trees.
     fn clear_expression_ids<T>(node: &mut Node<T>) {
         node.ast_id = None;
+        node.extended_ast_id = None;
         for child in &mut node.children {
             clear_expression_ids(&mut child.node);
         }

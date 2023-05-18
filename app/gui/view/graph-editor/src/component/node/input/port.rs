@@ -23,20 +23,24 @@ use ensogl::display::shape;
 // === Constants ===
 // =================
 
-/// The horizontal padding of ports. It affects how the port shape should extend the target text
-/// boundary on both sides.
+/// The default horizontal padding of ports. It affects how the port shape should extend the target
+/// text boundary on both sides. Can be overriden per widget by using
+/// [`super::ConfigContext::set_port_hover_padding`].
 pub const PORT_PADDING_X: f32 = 4.0;
 
-/// The horizontal padding of port hover areas. It affects how the port hover should extend the
-/// target text boundary on both sides.
-pub const HOVER_PADDING_X: f32 = 2.0;
+/// The default horizontal padding of port hover areas. It affects how the port hover should extend
+/// the target text boundary on both sides.
+const HOVER_PADDING_X: f32 = 2.0;
 
 /// The minimum size of the port visual area.
 pub const BASE_PORT_HEIGHT: f32 = 18.0;
 
+/// The minimum size of the port hover area.
+const BASE_PORT_HOVER_HEIGHT: f32 = 16.0;
+
 /// The vertical hover padding of ports at low depth. It affects how the port hover should extend
 /// the target text boundary on both sides.
-pub const PRIMARY_PORT_HOVER_PADDING_Y: f32 = (crate::node::HEIGHT - BASE_PORT_HEIGHT) / 2.0;
+const PRIMARY_PORT_HOVER_PADDING_Y: f32 = (crate::node::HEIGHT - BASE_PORT_HOVER_HEIGHT) / 2.0;
 
 
 
@@ -107,19 +111,16 @@ impl PortLayers {
 #[derive(Debug)]
 pub struct Port {
     /// Drop source must be kept at the top of the struct, so it will be dropped first.
-    _on_cleanup:     frp::DropSource,
-    crumbs:          Rc<RefCell<span_tree::Crumbs>>,
-    port_root:       display::object::Instance,
-    widget_root:     display::object::Instance,
-    widget:          DynWidget,
-    port_shape:      PortShape,
-    hover_shape:     HoverShape,
+    _on_cleanup:   frp::DropSource,
+    crumbs:        Rc<RefCell<span_tree::Crumbs>>,
+    port_root:     display::object::Instance,
+    widget_root:   display::object::Instance,
+    widget:        DynWidget,
+    port_shape:    PortShape,
+    hover_shape:   HoverShape,
     /// Last set tree depth of the port. Allows skipping layout update when the depth has not
     /// changed during reconfiguration.
-    current_depth:   usize,
-    /// Whether or not the port was configured as primary. Allows skipping layout update when the
-    /// hierarchy level has not changed significantly during reconfiguration.
-    current_primary: bool,
+    current_depth: usize,
 }
 
 impl Port {
@@ -138,15 +139,9 @@ impl Port {
         port_shape
             .set_size_y(BASE_PORT_HEIGHT)
             .allow_grow()
-            .set_margin_left(-PORT_PADDING_X)
-            .set_margin_right(-PORT_PADDING_X)
+            .set_margin_vh(0.0, -PORT_PADDING_X)
             .set_alignment_left_center();
-        hover_shape
-            .set_size_y(BASE_PORT_HEIGHT)
-            .allow_grow()
-            .set_margin_left(-HOVER_PADDING_X)
-            .set_margin_right(-HOVER_PADDING_X)
-            .set_alignment_left_center();
+        hover_shape.set_size_y(BASE_PORT_HOVER_HEIGHT).allow_grow().set_alignment_left_center();
 
         let layers = app.display.default_scene.extension::<PortLayers>();
         layers.add_to_partition(port_shape.display_object(), hover_shape.display_object(), 0);
@@ -201,7 +196,6 @@ impl Port {
             widget_root,
             port_root,
             crumbs,
-            current_primary: false,
             current_depth: 0,
         }
     }
@@ -211,10 +205,15 @@ impl Port {
     ///
     /// See [`crate::component::node::input::widget`] module for more information about widget
     /// lifecycle.
-    pub fn configure(&mut self, config: &DynConfig, ctx: ConfigContext) {
+    pub fn configure(
+        &mut self,
+        config: &DynConfig,
+        ctx: ConfigContext,
+        pad_x_override: Option<f32>,
+    ) {
         self.crumbs.replace(ctx.span_node.crumbs.clone());
         self.set_connected(ctx.info.connection);
-        self.set_port_layout(&ctx);
+        self.set_port_layout(&ctx, pad_x_override.unwrap_or(HOVER_PADDING_X));
         self.widget.configure(config, ctx);
         self.update_root();
     }
@@ -243,7 +242,7 @@ impl Port {
         }
     }
 
-    fn set_port_layout(&mut self, ctx: &ConfigContext) {
+    fn set_port_layout(&mut self, ctx: &ConfigContext, margin_x: f32) {
         let node_depth = ctx.span_node.crumbs.len();
         if self.current_depth != node_depth {
             self.current_depth = node_depth;
@@ -254,12 +253,15 @@ impl Port {
         }
 
         let is_primary = ctx.info.nesting_level.is_primary();
-        if self.current_primary != is_primary {
-            self.current_primary = is_primary;
-            let margin = if is_primary { PRIMARY_PORT_HOVER_PADDING_Y } else { 0.0 };
-            self.hover_shape.set_size_y(BASE_PORT_HEIGHT + 2.0 * margin);
-            self.hover_shape.set_margin_top(-margin);
-            self.hover_shape.set_margin_bottom(-margin);
+        let margin_y = if is_primary { PRIMARY_PORT_HOVER_PADDING_Y } else { 0.0 };
+
+        let current_margin = self.hover_shape.margin();
+        let margin_needs_update = current_margin.x().start.as_pixels() != Some(-margin_x)
+            || current_margin.y().start.as_pixels() != Some(-margin_y);
+
+        if margin_needs_update {
+            self.hover_shape.set_size_y(BASE_PORT_HOVER_HEIGHT + 2.0 * margin_y);
+            self.hover_shape.set_margin_vh(-margin_y, -margin_x);
         }
     }
 

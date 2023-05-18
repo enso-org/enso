@@ -28,7 +28,7 @@ pub use shape::Shape;
 pub mod shape {
     use super::*;
     crate::shape! {
-        pointer_events_instanced = true,
+        pointer_events_instanced = true;
         (
             style: Style,
             color: Vector4,
@@ -92,10 +92,16 @@ pub mod shape {
 /// such as circles, rings, or ring segments. The advantage of having a singular shape for these
 /// cases is that a single draw call can be used to render multiple GUI elements, which ultimately
 /// enhances performance.
-#[derive(Clone, CloneRef, Debug, Deref, Default)]
+#[derive(Clone, CloneRef, Deref, Default)]
 #[allow(missing_docs)]
 pub struct Rectangle {
     pub view: shape::View,
+}
+
+impl Debug for Rectangle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Rectangle").finish()
+    }
 }
 
 impl Rectangle {
