@@ -73,26 +73,18 @@ mod arc {
 
 define_endpoints_2! {
     Input {
-        /// Recompute the layout and update the displayed shapes. As multiple inputs may be changed
-        /// at the same time, this is not performed automatically when any input is changed.
-        redraw(),
-        /// The width of the source node in pixels. Value used in subsequent `redraw`s.
-        source_width(f32),
-        /// The height of the source node in pixels. Value used in subsequent `redraw`s.
-        source_height(f32),
+        /// The width and height of the source node in pixels.
+        source_size(Vector2),
         /// The location of the center of the target node's input port.
-        /// Value used in subsequent `redraw`s.
-        target_position(Vector2<f32>),
+        target_position(Vector2),
         /// Whether the target end of the edge is attached to a node (If `false`, it is being
-        /// dragged by the mouse.) Value used in subsequent `redraw`s.
+        /// dragged by the mouse.)
         target_attached(bool),
         /// Whether the source end of the edge is attached to a node (If `false`, it is being
-        /// dragged by the mouse.) Value used in subsequent `redraw`s.
+        /// dragged by the mouse.)
         source_attached(bool),
-        /// Value used in subsequent `redraw`s.
         set_disabled(bool),
-        /// The typical color of the node; also used to derive the focus color. Changing this will
-        /// immediately start an animation approaching the target value.
+        /// The typical color of the node; also used to derive the focus color.
         set_color(color::Lcha),
     }
     Output {
@@ -113,9 +105,8 @@ define_endpoints_2! {
 #[derive(AsRef, Clone, CloneRef, Debug, Deref)]
 pub struct Edge {
     #[deref]
-    model:   Rc<EdgeModel>,
-    /// The FRP network.
-    pub frp: Frp,
+    frp:   Frp,
+    model: Rc<EdgeModel>,
 }
 
 impl AsRef<Edge> for Edge {
@@ -143,17 +134,16 @@ impl Edge {
 
         let output = &frp.private.output;
         frp::extend! { network
-            // Setters. Changes to these values don't automatically trigger a redraw.
+            // Setters.
             eval frp.target_position ((t) model.set_target_position(*t));
             eval frp.source_attached ((t) model.set_source_attached(*t));
             eval frp.target_attached ((t) model.set_target_attached(*t));
-            eval frp.source_width ((t) model.set_source_width(*t));
-            eval frp.source_height ((t) model.set_source_height(*t));
+            eval frp.source_size ((t) model.set_source_size(*t));
             eval frp.set_disabled ((t) model.set_disabled(*t));
 
             // Mouse events.
-            eval mouse_move ((e) model.set_mouse_position_and_redraw(e.client_centered()));
-            eval_ mouse_out (model.clear_focus_and_redraw());
+            eval mouse_move ((e) model.set_mouse_position(e.client_centered()));
+            eval_ mouse_out (model.clear_focus());
             eval mouse_down ([model, output] (e) {
                 match model.closer_end_to_screen_pos(e.client_centered()) {
                     Some(EndPoint::Source) => output.target_click.emit(()),
@@ -163,14 +153,23 @@ impl Edge {
                 }
             });
 
-            // Redraw event.
-            eval_ frp.redraw (model.redraw());
-
-
-            // === Colors ===
-
+            // Colors.
             edge_color.target <+ frp.set_color;
-            eval edge_color.value ((color) model.set_color_and_redraw(color.into()));
+            eval edge_color.value ((color) model.set_color(color.into()));
+
+            // Invalidation.
+            redraw_needed <- any(...);
+            redraw_needed <+ frp.target_position.constant(());
+            redraw_needed <+ frp.source_attached.constant(());
+            redraw_needed <+ frp.target_attached.constant(());
+            redraw_needed <+ frp.source_size.constant(());
+            redraw_needed <+ frp.set_disabled.constant(());
+            redraw_needed <+ mouse_move.constant(());
+            redraw_needed <+ mouse_out.constant(());
+            redraw_needed <+ edge_color.value.constant(());
+            redraw_needed <+ display_object.on_transformed.constant(());
+            redraw <- redraw_needed.debounce();
+            eval_ redraw (model.redraw());
         }
         Self { model, frp }
     }
@@ -196,27 +195,24 @@ pub struct EdgeModel {
     scene:          Scene,
 
     // === Inputs ===
-    /// The width of the node that originates the edge. The edge may begin anywhere around the
-    /// bottom half of the node.
-    pub source_width:    Cell<f32>,
-    /// The height of the node that originates the edge. The edge may begin anywhere around the
-    /// bottom half of the node.
-    pub source_height:   Cell<f32>,
+    /// The width and height of the node that originates the edge. The edge may begin anywhere
+    /// around the bottom half of the node.
+    source_size:     Cell<Vector2>,
     /// The coordinates of the node input the edge connects to. The edge enters the node from
     /// above.
-    pub target_position: Cell<Vector2>,
+    target_position: Cell<Vector2>,
     /// Whether the edge is connected to a node input.
-    target_attached:     Cell<bool>,
+    target_attached: Cell<bool>,
     /// Whether the edge is connected to a node output.
-    source_attached:     Cell<bool>,
-    color:               Cell<color::Rgba>,
+    source_attached: Cell<bool>,
+    color:           Cell<color::Rgba>,
     /// The location of the mouse over the edge.
-    hover_position:      Cell<Option<Vector2<f32>>>,
-    disabled:            Cell<bool>,
+    hover_position:  Cell<Option<Vector2>>,
+    disabled:        Cell<bool>,
 
     // === Cached state ===
     /// The endpoints of the individual [`Corner`]s making up the edge.
-    corner_points: RefCell<Vec<Vector2<f32>>>,
+    corner_points: RefCell<Vec<Vector2>>,
 
     // === Shapes ===
     /// The individual [`Corner`]s making up the edge. Each is drawn in the focused or unfocused
@@ -234,7 +230,7 @@ pub struct EdgeModel {
     dataflow_arrow:    RefCell<Option<Rectangle>>,
 
     // === Change detection ===
-    previous_target:          Cell<Option<Vector2<f32>>>,
+    previous_target:          Cell<Option<Vector2>>,
     previous_is_hoverable:    Cell<Option<bool>>,
     previous_hover_split:     Cell<Option<EdgeSplit>>,
     previous_color:           Cell<Option<color::Rgba>>,
@@ -263,8 +259,7 @@ impl EdgeModel {
             display_object,
             source_attached,
             scene,
-            source_width: default(),
-            source_height: default(),
+            source_size: default(),
             target_position: default(),
             target_attached: default(),
             color: default(),
@@ -285,20 +280,15 @@ impl EdgeModel {
     }
 
     /// Set the color of the edge.
-    fn set_color_and_redraw(&self, color: color::Lcha) {
+    fn set_color(&self, color: color::Lcha) {
         // We must never use alpha in edges, as it will show artifacts with overlapping sub-parts.
         let color: color::Lcha = color.opaque.into();
         let color_rgba = color::Rgba::from(color);
         self.color.set(color_rgba);
-        self.redraw();
     }
 
-    fn set_source_width(&self, width: f32) {
-        self.source_width.set(width);
-    }
-
-    fn set_source_height(&self, height: f32) {
-        self.source_height.set(height);
+    fn set_source_size(&self, size: Vector2) {
+        self.source_size.set(size);
     }
 
     fn set_disabled(&self, disabled: bool) {
@@ -311,47 +301,50 @@ impl EdgeModel {
         match self.source_attached.get() {
             // When attached to a node, our origination point can be anywhere along the length of
             // the node, excluding the rounded edges.
-            true => (self.source_width.get() / 2.0 - NODE_CORNER_RADIUS).max(0.0),
+            true => (self.source_size.get().x() / 2.0 - NODE_CORNER_RADIUS).max(0.0),
             // When attached to the cursor, our origination point is fixed at the cursor.
             false => 0.0,
         }
     }
 
-    fn set_target_position(&self, position: Vector2<f32>) {
+    fn set_target_position(&self, position: Vector2) {
         self.target_position.set(position);
     }
 
     fn set_target_attached(&self, attached: bool) {
         self.target_attached.set(attached);
+        if attached {
+            self.clear_focus();
+        }
     }
 
     fn set_source_attached(&self, attached: bool) {
         self.source_attached.set(attached);
+        if attached {
+            self.clear_focus();
+        }
     }
 
-    fn clear_focus_and_redraw(&self) {
+    fn clear_focus(&self) {
         self.hover_position.set(None);
-        self.redraw();
     }
 
-    fn closer_end_to_screen_pos(&self, screen_pos: Vector2<f32>) -> Option<EndPoint> {
+    fn closer_end_to_screen_pos(&self, screen_pos: Vector2) -> Option<EndPoint> {
         // Convert point to local coordinates.
         let screen_pos_3d = Vector3(screen_pos.x(), screen_pos.y(), 0.0);
         let scene_pos = self.scene.screen_to_scene_coordinates(screen_pos_3d).xy();
         let pos = scene_pos - self.display_object.xy();
 
         let corners = corners(&self.corner_points.borrow()).collect_vec();
-        find_position(pos, &corners, self.source_height.get()).map(|split| split.closer_end)
+        find_position(pos, &corners, self.source_size.get().y()).map(|split| split.closer_end)
     }
 
-    fn set_mouse_position_and_redraw(&self, screen_pos: Vector2<f32>) {
+    fn set_mouse_position(&self, screen_pos: Vector2) {
         // Convert point to local coordinates.
         let screen_pos_3d = Vector3(screen_pos.x(), screen_pos.y(), 0.0);
         let scene_pos = self.scene.screen_to_scene_coordinates(screen_pos_3d).xy();
         let pos = scene_pos - self.display_object.xy();
-
         self.hover_position.set(Some(pos));
-        self.redraw();
     }
 
     fn new_section(&self) -> Rectangle {
@@ -405,7 +398,7 @@ impl EdgeModel {
         new
     }
 
-    fn target_offset(&self) -> Vector2<f32> {
+    fn target_offset(&self) -> Vector2 {
         let target_offset = self.target_position.get() - self.display_object.xy();
         match self.target_attached.get() {
             // If the target is a node, connect to a point on its top edge. If the radius is small,
@@ -439,7 +432,7 @@ impl EdgeModel {
                 // here will return `None`. We treat it the same way as a
                 // `mouse::Out` event.
                 self.hover_position.get().and_then(|position| {
-                    find_position(position, &corners, self.source_height.get())
+                    find_position(position, &corners, self.source_size.get().y())
                 })
             })
             .flatten();
@@ -460,21 +453,35 @@ impl EdgeModel {
         };
 
         // Create shape objects for the current geometry.
+        let mut layout_dirty = false;
         if target_changed || is_hoverable_changed {
             self.redraw_hover_sections(is_hoverable.then_some(&corners[..]).unwrap_or_default());
+            layout_dirty = true;
         }
         if target_changed || color_changed || hover_split_changed {
             self.redraw_sections(&corners, source_color, target_color, hover_split);
             self.redraw_dataflow_arrow(target, source_color, target_color, hover_split);
+            layout_dirty = true;
         }
         if target_changed || color_changed || hover_split_changed || target_attachment_changed {
             self.redraw_target_attachment(target, target_color);
+            layout_dirty = true;
+        }
+        if layout_dirty {
+            // Force layout update of this object's children. Because edge positions are computed
+            // based on node positions, `redraw` must be run after the layout has been updated.
+            // Updating the layouts of modified edges a second time later in the frame avoids
+            // latency when edge children are modified.
+            //
+            // FIXME: Find a better solution to fix this issue. We either need a layout that can
+            //  depend on other arbitrary position, or we need the layout update to be multi-stage.
+            self.display_object.update(&self.scene);
         }
     }
 
     fn redraw_dataflow_arrow(
         &self,
-        offset: Vector2<f32>,
+        offset: Vector2,
         source_color: color::Rgba,
         target_color: color::Rgba,
         hover_split: Option<EdgeSplit>,
@@ -590,7 +597,7 @@ impl EdgeModel {
             .collect()
     }
 
-    fn redraw_target_attachment(&self, target: Vector2<f32>, color: color::Rgba) {
+    fn redraw_target_attachment(&self, target: Vector2, color: color::Rgba) {
         let shape = self.target_attachment.take();
         if self.target_attached.get() {
             let shape = shape.unwrap_or_else(|| self.new_target_attachment());
@@ -602,7 +609,7 @@ impl EdgeModel {
 
     /// Calculate the start and end positions of each 1-corner section composing an edge to the
     /// given offset from this object's `display_object`.
-    fn corner_points_to(&self, target: Vector2<f32>) -> Vec<Vector2<f32>> {
+    fn corner_points_to(&self, target: Vector2) -> Vec<Vector2> {
         let source_half_width = self.source_max_x_offset();
         let (target_x, target_y) = (target.x(), target.y());
         if target_y < -MIN_RADIUS
@@ -663,7 +670,7 @@ enum EndPoint {
 ///
 /// Returns [`None`] if the point is not on the edge.
 fn find_position(
-    position: Vector2<f32>,
+    position: Vector2,
     corners: &[Oriented<Corner>],
     source_height: f32,
 ) -> Option<EdgeSplit> {
@@ -699,7 +706,7 @@ fn find_position(
 
 // === Connecting points with corners ===
 
-fn corners(points: &[Vector2<f32>]) -> impl Iterator<Item = Oriented<Corner>> + '_ {
+fn corners(points: &[Vector2]) -> impl Iterator<Item = Oriented<Corner>> + '_ {
     let mut next_direction = CornerDirection::HorizontalToVertical;
     points.array_windows().map(move |&[p0, p1]| {
         let direction = next_direction;
@@ -767,8 +774,8 @@ fn draw_split_arc(arc_shapes: [arc::View; 2], split_arc: SplitArc) -> [arc::View
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 struct Corner {
-    horizontal: Vector2<f32>,
-    vertical:   Vector2<f32>,
+    horizontal: Vector2,
+    vertical:   Vector2,
 }
 
 impl Corner {
@@ -853,9 +860,9 @@ impl Corner {
 
 #[derive(Debug, Copy, Clone, Default)]
 struct RectangleGeometry {
-    clip: Vector2<f32>,
-    size: Vector2<f32>,
-    xy:   Vector2<f32>,
+    clip: Vector2,
+    size: Vector2,
+    xy:   Vector2,
 }
 
 
@@ -863,7 +870,7 @@ struct RectangleGeometry {
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
 struct SplitArc {
-    origin:           Vector2<f32>,
+    origin:           Vector2,
     radius:           f32,
     source_end_angle: f32,
     split_angle:      f32,
@@ -890,7 +897,7 @@ impl<T> Oriented<T> {
 }
 
 impl Oriented<Corner> {
-    fn source_end(self) -> Vector2<f32> {
+    fn source_end(self) -> Vector2 {
         match self.direction {
             CornerDirection::VerticalToHorizontal => self.value.vertical,
             CornerDirection::HorizontalToVertical => self.value.horizontal,
@@ -898,14 +905,14 @@ impl Oriented<Corner> {
     }
 
     #[allow(unused)]
-    fn target_end(self) -> Vector2<f32> {
+    fn target_end(self) -> Vector2 {
         match self.direction {
             CornerDirection::VerticalToHorizontal => self.value.horizontal,
             CornerDirection::HorizontalToVertical => self.value.vertical,
         }
     }
 
-    fn with_target_end(mut self, value: Vector2<f32>) -> Self {
+    fn with_target_end(mut self, value: Vector2) -> Self {
         *(match self.direction {
             CornerDirection::VerticalToHorizontal => &mut self.value.horizontal,
             CornerDirection::HorizontalToVertical => &mut self.value.vertical,
@@ -913,7 +920,7 @@ impl Oriented<Corner> {
         self
     }
 
-    fn with_source_end(mut self, value: Vector2<f32>) -> Self {
+    fn with_source_end(mut self, value: Vector2) -> Self {
         *(match self.direction {
             CornerDirection::VerticalToHorizontal => &mut self.value.vertical,
             CornerDirection::HorizontalToVertical => &mut self.value.horizontal,
@@ -929,7 +936,7 @@ impl Oriented<Corner> {
 
     /// Split the shape at the given point, if the point is within the tolerance specified by
     /// `snap_line_width` of the shape.
-    fn split(self, split_point: Vector2<f32>, snap_line_width: f32) -> Option<SplitCorner> {
+    fn split(self, split_point: Vector2, snap_line_width: f32) -> Option<SplitCorner> {
         let Corner { horizontal, vertical } = self.value;
         let hv_offset = horizontal - vertical;
         let (dx, dy) = (hv_offset.x().abs(), hv_offset.y().abs());

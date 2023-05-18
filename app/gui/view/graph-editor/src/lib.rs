@@ -27,7 +27,6 @@
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 #![recursion_limit = "1024"]
@@ -1473,8 +1472,8 @@ impl GraphEditorModelWithNetwork {
         self.edges.insert(edge.clone_ref());
         if let Some(network) = &self.network.upgrade_or_warn() {
             frp::extend! { network
-                eval_ edge.view.frp.source_click (edge_source_click.emit(edge_id));
-                eval_ edge.view.frp.target_click (edge_target_click.emit(edge_id));
+                eval_ edge.view.source_click (edge_source_click.emit(edge_id));
+                eval_ edge.view.target_click (edge_target_click.emit(edge_id));
             }
         }
         edge_id
@@ -2120,7 +2119,7 @@ impl GraphEditorModel {
             if let Some(node) = self.nodes.get_cloned_ref(&target.node_id) {
                 node.out_edges.insert(edge_id);
                 edge.set_source(target);
-                edge.view.frp.source_attached.emit(true);
+                edge.view.source_attached.emit(true);
                 self.refresh_edge_position(edge_id);
             }
         }
@@ -2131,7 +2130,7 @@ impl GraphEditorModel {
             if let Some(source) = edge.take_source() {
                 if let Some(node) = self.nodes.get_cloned_ref(&source.node_id) {
                     node.out_edges.remove(&edge_id);
-                    edge.view.frp.source_attached.emit(false);
+                    edge.view.source_attached.emit(false);
                     let first_detached = self.edges.detached_source.is_empty();
                     self.edges.detached_source.insert(edge_id);
                     self.refresh_edge_position(edge_id);
@@ -2156,8 +2155,7 @@ impl GraphEditorModel {
                     self.frp.output.on_all_edges_targets_set.emit(());
                 }
 
-                edge.view.frp.target_attached.emit(true);
-                edge.view.frp.redraw.emit(());
+                edge.view.target_attached.emit(true);
                 self.refresh_edge_position(edge_id);
             };
         }
@@ -2170,7 +2168,7 @@ impl GraphEditorModel {
                     node.in_edges.remove(&edge_id);
                     let first_detached = self.edges.detached_target.is_empty();
                     self.edges.detached_target.insert(edge_id);
-                    edge.view.frp.target_attached.emit(false);
+                    edge.view.target_attached.emit(false);
                     self.refresh_edge_position(edge_id);
                     if first_detached {
                         self.frp.output.on_some_edges_targets_unset.emit(());
@@ -2256,7 +2254,7 @@ impl GraphEditorModel {
     fn set_edge_freeze<T: Into<EdgeId>>(&self, edge_id: T, is_frozen: bool) {
         let edge_id = edge_id.into();
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
-            edge.view.frp.set_disabled.emit(is_frozen);
+            edge.view.set_disabled.emit(is_frozen);
         }
     }
 }
@@ -2335,7 +2333,7 @@ impl GraphEditorModel {
     pub fn refresh_edge_color(&self, edge_id: EdgeId, neutral_color: color::Lcha) {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             let color = self.edge_color(edge_id, neutral_color);
-            edge.view.frp.set_color.emit(color);
+            edge.view.set_color.emit(color);
             if let Some(target) = edge.target() {
                 self.set_input_connected(&target, Some(color));
             }
@@ -2348,91 +2346,50 @@ impl GraphEditorModel {
         }
     }
 
-    /// Refresh the source and target position of the edge identified by `edge_id`. Only redraws the
-    /// edge if a modification was made. Return `true` if either of the edge endpoint's position was
-    /// modified.
-    pub fn refresh_edge_position(&self, edge_id: EdgeId) -> bool {
-        let mut redraw = false;
+    /// Refresh the source and target position of the edge identified by `edge_id`.
+    pub fn refresh_edge_position(&self, edge_id: EdgeId) {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             if let Some(edge_source) = edge.source() {
                 if let Some(node) = self.nodes.get_cloned_ref(&edge_source.node_id) {
                     let node_width = node.model().width();
                     let node_height = node.model().height();
                     let new_position = node.position().xy() + Vector2::new(node_width / 2.0, 0.0);
-                    let prev_width = edge.source_width.get();
-                    let prev_height = edge.source_height.get();
                     let prev_position = edge.position().xy();
 
                     if prev_position != new_position {
-                        redraw = true;
                         edge.set_xy(new_position);
                     }
-                    if prev_width != node_width {
-                        redraw = true;
-                        edge.view.frp.source_width.emit(node_width);
-                    }
-                    if prev_height != node_height {
-                        redraw = true;
-                        edge.view.frp.source_height.emit(node_height);
-                    }
+                    edge.view.source_size.emit(Vector2(node_width, node_height));
                 }
             }
             if let Some(edge_target) = edge.target() {
                 if let Some(node) = self.nodes.get_cloned_ref(&edge_target.node_id) {
-                    let offset = node.model().input.port_offset(&edge_target.port);
-                    let new_position = node.position().xy() + offset;
-                    let prev_position = edge.view.target_position.get();
-                    if prev_position != new_position {
-                        redraw = true;
-                        edge.view.frp.target_position.emit(new_position);
-                    }
+                    let port_offset = node.model().input.port_offset(&edge_target.port);
+                    let node_position = node.position().xy();
+                    edge.view.target_position.emit(node_position + port_offset);
                 }
             }
-
-            if redraw {
-                edge.view.frp.redraw.emit(());
-            }
         }
-        redraw
     }
 
-    /// Refresh the positions of all outgoing edges connected to the given node. Returns `true` if
-    /// at least one edge has been changed.
-    pub fn refresh_outgoing_edge_positions(&self, node_ids: &[NodeId]) -> bool {
-        let mut updated = false;
+    /// Refresh the positions of all outgoing edges connected to the given node.
+    pub fn refresh_outgoing_edge_positions(&self, node_ids: &[NodeId]) {
         for node_id in node_ids {
             for edge_id in self.node_out_edges(node_id) {
-                updated |= self.refresh_edge_position(edge_id);
+                self.refresh_edge_position(edge_id);
             }
         }
-        updated
     }
 
     /// Refresh the positions of all incoming edges connected to the given node. This is useful when
     /// we know that the node ports has been updated, but we don't track which exact edges are
-    /// affected. Returns `true` if at least one edge has been changed.
-    pub fn refresh_incoming_edge_positions(&self, node_ids: &[NodeId]) -> bool {
-        let mut updated = false;
+    /// affected.
+    pub fn refresh_incoming_edge_positions(&self, node_ids: &[NodeId]) {
         for node_id in node_ids {
             for edge_id in self.node_in_edges(node_id) {
-                updated |= self.refresh_edge_position(edge_id);
+                self.refresh_edge_position(edge_id);
             }
         }
-        updated
-    }
-
-    /// Force layout update of the graph UI elements. Because display objects track changes made to
-    /// them, only objects modified since last update will have layout recomputed. Using this
-    /// function is still discouraged, because changes
-    ///
-    /// Because edge positions are computed based on the node positions, it is usually done after
-    /// the layout has been updated. In order to avoid edge flickering, we have to update their
-    /// layout second time.
-    ///
-    /// FIXME: Find a better solution to fix this issue. We either need a layout that can depend on
-    /// other arbitrary position, or we need the layout update to be multi-stage.
-    pub fn force_update_layout(&self) {
-        self.display_object().update(self.scene());
     }
 
     fn map_node<T>(&self, id: NodeId, f: impl FnOnce(Node) -> T) -> Option<T> {
@@ -3028,11 +2985,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
         incoming_batch <- out.node_incoming_edge_updates.batch();
         outgoing_batch <- out.node_outgoing_edge_updates.batch();
-        incoming_dirty <- incoming_batch.map(f!((n) model.refresh_incoming_edge_positions(n)));
-        outgoing_dirty <- outgoing_batch.map(f!((n) model.refresh_outgoing_edge_positions(n)));
-        any_edges_dirty <- incoming_dirty || outgoing_dirty;
-        force_update_layout <- any_edges_dirty.on_true().debounce();
-        eval force_update_layout((_) model.force_update_layout());
+        eval incoming_batch ((nodes) model.refresh_incoming_edge_positions(nodes));
+        eval outgoing_batch ((nodes) model.refresh_outgoing_edge_positions(nodes));
     }
 
     // === Adding Node ===
@@ -3389,8 +3343,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     eval refresh_target ([edges](position) {
        edges.detached_target.for_each(|id| {
             if let Some(edge) = edges.get_cloned_ref(id) {
-                edge.view.frp.target_position.emit(position.xy());
-                edge.view.frp.redraw.emit(());
+                edge.view.target_position.emit(position.xy());
             }
         });
     });
@@ -3399,7 +3352,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         edges.detached_source.for_each(|edge_id| {
             if let Some(edge) = edges.get_cloned_ref(edge_id) {
                 edge.set_xy(position.xy());
-                edge.view.frp.redraw.emit(());
             }
         });
     });
@@ -3412,9 +3364,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
                     let node_height = node.view.model().height();
                     let node_pos    = node.position();
                     edge.set_xy(Vector2(node_pos.x + node_width/2.0, node_pos.y));
-                    edge.view.frp.source_width.emit(node_width);
-                    edge.view.frp.source_height.emit(node_height);
-                    edge.view.frp.redraw.emit(());
+                    edge.view.source_size.emit(Vector2(node_width, node_height));
                 }
             }
         });
