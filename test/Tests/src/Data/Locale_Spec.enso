@@ -1,9 +1,10 @@
 from Standard.Base import all
 
-polyglot java import java.util.Locale as JavaLocale
-
+from Standard.Base.Metadata.Choice import Option
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
+
+polyglot java import java.util.Locale as JavaLocale
 
 with_locale locale ~test =
     default_locale = JavaLocale.getDefault
@@ -15,26 +16,6 @@ with_locale locale ~test =
     result
 
 spec =
-  Test.group "gmt" <|
-    Test.specify "" <|
-        IO.println <| Locale.widget_options
-        ##
-            case Locale.default of
-                Locale.Value java_locale ->
-                    IO.println java_locale.getAvailableLocales
-        ##
-            IO.println "HI"
-            IO.println Locale
-            IO.println <| Meta.type_of Locale
-            IO.println <| Meta.type_of Locale.default
-            IO.println <| Meta.meta Locale
-            IO.println <| Meta.meta Locale.default
-            IO.println <| (Meta.meta Locale) . methods
-            IO.println <| (Meta.meta Locale.default) . methods
-            IO.println <| (Meta.type_of Locale.default) . methods
-            IO.println <| Meta.methods (Locale)
-            Meta.methods (Locale) . map m-> IO.println m
-
   Test.group "Locale" <|
     en_gb = Locale.new "en" "GB"
     Test.specify "allow constructing a locale with optional parts" <|
@@ -94,5 +75,8 @@ spec =
     Test.specify "should allow equality comparisons" <|
         Locale.uk . should_equal Locale.uk
         Locale.uk . should_not_equal Locale.us
+
+    Test.specify "Should correctly auto-discover static Locales" <|
+        Locale.widget_options . should_equal [(Option 'Bangladesh' 'Locale.bangladesh' [] ''), (Option 'Brazil' 'Locale.brazil' [] ''), (Option 'Canada English' 'Locale.canada_english' [] ''), (Option 'Canada French' 'Locale.canada_french' [] ''), (Option 'China' 'Locale.china' [] ''), (Option 'France' 'Locale.france' [] ''), (Option 'Germany' 'Locale.germany' [] ''), (Option 'India English' 'Locale.india_english' [] ''), (Option 'India Hindi' 'Locale.india_hindi' [] ''), (Option 'Indonesia' 'Locale.indonesia' [] ''), (Option 'Italy' 'Locale.italy' [] ''), (Option 'Japan' 'Locale.japan' [] ''), (Option 'Mexico' 'Locale.mexico' [] ''), (Option 'Nigeria' 'Locale.nigeria' [] ''), (Option 'Pakistan English' 'Locale.pakistan_english' [] ''), (Option 'Pakistan Urdu' 'Locale.pakistan_urdu' [] ''), (Option 'Poland' 'Locale.poland' [] ''), (Option 'Russia' 'Locale.russia' [] ''), (Option 'South Korea' 'Locale.south_korea' [] ''), (Option 'UK' 'Locale.uk' [] ''), (Option 'US' 'Locale.us' [] '')]
 
 main = Test_Suite.run_main spec
