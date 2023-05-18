@@ -561,7 +561,7 @@ type Decimal
        - decimal_places: The number of decimal places to round to. Can be
          negative, which results in rounding to positive integer powers of 10.
          Must be between -15 and 15 (inclusive).
-       - use_bankers: Use banker's rounding
+       - use_bankers: Rounds mid-point to nearest even number.
 
        ! Error Conditions
 
