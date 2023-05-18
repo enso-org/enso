@@ -1296,10 +1296,10 @@ type Column
          padded on the right with the space character to match the desired
          length.
        - Conversion between numeric types will replace values exceeding the
-         range of the target type with `Nothing`. Note that converting floating
-         point numbers into integers may either truncate them or round them,
-         depending on the backend - if more control is needed, `round` should be
-         used instead.
+         range of the target type with `Nothing`.
+       - Converting decimal numbers into integers will truncate or round them,
+         depending on the backend. If more control is needed, use the various
+         rounding functions (such as `round` or `floor`).
        - Booleans may also be converted to numbers, with `True` being converted
          to `1` and `False` to `0`. The reverse is not supported - use `iif`
          instead.
