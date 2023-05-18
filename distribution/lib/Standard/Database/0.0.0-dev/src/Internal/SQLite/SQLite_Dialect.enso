@@ -379,7 +379,7 @@ make_custom_cast column target_value_type type_mapping =
         lower = SQL_Expression.Operation "FOLD_CASE" [column.expression]
         is_true = SQL_Expression.Operation "==" [lower, SQL_Expression.Literal "'true'"]
         is_false = SQL_Expression.Operation "==" [lower, SQL_Expression.Literal "'false'"]
-        expr = SQL_Expression.Operation "IIF" [is_true, SQL_Expression.Literal "TRUE", SQL_Expression.Operation "IIF" [is_false, SQL_Expression.Literal "FALSE", SQL_Expression.Literal "NULL"]]
+        expr = SQL_Expression.Operation "CASE" [is_true, SQL_Expression.Literal "TRUE", is_false, SQL_Expression.Literal "FALSE", SQL_Expression.Literal "NULL"]
         result.put expr
 
     result.get
