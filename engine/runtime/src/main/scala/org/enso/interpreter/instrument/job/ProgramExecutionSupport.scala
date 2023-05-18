@@ -357,7 +357,7 @@ object ProgramExecutionSupport {
               WarningsLibrary.getUncached().getWarnings(value.getValue, null)
             val warningsCount = warnings.length
             val warning =
-              if (warningsCount >= 1) {
+              if (warningsCount == 1) {
                 Option(
                   ctx.executionService.toDisplayString(warnings(0).getValue)
                 )
