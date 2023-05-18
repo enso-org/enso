@@ -14,55 +14,50 @@ import CreateForm, * as createForm from './createForm'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
-import ProjectActionButton from './projectActionButton'
 import RenameModal from './renameModal'
-import Rows from './rows'
+import Table from './table'
 
-// =================
-// === Constants ===
-// =================
+// ========================
+// === SecretCreateForm ===
+// ========================
 
-/** HTML validation attributes for project names when using the local backend.
- * There are no such limitations on the remote backend. */
-const DESKTOP_PROJECT_NAME_VALIDATION = {
-    namePattern: '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*',
-    title: 'Names must be in Upper_Snake_Case. (Numbers (_0, _1) are also allowed.)',
-} as const
-
-/** Props for a {@link ProjectCreateForm}. */
-export interface ProjectCreateFormProps extends createForm.CreateFormPassthroughProps {
+/** Props for a {@link SecretCreateForm}. */
+export interface SecretCreateFormProps extends createForm.CreateFormPassthroughProps {
     directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 
-/** A form to create a new project asset. */
-function ProjectCreateForm(props: ProjectCreateFormProps) {
+/** A form to create a new secret asset. */
+function SecretCreateForm(props: SecretCreateFormProps) {
     const { directoryId, onSuccess, ...passThrough } = props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
 
     const [name, setName] = React.useState<string | null>(null)
-    const [template, setTemplate] = React.useState<string | null>(null)
+    const [value, setValue] = React.useState<string | null>(null)
 
     if (backend.platform === platform.Platform.desktop) {
         return <></>
     } else {
         const onSubmit = async (event: React.FormEvent) => {
             event.preventDefault()
-            if (name == null) {
-                toast.error('Please provide a project name.')
+            if (!name) {
+                toast.error('Please provide a secret name.')
+            } else if (value == null) {
+                // Secret value explicitly can be empty.
+                toast.error('Please provide a secret value.')
             } else {
                 unsetModal()
                 await toast
                     .promise(
-                        backend.createProject({
+                        backend.createSecret({
                             parentDirectoryId: directoryId,
-                            projectName: name,
-                            projectTemplateName: template,
+                            secretName: name,
+                            secretValue: value,
                         }),
                         {
-                            loading: 'Creating project...',
-                            success: 'Sucessfully created project.',
+                            loading: 'Creating secret...',
+                            success: 'Sucessfully created secret.',
                             error: error.unsafeIntoErrorMessage,
                         }
                     )
@@ -71,7 +66,7 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
         }
 
         return (
-            <CreateForm title="New Project" onSubmit={onSubmit} {...passThrough}>
+            <CreateForm title="New Secret" onSubmit={onSubmit} {...passThrough}>
                 <div className="flex flex-row flex-nowrap m-1">
                     <label className="inline-block flex-1 grow m-1" htmlFor="project_name">
                         Name
@@ -87,17 +82,16 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
                     />
                 </div>
                 <div className="flex flex-row flex-nowrap m-1">
-                    {/* FIXME[sb]: Use the array of templates in a dropdown when it becomes available. */}
-                    <label className="inline-block flex-1 grow m-1" htmlFor="project_template_name">
-                        Template
+                    <label className="inline-block flex-1 grow m-1" htmlFor="secret_value">
+                        Value
                     </label>
                     <input
-                        id="project_template_name"
+                        id="secret_value"
                         type="text"
                         size={1}
                         className="bg-gray-200 rounded-full flex-1 grow-2 px-2 m-1"
                         onChange={event => {
-                            setTemplate(event.target.value)
+                            setValue(event.target.value)
                         }}
                     />
                 </div>
@@ -106,31 +100,31 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
     }
 }
 
-// ==========================
-// === ProjectNameHeading ===
-// ==========================
+// =========================
+// === SecretNameHeading ===
+// =========================
 
-/** Props for a {@link ProjectNameHeading}. */
-export interface ProjectNameHeadingProps {
+/** Props for a {@link SecretNameHeading}. */
+interface SecretNameHeadingProps {
     directoryId: backendModule.DirectoryId
     onCreate: () => void
 }
 
-/** The column header for the "name" column for the table of project assets. */
-function ProjectNameHeading(props: ProjectNameHeadingProps) {
+/** The column header for the "name" column for the table of secret assets. */
+function SecretNameHeading(props: SecretNameHeadingProps) {
     const { directoryId, onCreate } = props
     const { setModal } = modalProvider.useSetModal()
 
     return (
         <div className="inline-flex">
-            Project
+            Secret
             <button
                 className="mx-1"
                 onClick={event => {
                     event.stopPropagation()
                     const buttonPosition = event.currentTarget.getBoundingClientRect()
                     setModal(() => (
-                        <ProjectCreateForm
+                        <SecretCreateForm
                             left={buttonPosition.left + window.scrollX}
                             top={buttonPosition.top + window.scrollY}
                             directoryId={directoryId}
@@ -145,31 +139,27 @@ function ProjectNameHeading(props: ProjectNameHeadingProps) {
     )
 }
 
-// ===================
-// === ProjectName ===
-// ===================
+// ==================
+// === SecretName ===
+// ==================
 
-/** State passed through from a {@link ProjectRows} to every cell. */
-export interface ProjectNamePropsState {
-    appRunner: AppRunner | null
+/** State passed through from a {@link SecretsTable} to every cell. */
+export interface SecretNamePropsState {
     onRename: () => void
-    onOpenIde: (project: backendModule.ProjectAsset) => void
-    onCloseIde: () => void
 }
 
-/** Props for a {@link ProjectName}. */
-export interface ProjectNameProps {
-    item: backendModule.ProjectAsset
-    state: ProjectNamePropsState
+/** Props for a {@link SecretName}. */
+export interface SecretNameProps {
+    item: backendModule.SecretAsset
+    state: SecretNamePropsState
 }
 
-/** The icon and name of a specific project asset. */
-function ProjectName(props: ProjectNameProps) {
+/** The icon and name of a specific secret asset. */
+function SecretName(props: SecretNameProps) {
     const {
         item,
-        state: { appRunner, onRename, onOpenIde, onCloseIde },
+        state: { onRename },
     } = props
-    const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
 
     return (
@@ -181,86 +171,68 @@ function ProjectName(props: ProjectNameProps) {
                         <RenameModal
                             assetType={item.type}
                             name={item.title}
-                            doRename={async newName => {
-                                await backend.projectUpdate(item.id, {
-                                    ami: null,
-                                    ideVersion: null,
-                                    projectName: newName,
-                                })
-                            }}
+                            // FIXME[sb]: Wait for backend implementation.
+                            doRename={() => Promise.resolve()}
                             onSuccess={onRename}
-                            {...(backend.platform === platform.Platform.desktop
-                                ? DESKTOP_PROJECT_NAME_VALIDATION
-                                : {})}
                         />
                     ))
                 }
             }}
         >
-            <ProjectActionButton
-                project={item}
-                appRunner={appRunner}
-                openIde={() => {
-                    onOpenIde(item)
-                }}
-                onClose={onCloseIde}
-            />
-            <span className="px-2">{item.title}</span>
+            {svg.SECRET_ICON} <span className="px-2">{item.title}</span>
         </div>
     )
 }
 
-interface ProjectRowsProps {
-    appRunner: AppRunner | null
+// ==================
+// === SecretRows ===
+// ==================
+
+/** Props for a {@link SecretsTable}. */
+export interface SecretsTableProps {
     directoryId: backendModule.DirectoryId
-    items: backendModule.ProjectAsset[]
+    items: backendModule.SecretAsset[]
     isLoading: boolean
     columnDisplayMode: columnModule.ColumnDisplayMode
+    query: string
     onCreate: () => void
     onRename: () => void
     onDelete: () => void
-    onOpenIde: (project: backendModule.ProjectAsset) => void
-    onCloseIde: () => void
     onAssetClick: (
-        asset: backendModule.ProjectAsset,
+        asset: backendModule.SecretAsset,
         event: React.MouseEvent<HTMLTableRowElement>
     ) => void
 }
 
-/** Rows for the table of project assets. */
-function ProjectRows(props: ProjectRowsProps) {
+/** The table of secret assets. */
+function SecretsTable(props: SecretsTableProps) {
     const {
-        appRunner,
         directoryId,
         items,
         isLoading,
         columnDisplayMode,
+        query,
         onCreate,
         onRename,
         onDelete,
-        onOpenIde,
-        onCloseIde,
         onAssetClick,
     } = props
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
 
-    return (
-        <>
-            <tr className="h-10" />
-            <Rows<backendModule.ProjectAsset, ProjectNamePropsState>
+    if (backend.platform === platform.Platform.desktop) {
+        return <></>
+    } else {
+        return (
+            <Table<backendModule.SecretAsset, SecretNamePropsState>
                 items={items}
                 isLoading={isLoading}
-                state={{
-                    appRunner,
-                    onRename,
-                    onOpenIde,
-                    onCloseIde,
-                }}
+                state={{ onRename }}
                 getKey={backendModule.getAssetId}
                 placeholder={
                     <span className="opacity-75">
-                        You have no project yet. Go ahead and create one using the form above.
+                        This directory does not contain any secrets
+                        {query ? ' matching your query' : ''}.
                     </span>
                 }
                 columns={columnModule.columnsFor(columnDisplayMode, backend.platform).map(column =>
@@ -269,12 +241,12 @@ function ProjectRows(props: ProjectRowsProps) {
                               id: column,
                               className: columnModule.COLUMN_CSS_CLASS[column],
                               heading: (
-                                  <ProjectNameHeading
+                                  <SecretNameHeading
                                       directoryId={directoryId}
                                       onCreate={onCreate}
                                   />
                               ),
-                              render: ProjectName,
+                              render: SecretName,
                           }
                         : {
                               id: column,
@@ -284,62 +256,23 @@ function ProjectRows(props: ProjectRowsProps) {
                           }
                 )}
                 onClick={onAssetClick}
-                onContextMenu={(projectAsset, event) => {
+                onContextMenu={(secret, event) => {
                     event.preventDefault()
                     event.stopPropagation()
-                    const doOpenForEditing = () => {
-                        // FIXME[sb]: Switch to IDE tab once it is fully loaded.
-                    }
-                    const doOpenAsFolder = () => {
-                        // FIXME[sb]: Uncomment once backend support is in place.
-                        // The following code does not typecheck
-                        // since `ProjectId`s are not `DirectoryId`s.
-                        // enterDirectory(projectAsset)
-                    }
-                    // This is not a React component even though it contains JSX.
-                    // eslint-disable-next-line no-restricted-syntax
-                    const doRename = () => {
-                        setModal(() => (
-                            <RenameModal
-                                name={projectAsset.title}
-                                assetType={projectAsset.type}
-                                doRename={async newName => {
-                                    await backend.projectUpdate(projectAsset.id, {
-                                        ami: null,
-                                        ideVersion: null,
-                                        projectName: newName,
-                                    })
-                                }}
-                                onSuccess={onRename}
-                                {...(backend.platform === platform.Platform.desktop
-                                    ? DESKTOP_PROJECT_NAME_VALIDATION
-                                    : {})}
-                            />
-                        ))
-                    }
                     // This is not a React component even though it contains JSX.
                     // eslint-disable-next-line no-restricted-syntax
                     const doDelete = () => {
                         setModal(() => (
                             <ConfirmDeleteModal
-                                name={projectAsset.title}
-                                assetType={projectAsset.type}
-                                doDelete={() => backend.deleteProject(projectAsset.id)}
+                                name={secret.title}
+                                assetType={secret.type}
+                                doDelete={() => backend.deleteSecret(secret.id)}
                                 onSuccess={onDelete}
                             />
                         ))
                     }
                     setModal(() => (
                         <ContextMenu event={event}>
-                            <ContextMenuEntry disabled onClick={doOpenForEditing}>
-                                Open for editing
-                            </ContextMenuEntry>
-                            <ContextMenuEntry disabled onClick={doOpenAsFolder}>
-                                Open as folder
-                            </ContextMenuEntry>
-                            <ContextMenuEntry disabled onClick={doRename}>
-                                Rename
-                            </ContextMenuEntry>
                             <ContextMenuEntry onClick={doDelete}>
                                 <span className="text-red-700">Delete</span>
                             </ContextMenuEntry>
@@ -347,8 +280,8 @@ function ProjectRows(props: ProjectRowsProps) {
                     ))
                 }}
             />
-        </>
-    )
+        )
+    }
 }
 
-export default ProjectRows
+export default SecretsTable

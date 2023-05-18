@@ -47,7 +47,7 @@ interface Props<T, State = never> {
 }
 
 /** Table that projects an object into each column. */
-function Rows<T, State = never>(props: Props<T, State>) {
+function Table<T, State = never>(props: Props<T, State>) {
     const { items, state, getKey, columns, isLoading, placeholder, onClick, onContextMenu } = props
     const [spinnerClasses, setSpinnerClasses] = React.useState(SPINNER_INITIAL_CLASSES)
 
@@ -120,11 +120,13 @@ function Rows<T, State = never>(props: Props<T, State>) {
         ))
     )
     return (
-        <>
-            {headerRow}
-            {itemRows}
-        </>
+        <table className="table-fixed items-center border-collapse mt-2">
+            <tbody>
+                {headerRow}
+                {itemRows}
+            </tbody>
+        </table>
     )
 }
 
-export default Rows
+export default Table

@@ -13,7 +13,7 @@ import * as svg from '../../components/svg'
 import CreateForm, * as createForm from './createForm'
 import ContextMenu from './contextMenu'
 import RenameModal from './renameModal'
-import Rows from './rows'
+import Table from './table'
 
 // ===========================
 // === DirectoryCreateForm ===
@@ -121,7 +121,7 @@ function DirectoryNameHeading(props: ProjectNameHeadingProps) {
 // === DirectoryName ===
 // =====================
 
-/** State passed through from a {@link DirectoryRows} to every cell. */
+/** State passed through from a {@link DirectoriesTable} to every cell. */
 export interface DirectoryNamePropsState {
     onRename: () => void
     enterDirectory: (directory: backendModule.DirectoryAsset) => void
@@ -176,8 +176,8 @@ function DirectoryName(props: DirectoryNameProps) {
 // === DirectoryRows ===
 // =====================
 
-/** Props for a {@link DirectoryRows}. */
-export interface DirectoryRowsProps {
+/** Props for a {@link DirectoriesTable}. */
+export interface DirectoriesTableProps {
     directoryId: backendModule.DirectoryId
     items: backendModule.DirectoryAsset[]
     isLoading: boolean
@@ -192,8 +192,8 @@ export interface DirectoryRowsProps {
     enterDirectory: (directory: backendModule.DirectoryAsset) => void
 }
 
-/** Rows for the table of directory assets. */
-function DirectoryRows(props: DirectoryRowsProps) {
+/** The table of directory assets. */
+function DirectoriesTable(props: DirectoriesTableProps) {
     const {
         directoryId,
         items,
@@ -212,51 +212,46 @@ function DirectoryRows(props: DirectoryRowsProps) {
         return <></>
     } else {
         return (
-            <>
-                <tr className="h-10" />
-                <Rows<backendModule.DirectoryAsset, DirectoryNamePropsState>
-                    items={items}
-                    isLoading={isLoading}
-                    state={{ enterDirectory, onRename }}
-                    getKey={backendModule.getAssetId}
-                    placeholder={
-                        <span className="opacity-75">
-                            This directory does not contain any subdirectories
-                            {query ? ' matching your query' : ''}.
-                        </span>
-                    }
-                    columns={columnModule
-                        .columnsFor(columnDisplayMode, backend.platform)
-                        .map(column =>
-                            column === columnModule.Column.name
-                                ? {
-                                      id: column,
-                                      className: columnModule.COLUMN_CSS_CLASS[column],
-                                      heading: (
-                                          <DirectoryNameHeading
-                                              directoryId={directoryId}
-                                              onCreate={onCreate}
-                                          />
-                                      ),
-                                      render: DirectoryName,
-                                  }
-                                : {
-                                      id: column,
-                                      className: columnModule.COLUMN_CSS_CLASS[column],
-                                      heading: <>{columnModule.COLUMN_NAME[column]}</>,
-                                      render: columnModule.COLUMN_RENDERER[column],
-                                  }
-                        )}
-                    onClick={onAssetClick}
-                    onContextMenu={(_directory, event) => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        setModal(() => <ContextMenu event={event}></ContextMenu>)
-                    }}
-                />
-            </>
+            <Table<backendModule.DirectoryAsset, DirectoryNamePropsState>
+                items={items}
+                isLoading={isLoading}
+                state={{ enterDirectory, onRename }}
+                getKey={backendModule.getAssetId}
+                placeholder={
+                    <span className="opacity-75">
+                        This directory does not contain any subdirectories
+                        {query ? ' matching your query' : ''}.
+                    </span>
+                }
+                columns={columnModule.columnsFor(columnDisplayMode, backend.platform).map(column =>
+                    column === columnModule.Column.name
+                        ? {
+                              id: column,
+                              className: columnModule.COLUMN_CSS_CLASS[column],
+                              heading: (
+                                  <DirectoryNameHeading
+                                      directoryId={directoryId}
+                                      onCreate={onCreate}
+                                  />
+                              ),
+                              render: DirectoryName,
+                          }
+                        : {
+                              id: column,
+                              className: columnModule.COLUMN_CSS_CLASS[column],
+                              heading: <>{columnModule.COLUMN_NAME[column]}</>,
+                              render: columnModule.COLUMN_RENDERER[column],
+                          }
+                )}
+                onClick={onAssetClick}
+                onContextMenu={(_directory, event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    setModal(() => <ContextMenu event={event}></ContextMenu>)
+                }}
+            />
         )
     }
 }
 
-export default DirectoryRows
+export default DirectoriesTable

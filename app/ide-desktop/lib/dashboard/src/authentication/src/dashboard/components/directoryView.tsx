@@ -9,11 +9,11 @@ import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as hooks from '../../hooks'
 
-import DirectoryRows from './directoryRows'
+import DirectoriesTable from './directoryRows'
 import DriveBar from './driveBar'
-import FileRows from './fileRows'
-import ProjectRows from './projectRows'
-import SecretRows from './secretRows'
+import FilesTable from './filesTable'
+import ProjectsTable from './projectsTable'
+import SecretsTable from './secretsTable'
 
 // =================
 // === Constants ===
@@ -178,56 +178,56 @@ function DirectoryView(props: DirectoryViewProps) {
                 onUpload={doRefresh}
                 exitDirectory={exitDirectory}
             />
-            <table className="table-fixed items-center border-collapse mt-2">
-                <tbody>
-                    <ProjectRows
-                        appRunner={appRunner}
-                        directoryId={directoryId}
-                        items={visibleProjectAssets}
-                        isLoading={isLoadingAssets}
-                        columnDisplayMode={columnDisplayMode}
-                        onCreate={doRefresh}
-                        onRename={doRefresh}
-                        onDelete={doRefresh}
-                        onOpenIde={onOpenIde}
-                        onCloseIde={onCloseIde}
-                        onAssetClick={onAssetClick}
-                    />
-                    <DirectoryRows
-                        directoryId={directoryId}
-                        items={visibleDirectoryAssets}
-                        isLoading={isLoadingAssets}
-                        columnDisplayMode={columnDisplayMode}
-                        query={query}
-                        onCreate={doRefresh}
-                        onRename={doRefresh}
-                        onAssetClick={onAssetClick}
-                        enterDirectory={enterDirectory}
-                    />
-                    <SecretRows
-                        directoryId={directoryId}
-                        items={visibleSecretAssets}
-                        isLoading={isLoadingAssets}
-                        columnDisplayMode={columnDisplayMode}
-                        query={query}
-                        onCreate={doRefresh}
-                        onRename={doRefresh}
-                        onDelete={doRefresh}
-                        onAssetClick={onAssetClick}
-                    />
-                    <FileRows
-                        directoryId={directoryId}
-                        items={visibleFileAssets}
-                        isLoading={isLoadingAssets}
-                        columnDisplayMode={columnDisplayMode}
-                        query={query}
-                        onCreate={doRefresh}
-                        onRename={doRefresh}
-                        onDelete={doRefresh}
-                        onAssetClick={onAssetClick}
-                    />
-                </tbody>
-            </table>
+            <div className="h-10" />
+            <ProjectsTable
+                appRunner={appRunner}
+                directoryId={directoryId}
+                items={visibleProjectAssets}
+                isLoading={isLoadingAssets}
+                columnDisplayMode={columnDisplayMode}
+                onCreate={doRefresh}
+                onRename={doRefresh}
+                onDelete={doRefresh}
+                onOpenIde={onOpenIde}
+                onCloseIde={onCloseIde}
+                onAssetClick={onAssetClick}
+            />
+            <div className="h-10" />
+            <DirectoriesTable
+                directoryId={directoryId}
+                items={visibleDirectoryAssets}
+                isLoading={isLoadingAssets}
+                columnDisplayMode={columnDisplayMode}
+                query={query}
+                onCreate={doRefresh}
+                onRename={doRefresh}
+                onAssetClick={onAssetClick}
+                enterDirectory={enterDirectory}
+            />
+            <div className="h-10" />
+            <SecretsTable
+                directoryId={directoryId}
+                items={visibleSecretAssets}
+                isLoading={isLoadingAssets}
+                columnDisplayMode={columnDisplayMode}
+                query={query}
+                onCreate={doRefresh}
+                onRename={doRefresh}
+                onDelete={doRefresh}
+                onAssetClick={onAssetClick}
+            />
+            <div className="h-10" />
+            <FilesTable
+                directoryId={directoryId}
+                items={visibleFileAssets}
+                isLoading={isLoadingAssets}
+                columnDisplayMode={columnDisplayMode}
+                query={query}
+                onCreate={doRefresh}
+                onRename={doRefresh}
+                onDelete={doRefresh}
+                onAssetClick={onAssetClick}
+            />
         </>
     )
 }

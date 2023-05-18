@@ -16,7 +16,7 @@ import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import RenameModal from './renameModal'
-import Rows from './rows'
+import Table from './table'
 
 // ======================
 // === FileCreateForm ===
@@ -197,8 +197,8 @@ function FileName(props: FileNameProps) {
 // === FileRows ===
 // ================
 
-/** Props for a {@link FileRows}. */
-export interface FileRowsProps {
+/** Props for a {@link FilesTable}. */
+export interface FilesTableProps {
     directoryId: backendModule.DirectoryId
     items: backendModule.FileAsset[]
     isLoading: boolean
@@ -213,8 +213,8 @@ export interface FileRowsProps {
     ) => void
 }
 
-/** Rows for the table of file assets. */
-function FileRows(props: FileRowsProps) {
+/** The table of file assets. */
+function FilesTable(props: FilesTableProps) {
     const {
         directoryId,
         items,
@@ -233,87 +233,79 @@ function FileRows(props: FileRowsProps) {
         return <></>
     } else {
         return (
-            <>
-                <tr className="h-10" />
-                <Rows<backendModule.FileAsset, FileNamePropsState>
-                    items={items}
-                    isLoading={isLoading}
-                    state={{ onRename }}
-                    getKey={backendModule.getAssetId}
-                    placeholder={
-                        <span className="opacity-75">
-                            This directory does not contain any files
-                            {query ? ' matching your query' : ''}.
-                        </span>
+            <Table<backendModule.FileAsset, FileNamePropsState>
+                items={items}
+                isLoading={isLoading}
+                state={{ onRename }}
+                getKey={backendModule.getAssetId}
+                placeholder={
+                    <span className="opacity-75">
+                        This directory does not contain any files
+                        {query ? ' matching your query' : ''}.
+                    </span>
+                }
+                columns={columnModule.columnsFor(columnDisplayMode, backend.platform).map(column =>
+                    column === columnModule.Column.name
+                        ? {
+                              id: column,
+                              className: columnModule.COLUMN_CSS_CLASS[column],
+                              heading: (
+                                  <FileNameHeading directoryId={directoryId} onCreate={onCreate} />
+                              ),
+                              render: FileName,
+                          }
+                        : {
+                              id: column,
+                              className: columnModule.COLUMN_CSS_CLASS[column],
+                              heading: <>{columnModule.COLUMN_NAME[column]}</>,
+                              render: columnModule.COLUMN_RENDERER[column],
+                          }
+                )}
+                onClick={onAssetClick}
+                onContextMenu={(file, event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    const doCopy = () => {
+                        /** TODO: Wait for backend endpoint. */
                     }
-                    columns={columnModule
-                        .columnsFor(columnDisplayMode, backend.platform)
-                        .map(column =>
-                            column === columnModule.Column.name
-                                ? {
-                                      id: column,
-                                      className: columnModule.COLUMN_CSS_CLASS[column],
-                                      heading: (
-                                          <FileNameHeading
-                                              directoryId={directoryId}
-                                              onCreate={onCreate}
-                                          />
-                                      ),
-                                      render: FileName,
-                                  }
-                                : {
-                                      id: column,
-                                      className: columnModule.COLUMN_CSS_CLASS[column],
-                                      heading: <>{columnModule.COLUMN_NAME[column]}</>,
-                                      render: columnModule.COLUMN_RENDERER[column],
-                                  }
-                        )}
-                    onClick={onAssetClick}
-                    onContextMenu={(file, event) => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        const doCopy = () => {
-                            /** TODO: Wait for backend endpoint. */
-                        }
-                        const doCut = () => {
-                            /** TODO: Wait for backend endpoint. */
-                        }
-                        // This is not a React component even though it contains JSX.
-                        // eslint-disable-next-line no-restricted-syntax
-                        const doDelete = () => {
-                            setModal(() => (
-                                <ConfirmDeleteModal
-                                    name={file.title}
-                                    assetType={file.type}
-                                    doDelete={() => backend.deleteFile(file.id)}
-                                    onSuccess={onDelete}
-                                />
-                            ))
-                        }
-                        const doDownload = () => {
-                            /** TODO: Wait for backend endpoint. */
-                        }
+                    const doCut = () => {
+                        /** TODO: Wait for backend endpoint. */
+                    }
+                    // This is not a React component even though it contains JSX.
+                    // eslint-disable-next-line no-restricted-syntax
+                    const doDelete = () => {
                         setModal(() => (
-                            <ContextMenu event={event}>
-                                <ContextMenuEntry disabled onClick={doCopy}>
-                                    Copy
-                                </ContextMenuEntry>
-                                <ContextMenuEntry disabled onClick={doCut}>
-                                    Cut
-                                </ContextMenuEntry>
-                                <ContextMenuEntry onClick={doDelete}>
-                                    <span className="text-red-700">Delete</span>
-                                </ContextMenuEntry>
-                                <ContextMenuEntry disabled onClick={doDownload}>
-                                    Download
-                                </ContextMenuEntry>
-                            </ContextMenu>
+                            <ConfirmDeleteModal
+                                name={file.title}
+                                assetType={file.type}
+                                doDelete={() => backend.deleteFile(file.id)}
+                                onSuccess={onDelete}
+                            />
                         ))
-                    }}
-                />
-            </>
+                    }
+                    const doDownload = () => {
+                        /** TODO: Wait for backend endpoint. */
+                    }
+                    setModal(() => (
+                        <ContextMenu event={event}>
+                            <ContextMenuEntry disabled onClick={doCopy}>
+                                Copy
+                            </ContextMenuEntry>
+                            <ContextMenuEntry disabled onClick={doCut}>
+                                Cut
+                            </ContextMenuEntry>
+                            <ContextMenuEntry onClick={doDelete}>
+                                <span className="text-red-700">Delete</span>
+                            </ContextMenuEntry>
+                            <ContextMenuEntry disabled onClick={doDownload}>
+                                Download
+                            </ContextMenuEntry>
+                        </ContextMenu>
+                    ))
+                }}
+            />
         )
     }
 }
 
-export default FileRows
+export default FilesTable

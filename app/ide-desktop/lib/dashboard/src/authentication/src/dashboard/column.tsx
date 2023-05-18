@@ -4,8 +4,8 @@ import * as React from 'react'
 import * as backend from './backend'
 import * as modalProvider from '../providers/modal'
 import * as platform from '../platform'
-import * as rows from './components/rows'
 import * as svg from '../components/svg'
+import * as table from './components/table'
 
 import PermissionDisplay, * as permissionDisplay from './components/permissionDisplay'
 import ContextMenu from './components/contextMenu'
@@ -109,7 +109,7 @@ const PERMISSION: Record<backend.PermissionAction, permissionDisplay.Permissions
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
 export const COLUMN_RENDERER: Record<
     Exclude<Column, Column.name>,
-    (props: rows.ColumnProps<backend.Asset, unknown>) => JSX.Element
+    (props: table.ColumnProps<backend.Asset, unknown>) => JSX.Element
 > = {
     [Column.lastModified]: () => <></>,
     [Column.sharedWith]: props => (
