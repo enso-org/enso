@@ -29,10 +29,9 @@ public final class DoubleStorage extends NumericStorage<Double> {
   private static final MapOpStorage<Double, DoubleStorage> ops = buildOps();
 
   /**
-   * @param data      the underlying data
-   * @param size      the number of items stored
-   * @param isMissing a bit set denoting at index {@code i} whether or not the value at index {@code
-   *                  i} is missing.
+   * @param data the underlying data
+   * @param size the number of items stored
+   * @param isMissing a bit set denoting at index {@code i} whether the value at index {@code i} is missing.
    */
   public DoubleStorage(long[] data, int size, BitSet isMissing) {
     this.data = data;
