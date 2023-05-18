@@ -8,6 +8,7 @@
 #![feature(drain_filter)]
 #![feature(entry_insert)]
 #![feature(fn_traits)]
+#![feature(macro_metavar_expr)]
 #![feature(option_result_contains)]
 #![feature(specialization)]
 #![feature(trait_alias)]
@@ -3177,7 +3178,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     frp::extend! { network
         _eval <- all_with(&out.node_hovered,&edit_mode,f!([model](tgt,e)
             if let Some(tgt) = tgt {
-                model.with_node(tgt.value,|t| t.model().input.set_edit_ready_mode(*e && tgt.is_on()));
+                model.with_node(tgt.value,|t| t.set_edit_ready_mode(*e && tgt.is_on()));
             }
         ));
         _eval <- all_with(&out.node_hovered,&out.some_edge_targets_unset,f!([model](tgt,ok)
