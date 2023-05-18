@@ -273,7 +273,16 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         case backendModule.ProjectState.created:
         case backendModule.ProjectState.new:
         case backendModule.ProjectState.closed:
-            return <button onClick={openProject}>{svg.PLAY_ICON}</button>
+            return (
+                <button
+                    onClick={async () => {
+                        setShouldOpenWhenReady(true)
+                        await openProject()
+                    }}
+                >
+                    {svg.PLAY_ICON}
+                </button>
+            )
         case backendModule.ProjectState.openInProgress:
             return (
                 <button onClick={closeProject}>
