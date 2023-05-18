@@ -13,8 +13,8 @@ polyglot java import org.enso.table.data.column.operation.CastProblemBuilder
 check_cast_compatibility source_type target_type ~action =
     are_compatible = if (target_type == Value_Type.Mixed) || target_type.is_text || (source_type == target_type) then True else
         if source_type.is_text && is_a_valid_parse_target target_type then Error.throw (Illegal_Argument.Error "To parse a text column into "+target_type.to_display_text+" type, `parse` should be used instead of `cast`.") else
-            if target_type.is_numeric then source_type.is_numeric else
-                if source_type == Value_Type.Boolean then target_type.is_numeric else
+            if source_type == Value_Type.Boolean then target_type.is_numeric else
+                if source_type.is_numeric then target_type.is_numeric else
                     case source_type of
                         Value_Type.Date_Time _ ->
                             (target_type == Value_Type.Date) || (target_type == Value_Type.Time)
