@@ -489,8 +489,14 @@ export class App {
                     description = rustDocs
                 }
             }
-            const href = '?startup.entry=' + entryPoint.strippedName
-            return new debug.HelpScreenEntry(entryPoint.strippedName, [description], href)
+            // This is required to preserve all other search parameters.
+            const searchParams = new URLSearchParams(new URL(location.href).searchParams)
+            searchParams.set('startup.entry', entryPoint.strippedName)
+            return new debug.HelpScreenEntry(
+                entryPoint.strippedName,
+                [description],
+                searchParams.toString()
+            )
         })
         const name = 'Entry points'
         const sections = [new debug.HelpScreenSection({ name, entries })]
