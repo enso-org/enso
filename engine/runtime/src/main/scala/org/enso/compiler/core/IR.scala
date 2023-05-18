@@ -8791,20 +8791,20 @@ object IR {
           s"The type $typeName does not exist in module $moduleName"
       }
 
-      case class SymbolsDoNotExist(
-        symbolNames: List[String],
+      case class SymbolDoesNotExist(
+        symbolName: String,
         moduleName: String
       ) extends Reason {
         override def message: String =
-          s"The symbols $symbolNames (modules or types) do not exist in module $moduleName."
+          s"The symbol $symbolName (module or type) does not exist in module $moduleName."
       }
 
-      case class NoSuchConstructors(
+      case class NoSuchConstructor(
         typeName: String,
-        constructorsName: List[String]
+        constructorName: String
       ) extends Reason {
         override def message: String =
-          s"No such constructors ${constructorsName} in type $typeName"
+          s"No such constructor ${constructorName} in type $typeName"
       }
     }
 

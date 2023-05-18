@@ -3,7 +3,6 @@ package org.enso.compiler.pass.analyse
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.GenerateMethodBodies
 
@@ -12,6 +11,7 @@ import scala.annotation.unused
 /** Performs analysis of `from ... import sym1, sym2, ...` statements - checks that all
   * the symbols imported from the module can be resolved, i.e., exists.
   * In case of unresolved symbols, replaces the IR import with [[IR.Error.ImportExport]].
+  * Reports only the first unresolved symbol.
   */
 case object ImportSymbolAnalysis extends IRPass {
 
@@ -63,52 +63,42 @@ case object ImportSymbolAnalysis extends IRPass {
             _,
             _
           ) =>
-        val importedTarget = bindingMap.resolvedImports
-          .find(_.importDef == imp)
-          .getOrElse(throw new CompilerError("Imported module not found"))
-          .target
-        val maybeFoundSymbols = tryFindSymbols(importedTarget, onlyNames)
-        if (maybeFoundSymbols.exists(_.isLeft)) {
-          val notFoundSymbols: List[String] = maybeFoundSymbols
-            .collect { case Left(symbol) => symbol }
-          importedTarget match {
-            case BindingsMap.ResolvedModule(module) =>
-              IR.Error.ImportExport(
-                imp,
-                IR.Error.ImportExport.SymbolsDoNotExist(
-                  notFoundSymbols,
-                  module.getName.toString
-                )
-              )
-            case BindingsMap.ResolvedType(_, tp) =>
-              IR.Error.ImportExport(
-                imp,
-                IR.Error.ImportExport.NoSuchConstructors(
-                  tp.name,
-                  notFoundSymbols
-                )
-              )
-          }
-        } else {
-          imp
+        bindingMap.resolvedImports.find(_.importDef == imp) match {
+          case Some(resolvedImport) =>
+            val importedTarget = resolvedImport.target
+            onlyNames.find(!isSymbolResolved(importedTarget, _)) match {
+              case Some(unresolvedSymbol) =>
+                importedTarget match {
+                  case BindingsMap.ResolvedModule(module) =>
+                    IR.Error.ImportExport(
+                      imp,
+                      IR.Error.ImportExport.SymbolDoesNotExist(
+                        unresolvedSymbol.name,
+                        module.getName.toString
+                      )
+                    )
+                  case BindingsMap.ResolvedType(_, tp) =>
+                    IR.Error.ImportExport(
+                      imp,
+                      IR.Error.ImportExport.NoSuchConstructor(
+                        tp.name,
+                        unresolvedSymbol.name
+                      )
+                    )
+                }
+              case None => imp
+            }
+          case None => imp
         }
       case _ => imp
     }
   }
 
-  private def tryFindSymbols(
+  private def isSymbolResolved(
     importTarget: BindingsMap.ImportTarget,
-    symbols: List[IR.Name.Literal]
-  ): List[Either[String, Boolean]] = {
-    symbols.map(symbol => {
-      val exportedSymbolFromImportedModule =
-        importTarget.findExportedSymbolsFor(symbol.name)
-      if (exportedSymbolFromImportedModule.isEmpty) {
-        Left(symbol.name)
-      } else {
-        Right(true)
-      }
-    })
+    symbol: IR.Name.Literal
+  ): Boolean = {
+    importTarget.findExportedSymbolsFor(symbol.name).nonEmpty
   }
 
   /** @inheritdoc */

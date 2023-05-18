@@ -193,9 +193,9 @@ class ImportExportTest
         .asInstanceOf[IR.Error.ImportExport]
         .reason
         .asInstanceOf[
-          IR.Error.ImportExport.NoSuchConstructors
+          IR.Error.ImportExport.NoSuchConstructor
         ] shouldEqual IR.Error.ImportExport
-        .NoSuchConstructors("Other_Type", List("method"))
+        .NoSuchConstructor("Other_Type", "method")
     }
 
     // TODO[pm]: will be addressed in https://github.com/enso-org/enso/issues/6729
@@ -265,10 +265,10 @@ class ImportExportTest
       mainIr.imports.head
         .asInstanceOf[IR.Error.ImportExport]
         .reason
-        .asInstanceOf[IR.Error.ImportExport.NoSuchConstructors] shouldEqual
-      IR.Error.ImportExport.NoSuchConstructors(
+        .asInstanceOf[IR.Error.ImportExport.NoSuchConstructor] shouldEqual
+      IR.Error.ImportExport.NoSuchConstructor(
         "Other_Module_Type",
-        List("method", "non_existing_method")
+        "method"
       )
     }
 
@@ -393,8 +393,8 @@ class ImportExportTest
       mainModule.getIr.imports.head
         .asInstanceOf[IR.Error.ImportExport]
         .reason
-        .asInstanceOf[IR.Error.ImportExport.SymbolsDoNotExist]
-        .symbolNames shouldEqual List("A_Type")
+        .asInstanceOf[IR.Error.ImportExport.SymbolDoesNotExist]
+        .symbolName shouldEqual "A_Type"
     }
   }
 
