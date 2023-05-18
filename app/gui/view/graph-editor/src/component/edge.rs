@@ -7,6 +7,7 @@ use ensogl::display::traits::*;
 use enso_frp as frp;
 use enso_frp;
 use ensogl::application::Application;
+use ensogl::control::io::mouse;
 use ensogl::data::bounding_box::BoundingBox;
 use ensogl::data::color;
 use ensogl::define_endpoints_2;
@@ -23,12 +24,13 @@ use ensogl_hardcoded_theme as theme;
 const LINE_WIDTH: f32 = 4.0;
 const HOVER_EXTENSION: f32 = 10.0;
 const HOVER_WIDTH: f32 = LINE_WIDTH + HOVER_EXTENSION;
-const NODE_CORNER_RADIUS: f32 = 14.0;
+const NODE_CORNER_RADIUS: f32 = crate::component::node::CORNER_RADIUS;
+const NODE_HEIGHT: f32 = crate::component::node::HEIGHT;
 const MIN_RADIUS: f32 = 20.0;
 const MAX_RADIUS: f32 = 30.0;
 const TARGET_ATTACHMENT_LENGTH: f32 = 6.0;
-const BACKWARD_EDGE_ARROW_THRESHOLD: f32 = 300.0;
-const ARROW_ARM_LENGTH: f32 = 24.0;
+const BACKWARD_EDGE_ARROW_THRESHOLD: f32 = 400.0;
+const ARROW_ARM_LENGTH: f32 = 12.0;
 const ARROW_ARM_WIDTH: f32 = LINE_WIDTH;
 
 
@@ -126,7 +128,6 @@ impl Edge {
 
         let edge_color = color::Animation::new(network);
 
-        use ensogl::control::io::mouse;
         let display_object = &model.display_object;
         let mouse_move = display_object.on_event::<mouse::Move>();
         let mouse_down = display_object.on_event::<mouse::Down>();
@@ -172,6 +173,11 @@ impl Edge {
             eval_ redraw (model.redraw());
         }
         Self { model, frp }
+    }
+
+    /// Return the FRP network.
+    pub fn network(&self) -> &frp::Network {
+        &self.frp.network
     }
 }
 
@@ -403,7 +409,7 @@ impl EdgeModel {
         match self.target_attached.get() {
             // If the target is a node, connect to a point on its top edge. If the radius is small,
             // this looks better than connecting to a vertically-centered point.
-            true => target_offset + Vector2(0.0, NODE_CORNER_RADIUS),
+            true => target_offset + Vector2(0.0, NODE_HEIGHT / 2.0),
             // If the target is the cursor, connect all the way to it.
             false => target_offset,
         }
