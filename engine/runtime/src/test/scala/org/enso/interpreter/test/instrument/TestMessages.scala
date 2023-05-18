@@ -69,7 +69,8 @@ object TestMessages {
     * @param contextId an identifier of the context
     * @param expressionId an identifier of the expression
     * @param expressionType a type of the expression
-    * @param fromCache whether or not the value for this expression came
+    * @param fromCache whether or not the value for this expression came from cache
+    * @param typeChanged a flag indicating whether the the type of expression has changed
     * @param methodPointer method pointer
     * @param payload the update payload
     * @return the expression update response
@@ -124,6 +125,7 @@ object TestMessages {
     * @param methodPointer a pointer to the method definition
     * @param fromCache whether or not the value for this expression came
     * from the cache
+    * @param typeChanged a flag indicating whether the the type of expression has changed
     * @return the expression update response
     */
   def update(
@@ -202,6 +204,7 @@ object TestMessages {
     * @param methodPointer a pointer to the method definition
     * @param fromCache whether or not the value for this expression came
     * from the cache
+    * @param typeChanged a flag indicating whether the the type of expression has changed
     * @param payload the error payload
     * @return the expression update response
     */
@@ -229,6 +232,7 @@ object TestMessages {
     * @param methodPointerOpt a pointer to the method definition
     * @param fromCache whether or not the value for this expression came
     * from the cache
+    * @param typeChanged a flag indicating whether the the type of expression has changed
     * @param payload the error payload
     * @return the expression update response
     */
@@ -370,6 +374,7 @@ object TestMessages {
     * @param methodPointer a pointer to the method definition
     * @param payload the error payload
     * @param builtin a flag indicating what is the type of Panic (a builtin Panic type or stdlib Panic)
+    * @param typeChanged a flag indicating whether the the type of expression has changed
     * @return the expression update response
     */
   private def panicBuilder(
