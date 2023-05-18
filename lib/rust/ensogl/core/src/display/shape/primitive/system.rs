@@ -218,8 +218,8 @@ impl ShapeSystemFlavor {
 #[allow(missing_docs)]
 pub struct ShapeInstance<S> {
     #[deref]
-    shape:          S,
-    pub sprite:     RefCell<Sprite>,
+    shape:      S,
+    pub sprite: RefCell<Sprite>,
 }
 
 impl<S> ShapeInstance<S> {

@@ -25,9 +25,9 @@ use ensogl_core::prelude::*;
 use ensogl_core::animation;
 use ensogl_core::display::camera::Camera2d;
 use ensogl_core::display::navigation::navigator::Navigator;
-use ensogl_core::display::Scene;
 use ensogl_core::display::symbol::geometry::compound::sprite::SpriteObject;
 use ensogl_core::display::symbol::geometry::SpriteSystem;
+use ensogl_core::display::Scene;
 use nalgebra::Vector2;
 use nalgebra::Vector3;
 

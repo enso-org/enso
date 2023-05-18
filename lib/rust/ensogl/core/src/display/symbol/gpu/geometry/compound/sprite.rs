@@ -130,12 +130,12 @@ pub struct Sprite {
 #[allow(missing_docs)]
 pub struct SpriteModel {
     #[deref]
-    pub instance:         SymbolInstance,
-    pub symbol:           Symbol,
-    size:                 Size,
-    transform:            Attribute<Matrix4<f32>>,
-    stats:                SpriteStats,
-    erase_on_drop:        EraseOnDrop<Attribute<Vector2<f32>>>,
+    pub instance:  SymbolInstance,
+    pub symbol:    Symbol,
+    size:          Size,
+    transform:     Attribute<Matrix4<f32>>,
+    stats:         SpriteStats,
+    erase_on_drop: EraseOnDrop<Attribute<Vector2<f32>>>,
 }
 
 impl SpriteModel {
@@ -376,7 +376,7 @@ impl SpriteSystem {
 #[derive(Debug, Clone, CloneRef, Deref)]
 pub struct SpriteObject {
     #[deref]
-    sprite: Sprite,
+    sprite:         Sprite,
     display_object: display::object::Instance,
 }
 
