@@ -243,28 +243,18 @@ pub struct EdgeModel {
     previous_target_attached: Cell<Option<bool>>,
 }
 
-fn update_and_compare<T: Copy + PartialEq<T>, U: Into<Option<T>>>(
-    value: &Cell<Option<T>>,
-    new: U,
-) -> bool {
-    let new = new.into();
-    let old = value.replace(new);
-    old != new
-}
-
 impl EdgeModel {
     /// Constructor.
     #[profile(Debug)]
     pub fn new(scene: &Scene) -> Self {
         let display_object = display::object::Instance::new_named("Edge");
-        let source_attached = Cell::new(true);
         let scene = scene.clone_ref();
         let layer = &scene.layers.main_edges_level;
         layer.add(&display_object);
         Self {
             display_object,
-            source_attached,
             scene,
+            source_attached: default(),
             source_size: default(),
             target_position: default(),
             target_attached: default(),
@@ -351,57 +341,6 @@ impl EdgeModel {
         let scene_pos = self.scene.screen_to_scene_coordinates(screen_pos_3d).xy();
         let pos = scene_pos - self.display_object.xy();
         self.hover_position.set(Some(pos));
-    }
-
-    fn new_section(&self) -> Rectangle {
-        let new = Rectangle::new();
-        new.set_corner_radius_max();
-        new.set_inset_border(LINE_WIDTH);
-        new.set_color(color::Rgba::transparent());
-        new.set_pointer_events(false);
-        self.display_object.add_child(&new);
-        new
-    }
-
-    fn new_hover_section(&self) -> Rectangle {
-        let new = Rectangle::new();
-        new.set_corner_radius_max();
-        new.set_inset_border(HOVER_WIDTH);
-        new.set_color(color::Rgba::transparent());
-        new.set_border_color(INVISIBLE_HOVER_COLOR);
-        self.display_object.add_child(&new);
-        new
-    }
-
-    fn new_arc(&self) -> arc::View {
-        let arc = arc::View::new();
-        arc.stroke_width.set(LINE_WIDTH);
-        self.display_object.add_child(&arc);
-        self.scene.layers.below_main.add(&arc);
-        arc
-    }
-
-    fn new_target_attachment(&self) -> Rectangle {
-        let new = Rectangle::new();
-        new.set_size(Vector2(LINE_WIDTH, TARGET_ATTACHMENT_LENGTH));
-        new.set_border_color(color::Rgba::transparent());
-        new.set_pointer_events(false);
-        self.display_object.add_child(&new);
-        self.scene.layers.main_edge_port_attachments_level.add(&new);
-        new
-    }
-
-    fn new_dataflow_arrow(&self) -> Rectangle {
-        let new = Rectangle::new();
-        new.set_size(Vector2(ARROW_ARM_LENGTH, ARROW_ARM_LENGTH));
-        new.set_inset_border(ARROW_ARM_WIDTH);
-        new.set_color(color::Rgba::transparent());
-        new.set_border_color(color::Rgba::transparent());
-        new.set_pointer_events(false);
-        new.set_rotation_z(std::f32::consts::FRAC_PI_4);
-        new.set_clip(Vector2(0.5, 0.5));
-        self.display_object.add_child(&new);
-        new
     }
 
     fn target_offset(&self) -> Vector2 {
@@ -653,6 +592,77 @@ impl EdgeModel {
             vec![source, j0, j1, target]
         }
     }
+}
+
+
+// === Shape constructors ===
+
+impl EdgeModel {
+    fn new_section(&self) -> Rectangle {
+        let new = Rectangle::new();
+        new.set_corner_radius_max();
+        new.set_inset_border(LINE_WIDTH);
+        new.set_color(color::Rgba::transparent());
+        new.set_pointer_events(false);
+        self.display_object.add_child(&new);
+        new
+    }
+
+    fn new_hover_section(&self) -> Rectangle {
+        let new = Rectangle::new();
+        new.set_corner_radius_max();
+        new.set_inset_border(HOVER_WIDTH);
+        new.set_color(color::Rgba::transparent());
+        new.set_border_color(INVISIBLE_HOVER_COLOR);
+        self.display_object.add_child(&new);
+        new
+    }
+
+    fn new_arc(&self) -> arc::View {
+        let arc = arc::View::new();
+        arc.stroke_width.set(LINE_WIDTH);
+        self.display_object.add_child(&arc);
+        self.scene.layers.below_main.add(&arc);
+        arc
+    }
+
+    fn new_target_attachment(&self) -> Rectangle {
+        let new = Rectangle::new();
+        new.set_size(Vector2(LINE_WIDTH, TARGET_ATTACHMENT_LENGTH));
+        new.set_border_color(color::Rgba::transparent());
+        new.set_pointer_events(false);
+        self.display_object.add_child(&new);
+        self.scene.layers.main_edge_port_attachments_level.add(&new);
+        new
+    }
+
+    fn new_dataflow_arrow(&self) -> Rectangle {
+        let new = Rectangle::new();
+        new.set_size(Vector2(ARROW_ARM_LENGTH, ARROW_ARM_LENGTH));
+        new.set_inset_border(ARROW_ARM_WIDTH);
+        new.set_color(color::Rgba::transparent());
+        new.set_border_color(color::Rgba::transparent());
+        new.set_pointer_events(false);
+        new.set_rotation_z(std::f32::consts::FRAC_PI_4);
+        new.set_clip(Vector2(0.5, 0.5));
+        self.display_object.add_child(&new);
+        new
+    }
+}
+
+
+// === Change detection ===
+
+/// Set the given [`Cell`] to a new value.
+///
+/// Returns `true` if the new value is different from the old value.
+fn update_and_compare<T: Copy + PartialEq<T>, U: Into<Option<T>>>(
+    value: &Cell<Option<T>>,
+    new: U,
+) -> bool {
+    let new = new.into();
+    let old = value.replace(new);
+    old != new
 }
 
 
