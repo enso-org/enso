@@ -216,7 +216,7 @@ impl Widget {
 
             // Animate margins around the list that are added when it has elements.
             let margin_anim = Animation::new(network);
-            has_elements <- reconfigured.map(f_!(list.len() > 0));
+            has_elements <- reconfigured.map(f_!([list] !list.is_empty()));
             margin_anim.target <+ has_elements
                 .map(|has| has.then_val_or_default(INSERTION_OFFSET));
 

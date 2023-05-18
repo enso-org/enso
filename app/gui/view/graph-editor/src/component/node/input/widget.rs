@@ -399,7 +399,7 @@ impl Configuration {
 
 impl<Widget: SpanWidget> Configuration<Widget> {
     fn maybe_with_port(kind: Widget::Config, has_port: bool) -> Self {
-        Self { display: Display::Always, kind: kind.into(), has_port }
+        Self { display: Display::Always, kind, has_port }
     }
 
     fn always(kind: Widget::Config) -> Self {

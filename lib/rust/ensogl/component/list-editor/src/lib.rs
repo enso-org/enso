@@ -704,6 +704,10 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         self.model.borrow().len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn take_item_no_reposition(&self, index: Index) -> Option<T> {
         let mut model = self.model.borrow_mut();
         let index = model.index_to_item_or_placeholder_index(index)?;
