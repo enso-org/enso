@@ -495,7 +495,7 @@ export class App {
             return new debug.HelpScreenEntry(
                 entryPoint.strippedName,
                 [description],
-                searchParams.toString()
+                '?' + searchParams.toString()
             )
         })
         const name = 'Entry points'
