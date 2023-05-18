@@ -36,7 +36,7 @@ case object ImportSymbolAnalysis extends IRPass {
       "BindingMap should already be present"
     )
     ir.copy(
-      imports = ir.imports.map(analyseSymbolsFromImport(_, bindingMap))
+      imports = ir.imports.flatMap(analyseSymbolsFromImport(_, bindingMap))
     )
   }
 
@@ -47,10 +47,12 @@ case object ImportSymbolAnalysis extends IRPass {
     inlineContext: InlineContext
   ): IR.Expression = ir
 
+  /** @return May return multiple [[IR.Error.ImportExport]] in case of multiple unresolved symbols.
+    */
   private def analyseSymbolsFromImport(
     imp: IR.Module.Scope.Import,
     bindingMap: BindingsMap
-  ): IR.Module.Scope.Import = {
+  ): List[IR.Module.Scope.Import] = {
     imp match {
       case imp @ IR.Module.Scope.Import.Module(
             _,
@@ -66,31 +68,48 @@ case object ImportSymbolAnalysis extends IRPass {
         bindingMap.resolvedImports.find(_.importDef == imp) match {
           case Some(resolvedImport) =>
             val importedTarget = resolvedImport.target
-            onlyNames.find(!isSymbolResolved(importedTarget, _)) match {
-              case Some(unresolvedSymbol) =>
-                importedTarget match {
-                  case BindingsMap.ResolvedModule(module) =>
-                    IR.Error.ImportExport(
-                      imp,
-                      IR.Error.ImportExport.SymbolDoesNotExist(
-                        unresolvedSymbol.name,
-                        module.getName.toString
-                      )
-                    )
-                  case BindingsMap.ResolvedType(_, tp) =>
-                    IR.Error.ImportExport(
-                      imp,
-                      IR.Error.ImportExport.NoSuchConstructor(
-                        tp.name,
-                        unresolvedSymbol.name
-                      )
-                    )
-                }
-              case None => imp
+            val unresolvedSymbols =
+              onlyNames.filterNot(isSymbolResolved(importedTarget, _))
+            if (unresolvedSymbols.nonEmpty) {
+              unresolvedSymbols
+                .map(
+                  createErrorForUnresolvedSymbol(
+                    imp,
+                    importedTarget,
+                    _
+                  )
+                )
+            } else {
+              List(imp)
             }
-          case None => imp
+          case None => List(imp)
         }
-      case _ => imp
+      case _ => List(imp)
+    }
+  }
+
+  private def createErrorForUnresolvedSymbol(
+    imp: IR.Module.Scope.Import,
+    importTarget: BindingsMap.ImportTarget,
+    unresolvedSymbol: IR.Name.Literal
+  ): IR.Error.ImportExport = {
+    importTarget match {
+      case BindingsMap.ResolvedModule(module) =>
+        IR.Error.ImportExport(
+          imp,
+          IR.Error.ImportExport.SymbolDoesNotExist(
+            unresolvedSymbol.name,
+            module.getName.toString
+          )
+        )
+      case BindingsMap.ResolvedType(_, tp) =>
+        IR.Error.ImportExport(
+          imp,
+          IR.Error.ImportExport.NoSuchConstructor(
+            tp.name,
+            unresolvedSymbol.name
+          )
+        )
     }
   }
 

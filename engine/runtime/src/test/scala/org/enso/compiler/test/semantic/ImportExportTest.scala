@@ -198,6 +198,26 @@ class ImportExportTest
         .NoSuchConstructor("Other_Type", "method")
     }
 
+    "result in multiple errors when importing more methods from type" in {
+      """
+        |type Other_Type
+        |    method self = 42
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Other_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.Other_Module.Other_Type import method, other_method
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+      mainIr.imports
+        .take(2)
+        .map(_.asInstanceOf[IR.Error.ImportExport].reason) shouldEqual List(
+        IR.Error.ImportExport.NoSuchConstructor("Other_Type", "method"),
+        IR.Error.ImportExport.NoSuchConstructor("Other_Type", "other_method")
+      )
+    }
+
     // TODO[pm]: will be addressed in https://github.com/enso-org/enso/issues/6729
     "resolve static method from a module" ignore {
       """
@@ -261,14 +281,12 @@ class ImportExportTest
            |""".stripMargin
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
-      mainIr.imports.head.isInstanceOf[IR.Error.ImportExport] shouldBe true
-      mainIr.imports.head
-        .asInstanceOf[IR.Error.ImportExport]
-        .reason
-        .asInstanceOf[IR.Error.ImportExport.NoSuchConstructor] shouldEqual
-      IR.Error.ImportExport.NoSuchConstructor(
-        "Other_Module_Type",
-        "method"
+      mainIr.imports
+        .take(2)
+        .map(_.asInstanceOf[IR.Error.ImportExport].reason) shouldEqual List(
+        IR.Error.ImportExport.NoSuchConstructor("Other_Module_Type", "method"),
+        IR.Error.ImportExport
+          .NoSuchConstructor("Other_Module_Type", "non_existing_method")
       )
     }
 
