@@ -188,7 +188,7 @@ type Table_Column_Helper
             matched_columns = self.internal_columns.filter column->(column.name==selector)
             if matched_columns.length == 1 then matched_columns.first else
                 if matched_columns.length != 0 then Panic.throw (Illegal_State.Error "Bug in Table library: A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?") else
-                    (self.table.compute selector).catch Any expression_error->
+                    (self.table.evaluate_expression selector).catch Any expression_error->
                         invalid_column = Invalid_Aggregate_Column.Error selector expression_error
                         problem_builder.report_other_warning invalid_column
                         Nothing

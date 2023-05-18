@@ -189,8 +189,8 @@ type Table
 
        Icon: select_column
     @columns Widget_Helpers.make_column_name_vector_selector
-    select_columns : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Boolean -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range
-    select_columns self (columns = [0]) (reorder = False) (error_on_missing_columns = True) (on_problems = Report_Warning) =
+    select_columns : Vector (Integer | Text | Column_Selector) | Text | Integer | Column_Selector -> Boolean -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range
+    select_columns self (columns = [self.columns.first.name]) (reorder = False) (error_on_missing_columns = True) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.select_columns selectors=columns reorder=reorder error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
 
@@ -513,7 +513,7 @@ type Table
              people.filter_by_expression "[age] % 10 == 0"
     filter_by_expression : Text -> Problem_Behavior -> Table ! No_Such_Column | Invalid_Value_Type | Expression_Error
     filter_by_expression self expression on_problems=Report_Warning =
-        column = self.compute expression on_problems
+        column = self.evaluate_expression expression on_problems
         self.filter column Filter_Condition.Is_True
 
     ## UNSTABLE
@@ -627,7 +627,7 @@ type Table
     set : Column | Text -> Text | Nothing -> Set_Mode -> Problem_Behavior -> Table ! Unsupported_Name | Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
-            _ : Text -> self.compute column on_problems
+            _ : Text -> self.evaluate_expression column on_problems
             _ -> column
         renamed = case new_name of
            Nothing -> resolved
@@ -667,8 +667,8 @@ type Table
              an `Arithmetic_Error`.
            - If more than 10 rows encounter computation issues,
              an `Additional_Warnings`.
-    compute : Text -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
-    compute self expression on_problems=Report_Warning =
+    evaluate_expression : Text -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
+    evaluate_expression self expression on_problems=Report_Warning =
         get_column name = self.at name
         type_mapping = self.connection.dialect.get_type_mapping
         make_constant value =

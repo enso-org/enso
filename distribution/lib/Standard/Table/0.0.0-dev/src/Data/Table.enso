@@ -1123,7 +1123,7 @@ type Table
              people.filter_by_expression "[age] % 10 == 0"
     filter_by_expression : Text -> Problem_Behavior -> Table ! No_Such_Column | Invalid_Value_Type | Expression_Error
     filter_by_expression self expression on_problems=Report_Warning =
-        column = self.compute expression on_problems
+        column = self.evaluate_expression expression on_problems
         self.filter column Filter_Condition.Is_True
 
     ## Creates a new Table with the specified range of rows from the input
@@ -1221,7 +1221,7 @@ type Table
     set : Column | Text -> Text | Nothing -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
-            _ : Text -> self.compute column on_problems
+            _ : Text -> self.evaluate_expression column on_problems
             _ : Column -> column
         renamed = case new_name of
            Nothing -> resolved
@@ -1257,8 +1257,8 @@ type Table
              an `Arithmetic_Error`.
            - If more than 10 rows encounter computation issues,
              an `Additional_Warnings`.
-    compute : Text -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
-    compute self expression on_problems=Report_Warning =
+    evaluate_expression : Text -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
+    evaluate_expression self expression on_problems=Report_Warning =
         get_column name = self.at name
         make_constant value = Column.from_vector_repeated (UUID.randomUUID.to_text) [value] self.row_count
         new_column = Expression.evaluate expression get_column make_constant "Standard.Table.Data.Column" "Column" Column.var_args_functions
