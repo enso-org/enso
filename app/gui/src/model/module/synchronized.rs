@@ -241,10 +241,10 @@ impl Module {
         self.content().replace(parsed_source);
         let summary = ContentSummary::new(&content);
         let change = TextEdit::from_prefix_postfix_differences(&content, &source.content);
-        // FIXME[ao]: Think about comment here, or a better name for `notify_language_server`/
-        self.notify_language_server(summary.digest, &source, vec![change], true).await;
         let notification = Notification::new(source, NotificationKind::Reloaded);
         self.notify(notification);
+        // FIXME[ao]: Think about comment here, or a better name for `notify_language_server`
+        self.notify_language_server(summary.digest, &source, vec![change], true).await;
         Ok(())
     }
 }
@@ -513,6 +513,7 @@ impl Module {
         edits: Vec<TextEdit>,
         execute: bool,
     ) -> impl Future<Output = ()> + 'static {
+        println!("---\n{}---\n", new_file.content);
         let summary = ParsedContentSummary::from_source(new_file);
         let edit = FileEdit {
             edits,
@@ -575,6 +576,7 @@ impl model::undo_redo::Aware for Module {
 pub mod test {
     use super::*;
 
+    use crate::test::mock;
     use crate::test::Runner;
 
     use engine_protocol::language_server::FileEdit;
@@ -584,7 +586,7 @@ pub mod test {
     use enso_text::text;
     use enso_text::Change;
     use json_rpc::error::RpcError;
-    use wasm_bindgen_test::wasm_bindgen_test;
+    use json_rpc::expect_call;
 
 
     // === LsClientSetup ===
@@ -633,18 +635,18 @@ pub mod test {
                 let actual_old = this.current_ls_version.get();
                 let actual_new =
                     Sha3_224::from_parts(new_content.iter_chunks(..).map(|s| s.as_bytes()));
-                debug!("Actual digest:   {actual_old} => {actual_new}");
-                debug!("Declared digest: {} => {}", edits.old_version, edits.new_version);
-                debug!("New content:\n===\n{new_content}\n===");
+                println!("Actual digest:   {actual_old} => {actual_new}");
+                println!("Declared digest: {} => {}", edits.old_version, edits.new_version);
+                println!("New content:\n===\n{new_content}\n===");
                 assert_eq!(&edits.path, this.path.file_path());
                 assert_eq!(edits.old_version, actual_old);
                 assert_eq!(edits.new_version, actual_new);
                 if result.is_ok() {
                     this.current_ls_content.set(new_content);
                     this.current_ls_version.set(actual_new);
-                    debug!("Accepted!");
+                    println!("Accepted!");
                 } else {
-                    debug!("Rejected!");
+                    println!("Rejected!");
                 }
                 result
             });
@@ -758,25 +760,28 @@ pub mod test {
             let module_path = data.module_path.clone();
             let edit_handler = Rc::new(LsClientSetup::new(module_path, initial_code));
             let mut fixture = data.fixture_customize(|data, client, _| {
+                client.require_all_calls();
                 data.expect_opening_module(client);
                 data.expect_closing_module(client);
                 // Opening module and metadata generation.
                 edit_handler.expect_full_invalidation(client);
-                // Explicit AST update.
-                edit_handler.expect_some_edit(client, |edit| {
-                    assert!(edit.edits.last().map_or(false, |edit| edit.text.contains("Test")));
-                    Ok(())
-                });
-                // Replacing `Test` with `Test 2`
-                edit_handler.expect_some_edit(client, |edits| {
-                    let edit_code = &edits.edits[1];
-                    assert_eq!(edit_code.text, "Test 2");
-                    assert_eq!(edit_code.range, TextRange {
-                        start: Position { line: 1, character: 13 },
-                        end:   Position { line: 1, character: 17 },
+                if !read_only.get() {
+                    // Explicit AST update.
+                    edit_handler.expect_some_edit(client, |edit| {
+                        assert!(edit.edits.last().map_or(false, |edit| edit.text.contains("Test")));
+                        Ok(())
                     });
-                    Ok(())
-                });
+                    // Replacing `Test` with `Test 2`
+                    edit_handler.expect_some_edit(client, |edits| {
+                        let edit_code = &edits.edits[1];
+                        assert_eq!(edit_code.text, "Test 2");
+                        assert_eq!(edit_code.range, TextRange {
+                            start: Position { line: 1, character: 13 },
+                            end:   Position { line: 1, character: 17 },
+                        });
+                        Ok(())
+                    });
+                }
             });
             fixture.read_only.set(read_only.get());
 
@@ -799,7 +804,7 @@ pub mod test {
             } else {
                 assert!(res.is_ok());
             }
-            runner.perhaps_run_until_stalled(&mut fixture);
+            fixture.run_until_stalled()
         };
 
         read_only.set(false);
@@ -867,40 +872,120 @@ pub mod test {
         Runner::run(test);
     }
 
-    #[test]
-    fn handling_notification_after_failure() {
+    /// A template for tests checking situation after edit failure due to connectivity issues.
+    ///
+    /// The test will create model, and - after opening module and performing initialization - will
+    /// apply three simple text updates:
+    /// 1. The first gets error from the language server
+    /// 2. The second should perform reloading file due to error from point 1.
+    /// 3. The third outcome depends on the results of the reopening
+    ///
+    /// The template sets up expectations for initialization and first text change and runs the
+    /// `checks_for_edits_after_failure` closure, which should set up expectations for points 2 and
+    /// 3.
+    fn handling_notification_after_failure_template(
+        mut checks_for_edits_after_failure: impl FnMut(&mock::Unified, &LsClientSetup, &mut MockClient),
+    ) {
         let initial_code = "main =\n    println \"Hello World!\"";
         let mut data = crate::test::mock::Unified::new();
         data.set_code(initial_code);
-
         let test = |runner: &mut Runner| {
             let edit_handler = LsClientSetup::new_for_mock_data(&data);
             let mut fixture = data.fixture_customize(|data, client, _| {
+                client.require_all_calls();
                 data.expect_opening_module(client);
                 data.expect_closing_module(client);
                 // Opening module and metadata generation.
                 edit_handler.expect_full_invalidation(client);
+
                 // Applying code update.
-                edit_handler.expect_edit_with_metadata(client, |edit| {
-                    assert_eq!(edit.text, "Test 2");
-                    assert_eq!(edit.range, TextRange {
-                        start: Position { line: 1, character: 13 },
-                        end:   Position { line: 1, character: 17 },
-                    });
-                    Err(RpcError::LostConnection)
-                });
-                // Full synchronization due to failed update in previous edit.
-                edit_handler.expect_full_invalidation(client);
+                edit_handler.expect_some_edit(client, |edit| Err(RpcError::LostConnection));
+
+                // Checks
+                checks_for_edits_after_failure(&data, &edit_handler, client);
             });
 
             let (_module, controller) = fixture.synchronized_module_w_controller();
             runner.perhaps_run_until_stalled(&mut fixture);
             let change = TextChange { range: (20..24).into(), text: "Test 2".to_string() };
-            controller.apply_code_change(change).unwrap();
+            controller.apply_code_change(change.clone()).unwrap();
             runner.perhaps_run_until_stalled(&mut fixture);
+            controller.apply_code_change(change.clone()).unwrap();
+            runner.perhaps_run_until_stalled(&mut fixture);
+            controller.apply_code_change(change).unwrap();
+            fixture.run_until_stalled();
         };
         Runner::run(test);
     }
+
+    #[test]
+    fn handling_notification_after_failure() {
+        handling_notification_after_failure_template(|data, edit_handler, client| {
+            let current_ls_content = edit_handler.current_ls_content.clone_ref();
+            data.expect_closing_module(client);
+            data.expect_opening_module_with_content(client, move || {
+                Ok(current_ls_content.get().to_string())
+            });
+            edit_handler.expect_some_edit(client, |edit| Ok(()));
+
+            // Next change is applied normally
+            edit_handler.expect_some_edit(client, |edit| Ok(()));
+        })
+    }
+
+    #[test]
+    fn handling_file_reopening_after_closing_failure() {
+        handling_notification_after_failure_template(|data, edit_handler, client| {
+            let path = data.module_path.file_path().clone();
+            // Error while closing file should not stop us from continuing reload.
+            expect_call!(client.close_text_file(path=path) => Err(RpcError::LostConnection));
+            let current_ls_content = edit_handler.current_ls_content.clone_ref();
+            data.expect_opening_module_with_content(client, move || {
+                Ok(current_ls_content.get().to_string())
+            });
+            edit_handler.expect_some_edit(client, |edit| Ok(()));
+
+            // Next change is applied normally
+            edit_handler.expect_some_edit(client, |edit| Ok(()));
+        })
+    }
+
+    #[test]
+    fn handling_file_reopening_after_reopening_failure() {
+        handling_notification_after_failure_template(|data, edit_handler, client| {
+            data.expect_closing_module(client);
+            data.expect_opening_module_with_content(client, move || Err(RpcError::LostConnection));
+
+            // As the reopening failed, next change shall again try to reopen file.
+            let current_ls_content = edit_handler.current_ls_content.clone_ref();
+            data.expect_closing_module(client);
+            data.expect_opening_module_with_content(client, move || {
+                Ok(current_ls_content.get().to_string())
+            });
+            edit_handler.expect_some_edit(client, |edit| Ok(()));
+        })
+    }
+
+    #[test]
+    fn handling_file_reopening_after_reopening_initial_update_failure() {
+        handling_notification_after_failure_template(|data, edit_handler, client| {
+            let current_ls_content = edit_handler.current_ls_content.clone_ref();
+            data.expect_closing_module(client);
+            data.expect_opening_module_with_content(client, move || {
+                Ok(current_ls_content.get().to_string())
+            });
+            edit_handler.expect_some_edit(client, |edit| Err(RpcError::LostConnection));
+
+            // The initial update failed, so the next change should try to reopen again.
+            let current_ls_content = edit_handler.current_ls_content.clone_ref();
+            data.expect_closing_module(client);
+            data.expect_opening_module_with_content(client, move || {
+                Ok(current_ls_content.get().to_string())
+            });
+            edit_handler.expect_some_edit(client, |edit| Ok(()));
+        })
+    }
+
 
     #[test]
     fn handle_insertion_edits_bug180558676() {
