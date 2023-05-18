@@ -34,8 +34,8 @@ export function useModal() {
 
 export function useSetModal() {
     const { setModal } = React.useContext(ModalContext)
-    const unsetModal = () => {
+    const unsetModal = React.useCallback(() => {
         setModal(null)
-    }
+    }, [setModal])
     return { setModal, unsetModal }
 }

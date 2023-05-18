@@ -62,20 +62,6 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const [checkState, setCheckState] = React.useState(CheckState.notChecking)
     const [spinnerState, setSpinnerState] = React.useState(SpinnerState.done)
 
-    // TODO[sb]: Switch to useAsyncEffect? (but only after fixing the issue...)
-    React.useEffect(() => {
-        void (async () => {
-            const projectDetails = await backend.getProjectDetails(project.id)
-            setState(projectDetails.state.type)
-            if (projectDetails.state.type === backendModule.ProjectState.openInProgress) {
-                setSpinnerState(SpinnerState.initial)
-                setCheckState(CheckState.checkingStatus)
-            }
-        })()
-        // This MUST NOT depend on backend because a project is associated with a specific backend.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [project.id])
-
     React.useEffect(() => {
         if (backend.platform === platform.Platform.desktop) {
             if (project.id !== localBackend.LocalBackend.currentlyOpeningProjectId) {

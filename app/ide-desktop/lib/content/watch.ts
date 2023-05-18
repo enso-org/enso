@@ -35,8 +35,7 @@ async function watch() {
         devMode: true,
     })
     opts.pure.splice(opts.pure.indexOf('assert'), 1)
-    opts.define.assert =
-        '(invariant, message) => { if (!invariant) { console.error("assertion failed: " + message)} }'
+    ;(opts.inject = opts.inject ?? []).push(path.resolve(THIS_PATH, '..', '..', 'debugGlobals.ts'))
     opts.define.REDIRECT_OVERRIDE = JSON.stringify('http://localhost:8080')
     opts.entryPoints.push({
         in: path.resolve(THIS_PATH, 'src', 'serviceWorker.ts'),

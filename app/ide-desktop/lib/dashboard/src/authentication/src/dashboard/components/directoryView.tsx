@@ -9,7 +9,7 @@ import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as hooks from '../../hooks'
 
-import DirectoriesTable from './directoryRows'
+import DirectoriesTable from './directoriesTable'
 import DriveBar from './driveBar'
 import FilesTable from './filesTable'
 import ProjectsTable from './projectsTable'
