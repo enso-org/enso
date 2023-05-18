@@ -17,6 +17,7 @@ use enso_frp as frp;
 use enso_frp;
 use ensogl::animation::delayed::DelayedAnimation;
 use ensogl::application::Application;
+use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Layer;
@@ -273,6 +274,9 @@ ensogl::define_endpoints_2! {
 
         /// Set read-only mode for input ports.
         set_read_only                     (bool),
+
+        /// Set the mode in which the cursor will indicate that editing of the node is possible.
+        set_edit_ready_mode (bool),
     }
     Output {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
@@ -642,20 +646,30 @@ impl Node {
 
             // === Hover ===
             // The hover discovery of a node is an interesting process. First, we discover whether
-            // ths user hovers the drag area. The input port manager merges this information with
+            // ths user hovers the background. The input port manager merges this information with
             // port hover events and outputs the final hover event for any part inside of the node.
 
-            let drag_area = &model.background.shape.events_deprecated;
-            drag_area_hover <- bool(&drag_area.mouse_out,&drag_area.mouse_over);
-            model.input.set_hover  <+ drag_area_hover;
+            let background_enter = model.background.on_event::<mouse::Enter>();
+            let background_leave = model.background.on_event::<mouse::Leave>();
+            background_hover <- bool(&background_leave, &background_enter);
+            let input_enter = model.input.on_event::<mouse::Over>();
+            let input_leave = model.input.on_event::<mouse::Out>();
+            input_hover <- bool(&input_leave, &input_enter);
+            node_hover <- background_hover || input_hover;
+            node_hover <- node_hover.debounce().on_change();
+            model.input.set_hover <+ node_hover;
             model.output.set_hover <+ model.input.body_hover;
             out.hover <+ model.output.body_hover;
 
 
             // === Background Press ===
 
-            out.background_press <+ model.background.shape.events_deprecated.mouse_down_primary;
-            out.background_press <+ model.input.on_background_press;
+            let background_press = model.background.on_event::<mouse::Down>();
+            let input_press = model.input.on_event::<mouse::Down>();
+            input_as_background_press <- input_press.gate(&input.set_edit_ready_mode);
+            any_background_press <- any(&background_press, &input_as_background_press);
+            any_primary_press <- any_background_press.filter(mouse::event::is_primary);
+            out.background_press <+ any_primary_press.constant(());
 
 
             // === Selection ===
@@ -734,6 +748,7 @@ impl Node {
 
             model.input.set_view_mode <+ input.set_view_mode;
             model.output.set_view_mode <+ input.set_view_mode;
+            model.input.set_edit_ready_mode <+ input.set_edit_ready_mode;
             model.profiling_label.set_view_mode <+ input.set_view_mode;
             model.vcs_indicator.set_visibility  <+ input.set_view_mode.map(|&mode| {
                 !matches!(mode,view::Mode::Profiling {..})
@@ -896,11 +911,8 @@ impl Node {
             //     else         { style.get_color(bg_color_path) }
             // }));
             // bg_color_anim.target <+ bg_color;
-            // eval bg_color_anim.value ((c)
-            //     model.background.bg_color.set(color::Rgba::from(c).into())
-            // );
 
-            eval bg_color_anim.value ((c) model.background.shape.set_color(color::Rgba::from(c)););
+            eval bg_color_anim.value ((c) model.background.shape.set_color(c.into()););
 
 
             // === Tooltip ===

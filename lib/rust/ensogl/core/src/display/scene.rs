@@ -219,19 +219,19 @@ impl Mouse {
             (event: &mouse::Up) {
                 if display_mode.get().allow_mouse_events() {
                     let button = event.button();
-                    frp_deprecated.up.emit(button);
 
                     let current_target = target.get();
                     if let Some(last_target) = last_pressed_elem.borrow_mut().remove(&button) {
                         pointer_target_registry.with_mouse_target(last_target, |t, d| {
-                            t.emit_mouse_release(button);
                             d.emit_event(event.clone().unchecked_convert_to::<mouse::Release>());
+                            t.emit_mouse_release(button);
                         });
                     }
                     pointer_target_registry.with_mouse_target(current_target, |t, d| {
-                        t.emit_mouse_up(button);
                         d.emit_event(event.clone());
+                        t.emit_mouse_up(button);
                     });
+                    frp_deprecated.up.emit(button);
                 }
             }),
         );

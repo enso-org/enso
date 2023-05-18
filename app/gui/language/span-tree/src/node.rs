@@ -36,12 +36,16 @@ pub trait Payload = Default + Clone;
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct Node<T> {
-    pub kind:          Kind,
-    pub size:          ByteDiff,
-    pub children:      Vec<Child<T>>,
-    pub ast_id:        Option<ast::Id>,
-    pub parenthesized: bool,
-    pub payload:       T,
+    pub kind:            Kind,
+    pub size:            ByteDiff,
+    pub children:        Vec<Child<T>>,
+    pub ast_id:          Option<ast::Id>,
+    /// When this `Node` is a part of an AST extension (a virtual span that only exists in
+    /// span-tree, but not in AST), this field will contain the AST ID of the expression it extends
+    /// (e.g. the AST of a function call with missing arguments, extended with expected arguments).
+    pub extended_ast_id: Option<ast::Id>,
+    pub parenthesized:   bool,
+    pub payload:         T,
 }
 
 impl<T> Deref for Node<T> {
@@ -74,8 +78,9 @@ impl<T> Node<T> {
         let size = self.size;
         let children = self.children.into_iter().map(|t| t.map(f)).collect_vec();
         let ast_id = self.ast_id;
+        let extended_ast_id = self.extended_ast_id;
         let payload = f(self.payload);
-        Node { kind, parenthesized, size, children, ast_id, payload }
+        Node { kind, parenthesized, size, children, ast_id, extended_ast_id, payload }
     }
 }
 

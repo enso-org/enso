@@ -187,6 +187,29 @@ impl<T> SpanTree<T> {
         let root = self.root.map(f);
         SpanTree { root }
     }
+
+    /// Map over the nodes in given crumbs chain, from the root to the node identified by the
+    /// crumbs. Terminates on the first `Some(R)` result and returns it.
+    pub fn find_map_in_chain<'a, R, F>(
+        &self,
+        crumbs: impl IntoIterator<Item = &'a Crumb>,
+        mut f: F,
+    ) -> Option<R>
+    where
+        F: FnMut(usize, &Node<T>) -> Option<R>,
+    {
+        let mut crumbs = crumbs.into_iter();
+        let mut current_node = &self.root;
+        let mut idx = 0;
+        loop {
+            let result = f(idx, current_node);
+            if result.is_some() {
+                return result;
+            }
+            idx += 1;
+            current_node = current_node.children.get(*crumbs.next()?)?;
+        }
+    }
 }
 
 
@@ -305,7 +328,10 @@ impl<T> SpanTree<T> {
 
             if let Some(ast_id) = node.ast_id {
                 write!(buffer, " ast_id={ast_id:?}").unwrap();
+            } else if let Some(ext_id) = node.extended_ast_id {
+                write!(buffer, " ext_id={ext_id:?}").unwrap();
             }
+
             buffer.push('\n');
 
             let num_children = node.children.len();
