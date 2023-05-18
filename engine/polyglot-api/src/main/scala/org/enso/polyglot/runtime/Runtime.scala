@@ -375,6 +375,7 @@ object Runtime {
       methodCall: Option[MethodPointer],
       profilingInfo: Vector[ProfilingInfo],
       fromCache: Boolean,
+      typeChanged: Boolean,
       payload: ExpressionUpdate.Payload
     )
     object ExpressionUpdate {

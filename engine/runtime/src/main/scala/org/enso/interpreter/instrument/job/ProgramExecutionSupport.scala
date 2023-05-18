@@ -386,6 +386,7 @@ object ProgramExecutionSupport {
                   Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
                 }.toVector,
                 value.wasCached(),
+                value.isTypeChanged() || value.isFunctionCallChanged(),
                 payload
               )
             )
