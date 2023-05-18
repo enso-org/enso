@@ -465,14 +465,16 @@ public final class LongStorage extends NumericStorage<Long> {
       case IntegerType integerType -> this;
       case FloatType floatType -> {
         int n = size();
-        long[] newData = new long[n];
+        NumericBuilder builder = NumericBuilder.createDoubleBuilder(n);
         for (int i = 0; i < n; i++) {
-          if (!isMissing.get(i)) {
-            double x = (double) data[i];
-            newData[i] = Double.doubleToRawLongBits(x);
+          if (isNa(i)) {
+            builder.appendNulls(1);
+          } else {
+            double converted = (double) getItem(i);
+            builder.appendDouble(converted);
           }
         }
-        yield new DoubleStorage(newData, n, isMissing);
+        yield builder.seal();
       }
       case TextType textType -> {
         int n = size();

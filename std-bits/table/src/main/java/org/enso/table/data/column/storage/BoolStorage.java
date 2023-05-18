@@ -6,6 +6,7 @@ import java.util.function.IntFunction;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.BoolBuilder;
 import org.enso.table.data.column.builder.object.Builder;
+import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.CastProblemBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
@@ -408,21 +409,27 @@ public final class BoolStorage extends Storage<Boolean> {
         this;
       case FloatType floatType -> {
         int n = size();
-        long[] newData = new long[n];
-        long t = Double.doubleToRawLongBits(1.0);
-        long f = Double.doubleToRawLongBits(0.0);
+        NumericBuilder builder = NumericBuilder.createDoubleBuilder(n);
         for (int i = 0; i < n; i++) {
-          newData[i] = values.get(i) ? t : f;
+          if (isNa(i)) {
+            builder.appendNulls(1);
+          } else {
+            builder.appendDouble(values.get(i) ? 1.0 : 0.0);
+          }
         }
-        yield new DoubleStorage(newData, n, isMissing);
+        yield builder.seal();
       }
       case IntegerType integerType -> {
         int n = size();
-        long[] newData = new long[n];
+        NumericBuilder builder = NumericBuilder.createLongBuilder(n);
         for (int i = 0; i < n; i++) {
-          newData[i] = values.get(i) ? 1 : 0;
+          if (isNa(i)) {
+            builder.appendNulls(1);
+          } else {
+            builder.appendLong(values.get(i) ? 1 : 0);
+          }
         }
-        yield new LongStorage(newData, n, isMissing);
+        yield builder.seal();
       }
       case TextType textType -> {
         int n = size();
@@ -431,7 +438,7 @@ public final class BoolStorage extends Storage<Boolean> {
           if (isMissing.get(i)) {
             builder.appendNulls(1);
           } else {
-            builder.append(values.get(i) ? "true" : "false");
+            builder.append(values.get(i) ? "True" : "False");
           }
         }
         yield StringStorage.adapt(builder.seal(), textType);
