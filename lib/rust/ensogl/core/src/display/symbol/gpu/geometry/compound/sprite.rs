@@ -59,10 +59,10 @@ impl Drop for SpriteStats {
 /// Smart wrapper for size attribute of sprite. The size attribute is set to zero in order to hide
 /// the sprite. This wrapper remembers the real size when the sprite is hidden and allows changing
 /// it without making the sprite appear on the screen.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone)]
 pub struct Size {
-    hidden: Rc<Cell<bool>>,
-    value:  Rc<Cell<Vector2<f32>>>,
+    hidden: Cell<bool>,
+    value:  Cell<Vector2<f32>>,
     attr:   Attribute<Vector2<f32>>,
 }
 
@@ -93,8 +93,8 @@ impl CellSetter for Size {
 
 impl Size {
     fn new(attr: Attribute<Vector2<f32>>) -> Self {
-        let hidden = Rc::new(Cell::new(true));
-        let value = Rc::new(Cell::new(zero()));
+        let hidden = Cell::new(true);
+        let value = Cell::new(zero());
         Self { hidden, value, attr }
     }
 
@@ -361,8 +361,54 @@ impl SpriteSystem {
     }
 }
 
-impl display::Object for SpriteSystem {
+
+
+// ====================
+// === SpriteObject ===
+// ====================
+
+/// A [`Sprite`] with an associated display object.
+///
+/// This simple construct allows configuring sprites via display objects without any other layer
+/// such as a [`ShapeSystem`]; however, because the display object is permanently bound to an
+/// instance from a particular [`SpriteSystem`], it is not possible to implement layer operations
+/// for such objects.
+#[derive(Debug, Clone, CloneRef, Deref)]
+pub struct SpriteObject {
+    #[deref]
+    sprite: Sprite,
+    display_object: display::object::Instance,
+}
+
+impl SpriteObject {
+    /// Create a display object and bind it to the sprite.
+    pub fn new(sprite: Sprite) -> Self {
+        let display_object = default();
+        let this = Self { sprite, display_object };
+        this.init_display_object_events();
+        this
+    }
+
+    fn init_display_object_events(&self) {
+        let display_object = &self.display_object;
+        let network = &self.display_object.network;
+        let weak_display_object = display_object.downgrade();
+        let sprite = &self.sprite;
+        frp::extend! { network
+            eval_ display_object.on_transformed ([sprite, weak_display_object] {
+                if let Some(display_object) = weak_display_object.upgrade() {
+                    sprite.set_transform(display_object.transformation_matrix());
+                    sprite.set_size(display_object.computed_size());
+                }
+            });
+            eval_ display_object.on_show(sprite.show());
+            eval_ display_object.on_hide(sprite.hide());
+        }
+    }
+}
+
+impl display::Object for SpriteObject {
     fn display_object(&self) -> &display::object::Instance {
-        self.symbol.display_object()
+        &self.display_object
     }
 }

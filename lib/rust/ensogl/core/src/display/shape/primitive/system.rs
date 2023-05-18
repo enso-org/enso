@@ -524,12 +524,6 @@ impl ShapeSystemModel {
     }
 }
 
-impl display::Object for ShapeSystemModel {
-    fn display_object(&self) -> &display::object::Instance {
-        self.sprite_system.display_object()
-    }
-}
-
 
 
 // ==================

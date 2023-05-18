@@ -238,10 +238,11 @@ impl<S: Shape> ShapeViewModel<S> {
         );
         self.pointer_targets.borrow_mut().push(instance.global_instance_id);
         self.shape.swap(&shape);
-
         self.shape.set_transform(self.display_object.transformation_matrix());
         self.shape.set_size(self.display_object.computed_size());
-        self.shape.show();
+        if self.display_object.is_visible() {
+            self.shape.show();
+        }
     }
 
     fn unregister_existing_mouse_targets(&self) {
