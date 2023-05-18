@@ -10,8 +10,8 @@ polyglot java import org.enso.table.data.column.operation.CastProblemBuilder
 ## PRIVATE
    Checks if one type can be cast into another and returns a dataflow error
    explaining the situation if not.
-check_cast_compatibility source_type target_type =
-    if (target_type == Value_Type.Mixed) || target_type.is_text || (source_type == target_type) then True else
+check_cast_compatibility source_type target_type ~action =
+    are_compatible = if (target_type == Value_Type.Mixed) || target_type.is_text || (source_type == target_type) then True else
         if source_type.is_text && is_a_valid_parse_target target_type then Error.throw (Illegal_Argument.Error "To parse a text column into "+target_type.to_display_text+" type, `parse` should be used instead of `cast`.") else
             if target_type.is_numeric then source_type.is_numeric else
                 if source_type == Value_Type.Boolean then target_type.is_numeric else
@@ -22,7 +22,9 @@ check_cast_compatibility source_type target_type =
                         Value_Type.Binary _ _ -> case target_type of
                             Value_Type.Binary _ _ -> True
                             _ -> False
-                        _ -> Error.throw (Illegal_Argument.Error "Cannot cast "+source_type.to_display_text+" type into "+target_type.to_display_text+" type.")
+                        _ -> False
+    if are_compatible then action else
+        Error.throw (Illegal_Argument.Error "Cannot cast "+source_type.to_display_text+" type into "+target_type.to_display_text+" type.")
 
 ## PRIVATE
    Checks if the type is a valid argument for `parse`.
