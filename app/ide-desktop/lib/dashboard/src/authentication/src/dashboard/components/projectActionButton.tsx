@@ -55,14 +55,11 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
 
     react.useEffect(() => {
-        void (async () => {
-            const projectDetails = await backend.getProjectDetails(project.id)
-            setState(projectDetails.state.type)
-            if (projectDetails.state.type === backendModule.ProjectState.openInProgress) {
-                setSpinnerState(SpinnerState.initial)
-                setIsCheckingStatus(true)
-            }
-        })()
+        setState(project.projectState.type)
+        if (project.projectState.type === backendModule.ProjectState.openInProgress) {
+            setSpinnerState(SpinnerState.initial)
+            setIsCheckingStatus(true)
+        }
     }, [])
 
     react.useEffect(() => {
