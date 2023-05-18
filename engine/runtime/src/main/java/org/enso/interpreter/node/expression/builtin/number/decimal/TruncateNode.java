@@ -11,9 +11,9 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(
     type = "Decimal",
-    name = "int",
+    name = "truncate",
     description = "Truncate a floating-point number to an integer by dropping the fractional part.")
-public class IntNode extends Node {
+public class TruncateNode extends Node {
   private final ConditionProfile fitsProfile = ConditionProfile.createCountingProfile();
 
   Object execute(double self) {

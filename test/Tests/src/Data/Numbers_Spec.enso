@@ -681,21 +681,21 @@ spec =
             99999999999999 . round -2 . should_equal 100000000000000
             -99999999999999 . round -2 . should_equal -100000000000000
 
-    Test.group "Decimal.int"
+    Test.group "Decimal.truncate"
         Test.specify "Correctly converts to Integer" <|
-            0.1.int . should_equal 0
-            0.9.int . should_equal 0
-            3.1.int . should_equal 3
-            3.9.int . should_equal 3
-            -0.1.int . should_equal 0
-            -0.9.int . should_equal 0
-            -3.1.int . should_equal -3
-            -3.9.int . should_equal -3
+            0.1.truncate . should_equal 0
+            0.9.truncate . should_equal 0
+            3.1.truncate . should_equal 3
+            3.9.truncate . should_equal 3
+            -0.1.truncate . should_equal 0
+            -0.9.truncate . should_equal 0
+            -3.1.truncate . should_equal -3
+            -3.9.truncate . should_equal -3
 
-    Test.group "Integer.int"
+    Test.group "Integer.truncate"
         Test.specify "Returns its argument" <|
-            0.int . should_equal 0
-            3.int . should_equal 3
-            -3.int . should_equal -3
+            0.truncate . should_equal 0
+            3.truncate . should_equal 3
+            -3.truncate . should_equal -3
 
 main = Test_Suite.run_main spec

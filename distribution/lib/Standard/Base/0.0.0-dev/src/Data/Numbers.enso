@@ -547,10 +547,12 @@ type Decimal
     floor : Integer
     floor self = @Builtin_Method "Decimal.floor"
 
-    ## Truncate a floating-point number to an integer by dropping the fractional
+    ## ALIAS int
+
+       Truncate a floating-point number to an integer by dropping the fractional
        part. This is equivalent to "round-toward-zero".
-    int : Integer
-    int self = @Builtin_Method "Decimal.int"
+    truncate : Integer
+    truncate self = @Builtin_Method "Decimal.truncate"
 
     ## Round to a specified number of decimal places.
 
@@ -615,7 +617,7 @@ type Decimal
                             True ->
                                 (scaled_self - 0.5).ceil / scale
                 # Convert to integer if it's really an integer anyway.
-                if decimal_places > 0 then decimal_result else decimal_result.int
+                if decimal_places > 0 then decimal_result else decimal_result.truncate
 
     ## Compute the negation of this.
 
@@ -860,10 +862,12 @@ type Integer
     floor : Integer
     floor self = @Builtin_Method "Integer.floor"
 
-    ## Truncate an `Integer` to an `Integer`, i.e. returns its argument. For
-       compatibility with `Decimal.int`.
-    int : Integer
-    int self = self
+    ## ALIAS int
+
+       Truncate an `Integer` to an `Integer`, i.e. returns its argument. For
+       compatibility with `Decimal.truncate`.
+    truncate : Integer
+    truncate self = self
 
     ## Round to a specified number of decimal places.
 
@@ -920,7 +924,7 @@ type Integer
                     ## It's already an integer so unless decimal_places is
                        negative, the value is unchanged.
                     if decimal_places >= 0 then self else
-                        self.to_decimal.round decimal_places use_bankers . int
+                        self.to_decimal.round decimal_places use_bankers . truncate
 
     ## Compute the negation of this.
 
