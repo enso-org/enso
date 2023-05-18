@@ -7,6 +7,7 @@ use ensogl::display::traits::*;
 use crate::component::node;
 use crate::component::visualization;
 use crate::component::visualization::container::visualization_chooser::VisualizationChooser;
+use crate::data::enso;
 
 use enso_frp as frp;
 use enso_frp;
@@ -234,6 +235,7 @@ ensogl::define_endpoints! {
         show_icons                 (),
         hide_icons                 (),
         set_selected_visualization (Option<visualization::Path>),
+        set_vis_input_type         (Option<enso::Type>),
     }
 
     Output {
@@ -371,7 +373,8 @@ impl ActionBar {
             eval_ frp.show_icons ( model.show() );
 
             visualization_chooser.input.set_selected <+ frp.input.set_selected_visualization;
-
+            frp.source.visualisation_selection <+ visualization_chooser.chosen_entry;
+            on_selection <- visualization_chooser.chosen_entry.constant(());
 
             // === Mouse Interactions ===
 
@@ -386,10 +389,9 @@ impl ActionBar {
 
             mouse_out_no_menu <- any_component_out.gate_not(&visualization_chooser.menu_visible);
             remote_click      <- visualization_chooser.menu_closed.gate_not(&any_hovered);
-            hide              <- any(mouse_out_no_menu,remote_click);
+            hide              <- any(mouse_out_no_menu,remote_click,on_selection);
             eval_ hide (model.hide());
 
-            frp.source.visualisation_selection <+ visualization_chooser.chosen_entry;
 
             let reset_position_icon = &model.icons.reset_position_icon.events_deprecated;
             let reset_position_icon_down = reset_position_icon.mouse_down_primary.clone_ref();
@@ -403,13 +405,25 @@ impl ActionBar {
 
             show_reset_icon <- bool(&reset_position_icon_down,start_dragging);
             eval show_reset_icon((visibility) model.icons.set_reset_icon_visibility(*visibility));
+
+
+           // === Visualisation Chooser ===
+
+            // Note: we only want to update the chooser if it is visible, or when it becomes
+            // visible. Thus we avoid many simultaneous updates during initialisation.
+
+            visible <- any(&frp.show_icons, &any_component_over);
+            hidden <- any(&frp.hide_icons, &hide);
+
+            is_visible <- bool(&hidden, &visible);
+            on_show <- is_visible.on_change().on_true();
+
+            set_vis_input_while_visible <- frp.input.set_vis_input_type.gate(&is_visible);
+            set_vis_input_on_show       <- frp.input.set_vis_input_type.sample(&on_show);
+            set_vis_input <- any(&set_vis_input_while_visible, &set_vis_input_on_show).on_change();
+            visualization_chooser.input.set_vis_input_type <+ set_vis_input;
         }
         self
-    }
-
-    /// Visualization Chooser component getter.
-    pub fn visualization_chooser(&self) -> &VisualizationChooser {
-        &self.model.visualization_chooser
     }
 }
 
