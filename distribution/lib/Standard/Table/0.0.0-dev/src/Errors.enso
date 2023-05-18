@@ -568,7 +568,7 @@ type Conversion_Failure
         rows_info = case self.affected_rows_count of
             Nothing -> "Some values"
             count -> count.to_text+" rows"
-        rows_info + "could not be converted into the target type "+self.target_type.to_display_text+" when converting the column ["+self.related_column+"]."
+        rows_info + " could not be converted into the target type "+self.target_type.to_display_text+" when converting the column ["+self.related_column+"]."
 
 type Invalid_Value_For_Type
     ## PRIVATE

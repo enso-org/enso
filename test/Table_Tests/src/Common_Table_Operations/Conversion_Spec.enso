@@ -37,7 +37,8 @@ spec setup =
             t2.at "W" . value_type . is_text . should_be_true
 
             t2.at "X" . to_vector . should_equal ["1", "2", "3000"]
-            t2.at "Y" . to_vector . should_equal ["true", "false", "true"]
+            # Depending on the backend, the case of True/False literals may differ.
+            t2.at "Y" . to_vector . map (_.to_case Case.Lower) . should_equal ["true", "false", "true"]
             t2.at "Z" . to_vector . should_equal ["1.5", "0.125", "-2.5"]
             t2.at "W" . to_vector . should_equal ["a", "DEF", "a slightly longer text"]
 
@@ -160,7 +161,7 @@ spec setup =
                 c.value_type . should_equal Value_Type.Integer
                 c.to_vector . should_equal [1, 2, max_long, Nothing, min_long, Nothing, 4]
                 warning = Problems.expect_warning Conversion_Failure c
-                warning.to_display_text . should_contain "information was lost in 2 rows"
+                warning.to_display_text . should_contain "2 rows could not be converted"
 
     if supports_dates then
         Test.group prefix+"Table/Column.cast - date/time" <|
