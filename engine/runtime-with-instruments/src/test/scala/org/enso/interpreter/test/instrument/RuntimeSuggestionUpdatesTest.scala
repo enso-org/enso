@@ -1151,7 +1151,7 @@ class RuntimeSuggestionUpdatesTest
               ModuleExports(
                 "Enso_Test.Test.Main",
                 Set(
-                  ExportedSymbol.Atom("Enso_Test.Test.A", "MkA"),
+                  ExportedSymbol.Type("Enso_Test.Test.A", "MkA"),
                   ExportedSymbol.Method("Enso_Test.Test.A", "hello")
                 )
               ),
@@ -1259,7 +1259,7 @@ class RuntimeSuggestionUpdatesTest
             Api.ExportsUpdate(
               ModuleExports(
                 "Enso_Test.Test.Main",
-                Set(ExportedSymbol.Atom("Enso_Test.Test.A", "MkA"))
+                Set(ExportedSymbol.Type("Enso_Test.Test.A", "MkA"))
               ),
               Api.ExportsAction.Remove()
             )

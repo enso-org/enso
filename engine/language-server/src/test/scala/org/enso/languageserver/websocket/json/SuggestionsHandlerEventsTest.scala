@@ -501,7 +501,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                 "Foo.Bar",
                 ListSet(
                   ExportedSymbol
-                    .Atom(
+                    .Type(
                       Suggestions.constructor.module,
                       Suggestions.constructor.name
                     )

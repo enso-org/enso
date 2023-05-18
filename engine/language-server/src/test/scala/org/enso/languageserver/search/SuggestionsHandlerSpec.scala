@@ -598,7 +598,7 @@ class SuggestionsHandlerSpec
                 ExportedSymbol.Module(
                   Suggestions.module.module
                 ),
-                ExportedSymbol.Atom(
+                ExportedSymbol.Type(
                   Suggestions.constructor.module,
                   Suggestions.constructor.name
                 ),
@@ -642,7 +642,7 @@ class SuggestionsHandlerSpec
                 ExportedSymbol.Module(
                   Suggestions.module.module
                 ),
-                ExportedSymbol.Atom(
+                ExportedSymbol.Type(
                   Suggestions.constructor.module,
                   Suggestions.constructor.name
                 ),
