@@ -3,7 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Parse_Values_Helper
-from project.Errors import Lossy_Conversion
+from project.Errors import Conversion_Failure
 
 polyglot java import org.enso.table.data.column.operation.CastProblemBuilder
 
@@ -48,7 +48,7 @@ type Cast_Problem_Builder
 
         lossy_conversion_rows = java_instance.getLossyConversionRowCount
         if lossy_conversion_rows > 0 then
-            builder.append (Lossy_Conversion.Error self.target_type self.column_name lossy_conversion_rows)
+            builder.append (Conversion_Failure.Error self.target_type self.column_name lossy_conversion_rows)
 
         builder.to_vector
 

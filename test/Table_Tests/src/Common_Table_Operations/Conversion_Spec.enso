@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
 
-from Standard.Table.Errors import Lossy_Conversion
+from Standard.Table.Errors import Conversion_Failure
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test, Problems
@@ -72,7 +72,7 @@ spec setup =
                 c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
                 c.to_vector . should_equal ["a  ", "DEF", "a s"]
 
-                # No Lossy_Conversion warning here, because we started with text, so it was expected we will trim it if needed.
+                # No Conversion_Failure warning here, because we started with text, so it was expected we will trim it if needed.
                 Problems.assume_no_problems c
 
             Test.specify "should allow casting a non-text column to fixed-length text" <|
@@ -82,12 +82,12 @@ spec setup =
                 c.to_vector . should_equal ["1  ", "22 ", "333"]
                 Problems.assume_no_problems c
 
-            Test.specify "should warn when losing data if the fixed-length text length is too short to fit the data" pending=(if setup.is_database then "Lossy_Conversion is not supported in Database yet.") <|
+            Test.specify "should warn when losing data if the fixed-length text length is too short to fit the data" pending=(if setup.is_database then "Conversion_Failure is not supported in Database yet.") <|
                 t = table_builder [["X", [15, 1000000, 123456]]]
                 c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
                 c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
                 c.to_vector . should_equal ["15 ", "100", "123"]
-                Problems.expect_warning Lossy_Conversion c
+                Problems.expect_warning Conversion_Failure c
 
     Test.group prefix+"Table/Column.cast - numeric" <|
         Test.specify "should allow to cast a boolean column to integer" <|
@@ -115,10 +115,10 @@ spec setup =
             c2.value_type . should_equal (Value_Type.Integer Bits.Bits_16)
             c2.to_vector . should_equal [1, 2, Nothing]
             # This can likely only be checked on in-memory.
-            Problems.expect_warning Lossy_Conversion c2
+            Problems.expect_warning Conversion_Failure c2
 
             r3 = t2.at "X" . cast (Value_Type.Integer Bits.Bits_16) on_problems=Problem_Behavior.Report_Error
-            r3.should_fail_with Lossy_Conversion
+            r3.should_fail_with Conversion_Failure
 
             # Now converting the 16-bit column `c` into 32 bits.
             c3 = c.cast (Value_Type.Integer Bits.Bits_32)
@@ -142,7 +142,7 @@ spec setup =
             [[1, 4], [1, 5]] . should_contain v2
 
         if setup.is_database.not then
-            Test.specify "should report Lossy_Conversion if converting a huge float to an integer overflows it" <|
+            Test.specify "should report Conversion_Failure if converting a huge float to an integer overflows it" <|
                 max_long = Java_Long.MAX_VALUE
                 too_big_double = (max_long + 1.0) * 1000.0
                 (too_big_double > max_long) . should_be_true
@@ -159,7 +159,7 @@ spec setup =
                 c = t.at "X" . cast Value_Type.Integer
                 c.value_type . should_equal Value_Type.Integer
                 c.to_vector . should_equal [1, 2, max_long, Nothing, min_long, Nothing, 4]
-                warning = Problems.expect_warning Lossy_Conversion c
+                warning = Problems.expect_warning Conversion_Failure c
                 warning.to_display_text . should_contain "information was lost in 2 rows"
 
     if supports_dates then

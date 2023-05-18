@@ -1558,16 +1558,10 @@ type Table
        - If a `Date` is to be converted to `Date_Time`, it will be set at
          midnight of the default system timezone.
 
-       ? Conversion Precision
-
-         In the in-memory backend, if the conversion is lossy, a
-         `Lossy_Conversion` warning will be reported. The only exception is when
-         truncating a column which is already a text column - as then the
-         truncation seems like an intended behaviour, so it is not reported. If
-         truncating needs to occur when converting a non-text column, a warning
-         will still be reported.
-
-         Currently, the warning is not reported for Database backends.
+        If the target type cannot fit some of the values (for example due to too
+        small range), a `Conversion_Failure` may be reported according to the
+        `on_problems` rules. The Database backends may fail with `SQL_Error`
+        instead.
 
        ? Inexact Target Type
 
@@ -1575,7 +1569,7 @@ type Table
          supported type is chosen and a `Inexact_Type_Coercion` problem is
          reported.
     @columns Widget_Helpers.make_column_name_vector_selector
-    cast : (Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector)) -> Value_Type -> Boolean -> Problem_Behavior -> Table ! Illegal_Argument | Inexact_Type_Coercion | Lossy_Conversion
+    cast : (Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector)) -> Value_Type -> Boolean -> Problem_Behavior -> Table ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
     cast self columns=[0] value_type error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
         selected = self.columns_helper.resolve_columns columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         selected.fold self table-> column_to_cast->
