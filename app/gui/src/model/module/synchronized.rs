@@ -25,7 +25,6 @@ use enso_text::text;
 use enso_text::Location;
 use enso_text::Range;
 use flo_stream::Subscriber;
-use futures::future::LocalBoxFuture;
 use parser::api::SourceFile;
 use parser::Parser;
 
@@ -174,20 +173,27 @@ impl Module {
         info!("Read content of the module {path}, digest is {:?}", opened.current_version);
 
         let end_of_file_byte = content.last_line_end_location();
-        let end_of_file = content.utf16_code_unit_location_of_location(end_of_file_byte);
-        let source = parser.parse_with_metadata(opened.content);
-        let digest = opened.current_version;
-        // FIXME[ao] Two names below are very confusing.
-        let ls_content_summary = ContentSummary { digest, end_of_file };
+        let ls_content_summary = ContentSummary {
+            digest:      opened.current_version,
+            end_of_file: content.utf16_code_unit_location_of_location(end_of_file_byte),
+        };
 
+        let source = parser.parse_with_metadata(opened.content);
+        // We set ls_content field as default, because it will be replaced anyway upon initial
+        // invalidation.
         let ls_content = default();
         let metadata = source.metadata;
         let ast = source.ast;
         let model = model::module::Plain::new(path, ast, metadata, repository, read_only);
         let this = Rc::new(Module { model, ls_content, parser, language_server });
 
-        let content = this.model.serialized_content()?;
-        executor::global::spawn(Self::runner(this.clone_ref(), content, ls_content_summary));
+        // The parsed source may introduce changes in metadata (most prominently the missing AST ids
+        // are added), so immediately the content in our model differs from Language Server State.
+        // We need to sent an initial invalidation.
+        let actual_content = this.model.serialized_content()?;
+        let initial_invalidation = this.full_invalidation(ls_content_summary, actual_content);
+        let runner = Self::runner(this.clone_ref());
+        executor::global::spawn(initial_invalidation.then(move |()| runner));
         Ok(this)
     }
 
@@ -202,17 +208,9 @@ impl Module {
         Rc::new(Module { model, language_server, ls_content, parser })
     }
 
-    /// Reload text file from the language server.
-    pub async fn reload_text_file_from_ls(&self) -> FallibleResult {
-        let file_path = self.path();
-        info!("Reloading file {file_path}.");
-        if let Err(error) = self.language_server.client.close_text_file(file_path).await {
-            error!("Error while reloading file {file_path}: Closing operation failed: {error} Trying to open the file anyway.");
-        }
-        let opened = self.language_server.client.open_text_file(file_path).await?;
-        self.set_module_content_from_ls(opened.content.into()).await
-    }
-
+    /// Reopen file in the Language Server.
+    ///
+    /// After reopening we update the LS state with the model's current content.
     pub async fn reopen_file(&self, new_file: SourceFile) -> FallibleResult {
         let file_path = self.path();
         info!("Reopening file {file_path}.");
@@ -239,15 +237,20 @@ impl Module {
             let change = TextChange { range, text };
             content.apply_change(change);
         }
+        // We don't need to spent our resources of computing what exactly the Language Server state
+        // looks like, because it will be soon updated anyway - see [`set_module_content_from_ls`]
+        // documentation. Just in case, we set it as unknown for now.
+        self.ls_content.replace(LanguageServerContent::Unknown);
         self.set_module_content_from_ls(content).await
     }
 
     /// Update the module with content received from the language server. This function takes the
     /// file content as reloaded from the language server, or reconstructed from a `text/didChange`
-    /// notification. It parses the new file content and updates the module with the parsed content.
+    /// notification. It parses the new file content and updates the module with the parsed content,
+    /// sending `NotificationKind::Reloaded` notification.
+    ///
     /// The module content changes during parsing, and the language server is notified of this
-    /// change. Lastly, a notification of `NotificationKind::Reloaded` is emitted to synchronize the
-    /// notification handler.
+    /// change.
     async fn set_module_content_from_ls(&self, content: text::Rope) -> FallibleResult {
         let transaction = self.undo_redo_repository().transaction("Setting module's content");
         transaction.fill_content(self.id(), self.content().borrow().clone());
@@ -256,7 +259,6 @@ impl Module {
         self.content().replace(parsed_source);
         let summary = ContentSummary::new(&content);
         let change = TextEdit::from_prefix_postfix_differences(&content, &source.content);
-        // FIXME[ao]: Think about comment here, or a better name for `notify_language_server`
         let notify_ls = self.notify_language_server(summary.digest, &source, vec![change], true);
         let notification = Notification::new(source, NotificationKind::Reloaded);
         self.notify(notification);
@@ -373,9 +375,7 @@ impl Module {
     /// This function returns once the  notifications from underlying [module model](plain::Module)
     /// stream is exhausted. The `self` argument is kept as `Weak` when waiting for next
     /// notification, so there is no risk of leak.
-    async fn runner(self: Rc<Self>, content: SourceFile, ls_content: ContentSummary) {
-        self.full_invalidation(ls_content, content).await;
-
+    async fn runner(self: Rc<Self>) {
         let mut subscriber = self.model.subscribe();
         let weak = Rc::downgrade(&self);
         drop(self);
@@ -793,10 +793,9 @@ pub mod test {
                         Ok(())
                     });
                     // Replacing `Test` with `Test 2`
-                    edit_handler.expect_some_edit(client, |edits| {
-                        let edit_code = &edits.edits[1];
-                        assert_eq!(edit_code.text, "Test 2");
-                        assert_eq!(edit_code.range, TextRange {
+                    edit_handler.expect_edit_with_metadata(client, |edit| {
+                        assert_eq!(edit.text, "Test 2");
+                        assert_eq!(edit.range, TextRange {
                             start: Position { line: 1, character: 13 },
                             end:   Position { line: 1, character: 17 },
                         });
@@ -920,10 +919,10 @@ pub mod test {
                 edit_handler.expect_full_invalidation(client);
 
                 // Applying code update.
-                edit_handler.expect_some_edit(client, |edit| Err(RpcError::LostConnection));
+                edit_handler.expect_some_edit(client, |_| Err(RpcError::LostConnection));
 
                 // Checks
-                checks_for_edits_after_failure(&data, &edit_handler, client);
+                checks_for_edits_after_failure(data, &edit_handler, client);
             });
 
             let (_module, controller) = fixture.synchronized_module_w_controller();
@@ -947,10 +946,10 @@ pub mod test {
             data.expect_opening_module_with_content(client, move || {
                 Ok(current_ls_content.get().to_string())
             });
-            edit_handler.expect_some_edit(client, |edit| Ok(()));
+            edit_handler.expect_some_edit(client, |_| Ok(()));
 
             // Next change is applied normally
-            edit_handler.expect_some_edit(client, |edit| Ok(()));
+            edit_handler.expect_some_edit(client, |_| Ok(()));
         })
     }
 
@@ -964,10 +963,10 @@ pub mod test {
             data.expect_opening_module_with_content(client, move || {
                 Ok(current_ls_content.get().to_string())
             });
-            edit_handler.expect_some_edit(client, |edit| Ok(()));
+            edit_handler.expect_some_edit(client, |_| Ok(()));
 
             // Next change is applied normally
-            edit_handler.expect_some_edit(client, |edit| Ok(()));
+            edit_handler.expect_some_edit(client, |_| Ok(()));
         })
     }
 
@@ -983,7 +982,7 @@ pub mod test {
             data.expect_opening_module_with_content(client, move || {
                 Ok(current_ls_content.get().to_string())
             });
-            edit_handler.expect_some_edit(client, |edit| Ok(()));
+            edit_handler.expect_some_edit(client, |_| Ok(()));
         })
     }
 
@@ -995,7 +994,7 @@ pub mod test {
             data.expect_opening_module_with_content(client, move || {
                 Ok(current_ls_content.get().to_string())
             });
-            edit_handler.expect_some_edit(client, |edit| Err(RpcError::LostConnection));
+            edit_handler.expect_some_edit(client, |_| Err(RpcError::LostConnection));
 
             // The initial update failed, so the next change should try to reopen again.
             let current_ls_content = edit_handler.current_ls_content.clone_ref();
@@ -1003,7 +1002,7 @@ pub mod test {
             data.expect_opening_module_with_content(client, move || {
                 Ok(current_ls_content.get().to_string())
             });
-            edit_handler.expect_some_edit(client, |edit| Ok(()));
+            edit_handler.expect_some_edit(client, |_| Ok(()));
         })
     }
 

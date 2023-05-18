@@ -127,6 +127,7 @@ broken and require further investigation.
 
 | Shortcut                                                           | Action                                                                                                                         |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>x</kbd>                  | Force reloading file in the backend. May fix some issues with synchronization if they appear.                                  |
 | <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>d</kbd>                  | Toggle Debug Mode. All actions below are only possible when it is activated.                                                   |
 | <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>shift</kbd> + <kbd>i</kbd> | Open the developer console.                                                                                                    |
 | <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>shift</kbd> + <kbd>r</kbd> | Reload the visual interface.                                                                                                   |

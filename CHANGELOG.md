@@ -156,11 +156,16 @@
   <kbd>cmd</kbd>+<kbd>alt</kbd>+<kbd>t</kbd>/<kbd>r</kbd>.
 - [Fixed a bug where selecting a nested breadcrumb would cause the order of
   breadcrumbs to change incorrectly.][6617]
+- [The Application will try to reload file in backend on synchronization
+  failure][6752]. It should make it more resilient to connectivity issues and
+  occasional bugs. The reload may be forced by the user with
+  <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>x</kbd> shortcut.
 
 [6421]: https://github.com/enso-org/enso/pull/6421
 [6530]: https://github.com/enso-org/enso/pull/6530
 [6620]: https://github.com/enso-org/enso/pull/6620
 [6617]: https://github.com/enso-org/enso/pull/6617
+[6752]: https://github.com/enso-org/enso/pull/6752
 
 #### EnsoGL (rendering engine)
 
