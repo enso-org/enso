@@ -11,7 +11,11 @@ import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
     ),
     new JsonSubTypes.Type(
       value = classOf[ExportedSymbol.Type],
-      name  = "exportedAtom"
+      name  = "exportedType"
+    ),
+    new JsonSubTypes.Type(
+      value = classOf[ExportedSymbol.Constructor],
+      name  = "exportedConstructor"
     ),
     new JsonSubTypes.Type(
       value = classOf[ExportedSymbol.Method],
