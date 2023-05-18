@@ -1,6 +1,19 @@
 /** @file Table that projects an object into each column. */
 import * as React from 'react'
 
+import * as svg from '../../components/svg'
+
+// =================
+// === Constants ===
+// =================
+
+/** The size of the loading spinner. */
+const LOADING_SPINNER_SIZE = 36
+/** The classes for the initial state of the spinner. */
+const SPINNER_INITIAL_CLASSES = 'grow dasharray-5 ease-linear'
+/** The classes for the final state of the spinner. */
+const SPINNER_LOADING_CLASSES = 'grow dasharray-75 duration-1000 ease-linear'
+
 // =============
 // === Types ===
 // =============
@@ -13,6 +26,7 @@ export interface ColumnProps<T, State = never> {
 /** Metadata describing how to render a column of the table. */
 export interface Column<T, State = never> {
     id: string
+    className?: string
     heading: JSX.Element
     render: (props: ColumnProps<T, State>) => JSX.Element
 }
@@ -26,6 +40,7 @@ interface Props<T, State = never> {
     state?: State
     getKey: (item: T) => string
     columns: Column<T, State>[]
+    isLoading: boolean
     placeholder: JSX.Element
     onClick: (item: T, event: React.MouseEvent<HTMLTableRowElement>) => void
     onContextMenu: (item: T, event: React.MouseEvent<HTMLTableRowElement>) => void
@@ -33,52 +48,80 @@ interface Props<T, State = never> {
 
 /** Table that projects an object into each column. */
 function Rows<T, State = never>(props: Props<T, State>) {
-    const { items, state, getKey, columns, placeholder, onClick, onContextMenu } = props
-    const headerRow = columns.map((column, index) => (
-        <th
-            key={index}
-            className="text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-semibold text-left"
-        >
-            {column.heading}
-        </th>
-    ))
-    const itemRows =
-        items.length === 0 ? (
-            <tr className="h-10">
-                <td colSpan={columns.length}>{placeholder}</td>
-            </tr>
-        ) : (
-            items.map(item => (
-                <tr
-                    key={getKey(item)}
-                    tabIndex={-1}
-                    onClick={event => {
-                        onClick(item, event)
-                    }}
-                    onContextMenu={event => {
-                        onContextMenu(item, event)
-                    }}
-                    className="h-10 transition duration-300 ease-in-out hover:bg-gray-100 focus:bg-gray-200"
+    const { items, state, getKey, columns, isLoading, placeholder, onClick, onContextMenu } = props
+    const [spinnerClasses, setSpinnerClasses] = React.useState(SPINNER_INITIAL_CLASSES)
+
+    const headerRow = (
+        <tr>
+            {columns.map((column, index) => (
+                <th
+                    key={index}
+                    className="text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-semibold text-left"
                 >
-                    {columns.map(column => {
-                        // This is a React component even though it does not contain JSX.
-                        // eslint-disable-next-line no-restricted-syntax
-                        const Render = column.render
-                        return (
-                            <td key={column.id} className="px-4 border-0 border-r">
-                                {/* This is UNSAFE if `State` is explicitly specified by the caller,
-                                 * however it is unavoidable. */}
-                                {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
-                                <Render item={item} state={state!} />
-                            </td>
-                        )
-                    })}
-                </tr>
-            ))
-        )
+                    {column.heading}
+                </th>
+            ))}
+        </tr>
+    )
+
+    React.useEffect(() => {
+        if (isLoading) {
+            // Ensure the spinner stays in the "initial" state for at least one frame.
+            requestAnimationFrame(() => {
+                setSpinnerClasses(SPINNER_LOADING_CLASSES)
+            })
+        } else {
+            setSpinnerClasses(SPINNER_INITIAL_CLASSES)
+        }
+    }, [isLoading])
+
+    const itemRows = isLoading ? (
+        <tr className="h-10">
+            <td colSpan={columns.length}>
+                <div className="grid justify-around w-full">
+                    <svg.Spinner size={LOADING_SPINNER_SIZE} className={spinnerClasses} />
+                </div>
+            </td>
+        </tr>
+    ) : items.length === 0 ? (
+        <tr className="h-10">
+            <td colSpan={columns.length}>{placeholder}</td>
+        </tr>
+    ) : (
+        items.map(item => (
+            <tr
+                key={getKey(item)}
+                tabIndex={-1}
+                onClick={event => {
+                    onClick(item, event)
+                }}
+                onContextMenu={event => {
+                    onContextMenu(item, event)
+                }}
+                className="h-10 transition duration-300 ease-in-out hover:bg-gray-100 focus:bg-gray-200"
+            >
+                {columns.map(column => {
+                    // This is a React component even though it does not contain JSX.
+                    // eslint-disable-next-line no-restricted-syntax
+                    const Render = column.render
+                    return (
+                        <td
+                            key={column.id}
+                            className={`px-4 border-0 border-r ${column.className ?? ''}`}
+                        >
+                            {/* This is UNSAFE if `State` is explicitly specified by the caller,
+                             * however it is unavoidable. */}
+                            {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
+                            <Render item={item} state={state!} />
+                        </td>
+                    )
+                })}
+            </tr>
+        ))
+    )
     return (
         <>
-            <tr>{headerRow}</tr>
+            {headerRow}
             {itemRows}
         </>
     )

@@ -180,6 +180,7 @@ function DirectoryName(props: DirectoryNameProps) {
 export interface DirectoryRowsProps {
     directoryId: backendModule.DirectoryId
     items: backendModule.DirectoryAsset[]
+    isLoading: boolean
     columnDisplayMode: columnModule.ColumnDisplayMode
     query: string
     onCreate: () => void
@@ -196,6 +197,7 @@ function DirectoryRows(props: DirectoryRowsProps) {
     const {
         directoryId,
         items,
+        isLoading,
         columnDisplayMode,
         query,
         onCreate,
@@ -214,6 +216,7 @@ function DirectoryRows(props: DirectoryRowsProps) {
                 <tr className="h-10" />
                 <Rows<backendModule.DirectoryAsset, DirectoryNamePropsState>
                     items={items}
+                    isLoading={isLoading}
                     state={{ enterDirectory, onRename }}
                     getKey={backendModule.getAssetId}
                     placeholder={
@@ -222,24 +225,28 @@ function DirectoryRows(props: DirectoryRowsProps) {
                             {query ? ' matching your query' : ''}.
                         </span>
                     }
-                    columns={columnModule.COLUMNS_FOR[columnDisplayMode].map(column =>
-                        column === columnModule.Column.name
-                            ? {
-                                  id: column,
-                                  heading: (
-                                      <DirectoryNameHeading
-                                          directoryId={directoryId}
-                                          onCreate={onCreate}
-                                      />
-                                  ),
-                                  render: DirectoryName,
-                              }
-                            : {
-                                  id: column,
-                                  heading: <>{columnModule.COLUMN_NAME[column]}</>,
-                                  render: columnModule.COLUMN_RENDERER[column],
-                              }
-                    )}
+                    columns={columnModule
+                        .columnsFor(columnDisplayMode, backend.platform)
+                        .map(column =>
+                            column === columnModule.Column.name
+                                ? {
+                                      id: column,
+                                      className: columnModule.COLUMN_CSS_CLASS[column],
+                                      heading: (
+                                          <DirectoryNameHeading
+                                              directoryId={directoryId}
+                                              onCreate={onCreate}
+                                          />
+                                      ),
+                                      render: DirectoryName,
+                                  }
+                                : {
+                                      id: column,
+                                      className: columnModule.COLUMN_CSS_CLASS[column],
+                                      heading: <>{columnModule.COLUMN_NAME[column]}</>,
+                                      render: columnModule.COLUMN_RENDERER[column],
+                                  }
+                        )}
                     onClick={onAssetClick}
                     onContextMenu={(_directory, event) => {
                         event.preventDefault()

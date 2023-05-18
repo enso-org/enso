@@ -32,12 +32,13 @@ class ShutdownHookActivator[F[+_, +_]: Exec: CovariantFlatMap]
 
   private def running(
     hooks: Map[UUID, List[ShutdownHook[F]]] =
-      Map.empty.withDefaultValue(List.empty)
+      Map.empty.withDefaultValue(List.empty),
+    scheduled: List[UUID] = Nil
   ): Receive = {
     case RegisterShutdownHook(projectId, hook) =>
       val realHook = hook.asInstanceOf[ShutdownHook[F]]
       val updated  = hooks.updated(projectId, realHook :: hooks(projectId))
-      context.become(running(updated))
+      context.become(running(updated, scheduled))
 
     case ProjectClosed(projectId) =>
       val projectHooks = hooks(projectId)
@@ -45,13 +46,22 @@ class ShutdownHookActivator[F[+_, +_]: Exec: CovariantFlatMap]
         context.actorOf(
           ShutdownHookRunner.props[F](projectId, projectHooks.reverse)
         )
+        context.become(running(hooks - projectId, projectId :: scheduled))
+      } else if (scheduled.contains(projectId)) {
+        logger.debug(
+          s"Request for starting shutdown hooks has already been filed for project ${projectId}. Ignoring."
+        )
+      } else {
+        logger.warn(
+          s"Shutdown hook activator has no recollection of project ${projectId}. Either it was closed already or it never existed. Ignoring."
+        )
       }
 
     case ShutdownHooksFired(projectId) =>
-      context.become(running(hooks - projectId))
+      context.become(running(hooks, scheduled.filter(_ != projectId)))
 
     case ArePendingShutdownHooks =>
-      val arePending = hooks.values.map(_.size).sum != 0
+      val arePending = hooks.values.map(_.size).sum != 0 || scheduled.nonEmpty
       sender() ! arePending
   }
 

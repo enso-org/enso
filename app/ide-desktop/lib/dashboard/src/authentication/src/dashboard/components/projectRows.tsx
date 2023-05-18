@@ -214,6 +214,7 @@ interface ProjectRowsProps {
     appRunner: AppRunner | null
     directoryId: backendModule.DirectoryId
     items: backendModule.ProjectAsset[]
+    isLoading: boolean
     columnDisplayMode: columnModule.ColumnDisplayMode
     onCreate: () => void
     onRename: () => void
@@ -232,6 +233,7 @@ function ProjectRows(props: ProjectRowsProps) {
         appRunner,
         directoryId,
         items,
+        isLoading,
         columnDisplayMode,
         onCreate,
         onRename,
@@ -248,6 +250,7 @@ function ProjectRows(props: ProjectRowsProps) {
             <tr className="h-10" />
             <Rows<backendModule.ProjectAsset, ProjectNamePropsState>
                 items={items}
+                isLoading={isLoading}
                 state={{
                     appRunner,
                     onRename,
@@ -260,10 +263,11 @@ function ProjectRows(props: ProjectRowsProps) {
                         You have no project yet. Go ahead and create one using the form above.
                     </span>
                 }
-                columns={columnModule.COLUMNS_FOR[columnDisplayMode].map(column =>
+                columns={columnModule.columnsFor(columnDisplayMode, backend.platform).map(column =>
                     column === columnModule.Column.name
                         ? {
                               id: column,
+                              className: columnModule.COLUMN_CSS_CLASS[column],
                               heading: (
                                   <ProjectNameHeading
                                       directoryId={directoryId}
@@ -274,6 +278,7 @@ function ProjectRows(props: ProjectRowsProps) {
                           }
                         : {
                               id: column,
+                              className: columnModule.COLUMN_CSS_CLASS[column],
                               heading: <>{columnModule.COLUMN_NAME[column]}</>,
                               render: columnModule.COLUMN_RENDERER[column],
                           }

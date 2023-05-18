@@ -56,6 +56,7 @@ function DirectoryView(props: DirectoryViewProps) {
     const { organization } = authProvider.useFullUserSession()
     const { backend } = backendProvider.useBackend()
 
+    const [isLoadingAssets, setIsLoadingAssets] = React.useState(true)
     const [directoryStack, setDirectoryStack] = React.useState<backendModule.DirectoryAsset[]>([])
     // Defined by the spec as `compact` by default, however it is not ready yet.
     const [columnDisplayMode, setColumnDisplayMode] = React.useState(
@@ -117,7 +118,14 @@ function DirectoryView(props: DirectoryViewProps) {
 
     const assets = hooks.useAsyncEffect(
         [],
-        () => backend.listDirectory({ parentId: directoryId }),
+        async signal => {
+            setIsLoadingAssets(true)
+            const result = await backend.listDirectory({ parentId: directoryId })
+            if (!signal.aborted) {
+                setIsLoadingAssets(false)
+            }
+            return result
+        },
         [directoryId, refresh, backend]
     )
 
@@ -170,12 +178,13 @@ function DirectoryView(props: DirectoryViewProps) {
                 onUpload={doRefresh}
                 exitDirectory={exitDirectory}
             />
-            <table className="items-center w-full bg-transparent border-collapse mt-2">
+            <table className="table-fixed items-center border-collapse mt-2">
                 <tbody>
                     <ProjectRows
                         appRunner={appRunner}
                         directoryId={directoryId}
                         items={visibleProjectAssets}
+                        isLoading={isLoadingAssets}
                         columnDisplayMode={columnDisplayMode}
                         onCreate={doRefresh}
                         onRename={doRefresh}
@@ -187,6 +196,7 @@ function DirectoryView(props: DirectoryViewProps) {
                     <DirectoryRows
                         directoryId={directoryId}
                         items={visibleDirectoryAssets}
+                        isLoading={isLoadingAssets}
                         columnDisplayMode={columnDisplayMode}
                         query={query}
                         onCreate={doRefresh}
@@ -197,6 +207,7 @@ function DirectoryView(props: DirectoryViewProps) {
                     <SecretRows
                         directoryId={directoryId}
                         items={visibleSecretAssets}
+                        isLoading={isLoadingAssets}
                         columnDisplayMode={columnDisplayMode}
                         query={query}
                         onCreate={doRefresh}
@@ -207,6 +218,7 @@ function DirectoryView(props: DirectoryViewProps) {
                     <FileRows
                         directoryId={directoryId}
                         items={visibleFileAssets}
+                        isLoading={isLoadingAssets}
                         columnDisplayMode={columnDisplayMode}
                         query={query}
                         onCreate={doRefresh}

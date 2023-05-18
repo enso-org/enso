@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as backend from './backend'
 import * as modalProvider from '../providers/modal'
+import * as platform from '../platform'
 import * as rows from './components/rows'
 import * as svg from '../components/svg'
 
@@ -56,6 +57,19 @@ export const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
     [Column.ide]: 'IDE',
 } as const
 
+/** CSS classes for every column. Currently only used to set the widths. */
+export const COLUMN_CSS_CLASS: Record<Column, string> = {
+    [Column.name]: 'w-60',
+    [Column.lastModified]: 'w-32',
+    [Column.sharedWith]: 'w-36',
+    [Column.docs]: 'w-96',
+    [Column.labels]: 'w-80',
+    [Column.dataAccess]: 'w-96',
+    [Column.usagePlan]: '',
+    [Column.engine]: 'w-20',
+    [Column.ide]: 'w-20',
+} as const
+
 /** A list of column display modes and names, in order. */
 export const COLUMN_DISPLAY_MODES_AND_NAMES: [ColumnDisplayMode, string][] = [
     [ColumnDisplayMode.all, 'All'],
@@ -63,36 +77,6 @@ export const COLUMN_DISPLAY_MODES_AND_NAMES: [ColumnDisplayMode, string][] = [
     [ColumnDisplayMode.docs, 'Docs'],
     [ColumnDisplayMode.settings, 'Settings'],
 ]
-
-/** The list of columns displayed on each `ColumnDisplayMode`. */
-export const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {
-    [ColumnDisplayMode.release]: [Column.name, Column.lastModified, Column.sharedWith],
-    [ColumnDisplayMode.all]: [
-        Column.name,
-        Column.lastModified,
-        Column.sharedWith,
-        Column.labels,
-        Column.dataAccess,
-        Column.usagePlan,
-        Column.engine,
-        Column.ide,
-    ],
-    [ColumnDisplayMode.compact]: [
-        Column.name,
-        Column.lastModified,
-        Column.sharedWith,
-        Column.labels,
-        Column.dataAccess,
-    ],
-    [ColumnDisplayMode.docs]: [Column.name, Column.lastModified, Column.docs],
-    [ColumnDisplayMode.settings]: [
-        Column.name,
-        Column.lastModified,
-        Column.usagePlan,
-        Column.engine,
-        Column.ide,
-    ],
-}
 
 /** The corresponding `Permissions` for each backend `PermissionAction`. */
 const PERMISSION: Record<backend.PermissionAction, permissionDisplay.Permissions> = {
@@ -168,4 +152,46 @@ export const COLUMN_RENDERER: Record<
     [Column.usagePlan]: () => <></>,
     [Column.engine]: () => <></>,
     [Column.ide]: () => <></>,
+}
+
+// ========================
+// === Helper functions ===
+// ========================
+
+/** The list of columns displayed on each `ColumnDisplayMode`. */
+const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {
+    [ColumnDisplayMode.release]: [Column.name, Column.lastModified, Column.sharedWith],
+    [ColumnDisplayMode.all]: [
+        Column.name,
+        Column.lastModified,
+        Column.sharedWith,
+        Column.labels,
+        Column.dataAccess,
+        Column.usagePlan,
+        Column.engine,
+        Column.ide,
+    ],
+    [ColumnDisplayMode.compact]: [
+        Column.name,
+        Column.lastModified,
+        Column.sharedWith,
+        Column.labels,
+        Column.dataAccess,
+    ],
+    [ColumnDisplayMode.docs]: [Column.name, Column.lastModified, Column.docs],
+    [ColumnDisplayMode.settings]: [
+        Column.name,
+        Column.lastModified,
+        Column.usagePlan,
+        Column.engine,
+        Column.ide,
+    ],
+}
+
+/** Returns the list of columns to be displayed. */
+export function columnsFor(displayMode: ColumnDisplayMode, backendPlatform: platform.Platform) {
+    const columns = COLUMNS_FOR[displayMode]
+    return backendPlatform === platform.Platform.desktop
+        ? columns.filter(column => column !== Column.sharedWith)
+        : columns
 }
