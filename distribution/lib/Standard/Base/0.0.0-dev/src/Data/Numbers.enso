@@ -552,7 +552,7 @@ type Decimal
        Truncate a floating-point number to an integer by dropping the fractional
        part. This is equivalent to "round-toward-zero".
     truncate : Integer
-    truncate self = @Builtin_Method "Decimal.truncate"
+    truncate self = @Builtin_Method "Decimal.truncate_builtin"
 
     ## Round to a specified number of decimal places.
 
