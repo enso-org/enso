@@ -94,9 +94,9 @@ ensogl::define_endpoints! {
         undo(),
         /// Redo the last undone action.
         redo(),
-        // Enable Debug Mode of Graph Editor.
+        /// Enable Debug Mode of Graph Editor.
         enable_debug_mode(),
-        // Disable Debug Mode of Graph Editor.
+        /// Disable Debug Mode of Graph Editor.
         disable_debug_mode(),
         /// A set of value updates has been processed and rendered.
         values_updated(),

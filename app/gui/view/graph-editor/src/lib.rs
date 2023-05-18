@@ -608,6 +608,10 @@ ensogl::define_endpoints_2! {
         /// Set a test visualization data for the selected nodes. Useful for testing visualizations
         /// during their development.
         debug_set_test_visualization_data_for_selected_node(),
+        /// Reopen file in language server.
+        ///
+        /// Used as a debug or a fallback for the user when synchronization errors are spotted.
+        reopen_file_in_language_server(),
 
 
         // === VCS Status ===

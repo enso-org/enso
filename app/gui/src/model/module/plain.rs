@@ -306,6 +306,11 @@ impl model::module::API for Module {
             Ok(())
         })?
     }
+
+    fn reopen_file_in_language_server(&self) -> BoxFuture<FallibleResult> {
+        info!("Ignoring request for reopening file in the Language Server, because it's not connected");
+        future::ready_boxed(Ok(()))
+    }
 }
 
 impl model::undo_redo::Aware for Module {

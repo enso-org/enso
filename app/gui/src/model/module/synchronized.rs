@@ -25,6 +25,7 @@ use enso_text::text;
 use enso_text::Location;
 use enso_text::Range;
 use flo_stream::Subscriber;
+use futures::future::LocalBoxFuture;
 use parser::api::SourceFile;
 use parser::Parser;
 
@@ -212,6 +213,20 @@ impl Module {
         self.set_module_content_from_ls(opened.content.into()).await
     }
 
+    pub async fn reopen_file(&self, new_file: SourceFile) -> FallibleResult {
+        let file_path = self.path();
+        info!("Reopening file {file_path}.");
+        if let Err(error) = self.language_server.client.close_text_file(file_path).await {
+            error!("Error while reopening file {file_path}: Closing operation failed: {error} Trying to open the file anyway.");
+        }
+        let opened = self.language_server.client.open_text_file(file_path).await?;
+        let content = opened.content.into();
+        let summary = ContentSummary::new(&content);
+
+        self.full_invalidation(summary, new_file).await;
+        Ok(())
+    }
+
     /// Apply text changes received from the language server.
     pub async fn apply_text_change_from_ls(&self, edits: Vec<TextEdit>) -> FallibleResult {
         let mut content: text::Rope = self.serialized_content()?.content.into();
@@ -241,10 +256,11 @@ impl Module {
         self.content().replace(parsed_source);
         let summary = ContentSummary::new(&content);
         let change = TextEdit::from_prefix_postfix_differences(&content, &source.content);
+        // FIXME[ao]: Think about comment here, or a better name for `notify_language_server`
+        let notify_ls = self.notify_language_server(summary.digest, &source, vec![change], true);
         let notification = Notification::new(source, NotificationKind::Reloaded);
         self.notify(notification);
-        // FIXME[ao]: Think about comment here, or a better name for `notify_language_server`
-        self.notify_language_server(summary.digest, &source, vec![change], true).await;
+        notify_ls.await;
         Ok(())
     }
 }
@@ -341,6 +357,11 @@ impl API for Module {
     fn restore_temporary_changes(&self) -> FallibleResult {
         self.model.restore_temporary_changes()
     }
+
+    fn reopen_file_in_language_server(&self) -> BoxFuture<FallibleResult> {
+        let file = self.model.content().borrow().serialize();
+        async { self.reopen_file(file?).await }.boxed_local()
+    }
 }
 
 
@@ -380,7 +401,7 @@ impl Module {
         debug!("Handling notification when known LS content is {current_ls_content:?}.");
         match current_ls_content {
             LanguageServerContent::Unknown => {
-                if let Err(error) = profiler::await_!(self.reload_text_file_from_ls(), _profiler) {
+                if let Err(error) = profiler::await_!(self.reopen_file(new_file), _profiler) {
                     error!("Error while reloading module model: {error}");
                 }
             }
