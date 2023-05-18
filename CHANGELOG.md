@@ -765,6 +765,7 @@
 - [Warning.get_all returns only unique warnings][6372]
 - [Reimplement `enso_project` as a proper builtin][6352]
 - [Limit number of reported warnings per value][6577]
+- [Suggestions are updated only when the type of the expression changes][6755]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -875,6 +876,7 @@
 [6372]: https://github.com/enso-org/enso/pull/6372
 [6352]: https://github.com/enso-org/enso/pull/6352
 [6577]: https://github.com/enso-org/enso/pull/6577
+[6755]: https://github.com/enso-org/enso/pull/6755
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

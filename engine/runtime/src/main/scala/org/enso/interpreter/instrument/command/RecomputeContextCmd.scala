@@ -80,6 +80,7 @@ class RecomputeContextCmd(
           None,
           Vector.empty,
           true,
+          false,
           Api.ExpressionUpdate.Payload.Pending(None, None)
         )
       }
