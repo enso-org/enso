@@ -1289,19 +1289,13 @@ impl Nodes {
 // === Edges ===
 // =============
 
-#[derive(Debug, Clone, CloneRef, Default)]
+#[derive(Debug, Clone, CloneRef, Default, Deref)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct Edges {
+    #[deref]
     pub all:             SharedHashMap<EdgeId, Edge>,
     pub detached_source: SharedHashSet<EdgeId>,
     pub detached_target: SharedHashSet<EdgeId>,
-}
-
-impl Deref for Edges {
-    type Target = SharedHashMap<EdgeId, Edge>;
-    fn deref(&self) -> &Self::Target {
-        &self.all
-    }
 }
 
 impl Edges {
@@ -2131,6 +2125,7 @@ impl GraphEditorModel {
                 if let Some(node) = self.nodes.get_cloned_ref(&source.node_id) {
                     node.out_edges.remove(&edge_id);
                     edge.view.source_attached.emit(false);
+                    edge.view.source_size.emit(Vector2(0.0, 0.0));
                     let first_detached = self.edges.detached_source.is_empty();
                     self.edges.detached_source.insert(edge_id);
                     self.refresh_edge_position(edge_id);
@@ -3352,6 +3347,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         edges.detached_source.for_each(|edge_id| {
             if let Some(edge) = edges.get_cloned_ref(edge_id) {
                 edge.set_xy(position.xy());
+                edge.view.source_size.emit(Vector2(0.0, 0.0));
             }
         });
     });

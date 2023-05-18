@@ -294,13 +294,7 @@ impl EdgeModel {
     /// Return the maximum x-distance from the source (our local coordinate origin) for the point
     /// where the edge will begin.
     fn source_max_x_offset(&self) -> f32 {
-        match self.source_attached.get() {
-            // When attached to a node, our origination point can be anywhere along the length of
-            // the node, excluding the rounded edges.
-            true => (self.source_size.get().x() / 2.0 - NODE_CORNER_RADIUS).max(0.0),
-            // When attached to the cursor, our origination point is fixed at the cursor.
-            false => 0.0,
-        }
+        (self.source_size.get().x() / 2.0 - NODE_CORNER_RADIUS).max(0.0)
     }
 
     fn set_target_position(&self, position: Vector2) {
