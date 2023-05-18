@@ -9,7 +9,7 @@ import * as react from 'react'
 export interface Column<T> {
     id: string
     heading: JSX.Element
-    render: (item: T, index: number) => JSX.Element
+    render: (item: T, index: number) => react.ReactNode
 }
 
 // =================
