@@ -40,6 +40,7 @@ const DROPDOWN_MAX_SIZE: Vector2 = Vector2(300.0, 500.0);
 pub mod triangle {
     use super::*;
     ensogl::shape! {
+        above = [display::shape::compound::rectangle::shape];
         alignment = left_bottom;
         (style:Style, color:Vector4) {
             let size   = Var::canvas_size();
@@ -176,12 +177,7 @@ impl super::SpanWidget for Widget {
             ctx.modify_extension::<super::label::Extension>(|ext| ext.bold = true);
         }
 
-        let config = match ctx.span_node.children.is_empty() {
-            true => super::Configuration::always(super::label::Config),
-            false => super::Configuration::always(super::hierarchy::Config),
-        };
-        let child_level = ctx.info.nesting_level;
-        let child = ctx.builder.child_widget_of_type(ctx.span_node, child_level, Some(&config));
+        let child = ctx.builder.child_widget(ctx.span_node, ctx.info.nesting_level);
         self.label_wrapper.replace_children(&[child.root_object]);
     }
 }

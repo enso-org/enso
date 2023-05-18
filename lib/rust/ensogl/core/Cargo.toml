@@ -27,7 +27,7 @@ enso-types = { path = "../../types" }
 enso-web = { path = "../../web" }
 ensogl-text-embedded-fonts = { path = "../component/text/src/font/embedded" }
 bit_field = { version = "0.10.0" }
-bitflags = { version = "1.3.2" }
+bitflags = { workspace = true }
 console_error_panic_hook = { workspace = true }
 enum_dispatch = { version = "0.3.6" }
 failure = { workspace = true }

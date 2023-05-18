@@ -136,3 +136,4 @@ syn = { version = "1.0", features = [
 quote = { version = "1.0.23" }
 semver = { version = "1.0.0", features = ["serde"] }
 thiserror = "1.0.40"
+bitflags = { version = "2.2.1" }

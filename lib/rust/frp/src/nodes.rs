@@ -203,6 +203,21 @@ impl Network {
         self.register(OwnedBufferedGate::new(label, event, behavior))
     }
 
+    /// Passes the incoming event of the first stream only if the second stream has emitted an event
+    /// since the last event of the first stream.
+    ///
+    /// Event:  1---2---3-----4-------5---6---7---8--
+    /// Sync:   --|--------|---|---|-----------------
+    /// Output: ----2---------4-------5--------------
+    pub fn sync_gate<T, T2>(&self, label: Label, event: &T, sync: &T2) -> Stream<Output<T>>
+    where
+        T: EventOutput,
+        T2: EventOutput, {
+        let can_emit = Rc::new(Cell::new(false));
+        self.map(label, sync, f_!(can_emit.set(true)));
+        self.filter(label, event, f_!(can_emit.take()))
+    }
+
     /// Unwraps the value of incoming events and emits the unwrapped values.
     pub fn unwrap<T, S>(&self, label: Label, event: &T) -> Stream<S>
     where
