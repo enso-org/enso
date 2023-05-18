@@ -922,10 +922,10 @@ type Table
          supported type is chosen and a `Inexact_Type_Coercion` problem is
          reported.
     @columns Widget_Helpers.make_column_name_vector_selector
-    cast : (Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector)) -> Value_Type -> Problem_Behavior -> Table ! Illegal_Argument | Inexact_Type_Coercion | Lossy_Conversion
-    cast self columns=[0] value_type=Value_Type.Char on_problems=Problem_Behavior.Report_Warning =
-        selected = self.select_columns columns
-        selected.columns.fold self table-> column_to_cast->
+    cast : (Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector)) -> Value_Type -> Boolean -> Problem_Behavior -> Table ! Illegal_Argument | Inexact_Type_Coercion | Lossy_Conversion
+    cast self columns=[0] value_type=Value_Type.Char error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
+        selected = self.columns_helper.resolve_columns columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+        selected.fold self table-> column_to_cast->
             new_column = column_to_cast.cast value_type on_problems
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
