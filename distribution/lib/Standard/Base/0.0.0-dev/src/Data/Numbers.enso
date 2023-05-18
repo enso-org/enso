@@ -4,6 +4,7 @@ import project.Errors.Common.Arithmetic_Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Error.Error
+import project.Function.Function
 import project.Nothing.Nothing
 import project.Panic.Panic
 
@@ -573,44 +574,29 @@ type Decimal
          multiple of 10^(-n)". For negative decimal counts, this results in
          rounding to the nearest positive integer power of 10.
 
-       ? Banker's rounding
-         Banker's rounding rounds half-way values to the nearest even number.
-
-       ? Infinities and NaN
-         - NaN.round == 0
-         - +Inf.round == +Inf
-         - -Inf.round == -Inf
-
        > Example
          Round to the nearest integer.
 
-            3.3 . round
-            # ==> 3
+            3.3 . round == 3
 
        > Example
          Round to two decimal places.
 
-            3.1415 . round 2
-            # ==> 3.14
+            3.1415 . round 2 == 3.14
 
        > Example
          Round to the nearest hundred.
 
-            1234.0 . round -2
-            # ==> 1200
+            1234.0 . round -2 == 1200
 
        > Example
          Use Banker's Rounding.
 
-            2.5 . round use_bankers=True
-            # ==> 2
+            2.5 . round use_bankers=True == 2
     round : Integer -> Decimal ! Illegal_Argument
     round self decimal_places=0 use_bankers=False =
-        case decimal_places < round_min_decimal_places || decimal_places > round_max_decimal_places of
-            True ->
-                msg = "round: decimal_places must be between " + round_min_decimal_places.to_text + " and " + round_max_decimal_places.to_text + "(inclusive), but was " + decimal_places.to_text
-                Error.throw (Illegal_Argument.Error msg)
-            False -> if self.is_nan || self.is_infinite then self else
+        check_decimal_places decimal_places <|
+            if self.is_nan || self.is_infinite then self else
                 case use_bankers of
                     False ->
                         scale = 10 ^ decimal_places
@@ -890,7 +876,7 @@ type Integer
        - decimal_places: The number of decimal places to round to. Can be
          negative, which results in rounding to positive integer powers of 10.
          Must be between -15 and 15 (inclusive).
-       - use_bankers: Use banker's rounding
+       - use_bankers: Rounds mid-point to nearest even number.
 
        ! Error Conditions
          Throws `Illegal_Argument` if the number is 15 or more decimal places.
@@ -907,42 +893,32 @@ type Integer
          multiple of 10^(-n)". For negative decimal counts, this results in
          rounding to the nearest positive integer power of 10.
 
-       ? Banker's rounding
-         Banker's rounding rounds half-way values to the nearest even number.
-
        > Example
          Round an integer (returns the value unchanged).
 
-            3 . round
-            # ==> 3
+            3 . round == 3
 
        > Example
          Round to the nearest thousand.
 
-            2511 . round -3
-            # ==> 3000
+            2511 . round -3 == 3000
 
        > Example
          Round to the nearest hundred, using Banker's Rounding.
 
-            12250 . round -2 use_bankers=True
-            # ==> 12200
+            12250 . round -2 use_bankers=True == 12200
     round : Integer -> Integer ! Illegal_Argument
     round self decimal_places=0 use_bankers=False =
-        case decimal_places < round_min_decimal_places || decimal_places > round_max_decimal_places of
-            True ->
-                msg = "round: decimal_places must be between " + round_min_decimal_places.to_text + " and " + round_max_decimal_places.to_text + "(inclusive), but was " + decimal_places.to_text
-                Error.throw (Illegal_Argument.Error msg)
-            False ->
-                case self < round_min_long || self > round_max_long of
-                    True ->
-                        msg = "Error: Integer.round can only accept values between " + round_min_long.to_text + " and " + round_max_long.to_text + "(inclusive), but was " + self.to_text
-                        Error.throw (Illegal_Argument.Error msg)
-                    False ->
-                        ## It's already an integer so unless decimal_places is
-                           negative, the value is unchanged.
-                        if decimal_places >= 0 then self else
-                            self.to_decimal.round decimal_places use_bankers . int
+        check_decimal_places decimal_places <|
+            case self < round_min_long || self > round_max_long of
+                True ->
+                    msg = "Error: Integer.round can only accept values between " + round_min_long.to_text + " and " + round_max_long.to_text + "(inclusive), but was " + self.to_text
+                    Error.throw (Illegal_Argument.Error msg)
+                False ->
+                    ## It's already an integer so unless decimal_places is
+                       negative, the value is unchanged.
+                    if decimal_places >= 0 then self else
+                        self.to_decimal.round decimal_places use_bankers . int
 
     ## Compute the negation of this.
 
@@ -1139,3 +1115,9 @@ round_max_long = 99999999999999
    (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
 round_min_long : Integer
 round_min_long = -99999999999999
+
+check_decimal_places : Integer -> Function
+check_decimal_places decimal_places ~action =
+    if decimal_places >= round_min_decimal_places && decimal_places <= round_max_decimal_places then action else
+        msg = "round: decimal_places must be between " + round_min_decimal_places.to_text + " and " + round_max_decimal_places.to_text + "(inclusive), but was " + decimal_places.to_text
+        Error.throw (Illegal_Argument.Error msg)
