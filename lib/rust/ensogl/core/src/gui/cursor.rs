@@ -48,6 +48,7 @@ define_style! {
     /// label selection. After setting the host to the label, cursor will not follow mouse anymore,
     /// it will inherit its position from the label instead.
     host: display::object::Instance,
+    pointer_events: bool,
     size: Vector2<f32>,
     offset: Vector2<f32>,
     color: color::Lcha,
@@ -132,6 +133,7 @@ impl Style {
         let def_size = DEFAULT_SIZE();
         self.offset = Some(StyleValue::new_no_animation(-size / 2.0));
         self.size = Some(StyleValue::new_no_animation(size.abs() + def_size));
+        self.pointer_events = Some(StyleValue::new_no_animation(true));
         self
     }
 }
@@ -146,7 +148,7 @@ impl Style {
 pub mod shape {
     use super::*;
     crate::shape! {
-        pointer_events = false;
+        pointer_events_instanced = true;
         alignment = center; (
             style: Style,
             press: f32,
@@ -363,6 +365,7 @@ impl Cursor {
             }));
             frp.set_style_override <+ should_trash.then_constant(Style::trash());
             perform_trash <- on_up.gate(&should_trash);
+            frp.set_style_override <+ perform_trash.constant(None);
             eval_ perform_trash (model.trash_dragged_item());
 
 
@@ -460,6 +463,13 @@ impl Cursor {
                     None => plus.target.emit(0.0),
                     Some(t) => plus.target.emit(t.value.unwrap_or(0.0)),
                 }
+
+                let pointer_events = match &new_style.pointer_events {
+                    None => false,
+                    Some(t) => t.value.unwrap_or(false),
+                };
+                let disable_pointer_events = (!pointer_events) as i32 as f32;
+                model.for_each_view(|vw| vw.disable_pointer_events.set(disable_pointer_events));
 
                 *model.style.borrow_mut() = new_style.clone();
             });
@@ -630,7 +640,6 @@ impl CursorModel {
             self.stop_drag_internal();
             Some(item)
         } else {
-            warn!("Can't stop dragging an item because no item is being dragged.");
             None
         }
     }
@@ -650,7 +659,6 @@ impl CursorModel {
                 }
             }
         } else {
-            warn!("Can't stop dragging an item because no item is being dragged.");
             None
         }
     }

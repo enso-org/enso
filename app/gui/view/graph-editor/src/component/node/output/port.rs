@@ -173,6 +173,8 @@ pub mod single_port {
     use ensogl::display::shape::*;
 
     ensogl::shape! {
+        above = [node::backdrop];
+        below = [compound::rectangle::shape];
         alignment = center;
         (style:Style, size_multiplier:f32, opacity:f32, color_rgb:Vector3<f32>) {
             let overall_width  = Var::<Pixels>::from("input_size.x");
@@ -300,6 +302,8 @@ pub mod multi_port {
     }
 
     ensogl::shape! {
+        above = [node::backdrop];
+        below = [compound::rectangle::shape];
         alignment = center;
         ( style           : Style
         , size_multiplier : f32

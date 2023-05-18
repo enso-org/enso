@@ -21,10 +21,16 @@ pub const SHORTCUTS: &[(ensogl::application::shortcut::ActionType, &str, &str, &
     (Press, "!read_only", "cmd g", "collapse_selected_nodes"),
     // === Visualization ===
     (Press, "!node_editing", "space", "press_visualization_visibility"),
-    (DoublePress, "!node_editing", "space", "double_press_visualization_visibility"),
+    (
+        Press,
+        "!node_editing & !is_fs_visualization_displayed",
+        "shift space",
+        "open_fullscreen_visualization",
+    ),
     (Release, "!node_editing", "space", "release_visualization_visibility"),
     (Press, "", "cmd i", "reload_visualization_registry"),
-    (Press, "is_fs_visualization_displayed", "space", "close_fullscreen_visualization"),
+    (Press, "is_fs_visualization_displayed", "shift space", "close_fullscreen_visualization"),
+    (Press, "is_fs_visualization_displayed", "escape", "close_fullscreen_visualization"),
     (Press, "", "cmd", "enable_quick_visualization_preview"),
     (Release, "", "cmd", "disable_quick_visualization_preview"),
     // === Selection ===

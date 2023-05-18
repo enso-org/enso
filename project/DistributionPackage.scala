@@ -7,6 +7,8 @@ import sbt.util.{CacheStore, CacheStoreFactory, FileInfo, Tracked}
 
 import scala.sys.process._
 
+import org.enso.build.WithDebugCommand
+
 object DistributionPackage {
 
   /** File extensions. */
@@ -263,6 +265,10 @@ object DistributionPackage {
     all.add(enso.getAbsolutePath())
     all.addAll(args.asJava)
     pb.command(all)
+    if (args.contains("--debug")) {
+      all.remove("--debug")
+      pb.environment().put("JAVA_OPTS", WithDebugCommand.DEBUG_OPTION)
+    }
     pb.inheritIO()
     val p        = pb.start()
     val exitCode = p.waitFor()

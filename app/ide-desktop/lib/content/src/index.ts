@@ -187,7 +187,8 @@ class Main implements AppRunner {
         const isOpeningMainEntryPoint =
             contentConfig.OPTIONS.groups.startup.options.entry.value ===
             contentConfig.OPTIONS.groups.startup.options.entry.default
-        const isNotOpeningProject = contentConfig.OPTIONS.groups.startup.options.entry.value === ''
+        const isNotOpeningProject =
+            contentConfig.OPTIONS.groups.startup.options.project.value === ''
         if (
             (isUsingAuthentication || isUsingNewDashboard) &&
             isOpeningMainEntryPoint &&
