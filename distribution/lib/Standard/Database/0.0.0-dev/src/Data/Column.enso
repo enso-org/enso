@@ -9,7 +9,8 @@ import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table import Sort_Column, Data_Formatter, Value_Type, Auto
-from Standard.Table.Errors import Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type, Lossy_Conversion
+from Standard.Table.Errors import Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type, Conversion_Failure
+from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 
 import project.Connection.Connection.Connection
 import project.Data.SQL_Statement.SQL_Statement
@@ -1002,17 +1003,12 @@ type Column
         _ = [format, locale]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.format` is not implemented yet for the Database backends."
 
-    ## PRIVATE
-       UNSTABLE
-       Cast the column to a specific type.
+    ## Cast the column to a specific type.
 
        Arguments:
        - value_type: The `Value_Type` to cast the column to.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
-
-       TODO [RW] this is a prototype needed for debugging, proper implementation
-       and testing will come with #6112.
 
        In the Database backend, this will boil down to a CAST operation.
        In the in-memory backend, a conversion will be performed according to
@@ -1024,6 +1020,9 @@ type Column
          length.
        - Conversion between numeric types will replace values exceeding the
          range of the target type with `Nothing`.
+       - Converting decimal numbers into integers will truncate or round them,
+         depending on the backend. If more control is needed, use the various
+         rounding functions (such as `round` or `floor`).
        - Booleans may also be converted to numbers, with `True` being converted
          to `1` and `False` to `0`. The reverse is not supported - use `iif`
          instead.
@@ -1032,32 +1031,27 @@ type Column
        - If a `Date` is to be converted to `Date_Time`, it will be set at
          midnight of the default system timezone.
 
-       ? Conversion Precision
-
-         In the in-memory backend, if the conversion is lossy, a
-         `Lossy_Conversion` warning will be reported. The only exception is when
-         truncating a column which is already a text column - as then the
-         truncation seems like an intended behaviour, so it is not reported. If
-         truncating needs to occur when converting a non-text column, a warning
-         will still be reported.
-
-         Currently, the warning is not reported for Database backends.
+        If the target type cannot fit some of the values (for example due to too
+        small range), a `Conversion_Failure` may be reported according to the
+        `on_problems` rules. The Database backends may fail with `SQL_Error`
+        instead.
 
        ? Inexact Target Type
 
          If the backend does not support the requested target type, the closest
          supported type is chosen and a `Inexact_Type_Coercion` problem is
          reported.
-    cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument | Inexact_Type_Coercion | Lossy_Conversion
-    cast self value_type=self.value_type on_problems=Problem_Behavior.Report_Warning =
-        dialect = self.connection.dialect
-        type_mapping = dialect.get_type_mapping
-        target_sql_type = type_mapping.value_type_to_sql value_type on_problems
-        target_sql_type.if_not_error <|
-            infer_from_database new_expression =
-                SQL_Type_Reference.new self.connection self.context new_expression
-            new_column = dialect.make_cast self.as_internal target_sql_type infer_from_database
-            Column.Value new_column.name self.connection new_column.sql_type_reference new_column.expression self.context
+    cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
+    cast self value_type on_problems=Problem_Behavior.Report_Warning =
+        check_cast_compatibility self.value_type value_type <|
+            dialect = self.connection.dialect
+            type_mapping = dialect.get_type_mapping
+            target_sql_type = type_mapping.value_type_to_sql value_type on_problems
+            target_sql_type.if_not_error <|
+                infer_from_database new_expression =
+                    SQL_Type_Reference.new self.connection self.context new_expression
+                new_column = dialect.make_cast self.as_internal target_sql_type infer_from_database
+                Column.Value new_column.name self.connection new_column.sql_type_reference new_column.expression self.context
 
     ## ALIAS Transform Column
 
