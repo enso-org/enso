@@ -18,8 +18,7 @@ const logger = contentConfig.logger
  * set up the process.
  *
  * It is also no-op on macOS, as the OS handles the URL opening by passing the `open-url` event to
- * the application, thanks to the information baked in our application by the `electron-builder`.
- */
+ * the application, thanks to the information baked in our application by `electron-builder`. */
 export function registerAssociations() {
     if (!electron.app.isDefaultProtocolClient(common.DEEP_LINK_SCHEME)) {
         if (electronIsDev) {
@@ -40,8 +39,7 @@ export function registerAssociations() {
 // === URL handling ===
 // ====================
 
-/**
- * Check if the given list of application startup arguments denotes an attempt to open a URL.
+/** Check if the given list of application startup arguments denotes an attempt to open a URL.
  *
  * For example, this happens on Windows when the browser redirects user using our
  * [deep link scheme]{@link common.DEEP_LINK_SCHEME}. On macOS this is not used, as the OS
@@ -49,8 +47,7 @@ export function registerAssociations() {
  *
  * @param clientArgs - A list of arguments passed to the application, stripped from the initial
  * executable name and any electron dev mode arguments.
- * @returns The URL to open, or `null` if no file was specified.
- */
+ * @returns The URL to open, or `null` if no file was specified. */
 export function argsDenoteUrlOpenAttempt(clientArgs: string[]): URL | null {
     const arg = clientArgs[0]
     let result: URL | null = null
@@ -74,8 +71,7 @@ export function argsDenoteUrlOpenAttempt(clientArgs: string[]): URL | null {
  *
  * This happens on Windows when the browser redirects user using the deep link scheme.
  *
- * @param openedUrl - The URL to open.
- */
+ * @param openedUrl - The URL to open. */
 export function handleOpenUrl(openedUrl: URL) {
     logger.log(`Opening URL '${openedUrl.toString()}'.`)
     const appLock = electron.app.requestSingleInstanceLock({ openedUrl })
@@ -108,8 +104,7 @@ export function handleOpenUrl(openedUrl: URL) {
  * use {@link setAsUrlHandler} and {@link unsetAsUrlHandler} to ensure that the callback
  * is called.
  *
- * @param callback - The callback to call when the application is requested to open a URL.
- */
+ * @param callback - The callback to call when the application is requested to open a URL. */
 export function registerUrlCallback(callback: (url: URL) => void) {
     // First, register the callback for the `open-url` event. This is used on macOS.
     electron.app.on('open-url', (event, url) => {
@@ -158,10 +153,10 @@ export function registerUrlCallback(callback: (url: URL) => void) {
  * callbacks.
  *
  * The mechanism is built on top of the Electron's
- * [instance lock]{@link https://www.electronjs.org/docs/api/app#apprequestsingleinstancelock} functionality.
+ * [instance lock]{@link https://www.electronjs.org/docs/api/app#apprequestsingleinstancelock}
+ * functionality.
  *
- * @throws An error if another instance of the application has already acquired the lock.
- */
+ * @throws {Error} An error if another instance of the application has already acquired the lock. */
 export function setAsUrlHandler() {
     logger.log('Expecting URL callback, acquiring the lock.')
     if (!electron.app.requestSingleInstanceLock()) {
@@ -175,8 +170,8 @@ export function setAsUrlHandler() {
 /** Stop this application instance from receiving URL callbacks.
  *
  * This function releases the instance lock that was acquired by the {@link setAsUrlHandler}
- * function. This is necessary to ensure that other IDE instances can receive their URL callbacks.
- */
+ * function. This is necessary to ensure that other IDE instances can receive their
+ * URL callbacks. */
 export function unsetAsUrlHandler() {
     logger.log('URL callback completed, releasing the lock.')
     electron.app.releaseSingleInstanceLock()
