@@ -1,4 +1,5 @@
 /** @file Type definitions common between all backends. */
+import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
 import * as platform from '../platform'
 
@@ -41,9 +42,6 @@ export type Ami = newtype.Newtype<string, 'Ami'>
 
 /** An AWS user ID. */
 export type Subject = newtype.Newtype<string, 'Subject'>
-
-/** An RFC 3339 DateTime string. */
-export type Rfc3339DateTime = newtype.Newtype<string, 'Rfc3339DateTime'>
 
 /** A user/organization in the application. These are the primary owners of a project. */
 export interface UserOrOrganization {
@@ -198,7 +196,7 @@ export interface VersionNumber {
 export interface Version {
     number: VersionNumber
     ami: Ami | null
-    created: Rfc3339DateTime
+    created: dateTime.Rfc3339DateTime
     // This does not follow our naming convention because it's defined this way in the backend,
     // so we need to match it.
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -244,7 +242,7 @@ export interface UserPermission {
 export interface BaseAsset {
     id: AssetId
     title: string
-    modifiedAt: Rfc3339DateTime | null
+    modifiedAt: dateTime.Rfc3339DateTime | null
     parentId: AssetId
     permissions: UserPermission[] | null
 }

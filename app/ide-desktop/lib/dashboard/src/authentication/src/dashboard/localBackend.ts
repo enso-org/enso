@@ -4,7 +4,6 @@
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API. */
 import * as backend from './backend'
-import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
 import * as platformModule from '../platform'
 import * as projectManager from './projectManager'

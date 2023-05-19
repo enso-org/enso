@@ -2,6 +2,7 @@
  *
  * It should always be in sync with the Rust interface at
  * `app/gui/controller/engine-protocol/src/project_manager.rs`. */
+import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
 
 import GLOBAL_CONFIG from '../../../../../../../gui/config.yaml' assert { type: 'yaml' }
@@ -59,7 +60,7 @@ export type ProjectId = newtype.Newtype<string, 'ProjectId'>
 export type ProjectName = newtype.Newtype<string, 'ProjectName'>
 /** The newtype's `TypeName` is intentionally different from the name of this type alias,
  * to match the backend's newtype. */
-export type UTCDateTime = newtype.Newtype<string, 'Rfc3339DateTime'>
+export type UTCDateTime = dateTime.Rfc3339DateTime
 
 /** Details for a project. */
 export interface ProjectMetadata {
