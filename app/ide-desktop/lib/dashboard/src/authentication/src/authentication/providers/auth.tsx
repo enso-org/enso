@@ -15,7 +15,7 @@ import * as errorModule from '../../error'
 import * as http from '../../http'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
-import * as platform from '../../platform'
+import * as platformModule from '../../platform'
 import * as remoteBackend from '../../dashboard/remoteBackend'
 import * as sessionProvider from './session'
 
@@ -136,15 +136,17 @@ const AuthContext = react.createContext<AuthContextType>({} as AuthContextType)
 
 export interface AuthProviderProps {
     authService: authServiceModule.AuthService
+    platform: platformModule.Platform
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: () => void
     children: react.ReactNode
 }
 
 export function AuthProvider(props: AuthProviderProps) {
-    const { authService, children } = props
+    const { authService, platform, children } = props
     const { cognito } = authService
     const { session } = sessionProvider.useSession()
+    const { setBackend } = backendProvider.useSetBackend()
     const logger = loggerProvider.useLogger()
     const navigate = router.useNavigate()
     const onAuthenticated = react.useCallback(props.onAuthenticated, [])
@@ -167,6 +169,9 @@ export function AuthProvider(props: AuthProviderProps) {
                 headers.append('Authorization', `Bearer ${accessToken}`)
                 const client = new http.Client(headers)
                 const backend = new remoteBackend.RemoteBackend(client, logger)
+                if (platform === platformModule.Platform.cloud) {
+                    setBackend(backend)
+                }
                 const organization = await backend.usersMe().catch(() => null)
                 let newUserSession: UserSession
                 const sharedSessionData = { email, accessToken }
@@ -262,7 +267,7 @@ export function AuthProvider(props: AuthProviderProps) {
         username: string,
         email: string
     ) => {
-        if (backend.platform === platform.Platform.desktop) {
+        if (backend.platform === platformModule.Platform.desktop) {
             toast.error('You cannot set your username on the local backend.')
             return false
         } else {
