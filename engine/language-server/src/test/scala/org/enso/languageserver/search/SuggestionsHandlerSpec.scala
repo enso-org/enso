@@ -535,6 +535,13 @@ class SuggestionsHandlerSpec
             ),
             Tree.Node(
               Api.SuggestionUpdate(
+                Suggestions.tpe,
+                Api.SuggestionAction.Add()
+              ),
+              Vector()
+            ),
+            Tree.Node(
+              Api.SuggestionUpdate(
                 Suggestions.constructor,
                 Api.SuggestionAction.Add()
               ),
@@ -598,7 +605,11 @@ class SuggestionsHandlerSpec
                 ExportedSymbol.Module(
                   Suggestions.module.module
                 ),
-                ExportedSymbol.Atom(
+                ExportedSymbol.Type(
+                  Suggestions.tpe.module,
+                  Suggestions.tpe.name
+                ),
+                ExportedSymbol.Constructor(
                   Suggestions.constructor.module,
                   Suggestions.constructor.name
                 ),
@@ -618,7 +629,7 @@ class SuggestionsHandlerSpec
           Tree.Root(Vector())
         )
 
-        val updates2 = Seq(1L, 2L, 3L).map { id =>
+        val updates2 = Seq(1L, 2L, 3L, 4L).map { id =>
           SearchProtocol.SuggestionsDatabaseUpdate.Modify(
             id,
             reexport = Some(fieldUpdate(exportUpdateAdd.exports.module))
@@ -642,7 +653,11 @@ class SuggestionsHandlerSpec
                 ExportedSymbol.Module(
                   Suggestions.module.module
                 ),
-                ExportedSymbol.Atom(
+                ExportedSymbol.Type(
+                  Suggestions.tpe.module,
+                  Suggestions.tpe.name
+                ),
+                ExportedSymbol.Constructor(
                   Suggestions.constructor.module,
                   Suggestions.constructor.name
                 ),
@@ -662,7 +677,7 @@ class SuggestionsHandlerSpec
           Tree.Root(Vector())
         )
 
-        val updates3 = Seq(1L, 2L, 3L).map { id =>
+        val updates3 = Seq(1L, 2L, 3L, 4L).map { id =>
           SearchProtocol.SuggestionsDatabaseUpdate.Modify(
             id,
             reexport = Some(fieldRemove)
