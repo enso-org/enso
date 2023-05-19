@@ -3,6 +3,7 @@
 import * as react from 'react'
 
 import * as backendModule from '../backend'
+import * as dateTime from '../dateTime'
 import * as fileInfo from '../../fileInfo'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
@@ -480,9 +481,10 @@ function Dashboard(props: DashboardProps) {
     /** React components for every column except for the name column. */
     const columnRenderer: Record<
         Exclude<Column, Column.name>,
-        (asset: backendModule.Asset) => JSX.Element
+        (asset: backendModule.Asset) => react.ReactNode
     > = {
-        [Column.lastModified]: () => <></>,
+        [Column.lastModified]: asset =>
+            asset.modifiedAt && <>{dateTime.formatDateTime(new Date(asset.modifiedAt))}</>,
         [Column.sharedWith]: asset => (
             <>
                 {(asset.permissions ?? []).map(user => (
@@ -660,17 +662,8 @@ function Dashboard(props: DashboardProps) {
             projectTemplateName: templateId ?? null,
             parentDirectoryId: directoryId,
         }
-        const projectAsset = await backend.createProject(body)
-        setProjectAssets([
-            ...projectAssets,
-            {
-                type: backendModule.AssetType.project,
-                title: projectAsset.name,
-                id: projectAsset.projectId,
-                parentId: '',
-                permissions: [],
-            },
-        ])
+        await backend.createProject(body)
+        doRefresh()
     }
 
     return (

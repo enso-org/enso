@@ -246,6 +246,9 @@ spec =
 
             methods.sort . should_equal ['bar', 'baz', 'first_method', 'foo', 'my_method', 'other_method', 'second_method']
 
+        Test.specify "methods of Integer" <|
+            Meta.meta Integer . methods . should_equal []
+
         Test.specify "should correctly handle Java values" <|
             java_meta = Meta.meta Random.new
             java_meta . should_be_a Meta.Polyglot
