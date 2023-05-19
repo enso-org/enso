@@ -3,18 +3,18 @@ package org.enso.table.data.column.storage;
 import java.util.BitSet;
 import java.util.List;
 import java.util.function.IntFunction;
-
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.BoolBuilder;
 import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.data.column.builder.object.InferredBuilder;
+import org.enso.table.data.column.builder.object.NumericBuilder;
+import org.enso.table.data.column.builder.object.StringBuilder;
+import org.enso.table.data.column.operation.CastProblemBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.bool.BooleanIsInOp;
-import org.enso.table.data.column.storage.type.BooleanType;
-import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -81,12 +81,14 @@ public final class BoolStorage extends Storage<Boolean> {
   }
 
   @Override
-  protected Storage<?> runVectorizedMap(String name, Object argument, MapOperationProblemBuilder problemBuilder) {
+  protected Storage<?> runVectorizedMap(
+      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
     return ops.runMap(name, this, argument, problemBuilder);
   }
 
   @Override
-  protected Storage<?> runVectorizedZip(String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
+  protected Storage<?> runVectorizedZip(
+      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
     return ops.runZip(name, this, argument, problemBuilder);
   }
 
@@ -198,10 +200,10 @@ public final class BoolStorage extends Storage<Boolean> {
 
   private static IntFunction<Object> makeRowProvider(Value value) {
     if (value.isHostObject() && value.asHostObject() instanceof Storage<?> s) {
-      return i->(Object)s.getItemBoxed(i);
+      return i -> (Object) s.getItemBoxed(i);
     }
     var converted = Polyglot_Utils.convertPolyglotValue(value);
-    return i->converted;
+    return i -> converted;
   }
 
   private static MapOpStorage<Boolean, BoolStorage> buildOps() {
@@ -217,7 +219,8 @@ public final class BoolStorage extends Storage<Boolean> {
         .add(
             new MapOperation<>(Maps.EQ) {
               @Override
-              public BoolStorage runMap(BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage runMap(
+                  BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg == null) {
                   return BoolStorage.makeEmpty(storage.size);
                 } else if (arg instanceof Boolean v) {
@@ -233,7 +236,8 @@ public final class BoolStorage extends Storage<Boolean> {
               }
 
               @Override
-              public BoolStorage runZip(BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage runZip(
+                  BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
                 BitSet out = new BitSet();
                 BitSet missing = new BitSet();
                 for (int i = 0; i < storage.size; i++) {
@@ -251,7 +255,8 @@ public final class BoolStorage extends Storage<Boolean> {
         .add(
             new MapOperation<>(Maps.AND) {
               @Override
-              public BoolStorage runMap(BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage runMap(
+                  BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg == null) {
                   return BoolStorage.makeEmpty(storage.size);
                 } else if (arg instanceof Boolean v) {
@@ -266,7 +271,8 @@ public final class BoolStorage extends Storage<Boolean> {
               }
 
               @Override
-              public BoolStorage runZip(BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage runZip(
+                  BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg instanceof BoolStorage v) {
                   BitSet missing = v.isMissing.get(0, storage.size);
                   missing.or(storage.isMissing);
@@ -295,7 +301,8 @@ public final class BoolStorage extends Storage<Boolean> {
         .add(
             new MapOperation<>(Maps.OR) {
               @Override
-              public BoolStorage runMap(BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage runMap(
+                  BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg == null) {
                   return BoolStorage.makeEmpty(storage.size);
                 } else if (arg instanceof Boolean v) {
@@ -310,7 +317,8 @@ public final class BoolStorage extends Storage<Boolean> {
               }
 
               @Override
-              public BoolStorage runZip(BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage runZip(
+                  BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg instanceof BoolStorage v) {
                   BitSet missing = v.isMissing.get(0, storage.size);
                   missing.or(storage.isMissing);
@@ -390,5 +398,52 @@ public final class BoolStorage extends Storage<Boolean> {
     }
 
     return new BoolStorage(newValues, newMissing, newSize, negated);
+  }
+
+  @Override
+  public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
+    return switch (targetType) {
+      case AnyObjectType any ->
+        new MixedStorageFacade(this);
+      case BooleanType booleanType ->
+        this;
+      case FloatType floatType -> {
+        int n = size();
+        NumericBuilder builder = NumericBuilder.createDoubleBuilder(n);
+        for (int i = 0; i < n; i++) {
+          if (isNa(i)) {
+            builder.appendNulls(1);
+          } else {
+            builder.appendDouble(values.get(i) ? 1.0 : 0.0);
+          }
+        }
+        yield builder.seal();
+      }
+      case IntegerType integerType -> {
+        int n = size();
+        NumericBuilder builder = NumericBuilder.createLongBuilder(n);
+        for (int i = 0; i < n; i++) {
+          if (isNa(i)) {
+            builder.appendNulls(1);
+          } else {
+            builder.appendLong(values.get(i) ? 1 : 0);
+          }
+        }
+        yield builder.seal();
+      }
+      case TextType textType -> {
+        int n = size();
+        StringBuilder builder = new StringBuilder(n);
+        for (int i = 0; i < n; i++) {
+          if (isMissing.get(i)) {
+            builder.appendNulls(1);
+          } else {
+            builder.append(values.get(i) ? "True" : "False");
+          }
+        }
+        yield StringStorage.adapt(builder.seal(), textType);
+      }
+      default -> throw new IllegalStateException("Conversion of BoolStorage to " + targetType + " is not supported");
+    };
   }
 }

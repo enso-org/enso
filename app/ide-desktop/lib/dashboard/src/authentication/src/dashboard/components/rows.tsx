@@ -22,7 +22,7 @@ const SPINNER_LOADING_CLASSES = 'grow dasharray-75 duration-1000 ease-linear'
 export interface Column<T> {
     id: string
     heading: JSX.Element
-    render: (item: T, index: number) => JSX.Element
+    render: (item: T, index: number) => react.ReactNode
 }
 
 // =================

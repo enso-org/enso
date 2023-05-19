@@ -65,6 +65,17 @@ type Table_Column_Helper
             if result.is_empty then Error.throw No_Output_Columns else result
 
     ## PRIVATE
+       Works like `select_columns` but will not throw `No_Output_Columns` error
+       and will return proper columns instead of internal columns.
+       Useful, when selecting a subset of columns to transform.
+    resolve_columns : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Boolean -> Problem_Behavior -> Boolean -> Vector
+    resolve_columns self selectors error_on_missing_columns on_problems reorder=False =
+        problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
+        result = self.select_columns_helper selectors reorder problem_builder
+        problem_builder.attach_problems_before on_problems <|
+            result.map self.make_column
+
+    ## PRIVATE
        A helper function encapsulating shared code for `remove_columns`
        implementations of various Table variants. See the documentation for the
        Table type for details.

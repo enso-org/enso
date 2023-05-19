@@ -4,6 +4,7 @@
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API. */
 import * as backend from './backend'
+import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
 import * as platformModule from '../platform'
 import * as projectManager from './projectManager'
@@ -38,9 +39,10 @@ export class LocalBackend implements Partial<backend.Backend> {
         const result = await this.projectManager.listProjects({})
         return result.projects.map(project => ({
             type: backend.AssetType.project,
-            title: project.name,
             id: project.id,
-            parentId: '',
+            title: project.name,
+            modifiedAt: project.lastOpened,
+            parentId: newtype.asNewtype<backend.AssetId>(''),
             permissions: [],
         }))
     }

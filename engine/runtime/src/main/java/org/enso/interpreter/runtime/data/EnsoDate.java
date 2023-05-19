@@ -14,6 +14,7 @@ import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 import java.time.DateTimeException;
 import java.time.LocalDate;
@@ -121,6 +122,9 @@ public final class EnsoDate implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
   public Object toDisplayString(boolean allowSideEffects) {
-    return DateTimeFormatter.ISO_LOCAL_DATE.format(date);
+    return DATE_FORMATTER.format(date);
   }
+
+  private static final DateTimeFormatter DATE_FORMATTER =
+      Core_Date_Utils.defaultLocalDateFormatter();
 }
