@@ -127,7 +127,7 @@ const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
 /** CSS classes for every column. Currently only used to set the widths. */
 const COLUMN_CSS_CLASS: Record<Column, string> = {
     [Column.name]: 'w-60',
-    [Column.lastModified]: 'w-32',
+    [Column.lastModified]: 'w-40',
     [Column.sharedWith]: 'w-36',
     [Column.docs]: 'w-96',
     [Column.labels]: 'w-80',
