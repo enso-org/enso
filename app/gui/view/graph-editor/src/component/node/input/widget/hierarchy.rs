@@ -40,7 +40,7 @@ impl SpanWidget for Widget {
     fn match_node(ctx: &ConfigContext) -> Score {
         match ctx.span_node.children.is_empty() {
             false => Score::Good,
-            true => Score::NotMatched,
+            true => Score::Mismatch,
         }
     }
 

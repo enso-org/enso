@@ -143,7 +143,7 @@ pub trait SpanWidget {
     type Config: Debug + Clone + PartialEq;
     /// Score how well a widget kind matches current [`ConfigContext`], e.g. checking if the span
     /// node or declaration type match specific patterns. When this method returns
-    /// [`Score::NotMatched`], this widget kind will not be used, even if it was requested by an
+    /// [`Score::Mismatch`], this widget kind will not be used, even if it was requested by an
     /// override. The override will be ignored and another best scoring widget with default
     /// configuration will be used.
     fn match_node(ctx: &ConfigContext) -> Score;
@@ -174,7 +174,7 @@ pub trait SpanWidget {
 pub enum Score {
     /// This widget kind cannot accept the node. It will never be used, even if it was explicitly
     /// requested using an override.
-    NotMatched,
+    Mismatch,
     /// A bad, but syntactically valid match. Matching widget kind will only be used if it was
     /// explicitly requested using an override. Should be the default choice for cases where
     /// the node is syntactically valid in this widget's context, but no sensible defaults can
@@ -234,11 +234,11 @@ macro_rules! define_widget_modules(
 
         impl DynKindFlags {
             /// Check whether the widget kind matching this flag is able to receive given span node.
-            /// When more than one flag is set, [`Score::NotMatched`] will be returned.
+            /// When more than one flag is set, [`Score::Mismatch`] will be returned.
             fn match_node(&self, ctx: &ConfigContext) -> Score {
                 match self {
                     $(&DynKindFlags::$name => $module::Widget::match_node(ctx),)*
-                    _ => Score::NotMatched,
+                    _ => Score::Mismatch,
                 }
             }
 
@@ -375,7 +375,7 @@ impl Configuration {
         let mut best_match = None;
         for kind in allowed {
             let score = kind.match_node(ctx);
-            let current_score = best_match.map(|(_, score)| score).unwrap_or(Score::NotMatched);
+            let current_score = best_match.map(|(_, score)| score).unwrap_or(Score::Mismatch);
             if score > current_score {
                 best_match = Some((kind, score));
                 if score == Score::Perfect {
@@ -1454,7 +1454,7 @@ impl<'a> TreeBuilder<'a> {
                 .filter(|cfg| {
                     let flag = cfg.kind.flag();
                     !disallowed_configs.contains(flag)
-                        && !matches!(flag.match_node(&ctx), Score::NotMatched)
+                        && !matches!(flag.match_node(&ctx), Score::Mismatch)
                 })
         };
 

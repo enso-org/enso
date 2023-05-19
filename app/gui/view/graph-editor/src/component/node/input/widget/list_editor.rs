@@ -581,35 +581,32 @@ impl SpanWidget for Widget {
     type Config = Config;
 
     fn match_node(ctx: &ConfigContext) -> Score {
-        let node_expr = ctx.span_expression();
         let is_placeholder = ctx.span_node.is_expected_argument();
-        let looks_like_vector = (node_expr.starts_with('[')
-            && node_expr.ends_with(']')
-            && matches!(ctx.span_node.tree_type, Some(ast::TreeType::Expression)));
-        let supported_by_widget = is_placeholder || looks_like_vector;
-        if ctx.info.connection.is_some() || !supported_by_widget {
-            return Score::NotMatched;
-        }
-
         let decl_type = ctx.span_node.kind.tp().map(|t| t.as_str());
-        let usage_type = ctx.info.usage_type.as_ref().map(|t| t.as_str());
 
-        if ctx.span_node.is_expected_argument() {
-            let first_decl_is_vector =
-                decl_type.map_or(false, |t| t.trim_start_matches('(').starts_with(VECTOR_TYPE));
-            let type_may_be_vector = first_decl_is_vector
-                || decl_type.map_or(false, |t| t.contains(VECTOR_TYPE))
-                || usage_type.map_or(false, |t| t.contains(VECTOR_TYPE));
+        let first_decl_is_vector =
+            || decl_type.map_or(false, |t| t.trim_start_matches('(').starts_with(VECTOR_TYPE));
 
-            if first_decl_is_vector {
-                Score::Perfect
-            } else if type_may_be_vector {
-                Score::Good
-            } else {
-                Score::OnlyOverride
-            }
-        } else {
-            Score::Perfect
+        let type_may_be_vector = || {
+            let usage_type = ctx.info.usage_type.as_ref().map(|t| t.as_str());
+            decl_type.map_or(false, |t| t.contains(VECTOR_TYPE))
+                || usage_type.map_or(false, |t| t.contains(VECTOR_TYPE))
+        };
+
+        let looks_like_vector = || {
+            let node_expr = ctx.span_expression();
+            node_expr.starts_with('[')
+                && node_expr.ends_with(']')
+                && matches!(ctx.span_node.tree_type, Some(ast::TreeType::Expression))
+        };
+
+        match () {
+            _ if ctx.info.connection.is_some() => Score::Mismatch,
+            _ if is_placeholder && first_decl_is_vector() => Score::Perfect,
+            _ if is_placeholder && type_may_be_vector() => Score::Good,
+            _ if is_placeholder => Score::OnlyOverride,
+            _ if looks_like_vector() => Score::Perfect,
+            _ => Score::Mismatch,
         }
     }
 
