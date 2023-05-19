@@ -1,13 +1,16 @@
-/** @file This script signs the content of all archives that we have for macOS. For this to work this needs to run on
- * macOS with `codesign`, and a JDK installed. `codesign` is needed to sign the files, while the JDK is needed for
- * correct packing and unpacking of java archives.
+/** @file This script signs the content of all archives that we have for macOS.
+ * For this to work this needs to run on macOS with `codesign`, and a JDK installed.
+ * `codesign` is needed to sign the files, while the JDK is needed for correct packing
+ * and unpacking of java archives.
  *
- * We require this extra step as our dependencies contain files that require us to re-sign jar contents that cannot be
- * opened as pure zip archives, but require a java toolchain to extract and re-assemble to preserve manifest
- * information. This functionality is not provided by `electron-osx-sign` out of the box.
+ * We require this extra step as our dependencies contain files that require us
+ * to re-sign jar contents that cannot be opened as pure zip archives,
+ * but require a java toolchain to extract and re-assemble to preserve manifest information.
+ * This functionality is not provided by `electron-osx-sign` out of the box.
  *
- * This code is based on https://github.com/electron/electron-osx-sign/pull/231 but our use-case is unlikely to be
- * supported by electron-osx-sign as it adds a java toolchain as additional dependency.
+ * This code is based on https://github.com/electron/electron-osx-sign/pull/231
+ * but our use-case is unlikely to be supported by `electron-osx-sign`
+ * as it adds a java toolchain as additional dependency.
  * This script should be removed once the engine is signed. */
 
 import * as childProcess from 'node:child_process'
@@ -66,8 +69,8 @@ async function graalSignables(resourcesDir: string): Promise<Signable[]> {
         `Contents/MacOS/libjli.dylib`,
     ]
 
-    // We use `*` for Graal versioned directory to not have to update this script on every GraalVM update.
-    // Updates might still be needed when the list of binaries to sign changes.
+    // We use `*` for Graal versioned directory to not have to update this script on every GraalVM
+    // update. Updates might still be needed when the list of binaries to sign changes.
     const graalDir = pathModule.join(resourcesDir, 'enso', 'runtime', '*')
     const archives = await ArchiveToSign.lookupMany(graalDir, archivePatterns)
     const binaries = await BinaryToSign.lookupMany(graalDir, binariesPatterns)
@@ -76,10 +79,10 @@ async function graalSignables(resourcesDir: string): Promise<Signable[]> {
 
 /** Parts of the Enso Engine distribution that need to be signed by us in an extra step. */
 async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
-    /// Archives, and their content that need to be signed in an extra step. If a new archive is added
-    /// to the engine dependencies this also needs to be added here. If an archive is not added here, it
-    /// will show up as a failure to notarise the IDE. The offending archive will be named in the error
-    /// message provided by Apple and can then be added here.
+    // Archives, and their content that need to be signed in an extra step. If a new archive is
+    // added to the engine dependencies this also needs to be added here. If an archive is not added
+    // here, it will show up as a failure to notarise the IDE. The offending archive will be named
+    // in the error message provided by Apple and can then be added here.
     const engineDir = `${resourcesDir}/enso/dist/*`
     const archivePatterns: ArchivePattern[] = [
         [
@@ -108,8 +111,7 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
 /** Information we need to sign a given binary. */
 interface SigningContext {
     /** A digital identity that is stored in a keychain that is on the calling user's keychain
-     * search list. We rely on this already being set up by the Electron Builder.
-     */
+     * search list. We rely on this already being set up by the Electron Builder. */
     identity: string
     /** Path to the entitlements file. */
     entitlements: string
@@ -132,8 +134,7 @@ function run(cmd: string, args: string[], cwd?: string) {
 
 /** Archive with some binaries that we want to sign.
  *
- * Can be either a zip or a jar file.
- */
+ * Can be either a zip or a jar file. */
 class ArchiveToSign implements Signable {
     /** Looks up for archives to sign using the given path patterns. */
     static lookupMany = lookupManyHelper(ArchiveToSign.lookup.bind(this))
@@ -165,7 +166,7 @@ class ArchiveToSign implements Signable {
                 run(`jar`, ['xf', this.path], workingDir)
             } else {
                 // We cannot use `unzip` here because of the following issue:
-                // https://unix.stackexchange.com/questions/115825/extra-bytes-error-when-unzipping-a-file
+                // https://unix.stackexchange.com/questions/115825/
                 // This started to be an issue with GraalVM 22.3.0 release.
                 run(`7za`, ['X', `-o${workingDir}`, this.path])
             }
@@ -250,31 +251,29 @@ class BinaryToSign implements Signable {
 /** Helper used to concisely define patterns for an archive to sign.
  *
  * Consists of pattern of the archive path
- * and set of patterns for files to sign inside the archive.
- */
+ * and set of patterns for files to sign inside the archive. */
 type ArchivePattern = [glob.Pattern, glob.Pattern[]]
 
 /** Like `glob` but returns absolute paths by default. */
-async function globAbs(pattern: glob.Pattern, options?: glob.Options): Promise<string[]> {
+async function globAbsolute(pattern: glob.Pattern, options?: glob.Options): Promise<string[]> {
     const paths = await glob(pattern, { absolute: true, ...options })
     return paths
 }
 
-/** Glob patterns relative to a given base directory. Base directory is allowed to be a pattern as
- * well.
- */
-async function globAbsIn(
+/** Glob patterns relative to a given base directory. The base directory is allowed to be a pattern
+ * as well. */
+async function globAbsoluteIn(
     base: glob.Pattern,
     pattern: glob.Pattern,
     options?: glob.Options
 ): Promise<string[]> {
-    return globAbs(pathModule.join(base, pattern), options)
+    return globAbsolute(pathModule.join(base, pattern), options)
 }
 
 /** Generate a lookup function for a given Signable type. */
 function lookupHelper<R extends Signable>(mapper: (path: string) => R) {
     return async (base: string, pattern: glob.Pattern) => {
-        const paths = await globAbsIn(base, pattern)
+        const paths = await globAbsoluteIn(base, pattern)
         return paths.map(mapper)
     }
 }
@@ -298,9 +297,7 @@ async function rmRf(path: string) {
     await fs.rm(path, { recursive: true, force: true })
 }
 
-/**
- * Get a new temporary directory. Caller is responsible for cleaning up the directory.
- */
+/** Get a new temporary directory. Caller is responsible for cleaning up the directory. */
 async function getTmpDir(prefix?: string) {
     return await fs.mkdtemp(pathModule.join(os.tmpdir(), prefix ?? 'enso-signing-'))
 }

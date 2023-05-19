@@ -25,7 +25,7 @@ const DEFAULT_PORT = 8080
 /** Window size (width and height). */
 export class WindowSize {
     static separator = 'x'
-    /** Constructs a new {@link WindowSize}. */
+    /** Create a new {@link WindowSize}. */
     constructor(public width: number, public height: number) {}
 
     /** Constructor of the default window size. */
@@ -33,7 +33,7 @@ export class WindowSize {
         return new WindowSize(DEFAULT_WIDTH, DEFAULT_HEIGHT)
     }
 
-    /** Parses the input text in form of `<width>x<height>`. */
+    /** Parse the input text in form of `<width>x<height>`. */
     static parse(arg: string): Error | WindowSize {
         const size = arg.split(WindowSize.separator)
         const widthStr = size[0]
@@ -47,7 +47,7 @@ export class WindowSize {
         }
     }
 
-    /** Returns window size in a form of `<width>x<height>`. */
+    /** Return window size in a form of `<width>x<height>`. */
     pretty(): string {
         return `${this.width}${WindowSize.separator}${this.height}`
     }
@@ -102,7 +102,10 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                 passToWebApplication: false,
                 primary: false,
                 value: '',
-                description: `Instructs Node.js to listen for a debugging client on the given port.`,
+                description:
+                    // This empty string is required for the formatter to keep the line
+                    // under 100 columns.
+                    `` + `Instructs Node.js to listen for a debugging client on the given port.`,
             }),
         },
         groups: {
@@ -186,7 +189,8 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `has the potential to significantly enhance the performance of the ` +
                             `application in our specific use cases. This behavior can be ` +
                             `observed in the following example: ` +
-                            `https://groups.google.com/a/chromium.org/g/chromium-dev/c/09NnO6jYT6o.`,
+                            `https://groups.google.com/a/chromium.org/g/chromium-dev/c/` +
+                            `09NnO6jYT6o.`,
                     }),
                     disableSandbox: new contentConfig.Option({
                         passToWebApplication: false,
@@ -249,7 +253,10 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                         passToWebApplication: false,
                         primary: false,
                         value: true,
-                        description: `Enable native CPU-mappable GPU memory buffer support on Linux.`,
+                        description:
+                            // This empty string is required for the formatter to keep the line
+                            // under 100 columns.
+                            `` + `Enable native CPU-mappable GPU memory buffer support on Linux.`,
                     }),
                 },
             }),
@@ -428,7 +435,10 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                         passToWebApplication: false,
                         primary: false,
                         value: '',
-                        description: `Ignore the connections limit for domains list separated by ','.`,
+                        description:
+                            // This empty string is required for the formatter to keep the line
+                            // under 100 columns.
+                            `` + `Ignore the connections limit for domains list separated by ','.`,
                     }),
                     jsFlags: new contentConfig.Option({
                         passToWebApplication: false,
@@ -457,7 +467,8 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                         primary: false,
                         value: '',
                         description:
-                            'Enable net log events to be saved and writes them to the provided path.',
+                            `Enable net log events to be saved and writes them to the provided ` +
+                            `path.`,
                     }),
                     logLevel: new contentConfig.Option({
                         passToWebApplication: false,
@@ -482,7 +493,8 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                         value: false,
                         description:
                             `Disable the Chrome sandbox. Forces renderer process and Chrome ` +
-                            `helper processes to run un-sandboxed. Should only be used for testing.`,
+                            `helper processes to run un-sandboxed. Should only be used ` +
+                            `for testing.`,
                     }),
                     proxyBypassList: new contentConfig.Option({
                         passToWebApplication: false,
@@ -492,7 +504,8 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `Instruct Electron to bypass the proxy server for the given ` +
                             `semi-colon-separated list of hosts. This flag has an effect only if ` +
                             `used in tandem with '-chrome.proxy-server'. For example, ` +
-                            `'-chrome.proxy-bypass-list "<local>;*.google.com;*foo.com;1.2.3.4:5678"'.`,
+                            `'-chrome.proxy-bypass-list "<local>;*.google.com;*foo.com;` +
+                            `1.2.3.4:5678"'.`,
                     }),
                     proxyPacUrl: new contentConfig.Option({
                         passToWebApplication: false,
@@ -511,7 +524,8 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `noteworthy that not all proxy servers support HTTPS and WebSocket ` +
                             `requests. The proxy URL does not support username and password ` +
                             `authentication per ` +
-                            `[Chrome issue](https://bugs.chromium.org/p/chromium/issues/detail?id=615947).`,
+                            `[Chrome issue](https://bugs.chromium.org/p/chromium/issues/detail` +
+                            `?id=615947).`,
                     }),
                     remoteDebuggingPort: new contentConfig.Option({
                         passToWebApplication: false,
@@ -569,8 +583,9 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `A list of Blink (Chrome's rendering engine) features separated ` +
                             `by ',' like 'CSSVariables,KeyboardEventKey' to enable. The full ` +
                             `list of supported feature strings can be found in the ` +
-                            `[RuntimeEnabledFeatures.json5](https://cs.chromium.org/chromium/src/third_party/blink/renderer/platform/runtime_enabled_features.json5?l=70) ` +
-                            `file.`,
+                            `[RuntimeEnabledFeatures.json5](https://cs.chromium.org/chromium/src/` +
+                            `third_party/blink/renderer/platform/runtime_enabled_features.json5` +
+                            `?l=70) file.`,
                     }),
 
                     disableBlinkFeatures: new contentConfig.Option({
@@ -581,8 +596,9 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                             `A list of Blink (Chrome's rendering engine) features separated ` +
                             `by ',' like 'CSSVariables,KeyboardEventKey' to disable. The full ` +
                             `list of supported feature strings can be found in the ` +
-                            `[RuntimeEnabledFeatures.json5](https://cs.chromium.org/chromium/src/third_party/blink/renderer/platform/runtime_enabled_features.json5?l=70) ` +
-                            `file.`,
+                            `[RuntimeEnabledFeatures.json5](https://cs.chromium.org/chromium/src/` +
+                            `third_party/blink/renderer/platform/runtime_enabled_features.json5` +
+                            `?l=70) file.`,
                     }),
                 },
             }),
@@ -593,5 +609,7 @@ CONFIG.groups.startup.options.platform.value = process.platform
 
 CONFIG.groups.engine.options.preferredVersion.value = BUNDLED_ENGINE_VERSION
 
+/** The type of the full configuration object. */
 export type Args = typeof CONFIG
+/** A configuration option. */
 export type Option<T> = contentConfig.Option<T>

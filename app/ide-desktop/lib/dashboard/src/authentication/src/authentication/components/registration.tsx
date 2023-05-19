@@ -13,6 +13,7 @@ import SvgIcon from './svgIcon'
 // === Registration ===
 // ====================
 
+/** A form for users to register an account. */
 function Registration() {
     const { signUp } = auth.useAuth()
     const [email, setEmail] = react.useState('')

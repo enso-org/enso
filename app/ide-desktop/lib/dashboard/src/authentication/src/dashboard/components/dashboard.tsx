@@ -46,6 +46,7 @@ export enum Tab {
     ide = 'ide',
 }
 
+/** Determines which columns are visible. */
 enum ColumnDisplayMode {
     /** Show only columns which are ready for release. */
     release = 'release',
@@ -198,7 +199,7 @@ const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {
 // === Helper functions ===
 // ========================
 
-/** Returns the id of the root directory for a user or organization. */
+/** Return the id of the root directory for a user or organization. */
 function rootDirectoryId(userOrOrganizationId: backendModule.UserOrOrganizationId) {
     return newtype.asNewtype<backendModule.DirectoryId>(
         userOrOrganizationId.replace(/^organization-/, `${backendModule.AssetType.directory}-`)
@@ -217,6 +218,7 @@ function columnsFor(displayMode: ColumnDisplayMode, backendPlatform: platformMod
 // === Dashboard ===
 // =================
 
+/** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
     platform: platformModule.Platform
     appRunner: AppRunner | null
@@ -225,6 +227,7 @@ export interface DashboardProps {
 // TODO[sb]: Implement rename when clicking name of a selected row.
 // There is currently no way to tell whether a row is selected from a column.
 
+/** The component that contains the entire UI. */
 function Dashboard(props: DashboardProps) {
     const { platform, appRunner } = props
 
@@ -279,7 +282,7 @@ function Dashboard(props: DashboardProps) {
     const parentDirectory = directoryStack[directoryStack.length - 2]
 
     react.useEffect(() => {
-        function onKeyDown(event: KeyboardEvent) {
+        const onKeyDown = (event: KeyboardEvent) => {
             if (
                 // On macOS, we need to check for combination of `alt` + `d` which is `∂` (`del`).
                 (event.key === 'd' || event.key === '∂') &&
@@ -302,30 +305,30 @@ function Dashboard(props: DashboardProps) {
         }
     }, [])
 
-    function setProjectAssets(
+    const setProjectAssets = (
         newProjectAssets: backendModule.Asset<backendModule.AssetType.project>[]
-    ) {
+    ) => {
         setProjectAssetsRaw(newProjectAssets)
         setVisibleProjectAssets(newProjectAssets.filter(asset => asset.title.includes(query)))
     }
-    function setDirectoryAssets(
+    const setDirectoryAssets = (
         newDirectoryAssets: backendModule.Asset<backendModule.AssetType.directory>[]
-    ) {
+    ) => {
         setDirectoryAssetsRaw(newDirectoryAssets)
         setVisibleDirectoryAssets(newDirectoryAssets.filter(asset => asset.title.includes(query)))
     }
-    function setSecretAssets(
+    const setSecretAssets = (
         newSecretAssets: backendModule.Asset<backendModule.AssetType.secret>[]
-    ) {
+    ) => {
         setSecretAssetsRaw(newSecretAssets)
         setVisibleSecretAssets(newSecretAssets.filter(asset => asset.title.includes(query)))
     }
-    function setFileAssets(newFileAssets: backendModule.Asset<backendModule.AssetType.file>[]) {
+    const setFileAssets = (newFileAssets: backendModule.Asset<backendModule.AssetType.file>[]) => {
         setFileAssetsRaw(newFileAssets)
         setVisibleFileAssets(newFileAssets.filter(asset => asset.title.includes(query)))
     }
 
-    function exitDirectory() {
+    const exitDirectory = () => {
         setDirectoryId(parentDirectory?.id ?? rootDirectoryId(organization.id))
         setDirectoryStack(
             // eslint-disable-next-line @typescript-eslint/no-magic-numbers
@@ -333,9 +336,9 @@ function Dashboard(props: DashboardProps) {
         )
     }
 
-    function enterDirectory(
+    const enterDirectory = (
         directoryAsset: backendModule.Asset<backendModule.AssetType.directory>
-    ) {
+    ) => {
         setDirectoryId(directoryAsset.id)
         setDirectoryStack([...directoryStack, directoryAsset])
     }
@@ -480,6 +483,8 @@ function Dashboard(props: DashboardProps) {
     }
 
     /** React components for every column except for the name column. */
+    // This is not a React component even though it contains JSX.
+    // eslint-disable-next-line no-restricted-syntax
     const columnRenderer: Record<
         Exclude<Column, Column.name>,
         (asset: backendModule.Asset) => react.ReactNode
@@ -502,7 +507,7 @@ function Dashboard(props: DashboardProps) {
         [Column.labels]: () => {
             // This is not a React component even though it contains JSX.
             // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
-            function onContextMenu(event: react.MouseEvent) {
+            const onContextMenu = (event: react.MouseEvent) => {
                 event.preventDefault()
                 event.stopPropagation()
                 setModal(() => (
@@ -526,7 +531,7 @@ function Dashboard(props: DashboardProps) {
         [Column.ide]: () => <></>,
     }
 
-    function renderer<Type extends backendModule.AssetType>(column: Column, assetType: Type) {
+    const renderer = <Type extends backendModule.AssetType>(column: Column, assetType: Type) => {
         return column === Column.name
             ? // This is type-safe only if we pass enum literals as `assetType`.
               // eslint-disable-next-line no-restricted-syntax
@@ -535,8 +540,8 @@ function Dashboard(props: DashboardProps) {
     }
 
     /** Heading element for every column. */
-    function ColumnHeading(column: Column, assetType: backendModule.AssetType) {
-        return column === Column.name ? (
+    const ColumnHeading = (column: Column, assetType: backendModule.AssetType) =>
+        column === Column.name ? (
             assetType === backendModule.AssetType.project ? (
                 <>{ASSET_TYPE_NAME[assetType]}</>
             ) : (
@@ -570,7 +575,6 @@ function Dashboard(props: DashboardProps) {
         ) : (
             <>{COLUMN_NAME[column]}</>
         )
-    }
 
     // The purpose of this effect is to enable search action.
     react.useEffect(() => {
@@ -580,7 +584,7 @@ function Dashboard(props: DashboardProps) {
         setVisibleFileAssets(fileAssets.filter(asset => asset.title.includes(query)))
     }, [query])
 
-    function setAssets(assets: backendModule.Asset[]) {
+    const setAssets = (assets: backendModule.Asset[]) => {
         const newProjectAssets = assets.filter(
             backendModule.assetIsType(backendModule.AssetType.project)
         )
@@ -611,7 +615,7 @@ function Dashboard(props: DashboardProps) {
     )
 
     react.useEffect(() => {
-        function onBlur() {
+        const onBlur = () => {
             setIsFileBeingDragged(false)
         }
 
@@ -622,7 +626,7 @@ function Dashboard(props: DashboardProps) {
         }
     }, [])
 
-    function handleEscapeKey(event: react.KeyboardEvent<HTMLDivElement>) {
+    const handleEscapeKey = (event: react.KeyboardEvent<HTMLDivElement>) => {
         if (
             event.key === 'Escape' &&
             !event.ctrlKey &&
@@ -637,13 +641,13 @@ function Dashboard(props: DashboardProps) {
         }
     }
 
-    function openDropZone(event: react.DragEvent<HTMLDivElement>) {
+    const openDropZone = (event: react.DragEvent<HTMLDivElement>) => {
         if (event.dataTransfer.types.includes('Files')) {
             setIsFileBeingDragged(true)
         }
     }
 
-    function getNewProjectName(templateName?: string | null): string {
+    const getNewProjectName = (templateName?: string | null): string => {
         const prefix = `${templateName ?? 'New_Project'}_`
         const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
         let highestProjectIndex = 0
@@ -656,7 +660,7 @@ function Dashboard(props: DashboardProps) {
         return `${prefix}${highestProjectIndex + 1}`
     }
 
-    async function handleCreateProject(templateId?: string | null) {
+    const handleCreateProject = async (templateId?: string | null) => {
         const projectName = getNewProjectName(templateId)
         const body: backendModule.CreateProjectRequestBody = {
             projectName,
@@ -863,11 +867,11 @@ function Dashboard(props: DashboardProps) {
                         onContextMenu={(projectAsset, event) => {
                             event.preventDefault()
                             event.stopPropagation()
-                            function doOpenForEditing() {
+                            const doOpenForEditing = () => {
                                 // FIXME[sb]: Switch to IDE tab
                                 // once merged with `show-and-open-workspace` branch.
                             }
-                            function doOpenAsFolder() {
+                            const doOpenAsFolder = () => {
                                 // FIXME[sb]: Uncomment once backend support
                                 // is in place.
                                 // The following code does not typecheck
@@ -876,7 +880,7 @@ function Dashboard(props: DashboardProps) {
                             }
                             // This is not a React component even though it contains JSX.
                             // eslint-disable-next-line no-restricted-syntax
-                            function doRename() {
+                            const doRename = () => {
                                 setModal(() => (
                                     <RenameModal
                                         name={projectAsset.title}
@@ -902,7 +906,7 @@ function Dashboard(props: DashboardProps) {
                             }
                             // This is not a React component even though it contains JSX.
                             // eslint-disable-next-line no-restricted-syntax
-                            function doDelete() {
+                            const doDelete = () => {
                                 setModal(() => (
                                     <ConfirmDeleteModal
                                         name={projectAsset.title}
@@ -1004,7 +1008,7 @@ function Dashboard(props: DashboardProps) {
                                         event.stopPropagation()
                                         // This is not a React component even though it contains JSX.
                                         // eslint-disable-next-line no-restricted-syntax
-                                        function doDelete() {
+                                        const doDelete = () => {
                                             setModal(() => (
                                                 <ConfirmDeleteModal
                                                     name={secret.title}
@@ -1055,15 +1059,15 @@ function Dashboard(props: DashboardProps) {
                                     onContextMenu={(file, event) => {
                                         event.preventDefault()
                                         event.stopPropagation()
-                                        function doCopy() {
+                                        const doCopy = () => {
                                             /** TODO: Wait for backend endpoint. */
                                         }
-                                        function doCut() {
+                                        const doCut = () => {
                                             /** TODO: Wait for backend endpoint. */
                                         }
                                         // This is not a React component even though it contains JSX.
                                         // eslint-disable-next-line no-restricted-syntax
-                                        function doDelete() {
+                                        const doDelete = () => {
                                             setModal(() => (
                                                 <ConfirmDeleteModal
                                                     name={file.title}
@@ -1075,7 +1079,7 @@ function Dashboard(props: DashboardProps) {
                                                 />
                                             ))
                                         }
-                                        function doDownload() {
+                                        const doDownload = () => {
                                             /** TODO: Wait for backend endpoint. */
                                         }
                                         setModal(() => (

@@ -1,8 +1,10 @@
 /** @file Logging utilities.
  *
- * This module includes a special {@link addFileLog function} that adds a new log consumer that writes to a file.
+ * This module includes a special {@link addFileLog function} that adds a new log consumer that
+ * writes to a file.
  *
- * This is the primary entry point, though its building blocks are also exported, like {@link FileConsumer}. */
+ * This is the primary entry point, though its building blocks are also exported,
+ * like {@link FileConsumer}. */
 
 import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
@@ -63,6 +65,7 @@ export class FileConsumer extends linkedDist.Consumer {
         this.logFileHandle = fsSync.openSync(this.logFilePath, 'a')
     }
 
+    /** Append a message to the log. */
     override message(level: linkedDist.LogLevel, ...args: unknown[]): void {
         const timestamp = new Date().toISOString()
         const message = args
@@ -82,16 +85,20 @@ export class FileConsumer extends linkedDist.Consumer {
         }
     }
 
+    /** Start a log group. */
     override startGroup(...args: unknown[]): void {
         this.message('log', '[GROUP START]', ...args)
     }
 
+    /** Start a collapsed log group - for `FileConsumer`, this does the same thing
+     * as `startGroup`. */
     override startGroupCollapsed(...args: unknown[]): void {
         // We don't have a way to collapse groups in the file logger, so we just use the same
         // function as startGroup.
         this.message('log', '[GROUP START]', ...args)
     }
 
+    /** End a log group. */
     override groupEnd(...args: unknown[]): void {
         this.message('log', '[GROUP END]', ...args)
     }

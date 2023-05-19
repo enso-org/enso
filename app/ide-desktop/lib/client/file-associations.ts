@@ -1,5 +1,9 @@
 /** @file File associations for client application. */
 
+// =========================
+// === File associations ===
+// =========================
+
 /** The extension for the source file, without the leading period character. */
 export const SOURCE_FILE_EXTENSION = 'enso'
 

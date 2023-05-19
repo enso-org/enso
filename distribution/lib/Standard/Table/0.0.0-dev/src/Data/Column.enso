@@ -1094,16 +1094,28 @@ type Column
                 new_vector = self.to_vector.map (Filter_Condition.Is_In true_vector).to_predicate
                 Column.from_vector result_name new_vector
 
-    ## Parses a text column into values
+    ## Parses a text column into values.
+
+       In the Database backends, the default formatting settings of the
+       particular database are used.
+
+       In the in-memory backend, the default parser options only parse values
+       where the process is reversible (e.g., 0123 would not be converted to an
+       integer as there is a leading 0). However, settings in the
+       `Data_Formatter` can control this.
 
        Arguments:
        - type: The type to parse the column to. Defaults to `Auto` meaning that
-         the type will be inferred from the data.
+         the type will be inferred from the data. In the Database backends,
+         `Auto` is not supported, so a specific type must be selected.
        - format: The formatting settings to use when parsing the column.
          For `Date`, `Time_Of_Day` and `Date_Time`, a Java date time style
          can be used. For `Boolean`, it should be two values that represent true
          and false, separated by a `|`. Alternatively, a `Data_Formatter` can be
-         passed to provide complete customisation of the formatting.
+         passed to provide complete customisation of the formatting. If
+         `Nothing` is provided, the default formatting settings of the backend
+         will be used. `Nothing` is currently the only setting accepted by the
+         Database backends.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
 
@@ -1159,14 +1171,15 @@ type Column
 
              example_contains = Examples.text_column_1.parse Boolean 'Yes|No'
     @type Widget_Helpers.parse_type_selector
-    parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
+    parse : Value_Type | Auto -> Text | Data_Formatter | Nothing -> Problem_Behavior -> Column
     parse self type=Auto format=Data_Formatter.Value on_problems=Report_Warning =
         Value_Type.expect_text self <|
             formatter = case format of
                 _ : Text ->
                     Data_Formatter.Value.with_format type format
                 _ : Data_Formatter -> format
-                _ -> Error.throw (Illegal_Argument.Error "Invalid format type. Expected Text or Data_Formatter.")
+                Nothing -> Data_Formatter.Value
+                _ -> Error.throw (Illegal_Argument.Error "Invalid format type. Expected Text or Data_Formatter or Nothing.")
 
             parser = formatter.make_value_type_parser type
             storage = self.java_column.getStorage
