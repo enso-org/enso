@@ -1,4 +1,9 @@
-use super::*;
+use crate::prelude::*;
+use ensogl::data::color;
+
+use super::layout::Corner;
+use super::layout::EdgeSplit;
+use super::layout::Oriented;
 
 
 
@@ -10,13 +15,13 @@ use super::*;
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct State {
     /// The layout.
-    pub layout: Layout,
+    pub layout:            Layout,
     /// The color scheme.
-    pub colors: Colors,
+    pub colors:            Colors,
     /// Whether hover events are enabled.
-    pub is_hoverable: IsHoverable,
+    pub is_hoverable:      IsHoverable,
     /// What part, if any, is focused.
-    pub focus_split: FocusSplit,
+    pub focus_split:       FocusSplit,
     /// Whether the target end is attached.
     pub target_attachment: TargetAttachment,
 }
@@ -72,17 +77,17 @@ pub(super) struct TargetAttachment {
 /// changed.
 #[derive(Debug, Copy, Clone)]
 pub(super) struct StateUpdate<'a, 'b, 'c, 'd, 'e> {
-    pub layout: Update<&'a Layout>,
-    pub colors: Update<&'b Colors>,
-    pub is_hoverable: Update<&'c IsHoverable>,
-    pub focus_split: Update<&'d FocusSplit>,
+    pub layout:            Update<&'a Layout>,
+    pub colors:            Update<&'b Colors>,
+    pub is_hoverable:      Update<&'c IsHoverable>,
+    pub focus_split:       Update<&'d FocusSplit>,
     pub target_attachment: Update<&'e TargetAttachment>,
 }
 
 /// A value, along with information about whether it has changed.
 #[derive(Debug, Copy, Clone)]
 pub(super) struct Update<T> {
-    value: T,
+    value:   T,
     changed: bool,
 }
 
@@ -91,16 +96,16 @@ impl State {
         macro_rules! compare {
             ($field:ident) => {
                 Update {
-                    value: &self.$field,
+                    value:   &self.$field,
                     changed: other.as_ref().map_or(true, |value| value.$field != self.$field),
                 }
-            }
+            };
         }
         StateUpdate {
-            layout: compare!(layout),
-            colors: compare!(colors),
-            is_hoverable: compare!(is_hoverable),
-            focus_split: compare!(focus_split),
+            layout:            compare!(layout),
+            colors:            compare!(colors),
+            is_hoverable:      compare!(is_hoverable),
+            focus_split:       compare!(focus_split),
             target_attachment: compare!(target_attachment),
         }
     }
@@ -124,7 +129,11 @@ pub(super) fn any<'a, 'b, A, B>(a: Update<&'a A>, b: Update<&'b B>) -> Update<(&
 }
 
 /// Return the cross product of the inputs.
-pub(super) fn any3<'a, 'b, 'c, A, B, C>(a: Update<&'a A>, b: Update<&'b B>, c: Update<&'c C>) -> Update<(&'a A, &'b B, &'c C)> {
+pub(super) fn any3<'a, 'b, 'c, A, B, C>(
+    a: Update<&'a A>,
+    b: Update<&'b B>,
+    c: Update<&'c C>,
+) -> Update<(&'a A, &'b B, &'c C)> {
     let value = (a.value, b.value, c.value);
     let changed = a.changed | b.changed | c.changed;
     Update { value, changed }
@@ -132,7 +141,12 @@ pub(super) fn any3<'a, 'b, 'c, A, B, C>(a: Update<&'a A>, b: Update<&'b B>, c: U
 
 /// Return the cross product of the inputs.
 #[allow(unused)]
-pub(super) fn any4<'a, 'b, 'c, 'd, A, B, C, D>(a: Update<&'a A>, b: Update<&'b B>, c: Update<&'c C>, d: Update<&'d D>) -> Update<(&'a A, &'b B, &'c C, &'d D)> {
+pub(super) fn any4<'a, 'b, 'c, 'd, A, B, C, D>(
+    a: Update<&'a A>,
+    b: Update<&'b B>,
+    c: Update<&'c C>,
+    d: Update<&'d D>,
+) -> Update<(&'a A, &'b B, &'c C, &'d D)> {
     let value = (a.value, b.value, c.value, d.value);
     let changed = a.changed | b.changed | c.changed | d.changed;
     Update { value, changed }

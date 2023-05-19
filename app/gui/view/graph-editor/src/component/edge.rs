@@ -15,24 +15,16 @@ use ensogl::display;
 use ensogl::display::scene::Scene;
 use ensogl_hardcoded_theme as theme;
 
-
-
-mod layout;
-use layout::Corner;
-use layout::EdgeSplit;
-use layout::EndPoint;
-use layout::Oriented;
-use layout::RectangleGeometry;
-use layout::SplitArc;
-
-mod render;
-use render::*;
-
-mod state;
-use state::*;
-
 mod inputs;
-use inputs::*;
+mod layout;
+mod render;
+mod state;
+
+use inputs::Inputs;
+use layout::EndPoint;
+use render::ShapeParent;
+use render::Shapes;
+use state::*;
 
 
 
@@ -40,12 +32,15 @@ use inputs::*;
 // === Constants ===
 // =================
 
-const LINE_WIDTH: f32 = 4.0;
-const HOVER_EXTENSION: f32 = 10.0;
-const HOVER_WIDTH: f32 = LINE_WIDTH + HOVER_EXTENSION;
-const NODE_CORNER_RADIUS: f32 = crate::component::node::CORNER_RADIUS;
-const NODE_HEIGHT: f32 = crate::component::node::HEIGHT;
-const TARGET_ATTACHMENT_LENGTH: f32 = 6.0;
+mod constants {
+    pub const LINE_WIDTH: f32 = 4.0;
+    pub const HOVER_EXTENSION: f32 = 10.0;
+    pub const HOVER_WIDTH: f32 = LINE_WIDTH + HOVER_EXTENSION;
+    pub const NODE_CORNER_RADIUS: f32 = crate::component::node::CORNER_RADIUS;
+    pub const NODE_HEIGHT: f32 = crate::component::node::HEIGHT;
+    pub const TARGET_ATTACHMENT_LENGTH: f32 = 6.0;
+}
+use constants::*;
 
 
 
@@ -205,7 +200,8 @@ impl EdgeModel {
     #[profile(Detail)]
     pub fn redraw(&self) {
         let state = self.calculate_state();
-        self.apply_state(state);
+        self.apply_state(&state);
+        self.state.set(state);
     }
 
     fn calculate_state(&self) -> State {
@@ -254,7 +250,7 @@ impl EdgeModel {
         }
     }
 
-    fn apply_state(&self, state: State) {
+    fn apply_state(&self, state: &State) {
         let StateUpdate { layout, colors, is_hoverable, focus_split, target_attachment } =
             state.compare(&self.state.borrow());
         let display_object_dirty = None
@@ -312,7 +308,6 @@ impl EdgeModel {
             //  depend on other arbitrary position, or we need the layout update to be multi-stage.
             self.display_object.update(&self.scene);
         }
-        self.state.set(state);
     }
 }
 
@@ -339,7 +334,7 @@ impl EdgeModel {
         let state = self.state.borrow();
         let corners = &state.as_ref()?.layout.corners;
         let source_height = self.inputs.source_size.get().y();
-        layout::find_position(pos, &corners, source_height).map(|split| split.closer_end)
+        layout::find_position(pos, corners, source_height).map(|split| split.closer_end)
     }
 
     fn target_offset(&self) -> Vector2 {
@@ -375,29 +370,34 @@ impl ShapeParent for EdgeModel {
 // === Coordinate systems ===
 // ==========================
 
-/// Marker for coordinates relative to the origin of the parent display object.
-#[derive(Debug, Copy, Clone, PartialEq, Default)]
-struct ParentOrigin;
+mod coords {
+    use super::*;
 
-/// Marker for coordinates relative to the origin of the scene.
-#[derive(Debug, Copy, Clone, PartialEq, Default)]
-struct SceneOrigin;
+    /// Marker for coordinates relative to the origin of the parent display object.
+    #[derive(Debug, Copy, Clone, PartialEq, Default)]
+    pub struct ParentOrigin;
 
-/// Coordinates marked to identify different coordinate spaces.
-#[derive(Debug, Copy, Clone, PartialEq, Default)]
-struct Coords<Space, Number: Copy + Debug + PartialEq + 'static = f32> {
-    coords: Vector2<Number>,
-    space:  PhantomData<*const Space>,
+    /// Marker for coordinates relative to the origin of the scene.
+    #[derive(Debug, Copy, Clone, PartialEq, Default)]
+    pub struct SceneOrigin;
+
+    /// Coordinates marked to identify different coordinate spaces.
+    #[derive(Debug, Copy, Clone, PartialEq, Default)]
+    pub struct Coords<Space, Number: Copy + Debug + PartialEq + 'static = f32> {
+        pub coords: Vector2<Number>,
+        space:      PhantomData<*const Space>,
+    }
+
+    pub type ParentCoords = Coords<ParentOrigin>;
+    pub type SceneCoords = Coords<SceneOrigin>;
+
+    #[allow(non_snake_case)]
+    pub fn ParentCoords(coords: Vector2) -> ParentCoords {
+        Coords { coords, space: default() }
+    }
+    #[allow(non_snake_case)]
+    pub fn SceneCoords(coords: Vector2) -> SceneCoords {
+        Coords { coords, space: default() }
+    }
 }
-
-type ParentCoords = Coords<ParentOrigin>;
-type SceneCoords = Coords<SceneOrigin>;
-
-#[allow(non_snake_case)]
-fn ParentCoords(coords: Vector2) -> ParentCoords {
-    Coords { coords, space: default() }
-}
-#[allow(non_snake_case)]
-fn SceneCoords(coords: Vector2) -> SceneCoords {
-    Coords { coords, space: default() }
-}
+use coords::*;

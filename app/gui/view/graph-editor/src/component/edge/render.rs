@@ -1,6 +1,20 @@
 //! Definitions, constructors, and management for the EnsoGL shapes that are used to draw an edge.
+//!
+//! The core function of this module is to translate edge layouts into the shape parameters that
+//! will implement them.
 
-use super::*;
+use crate::prelude::*;
+use ensogl::data::color;
+use ensogl::display;
+use ensogl::display::scene::Scene;
+use ensogl::display::shape::*;
+
+use super::constants::*;
+use super::layout::Corner;
+use super::layout::EdgeSplit;
+use super::layout::Oriented;
+use super::layout::RectangleGeometry;
+use super::layout::SplitArc;
 
 
 
@@ -188,7 +202,7 @@ impl Shapes {
 /// edge of the arc, `stroke_width` the width of the arc. The arc starts at `start_angle`, relative
 /// to the origin. Its radial size is `sector_angle`. The ends are flat, not rounded as in
 /// [`RoundedArc`].
-pub(super) mod arc {
+mod arc {
     use super::*;
     ensogl::shape! {
         pointer_events = false;
@@ -221,6 +235,7 @@ pub(super) mod arc {
 pub(super) trait ShapeParent: display::Object {
     fn scene(&self) -> &Scene;
 
+    /// Create a shape object to render one of the [`Corner`]s making up the edge.
     fn new_section(&self) -> Rectangle {
         let new = Rectangle::new();
         new.set_corner_radius_max();
@@ -231,6 +246,8 @@ pub(super) trait ShapeParent: display::Object {
         new
     }
 
+    /// Create a shape object to render the invisible hover area corresponding to one of the
+    /// [`Corner`]s making up the edge.
     fn new_hover_section(&self) -> Rectangle {
         let new = Rectangle::new();
         new.set_corner_radius_max();
@@ -241,6 +258,8 @@ pub(super) trait ShapeParent: display::Object {
         new
     }
 
+    /// Create a shape object to render an arbitrary-angle arc. This is used when the focus is split
+    /// in the rounded part of a [`Corner`].
     fn new_arc(&self) -> arc::View {
         let arc = arc::View::new();
         arc.stroke_width.set(LINE_WIDTH);
@@ -249,6 +268,8 @@ pub(super) trait ShapeParent: display::Object {
         arc
     }
 
+    /// Create a shape object to render the little bit at the target end of the edge, that draws on
+    /// top of the node.
     fn new_target_attachment(&self) -> Rectangle {
         let new = Rectangle::new();
         new.set_size(Vector2(LINE_WIDTH, TARGET_ATTACHMENT_LENGTH));
@@ -259,6 +280,8 @@ pub(super) trait ShapeParent: display::Object {
         new
     }
 
+    /// Create a shape object to render the arrow that is drawn on long backward edges to show the
+    /// direction of data flow.
     fn new_dataflow_arrow(&self) -> Rectangle {
         let new = Rectangle::new();
         new.set_size(Vector2(ARROW_ARM_LENGTH, ARROW_ARM_LENGTH));
@@ -288,7 +311,7 @@ pub(super) fn draw_corner(shape: Rectangle, corner: Corner, line_width: f32) -> 
     draw_geometry(shape, corner.to_rectangle_geometry(line_width))
 }
 
-pub(super) fn draw_geometry(shape: Rectangle, geometry: RectangleGeometry) -> Rectangle {
+fn draw_geometry(shape: Rectangle, geometry: RectangleGeometry) -> Rectangle {
     shape.set_clip(geometry.clip);
     shape.set_size(geometry.size);
     shape.set_xy(geometry.xy);

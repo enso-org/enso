@@ -1,3 +1,66 @@
+//! Edge layout calculation.
+//!
+//! # Corners
+//!
+//!   ────╮
+//!
+//! The fundamental unit of edge layout is the [`Corner`]. A corner is a line segment attached to a
+//! 90° arc. The length of the straight segment, the radius of the arc, and the orientation of the
+//! shape may vary. Any shape of edge is built from corners.
+//!
+//! The shape of a corner can be fully-specified by two points: The horizontal end, and the vertical
+//! end.
+//!
+//! In special cases, a corner may be *trivial*: It may have a radius of zero, in which case either
+//! the horizontal or vertical end will not be in the usual orientation. The layout algorithm only
+//! produces trivial corners when the source is directly in line with the target, or in some cases
+//! when subdividing a corner (see [Partial edges] below).
+//!
+//! # Junction points
+//!
+//!              3
+//!   1         /
+//!    \    ╭─────╮
+//!     ────╯\     \
+//!           2     4
+//!
+//! The layout algorithm doesn't directly place corners. The layout algorithm places a sequence of
+//! junction points--coordinates where two horizontal corner ends or two vertical corner ends meet
+//! (or just one corner end, at an end of an edge). A series of junction points, always alternating
+//! horizontal/vertical, has a one-to-one relationship with a sequence of corners.
+//!
+//! # Partial edges
+//!
+//! Corners are sufficient to draw any complete edge; however, in order to split an edge into a
+//! focused portion and an unfocused portion at an arbitrary location based on the mouse position,
+//! we need to subdivide one of the corners of the edge.
+//!
+//!                  |\
+//!                  | 3
+//!                 /
+//!               .'
+//!  ..........-'
+//!  \    \
+//!   1    2 (split)
+//!
+//! When the split position is on the straight segment of a corner, the corner can simply be split
+//! into a corner with a shorter segment (2-3), and a trivial corner consisting only of a straight
+//! segment (1-2).
+//!
+//!                  |\
+//!                  | 4
+//!                 /
+//!               .'
+//!  ..........-'  \
+//!  \         \    3 (split)
+//!   1         2
+//!
+//! The difficult case is when the split position is on the arc. In this case, it is not possible to
+//! draw the split using the same [`Rectangle`] shader that is used for everything else; a
+//! specialized shape is used which supports drawing arbitrary-angle arcs. A trivial corner will
+//! draw the straight line up to the beginning of the arc (1-2); arc shapes will draw the split arc
+//! (2-3) and (3-4).
+
 use super::*;
 
 

@@ -1,4 +1,7 @@
-use super::*;
+use crate::prelude::*;
+use ensogl::data::color;
+
+use super::coords::*;
 
 
 
@@ -22,7 +25,7 @@ pub(super) struct Inputs {
     pub source_attached: Cell<bool>,
     pub color:           Cell<color::Rgba>,
     /// The location of the mouse over the edge.
-    pub hover_position:  Cell<Option<Coords<SceneOrigin>>>,
+    pub hover_position:  Cell<Option<SceneCoords>>,
     pub disabled:        Cell<bool>,
     /// Reset the hover position at next redraw.
     pub clear_focus:     Cell<bool>,
