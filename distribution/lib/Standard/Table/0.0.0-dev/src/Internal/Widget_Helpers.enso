@@ -61,9 +61,11 @@ make_column_name_selector table display=Display.Always =
 
 ## PRIVATE
    Make a multiple column name selector.
-make_column_name_vector_selector : Table -> Display -> Widget
-make_column_name_vector_selector table display=Display.Always =
-    item_editor = make_column_name_selector table display=Display.Always
+make_column_name_vector_selector : Table -> Display -> Boolean -> Widget
+make_column_name_vector_selector table display=Display.Always include_blanks=False =
+    column_selector = make_column_name_selector table display=Display.Always
+    values = column_selector.values + [Option "{By Name}" "Column_Selector.By_Name"] + (if include_blanks then [Option "{Blank Columns}" "Column_Selector.Blank_Columns"] else [])
+    item_editor = Single_Choice display=Display.Always values=values
     Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=display
 
 ## PRIVATE
