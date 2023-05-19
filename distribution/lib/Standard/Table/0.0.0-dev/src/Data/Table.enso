@@ -873,9 +873,7 @@ type Table
             parse_problem_builder.attach_problems_before on_problems <|
                 Table.new new_columns
 
-    ## PRIVATE
-       UNSTABLE
-       Cast the selected columns to a specific type.
+    ## Cast the selected columns to a specific type.
 
        Returns a new table in which the selected columns are replaced with
        columns having the new types.
@@ -885,9 +883,6 @@ type Table
        - value_type: The `Value_Type` to cast the column to.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
-
-       TODO [RW] this is a prototype needed for debugging, proper implementation
-       and testing will come with #6112.
 
        In the Database backend, this will boil down to a CAST operation.
        In the in-memory backend, a conversion will be performed according to
@@ -899,6 +894,9 @@ type Table
          length.
        - Conversion between numeric types will replace values exceeding the
          range of the target type with `Nothing`.
+       - Converting decimal numbers into integers will truncate or round them,
+         depending on the backend. If more control is needed, use the various
+         rounding functions (such as `round` or `floor`).
        - Booleans may also be converted to numbers, with `True` being converted
          to `1` and `False` to `0`. The reverse is not supported - use `iif`
          instead.
@@ -907,16 +905,10 @@ type Table
        - If a `Date` is to be converted to `Date_Time`, it will be set at
          midnight of the default system timezone.
 
-       ? Conversion Precision
-
-         In the in-memory backend, if the conversion is lossy, a
-         `Lossy_Conversion` warning will be reported. The only exception is when
-         truncating a column which is already a text column - as then the
-         truncation seems like an intended behaviour, so it is not reported. If
-         truncating needs to occur when converting a non-text column, a warning
-         will still be reported.
-
-         Currently, the warning is not reported for Database backends.
+        If the target type cannot fit some of the values (for example due to too
+        small range), a `Conversion_Failure` may be reported according to the
+        `on_problems` rules. The Database backends may fail with `SQL_Error`
+        instead.
 
        ? Inexact Target Type
 
@@ -924,11 +916,12 @@ type Table
          supported type is chosen and a `Inexact_Type_Coercion` problem is
          reported.
     @columns Widget_Helpers.make_column_name_vector_selector
-    cast : (Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector)) -> Value_Type -> Problem_Behavior -> Table ! Illegal_Argument | Inexact_Type_Coercion | Lossy_Conversion
-    cast self columns=[0] value_type=Value_Type.Char on_problems=Problem_Behavior.Report_Warning =
-        _ = [columns, value_type, on_problems]
-        ## TODO [RW] actual implementation in #6112
-        self
+    cast : (Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector)) -> Value_Type -> Boolean -> Problem_Behavior -> Table ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
+    cast self columns=[0] value_type error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
+        selected = self.columns_helper.resolve_columns columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+        selected.fold self table-> column_to_cast->
+            new_column = column_to_cast.cast value_type on_problems
+            table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
     ## Splits a column of text into a set of new columns.
        The original column will be removed from the table.

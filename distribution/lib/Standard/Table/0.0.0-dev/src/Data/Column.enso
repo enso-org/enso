@@ -13,6 +13,7 @@ import project.Data.Type.Enso_Types
 import project.Data.Type.Storage
 import project.Data.Type.Value_Type_Helpers
 import project.Data.Table.Table
+import project.Internal.Cast_Helpers
 import project.Internal.Java_Problems
 import project.Internal.Naming_Helpers.Naming_Helpers
 import project.Internal.Parse_Values_Helper
@@ -21,7 +22,7 @@ import project.Data.Type.Value_Type_Helpers
 
 from project.Data.Table import print_table
 from project.Data.Type.Value_Type import Value_Type, Auto
-from project.Errors import No_Index_Set_Error, Floating_Point_Equality, Invalid_Value_Type, Inexact_Type_Coercion
+from project.Errors import No_Index_Set_Error, Floating_Point_Equality, Invalid_Value_Type, Inexact_Type_Coercion, Conversion_Failure
 from project.Internal.Java_Exports import make_string_builder
 
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
@@ -1278,6 +1279,54 @@ type Column
                     map_2_over_storage self format_column formatter make_string_builder
             _ -> Error.throw <| Illegal_Argument.Error <| "Unsupported format type: " + format.to_text
         new_column
+
+    ## Cast the column to a specific type.
+
+       Arguments:
+       - value_type: The `Value_Type` to cast the column to.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+       In the Database backend, this will boil down to a CAST operation.
+       In the in-memory backend, a conversion will be performed according to
+       the following rules:
+       - Anything can be cast into the `Mixed` type.
+       - Converting to a `Char` type, the elements of the column will be
+         converted to text. If it is fixed length, the texts will be trimmed or
+         padded on the right with the space character to match the desired
+         length.
+       - Conversion between numeric types will replace values exceeding the
+         range of the target type with `Nothing`.
+       - Converting decimal numbers into integers will truncate or round them,
+         depending on the backend. If more control is needed, use the various
+         rounding functions (such as `round` or `floor`).
+       - Booleans may also be converted to numbers, with `True` being converted
+         to `1` and `False` to `0`. The reverse is not supported - use `iif`
+         instead.
+       - A `Date_Time` may be converted into a `Date` or `Time` type - the
+         resulting value will be truncated to the desired type.
+       - If a `Date` is to be converted to `Date_Time`, it will be set at
+         midnight of the default system timezone.
+
+        If the target type cannot fit some of the values (for example due to too
+        small range), a `Conversion_Failure` may be reported according to the
+        `on_problems` rules. The Database backends may fail with `SQL_Error`
+        instead.
+
+       ? Inexact Target Type
+
+         If the backend does not support the requested target type, the closest
+         supported type is chosen and a `Inexact_Type_Coercion` problem is
+         reported.
+    cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
+    cast self value_type on_problems=Problem_Behavior.Report_Warning =
+        Cast_Helpers.check_cast_compatibility self.value_type value_type <|
+            target_storage_type = Storage.from_value_type value_type on_problems
+            cast_problem_builder = Cast_Helpers.new_java_problem_builder self.name value_type
+            new_storage = self.java_column.getStorage.cast target_storage_type cast_problem_builder.to_java
+            problems = cast_problem_builder.get_problems
+            on_problems.attach_problems_before problems <|
+                Column.from_storage self.name new_storage
 
     ## ALIAS Transform Column
 
