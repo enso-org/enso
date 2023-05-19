@@ -314,10 +314,7 @@ class TableVisualization extends Visualization {
             const rowCounts = [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter(
                 r => r <= all_rows_count
             )
-            if (
-                all_rows_count < 100000 &&
-                rowCounts.indexOf(all_rows_count) === -1
-            ) {
+            if (all_rows_count < 100000 && rowCounts.indexOf(all_rows_count) === -1) {
                 rowCounts.push(all_rows_count)
             }
             rowLimitElem.innerHTML = ''
