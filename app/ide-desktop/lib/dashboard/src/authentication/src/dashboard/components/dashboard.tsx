@@ -936,9 +936,12 @@ function Dashboard(props: DashboardProps) {
                                             <ContextMenuEntry disabled onClick={doOpenForEditing}>
                                                 Open for editing
                                             </ContextMenuEntry>
-                                            <ContextMenuEntry disabled onClick={doOpenAsFolder}>
-                                                Open as folder
-                                            </ContextMenuEntry>
+                                            {backend.platform !==
+                                                platformModule.Platform.desktop && (
+                                                <ContextMenuEntry disabled onClick={doOpenAsFolder}>
+                                                    Open as folder
+                                                </ContextMenuEntry>
+                                            )}
                                             <ContextMenuEntry onClick={doRename}>
                                                 Rename
                                             </ContextMenuEntry>
