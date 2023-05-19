@@ -234,6 +234,8 @@ impl Widget {
 struct Model {
     self_id:                WidgetIdentity,
     list:                   ListEditor<ListItem>,
+    /// Root element of the last child widget with [`span_tree::node::Kind::InsertionPoint`] node.
+    /// It is stored in the model to allow animating its margins within the FRP network.
     append_insertion_point: Option<object::Instance>,
     #[allow(dead_code)]
     background:             display::shape::Rectangle,
@@ -405,11 +407,16 @@ impl Model {
             .map(|index| build_child_widget(index, insert_config, INSERT_HOVER_MARGIN).root_object);
 
         let (open_bracket, close_bracket) = open_bracket.zip(close_bracket).unzip();
-        let mut children = SmallVec::<[&object::Instance; 4]>::new();
-        children.extend(&open_bracket);
-        children.push(self.list.display_object());
-        children.extend(&self.append_insertion_point);
-        children.extend(&close_bracket);
+        let children: SmallVec<[&object::Instance; 4]> = [
+            open_bracket.as_ref(),
+            Some(self.list.display_object()),
+            self.append_insertion_point.as_ref(),
+            close_bracket.as_ref(),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+
         root.replace_children(&children);
 
         let mut need_reposition = false;
