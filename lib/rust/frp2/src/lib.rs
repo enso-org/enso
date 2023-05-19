@@ -144,8 +144,8 @@ struct NodeData {
     tp:         NodeType,
     network_id: NetworkId,
     def:        DefInfo,
-    inputs:     TargetsVec,
-    outputs:    TargetsVec,
+    inputs:     LinkedCellArray<NodeId, 8>,
+    outputs:    LinkedCellArray<NodeId, 8>,
 }
 
 impl NodeData {
@@ -154,7 +154,7 @@ impl NodeData {
     }
 
     fn on_event(&self, rt: &Runtime, node_id: NodeId, event: &dyn Data) {
-        println!("on_event: {:?}", event);
+        // println!("on_event: {:?}", event);
         match &self.tp {
             NodeType::Source => {}
             NodeType::Inc => {
@@ -163,7 +163,7 @@ impl NodeData {
             }
             NodeType::Trace => {
                 let new_data = unsafe { &*(event as *const dyn Data as *const usize) };
-                println!("TRACE: {:?}", new_data);
+                // println!("TRACE: {:?}", new_data);
                 rt.emit_event(node_id, event);
             } /* NodeType::Map(f) => {
                *     let event = f(event);
@@ -201,7 +201,7 @@ fn rc_runtime() -> Rc<Runtime> {
 #[derive(Default)]
 pub struct Runtime {
     networks:     RefCell<SlotMap<NetworkId, NetworkData>>,
-    nodes:        RefCellSlotMap<NodeData>,
+    nodes:        CellSlotMap<NodeData>,
     // consumers:         RefCell<SecondaryMap<NodeId, BumpRc<dyn RawEventConsumer>>>,
     /// Map for each node to its behavior, if any. For nodes that are natively behaviors, points to
     /// itself. For non-behavior streams, may point to a sampler node that listens to it.
@@ -244,27 +244,20 @@ impl Runtime {
     }
 
     fn emit_event(&self, node_id: NodeId, event: &dyn Data) {
-        println!("emit_event {:?} {:?}", node_id, event);
+        // println!("emit_event {:?} {:?}", node_id, event);
         // println!("emit_event {:?} {:?}", node_id, event);
         self.nodes.with_item_borrow(node_id, |node| {
-            // Emit events to all targets. In case there are no targets, we are done.
-
-            // store the targets to emit to in a temporary buffer, so we can
-            // release the borrow.
-
-
             let cleanup_targets = self.stack.with(node.def, || {
                 let mut cleanup_targets = false;
-                for &node_output_id in &node.outputs {
-                    self.nodes
-                        .with_item_borrow(node_output_id, |node_output| {
-                            node_output.on_event(self, node_output_id, event);
-                        })
-                        .ok_or_else(|| {
-                            cleanup_targets = true;
-                        })
-                        .ok();
-                }
+                node.outputs.for_item_borrow(|&node_output_id| {
+                    let done = self.nodes.with_item_borrow(node_output_id, |node_output| {
+                        node_output.on_event(self, node_output_id, event);
+                    });
+                    if done.is_none() {
+                        cleanup_targets = true;
+                    }
+                });
+
                 cleanup_targets
             });
             //
@@ -312,6 +305,48 @@ impl Network {
 }
 
 
+#[derive(Copy, Clone, Debug)]
+pub struct Source<T> {
+    _marker: PhantomData<T>,
+    id:      NodeId,
+}
+
+impl<T> Source<T> {
+    pub fn new(network: NetworkId) -> Self {
+        let id = with_runtime(|rt| rt.new_node(NodeType::Source, network, DefInfo::unlabelled()));
+        let _marker = PhantomData;
+        Self { _marker, id }
+    }
+}
+
+impl Network {
+    pub fn source<T>(&self) -> Source<T> {
+        Source::new(self.id)
+    }
+}
+
+
+#[derive(Copy, Clone, Debug)]
+pub struct Trace<T> {
+    _marker: PhantomData<T>,
+    id:      NodeId,
+}
+
+impl<T> Trace<T> {
+    pub fn new(network: NetworkId, source: Source<T>) -> Self {
+        let id = with_runtime(|rt| rt.new_node(NodeType::Trace, network, DefInfo::unlabelled()));
+        let _marker = PhantomData;
+        with_runtime(|rt| rt.connect(source.id, id));
+        Self { _marker, id }
+    }
+}
+
+impl Network {
+    pub fn trace<T>(&self, source: Source<T>) -> Trace<T> {
+        Trace::new(self.id, source)
+    }
+}
+
 
 // =============
 // === Tests ===
@@ -326,9 +361,10 @@ mod tests {
     fn test() {
         println!("hello");
         let net = Network::new();
-        let src = with_runtime(|rt| rt.new_node(NodeType::Source, net.id, DefInfo::unlabelled()));
-        let inc = with_runtime(|rt| rt.new_node(NodeType::Inc, net.id, DefInfo::unlabelled()));
-        let trc = with_runtime(|rt| rt.new_node(NodeType::Trace, net.id, DefInfo::unlabelled()));
+        let src = net.source::<usize>();
+        let trc = net.trace(src);
+        // let inc = with_runtime(|rt| rt.new_node(NodeType::Inc, net.id, DefInfo::unlabelled()));
+        // let trc = with_runtime(|rt| rt.new_node(NodeType::Trace, net.id, DefInfo::unlabelled()));
         // let inc2 = with_runtime(|rt| {
         //     rt.new_node(
         //         NodeType::Map(Box::new(|t: Data| Data(t.0 * 2))),
@@ -339,11 +375,11 @@ mod tests {
         // let trc2 = with_runtime(|rt| rt.new_node(NodeType::Trace, net.id,
         // DefInfo::unlabelled()));
 
-        with_runtime(|rt| rt.connect(src, inc));
-        with_runtime(|rt| rt.connect(inc, trc));
+        // with_runtime(|rt| rt.connect(src, inc));
+        // with_runtime(|rt| rt.connect(inc, trc));
         // with_runtime(|rt| rt.connect(trc, inc2));
         // with_runtime(|rt| rt.connect(inc2, trc2));
-        with_runtime(|rt| rt.emit_event(src, &1_usize));
+        with_runtime(|rt| rt.emit_event(src.id, &1_usize));
         assert_eq!(1, 2);
     }
 }
@@ -382,6 +418,8 @@ mod benches {
 // 2102113
 // 2280935
 
+// 3039606
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct NodeId {
     index:   usize,
@@ -396,12 +434,12 @@ pub struct Slot<T> {
 
 #[derive(Debug, Derivative)]
 #[derivative(Default(bound = "T: Default"))]
-pub struct RefCellSlotMap<T> {
+pub struct CellSlotMap<T> {
     free_indexes: RefCell<Vec<usize>>,
-    list:         LinkedArray<Slot<T>>,
+    list:         LinkedCellArray<Slot<T>>,
 }
 
-impl<T: Default> RefCellSlotMap<T> {
+impl<T: Default> CellSlotMap<T> {
     pub fn new() -> Self {
         default()
     }
@@ -435,21 +473,13 @@ impl<T: Default> RefCellSlotMap<T> {
 
     pub fn with_item_borrow<R>(&self, key: NodeId, f: impl FnOnce(&T) -> R) -> Option<R> {
         self.list.with_item_borrow(key.index, |slot| {
-            if slot.version == key.version {
-                slot.value.as_ref().map(f)
-            } else {
-                None
-            }
+            (slot.version == key.version).and_option_from(|| slot.value.as_ref().map(f))
         })
     }
 
     pub fn with_item_borrow_mut<R>(&self, key: NodeId, f: impl FnOnce(&mut T) -> R) -> Option<R> {
         self.list.with_item_borrow_mut(key.index, |slot| {
-            if slot.version == key.version {
-                slot.value.as_mut().map(f)
-            } else {
-                None
-            }
+            (slot.version == key.version).and_option_from(|| slot.value.as_mut().map(f))
         })
     }
 }
@@ -470,12 +500,12 @@ pub struct Segment<T, const N: usize> {
 
 #[derive(Debug, Derivative)]
 #[derivative(Default(bound = "Self: LinkedArrayDefault<T,N>"))]
-pub struct LinkedArray<T, const N: usize = 32> {
+pub struct LinkedCellArray<T, const N: usize = 32> {
     size:          Cell<usize>,
     first_segment: Segment<T, N>,
 }
 
-impl<T: Default, const N: usize> LinkedArray<T, N>
+impl<T: Default, const N: usize> LinkedCellArray<T, N>
 where Self: LinkedArrayDefault<T, N>
 {
     pub fn new() -> Self {
@@ -510,6 +540,16 @@ where Self: LinkedArrayDefault<T, N>
 
     pub fn with_item_borrow_mut<U>(&self, index: usize, f: impl FnOnce(&mut T) -> U) -> U {
         self.first_segment.with_item_borrow_mut(index, f)
+    }
+}
+
+impl<T, const N: usize> LinkedCellArray<T, N> {
+    pub fn for_item_borrow(&self, f: impl FnMut(&T)) {
+        self.first_segment.for_item_borrow(self.size.get(), f);
+    }
+
+    pub fn for_item_borrow_mut(&self, f: impl FnMut(&mut T)) {
+        self.first_segment.for_item_borrow_mut(self.size.get(), f);
     }
 }
 
@@ -558,6 +598,28 @@ where Self: LinkedArrayDefault<T, N>
     }
 }
 
+impl<T, const N: usize> Segment<T, N> {
+    fn for_item_borrow(&self, count: usize, mut f: impl FnMut(&T)) {
+        for item in self.items.iter().take(count) {
+            f(&*item.borrow());
+        }
+        if count > N {
+            self.next.with_borrowed(|t| t.as_ref().unwrap().for_item_borrow(count - N, f));
+        }
+    }
+
+    fn for_item_borrow_mut(&self, count: usize, mut f: impl FnMut(&mut T)) {
+        for item in self.items.iter().take(count) {
+            f(&mut *item.borrow_mut());
+        }
+        if count > N {
+            self.next.with_borrowed(|t| t.as_ref().unwrap().for_item_borrow_mut(count - N, f));
+        }
+    }
+}
+
+
+
 // =============
 // === Tests ===
 // =============
@@ -568,7 +630,7 @@ mod tests2 {
 
     #[test]
     fn test() {
-        let array = LinkedArray::<usize, 2>::new();
+        let array = LinkedCellArray::<usize, 2>::new();
         array.push(1);
         array.push(2);
         array.push(3);
