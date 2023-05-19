@@ -448,6 +448,7 @@ impl Model {
     }
 
     /// Look through all graph's nodes in AST and set position where it is missing.
+    #[profile(Debug)]
     fn initialize_nodes_positions(&self, default_gap_between_nodes: f32) {
         match self.controller.graph().nodes() {
             Ok(nodes) => {
@@ -553,6 +554,7 @@ struct ViewUpdate {
 
 impl ViewUpdate {
     /// Create ViewUpdate information from Graph Presenter's model.
+    #[profile(Debug)]
     fn new(model: &Model) -> FallibleResult<Self> {
         let state = model.state.clone_ref();
         let nodes = model.controller.graph().nodes()?;
@@ -563,11 +565,13 @@ impl ViewUpdate {
     }
 
     /// Remove nodes from the state and return node views to be removed.
+    #[profile(Debug)]
     fn remove_nodes(&self) -> Vec<ViewNodeId> {
         self.state.update_from_controller().retain_nodes(&self.node_ids().collect())
     }
 
     /// Returns number of nodes view should create.
+    #[profile(Debug)]
     fn count_nodes_to_add(&self) -> usize {
         self.node_ids().filter(|n| self.state.view_id_of_ast_node(*n).is_none()).count()
     }
@@ -607,6 +611,7 @@ impl ViewUpdate {
     /// input for nodes where position changed.
     ///
     /// The nodes not having views are also updated in the state.
+    #[profile(Debug)]
     fn set_node_positions(&self) -> Vec<(ViewNodeId, Vector2)> {
         self.nodes
             .iter()
@@ -620,6 +625,7 @@ impl ViewUpdate {
             .collect()
     }
 
+    #[profile(Debug)]
     fn set_node_visualizations(&self) -> Vec<(ViewNodeId, Option<visualization_view::Path>)> {
         self.nodes
             .iter()
@@ -631,11 +637,13 @@ impl ViewUpdate {
     }
 
     /// Remove connections from the state and return views to be removed.
+    #[profile(Debug)]
     fn remove_connections(&self) -> Vec<ViewConnection> {
         self.state.update_from_controller().retain_connections(&self.connections)
     }
 
     /// Add connections to the state and return endpoints of connections to be created in views.
+    #[profile(Debug)]
     fn add_connections(&self) -> Vec<(EdgeEndpoint, EdgeEndpoint)> {
         let ast_conns = self.connections.iter();
         ast_conns
@@ -645,6 +653,7 @@ impl ViewUpdate {
             .collect()
     }
 
+    #[profile(Debug)]
     fn node_ids(&self) -> impl Iterator<Item = AstNodeId> + '_ {
         self.nodes.iter().map(controller::graph::Node::id)
     }
@@ -690,10 +699,11 @@ impl Graph {
 
         frp::extend! { network
             update_view <- source::<()>();
+            update_view_once <- update_view.debounce();
             // Position initialization should go before emitting `update_data` event.
-            update_with_gap <- view.default_y_gap_between_nodes.sample(&update_view);
+            update_with_gap <- view.default_y_gap_between_nodes.sample(&update_view_once);
             eval update_with_gap ((gap) model.initialize_nodes_positions(*gap));
-            update_data <- update_view.map(f_!([model] match ViewUpdate::new(&model) {
+            update_data <- update_view_once.map(f_!([model] match ViewUpdate::new(&model) {
                 Ok(update) => Rc::new(update),
                 Err(err) => {
                     error!("Failed to update view: {err:?}");
