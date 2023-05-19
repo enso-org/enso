@@ -14,13 +14,18 @@ class GraalVMComponentConfiguration extends RuntimeComponentConfiguration {
   ): Seq[GraalVMComponent] = {
     val optPythonComponent =
       if (os.hasPythonSupport) Seq(GraalVMComponent.python) else Seq()
-    version.graalVersion match {
-      case GraalVersions.Major(v) if v >= 22 =>
-        Seq(GraalVMComponent.js, GraalVMComponent.R) ++ optPythonComponent
-      case GraalVersions.Major(v) if v > 20 && os.hasSulongSupport =>
-        Seq(GraalVMComponent.R) ++ optPythonComponent
-      case _ =>
-        Seq()
+    version.java match {
+      case "17" =>
+        Seq(GraalVMComponent.js)
+      case "11" =>
+        version.graalVersion match {
+          case GraalVersions.Major(v) if v >= 22 =>
+            Seq(GraalVMComponent.js, GraalVMComponent.R) ++ optPythonComponent
+          case GraalVersions.Major(v) if v > 20 && os.hasSulongSupport =>
+            Seq(GraalVMComponent.R) ++ optPythonComponent
+          case _ =>
+            Seq()
+        }
     }
   }
 
