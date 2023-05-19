@@ -12,7 +12,8 @@ import org.enso.projectmanager.boot.Globals.{
 }
 import org.enso.projectmanager.boot.configuration.{
   MainProcessConfig,
-  ProjectManagerConfig
+  ProjectManagerConfig,
+  ServerConfig
 }
 import org.enso.version.VersionDescription
 import pureconfig.ConfigSource
@@ -66,7 +67,12 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
   ): ZIO[ZAny, IOException, Unit] = {
     val mainModule =
       new MainModule[ZIO[ZAny, +*, +*]](
-        config,
+        config.copy(
+          server = ServerConfig(
+            processConfig.serverHost.getOrElse(config.server.host),
+            processConfig.serverPort.getOrElse(config.server.port)
+          )
+        ),
         processConfig,
         computeExecutionContext
       )
@@ -201,14 +207,37 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         ZIO.fail(err)
       }
 
+    val parseServerHost = ZIO
+      .attempt {
+        Option(options.getOptionValue(Cli.SERVER_HOST))
+      }
+      .catchAll { err =>
+        printLineError(s"Invalid ${Cli.SERVER_HOST} argument.") *>
+        ZIO.fail(err)
+      }
+
+    val parseServerPort = ZIO
+      .attempt {
+        Option(options.getOptionValue(Cli.SERVER_PORT))
+          .map(_.toInt)
+      }
+      .catchAll { err =>
+        printLineError(s"Invalid ${Cli.SERVER_PORT} argument.") *>
+        ZIO.fail(err)
+      }
+
     for {
       profilingEventsLogPath <- parseProfilingEventsLogPath
       profilingPath          <- parseProfilingPath
       profilingTime          <- parseProfilingTime
+      serverHost             <- parseServerHost
+      serverPort             <- parseServerPort
     } yield ProjectManagerOptions(
       profilingEventsLogPath,
       profilingPath,
-      profilingTime
+      profilingTime,
+      serverHost,
+      serverPort
     )
   }
 
@@ -233,7 +262,9 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
           logLevel,
           opts.profilingRuntimeEventsLog,
           opts.profilingPath,
-          opts.profilingTime
+          opts.profilingTime,
+          opts.serverHost,
+          opts.serverPort
         )
         exitCode <- mainProcess(procConf).fold(
           th => {

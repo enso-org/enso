@@ -85,6 +85,7 @@ export interface AppProps {
     /** Whether the dashboard should be rendered. */
     showDashboard: boolean
     onAuthenticated: () => void
+    projectManagerEndpoint: string | null
     appRunner: AppRunner | null
 }
 

@@ -220,13 +220,14 @@ function columnsFor(displayMode: ColumnDisplayMode, backendPlatform: platformMod
 export interface DashboardProps {
     platform: platformModule.Platform
     appRunner: AppRunner | null
+    projectManagerEndpoint: string | null
 }
 
 // TODO[sb]: Implement rename when clicking name of a selected row.
 // There is currently no way to tell whether a row is selected from a column.
 
 function Dashboard(props: DashboardProps) {
-    const { platform, appRunner } = props
+    const { platform, appRunner, projectManagerEndpoint } = props
 
     const logger = loggerProvider.useLogger()
     const { accessToken, organization } = auth.useFullUserSession()
@@ -711,7 +712,7 @@ function Dashboard(props: DashboardProps) {
                         setFileAssets([])
                         switch (newBackendPlatform) {
                             case platformModule.Platform.desktop:
-                                setBackend(new localBackend.LocalBackend())
+                                setBackend(new localBackend.LocalBackend(projectManagerEndpoint))
                                 break
                             case platformModule.Platform.cloud: {
                                 const headers = new Headers()

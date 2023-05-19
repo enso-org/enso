@@ -4,7 +4,6 @@
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API. */
 import * as backend from './backend'
-import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
 import * as platformModule from '../platform'
 import * as projectManager from './projectManager'
@@ -33,7 +32,11 @@ export class LocalBackend implements Partial<backend.Backend> {
     static currentlyOpeningProjectId: backend.ProjectId | null = null
     static currentlyOpenProject: CurrentlyOpenProjectInfo | null = null
     readonly platform = platformModule.Platform.desktop
-    private readonly projectManager = projectManager.ProjectManager.default()
+    private readonly projectManager: projectManager.ProjectManager
+
+    constructor(projectManagerEndpoint: string | null) {
+        this.projectManager = projectManager.ProjectManager.default(projectManagerEndpoint)
+    }
 
     async listDirectory(): Promise<backend.Asset[]> {
         const result = await this.projectManager.listProjects({})

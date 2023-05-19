@@ -230,12 +230,14 @@ class Main implements AppRunner {
                     }
                 }
             }
+            const projectManagerEndpoint = 0
             authentication.run({
                 appRunner: this,
                 logger,
                 platform,
                 showDashboard:
                     contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
+                projectManagerEndpoint,
                 onAuthenticated,
             })
         } else {

@@ -11,6 +11,7 @@ import * as pathModule from 'node:path'
 import process from 'node:process'
 
 import * as electron from 'electron'
+import * as portfinder from 'portfinder'
 
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
@@ -31,6 +32,8 @@ import * as server from 'bin/server'
 import * as urlAssociations from 'url-associations'
 import * as utils from '../../../utils'
 
+import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
+
 const logger = contentConfig.logger
 
 // ===========
@@ -43,6 +46,8 @@ class App {
     window: electron.BrowserWindow | null = null
     server: server.Server | null = null
     args: config.Args = config.CONFIG
+    projectManagerHost: string | null = null
+    projectManagerPort: number | null = null
     isQuitting = false
 
     async run() {
@@ -218,8 +223,23 @@ class App {
 
     /** Start the backend processes. */
     async startBackendIfEnabled() {
-        await this.runIfEnabled(this.args.options.engine, () => {
-            const backendOpts = this.args.groups.debug.options.verbose.value ? ['-vv'] : []
+        await this.runIfEnabled(this.args.options.engine, async () => {
+            // The first return value is the original string, which is not needed.
+            // These all cannot be null as the format is known at runtime.
+            const [, projectManagerHost, projectManagerPort] =
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                GLOBAL_CONFIG.projectManagerEndpoint.match(/^ws:\/\/(.+):(.+)$/)!
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            this.projectManagerHost ??= projectManagerHost!
+            this.projectManagerPort ??= await portfinder.getPortPromise({
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                startPort: Number(projectManagerPort!.match(/^ws:\/\/(.+):(.+)$/)![0]),
+            })
+            const backendOpts = [
+                ...(this.args.groups.debug.options.verbose.value ? ['-vv'] : []),
+                `--serverHost=${this.projectManagerHost}`,
+                `--serverPort=${this.projectManagerPort}`,
+            ]
             projectManager.spawn(this.args, backendOpts)
         })
     }

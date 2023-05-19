@@ -16,12 +16,16 @@ object configuration {
     *  @param profilingEventsLogPath the path to the runtime events log file
     *  @param profilingPath the path to the profiling out file
     *  @param profilingTime the time limiting the profiling duration
+    *  @param serverHost an address that the server listen on
+    *  @param serverPort a port that the server listen on
     */
   case class MainProcessConfig(
     logLevel: LogLevel,
     profilingEventsLogPath: Option[Path],
     profilingPath: Option[Path],
-    profilingTime: Option[FiniteDuration]
+    profilingTime: Option[FiniteDuration],
+    serverHost: Option[String],
+    serverPort: Option[Int]
   )
 
   /** A configuration object for properties of the Project Manager.

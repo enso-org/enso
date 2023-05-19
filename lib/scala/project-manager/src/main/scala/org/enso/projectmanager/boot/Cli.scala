@@ -15,6 +15,8 @@ object Cli {
   val PROFILING_PATH            = "profiling-path"
   val PROFILING_TIME            = "profiling-time"
   val PROFILING_EVENTS_LOG_PATH = "profiling-events-log-path"
+  val SERVER_HOST               = "server-host"
+  val SERVER_PORT               = "server-port"
 
   object option {
 
