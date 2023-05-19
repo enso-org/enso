@@ -560,6 +560,9 @@ type Decimal
        "round towards positive infinity." If use_bankers=True, then it uses
        "round-half-even", also known as "banker's rounding".
 
+       If decimal_places > 0, `round` returns a Decimal; otherwise, it returns
+       an `Integer`.
+
        Arguments:
        - decimal_places: The number of decimal places to round to. Can be
          negative, which results in rounding to positive integer powers of 10.

@@ -579,6 +579,12 @@ spec =
             -3.50001 . round . should_equal -4
             -3.99999 . round . should_equal -4
 
+        Test.specify "Returns the correct type" <|
+            231.2 . round 1 . should_be_a Decimal
+            231.2 . round 0 . should_be_a Integer
+            231.2 . round . should_be_a Integer
+            231.2 . round -1 . should_be_a Integer
+
         Test.specify "Special values" <|
             Number.nan . round . should_equal Number.nan
             Number.positive_infinity . round . should_equal Number.positive_infinity
@@ -668,6 +674,12 @@ spec =
             -12370 . round -2 use_bankers=True . should_equal -12400
             -12430 . round -2 use_bankers=True . should_equal -12400
             -12470 . round -2 use_bankers=True . should_equal -12500
+
+        Test.specify "Returns the correct type" <|
+            231 . round 1 . should_be_a Integer
+            231 . round 0 . should_be_a Integer
+            231 . round . should_be_a Integer
+            231 . round -1 . should_be_a Integer
 
         Test.specify "Decimal places out of range" <|
             3 . round 16 . should_fail_with Illegal_Argument
