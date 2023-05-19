@@ -112,8 +112,8 @@ export function bundlerOptions(args: Arguments) {
         plugins: [
             esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),
             esbuildPluginTime(),
-            // This is not strictly needed because the cloud frontend does not use the Project Manager,
-            // however it is very difficult to conditionally exclude a module.
+            // This is not strictly needed because the cloud frontend does not use
+            // the Project Manager, however it is very difficult to conditionally exclude a module.
             esbuildPluginYaml.yamlPlugin({}),
             esbuildPluginGenerateTailwind(),
         ],
