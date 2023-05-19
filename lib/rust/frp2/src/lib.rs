@@ -1,6 +1,7 @@
 #![feature(allocator_api)]
 #![feature(test)]
 #![feature(let_chains)]
+#![feature(trait_alias)]
 
 mod callstack;
 
@@ -20,22 +21,46 @@ use callstack::DefInfo;
 pub use enso_prelude as prelude;
 // use std::any::Any as Data;
 
-#[derive(Clone, Copy, Debug)]
-pub struct Data(usize);
+// #[derive(Clone, Copy, Debug)]
+// pub struct Data(usize);
 
 
-// pub trait Data: Debug {
-//     fn clone(&self) -> Box<dyn Data>;
-// }
-//
-//
-// impl<T> Data for T
-// where T: Debug + Clone + 'static
-// {
-//     fn clone(&self) -> Box<dyn Data> {
-//         Box::new(self.clone())
-//     }
-// }
+#[derive(Debug, Default)]
+pub struct OptimizedRefCell<T> {
+    inner: UnsafeCell<T>,
+}
+
+impl<T> OptimizedRefCell<T> {
+    pub fn borrow(&self) -> &T {
+        unsafe { &*self.inner.get() }
+    }
+
+    pub fn borrow_mut(&self) -> &mut T {
+        unsafe { &mut *self.inner.get() }
+    }
+
+    pub fn with_borrowed<R>(&self, f: impl FnOnce(&T) -> R) -> R {
+        f(self.borrow())
+    }
+
+    pub fn with_borrowed_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
+        f(self.borrow_mut())
+    }
+}
+
+
+pub trait Data: Debug {
+    fn clone(&self) -> Box<dyn Data>;
+}
+
+
+impl<T> Data for T
+where T: Debug + Clone + 'static
+{
+    fn clone(&self) -> Box<dyn Data> {
+        Box::new(self.clone())
+    }
+}
 
 // ===============
 // === Metrics ===
@@ -124,16 +149,18 @@ impl NodeData {
         Self { tp, network_id, def, inputs: default(), outputs: default() }
     }
 
-    fn on_event(&self, rt: &Runtime, node_id: NodeId, event: Data) {
+    fn on_event(&self, rt: &Runtime, node_id: NodeId, event: &dyn Data) {
         match &self.tp {
             NodeType::Source => {}
             NodeType::Inc => {
                 // println!("Inc: {:?}", event);
-                rt.emit_event(node_id, Data(event.0 + 1));
+                let new_data =
+                    (unsafe { *(event as *const dyn Data as *const () as *const usize) }) + 1;
+                rt.emit_event(node_id, &new_data);
             }
             NodeType::Trace => {
                 // println!("TRACE: {:?}", event);
-                rt.emit_event(node_id, Data(event.0));
+                rt.emit_event(node_id, event);
             } /* NodeType::Map(f) => {
                *     let event = f(event);
                *     rt.emit_event(node_id, event);
@@ -169,20 +196,20 @@ fn rc_runtime() -> Rc<Runtime> {
 
 #[derive(Default)]
 pub struct Runtime {
-    networks:          RefCell<SlotMap<NetworkId, NetworkData>>,
-    nodes:             RefCell<SlotMap<NodeId, NodeData>>,
+    networks:     RefCell<SlotMap<NetworkId, NetworkData>>,
+    nodes:        RefCell<SlotMap<NodeId, NodeData>>,
     // consumers:         RefCell<SecondaryMap<NodeId, BumpRc<dyn RawEventConsumer>>>,
     /// Map for each node to its behavior, if any. For nodes that are natively behaviors, points to
     /// itself. For non-behavior streams, may point to a sampler node that listens to it.
-    behaviors:         RefCell<SecondaryMap<NodeId, NodeId>>,
+    // behaviors:         RefCell<SecondaryMap<NodeId, NodeId>>,
     /// For each node that is a behavior, stores the current value of the behavior. A node can be
     /// checked for being a behavior by checking if it is present in this map.
     // behavior_values:   RefCell<SecondaryMap<NodeId, BumpRc<dyn Data>>>,
     // targets: RefCell<SecondaryMap<NodeId, TargetsVec>>,
-    target_store_pool: RefCell<Vec<TargetsVec>>,
-    metrics:           Metrics,
-    stack:             CallStack,
-    current_node:      Cell<NodeId>,
+    // target_store_pool: RefCell<Vec<TargetsVec>>,
+    metrics: Metrics,
+    stack:        CallStack,
+    current_node: Cell<NodeId>,
 }
 
 impl Runtime {
@@ -218,51 +245,45 @@ impl Runtime {
         });
     }
 
-    fn emit_event(&self, node_id: NodeId, event: Data) {
+    fn emit_event(&self, node_id: NodeId, event: &dyn Data) {
         // println!("emit_event {:?} {:?}", node_id, event);
-        let node_outputs = self.nodes.with_borrowed(|nodes| {
-            nodes.get(node_id).map(|node| {
-                let vec_from_pool = self.target_store_pool.borrow_mut().pop();
-                let mut node_outputs = vec_from_pool.unwrap_or_default();
-                node_outputs.extend_from_slice(node.outputs.as_slice());
-                (node_outputs, node.def)
-            })
-        });
-        if let Some((mut node_outputs, def)) = node_outputs {
-            // Emit events to all targets. In case there are no targets, we are done.
+        self.nodes.with_borrowed(|nodes| {
+            if let Some(node) = nodes.get(node_id) {
+                // Emit events to all targets. In case there are no targets, we are done.
 
-            // store the targets to emit to in a temporary buffer, so we can
-            // release the borrow.
+                // store the targets to emit to in a temporary buffer, so we can
+                // release the borrow.
 
 
-            let cleanup_targets = self.stack.with(def, || {
-                let mut cleanup_targets = false;
-                for &node_output_id in &node_outputs {
-                    let nodes = self.nodes.borrow();
-                    let node_output = nodes.get(node_output_id);
-                    if let Some(node_output) = node_output {
-                        node_output.on_event(self, node_output_id, event);
-                    } else {
-                        cleanup_targets = true;
+                let cleanup_targets = self.stack.with(node.def, || {
+                    let mut cleanup_targets = false;
+                    for &node_output_id in &node.outputs {
+                        let nodes = self.nodes.borrow();
+                        let node_output = nodes.get(node_output_id);
+                        if let Some(node_output) = node_output {
+                            node_output.on_event(self, node_output_id, event);
+                        } else {
+                            cleanup_targets = true;
+                        }
                     }
-                }
-                cleanup_targets
-            });
+                    cleanup_targets
+                });
+                //
+                // Return temporary buffer to pool.
+                // node_outputs.clear();
+                // self.target_store_pool.borrow_mut().push(node_outputs);
+            }
             //
-            // Return temporary buffer to pool.
-            node_outputs.clear();
-            self.target_store_pool.borrow_mut().push(node_outputs);
-        }
-        //
-        // // Remove targets that have been dropped.
-        // if cleanup_targets {
-        //     let mut targets = self.targets.borrow_mut();
-        //     let node_targets = targets.get_mut(node_id);
-        //     if let Some(targets) = node_targets {
-        //         let consumers = self.consumers.borrow();
-        //         targets.retain(|target| consumers.contains_key(*target));
-        //     }
-        // }
+            // // Remove targets that have been dropped.
+            // if cleanup_targets {
+            //     let mut targets = self.targets.borrow_mut();
+            //     let node_targets = targets.get_mut(node_id);
+            //     if let Some(targets) = node_targets {
+            //         let consumers = self.consumers.borrow();
+            //         targets.retain(|target| consumers.contains_key(*target));
+            //     }
+            // }
+        });
     }
 }
 
@@ -324,7 +345,7 @@ mod tests {
         with_runtime(|rt| rt.connect(inc, trc));
         // with_runtime(|rt| rt.connect(trc, inc2));
         // with_runtime(|rt| rt.connect(inc2, trc2));
-        with_runtime(|rt| rt.emit_event(src, Data(1)));
+        with_runtime(|rt| rt.emit_event(src, &1));
         assert_eq!(1, 2);
     }
 }
@@ -349,7 +370,7 @@ mod benches {
         with_runtime(|rt| rt.connect(inc, trc));
         bencher.iter(move || {
             for _ in 0..REPS {
-                with_runtime(|rt| rt.emit_event(src, Data(1)));
+                with_runtime(|rt| rt.emit_event(src, &1));
             }
         });
     }
@@ -358,3 +379,194 @@ mod benches {
 // 4835920
 // 4134314
 // 4146143
+
+#[derive(Clone, Copy, Debug)]
+pub struct Key2 {
+    index:   usize,
+    version: usize,
+}
+
+#[derive(Debug, Default)]
+pub struct Slot<T> {
+    value:   Option<T>,
+    version: usize,
+}
+
+#[derive(Debug, Derivative)]
+#[derivative(Default(bound = "T: Default"))]
+pub struct RefCellSlotMap<T> {
+    free_indexes: RefCell<Vec<usize>>,
+    list:         LinkedArray<Slot<T>>,
+}
+
+impl<T: Default> RefCellSlotMap<T> {
+    pub fn new() -> Self {
+        default()
+    }
+
+    pub fn insert(&self, val: T) -> Key2 {
+        let mut free_indexes = self.free_indexes.borrow_mut();
+        if let Some(index) = free_indexes.pop() {
+            let version = self.list.with_item_borrow_mut(index, |slot| {
+                slot.value = Some(val);
+                slot.version += 1;
+                slot.version
+            });
+            Key2 { index, version }
+        } else {
+            let index = self.list.len();
+            self.list.push(Slot { value: Some(val), version: 0 });
+            Key2 { index, version: 0 }
+        }
+    }
+
+    pub fn insert_at(&self, key: Key2, val: T) -> bool {
+        self.list.with_item_borrow_mut(key.index, |slot| {
+            if slot.version != key.version {
+                false
+            } else {
+                slot.value = Some(val);
+                true
+            }
+        })
+    }
+
+    pub fn with_item_at<F, R>(&self, key: Key2, f: impl FnOnce(&T) -> R) -> Option<R> {
+        self.list.with_item_borrow(key.index, |slot| {
+            if slot.version == key.version {
+                slot.value.as_ref().map(f)
+            } else {
+                None
+            }
+        })
+    }
+}
+
+
+// =================
+// === LinkedVec ===
+// =================
+
+pub trait LinkedArrayDefault<T, const N: usize> = where [RefCell<T>; N]: Default;
+
+#[derive(Debug, Derivative)]
+#[derivative(Default(bound = "Self: LinkedArrayDefault<T,N>"))]
+pub struct Segment<T, const N: usize> {
+    items: [RefCell<T>; N],
+    next:  RefCell<Option<Box<Segment<T, N>>>>,
+}
+
+#[derive(Debug, Derivative)]
+#[derivative(Default(bound = "Self: LinkedArrayDefault<T,N>"))]
+pub struct LinkedArray<T, const N: usize = 32> {
+    size:          Cell<usize>,
+    first_segment: Segment<T, N>,
+}
+
+impl<T: Default, const N: usize> LinkedArray<T, N>
+where Self: LinkedArrayDefault<T, N>
+{
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn len(&self) -> usize {
+        self.size.get()
+    }
+
+    pub fn push(&self, elem: T) {
+        self.first_segment.push(self.size.get(), elem);
+        self.size.modify(|t| *t += 1);
+    }
+
+    fn push_default(&self) -> usize {
+        let index = self.size.get();
+        if index % N == 0 {
+            self.first_segment.add_tail_segment();
+        }
+        self.size.modify(|t| *t += 1);
+        index
+    }
+
+    pub fn set(&self, index: usize, elem: T) {
+        self.first_segment.set(index, elem);
+    }
+
+    pub fn with_item_borrow<U>(&self, index: usize, f: impl FnOnce(&T) -> U) -> U {
+        self.first_segment.with_item_borrow(index, f)
+    }
+
+    pub fn with_item_borrow_mut<U>(&self, index: usize, f: impl FnOnce(&mut T) -> U) -> U {
+        self.first_segment.with_item_borrow_mut(index, f)
+    }
+}
+
+impl<T: Default, const N: usize> Segment<T, N>
+where Self: LinkedArrayDefault<T, N>
+{
+    fn push(&self, offset: usize, elem: T) {
+        if offset < N {
+            *self.items[offset].borrow_mut() = elem;
+        } else {
+            let no_next = self.next.borrow().is_none();
+            if no_next {
+                *self.next.borrow_mut() = Some(default());
+            }
+            self.next.with_borrowed(|t| t.as_ref().unwrap().push(offset - N, elem));
+        }
+    }
+
+    fn set(&self, offset: usize, elem: T) {
+        self.with_item_borrow_mut(offset, |t| *t = elem);
+    }
+
+    fn with_item_borrow<U>(&self, offset: usize, f: impl FnOnce(&T) -> U) -> U {
+        if offset < N {
+            f(&*self.items[offset].borrow())
+        } else {
+            self.next.with_borrowed(|t| t.as_ref().unwrap().with_item_borrow(offset - N, f))
+        }
+    }
+
+    fn with_item_borrow_mut<U>(&self, offset: usize, f: impl FnOnce(&mut T) -> U) -> U {
+        if offset < N {
+            f(&mut *self.items[offset].borrow_mut())
+        } else {
+            self.next.with_borrowed(|t| t.as_ref().unwrap().with_item_borrow_mut(offset - N, f))
+        }
+    }
+
+    fn add_tail_segment(&self) {
+        let no_next = self.next.borrow().is_none();
+        if no_next {
+            *self.next.borrow_mut() = Some(default());
+        } else {
+            self.next.with_borrowed(|t| t.as_ref().unwrap().add_tail_segment());
+        }
+    }
+}
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests2 {
+    use super::*;
+
+    #[test]
+    fn test() {
+        let array = LinkedArray::<usize, 2>::new();
+        array.push(1);
+        array.push(2);
+        array.push(3);
+        array.push(4);
+        array.push(5);
+        array.push_default();
+        array.push_default();
+        // array.with_item_borrow_mut(0, |t| *t = 10);
+        // array.with_item_borrow_mut(5, |t| *t = 10);
+        println!("{:#?}", array);
+        assert_eq!(1, 2);
+    }
+}
