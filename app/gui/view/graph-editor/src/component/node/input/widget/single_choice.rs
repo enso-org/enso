@@ -104,7 +104,7 @@ impl SpanWidget for Widget {
         has_tags.then_val_or_default(Score::Perfect)
     }
 
-    fn default_config(ctx: &ConfigContext) -> Configuration<Self> {
+    fn default_config(ctx: &ConfigContext) -> Configuration<Self::Config> {
         let kind = &ctx.span_node.kind;
         let label = kind.name().map(Into::into);
         let tags = kind.tag_values().unwrap_or_default();

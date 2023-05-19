@@ -34,7 +34,7 @@ impl SpanWidget for Widget {
         ctx.span_node.is_positional_insertion_point().then_val_or_default(Score::Perfect)
     }
 
-    fn default_config(_: &ConfigContext) -> Configuration<Self> {
+    fn default_config(_: &ConfigContext) -> Configuration<Self::Config> {
         Configuration::inert(default())
     }
 

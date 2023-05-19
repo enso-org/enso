@@ -150,7 +150,7 @@ pub trait SpanWidget {
     /// After a widget has been matched to a node, this method is used to determine its
     /// automatically derived configuration. It is not called for widgets that have a configuration
     /// provided externally or by a parent widget.
-    fn default_config(ctx: &ConfigContext) -> Configuration<Self>;
+    fn default_config(ctx: &ConfigContext) -> Configuration<Self::Config>;
     /// Root display object of a widget. It is returned to the parent widget for positioning.
     fn root_object(&self) -> &display::object::Instance;
     /// Create a new widget with given configuration.
@@ -256,7 +256,6 @@ macro_rules! define_widget_modules(
                     _ => panic!("No widget kind specified.")
                 }
             }
-
         }
 
         impl DynConfig {
@@ -274,17 +273,11 @@ macro_rules! define_widget_modules(
                     Self::$name(config)
                 }
             }
-
-            impl const From<$module::Widget> for DynWidget {
-                fn from(config: $module::Widget) -> Self {
-                    Self::$name(config)
-                }
-            }
         )*
 
-        impl SpanWidget for DynWidget {
-            type Config = DynConfig;
-            fn root_object(&self) -> &display::object::Instance {
+        impl DynWidget {
+            #[allow(missing_docs)]
+            pub fn root_object(&self) -> &display::object::Instance {
                 match self {
                     $(DynWidget::$name(inner) => inner.root_object(),)*
                 }
@@ -296,16 +289,13 @@ macro_rules! define_widget_modules(
                 }
             }
 
-            fn match_node(_: &ConfigContext) -> Score { unreachable!() }
-            fn default_config(_: &ConfigContext) -> Configuration<Self> { unreachable!() }
-
-            fn configure(&mut self, config: &DynConfig, ctx: ConfigContext) {
+            pub(super) fn configure(&mut self, config: &DynConfig, ctx: ConfigContext) {
                 match (self, config) {
                     $((DynWidget::$name(model), DynConfig::$name(config)) => {
                         SpanWidget::configure(model, config, ctx);
                     },)*
                     (this, _) => {
-                        *this = SpanWidget::new(config, &ctx);
+                        *this = Self::new(config, &ctx);
                         this.configure(config, ctx)
                     },
                 }
@@ -344,14 +334,8 @@ define_widget_modules! {
 /// displayed, if it should be displayed at all, and whether or not it should have a port. Widgets
 /// that declare themselves as having a port will be able to handle edge connections and visually
 /// indicate that they are connected.
-#[derive(Derivative)]
-#[derivative(
-    Debug(bound = "Kind::Config: Debug"),
-    Clone(bound = "Kind::Config: Clone"),
-    PartialEq(bound = "Kind::Config: PartialEq")
-)]
-#[allow(missing_docs)]
-pub struct Configuration<Kind: ?Sized + SpanWidget = DynWidget> {
+#[derive(Debug, Clone, PartialEq)]
+pub struct Configuration<KindConfig = DynConfig> {
     /// Display mode of the widget: determines whether or not the widget should be displayed
     /// depending on current tree display mode.
     pub display:  Display,
@@ -360,7 +344,7 @@ pub struct Configuration<Kind: ?Sized + SpanWidget = DynWidget> {
     /// declare themselves as wanting a port, only one of them will actually have one.
     pub has_port: bool,
     /// Configuration specific to given widget kind.
-    pub kind:     Kind::Config,
+    pub kind:     KindConfig,
 }
 
 impl Configuration {
@@ -397,16 +381,16 @@ impl Configuration {
 }
 
 
-impl<Widget: SpanWidget> Configuration<Widget> {
-    fn maybe_with_port(kind: Widget::Config, has_port: bool) -> Self {
+impl<KindConfig> Configuration<KindConfig> {
+    fn maybe_with_port(kind: KindConfig, has_port: bool) -> Self {
         Self { display: Display::Always, kind, has_port }
     }
 
-    fn always(kind: Widget::Config) -> Self {
+    fn always(kind: KindConfig) -> Self {
         Self::maybe_with_port(kind, true)
     }
 
-    fn inert(kind: Widget::Config) -> Self {
+    fn inert(kind: KindConfig) -> Self {
         Self::maybe_with_port(kind, false)
     }
 }

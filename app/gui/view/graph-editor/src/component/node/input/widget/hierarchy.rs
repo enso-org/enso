@@ -44,7 +44,7 @@ impl SpanWidget for Widget {
         }
     }
 
-    fn default_config(ctx: &ConfigContext) -> Configuration<Self> {
+    fn default_config(ctx: &ConfigContext) -> Configuration<Self::Config> {
         let has_port = !ctx.span_node.kind.is_named_argument();
         Configuration::maybe_with_port(default(), has_port)
     }

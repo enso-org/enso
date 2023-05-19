@@ -617,7 +617,7 @@ impl SpanWidget for Widget {
         }
     }
 
-    fn default_config(ctx: &ConfigContext) -> Configuration<Self> {
+    fn default_config(ctx: &ConfigContext) -> Configuration<Self::Config> {
         let default_tag = ctx.span_node.kind.tag_values().and_then(|t| t.first());
         let item_default = match default_tag {
             Some(tag) => DefaultValue::Tag(tag.clone()),

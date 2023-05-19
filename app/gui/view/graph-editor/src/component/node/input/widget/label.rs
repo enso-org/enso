@@ -46,7 +46,7 @@ impl SpanWidget for Widget {
         Score::Good
     }
 
-    fn default_config(ctx: &ConfigContext) -> Configuration<Self> {
+    fn default_config(ctx: &ConfigContext) -> Configuration<Self::Config> {
         use span_tree::node::Kind;
         let has_port =
             matches!(ctx.span_node.kind, Kind::Root | Kind::Chained(_) | Kind::Argument(_));
