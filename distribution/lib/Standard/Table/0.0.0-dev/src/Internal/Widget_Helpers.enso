@@ -5,6 +5,7 @@ import Standard.Base.Metadata.Display
 
 import project.Data.Table.Table
 import project.Data.Aggregate_Column.Aggregate_Column
+import project.Internal.Parse_Values_Helper
 
 ## PRIVATE
    Make an aggregate column selector.
@@ -72,8 +73,8 @@ make_order_by_selector table display=Display.Always =
    Selector for type argument on `Column.parse`.
 parse_type_selector : Single_Choice
 parse_type_selector =
-    choice = ['Auto', 'Value_Type.Integer', 'Value_Type.Float', 'Value_Type.Date', 'Value_Type.Date_Time', 'Value_Type.Time', 'Value_Type.Boolean']
-    names = ['Auto', 'Integer', 'Float', 'Date', 'Date_Time', 'Time', 'Boolean']
+    valid_parse_targets = Parse_Values_Helper.valid_parse_targets
+    choice = ['Auto'] + (valid_parse_targets.map t-> 'Value_Type.'+t)
+    names = ['Auto'] + valid_parse_targets
     options = names.zip choice . map pair-> Option pair.first pair.second
     Single_Choice display=Display.Always values=options
-
