@@ -232,18 +232,18 @@ impl Widget {
 
 #[derive(Debug)]
 struct Model {
-    self_id:              WidgetIdentity,
-    list:                 ListEditor<ListItem>,
-    append_insert:        Option<object::Instance>,
+    self_id:                WidgetIdentity,
+    list:                   ListEditor<ListItem>,
+    append_insertion_point: Option<object::Instance>,
     #[allow(dead_code)]
-    background:           display::shape::Rectangle,
-    elements:             HashMap<ElementIdentity, Element>,
-    default_value:        DefaultValue,
-    expression:           String,
-    crumbs:               span_tree::Crumbs,
-    drag_data_rc:         Rc<RefCell<Option<DragData>>>,
-    insertion_indices:    Vec<usize>,
-    insert_with_brackets: bool,
+    background:             display::shape::Rectangle,
+    elements:               HashMap<ElementIdentity, Element>,
+    default_value:          DefaultValue,
+    expression:             String,
+    crumbs:                 span_tree::Crumbs,
+    drag_data_rc:           Rc<RefCell<Option<DragData>>>,
+    insertion_indices:      Vec<usize>,
+    insert_with_brackets:   bool,
 }
 
 impl Model {
@@ -262,7 +262,7 @@ impl Model {
             self_id: ctx.info.identity,
             list,
             background,
-            append_insert: default(),
+            append_insertion_point: default(),
             elements: default(),
             default_value: default(),
             expression: default(),
@@ -301,7 +301,7 @@ impl Model {
     fn configure_insertion_point(&mut self, root: &object::Instance, ctx: ConfigContext) {
         self.elements.clear();
         self.list.clear();
-        self.append_insert = None;
+        self.append_insertion_point = None;
         let insertion_point = ctx.builder.child_widget(ctx.span_node, ctx.info.nesting_level);
         root.replace_children(&[&*insertion_point, self.list.display_object()]);
         set_margins(self.list.display_object(), 0.0, 0.0);
@@ -401,14 +401,14 @@ impl Model {
         self.insertion_indices.extend(last_insert_crumb);
         self.insert_with_brackets = open_bracket.is_none() && close_bracket.is_none();
 
-        self.append_insert = last_insert_crumb
+        self.append_insertion_point = last_insert_crumb
             .map(|index| build_child_widget(index, insert_config, INSERT_HOVER_MARGIN).root_object);
 
         let (open_bracket, close_bracket) = open_bracket.zip(close_bracket).unzip();
         let mut children = SmallVec::<[&object::Instance; 4]>::new();
         children.extend(&open_bracket);
         children.push(self.list.display_object());
-        children.extend(&self.append_insert);
+        children.extend(&self.append_insertion_point);
         children.extend(&close_bracket);
         root.replace_children(&children);
 
@@ -519,7 +519,7 @@ impl Model {
     }
 
     fn set_side_margin(&self, side_margin: f32) {
-        match self.append_insert.as_ref() {
+        match self.append_insertion_point.as_ref() {
             Some(insert) => {
                 set_margins(insert, side_margin, 0.0);
                 set_margins(self.list.display_object(), side_margin, 0.0);
@@ -583,12 +583,11 @@ impl SpanWidget for Widget {
     fn match_node(ctx: &ConfigContext) -> Score {
         let node_expr = ctx.span_expression();
         let is_placeholder = ctx.span_node.is_expected_argument();
-        let looks_like_vector = is_placeholder
-            || (node_expr.starts_with('[')
-                && node_expr.ends_with(']')
-                && matches!(ctx.span_node.tree_type, Some(ast::TreeType::Expression)));
-
-        if ctx.info.connection.is_some() || !looks_like_vector {
+        let looks_like_vector = (node_expr.starts_with('[')
+            && node_expr.ends_with(']')
+            && matches!(ctx.span_node.tree_type, Some(ast::TreeType::Expression)));
+        let supported_by_widget = is_placeholder || looks_like_vector;
+        if ctx.info.connection.is_some() || !supported_by_widget {
             return Score::NotMatched;
         }
 

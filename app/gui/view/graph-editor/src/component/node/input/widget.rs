@@ -141,11 +141,11 @@ pub struct OverrideKey {
 pub trait SpanWidget {
     /// Configuration associated with specific widget variant.
     type Config: Debug + Clone + PartialEq;
-    /// Score how well a widget kind matches current builder context. The best scoring widget kind
-    /// will be asked to provide a config using [`SpanWidget::default_config`] method. When this
-    /// method returns [`Score::NotMatched`], this widget kind will not be used, even if it was
-    /// requested by an override. The override will be ignored and another best scoring widget with
-    /// default configuration will be used.
+    /// Score how well a widget kind matches current [`ConfigContext`], e.g. checking if the span
+    /// node or declaration type match specific patterns. When this method returns
+    /// [`Score::NotMatched`], this widget kind will not be used, even if it was requested by an
+    /// override. The override will be ignored and another best scoring widget with default
+    /// configuration will be used.
     fn match_node(ctx: &ConfigContext) -> Score;
     /// After a widget has been matched to a node, this method is used to determine its
     /// automatically derived configuration. It is not called for widgets that have a configuration
@@ -181,10 +181,10 @@ pub enum Score {
     /// be inferred from context.
     #[default]
     OnlyOverride,
-    /// A good match, but there might be a better one. Use this widget if there is no better
-    /// option.
+    /// A good match, but there might be a better one. one. This widget will be used if there is no
+    /// better option.
     Good,
-    /// Widget matches perfectly, stop searching and use this widget immediately.
+    /// Widget matches perfectly and can be used outright, without checking other kinds.
     Perfect,
 }
 
@@ -370,7 +370,7 @@ impl Configuration {
     ///
     /// Will never return any configuration kind specified in `disallow` parameter, except for
     /// [`DynConfig::Label`] as an option of last resort.
-    fn automatic(ctx: &ConfigContext, disallowed: DynKindFlags) -> Self {
+    fn infer_from_context(ctx: &ConfigContext, disallowed: DynKindFlags) -> Self {
         let allowed = !disallowed;
         let mut best_match = None;
         for kind in allowed {
@@ -1462,7 +1462,7 @@ impl<'a> TreeBuilder<'a> {
         let configuration = match configuration.or_else(config_override) {
             Some(config) => config,
             None => {
-                inferred_config = Configuration::automatic(&ctx, disallowed_configs);
+                inferred_config = Configuration::infer_from_context(&ctx, disallowed_configs);
                 &inferred_config
             }
         };
