@@ -201,6 +201,23 @@ spec setup =
             r1.should_fail_with Illegal_Argument
             r1.to_display_text . should_contain "`parse` should be used instead"
 
+        Test.specify "should report missing columns" <|
+            t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+
+            r1 = t.cast ["X", "Z"] Value_Type.Char
+            r1.should_fail_with Missing_Input_Columns
+            r1.catch.criteria . should_equal ["Z"]
+
+            t2 = t.cast ["X", "Z"] Value_Type.Char error_on_missing_columns=False
+            warn = Problems.expect_warning Missing_Input_Columns t2
+            warn.criteria . should_equal ["Z"]
+            t2.at "X" . to_vector . should_equal ["1", "2", "3"]
+            t2.at "Y" . to_vector . should_equal [4, 5, 6]
+
+            t3 = t.cast ["Z"] Value_Type.Char error_on_missing_columns=False
+            t3.at "X" . to_vector . should_equal [1, 2, 3]
+            t3.at "Y" . to_vector . should_equal [4, 5, 6]
+
         Test.specify "should work if the first row is NULL" <|
             t = table_builder [["X", [Nothing, 1, 2, 3000]], ["Y", [Nothing, True, False, True]]]
 
