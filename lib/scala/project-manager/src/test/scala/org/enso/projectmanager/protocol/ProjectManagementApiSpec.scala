@@ -814,7 +814,7 @@ class ProjectManagementApiSpec
       deleteProject(bazId)
     }
 
-    "return a list of projects even if editions of some of them cannot be resolved" taggedAs Retry in {
+    "return a list of projects even if editions of some of them cannot be resolved" taggedAs Flaky in {
       implicit val client: WsTestClient = new WsTestClient(address)
       //given
       val projectFooCreationTime = testClock.currentTime
