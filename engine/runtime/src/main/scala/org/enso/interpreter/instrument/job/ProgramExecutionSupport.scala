@@ -352,9 +352,9 @@ object ProgramExecutionSupport {
               ErrorResolver.getStackTrace(panic).flatMap(_.expressionId)
             )
         case _ =>
-          if (WarningsLibrary.getUncached().hasWarnings(value.getValue)) {
+          if (WarningsLibrary.getUncached.hasWarnings(value.getValue)) {
             val warnings =
-              WarningsLibrary.getUncached().getWarnings(value.getValue, null)
+              WarningsLibrary.getUncached.getWarnings(value.getValue, null)
             val warningsCount = warnings.length
             val warning =
               if (warningsCount == 1) {
@@ -370,7 +370,7 @@ object ProgramExecutionSupport {
                   .Warnings(
                     warningsCount,
                     warning,
-                    WarningsLibrary.getUncached().isLimitReached(value.getValue)
+                    WarningsLibrary.getUncached.isLimitReached(value.getValue)
                   )
               )
             )
