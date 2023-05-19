@@ -385,7 +385,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
             double value = getItem(i);
             if (value < min || value > max) {
               builder.appendNulls(1);
-              castProblemBuilder.reportLossyConversion();
+              castProblemBuilder.reportConversionFailure();
             } else {
               long converted = (long) value;
               builder.appendLong(converted);

@@ -46,7 +46,7 @@ type Cast_Problem_Builder
         builder = Vector.new_builder
         java_instance = self.to_java
 
-        lossy_conversion_rows = java_instance.getLossyConversionRowCount
+        lossy_conversion_rows = java_instance.getFailedConversionsCount
         if lossy_conversion_rows > 0 then
             builder.append (Conversion_Failure.Error self.target_type self.column_name lossy_conversion_rows)
 

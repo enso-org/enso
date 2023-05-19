@@ -267,10 +267,26 @@ public class NumericBuilder extends TypedBuilder {
     @Override
     public Storage<?> seal() {
         if (isDouble) {
-            return new DoubleStorage(data, currentSize, isMissing);
+            return sealDouble();
         } else {
-            return new LongStorage(data, currentSize, isMissing);
+            return sealLong();
         }
+    }
+
+    public Storage<Double> sealDouble() {
+        if (!isDouble) {
+            throw new IllegalStateException("This builder is not a double builder");
+        }
+
+        return new DoubleStorage(data, currentSize, isMissing);
+    }
+
+    public Storage<Long> sealLong() {
+        if (isDouble) {
+            throw new IllegalStateException("This builder is not a long builder");
+        }
+
+        return new LongStorage(data, currentSize, isMissing);
     }
 
     /**

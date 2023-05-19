@@ -1,13 +1,13 @@
 package org.enso.table.data.column.operation;
 
 public class CastProblemBuilder {
-  private int lossyConversionRowCount = 0;
+  private int failedConversionsCount = 0;
 
-  public void reportLossyConversion() {
-    lossyConversionRowCount++;
+  public void reportConversionFailure() {
+    failedConversionsCount++;
   }
 
-  public int getLossyConversionRowCount() {
-    return lossyConversionRowCount;
+  public int getFailedConversionsCount() {
+    return failedConversionsCount;
   }
 }
