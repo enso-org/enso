@@ -21,6 +21,9 @@ export type FileId = newtype.Newtype<string, 'FileId'>
 /** Unique identifier for a secret environment variable. */
 export type SecretId = newtype.Newtype<string, 'SecretId'>
 
+/** Unique identifier for an arbitrary asset */
+export type AssetId = DirectoryId | FileId | ProjectId | SecretId
+
 /** Unique identifier for a file tag or project tag. */
 export type TagId = newtype.Newtype<string, 'TagId'>
 
@@ -233,9 +236,10 @@ export interface UserPermission {
 /** Metadata uniquely identifying a directory entry.
  * These can be Projects, Files, Secrets, or other directories. */
 export interface BaseAsset {
+    id: AssetId
     title: string
-    id: string
-    parentId: string
+    modifiedAt: Rfc3339DateTime | null
+    parentId: AssetId
     permissions: UserPermission[] | null
 }
 

@@ -637,6 +637,7 @@ macro_rules! shape {
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
+        $(pointer_events_instanced = $inst_ptr:tt;)?
         $(alignment = $alignment:tt;)?
         ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
     ) => {
@@ -648,57 +649,11 @@ macro_rules! shape {
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
             $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
             $(pointer_events = $pointer_events;)?
-            [$style] ($($gpu_param : $gpu_param_type),*){$($body)*}
-        }
-    };
-    // Recognize `pointer_events_instanced = true`; in addition to passing it to `_shape!`, insert
-    // a suitable instance attribute into the list of GPU parameters.
-    (
-        $(type SystemData = $system_data:ident;)?
-        $(type ShapeData = $shape_data:ident;)?
-        $(flavor = $flavor:path;)?
-        $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
-        $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
-        $(pointer_events = $pointer_events:tt;)?
-        pointer_events_instanced = true,
-        $(alignment = $alignment:tt;)?
-        ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
-    ) => {
-        $crate::_shape! {
-            $(SystemData($system_data))?
-            $(ShapeData($shape_data))?
-            $(flavor = [$flavor];)?
-            $(alignment = $alignment;)?
-            $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
-            $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
-            $(pointer_events = $pointer_events;)?
-            pointer_events_instanced = true;
-            [$style] (disable_pointer_events : f32$(,$gpu_param : $gpu_param_type)*){$($body)*}
-        }
-    };
-    // Recognize `pointer_events_instanced = false`. Only `true` and `false` are allowed, because
-    // if it were a computed value, we wouldn't know during macro expansion whether to create an
-    // instance parameter for it.
-    (
-        $(type SystemData = $system_data:ident;)?
-        $(type ShapeData = $shape_data:ident;)?
-        $(flavor = $flavor:path;)?
-        $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
-        $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
-        $(pointer_events = $pointer_events:tt;)?
-        pointer_events_instanced = false,
-        $(alignment = $alignment:tt;)?
-        ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
-    ) => {
-        $crate::_shape! {
-            $(SystemData($system_data))?
-            $(ShapeData($shape_data))?
-            $(flavor = [$flavor];)?
-            $(alignment = $alignment;)?
-            $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
-            $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
-            $(pointer_events = $pointer_events;)?
-            [$style] ($($gpu_param : $gpu_param_type),*){$($body)*}
+            $(pointer_events_instanced = $inst_ptr;)?
+            [$style] (
+                $([$inst_ptr] disable_pointer_events : f32,)?
+                $([true] $gpu_param : $gpu_param_type,)*
+            ){$($body)*}
         }
     };
 }
@@ -907,7 +862,10 @@ macro_rules! _shape {
         $(pointer_events = $pointer_events:tt;)?
         $(pointer_events_instanced = $pointer_events_instanced:tt;)?
         [$style:ident]
-        ($($gpu_param : ident : $gpu_param_type : ty),* $(,)?)
+        ($(
+            $([true] $gpu_param:ident : $gpu_param_type:ty)?
+            $([false] $__gpu_param:ident : $__gpu_param_type:ty)?,
+        )*)
         {$($body:tt)*}
     ) => {
 
@@ -988,20 +946,23 @@ macro_rules! _shape {
                     gpu_params: &Self::GpuParams,
                     id: InstanceId
                 ) -> Shape {
-                    $(let $gpu_param = ProxyParam::new(gpu_params.$gpu_param.at(id));)*
-                    let params = Self::InstanceParams { $($gpu_param),* };
+                    let params = Self::InstanceParams {
+                        $($(
+                            $gpu_param: ProxyParam::new(gpu_params.$gpu_param.at(id)),
+                        )?)*
+                    };
                     Shape { params }
                 }
 
                 fn new_gpu_params(
                     shape_system: &display::shape::ShapeSystemModel
                 ) -> Self::GpuParams {
-                    $(
+                    $($(
                         let name = stringify!($gpu_param);
                         let val  = gpu::data::default::gpu_default::<<$gpu_param_type as Parameter>::GpuType>();
                         let $gpu_param = shape_system.add_input(name,val);
-                    )*
-                    Self::GpuParams {$($gpu_param),*}
+                    )?)*
+                    Self::GpuParams {$($($gpu_param,)?)*}
                 }
 
                 fn shape_def(__style_watch__: &display::shape::StyleWatch)
@@ -1015,11 +976,12 @@ macro_rules! _shape {
                     let $style  = __style_watch__;
                     // Silencing warnings about not used style.
                     let _unused = &$style;
-                    $(
-                        let $gpu_param = <$gpu_param_type as Parameter>::create_var(concat!("input_",stringify!($gpu_param)));
+                    $($(
+                        let name = concat!("input_",stringify!($gpu_param));
+                        let $gpu_param = <$gpu_param_type as Parameter>::create_var(name);
                         // Silencing warnings about not used shader input variables.
                         let _unused = &$gpu_param;
-                    )*
+                    )?)*
                     $($body)*
                 }
 
@@ -1050,19 +1012,25 @@ macro_rules! _shape {
             #[derive(Debug)]
             #[allow(missing_docs)]
             pub struct InstanceParams {
-                $(pub $gpu_param : ProxyParam<Attribute<<$gpu_param_type as Parameter>::GpuType>>),*
+                $($(
+                    pub $gpu_param : ProxyParam<Attribute<<$gpu_param_type as Parameter>::GpuType>>,
+                )?)*
             }
 
             impl InstanceParamsTrait for InstanceParams {
                 fn swap(&self, other: &Self) {
-                    $(self.$gpu_param.swap(&other.$gpu_param);)*
+                    $($(
+                        self.$gpu_param.swap(&other.$gpu_param);
+                    )?)*
                 }
             }
 
             #[derive(Clone, CloneRef, Debug)]
             #[allow(missing_docs)]
             pub struct GpuParams {
-                $(pub $gpu_param: gpu::data::Buffer<<$gpu_param_type as Parameter>::GpuType>),*
+                $($(
+                    pub $gpu_param: gpu::data::Buffer<<$gpu_param_type as Parameter>::GpuType>,
+                )?)*
             }
 
 

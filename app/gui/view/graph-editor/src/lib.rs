@@ -8,6 +8,7 @@
 #![feature(drain_filter)]
 #![feature(entry_insert)]
 #![feature(fn_traits)]
+#![feature(macro_metavar_expr)]
 #![feature(option_result_contains)]
 #![feature(specialization)]
 #![feature(trait_alias)]
@@ -562,14 +563,13 @@ ensogl::define_endpoints_2! {
         /// other case, it will be disabled as soon as the `release_visualization_visibility` is
         /// emitted.
         press_visualization_visibility(),
-        /// Simulates a visualization open double press event. This event toggles the visualization
-        /// fullscreen mode.
-        double_press_visualization_visibility(),
         /// Simulates a visualization open release event. See `press_visualization_visibility` to
         /// learn more.
         release_visualization_visibility(),
         /// Cycle the visualization for the selected nodes.
         cycle_visualization_for_selected_node(),
+        /// Opens the visualization for the selected node in full-screen mode.
+        open_fullscreen_visualization(),
         /// The visualization currently displayed as fullscreen is
         close_fullscreen_visualization(),
 
@@ -3182,7 +3182,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     frp::extend! { network
         _eval <- all_with(&out.node_hovered,&edit_mode,f!([model](tgt,e)
             if let Some(tgt) = tgt {
-                model.with_node(tgt.value,|t| t.model().input.set_edit_ready_mode(*e && tgt.is_on()));
+                model.with_node(tgt.value,|t| t.set_edit_ready_mode(*e && tgt.is_on()));
             }
         ));
         _eval <- all_with(&out.node_hovered,&out.some_edge_targets_unset,f!([model](tgt,ok)
@@ -3539,20 +3539,20 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     //     - Release key. If the time passed from key press was short, do nothing.
     //     - If it was long, disable vis which were disabled (preview mode).
 
-    let viz_press_ev      = inputs.press_visualization_visibility.clone_ref();
-    let viz_d_press_ev    = inputs.double_press_visualization_visibility.clone_ref();
-    let viz_release_ev    = inputs.release_visualization_visibility.clone_ref();
-    viz_pressed          <- bool(&viz_release_ev,&viz_press_ev);
-    viz_was_pressed      <- viz_pressed.previous();
-    viz_press            <- viz_press_ev.gate_not(&viz_was_pressed);
-    viz_release          <- viz_release_ev.gate(&viz_was_pressed);
-    viz_press_time       <- viz_press   . map(|_| {
+    let viz_press_ev = inputs.press_visualization_visibility.clone_ref();
+    let viz_open_fs_ev = inputs.open_fullscreen_visualization.clone_ref();
+    let viz_release_ev = inputs.release_visualization_visibility.clone_ref();
+    viz_pressed <- bool(&viz_release_ev,&viz_press_ev);
+    viz_was_pressed <- viz_pressed.previous();
+    viz_press <- viz_press_ev.gate_not(&viz_was_pressed);
+    viz_release <- viz_release_ev.gate(&viz_was_pressed);
+    viz_press_time <- viz_press.map(|_| {
             let time = web::window.performance_or_panic().now() as f32;
             let frame_counter = Rc::new(web::FrameCounter::start_counting());
             (time, Some(frame_counter))
         });
-    viz_release_time     <- viz_release . map(|_| web::window.performance_or_panic().now() as f32);
-    viz_preview_mode  <- viz_release_time.map2(&viz_press_time,|t1,(t0,counter)| {
+    viz_release_time <- viz_release.map(|_| web::window.performance_or_panic().now() as f32);
+    viz_preview_mode <- viz_release_time.map2(&viz_press_time,|t1,(t0,counter)| {
         let diff = t1-t0;
         // We check the time between key down and key up. If the time is less than the threshold
         // then it was a key press and we do not want to enter preview mode. If it is longer then
@@ -3570,8 +3570,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         long_enough && enough_frames
     });
     viz_preview_mode_end <- viz_release.gate(&viz_preview_mode).gate_not(&out.is_fs_visualization_displayed);
-    viz_tgt_nodes        <- viz_press.gate_not(&out.is_fs_visualization_displayed).map(f_!(model.nodes.all_selected()));
-    viz_tgt_nodes_off    <- viz_tgt_nodes.map(f!([model](node_ids) {
+    viz_tgt_nodes <- viz_press.gate_not(&out.is_fs_visualization_displayed).map(f_!(model.nodes.all_selected()));
+    viz_tgt_nodes_off <- viz_tgt_nodes.map(f!([model](node_ids) {
         node_ids.iter().cloned().filter(|node_id| {
             model.nodes.get_cloned_ref(node_id)
                 .map(|node| !node.visualization_enabled.value())
@@ -3580,12 +3580,12 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     }));
 
     viz_tgt_nodes_all_on <- viz_tgt_nodes_off.map(|t| t.is_empty());
-    viz_enable_by_press  <= viz_tgt_nodes.gate_not(&viz_tgt_nodes_all_on);
-    viz_enable           <- any(viz_enable_by_press,inputs.enable_visualization);
+    viz_enable_by_press <= viz_tgt_nodes.gate_not(&viz_tgt_nodes_all_on);
+    viz_enable <- any(viz_enable_by_press,inputs.enable_visualization);
     viz_disable_by_press <= viz_tgt_nodes.gate(&viz_tgt_nodes_all_on);
-    viz_disable          <- any(viz_disable_by_press,inputs.disable_visualization);
-    viz_preview_disable  <= viz_tgt_nodes_off.sample(&viz_preview_mode_end);
-    viz_fullscreen_on    <= viz_d_press_ev.map(f_!(model.nodes.last_selected()));
+    viz_disable <- any(viz_disable_by_press,inputs.disable_visualization);
+    viz_preview_disable <= viz_tgt_nodes_off.sample(&viz_preview_mode_end);
+    viz_fullscreen_on <= viz_open_fs_ev.map(f_!(model.nodes.last_selected()));
 
     eval viz_enable          ((id) model.enable_visualization(id));
     eval viz_disable         ((id) model.disable_visualization(id));

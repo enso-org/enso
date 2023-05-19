@@ -156,15 +156,25 @@
   <kbd>cmd</kbd>+<kbd>alt</kbd>+<kbd>t</kbd>/<kbd>r</kbd>.
 - [Fixed a bug where selecting a nested breadcrumb would cause the order of
   breadcrumbs to change incorrectly.][6617]
+- [Changed the shortcut to show the full-screen visualization for a node from
+  <kbd>space</kbd> <kbd>space</kbd> to <kbd>shift</kbd>+<kbd>space</kbd>.][6663]
+  so that it doesn't interfere with the shortcut for toggling the small
+  visualization.
+- [Cloud dashboard, which supersedes the startup screen][6279]. Features also
+  added in various other PRs. The new dashboard includes tables for projects,
+  folders, files and secrets, a list of templates from which new projects can be
+  created, a user menu, and a search bar.
 - [The Application will try to reload file in backend on synchronization
   failure][6752]. It should make it more resilient to connectivity issues and
   occasional bugs. The reload may be forced by the user with
   <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>x</kbd> shortcut.
 
+[6279]: https://github.com/enso-org/enso/pull/6279
 [6421]: https://github.com/enso-org/enso/pull/6421
 [6530]: https://github.com/enso-org/enso/pull/6530
-[6620]: https://github.com/enso-org/enso/pull/6620
 [6617]: https://github.com/enso-org/enso/pull/6617
+[6620]: https://github.com/enso-org/enso/pull/6620
+[6663]: https://github.com/enso-org/enso/pull/6663
 [6752]: https://github.com/enso-org/enso/pull/6752
 
 #### EnsoGL (rendering engine)
@@ -222,17 +232,16 @@
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
-[4047]: https://github.com/enso-org/enso/pull/4047
 [4003]: https://github.com/enso-org/enso/pull/4003
+[4047]: https://github.com/enso-org/enso/pull/4047
 [5895]: https://github.com/enso-org/enso/pull/5895
-[5895]: https://github.com/enso-org/enso/pull/6130
 [6035]: https://github.com/enso-org/enso/pull/6035
 [6097]: https://github.com/enso-org/enso/pull/6097
-[6097]: https://github.com/enso-org/enso/pull/6341
+[6130]: https://github.com/enso-org/enso/pull/6130
 [6366]: https://github.com/enso-org/enso/pull/6366
-[6487]: https://github.com/enso-org/enso/pull/6487
 [6341]: https://github.com/enso-org/enso/pull/6341
 [6470]: https://github.com/enso-org/enso/pull/6470
+[6487]: https://github.com/enso-org/enso/pull/6487
 [6512]: https://github.com/enso-org/enso/pull/6512
 
 #### Enso Standard Library
@@ -761,6 +770,7 @@
 - [Warning.get_all returns only unique warnings][6372]
 - [Reimplement `enso_project` as a proper builtin][6352]
 - [Limit number of reported warnings per value][6577]
+- [Suggestions are updated only when the type of the expression changes][6755]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -871,6 +881,7 @@
 [6372]: https://github.com/enso-org/enso/pull/6372
 [6352]: https://github.com/enso-org/enso/pull/6352
 [6577]: https://github.com/enso-org/enso/pull/6577
+[6755]: https://github.com/enso-org/enso/pull/6755
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -32,7 +32,7 @@ pub fn deserialize_widget_definitions(
                             e.context(format!("{msg} '{argument_name}'"))
                         })?;
                     let meta = widget.map(to_configuration);
-                    let argument_name = argument_name.to_owned();
+                    let argument_name = argument_name.into_owned();
                     Ok(ArgumentWidgetConfig { argument_name, config: meta })
                 },
             );
@@ -60,25 +60,25 @@ fn to_kind(inner: response::WidgetKindDefinition) -> widget::DynConfig {
         response::WidgetKindDefinition::SingleChoice { label, values } =>
             widget::single_choice::Config {
                 label:   label.map(Into::into),
-                entries: Rc::new(to_entries(&values)),
+                entries: Rc::new(to_entries(values)),
             }
             .into(),
         response::WidgetKindDefinition::ListEditor { item_widget, item_default } =>
             widget::list_editor::Config {
                 item_widget:  Some(Rc::new(to_configuration(*item_widget))),
-                item_default: item_default.into(),
+                item_default: ImString::from(item_default).into(),
             }
             .into(),
         _ => widget::label::Config::default().into(),
     }
 }
 
-fn to_entries(choices: &[response::Choice]) -> Vec<widget::Entry> {
-    choices.iter().map(to_entry).collect()
+fn to_entries(choices: Vec<response::Choice>) -> Vec<widget::Entry> {
+    choices.into_iter().map(to_entry).collect()
 }
 
-fn to_entry(choice: &response::Choice) -> widget::Entry {
-    let value: ImString = (&choice.value).into();
-    let label = choice.label.as_ref().map_or_else(|| value.clone(), |label| label.into());
+fn to_entry(choice: response::Choice) -> widget::Entry {
+    let value: ImString = choice.value.into();
+    let label = choice.label.map_or_else(|| value.clone(), |label| label.into());
     widget::Entry { required_import: None, value, label }
 }
