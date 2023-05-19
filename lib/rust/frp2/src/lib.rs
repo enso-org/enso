@@ -2,6 +2,7 @@
 #![feature(test)]
 #![feature(let_chains)]
 #![feature(trait_alias)]
+#![feature(downcast_unchecked)]
 
 mod callstack;
 
@@ -49,6 +50,7 @@ impl<T> OptimizedRefCell<T> {
 }
 
 
+// pub trait Data = Any;
 pub trait Data: Debug {
     fn clone(&self) -> Box<dyn Data>;
 }
@@ -122,7 +124,9 @@ struct NetworkData {
     refs:  usize,
 }
 
+#[derive(Default)]
 enum NodeType {
+    #[default]
     Source,
     Inc,
     Trace,
@@ -135,7 +139,7 @@ impl Debug for NodeType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct NodeData {
     tp:         NodeType,
     network_id: NetworkId,
@@ -150,16 +154,16 @@ impl NodeData {
     }
 
     fn on_event(&self, rt: &Runtime, node_id: NodeId, event: &dyn Data) {
+        println!("on_event: {:?}", event);
         match &self.tp {
             NodeType::Source => {}
             NodeType::Inc => {
-                // println!("Inc: {:?}", event);
-                let new_data =
-                    (unsafe { *(event as *const dyn Data as *const () as *const usize) }) + 1;
+                let new_data: usize = unsafe { *(event as *const dyn Data as *const usize) } + 1;
                 rt.emit_event(node_id, &new_data);
             }
             NodeType::Trace => {
-                // println!("TRACE: {:?}", event);
+                let new_data = unsafe { &*(event as *const dyn Data as *const usize) };
+                println!("TRACE: {:?}", new_data);
                 rt.emit_event(node_id, event);
             } /* NodeType::Map(f) => {
                *     let event = f(event);
@@ -170,7 +174,7 @@ impl NodeData {
 }
 
 slotmap::new_key_type! { pub struct NetworkId; }
-slotmap::new_key_type! { pub struct NodeId; }
+// slotmap::new_key_type! { pub struct NodeId; }
 
 type TargetsVec = SmallVec<[NodeId; 1]>;
 
@@ -197,7 +201,7 @@ fn rc_runtime() -> Rc<Runtime> {
 #[derive(Default)]
 pub struct Runtime {
     networks:     RefCell<SlotMap<NetworkId, NetworkData>>,
-    nodes:        RefCell<SlotMap<NodeId, NodeData>>,
+    nodes:        RefCellSlotMap<NodeData>,
     // consumers:         RefCell<SecondaryMap<NodeId, BumpRc<dyn RawEventConsumer>>>,
     /// Map for each node to its behavior, if any. For nodes that are natively behaviors, points to
     /// itself. For non-behavior streams, may point to a sampler node that listens to it.
@@ -222,68 +226,62 @@ impl Runtime {
 
     fn new_node(&self, tp: NodeType, network_id: NetworkId, def: DefInfo) -> NodeId {
         self.metrics.inc_nodes();
-        let mut nodes = self.nodes.borrow_mut();
 
         let mut networks = self.networks.borrow_mut();
         if let Some(network) = networks.get_mut(network_id) {
-            let id = nodes.insert(NodeData::new(tp, network_id, def));
+            let id = self.nodes.insert(NodeData::new(tp, network_id, def));
             network.nodes.push(id);
             id
         } else {
-            NodeId::null()
+            panic!()
+            // NodeId::null()
         }
     }
 
     fn connect(&self, src_id: NodeId, tgt_id: NodeId) {
-        self.nodes.with_borrowed_mut(|nodes| {
-            if let Some(src) = nodes.get_mut(src_id) {
-                src.outputs.push(tgt_id);
-            }
-            if let Some(tgt) = nodes.get_mut(tgt_id) {
-                tgt.inputs.push(src_id);
-            }
-        });
+        self.nodes.with_item_borrow_mut(src_id, |src| src.outputs.push(tgt_id));
+        self.nodes.with_item_borrow_mut(tgt_id, |tgt| tgt.inputs.push(src_id));
     }
 
     fn emit_event(&self, node_id: NodeId, event: &dyn Data) {
+        println!("emit_event {:?} {:?}", node_id, event);
         // println!("emit_event {:?} {:?}", node_id, event);
-        self.nodes.with_borrowed(|nodes| {
-            if let Some(node) = nodes.get(node_id) {
-                // Emit events to all targets. In case there are no targets, we are done.
+        self.nodes.with_item_borrow(node_id, |node| {
+            // Emit events to all targets. In case there are no targets, we are done.
 
-                // store the targets to emit to in a temporary buffer, so we can
-                // release the borrow.
+            // store the targets to emit to in a temporary buffer, so we can
+            // release the borrow.
 
 
-                let cleanup_targets = self.stack.with(node.def, || {
-                    let mut cleanup_targets = false;
-                    for &node_output_id in &node.outputs {
-                        let nodes = self.nodes.borrow();
-                        let node_output = nodes.get(node_output_id);
-                        if let Some(node_output) = node_output {
+            let cleanup_targets = self.stack.with(node.def, || {
+                let mut cleanup_targets = false;
+                for &node_output_id in &node.outputs {
+                    self.nodes
+                        .with_item_borrow(node_output_id, |node_output| {
                             node_output.on_event(self, node_output_id, event);
-                        } else {
+                        })
+                        .ok_or_else(|| {
                             cleanup_targets = true;
-                        }
-                    }
-                    cleanup_targets
-                });
-                //
-                // Return temporary buffer to pool.
-                // node_outputs.clear();
-                // self.target_store_pool.borrow_mut().push(node_outputs);
-            }
+                        })
+                        .ok();
+                }
+                cleanup_targets
+            });
             //
-            // // Remove targets that have been dropped.
-            // if cleanup_targets {
-            //     let mut targets = self.targets.borrow_mut();
-            //     let node_targets = targets.get_mut(node_id);
-            //     if let Some(targets) = node_targets {
-            //         let consumers = self.consumers.borrow();
-            //         targets.retain(|target| consumers.contains_key(*target));
-            //     }
-            // }
+            // Return temporary buffer to pool.
+            // node_outputs.clear();
+            // self.target_store_pool.borrow_mut().push(node_outputs);
         });
+        //
+        // // Remove targets that have been dropped.
+        // if cleanup_targets {
+        //     let mut targets = self.targets.borrow_mut();
+        //     let node_targets = targets.get_mut(node_id);
+        //     if let Some(targets) = node_targets {
+        //         let consumers = self.consumers.borrow();
+        //         targets.retain(|target| consumers.contains_key(*target));
+        //     }
+        // }
     }
 }
 
@@ -345,7 +343,7 @@ mod tests {
         with_runtime(|rt| rt.connect(inc, trc));
         // with_runtime(|rt| rt.connect(trc, inc2));
         // with_runtime(|rt| rt.connect(inc2, trc2));
-        with_runtime(|rt| rt.emit_event(src, &1));
+        with_runtime(|rt| rt.emit_event(src, &1_usize));
         assert_eq!(1, 2);
     }
 }
@@ -380,8 +378,12 @@ mod benches {
 // 4134314
 // 4146143
 
-#[derive(Clone, Copy, Debug)]
-pub struct Key2 {
+// 2107576
+// 2102113
+// 2280935
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct NodeId {
     index:   usize,
     version: usize,
 }
@@ -404,7 +406,7 @@ impl<T: Default> RefCellSlotMap<T> {
         default()
     }
 
-    pub fn insert(&self, val: T) -> Key2 {
+    pub fn insert(&self, val: T) -> NodeId {
         let mut free_indexes = self.free_indexes.borrow_mut();
         if let Some(index) = free_indexes.pop() {
             let version = self.list.with_item_borrow_mut(index, |slot| {
@@ -412,15 +414,15 @@ impl<T: Default> RefCellSlotMap<T> {
                 slot.version += 1;
                 slot.version
             });
-            Key2 { index, version }
+            NodeId { index, version }
         } else {
             let index = self.list.len();
             self.list.push(Slot { value: Some(val), version: 0 });
-            Key2 { index, version: 0 }
+            NodeId { index, version: 0 }
         }
     }
 
-    pub fn insert_at(&self, key: Key2, val: T) -> bool {
+    pub fn insert_at(&self, key: NodeId, val: T) -> bool {
         self.list.with_item_borrow_mut(key.index, |slot| {
             if slot.version != key.version {
                 false
@@ -431,10 +433,20 @@ impl<T: Default> RefCellSlotMap<T> {
         })
     }
 
-    pub fn with_item_at<F, R>(&self, key: Key2, f: impl FnOnce(&T) -> R) -> Option<R> {
+    pub fn with_item_borrow<R>(&self, key: NodeId, f: impl FnOnce(&T) -> R) -> Option<R> {
         self.list.with_item_borrow(key.index, |slot| {
             if slot.version == key.version {
                 slot.value.as_ref().map(f)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn with_item_borrow_mut<R>(&self, key: NodeId, f: impl FnOnce(&mut T) -> R) -> Option<R> {
+        self.list.with_item_borrow_mut(key.index, |slot| {
+            if slot.version == key.version {
+                slot.value.as_mut().map(f)
             } else {
                 None
             }

@@ -44,7 +44,7 @@ impl Display for Label {
 }
 
 #[cfg(feature = "stack-trace")]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Location(u32, &'static str);
 
 #[cfg(not(feature = "stack-trace"))]
@@ -89,7 +89,7 @@ impl Display for Location {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct DefInfo {
     pub label:    Label,
     pub location: Location,
