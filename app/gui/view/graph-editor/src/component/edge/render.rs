@@ -51,6 +51,7 @@ pub(super) struct Shapes {
 }
 
 impl Shapes {
+    /// Redraw the arrow used to mark long backward edges.
     pub(super) fn redraw_dataflow_arrow(
         &self,
         parent: &impl ShapeParent,
@@ -85,6 +86,7 @@ impl Shapes {
         }
     }
 
+    /// Redraw the invisible mouse-event-catching edges.
     pub(super) fn redraw_hover_sections(
         &self,
         parent: &impl ShapeParent,
@@ -102,6 +104,8 @@ impl Shapes {
             .collect();
     }
 
+    /// Redraw the sections, each of which is a [`Rectangle`] implementing a [`Corner`], or multiple
+    /// [`Rectangle`]s and multiple [`arc::View`]s, if it is a split [`Corner`].
     pub(super) fn redraw_sections(
         &self,
         parent: &impl ShapeParent,
@@ -144,6 +148,7 @@ impl Shapes {
         *self.sections.borrow_mut() = new_sections;
     }
 
+    /// Redraw the sections that aren't split by the focus position.
     pub(super) fn redraw_complete_sections(
         &self,
         section_factory: impl Iterator<Item = Rectangle>,
@@ -175,6 +180,7 @@ impl Shapes {
             .collect()
     }
 
+    /// Redraw the little bit that goes on top of the target node.
     pub(super) fn redraw_target_attachment(
         &self,
         parent: &impl ShapeParent,
