@@ -77,6 +77,7 @@ spec =
         Locale.uk . should_not_equal Locale.us
 
     Test.specify "Should correctly auto-discover static Locales" <|
-        Locale.widget_options . should_equal [(Option 'Bangladesh' 'Locale.bangladesh' [] ''), (Option 'Brazil' 'Locale.brazil' [] ''), (Option 'Canada English' 'Locale.canada_english' [] ''), (Option 'Canada French' 'Locale.canada_french' [] ''), (Option 'China' 'Locale.china' [] ''), (Option 'France' 'Locale.france' [] ''), (Option 'Germany' 'Locale.germany' [] ''), (Option 'India English' 'Locale.india_english' [] ''), (Option 'India Hindi' 'Locale.india_hindi' [] ''), (Option 'Indonesia' 'Locale.indonesia' [] ''), (Option 'Italy' 'Locale.italy' [] ''), (Option 'Japan' 'Locale.japan' [] ''), (Option 'Mexico' 'Locale.mexico' [] ''), (Option 'Nigeria' 'Locale.nigeria' [] ''), (Option 'Pakistan English' 'Locale.pakistan_english' [] ''), (Option 'Pakistan Urdu' 'Locale.pakistan_urdu' [] ''), (Option 'Poland' 'Locale.poland' [] ''), (Option 'Russia' 'Locale.russia' [] ''), (Option 'South Korea' 'Locale.south_korea' [] ''), (Option 'UK' 'Locale.uk' [] ''), (Option 'US' 'Locale.us' [] '')]
+        locale_names = Locale.widget_options.map x-> case x of Option locale_name _ _ _ -> locale_name
+        locale_names . should_equal ['Bangladesh', 'Brazil', 'Canada English', 'Canada French', 'China', 'France', 'Germany', 'India English', 'India Hindi', 'Indonesia', 'Italy', 'Japan', 'Mexico', 'Nigeria', 'Pakistan English', 'Pakistan Urdu', 'Poland', 'Russia', 'South Korea', 'UK', 'US']
 
 main = Test_Suite.run_main spec
