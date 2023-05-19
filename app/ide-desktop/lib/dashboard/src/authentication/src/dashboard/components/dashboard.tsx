@@ -3,6 +3,7 @@
 import * as react from 'react'
 
 import * as backendModule from '../backend'
+import * as dateTime from '../dateTime'
 import * as fileInfo from '../../fileInfo'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
@@ -33,7 +34,6 @@ import UploadFileModal from './uploadFileModal'
 
 import DirectoryCreateForm from './directoryCreateForm'
 import FileCreateForm from './fileCreateForm'
-import ProjectCreateForm from './projectCreateForm'
 import SecretCreateForm from './secretCreateForm'
 
 // =============
@@ -106,10 +106,9 @@ const ASSET_TYPE_NAME: Record<backendModule.AssetType, string> = {
 
 /** Forms to create each asset type. */
 const ASSET_TYPE_CREATE_FORM: Record<
-    backendModule.AssetType,
+    Exclude<backendModule.AssetType, backendModule.AssetType.project>,
     (props: CreateFormProps) => JSX.Element
 > = {
-    [backendModule.AssetType.project]: ProjectCreateForm,
     [backendModule.AssetType.file]: FileCreateForm,
     [backendModule.AssetType.secret]: SecretCreateForm,
     [backendModule.AssetType.directory]: DirectoryCreateForm,
@@ -125,6 +124,19 @@ const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
     [Column.usagePlan]: 'Usage plan',
     [Column.engine]: 'Engine',
     [Column.ide]: 'IDE',
+} as const
+
+/** CSS classes for every column. Currently only used to set the widths. */
+const COLUMN_CSS_CLASS: Record<Column, string> = {
+    [Column.name]: 'w-60',
+    [Column.lastModified]: 'w-32',
+    [Column.sharedWith]: 'w-36',
+    [Column.docs]: 'w-96',
+    [Column.labels]: 'w-80',
+    [Column.dataAccess]: 'w-96',
+    [Column.usagePlan]: '',
+    [Column.engine]: 'w-20',
+    [Column.ide]: 'w-20',
 } as const
 
 /** The corresponding `Permissions` for each backend `PermissionAction`. */
@@ -194,6 +206,14 @@ function rootDirectoryId(userOrOrganizationId: backendModule.UserOrOrganizationI
     )
 }
 
+/** Returns the list of columns to be displayed. */
+function columnsFor(displayMode: ColumnDisplayMode, backendPlatform: platformModule.Platform) {
+    const columns = COLUMNS_FOR[displayMode]
+    return backendPlatform === platformModule.Platform.desktop
+        ? columns.filter(column => column !== Column.sharedWith)
+        : columns
+}
+
 // =================
 // === Dashboard ===
 // =================
@@ -232,6 +252,7 @@ function Dashboard(props: DashboardProps) {
     const [selectedAssets, setSelectedAssets] = react.useState<backendModule.Asset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = react.useState(false)
 
+    const [isLoadingAssets, setIsLoadingAssets] = react.useState(true)
     const [projectAssets, setProjectAssetsRaw] = react.useState<
         backendModule.Asset<backendModule.AssetType.project>[]
     >([])
@@ -466,9 +487,10 @@ function Dashboard(props: DashboardProps) {
     // eslint-disable-next-line no-restricted-syntax
     const columnRenderer: Record<
         Exclude<Column, Column.name>,
-        (asset: backendModule.Asset) => JSX.Element
+        (asset: backendModule.Asset) => react.ReactNode
     > = {
-        [Column.lastModified]: () => <></>,
+        [Column.lastModified]: asset =>
+            asset.modifiedAt && <>{dateTime.formatDateTime(new Date(asset.modifiedAt))}</>,
         [Column.sharedWith]: asset => (
             <>
                 {(asset.permissions ?? []).map(user => (
@@ -476,10 +498,7 @@ function Dashboard(props: DashboardProps) {
                         key={user.user.organization_id}
                         permissions={PERMISSION[user.permission]}
                     >
-                        <img
-                            className="rounded-full h-6"
-                            src="https://faces-img.xcdn.link/image-lorem-face-4742.jpg"
-                        />
+                        {svg.DEFAULT_USER_ICON}
                     </PermissionDisplay>
                 ))}
             </>
@@ -523,32 +542,36 @@ function Dashboard(props: DashboardProps) {
     /** Heading element for every column. */
     const ColumnHeading = (column: Column, assetType: backendModule.AssetType) =>
         column === Column.name ? (
-            <div className="inline-flex">
-                {ASSET_TYPE_NAME[assetType]}
-                <button
-                    className="mx-1"
-                    onClick={event => {
-                        event.stopPropagation()
-                        const buttonPosition =
-                            // This type assertion is safe as this event handler is on a `button`.
+            assetType === backendModule.AssetType.project ? (
+                <>{ASSET_TYPE_NAME[assetType]}</>
+            ) : (
+                <div className="inline-flex">
+                    {ASSET_TYPE_NAME[assetType]}
+                    <button
+                        className="mx-1"
+                        onClick={event => {
+                            event.stopPropagation()
+                            const buttonPosition =
+                                // This type assertion is safe as this event handler is on a button.
+                                // eslint-disable-next-line no-restricted-syntax
+                                (event.target as HTMLButtonElement).getBoundingClientRect()
+                            // This is a React component even though it doesn't contain JSX.
                             // eslint-disable-next-line no-restricted-syntax
-                            (event.target as HTMLButtonElement).getBoundingClientRect()
-                        // This is a React component even though it doesn't contain JSX.
-                        // eslint-disable-next-line no-restricted-syntax
-                        const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
-                        setModal(() => (
-                            <CreateForm
-                                left={buttonPosition.left + window.scrollX}
-                                top={buttonPosition.top + window.scrollY}
-                                directoryId={directoryId}
-                                onSuccess={doRefresh}
-                            />
-                        ))
-                    }}
-                >
-                    {svg.ADD_ICON}
-                </button>
-            </div>
+                            const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
+                            setModal(() => (
+                                <CreateForm
+                                    left={buttonPosition.left + window.scrollX}
+                                    top={buttonPosition.top + window.scrollY}
+                                    directoryId={directoryId}
+                                    onSuccess={doRefresh}
+                                />
+                            ))
+                        }}
+                    >
+                        {svg.ADD_ICON}
+                    </button>
+                </div>
+            )
         ) : (
             <>{COLUMN_NAME[column]}</>
         )
@@ -581,8 +604,10 @@ function Dashboard(props: DashboardProps) {
     hooks.useAsyncEffect(
         null,
         async signal => {
+            setIsLoadingAssets(true)
             const assets = await backend.listDirectory({ parentId: directoryId })
             if (!signal.aborted) {
+                setIsLoadingAssets(false)
                 setAssets(assets)
             }
         },
@@ -642,17 +667,8 @@ function Dashboard(props: DashboardProps) {
             projectTemplateName: templateId ?? null,
             parentDirectoryId: directoryId,
         }
-        const projectAsset = await backend.createProject(body)
-        setProjectAssets([
-            ...projectAssets,
-            {
-                type: backendModule.AssetType.project,
-                title: projectAsset.name,
-                id: projectAsset.projectId,
-                parentId: '',
-                permissions: [],
-            },
-        ])
+        await backend.createProject(body)
+        doRefresh()
     }
 
     return (
@@ -692,6 +708,7 @@ function Dashboard(props: DashboardProps) {
                 }}
                 setBackendPlatform={newBackendPlatform => {
                     if (newBackendPlatform !== backend.platform) {
+                        setIsLoadingAssets(true)
                         setProjectAssets([])
                         setDirectoryAssets([])
                         setSecretAssets([])
@@ -819,19 +836,24 @@ function Dashboard(props: DashboardProps) {
                     )}
                 </div>
             </div>
-            <table className="items-center w-full bg-transparent border-collapse mt-2">
+            <table className="table-fixed items-center border-collapse mt-2">
                 <tbody>
-                    <tr className="h-10" />
+                    <tr className="h-10">
+                        {columnsFor(columnDisplayMode, backend.platform).map(column => (
+                            <td key={column} className={COLUMN_CSS_CLASS[column]} />
+                        ))}
+                    </tr>
                     <Rows<backendModule.Asset<backendModule.AssetType.project>>
                         items={visibleProjectAssets}
                         getKey={proj => proj.id}
+                        isLoading={isLoadingAssets}
                         placeholder={
                             <span className="opacity-75">
                                 You have no project yet. Go ahead and create one using the form
                                 above.
                             </span>
                         }
-                        columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
+                        columns={columnsFor(columnDisplayMode, backend.platform).map(column => ({
                             id: column,
                             heading: ColumnHeading(column, backendModule.AssetType.project),
                             render: renderer(column, backendModule.AssetType.project),
@@ -917,20 +939,26 @@ function Dashboard(props: DashboardProps) {
                                 <Rows<backendModule.Asset<backendModule.AssetType.directory>>
                                     items={visibleDirectoryAssets}
                                     getKey={dir => dir.id}
+                                    isLoading={isLoadingAssets}
                                     placeholder={
                                         <span className="opacity-75">
                                             This directory does not contain any subdirectories
                                             {query ? ' matching your query' : ''}.
                                         </span>
                                     }
-                                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                                        id: column,
-                                        heading: ColumnHeading(
-                                            column,
-                                            backendModule.AssetType.directory
-                                        ),
-                                        render: renderer(column, backendModule.AssetType.directory),
-                                    }))}
+                                    columns={columnsFor(columnDisplayMode, backend.platform).map(
+                                        column => ({
+                                            id: column,
+                                            heading: ColumnHeading(
+                                                column,
+                                                backendModule.AssetType.directory
+                                            ),
+                                            render: renderer(
+                                                column,
+                                                backendModule.AssetType.directory
+                                            ),
+                                        })
+                                    )}
                                     onClick={(directoryAsset, event) => {
                                         event.stopPropagation()
                                         setSelectedAssets(
@@ -949,20 +977,26 @@ function Dashboard(props: DashboardProps) {
                                 <Rows<backendModule.Asset<backendModule.AssetType.secret>>
                                     items={visibleSecretAssets}
                                     getKey={secret => secret.id}
+                                    isLoading={isLoadingAssets}
                                     placeholder={
                                         <span className="opacity-75">
                                             This directory does not contain any secrets
                                             {query ? ' matching your query' : ''}.
                                         </span>
                                     }
-                                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                                        id: column,
-                                        heading: ColumnHeading(
-                                            column,
-                                            backendModule.AssetType.secret
-                                        ),
-                                        render: renderer(column, backendModule.AssetType.secret),
-                                    }))}
+                                    columns={columnsFor(columnDisplayMode, backend.platform).map(
+                                        column => ({
+                                            id: column,
+                                            heading: ColumnHeading(
+                                                column,
+                                                backendModule.AssetType.secret
+                                            ),
+                                            render: renderer(
+                                                column,
+                                                backendModule.AssetType.secret
+                                            ),
+                                        })
+                                    )}
                                     onClick={(secret, event) => {
                                         event.stopPropagation()
                                         setSelectedAssets(
@@ -999,20 +1033,23 @@ function Dashboard(props: DashboardProps) {
                                 <Rows<backendModule.Asset<backendModule.AssetType.file>>
                                     items={visibleFileAssets}
                                     getKey={file => file.id}
+                                    isLoading={isLoadingAssets}
                                     placeholder={
                                         <span className="opacity-75">
                                             This directory does not contain any files
                                             {query ? ' matching your query' : ''}.
                                         </span>
                                     }
-                                    columns={COLUMNS_FOR[columnDisplayMode].map(column => ({
-                                        id: column,
-                                        heading: ColumnHeading(
-                                            column,
-                                            backendModule.AssetType.file
-                                        ),
-                                        render: renderer(column, backendModule.AssetType.file),
-                                    }))}
+                                    columns={columnsFor(columnDisplayMode, backend.platform).map(
+                                        column => ({
+                                            id: column,
+                                            heading: ColumnHeading(
+                                                column,
+                                                backendModule.AssetType.file
+                                            ),
+                                            render: renderer(column, backendModule.AssetType.file),
+                                        })
+                                    )}
                                     onClick={(file, event) => {
                                         event.stopPropagation()
                                         setSelectedAssets(

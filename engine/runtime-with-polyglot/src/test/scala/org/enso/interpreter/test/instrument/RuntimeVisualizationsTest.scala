@@ -123,7 +123,11 @@ class RuntimeVisualizationsTest
 
       object Update {
 
-        def mainX(contextId: UUID, fromCache: Boolean = false): Api.Response =
+        def mainX(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
           Api.Response(
             Api.ExpressionUpdates(
               contextId,
@@ -134,13 +138,18 @@ class RuntimeVisualizationsTest
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
+                  typeChanged,
                   Api.ExpressionUpdate.Payload.Value()
                 )
               )
             )
           )
 
-        def mainY(contextId: UUID, fromCache: Boolean = false): Api.Response =
+        def mainY(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
           Api.Response(
             Api.ExpressionUpdates(
               contextId,
@@ -157,13 +166,18 @@ class RuntimeVisualizationsTest
                   ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
+                  typeChanged,
                   Api.ExpressionUpdate.Payload.Value()
                 )
               )
             )
           )
 
-        def mainZ(contextId: UUID, fromCache: Boolean = false): Api.Response =
+        def mainZ(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
           Api.Response(
             Api.ExpressionUpdates(
               contextId,
@@ -174,13 +188,18 @@ class RuntimeVisualizationsTest
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
+                  typeChanged,
                   Api.ExpressionUpdate.Payload.Value()
                 )
               )
             )
           )
 
-        def fooY(contextId: UUID, fromCache: Boolean = false): Api.Response =
+        def fooY(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
           Api.Response(
             Api.ExpressionUpdates(
               contextId,
@@ -191,13 +210,18 @@ class RuntimeVisualizationsTest
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
+                  typeChanged,
                   Api.ExpressionUpdate.Payload.Value()
                 )
               )
             )
           )
 
-        def fooZ(contextId: UUID, fromCache: Boolean = false): Api.Response =
+        def fooZ(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
           Api.Response(
             Api.ExpressionUpdates(
               contextId,
@@ -208,6 +232,7 @@ class RuntimeVisualizationsTest
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
+                  typeChanged,
                   Api.ExpressionUpdate.Payload.Value()
                 )
               )
@@ -936,8 +961,18 @@ class RuntimeVisualizationsTest
 
     val editFileResponse = context.receiveNIgnorePendingExpressionUpdates(4)
     editFileResponse should contain allOf (
-      TestMessages.update(contextId, context.Main.idFooY, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, context.Main.idFooZ, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        context.Main.idFooY,
+        ConstantsGen.INTEGER,
+        typeChanged = false
+      ),
+      TestMessages.update(
+        contextId,
+        context.Main.idFooZ,
+        ConstantsGen.INTEGER,
+        typeChanged = false
+      ),
       context.executionComplete(contextId)
     )
     val Some(data3) = editFileResponse.collectFirst {
@@ -963,8 +998,8 @@ class RuntimeVisualizationsTest
     )
     popContextResponses should contain allOf (
       Api.Response(requestId, Api.PopContextResponse(contextId)),
-      context.Main.Update.mainY(contextId),
-      context.Main.Update.mainZ(contextId),
+      context.Main.Update.mainY(contextId, typeChanged = false),
+      context.Main.Update.mainZ(contextId, typeChanged = false),
       context.executionComplete(contextId)
     )
 
@@ -2128,7 +2163,9 @@ class RuntimeVisualizationsTest
       TestMessages.panic(
         contextId,
         idMain,
-        Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain))
+        Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain)),
+        builtin     = false,
+        typeChanged = false
       ),
       Api.Response(
         Api.VisualisationEvaluationFailed(

@@ -132,7 +132,7 @@ type Value_Type
 
        Fallback provided to allow describing types that are not supported by
        Enso at this time.
-    Unsupported_Data_Type type_name:(Text|Nothing)=Nothing (underlying_type:SQL_Type|Nothing=Nothing)
+    Unsupported_Data_Type type_name:(Text|Nothing)=Nothing (underlying_type:Any|Nothing=Nothing)
 
     ## A mix of values can be stored in the Column.
 
@@ -161,12 +161,13 @@ type Value_Type
         _ -> False
 
     ## UNSTABLE
-       Checks if the `Value_Type` represents any numeric type - integer,
+       Checks if the `Value_Type` represents any numeric type - integer, byte,
        floating point or decimal.
     is_numeric : Boolean
     is_numeric self = case self of
-        Value_Type.Integer _ -> True
-        Value_Type.Float _   -> True
+        Value_Type.Integer _   -> True
+        Value_Type.Float _     -> True
+        Value_Type.Byte        -> True
         Value_Type.Decimal _ _ -> True
         _ -> False
 

@@ -57,8 +57,9 @@ type JSONRPCResponse<T> = JSONRPCErrorResponse | JSONRPCSuccessResponse<T>
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
 /** A name of a project. */
 export type ProjectName = newtype.Newtype<string, 'ProjectName'>
-/** A value containing a date and a UTC time. */
-export type UTCDateTime = newtype.Newtype<string, 'UTCDateTime'>
+/** The newtype's `TypeName` is intentionally different from the name of this type alias,
+ * to match the backend's newtype. */
+export type UTCDateTime = newtype.Newtype<string, 'Rfc3339DateTime'>
 
 /** Details for a project. */
 export interface ProjectMetadata {
