@@ -145,7 +145,6 @@ export function AuthProvider(props: AuthProviderProps) {
     const { authService, children } = props
     const { cognito } = authService
     const { session } = sessionProvider.useSession()
-    const { setBackend } = backendProvider.useSetBackend()
     const logger = loggerProvider.useLogger()
     const navigate = router.useNavigate()
     const onAuthenticated = react.useCallback(props.onAuthenticated, [])
@@ -168,7 +167,6 @@ export function AuthProvider(props: AuthProviderProps) {
                 headers.append('Authorization', `Bearer ${accessToken}`)
                 const client = new http.Client(headers)
                 const backend = new remoteBackend.RemoteBackend(client, logger)
-                setBackend(backend)
                 const organization = await backend.usersMe().catch(() => null)
                 let newUserSession: UserSession
                 const sharedSessionData = { email, accessToken }
