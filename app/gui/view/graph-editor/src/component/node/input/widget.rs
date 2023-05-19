@@ -138,7 +138,7 @@ pub struct OverrideKey {
 
 /// Common trait for constructing and reconfiguring all widget variants. See "Widget Lifecycle"
 /// section of the module documentation for more details.
-pub trait SpanWidget: Sized {
+pub trait SpanWidget {
     /// Configuration associated with specific widget variant.
     type Config: Debug + Clone + PartialEq;
     /// Score how well a widget kind matches current builder context. The best scoring widget kind
@@ -351,7 +351,7 @@ define_widget_modules! {
     PartialEq(bound = "Kind::Config: PartialEq")
 )]
 #[allow(missing_docs)]
-pub struct Configuration<Kind: SpanWidget = DynWidget> {
+pub struct Configuration<Kind: ?Sized + SpanWidget = DynWidget> {
     /// Display mode of the widget: determines whether or not the widget should be displayed
     /// depending on current tree display mode.
     pub display:  Display,
