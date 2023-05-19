@@ -144,7 +144,9 @@ impl<DP: DataProvider> FileUploadProcess<DP> {
                     );
                     self.bytes_uploaded = self.file.size;
                 }
-                self.check_checksum().await?;
+                //TODO[ao]: The language server checksum method sometimes fails:
+                // https://github.com/enso-org/enso/issues/6691 so we skip the check until fixed.
+                // self.check_checksum().await?;
                 Ok(UploadingState::Finished)
             }
             Err(err) => Err(err),
