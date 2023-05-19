@@ -85,8 +85,3 @@ make_single_choice values display=Display.Always =
         _ : Vector -> Choice.Option value.first value.second
         _ : Text -> Choice.Option value value.pretty
     Widget.Single_Choice (values.map make_option) Nothing display
-
-## PRIVATE
-make_delimiter_selector : Widget
-make_delimiter_selector =
-    make_single_choice [',', ';', '|', ['{tab}', "'\t'"], ['{space}', "' '"], ['{newline}', "['\n', '\r\n', '\r']"], ['Custom', ""]]

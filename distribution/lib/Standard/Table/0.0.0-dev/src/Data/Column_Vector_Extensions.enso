@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import project.Data.Column.Column
+import project.Data.Table.Table
 
 ## Creates a column from a `Vector` of values.
 
@@ -26,23 +27,28 @@ Date_Range.to_column : Text -> Column
 Date_Range.to_column self name="Date_Range" =
     Column.from_vector name self.to_vector
 
-## Compute a single statistic on the column.
+## ALIAS Statistic, Count, Sum, Maximum, Minimum, Mean, Median, Mode, Variance, Standard_Deviation, Skew, Kurtosis
+   Compute a single statistic on the column.
 
    Arguments:
    - statistic: Statistic to calculate.
 Column.compute : Statistic -> Any
 Column.compute self statistic=Statistic.Count =
-    self.compute_bulk [statistic] . first
+    Statistic.compute_bulk self.to_vector [statistic] . first
 
-## Compute statistics on the column.
+## ALIAS Statistic, Count, Sum, Maximum, Minimum, Mean, Median, Mode, Variance, Standard_Deviation, Skew, Kurtosis
+   Compute statistics on the column.
 
    Arguments:
    - statistics: Set of statistics to calculate.
-Column.compute_bulk : Vector Statistic -> Vector Any
+Column.compute_bulk : Vector Statistic -> Table
 Column.compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
-    Statistic.compute_bulk self.to_vector statistics
+    values = Statistic.compute_bulk self.to_vector statistics
+    names = statistics.map _.to_text
+    Table.from_rows names [values]
 
-## Compute a single running statistic on the column.
+## ALIAS Statistic, Count, Sum, Maximum, Minimum, Mean, Median, Mode, Variance, Standard_Deviation, Skew, Kurtosis
+   Compute a single running statistic on the column.
 
    Arguments:
    - statistic: Statistic to calculate.
