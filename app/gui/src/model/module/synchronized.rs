@@ -114,19 +114,14 @@ impl ParsedContentSummary {
 }
 
 /// The information about module's state currently held in LanguageServer.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 enum LanguageServerContent {
     /// The content is synchronized with our module state after last fully handled notification.
     Synchronized(ParsedContentSummary),
-    /// The content is not known due to an unrecognized error received from the Language Server after
-    /// applying the last update. We don't know if, and to what extent it was applied.
+    /// The content is not known due to an unrecognized error received from the Language Server
+    /// after applying the last update. We don't know if, and to what extent it was applied.
+    #[default]
     Unknown,
-}
-
-impl Default for LanguageServerContent {
-    fn default() -> Self {
-        Self::Unknown
-    }
 }
 
 
@@ -392,8 +387,8 @@ impl Module {
         }
     }
 
-    /// Send to LanguageServer update about received notification about module. Returns the new
-    /// content summery of Language Server state.
+    /// Send to LanguageServer update about received notification about module, and update the
+    /// [`ls_content`] field accordingly.
     async fn handle_notification(&self, notification: Notification) {
         let Notification { new_file, kind, profiler } = notification;
         let _profiler = profiler::start_debug!(profiler, "handle_notification");
@@ -534,7 +529,6 @@ impl Module {
         edits: Vec<TextEdit>,
         execute: bool,
     ) -> impl Future<Output = ()> + 'static {
-        println!("---\n{}---\n", new_file.content);
         let summary = ParsedContentSummary::from_source(new_file);
         let edit = FileEdit {
             edits,
@@ -656,18 +650,16 @@ pub mod test {
                 let actual_old = this.current_ls_version.get();
                 let actual_new =
                     Sha3_224::from_parts(new_content.iter_chunks(..).map(|s| s.as_bytes()));
-                println!("Actual digest:   {actual_old} => {actual_new}");
-                println!("Declared digest: {} => {}", edits.old_version, edits.new_version);
-                println!("New content:\n===\n{new_content}\n===");
+                debug!("Actual digest:   {actual_old} => {actual_new}");
+                debug!("Declared digest: {} => {}", edits.old_version, edits.new_version);
+                debug!("New content:\n===\n{new_content}\n===");
                 assert_eq!(&edits.path, this.path.file_path());
                 assert_eq!(edits.old_version, actual_old);
                 assert_eq!(edits.new_version, actual_new);
                 if result.is_ok() {
                     this.current_ls_content.set(new_content);
                     this.current_ls_version.set(actual_new);
-                    println!("Accepted!");
                 } else {
-                    println!("Rejected!");
                 }
                 result
             });
