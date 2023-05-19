@@ -35,23 +35,28 @@ const MESSAGES = {
     pleaseWait: 'Please wait...',
 } as const
 
-// =============
-// === Types ===
-// =============
-
+// ===================
 // === UserSession ===
+// ===================
 
-export type UserSession = FullUserSession | PartialUserSession
+/** Possible types of {@link BaseUserSession}. */
+export enum UserSessionType {
+    partial = 'partial',
+    awaitingAcceptance = 'awaitingAcceptance',
+    full = 'full',
+}
 
-/** Object containing the currently signed-in user's session data. */
-export interface FullUserSession {
-    /** A discriminator for TypeScript to be able to disambiguate between this interface and other
-     * `UserSession` variants. */
-    variant: 'full'
+interface BaseUserSession<Type extends UserSessionType> {
+    /** A discriminator for TypeScript to be able to disambiguate between `UserSession` variants. */
+    type: Type
     /** User's JSON Web Token (JWT), used for authenticating and authorizing requests to the API. */
     accessToken: string
     /** User's email address. */
     email: string
+}
+
+/** Object containing the currently signed-in user's session data. */
+export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
     /** User's organization information. */
     organization: backendModule.UserOrOrganization
 }
@@ -62,15 +67,9 @@ export interface FullUserSession {
  * If a user has not yet set their username, they do not yet have an organization associated with
  * their account. Otherwise, this type is identical to the `Session` type. This type should ONLY be
  * used by the `SetUsername` component. */
-export interface PartialUserSession {
-    /** A discriminator for TypeScript to be able to disambiguate between this interface and other
-     * `UserSession` variants. */
-    variant: 'partial'
-    /** User's JSON Web Token (JWT), used for authenticating and authorizing requests to the API. */
-    accessToken: string
-    /** User's email address. */
-    email: string
-}
+export interface PartialUserSession extends BaseUserSession<UserSessionType.partial> {}
+
+export type UserSession = FullUserSession | PartialUserSession
 
 // ===================
 // === AuthContext ===
@@ -172,17 +171,16 @@ export function AuthProvider(props: AuthProviderProps) {
                 setBackend(backend)
                 const organization = await backend.usersMe().catch(() => null)
                 let newUserSession: UserSession
+                const sharedSessionData = { email, accessToken }
                 if (!organization) {
                     newUserSession = {
-                        variant: 'partial',
-                        email,
-                        accessToken,
+                        type: UserSessionType.partial,
+                        ...sharedSessionData,
                     }
                 } else {
                     newUserSession = {
-                        variant: 'full',
-                        email,
-                        accessToken,
+                        type: UserSessionType.full,
+                        ...sharedSessionData,
                         organization,
                     }
 
@@ -386,7 +384,7 @@ export function ProtectedLayout() {
 
     if (!session) {
         return <router.Navigate to={app.LOGIN_PATH} />
-    } else if (session.variant === 'partial') {
+    } else if (session.type === UserSessionType.partial) {
         return <router.Navigate to={app.SET_USERNAME_PATH} />
     } else {
         return <router.Outlet context={session} />
@@ -400,7 +398,7 @@ export function ProtectedLayout() {
 export function SemiProtectedLayout() {
     const { session } = useAuth()
 
-    if (session?.variant === 'full') {
+    if (session?.type === UserSessionType.full) {
         return <router.Navigate to={app.DASHBOARD_PATH} />
     } else {
         return <router.Outlet context={session} />
@@ -414,9 +412,9 @@ export function SemiProtectedLayout() {
 export function GuestLayout() {
     const { session } = useAuth()
 
-    if (session?.variant === 'partial') {
+    if (session?.type === UserSessionType.partial) {
         return <router.Navigate to={app.SET_USERNAME_PATH} />
-    } else if (session?.variant === 'full') {
+    } else if (session?.type === UserSessionType.full) {
         return <router.Navigate to={app.DASHBOARD_PATH} />
     } else {
         return <router.Outlet />
