@@ -108,6 +108,11 @@ interface ProjectMetadata {
   engineVersion?: String;
 
   /**
+   * The project creation time.
+   */
+  created: UTCDateTime;
+
+  /**
    * The last opened datetime.
    */
   lastOpened?: UTCDateTime;
