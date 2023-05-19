@@ -136,17 +136,22 @@ impl Edge {
         let output = &frp.private.output;
         frp::extend! { network
             // Setters.
-            eval frp.target_position ((t) model.set_target_position(*t));
-            eval frp.source_attached ((t) model.set_source_attached(*t));
-            eval frp.target_attached ((t) model.set_target_attached(*t));
-            eval frp.source_size ((t) model.set_source_size(*t));
-            eval frp.set_disabled ((t) model.set_disabled(*t));
+            eval frp.target_position ((t) model.inputs.set_target_position(ParentCoords(*t)));
+            eval frp.source_attached ((t) model.inputs.set_source_attached(*t));
+            eval frp.target_attached ((t) model.inputs.set_target_attached(*t));
+            eval frp.source_size ((t) model.inputs.set_source_size(*t));
+            eval frp.set_disabled ((t) model.inputs.set_disabled(*t));
 
             // Mouse events.
-            eval mouse_move ((e) model.set_mouse_position(e.client_centered()));
-            eval_ mouse_out (model.clear_focus());
+            eval mouse_move ([model] (e) {
+                let pos = model.screen_pos_to_scene_pos(e.client_centered());
+                model.inputs.set_mouse_position(pos);
+            });
+            eval_ mouse_out (model.inputs.clear_focus.set(true));
             eval mouse_down ([model, output] (e) {
-                match model.closer_end_to_screen_pos(e.client_centered()) {
+                let pos = model.screen_pos_to_scene_pos(e.client_centered());
+                let pos = model.scene_pos_to_parent_pos(pos);
+                match model.closer_end(pos) {
                     Some(EndPoint::Source) => output.target_click.emit(()),
                     Some(EndPoint::Target) => output.source_click.emit(()),
                     // Ignore click events that were delivered to our display object inaccurately.
@@ -156,7 +161,7 @@ impl Edge {
 
             // Colors.
             edge_color.target <+ frp.set_color;
-            eval edge_color.value ((color) model.set_color(color.into()));
+            eval edge_color.value ((color) model.inputs.set_color(color.into()));
 
             // Invalidation.
             redraw_needed <- any(...);
@@ -189,51 +194,55 @@ impl display::Object for Edge {
 
 
 
+// ==========================
+// === Coordinate systems ===
+// ==========================
+
+/// Marker for coordinates relative to the origin of the parent display object.
+#[derive(Debug, Copy, Clone, PartialEq, Default)]
+struct ParentOrigin;
+
+/// Marker for coordinates relative to the origin of the scene.
+#[derive(Debug, Copy, Clone, PartialEq, Default)]
+struct SceneOrigin;
+
+/// Coordinates marked to identify different coordinate spaces.
+#[derive(Debug, Copy, Clone, PartialEq, Default)]
+struct Coords<Space, Number: Copy + Debug + PartialEq + 'static=f32> {
+    coords: Vector2<Number>,
+    space: PhantomData<*const Space>,
+}
+
+type ParentCoords = Coords<ParentOrigin>;
+type SceneCoords = Coords<SceneOrigin>;
+
+#[allow(non_snake_case)]
+fn ParentCoords(coords: Vector2) -> ParentCoords {
+    Coords { coords, space: default() }
+}
+#[allow(non_snake_case)]
+fn SceneCoords(coords: Vector2) -> SceneCoords {
+    Coords { coords, space: default() }
+}
+
+
+
 // =================
 // === EdgeModel ===
 // =================
 
 /// Internal data of `Edge`
 #[derive(Debug)]
-pub struct EdgeModel {
+struct EdgeModel {
     /// The parent display object of all the edge's parts.
     display_object: display::object::Instance,
     scene:          Scene,
-
-    // === Inputs ===
-    /// The width and height of the node that originates the edge. The edge may begin anywhere
-    /// around the bottom half of the node.
-    source_size:     Cell<Vector2>,
-    /// The coordinates of the node input the edge connects to. The edge enters the node from
-    /// above.
-    target_position: Cell<Vector2>,
-    /// Whether the edge is connected to a node input.
-    target_attached: Cell<bool>,
-    /// Whether the edge is connected to a node output.
-    source_attached: Cell<bool>,
-    color:           Cell<color::Rgba>,
-    /// The location of the mouse over the edge.
-    hover_position:  Cell<Option<Vector2>>,
-    disabled:        Cell<bool>,
+    inputs:         EdgeInputs,
+    shapes:         EdgeShapes,
 
     // === Cached state ===
     /// The endpoints of the individual [`Corner`]s making up the edge.
     corner_points: RefCell<Vec<Vector2>>,
-
-    // === Shapes ===
-    /// The individual [`Corner`]s making up the edge. Each is drawn in the focused or unfocused
-    /// color.
-    sections:          RefCell<Vec<Rectangle>>,
-    /// A pair of [`arc`] shapes used when the mouse is over the rounded corner, and the edge must
-    /// must be split into focused and unfocused sides at a certain angle along the arc.
-    split_arc:         RefCell<Option<[arc::View; 2]>>,
-    /// Wider versions of the [`sections`], for receiving mouse events.
-    hover_sections:    RefCell<Vec<Rectangle>>,
-    /// The end of the edge that is drawn on top of the node and connects to the target node's
-    /// input port.
-    target_attachment: RefCell<Option<Rectangle>>,
-    /// Arrow drawn on long backward edges to indicate data flow direction.
-    dataflow_arrow:    RefCell<Option<Rectangle>>,
 
     // === Change detection ===
     previous_target:          Cell<Option<Vector2>>,
@@ -254,19 +263,9 @@ impl EdgeModel {
         Self {
             display_object,
             scene,
-            source_attached: default(),
-            source_size: default(),
-            target_position: default(),
-            target_attached: default(),
-            color: default(),
-            sections: default(),
-            split_arc: default(),
-            hover_sections: default(),
+            inputs: default(),
+            shapes: default(),
             corner_points: default(),
-            target_attachment: default(),
-            dataflow_arrow: default(),
-            hover_position: default(),
-            disabled: default(),
             previous_target: default(),
             previous_is_hoverable: default(),
             previous_hover_split: default(),
@@ -275,76 +274,76 @@ impl EdgeModel {
         }
     }
 
-    /// Set the color of the edge.
-    fn set_color(&self, color: color::Lcha) {
-        // We must never use alpha in edges, as it will show artifacts with overlapping sub-parts.
-        let color: color::Lcha = color.opaque.into();
-        let color_rgba = color::Rgba::from(color);
-        self.color.set(color_rgba);
-    }
-
-    fn set_source_size(&self, size: Vector2) {
-        self.source_size.set(size);
-    }
-
-    fn set_disabled(&self, disabled: bool) {
-        self.disabled.set(disabled);
-    }
-
     /// Return the maximum x-distance from the source (our local coordinate origin) for the point
     /// where the edge will begin.
     fn source_max_x_offset(&self) -> f32 {
-        (self.source_size.get().x() / 2.0 - NODE_CORNER_RADIUS).max(0.0)
+        (self.inputs.source_size.get().x() / 2.0 - NODE_CORNER_RADIUS).max(0.0)
     }
 
-    fn set_target_position(&self, position: Vector2) {
-        self.target_position.set(position);
-    }
-
-    fn set_target_attached(&self, attached: bool) {
-        self.target_attached.set(attached);
-        if attached {
-            self.clear_focus();
-        }
-    }
-
-    fn set_source_attached(&self, attached: bool) {
-        self.source_attached.set(attached);
-        if attached {
-            self.clear_focus();
-        }
-    }
-
-    fn clear_focus(&self) {
-        self.hover_position.set(None);
-    }
-
-    fn closer_end_to_screen_pos(&self, screen_pos: Vector2) -> Option<EndPoint> {
-        // Convert point to local coordinates.
+    fn screen_pos_to_scene_pos(&self, screen_pos: Vector2) -> SceneCoords {
         let screen_pos_3d = Vector3(screen_pos.x(), screen_pos.y(), 0.0);
-        let scene_pos = self.scene.screen_to_scene_coordinates(screen_pos_3d).xy();
-        let pos = scene_pos - self.display_object.xy();
+        SceneCoords(self.scene.screen_to_scene_coordinates(screen_pos_3d).xy())
+    }
 
+    fn scene_pos_to_parent_pos(&self, scene_pos: SceneCoords) -> ParentCoords {
+        ParentCoords(scene_pos.coords - self.display_object.xy())
+    }
+
+    fn closer_end(&self, pos: ParentCoords) -> Option<EndPoint> {
         let corners = corners(&self.corner_points.borrow()).collect_vec();
-        find_position(pos, &corners, self.source_size.get().y()).map(|split| split.closer_end)
-    }
-
-    fn set_mouse_position(&self, screen_pos: Vector2) {
-        // Convert point to local coordinates.
-        let screen_pos_3d = Vector3(screen_pos.x(), screen_pos.y(), 0.0);
-        let scene_pos = self.scene.screen_to_scene_coordinates(screen_pos_3d).xy();
-        let pos = scene_pos - self.display_object.xy();
-        self.hover_position.set(Some(pos));
+        let source_height = self.inputs.source_size.get().y();
+        find_position(pos, &corners, source_height).map(|split| split.closer_end)
     }
 
     fn target_offset(&self) -> Vector2 {
-        let target_offset = self.target_position.get() - self.display_object.xy();
-        match self.target_attached.get() {
+        let target_offset = self.inputs.target_position.get().coords - self.display_object.xy();
+        match self.inputs.target_attached.get() {
             // If the target is a node, connect to a point on its top edge. If the radius is small,
             // this looks better than connecting to a vertically-centered point.
             true => target_offset + Vector2(0.0, NODE_HEIGHT / 2.0),
             // If the target is the cursor, connect all the way to it.
             false => target_offset,
+        }
+    }
+
+    /// Calculate the start and end positions of each 1-corner section composing an edge to the
+    /// given offset from this object's `display_object`.
+    fn corner_points_to(&self, target: Vector2) -> Vec<Vector2> {
+        let source_half_width = self.source_max_x_offset();
+        let (target_x, target_y) = (target.x(), target.y());
+        if target_y < -MIN_RADIUS
+            || (target_y <= 0.0 && target_x.abs() <= source_half_width + 3.0 * MAX_RADIUS)
+        {
+            // === One corner ===
+
+            // The edge can originate anywhere along the length of the node.
+            let source_x = target_x.clamp(-source_half_width, source_half_width);
+            let source = Vector2(source_x, 0.0);
+            vec![source, target]
+        } else {
+            // === Three corners ===
+
+            // The edge originates from either side of the node.
+            let source_x = source_half_width.copysign(target_x);
+            let distance_x = (target_x - source_x).abs();
+            let top = target_y + MAX_RADIUS;
+            let (j0_x, j1_x);
+            if distance_x > 3.0 * MIN_RADIUS && target_x.abs() > source_x.abs() {
+                // Junctions (J0, J1) are in between source and target.
+                let source_side_sections_extra_x = (distance_x / 3.0).min(MAX_RADIUS);
+                j0_x = source_x + source_side_sections_extra_x.copysign(target_x);
+                j1_x = source_x + 2.0 * source_side_sections_extra_x.copysign(target_x);
+            } else {
+                // J0 > source; J0 > J1; J1 > target.
+                j1_x = target_x + MAX_RADIUS.copysign(target_x);
+                let j0_beyond_target = target_x.abs() + MAX_RADIUS * 2.0;
+                let j0_beyond_source = source_x.abs() + MAX_RADIUS;
+                j0_x = j0_beyond_source.max(j0_beyond_target).copysign(target_x);
+            }
+            let source = Vector2(source_x, 0.0);
+            let j0 = Vector2(j0_x, top / 2.0);
+            let j1 = Vector2(j1_x, top);
+            vec![source, j0, j1, target]
         }
     }
 
@@ -359,10 +358,15 @@ impl EdgeModel {
             self.corner_points.replace(new_corner_points);
         }
         let corners = corners(&self.corner_points.borrow()).collect_vec();
+        let target_attached = self.inputs.target_attached.get();
         let target_attachment_changed =
-            update_and_compare(&self.previous_target_attached, self.target_attached.get());
-        let is_hoverable = self.target_attached.get() && self.source_attached.get();
+            update_and_compare(&self.previous_target_attached, target_attached);
+        let source_attached = self.inputs.source_attached.get();
+        let is_hoverable = target_attached && source_attached;
         let is_hoverable_changed = update_and_compare(&self.previous_is_hoverable, is_hoverable);
+        if self.inputs.clear_focus.take() {
+            self.inputs.hover_position.take();
+        }
         let hover_split = is_hoverable
             .then(|| {
                 // Pointer targets are updated by an asynchronous process, independent of pointer
@@ -370,17 +374,18 @@ impl EdgeModel {
                 // not within the bounding box of any of our shapes, in which case `find_position`
                 // here will return `None`. We treat it the same way as a
                 // `mouse::Out` event.
-                self.hover_position.get().and_then(|position| {
-                    find_position(position, &corners, self.source_size.get().y())
+                self.inputs.hover_position.get().and_then(|position| {
+                    let position = self.scene_pos_to_parent_pos(position);
+                    find_position(position, &corners, self.inputs.source_size.get().y())
                 })
             })
             .flatten();
         let hover_split_changed = update_and_compare(&self.previous_hover_split, hover_split);
         let styles = StyleWatch::new(&self.scene.style_sheet);
-        let normal_color = if self.disabled.get() {
+        let normal_color = if self.inputs.disabled.get() {
             styles.get_color(theme::code::syntax::disabled)
         } else {
-            self.color.get()
+            self.inputs.color.get()
         };
         let color_changed = update_and_compare(&self.previous_color, normal_color);
         let bg_color = styles.get_color(theme::application::background);
@@ -425,7 +430,7 @@ impl EdgeModel {
         target_color: color::Rgba,
         hover_split: Option<EdgeSplit>,
     ) {
-        let shape = self.dataflow_arrow.take();
+        let shape = self.shapes.dataflow_arrow.take();
         let points = self.corner_points.borrow();
         let long_backward_edge = (offset.y() > BACKWARD_EDGE_ARROW_THRESHOLD)
             || (offset.y() + offset.x().abs() / 2.0 > BACKWARD_EDGE_ARROW_THRESHOLD
@@ -447,17 +452,18 @@ impl EdgeModel {
             let shape = shape.unwrap_or_else(|| self.new_dataflow_arrow());
             shape.set_xy(arrow_origin + arrow_origin_to_center_of_tip);
             shape.set_border_color(color);
-            self.dataflow_arrow.set(shape);
+            self.shapes.dataflow_arrow.set(shape);
         }
     }
 
     fn redraw_hover_sections(&self, corners: &[Oriented<Corner>]) {
         let hover_factory = self
+            .shapes
             .hover_sections
             .take()
             .into_iter()
             .chain(iter::repeat_with(|| self.new_hover_section()));
-        *self.hover_sections.borrow_mut() = corners
+        *self.shapes.hover_sections.borrow_mut() = corners
             .iter()
             .zip(hover_factory)
             .map(|(corner, shape)| draw_corner(shape, **corner, HOVER_WIDTH))
@@ -475,7 +481,7 @@ impl EdgeModel {
             hover_split.map(|split| split.corner_index).unwrap_or_else(|| corners.len());
         let split_corner = hover_split.map(|split| split.split_corner);
         let mut section_factory =
-            self.sections.take().into_iter().chain(iter::repeat_with(|| self.new_section()));
+            self.shapes.sections.take().into_iter().chain(iter::repeat_with(|| self.new_section()));
         let mut new_sections = self.redraw_complete_sections(
             &mut section_factory,
             corners,
@@ -483,7 +489,7 @@ impl EdgeModel {
             source_color,
             target_color,
         );
-        let arc_shapes = self.split_arc.take();
+        let arc_shapes = self.shapes.split_arc.take();
         if let Some(split_corner) = split_corner {
             let source_side = split_corner.source_end.to_rectangle_geometry(LINE_WIDTH);
             let target_side = split_corner.target_end.to_rectangle_geometry(LINE_WIDTH);
@@ -493,7 +499,7 @@ impl EdgeModel {
                 let arc_shapes = draw_split_arc(arc_shapes, split_arc);
                 arc_shapes[0].color.set(source_color.into());
                 arc_shapes[1].color.set(target_color.into());
-                self.split_arc.set(arc_shapes);
+                self.shapes.split_arc.set(arc_shapes);
             }
             let (source_shape, target_shape) =
                 (section_factory.next().unwrap(), section_factory.next().unwrap());
@@ -502,7 +508,7 @@ impl EdgeModel {
             new_sections.push(draw_geometry(source_shape, source_side));
             new_sections.push(draw_geometry(target_shape, target_side));
         }
-        *self.sections.borrow_mut() = new_sections;
+        *self.shapes.sections.borrow_mut() = new_sections;
     }
 
     fn redraw_complete_sections(
@@ -537,59 +543,97 @@ impl EdgeModel {
     }
 
     fn redraw_target_attachment(&self, target: Vector2, color: color::Rgba) {
-        let shape = self.target_attachment.take();
-        if self.target_attached.get() {
+        let shape = self.shapes.target_attachment.take();
+        if self.inputs.target_attached.get() {
             let shape = shape.unwrap_or_else(|| self.new_target_attachment());
             shape.set_xy(target + Vector2(-LINE_WIDTH / 2.0, 0.5 - TARGET_ATTACHMENT_LENGTH));
             shape.set_color(color);
-            self.target_attachment.set(shape);
-        }
-    }
-
-    /// Calculate the start and end positions of each 1-corner section composing an edge to the
-    /// given offset from this object's `display_object`.
-    fn corner_points_to(&self, target: Vector2) -> Vec<Vector2> {
-        let source_half_width = self.source_max_x_offset();
-        let (target_x, target_y) = (target.x(), target.y());
-        if target_y < -MIN_RADIUS
-            || (target_y <= 0.0 && target_x.abs() <= source_half_width + 3.0 * MAX_RADIUS)
-        {
-            // === One corner ===
-
-            // The edge can originate anywhere along the length of the node.
-            let source_x = target_x.clamp(-source_half_width, source_half_width);
-            let source = Vector2(source_x, 0.0);
-            vec![source, target]
-        } else {
-            // === Three corners ===
-
-            // The edge originates from either side of the node.
-            let source_x = source_half_width.copysign(target_x);
-            let distance_x = (target_x - source_x).abs();
-            let top = target_y + MAX_RADIUS;
-            let (j0_x, j1_x);
-            if distance_x > 3.0 * MIN_RADIUS && target_x.abs() > source_x.abs() {
-                // Junctions (J0, J1) are in between source and target.
-                let source_side_sections_extra_x = (distance_x / 3.0).min(MAX_RADIUS);
-                j0_x = source_x + source_side_sections_extra_x.copysign(target_x);
-                j1_x = source_x + 2.0 * source_side_sections_extra_x.copysign(target_x);
-            } else {
-                // J0 > source; J0 > J1; J1 > target.
-                j1_x = target_x + MAX_RADIUS.copysign(target_x);
-                let j0_beyond_target = target_x.abs() + MAX_RADIUS * 2.0;
-                let j0_beyond_source = source_x.abs() + MAX_RADIUS;
-                j0_x = j0_beyond_source.max(j0_beyond_target).copysign(target_x);
-            }
-            let source = Vector2(source_x, 0.0);
-            let j0 = Vector2(j0_x, top / 2.0);
-            let j1 = Vector2(j1_x, top);
-            vec![source, j0, j1, target]
+            self.shapes.target_attachment.set(shape);
         }
     }
 }
 
 
-// === Shape constructors ===
+// === Inputs ===
+
+/// The inputs to the edge state computation. These values are all set orthogonally, so that the
+/// order of events that set different properties doesn't affect the outcome.
+#[derive(Debug, Default)]
+pub struct EdgeInputs {
+    /// The width and height of the node that originates the edge. The edge may begin anywhere
+    /// around the bottom half of the node.
+    source_size:     Cell<Vector2>,
+    /// The coordinates of the node input the edge connects to. The edge enters the node from
+    /// above.
+    target_position: Cell<ParentCoords>,
+    /// Whether the edge is connected to a node input.
+    target_attached: Cell<bool>,
+    /// Whether the edge is connected to a node output.
+    source_attached: Cell<bool>,
+    color:           Cell<color::Rgba>,
+    /// The location of the mouse over the edge.
+    hover_position:  Cell<Option<Coords<SceneOrigin>>>,
+    disabled:        Cell<bool>,
+    /// Reset the hover position at next redraw.
+    clear_focus:     Cell<bool>,
+}
+
+impl EdgeInputs {
+    /// Set the color of the edge.
+    fn set_color(&self, color: color::Lcha) {
+        // We must never use alpha in edges, as it will show artifacts with overlapping sub-parts.
+        let color: color::Lcha = color.opaque.into();
+        let color_rgba = color::Rgba::from(color);
+        self.color.set(color_rgba);
+    }
+
+    fn set_source_size(&self, size: Vector2) {
+        self.source_size.set(size);
+    }
+
+    fn set_disabled(&self, disabled: bool) {
+        self.disabled.set(disabled);
+    }
+
+    fn set_target_position(&self, position: ParentCoords) {
+        self.target_position.set(position);
+    }
+
+    fn set_target_attached(&self, attached: bool) {
+        self.target_attached.set(attached);
+        self.clear_focus.set(true);
+    }
+
+    fn set_source_attached(&self, attached: bool) {
+        self.source_attached.set(attached);
+        self.clear_focus.set(true);
+    }
+
+    fn set_mouse_position(&self, pos: SceneCoords) {
+        self.hover_position.set(Some(pos));
+    }
+}
+
+
+// === Shapes ===
+
+/// The shapes used to render an edge.
+#[derive(Debug, Default)]
+struct EdgeShapes {
+    /// The individual [`Corner`]s making up the edge. Each is drawn in the focused or unfocused
+    /// color.
+    sections:          RefCell<Vec<Rectangle>>,
+    /// A pair of [`arc`] shapes used when the mouse is over the rounded corner, and the edge must
+    /// must be split into focused and unfocused sides at a certain angle along the arc.
+    split_arc:         RefCell<Option<[arc::View; 2]>>,
+    /// Wider versions of the [`sections`], for receiving mouse events.
+    hover_sections:    RefCell<Vec<Rectangle>>,
+    /// The end of the edge that is drawn on top of the node and connects to the target node's
+    /// input port.
+    target_attachment: RefCell<Option<Rectangle>>,
+    /// Arrow drawn on long backward edges to indicate data flow direction.
+    dataflow_arrow:    RefCell<Option<Rectangle>>,
+}
 
 impl EdgeModel {
     fn new_section(&self) -> Rectangle {
@@ -680,10 +724,11 @@ enum EndPoint {
 ///
 /// Returns [`None`] if the point is not on the edge.
 fn find_position(
-    position: Vector2,
+    position: ParentCoords,
     corners: &[Oriented<Corner>],
     source_height: f32,
 ) -> Option<EdgeSplit> {
+    let position = position.coords;
     let corner_index = corners
         .iter()
         .position(|&corner| corner.bounding_box(HOVER_WIDTH).contains_inclusive(position))?;
