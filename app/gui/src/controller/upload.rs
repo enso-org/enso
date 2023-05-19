@@ -77,6 +77,8 @@ pub struct FileToUpload<DataProvider> {
 #[derive(Clone, Debug)]
 pub struct FileUploadProcess<DataProvider> {
     bin_connection:  Rc<binary::Connection>,
+    // See FIXME in upload_chunk method.
+    #[allow(dead_code)]
     json_connection: Rc<language_server::Connection>,
     file:            FileToUpload<DataProvider>,
     remote_path:     Path,
@@ -142,15 +144,15 @@ impl<DP: DataProvider> FileUploadProcess<DP> {
                     );
                     self.bytes_uploaded = self.file.size;
                 }
-                //TODO[ao]: The language server checksum method sometimes fails:
-                // https://github.com/enso-org/enso/issues/6691 so we skip the check until fixed.
-                // self.check_checksum().await?;
+                self.check_checksum().await?;
                 Ok(UploadingState::Finished)
             }
             Err(err) => Err(err),
         }
     }
 
+    // See FIXME in upload_chunk method.
+    #[allow(dead_code)]
     async fn check_checksum(&mut self) -> FallibleResult {
         let remote = self.json_connection.file_checksum(&self.remote_path).await?.checksum;
         let local = Into::<Sha3_224>::into(std::mem::take(&mut self.checksum));
@@ -310,7 +312,7 @@ impl NodeFromDroppedFileHandler {
     }
 
     fn uploading_node_expression(name: &str) -> String {
-        format!("Visualization.file_uploading enso_project.data/\"{name}\"")
+        format!("File_Uploading.file_uploading Enso_Project.data/\"{name}\"")
     }
 
     fn uploaded_node_expression(name: &str) -> String {
@@ -696,7 +698,7 @@ mod test {
 
     fn module_code_uploading(file_name: &str) -> String {
         format!(
-            "{}\n    operator1 = Visualization.file_uploading Enso_Project.data/\"{}\"",
+            "{}\n    operator1 = File_Uploading.file_uploading Enso_Project.data/\"{}\"",
             mock::data::CODE,
             file_name
         )
