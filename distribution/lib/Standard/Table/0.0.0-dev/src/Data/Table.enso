@@ -3,7 +3,6 @@ import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
-import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -517,7 +516,8 @@ type Table
 
               by_name = Column_Selector.By_Name "name=(.*)" Case_Sensitivity.Sensitive use_regex=True
               table.rename_columns (Map.from_vector [[by_name, "key:$1"]])
-    rename_columns : Map (Text | Integer | Column_Selector) Text | Vector Text -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
+    @column_map Widget_Helpers.make_rename_name_vector_selector
+    rename_columns : Map (Text | Integer | Column_Selector) Text | Vector Text | Vector Vector -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
     rename_columns self column_map=["Column"] (error_on_missing_columns=True) (on_problems=Report_Warning) =
         new_names = Table_Helpers.rename_columns internal_columns=self.columns mapping=column_map error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         Warning.with_suspended new_names names->
@@ -1931,10 +1931,9 @@ type Table
                 if base_format == Nothing then Error.throw (File_Error.Unsupported_Output_Type file Table) else
                     self.write file format=base_format on_existing_file match_columns on_problems
             _ ->
-                Panic.catch No_Such_Method (format.write_table file self on_existing_file match_columns on_problems) caught_panic->
-                    # Ensure that we handle only the specific unresolved method and not swallow any other errors.
-                    if caught_panic.payload.method_name != "write_table" then Panic.throw caught_panic else
-                        Error.throw (File_Error.Unsupported_Output_Type format Table)
+                methods = if format == JSON_Format then ["write_table"] else Meta.meta (Meta.type_of format) . methods
+                if methods.contains "write_table" then format.write_table file self on_existing_file match_columns on_problems else
+                    Error.throw (File_Error.Unsupported_Output_Type format Table)
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text

@@ -72,7 +72,7 @@ type Map key value
              example_from_vector = Map.from_vector [["A", 1], ["B", 2]]
     from_vector : Vector Any -> Boolean -> Map
     from_vector vec allow_duplicates=False =
-        vec.fold Map.empty m-> el->
+        vec.fold Map.empty m-> el-> if el.length != 2 then Error.throw (Illegal_Argument.Error "`Map.from_vector` encountered row not with 2 values.") else
             key = el.at 0
             value = el.at 1
             if allow_duplicates || (m.contains_key key . not) then m.insert key value else
