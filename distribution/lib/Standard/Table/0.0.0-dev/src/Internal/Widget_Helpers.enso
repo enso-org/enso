@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.No_Such_Method
+from Standard.Base.System.File_Format import format_types
 
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
@@ -8,6 +10,7 @@ import Standard.Base.Metadata.Display
 import project.Data.Table.Table
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Internal.Parse_Values_Helper
+import project.Data.Table_Conversions
 
 ## PRIVATE
    Make an aggregate column selector.
@@ -81,3 +84,13 @@ parse_type_selector =
     names = ['Auto'] + valid_parse_targets
     options = names.zip choice . map pair-> Option pair.first pair.second
     Single_Choice display=Display.Always values=options
+
+## PRIVATE
+   Selector for writing a table to a file.
+write_table_selector : Widget
+write_table_selector =
+    can_write type =
+        Panic.catch No_Such_Method (type.write_table . is_a Function) _-> False
+    all_types = [Auto_Detect] + (format_types.filter can_write)
+    make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
+    Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (File_Format.constructor_code n)))
