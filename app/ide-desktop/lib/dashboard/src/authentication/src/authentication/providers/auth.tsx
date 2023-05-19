@@ -175,7 +175,7 @@ export function AuthProvider(props: AuthProviderProps) {
                 const backend = new remoteBackend.RemoteBackend(client, logger)
                 // This will catch all invalid values, and `null`. It will not mistakenly catch
                 // any valid values, as there are currently only two valid platforms.
-                if (localStorage.getItem(BACKEND_TYPE_KEY) !== platform.Platform.desktop) {
+                if (localStorage.getItem(BACKEND_TYPE_KEY) === platform.Platform.cloud) {
                     setBackend(backend)
                 }
                 const organization = await backend.usersMe().catch(() => null)
