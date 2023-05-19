@@ -367,6 +367,8 @@ object Runtime {
       * expression
       * @param fromCache whether or not the value for this expression came
       * from the cache
+      * @param typeChanged whether or not the type of the value or method definition
+      * has changed from the one that was cached, if any
       * @param payload an extra information about the computed value
       */
     case class ExpressionUpdate(
@@ -375,6 +377,7 @@ object Runtime {
       methodCall: Option[MethodPointer],
       profilingInfo: Vector[ProfilingInfo],
       fromCache: Boolean,
+      typeChanged: Boolean,
       payload: ExpressionUpdate.Payload
     )
     object ExpressionUpdate {

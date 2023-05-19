@@ -6,13 +6,12 @@ import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.SuggestionEntry
 import org.enso.searcher.data.QueryResult
+import org.enso.searcher.sql.SqlSuggestionsRepo.UniqueConstraintViolatedError
 import org.enso.searcher.sql.equality.SuggestionsEquality
 import org.enso.testkit.RetrySpec
 import org.scalactic.TripleEqualsSupport
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-
-import java.sql.SQLException
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -132,7 +131,10 @@ class SuggestionsRepoTest
             _ <- repo.insertAll(Seq(suggestion.local, suggestion.local))
           } yield ()
 
-        an[SQLException] should be thrownBy Await.result(action, Timeout)
+        an[UniqueConstraintViolatedError] should be thrownBy Await.result(
+          action,
+          Timeout
+        )
     }
 
     "select suggestion by id" taggedAs Retry in withRepo { repo =>

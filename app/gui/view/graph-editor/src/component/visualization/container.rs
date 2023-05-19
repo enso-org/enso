@@ -543,7 +543,8 @@ impl Container {
             default_visualisation <- visualisation_uninitialised.on_true().map(|_| {
                 Some(visualization::Registry::default_visualisation())
             });
-            vis_input_type <- frp.set_vis_input_type.gate(&visualisation_uninitialised).unwrap();
+            vis_input_type <- frp.set_vis_input_type.on_change();
+            vis_input_type <- vis_input_type.gate(&visualisation_uninitialised).unwrap();
             default_visualisation_for_type <- vis_input_type.map(f!((tp) {
                registry.default_visualization_for_type(tp)
             }));

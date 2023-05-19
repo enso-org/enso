@@ -92,7 +92,7 @@ final class SuggestionBuilder[A: IndexedSource](
             }
             val getters = members
               .flatMap(_.arguments)
-              .distinctBy(_.name)
+              .distinctBy(_.name.name)
               .map(buildGetter(module, tpName.name, _))
 
             val tpSuggestions = tpe +: conses ++: getters

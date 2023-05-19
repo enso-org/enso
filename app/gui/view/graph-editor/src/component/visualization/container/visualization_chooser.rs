@@ -117,9 +117,15 @@ impl VisualizationChooser {
             eval_ frp.hide_selection_menu ( menu.hide_selection_menu.emit(()) );
             eval  frp.set_menu_offset_y ((offset) menu.set_menu_offset_y.emit(offset) );
 
-            set_selected_ix <= all_with(&frp.input.set_selected, &frp.output.entries, |selected,entries|
-                selected.as_ref().map(|s| entries.iter().position(|item| item == s))
-            );
+            set_selected_ix <= all_with(&frp.input.set_selected, &frp.output.entries, |selected,entries|{
+                let selected_ix = selected.as_ref().map(|s|
+                    entries.iter().position(|item| item == s)
+                );
+                if selected.is_some() && selected_ix.is_none() {
+                    warn!("Invalid visualisation selected {selected:?} from available {entries:?}");
+                };
+                selected_ix
+            });
             eval set_selected_ix ((ix) menu.set_selected.emit(ix));
 
 
@@ -145,19 +151,11 @@ impl VisualizationChooser {
                     analytics::remote_log_value(event,field,data);
                 }
             });
+            input_type_changed <- frp.set_vis_input_type.on_change();
             frp.source.vis_input_type <+ frp.set_vis_input_type;
 
 
             // === Showing Entries ===
-
-            menu_appears <- menu.menu_visible.gate(&menu.menu_visible).constant(());
-
-            // We want to update entries according to the input type, but only when it changed and
-            // menu is visible.
-            input_type_when_visible  <- frp.set_vis_input_type.gate(&menu.menu_visible);
-            input_type_when_appeared <- frp.set_vis_input_type.sample(&menu_appears);
-            input_type               <- any(input_type_when_visible,input_type_when_appeared);
-            input_type_changed       <- input_type.on_change();
 
             frp.source.entries <+ input_type_changed.map(f!([model] (input_type){
                 let entries  = Rc::new(model.entries(input_type));
