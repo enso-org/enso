@@ -89,7 +89,7 @@ case object GlobalNames extends IRPass {
         "No fresh name supply passed to UppercaseNames resolver."
       )
     )
-    processExpression(ir, scopeMap, freshNameSupply, None)
+    processExpression(ir, scopeMap, List(), freshNameSupply, None)
   }
 
   /** @inheritdoc */
@@ -110,7 +110,7 @@ case object GlobalNames extends IRPass {
           _.getMetadata(MethodDefinitions)
         )
         method.mapExpressions(
-          processExpression(_, bindings, freshNameSupply, resolution)
+          processExpression(_, bindings, List(), freshNameSupply, resolution)
         )
       case tp: IR.Module.Scope.Definition.Type =>
         tp.copy(members =
@@ -119,6 +119,7 @@ case object GlobalNames extends IRPass {
               processExpression(
                 _,
                 bindings,
+                tp.params,
                 freshNameSupply,
                 bindings.resolveName(tp.name.name).toOption.map(Resolution)
               )
@@ -127,13 +128,16 @@ case object GlobalNames extends IRPass {
         )
 
       case a =>
-        a.mapExpressions(processExpression(_, bindings, freshNameSupply, None))
+        a.mapExpressions(
+          processExpression(_, bindings, List(), freshNameSupply, None)
+        )
     }
   }
 
   private def processExpression(
     ir: IR.Expression,
     bindings: BindingsMap,
+    params: List[IR.DefinitionArgument],
     freshNameSupply: FreshNameSupply,
     selfTypeResolution: Option[Resolution],
     isInsideApplication: Boolean = false
@@ -149,62 +153,66 @@ case object GlobalNames extends IRPass {
             )
           )
       case lit: IR.Name.Literal =>
-        lit.getMetadata(FullyQualifiedNames) match {
-          case Some(
-                FullyQualifiedNames.FQNResolution(
-                  FullyQualifiedNames.ResolvedModule(modRef)
-                )
-              ) =>
-            lit.updateMetadata(this -->> Resolution(ResolvedModule(modRef)))
-          case _ =>
-            if (!lit.isMethod && !isLocalVar(lit)) {
-              val resolution = bindings.resolveName(lit.name)
-              resolution match {
-                case Left(error) =>
-                  IR.Error.Resolution(
-                    lit,
-                    IR.Error.Resolution.ResolverError(error)
+        if (params.exists(p => p.name.name == lit.name)) {
+          lit
+        } else {
+          lit.getMetadata(FullyQualifiedNames) match {
+            case Some(
+                  FullyQualifiedNames.FQNResolution(
+                    FullyQualifiedNames.ResolvedModule(modRef)
                   )
-                case Right(r @ BindingsMap.ResolvedMethod(mod, method)) =>
-                  if (isInsideApplication) {
-                    lit.updateMetadata(this -->> BindingsMap.Resolution(r))
-                  } else {
-                    val self = freshNameSupply
-                      .newName()
-                      .updateMetadata(
-                        this -->> BindingsMap.Resolution(
-                          BindingsMap.ResolvedModule(mod)
-                        )
-                      )
-                    // The synthetic applications gets the location so that instrumentation
-                    // identifies the node correctly
-                    val fun = lit.copy(
-                      name     = method.name,
-                      location = None
+                ) =>
+              lit.updateMetadata(this -->> Resolution(ResolvedModule(modRef)))
+            case _ =>
+              if (!lit.isMethod && !isLocalVar(lit)) {
+                val resolution = bindings.resolveName(lit.name)
+                resolution match {
+                  case Left(error) =>
+                    IR.Error.Resolution(
+                      lit,
+                      IR.Error.Resolution.ResolverError(error)
                     )
-                    val app = IR.Application.Prefix(
-                      fun,
-                      List(IR.CallArgument.Specified(None, self, None)),
-                      hasDefaultsSuspended = false,
-                      lit.location
-                    )
-                    fun
-                      .getMetadata(ExpressionAnnotations)
-                      .foreach(annotationsMeta =>
-                        app.updateMetadata(
-                          ExpressionAnnotations -->> annotationsMeta
+                  case Right(r @ BindingsMap.ResolvedMethod(mod, method)) =>
+                    if (isInsideApplication) {
+                      lit.updateMetadata(this -->> BindingsMap.Resolution(r))
+                    } else {
+                      val self = freshNameSupply
+                        .newName()
+                        .updateMetadata(
+                          this -->> BindingsMap.Resolution(
+                            BindingsMap.ResolvedModule(mod)
+                          )
                         )
+                      // The synthetic applications gets the location so that instrumentation
+                      // identifies the node correctly
+                      val fun = lit.copy(
+                        name     = method.name,
+                        location = None
                       )
-                    fun.passData.remove(ExpressionAnnotations)
-                    app
-                  }
-                case Right(value) =>
-                  lit.updateMetadata(this -->> BindingsMap.Resolution(value))
-              }
+                      val app = IR.Application.Prefix(
+                        fun,
+                        List(IR.CallArgument.Specified(None, self, None)),
+                        hasDefaultsSuspended = false,
+                        lit.location
+                      )
+                      fun
+                        .getMetadata(ExpressionAnnotations)
+                        .foreach(annotationsMeta =>
+                          app.updateMetadata(
+                            ExpressionAnnotations -->> annotationsMeta
+                          )
+                        )
+                      fun.passData.remove(ExpressionAnnotations)
+                      app
+                    }
+                  case Right(value) =>
+                    lit.updateMetadata(this -->> BindingsMap.Resolution(value))
+                }
 
-            } else {
-              lit
-            }
+              } else {
+                lit
+              }
+          }
         }
       case app: IR.Application.Prefix =>
         app.function match {
@@ -214,6 +222,7 @@ case object GlobalNames extends IRPass {
                 app,
                 lit,
                 bindings,
+                params,
                 freshNameSupply,
                 selfTypeResolution
               )
@@ -221,6 +230,7 @@ case object GlobalNames extends IRPass {
               resolveLocalApplication(
                 app,
                 bindings,
+                params,
                 freshNameSupply,
                 selfTypeResolution
               )
@@ -229,6 +239,7 @@ case object GlobalNames extends IRPass {
               processExpression(
                 _,
                 bindings,
+                params,
                 freshNameSupply,
                 selfTypeResolution
               )
@@ -243,19 +254,27 @@ case object GlobalNames extends IRPass {
     app: IR.Application.Prefix,
     fun: IR.Name.Literal,
     bindingsMap: BindingsMap,
+    params: List[IR.DefinitionArgument],
     freshNameSupply: FreshNameSupply,
     selfTypeResolution: Option[Resolution]
   ): IR.Expression = {
     val processedFun = processExpression(
       app.function,
       bindingsMap,
+      params,
       freshNameSupply,
       selfTypeResolution,
       isInsideApplication = true
     )
     val processedArgs = app.arguments.map(
       _.mapExpressions(
-        processExpression(_, bindingsMap, freshNameSupply, selfTypeResolution)
+        processExpression(
+          _,
+          bindingsMap,
+          params,
+          freshNameSupply,
+          selfTypeResolution
+        )
       )
     )
     processedFun.getMetadata(this) match {
@@ -278,6 +297,7 @@ case object GlobalNames extends IRPass {
   private def resolveLocalApplication(
     app: IR.Application.Prefix,
     bindings: BindingsMap,
+    params: List[IR.DefinitionArgument],
     freshNameSupply: FreshNameSupply,
     selfTypeResolution: Option[Resolution]
   ): IR.Expression = {
@@ -285,13 +305,20 @@ case object GlobalNames extends IRPass {
       processExpression(
         app.function,
         bindings,
+        params,
         freshNameSupply,
         selfTypeResolution
       )
     val processedArgs =
       app.arguments.map(
         _.mapExpressions(
-          processExpression(_, bindings, freshNameSupply, selfTypeResolution)
+          processExpression(
+            _,
+            bindings,
+            params,
+            freshNameSupply,
+            selfTypeResolution
+          )
         )
       )
 

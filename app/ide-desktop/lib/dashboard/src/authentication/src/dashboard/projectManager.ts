@@ -49,7 +49,9 @@ type JSONRPCResponse<T> = JSONRPCErrorResponse | JSONRPCSuccessResponse<T>
 // This intentionally has the same brand as in the cloud backend API.
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
 export type ProjectName = newtype.Newtype<string, 'ProjectName'>
-export type UTCDateTime = newtype.Newtype<string, 'UTCDateTime'>
+/** The newtype's `TypeName` is intentionally different from the name of this type alias,
+ * to match the backend's newtype. */
+export type UTCDateTime = newtype.Newtype<string, 'Rfc3339DateTime'>
 
 export interface ProjectMetadata {
     name: ProjectName

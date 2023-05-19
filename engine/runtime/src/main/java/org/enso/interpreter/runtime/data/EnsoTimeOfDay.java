@@ -17,6 +17,7 @@ import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -122,7 +123,7 @@ public final class EnsoTimeOfDay implements TruffleObject {
   @Builtin.Method(description = "Return this datetime to the datetime in the provided time zone.")
   @CompilerDirectives.TruffleBoundary
   public Text toText() {
-    return Text.create(DateTimeFormatter.ISO_LOCAL_TIME.format(localTime));
+    return Text.create(TIME_FORMATTER.format(localTime));
   }
 
   @ExportMessage
@@ -168,6 +169,9 @@ public final class EnsoTimeOfDay implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
   public Object toDisplayString(boolean allowSideEffects) {
-    return DateTimeFormatter.ISO_LOCAL_TIME.format(localTime);
+    return TIME_FORMATTER.format(localTime);
   }
+
+  private static final DateTimeFormatter TIME_FORMATTER =
+      Core_Date_Utils.defaultLocalTimeFormatter();
 }

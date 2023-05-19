@@ -457,18 +457,18 @@ type Date_Time
     start_of : (Date_Period|Time_Period) -> Date_Time
     start_of self period=Date_Period.Month =
         adjusted = period.adjust_start self
-        case period.is_date_period of
-            True -> Time_Period.Day.adjust_start adjusted
-            False -> adjusted
+        case period of
+            _ : Date_Period -> Time_Period.Day.adjust_start adjusted
+            _ : Time_Period -> adjusted
 
     ## Returns the last date within the `Time_Period` or `Date_Period`
        containing self.
     end_of : (Date_Period|Time_Period) -> Date_Time
     end_of self period=Date_Period.Month =
         adjusted = period.adjust_end self
-        case period.is_date_period of
-            True -> Time_Period.Day.adjust_end adjusted
-            False -> adjusted
+        case period of
+            _ : Date_Period -> Time_Period.Day.adjust_end adjusted
+            _ : Time_Period -> adjusted
 
     ## ALIAS Time to Date
 

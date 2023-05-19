@@ -21,7 +21,7 @@ const ESBUILD_PATH = '/esbuild'
 /** SSE event indicating a build has finished. */
 const ESBUILD_EVENT_NAME = 'change'
 /** Path to the service worker that resolves all extensionless paths to `/index.html`.
- * This service worker is required for client-side routing to work when doing local development. */
+ * This service worker is required for client-side routing to work when doing `./run gui watch`. */
 const SERVICE_WORKER_PATH = '/serviceWorker.js'
 /** One second in milliseconds. */
 const SECOND = 1000
@@ -187,7 +187,13 @@ class Main implements AppRunner {
         const isOpeningMainEntryPoint =
             contentConfig.OPTIONS.groups.startup.options.entry.value ===
             contentConfig.OPTIONS.groups.startup.options.entry.default
-        if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningMainEntryPoint) {
+        const isNotOpeningProject =
+            contentConfig.OPTIONS.groups.startup.options.project.value === ''
+        if (
+            (isUsingAuthentication || isUsingNewDashboard) &&
+            isOpeningMainEntryPoint &&
+            isNotOpeningProject
+        ) {
             const hideAuth = () => {
                 const auth = document.getElementById('dashboard')
                 const ide = document.getElementById('root')

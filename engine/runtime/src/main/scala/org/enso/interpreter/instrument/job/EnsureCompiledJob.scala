@@ -339,6 +339,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
         None,
         Vector.empty,
         true,
+        false,
         Api.ExpressionUpdate.Payload.Pending(None, None)
       )
     }
