@@ -164,7 +164,8 @@ export class ProjectManager {
                     consecutiveFails = 0
                     resolve(socket)
                 }
-                socket.onerror = () => {
+                socket.onerror = event => {
+                    event.preventDefault()
                     justErrored = true
                     consecutiveFails += 1
                     if (consecutiveFails > MAXIMUM_CONSECUTIVE_FAILS) {
