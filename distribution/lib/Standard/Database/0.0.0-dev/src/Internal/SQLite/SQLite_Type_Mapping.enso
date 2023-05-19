@@ -159,6 +159,17 @@ operations_map =
             Panic.throw (Illegal_State.Error "Impossible: IIF must have 3 arguments. This is a bug in the Database library.")
         find_a_common_type (arguments.drop 1)
 
+    handle_case arguments =
+        fallback = arguments.last
+        cases = arguments.drop (Last 1)
+        if cases.length % 2 != 0 then
+            Panic.throw (Illegal_State.Error "Impossible: constructed a CASE with an odd number of case arguments.")
+        if cases.is_empty then
+            Panic.throw (Illegal_State.Error "Impossible: too few cases provided for a CASE statement.")
+        case_results = cases.take (Index_Sub_Range.Every 2 first=1)
+        possible_results = case_results + [fallback]
+        find_a_common_type possible_results
+
     handle_cast _ =
         Panic.throw (Illegal_State.Error "Cast relies on its own type inference logic, so this code should never be reached. This is a bug in the Database library.")
 
@@ -168,7 +179,7 @@ operations_map =
     always_integer_ops = ["COUNT", "COUNT_IS_NULL", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT_ROWS"]
     arithmetic_ops = ["ADD_NUMBER", "-", "*", "^", "%", "SUM"]
     merge_input_types_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FILL_NULL", "COALESCE"]
-    others = [["IIF", handle_iif], ["CAST", handle_cast]]
+    others = [["IIF", handle_iif], ["CAST", handle_cast], ["CASE", handle_case]]
     Map.from_vector <|
         v1 = always_boolean_ops.map [_, const SQLite_Types.boolean]
         v2 = always_floating_ops.map [_, const SQLite_Types.real]

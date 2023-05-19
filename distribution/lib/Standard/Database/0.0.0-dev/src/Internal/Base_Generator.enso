@@ -220,8 +220,7 @@ case_when arguments =
                 condition = cases.at 2*i
                 result = cases.at (2*i)+1
                 Builder.code "WHEN " ++ condition ++ " THEN " ++ result
-            Builder.code "CASE " ++ Builder.join "" cases_exprs ++ " ELSE " ++ fallback ++ " END"
-
+            Builder.code "CASE " ++ Builder.join " " cases_exprs ++ " ELSE " ++ fallback ++ " END"
 
 ## PRIVATE
 simple_cast = Base_Generator.lift_binary_op "CAST" a-> b->
