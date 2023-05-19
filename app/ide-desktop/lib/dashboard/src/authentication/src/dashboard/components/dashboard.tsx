@@ -600,7 +600,6 @@ function Dashboard(props: DashboardProps) {
     hooks.useAsyncEffect(
         null,
         async signal => {
-            setIsLoadingAssets(true)
             const assets = await backend.listDirectory({ parentId: directoryId })
             if (!signal.aborted) {
                 setIsLoadingAssets(false)
