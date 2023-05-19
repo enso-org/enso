@@ -8,6 +8,7 @@ import Standard.Database.Data.Dialect
 import Standard.Database.Extensions.Upload_Table
 import Standard.Database.Internal.SQLite.SQLite_Type_Mapping
 from Standard.Database import Database, SQLite, In_Memory, SQL_Query
+from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Problems, Test, Test_Suite
 import Standard.Test.Extensions
@@ -93,18 +94,17 @@ spec =
             t2.at "b" . value_type . should_equal Value_Type.Integer
             Problems.expect_warning Inexact_Type_Coercion t2
 
-        Test.specify "will coerce date/time columns to Text" <|
+        Test.specify "will coerce date/time columns to Text in existing tables" <|
             t = make_table "datetime-table" [["a", "DATE"], ["b", "TIME"], ["c", "DATETIME"], ["d", "TIMESTAMP"]]
             t.at "a" . value_type . should_equal Value_Type.Char
             t.at "b" . value_type . should_equal Value_Type.Char
             t.at "c" . value_type . should_equal Value_Type.Char
             t.at "d" . value_type . should_equal Value_Type.Char
 
-            t1 = Table.new [["a", [Date.now]], ["b", [Time_Of_Day.now]], ["c", [Date_Time.now]]]
-            t2 = t1.create_database_table connection temporary=True
-            t2.at "a" . value_type . should_equal Value_Type.Char
-            t2.at "b" . value_type . should_equal Value_Type.Char
-            t2.at "c" . value_type . should_equal Value_Type.Char
+        Test.specify "does not support creating tables with date/time values" <|
+            t = Table.new [["a", [Date.now]], ["b", [Time_Of_Day.now]], ["c", [Date_Time.now]]]
+            r1 = t.create_database_table connection temporary=True
+            r1.should_fail_with Unsupported_Database_Operation
 
         Test.specify "should be able to infer types for all supported operations" <|
             dialect = Dialect.sqlite

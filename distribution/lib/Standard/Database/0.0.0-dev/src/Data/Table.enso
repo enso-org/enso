@@ -1405,17 +1405,68 @@ type Table
         msg = "Cross tab of database tables is not supported, the table has to be materialized first with `read`."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
-    ## Parsing values is not supported in database tables, the table has to be
-       loaded into memory first with `read`.
-    @type Widget_Helpers.parse_type_selector
+    ## Parses columns within a Table to a specific value type.
+       By default, it looks at all `Text` columns and attempts to deduce the
+       type (columns with other types are not affected).
+
+       In the Database backends, the default formatting settings of the
+       particular database are used.
+
+       In the in-memory backend, the default parser options only parse values
+       where the process is reversible (e.g., 0123 would not be converted to an
+       integer as there is a leading 0). However, settings in the
+       `Data_Formatter` can control this.
+
+       Arguments:
+       - columns: The columns to parse. If not specified, all text columns
+         will be parsed.
+       - type: The type to parse the columns to. Defaults to `Auto` meaning that
+         the type will be inferred from the data. In the Database backends,
+         `Auto` is not supported, so a specific type must be selected.
+       - format: The formatting settings to use when parsing the columns.
+         For `Date`, `Time_Of_Day` and `Date_Time`, a Java date time style
+         can be used. For `Boolean`, it should be two values that represent true
+         and false, separated by a `|`. Alternatively, a `Data_Formatter` can be
+         passed to provide complete customisation of the formatting. If
+         `Nothing` is provided, the default formatting settings of the backend
+         will be used. `Nothing` is currently the only setting accepted by the
+         Database backends.
+       - error_on_missing_columns: if `True` (the default) raises an error if
+         any column is missing. Otherwise, reported as a problem.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
+
+       ! Error Conditions
+
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is raised as an error or problem
+           following the `error_on_missing_columns` rules.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
+           raised as an error or problem following the
+           `error_on_missing_columns` rules.
+         - If a column selected for parsing is not a text column, an
+           `Invalid_Value_Type` error is raised.
+         - If no columns have been selected for parsing,
+           a `No_Input_Columns_Selected` error is raised.
+         - If custom formatting settings were provided, but the database backend
+           does not support customization, an `Unsupported_Database_Operation`
+           error is reported.
+
+       > Example
+         Parse dates in a column.
+
+             table.parse "birthday" Value_Type.Date
+    @type (Widget_Helpers.parse_type_selector include_auto=False)
     @columns Widget_Helpers.make_column_name_vector_selector
-    parse : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
-    parse columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning =
-        ## Avoid unused arguments warning. We cannot rename arguments to `_`,
-           because we need to keep the API consistent with the in-memory table.
-        _ = [columns, type, format, error_on_missing_columns, on_problems]
-        msg = "Parsing values is not supported in database tables, the table has to be materialized first with `read`."
-        Error.throw (Unsupported_Database_Operation.Error msg)
+    parse : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> Value_Type | Auto -> Text | Data_Formatter | Nothing -> Boolean -> Problem_Behavior -> Table
+    parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type format=Nothing error_on_missing_columns=True on_problems=Report_Warning =
+        selected = self.columns_helper.resolve_columns columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+        result = selected.fold self table-> column_to_parse->
+            new_column = column_to_parse.parse type format on_problems
+            table.set new_column new_name=column_to_parse.name set_mode=Set_Mode.Update
+        ## The temporary variable for result is added due to the #6765 bug.
+           It should be removed once it is fixed.
+        result
 
     ## Splits a column of text into a set of new columns.
        The original column will be removed from the table.
@@ -1572,9 +1623,12 @@ type Table
     cast : (Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector)) -> Value_Type -> Boolean -> Problem_Behavior -> Table ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
     cast self columns=[0] value_type error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
         selected = self.columns_helper.resolve_columns columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
-        selected.fold self table-> column_to_cast->
+        result = selected.fold self table-> column_to_cast->
             new_column = column_to_cast.cast value_type on_problems
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
+        ## The temporary variable for result is added due to the #6765 bug.
+           It should be removed once it is fixed.
+        result
 
     ## ALIAS dropna
        ALIAS drop_missing_rows

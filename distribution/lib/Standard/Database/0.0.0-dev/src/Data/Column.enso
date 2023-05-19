@@ -990,12 +990,55 @@ type Column
                     Error.throw (Illegal_State.Error "The dialect "+self.connection.dialect.name+" does not support a boolean type. The implementation of `is_in` should be revised to account for this. This is an internal issue with the Database library.")
                 Column.Value new_name self.connection new_type_ref new_expr self.context
 
-    ## Parsing values is not supported in database columns.
-    @type Widget_Helpers.parse_type_selector
-    parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
-    parse self type=Auto format=Data_Formatter.Value on_problems=Report_Warning =
-        _ = [type, format, on_problems]
-        Error.throw <| Unsupported_Database_Operation.Error "`Column.parse` is not implemented yet for the Database backends."
+    ## Parses a text column into values.
+
+       In the Database backends, the default formatting settings of the
+       particular database are used.
+
+       In the in-memory backend, the default parser options only parse values
+       where the process is reversible (e.g., 0123 would not be converted to an
+       integer as there is a leading 0). However, settings in the
+       `Data_Formatter` can control this.
+
+       Arguments:
+       - type: The type to parse the column to. Defaults to `Auto` meaning that
+         the type will be inferred from the data. In the Database backends,
+         `Auto` is not supported, so a specific type must be selected.
+       - format: The formatting settings to use when parsing the column.
+         For `Date`, `Time_Of_Day` and `Date_Time`, a Java date time style
+         can be used. For `Boolean`, it should be two values that represent true
+         and false, separated by a `|`. Alternatively, a `Data_Formatter` can be
+         passed to provide complete customisation of the formatting. If
+         `Nothing` is provided, the default formatting settings of the backend
+         will be used. `Nothing` is currently the only setting accepted by the
+         Database backends.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
+
+       ! Error Conditions
+
+         - If the column is not a text column, an `Invalid_Value_Type` error is
+           raised.
+         - If some values in the column did not match the expected datatype
+           format, an `Invalid_Format` problem is reported. The problematic
+           cells are replaced with `Nothing`.
+         - If custom formatting settings were provided, but the database backend
+           does not support customization, an `Unsupported_Database_Operation`
+           error is reported.
+    @type (Widget_Helpers.parse_type_selector include_auto=False)
+    parse : Value_Type | Auto -> Text | Data_Formatter | Nothing -> Problem_Behavior -> Column
+    parse self type format=Nothing on_problems=Report_Warning =
+        check_parameters =
+            if type == Auto then Error.throw (Unsupported_Database_Operation.Error "The `Auto` parse type is not supported by the Database backend. Either pick a specific type or materialize the table to memory using `.read`.") else
+                case format of
+                    Nothing -> Nothing
+                    _ -> Error.throw (Unsupported_Database_Operation.Error "Custom formatting is not supported by the Database backend. Please set the format to `Nothing` to indicate that the default Database settings can be used, or if custom formatting is needed, materialize the table to memory using `.read` first.")
+        check_parameters.if_not_error <|
+            Value_Type.expect_text self <|
+                ## In the future we may have some specific logic, for example
+                   allowing to support formatting settings. For now, the
+                   Database parse just boils down to a simple CAST.
+                self.internal_do_cast type on_problems
 
     ## Formatting values is not supported in database columns.
     format : Text | Column -> Locale -> Column ! Illegal_Argument
@@ -1044,14 +1087,20 @@ type Column
     cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
     cast self value_type on_problems=Problem_Behavior.Report_Warning =
         check_cast_compatibility self.value_type value_type <|
-            dialect = self.connection.dialect
-            type_mapping = dialect.get_type_mapping
-            target_sql_type = type_mapping.value_type_to_sql value_type on_problems
-            target_sql_type.if_not_error <|
-                infer_from_database new_expression =
-                    SQL_Type_Reference.new self.connection self.context new_expression
-                new_column = dialect.make_cast self.as_internal target_sql_type infer_from_database
-                Column.Value new_column.name self.connection new_column.sql_type_reference new_column.expression self.context
+            self.internal_do_cast value_type on_problems
+
+    ## PRIVATE
+       Shares the core CAST logic between `cast` and `parse`.
+    internal_do_cast : Value_Type -> Problem_Behavior -> Column
+    internal_do_cast self value_type on_problems =
+        dialect = self.connection.dialect
+        type_mapping = dialect.get_type_mapping
+        target_sql_type = type_mapping.value_type_to_sql value_type on_problems
+        target_sql_type.if_not_error <|
+            infer_from_database new_expression =
+                SQL_Type_Reference.new self.connection self.context new_expression
+            new_column = dialect.make_cast self.as_internal target_sql_type infer_from_database
+            Column.Value new_column.name self.connection new_column.sql_type_reference new_column.expression self.context
 
     ## ALIAS Transform Column
 

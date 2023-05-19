@@ -758,21 +758,28 @@ type Table
        By default, it looks at all `Text` columns and attempts to deduce the
        type (columns with other types are not affected).
 
-       The default parser options only parse values where the process is
-       reversible (e.g., 0123 would not be converted to an integer as there is
-       a leading 0). However, settings in the `Data_Formatter` can
-       control this.
+       In the Database backends, the default formatting settings of the
+       particular database are used.
+
+       In the in-memory backend, the default parser options only parse values
+       where the process is reversible (e.g., 0123 would not be converted to an
+       integer as there is a leading 0). However, settings in the
+       `Data_Formatter` can control this.
 
        Arguments:
        - columns: The columns to parse. If not specified, all text columns
          will be parsed.
        - type: The type to parse the columns to. Defaults to `Auto` meaning that
-         the type will be inferred from the data.
+         the type will be inferred from the data. In the Database backends,
+         `Auto` is not supported, so a specific type must be selected.
        - format: The formatting settings to use when parsing the columns.
          For `Date`, `Time_Of_Day` and `Date_Time`, a Java date time style
          can be used. For `Boolean`, it should be two values that represent true
          and false, separated by a `|`. Alternatively, a `Data_Formatter` can be
-         passed to provide complete customisation of the formatting.
+         passed to provide complete customisation of the formatting. If
+         `Nothing` is provided, the default formatting settings of the backend
+         will be used. `Nothing` is currently the only setting accepted by the
+         Database backends.
        - error_on_missing_columns: if `True` (the default) raises an error if
          any column is missing. Otherwise, reported as a problem.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
@@ -820,17 +827,17 @@ type Table
        > Example
          Parse the first and last columns containing Yes/No values as booleans.
 
-             table.parse columns=[0, -1] type=Boolean format="Yes|No"
+             table.parse columns=[0, -1] type=Value_Type.Boolean format="Yes|No"
 
        > Example
          Parse dates in a column in the format `yyyy-MM-dd` (the default format).
 
-             table.parse "birthday" Date
+             table.parse "birthday" Value_Type.Date
 
        > Example
          Parse dates in a column in the format `dd/MM/yyyy`.
 
-             table.parse "birthday" Date 'dd/MM/yyyy'
+             table.parse "birthday" Value_Type.Date 'dd/MM/yyyy'
 
        > Example
          Parse all columns inferring their types, using `,` as the decimal point for numbers.
@@ -838,13 +845,14 @@ type Table
              table.parse format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
     @type Widget_Helpers.parse_type_selector
     @columns Widget_Helpers.make_column_name_vector_selector
-    parse : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
+    parse : Text | Integer | Column_Selector | Vector (Text | Integer | Column_Selector) -> Value_Type | Auto -> Text | Data_Formatter | Nothing -> Boolean -> Problem_Behavior -> Table
     parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format=Data_Formatter.Value error_on_missing_columns=True on_problems=Report_Warning =
         formatter = case format of
             _ : Text ->
                 Data_Formatter.Value.with_format type format
             _ : Data_Formatter -> format
-            _ -> Error.throw (Illegal_Argument.Error "Invalid format type. Expected Text or Data_Formatter.")
+            Nothing -> Data_Formatter.Value
+            _ -> Error.throw (Illegal_Argument.Error "Invalid format type. Expected Text or Data_Formatter or Nothing.")
 
         parser = formatter.make_value_type_parser type
 
@@ -919,9 +927,12 @@ type Table
     cast : (Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector)) -> Value_Type -> Boolean -> Problem_Behavior -> Table ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
     cast self columns=[0] value_type error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
         selected = self.columns_helper.resolve_columns columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
-        selected.fold self table-> column_to_cast->
+        result = selected.fold self table-> column_to_cast->
             new_column = column_to_cast.cast value_type on_problems
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
+        ## The temporary variable for result is added due to the #6765 bug.
+           It should be removed once it is fixed.
+        result
 
     ## Splits a column of text into a set of new columns.
        The original column will be removed from the table.
