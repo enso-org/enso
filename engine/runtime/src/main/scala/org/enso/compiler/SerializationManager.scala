@@ -264,16 +264,6 @@ final class SerializationManager(
         }
         .map { suggestion =>
           val reexport = Option(exportsMap.get(suggestion)).map(_.toString)
-          reexport.foreach { v =>
-            if (
-              Suggestion.isGlobal(suggestion) && !suggestion
-                .isInstanceOf[Suggestion.Module]
-            ) {
-              println(
-                s"[$v] ${suggestion.getClass.getSimpleName}:${suggestion.name}"
-              )
-            }
-          }
           suggestion.withReexport(reexport)
         }
         .foreach(suggestions.add)
