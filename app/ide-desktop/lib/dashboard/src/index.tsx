@@ -22,6 +22,10 @@ if (IS_DEV_MODE) {
         location.reload()
     })
     void navigator.serviceWorker.register(SERVICE_WORKER_PATH)
+} else {
+    void navigator.serviceWorker
+        .getRegistration()
+        .then(serviceWorker => serviceWorker?.unregister())
 }
 
 // ===================

@@ -84,7 +84,8 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
 
         console.log('Bundling content.')
         const contentOpts = contentBundler.bundlerOptionsFromEnv({
-            devMode: true,
+            // This is in watch mode, however it runs its own server rather than an esbuild server.
+            devMode: false,
             supportsLocalBackend: true,
             supportsDeepLinks: false,
         })
