@@ -141,6 +141,7 @@ pub struct EntryModel {
 ensogl_core::define_endpoints_2! {
     Input {
         reset(content::Info),
+        select_first_entry(),
         model_for_header(GroupId, HeaderModel),
         model_for_entry(GroupEntryId, EntryModel),
         switch_section(SectionId),
@@ -474,12 +475,20 @@ impl Model {
     }
 
     fn entry_to_select_after_reset(&self, info: &content::Info) -> Option<(Row, Col)> {
-        let top_module_sections = (0..info.namespace_section_count).map(SectionId::Namespace);
-        let sections = iter::once(SectionId::Popular)
-            .chain(top_module_sections)
-            .chain(iter::once(SectionId::LocalScope));
-        let pick_location = |s: SectionId| self.entry_to_select_when_switching_to_section(s);
-        sections.filter_map(pick_location).next()
+        info.best_match.or_else(|| {
+            let top_module_sections = (0..info.namespace_section_count).map(SectionId::Namespace);
+            let sections = if info.displaying_module_content {
+                iter::once(SectionId::LocalScope)
+                    .chain(top_module_sections)
+                    .chain(iter::once(SectionId::Popular))
+            } else {
+                iter::once(SectionId::Popular)
+                    .chain(top_module_sections)
+                    .chain(iter::once(SectionId::LocalScope))
+            };
+            let pick_location = |s: SectionId| self.entry_to_select_when_switching_to_section(s);
+            sections.filter_map(pick_location).next()
+        })
     }
 
     fn selection_after_jump_group_up(
@@ -694,11 +703,12 @@ impl component::Frp<Model> for Frp {
                 &style.update,
                 f!((section, style) model.navigation_scroll_margins(*section, style))
             );
-            select_after_reset <- input.reset.map(
-                f!((info) model.entry_to_select_after_reset(info))
+            grid.select_entry <+ input.reset.constant(None);
+            first_entry_to_select <- input.reset.map(
+                f!((info) model.first_entry_to_select(info))
             );
-            grid_extra_scroll_frp.select_and_jump_to_entry <+ select_after_reset.filter_map(|e| *e);
-            grid.select_entry <+ select_after_reset.filter(|e| e.is_none()).constant(None);
+            grid_extra_scroll_frp.jump_to_entry <+ first_entry_to_select.filter_map(|e| *e);
+            grid.select_entry <+ first_entry_to_select.sample(&input.select_first_entry);
             grid_selection_frp.skip_animations <+ input.reset.constant(());
             grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.switch_section.filter_map(
                 f!((section) model.entry_to_select_when_switching_to_section(*section))

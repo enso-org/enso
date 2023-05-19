@@ -316,6 +316,7 @@ impl Searcher {
                 let namespace_section_count = controller_provider.namespace_section_count();
                 navigator.set_namespace_section_count.emit(namespace_section_count);
                 let provider = provider::Component::provide_new_list(controller_provider, &grid);
+                //TODO[ao] Here select entry
                 *model.provider.borrow_mut() = Some(provider);
             });
             input_edit <- grid.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
