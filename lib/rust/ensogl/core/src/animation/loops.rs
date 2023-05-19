@@ -324,10 +324,7 @@ fn on_frame_closure(
             .then(move || on_after_animations.emit(time_info))
             .then(move || frame_end.emit(time_info))
             .then(move || on_before_layout.emit(time_info))
-            .then(move || {
-                on_before_rendering.emit(time_info);
-                drop(_profiler);
-            })
+            .then(move || on_before_rendering.emit(time_info))
             .schedule();
     }
 }
