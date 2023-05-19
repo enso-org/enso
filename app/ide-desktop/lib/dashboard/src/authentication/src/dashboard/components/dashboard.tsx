@@ -778,66 +778,66 @@ function Dashboard(props: DashboardProps) {
                                     disabled={true}
                                     onClick={event => {
                                         event.stopPropagation()
+                                        unsetModal()
                                         /* TODO */
                                     }}
                                 >
                                     {svg.DOWNLOAD_ICON}
                                 </button>
                             </div>
-                            {EXPERIMENTAL.columnModeSwitcher && (
-                                <>
-                                    <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5 mx-4">
-                                        <button
-                                            className={`${
-                                                columnDisplayMode === ColumnDisplayMode.all
-                                                    ? 'bg-white shadow-soft'
-                                                    : 'opacity-50'
-                                            } rounded-full px-1.5`}
-                                            onClick={() => {
-                                                setColumnDisplayMode(ColumnDisplayMode.all)
-                                            }}
-                                        >
-                                            All
-                                        </button>
-                                        <button
-                                            className={`${
-                                                columnDisplayMode === ColumnDisplayMode.compact
-                                                    ? 'bg-white shadow-soft'
-                                                    : 'opacity-50'
-                                            } rounded-full px-1.5`}
-                                            onClick={() => {
-                                                setColumnDisplayMode(ColumnDisplayMode.compact)
-                                            }}
-                                        >
-                                            Compact
-                                        </button>
-                                        <button
-                                            className={`${
-                                                columnDisplayMode === ColumnDisplayMode.docs
-                                                    ? 'bg-white shadow-soft'
-                                                    : 'opacity-50'
-                                            } rounded-full px-1.5`}
-                                            onClick={() => {
-                                                setColumnDisplayMode(ColumnDisplayMode.docs)
-                                            }}
-                                        >
-                                            Docs
-                                        </button>
-                                        <button
-                                            className={`${
-                                                columnDisplayMode === ColumnDisplayMode.settings
-                                                    ? 'bg-white shadow-soft'
-                                                    : 'opacity-50'
-                                            } rounded-full px-1.5`}
-                                            onClick={() => {
-                                                setColumnDisplayMode(ColumnDisplayMode.settings)
-                                            }}
-                                        >
-                                            Settings
-                                        </button>
-                                    </div>
-                                </>
-                            )}
+                            <div
+                                hidden={!EXPERIMENTAL.columnModeSwitcher}
+                                className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5 mx-4"
+                            >
+                                <button
+                                    className={`${
+                                        columnDisplayMode === ColumnDisplayMode.all
+                                            ? 'bg-white shadow-soft'
+                                            : 'opacity-50'
+                                    } rounded-full px-1.5`}
+                                    onClick={() => {
+                                        setColumnDisplayMode(ColumnDisplayMode.all)
+                                    }}
+                                >
+                                    All
+                                </button>
+                                <button
+                                    className={`${
+                                        columnDisplayMode === ColumnDisplayMode.compact
+                                            ? 'bg-white shadow-soft'
+                                            : 'opacity-50'
+                                    } rounded-full px-1.5`}
+                                    onClick={() => {
+                                        setColumnDisplayMode(ColumnDisplayMode.compact)
+                                    }}
+                                >
+                                    Compact
+                                </button>
+                                <button
+                                    className={`${
+                                        columnDisplayMode === ColumnDisplayMode.docs
+                                            ? 'bg-white shadow-soft'
+                                            : 'opacity-50'
+                                    } rounded-full px-1.5`}
+                                    onClick={() => {
+                                        setColumnDisplayMode(ColumnDisplayMode.docs)
+                                    }}
+                                >
+                                    Docs
+                                </button>
+                                <button
+                                    className={`${
+                                        columnDisplayMode === ColumnDisplayMode.settings
+                                            ? 'bg-white shadow-soft'
+                                            : 'opacity-50'
+                                    } rounded-full px-1.5`}
+                                    onClick={() => {
+                                        setColumnDisplayMode(ColumnDisplayMode.settings)
+                                    }}
+                                >
+                                    Settings
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <table className="table-fixed items-center border-collapse mt-2">
@@ -869,6 +869,7 @@ function Dashboard(props: DashboardProps) {
                                 )}
                                 onClick={(projectAsset, event) => {
                                     event.stopPropagation()
+                                    unsetModal()
                                     setSelectedAssets(
                                         event.shiftKey
                                             ? [...selectedAssets, projectAsset]
@@ -985,6 +986,7 @@ function Dashboard(props: DashboardProps) {
                                             }))}
                                             onClick={(directoryAsset, event) => {
                                                 event.stopPropagation()
+                                                unsetModal()
                                                 setSelectedAssets(
                                                     event.shiftKey
                                                         ? [...selectedAssets, directoryAsset]
@@ -1026,6 +1028,7 @@ function Dashboard(props: DashboardProps) {
                                             }))}
                                             onClick={(secret, event) => {
                                                 event.stopPropagation()
+                                                unsetModal()
                                                 setSelectedAssets(
                                                     event.shiftKey
                                                         ? [...selectedAssets, secret]
@@ -1089,6 +1092,7 @@ function Dashboard(props: DashboardProps) {
                                             }))}
                                             onClick={(file, event) => {
                                                 event.stopPropagation()
+                                                unsetModal()
                                                 setSelectedAssets(
                                                     event.shiftKey
                                                         ? [...selectedAssets, file]
