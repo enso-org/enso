@@ -678,9 +678,7 @@ type Column
             False -> is_blank
         result.rename new_name
 
-    ## UNSTABLE
-
-       Returns a new column where missing values have been replaced with the
+    ## Returns a new column where missing values have been replaced with the
        provided default.
     fill_nothing : Column | Any -> Column
     fill_nothing self default =
@@ -690,9 +688,7 @@ type Column
             op_result = self.make_binary_op "FILL_NULL" default new_name
             adapt_unified_column op_result common_type
 
-    ## ALIAS Fill Empty
-
-       Returns a new column where empty Text values have been replaced with the
+    ## Returns a new column where empty Text values have been replaced with the
        provided default.
 
        Arguments:

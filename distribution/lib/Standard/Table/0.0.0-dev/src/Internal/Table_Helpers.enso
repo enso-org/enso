@@ -188,7 +188,7 @@ type Table_Column_Helper
             matched_columns = self.internal_columns.filter column->(column.name==selector)
             if matched_columns.length == 1 then matched_columns.first else
                 if matched_columns.length != 0 then Panic.throw (Illegal_State.Error "Bug in Table library: A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?") else
-                    (self.table.compute selector).catch Any expression_error->
+                    (self.table.evaluate_expression selector).catch Any expression_error->
                         invalid_column = Invalid_Aggregate_Column.Error selector expression_error
                         problem_builder.report_other_warning invalid_column
                         Nothing
@@ -220,65 +220,74 @@ type Table_Column_Helper
      If set to `Ignore`, the operation proceeds without errors or warnings.
 rename_columns : Vector -> Map (Text | Integer | Column_Selector) Text | Vector Text -> Boolean -> Problem_Behavior -> Map Text Text
 rename_columns internal_columns mapping error_on_missing_columns on_problems =
-    unique = Unique_Name_Strategy.new
-    problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
+    ## Convert Vector of Pairs to Map
+    is_vec_pairs = mapping.is_a Vector && mapping.length > 0 && (mapping.first.is_a Text . not)
+    case is_vec_pairs of
+        True ->
+            ## Attempt to treat as Map
+            map = Map.from_vector mapping
+            if map.is_error then Error.throw (Illegal_Argument.Error "A mapping Vector must be either a list of names or a list of pairs (old name to new name).") else
+                rename_columns internal_columns map error_on_missing_columns on_problems
+        False ->
+            unique = Unique_Name_Strategy.new
+            problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
 
-    ## Computes a vector of pairs, where each pairs is one of the columns from
-       the original table and a new name proposed for it.
+            ## Computes a vector of pairs, where each pairs is one of the columns from
+               the original table and a new name proposed for it.
 
-       The list can be empty if the column remains unchanged.
-       The list may also contain duplicate input columns.
-    columns_with_new_names = case mapping of
-        vec : Vector ->
-            col_count = internal_columns.length
-            good_names = if vec.length <= col_count then vec else
-                problem_builder.report_other_warning (Too_Many_Column_Names_Provided.Error (vec.drop (First col_count)))
-                vec.take (First col_count)
-            internal_columns.take good_names.length . zip good_names
-        _ : Map ->
-            resolve_rename selector replacement = case selector of
-                name : Text -> resolve_rename (Column_Selector.By_Name name Case_Sensitivity.Sensitive False) replacement
-                ix : Integer -> if is_index_valid internal_columns.length ix then [Pair.new (internal_columns.at ix) replacement] else
-                    problem_builder.report_oob_indices [ix]
-                    []
-                Column_Selector.By_Name name case_sensitivity use_regex ->
-                    matches = match_columns name case_sensitivity use_regex internal_columns
-                    case matches.is_empty of
-                        True ->
-                            problem_builder.report_missing_input_columns [name]
+               The list can be empty if the column remains unchanged.
+               The list may also contain duplicate input columns.
+            columns_with_new_names = case mapping of
+                vec : Vector ->
+                    col_count = internal_columns.length
+                    good_names = if vec.length <= col_count then vec else
+                        problem_builder.report_other_warning (Too_Many_Column_Names_Provided.Error (vec.drop (First col_count)))
+                        vec.take (First col_count)
+                    internal_columns.take good_names.length . zip good_names
+                _ : Map ->
+                    resolve_rename selector replacement = case selector of
+                        name : Text -> resolve_rename (Column_Selector.By_Name name Case_Sensitivity.Sensitive False) replacement
+                        ix : Integer -> if is_index_valid internal_columns.length ix then [Pair.new (internal_columns.at ix) replacement] else
+                            problem_builder.report_oob_indices [ix]
                             []
-                        False ->
-                            if use_regex.not then matches.map c-> Pair.new c replacement else
-                                pattern = Regex.compile name case_insensitive=case_sensitivity.is_case_insensitive_in_memory
-                                matches.map c-> Pair.new c (pattern.replace c.name replacement)
-                Column_Selector.Blank_Columns _ _ ->
-                    Error.throw (Illegal_Argument.Error "Cannot use `Blank_Columns` to rename.")
-            builder = mapping.to_vector.fold Vector.new_builder builder-> pair-> builder.append_vector_range (resolve_rename pair.first pair.second)
-            builder.to_vector
+                        Column_Selector.By_Name name case_sensitivity use_regex ->
+                            matches = match_columns name case_sensitivity use_regex internal_columns
+                            case matches.is_empty of
+                                True ->
+                                    problem_builder.report_missing_input_columns [name]
+                                    []
+                                False ->
+                                    if use_regex.not then matches.map c-> Pair.new c replacement else
+                                        pattern = Regex.compile name case_insensitive=case_sensitivity.is_case_insensitive_in_memory
+                                        matches.map c-> Pair.new c (pattern.replace c.name replacement)
+                        Column_Selector.Blank_Columns _ _ ->
+                            Error.throw (Illegal_Argument.Error "Cannot use `Blank_Columns` to rename.")
+                    builder = mapping.to_vector.fold Vector.new_builder builder-> pair-> builder.append_vector_range (resolve_rename pair.first pair.second)
+                    builder.to_vector
 
-    ## Resolves actual new names for renamed columns.
-       If a column received ambiguous new names, an error is raised.
-    name_map = columns_with_new_names.fold Map.empty current-> pair->
-        old_name = pair.first.name
-        case current.contains_key old_name of
-            False -> current.insert old_name pair.second
-            True -> if current.get old_name == pair.second then current else
-                new_names = columns_with_new_names.filter p->p.first.name==old_name . map p-> p.second
-                Error.throw (Ambiguous_Column_Rename.Error old_name new_names)
+            ## Resolves actual new names for renamed columns.
+               If a column received ambiguous new names, an error is raised.
+            name_map = columns_with_new_names.fold Map.empty current-> pair->
+                old_name = pair.first.name
+                case current.contains_key old_name of
+                    False -> current.insert old_name pair.second
+                    True -> if current.get old_name == pair.second then current else
+                        new_names = columns_with_new_names.filter p->p.first.name==old_name . map p-> p.second
+                        Error.throw (Ambiguous_Column_Rename.Error old_name new_names)
 
-    ## Renamed names take precedence, so we first deduplicate those.
-    resolved_name_map = name_map.map unique.make_unique
+            ## Renamed names take precedence, so we first deduplicate those.
+            resolved_name_map = name_map.map unique.make_unique
 
-    ## Then we ensure that the names of not-renamed columns are also unique and
-       return the effective column names for each column.
-    not_renamed = internal_columns.filter c-> resolved_name_map.contains_key c.name . not
-    new_column_names = not_renamed.fold resolved_name_map current-> column->
-        new_name = unique.make_unique column.name
-        current.insert column.name new_name
+            ## Then we ensure that the names of not-renamed columns are also unique and
+               return the effective column names for each column.
+            not_renamed = internal_columns.filter c-> resolved_name_map.contains_key c.name . not
+            new_column_names = not_renamed.fold resolved_name_map current-> column->
+                new_name = unique.make_unique column.name
+                current.insert column.name new_name
 
-    ## Attach any problems
-    problem_builder.report_unique_name_strategy unique
-    problem_builder.attach_problems_before on_problems new_column_names
+            ## Attach any problems
+            problem_builder.report_unique_name_strategy unique
+            problem_builder.attach_problems_before on_problems new_column_names
 
 ## PRIVATE
    An internal marker type for `rename_columns`.

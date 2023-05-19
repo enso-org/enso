@@ -19,6 +19,7 @@ import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 import project.Data.Text.Span as Span_Module
 from project.Data.Index_Sub_Range import handle_unmatched_type
 
+import project.Metadata.Widget
 from project.Metadata.Widget import Single_Choice
 from project.Metadata.Choice import Option
 import project.Metadata.Display
@@ -68,7 +69,7 @@ type Text_Sub_Range
        The widget for `Text_Sub_Range` also displays options for
        `Index_Sub_Range` since the former is supposed to 'expand' the latter and
        is always used together with it.
-    default_widget : Single_Choice
+    default_widget : Widget
     default_widget =
         options = Index_Sub_Range.default_options + Text_Sub_Range.default_options
         Single_Choice display=Display.Always options

@@ -1,4 +1,7 @@
 from Standard.Base import all
+from Standard.Base.System.File_Format import format_types
+
+import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 from Standard.Base.Metadata.Choice import Option
 import Standard.Base.Metadata.Display
@@ -6,10 +9,11 @@ import Standard.Base.Metadata.Display
 import project.Data.Table.Table
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Internal.Parse_Values_Helper
+import project.Data.Table_Conversions
 
 ## PRIVATE
    Make an aggregate column selector.
-make_aggregate_column_selector : Table -> Display -> Boolean -> Single_Choice
+make_aggregate_column_selector : Table -> Display -> Boolean -> Widget
 make_aggregate_column_selector table display=Display.Always include_group_by=True =
     col_names_selector = make_column_name_selector table display=Display.Always
     column_widget = Pair.new "column" col_names_selector
@@ -48,7 +52,7 @@ make_aggregate_column_selector table display=Display.Always include_group_by=Tru
 
 ## PRIVATE
    Make a column name selector.
-make_column_name_selector : Table -> Display -> Single_Choice
+make_column_name_selector : Table -> Display -> Widget
 make_column_name_selector table display=Display.Always =
     col_names = table.column_names
     names = col_names.map n-> Option n n.pretty
@@ -56,22 +60,33 @@ make_column_name_selector table display=Display.Always =
 
 ## PRIVATE
    Make a multiple column name selector.
-make_column_name_vector_selector : Table -> Display -> Vector_Editor
+make_column_name_vector_selector : Table -> Display -> Widget
 make_column_name_vector_selector table display=Display.Always =
     item_editor = make_column_name_selector table display=Display.Always
-    Vector_Editor item_editor=item_editor item_default=table.column_names.first.pretty display=display
+    Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=display
 
 ## PRIVATE
    Make a column name selector.
-make_order_by_selector : Table -> Display -> Single_Choice
+make_order_by_selector : Table -> Display -> Widget
 make_order_by_selector table display=Display.Always =
     col_names = table.column_names
     names = col_names.fold [] c-> n-> c + [Option n+" (Asc)" n.pretty, Option n+" (Desc)" "(Sort_Column.Name "+n.pretty+" Sort_Direction.Descending)"]
-    Single_Choice display=display values=names
+    item_editor = Single_Choice display=display values=names
+    Vector_Editor item_editor=item_editor item_default=names.first.value display=display
+
+## PRIVATE
+   Make a column rename name selector.
+make_rename_name_vector_selector : Table -> Display -> Vector_Editor
+make_rename_name_vector_selector table display=Display.Always =
+    col_names = table.column_names
+    names = col_names.map n-> Option n "["+n.pretty+", "+n.pretty+"]"
+    item_editor = Single_Choice display=Display.Always values=names
+    default_item = "["+col_names.first.pretty+", "+col_names.first.pretty+"]"
+    Vector_Editor item_editor=item_editor item_default=default_item display=display
 
 ## PRIVATE
    Selector for type argument on `Column.parse`.
-parse_type_selector : Single_Choice
+parse_type_selector : Boolean -> Widget
 parse_type_selector include_auto=True =
     valid_parse_targets = Parse_Values_Helper.valid_parse_targets
 
@@ -80,3 +95,13 @@ parse_type_selector include_auto=True =
     names = prefix + valid_parse_targets
     options = names.zip choice . map pair-> Option pair.first pair.second
     Single_Choice display=Display.Always values=options
+
+## PRIVATE
+   Selector for writing a table to a file.
+write_table_selector : Widget
+write_table_selector =
+    can_write type = if type == JSON_Format then True else
+        Meta.meta type . methods . contains "write_table"
+    all_types = [Auto_Detect] + (format_types.filter can_write)
+    make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
+    Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (File_Format.constructor_code n)))

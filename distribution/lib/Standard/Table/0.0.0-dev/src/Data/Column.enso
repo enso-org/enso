@@ -1,5 +1,4 @@
 from Standard.Base import all
-from project.Data.Column_Format import all
 
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
@@ -20,6 +19,7 @@ import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
 import project.Data.Type.Value_Type_Helpers
 
+from project.Internal.Column_Format import all
 from project.Data.Table import print_table
 from project.Data.Type.Value_Type import Value_Type, Auto
 from project.Errors import No_Index_Set_Error, Floating_Point_Equality, Invalid_Value_Type, Inexact_Type_Coercion, Conversion_Failure
@@ -736,7 +736,7 @@ type Column
             self.internal_is_nan on_missing=Nothing
 
     ## PRIVATE
-    internal_is_nan : Column
+    internal_is_nan : Any -> Column
     internal_is_nan self on_missing =
         new_name = Naming_Helpers.function_name "is_nan" [self]
         fallback x = case x of

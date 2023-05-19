@@ -48,29 +48,29 @@ spec =
             t = make_table "bools" [["a", "BOOLEAN"], ["b", "BOOLEAN"]]
             t.at "b" . value_type . should_equal Value_Type.Boolean
 
-            c1 = t.compute "[a] || [b]"
+            c1 = t.evaluate_expression "[a] || [b]"
             c1 . value_type . should_equal Value_Type.Boolean
 
-            c2 = t.compute "[a] && False"
+            c2 = t.evaluate_expression "[a] && False"
             c2 . value_type . should_equal Value_Type.Boolean
 
-            c3 = t.compute "[a] && 10"
+            c3 = t.evaluate_expression "[a] && 10"
             c3.should_fail_with Invalid_Value_Type
 
         Test.specify "should correctly handle types through operations" <|
             t = make_table "foo" [["a", "int"], ["b", "text"], ["c", "boolean"], ["d", "double precision"]]
 
-            t.compute 'starts_with([b], "1")' . value_type . should_equal Value_Type.Boolean
-            t.compute '[a] * [d]' . value_type . should_equal Value_Type.Float
-            t.compute '[a] + 100' . value_type . should_equal Value_Type.Integer
-            t.compute '[a] + 100.0' . value_type . should_equal Value_Type.Float
-            t.compute '[c] || not [c]' . value_type . should_equal Value_Type.Boolean
-            t.compute '[b] + "_suf"' . value_type . should_equal Value_Type.Char
-            t.compute 'fill_nothing([c], false)' . value_type . should_equal Value_Type.Boolean
-            t.compute 'fill_empty([b], "<NA>")' . value_type . should_equal Value_Type.Char
-            t.compute 'is_blank([b])' . value_type . should_equal Value_Type.Boolean
-            t.compute 'is_empty([b])' . value_type . should_equal Value_Type.Boolean
-            t.compute 'is_nothing([a])' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression 'starts_with([b], "1")' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression '[a] * [d]' . value_type . should_equal Value_Type.Float
+            t.evaluate_expression '[a] + 100' . value_type . should_equal Value_Type.Integer
+            t.evaluate_expression '[a] + 100.0' . value_type . should_equal Value_Type.Float
+            t.evaluate_expression '[c] || not [c]' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression '[b] + "_suf"' . value_type . should_equal Value_Type.Char
+            t.evaluate_expression 'fill_nothing([c], false)' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression 'fill_empty([b], "<NA>")' . value_type . should_equal Value_Type.Char
+            t.evaluate_expression 'is_blank([b])' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression 'is_empty([b])' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression 'is_nothing([a])' . value_type . should_equal Value_Type.Boolean
 
             t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a", Aggregate_Column.Maximum "a", Aggregate_Column.Minimum "d", Aggregate_Column.Count_Not_Nothing "c", Aggregate_Column.Concatenate "b", Aggregate_Column.Count]
             t2.at "b" . value_type . should_equal Value_Type.Char
