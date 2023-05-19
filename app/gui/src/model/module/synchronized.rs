@@ -118,8 +118,8 @@ impl ParsedContentSummary {
 enum LanguageServerContent {
     /// The content is synchronized with our module state after last fully handled notification.
     Synchronized(ParsedContentSummary),
-    /// The content is not known due to unrecognized error received from the Language Server after
-    /// applying last update. We don't know if, and in what extend was it applied.
+    /// The content is not known due to an unrecognized error received from the Language Server after
+    /// applying the last update. We don't know if, and to what extent it was applied.
     Unknown,
 }
 
