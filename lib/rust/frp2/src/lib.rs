@@ -52,14 +52,14 @@ impl<T> OptimizedRefCell<T> {
 
 // pub trait Data = Any;
 pub trait Data: Debug {
-    fn clone(&self) -> Box<dyn Data>;
+    fn boxed_clone(&self) -> Box<dyn Data>;
 }
 
 
 impl<T> Data for T
 where T: Debug + Clone + 'static
 {
-    fn clone(&self) -> Box<dyn Data> {
+    fn boxed_clone(&self) -> Box<dyn Data> {
         Box::new(self.clone())
     }
 }
@@ -130,7 +130,8 @@ enum NodeType {
     Source,
     Inc,
     Trace,
-    // Map(Box<dyn Fn(Data) -> Data>),
+    Map(Box<dyn Fn(&dyn Data) -> Box<dyn Data>>),
+    Map2(Box<dyn Fn(&dyn Data, &dyn Data) -> Box<dyn Data>>),
 }
 
 impl Debug for NodeType {
@@ -139,36 +140,75 @@ impl Debug for NodeType {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default)]
+pub struct OutputConnection {
+    pub target:           NodeId,
+    pub behavior_request: bool,
+}
+
 #[derive(Debug, Default)]
 struct NodeData {
-    tp:         NodeType,
-    network_id: NetworkId,
-    def:        DefInfo,
-    inputs:     LinkedCellArray<NodeId, 8>,
-    outputs:    LinkedCellArray<NodeId, 8>,
+    tp:                NodeType,
+    network_id:        NetworkId,
+    def:               DefInfo,
+    inputs:            LinkedCellArray<NodeId, 8>,
+    outputs:           LinkedCellArray<OutputConnection, 8>,
+    output:            RefCell<Option<Box<dyn Data>>>,
+    behavior_requests: Cell<usize>,
 }
 
 impl NodeData {
     pub fn new(tp: NodeType, network_id: NetworkId, def: DefInfo) -> Self {
-        Self { tp, network_id, def, inputs: default(), outputs: default() }
+        Self {
+            tp,
+            network_id,
+            def,
+            inputs: default(),
+            outputs: default(),
+            output: default(),
+            behavior_requests: default(),
+        }
     }
 
-    fn on_event(&self, rt: &Runtime, node_id: NodeId, event: &dyn Data) {
+    fn on_event(
+        &self,
+        rt: &Runtime,
+        source_id: NodeId,
+        node_id: OutputConnection,
+        event: &dyn Data,
+    ) {
         // println!("on_event: {:?}", event);
         match &self.tp {
             NodeType::Source => {}
             NodeType::Inc => {
                 let new_data: usize = unsafe { *(event as *const dyn Data as *const usize) } + 1;
-                rt.emit_event(node_id, &new_data);
+                rt.emit_event(node_id.target, &new_data);
             }
             NodeType::Trace => {
                 let new_data = unsafe { &*(event as *const dyn Data as *const usize) };
                 // println!("TRACE: {:?}", new_data);
-                rt.emit_event(node_id, event);
-            } /* NodeType::Map(f) => {
-               *     let event = f(event);
-               *     rt.emit_event(node_id, event);
-               * } */
+                rt.emit_event(node_id.target, event);
+            }
+            NodeType::Map(f) => {
+                let event: Box<dyn Data> = f(event);
+                let e: &dyn Data = &*event;
+                rt.emit_event(node_id.target, e);
+            }
+            NodeType::Map2(f) => {
+                if source_id == self.inputs.get(0) {
+                    rt.nodes.with_item_borrow(self.inputs.get(1), |node| {
+                        let event2 = node.output.borrow();
+                        if let Some(event2) = event2.as_ref() {
+                            let event: Box<dyn Data> = f(event, &**event2);
+                            rt.emit_event(node_id.target, &*event);
+                        }
+                    });
+                }
+                // let event: Box<dyn Data> = f(event);
+                // let e: &dyn Data = &*event;
+                // rt.emit_event(node_id, e);
+                panic!()
+            }
         }
     }
 }
@@ -238,8 +278,14 @@ impl Runtime {
         }
     }
 
-    fn connect(&self, src_id: NodeId, tgt_id: NodeId) {
-        self.nodes.with_item_borrow_mut(src_id, |src| src.outputs.push(tgt_id));
+    fn connect(&self, src_id: NodeId, tgt_id: NodeId, behavior_request: bool) {
+        let output_connection = OutputConnection { target: tgt_id, behavior_request };
+        self.nodes.with_item_borrow_mut(src_id, |src| {
+            if behavior_request {
+                src.behavior_requests.modify(|t| *t += 1);
+            }
+            src.outputs.push(output_connection)
+        });
         self.nodes.with_item_borrow_mut(tgt_id, |tgt| tgt.inputs.push(src_id));
     }
 
@@ -247,11 +293,15 @@ impl Runtime {
         // println!("emit_event {:?} {:?}", node_id, event);
         // println!("emit_event {:?} {:?}", node_id, event);
         self.nodes.with_item_borrow(node_id, |node| {
+            if node.behavior_requests.get() > 0 {
+                *node.output.borrow_mut() = Some(event.boxed_clone());
+            }
+
             let cleanup_targets = self.stack.with(node.def, || {
                 let mut cleanup_targets = false;
                 node.outputs.for_item_borrow(|&node_output_id| {
-                    let done = self.nodes.with_item_borrow(node_output_id, |node_output| {
-                        node_output.on_event(self, node_output_id, event);
+                    let done = self.nodes.with_item_borrow(node_output_id.target, |node_output| {
+                        node_output.on_event(self, node_id, node_output_id, event);
                     });
                     if done.is_none() {
                         cleanup_targets = true;
@@ -305,7 +355,34 @@ impl Network {
 }
 
 
-#[derive(Copy, Clone, Debug)]
+pub trait Node: Copy {
+    type Output;
+    fn id(self) -> NodeId;
+}
+
+
+// pub trait N2: Copy {
+// }
+//
+//
+// #[derive(Derivative)]
+// #[derivative(Copy(bound = ""))]
+// #[derivative(Clone(bound = ""))]
+// #[derivative(Debug(bound = ""))]
+// pub struct NodeTemplate<Output> {
+//     _output: PhantomData<Output>,
+//     id:      NodeId,
+// }
+//
+// impl<Output> NodeTemplate<Output> {
+//
+// }
+
+
+#[derive(Derivative)]
+#[derivative(Copy(bound = ""))]
+#[derivative(Clone(bound = ""))]
+#[derivative(Debug(bound = ""))]
 pub struct Source<T> {
     _marker: PhantomData<T>,
     id:      NodeId,
@@ -317,6 +394,11 @@ impl<T> Source<T> {
         let _marker = PhantomData;
         Self { _marker, id }
     }
+
+    pub fn emit(&self, value: T)
+    where T: Data {
+        with_runtime(|rt| rt.emit_event(self.id, &value));
+    }
 }
 
 impl Network {
@@ -325,25 +407,42 @@ impl Network {
     }
 }
 
+impl<T> Node for Source<T> {
+    type Output = T;
+    fn id(self) -> NodeId {
+        self.id
+    }
+}
 
-#[derive(Copy, Clone, Debug)]
+
+#[derive(Derivative)]
+#[derivative(Copy(bound = ""))]
+#[derivative(Clone(bound = ""))]
+#[derivative(Debug(bound = ""))]
 pub struct Trace<T> {
     _marker: PhantomData<T>,
     id:      NodeId,
 }
 
 impl<T> Trace<T> {
-    pub fn new(network: NetworkId, source: Source<T>) -> Self {
+    pub fn new(network: NetworkId, source: impl Node<Output = T>) -> Self {
         let id = with_runtime(|rt| rt.new_node(NodeType::Trace, network, DefInfo::unlabelled()));
         let _marker = PhantomData;
-        with_runtime(|rt| rt.connect(source.id, id));
+        with_runtime(|rt| rt.connect(source.id(), id, false));
         Self { _marker, id }
     }
 }
 
 impl Network {
-    pub fn trace<T>(&self, source: Source<T>) -> Trace<T> {
+    pub fn trace<T>(&self, source: impl Node<Output = T>) -> Trace<T> {
         Trace::new(self.id, source)
+    }
+}
+
+impl<T> Node for Trace<T> {
+    type Output = T;
+    fn id(self) -> NodeId {
+        self.id
     }
 }
 
@@ -363,6 +462,7 @@ mod tests {
         let net = Network::new();
         let src = net.source::<usize>();
         let trc = net.trace(src);
+        src.emit(1);
         // let inc = with_runtime(|rt| rt.new_node(NodeType::Inc, net.id, DefInfo::unlabelled()));
         // let trc = with_runtime(|rt| rt.new_node(NodeType::Trace, net.id, DefInfo::unlabelled()));
         // let inc2 = with_runtime(|rt| {
@@ -379,7 +479,7 @@ mod tests {
         // with_runtime(|rt| rt.connect(inc, trc));
         // with_runtime(|rt| rt.connect(trc, inc2));
         // with_runtime(|rt| rt.connect(inc2, trc2));
-        with_runtime(|rt| rt.emit_event(src.id, &1_usize));
+        // with_runtime(|rt| rt.emit_event(src.id, &1_usize));
         assert_eq!(1, 2);
     }
 }
@@ -400,8 +500,8 @@ mod benches {
         let src = with_runtime(|rt| rt.new_node(NodeType::Source, net.id, DefInfo::unlabelled()));
         let inc = with_runtime(|rt| rt.new_node(NodeType::Inc, net.id, DefInfo::unlabelled()));
         let trc = with_runtime(|rt| rt.new_node(NodeType::Trace, net.id, DefInfo::unlabelled()));
-        with_runtime(|rt| rt.connect(src, inc));
-        with_runtime(|rt| rt.connect(inc, trc));
+        with_runtime(|rt| rt.connect(src, inc, false));
+        with_runtime(|rt| rt.connect(inc, trc, false));
         bencher.iter(move || {
             for _ in 0..REPS {
                 with_runtime(|rt| rt.emit_event(src, &1));
@@ -420,7 +520,7 @@ mod benches {
 
 // 3039606
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct NodeId {
     index:   usize,
     version: usize,
@@ -529,9 +629,16 @@ where Self: LinkedArrayDefault<T, N>
         self.size.modify(|t| *t += 1);
         index
     }
+}
 
+impl<T, const N: usize> LinkedCellArray<T, N> {
     pub fn set(&self, index: usize, elem: T) {
         self.first_segment.set(index, elem);
+    }
+
+    pub fn get_cloned(&self, index: usize) -> T
+    where T: Clone {
+        self.with_item_borrow(index, Clone::clone)
     }
 
     pub fn with_item_borrow<U>(&self, index: usize, f: impl FnOnce(&T) -> U) -> U {
@@ -541,15 +648,19 @@ where Self: LinkedArrayDefault<T, N>
     pub fn with_item_borrow_mut<U>(&self, index: usize, f: impl FnOnce(&mut T) -> U) -> U {
         self.first_segment.with_item_borrow_mut(index, f)
     }
-}
 
-impl<T, const N: usize> LinkedCellArray<T, N> {
     pub fn for_item_borrow(&self, f: impl FnMut(&T)) {
         self.first_segment.for_item_borrow(self.size.get(), f);
     }
 
     pub fn for_item_borrow_mut(&self, f: impl FnMut(&mut T)) {
         self.first_segment.for_item_borrow_mut(self.size.get(), f);
+    }
+}
+
+impl<T: Copy, const N: usize> LinkedCellArray<T, N> {
+    pub fn get(&self, index: usize) -> T {
+        self.with_item_borrow(index, |t| *t)
     }
 }
 
@@ -568,6 +679,17 @@ where Self: LinkedArrayDefault<T, N>
         }
     }
 
+    fn add_tail_segment(&self) {
+        let no_next = self.next.borrow().is_none();
+        if no_next {
+            *self.next.borrow_mut() = Some(default());
+        } else {
+            self.next.with_borrowed(|t| t.as_ref().unwrap().add_tail_segment());
+        }
+    }
+}
+
+impl<T, const N: usize> Segment<T, N> {
     fn set(&self, offset: usize, elem: T) {
         self.with_item_borrow_mut(offset, |t| *t = elem);
     }
@@ -588,17 +710,6 @@ where Self: LinkedArrayDefault<T, N>
         }
     }
 
-    fn add_tail_segment(&self) {
-        let no_next = self.next.borrow().is_none();
-        if no_next {
-            *self.next.borrow_mut() = Some(default());
-        } else {
-            self.next.with_borrowed(|t| t.as_ref().unwrap().add_tail_segment());
-        }
-    }
-}
-
-impl<T, const N: usize> Segment<T, N> {
     fn for_item_borrow(&self, count: usize, mut f: impl FnMut(&T)) {
         for item in self.items.iter().take(count) {
             f(&*item.borrow());
