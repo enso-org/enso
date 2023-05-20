@@ -446,6 +446,7 @@
 - [Moved `Redshift` connector into a separate `AWS` library.][6550]
 - [Added `Date_Range`.][6621]
 - [Implemented the `cast` operation for `Table` and `Column`.][6711]
+- [Added `.round` and `.int` to `Integer` and `Decimal`.][6743]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -657,6 +658,7 @@
 [6550]: https://github.com/enso-org/enso/pull/6550
 [6621]: https://github.com/enso-org/enso/pull/6621
 [6711]: https://github.com/enso-org/enso/pull/6711
+[6743]: https://github.com/enso-org/enso/pull/6743
 
 #### Enso Compiler
 

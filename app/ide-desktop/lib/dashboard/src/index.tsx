@@ -33,11 +33,13 @@ if (IS_DEV_MODE) {
 authentication.run({
     logger: console,
     // This file is only included when building for the cloud,
-    // so it is safe to set `platform` to `cloud`.
+    // so the `platform` is always `Platform.cloud`.
     platform: platform.Platform.cloud,
     showDashboard: true,
-    // The `onAuthenticated` parameter is required but we don't need it, so we pass an empty function.
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    onAuthenticated() {},
+    /** The `onAuthenticated` option is mandatory but is not needed here,
+     * so this function is empty. */
+    onAuthenticated() {
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+    },
     appRunner: null,
 })

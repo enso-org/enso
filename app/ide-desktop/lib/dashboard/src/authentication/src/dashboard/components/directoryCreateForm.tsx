@@ -9,11 +9,17 @@ import * as modalProvider from '../../providers/modal'
 import * as platform from '../../platform'
 import CreateForm, * as createForm from './createForm'
 
+// ===========================
+// === DirectoryCreateForm ===
+// ===========================
+
+/** Props for a {@link DirectoryCreateForm}. */
 export interface DirectoryCreateFormProps extends createForm.CreateFormPassthroughProps {
     directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 
+/** A form to create a directory. */
 function DirectoryCreateForm(props: DirectoryCreateFormProps) {
     const { directoryId, onSuccess, ...passThrough } = props
     const { backend } = backendProvider.useBackend()
