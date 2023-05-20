@@ -124,14 +124,18 @@ struct NetworkData {
     refs:  usize,
 }
 
-#[derive(Default)]
 enum NodeType {
-    #[default]
-    Source,
-    Inc,
-    Trace,
-    Map(Box<dyn Fn(&dyn Data) -> Box<dyn Data>>),
-    Map2(Box<dyn Fn(&dyn Data, &dyn Data) -> Box<dyn Data>>),
+    Source(SourceType),
+    Inc(IncType),
+    Trace(TraceType),
+    Map(MapType),
+    Map2(Map2Type),
+}
+
+impl Default for NodeType {
+    fn default() -> Self {
+        Self::Source(SourceType::default())
+    }
 }
 
 impl Debug for NodeType {
@@ -172,43 +176,18 @@ impl NodeData {
 
     fn on_event(
         &self,
-        rt: &Runtime,
+        runtime: &Runtime,
         source_id: NodeId,
-        node_id: OutputConnection,
+        source_edge: OutputConnection,
         event: &dyn Data,
     ) {
         // println!("on_event: {:?}", event);
         match &self.tp {
-            NodeType::Source => {}
-            NodeType::Inc => {
-                let new_data: usize = unsafe { *(event as *const dyn Data as *const usize) } + 1;
-                rt.emit_event(node_id.target, &new_data);
-            }
-            NodeType::Trace => {
-                let new_data = unsafe { &*(event as *const dyn Data as *const usize) };
-                // println!("TRACE: {:?}", new_data);
-                rt.emit_event(node_id.target, event);
-            }
-            NodeType::Map(f) => {
-                let event: Box<dyn Data> = f(event);
-                let e: &dyn Data = &*event;
-                rt.emit_event(node_id.target, e);
-            }
-            NodeType::Map2(f) => {
-                if source_id == self.inputs.get(0) {
-                    rt.nodes.with_item_borrow(self.inputs.get(1), |node| {
-                        let event2 = node.output.borrow();
-                        if let Some(event2) = event2.as_ref() {
-                            let event: Box<dyn Data> = f(event, &**event2);
-                            rt.emit_event(node_id.target, &*event);
-                        }
-                    });
-                }
-                // let event: Box<dyn Data> = f(event);
-                // let e: &dyn Data = &*event;
-                // rt.emit_event(node_id, e);
-                panic!()
-            }
+            NodeType::Source(t) => t.on_event(runtime, self, source_id, source_edge, event),
+            NodeType::Inc(t) => t.on_event(runtime, self, source_id, source_edge, event),
+            NodeType::Trace(t) => t.on_event(runtime, self, source_id, source_edge, event),
+            NodeType::Map(t) => t.on_event(runtime, self, source_id, source_edge, event),
+            NodeType::Map2(t) => t.on_event(runtime, self, source_id, source_edge, event),
         }
     }
 }
@@ -374,77 +353,209 @@ pub trait Node: Copy {
 //     id:      NodeId,
 // }
 //
-// impl<Output> NodeTemplate<Output> {
-//
-// }
-
 
 #[derive(Derivative)]
 #[derivative(Copy(bound = ""))]
 #[derivative(Clone(bound = ""))]
 #[derivative(Debug(bound = ""))]
-pub struct Source<T> {
-    _marker: PhantomData<T>,
+pub struct NodeTemplate<Kind, Output> {
+    _marker: PhantomData<(Kind, Output)>,
     id:      NodeId,
 }
 
-impl<T> Source<T> {
-    pub fn new(network: NetworkId) -> Self {
-        let id = with_runtime(|rt| rt.new_node(NodeType::Source, network, DefInfo::unlabelled()));
+impl<Kind, Output> Node for NodeTemplate<Kind, Output> {
+    type Output = Output;
+    fn id(self) -> NodeId {
+        self.id
+    }
+}
+
+impl<Kind, Output> NodeTemplate<Kind, Output> {
+    fn new_template(tp: NodeType, network_id: NetworkId) -> Self {
         let _marker = PhantomData;
+        let id = with_runtime(|rt| rt.new_node(tp, network_id, DefInfo::unlabelled()));
         Self { _marker, id }
     }
 
-    pub fn emit(&self, value: T)
-    where T: Data {
+    pub fn emit(&self, value: Output)
+    where Output: Data {
         with_runtime(|rt| rt.emit_event(self.id, &value));
     }
 }
 
+
+// === Source ===
+
+#[derive(Clone, Copy, Default)]
+pub struct SourceType;
+
+impl SourceType {
+    fn on_event(
+        &self,
+        runtime: &Runtime,
+        data: &NodeData,
+        source_id: NodeId,
+        source_edge: OutputConnection,
+        event: &dyn Data,
+    ) {
+    }
+}
+
+pub type Source<Output> = NodeTemplate<SourceType, Output>;
+
 impl Network {
     pub fn source<T>(&self) -> Source<T> {
-        Source::new(self.id)
+        Source::new_template(NodeType::Source(SourceType), self.id)
     }
 }
 
-impl<T> Node for Source<T> {
-    type Output = T;
-    fn id(self) -> NodeId {
-        self.id
+// === Inc ===
+
+#[derive(Clone, Copy, Default)]
+pub struct IncType;
+
+impl IncType {
+    fn on_event(
+        &self,
+        runtime: &Runtime,
+        data: &NodeData,
+        source_id: NodeId,
+        source_edge: OutputConnection,
+        event: &dyn Data,
+    ) {
+        let new_data: usize = unsafe { *(event as *const dyn Data as *const usize) } + 1;
+        runtime.emit_event(source_edge.target, &new_data);
     }
 }
 
-
-#[derive(Derivative)]
-#[derivative(Copy(bound = ""))]
-#[derivative(Clone(bound = ""))]
-#[derivative(Debug(bound = ""))]
-pub struct Trace<T> {
-    _marker: PhantomData<T>,
-    id:      NodeId,
-}
-
-impl<T> Trace<T> {
-    pub fn new(network: NetworkId, source: impl Node<Output = T>) -> Self {
-        let id = with_runtime(|rt| rt.new_node(NodeType::Trace, network, DefInfo::unlabelled()));
-        let _marker = PhantomData;
-        with_runtime(|rt| rt.connect(source.id(), id, false));
-        Self { _marker, id }
-    }
-}
+pub type Inc<Output> = NodeTemplate<IncType, Output>;
 
 impl Network {
-    pub fn trace<T>(&self, source: impl Node<Output = T>) -> Trace<T> {
-        Trace::new(self.id, source)
+    pub fn inc<T>(&self) -> Inc<T> {
+        Inc::new_template(NodeType::Inc(IncType), self.id)
     }
 }
 
-impl<T> Node for Trace<T> {
-    type Output = T;
-    fn id(self) -> NodeId {
-        self.id
+// === Trace ===
+
+pub struct TraceType(Box<dyn Fn(&dyn Data)>);
+impl TraceType {
+    fn on_event(
+        &self,
+        runtime: &Runtime,
+        data: &NodeData,
+        source_id: NodeId,
+        source_edge: OutputConnection,
+        event: &dyn Data,
+    ) {
+        (self.0)(event);
+        runtime.emit_event(source_edge.target, event);
     }
 }
+
+pub type Trace<Output> = NodeTemplate<TraceType, Output>;
+
+impl Network {
+    pub fn trace<T: Data>(&self, source: impl Node<Output = T>) -> Trace<T> {
+        let ff: Box<dyn Fn(&dyn Data)> = Box::new(move |data| {
+            let data = unsafe { &*(data as *const dyn Data as *const T) };
+            println!("TRACE: {:?}", data);
+        });
+        let node = Trace::new_template(NodeType::Trace(TraceType(ff)), self.id);
+        with_runtime(|rt| rt.connect(source.id(), node.id, false));
+        node
+    }
+}
+
+// === Map ===
+
+pub struct MapType(Box<dyn Fn(&dyn Data) -> Box<dyn Data>>);
+impl MapType {
+    fn on_event(
+        &self,
+        runtime: &Runtime,
+        data: &NodeData,
+        source_id: NodeId,
+        source_edge: OutputConnection,
+        event: &dyn Data,
+    ) {
+        let event: Box<dyn Data> = (self.0)(event);
+        let e: &dyn Data = &*event;
+        runtime.emit_event(source_edge.target, e);
+    }
+}
+
+pub type Map<Output> = NodeTemplate<MapType, Output>;
+
+impl Network {
+    pub fn map<T, R: Data + 'static>(
+        &self,
+        source: impl Node<Output = T>,
+        f: impl Fn(&T) -> R + 'static,
+    ) -> Map<R> {
+        let ff: Box<dyn Fn(&dyn Data) -> Box<dyn Data>> = Box::new(move |data| {
+            let data = unsafe { &*(data as *const dyn Data as *const T) };
+            let new_data = f(data);
+            Box::new(new_data)
+        });
+        let node = Map::new_template(NodeType::Map(MapType(ff)), self.id);
+        with_runtime(|rt| rt.connect(source.id(), node.id, false));
+        node
+    }
+}
+
+
+// === Map2 ===
+
+pub struct Map2Type(Box<dyn Fn(&dyn Data, &dyn Data) -> Box<dyn Data>>);
+impl Map2Type {
+    fn on_event(
+        &self,
+        runtime: &Runtime,
+        data: &NodeData,
+        source_id: NodeId,
+        source_edge: OutputConnection,
+        event: &dyn Data,
+    ) {
+        if source_id == data.inputs.get(0) {
+            runtime.nodes.with_item_borrow(data.inputs.get(1), |node| {
+                let event2 = node.output.borrow();
+                if let Some(event2) = event2.as_ref() {
+                    let event: Box<dyn Data> = (self.0)(event, &**event2);
+                    runtime.emit_event(source_edge.target, &*event);
+                }
+            });
+        }
+        // let event: Box<dyn Data> = f(event);
+        // let e: &dyn Data = &*event;
+        // rt.emit_event(node_id, e);
+        // panic!()
+    }
+}
+
+pub type Map2<Output> = NodeTemplate<Map2Type, Output>;
+
+impl Network {
+    pub fn map2<T, T2, R: Data + 'static>(
+        &self,
+        source: impl Node<Output = T>,
+        source2: impl Node<Output = T2>,
+        f: impl Fn(&T, &T2) -> R + 'static,
+    ) -> Map2<R> {
+        let ff: Box<dyn Fn(&dyn Data, &dyn Data) -> Box<dyn Data>> =
+            Box::new(move |data, data2| {
+                let data = unsafe { &*(data as *const dyn Data as *const T) };
+                let data2 = unsafe { &*(data2 as *const dyn Data as *const T2) };
+                let new_data = f(data, data2);
+                Box::new(new_data)
+            });
+        let node = Map2::new_template(NodeType::Map2(Map2Type(ff)), self.id);
+        with_runtime(|rt| rt.connect(source.id(), node.id, false));
+        with_runtime(|rt| rt.connect(source2.id(), node.id, true));
+        node
+    }
+}
+
 
 
 // =============
@@ -460,27 +571,15 @@ mod tests {
     fn test() {
         println!("hello");
         let net = Network::new();
-        let src = net.source::<usize>();
-        let trc = net.trace(src);
-        src.emit(1);
-        // let inc = with_runtime(|rt| rt.new_node(NodeType::Inc, net.id, DefInfo::unlabelled()));
-        // let trc = with_runtime(|rt| rt.new_node(NodeType::Trace, net.id, DefInfo::unlabelled()));
-        // let inc2 = with_runtime(|rt| {
-        //     rt.new_node(
-        //         NodeType::Map(Box::new(|t: Data| Data(t.0 * 2))),
-        //         net.id,
-        //         DefInfo::unlabelled(),
-        //     )
-        // });
-        // let trc2 = with_runtime(|rt| rt.new_node(NodeType::Trace, net.id,
-        // DefInfo::unlabelled()));
-
-        // with_runtime(|rt| rt.connect(src, inc));
-        // with_runtime(|rt| rt.connect(inc, trc));
-        // with_runtime(|rt| rt.connect(trc, inc2));
-        // with_runtime(|rt| rt.connect(inc2, trc2));
-        // with_runtime(|rt| rt.emit_event(src.id, &1_usize));
-        assert_eq!(1, 2);
+        let src1 = net.source::<usize>();
+        let src2 = net.source::<usize>();
+        let m1 = net.map2(src1, src2, |a, b| 10 * a + b);
+        let trc = net.trace(m1);
+        src1.emit(1);
+        // FIXME: not emitted
+        src2.emit(2);
+        src1.emit(3);
+        assert_eq!(1, 3);
     }
 }
 
@@ -497,11 +596,15 @@ mod benches {
     #[bench]
     fn bench_dyn_trait(bencher: &mut Bencher) {
         let net = Network::new();
-        let src = with_runtime(|rt| rt.new_node(NodeType::Source, net.id, DefInfo::unlabelled()));
-        let inc = with_runtime(|rt| rt.new_node(NodeType::Inc, net.id, DefInfo::unlabelled()));
-        let trc = with_runtime(|rt| rt.new_node(NodeType::Trace, net.id, DefInfo::unlabelled()));
+        let src = with_runtime(|rt| {
+            rt.new_node(NodeType::Source(SourceType), net.id, DefInfo::unlabelled())
+        });
+        let inc =
+            with_runtime(|rt| rt.new_node(NodeType::Inc(IncType), net.id, DefInfo::unlabelled()));
+        let inc2 =
+            with_runtime(|rt| rt.new_node(NodeType::Inc(IncType), net.id, DefInfo::unlabelled()));
         with_runtime(|rt| rt.connect(src, inc, false));
-        with_runtime(|rt| rt.connect(inc, trc, false));
+        with_runtime(|rt| rt.connect(inc, inc2, false));
         bencher.iter(move || {
             for _ in 0..REPS {
                 with_runtime(|rt| rt.emit_event(src, &1));
