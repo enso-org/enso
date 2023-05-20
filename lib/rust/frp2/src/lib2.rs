@@ -1,13 +1,3 @@
-#![feature(allocator_api)]
-#![feature(test)]
-#![feature(let_chains)]
-#![feature(trait_alias)]
-#![feature(downcast_unchecked)]
-#![feature(type_alias_impl_trait)]
-
-mod callstack;
-mod lib2;
-
 use bumpalo::Bump;
 use enso_prelude::*;
 use ouroboros::self_referencing;
@@ -15,11 +5,12 @@ use slotmap::Key;
 use slotmap::SecondaryMap;
 use slotmap::SlotMap;
 use std::cell::UnsafeCell;
+use std::process::Output;
 
 use smallvec::SmallVec;
 
-use callstack::CallStack;
-use callstack::DefInfo;
+use crate::callstack::CallStack;
+use crate::callstack::DefInfo;
 
 pub use enso_prelude as prelude;
 // use std::any::Any as Data;
@@ -549,7 +540,7 @@ impl Network {
 
 // === Map2 ===
 
-pub struct Map2Type(Box<dyn Fn(&dyn Data, Option<&dyn Data>) -> Box<dyn Data>>);
+pub struct Map2Type(Box<dyn Fn(&Runtime, &NodeData, NodeId, OutputConnection, &dyn Data)>);
 impl Map2Type {
     fn on_event(
         &self,
@@ -559,14 +550,15 @@ impl Map2Type {
         source_edge: OutputConnection,
         event: &dyn Data,
     ) {
-        if source_id == data.inputs.get(0) {
-            runtime.nodes.with_item_borrow(data.inputs.get(1), |node| {
-                let event2 = node.output.borrow();
-                let event2 = event2.as_ref().map(|t| &**t);
-                let event: Box<dyn Data> = (self.0)(event, event2);
-                runtime.emit_event(source_edge.target, &*event);
-            });
-        }
+        (self.0)(runtime, data, source_id, source_edge, event)
+        // if source_id == data.inputs.get(0) {
+        //     runtime.nodes.with_item_borrow(data.inputs.get(1), |node| {
+        //         let event2 = node.output.borrow();
+        //         let event2 = event2.as_ref().map(|t| &**t);
+        //         let event: Box<dyn Data> = (self.0)(runtime, event, event2);
+        //         runtime.emit_event(source_edge.target, &*event);
+        //     });
+        // }
         // let event: Box<dyn Data> = f(event);
         // let e: &dyn Data = &*event;
         // rt.emit_event(node_id, e);
@@ -586,16 +578,23 @@ impl Network {
     where
         T2: Default,
     {
-        let ff: Box<dyn Fn(&dyn Data, Option<&dyn Data>) -> Box<dyn Data>> =
-            Box::new(move |data, data2| {
-                let data = unsafe { &*(data as *const dyn Data as *const T) };
-                let new_data = if let Some(data2) = data2 {
-                    let data2 = unsafe { &*(data2 as *const dyn Data as *const T2) };
-                    f(data, data2)
-                } else {
-                    f(data, &default())
-                };
-                Box::new(new_data)
+        let ff: Box<dyn Fn(&Runtime, &NodeData, NodeId, OutputConnection, &dyn Data)> =
+            Box::new(move |runtime, data, source_id, source_edge, event| {
+                let event = unsafe { &*(event as *const dyn Data as *const T) };
+
+                if source_id == data.inputs.get(0) {
+                    runtime.nodes.with_item_borrow(data.inputs.get(1), |node| {
+                        let data2 = node.output.borrow();
+                        let data2 = data2.as_ref().map(|t| &**t);
+                        let new_data = if let Some(data2) = data2 {
+                            let data2 = unsafe { &*(data2 as *const dyn Data as *const T2) };
+                            f(event, data2)
+                        } else {
+                            f(event, &default())
+                        };
+                        runtime.emit_event(source_edge.target, &new_data);
+                    });
+                }
             });
         let node = Map2::new_template(NodeType::Map2(Map2Type(ff)), self.id);
         with_runtime(|rt| rt.connect(source.id(), node.id, false));
@@ -604,6 +603,45 @@ impl Network {
     }
 }
 
+
+//
+// impl EventConsumer for Map2<Output> {
+//     fn on_event(
+//         &self,
+//         runtime: &Runtime,
+//         data: &NodeData,
+//         source_id: NodeId,
+//         source_edge: OutputConnection,
+//         event: &dyn Data,
+//     ) {
+//         let event = unsafe { &*(event as *const dyn Data as *const T) };
+//
+//         if source_id == data.inputs.get(0) {
+//             runtime.nodes.with_item_borrow(data.inputs.get(1), |node| {
+//                 let data2 = node.output.borrow();
+//                 let data2 = data2.as_ref().map(|t| &**t);
+//                 let new_data = if let Some(data2) = data2 {
+//                     let data2 = unsafe { &*(data2 as *const dyn Data as *const T2) };
+//                     f(event, data2)
+//                 } else {
+//                     f(event, &default())
+//                 };
+//                 runtime.emit_event(source_edge.target, &new_data);
+//             });
+//         }
+//     }
+// }
+
+trait EventConsumer {
+    fn on_event(
+        &self,
+        runtime: &Runtime,
+        data: &NodeData,
+        source_id: NodeId,
+        source_edge: OutputConnection,
+        event: &dyn Data,
+    );
+}
 
 
 // =============
