@@ -27,23 +27,27 @@ pub use enso_prelude as prelude;
 
 
 #[derive(Debug, Default)]
-pub struct OptimizedRefCell<T> {
+pub struct OptRefCell<T> {
     inner: UnsafeCell<T>,
 }
 
-impl<T> OptimizedRefCell<T> {
+impl<T> OptRefCell<T> {
+    #[inline(always)]
     pub fn borrow(&self) -> &T {
         unsafe { &*self.inner.get() }
     }
 
+    #[inline(always)]
     pub fn borrow_mut(&self) -> &mut T {
         unsafe { &mut *self.inner.get() }
     }
 
+    #[inline(always)]
     pub fn with_borrowed<R>(&self, f: impl FnOnce(&T) -> R) -> R {
         f(self.borrow())
     }
 
+    #[inline(always)]
     pub fn with_borrowed_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
         f(self.borrow_mut())
     }
@@ -157,7 +161,7 @@ struct NodeData {
     def:               DefInfo,
     inputs:            LinkedCellArray<NodeId, 8>,
     outputs:           LinkedCellArray<OutputConnection, 8>,
-    output:            RefCell<Option<Box<dyn Data>>>,
+    output:            OptRefCell<Option<Box<dyn Data>>>,
     behavior_requests: Cell<usize>,
 }
 
@@ -174,6 +178,7 @@ impl NodeData {
         }
     }
 
+    #[inline(always)]
     fn on_event(
         &self,
         runtime: &Runtime,
@@ -219,7 +224,7 @@ fn rc_runtime() -> Rc<Runtime> {
 
 #[derive(Default)]
 pub struct Runtime {
-    networks:     RefCell<SlotMap<NetworkId, NetworkData>>,
+    networks:     OptRefCell<SlotMap<NetworkId, NetworkData>>,
     nodes:        CellSlotMap<NodeData>,
     // consumers:         RefCell<SecondaryMap<NodeId, BumpRc<dyn RawEventConsumer>>>,
     /// Map for each node to its behavior, if any. For nodes that are natively behaviors, points to
@@ -268,6 +273,7 @@ impl Runtime {
         self.nodes.with_item_borrow_mut(tgt_id, |tgt| tgt.inputs.push(src_id));
     }
 
+    #[inline(always)]
     fn emit_event(&self, node_id: NodeId, event: &dyn Data) {
         // println!("emit_event {:?} {:?}", node_id, event);
         // println!("emit_event {:?} {:?}", node_id, event);
@@ -371,12 +377,14 @@ impl<Kind, Output> Node for NodeTemplate<Kind, Output> {
 }
 
 impl<Kind, Output> NodeTemplate<Kind, Output> {
+    #[inline(always)]
     fn new_template(tp: NodeType, network_id: NetworkId) -> Self {
         let _marker = PhantomData;
         let id = with_runtime(|rt| rt.new_node(tp, network_id, DefInfo::unlabelled()));
         Self { _marker, id }
     }
 
+    #[inline(always)]
     pub fn emit(&self, value: Output)
     where Output: Data {
         with_runtime(|rt| rt.emit_event(self.id, &value));
@@ -596,19 +604,33 @@ mod benches {
     #[bench]
     fn bench_dyn_trait(bencher: &mut Bencher) {
         let net = Network::new();
-        let src = with_runtime(|rt| {
-            rt.new_node(NodeType::Source(SourceType), net.id, DefInfo::unlabelled())
-        });
-        let inc =
-            with_runtime(|rt| rt.new_node(NodeType::Inc(IncType), net.id, DefInfo::unlabelled()));
-        let inc2 =
-            with_runtime(|rt| rt.new_node(NodeType::Inc(IncType), net.id, DefInfo::unlabelled()));
-        with_runtime(|rt| rt.connect(src, inc, false));
-        with_runtime(|rt| rt.connect(inc, inc2, false));
+        let src1 = net.source::<usize>();
+        let src2 = net.source::<usize>();
+        let m1 = net.map2(src1, src2, |a, b| if *a > 100 { 10 * a + b } else { 5 * a + 2 * b });
+        // src1.emit(1);
+        // FIXME: not emitted
+        src2.emit(2);
+
         bencher.iter(move || {
+            let _keep_net = &net;
+            let _keep_src1 = &src1;
+            let _keep_src2 = &src2;
+            let _keep_m1 = &m1;
             for _ in 0..REPS {
-                with_runtime(|rt| rt.emit_event(src, &1));
+                src1.emit(3);
             }
+        });
+    }
+
+    #[bench]
+    fn bench_plain_fn(bencher: &mut Bencher) {
+        let f = |a: usize, b: usize| if a > 100 { 10 * a + b } else { 5 * a + 2 * b };
+        let mut sum = 0;
+        bencher.iter(move || {
+            for i in 0..REPS {
+                sum += f(i + 1, i);
+            }
+            assert_ne!(sum, 0);
         });
     }
 }
@@ -622,6 +644,7 @@ mod benches {
 // 2280935
 
 // 3039606
+// 3411847
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct NodeId {
@@ -638,7 +661,7 @@ pub struct Slot<T> {
 #[derive(Debug, Derivative)]
 #[derivative(Default(bound = "T: Default"))]
 pub struct CellSlotMap<T> {
-    free_indexes: RefCell<Vec<usize>>,
+    free_indexes: OptRefCell<Vec<usize>>,
     list:         LinkedCellArray<Slot<T>>,
 }
 
@@ -692,13 +715,13 @@ impl<T: Default> CellSlotMap<T> {
 // === LinkedVec ===
 // =================
 
-pub trait LinkedArrayDefault<T, const N: usize> = where [RefCell<T>; N]: Default;
+pub trait LinkedArrayDefault<T, const N: usize> = where [OptRefCell<T>; N]: Default;
 
 #[derive(Debug, Derivative)]
 #[derivative(Default(bound = "Self: LinkedArrayDefault<T,N>"))]
 pub struct Segment<T, const N: usize> {
-    items: [RefCell<T>; N],
-    next:  RefCell<Option<Box<Segment<T, N>>>>,
+    items: [OptRefCell<T>; N],
+    next:  OptRefCell<Option<Box<Segment<T, N>>>>,
 }
 
 #[derive(Debug, Derivative)]
