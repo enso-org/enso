@@ -9,13 +9,13 @@ import scala.concurrent.duration.FiniteDuration
   * @param profilingRuntimeEventsLog the path to the runtime events log file
   * @param profilingPath the path to the profiling output file
   * @param profilingTime the time limiting the profiling duration
-  *  @param serverHost an address that the server listen on
-  *  @param serverPort a port that the server listen on
+  * @param serverHost an address that the server listen on
+  * @param serverPort a port that the server listen on
   */
 case class ProjectManagerOptions(
   profilingRuntimeEventsLog: Option[Path],
   profilingPath: Option[Path],
   profilingTime: Option[FiniteDuration],
-    serverHost: Option[String],
-    serverPort: Option[Int]
+  serverHost: Option[String],
+  serverPort: Option[Int]
 )
