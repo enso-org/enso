@@ -17,7 +17,7 @@ import * as errorModule from '../../error'
 import * as http from '../../http'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
-import * as platform from '../../platform'
+import * as platformModule from '../../platform'
 import * as remoteBackend from '../../dashboard/remoteBackend'
 import * as sessionProvider from './session'
 
@@ -143,6 +143,7 @@ const AuthContext = react.createContext<AuthContextType>({} as AuthContextType)
 
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
+    platform: platformModule.Platform
     authService: authServiceModule.AuthService
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: () => void
@@ -151,7 +152,7 @@ export interface AuthProviderProps {
 
 /** A React provider for the Cognito API. */
 export function AuthProvider(props: AuthProviderProps) {
-    const { authService, children } = props
+    const { platform, authService, children } = props
     const { cognito } = authService
     const { session } = sessionProvider.useSession()
     const { setBackend } = backendProvider.useSetBackend()
@@ -179,7 +180,10 @@ export function AuthProvider(props: AuthProviderProps) {
                 const backend = new remoteBackend.RemoteBackend(client, logger)
                 // This will catch all invalid values, and `null`. It will not mistakenly catch
                 // any valid values, as there are currently only two valid platforms.
-                if (localStorage.getItem(BACKEND_TYPE_KEY) === platform.Platform.cloud) {
+                if (
+                    platform === platformModule.Platform.cloud ||
+                    localStorage.getItem(BACKEND_TYPE_KEY) === platformModule.Platform.cloud
+                ) {
                     setBackend(backend)
                 }
                 const organization = await backend.usersMe().catch(() => null)
@@ -280,7 +284,7 @@ export function AuthProvider(props: AuthProviderProps) {
         username: string,
         email: string
     ) => {
-        if (backend.platform === platform.Platform.desktop) {
+        if (backend.platform === platformModule.Platform.desktop) {
             toast.error('You cannot set your username on the local backend.')
             return false
         } else {

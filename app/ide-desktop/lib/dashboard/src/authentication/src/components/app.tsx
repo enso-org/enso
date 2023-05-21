@@ -39,6 +39,7 @@ import * as router from 'react-router-dom'
 import * as toast from 'react-hot-toast'
 
 import * as authService from '../authentication/service'
+import * as localBackend from '../dashboard/localBackend'
 import * as platformModule from '../platform'
 
 import * as authProvider from '../authentication/providers/auth'
@@ -123,7 +124,7 @@ function App(props: AppProps) {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
-    const { logger, showDashboard, onAuthenticated } = props
+    const { logger, platform, showDashboard, onAuthenticated } = props
     const navigate = router.useNavigate()
     const mainPageUrl = new URL(window.location.href)
     const memoizedAuthService = react.useMemo(() => {
@@ -132,6 +133,8 @@ function AppRouter(props: AppProps) {
     }, [navigate, props])
     const userSession = memoizedAuthService.cognito.userSession.bind(memoizedAuthService.cognito)
     const registerAuthEventListener = memoizedAuthService.registerAuthEventListener
+    const initialBackend =
+        platform === platformModule.Platform.desktop ? new localBackend.LocalBackend() : null
     const routes = (
         <router.Routes>
             <react.Fragment>
@@ -165,8 +168,12 @@ function AppRouter(props: AppProps) {
                 userSession={userSession}
                 registerAuthEventListener={registerAuthEventListener}
             >
-                <backendProvider.BackendProvider>
+                {/* This is safe, as `auth.tsx` always sets the backend when it is initialized to
+                 * `null`. */}
+                {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
+                <backendProvider.BackendProvider initialBackend={initialBackend!}>
                     <authProvider.AuthProvider
+                        platform={platform}
                         authService={memoizedAuthService}
                         onAuthenticated={onAuthenticated}
                     >
