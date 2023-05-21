@@ -1,8 +1,11 @@
 /** @file Utility functions for extracting and manipulating file information. */
-
 import * as svg from './components/svg'
 
-/** Returns the file extension of a file name. */
+// ================================
+// === Extract file information ===
+// ================================
+
+/** Extract the file extension from a file name. */
 export function fileExtension(fileName: string) {
     return fileName.match(/\.(.+?)$/)?.[1] ?? ''
 }
@@ -12,6 +15,11 @@ export function fileIcon() {
     return svg.FILE_ICON
 }
 
+// ===================================
+// === Manipulate file information ===
+// ===================================
+
+/** Convert a size in bytes to a human readable size, e.g. in mebibytes. */
 export function toReadableSize(size: number) {
     /* eslint-disable @typescript-eslint/no-magic-numbers */
     if (size < 2 ** 10) {

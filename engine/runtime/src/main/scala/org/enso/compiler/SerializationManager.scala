@@ -2,7 +2,7 @@ package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.context.SuggestionBuilder
+import org.enso.compiler.context.{ExportsBuilder, ExportsMap, SuggestionBuilder}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
@@ -233,48 +233,66 @@ final class SerializationManager(
             throw e
         }
 
-      try {
-        val suggestions = new util.ArrayList[Suggestion]()
-        compiler.packageRepository
-          .getModulesForLibrary(libraryName)
-          .flatMap { module =>
-            SuggestionBuilder(module, compiler)
-              .build(module.getName, module.getIr)
-              .toVector
-              .filter(Suggestion.isGlobal)
-          }
-          .foreach(suggestions.add)
-        val cachedSuggestions =
-          new SuggestionsCache.CachedSuggestions(
-            libraryName,
-            new SuggestionsCache.Suggestions(suggestions),
-            compiler.packageRepository
-              .getPackageForLibraryJava(libraryName)
-              .map(_.listSourcesJava())
-          )
-        new SuggestionsCache(libraryName)
-          .save(cachedSuggestions, compiler.context, useGlobalCacheLocations)
-          .isPresent
-      } catch {
-        case e: NotSerializableException =>
-          logger.log(
-            Level.SEVERE,
-            s"Could not serialize suggestions [$libraryName].",
-            e
-          )
-          throw e
-        case e: Throwable =>
-          logger.log(
-            Level.SEVERE,
-            s"Serialization of suggestions `$libraryName` failed: ${e.getMessage}`",
-            e
-          )
-          throw e
-      }
+      doSerializeLibrarySuggestions(libraryName, useGlobalCacheLocations)
 
       result
     } finally {
       finishSerializing(libraryName.toQualifiedName)
+    }
+  }
+
+  private def doSerializeLibrarySuggestions(
+    libraryName: LibraryName,
+    useGlobalCacheLocations: Boolean
+  ): Boolean = {
+    val exportsBuilder = new ExportsBuilder
+    val exportsMap     = new ExportsMap
+    val suggestions    = new util.ArrayList[Suggestion]()
+
+    try {
+      val libraryModules =
+        compiler.packageRepository.getModulesForLibrary(libraryName)
+      libraryModules
+        .flatMap { module =>
+          val suggestions = SuggestionBuilder(module, compiler)
+            .build(module.getName, module.getIr)
+            .toVector
+            .filter(Suggestion.isGlobal)
+          val exports = exportsBuilder.build(module.getName, module.getIr)
+          exportsMap.addAll(module.getName, exports)
+          suggestions
+        }
+        .map { suggestion =>
+          val reexport = Option(exportsMap.get(suggestion)).map(_.toString)
+          suggestion.withReexport(reexport)
+        }
+        .foreach(suggestions.add)
+      val cachedSuggestions =
+        new SuggestionsCache.CachedSuggestions(
+          libraryName,
+          new SuggestionsCache.Suggestions(suggestions),
+          compiler.packageRepository
+            .getPackageForLibraryJava(libraryName)
+            .map(_.listSourcesJava())
+        )
+      new SuggestionsCache(libraryName)
+        .save(cachedSuggestions, compiler.context, useGlobalCacheLocations)
+        .isPresent
+    } catch {
+      case e: NotSerializableException =>
+        logger.log(
+          Level.SEVERE,
+          s"Could not serialize suggestions [$libraryName].",
+          e
+        )
+        throw e
+      case e: Throwable =>
+        logger.log(
+          Level.SEVERE,
+          s"Serialization of suggestions `$libraryName` failed: ${e.getMessage}`",
+          e
+        )
+        throw e
     }
   }
 

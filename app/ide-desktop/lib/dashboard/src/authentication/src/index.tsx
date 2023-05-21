@@ -33,9 +33,10 @@ const IDE_ELEMENT_ID = 'root'
  * Running this function finds a `div` element with the ID `dashboard`, and renders the
  * authentication/dashboard UI using React. It also handles routing and other interactions (e.g.,
  * for redirecting the user to/from the login page). */
+export // This export declaration must be broken up to satisfy the `require-jsdoc` rule.
 // This is not a React component even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax
-export function run(props: app.AppProps) {
+function run(props: app.AppProps) {
     const { logger } = props
     logger.log('Starting authentication/dashboard UI.')
     /** The root element that the authentication/dashboard app will be rendered into. */
@@ -52,6 +53,7 @@ export function run(props: app.AppProps) {
     }
 }
 
+/** Global configuration for the {@link App} component. */
 export type AppProps = app.AppProps
 // This export should be `PascalCase` because it is a re-export.
 // eslint-disable-next-line no-restricted-syntax
