@@ -34,7 +34,7 @@ OPTS.pure.splice(OPTS.pure.indexOf('assert'), 1)
 ;(OPTS.inject = OPTS.inject ?? []).push(path.resolve(THIS_PATH, '..', '..', 'debugGlobals.ts'))
 OPTS.plugins.push({
     name: 'react-dom-profiling',
-    setup(build) {
+    setup: build => {
         build.onResolve({ filter: /^react-dom$/ }, args => {
             if (args.kind === 'import-statement') {
                 return { path: 'react-dom/profiling' }

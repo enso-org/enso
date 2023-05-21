@@ -40,6 +40,7 @@ export interface DirectoryViewProps {
     experimentalShowColumnDisplayModeSwitcher: boolean
 }
 
+/** Contains directory path and directory contents (projects, folders, secrets and files). */
 function DirectoryView(props: DirectoryViewProps) {
     const {
         directoryId,

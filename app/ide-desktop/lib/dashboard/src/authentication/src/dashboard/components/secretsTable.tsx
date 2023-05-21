@@ -105,7 +105,7 @@ function SecretCreateForm(props: SecretCreateFormProps) {
 // =========================
 
 /** Props for a {@link SecretNameHeading}. */
-interface SecretNameHeadingProps {
+export interface SecretNameHeadingProps {
     directoryId: backendModule.DirectoryId
     onCreate: () => void
 }

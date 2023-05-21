@@ -18,6 +18,7 @@ const SPINNER_LOADING_CLASSES = 'grow dasharray-75 duration-1000 ease-linear'
 // === Types ===
 // =============
 
+/** Props for a {@link Column}. */
 export interface ColumnProps<T, State = never> {
     item: T
     state: State
@@ -36,7 +37,7 @@ export interface Column<T, State = never> {
 // =================
 
 /** Props for a {@link Table}. */
-interface TableProps<T, State = never> {
+export interface TableProps<T, State = never> {
     items: T[]
     state?: State
     getKey: (item: T) => string

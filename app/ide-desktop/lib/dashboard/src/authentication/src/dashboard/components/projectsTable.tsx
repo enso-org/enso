@@ -210,7 +210,8 @@ function ProjectName(props: ProjectNameProps) {
     )
 }
 
-interface ProjectsTableProps {
+/** Props for a {@link ProjectsTable}. */
+export interface ProjectsTableProps {
     appRunner: AppRunner | null
     directoryId: backendModule.DirectoryId
     items: backendModule.ProjectAsset[]

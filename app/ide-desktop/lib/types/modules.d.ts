@@ -49,6 +49,7 @@ declare module 'eslint-plugin-jsdoc' {
 }
 
 declare module 'eslint-plugin-react' {
+    /** An ESLint configuration. */
     interface Config {
         plugins: string[]
         rules: Record<string, number>
@@ -57,18 +58,21 @@ declare module 'eslint-plugin-react' {
 
     // The names come from a third-party API and cannot be changed.
     /* eslint-disable @typescript-eslint/naming-convention */
+    /** Configurations defined by this ESLint plugin. */
     interface Configs {
         recommended: Config
         all: Config
         'jsx-runtime': Config
     }
 
+    /** Deprecated rules contained in this ESLint plugin. */
     interface DeprecatedRules {
         'jsx-sort-default-props': object
         'jsx-space-before-closing': object
     }
     /* eslint-enable @typescript-eslint/naming-convention */
 
+    /** The default export of this ESLint plugin. */
     interface Default {
         rules: Record<string, object>
         configs: Configs
@@ -84,15 +88,18 @@ declare module 'eslint-plugin-react' {
 }
 
 declare module 'eslint-plugin-react-hooks' {
+    /** An ESLint configuration. */
     interface Config {
         plugins: string[]
         rules: Record<string, string>
     }
 
+    /** Configurations defined by this ESLint plugin. */
     interface Configs {
         recommended: Config
     }
 
+    /** Rules defined by this ESLint plugin. */
     interface ReactHooksRules {
         // The names come from a third-party API and cannot be changed.
         /* eslint-disable @typescript-eslint/naming-convention */
@@ -101,6 +108,7 @@ declare module 'eslint-plugin-react-hooks' {
         /* eslint-enable @typescript-eslint/naming-convention */
     }
 
+    /** The default export of this ESLint plugin. */
     interface Default {
         configs: Configs
         rules: ReactHooksRules

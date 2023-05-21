@@ -375,6 +375,8 @@ export function rootDirectoryId(userOrOrganizationId: UserOrOrganizationId) {
     )
 }
 
+/** A convenience function to get the `id` of an {@link Asset}.
+ * This is useful to avoid React re-renders as it is not re-created on each function call. */
 export function getAssetId<Type extends AssetType>(asset: Asset<Type>) {
     return asset.id
 }
