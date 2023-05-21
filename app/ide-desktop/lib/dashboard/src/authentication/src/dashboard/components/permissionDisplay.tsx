@@ -12,18 +12,22 @@ export enum Permission {
     regular = 'regular',
 }
 
+/** Base interface for all permissions. */
 interface BasePermissions {
     type: Permission
 }
 
+/** Owner permissions over an asset. */
 interface OwnerPermissions extends BasePermissions {
     type: Permission.owner
 }
 
+/** Admin permissions over an asset. */
 interface AdminPermissions extends BasePermissions {
     type: Permission.admin
 }
 
+/** Regular permissions over an asset. */
 interface RegularPermissions extends BasePermissions {
     type: Permission.regular
     read: boolean
@@ -39,6 +43,7 @@ export type Permissions = AdminPermissions | OwnerPermissions | RegularPermissio
 // === Component ===
 // =================
 
+/** Props for a {@link PermissionDisplay}. */
 export interface PermissionDisplayProps {
     permissions: Permissions
 }

@@ -1,13 +1,18 @@
 /** @file An entry in a context menu. */
-
 import * as React from 'react'
 
+// ========================
+// === ContextMenuEntry ===
+// ========================
+
+/** Props for a {@link ContextMenuEntry}. */
 export interface ContextMenuEntryProps {
     disabled?: boolean
     onClick: (event: React.MouseEvent<HTMLButtonElement>) => void
 }
 
 // This component MUST NOT use `useState` because it is not rendered directly.
+/** An item in a `ContextMenu`. */
 function ContextMenuEntry(props: React.PropsWithChildren<ContextMenuEntryProps>) {
     const { children, disabled, onClick } = props
     return (

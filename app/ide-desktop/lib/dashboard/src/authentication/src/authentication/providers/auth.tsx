@@ -41,6 +41,8 @@ const MESSAGES = {
 
 // === UserSession ===
 
+/** A user session for a user that may be either fully registered,
+ * or in the process of registering. */
 export type UserSession = FullUserSession | PartialUserSession
 
 /** Object containing the currently signed-in user's session data. */
@@ -135,6 +137,7 @@ const AuthContext = React.createContext<AuthContextType>({} as AuthContextType)
 // === AuthProvider ===
 // ====================
 
+/** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
     authService: authServiceModule.AuthService
     /** Callback to execute once the user has authenticated successfully. */
@@ -142,6 +145,7 @@ export interface AuthProviderProps {
     children: React.ReactNode
 }
 
+/** A React provider for the Cognito API. */
 export function AuthProvider(props: AuthProviderProps) {
     const { authService, children } = props
     const { cognito } = authService
@@ -212,6 +216,8 @@ export function AuthProvider(props: AuthProviderProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [cognito, logger, onAuthenticated, session])
 
+    /** Wrap a function returning a {@link Promise} to displays a loading toast notification
+     * until the returned {@link Promise} finishes loading. */
     const withLoadingToast =
         <T extends unknown[], R>(action: (...args: T) => Promise<R>) =>
         async (...args: T) => {
@@ -225,45 +231,45 @@ export function AuthProvider(props: AuthProviderProps) {
             return result
         }
 
-    const signUp = (username: string, password: string) =>
-        cognito.signUp(username, password).then(result => {
-            if (result.ok) {
-                toast.success(MESSAGES.signUpSuccess)
-            } else {
-                toast.error(result.val.message)
+    const signUp = async (username: string, password: string) => {
+        const result = await cognito.signUp(username, password)
+        if (result.ok) {
+            toast.success(MESSAGES.signUpSuccess)
+        } else {
+            toast.error(result.val.message)
+        }
+        return result.ok
+    }
+
+    const confirmSignUp = async (email: string, code: string) => {
+        const result = await cognito.confirmSignUp(email, code)
+        if (result.err) {
+            switch (result.val.kind) {
+                case 'UserAlreadyConfirmed':
+                    break
+                default:
+                    throw new errorModule.UnreachableCaseError(result.val.kind)
             }
-            return result.ok
-        })
+        }
 
-    const confirmSignUp = async (email: string, code: string) =>
-        cognito.confirmSignUp(email, code).then(result => {
-            if (result.err) {
-                switch (result.val.kind) {
-                    case 'UserAlreadyConfirmed':
-                        break
-                    default:
-                        throw new errorModule.UnreachableCaseError(result.val.kind)
-                }
+        toast.success(MESSAGES.confirmSignUpSuccess)
+        navigate(app.LOGIN_PATH)
+        return result.ok
+    }
+
+    const signInWithPassword = async (email: string, password: string) => {
+        const result = await cognito.signInWithPassword(email, password)
+        if (result.ok) {
+            toast.success(MESSAGES.signInWithPasswordSuccess)
+        } else {
+            if (result.val.kind === 'UserNotFound') {
+                navigate(app.REGISTRATION_PATH)
             }
 
-            toast.success(MESSAGES.confirmSignUpSuccess)
-            navigate(app.LOGIN_PATH)
-            return result.ok
-        })
-
-    const signInWithPassword = async (email: string, password: string) =>
-        cognito.signInWithPassword(email, password).then(result => {
-            if (result.ok) {
-                toast.success(MESSAGES.signInWithPasswordSuccess)
-            } else {
-                if (result.val.kind === 'UserNotFound') {
-                    navigate(app.REGISTRATION_PATH)
-                }
-
-                toast.error(result.val.message)
-            }
-            return result.ok
-        })
+            toast.error(result.val.message)
+        }
+        return result.ok
+    }
 
     const setUsername = async (
         backend: backendProvider.AnyBackendAPI,
@@ -289,41 +295,43 @@ export function AuthProvider(props: AuthProviderProps) {
         }
     }
 
-    const forgotPassword = async (email: string) =>
-        cognito.forgotPassword(email).then(result => {
-            if (result.ok) {
-                toast.success(MESSAGES.forgotPasswordSuccess)
-                navigate(app.RESET_PASSWORD_PATH)
-            } else {
-                toast.error(result.val.message)
-            }
-            return result.ok
-        })
+    const forgotPassword = async (email: string) => {
+        const result = await cognito.forgotPassword(email)
+        if (result.ok) {
+            toast.success(MESSAGES.forgotPasswordSuccess)
+            navigate(app.RESET_PASSWORD_PATH)
+        } else {
+            toast.error(result.val.message)
+        }
+        return result.ok
+    }
 
-    const resetPassword = async (email: string, code: string, password: string) =>
-        cognito.forgotPasswordSubmit(email, code, password).then(result => {
-            if (result.ok) {
-                toast.success(MESSAGES.resetPasswordSuccess)
-                navigate(app.LOGIN_PATH)
-            } else {
-                toast.error(result.val.message)
-            }
-            return result.ok
-        })
-    const changePassword = async (oldPassword: string, newPassword: string) =>
-        cognito.changePassword(oldPassword, newPassword).then(result => {
-            if (result.ok) {
-                toast.success(MESSAGES.changePasswordSuccess)
-            } else {
-                toast.error(result.val.message)
-            }
-            return result.ok
-        })
-    const signOut = () =>
-        cognito.signOut().then(() => {
-            toast.success(MESSAGES.signOutSuccess)
-            return true
-        })
+    const resetPassword = async (email: string, code: string, password: string) => {
+        const result = await cognito.forgotPasswordSubmit(email, code, password)
+        if (result.ok) {
+            toast.success(MESSAGES.resetPasswordSuccess)
+            navigate(app.LOGIN_PATH)
+        } else {
+            toast.error(result.val.message)
+        }
+        return result.ok
+    }
+
+    const changePassword = async (oldPassword: string, newPassword: string) => {
+        const result = await cognito.changePassword(oldPassword, newPassword)
+        if (result.ok) {
+            toast.success(MESSAGES.changePasswordSuccess)
+        } else {
+            toast.error(result.val.message)
+        }
+        return result.ok
+    }
+
+    const signOut = async () => {
+        await cognito.signOut()
+        toast.success(MESSAGES.signOutSuccess)
+        return true
+    }
 
     const value = {
         signUp: withLoadingToast(signUp),
@@ -364,7 +372,7 @@ interface UserFacingError {
     message: string
 }
 
-/** Returns `true` if the value is a {@link UserFacingError}. */
+/** Return `true` if the value is a {@link UserFacingError}. */
 function isUserFacingError(value: unknown): value is UserFacingError {
     return typeof value === 'object' && value != null && 'message' in value
 }
@@ -385,6 +393,7 @@ export function useAuth() {
 // === ProtectedLayout ===
 // =======================
 
+/** A React Router layout route containing routes only accessible by users that are logged in. */
 export function ProtectedLayout() {
     const { session } = useAuth()
 
@@ -401,6 +410,8 @@ export function ProtectedLayout() {
 // === SemiProtectedLayout ===
 // ===========================
 
+/** A React Router layout route containing routes only accessible by users that are
+ * in the process of registering. */
 export function SemiProtectedLayout() {
     const { session } = useAuth()
 
@@ -415,6 +426,8 @@ export function SemiProtectedLayout() {
 // === GuestLayout ===
 // ===================
 
+/** A React Router layout route containing routes only accessible by users that are
+ * not logged in. */
 export function GuestLayout() {
     const { session } = useAuth()
 
@@ -431,6 +444,8 @@ export function GuestLayout() {
 // === usePartialUserSession ===
 // =============================
 
+/** A React context hook returning the user session
+ * for a user that has not yet completed registration. */
 export function usePartialUserSession() {
     return router.useOutletContext<PartialUserSession>()
 }
@@ -439,6 +454,7 @@ export function usePartialUserSession() {
 // === useFullUserSession ===
 // ==========================
 
+/** A React context hook returning the user session for a user that has completed registration. */
 export function useFullUserSession() {
     return router.useOutletContext<FullUserSession>()
 }

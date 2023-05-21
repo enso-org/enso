@@ -16,9 +16,7 @@ import scala.annotation.unused
 
 /** A utility structure for resolving symbols in a given module.
   *
-  * @param constructors the types defined in the current module
-  * @param polyglotSymbols the polyglot symbols imported into the scope
-  * @param moduleMethods the methods defined with current module as `this`
+  * @param definedEntities the list of entities defined in the current module
   * @param currentModule the module holding these bindings
   */
 

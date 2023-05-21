@@ -45,7 +45,9 @@ export const theme = {
             '140': '35rem',
         },
         boxShadow: {
-            soft: '0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b, 0 2.3px 10px 0 #0000000e, 0 4px 18px 0 #00000011, 0 7.5px 33.4px 0 #00000014, 0 18px 80px 0 #0000001c',
+            soft: `0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b, \
+0 2.3px 10px 0 #0000000e, 0 4px 18px 0 #00000011, 0 7.5px 33.4px 0 #00000014, \
+0 18px 80px 0 #0000001c`,
         },
         animation: {
             'spin-ease': 'spin cubic-bezier(0.67, 0.33, 0.33, 0.67) 1.5s infinite',

@@ -13,6 +13,7 @@ import * as listen from '../listen'
 // === SessionContext ===
 // ======================
 
+/** State contained in a {@link SessionContext}. */
 interface SessionContextType {
     session: results.Option<cognito.UserSession>
 }
@@ -27,7 +28,8 @@ const SessionContext = React.createContext<SessionContextType>(
 // === SessionProvider ===
 // =======================
 
-interface SessionProviderProps {
+/** Props for a {@link SessionProvider}. */
+export interface SessionProviderProps {
     /** URL that the content of the app is served at, by Electron.
      *
      * This **must** be the actual page that the content is served at, otherwise the OAuth flow will
@@ -45,6 +47,7 @@ interface SessionProviderProps {
     children: React.ReactNode
 }
 
+/** A React provider for the session of the authenticated user. */
 export function SessionProvider(props: SessionProviderProps) {
     const { mainPageUrl, children, userSession, registerAuthEventListener } = props
 
@@ -118,6 +121,7 @@ export function SessionProvider(props: SessionProviderProps) {
 // === useSession ===
 // ==================
 
+/** React context hook returning the session of the authenticated user. */
 export function useSession() {
     return React.useContext(SessionContext)
 }

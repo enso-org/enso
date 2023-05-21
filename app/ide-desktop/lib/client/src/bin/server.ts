@@ -35,6 +35,7 @@ interface ConfigConfig {
 export class Config {
     dir: string
     port: number
+    /** Create a server configuration. */
     constructor(cfg: ConfigConfig) {
         this.dir = path.resolve(cfg.dir)
         this.port = cfg.port
@@ -45,8 +46,8 @@ export class Config {
 // === Port Finder ===
 // ===================
 
-/** Determines the initial available communication endpoint, starting from the specified port, to
- * provide file hosting services. */
+/** Determine the initial available communication endpoint, starting from the specified port,
+ * to provide file hosting services. */
 async function findPort(port: number): Promise<number> {
     return await portfinder.getPortPromise({ port, startPort: port })
 }
@@ -55,12 +56,13 @@ async function findPort(port: number): Promise<number> {
 // === Server ===
 // ==============
 
-/// A simple server implementation.
-///
-/// Initially it was based on `union`, but later we migrated to `create-servers`. Read this topic to
-/// learn why: https://github.com/http-party/http-server/issues/483
+/** A simple server implementation.
+ *
+ * Initially it was based on `union`, but later we migrated to `create-servers`.
+ * Read this topic to learn why: https://github.com/http-party/http-server/issues/483 */
 export class Server {
     server: unknown
+    /** Create a simple HTTP server. */
     constructor(public config: Config) {}
 
     /** Server constructor. */
@@ -72,6 +74,7 @@ export class Server {
         return server
     }
 
+    /** Start the server. */
     run(): Promise<void> {
         return new Promise((resolve, reject) => {
             this.server = createServer(
@@ -92,6 +95,7 @@ export class Server {
         })
     }
 
+    /** Respond to an incoming request. */
     process(request: http.IncomingMessage, response: http.ServerResponse) {
         const requestUrl = request.url
         if (requestUrl == null) {

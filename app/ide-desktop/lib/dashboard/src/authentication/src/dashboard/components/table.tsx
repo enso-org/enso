@@ -35,7 +35,8 @@ export interface Column<T, State = never> {
 // === Component ===
 // =================
 
-interface Props<T, State = never> {
+/** Props for a {@link Table}. */
+interface TableProps<T, State = never> {
     items: T[]
     state?: State
     getKey: (item: T) => string
@@ -47,15 +48,15 @@ interface Props<T, State = never> {
 }
 
 /** Table that projects an object into each column. */
-function Table<T, State = never>(props: Props<T, State>) {
+function Table<T, State = never>(props: TableProps<T, State>) {
     const { items, state, getKey, columns, isLoading, placeholder, onClick, onContextMenu } = props
     const [spinnerClasses, setSpinnerClasses] = React.useState(SPINNER_INITIAL_CLASSES)
 
     const headerRow = (
         <tr>
-            {columns.map((column, index) => (
+            {columns.map(column => (
                 <th
-                    key={index}
+                    key={column.id}
                     className="text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-semibold text-left"
                 >
                     {column.heading}

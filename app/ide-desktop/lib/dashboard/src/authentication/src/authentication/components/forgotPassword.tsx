@@ -14,6 +14,7 @@ import SvgIcon from './svgIcon'
 // === ForgotPassword ===
 // ======================
 
+/** A form for users to request for their password to be reset. */
 function ForgotPassword() {
     const { forgotPassword } = auth.useAuth()
 

@@ -12,6 +12,7 @@ import Modal from './modal'
 // === Component ===
 // =================
 
+/** Props for a {@link ConfirmDeleteModal}. */
 export interface ConfirmDeleteModalProps {
     assetType: string
     name: string
@@ -19,6 +20,7 @@ export interface ConfirmDeleteModalProps {
     onSuccess: () => void
 }
 
+/** A modal for confirming the deletion of an asset. */
 function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
     const { assetType, name, doDelete, onSuccess } = props
     const { unsetModal } = modalProvider.useSetModal()

@@ -15,6 +15,7 @@ import ContextMenuEntry from './components/contextMenuEntry'
 // === Types ===
 // =============
 
+/** Determines which columns are visible. */
 export enum ColumnDisplayMode {
     /** Show only columns which are ready for release. */
     release = 'release',

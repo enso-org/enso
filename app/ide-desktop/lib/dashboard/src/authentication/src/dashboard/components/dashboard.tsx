@@ -55,6 +55,7 @@ const IDE_ELEMENT_ID = 'root'
 // === Dashboard ===
 // =================
 
+/** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
     platform: platformModule.Platform
     appRunner: AppRunner | null
@@ -63,6 +64,7 @@ export interface DashboardProps {
 // TODO[sb]: Implement rename when clicking name of a selected row.
 // There is currently no way to tell whether a row is selected from a column.
 
+/** The component that contains the entire UI. */
 function Dashboard(props: DashboardProps) {
     const { platform, appRunner } = props
 

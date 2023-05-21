@@ -46,6 +46,7 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
 // === Component ===
 // =================
 
+/** Props for a {@link ProjectActionButton}. */
 export interface ProjectActionButtonProps {
     project: backendModule.ProjectAsset
     onClose: () => void

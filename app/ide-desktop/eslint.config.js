@@ -17,6 +17,10 @@ import tsEslint from '@typescript-eslint/eslint-plugin'
 import tsEslintParser from '@typescript-eslint/parser'
 /* eslint-enable no-restricted-syntax */
 
+// =================
+// === Constants ===
+// =================
+
 const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 const NAME = 'enso'
 /** An explicit whitelist of CommonJS modules, which do not support namespace imports.
@@ -38,7 +42,10 @@ const NOT_PASCAL_CASE = '/^(?!_?([A-Z][a-z0-9]*)+$)/'
 const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)(?!React$)/'
 const WHITELISTED_CONSTANTS = 'logger|.+Context'
 const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)/`
-const WITH_ROUTER = 'CallExpression[callee.name=withRouter]'
+
+// =======================================
+// === Restricted syntactic constructs ===
+// =======================================
 
 // Extracted to a variable because it needs to be used twice:
 // - once as-is for `.d.ts`
@@ -116,7 +123,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         // Matches functions and arrow functions, but not methods.
-        selector: `:matches(FunctionDeclaration[id.name=${NOT_PASCAL_CASE}]:has(${JSX}), VariableDeclarator[id.name=${NOT_PASCAL_CASE}]:has(:matches(ArrowFunctionExpression.init ${JSX}, ${WITH_ROUTER})))`,
+        selector: `:matches(FunctionDeclaration[id.name=${NOT_PASCAL_CASE}]:has(${JSX}), VariableDeclarator[id.name=${NOT_PASCAL_CASE}]:has(:matches(ArrowFunctionExpression.init ${JSX})))`,
         message: 'Use `PascalCase` for React components',
     },
     {
@@ -126,7 +133,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         // Matches non-functions.
-        selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:has(:matches(ArrowFunctionExpression, ${WITH_ROUTER})))`,
+        selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:has(:matches(ArrowFunctionExpression)))`,
         message: 'Use `CONSTANT_CASE` for top-level constants that are not functions',
     },
     {
@@ -201,7 +208,27 @@ const RESTRICTED_SYNTAXES = [
             'TSAsExpression:has(TSUnknownKeyword, TSNeverKeyword, TSAnyKeyword) > TSAsExpression',
         message: 'Use type assertions to specific types instead of `unknown`, `any` or `never`',
     },
+    {
+        selector: ':matches(MethodDeclaration, FunctionDeclaration) FunctionDeclaration',
+        message: 'Use arrow functions for nested functions',
+    },
+    {
+        selector: ':not(ExportNamedDeclaration) > TSInterfaceDeclaration[id.name=/Props$/]',
+        message: 'All React component `Props` types must be exported',
+    },
+    {
+        selector: 'FunctionDeclaration:has(:matches(ObjectPattern.params, ArrayPattern.params))',
+        message: 'Destructure function parameters in the body instead of in the parameter list',
+    },
+    {
+        selector: 'IfStatement > ExpressionStatement',
+        message: 'Wrap `if` branches in `{}`',
+    },
 ]
+
+// ============================
+// === ESLint configuration ===
+// ============================
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export default [
@@ -237,6 +264,26 @@ export default [
             ...tsEslint.configs.strict?.rules,
             ...react.configs.recommended.rules,
             eqeqeq: ['error', 'always', { null: 'never' }],
+            'jsdoc/require-jsdoc': [
+                'error',
+                {
+                    require: {
+                        FunctionDeclaration: true,
+                        MethodDefinition: true,
+                        ClassDeclaration: true,
+                        ArrowFunctionExpression: false,
+                        FunctionExpression: true,
+                    },
+                    // Top-level constants should require JSDoc as well,
+                    // however it does not seem like there is a way to do this.
+                    contexts: [
+                        'TSInterfaceDeclaration',
+                        'TSEnumDeclaration',
+                        'TSTypeAliasDeclaration',
+                        'TSMethodSignature',
+                    ],
+                },
+            ],
             'sort-imports': ['error', { allowSeparatedGroups: true }],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
             'prefer-arrow-callback': 'error',
