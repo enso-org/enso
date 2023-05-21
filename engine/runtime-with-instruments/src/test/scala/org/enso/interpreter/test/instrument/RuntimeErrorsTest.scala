@@ -1363,7 +1363,9 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "MyError2",
           Seq(xId)
-        )
+        ),
+        builtin     = false,
+        typeChanged = false
       ),
       TestMessages.panic(
         contextId,
@@ -1371,7 +1373,9 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "MyError2",
           Seq(xId)
-        )
+        ),
+        builtin     = false,
+        typeChanged = false
       ),
       TestMessages.panic(
         contextId,
@@ -1379,7 +1383,9 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "MyError2",
           Seq(xId)
-        )
+        ),
+        builtin     = false,
+        typeChanged = false
       ),
       context.executionComplete(contextId)
     )
@@ -1492,10 +1498,14 @@ class RuntimeErrorsTest
         contextId,
         xId,
         ConstantsGen.INTEGER,
-        Api.MethodPointer(moduleName, moduleName, "foo")
+        Api.MethodPointer(moduleName, moduleName, "foo"),
+        fromCache   = false,
+        typeChanged = true
       ),
-      TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
+      TestMessages
+        .update(contextId, yId, ConstantsGen.INTEGER, typeChanged = true),
+      TestMessages
+        .update(contextId, mainResId, ConstantsGen.NOTHING, typeChanged = true),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("3")
@@ -1667,9 +1677,12 @@ class RuntimeErrorsTest
         contextId,
         xId,
         ConstantsGen.INTEGER,
-        Api.MethodPointer(moduleName, moduleName, "foo")
+        Api.MethodPointer(moduleName, moduleName, "foo"),
+        fromCache   = false,
+        typeChanged = true
       ),
-      TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
+      TestMessages
+        .update(contextId, yId, ConstantsGen.INTEGER, typeChanged = true),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("3")

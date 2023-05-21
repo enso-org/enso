@@ -17,6 +17,7 @@ export type AnyBackendAPI = localBackend.LocalBackend | remoteBackend.RemoteBack
 // === BackendContext ===
 // ======================
 
+/** State contained in a `BackendContext`. */
 export interface BackendContextType {
     backend: AnyBackendAPI
     setBackend: (backend: AnyBackendAPI) => void
@@ -26,7 +27,10 @@ export interface BackendContextType {
 // as `backend` will always be accessed using `useBackend`.
 const BackendContext = react.createContext<BackendContextType>(null)
 
-export interface BackendProviderProps extends React.PropsWithChildren<object> {}
+/** Props for a {@link BackendProvider}. */
+export interface BackendProviderProps extends React.PropsWithChildren<object> {
+    initialBackend: AnyBackendAPI
+}
 
 // =======================
 // === BackendProvider ===

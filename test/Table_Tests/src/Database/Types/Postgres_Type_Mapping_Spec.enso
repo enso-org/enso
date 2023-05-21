@@ -82,18 +82,18 @@ spec connection =
         Test.specify "should correctly handle types through operations" <|
             t = make_table "foo" [["a", "int2"], ["b", "text"], ["c", "boolean"], ["d", "double precision"], ["e", "int4"]]
 
-            t.compute 'starts_with([b], "1")' . value_type . should_equal Value_Type.Boolean
-            t.compute '[a] * [d]' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
-            t.compute '[a] + [e]' . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
-            t.compute '[a] + 100.0' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
-            t.compute '[c] || not [c]' . value_type . should_equal Value_Type.Boolean
-            t.compute '[b] + "_suf"' . value_type . should_equal default_text
-            t.compute 'fill_nothing([c], false)' . value_type . should_equal Value_Type.Boolean
-            t.compute 'fill_empty([b], "<NA>")' . value_type . should_equal default_text
-            t.compute 'is_blank([b])' . value_type . should_equal Value_Type.Boolean
-            t.compute 'is_empty([b])' . value_type . should_equal Value_Type.Boolean
-            t.compute 'is_nan([d])' . value_type . should_equal Value_Type.Boolean
-            t.compute 'is_nothing([a])' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression 'starts_with([b], "1")' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression '[a] * [d]' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
+            t.evaluate_expression '[a] + [e]' . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+            t.evaluate_expression '[a] + 100.0' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
+            t.evaluate_expression '[c] || not [c]' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression '[b] + "_suf"' . value_type . should_equal default_text
+            t.evaluate_expression 'fill_nothing([c], false)' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression 'fill_empty([b], "<NA>")' . value_type . should_equal default_text
+            t.evaluate_expression 'is_blank([b])' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression 'is_empty([b])' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression 'is_nan([d])' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression 'is_nothing([a])' . value_type . should_equal Value_Type.Boolean
 
             t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a", Aggregate_Column.Maximum "a", Aggregate_Column.Count_Not_Nothing "c", Aggregate_Column.Concatenate "b", Aggregate_Column.Count, (Aggregate_Column.First "c" order_by="a")]
             t2.at "b" . value_type . should_equal default_text
@@ -106,7 +106,7 @@ spec connection =
 
             # Postgres does not try to be clever and two fixed-length columns concatenated get promoted to a varying column.
             t3 = make_table "foo2" [["a", "char(5)"], ["b", "char(8)"]]
-            t3.compute '[a] + [b]' . value_type . should_equal default_text
+            t3.evaluate_expression '[a] + [b]' . value_type . should_equal default_text
 
         Test.specify "other types" <|
             t = make_table "other" [["a", "box"], ["b", "polygon"]]

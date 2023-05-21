@@ -3,6 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
+import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Widget import Single_Choice
 from Standard.Base.Metadata.Choice import Option
 import Standard.Base.Metadata.Display
@@ -236,10 +237,12 @@ type Connection
         self.execute_update (self.dialect.generate_sql (Query.Drop_Table table_name))
 
 ## PRIVATE
+make_table_types_selector : Connection -> Widget
 make_table_types_selector connection =
     Single_Choice values=(connection.table_types.map t-> Option t t.pretty)
 
 ## PRIVATE
+make_schema_selector : Connection -> Widget
 make_schema_selector connection =
     schemas_without_nothing = connection.schemas.filter Filter_Condition.Not_Nothing
     Single_Choice values=(schemas_without_nothing.map t-> Option t t.pretty)+[Option "any schema" "Nothing"]
@@ -250,6 +253,7 @@ all_known_table_names connection =
     tables.at "Name" . to_vector
 
 ## PRIVATE
+make_table_name_selector : Connection -> Widget
 make_table_name_selector connection =
     tables_to_display = connection.tables.at "Name" . to_vector
     Single_Choice display=Display.Always values=(tables_to_display.map t-> Option t t.pretty)

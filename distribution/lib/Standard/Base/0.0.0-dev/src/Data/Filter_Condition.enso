@@ -9,6 +9,7 @@ import project.Nothing.Nothing
 
 from project.Data.Boolean import all
 
+import project.Metadata.Widget
 from project.Metadata.Widget import Single_Choice
 from project.Metadata.Choice import Option
 import project.Metadata.Display
@@ -232,6 +233,7 @@ type Filter_Condition
 
     ## PRIVATE
        Gets a widget set up for a Filter_Condition.
+    default_widget : Widget
     default_widget =
         names = ["Equal", "Not Equal", "Is In", "Not In", "Is True", "Is False", "Is Nothing", "Not Nothing", "Is Empty", "Not Empty", "Less", "Equal Or Less", "Greater", "Equal Or Greater", "Between", "Starts With", "Ends With", "Contains", "Not Contains", "Like", "Not Like"]
         values = ["(Filter_Condition.Equal)", "(Filter_Condition.Not_Equal)", "(Filter_Condition.Is_In)", "(Filter_Condition.Not_In)", "Filter_Condition.Is_True", "Filter_Condition.Is_False", "Filter_Condition.Is_Nothing", "Filter_Condition.Not_Nothing", "Filter_Condition.Is_Empty", "Filter_Condition.Not_Empty", "(Filter_Condition.Less)", "(Filter_Condition.Equal_Or_Less)", "(Filter_Condition.Greater)", "(Filter_Condition.Equal_Or_Greater)", "(Filter_Condition.Between)", "(Filter_Condition.Starts_With)", "(Filter_Condition.Ends_With)", "(Filter_Condition.Contains)", "(Filter_Condition.Not_Contains)", "(Filter_Condition.Like)", "(Filter_Condition.Not_Like)"]

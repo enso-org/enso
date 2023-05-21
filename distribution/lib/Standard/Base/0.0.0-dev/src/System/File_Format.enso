@@ -18,6 +18,7 @@ import project.System.File.File
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Json import Invalid_JSON
 
+import project.Metadata.Widget
 from project.Metadata.Widget import Single_Choice
 from project.Metadata.Choice import Option
 import project.Metadata.Display
@@ -39,19 +40,6 @@ get_format callback =
             if format.is_nothing.not then format else
                 @Tail_Call reader (idx + 1)
     reader 0
-
-## PRIVATE
-format_widget : Single_Choice
-format_widget =
-    all_types = [Auto_Detect] + format_types
-    make_ctor type_obj =
-        type_name = Meta.get_simple_type_name type_obj
-        ctors = Meta.meta type_obj . constructors
-        is_singleton_type = ctors.length == 0
-        if is_singleton_type then type_name else
-            "(" + type_name + "." + ctors.first.name + ")"
-    make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
-    Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (make_ctor n)))
 
 type Auto_Detect
     ## PRIVATE
@@ -97,6 +85,23 @@ type File_Format
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read _ _ = Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Create the constructor code for a File_Format type.
+    constructor_code : Any -> Text
+    constructor_code type_obj =
+        type_name = Meta.get_simple_type_name type_obj
+        ctors = Meta.meta type_obj . constructors
+        is_singleton_type = ctors.length == 0
+        if is_singleton_type then type_name else
+            "(" + type_name + "." + ctors.first.name + ")"
+
+    ## PRIVATE
+    default_widget : Widget
+    default_widget =
+        all_types = [Auto_Detect] + format_types
+        make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
+        Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (File_Format.constructor_code n)))
 
 type Plain_Text_Format
     Plain_Text (encoding:Encoding=Encoding.utf_8)

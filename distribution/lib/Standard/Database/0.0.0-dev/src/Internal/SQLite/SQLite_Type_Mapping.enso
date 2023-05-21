@@ -14,6 +14,7 @@ import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+from project.Errors import Unsupported_Database_Operation
 
 polyglot java import java.sql.Types
 
@@ -59,9 +60,9 @@ type SQLite_Type_Mapping
             Value_Type.Float _ -> SQLite_Types.real
             Value_Type.Decimal _ _ -> SQLite_Types.numeric
             Value_Type.Char _ _ -> SQLite_Types.text
-            Value_Type.Time -> SQLite_Types.text
-            Value_Type.Date -> SQLite_Types.text
-            Value_Type.Date_Time _ -> SQLite_Types.text
+            Value_Type.Time -> unsupported_date_time
+            Value_Type.Date -> unsupported_date_time
+            Value_Type.Date_Time _ -> unsupported_date_time
             Value_Type.Binary _ _ -> SQLite_Types.blob
             Value_Type.Mixed -> SQLite_Types.text
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
@@ -158,6 +159,17 @@ operations_map =
             Panic.throw (Illegal_State.Error "Impossible: IIF must have 3 arguments. This is a bug in the Database library.")
         find_a_common_type (arguments.drop 1)
 
+    handle_case arguments =
+        fallback = arguments.last
+        cases = arguments.drop (Last 1)
+        if cases.length % 2 != 0 then
+            Panic.throw (Illegal_State.Error "Impossible: constructed a CASE with an odd number of case arguments.")
+        if cases.is_empty then
+            Panic.throw (Illegal_State.Error "Impossible: too few cases provided for a CASE statement.")
+        case_results = cases.take (Index_Sub_Range.Every 2 first=1)
+        possible_results = case_results + [fallback]
+        find_a_common_type possible_results
+
     handle_cast _ =
         Panic.throw (Illegal_State.Error "Cast relies on its own type inference logic, so this code should never be reached. This is a bug in the Database library.")
 
@@ -167,7 +179,7 @@ operations_map =
     always_integer_ops = ["COUNT", "COUNT_IS_NULL", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT_ROWS"]
     arithmetic_ops = ["ADD_NUMBER", "-", "*", "^", "%", "SUM"]
     merge_input_types_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FILL_NULL", "COALESCE"]
-    others = [["IIF", handle_iif], ["CAST", handle_cast]]
+    others = [["IIF", handle_iif], ["CAST", handle_cast], ["CASE", handle_case]]
     Map.from_vector <|
         v1 = always_boolean_ops.map [_, const SQLite_Types.boolean]
         v2 = always_floating_ops.map [_, const SQLite_Types.real]
@@ -206,3 +218,7 @@ default_float = Value_Type.Float Bits.Bits_64
 
 ## PRIVATE
 default_integer = Value_Type.Integer Bits.Bits_64
+
+## PRIVATE
+unsupported_date_time =
+    Error.throw (Unsupported_Database_Operation.Error "Date/time types are not supported by the SQLite backend.")

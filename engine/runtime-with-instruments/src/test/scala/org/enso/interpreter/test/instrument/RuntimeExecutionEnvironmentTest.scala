@@ -221,6 +221,7 @@ class RuntimeExecutionEnvironmentTest
               Some(IF_ENABLED_METH_PTR),
               Vector(Api.ProfilingInfo.ExecutionTime(0)),
               false,
+              true,
               Api.ExpressionUpdate.Payload.Value()
             )
           )
@@ -320,6 +321,7 @@ class RuntimeExecutionEnvironmentTest
               Some(IF_ENABLED_METH_PTR),
               Vector(Api.ProfilingInfo.ExecutionTime(0)),
               false,
+              true,
               Api.ExpressionUpdate.Payload.Value()
             )
           )
