@@ -2,14 +2,21 @@
  * These are from variables defined at build time, environment variables,
  * monkeypatching on `window` and generated code. */
 
+// =============
+// === Types ===
+// =============
+
+/** Nested configuration options with `string` values. */
 interface StringConfig {
     [key: string]: StringConfig | string
 }
 
+/** The public interface exposed to `window` by the IDE. */
 interface Enso {
     main: (inputConfig?: StringConfig) => Promise<void>
 }
 
+/** Build information injected by the build script. */
 interface BuildInfo {
     commit: string
     version: string
@@ -40,13 +47,20 @@ interface AuthenticationApi {
     saveAccessToken: (access_token: string) => void
 }
 
+// =====================================
+// === Global namespace augmentation ===
+// =====================================
+
+// JSDocs here are intentionally empty as these interfaces originate from elsewhere.
 declare global {
+    /** */
     interface Window {
         enso: Enso
         authenticationApi: AuthenticationApi
     }
 
     namespace NodeJS {
+        /** */
         interface ProcessEnv {
             /* eslint-disable @typescript-eslint/naming-convention */
             APPLEID: string

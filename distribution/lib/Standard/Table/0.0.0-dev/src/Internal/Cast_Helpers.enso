@@ -1,0 +1,58 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Data.Type.Value_Type.Value_Type
+import project.Internal.Parse_Values_Helper
+from project.Errors import Conversion_Failure
+
+polyglot java import org.enso.table.data.column.operation.CastProblemBuilder
+
+## PRIVATE
+   Checks if one type can be cast into another and returns a dataflow error
+   explaining the situation if not.
+check_cast_compatibility source_type target_type ~action =
+    are_compatible = if (target_type == Value_Type.Mixed) || target_type.is_text || (source_type == target_type) then True else
+        if source_type.is_text && is_a_valid_parse_target target_type then Error.throw (Illegal_Argument.Error "To parse a text column into "+target_type.to_display_text+" type, `parse` should be used instead of `cast`.") else
+            if source_type == Value_Type.Boolean then target_type.is_numeric else
+                if source_type.is_numeric then target_type.is_numeric else
+                    case source_type of
+                        Value_Type.Date_Time _ ->
+                            (target_type == Value_Type.Date) || (target_type == Value_Type.Time)
+                        Value_Type.Date -> target_type.has_date
+                        Value_Type.Binary _ _ -> case target_type of
+                            Value_Type.Binary _ _ -> True
+                            _ -> False
+                        _ -> False
+    if are_compatible then action else
+        Error.throw (Illegal_Argument.Error "Cannot cast "+source_type.to_display_text+" type into "+target_type.to_display_text+" type.")
+
+## PRIVATE
+   Checks if the type is a valid argument for `parse`.
+is_a_valid_parse_target target_type =
+    case Meta.meta target_type of
+        atom : Meta.Atom ->
+            Parse_Values_Helper.valid_parse_targets.contains atom.constructor.name
+        _ -> False
+
+## PRIVATE
+type Cast_Problem_Builder
+    ## PRIVATE
+    Value column_name target_type to_java
+
+    ## PRIVATE
+       Returns a vector of all reported problems.
+    get_problems : Vector
+    get_problems self =
+        builder = Vector.new_builder
+        java_instance = self.to_java
+
+        lossy_conversion_rows = java_instance.getLossyConversionRowCount
+        if lossy_conversion_rows > 0 then
+            builder.append (Conversion_Failure.Error self.target_type self.column_name lossy_conversion_rows)
+
+        builder.to_vector
+
+## PRIVATE
+new_java_problem_builder : Text -> Value_Type -> Cast_Problem_Builder
+new_java_problem_builder column_name target_type =
+    Cast_Problem_Builder.Value column_name target_type CastProblemBuilder.new

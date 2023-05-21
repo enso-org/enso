@@ -13,3 +13,7 @@ translate_parsing_problem expected_value_type problem = case problem of
         Invalid_Format.Error java_problem.column expected_value_type (Vector.from_polyglot_array java_problem.cells)
     _ ->
         Panic.throw (Illegal_State.Error "Reported an unknown problem type: "+problem.to_text)
+
+## PRIVATE
+valid_parse_targets =
+    ['Integer', 'Float', 'Date', 'Date_Time', 'Time', 'Boolean']

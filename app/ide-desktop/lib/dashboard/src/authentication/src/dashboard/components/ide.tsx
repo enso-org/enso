@@ -18,13 +18,14 @@ const JS_EXTENSION: Record<backendModule.BackendType, string> = {
 // === Component ===
 // =================
 
-interface Props {
+/** Props for an {@link Ide}. */
+export interface IdeProps {
     project: backendModule.Project
     appRunner: AppRunner | null
 }
 
-/** Container that launches the IDE. */
-function Ide(props: Props) {
+/** The ontainer that launches the IDE. */
+function Ide(props: IdeProps) {
     const { project, appRunner } = props
     const { backend } = backendProvider.useBackend()
 

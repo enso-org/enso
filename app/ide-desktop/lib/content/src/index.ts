@@ -50,15 +50,16 @@ if (IS_DEV_MODE) {
 // === Fetch ===
 // =============
 
-function timeout(time: number) {
+/** Returns an `AbortController` that aborts after the specified number of seconds. */
+function timeout(timeSeconds: number) {
     const controller = new AbortController()
     setTimeout(() => {
         controller.abort()
-    }, time * SECOND)
+    }, timeSeconds * SECOND)
     return controller
 }
 
-/** A version of `fetch` which timeouts after the provided time. */
+/** A version of `fetch` which times out after the provided time. */
 async function fetchTimeout(url: string, timeoutSeconds: number): Promise<unknown> {
     return fetch(url, { signal: timeout(timeoutSeconds).signal }).then(response => {
         const statusCodeOK = 200
@@ -132,17 +133,22 @@ function displayDeprecatedVersionDialog() {
 // === Main entry point ===
 // ========================
 
+/** Nested configuration options with `string` values. */
 interface StringConfig {
     [key: string]: StringConfig | string
 }
 
+/** Contains the entrypoint into the IDE. */
 class Main implements AppRunner {
     app: app.App | null = null
 
+    /** Stop an app instance, if one is running. */
     stopApp() {
         this.app?.stop()
     }
 
+    /** Run an app instance with the specified configuration.
+     * This includes the scene to run and the WebSocket endpoints to the backend. */
     async runApp(inputConfig?: StringConfig) {
         this.stopApp()
 
@@ -186,6 +192,7 @@ class Main implements AppRunner {
         }
     }
 
+    /** The entrypoint into the IDE. */
     main(inputConfig?: StringConfig) {
         /** Note: Signing out always redirects to `/`. It is impossible to make this work,
          * as it is not possible to distinguish between having just logged out, and explicitly

@@ -17,6 +17,7 @@ import * as newtype from '../newtype'
 // === Types ===
 // =============
 
+/** The subset of Amplify configuration related to sign in and sign out redirects. */
 interface AmplifyRedirects extends Pick<auth.AmplifyConfig, 'redirectSignIn' | 'redirectSignOut'> {}
 
 // =================
@@ -113,7 +114,7 @@ export interface AuthService {
     registerAuthEventListener: listen.ListenFunction
 }
 
-/** Creates an instance of the authentication service.
+/** Create an instance of the authentication service.
  *
  * # Warning
  *
@@ -129,6 +130,7 @@ export function initAuthService(authConfig: AuthConfig): AuthService {
     }
 }
 
+/** Return the appropriate Amplify configuration for the current platform. */
 function loadAmplifyConfig(
     logger: loggerProvider.Logger,
     supportsDeepLinks: boolean,
@@ -168,10 +170,12 @@ function loadAmplifyConfig(
     }
 }
 
+/** Open a URL with the user's default browser. */
 function openUrlWithExternalBrowser(url: string) {
     window.authenticationApi.openUrlInSystemBrowser(url)
 }
 
+/** Save the access token to a file. */
 function saveAccessToken(accessToken: string) {
     window.authenticationApi.saveAccessToken(accessToken)
 }

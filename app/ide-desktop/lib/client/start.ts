@@ -9,9 +9,17 @@ import * as esbuild from 'esbuild'
 import * as esbuildConfig from './esbuild-config'
 import * as paths from './paths'
 
+// =================
+// === Constants ===
+// =================
+
 const GUI_PATH = path.resolve(paths.getGuiDirectory())
 const IDE_PATH = paths.getIdeDirectory()
 const PROJECT_MANAGER_BUNDLE = paths.getProjectManagerBundlePath()
+
+// =================
+// === Start IDE ===
+// =================
 
 const SCRIPT_ARGS = process.argv.slice(2)
 console.log('Script arguments:', ...SCRIPT_ARGS.map(arg => JSON.stringify(arg)))

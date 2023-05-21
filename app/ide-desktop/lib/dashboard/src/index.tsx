@@ -38,8 +38,10 @@ authentication.run({
     supportsLocalBackend: false,
     supportsDeepLinks: false,
     showDashboard: true,
-    // The `onAuthenticated` parameter is required but we don't need it, so we pass an empty function.
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    onAuthenticated() {},
+    /** The `onAuthenticated` option is mandatory but is not needed here,
+     * so this function is empty. */
+    onAuthenticated() {
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+    },
     appRunner: null,
 })

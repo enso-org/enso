@@ -8,11 +8,17 @@ import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
 import CreateForm, * as createForm from './createForm'
 
+// ========================
+// === SecretCreateForm ===
+// ========================
+
+/** Props for a {@link SecretCreateForm}. */
 export interface SecretCreateFormProps extends createForm.CreateFormPassthroughProps {
     directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 
+/** A form to create a secret. */
 function SecretCreateForm(props: SecretCreateFormProps) {
     const { directoryId, onSuccess, ...passThrough } = props
     const { backend } = backendProvider.useBackend()
