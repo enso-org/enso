@@ -1,4 +1,5 @@
 /** @file Type definitions common between all backends. */
+import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
 import * as platform from '../platform'
 
@@ -36,12 +37,11 @@ export type EmailAddress = newtype.Newtype<string, 'EmailAddress'>
 /** An AWS S3 file path. */
 export type S3FilePath = newtype.Newtype<string, 'S3FilePath'>
 
+/** An AWS machine configuration. */
 export type Ami = newtype.Newtype<string, 'Ami'>
 
+/** An AWS user ID. */
 export type Subject = newtype.Newtype<string, 'Subject'>
-
-/** An RFC 3339 DateTime string. */
-export type Rfc3339DateTime = newtype.Newtype<string, 'Rfc3339DateTime'>
 
 /** A user/organization in the application. These are the primary owners of a project. */
 export interface UserOrOrganization {
@@ -143,6 +143,7 @@ export interface SecretInfo {
     id: SecretId
 }
 
+/** The type of asset a specific tag can be applied to. */
 export enum TagObjectType {
     file = 'File',
     project = 'Project',
@@ -195,7 +196,7 @@ export interface VersionNumber {
 export interface Version {
     number: VersionNumber
     ami: Ami | null
-    created: Rfc3339DateTime
+    created: dateTime.Rfc3339DateTime
     // This does not follow our naming convention because it's defined this way in the backend,
     // so we need to match it.
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -212,6 +213,7 @@ export interface ResourceUsage {
     storage: number
 }
 
+/** Metadata uniquely identifying a user. */
 export interface User {
     /* eslint-disable @typescript-eslint/naming-convention */
     pk: Subject
@@ -221,6 +223,7 @@ export interface User {
     /* eslint-enable @typescript-eslint/naming-convention */
 }
 
+/** Backend representation of user permission types. */
 export enum PermissionAction {
     own = 'Own',
     execute = 'Execute',
@@ -228,6 +231,7 @@ export enum PermissionAction {
     read = 'Read',
 }
 
+/** User permissions for a specific user. */
 export interface UserPermission {
     user: User
     permission: PermissionAction
@@ -238,11 +242,12 @@ export interface UserPermission {
 export interface BaseAsset {
     id: AssetId
     title: string
-    modifiedAt: Rfc3339DateTime | null
+    modifiedAt: dateTime.Rfc3339DateTime | null
     parentId: AssetId
     permissions: UserPermission[] | null
 }
 
+/** All possible types of directory entries. */
 export enum AssetType {
     project = 'project',
     file = 'file',
@@ -250,6 +255,7 @@ export enum AssetType {
     directory = 'directory',
 }
 
+/** The corresponding ID newtype for each {@link AssetType}. */
 export interface IdType {
     [AssetType.project]: ProjectId
     [AssetType.file]: FileId
@@ -290,10 +296,8 @@ export interface CreateProjectRequestBody {
     parentDirectoryId: DirectoryId | null
 }
 
-/**
- * HTTP request body for the "project update" endpoint.
- * Only updates of the `projectName` or `ami` are allowed.
- */
+/** HTTP request body for the "project update" endpoint.
+ * Only updates of the `projectName` or `ami` are allowed. */
 export interface ProjectUpdateRequestBody {
     projectName: string | null
     ami: Ami | null
@@ -320,6 +324,7 @@ export interface CreateTagRequestBody {
     objectId: string
 }
 
+/** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
     parentId?: string
 }
@@ -346,6 +351,7 @@ export interface ListVersionsRequestParams {
 // === Type guards ===
 // ===================
 
+/** A type guard that returns whether an {@link Asset} is a specific type of asset. */
 export function assetIsType<Type extends AssetType>(type: Type) {
     return (asset: Asset): asset is Asset<Type> => asset.type === type
 }

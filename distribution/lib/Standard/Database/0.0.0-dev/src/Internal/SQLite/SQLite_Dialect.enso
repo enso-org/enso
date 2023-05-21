@@ -1,6 +1,7 @@
 from Standard.Base import all hiding First, Last
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
@@ -145,11 +146,18 @@ type SQLite_Dialect
     make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
     make_cast self column target_type _ =
         mapping = self.get_type_mapping
-        sql_type_text = mapping.sql_type_to_text target_type
-        new_expression = SQL_Expression.Operation "CAST" [column.expression, SQL_Expression.Literal sql_type_text]
-        # We override the type here, because SQLite gets it wrong if the column starts with NULL values.
+        target_value_type = mapping.sql_type_to_value_type target_type
+        custom_cast = make_custom_cast column target_value_type mapping
+        new_expression = custom_cast.if_nothing <|
+            self.make_cast_expression column target_type
         new_sql_type_reference = SQL_Type_Reference.from_constant target_type
         Internal_Column.Value column.name new_sql_type_reference new_expression
+
+    ## PRIVATE
+    make_cast_expression self column target_type =
+        mapping = self.get_type_mapping
+        sql_type_text = mapping.sql_type_to_text target_type
+        SQL_Expression.Operation "CAST" [column.expression, SQL_Expression.Literal sql_type_text]
 
     ## PRIVATE
     needs_execute_query_for_type_inference : Boolean
@@ -164,12 +172,15 @@ type SQLite_Dialect
        So after unifying columns with mixed types, we add a cast to ensure that.
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
+        _ = infer_result_type_from_database_callback
         # TODO [RW] This may be revisited with #6281.
         case approximate_result_type of
             Nothing -> column
             _ ->
                 sql_type = self.get_type_mapping.value_type_to_sql approximate_result_type Problem_Behavior.Ignore
-                self.make_cast column sql_type infer_result_type_from_database_callback
+                new_expression = self.make_cast_expression column sql_type
+                new_sql_type_reference = SQL_Type_Reference.from_constant sql_type
+                Internal_Column.Value column.name new_sql_type_reference new_expression
 
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
@@ -353,3 +364,22 @@ decimal_div = Base_Generator.lift_binary_op "/" x-> y->
 ## PRIVATE
 mod_op = Base_Generator.lift_binary_op "mod" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)) * " ++ y
+
+## PRIVATE
+   It will return `Nothing` if the type does not require custom logic.
+make_custom_cast column target_value_type type_mapping =
+    result = Ref.new Nothing
+    column_type =
+        type_mapping.sql_type_to_value_type column.sql_type_reference.get
+    if target_value_type.is_text && (column_type == Value_Type.Boolean) then
+        expr = SQL_Expression.Operation "IIF" [column.expression, SQL_Expression.Literal "'true'", SQL_Expression.Literal "'false'"]
+        result.put expr
+
+    if (target_value_type == Value_Type.Boolean) && column_type.is_text then
+        lower = SQL_Expression.Operation "FOLD_CASE" [column.expression]
+        is_true = SQL_Expression.Operation "==" [lower, SQL_Expression.Literal "'true'"]
+        is_false = SQL_Expression.Operation "==" [lower, SQL_Expression.Literal "'false'"]
+        expr = SQL_Expression.Operation "CASE" [is_true, SQL_Expression.Literal "TRUE", is_false, SQL_Expression.Literal "FALSE", SQL_Expression.Literal "NULL"]
+        result.put expr
+
+    result.get

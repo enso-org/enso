@@ -37,6 +37,7 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
 // === Component ===
 // =================
 
+/** Props for a {@link ProjectActionButton}. */
 export interface ProjectActionButtonProps {
     project: backendModule.Asset<backendModule.AssetType.project>
     appRunner: AppRunner | null
@@ -130,7 +131,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         }
     }, [isCheckingResources])
 
-    function closeProject() {
+    const closeProject = () => {
         setState(backendModule.ProjectState.closed)
         appRunner?.stopApp()
         void backend.closeProject(project.id)
@@ -138,7 +139,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         onClose()
     }
 
-    async function openProject() {
+    const openProject = async () => {
         setState(backendModule.ProjectState.openInProgress)
         setSpinnerState(SpinnerState.initial)
         // The `setTimeout` is required so that the completion percentage goes from

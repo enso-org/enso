@@ -13,6 +13,10 @@ const NAME = 'copy-directories'
 /** The esbuild namespace that the directories that will be copied are given. */
 const NAMESPACE = NAME
 
+// ========================
+// === Helper functions ===
+// ========================
+
 // This function is required. If narrowing is used instead,
 // TypeScript thinks `outputDir` may be `undefined` in functions.
 /** @param {string} message - The message with which to throw the `Error`.
@@ -21,6 +25,10 @@ const NAMESPACE = NAME
 function error(message) {
     throw new Error(message)
 }
+
+// ====================================
+// === esbuildPluginCopyDirectories ===
+// ====================================
 
 /** An esbuild plugin to copy and watch directories.
  * @param {import('./index').Options} [options] - options.
@@ -37,12 +45,12 @@ export default function esbuildPluginCopyDirectories(options) {
             const outputDir =
                 build.initialOptions.outdir ?? error('Output directory must be given.')
             /** @param {string} root - Path to the directory to watch. */
-            function continuouslySync(root) {
+            const continuouslySync = root => {
                 // It's theoretically possible to use a single `chokidar` instance,
                 // however the root directory path is needed for calculating the destination path.
                 const watcher = chokidar.watch(root, { cwd: root })
                 /** @param {string} path - Path to the file to be copied. */
-                function copy(path) {
+                const copy = path => {
                     void (async () => {
                         const source = pathModule.resolve(root, path)
                         const destination = pathModule.join(outputDir, path)
@@ -67,7 +75,8 @@ export default function esbuildPluginCopyDirectories(options) {
                 })
                 unwatchers.add(() => void watcher.close())
             }
-            build.onResolve({ filter: directoryFilter }, async ({ path, kind }) => {
+            build.onResolve({ filter: directoryFilter }, async info => {
+                const { path, kind } = info
                 if (kind === 'entry-point') {
                     if (!watchingPath[path]) {
                         watchingPath[path] = true

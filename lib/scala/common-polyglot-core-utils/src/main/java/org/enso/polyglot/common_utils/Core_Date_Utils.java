@@ -33,6 +33,16 @@ public class Core_Date_Utils {
         .toFormatter();
   }
 
+  /** @return default Date formatter for parsing a Date. */
+  public static DateTimeFormatter defaultLocalDateFormatter() {
+    return DateTimeFormatter.ISO_LOCAL_DATE;
+  }
+
+  /** @return default Time formatter for parsing a Time_Of_Day. */
+  public static DateTimeFormatter defaultLocalTimeFormatter() {
+    return DateTimeFormatter.ISO_LOCAL_TIME;
+  }
+
   /**
    * Parse a date time string into a ZonedDateTime.
    *

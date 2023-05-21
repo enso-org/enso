@@ -1,0 +1,59 @@
+from Standard.Base import all
+
+import project.Data.Column.Column
+import project.Data.Table.Table
+
+## Creates a column from a `Vector` of values.
+
+   Arguments:
+   - name: Name of the new column.
+Vector.to_column : Text -> Column
+Vector.to_column self name="Vector" =
+    Column.from_vector name self
+
+## Creates a column from a `Range` of values.
+
+   Arguments:
+   - name: Name of the new column.
+Range.to_column : Text -> Column
+Range.to_column self name="Range" =
+    Column.from_vector name self.to_vector
+
+## Creates a column from a `Date_Range` of values.
+
+   Arguments:
+   - name: Name of the new column.
+Date_Range.to_column : Text -> Column
+Date_Range.to_column self name="Date_Range" =
+    Column.from_vector name self.to_vector
+
+## ALIAS Statistic, Count, Sum, Maximum, Minimum, Mean, Median, Mode, Variance, Standard_Deviation, Skew, Kurtosis
+   Compute a single statistic on the column.
+
+   Arguments:
+   - statistic: Statistic to calculate.
+Column.compute : Statistic -> Any
+Column.compute self statistic=Statistic.Count =
+    Statistic.compute_bulk self.to_vector [statistic] . first
+
+## ALIAS Statistic, Count, Sum, Maximum, Minimum, Mean, Median, Mode, Variance, Standard_Deviation, Skew, Kurtosis
+   Compute statistics on the column.
+
+   Arguments:
+   - statistics: Set of statistics to calculate.
+Column.compute_bulk : Vector Statistic -> Table
+Column.compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
+    values = Statistic.compute_bulk self.to_vector statistics
+    names = statistics.map _.to_text
+    Table.from_rows names [values]
+
+## ALIAS Statistic, Count, Sum, Maximum, Minimum, Mean, Median, Mode, Variance, Standard_Deviation, Skew, Kurtosis
+   Compute a single running statistic on the column.
+
+   Arguments:
+   - statistic: Statistic to calculate.
+   - name: Name of the new column.
+Column.running : Statistic -> Column
+Column.running self statistic=Statistic.Count name=statistic.to_text+" "+self.name =
+    data = Statistic.running self.to_vector statistic
+    Column.from_vector name data

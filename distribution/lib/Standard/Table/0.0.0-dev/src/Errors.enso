@@ -552,11 +552,23 @@ type Inexact_Type_Coercion
     to_text self =
         "Inexact_Type_Coercion.Warning (requested_type = " + self.requested_type.to_text + ") (actual_type = " + self.actual_type.to_text + ")"
 
-## TODO figure out this error in #6112
-type Lossy_Conversion
-    ## Indicates that some likely not-insignificant information was lost during
-       a conversion.
-    Error
+type Conversion_Failure
+    ## Indicates that some values from the column could not be converted to the
+       desired type.
+
+       This may occur for example when a number does not fit the range of the
+       target type.
+    Error (target_type : Value_Type) (related_column : Text) (affected_rows_count : Nothing|Integer)
+
+    ## PRIVATE
+
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        rows_info = case self.affected_rows_count of
+            Nothing -> "Some values"
+            count -> count.to_text+" rows"
+        rows_info + " could not be converted into the target type "+self.target_type.to_display_text+" when converting the column ["+self.related_column+"]."
 
 type Invalid_Value_For_Type
     ## PRIVATE
