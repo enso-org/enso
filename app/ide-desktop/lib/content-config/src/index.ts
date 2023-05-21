@@ -11,7 +11,8 @@ export const Option = linkedDist.config.Option
 // eslint-disable-next-line no-restricted-syntax
 export const Group = linkedDist.config.Group
 export const logger = linkedDist.log.logger
-// Declaring type with the same name as a variable.
+/** A configuration option. */
+// This type has the same name as a variable.
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export type Option<T> = linkedDist.config.Option<T>
 
@@ -27,6 +28,7 @@ export const VERSION = {
     /// Version of the `client` js package.
     ide: new semver.SemVer(BUILD_INFO.version, { loose: true }),
 
+    /** Returns whether this is a development version. */
     isDev(): boolean {
         const clientVersion = VERSION.ide
         const releaseDev = clientVersion.compareMain(VERSION.dev) === 0

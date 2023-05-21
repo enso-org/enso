@@ -34,12 +34,15 @@ OPTS.loader = { '.html': 'copy' }
 // === Watcher ===
 // ===============
 
+/** Start the esbuild watcher. */
 async function watch() {
     const builder = await esbuild.context(OPTS)
     await builder.watch()
     await builder.serve({
         port: PORT,
         servedir: OPTS.outdir,
+        /** This function is called on every request.
+         * It is used here to show an error if the file to serve was not found. */
         onRequest(args) {
             if (args.status !== HTTP_STATUS_OK) {
                 console.error(

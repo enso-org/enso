@@ -29,7 +29,8 @@ export interface Column<T> {
 // === Component ===
 // =================
 
-interface Props<T> {
+/** Props for a {@link Rows}. */
+export interface RowsProps<T> {
     items: T[]
     getKey: (item: T) => string
     isLoading: boolean
@@ -40,18 +41,18 @@ interface Props<T> {
 }
 
 /** Table that projects an object into each column. */
-function Rows<T>(props: Props<T>) {
+function Rows<T>(props: RowsProps<T>) {
     const { columns, items, isLoading, getKey, placeholder, onClick, onContextMenu } = props
     const [spinnerClasses, setSpinnerClasses] = react.useState(SPINNER_INITIAL_CLASSES)
 
     const headerRow = (
         <tr>
-            {columns.map(({ heading }, index) => (
+            {columns.map(column => (
                 <th
-                    key={index}
+                    key={column.id}
                     className="text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-semibold text-left"
                 >
-                    {heading}
+                    {column.heading}
                 </th>
             ))}
         </tr>
@@ -93,9 +94,9 @@ function Rows<T>(props: Props<T>) {
                 }}
                 className="h-10 transition duration-300 ease-in-out hover:bg-gray-100 focus:bg-gray-200"
             >
-                {columns.map(({ id, render }) => (
-                    <td key={id} className="px-4 border-0 border-r">
-                        {render(item, index)}
+                {columns.map(column => (
+                    <td key={column.id} className="px-4 border-0 border-r">
+                        {column.render(item, index)}
                     </td>
                 ))}
             </tr>

@@ -13,6 +13,7 @@ import Modal from './modal'
 // === ResetPasswordModal ===
 // ==========================
 
+/** A modal for changing the user's password. */
 function ChangePasswordModal() {
     const { changePassword } = auth.useAuth()
     const { unsetModal } = modalProvider.useSetModal()
@@ -45,9 +46,9 @@ function ChangePasswordModal() {
                 </div>
                 <div className="mt-10">
                     <form
-                        onSubmit={event => {
+                        onSubmit={async event => {
                             event.preventDefault()
-                            void onSubmit()
+                            await onSubmit()
                         }}
                     >
                         <div className="flex flex-col mb-6">

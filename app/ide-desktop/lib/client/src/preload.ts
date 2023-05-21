@@ -24,7 +24,7 @@ const AUTHENTICATION_API_KEY = 'authenticationApi'
 
 /** Shutdown-related commands and events. */
 electron.contextBridge.exposeInMainWorld('enso_lifecycle', {
-    /** Allows application-exit to be initiated from WASM code.
+    /** Allow application-exit to be initiated from WASM code.
      * This is used, for example, in a key binding (Ctrl+Alt+Q) that saves a performance profile and
      * exits. */
     quit: () => {
@@ -82,13 +82,14 @@ electron.contextBridge.exposeInMainWorld('enso_console', {
  * - handle deep links from the system browser or email client to the dashboard.
  *
  * Some functions (i.e., the functions to open URLs in the system browser) are not available in
- * sandboxed processes (i.e., the dashboard). So the {@link electron.contextBridge.exposeInMainWorld} API is
- * used to expose these functions. The functions are exposed via this "API object", which is added
- * to the main window.
+ * sandboxed processes (i.e., the dashboard). So the
+ * {@link electron.contextBridge.exposeInMainWorld} API is used to expose these functions.
+ * The functions are exposed via this "API object", which is added to the main window.
  *
- * For more details, see: https://www.electronjs.org/docs/latest/api/context-bridge#api-functions. */
+ * For more details, see:
+ * https://www.electronjs.org/docs/latest/api/context-bridge#api-functions. */
 const AUTHENTICATION_API = {
-    /** Opens a URL in the system browser (rather than in the app).
+    /** Open a URL in the system browser (rather than in the app).
      *
      * OAuth URLs must be opened this way because the dashboard application is sandboxed and thus
      * not privileged to do so unless we explicitly expose this functionality. */
@@ -105,10 +106,10 @@ const AUTHENTICATION_API = {
         electron.ipcRenderer.on(ipc.Channel.openDeepLink, (_event, url: string) => {
             callback(url)
         }),
-    /** Saves the access token to a credentials file.
+    /** Save the access token to a credentials file.
      *
-     * Enso backend doesn't have access to Electron localStorage so we need to save access token to a file.
-     * Then the token will be used to sign cloud API requests. */
+     * The backend doesn't have access to Electron's `localStorage` so we need to save access token
+     * to a file. Then the token will be used to sign cloud API requests. */
     saveAccessToken: (accessToken: string) => {
         electron.ipcRenderer.send(ipc.Channel.saveAccessToken, accessToken)
     },

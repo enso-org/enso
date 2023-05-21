@@ -93,7 +93,7 @@ type Problem_Builder
          problem types to `types_to_always_throw`.
        - missing_input_columns_location: The location to add to the missing
          input column error to make it more informative. Defaults to `Nothing`.
-    new : Vector -> Boolean -> Problem_Builder
+    new : Vector -> Boolean -> Text | Nothing -> Problem_Builder
     new types_to_always_throw=[] error_on_missing_columns=False missing_input_columns_location=Nothing =
         additional_types_to_throw = if error_on_missing_columns then [Missing_Input_Columns, Column_Indexes_Out_Of_Range, Invalid_Aggregate_Column] else []
         Problem_Builder.Value types_to_always_throw+additional_types_to_throw (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) missing_input_columns_location other=Vector.new_builder
