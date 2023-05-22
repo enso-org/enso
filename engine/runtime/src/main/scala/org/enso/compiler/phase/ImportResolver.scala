@@ -34,7 +34,7 @@ class ImportResolver(compiler: Compiler) {
     *
     * @param module the entry-point module.
     * @return a tuple containing a list of all modules that need to go through the full compilation pipeline and
-    *         a list of all modules which have been inferred from bindings cache and could potentially be compiled lazilly
+    *          a list of all modules which have been inferred from bindings cache and could potentially be compiled lazily
     */
   def mapImports(
     module: Module,

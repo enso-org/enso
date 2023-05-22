@@ -1,6 +1,7 @@
 package org.enso.table_test_helpers;
 
 import org.enso.table.data.column.builder.object.Builder;
+import org.enso.table.data.column.operation.CastProblemBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -105,6 +106,11 @@ public class ExplodingStorage extends Storage<Long> {
 
   @Override
   public Storage<Long> slice(List<SliceRange> ranges) {
+    return null;
+  }
+
+  @Override
+  public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
     return null;
   }
 }

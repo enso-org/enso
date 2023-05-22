@@ -175,7 +175,7 @@ base_dialect =
     fun = name -> [name, make_function name]
 
     arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["mod", make_function "MOD"], ["^", make_function "POWER"]]
-    logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif]]
+    logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif], ["CASE", case_when]]
     eq = lift_binary_op "==" make_equals
     neq = lift_binary_op "!=" make_not_equals
     compare = [eq, neq, bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
@@ -205,6 +205,22 @@ make_iif arguments = case arguments.length of
         (Builder.code "CASE WHEN " ++ expr ++ " THEN " ++ when_true ++ " WHEN " ++ expr ++ " IS NULL THEN NULL ELSE " ++ when_false ++ " END").paren
     _ ->
         Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation IIF")
+
+## PRIVATE
+   For Internal use.
+   An IR expression for constructing SQL `CASE` expressions.
+case_when : Vector Builder -> Builder
+case_when arguments =
+    if arguments.length < 4 then Error.throw (Illegal_State.Error "CASE_WHEN needs at least 3 arguments.") else
+        fallback = arguments.last
+        cases = arguments.drop (Last 1)
+        if cases.length % 2 != 0 then Error.throw (Illegal_State.Error "CASE_WHEN expects an odd number of arguments (two arguments for each case and a fallback).") else
+            n = cases.length . div 2
+            cases_exprs = 0.up_to n . map i->
+                condition = cases.at 2*i
+                result = cases.at (2*i)+1
+                Builder.code "WHEN " ++ condition ++ " THEN " ++ result
+            Builder.code "CASE " ++ Builder.join " " cases_exprs ++ " ELSE " ++ fallback ++ " END"
 
 ## PRIVATE
 simple_cast = Base_Generator.lift_binary_op "CAST" a-> b->

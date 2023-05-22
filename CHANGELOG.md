@@ -450,6 +450,8 @@
 - [Added `at_least_one` flag to `Table.tokenize_to_rows`.][6539]
 - [Moved `Redshift` connector into a separate `AWS` library.][6550]
 - [Added `Date_Range`.][6621]
+- [Implemented the `cast` operation for `Table` and `Column`.][6711]
+- [Added `.round` and `.int` to `Integer` and `Decimal`.][6743]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -660,6 +662,8 @@
 [6539]: https://github.com/enso-org/enso/pull/6539
 [6550]: https://github.com/enso-org/enso/pull/6550
 [6621]: https://github.com/enso-org/enso/pull/6621
+[6711]: https://github.com/enso-org/enso/pull/6711
+[6743]: https://github.com/enso-org/enso/pull/6743
 
 #### Enso Compiler
 
@@ -771,6 +775,7 @@
 - [Reimplement `enso_project` as a proper builtin][6352]
 - [Limit number of reported warnings per value][6577]
 - [Suggestions are updated only when the type of the expression changes][6755]
+- [Add project creation time to project metadata][6780]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -882,6 +887,7 @@
 [6352]: https://github.com/enso-org/enso/pull/6352
 [6577]: https://github.com/enso-org/enso/pull/6577
 [6755]: https://github.com/enso-org/enso/pull/6755
+[6780]: https://github.com/enso-org/enso/pull/6780
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
