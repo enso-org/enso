@@ -1014,7 +1014,7 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
@@ -1151,7 +1151,8 @@ class RuntimeSuggestionUpdatesTest
               ModuleExports(
                 "Enso_Test.Test.Main",
                 Set(
-                  ExportedSymbol.Atom("Enso_Test.Test.A", "MkA"),
+                  ExportedSymbol.Type("Enso_Test.Test.A", "MyType"),
+                  ExportedSymbol.Constructor("Enso_Test.Test.A", "MkA"),
                   ExportedSymbol.Method("Enso_Test.Test.A", "hello")
                 )
               ),
@@ -1190,6 +1191,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
@@ -1210,7 +1212,7 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      3
+      2
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -1228,7 +1230,6 @@ class RuntimeSuggestionUpdatesTest
           updates = Tree.Root(Vector())
         )
       ),
-      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
@@ -1259,7 +1260,10 @@ class RuntimeSuggestionUpdatesTest
             Api.ExportsUpdate(
               ModuleExports(
                 "Enso_Test.Test.Main",
-                Set(ExportedSymbol.Atom("Enso_Test.Test.A", "MkA"))
+                Set(
+                  ExportedSymbol.Type("Enso_Test.Test.A", "MyType"),
+                  ExportedSymbol.Constructor("Enso_Test.Test.A", "MkA")
+                )
               ),
               Api.ExportsAction.Remove()
             )

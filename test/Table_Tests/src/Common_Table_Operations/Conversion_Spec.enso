@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
 
-from Standard.Table.Errors import Conversion_Failure
+from Standard.Table.Errors import Missing_Input_Columns, Conversion_Failure
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test, Problems
@@ -201,6 +201,23 @@ spec setup =
             r1.should_fail_with Illegal_Argument
             r1.to_display_text . should_contain "`parse` should be used instead"
 
+        Test.specify "should report missing columns" <|
+            t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+
+            r1 = t.cast ["X", "Z"] Value_Type.Char
+            r1.should_fail_with Missing_Input_Columns
+            r1.catch.criteria . should_equal ["Z"]
+
+            t2 = t.cast ["X", "Z"] Value_Type.Char error_on_missing_columns=False
+            warn = Problems.expect_warning Missing_Input_Columns t2
+            warn.criteria . should_equal ["Z"]
+            t2.at "X" . to_vector . should_equal ["1", "2", "3"]
+            t2.at "Y" . to_vector . should_equal [4, 5, 6]
+
+            t3 = t.cast ["Z"] Value_Type.Char error_on_missing_columns=False
+            t3.at "X" . to_vector . should_equal [1, 2, 3]
+            t3.at "Y" . to_vector . should_equal [4, 5, 6]
+
         Test.specify "should work if the first row is NULL" <|
             t = table_builder [["X", [Nothing, 1, 2, 3000]], ["Y", [Nothing, True, False, True]]]
 
@@ -267,7 +284,7 @@ spec setup =
                 t3.at "Y" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
                 t3.at "Y" . to_vector . should_equal ["a  ", "abc", "abc"]
 
-    Test.group prefix+"Simple variant of Table/Column.parse in all backends" pending=(if setup.is_database then "parse is not yet implemented in DB") <|
+    Test.group prefix+"Simple variant of Table/Column.parse in all backends" <|
         Test.specify "should be able to parse simple integers" <|
             t = table_builder [["X", ["42", "0", "-1"]]]
 
@@ -321,3 +338,19 @@ spec setup =
             c2 = t.parse ["X"] Value_Type.Boolean . at "X"
             c2.value_type.should_equal Value_Type.Boolean
             c2.to_vector . should_equal [True, False, True]
+
+        Test.specify "should report missing columns" <|
+            t = table_builder [["X", ["42", "0", "-1"]]]
+
+            t1 = t.parse ["X", "Y"] Value_Type.Integer error_on_missing_columns=False
+            t1.at "X" . to_vector . should_equal [42, 0, -1]
+            t1.at "X" . value_type . is_integer . should_be_true
+            Problems.expect_warning Missing_Input_Columns t1
+
+            t2 = t.parse ["Y"] Value_Type.Integer error_on_missing_columns=False
+            Problems.expect_warning Missing_Input_Columns t2
+            t2.at "X" . to_vector . should_equal ["42", "0", "-1"]
+
+            r3 = t.parse ["X", "Y"] Value_Type.Integer
+            r3.should_fail_with Missing_Input_Columns
+            r3.catch.criteria . should_equal ["Y"]

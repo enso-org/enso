@@ -1,6 +1,7 @@
 from Standard.Base import all hiding First, Last
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
@@ -367,7 +368,18 @@ mod_op = Base_Generator.lift_binary_op "mod" x-> y->
 ## PRIVATE
    It will return `Nothing` if the type does not require custom logic.
 make_custom_cast column target_value_type type_mapping =
-    if target_value_type.is_text then
-        column_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
-        if column_type == Value_Type.Boolean then
-            SQL_Expression.Operation "IIF" [column.expression, SQL_Expression.Literal "'true'", SQL_Expression.Literal "'false'"]
+    result = Ref.new Nothing
+    column_type =
+        type_mapping.sql_type_to_value_type column.sql_type_reference.get
+    if target_value_type.is_text && (column_type == Value_Type.Boolean) then
+        expr = SQL_Expression.Operation "IIF" [column.expression, SQL_Expression.Literal "'true'", SQL_Expression.Literal "'false'"]
+        result.put expr
+
+    if (target_value_type == Value_Type.Boolean) && column_type.is_text then
+        lower = SQL_Expression.Operation "FOLD_CASE" [column.expression]
+        is_true = SQL_Expression.Operation "==" [lower, SQL_Expression.Literal "'true'"]
+        is_false = SQL_Expression.Operation "==" [lower, SQL_Expression.Literal "'false'"]
+        expr = SQL_Expression.Operation "CASE" [is_true, SQL_Expression.Literal "TRUE", is_false, SQL_Expression.Literal "FALSE", SQL_Expression.Literal "NULL"]
+        result.put expr
+
+    result.get

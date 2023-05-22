@@ -16,6 +16,7 @@ import scala.annotation.unused
 
 /** A utility structure for resolving symbols in a given module.
   *
+  * @param definedEntities the list of entities defined in the current module
   * @param currentModule the module holding these bindings
   */
 
