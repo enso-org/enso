@@ -235,8 +235,10 @@ class App {
             this.projectManagerHost ??= projectManagerHost!
             this.projectManagerPort ??= await portfinder.getPortPromise({
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                startPort: Number(projectManagerPort!.match(/^ws:\/\/(.+):(.+)$/)![0]),
+                startPort: parseInt(projectManagerPort!),
             })
+            const projectManagerUrl = `ws://${this.projectManagerHost}:${this.projectManagerPort}`
+            this.args.groups.engine.options.projectManagerUrl.value = projectManagerUrl
             const backendOpts = [
                 ...(this.args.groups.debug.options.verbose.value ? ['-vv'] : []),
                 `--serverHost=${this.projectManagerHost}`,

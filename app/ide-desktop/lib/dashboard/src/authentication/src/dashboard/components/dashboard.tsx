@@ -222,7 +222,7 @@ function columnsFor(displayMode: ColumnDisplayMode, backendPlatform: platformMod
 export interface DashboardProps {
     platform: platformModule.Platform
     appRunner: AppRunner | null
-    projectManagerEndpoint: string | null
+    projectManagerUrl: string | null
 }
 
 // TODO[sb]: Implement rename when clicking name of a selected row.
@@ -230,7 +230,7 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 function Dashboard(props: DashboardProps) {
-    const { platform, appRunner, projectManagerEndpoint } = props
+    const { platform, appRunner, projectManagerUrl } = props
 
     const logger = loggerProvider.useLogger()
     const { accessToken, organization } = auth.useFullUserSession()
@@ -716,7 +716,7 @@ function Dashboard(props: DashboardProps) {
                         setFileAssets([])
                         switch (newBackendPlatform) {
                             case platformModule.Platform.desktop:
-                                setBackend(new localBackend.LocalBackend(projectManagerEndpoint))
+                                setBackend(new localBackend.LocalBackend(projectManagerUrl))
                                 break
                             case platformModule.Platform.cloud: {
                                 const headers = new Headers()

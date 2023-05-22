@@ -35,8 +35,8 @@ export class LocalBackend implements Partial<backend.Backend> {
     readonly platform = platformModule.Platform.desktop
     private readonly projectManager: projectManager.ProjectManager
 
-    constructor(projectManagerEndpoint: string | null) {
-        this.projectManager = projectManager.ProjectManager.default(projectManagerEndpoint)
+    constructor(projectManagerUrl: string | null) {
+        this.projectManager = projectManager.ProjectManager.default(projectManagerUrl)
     }
 
     /** Return a list of assets in a directory.

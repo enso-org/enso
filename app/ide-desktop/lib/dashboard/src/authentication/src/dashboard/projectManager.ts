@@ -199,12 +199,12 @@ export class ProjectManager {
     }
 
     /** Lazy initialization for the singleton instance. */
-    static default(projectManagerEndpoint: string | null) {
+    static default(projectManagerUrl: string | null) {
         // `this.instance` is initially undefined as an instance should only be created
         // if a `ProjectManager` is actually needed.
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         return (this.instance ??= new ProjectManager(
-            projectManagerEndpoint ?? GLOBAL_CONFIG.projectManagerEndpoint
+            projectManagerUrl ?? GLOBAL_CONFIG.projectManagerEndpoint
         ))
     }
 

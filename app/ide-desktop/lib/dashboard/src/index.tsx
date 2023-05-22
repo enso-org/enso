@@ -42,6 +42,6 @@ authentication.run({
         // eslint-disable-next-line @typescript-eslint/no-empty-function
     },
     /** The cloud frontend is not capable of running a Project Manager. */
-    projectManagerEndpoint: null,
+    projectManagerUrl: null,
     appRunner: null,
 })
