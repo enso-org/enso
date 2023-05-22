@@ -164,6 +164,10 @@
   added in various other PRs. The new dashboard includes tables for projects,
   folders, files and secrets, a list of templates from which new projects can be
   created, a user menu, and a search bar.
+- [When selecting a function from the main module through the component browser,
+  it is now referenced via the `Main` namespace instead of the project
+  namespace,][6719] e.g. `Main.func1` instead of `MyProject.func1`. This makes
+  it robust against project name changes.
 
 [6279]: https://github.com/enso-org/enso/pull/6279
 [6421]: https://github.com/enso-org/enso/pull/6421
@@ -171,6 +175,7 @@
 [6617]: https://github.com/enso-org/enso/pull/6617
 [6620]: https://github.com/enso-org/enso/pull/6620
 [6663]: https://github.com/enso-org/enso/pull/6663
+[6719]: https://github.com/enso-org/enso/pull/6719
 
 #### EnsoGL (rendering engine)
 
