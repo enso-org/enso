@@ -7,6 +7,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.Runtime.Context
 
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
@@ -1953,8 +1954,14 @@ type Table
                     self.write file format=base_format on_existing_file match_columns on_problems
             _ ->
                 methods = if format == JSON_Format then ["write_table"] else Meta.meta (Meta.type_of format) . methods
-                if methods.contains "write_table" then format.write_table file self on_existing_file match_columns on_problems else
-                    Error.throw (File_Error.Unsupported_Output_Type format Table)
+                if methods.contains "write_table" . not then Error.throw (File_Error.Unsupported_Output_Type format Table) else
+                    effective_existing_behaviour = on_existing_file.get_effective_behavior file
+                    tgt_file = if Context.Output.is_enabled then file else
+                        actual.create_dry_run_file copy_original=on_existing_file==Existing_File_Behavior.Append
+
+                    to_write = if Context.Output.is_enabled then self else self.take 1000
+                    Context.Output.with_enabled <|
+                        format.write_table tgt_file to_write on_existing_file match_columns on_problems
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text
