@@ -67,18 +67,13 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
   ): ZIO[ZAny, IOException, Unit] = {
     val mainModule =
       new MainModule[ZIO[ZAny, +*, +*]](
-        config.copy(
-          server = ServerConfig(
-            processConfig.serverHost.getOrElse(config.server.host),
-            processConfig.serverPort.getOrElse(config.server.port)
-          )
-        ),
+        config,
         processConfig,
         computeExecutionContext
       )
     for {
-      binding <- bindServer(mainModule)
-      _       <- logServerStartup()
+      binding <- bindServer(mainModule, processConfig)
+      _       <- logServerStartup(processConfig)
       _       <- tryReadLine
       _       <- ZIO.succeed { logger.info("Stopping server...") }
       _       <- ZIO.succeed { binding.unbind() }
@@ -314,21 +309,25 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
     ZIO.succeed(SuccessExitCode)
   }
 
-  private def logServerStartup(): UIO[Unit] =
+  private def logServerStartup(processConfig: ProcessConfig): UIO[Unit] =
     ZIO.succeed {
       logger.info(
         "Started server at {}:{}, press enter to kill server",
-        config.server.host,
-        config.server.port
+        processConfig.serverHost.getOrElse(config.server.host),
+        processConfig.serverPort.getOrElse(config.server.port)
       )
     }
 
   private def bindServer(
-    module: MainModule[ZIO[ZAny, +*, +*]]
+    module: MainModule[ZIO[ZAny, +*, +*]],
+    processConfig: ProcessConfig
   ): UIO[Http.ServerBinding] =
     ZIO.succeed {
       Await.result(
-        module.server.bind(config.server.host, config.server.port),
+        module.server.bind(
+          processConfig.serverHost.getOrElse(config.server.host),
+          processConfig.serverPort.getOrElse(config.server.port)
+        ),
         3.seconds
       )
     }
