@@ -15,6 +15,8 @@ import sbt._
   * }}}
   */
 object WithDebugCommand {
+  val DEBUG_OPTION =
+    "-agentlib:jdwp=transport=dt_socket,server=n,address=localhost:5005,suspend=y";
 
   val truffleNoBackgroundCompilationOptions = Seq(
     "-Dpolyglot.engine.BackgroundCompilation=false"
@@ -78,9 +80,7 @@ object WithDebugCommand {
         else Seq()
       val debuggerOpts =
         if (debugFlags.contains(debuggerOption))
-          Seq(
-            "-agentlib:jdwp=transport=dt_socket,server=n,address=localhost:5005,suspend=y"
-          )
+          Seq(DEBUG_OPTION)
         else Seq()
       val javaOpts: Seq[String] = Seq(
         truffleNoBackgroundCompilationOptions,

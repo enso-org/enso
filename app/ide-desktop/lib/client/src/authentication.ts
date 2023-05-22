@@ -91,7 +91,7 @@ const logger = contentConfig.logger
 // === Initialize Authentication Module ===
 // ========================================
 
-/** Configures all the functionality that must be set up in the Electron app to support
+/** Configure all the functionality that must be set up in the Electron app to support
  * authentication-related flows. Must be called in the Electron app `whenReady` event.
  *
  * @param window - A function that returns the main Electron window. This argument is a lambda and
@@ -104,7 +104,7 @@ export function initModule(window: () => electron.BrowserWindow) {
     initSaveAccessTokenListener()
 }
 
-/** Registers an Inter-Process Communication (IPC) channel between the Electron application and the
+/** Register an Inter-Process Communication (IPC) channel between the Electron application and the
  * served website.
  *
  * This channel listens for {@link ipc.Channel.openUrlInSystemBrowser} events. When this kind of
@@ -122,7 +122,7 @@ function initIpc() {
     })
 }
 
-/** Registers a listener that fires a callback for `open-url` events, when the URL is a deep link.
+/** Register a listener that fires a callback for `open-url` events, when the URL is a deep link.
  *
  * This listener is used to open a page in *this* application window, when the user is
  * redirected to a URL with a protocol supported by this application.
@@ -135,13 +135,11 @@ function initOpenUrlListener(window: () => electron.BrowserWindow) {
     })
 }
 
-/**
- * Handles the 'open-url' event by parsing the received URL, checking if it is a deep link, and
+/** Handle the 'open-url' event by parsing the received URL, checking if it is a deep link, and
  * sending it to the appropriate BrowserWindow via IPC.
  *
  * @param url - The URL to handle.
- * @param window - A function that returns the BrowserWindow to send the parsed URL to.
- */
+ * @param window - A function that returns the BrowserWindow to send the parsed URL to. */
 export function onOpenUrl(url: URL, window: () => electron.BrowserWindow) {
     logger.log(`Received 'open-url' event for '${url.toString()}'.`)
     if (url.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
@@ -152,30 +150,32 @@ export function onOpenUrl(url: URL, window: () => electron.BrowserWindow) {
     }
 }
 
-/** Registers a listener that fires a callback for `save-access-token` events.
+/** Register a listener that fires a callback for `save-access-token` events.
  *
- * This listener is used to save given access token to credentials file to be later used by enso backend.
+ * This listener is used to save given access token to credentials file to be later used by
+ * the backend.
  *
- * Credentials file is placed in users home directory in `.enso` subdirectory in `credentials` file. */
+ * The credentials file is placed in the user's home directory in the `.enso` subdirectory
+ * in the `credentials` file. */
 function initSaveAccessTokenListener() {
     electron.ipcMain.on(ipc.Channel.saveAccessToken, (event, accessToken: string) => {
-        /** Enso home directory for credentials file.  */
-        const ensoCredentialsDirectoryName = '.enso'
-        /** Enso credentials file. */
-        const ensoCredentialsFileName = 'credentials'
+        /** Home directory for the credentials file.  */
+        const credentialsDirectoryName = `.${common.PRODUCT_NAME.toLowerCase()}`
+        /** File name of the credentials file. */
+        const credentialsFileName = 'credentials'
         /** System agnostic credentials directory home path. */
-        const ensoCredentialsHomePath = path.join(os.homedir(), ensoCredentialsDirectoryName)
+        const credentialsHomePath = path.join(os.homedir(), credentialsDirectoryName)
 
-        fs.mkdir(ensoCredentialsHomePath, { recursive: true }, error => {
+        fs.mkdir(credentialsHomePath, { recursive: true }, error => {
             if (error) {
-                logger.error(`Couldn't create ${ensoCredentialsDirectoryName} directory.`)
+                logger.error(`Couldn't create ${credentialsDirectoryName} directory.`)
             } else {
                 fs.writeFile(
-                    path.join(ensoCredentialsHomePath, ensoCredentialsFileName),
+                    path.join(credentialsHomePath, credentialsFileName),
                     accessToken,
                     innerError => {
                         if (innerError) {
-                            logger.error(`Could not write to ${ensoCredentialsFileName} file.`)
+                            logger.error(`Could not write to ${credentialsFileName} file.`)
                         }
                     }
                 )

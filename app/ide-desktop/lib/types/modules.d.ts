@@ -2,7 +2,12 @@
  *
  * This file MUST NOT `export {}` for the modules to be visible to other files. */
 
+// ===========================
+// === Module declarations ===
+// ===========================
+
 declare module '*/gui/config.yaml' {
+    /** Content of the GUI config file. */
     interface Config {
         windowAppScopeName: string
         windowAppScopeConfigName: string
@@ -18,15 +23,18 @@ declare module '*/gui/config.yaml' {
 }
 
 declare module '@eslint/js' {
+    /** A set of configurations. */
     interface Config {
-        rules: Record<string, string>
+        rules: Record<string, unknown>
     }
 
+    /** Preset configurations defined by ESLint. */
     interface EslintConfigs {
         all: Config
         recommended: Config
     }
 
+    /** The default export of the module. */
     interface Default {
         configs: EslintConfigs
     }
@@ -56,13 +64,17 @@ declare module 'tailwindcss/nesting/index.js' {
 declare module 'create-servers' {
     import * as http from 'node:http'
 
+    /** Configuration options for `create-servers`. */
     interface CreateServersOptions {
         http: number
         handler: http.RequestListener<http.IncomingMessage, http.ServerResponse>
     }
+
+    /** An error passed to a callback when a HTTP request fails. */
     interface HttpError {
         http: string
     }
+
     export default function (
         option: CreateServersOptions,
         // This is a third-party module which we have no control over.

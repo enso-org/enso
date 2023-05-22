@@ -109,7 +109,7 @@ export interface AuthService {
     registerAuthEventListener: listen.ListenFunction
 }
 
-/** Creates an instance of the authentication service.
+/** Create an instance of the authentication service.
  *
  * # Warning
  *
@@ -125,6 +125,7 @@ export function initAuthService(authConfig: AuthConfig): AuthService {
     }
 }
 
+/** Return the appropriate Amplify configuration for the current platform. */
 function loadAmplifyConfig(
     logger: loggerProvider.Logger,
     platform: platformModule.Platform,
@@ -146,7 +147,7 @@ function loadAmplifyConfig(
         urlOpener = openUrlWithExternalBrowser
 
         /** When running on destop we want to have option to save access token to a file,
-         * so it can be later reuse when issuing requests to Cloud API. */
+         * so it can be later reused when issuing requests to the Cloud API. */
         accessTokenSaver = saveAccessToken
 
         /** To handle redirects back to the application from the system browser, we also need to
@@ -163,10 +164,12 @@ function loadAmplifyConfig(
     }
 }
 
+/** Open a URL with the user's default browser. */
 function openUrlWithExternalBrowser(url: string) {
     window.authenticationApi.openUrlInSystemBrowser(url)
 }
 
+/** Save the access token to a file. */
 function saveAccessToken(accessToken: string) {
     window.authenticationApi.saveAccessToken(accessToken)
 }

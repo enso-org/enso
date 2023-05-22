@@ -10,26 +10,26 @@ import org.enso.table.data.column.storage.type.IntegerType;
 public abstract class Builder {
   public static Builder getForType(StorageType type, int size) {
     Builder builder = switch (type) {
-      case AnyObjectType() -> new ObjectBuilder(size);
-      case BooleanType() -> new BoolBuilder(size);
-      case DateType() -> new DateBuilder(size);
-      case DateTimeType() -> new DateTimeBuilder(size);
-      case TimeOfDayType() -> new TimeOfDayBuilder(size);
-      case FloatType(Bits bits) ->
-        switch (bits) {
+      case AnyObjectType x -> new ObjectBuilder(size);
+      case BooleanType x -> new BoolBuilder(size);
+      case DateType x -> new DateBuilder(size);
+      case DateTimeType x -> new DateTimeBuilder(size);
+      case TimeOfDayType x -> new TimeOfDayBuilder(size);
+      case FloatType floatType ->
+        switch (floatType.bits()) {
           case BITS_64 -> NumericBuilder.createDoubleBuilder(size);
           default -> throw new IllegalArgumentException("Only 64-bit floats are currently supported.");
         };
-      case IntegerType(Bits bits) ->
-          switch (bits) {
+      case IntegerType integerType ->
+          switch (integerType.bits()) {
             case BITS_64 -> NumericBuilder.createLongBuilder(size);
             default -> throw new IllegalArgumentException("TODO: Builders other than 64-bit int are not yet supported.");
           };
-      case TextType(long maxLength, boolean isFixed) -> {
-        if (isFixed) {
+      case TextType textType -> {
+        if (textType.fixedLength()) {
           throw new IllegalArgumentException("Fixed-length text builders are not yet supported yet.");
         }
-        if (maxLength >= 0) {
+        if (textType.maxLength() >= 0) {
           throw new IllegalArgumentException("Text builders with a maximum length are not yet supported yet.");
         }
 

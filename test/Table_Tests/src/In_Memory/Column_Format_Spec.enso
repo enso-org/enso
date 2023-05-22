@@ -1,17 +1,15 @@
 from Standard.Base import all
-from Standard.Table.Data.Column_Format import all
-
-import Standard.Base.Data.Locale.Locale
-import Standard.Base.Data.Time.Date.Date
-import Standard.Base.Data.Time.Date_Time.Date_Time
-import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
 import Standard.Table.Data.Type.Value_Type.Bits
-import Standard.Test.Extensions
 
 from Standard.Table import Column, Value_Type
 from Standard.Table.Errors import Invalid_Value_Type
+from Standard.Table.Internal.Column_Format import all
+
+import Standard.Test.Extensions
 from Standard.Test import Test, Test_Suite
+
 from project.Util import all
 
 spec =
