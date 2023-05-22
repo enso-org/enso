@@ -13,4 +13,4 @@ slotmap = "1.0.6"
 
 [features]
 stack-trace = []
-default = ["stack-trace"]
+#default = ["stack-trace"]

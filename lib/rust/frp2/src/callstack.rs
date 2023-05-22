@@ -48,7 +48,7 @@ impl Display for Label {
 pub struct Location(u32, &'static str);
 
 #[cfg(not(feature = "stack-trace"))]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Location();
 
 impl Location {

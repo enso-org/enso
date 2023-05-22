@@ -257,9 +257,9 @@ impl Runtime {
     }
 
     #[inline(always)]
-    fn emit_event(&self, node_id: NodeId, event: &dyn Data) {
-        // println!("emit_event {:?} {:?}", node_id, event);
-        // println!("emit_event {:?} {:?}", node_id, event);
+    fn unchecked_emit(&self, node_id: NodeId, event: &dyn Data) {
+        // println!("unchecked_emit {:?} {:?}", node_id, event);
+        // println!("unchecked_emit {:?} {:?}", node_id, event);
         self.nodes.with_item_borrow(node_id, |node| {
             if node.behavior_requests.get() > 0 {
                 *node.output.borrow_mut() = Some(event.boxed_clone());
@@ -375,13 +375,13 @@ trait NodeDefinition<Kind, Inputs, Output, F> {
 }
 
 impl<Kind, Output, F> NodeDefinition<Kind, (), Output, F> for &Network
-where F: Fn(EventData) + 'static
+where F: Fn(TypedNodeData<Output>) + 'static
 {
     #[inline(always)]
     fn define_node(&self, _inputs: (), f: F) -> NodeTemplate<Kind, Output> {
         let node = NodeTemplate::new_template(
             move |event_data: EventData, _event: &dyn Data| {
-                f(event_data);
+                f(event_data.unchecked_into());
             },
             self.id,
         );
@@ -392,14 +392,14 @@ where F: Fn(EventData) + 'static
 impl<Kind, N0, T0, Output, F> NodeDefinition<Kind, Event<N0>, Output, F> for &Network
 where
     N0: Node<Output = T0>,
-    F: Fn(EventData, &T0) + 'static,
+    F: Fn(TypedNodeData<Output>, &T0) + 'static,
 {
     #[inline(always)]
     fn define_node(&self, inputs: Event<N0>, f: F) -> NodeTemplate<Kind, Output> {
         let node = NodeTemplate::new_template(
             move |event_data: EventData, event: &dyn Data| {
                 let event = unsafe { &*(event as *const dyn Data as *const T0) };
-                f(event_data, event);
+                f(event_data.unchecked_into(), event);
             },
             self.id,
         );
@@ -413,7 +413,7 @@ impl<Kind, N0, N1, T0, T1: Default, Output, F>
 where
     N0: Node<Output = T0>,
     N1: Node<Output = T1>,
-    F: Fn(EventData, &T0, &T1) + 'static,
+    F: Fn(TypedNodeData<Output>, &T0, &T1) + 'static,
 {
     #[inline(always)]
     fn define_node(&self, inputs: (Event<N0>, Behavior<N1>), f: F) -> NodeTemplate<Kind, Output> {
@@ -424,7 +424,7 @@ where
                         let t0 = &*(event as *const dyn Data as *const T0);
                         event_data.runtime.with_borrowed_node_output_coerced(
                             event_data.data.inputs.get(1),
-                            |t1| f(event_data, t0, t1),
+                            |t1| f(event_data.unchecked_into(), t0, t1),
                         );
                     }
                 }
@@ -443,7 +443,7 @@ where
     N0: Node<Output = T0>,
     N1: Node<Output = T1>,
     N2: Node<Output = T2>,
-    F: Fn(EventData, &T0, &T1, &T2) + 'static,
+    F: Fn(TypedNodeData<Output>, &T0, &T1, &T2) + 'static,
 {
     #[inline(always)]
     fn define_node(
@@ -461,7 +461,7 @@ where
                             |t1| {
                                 event_data.runtime.with_borrowed_node_output_coerced(
                                     event_data.data.inputs.get(2),
-                                    |t2| f(event_data, t0, t1, t2),
+                                    |t2| f(event_data.unchecked_into(), t0, t1, t2),
                                 )
                             },
                         );
@@ -506,7 +506,7 @@ impl<Kind, Output> NodeTemplate<Kind, Output> {
     #[inline(always)]
     pub fn emit(&self, value: Output)
     where Output: Data {
-        with_runtime(|rt| rt.emit_event(self.id, &value));
+        with_runtime(|rt| rt.unchecked_emit(self.id, &value));
     }
 }
 
@@ -535,10 +535,42 @@ impl Network {
 
 impl Network {
     pub fn trace<T0: Data>(&self, source: impl Node<Output = T0>) -> Stream<T0> {
-        self.define_node(Event(source), move |event_data, t1| {
-            println!("TRACE: {:?}", t1);
-            event_data.runtime.emit_event(event_data.source_edge.target, t1);
+        self.define_node(Event(source), move |event, t0| {
+            println!("TRACE: {:?}", t0);
+            event.emit(t0);
         })
+    }
+}
+
+
+// === Trace ===
+
+#[derive(Debug, Clone, Derivative)]
+#[derivative(Default(bound = ""))]
+pub struct DebugCollectData<T> {
+    cell: Rc<OptRefCell<Vec<T>>>,
+}
+
+impl<T> DebugCollectData<T> {
+    pub fn assert_eq(&self, expected: &[T])
+    where T: PartialEq + Debug {
+        let actual = self.cell.borrow();
+        assert_eq!(actual.as_slice(), expected);
+    }
+}
+
+impl Network {
+    pub fn debug_collect<T0: Data + Clone + 'static>(
+        &self,
+        source: impl Node<Output = T0>,
+    ) -> (Stream<Vec<T0>>, DebugCollectData<T0>) {
+        let data: DebugCollectData<T0> = default();
+        let out = data.clone();
+        let node = self.define_node(Event(source), move |event, t0| {
+            data.cell.borrow_mut().push(t0.clone());
+            event.emit(&*data.cell.borrow());
+        });
+        (node, out)
     }
 }
 
@@ -552,9 +584,7 @@ impl Network {
         n0: impl Node<Output = T0>,
         f: impl Fn(&T0) -> Output + 'static,
     ) -> Stream<Output> {
-        self.define_node(Event(n0), move |event_data, t0| {
-            event_data.runtime.emit_event(event_data.source_edge.target, &f(t0));
-        })
+        self.define_node(Event(n0), move |event, t0| event.emit(&f(t0)))
     }
 
     pub fn map2<T0, T1: Default, Output: Data>(
@@ -563,9 +593,26 @@ impl Network {
         n1: impl Node<Output = T1>,
         f: impl Fn(&T0, &T1) -> Output + 'static,
     ) -> Stream<Output> {
-        self.define_node((Event(n0), Behavior(n1)), move |event_data, t0, t1| {
-            event_data.runtime.emit_event(event_data.source_edge.target, &f(t0, t1));
-        })
+        self.define_node((Event(n0), Behavior(n1)), move |event, t0, t1| event.emit(&f(t0, t1)))
+    }
+}
+
+#[derive(Deref)]
+struct TypedNodeData<'a, Output> {
+    #[deref]
+    data: EventData<'a>,
+    tp:   PhantomData<Output>,
+}
+
+impl<'a, Output: Data> TypedNodeData<'a, Output> {
+    fn emit(self, value: &Output) {
+        self.data.runtime.unchecked_emit(self.data.source_edge.target, value);
+    }
+}
+
+impl<'a> EventData<'a> {
+    fn unchecked_into<Output>(self) -> TypedNodeData<'a, Output> {
+        TypedNodeData { data: self, tp: PhantomData }
     }
 }
 
@@ -603,17 +650,28 @@ mod tests {
 
     #[test]
     fn test() {
-        println!("hello");
         let net = Network::new();
         let src1 = net.source::<usize>();
         let src2 = net.source::<usize>();
         let m1 = net.map2(src1, src2, |a, b| 10 * a + b);
-        let trc = net.trace(m1);
+        let (_, results) = net.debug_collect(m1);
+        results.assert_eq(&[]);
         src1.emit(1);
-        // FIXME: not emitted
+        results.assert_eq(&[10]);
         src2.emit(2);
+        results.assert_eq(&[10]);
         src1.emit(3);
-        assert_eq!(1, 3);
+        results.assert_eq(&[10, 32]);
+    }
+
+    #[test]
+    fn test2() {
+        for i in 0..10 {
+            let net = Network::new();
+            let src1 = net.source::<usize>();
+            let src2 = net.source::<usize>();
+            // let m1 = net.map2(src1, src2, map_fn);
+        }
     }
 }
 
@@ -636,7 +694,7 @@ mod benches {
     }
 
     #[bench]
-    fn bench_plain_fn(bencher: &mut Bencher) {
+    fn bench_emit_plain_fn(bencher: &mut Bencher) {
         let mut sum = 0;
         bencher.iter(move || {
             for i in 0..REPS {
@@ -647,7 +705,7 @@ mod benches {
     }
 
     #[bench]
-    fn bench_frp(bencher: &mut Bencher) {
+    fn bench_emit_frp(bencher: &mut Bencher) {
         let net = Network::new();
         let src1 = net.source::<usize>();
         let src2 = net.source::<usize>();
@@ -658,6 +716,18 @@ mod benches {
             let _keep = &net;
             for i in 0..REPS {
                 src1.emit(i);
+            }
+        });
+    }
+
+    #[bench]
+    fn bench_create_frp(bencher: &mut Bencher) {
+        bencher.iter(move || {
+            for i in 0..10 {
+                let net = Network::new();
+                let src1 = net.source::<usize>();
+                // let src2 = net.source::<usize>();
+                // let m1 = net.map2(src1, src2, map_fn);
             }
         });
     }
