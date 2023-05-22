@@ -247,7 +247,7 @@ spec =
             input.format formats . should_fail_with Illegal_Argument
 
     spec_with_numeric_type "Integer" (Value_Type.Integer Bits.Bits_64)
-    #spec_with_numeric_type "Float" (Value_Type.Float Bits.Bits_64)
+    spec_with_numeric_type "Float" (Value_Type.Float Bits.Bits_64)
 
     Test.group "Integer" <|
         Test.specify "Integer Column (constructing the column directly from Integers)" <|
