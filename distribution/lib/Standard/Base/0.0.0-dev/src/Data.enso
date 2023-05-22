@@ -18,7 +18,7 @@ import project.Nothing.Nothing
 import project.System.File.File
 
 from project.Data.Boolean import Boolean, True, False
-from project.System.File_Format import Auto_Detect, File_Format, format_widget
+from project.System.File_Format import Auto_Detect, File_Format
 
 ## ALIAS Load, Open
    Reads a file into Enso.
@@ -55,7 +55,7 @@ from project.System.File_Format import Auto_Detect, File_Format, format_widget
          import Standard.Examples
 
          example_xls_to_table = Data.read Examples.xls (Excel (Worksheet 'Dates'))
-@format format_widget
+@format File_Format.default_widget
 read : Text | File -> File_Format -> Problem_Behavior -> Any ! File_Error
 read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
     File.new path . read format on_problems

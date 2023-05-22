@@ -64,6 +64,7 @@ class ContextEventsListenerSpec
               Some(methodPointer),
               Vector(),
               false,
+              true,
               Api.ExpressionUpdate.Payload.Value()
             )
           )
@@ -100,6 +101,7 @@ class ContextEventsListenerSpec
               None,
               Vector(),
               false,
+              true,
               Api.ExpressionUpdate.Payload.DataflowError(
                 Seq(Suggestions.function.externalId.get)
               )
@@ -139,6 +141,7 @@ class ContextEventsListenerSpec
               None,
               Vector(),
               false,
+              false,
               Api.ExpressionUpdate.Payload.Panic("Method failure", Seq())
             )
           )
@@ -177,6 +180,7 @@ class ContextEventsListenerSpec
             None,
             Vector(),
             false,
+            false,
             Api.ExpressionUpdate.Payload.Value()
           )
         )
@@ -190,6 +194,7 @@ class ContextEventsListenerSpec
             None,
             None,
             Vector(),
+            false,
             false,
             Api.ExpressionUpdate.Payload.Value()
           )

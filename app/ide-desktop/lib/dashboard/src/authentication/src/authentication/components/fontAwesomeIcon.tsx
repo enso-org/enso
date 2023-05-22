@@ -6,10 +6,12 @@ import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
 // === FontAwesomeIcon ===
 // =======================
 
+/** Props for a {@link FontAwesomeIcon}. */
 export interface FontAwesomeIconProps {
     icon: fontawesomeIcons.IconDefinition
 }
 
+/** A fixed-size container for a {@link fontawesome.FontAwesomeIcon FontAwesomeIcon}. */
 function FontAwesomeIcon(props: FontAwesomeIconProps) {
     return (
         <span

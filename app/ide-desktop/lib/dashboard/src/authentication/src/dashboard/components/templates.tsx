@@ -57,13 +57,14 @@ const TEMPLATES: Template[] = [
 // === TemplatesRender ===
 // =======================
 
-/** Render all templates, and a button to create an empty project. */
-interface TemplatesRenderProps {
+/** Props for a {@link TemplatesRender}. */
+export interface TemplatesRenderProps {
     // Later this data may be requested and therefore needs to be passed dynamically.
     templates: Template[]
     onTemplateClick: (name: string | null) => void
 }
 
+/** Render all templates, and a button to create an empty project. */
 function TemplatesRender(props: TemplatesRenderProps) {
     const { templates, onTemplateClick } = props
 
@@ -118,11 +119,12 @@ function TemplatesRender(props: TemplatesRenderProps) {
 // === Templates ===
 // =================
 
-/** The `TemplatesRender`'s container. */
-interface TemplatesProps {
+/** Props for a {@link Templates}. */
+export interface TemplatesProps {
     onTemplateClick: (name?: string | null) => void
 }
 
+/** A container for a {@link TemplatesRender} which passes it a list of templates. */
 function Templates(props: TemplatesProps) {
     const { onTemplateClick } = props
 

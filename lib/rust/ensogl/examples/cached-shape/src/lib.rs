@@ -144,7 +144,7 @@ mod background {
     ensogl_core::shape! {
         below = [texture, icon1, icon2];
         alignment = center;
-        (style: Style,) {
+        (style: Style) {
             Rect((296.0.px(), 326.0.px())).fill(color::Rgba::black()).into()
         }
     }

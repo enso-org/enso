@@ -1,13 +1,15 @@
-/** @file Styled wrapper around {@link Svg} icons. */
+/** @file Styled wrapper around SVG images. */
 
 // ===============
 // === SvgIcon ===
 // ===============
 
-interface SvgIconProps {
+/** Props for a {@link SvgIcon}. */
+export interface SvgIconProps {
     svg: JSX.Element
 }
 
+/** A fixed-size container for a SVG image. */
 function SvgIcon(props: SvgIconProps) {
     return (
         <div
