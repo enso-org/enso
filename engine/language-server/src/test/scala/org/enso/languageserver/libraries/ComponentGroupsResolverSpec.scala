@@ -263,11 +263,11 @@ object ComponentGroupsResolverSpec {
   /** Create a new config. */
   def config(
     namespace: String,
-    name: String,
+    module: String,
     componentGroups: ComponentGroups = ComponentGroups.empty
   ): Config =
     Config(
-      name                 = name,
+      module               = module,
       namespace            = namespace,
       version              = "0.0.1",
       license              = "",

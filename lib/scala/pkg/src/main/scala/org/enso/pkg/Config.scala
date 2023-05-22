@@ -85,7 +85,7 @@ object Contact {
 
 /** Represents a package configuration stored in the `package.yaml` file.
   *
-  * @param name package name
+  * @param module package name
   * @param namespace    package namespace. This field is a temporary workaround
   *                     and will be removed with further improvements to the
   *                     libraries system. The default value is `local`.
@@ -107,7 +107,7 @@ object Contact {
   *                     keys that are not known
   */
 case class Config(
-  name: String,
+  module: String,
   namespace: String,
   version: String,
   license: String,
@@ -129,7 +129,7 @@ object Config {
   val defaultNamespace: String = "local"
 
   private object JsonFields {
-    val name: String         = "name"
+    val module: String       = "module"
     val version: String      = "version"
     val ensoVersion: String  = "enso-version"
     val license: String      = "license"
@@ -143,7 +143,7 @@ object Config {
 
   implicit val decoder: Decoder[Config] = { json =>
     for {
-      name <- json.get[String](JsonFields.name)
+      module <- json.get[String](JsonFields.module)
       namespace <- json.getOrElse[String](JsonFields.namespace)(
         defaultNamespace
       )
@@ -178,7 +178,7 @@ object Config {
         )
 
       Config(
-        name                 = name,
+        module               = module,
         namespace            = namespace,
         version              = version,
         license              = license,
@@ -209,7 +209,7 @@ object Config {
     }
 
     val overrides = Seq(
-      JsonFields.name       -> config.name.asJson,
+      JsonFields.module     -> config.module.asJson,
       JsonFields.namespace  -> config.namespace.asJson,
       JsonFields.version    -> config.version.asJson,
       JsonFields.license    -> config.license.asJson,

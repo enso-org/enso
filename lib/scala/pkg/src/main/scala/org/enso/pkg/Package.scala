@@ -64,7 +64,7 @@ class Package[F](
     * @return a package with the updated name
     */
   def setPackageName(newName: String): Package[F] = {
-    new Package(root, config.copy(name = newName), fileSystem)
+    new Package(root, config.copy(module = newName), fileSystem)
   }
 
   /** Stores the package metadata on the hard drive. If the package does not exist,
@@ -127,7 +127,9 @@ class Package[F](
     * @return The package object with changed name. The old package is not
     *         valid anymore.
     */
-  def rename(newName: String): Package[F] = updateConfig(_.copy(name = newName))
+  def rename(newName: String): Package[F] = updateConfig(
+    _.copy(module = newName)
+  )
 
   /** Updates the package config.
     *
@@ -173,12 +175,12 @@ class Package[F](
   /** Returns the name of this package.
     * @return the name of this package.
     */
-  def name: String = config.name
+  def name: String = config.module
 
   def namespace: String = config.namespace
 
   /** A [[LibraryName]] associated with the package. */
-  def libraryName: LibraryName = LibraryName(config.namespace, config.name)
+  def libraryName: LibraryName = LibraryName(config.namespace, config.module)
 
   /** Parses a file path into a qualified module name belonging to this
     * package.
@@ -276,7 +278,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     componentGroups: ComponentGroups     = ComponentGroups.empty
   ): Package[F] = {
     val config = Config(
-      name                 = NameValidation.normalizeName(name),
+      module               = NameValidation.normalizeName(name),
       namespace            = namespace,
       version              = version,
       license              = license,
