@@ -130,7 +130,7 @@ pub struct OutputConnection {
 }
 
 #[derive(Default)]
-struct NodeData {
+pub struct NodeData {
     tp:                Option<Box<dyn EventConsumer>>,
     network_id:        NetworkId,
     def:               DefInfo,
@@ -147,7 +147,7 @@ impl Debug for NodeData {
 }
 
 impl NodeData {
-    pub fn new(tp: impl EventConsumer + 'static, network_id: NetworkId, def: DefInfo) -> Self {
+    fn new(tp: impl EventConsumer + 'static, network_id: NetworkId, def: DefInfo) -> Self {
         Self {
             tp: Some(Box::new(tp)),
             network_id,
@@ -203,7 +203,7 @@ fn rc_runtime() -> Rc<Runtime> {
 #[derive(Default)]
 pub struct Runtime {
     networks:     OptRefCell<SlotMap<NetworkId, NetworkData>>,
-    nodes:        CellSlotMap<NodeData>,
+    nodes:        CellSlotMap,
     // consumers:         RefCell<SecondaryMap<NodeId, BumpRc<dyn RawEventConsumer>>>,
     /// Map for each node to its behavior, if any. For nodes that are natively behaviors, points to
     /// itself. For non-behavior streams, may point to a sampler node that listens to it.
@@ -219,6 +219,14 @@ pub struct Runtime {
 }
 
 impl Runtime {
+    fn unsafe_clear(&self) {
+        self.networks.borrow_mut().clear();
+        self.nodes.clear();
+        // self.metrics = Metrics::default();
+        // self.stack.clear();
+        self.current_node.set(default());
+    }
+
     fn new_network(&self) -> NetworkId {
         self.metrics.inc_networks();
         self.metrics.inc_network_refs();
@@ -525,6 +533,7 @@ pub struct SourceType;
 pub type Source<Output> = NodeTemplate<SourceType, Output>;
 
 impl Network {
+    #[inline(always)]
     pub fn source<T>(&self) -> Source<T> {
         self.define_node((), |_| {})
     }
@@ -669,12 +678,11 @@ mod tests {
         for i in 0..10 {
             let net = Network::new();
             let src1 = net.source::<usize>();
-            let src2 = net.source::<usize>();
+            // let src2 = net.source::<usize>();
             // let m1 = net.map2(src1, src2, map_fn);
         }
     }
 }
-
 
 
 #[cfg(test)]
@@ -723,7 +731,8 @@ mod benches {
     #[bench]
     fn bench_create_frp(bencher: &mut Bencher) {
         bencher.iter(move || {
-            for i in 0..10 {
+            with_runtime(|rt| rt.unsafe_clear());
+            for i in 0..10_000 {
                 let net = Network::new();
                 let src1 = net.source::<usize>();
                 // let src2 = net.source::<usize>();
@@ -731,6 +740,11 @@ mod benches {
             }
         });
     }
+
+    // 93085
+    // 42930
+    // 57315
+    // 45130
 }
 
 // 4835920
@@ -752,59 +766,84 @@ pub struct NodeId {
 }
 
 #[derive(Debug, Default)]
-pub struct Slot<T> {
-    value:   Option<T>,
+pub struct Slot {
+    value:   NodeData,
     version: usize,
 }
 
-#[derive(Debug, Derivative)]
-#[derivative(Default(bound = "T: Default"))]
-pub struct CellSlotMap<T> {
+#[derive(Debug, Default)]
+pub struct CellSlotMap {
     free_indexes: OptRefCell<Vec<usize>>,
-    list:         LinkedCellArray<Slot<T>>,
+    list:         LinkedCellArray<Slot, 256>,
 }
 
-impl<T: Default> CellSlotMap<T> {
+impl CellSlotMap {
     pub fn new() -> Self {
         default()
     }
 
-    pub fn insert(&self, val: T) -> NodeId {
+    pub fn clear(&self) {
+        self.free_indexes.borrow_mut().clear();
+        self.list.clear();
+    }
+
+    pub fn insert(&self, val: NodeData) -> NodeId {
         let mut free_indexes = self.free_indexes.borrow_mut();
         if let Some(index) = free_indexes.pop() {
             let version = self.list.with_item_borrow_mut(index, |slot| {
-                slot.value = Some(val);
+                slot.value = val;
                 slot.version += 1;
                 slot.version
             });
             NodeId { index, version }
         } else {
             let index = self.list.len();
-            self.list.push(Slot { value: Some(val), version: 0 });
+            self.list.push(Slot { value: val, version: 0 });
             NodeId { index, version: 0 }
         }
     }
 
-    pub fn insert_at(&self, key: NodeId, val: T) -> bool {
+    pub fn insert_default(&self) -> NodeId {
+        let mut free_indexes = self.free_indexes.borrow_mut();
+        if let Some(index) = free_indexes.pop() {
+            todo!()
+            // let version = self.list.with_item_borrow_mut(index, |slot| {
+            //     slot.value = val;
+            //     slot.version += 1;
+            //     slot.version
+            // });
+            // NodeId { index, version }
+        } else {
+            let index = self.list.len();
+            self.list.push_default();
+            NodeId { index, version: 0 }
+        }
+    }
+
+    pub fn insert_at(&self, key: NodeId, val: NodeData) -> bool {
         self.list.with_item_borrow_mut(key.index, |slot| {
             if slot.version != key.version {
                 false
             } else {
-                slot.value = Some(val);
+                slot.value = val;
                 true
             }
         })
     }
 
-    pub fn with_item_borrow<R>(&self, key: NodeId, f: impl FnOnce(&T) -> R) -> Option<R> {
+    pub fn with_item_borrow<R>(&self, key: NodeId, f: impl FnOnce(&NodeData) -> R) -> Option<R> {
         self.list.with_item_borrow(key.index, |slot| {
-            (slot.version == key.version).and_option_from(|| slot.value.as_ref().map(f))
+            (slot.version == key.version).then(|| f(&slot.value))
         })
     }
 
-    pub fn with_item_borrow_mut<R>(&self, key: NodeId, f: impl FnOnce(&mut T) -> R) -> Option<R> {
+    pub fn with_item_borrow_mut<R>(
+        &self,
+        key: NodeId,
+        f: impl FnOnce(&mut NodeData) -> R,
+    ) -> Option<R> {
         self.list.with_item_borrow_mut(key.index, |slot| {
-            (slot.version == key.version).and_option_from(|| slot.value.as_mut().map(f))
+            (slot.version == key.version).then(|| f(&mut slot.value))
         })
     }
 }
@@ -816,23 +855,41 @@ impl<T: Default> CellSlotMap<T> {
 
 pub trait LinkedArrayDefault<T, const N: usize> = where [OptRefCell<T>; N]: Default;
 
-#[derive(Debug, Derivative)]
-#[derivative(Default(bound = "Self: LinkedArrayDefault<T,N>"))]
+#[derive(Debug)]
 pub struct Segment<T, const N: usize> {
     items: [OptRefCell<T>; N],
     next:  OptRefCell<Option<Box<Segment<T, N>>>>,
 }
 
+impl<T: Default, const N: usize> Default for Segment<T, N> {
+    fn default() -> Self {
+        let items = {
+            let mut data: [OptRefCell<T>; N] = unsafe { std::mem::uninitialized() };
+
+            for elem in &mut data[..] {
+                unsafe {
+                    std::ptr::write(elem, default());
+                }
+            }
+            data
+        };
+        let next = default();
+        Self { items, next }
+    }
+}
+
 #[derive(Debug, Derivative)]
-#[derivative(Default(bound = "Self: LinkedArrayDefault<T,N>"))]
+#[derivative(Default(bound = "T: Default"))]
 pub struct LinkedCellArray<T, const N: usize = 32> {
     size:          Cell<usize>,
     first_segment: Segment<T, N>,
 }
 
-impl<T: Default, const N: usize> LinkedCellArray<T, N>
-where Self: LinkedArrayDefault<T, N>
-{
+impl<T: Default, const N: usize> LinkedCellArray<T, N> {
+    pub fn clear(&self) {
+        self.size.set(0);
+    }
+
     pub fn new() -> Self {
         Self::default()
     }
@@ -889,9 +946,7 @@ impl<T: Copy, const N: usize> LinkedCellArray<T, N> {
     }
 }
 
-impl<T: Default, const N: usize> Segment<T, N>
-where Self: LinkedArrayDefault<T, N>
-{
+impl<T: Default, const N: usize> Segment<T, N> {
     fn push(&self, offset: usize, elem: T) {
         if offset < N {
             *self.items[offset].borrow_mut() = elem;
