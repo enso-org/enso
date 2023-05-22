@@ -770,6 +770,7 @@
 - [Reimplement `enso_project` as a proper builtin][6352]
 - [Limit number of reported warnings per value][6577]
 - [Suggestions are updated only when the type of the expression changes][6755]
+- [Add project creation time to project metadata][6780]
 - [Upgrade GraalVM to 22.3.1 JDK17][6750]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
@@ -883,6 +884,7 @@
 [6577]: https://github.com/enso-org/enso/pull/6577
 [6750]: https://github.com/enso-org/enso/pull/6750
 [6755]: https://github.com/enso-org/enso/pull/6755
+[6780]: https://github.com/enso-org/enso/pull/6780
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
