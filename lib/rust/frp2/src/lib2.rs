@@ -13,6 +13,8 @@ use crate::callstack::CallStack;
 use crate::callstack::DefInfo;
 
 pub use enso_prelude as prelude;
+
+use enso_frp as frp_old;
 // use std::any::Any as Data;
 
 // #[derive(Clone, Copy, Debug)]
@@ -729,12 +731,44 @@ mod benches {
     }
 
     #[bench]
+    fn bench_emit_frp_old(bencher: &mut Bencher) {
+        let net = frp_old::Network::new("label");
+        frp_old::extend! { net
+            src1 <- source::<usize>();
+            src2 <- source::<usize>();
+            m1 <- map2(&src1, &src2, map_fn);
+        }
+        src2.emit(2);
+
+        bencher.iter(move || {
+            let _keep = &net;
+            for i in 0..REPS {
+                src1.emit(i);
+            }
+        });
+    }
+
+    #[bench]
     fn bench_create_frp(bencher: &mut Bencher) {
         bencher.iter(move || {
             with_runtime(|rt| rt.unsafe_clear());
+            let net = Network::new();
             for i in 0..10_000 {
-                let net = Network::new();
                 let src1 = net.source::<usize>();
+                // let src2 = net.source::<usize>();
+                // let m1 = net.map2(src1, src2, map_fn);
+            }
+        });
+    }
+
+    #[bench]
+    fn bench_create_frp_old(bencher: &mut Bencher) {
+        bencher.iter(move || {
+            let net = frp_old::Network::new("label");
+            for i in 0..100_000 {
+                frp_old::extend! { net
+                    src1 <- source::<usize>();
+                }
                 // let src2 = net.source::<usize>();
                 // let m1 = net.map2(src1, src2, map_fn);
             }
@@ -774,7 +808,7 @@ pub struct Slot {
 #[derive(Debug, Default)]
 pub struct CellSlotMap {
     free_indexes: OptRefCell<Vec<usize>>,
-    list:         LinkedCellArray<Slot, 256>,
+    list:         LinkedCellArray<Slot, 8192>,
 }
 
 impl CellSlotMap {

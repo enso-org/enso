@@ -5,6 +5,7 @@ authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"
 
 [dependencies]
+enso-frp = { path = "../frp" }
 enso-prelude = { path = "../prelude" }
 bumpalo = { version = "3.12.2", features = ["allocator_api"] }
 ouroboros = "0.15.6"
