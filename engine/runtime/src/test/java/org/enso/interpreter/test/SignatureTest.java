@@ -1,10 +1,12 @@
 package org.enso.interpreter.test;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -97,5 +99,57 @@ public class SignatureTest extends TestBase {
     var module = ctx.eval(src);
     var some = module.invokeMember("eval_expression", "Maybe.Some 10");
     assertEquals("Can read ten", 10, some.getMember("unwrap").asInt());
+  }
+
+  @Test
+  public void binaryWithZero() throws Exception {
+    Value module = exampleWithBinary();
+    var ok = module.invokeMember("eval_expression", "Bin.Zero Zero");
+    assertEquals("binary.Bin", ok.getMetaObject().getMetaQualifiedName());
+    try {
+      var v = module.invokeMember("eval_expression", "Bin.Zero 'hi'");
+      fail("Expecting an error, not " + v);
+    } catch (PolyglotException ex) {
+      assertEquals("Type_Error.Error", ex.getMessage());
+    }
+    try {
+      var v = module.invokeMember("eval_expression", "Bin.Zero One");
+      fail("Expecting an error, not " + v);
+    } catch (PolyglotException ex) {
+      assertEquals("Type_Error.Error", ex.getMessage());
+    }
+  }
+
+  private Value exampleWithBinary() throws URISyntaxException {
+    var uri = new URI("memory://binary.enso");
+    var src = Source.newBuilder("enso", """
+    type Zero
+    type One
+
+    type Bin
+        Zero (v:Zero)
+        One (v:One)
+        Either v:(Zero | One)
+    """, uri.getHost()).uri(uri).buildLiteral();
+    return ctx.eval(src);
+  }
+
+  @Test
+  public void binaryWithOne() throws Exception {
+    Value module = exampleWithBinary();
+    var ok = module.invokeMember("eval_expression", "Bin.One One");
+    assertEquals("binary.Bin", ok.getMetaObject().getMetaQualifiedName());
+    try {
+      var v = module.invokeMember("eval_expression", "Bin.One 10");
+      fail("Expecting an error, not " + v);
+    } catch (PolyglotException ex) {
+      assertEquals("Type_Error.Error", ex.getMessage());
+    }
+    try {
+      var v = module.invokeMember("eval_expression", "Bin.One Zero");
+      fail("Expecting an error, not " + v);
+    } catch (PolyglotException ex) {
+      assertEquals("Type_Error.Error", ex.getMessage());
+    }
   }
 }
