@@ -178,7 +178,9 @@ case object TypeSignatures extends IRPass {
     *
     * @param fn the function to check arguments for
     */
-  private def verifyAscribedArguments(arguments: List[IR.DefinitionArgument]): Unit = {
+  private def verifyAscribedArguments(
+    arguments: List[IR.DefinitionArgument]
+  ): Unit = {
     arguments.foreach(arg => {
       arg.ascribedType.map(t => {
         arg.updateMetadata(this -->> Signature(t))
