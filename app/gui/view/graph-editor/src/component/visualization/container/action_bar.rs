@@ -389,7 +389,7 @@ impl ActionBar {
 
             mouse_out_no_menu <- any_component_out.gate_not(&visualization_chooser.menu_visible);
             remote_click      <- visualization_chooser.menu_closed.gate_not(&any_hovered);
-            hide              <- any(mouse_out_no_menu,remote_click,on_selection);
+            hide              <- any(mouse_out_no_menu,remote_click, on_selection);
             eval_ hide (model.hide());
 
 
