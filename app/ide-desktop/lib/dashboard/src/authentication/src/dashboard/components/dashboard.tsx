@@ -742,21 +742,25 @@ function Dashboard(props: DashboardProps) {
                     <div className="flex flex-row flex-nowrap my-2">
                         <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
                         <div className="flex flex-row flex-nowrap mx-4">
-                            <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
-                                {directory && (
-                                    <>
-                                        <button className="mx-2" onClick={exitDirectory}>
-                                            {parentDirectory?.title ?? '/'}
-                                        </button>
-                                        {svg.SMALL_RIGHT_ARROW_ICON}
-                                    </>
-                                )}
-                                <span className="mx-2">{directory?.title ?? '/'}</span>
-                            </div>
-                            <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">
-                                <div className="m-2">Shared with</div>
-                                <div></div>
-                            </div>
+                            {backend.platform === platformModule.Platform.cloud && (
+                                <>
+                                    <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
+                                        {directory && (
+                                            <>
+                                                <button className="mx-2" onClick={exitDirectory}>
+                                                    {parentDirectory?.title ?? '/'}
+                                                </button>
+                                                {svg.SMALL_RIGHT_ARROW_ICON}
+                                            </>
+                                        )}
+                                        <span className="mx-2">{directory?.title ?? '/'}</span>
+                                    </div>
+                                    <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">
+                                        <div className="m-2">Shared with</div>
+                                        <div></div>
+                                    </div>
+                                </>
+                            )}
                             <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
                                 <button
                                     className={`mx-1 ${
