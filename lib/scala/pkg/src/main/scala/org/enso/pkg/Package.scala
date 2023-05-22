@@ -128,7 +128,7 @@ class Package[F](
     *         valid anymore.
     */
   def rename(newName: String): Package[F] = updateConfig(
-    _.copy(module = newName)
+    _.copy(name = newName, module = NameValidation.normalizeName(newName))
   )
 
   /** Updates the package config.
@@ -147,13 +147,13 @@ class Package[F](
 
   /** Creates the sources directory.
     */
-  def createSourceDir(): Unit = {
+  private def createSourceDir(): Unit = {
     Try(sourceDir.createDirectories()).getOrElse(throw CouldNotCreateDirectory)
   }
 
   /** Saves the config metadata into the package configuration file.
     */
-  def saveConfig(): Try[Unit] =
+  private def saveConfig(): Try[Unit] =
     Using(configFile.newBufferedWriter) { writer =>
       writer.write(config.toYaml)
     }
@@ -278,6 +278,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     componentGroups: ComponentGroups     = ComponentGroups.empty
   ): Package[F] = {
     val config = Config(
+      name                 = name,
       module               = NameValidation.normalizeName(name),
       namespace            = namespace,
       version              = version,

@@ -152,11 +152,12 @@ object ComponentGroupsValidatorSpec {
   /** Create a new config with containing a component groups error. */
   def configError(
     namespace: String,
-    module: String,
+    name: String,
     message: String
   ): Config =
     Config(
-      module               = module,
+      name                 = name,
+      module               = name,
       namespace            = namespace,
       version              = "0.0.1",
       license              = "",

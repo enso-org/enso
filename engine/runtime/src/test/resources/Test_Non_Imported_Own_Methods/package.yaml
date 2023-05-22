@@ -1,4 +1,4 @@
-name: TestSubmodules
+name: Test_Non_Imported_Own_Methods
 license: APLv2
 enso-version: default
 version: "0.0.1"

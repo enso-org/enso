@@ -33,7 +33,8 @@ class ConfigSpec
 
     "deserialize the serialized representation to the original value" in {
       val config = Config(
-        module    = "placeholder",
+        name      = "placeholder",
+        module    = "Placeholder",
         version   = "dev",
         namespace = "local",
         edition =
@@ -55,7 +56,8 @@ class ConfigSpec
 
     "only require the name and use defaults for everything else" in {
       val parsed = Config.fromYaml("name: FooBar").get
-      parsed.module shouldEqual "FooBar"
+      parsed.name shouldEqual "FooBar"
+      parsed.module shouldEqual "Foo_Bar"
       parsed.edition shouldBe empty
     }
 

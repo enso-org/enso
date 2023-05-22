@@ -16,6 +16,11 @@ class NameSanitizationSpec extends AnyWordSpec with Matchers {
       normalizeName("myProject") shouldEqual "My_Project"
       normalizeName("myPro??^ject123") shouldEqual "My_Project_123"
       normalizeName("???%$6543lib") shouldEqual "Project_6543_Lib"
+      normalizeName("MyProject™") shouldEqual "My_Project"
+      normalizeName("\uD83D\uDE80") shouldEqual "Project"
+      normalizeName("\uD83D\uDE80_\uD83D\uDE0A") shouldEqual "Project"
+      normalizeName("\uD83D\uDE80_\uD83D\uDE0A__") shouldEqual "Project"
+      normalizeName("_\uD83D\uDE80_\uD83D\uDE0A_") shouldEqual "Project"
     }
 
     "validate the project name" in {

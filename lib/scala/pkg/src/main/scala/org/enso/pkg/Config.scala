@@ -12,6 +12,7 @@ import org.enso.editions.{
   EnsoVersion,
   SemVerEnsoVersion
 }
+import org.enso.pkg.validation.NameValidation
 
 import java.io.Reader
 import scala.util.Try
@@ -85,10 +86,11 @@ object Contact {
 
 /** Represents a package configuration stored in the `package.yaml` file.
   *
-  * @param module package name
-  * @param namespace    package namespace. This field is a temporary workaround
-  *                     and will be removed with further improvements to the
-  *                     libraries system. The default value is `local`.
+  * @param name the package display name
+  * @param module the package module name
+  * @param namespace package namespace. This field is a temporary workaround
+  *                  and will be removed with further improvements to the
+  *                  libraries system. The default value is `local`.
   * @param version package version
   * @param license package license
   * @param authors name and contact information of the package author(s)
@@ -107,6 +109,7 @@ object Contact {
   *                     keys that are not known
   */
 case class Config(
+  name: String,
   module: String,
   namespace: String,
   version: String,
@@ -129,6 +132,7 @@ object Config {
   val defaultNamespace: String = "local"
 
   private object JsonFields {
+    val name: String         = "name"
     val module: String       = "module"
     val version: String      = "version"
     val ensoVersion: String  = "enso-version"
@@ -143,7 +147,10 @@ object Config {
 
   implicit val decoder: Decoder[Config] = { json =>
     for {
-      module <- json.get[String](JsonFields.module)
+      name <- json.get[String](JsonFields.name)
+      module <- json.getOrElse[String](JsonFields.module)(
+        NameValidation.normalizeName(name)
+      )
       namespace <- json.getOrElse[String](JsonFields.namespace)(
         defaultNamespace
       )
@@ -178,6 +185,7 @@ object Config {
         )
 
       Config(
+        name                 = name,
         module               = module,
         namespace            = namespace,
         version              = version,
@@ -208,14 +216,18 @@ object Config {
       )
     }
 
-    val overrides = Seq(
-      JsonFields.module     -> config.module.asJson,
-      JsonFields.namespace  -> config.namespace.asJson,
-      JsonFields.version    -> config.version.asJson,
-      JsonFields.license    -> config.license.asJson,
-      JsonFields.author     -> config.authors.asJson,
-      JsonFields.maintainer -> config.maintainers.asJson
-    ) ++ edition.toSeq ++ componentGroups.toSeq
+    val module = originals(JsonFields.module).map(JsonFields.module -> _)
+
+    val overrides =
+      Seq(JsonFields.name -> config.name.asJson) ++
+      module.toSeq ++
+      Seq(
+        JsonFields.namespace  -> config.namespace.asJson,
+        JsonFields.version    -> config.version.asJson,
+        JsonFields.license    -> config.license.asJson,
+        JsonFields.author     -> config.authors.asJson,
+        JsonFields.maintainer -> config.maintainers.asJson
+      ) ++ edition.toSeq ++ componentGroups.toSeq
 
     val preferLocalOverride =
       if (config.preferLocalLibraries)
