@@ -55,10 +55,20 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
 
     react.useEffect(() => {
-        setState(project.projectState.type)
-        if (project.projectState.type === backendModule.ProjectState.openInProgress) {
-            setSpinnerState(SpinnerState.initial)
-            setIsCheckingStatus(true)
+        switch (project.projectState.type) {
+            case backendModule.ProjectState.opened:
+                setState(backendModule.ProjectState.openInProgress)
+                setSpinnerState(SpinnerState.initial)
+                setIsCheckingResources(true)
+                break
+            case backendModule.ProjectState.openInProgress:
+                setState(backendModule.ProjectState.openInProgress)
+                setSpinnerState(SpinnerState.initial)
+                setIsCheckingStatus(true)
+                break
+            default:
+                setState(project.projectState.type)
+                break
         }
     }, [])
 
@@ -132,6 +142,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         appRunner?.stopApp()
         void backend.closeProject(project.id)
         setIsCheckingStatus(false)
+        setIsCheckingResources(false)
         onClose()
     }
 
