@@ -770,7 +770,7 @@
 - [Reimplement `enso_project` as a proper builtin][6352]
 - [Limit number of reported warnings per value][6577]
 - [Suggestions are updated only when the type of the expression changes][6755]
-- [Upgrade GraalVM to 22.3.2 JDK17][6750]
+- [Upgrade GraalVM to 22.3.1 JDK17][6750]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248

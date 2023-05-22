@@ -20,7 +20,7 @@ import java.io.File
 // ============================================================================
 
 val scalacVersion         = "2.13.8"
-val graalVersion          = "22.3.2"
+val graalVersion          = "22.3.1"
 val javaVersion           = "17"
 val defaultDevEnsoVersion = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
