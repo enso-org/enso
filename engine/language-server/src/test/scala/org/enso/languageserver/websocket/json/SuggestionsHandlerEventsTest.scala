@@ -500,11 +500,14 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
               ModuleExports(
                 "Foo.Bar",
                 ListSet(
-                  ExportedSymbol
-                    .Atom(
-                      Suggestions.constructor.module,
-                      Suggestions.constructor.name
-                    )
+                  ExportedSymbol.Type(
+                    Suggestions.tpe.module,
+                    Suggestions.tpe.name
+                  ),
+                  ExportedSymbol.Constructor(
+                    Suggestions.constructor.module,
+                    Suggestions.constructor.name
+                  )
                 )
               ),
               Api.ExportsAction.Add()
@@ -519,6 +522,14 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
             "method" : "search/suggestionsDatabaseUpdates",
             "params" : {
               "updates" : [
+                {
+                  "type" : "Modify",
+                  "id" : 1,
+                  "reexport" : {
+                    "tag" : "Set",
+                    "value" : "Foo.Bar"
+                  }
+                },
                 {
                   "type" : "Modify",
                   "id" : 2,

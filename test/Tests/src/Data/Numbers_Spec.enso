@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Incomparable_Values
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Base.Data.Numbers import Number_Parse_Error
 
@@ -469,5 +470,244 @@ spec =
 
             Number.nan . equals Number.nan . should_fail_with Incomparable_Values
             Number.nan . equals 0 . should_fail_with Incomparable_Values
+
+    Test.group "Decimal.round" <|
+        Test.specify "Can round positive decimals correctly" <|
+            3.0 . round . should_equal 3
+            3.00001 . round . should_equal 3
+            3.3 . round . should_equal 3
+            3.49999 . round . should_equal 3
+            3.5 . round . should_equal 4
+            3.50001 . round . should_equal 4
+            3.99999 . round . should_equal 4
+
+        Test.specify "Can round negative decimals correctly" <|
+            -3.0 . round . should_equal -3
+            -3.00001 . round . should_equal -3
+            -3.3 . round . should_equal -3
+            -3.49999 . round . should_equal -3
+            -3.5 . round . should_equal -3
+            -3.50001 . round . should_equal -4
+            -3.99999 . round . should_equal -4
+
+        Test.specify "Explicit and implicit 0 decimal places work the same" <|
+            3.00001 . round 0 . should_equal 3
+            3.3 . round 0 . should_equal 3
+            3.00001 . round . should_equal 3
+            3.3 . round . should_equal 3
+
+        Test.specify "Can round zero and small decimals correctly" <|
+            0.0 . round . should_equal 0
+            0.00001 . round . should_equal 0
+            -0.00001 . round . should_equal 0
+
+        Test.specify "Can round decimals to a specified number of decimal places" <|
+            3.0001 . round 2 . should_equal 3.0
+            3.1414 . round 2 . should_equal 3.14
+            3.1415 . round 2 . should_equal 3.14
+            3.1416 . round 2 . should_equal 3.14
+            3.9999 . round 2 . should_equal 4.0
+
+            3.0001 . round 3 . should_equal 3.0
+            3.1414 . round 3 . should_equal 3.141
+            3.1415 . round 3 . should_equal 3.142
+            3.1416 . round 3 . should_equal 3.142
+            3.9999 . round 3 . should_equal 4.0
+
+        Test.specify "Can round positive decimals to a specified negative number of decimal places" <|
+            1234.0 . round -1 . should_equal 1230
+            1234.0 . round -2 . should_equal 1200
+            1234.0 . round -3 . should_equal 1000
+            1234.0 . round -4 . should_equal 0
+
+            1499.0 . round -1 . should_equal 1500
+            1499.0 . round -2 . should_equal 1500
+            1499.0 . round -3 . should_equal 1000
+
+            1495.0 . round -1 . should_equal 1500
+            1494.0 . round -1 . should_equal 1490
+            1495.0 . round -2 . should_equal 1500
+            1494.0 . round -2 . should_equal 1500
+
+        Test.specify "Can round negative decimals to a specified negative number of decimal places" <|
+            -1234.0 . round -1 . should_equal -1230
+            -1234.0 . round -2 . should_equal -1200
+            -1234.0 . round -3 . should_equal -1000
+            -1234.0 . round -4 . should_equal 0
+
+            -1499.0 . round -1 . should_equal -1500
+            -1499.0 . round -2 . should_equal -1500
+            -1499.0 . round -3 . should_equal -1000
+
+            -1495.0 . round -1 . should_equal -1490
+            -1494.0 . round -1 . should_equal -1490
+            -1495.0 . round -2 . should_equal -1500
+            -1494.0 . round -2 . should_equal -1500
+
+        Test.specify "Banker's rounding handles half-way values correctly" <|
+            -3.5 . round use_bankers=True . should_equal -4
+            -2.5 . round use_bankers=True . should_equal -2
+            -1.5 . round use_bankers=True . should_equal -2
+            -0.5 . round use_bankers=True . should_equal 0
+            0.5 . round use_bankers=True . should_equal 0
+            1.5 . round use_bankers=True . should_equal 2
+            2.5 . round use_bankers=True . should_equal 2
+            3.5 . round use_bankers=True . should_equal 4
+
+            0.235 . round 2 use_bankers=True . should_equal 0.24
+            0.225 . round 2 use_bankers=True . should_equal 0.22
+            -0.235 . round 2 use_bankers=True . should_equal -0.24
+            -0.225 . round 2 use_bankers=True . should_equal -0.22
+
+            12350.0 . round -2 use_bankers=True . should_equal 12400
+            12250.0 . round -2 use_bankers=True . should_equal 12200
+            -12350.0 . round -2 use_bankers=True . should_equal -12400
+            -12250.0 . round -2 use_bankers=True . should_equal -12200
+
+        Test.specify "Banker's rounding handles non-half-way values just like normal rounding" <|
+            3.0 . round use_bankers=True . should_equal 3
+            3.00001 . round use_bankers=True . should_equal 3
+            3.3 . round use_bankers=True . should_equal 3
+            3.49999 . round use_bankers=True . should_equal 3
+            3.50001 . round use_bankers=True . should_equal 4
+            3.99999 . round use_bankers=True . should_equal 4
+
+            -3.0 . round . should_equal -3
+            -3.00001 . round . should_equal -3
+            -3.3 . round . should_equal -3
+            -3.49999 . round . should_equal -3
+            -3.50001 . round . should_equal -4
+            -3.99999 . round . should_equal -4
+
+        Test.specify "Returns the correct type" <|
+            231.2 . round 1 . should_be_a Decimal
+            231.2 . round 0 . should_be_a Integer
+            231.2 . round . should_be_a Integer
+            231.2 . round -1 . should_be_a Integer
+
+        Test.specify "Edge cases" <|
+            max_double = 179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368.0
+            max_double . should_equal max_double
+            max_double_minus_point_five = 179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858367.5
+            max_double_minus_point_six = 179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858367.4
+            max_double_minus_one = 179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858367.0
+            max_double_minus_point_five . round . should_equal max_double
+            max_double_minus_point_six . round . should_equal max_double_minus_one
+
+            neg_max_double = -179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368.0
+            neg_max_double . should_equal neg_max_double
+            neg_max_double_minus_point_four = -179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858367.6
+            neg_max_double_minus_point_five = -179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858367.5
+            neg_max_double_minus_one = -179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858367.0
+            neg_max_double_minus_point_four . round . should_equal neg_max_double
+            neg_max_double_minus_point_five . round . should_equal neg_max_double_minus_one
+
+        Test.specify "Decimal places out of range" <|
+            3.1 . round 16 . should_fail_with Illegal_Argument
+            3.1 . round -16 . should_fail_with Illegal_Argument
+
+        Test.specify "NaN/Inf" <|
+            Number.nan . round . should_fail_with Arithmetic_Error
+            Number.positive_infinity . round . should_fail_with Arithmetic_Error
+            Number.negative_infinity . round . should_fail_with Arithmetic_Error
+
+        Test.specify "Banker's rounding failure" pending="Fails because of basic floating-point inaccuracy when adding 0.5" <|
+            1.225 . round 2 use_bankers=True . should_equal 1.22 # Actual result 1.23
+
+    Test.group "Integer.round" <|
+        Test.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)"
+            0 . round . should_equal 0
+            3 . round . should_equal 3
+            -3 . round . should_equal -3
+            3 . round 0 . should_equal 3
+            -3 . round 0 . should_equal -3
+            3 . round 1 . should_equal 3
+            -3 . round 1 . should_equal -3
+
+        Test.specify "Can round small integers to a specified number of negative places correctly"
+            4 . round -1 . should_equal 0
+            24 . round -1 . should_equal 20
+            25 . round -1 . should_equal 30
+            29 . round -1 . should_equal 30
+            30 . round -1 . should_equal 30
+            31 . round -1 . should_equal 30
+
+            2412 . round -3 . should_equal 2000
+            2499 . round -3 . should_equal 2000
+            2500 . round -3 . should_equal 3000
+            2511 . round -3 . should_equal 3000
+            2907 . round -3 . should_equal 3000
+            3000 . round -3 . should_equal 3000
+            3098 . round -3 . should_equal 3000
+            3101 . round -3 . should_equal 3000
+
+        Test.specify "Can round negative small integers to a specified number of negative places correctly"
+            -4 . round -1 . should_equal 0
+            -24 . round -1 . should_equal -20
+            -25 . round -1 . should_equal -20
+            -29 . round -1 . should_equal -30
+            -30 . round -1 . should_equal -30
+            -31 . round -1 . should_equal -30
+
+            -2412 . round -3 . should_equal -2000
+            -2499 . round -3 . should_equal -2000
+            -2500 . round -3 . should_equal -2000
+            -2511 . round -3 . should_equal -3000
+            -2907 . round -3 . should_equal -3000
+            -3000 . round -3 . should_equal -3000
+            -3098 . round -3 . should_equal -3000
+            -3101 . round -3 . should_equal -3000
+
+        Test.specify "Banker's rounding handles half-way values correctly" <|
+            12350 . round -2 use_bankers=True . should_equal 12400
+            12250 . round -2 use_bankers=True . should_equal 12200
+            -12350 . round -2 use_bankers=True . should_equal -12400
+            -12250 . round -2 use_bankers=True . should_equal -12200
+
+        Test.specify "Banker's rounding handles non-half-way values just like normal rounding" <|
+            12330 . round -2 use_bankers=True . should_equal 12300
+            12370 . round -2 use_bankers=True . should_equal 12400
+            12430 . round -2 use_bankers=True . should_equal 12400
+            12470 . round -2 use_bankers=True . should_equal 12500
+
+            -12330 . round -2 use_bankers=True . should_equal -12300
+            -12370 . round -2 use_bankers=True . should_equal -12400
+            -12430 . round -2 use_bankers=True . should_equal -12400
+            -12470 . round -2 use_bankers=True . should_equal -12500
+
+        Test.specify "Returns the correct type" <|
+            231 . round 1 . should_be_a Integer
+            231 . round 0 . should_be_a Integer
+            231 . round . should_be_a Integer
+            231 . round -1 . should_be_a Integer
+
+        Test.specify "Decimal places out of range" <|
+            3 . round 16 . should_fail_with Illegal_Argument
+            3 . round -16 . should_fail_with Illegal_Argument
+
+        Test.specify "Number out of range" <|
+            100000000000000 . round . should_fail_with Illegal_Argument
+            -100000000000000 . round . should_fail_with Illegal_Argument
+            100000000000000 . round -2 . should_fail_with Illegal_Argument
+            -100000000000000 . round -2 . should_fail_with Illegal_Argument
+            99999999999999 . round -2 . should_equal 100000000000000
+            -99999999999999 . round -2 . should_equal -100000000000000
+
+    Test.group "Decimal.truncate"
+        Test.specify "Correctly converts to Integer" <|
+            0.1.truncate . should_equal 0
+            0.9.truncate . should_equal 0
+            3.1.truncate . should_equal 3
+            3.9.truncate . should_equal 3
+            -0.1.truncate . should_equal 0
+            -0.9.truncate . should_equal 0
+            -3.1.truncate . should_equal -3
+            -3.9.truncate . should_equal -3
+
+    Test.group "Integer.truncate"
+        Test.specify "Returns its argument" <|
+            0.truncate . should_equal 0
+            3.truncate . should_equal 3
+            -3.truncate . should_equal -3
 
 main = Test_Suite.run_main spec

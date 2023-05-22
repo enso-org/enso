@@ -19,13 +19,14 @@ const JS_EXTENSION: Record<platformModule.Platform, string> = {
 // === Component ===
 // =================
 
-interface Props {
+/** Props for an {@link Ide}. */
+export interface IdeProps {
     project: backendModule.Project
     appRunner: AppRunner | null
 }
 
-/** Container that launches the IDE. */
-function Ide(props: Props) {
+/** The ontainer that launches the IDE. */
+function Ide(props: IdeProps) {
     const { project, appRunner } = props
     const { backend } = backendProvider.useBackend()
 
@@ -88,6 +89,7 @@ function Ide(props: Props) {
                     return
                 } else {
                     const script = document.createElement('script')
+                    script.crossOrigin = 'anonymous'
                     script.src = `${IDE_CDN_URL}/${engineVersion}/index.js.gz`
                     script.onload = async () => {
                         document.body.removeChild(script)
@@ -101,6 +103,7 @@ function Ide(props: Props) {
                     }
                     document.body.appendChild(script)
                     const style = document.createElement('link')
+                    style.crossOrigin = 'anonymous'
                     style.rel = 'stylesheet'
                     style.href = `${IDE_CDN_URL}/${engineVersion}/style.css`
                     document.body.appendChild(style)
