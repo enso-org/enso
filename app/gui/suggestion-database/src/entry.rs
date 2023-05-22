@@ -419,21 +419,30 @@ impl Entry {
     }
 
     /// Returns the code which is inserted by picking this entry as suggestion.
-    pub fn code_to_insert(&self, generate_this: bool) -> Cow<str> {
+    pub fn code_to_insert(&self, generate_this: bool, in_module: QualifiedNameRef) -> Cow<str> {
         match self.kind {
-            Kind::Method if generate_this && self.is_static => self.code_with_static_this().into(),
+            Kind::Method if generate_this && self.is_static =>
+                self.code_with_static_this(in_module).into(),
             Kind::Method if generate_this =>
                 format!("_{}{}", opr::predefined::ACCESS, self.name).into(),
-            Kind::Constructor => self.code_with_static_this().into(),
+            Kind::Constructor => self.code_with_static_this(in_module).into(),
             Kind::Module => self.defined_in.alias_name().as_str().into(),
-            _ => Cow::from(&self.name),
+            Kind::Method | Kind::Type | Kind::Local | Kind::Function => Cow::from(&self.name),
         }
     }
 
-    fn code_with_static_this(&self) -> String {
+    fn code_with_static_this(&self, in_module: QualifiedNameRef) -> String {
         if let Some(self_type) = &self.self_type {
-            format!("{}{}{}", self_type.name(), opr::predefined::ACCESS, self.name)
+            // If we're referencing a static method from the same main module, use `Main` instead
+            // of the project name to be a bit more robust against project name changes.
+            let self_name = if in_module.is_main_module() && *self_type == in_module {
+                self_type.name()
+            } else {
+                self_type.alias_name()
+            };
+            format!("{}{}{}", self_name, opr::predefined::ACCESS, self.name)
         } else {
+            error!("Static method or constructor didn't have a self type defined.");
             format!("_{}{}", opr::predefined::ACCESS, self.name)
         }
     }
@@ -475,7 +484,6 @@ impl Entry {
                 .into_iter()
                 .flatten()
                 .collect(),
-            Kind::Type if defined_in_same_module => default(),
             Kind::Module => {
                 let import = if let Some(reexport) = &self.reexported_in {
                     Import::Unqualified {
@@ -487,6 +495,7 @@ impl Entry {
                 };
                 iter::once(import).collect()
             }
+            Kind::Type if defined_in_same_module => default(),
             Kind::Type => {
                 let imported_from = self.reexported_in.as_ref().unwrap_or(&self.defined_in);
                 iter::once(Import::Unqualified {
@@ -1038,9 +1047,11 @@ mod test {
     use enso_text::Utf16CodeUnit;
 
     #[test]
-    fn code_from_entry() {
+    fn code_to_insert() {
         let module_name: QualifiedName = "local.Project.Module".try_into().unwrap();
         let main_module_name: QualifiedName = "local.Project.Main".try_into().unwrap();
+        let other_project_module_name: QualifiedName =
+            "local.OtherProject.Module".try_into().unwrap();
         let tp_name: QualifiedName = "local.Project.Test_Type".try_into().unwrap();
         let return_type: QualifiedName = "Standard.Base.Number".try_into().unwrap();
         let scope = Location { line: Line(3), offset: Utf16CodeUnit(0) }..=Location {
@@ -1067,25 +1078,53 @@ mod test {
             scope.clone(),
         );
         let local = Entry::new_local(module_name.clone(), "local", return_type, scope);
-        let module = Entry::new_module(module_name);
-        let main_module = Entry::new_module(main_module_name);
+        let module = Entry::new_module(module_name.clone());
+        let main_module = Entry::new_module(main_module_name.clone());
 
-        for generate_this in [true, false] {
-            assert_eq!(tp.code_to_insert(generate_this), "Type");
-            assert_eq!(function.code_to_insert(generate_this), "function");
-            assert_eq!(local.code_to_insert(generate_this), "local");
-            assert_eq!(module.code_to_insert(generate_this), "Module");
-            assert_eq!(main_module.code_to_insert(generate_this), "Project");
-            assert_eq!(constructor.code_to_insert(generate_this), "Test_Type.Constructor");
+        for in_module in [&module_name, &main_module_name, &other_project_module_name] {
+            for generate_this in [true, false] {
+                assert_eq!(tp.code_to_insert(generate_this, in_module.as_ref()), "Type");
+                assert_eq!(function.code_to_insert(generate_this, in_module.as_ref()), "function");
+                assert_eq!(local.code_to_insert(generate_this, in_module.as_ref()), "local");
+                assert_eq!(module.code_to_insert(generate_this, in_module.as_ref()), "Module");
+                assert_eq!(
+                    main_module.code_to_insert(generate_this, in_module.as_ref()),
+                    "Project"
+                );
+                assert_eq!(
+                    constructor.code_to_insert(generate_this, in_module.as_ref()),
+                    "Test_Type.Constructor"
+                );
+            }
+            assert_eq!(method.code_to_insert(false, in_module.as_ref()), "method");
+            assert_eq!(method.code_to_insert(true, in_module.as_ref()), "_.method");
+            assert_eq!(static_method.code_to_insert(false, in_module.as_ref()), "static_method");
+            assert_eq!(
+                static_method.code_to_insert(true, in_module.as_ref()),
+                "Test_Type.static_method"
+            );
+            assert_eq!(module_method.code_to_insert(false, in_module.as_ref()), "module_method");
+            assert_eq!(
+                module_method.code_to_insert(true, in_module.as_ref()),
+                "Module.module_method"
+            );
+            assert_eq!(
+                main_module_method.code_to_insert(false, in_module.as_ref()),
+                "module_method"
+            );
         }
-        assert_eq!(method.code_to_insert(false), "method");
-        assert_eq!(method.code_to_insert(true), "_.method");
-        assert_eq!(static_method.code_to_insert(false), "static_method");
-        assert_eq!(static_method.code_to_insert(true), "Test_Type.static_method");
-        assert_eq!(module_method.code_to_insert(false), "module_method");
-        assert_eq!(module_method.code_to_insert(true), "Module.module_method");
-        assert_eq!(main_module_method.code_to_insert(false), "module_method");
-        assert_eq!(main_module_method.code_to_insert(true), "Main.module_method");
+        assert_eq!(
+            main_module_method.code_to_insert(true, module_name.as_ref()),
+            "Project.module_method"
+        );
+        assert_eq!(
+            main_module_method.code_to_insert(true, main_module_name.as_ref()),
+            "Main.module_method"
+        );
+        assert_eq!(
+            main_module_method.code_to_insert(true, other_project_module_name.as_ref()),
+            "Project.module_method"
+        );
     }
 
     #[test]
