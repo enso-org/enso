@@ -12,10 +12,11 @@ import ChangePasswordModal from './changePasswordModal'
 
 /** This is the UI component for a `UserMenu` list item.
  * The main interaction logic is in the `onClick` injected by `UserMenu`. */
-interface UserMenuItemProps {
+export interface UserMenuItemProps {
     onClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
+/** User menu item. */
 function UserMenuItem(props: react.PropsWithChildren<UserMenuItemProps>) {
     const { children, onClick } = props
 

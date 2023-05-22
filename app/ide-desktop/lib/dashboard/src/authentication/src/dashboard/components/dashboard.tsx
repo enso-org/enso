@@ -3,6 +3,7 @@
 import * as react from 'react'
 
 import * as backendModule from '../backend'
+import * as dateTime from '../dateTime'
 import * as fileInfo from '../../fileInfo'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
@@ -33,7 +34,6 @@ import UploadFileModal from './uploadFileModal'
 
 import DirectoryCreateForm from './directoryCreateForm'
 import FileCreateForm from './fileCreateForm'
-import ProjectCreateForm from './projectCreateForm'
 import SecretCreateForm from './secretCreateForm'
 
 // =============
@@ -46,6 +46,7 @@ export enum Tab {
     ide = 'ide',
 }
 
+/** Determines which columns are visible. */
 enum ColumnDisplayMode {
     /** Show only columns which are ready for release. */
     release = 'release',
@@ -105,10 +106,9 @@ const ASSET_TYPE_NAME: Record<backendModule.AssetType, string> = {
 
 /** Forms to create each asset type. */
 const ASSET_TYPE_CREATE_FORM: Record<
-    backendModule.AssetType,
+    Exclude<backendModule.AssetType, backendModule.AssetType.project>,
     (props: CreateFormProps) => JSX.Element
 > = {
-    [backendModule.AssetType.project]: ProjectCreateForm,
     [backendModule.AssetType.file]: FileCreateForm,
     [backendModule.AssetType.secret]: SecretCreateForm,
     [backendModule.AssetType.directory]: DirectoryCreateForm,
@@ -199,7 +199,7 @@ const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {
 // === Helper functions ===
 // ========================
 
-/** Returns the id of the root directory for a user or organization. */
+/** Return the id of the root directory for a user or organization. */
 function rootDirectoryId(userOrOrganizationId: backendModule.UserOrOrganizationId) {
     return newtype.asNewtype<backendModule.DirectoryId>(
         userOrOrganizationId.replace(/^organization-/, `${backendModule.AssetType.directory}-`)
@@ -218,6 +218,7 @@ function columnsFor(displayMode: ColumnDisplayMode, backendPlatform: platformMod
 // === Dashboard ===
 // =================
 
+/** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
     platform: platformModule.Platform
     appRunner: AppRunner | null
@@ -226,6 +227,7 @@ export interface DashboardProps {
 // TODO[sb]: Implement rename when clicking name of a selected row.
 // There is currently no way to tell whether a row is selected from a column.
 
+/** The component that contains the entire UI. */
 function Dashboard(props: DashboardProps) {
     const { platform, appRunner } = props
 
@@ -250,6 +252,7 @@ function Dashboard(props: DashboardProps) {
     const [selectedAssets, setSelectedAssets] = react.useState<backendModule.Asset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = react.useState(false)
 
+    const [isLoadingAssets, setIsLoadingAssets] = react.useState(true)
     const [projectAssets, setProjectAssetsRaw] = react.useState<
         backendModule.Asset<backendModule.AssetType.project>[]
     >([])
@@ -279,7 +282,7 @@ function Dashboard(props: DashboardProps) {
     const parentDirectory = directoryStack[directoryStack.length - 2]
 
     react.useEffect(() => {
-        function onKeyDown(event: KeyboardEvent) {
+        const onKeyDown = (event: KeyboardEvent) => {
             if (
                 // On macOS, we need to check for combination of `alt` + `d` which is `∂` (`del`).
                 (event.key === 'd' || event.key === '∂') &&
@@ -302,30 +305,30 @@ function Dashboard(props: DashboardProps) {
         }
     }, [])
 
-    function setProjectAssets(
+    const setProjectAssets = (
         newProjectAssets: backendModule.Asset<backendModule.AssetType.project>[]
-    ) {
+    ) => {
         setProjectAssetsRaw(newProjectAssets)
         setVisibleProjectAssets(newProjectAssets.filter(asset => asset.title.includes(query)))
     }
-    function setDirectoryAssets(
+    const setDirectoryAssets = (
         newDirectoryAssets: backendModule.Asset<backendModule.AssetType.directory>[]
-    ) {
+    ) => {
         setDirectoryAssetsRaw(newDirectoryAssets)
         setVisibleDirectoryAssets(newDirectoryAssets.filter(asset => asset.title.includes(query)))
     }
-    function setSecretAssets(
+    const setSecretAssets = (
         newSecretAssets: backendModule.Asset<backendModule.AssetType.secret>[]
-    ) {
+    ) => {
         setSecretAssetsRaw(newSecretAssets)
         setVisibleSecretAssets(newSecretAssets.filter(asset => asset.title.includes(query)))
     }
-    function setFileAssets(newFileAssets: backendModule.Asset<backendModule.AssetType.file>[]) {
+    const setFileAssets = (newFileAssets: backendModule.Asset<backendModule.AssetType.file>[]) => {
         setFileAssetsRaw(newFileAssets)
         setVisibleFileAssets(newFileAssets.filter(asset => asset.title.includes(query)))
     }
 
-    function exitDirectory() {
+    const exitDirectory = () => {
         setDirectoryId(parentDirectory?.id ?? rootDirectoryId(organization.id))
         setDirectoryStack(
             // eslint-disable-next-line @typescript-eslint/no-magic-numbers
@@ -333,9 +336,9 @@ function Dashboard(props: DashboardProps) {
         )
     }
 
-    function enterDirectory(
+    const enterDirectory = (
         directoryAsset: backendModule.Asset<backendModule.AssetType.directory>
-    ) {
+    ) => {
         setDirectoryId(directoryAsset.id)
         setDirectoryStack([...directoryStack, directoryAsset])
     }
@@ -480,11 +483,14 @@ function Dashboard(props: DashboardProps) {
     }
 
     /** React components for every column except for the name column. */
+    // This is not a React component even though it contains JSX.
+    // eslint-disable-next-line no-restricted-syntax
     const columnRenderer: Record<
         Exclude<Column, Column.name>,
-        (asset: backendModule.Asset) => JSX.Element
+        (asset: backendModule.Asset) => react.ReactNode
     > = {
-        [Column.lastModified]: () => <></>,
+        [Column.lastModified]: asset =>
+            asset.modifiedAt && <>{dateTime.formatDateTime(new Date(asset.modifiedAt))}</>,
         [Column.sharedWith]: asset => (
             <>
                 {(asset.permissions ?? []).map(user => (
@@ -501,7 +507,7 @@ function Dashboard(props: DashboardProps) {
         [Column.labels]: () => {
             // This is not a React component even though it contains JSX.
             // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
-            function onContextMenu(event: react.MouseEvent) {
+            const onContextMenu = (event: react.MouseEvent) => {
                 event.preventDefault()
                 event.stopPropagation()
                 setModal(() => (
@@ -525,7 +531,7 @@ function Dashboard(props: DashboardProps) {
         [Column.ide]: () => <></>,
     }
 
-    function renderer<Type extends backendModule.AssetType>(column: Column, assetType: Type) {
+    const renderer = <Type extends backendModule.AssetType>(column: Column, assetType: Type) => {
         return column === Column.name
             ? // This is type-safe only if we pass enum literals as `assetType`.
               // eslint-disable-next-line no-restricted-syntax
@@ -534,38 +540,41 @@ function Dashboard(props: DashboardProps) {
     }
 
     /** Heading element for every column. */
-    function ColumnHeading(column: Column, assetType: backendModule.AssetType) {
-        return column === Column.name ? (
-            <div className="inline-flex">
-                {ASSET_TYPE_NAME[assetType]}
-                <button
-                    className="mx-1"
-                    onClick={event => {
-                        event.stopPropagation()
-                        const buttonPosition =
-                            // This type assertion is safe as this event handler is on a `button`.
+    const ColumnHeading = (column: Column, assetType: backendModule.AssetType) =>
+        column === Column.name ? (
+            assetType === backendModule.AssetType.project ? (
+                <>{ASSET_TYPE_NAME[assetType]}</>
+            ) : (
+                <div className="inline-flex">
+                    {ASSET_TYPE_NAME[assetType]}
+                    <button
+                        className="mx-1"
+                        onClick={event => {
+                            event.stopPropagation()
+                            const buttonPosition =
+                                // This type assertion is safe as this event handler is on a button.
+                                // eslint-disable-next-line no-restricted-syntax
+                                (event.target as HTMLButtonElement).getBoundingClientRect()
+                            // This is a React component even though it doesn't contain JSX.
                             // eslint-disable-next-line no-restricted-syntax
-                            (event.target as HTMLButtonElement).getBoundingClientRect()
-                        // This is a React component even though it doesn't contain JSX.
-                        // eslint-disable-next-line no-restricted-syntax
-                        const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
-                        setModal(() => (
-                            <CreateForm
-                                left={buttonPosition.left + window.scrollX}
-                                top={buttonPosition.top + window.scrollY}
-                                directoryId={directoryId}
-                                onSuccess={doRefresh}
-                            />
-                        ))
-                    }}
-                >
-                    {svg.ADD_ICON}
-                </button>
-            </div>
+                            const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
+                            setModal(() => (
+                                <CreateForm
+                                    left={buttonPosition.left + window.scrollX}
+                                    top={buttonPosition.top + window.scrollY}
+                                    directoryId={directoryId}
+                                    onSuccess={doRefresh}
+                                />
+                            ))
+                        }}
+                    >
+                        {svg.ADD_ICON}
+                    </button>
+                </div>
+            )
         ) : (
             <>{COLUMN_NAME[column]}</>
         )
-    }
 
     // The purpose of this effect is to enable search action.
     react.useEffect(() => {
@@ -575,7 +584,7 @@ function Dashboard(props: DashboardProps) {
         setVisibleFileAssets(fileAssets.filter(asset => asset.title.includes(query)))
     }, [query])
 
-    function setAssets(assets: backendModule.Asset[]) {
+    const setAssets = (assets: backendModule.Asset[]) => {
         const newProjectAssets = assets.filter(
             backendModule.assetIsType(backendModule.AssetType.project)
         )
@@ -595,8 +604,10 @@ function Dashboard(props: DashboardProps) {
     hooks.useAsyncEffect(
         null,
         async signal => {
+            setIsLoadingAssets(true)
             const assets = await backend.listDirectory({ parentId: directoryId })
             if (!signal.aborted) {
+                setIsLoadingAssets(false)
                 setAssets(assets)
             }
         },
@@ -604,7 +615,7 @@ function Dashboard(props: DashboardProps) {
     )
 
     react.useEffect(() => {
-        function onBlur() {
+        const onBlur = () => {
             setIsFileBeingDragged(false)
         }
 
@@ -615,7 +626,7 @@ function Dashboard(props: DashboardProps) {
         }
     }, [])
 
-    function handleEscapeKey(event: react.KeyboardEvent<HTMLDivElement>) {
+    const handleEscapeKey = (event: react.KeyboardEvent<HTMLDivElement>) => {
         if (
             event.key === 'Escape' &&
             !event.ctrlKey &&
@@ -630,13 +641,13 @@ function Dashboard(props: DashboardProps) {
         }
     }
 
-    function openDropZone(event: react.DragEvent<HTMLDivElement>) {
+    const openDropZone = (event: react.DragEvent<HTMLDivElement>) => {
         if (event.dataTransfer.types.includes('Files')) {
             setIsFileBeingDragged(true)
         }
     }
 
-    function getNewProjectName(templateName?: string | null): string {
+    const getNewProjectName = (templateName?: string | null): string => {
         const prefix = `${templateName ?? 'New_Project'}_`
         const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
         let highestProjectIndex = 0
@@ -649,24 +660,15 @@ function Dashboard(props: DashboardProps) {
         return `${prefix}${highestProjectIndex + 1}`
     }
 
-    async function handleCreateProject(templateId?: string | null) {
+    const handleCreateProject = async (templateId?: string | null) => {
         const projectName = getNewProjectName(templateId)
         const body: backendModule.CreateProjectRequestBody = {
             projectName,
             projectTemplateName: templateId ?? null,
             parentDirectoryId: directoryId,
         }
-        const projectAsset = await backend.createProject(body)
-        setProjectAssets([
-            ...projectAssets,
-            {
-                type: backendModule.AssetType.project,
-                title: projectAsset.name,
-                id: projectAsset.projectId,
-                parentId: '',
-                permissions: [],
-            },
-        ])
+        await backend.createProject(body)
+        doRefresh()
     }
 
     return (
@@ -706,6 +708,7 @@ function Dashboard(props: DashboardProps) {
                 }}
                 setBackendPlatform={newBackendPlatform => {
                     if (newBackendPlatform !== backend.platform) {
+                        setIsLoadingAssets(true)
                         setProjectAssets([])
                         setDirectoryAssets([])
                         setSecretAssets([])
@@ -843,6 +846,7 @@ function Dashboard(props: DashboardProps) {
                     <Rows<backendModule.Asset<backendModule.AssetType.project>>
                         items={visibleProjectAssets}
                         getKey={proj => proj.id}
+                        isLoading={isLoadingAssets}
                         placeholder={
                             <span className="opacity-75">
                                 You have no project yet. Go ahead and create one using the form
@@ -863,11 +867,11 @@ function Dashboard(props: DashboardProps) {
                         onContextMenu={(projectAsset, event) => {
                             event.preventDefault()
                             event.stopPropagation()
-                            function doOpenForEditing() {
+                            const doOpenForEditing = () => {
                                 // FIXME[sb]: Switch to IDE tab
                                 // once merged with `show-and-open-workspace` branch.
                             }
-                            function doOpenAsFolder() {
+                            const doOpenAsFolder = () => {
                                 // FIXME[sb]: Uncomment once backend support
                                 // is in place.
                                 // The following code does not typecheck
@@ -876,7 +880,7 @@ function Dashboard(props: DashboardProps) {
                             }
                             // This is not a React component even though it contains JSX.
                             // eslint-disable-next-line no-restricted-syntax
-                            function doRename() {
+                            const doRename = () => {
                                 setModal(() => (
                                     <RenameModal
                                         name={projectAsset.title}
@@ -902,7 +906,7 @@ function Dashboard(props: DashboardProps) {
                             }
                             // This is not a React component even though it contains JSX.
                             // eslint-disable-next-line no-restricted-syntax
-                            function doDelete() {
+                            const doDelete = () => {
                                 setModal(() => (
                                     <ConfirmDeleteModal
                                         name={projectAsset.title}
@@ -935,6 +939,7 @@ function Dashboard(props: DashboardProps) {
                                 <Rows<backendModule.Asset<backendModule.AssetType.directory>>
                                     items={visibleDirectoryAssets}
                                     getKey={dir => dir.id}
+                                    isLoading={isLoadingAssets}
                                     placeholder={
                                         <span className="opacity-75">
                                             This directory does not contain any subdirectories
@@ -972,6 +977,7 @@ function Dashboard(props: DashboardProps) {
                                 <Rows<backendModule.Asset<backendModule.AssetType.secret>>
                                     items={visibleSecretAssets}
                                     getKey={secret => secret.id}
+                                    isLoading={isLoadingAssets}
                                     placeholder={
                                         <span className="opacity-75">
                                             This directory does not contain any secrets
@@ -1002,7 +1008,7 @@ function Dashboard(props: DashboardProps) {
                                         event.stopPropagation()
                                         // This is not a React component even though it contains JSX.
                                         // eslint-disable-next-line no-restricted-syntax
-                                        function doDelete() {
+                                        const doDelete = () => {
                                             setModal(() => (
                                                 <ConfirmDeleteModal
                                                     name={secret.title}
@@ -1027,6 +1033,7 @@ function Dashboard(props: DashboardProps) {
                                 <Rows<backendModule.Asset<backendModule.AssetType.file>>
                                     items={visibleFileAssets}
                                     getKey={file => file.id}
+                                    isLoading={isLoadingAssets}
                                     placeholder={
                                         <span className="opacity-75">
                                             This directory does not contain any files
@@ -1052,15 +1059,15 @@ function Dashboard(props: DashboardProps) {
                                     onContextMenu={(file, event) => {
                                         event.preventDefault()
                                         event.stopPropagation()
-                                        function doCopy() {
+                                        const doCopy = () => {
                                             /** TODO: Wait for backend endpoint. */
                                         }
-                                        function doCut() {
+                                        const doCut = () => {
                                             /** TODO: Wait for backend endpoint. */
                                         }
                                         // This is not a React component even though it contains JSX.
                                         // eslint-disable-next-line no-restricted-syntax
-                                        function doDelete() {
+                                        const doDelete = () => {
                                             setModal(() => (
                                                 <ConfirmDeleteModal
                                                     name={file.title}
@@ -1072,7 +1079,7 @@ function Dashboard(props: DashboardProps) {
                                                 />
                                             ))
                                         }
-                                        function doDownload() {
+                                        const doDownload = () => {
                                             /** TODO: Wait for backend endpoint. */
                                         }
                                         setModal(() => (

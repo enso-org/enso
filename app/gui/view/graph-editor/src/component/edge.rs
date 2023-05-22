@@ -287,6 +287,7 @@ pub mod joint {
     use super::*;
 
     ensogl::shape! {
+        above = [compound::rectangle::shape];
         pointer_events = false;
         alignment = center;
         (style: Style, color_rgba: Vector4<f32>) {
@@ -320,13 +321,13 @@ fn corner_base_shape(
 // FIXME [WD]: The 2 following impls are almost the same. Should be merged. This task should be
 //             handled by Wojciech.
 macro_rules! define_corner_start {
-    () => {
+    ($($args:tt)*) => {
         /// Shape definition.
         pub mod corner {
             use super::*;
 
             ensogl::shape! {
-                below = [joint];
+                $($args)*
                 alignment = center;
                 ( style:               Style
                 , radius             : f32
@@ -421,12 +422,12 @@ macro_rules! define_corner_start {
 
 
 macro_rules! define_corner_end {
-    () => {
+    ($($args:tt)*) => {
         /// Shape definition.
         pub mod corner {
             use super::*;
             ensogl::shape! {
-                below = [joint];
+                $($args)*
                 alignment = center;
                 (
                     style: Style,
@@ -526,12 +527,12 @@ macro_rules! define_corner_end {
 }
 
 macro_rules! define_line {
-    () => {
+    ($($args:tt)*) => {
         /// Shape definition.
         pub mod line {
             use super::*;
             ensogl::shape! {
-                below = [joint];
+                $($args)*
                 alignment = center;
                 (
                     style: Style,
@@ -595,12 +596,12 @@ macro_rules! define_line {
     };
 }
 
-macro_rules! define_arrow { () => {
+macro_rules! define_arrow { ($($args:tt)*) => {
     /// Shape definition.
     pub mod arrow {
         use super::*;
         ensogl::shape! {
-            above = [joint];
+            $($args)*
             alignment = center;
             (
                 style: Style,
@@ -743,17 +744,31 @@ impl LayoutLine for back::line::View {
 /// Shape definitions which will be rendered in the front layer (on top of nodes).
 pub mod front {
     use super::*;
-    define_corner_start!();
-    define_line!();
-    define_arrow!();
+    define_corner_start!(
+        above = [node::backdrop, compound::rectangle::shape];
+        below = [joint];
+    );
+    define_line!(
+        above = [node::backdrop, compound::rectangle::shape];
+        below = [joint];
+    );
+    define_arrow!(
+        above = [joint, node::backdrop, compound::rectangle::shape];
+    );
 }
 
 /// Shape definitions which will be rendered in the bottom layer (below nodes).
 pub mod back {
     use super::*;
-    define_corner_end!();
-    define_line!();
-    define_arrow!();
+    define_corner_end!(
+        below = [node::backdrop];
+    );
+    define_line!(
+        below = [node::backdrop];
+    );
+    define_arrow!(
+        below = [node::backdrop];
+    );
 }
 
 

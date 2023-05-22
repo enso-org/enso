@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Widget import Single_Choice
 from Standard.Base.Metadata.Choice import Option
 import Standard.Base.Metadata.Display
@@ -25,7 +26,7 @@ connect details options=Connection_Options.Value =
     details.connect options
 
 ## PRIVATE
-connection_details_widget : Single_Choice
+connection_details_widget : Widget
 connection_details_widget =
     default_constructors = Vector.from_polyglot_array <|
         DatabaseConnectionDetailsSPI.get_default_constructors False

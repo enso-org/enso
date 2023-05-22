@@ -30,7 +30,7 @@ use parser::Parser;
 // This is a default value for the project name when it is created. The project name should
 // always be initialized externally for the current project. If this value is visible in the UI,
 // it was not set to the correct project name due to some bug.
-const UNINITIALIZED_PROJECT_NAME: &str = "Project Name Uninitialized";
+const UNINITIALIZED_PROJECT_NAME: &str = "Initializing project...";
 /// Default line height for project names.
 pub const LINE_HEIGHT: f32 = TEXT_SIZE * 1.5;
 

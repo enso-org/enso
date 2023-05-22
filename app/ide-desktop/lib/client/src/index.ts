@@ -45,6 +45,7 @@ class App {
     args: config.Args = config.CONFIG
     isQuitting = false
 
+    /** Initialize and run the Electron application. */
     async run() {
         log.addFileLog()
         urlAssociations.registerAssociations()
@@ -81,6 +82,7 @@ class App {
         }
     }
 
+    /** Process the command line arguments. */
     processArguments() {
         // We parse only "client arguments", so we don't have to worry about the Electron-Dev vs
         // Electron-Proper distinction.
@@ -97,25 +99,24 @@ class App {
         return { ...configParser.parseArgs(argsToParse), fileToOpen, urlToOpen }
     }
 
-    /**
-     * Sets the project to be opened on application startup.
+    /** Set the project to be opened on application startup.
      *
      * This method should be called before the application is ready, as it only
      * modifies the startup options. If the application is already initialized,
      * an error will be logged, and the method will have no effect.
      *
-     * @param idOfProjectToOpen - The ID of the project to be opened on startup.
-     */
-    setProjectToOpenOnStartup(idOfProjectToOpen: string) {
+     * @param projectId - The ID of the project to be opened on startup. */
+    setProjectToOpenOnStartup(projectId: string) {
         // Make sure that we are not initialized yet, as this method should be called before the
         // application is ready.
         if (!electron.app.isReady()) {
-            logger.log(`Setting project to open on startup: ${idOfProjectToOpen}.`)
-            this.args.groups.startup.options.project.value = idOfProjectToOpen
+            logger.log(`Setting the project to open on startup to '${projectId}'.`)
+            this.args.groups.startup.options.project.value = projectId
         } else {
             logger.error(
-                `Cannot set project to open on startup: ${idOfProjectToOpen},` +
-                    ` as the application is already initialized.`
+                "Cannot set the project to open on startup to '" +
+                    projectId +
+                    "', as the application is already initialized."
             )
         }
     }
@@ -126,9 +127,9 @@ class App {
         logger.log('Opening file or URL.', { fileToOpen, urlToOpen })
         try {
             if (fileToOpen != null) {
-                // This makes the IDE open the relevant project. Also, this prevents us from using this
-                // method after IDE has been fully set up, as the initializing code would have already
-                // read the value of this argument.
+                // This makes the IDE open the relevant project. Also, this prevents us from using
+                // this method after the IDE has been fully set up, as the initializing code
+                // would have already read the value of this argument.
                 const projectId = fileAssociations.handleOpenFile(fileToOpen)
                 this.setProjectToOpenOnStartup(projectId)
             }
@@ -158,8 +159,9 @@ class App {
                 chromeOptions.push(chromeOption)
             }
         }
-        const add = (option: string, value?: string) =>
+        const add = (option: string, value?: string) => {
             chromeOptions.push(new configParser.ChromeOption(option, value))
+        }
         logger.groupMeasured('Setting Chrome options', () => {
             const perfOpts = this.args.groups.performance.options
             addIf(perfOpts.disableGpuSandbox, 'disable-gpu-sandbox')
@@ -359,7 +361,8 @@ class App {
         }
     }
 
-    printVersion(): Promise<void> {
+    /** Print the version of the frontend and the backend. */
+    async printVersion(): Promise<void> {
         const indent = ' '.repeat(utils.INDENT_SIZE)
         let maxNameLen = 0
         for (const name in debug.VERSION_INFO) {
@@ -371,22 +374,20 @@ class App {
             const spacing = ' '.repeat(maxNameLen - name.length)
             console.log(`${indent}${label}:${spacing} ${value}`)
         }
-
         console.log('')
-
         console.log('Backend:')
-        return projectManager.version(this.args).then(backend => {
-            if (!backend) {
-                console.log(`${indent}No backend available.`)
-            } else {
-                const lines = backend.split(/\r?\n/).filter(line => line.length > 0)
-                for (const line of lines) {
-                    console.log(`${indent}${line}`)
-                }
+        const backend = await projectManager.version(this.args)
+        if (!backend) {
+            console.log(`${indent}No backend available.`)
+        } else {
+            const lines = backend.split(/\r?\n/).filter(line => line.length > 0)
+            for (const line of lines) {
+                console.log(`${indent}${line}`)
             }
-        })
+        }
     }
 
+    /** Register keyboard shortcuts. */
     registerShortcuts() {
         electron.app.on('web-contents-created', (_webContentsCreatedEvent, webContents) => {
             webContents.on('before-input-event', (_beforeInputEvent, input) => {

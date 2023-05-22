@@ -33,7 +33,7 @@ spec detailed setup =
     epsilon=0.0000000001
 
     tester expression value = Test.with_clue "{expr = {"+expression+"}}: " <|
-        new_column = test_table.compute expression
+        new_column = test_table.evaluate_expression expression
         expected = case value of
             _ : Vector -> value
             _ -> Vector.new test_table.row_count _->value
@@ -101,7 +101,7 @@ spec detailed setup =
 
         Test.specify "should sanitize names" <|
             t = table_builder [["X", ['\0', 'x', '']]]
-            c = t.compute '[X] == \'\0\'' . catch SQL_Error
+            c = t.evaluate_expression '[X] == \'\0\'' . catch SQL_Error
             # We ignore the SQL error - some backends just do not support `\0` values. This is not the main point of this test.
             case c of
                 _ : SQL_Error -> Nothing
@@ -118,7 +118,7 @@ spec detailed setup =
 
         Test.specify "should allow to create a NULL column" <|
             t = table_builder [["X", [1, 2, 3]]]
-            c = t.compute "null"
+            c = t.evaluate_expression "null"
             c.name . should_equal "null"
             c.to_vector.should_equal [Nothing, Nothing, Nothing]
             ## We do not specify the value type.
@@ -134,18 +134,18 @@ spec detailed setup =
            See: https://github.com/enso-org/enso/issues/6281
         Test.specify "a null column may fail typechecks that expect a concrete type" <|
             t = table_builder [["X", [1, 2, 3]]]
-            c = t.compute "null"
+            c = t.evaluate_expression "null"
             (c + c) . should_fail_with Illegal_Argument
             (c - c) . should_fail_with Invalid_Value_Type
             (c.starts_with "X") . should_fail_with Invalid_Value_Type
             c.not . should_fail_with Invalid_Value_Type
 
-            t.compute "not(Nothing)" . should_fail_with Invalid_Value_Type
-            t.compute "Nothing + Nothing" . should_fail_with Illegal_Argument
-            t.compute "Nothing * Nothing" . should_fail_with Invalid_Value_Type
+            t.evaluate_expression "not(Nothing)" . should_fail_with Invalid_Value_Type
+            t.evaluate_expression "Nothing + Nothing" . should_fail_with Illegal_Argument
+            t.evaluate_expression "Nothing * Nothing" . should_fail_with Invalid_Value_Type
 
-            t.compute "[X] + Nothing" . to_vector . should_equal [Nothing, Nothing, Nothing]
-            t.compute "Nothing + [X]" . should_fail_with Illegal_Argument
+            t.evaluate_expression "[X] + Nothing" . to_vector . should_equal [Nothing, Nothing, Nothing]
+            t.evaluate_expression "Nothing + [X]" . should_fail_with Illegal_Argument
 
     Test.group prefix+"Expression Date and Time literals" <|
         specify_test "should be able to add a date or time column" pending=pending_datetime expression_test->
@@ -158,7 +158,7 @@ spec detailed setup =
                so all we can do is check that the values are accepted and can be compared
                with other values in the database.
             t = table_builder [["X", [Date_Time.new 2020 12 23 12 34 56, Date_Time.new 2010 1 2]]]
-            c = t.compute "#2020-12-23 12:34:56# == [X]"
+            c = t.evaluate_expression "#2020-12-23 12:34:56# == [X]"
             c.to_vector . should_equal [True, False]
 
         specify_test "should be able to add a time column with sub-millisecond accuracy" pending=pending_datetime expression_test->
@@ -177,9 +177,9 @@ spec detailed setup =
                so all we can do is check that the values are accepted and can be compared
                with other values in the database.
             t = table_builder [["X", [Date_Time.new 2020 12 23 12 34 56 zone=Time_Zone.utc, Date_Time.new 2010 1 2 12 34 56 zone=Time_Zone.parse("Europe/Warsaw")]]]
-            c1 = t.compute "#2020-12-23 12:34:56Z[UTC]# == [X]"
+            c1 = t.evaluate_expression "#2020-12-23 12:34:56Z[UTC]# == [X]"
             c1.to_vector . should_equal [True, False]
-            c2 = t.compute "#2010-01-02 12:34:56[Europe/Warsaw]# == [X]"
+            c2 = t.evaluate_expression "#2010-01-02 12:34:56[Europe/Warsaw]# == [X]"
             c2.to_vector . should_equal [False, True]
 
     Test.group prefix+"Expression Arithmetic" <|
@@ -366,19 +366,19 @@ spec detailed setup =
         Test.specify "should report floating point equality" <|
             t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
 
-            r1 = t1.compute "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Ignore
+            r1 = t1.evaluate_expression "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Ignore
             Problems.assume_no_problems r1
             r1.to_vector . should_equal [True, True, False]
 
-            r2 = t1.compute "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Warning
+            r2 = t1.evaluate_expression "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Warning
             Problems.get_attached_warnings r2 . each warn->
                 warn.should_be_a Floating_Point_Equality
             r2.to_vector . should_equal [True, True, False]
 
-            err3 = t1.compute "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Error
+            err3 = t1.evaluate_expression "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Error
             err3.should_fail_with Floating_Point_Equality
 
-            r4 = t1.compute 'if ([X] != 2) && ([X] + 0.5 != 2) then "A" else "B"'
+            r4 = t1.evaluate_expression 'if ([X] != 2) && ([X] + 0.5 != 2) then "A" else "B"'
             r4.to_vector . should_equal ["B", "B", "A"]
             Problems.expect_warning Floating_Point_Equality r4
 
@@ -386,7 +386,7 @@ spec detailed setup =
         Test.specify "should report arithmetic errors" pending=db_pending <|
             t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
 
-            action1 = t1.compute "3 / [X]" on_problems=_
+            action1 = t1.evaluate_expression "3 / [X]" on_problems=_
             tester1 column =
                 column.to_vector . should_equal [2.0, 1.5, Number.positive_infinity]
             problems1 = [Arithmetic_Error.Error "Division by zero (at rows [2])."]
@@ -394,18 +394,18 @@ spec detailed setup =
 
         Test.specify "already existing warnings should not be escalated to errors in error handling mode (1)" pending=db_pending <|
             t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
-            c1 = t1.compute "3 / [X]" on_problems=Problem_Behavior.Report_Warning
+            c1 = t1.evaluate_expression "3 / [X]" on_problems=Problem_Behavior.Report_Warning
             Problems.expect_warning Arithmetic_Error c1
 
             t2 = t1.set c1 new_name="Y"
             Problems.expect_warning Arithmetic_Error t2
             Problems.expect_warning Arithmetic_Error (t2.at "Y")
 
-            c2 = t2.compute "[Y] >= 42.0" on_problems=Problem_Behavior.Report_Error
+            c2 = t2.evaluate_expression "[Y] >= 42.0" on_problems=Problem_Behavior.Report_Error
             Problems.expect_warning Arithmetic_Error c2
             c2.to_vector . should_equal [False, False, True]
 
-            c3 = t2.compute "[Y] == 42.0" on_problems=Problem_Behavior.Report_Error
+            c3 = t2.evaluate_expression "[Y] == 42.0" on_problems=Problem_Behavior.Report_Error
             c3.should_fail_with Floating_Point_Equality
 
             t3 = t2.set 'if [Y] == 42.0 then "A" else "B"' new_name="Z" on_problems=Problem_Behavior.Report_Error
@@ -418,21 +418,21 @@ spec detailed setup =
 
         Test.specify "already existing warnings should not be escalated to errors in error handling mode (2)" <|
             t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
-            c1 = Warning.attach (Illegal_State.Error "FOO") (t1.compute "[X] + 3.0")
+            c1 = Warning.attach (Illegal_State.Error "FOO") (t1.evaluate_expression "[X] + 3.0")
             Problems.expect_warning Illegal_State c1
 
             t2 = t1.set c1 new_name="Y"
             Problems.expect_warning Illegal_State t2
             Problems.expect_warning Illegal_State (t2.at "Y")
 
-            c2 = t2.compute "[Y] >= 3.5" on_problems=Problem_Behavior.Report_Error
+            c2 = t2.evaluate_expression "[Y] >= 3.5" on_problems=Problem_Behavior.Report_Error
             Problems.expect_warning Illegal_State c2
             c2.to_vector . should_equal [True, True, False]
 
-            c3 = t2.compute "[Y] == 42.0" on_problems=Problem_Behavior.Report_Error
+            c3 = t2.evaluate_expression "[Y] == 42.0" on_problems=Problem_Behavior.Report_Error
             c3.should_fail_with Floating_Point_Equality
 
-            c4 = t2.compute "[Y] == 3.0" on_problems=Problem_Behavior.Report_Warning
+            c4 = t2.evaluate_expression "[Y] == 3.0" on_problems=Problem_Behavior.Report_Warning
             c4.to_vector . should_equal [False, False, True]
             Problems.expect_warning Floating_Point_Equality c4
             # Should still keep the inherited warning from "Y".

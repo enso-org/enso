@@ -1,13 +1,11 @@
-/**
- * @file Configuration for the esbuild bundler and build/watch commands.
+/** @file Configuration for the esbuild bundler and build/watch commands.
  *
  * The bundler processes each entry point into a single file, each with no external dependencies and
  * minified. This primarily involves resolving all imports, along with some other transformations
  * (like TypeScript compilation).
  *
  * See the bundlers documentation for more information:
- * https://esbuild.github.io/getting-started/#bundling-for-node.
- */
+ * https://esbuild.github.io/getting-started/#bundling-for-node. */
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as url from 'node:url'
@@ -34,6 +32,7 @@ const TAILWIND_CONFIG_PATH = path.resolve(THIS_PATH, 'tailwind.config.ts')
 // === Environment variables ===
 // =============================
 
+/** Mandatory build options. */
 export interface Arguments {
     /** Path where bundled files are output. */
     outputPath: string
@@ -41,22 +40,22 @@ export interface Arguments {
     devMode: boolean
 }
 
-/**
- * Get arguments from the environment.
- */
+/** Get arguments from the environment. */
 export function argumentsFromEnv(): Arguments {
     const outputPath = path.resolve(utils.requireEnv('ENSO_BUILD_GUI'), 'assets')
     return { outputPath, devMode: false }
 }
 
-// ======================
-// === Inline plugins ===
-// ======================
+// =======================
+// === Esbuild plugins ===
+// =======================
 
+/** A plugin to process all CSS files with Tailwind CSS. */
 function esbuildPluginGenerateTailwind(): esbuild.Plugin {
     return {
         name: 'enso-generate-tailwind',
         setup: build => {
+            /** An entry in the cache of already processed CSS files. */
             interface CacheEntry {
                 contents: string
                 lastModified: number
@@ -113,8 +112,8 @@ export function bundlerOptions(args: Arguments) {
         plugins: [
             esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),
             esbuildPluginTime(),
-            // This is not strictly needed because the cloud frontend does not use the Project Manager,
-            // however it is very difficult to conditionally exclude a module.
+            // This is not strictly needed because the cloud frontend does not use
+            // the Project Manager, however it is very difficult to conditionally exclude a module.
             esbuildPluginYaml.yamlPlugin({}),
             esbuildPluginGenerateTailwind(),
         ],
@@ -142,7 +141,7 @@ export function bundlerOptions(args: Arguments) {
     return correctlyTypedBuildOptions
 }
 
-/** ESBuild options for bundling (one-off build) the package.
+/** esbuild options for bundling (one-off build) the package.
  *
  * Relies on the environment variables to be set. */
 export function bundleOptions() {
