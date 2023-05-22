@@ -28,6 +28,8 @@ class ProjectManagementApiSpec
 
   override val engineToInstall = Some(SemVer(0, 0, 1))
 
+  override val deleteProjectsRootAfterEachTest = false
+
   "project/create" must {
 
     "check if project name is not empty" taggedAs Flaky in {

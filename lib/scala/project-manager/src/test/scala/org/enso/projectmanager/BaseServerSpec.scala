@@ -103,14 +103,15 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
 
   lazy val gen = new ObservableGenerator[ZAny]()
 
-  var testProjectsRoot = Files.createTempDirectory(null).toFile
+  val testProjectsRoot = Files.createTempDirectory(null).toFile
+  sys.addShutdownHook(FileUtils.deleteQuietly(testProjectsRoot))
 
   val testDistributionRoot = Files.createTempDirectory(null).toFile
   sys.addShutdownHook(FileUtils.deleteQuietly(testDistributionRoot))
 
-  def userProjectDir = new File(testProjectsRoot, "projects")
+  val userProjectDir = new File(testProjectsRoot, "projects")
 
-  def testStorageConfig = StorageConfig(
+  lazy val testStorageConfig = StorageConfig(
     projectsRoot             = testProjectsRoot,
     userProjectsPath         = userProjectDir,
     projectMetadataDirectory = ".enso",
@@ -134,7 +135,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
       Runtime.default.unsafe.run(Semaphore.make(1)).getOrThrow()
     }
 
-  def projectRepository =
+  lazy val projectRepository =
     new ProjectFileRepository(
       testStorageConfig,
       testClock,
@@ -190,7 +191,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     distributionConfiguration
   )
 
-  def projectService =
+  lazy val projectService =
     new ProjectService[ZIO[ZAny, +*, +*]](
       projectValidator,
       projectRepository,
@@ -225,10 +226,8 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
   override def afterEach(): Unit = {
     super.afterEach()
 
-    if (deleteProjectsRootAfterEachTest) {
+    if (deleteProjectsRootAfterEachTest)
       FileUtils.deleteQuietly(testProjectsRoot)
-      testProjectsRoot = Files.createTempDirectory(null).toFile
-    }
   }
 
   override def afterAll(): Unit = {
