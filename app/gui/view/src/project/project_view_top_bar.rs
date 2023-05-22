@@ -19,9 +19,9 @@ pub mod window_control_buttons;
 // =================
 
 /// The gap in pixels between the various components of the project view top bar.
-const GAP: f32 = 18.0;
-/// The padding around the project view top bar.
-const PADDING: f32 = 18.0;
+const GAP: f32 = 16.0;
+/// The padding left of the project view top bar.
+const PADDING_LEFT: f32 = 19.0;
 
 
 
@@ -53,7 +53,10 @@ impl ProjectViewTopBar {
         root.add_child(&go_to_dashboard_button);
         root.use_auto_layout()
             .set_gap((GAP, 0.0))
-            .set_padding_all(PADDING)
+            .set_padding_left(PADDING_LEFT)
+            // We use `GAP` as the right padding since it delimits the space to the part of the top
+            // bar that's defined in the graph editor.
+            .set_padding_right(GAP)
             .set_children_alignment_center();
 
         app.display.default_scene.layers.panel.add(&root);

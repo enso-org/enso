@@ -16,7 +16,7 @@ use ensogl_component::toggle_button::ToggleButton;
 // =================
 
 /// The width and height of the button.
-pub const SIZE: Vector2 = Vector2(12.0, 16.0);
+pub const SIZE: f32 = 16.0;
 
 
 
@@ -36,7 +36,7 @@ mod icon {
             let fill_color = Var::<color::Rgba>::from(color_rgba);
             let width = Var::<Pixels>::from("input_size.x");
             let height = Var::<Pixels>::from("input_size.y");
-            let unit = &width / SIZE.x;
+            let unit = &width / SIZE;
             let mid_bar = Rect((&unit * 12.0, &unit * 3.0)).corners_radius(&unit);
             let top_bar = mid_bar.translate_y(&unit * -5.0);
             let bottom_bar = mid_bar.translate_y(&unit * 5.0);
@@ -77,7 +77,7 @@ impl View {
         scene.layers.panel.add(&button);
 
         button.set_color_scheme(Self::color_scheme(&scene.style_sheet));
-        button.set_size(SIZE);
+        button.set_size(Vector2(SIZE, SIZE));
 
         Self { button }
     }
