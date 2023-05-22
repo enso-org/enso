@@ -394,7 +394,11 @@ pub struct Filter {
     pub pattern: ImString,
     /// Additional context. A string representation of the edited accessor chain.
     pub context: Option<ImString>,
-    /// The name of the currently active module.
+    /// The name of the currently active module. This is necessary since the module influences what
+    /// code to generate. At the time of writing, this is only the case when importing a module
+    /// method of a main module: the module is referred to as `Main` from within the same module
+    /// or by the project name when referenced elsewhere. See
+    /// `enso_suggestion_database::Entry::code_with_static_this` for its usage.
     module_name: Rc<QualifiedName>,
 }
 

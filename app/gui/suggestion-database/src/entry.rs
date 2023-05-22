@@ -469,9 +469,17 @@ impl Entry {
                         }
                     })
                 });
-                let self_type_import = self
-                    .is_static
-                    .and_option_from(|| self_type_entry.map(|e| e.required_imports(db, in_module)));
+                let self_type_import = self.is_static.and_option_from(|| {
+                    self_type_entry.map(|self_type_entry| {
+                        if self_type_entry.qualified_name() == in_module
+                            && in_module.is_main_module()
+                        {
+                            default()
+                        } else {
+                            self_type_entry.required_imports(db, in_module)
+                        }
+                    })
+                });
                 extension_method_import
                     .into_iter()
                     .chain(self_type_import.into_iter())
@@ -1130,10 +1138,10 @@ mod test {
     #[test]
     fn required_imports_of_entry() {
         let db = mock::standard_db_mock();
-        const CURRENT_MODULE_VARIANTS: [&str; 2] =
-            ["local.Project.Submodule", "local.Another_Project"];
-        let current_modules =
-            CURRENT_MODULE_VARIANTS.map(|txt| QualifiedName::try_from(txt).unwrap());
+
+        let in_submodule = QualifiedName::try_from("local.Project.Submodule").unwrap();
+        let in_other_project = QualifiedName::try_from("local.Another_Project").unwrap();
+        let in_main_module = QualifiedName::try_from("local.Project.Main").unwrap();
 
         let expect_imports = |entry: &Entry, current_module: &QualifiedName, expected: &[&str]| {
             let entry_imports = entry.required_imports(&db, current_module.as_ref()).into_iter();
@@ -1156,6 +1164,8 @@ mod test {
         let module_method =
             db.lookup_by_qualified_name_str("local.Project.Submodule.module_method").unwrap();
         let submodule = db.lookup_by_qualified_name_str("local.Project.Submodule").unwrap();
+        let main_module_method =
+            db.lookup_by_qualified_name_str("local.Project.main_module_method").unwrap();
 
         let defined_in = "local.Project.Submodule".try_into().unwrap();
         let on_type = "Standard.Base.Number".try_into().unwrap();
@@ -1163,29 +1173,40 @@ mod test {
         let extension_method =
             Rc::new(Entry::new_method(defined_in, on_type, "extension_method", return_type, true));
 
-        for cm in &current_modules {
-            expect_imports(&number, cm, &["from Standard.Base import Number"]);
-            expect_imports(&some, cm, &["from Standard.Base import Maybe"]);
-            expect_no_import(&method, cm);
+        for in_module in [&in_submodule, &in_other_project, &in_main_module] {
+            expect_imports(&number, in_module, &["from Standard.Base import Number"]);
+            expect_imports(&some, in_module, &["from Standard.Base import Maybe"]);
+            expect_no_import(&method, in_module);
         }
 
-        expect_imports(&static_method, &current_modules[0], &[]);
+        expect_imports(&static_method, &in_submodule, &[]);
         // The following asserts are disabled, because we actually add import for the module even if
         // we're inside it. It is necessary, because otherwise `Project.foo` expressions
         // currently do not work without importing `local.Project` into the scope.
         // See https://github.com/enso-org/enso/issues/5616.
-        // expect_imports(&module_method, &current_modules[0], &[]);
-        // expect_imports(&submodule, &current_modules[0], &[]);
-        expect_imports(&extension_method, &current_modules[0], &[
+        // expect_imports(&module_method, &in_submodule, &[]);
+        // expect_imports(&submodule, &in_submodule, &[]);
+        expect_imports(&main_module_method, &in_submodule, &["import local.Project"]);
+        expect_imports(&extension_method, &in_submodule, &["from Standard.Base import Number"]);
+
+        expect_imports(&static_method, &in_other_project, &[
+            "from local.Project.Submodule import TestType",
+        ]);
+        expect_imports(&module_method, &in_other_project, &["import local.Project.Submodule"]);
+        expect_imports(&submodule, &in_other_project, &["import local.Project.Submodule"]);
+        expect_imports(&main_module_method, &in_other_project, &["import local.Project"]);
+        expect_imports(&extension_method, &in_other_project, &[
+            "import local.Project.Submodule",
             "from Standard.Base import Number",
         ]);
 
-        expect_imports(&static_method, &current_modules[1], &[
+        expect_imports(&static_method, &in_main_module, &[
             "from local.Project.Submodule import TestType",
         ]);
-        expect_imports(&module_method, &current_modules[1], &["import local.Project.Submodule"]);
-        expect_imports(&submodule, &current_modules[1], &["import local.Project.Submodule"]);
-        expect_imports(&extension_method, &current_modules[1], &[
+        expect_imports(&module_method, &in_main_module, &["import local.Project.Submodule"]);
+        expect_imports(&submodule, &in_main_module, &["import local.Project.Submodule"]);
+        expect_imports(&main_module_method, &in_main_module, &[]);
+        expect_imports(&extension_method, &in_main_module, &[
             "import local.Project.Submodule",
             "from Standard.Base import Number",
         ]);
