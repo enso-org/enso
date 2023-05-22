@@ -12,6 +12,7 @@ import nl.gn0s1s.bump.SemVer
   * @param id the project id
   * @param engineVersion version of the engine associated with the project, it
   *                      may be missing if project's edition could not be loaded
+  * @param created the project creation time
   * @param lastOpened the last opened datetime
   */
 case class ProjectMetadata(
@@ -19,5 +20,6 @@ case class ProjectMetadata(
   namespace: String,
   id: UUID,
   engineVersion: Option[SemVer],
+  created: OffsetDateTime,
   lastOpened: Option[OffsetDateTime]
 )
