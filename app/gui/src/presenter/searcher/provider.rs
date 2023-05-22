@@ -14,8 +14,6 @@ use ensogl_component::list_view::entry::GlyphHighlightedLabel;
 use ide_view as view;
 use ide_view::component_browser::component_list_panel;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
-use ide_view::component_browser::component_list_panel::grid::GroupEntryId;
-use ide_view::component_browser::component_list_panel::grid::GroupId;
 
 
 // ============================
@@ -211,17 +209,17 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
         let first_group = groups.first();
         let first_group_best_matching =
             first_group.filter(|grp| grp.best_match_score > local_scope_score);
-        let (score, best_match) = first_group_best_matching
-            .map_or((local_scope_score, GroupId::local_scope_group().first_element()), |grp| {
-                (grp.best_match_score, grp.id.first_element())
-            });
+        let (score, best_match) = first_group_best_matching.map_or(
+            (local_scope_score, component_grid::GroupId::local_scope_group().first_element()),
+            |grp| (grp.best_match_score, grp.id.first_element()),
+        );
 
         component_list_panel::grid::content::Info {
             groups,
             local_scope_entry_count: local_scope.matched_items.get(),
             namespace_section_count: self.namespace_section_count(),
             best_match: (score > component::NOT_MATCHING_SCORE).then_some(best_match),
-            displaying_module_content: provider.displaying_module(),
+            displaying_module_content: self.displaying_module(),
         }
     }
 

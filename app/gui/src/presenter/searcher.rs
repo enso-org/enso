@@ -130,13 +130,18 @@ impl Model {
     }
 
     /// Should be called if a suggestion is selected but not used yet.
-    fn suggestion_selected(&self, entry_id: component_grid::GroupEntryId) {
-        match self.suggestion_for_entry_id(entry_id) {
-            Ok(suggestion) =>
-                if let Err(error) = self.controller.preview_suggestion(suggestion) {
-                    warn!("Failed to preview suggestion {entry_id:?} because of error: {error}.");
-                },
-            Err(err) => warn!("Error while previewing suggestion: {err}."),
+    fn suggestion_selected(&self, entry_id: Option<component_grid::GroupEntryId>) {
+        let suggestion = entry_id.map(|id| self.suggestion_for_entry_id(id));
+        let to_preview = match suggestion {
+            Some(Ok(suggestion)) => Some(suggestion),
+            Some(Err(err)) => {
+                warn!("Error while previewing suggestion: {err}.");
+                None
+            }
+            None => None,
+        };
+        if let Err(error) = self.controller.preview(to_preview) {
+            error!("Failed to preview searcher input (selected suggestion: {entry_id:?}) because of error: {error}.");
         }
     }
 
@@ -266,6 +271,10 @@ impl Model {
             default()
         }
     }
+
+    fn should_select_first_entry(&self) -> bool {
+        self.controller.is_filtering() || self.controller.is_input_empty()
+    }
 }
 
 /// The Searcher presenter, synchronizing state between searcher view and searcher controller.
@@ -316,13 +325,13 @@ impl Searcher {
                 let namespace_section_count = controller_provider.namespace_section_count();
                 navigator.set_namespace_section_count.emit(namespace_section_count);
                 let provider = provider::Component::provide_new_list(controller_provider, &grid);
-                //TODO[ao] Here select entry
                 *model.provider.borrow_mut() = Some(provider);
             });
+            grid.select_first_entry <+ action_list_changed.filter(f_!(model.should_select_first_entry()));
             input_edit <- grid.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
             graph.edit_node_expression <+ input_edit;
 
-            entry_selected <- grid.active.filter_map(|&s| s?.as_entry_id());
+            entry_selected <- grid.active.map(|&s| s?.as_entry_id());
             selected_entry_changed <- entry_selected.on_change().constant(());
             grid.unhover_element <+ any2(
                 &selected_entry_changed,

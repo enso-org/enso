@@ -474,21 +474,26 @@ impl Model {
         }
     }
 
-    fn entry_to_select_after_reset(&self, info: &content::Info) -> Option<(Row, Col)> {
-        info.best_match.or_else(|| {
-            let top_module_sections = (0..info.namespace_section_count).map(SectionId::Namespace);
-            let sections = if info.displaying_module_content {
-                iter::once(SectionId::LocalScope)
-                    .chain(top_module_sections)
-                    .chain(iter::once(SectionId::Popular))
-            } else {
-                iter::once(SectionId::Popular)
-                    .chain(top_module_sections)
-                    .chain(iter::once(SectionId::LocalScope))
-            };
-            let pick_location = |s: SectionId| self.entry_to_select_when_switching_to_section(s);
-            sections.filter_map(pick_location).next()
-        })
+    fn first_entry_to_select(&self, info: &content::Info) -> Option<(Row, Col)> {
+        match info.best_match {
+            Some(id) => self.layout.borrow().location_of_element(id.into()),
+            None => {
+                let top_module_sections =
+                    (0..info.namespace_section_count).map(SectionId::Namespace);
+                let sections = if info.displaying_module_content {
+                    iter::once(SectionId::LocalScope)
+                        .chain(top_module_sections)
+                        .chain(iter::once(SectionId::Popular))
+                } else {
+                    iter::once(SectionId::Popular)
+                        .chain(top_module_sections)
+                        .chain(iter::once(SectionId::LocalScope))
+                };
+                let pick_location =
+                    |s: SectionId| self.entry_to_select_when_switching_to_section(s);
+                sections.filter_map(pick_location).next()
+            }
+        }
     }
 
     fn selection_after_jump_group_up(

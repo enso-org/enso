@@ -349,6 +349,11 @@ impl Input {
     pub fn edited_literal(&self) -> Option<&Literal> {
         self.edited_ast.edited_literal.as_ref()
     }
+
+    /// Check if input is empty.
+    pub fn is_empty(&self) -> bool {
+        matches!(&self.ast, InputAst::Invalid(str) if str.trim().is_empty())
+    }
 }
 
 

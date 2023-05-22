@@ -480,6 +480,11 @@ impl Searcher {
         !self.data.borrow().input.filter().pattern.is_empty()
     }
 
+    /// Return true if the current searcher input is empty.
+    pub fn is_input_empty(&self) -> bool {
+        self.data.borrow().input.is_empty()
+    }
+
     /// Subscribe to controller's notifications.
     pub fn subscribe(&self) -> Subscriber<Notification> {
         self.notifier.subscribe()
@@ -632,31 +637,48 @@ impl Searcher {
             list.get_cloned(index).ok_or_else(error)?.action
         };
         if let Action::Suggestion(picked_suggestion) = suggestion {
-            self.preview_suggestion(picked_suggestion)?;
+            self.preview(Some(picked_suggestion))?;
         };
 
         Ok(())
     }
 
-    /// Use action at given index as a suggestion. The exact outcome depends on the action's type.
-    pub fn preview_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult {
+    /// Preview the current suggestion input.
+    pub fn preview_input(&self) -> FallibleResult {
+        self.preview(None)
+    }
+
+    /// Update the edited node's code with the current preview.
+    ///
+    /// If `suggestion` is specified, the preview will contains code after applying it.
+    /// Otherwise it will be just the current searcher input.
+    pub fn preview(&self, suggestion: Option<action::Suggestion>) -> FallibleResult {
         let transaction_name = "Previewing Component Browser suggestion.";
         let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
 
-        debug!("Previewing suggestion: \"{picked_suggestion:?}\".");
+        debug!("Updating node preview. Previewed suggestion: \"{suggestion:?}\".");
         self.clear_temporary_imports();
-
         let has_this = self.this_var().is_some();
-        let preview_change =
-            self.data.borrow().input.after_inserting_suggestion(&picked_suggestion, has_this)?;
-        let preview_ast = self.ide.parser().parse_line_ast(preview_change.new_input).ok();
+        let preview_change_result = suggestion.map(|suggestion| {
+            self.data.borrow().input.after_inserting_suggestion(&suggestion, has_this)
+        });
+
+
+        let suggestion_change = preview_change_result.transpose()?;
+        let preview_ast = match &suggestion_change {
+            Some(change) => self.ide.parser().parse_line_ast(&change.new_input).ok(),
+            None => self.data.borrow().input.ast().cloned(),
+        };
         let expression = self.get_expression(preview_ast.as_ref());
 
         {
             // This block serves to limit the borrow of `self.data`.
             let data = self.data.borrow();
-            let requirements = data.picked_suggestions.iter().filter_map(|ps| ps.import.clone());
-            let all_requirements = requirements.chain(preview_change.import.iter().cloned());
+            let current_input_requirements =
+                data.picked_suggestions.iter().filter_map(|ps| ps.import.clone());
+            let picked_suggestion_requirement = suggestion_change.and_then(|change| change.import);
+            let all_requirements =
+                current_input_requirements.chain(picked_suggestion_requirement.iter().cloned());
             self.add_required_imports(all_requirements, false)?;
         }
         self.graph.graph().set_expression(self.mode.node_id(), expression)?;
@@ -2197,7 +2219,7 @@ pub mod test {
 
             searcher.set_input(case.input.clone(), Byte(case.input.len())).unwrap();
             let suggestion = action::Suggestion::FromDatabase(entry.clone_ref());
-            searcher.preview_suggestion(suggestion.clone()).unwrap();
+            searcher.preview(Some(suggestion.clone())).unwrap();
             searcher.use_suggestion(suggestion.clone()).unwrap();
             searcher.commit_node().unwrap();
             let updated_def = searcher.graph.graph().definition().unwrap().item;
