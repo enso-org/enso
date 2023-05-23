@@ -40,6 +40,7 @@ import * as toast from 'react-hot-toast'
 
 import * as authService from '../authentication/service'
 import * as detect from '../detect'
+import * as localBackend from '../dashboard/localBackend'
 
 import * as authProvider from '../authentication/providers/auth'
 import * as backendProvider from '../providers/backend'
@@ -123,7 +124,7 @@ function App(props: AppProps) {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
-    const { logger, showDashboard, onAuthenticated } = props
+    const { logger, supportsLocalBackend, showDashboard, onAuthenticated } = props
     const navigate = router.useNavigate()
     const mainPageUrl = new URL(window.location.href)
     const memoizedAuthService = react.useMemo(() => {
@@ -165,10 +166,19 @@ function AppRouter(props: AppProps) {
                 userSession={userSession}
                 registerAuthEventListener={registerAuthEventListener}
             >
-                {/* @ts-expect-error Auth will always set this before dashboard is rendered. */}
-                <backendProvider.BackendProvider initialBackend={null}>
+                <backendProvider.BackendProvider
+                    initialBackend={
+                        supportsLocalBackend
+                            ? new localBackend.LocalBackend()
+                            : // This is UNSAFE. However, the backend will be set by the
+                              // authentication flow.
+                              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                              null!
+                    }
+                >
                     <authProvider.AuthProvider
                         authService={memoizedAuthService}
+                        supportsLocalBackend={supportsLocalBackend}
                         onAuthenticated={onAuthenticated}
                     >
                         <modalProvider.ModalProvider>{routes}</modalProvider.ModalProvider>

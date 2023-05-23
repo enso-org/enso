@@ -13,6 +13,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -576,6 +577,15 @@ class ValuesGenerator {
       )) {
         collect.add(v("maps-" + expr, imports, expr, "Map").type());
       }
+    }
+    if (languages.contains(Language.JAVA)) {
+      collect.add(ctx.asValue(Collections.emptyMap()));
+      collect.add(ctx.asValue(Collections.singletonMap("A", 1)));
+      var map = new HashMap<String,Integer>();
+      map.put("A", 1);
+      map.put("B", 2);
+      map.put("C", 3);
+      collect.add(ctx.asValue(map));
     }
     return collect;
   }
