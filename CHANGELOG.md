@@ -164,6 +164,10 @@
   added in various other PRs. The new dashboard includes tables for projects,
   folders, files and secrets, a list of templates from which new projects can be
   created, a user menu, and a search bar.
+- [The Application will try to reload file in backend on synchronization
+  failure][6752]. It should make it more resilient to connectivity issues and
+  occasional bugs. The reload may be forced by the user with
+  <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>x</kbd> shortcut.
 - [When selecting a function from the main module through the component browser,
   it is now referenced via the `Main` namespace instead of the project
   namespace,][6719] e.g. `Main.func1` instead of `MyProject.func1`. This makes
@@ -175,6 +179,7 @@
 [6617]: https://github.com/enso-org/enso/pull/6617
 [6620]: https://github.com/enso-org/enso/pull/6620
 [6663]: https://github.com/enso-org/enso/pull/6663
+[6752]: https://github.com/enso-org/enso/pull/6752
 [6719]: https://github.com/enso-org/enso/pull/6719
 
 #### EnsoGL (rendering engine)
