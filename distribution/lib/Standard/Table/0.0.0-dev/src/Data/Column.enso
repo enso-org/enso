@@ -692,6 +692,11 @@ type Column
          Rounding to `n` digits can be thought of as "rounding to the nearest
          multiple of 10^(-n)". For negative decimal counts, this results in
          rounding to the nearest positive integer power of 10.
+
+       > Example
+         Round a column of `Decimal` values`.
+
+             Column.from_vector "foo" [1.2, 2.3, 3.6] . round == (Column.from_vector "foo" [1, 2, 4])
     round : Integer -> Boolean -> Problem_Behavior -> Column | Illegal_Argument | Invalid_Value_Type
     round self decimal_places=0 use_bankers=False on_problems=Report_Warning = Value_Type.expect_numeric self <|
         returns_double = decimal_places > 0
@@ -704,7 +709,20 @@ type Column
        Truncate the floating-point values in a column to an integer by dropping
        the fractional part. This is equivalent to "round-toward-zero".
 
+       Truncate the `Date_Time` values in a column to `Date`.
+
        Returns a column of `Integer`.
+
+       > Example
+         Truncate a column of `Decimal` values.
+
+             Column.from_vector "foo" [1.25, 2.33, 3.57] . truncate == (Column.from_vector "foo" [1, 2, 3])
+
+       > Example
+         Truncate a column of `Date_Time` values.
+            date_times = Column.from_vector "foo" [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3]
+            dates = Column.from_vector "foo" [Date.new 2020 10 24, Date.new 2020 10 24]
+            col.truncate == dates
     truncate : Column ! Invalid_Value_Type
     truncate self =
         case self.value_type.is_numeric of
@@ -721,6 +739,11 @@ type Column
        column.
 
        Returns a column of `Integer`.
+
+       > Example
+         Take the ceiling of a column of `Decimal` values.
+
+             Column.from_vector "foo" [1.25, 2.33, 3.57] . ceil == (Column.from_vector "foo" [2, 3, 4])
     ceil : Column ! Invalid_Value_Type
     ceil self = Value_Type.expect_numeric self <|
         fun = _.ceil
@@ -730,6 +753,11 @@ type Column
        column.
 
        Returns a column of `Integer`.
+
+       > Example
+         Take the floor of a column of `Decimal` values.
+
+             Column.from_vector "foo" [1.25, 2.33, 3.57] . floor == (Column.from_vector "foo" [1, 2, 3])
     floor : Column ! Invalid_Value_Type
     floor self = Value_Type.expect_numeric self <|
         fun = _.floor
