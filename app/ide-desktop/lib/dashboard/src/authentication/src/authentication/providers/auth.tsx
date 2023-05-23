@@ -152,7 +152,7 @@ export interface AuthProviderProps {
 export function AuthProvider(props: AuthProviderProps) {
     const { authService, platform, children } = props
     const { cognito } = authService
-    const { session } = sessionProvider.useSession()
+    const { session, deinitializeSession } = sessionProvider.useSession()
     const { setBackend } = backendProvider.useSetBackend()
     const logger = loggerProvider.useLogger()
     const navigate = router.useNavigate()
@@ -328,6 +328,7 @@ export function AuthProvider(props: AuthProviderProps) {
     }
 
     const signOut = async () => {
+        deinitializeSession()
         setUserSession(null)
         await toast.promise(cognito.signOut(), {
             success: MESSAGES.signOutSuccess,
