@@ -45,8 +45,6 @@ function RenameModal(props: RenameModalProps) {
         }
     }
 
-    console.log('what', namePattern, title)
-
     return (
         <Modal centered className="bg-opacity-90">
             <form
