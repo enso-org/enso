@@ -81,6 +81,15 @@ public class MetaIsATest extends TestBase {
   }
 
   @Test
+  public void mapsAreMaps() {
+    var g = ValuesGenerator.create(ctx);
+    for (var v : g.maps()) {
+      var r = isACheck.execute(v, g.typeMap());
+      assertTrue("Value " + v + " type " + v.getClass().getName() + " is a map", r.asBoolean());
+    }
+  }
+
+  @Test
   public void checkIntegerIsNotInstanceOfInteger() {
     var g = ValuesGenerator.create(ctx);
     var t = g.typeInteger();
