@@ -48,6 +48,9 @@ export interface UserOrOrganization {
     id: UserOrOrganizationId
     name: string
     email: EmailAddress
+    /** If `false`, this account is awaiting acceptance from an admin, and endpoints other than
+     * `usersMe` will not work. */
+    isEnabled: boolean
 }
 
 /** Possible states that a project can be in. */

@@ -391,6 +391,7 @@ class ProjectService[
       namespace     = project.namespace,
       id            = project.id,
       engineVersion = engineVersion,
+      created       = project.created,
       lastOpened    = project.lastOpened
     )
 

@@ -226,7 +226,7 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div
-            className={`relative select-none text-primary text-xs min-h-screen p-2 ${
+            className={`flex flex-col relative select-none text-primary text-xs min-h-screen p-2 ${
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
             onClick={clearModalAndSelectedAssets}
@@ -242,19 +242,32 @@ function Dashboard(props: DashboardProps) {
                 query={query}
                 setQuery={setQuery}
             />
-            <Templates onTemplateClick={handleCreateProject} />
-            <DirectoryView
-                directoryId={directoryId}
-                setDirectoryId={setDirectoryId}
-                query={query}
-                refresh={refresh}
-                doRefresh={doRefresh}
-                onAssetClick={onAssetClick}
-                onOpenIde={openIde}
-                onCloseIde={closeIde}
-                appRunner={appRunner}
-                experimentalShowColumnDisplayModeSwitcher={EXPERIMENTAL.columnDisplayModeSwitcher}
-            />
+            {backend.platform === platformModule.Platform.cloud && !organization.isEnabled ? (
+                <div className="grow grid place-items-center">
+                    <div className="text-base text-center">
+                        We will review your user details and enable the cloud experience for you
+                        shortly.
+                    </div>
+                </div>
+            ) : (
+                <>
+                    <Templates onTemplateClick={handleCreateProject} />
+                    <DirectoryView
+                        directoryId={directoryId}
+                        setDirectoryId={setDirectoryId}
+                        query={query}
+                        refresh={refresh}
+                        doRefresh={doRefresh}
+                        onAssetClick={onAssetClick}
+                        onOpenIde={openIde}
+                        onCloseIde={closeIde}
+                        appRunner={appRunner}
+                        experimentalShowColumnDisplayModeSwitcher={
+                            EXPERIMENTAL.columnDisplayModeSwitcher
+                        }
+                    />
+                </>
+            )}
             {isFileBeingDragged && backend.platform === platformModule.Platform.cloud ? (
                 <div
                     className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary grid place-items-center"

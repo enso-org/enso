@@ -295,17 +295,18 @@ function ProjectsTable(props: ProjectsTableProps) {
                 // This is not a React component even though it contains JSX.
                 // eslint-disable-next-line no-restricted-syntax
                 const doRename = () => {
+                    const innerDoRename = async (newName: string) => {
+                        await backend.projectUpdate(projectAsset.id, {
+                            ami: null,
+                            ideVersion: null,
+                            projectName: newName,
+                        })
+                    }
                     setModal(() => (
                         <RenameModal
                             name={projectAsset.title}
                             assetType={projectAsset.type}
-                            doRename={async newName => {
-                                await backend.projectUpdate(projectAsset.id, {
-                                    ami: null,
-                                    ideVersion: null,
-                                    projectName: newName,
-                                })
-                            }}
+                            doRename={innerDoRename}
                             onSuccess={onRename}
                             {...(backend.platform === platform.Platform.desktop
                                 ? DESKTOP_PROJECT_NAME_VALIDATION
@@ -330,9 +331,11 @@ function ProjectsTable(props: ProjectsTableProps) {
                         <ContextMenuEntry disabled onClick={doOpenForEditing}>
                             Open for editing
                         </ContextMenuEntry>
-                        <ContextMenuEntry disabled onClick={doOpenAsFolder}>
-                            Open as folder
-                        </ContextMenuEntry>
+                        {backend.platform !== platform.Platform.desktop && (
+                            <ContextMenuEntry disabled onClick={doOpenAsFolder}>
+                                Open as folder
+                            </ContextMenuEntry>
+                        )}
                         <ContextMenuEntry disabled onClick={doRename}>
                             Rename
                         </ContextMenuEntry>

@@ -120,7 +120,6 @@ function DirectoryView(props: DirectoryViewProps) {
     const assets = hooks.useAsyncEffect(
         [],
         async signal => {
-            setIsLoadingAssets(true)
             const result = await backend.listDirectory({ parentId: directoryId })
             if (!signal.aborted) {
                 setIsLoadingAssets(false)
