@@ -42,7 +42,7 @@ class GraalVMComponentConfigurationSpec extends AnyWordSpec with Matchers {
         GraalVMVersion("22.3.1", "17"),
         OS.Windows
       ) should contain theSameElementsAs Seq(
-        GraalVMComponent.js,
+        GraalVMComponent.js
       )
 
       conf.getRequiredComponents(

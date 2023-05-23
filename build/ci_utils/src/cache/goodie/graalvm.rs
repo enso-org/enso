@@ -171,9 +171,9 @@ OpenJDK Runtime Environment GraalVM CE 22.3.1 (build 17.0.6+10-jvmci-22.3-b13)
 OpenJDK 64-Bit Server VM GraalVM CE 22.3.1 (build 17.0.6+10-jvmci-22.3-b13, mixed mode, sharing)";
 
         let found_graal = graal_version_from_version_string(version_string).unwrap();
-        assert_eq!(found_graal, Version::new(22, 3, 2));
+        assert_eq!(found_graal, Version::new(22, 3, 1));
 
         let found_java = Java.parse_version(version_string).unwrap();
-        assert_eq!(found_java, Version::new(17, 0, 7));
+        assert_eq!(found_java, Version::new(17, 0, 6));
     }
 }
