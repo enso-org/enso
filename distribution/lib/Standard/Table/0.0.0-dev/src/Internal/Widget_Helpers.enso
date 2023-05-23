@@ -51,6 +51,13 @@ make_aggregate_column_selector table display=Display.Always include_group_by=Tru
     Single_Choice display=display values=(group_by+[count, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, sum, average, median, percentile, mode, standard_deviation, maximum, minimum])
 
 ## PRIVATE
+   Make an Aggregate_Column list editor
+make_aggregate_column_vector_selector : Table -> Display -> Widget
+make_aggregate_column_vector_selector table display=Display.Always =
+    item_editor = make_aggregate_column_selector table display=Display.Always
+    Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=display
+
+## PRIVATE
    Make a column name selector.
 make_column_name_selector : Table -> Display -> Widget
 make_column_name_selector table display=Display.Always =

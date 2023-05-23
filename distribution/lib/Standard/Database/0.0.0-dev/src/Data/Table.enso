@@ -190,13 +190,14 @@ type Table
              table.select_columns [-1, 0, 1] reorder=True
 
        Icon: select_column
-    @columns (Widget_Helpers.make_column_name_vector_selector include_blanks=True)
+    @columns Widget_Helpers.make_column_name_vector_selector
     select_columns :  Vector (Integer | Text | Column_Selector) | Text | Integer -> Boolean -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range
     select_columns self (columns = [self.columns.first.name]) (reorder = False) (error_on_missing_columns = True) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.select_columns selectors=columns reorder=reorder error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
 
-    ## Returns a new table with the chosen set of columns, as specified by the
+    ## ALIAS drop_columns
+       Returns a new table with the chosen set of columns, as specified by the
        `columns`, removed from the input table. Any unmatched input columns will
        be kept in the output. Columns are returned in the same order as in the
        input.
@@ -243,7 +244,7 @@ type Table
          Remove the first two columns and the last column.
 
              table.remove_columns [-1, 0, 1]
-    @columns (Widget_Helpers.make_column_name_vector_selector include_blanks=True)
+    @columns Widget_Helpers.make_column_name_vector_selector
     remove_columns :  Vector (Integer | Text | Column_Selector) | Text | Integer -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range
     remove_columns self (columns = [self.columns.first.name]) (error_on_missing_columns = False) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.remove_columns selectors=columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
@@ -299,7 +300,7 @@ type Table
          Move the first column to back.
 
              table.reorder_columns [0] position=Position.After_Other_Columns
-    @columns (Widget_Helpers.make_column_name_vector_selector include_blanks=True)
+    @columns Widget_Helpers.make_column_name_vector_selector
     reorder_columns : Vector (Integer | Text | Column_Selector) | Text | Integer -> Position -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range
     reorder_columns self (columns = [self.columns.first.name]) (position = Position.Before_Other_Columns) (error_on_missing_columns = False) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.reorder_columns selectors=columns position=position error_on_missing_columns on_problems=on_problems
@@ -809,7 +810,7 @@ type Table
 
               table.order_by [(Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive)]
     @columns Widget_Helpers.make_order_by_selector
-    order_by : Vector (Text | Sort_Column) | Text | Sort_Column -> Text_Ordering -> Boolean -> Problem_Behavior -> Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns | Column_Indexes_Out_Of_Range
+    order_by : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns | Column_Indexes_Out_Of_Range
     order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning = Panic.handle_wrapped_dataflow_error <|
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
@@ -1276,6 +1277,7 @@ type Table
          Group by the Key column, count the rows
 
               table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count]
+    @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self error_on_missing_columns=error_on_missing_columns
