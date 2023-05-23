@@ -328,22 +328,29 @@ pub mod mock {
         }
 
         /// Register an expectation that the module described by this mock data will be opened.
-        pub fn expect_opening_module(
-            &self,
-            client: &mut engine_protocol::language_server::MockClient,
-        ) {
+        pub fn expect_opening_module(&self, client: &mut language_server::MockClient) {
             let content = self.code.clone();
-            let current_version = Sha3_224::new(content.as_bytes());
-            let path = self.module_path.file_path().clone();
-            let write_capability = Some(CapabilityRegistration::create_can_edit_text_file(path));
-            let open_resp = language_server::response::OpenTextFile {
-                write_capability,
-                content,
-                current_version,
-            };
+            self.expect_opening_module_with_content(client, move || Ok(content))
+        }
 
-            let path = self.module_path.file_path().clone();
-            expect_call!(client.open_text_file(path=path) => Ok(open_resp));
+        pub fn expect_opening_module_with_content(
+            &self,
+            client: &mut language_server::MockClient,
+            content_getter: impl FnOnce() -> json_rpc::Result<String> + 'static,
+        ) {
+            let expected_path = self.module_path.file_path().clone();
+            client.expect.open_text_file(move |path| {
+                assert_eq!(path, &expected_path);
+                let content = content_getter()?;
+                let current_version = Sha3_224::new(content.as_bytes());
+                let write_capability =
+                    Some(CapabilityRegistration::create_can_edit_text_file(expected_path));
+                Ok(language_server::response::OpenTextFile {
+                    write_capability,
+                    content,
+                    current_version,
+                })
+            });
         }
 
         /// Register an expectation that the module described by this mock data will be closed.

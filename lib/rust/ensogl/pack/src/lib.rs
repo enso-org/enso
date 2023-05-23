@@ -353,7 +353,7 @@ fn check_if_ts_needs_rebuild(paths: &Paths) -> Result<bool> {
 }
 
 /// Compile TypeScript sources of this crate in case they were not compiled yet.
-async fn compile_this_crate_ts_sources(paths: &Paths) -> Result<()> {
+pub async fn compile_this_crate_ts_sources(paths: &Paths) -> Result<()> {
     println!("compile_this_crate_ts_sources");
     if check_if_ts_needs_rebuild(paths)? {
         info!("EnsoGL Pack TypeScript sources changed, recompiling.");
@@ -447,6 +447,16 @@ async fn extract_assets(paths: &Paths) -> Result<()> {
         .await
 }
 
+/// Just builds the TypeScript sources, and creates (or recreates) the symlink to `linked_dist`.
+pub async fn build_ts_sources_only() -> Result {
+    let paths = Paths::new().await?;
+    compile_this_crate_ts_sources(&paths).await?;
+    ide_ci::fs::create_or_update_symlink_dir(
+        &paths.target.ensogl_pack.dist,
+        &paths.target.ensogl_pack.linked_dist,
+    )
+}
+
 /// Wrapper over `wasm-pack build` command.
 ///
 /// # Arguments
@@ -464,6 +474,8 @@ pub async fn build(
     assets::build(&paths).await?;
     let out_dir = Path::new(&outputs.out_dir);
     ide_ci::fs::copy(&paths.target.ensogl_pack.dist, out_dir)?;
-    ide_ci::fs::remove_symlink_dir_if_exists(&paths.target.ensogl_pack.linked_dist)?;
-    ide_ci::fs::symlink_auto(&paths.target.ensogl_pack.dist, &paths.target.ensogl_pack.linked_dist)
+    ide_ci::fs::create_or_update_symlink_dir(
+        &paths.target.ensogl_pack.dist,
+        &paths.target.ensogl_pack.linked_dist,
+    )
 }

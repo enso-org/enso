@@ -1943,6 +1943,7 @@ dependencies = [
  "enso-build",
  "enso-build-base",
  "enso-formatter",
+ "ensogl-pack",
  "futures",
  "futures-util",
  "glob",
