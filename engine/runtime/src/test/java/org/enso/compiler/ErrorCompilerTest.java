@@ -1,10 +1,12 @@
 package org.enso.compiler;
 
+import java.util.Objects;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Error$Syntax;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidEscapeSequence$;
 import org.enso.compiler.core.IR$Error$Syntax$Reason;
-import org.enso.compiler.core.IR$Error$Syntax$InvalidImport$;
+import org.enso.compiler.core.IR$Error$Syntax$InvalidImport;
+import org.enso.compiler.core.IR$Error$Syntax$InvalidExport;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
 import org.enso.compiler.core.IR$Error$Syntax$UnrecognizedToken$;
 import org.enso.compiler.core.IR$Error$Syntax$UnsupportedSyntax;
@@ -144,40 +146,49 @@ public class ErrorCompilerTest extends CompilerTest {
     assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 13);
   }
 
+
+  private IR$Error$Syntax$InvalidImport invalidImport(String msg) {
+    return new IR$Error$Syntax$InvalidImport(msg);
+  }
+
+  private IR$Error$Syntax$InvalidExport invalidExport(String msg) {
+    return new IR$Error$Syntax$InvalidExport(msg);
+  }
+
   @Test
   public void malformedImport3() throws Exception {
     var ir = parse("import Foo as Foo, Bar");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 14, 22);
+    assertSingleSyntaxError(ir, invalidImport("Expected identifier."), null, 14, 22);
   }
 
   @Test
   public void malformedImport4() throws Exception {
     var ir = parse("import Foo as Foo.Bar");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 14, 21);
+    assertSingleSyntaxError(ir, invalidImport("Expected identifier."), null, 14, 21);
   }
 
   @Test
   public void malformedImport5() throws Exception {
     var ir = parse("import Foo as");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 13, 13);
+    assertSingleSyntaxError(ir, invalidImport("Expected tokens."), null, 13, 13);
   }
 
   @Test
   public void malformedImport6() throws Exception {
     var ir = parse("import Foo as Bar.Baz");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 14, 21);
+    assertSingleSyntaxError(ir, invalidImport("Expected identifier."), null, 14, 21);
   }
 
   @Test
   public void malformedImport7() throws Exception {
     var ir = parse("import Foo hiding");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 7, 17);
+    assertSingleSyntaxError(ir, invalidImport("Expected qualified name."), null, 7, 17);
   }
 
   @Test
   public void malformedImport8() throws Exception {
     var ir = parse("import Foo hiding X,");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 7, 20);
+    assertSingleSyntaxError(ir, invalidImport("Malformed comma-delimited sequence."), null, 7, 20);
   }
 
   @Test
@@ -203,25 +214,25 @@ public class ErrorCompilerTest extends CompilerTest {
   @Test
   public void malformedImport11() throws Exception {
     var ir = parse("from import all");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 4, 4);
+    assertSingleSyntaxError(ir, invalidImport("Expected tokens."), null, 4, 4);
   }
 
   @Test
   public void malformedImport12() throws Exception {
     var ir = parse("from Foo import all hiding");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 26, 26);
+    assertSingleSyntaxError(ir, invalidImport("Expected tokens."), null, 26, 26);
   }
 
   @Test
   public void malformedImport13() throws Exception {
     var ir = parse("from Foo import all hiding X.Y");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 27, 30);
+    assertSingleSyntaxError(ir, invalidImport("Expected identifier."), null, 27, 30);
   }
 
   @Test
   public void malformedImport14() throws Exception {
     var ir = parse("from Foo import Some.Nested.Module.Path");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 16, 39);
+    assertSingleSyntaxError(ir, invalidImport("Expected identifier."), null, 16, 39);
   }
 
   @Test
@@ -239,55 +250,55 @@ public class ErrorCompilerTest extends CompilerTest {
   @Test
   public void malformedExport3() throws Exception {
     var ir = parse("export Foo as Foo, Bar");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 14, 22);
+    assertSingleSyntaxError(ir, invalidExport("Expected identifier."), null, 14, 22);
   }
 
   @Test
   public void malformedExport4() throws Exception {
     var ir = parse("export Foo as Foo.Bar");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 14, 21);
+    assertSingleSyntaxError(ir, invalidExport("Expected identifier."), null, 14, 21);
   }
 
   @Test
   public void malformedExport5() throws Exception {
     var ir = parse("export Foo as");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 13, 13);
+    assertSingleSyntaxError(ir, invalidExport("Expected tokens."), null, 13, 13);
   }
 
   @Test
   public void malformedExport6() throws Exception {
     var ir = parse("export Foo as Bar.Baz");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 14, 21);
+    assertSingleSyntaxError(ir, invalidExport("Expected identifier."), null, 14, 21);
   }
 
   @Test
   public void malformedExport7() throws Exception {
     var ir = parse("export Foo hiding");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 7, 17);
+    assertSingleSyntaxError(ir, invalidExport("Expected qualified name."), null, 7, 17);
   }
 
   @Test
   public void malformedExport8() throws Exception {
     var ir = parse("export Foo hiding X,");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 7, 20);
+    assertSingleSyntaxError(ir, invalidExport("Malformed comma-delimited sequence."), null, 7, 20);
   }
 
   @Test
   public void malformedExport9() throws Exception {
     var ir = parse("from export all");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 4, 4);
+    assertSingleSyntaxError(ir, invalidExport("Expected tokens."), null, 4, 4);
   }
 
   @Test
   public void malformedExport10() throws Exception {
     var ir = parse("from Foo export all hiding");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 26, 26);
+    assertSingleSyntaxError(ir, invalidExport("Expected tokens."), null, 26, 26);
   }
 
   @Test
   public void malformedExport11() throws Exception {
     var ir = parse("from Foo export all hiding X.Y");
-    assertSingleSyntaxError(ir, IR$Error$Syntax$InvalidImport$.MODULE$, "Imports must have a valid module path", 27, 30);
+    assertSingleSyntaxError(ir, invalidExport("Expected identifier."), null, 27, 30);
   }
 
   @Test
@@ -367,7 +378,9 @@ public class ErrorCompilerTest extends CompilerTest {
   ) {
     var errors = assertIR(ir, IR$Error$Syntax.class, 1);
     assertEquals(type, errors.head().reason());
-    assertEquals(msg, errors.head().message());
+    if (msg != null) {
+      assertEquals(msg, errors.head().message());
+    }
     assertEquals(new Location(start, end), errors.head().location().get().location());
   }
 
