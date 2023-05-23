@@ -533,6 +533,18 @@ impl NodeModel {
         self.set_special_layers(text_layer, action_bar_layer);
     }
 
+    /// Move the node to the normal layer used when the node is not connected to a detached edge.
+    pub fn move_to_resting_node_layer(&self) {
+        let layer = &self.app.display.default_scene.layers.main_nodes_level;
+        layer.add(&self.background);
+    }
+
+    /// Move the node to the layer used for nodes that have a detached edge.
+    pub fn move_to_active_node_layer(&self) {
+        let layer = &self.app.display.default_scene.layers.main_active_nodes_level;
+        layer.add(&self.background);
+    }
+
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn width(&self) -> f32 {
         self.input.width.value()

@@ -55,12 +55,16 @@ impl Shapes {
     pub(super) fn redraw_dataflow_arrow(
         &self,
         parent: &impl ShapeParent,
-        target_offset: Vector2,
-        junction_points: &[Vector2],
-        source_color: color::Rgba,
-        target_color: color::Rgba,
-        hover_split: Option<EdgeSplit>,
+        parameters: RedrawDataflowArrow,
     ) {
+        let RedrawDataflowArrow {
+            target_offset,
+            junction_points,
+            source_color,
+            target_color,
+            focus_split,
+            is_attached,
+        } = parameters;
         let shape = self.dataflow_arrow.take();
         let long_backward_edge = (target_offset.y() > BACKWARD_EDGE_ARROW_THRESHOLD)
             || (target_offset.y() + target_offset.x().abs() / 2.0 > BACKWARD_EDGE_ARROW_THRESHOLD
@@ -75,13 +79,14 @@ impl Shapes {
                 Vector2(0.0, -(ARROW_ARM_LENGTH - ARROW_ARM_WIDTH) * std::f32::consts::SQRT_2);
             // The arrow will have the same color as the target-end of the first corner from the
             // source (this is the `arrow_origin` point).
-            let color = match hover_split.map(|split| split.corner_index) {
+            let color = match focus_split.map(|split| split.corner_index) {
                 Some(0) => target_color,
                 _ => source_color,
             };
             let shape = shape.unwrap_or_else(|| parent.new_dataflow_arrow());
             shape.set_xy(arrow_origin + arrow_origin_to_center_of_tip);
             shape.set_border_color(color);
+            Self::set_layer(parent, is_attached, &shape);
             self.dataflow_arrow.set(shape);
         }
     }
@@ -106,17 +111,12 @@ impl Shapes {
 
     /// Redraw the sections, each of which is a [`Rectangle`] implementing a [`Corner`], or multiple
     /// [`Rectangle`]s and multiple [`arc::View`]s, if it is a split [`Corner`].
-    pub(super) fn redraw_sections(
-        &self,
-        parent: &impl ShapeParent,
-        corners: &[Oriented<Corner>],
-        source_color: color::Rgba,
-        target_color: color::Rgba,
-        hover_split: Option<EdgeSplit>,
-    ) {
+    pub(super) fn redraw_sections(&self, parent: &impl ShapeParent, parameters: RedrawSections) {
+        let RedrawSections { corners, source_color, target_color, focus_split, is_attached } =
+            parameters;
         let corner_index =
-            hover_split.map(|split| split.corner_index).unwrap_or_else(|| corners.len());
-        let split_corner = hover_split.map(|split| split.split_corner);
+            focus_split.map(|split| split.corner_index).unwrap_or_else(|| corners.len());
+        let split_corner = focus_split.map(|split| split.split_corner);
         let mut section_factory =
             self.sections.take().into_iter().chain(iter::repeat_with(|| parent.new_section()));
         let mut new_sections = self.redraw_complete_sections(
@@ -126,6 +126,9 @@ impl Shapes {
             source_color,
             target_color,
         );
+        for shape in &new_sections {
+            Self::set_layer(parent, is_attached, shape);
+        }
         let arc_shapes = self.split_arc.take();
         if let Some(split_corner) = split_corner {
             let source_side = split_corner.source_end.to_rectangle_geometry(LINE_WIDTH);
@@ -196,6 +199,48 @@ impl Shapes {
             self.target_attachment.set(shape);
         }
     }
+
+    /// Add the given shape to the appropriate layer depending on whether it is attached.
+    fn set_layer(parent: &impl ShapeParent, is_attached: bool, shape: &Rectangle) {
+        (match is_attached {
+            true => &parent.scene().layers.main_edges_level,
+            false => &parent.scene().layers.main_above_nodes_level,
+        })
+        .add(shape)
+    }
+}
+
+
+// === Redraw parameters ====
+
+/// Arguments passed to [`Shapes::redraw_sections`].
+pub(super) struct RedrawSections<'a> {
+    /// The corners to be redrawn.
+    pub(super) corners:      &'a [Oriented<Corner>],
+    /// The color to use for the part of the edge closer to the source.
+    pub(super) source_color: color::Rgba,
+    /// The color to use for the part of the edge closer to the target.
+    pub(super) target_color: color::Rgba,
+    /// Where the edge should be split into differently-colored source and target parts.
+    pub(super) focus_split:  Option<EdgeSplit>,
+    /// Whether the edge is fully-attached.
+    pub(super) is_attached:  bool,
+}
+
+/// Arguments passed to [`Shapes::redraw_dataflow_arrow`].
+pub(super) struct RedrawDataflowArrow<'a> {
+    /// The offset from the source to the target.
+    pub(super) target_offset:   Vector2,
+    /// The points determining the layout of the corners from source to target.
+    pub(super) junction_points: &'a [Vector2],
+    /// The color to use for the part of the edge closer to the source.
+    pub(super) source_color:    color::Rgba,
+    /// The color to use for the part of the edge closer to the target.
+    pub(super) target_color:    color::Rgba,
+    /// Where the edge should be split into differently-colored source and target parts.
+    pub(super) focus_split:     Option<EdgeSplit>,
+    /// Whether the edge is fully-attached.
+    pub(super) is_attached:     bool,
 }
 
 
@@ -282,7 +327,7 @@ pub(super) trait ShapeParent: display::Object {
         new.set_border_color(color::Rgba::transparent());
         new.set_pointer_events(false);
         self.display_object().add_child(&new);
-        self.scene().layers.main_edge_port_attachments_level.add(&new);
+        self.scene().layers.main_above_nodes_level.add(&new);
         new
     }
 

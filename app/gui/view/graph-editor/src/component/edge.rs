@@ -211,11 +211,11 @@ impl EdgeModel {
         let corners = layout::corners(&junction_points).collect_vec();
         let target_attached = self.inputs.target_attached.get();
         let source_attached = self.inputs.source_attached.get();
-        let is_hoverable = target_attached && source_attached;
+        let is_attached = target_attached && source_attached;
         if self.inputs.clear_focus.take() {
             self.inputs.hover_position.take();
         }
-        let focus_split = is_hoverable
+        let focus_split = is_attached
             .then(|| {
                 // Pointer targets are updated by an asynchronous process, independent of pointer
                 // movement detection. As a result, we can receive mouse events when the pointer is
@@ -244,43 +244,44 @@ impl EdgeModel {
         State {
             layout:            Layout { target_offset, junction_points, corners },
             colors:            Colors { source_color, target_color },
-            is_hoverable:      IsHoverable { is_hoverable },
+            is_attached:       IsAttached { is_attached },
             focus_split:       FocusSplit { focus_split },
             target_attachment: TargetAttachment { target_attached },
         }
     }
 
     fn apply_state(&self, state: &State) {
-        let StateUpdate { layout, colors, is_hoverable, focus_split, target_attachment } =
+        let StateUpdate { layout, colors, is_attached, focus_split, target_attachment } =
             state.compare(&self.state.borrow());
         let display_object_dirty = None
-            .or(any(layout, is_hoverable).changed(
-                |(Layout { corners, .. }, IsHoverable { is_hoverable, .. })| {
-                    let hover_corners = is_hoverable.then_some(&corners[..]).unwrap_or_default();
+            .or(any(layout, is_attached).changed(
+                |(Layout { corners, .. }, IsAttached { is_attached, .. })| {
+                    let hover_corners = is_attached.then_some(&corners[..]).unwrap_or_default();
                     self.shapes.redraw_hover_sections(self, hover_corners)
                 },
             ))
-            .or(any3(layout, colors, focus_split).changed(
+            .or(any4(layout, colors, focus_split, is_attached).changed(
                 |(
                     Layout { target_offset, junction_points, corners, .. },
                     Colors { source_color, target_color, .. },
                     FocusSplit { focus_split, .. },
+                    IsAttached { is_attached, .. },
                 )| {
-                    self.shapes.redraw_sections(
-                        self,
+                    self.shapes.redraw_sections(self, render::RedrawSections {
                         corners,
-                        *source_color,
-                        *target_color,
-                        *focus_split,
-                    );
-                    self.shapes.redraw_dataflow_arrow(
-                        self,
-                        *target_offset,
+                        source_color: *source_color,
+                        target_color: *target_color,
+                        focus_split: *focus_split,
+                        is_attached: *is_attached,
+                    });
+                    self.shapes.redraw_dataflow_arrow(self, render::RedrawDataflowArrow {
+                        target_offset: *target_offset,
                         junction_points,
-                        *source_color,
-                        *target_color,
-                        *focus_split,
-                    );
+                        source_color: *source_color,
+                        target_color: *target_color,
+                        focus_split: *focus_split,
+                        is_attached: *is_attached,
+                    });
                 },
             ))
             .or(any3(layout, colors, target_attachment).changed(

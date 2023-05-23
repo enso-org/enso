@@ -713,6 +713,8 @@ ensogl::define_endpoints_2! {
         hover_node_input            (Option<EdgeEndpoint>),
         hover_node_output           (Option<EdgeEndpoint>),
 
+        invalidate_sources_of_detached_edges (),
+
 
         // === Other ===
         // FIXME: To be refactored
@@ -1810,6 +1812,7 @@ pub struct GraphEditorModel {
     styles_frp: StyleWatchFrp,
     selection_controller: selection::Controller,
     execution_environment_selector: ExecutionEnvironmentSelector,
+    sources_of_detached_target_edges: SharedHashSet<NodeId>,
 }
 
 
@@ -1846,6 +1849,7 @@ impl GraphEditorModel {
             &touch_state,
             &nodes,
         );
+        let sources_of_detached_target_edges = default();
 
         Self {
             display_object,
@@ -1868,6 +1872,7 @@ impl GraphEditorModel {
             styles_frp,
             selection_controller,
             execution_environment_selector,
+            sources_of_detached_target_edges,
         }
         .init()
     }
@@ -2117,6 +2122,7 @@ impl GraphEditorModel {
                 self.refresh_edge_position(edge_id);
             }
         }
+        self.frp.output.invalidate_sources_of_detached_edges.emit(());
     }
 
     fn remove_edge_source(&self, edge_id: EdgeId) {
@@ -2153,6 +2159,7 @@ impl GraphEditorModel {
                 edge.view.target_attached.emit(true);
                 self.refresh_edge_position(edge_id);
             };
+            self.frp.output.invalidate_sources_of_detached_edges.emit(());
         }
     }
 
@@ -2170,21 +2177,20 @@ impl GraphEditorModel {
                     }
                 };
             }
+            self.frp.output.invalidate_sources_of_detached_edges.emit(());
         }
     }
 
     fn replace_detached_edge_target(&self, edge_id: EdgeId, crumbs: &span_tree::Crumbs) {
-        if !self.edges.detached_source.contains(&edge_id) {
-            return;
-        }
-
-        if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
-            if let Some(target) = edge.take_target() {
-                self.set_input_connected(&target, None);
-                let port = crumbs.clone();
-                let new_target = EdgeEndpoint { port, ..target };
-                edge.set_target(new_target);
-                self.refresh_edge_position(edge_id);
+        if self.edges.detached_source.contains(&edge_id) {
+            if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
+                if let Some(target) = edge.take_target() {
+                    self.set_input_connected(&target, None);
+                    let port = crumbs.clone();
+                    let new_target = EdgeEndpoint { port, ..target };
+                    edge.set_target(new_target);
+                    self.refresh_edge_position(edge_id);
+                }
             }
         }
     }
@@ -2205,16 +2211,16 @@ impl GraphEditorModel {
         self.edges.detached_target.raw.borrow().clone()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn clear_all_detached_edges(&self) -> Vec<EdgeId> {
+    /// Remove all edges that are detached at either end. Returns IDs of the removed edges.
+    fn clear_all_detached_edges(&self) -> Vec<EdgeId> {
         let source_edges = self.edges.detached_source.mem_take();
-        source_edges.iter().for_each(|edge| {
+        for edge in &source_edges {
             self.edges.all.remove(edge);
-        });
+        }
         let target_edges = self.edges.detached_target.mem_take();
-        target_edges.iter().for_each(|edge| {
+        for edge in &target_edges {
             self.edges.all.remove(edge);
-        });
+        }
         self.check_edge_attachment_status_and_emit_events();
         source_edges.into_iter().chain(target_edges).collect()
     }
@@ -2228,6 +2234,26 @@ impl GraphEditorModel {
         if no_detached_sources {
             self.frp.output.on_all_edges_sources_set.emit(());
         }
+    }
+
+    /// Recalculate the set of source nodes that are attached to edges with detached targets, and
+    /// set layers appropriately for any nodes that have entered or left the set.
+    fn refresh_sources_of_detached_targets(&self) {
+        let old_sources = self.sources_of_detached_target_edges.raw.take();
+        let detached_target_edges = self.edges.detached_target.raw.borrow();
+        let detached_target_edges = detached_target_edges.iter();
+        let get_edge = |id: &EdgeId| self.edges.get_cloned(id);
+        let get_source_id = |edge: Edge| edge.source().map(|endpoint| endpoint.node_id);
+        let get_node = |id: &NodeId| self.nodes.get_cloned(id);
+        let new_sources: HashSet<_> =
+            detached_target_edges.filter_map(get_edge).filter_map(get_source_id).collect();
+        for added in new_sources.difference(&old_sources).filter_map(get_node) {
+            added.model().move_to_active_node_layer();
+        }
+        for removed in old_sources.difference(&new_sources).filter_map(get_node) {
+            removed.model().move_to_resting_node_layer();
+        }
+        self.sources_of_detached_target_edges.raw.replace(new_sources);
     }
 
     fn overlapping_edges(&self, target: &EdgeEndpoint) -> Vec<EdgeId> {
@@ -3590,6 +3616,9 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     out.some_edge_targets_unset    <+ some_edge_targets_unset;
     out.some_edge_endpoints_unset  <+ some_edge_endpoints_unset;
     out.on_all_edges_endpoints_set <+ out.some_edge_endpoints_unset.on_false();
+
+    refresh_sources_of_detached_targets <- out.invalidate_sources_of_detached_edges.debounce();
+    eval_ refresh_sources_of_detached_targets (model.refresh_sources_of_detached_targets());
 
 
     // === Endpoints ===

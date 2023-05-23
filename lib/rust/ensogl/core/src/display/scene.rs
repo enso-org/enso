@@ -618,7 +618,8 @@ pub struct HardcodedLayers {
     pub main: Layer,
     pub main_edges_level: RectLayerPartition,
     pub main_nodes_level: RectLayerPartition,
-    pub main_edge_port_attachments_level: RectLayerPartition,
+    pub main_above_nodes_level: RectLayerPartition,
+    pub main_active_nodes_level: RectLayerPartition,
     pub widget: Layer,
     pub port: Layer,
     pub port_selection: Layer,
@@ -667,7 +668,8 @@ impl HardcodedLayers {
         let main = root.create_sublayer("main");
         let main_edges_level = partition_layer(&main, "edges");
         let main_nodes_level = partition_layer(&main, "nodes");
-        let main_edge_port_attachments_level = partition_layer(&main, "edge_port_attachments");
+        let main_above_nodes_level = partition_layer(&main, "above_nodes");
+        let main_active_nodes_level = partition_layer(&main, "active_nodes");
         let widget = root.create_sublayer("widget");
         let port = root.create_sublayer("port");
         let port_selection =
@@ -701,7 +703,8 @@ impl HardcodedLayers {
             main,
             main_edges_level,
             main_nodes_level,
-            main_edge_port_attachments_level,
+            main_above_nodes_level,
+            main_active_nodes_level,
             widget,
             port,
             port_selection,

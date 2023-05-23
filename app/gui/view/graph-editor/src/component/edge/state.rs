@@ -18,8 +18,8 @@ pub(super) struct State {
     pub layout:            Layout,
     /// The color scheme.
     pub colors:            Colors,
-    /// Whether hover events are enabled.
-    pub is_hoverable:      IsHoverable,
+    /// Whether the edge is attached to nodes at both ends.
+    pub is_attached:       IsAttached,
     /// What part, if any, is focused.
     pub focus_split:       FocusSplit,
     /// Whether the target end is attached.
@@ -46,11 +46,11 @@ pub(super) struct Colors {
     pub target_color: color::Rgba,
 }
 
-/// Whether an edge responds to hover events.
+/// Whether an edge is attached at both ends.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(super) struct IsHoverable {
-    /// Whether the edge responds to hover events.
-    pub is_hoverable: bool,
+pub(super) struct IsAttached {
+    /// Whether the edge is attached at both ends.
+    pub is_attached: bool,
 }
 
 /// Information about how an edge may be divided into two parts that would be colored differently.
@@ -79,7 +79,7 @@ pub(super) struct TargetAttachment {
 pub(super) struct StateUpdate<'a, 'b, 'c, 'd, 'e> {
     pub layout:            Update<&'a Layout>,
     pub colors:            Update<&'b Colors>,
-    pub is_hoverable:      Update<&'c IsHoverable>,
+    pub is_attached:       Update<&'c IsAttached>,
     pub focus_split:       Update<&'d FocusSplit>,
     pub target_attachment: Update<&'e TargetAttachment>,
 }
@@ -104,7 +104,7 @@ impl State {
         StateUpdate {
             layout:            compare!(layout),
             colors:            compare!(colors),
-            is_hoverable:      compare!(is_hoverable),
+            is_attached:       compare!(is_attached),
             focus_split:       compare!(focus_split),
             target_attachment: compare!(target_attachment),
         }
