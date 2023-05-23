@@ -535,18 +535,19 @@ impl Area {
     }
 
     /// An offset from node position to a specific port.
-    pub fn port_offset(&self, crumbs: &[Crumb]) -> FallibleResult<Vector2<f32>> {
+    pub fn port_offset(&self, crumbs: &[Crumb]) -> Vector2<f32> {
         let expr = self.model.expression.borrow();
-        let node = expr.get_node(crumbs)?;
-        let port = self
-            .model
-            .widget_tree
-            .get_port_display_object(&node)
-            .ok_or_else(|| failure::format_err!("Port has no widget."))?;
-        let pos = port.global_position();
-        let node_pos = self.model.display_object.global_position();
-        let size = port.computed_size();
-        Ok(pos.xy() - node_pos.xy() + size * 0.5)
+        let port = expr
+            .get_node(crumbs)
+            .ok()
+            .and_then(|node| self.model.widget_tree.get_port_display_object(&node));
+        let initial_position = Vector2(TEXT_OFFSET, NODE_HEIGHT / 2.0);
+        port.map_or(initial_position, |port| {
+            let pos = port.global_position();
+            let node_pos = self.model.display_object.global_position();
+            let size = port.computed_size();
+            pos.xy() - node_pos.xy() + size * 0.5
+        })
     }
 
     /// A type of the specified port.

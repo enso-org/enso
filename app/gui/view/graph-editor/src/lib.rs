@@ -1934,17 +1934,13 @@ impl GraphEditorModel {
                     source_node.out_edges.remove(&edge_id);
                 }
             }
+
             if let Some(target) = edge.take_target() {
                 self.set_input_connected(&target, None);
                 if let Some(target_node) = self.nodes.get_cloned_ref(&target.node_id) {
                     target_node.in_edges.remove(&edge_id);
                 }
             }
-        }
-        let source_was_detached = self.edges.detached_source.remove(&edge_id);
-        let target_was_detached = self.edges.detached_target.remove(&edge_id);
-        if source_was_detached || target_was_detached {
-            self.check_edge_attachment_status_and_emit_events();
         }
     }
 
@@ -2114,8 +2110,7 @@ impl GraphEditorModel {
     fn set_edge_source(&self, edge_id: EdgeId, target: impl Into<EdgeEndpoint>) {
         let target = target.into();
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
-            let target_id = target.node_id;
-            if let Some(node) = self.nodes.get_cloned_ref(&target_id) {
+            if let Some(node) = self.nodes.get_cloned_ref(&target.node_id) {
                 node.out_edges.insert(edge_id);
                 edge.set_source(target);
                 edge.view.source_attached.emit(true);
@@ -2365,18 +2360,8 @@ impl GraphEditorModel {
             if let Some(edge_target) = edge.target() {
                 if let Some(node) = self.nodes.get_cloned_ref(&edge_target.node_id) {
                     let port_offset = node.model().input.port_offset(&edge_target.port);
-                    match port_offset {
-                        Ok(port_offset) => {
-                            let node_position = node.position().xy();
-                            edge.view.target_position.emit(node_position + port_offset);
-                        }
-                        Err(e) => {
-                            // This can happen if detaching an edge causes its target port to cease
-                            // to exist. See: [https://github.com/enso-org/enso/issues/6772]
-                            error!("Edge found to be connected to invalid target port: {e}");
-                            self.remove_edge(edge_id);
-                        }
-                    }
+                    let node_position = node.position().xy();
+                    edge.view.target_position.emit(node_position + port_offset);
                 }
             }
         }
