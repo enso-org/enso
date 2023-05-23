@@ -667,6 +667,9 @@ type Column
        "round towards positive infinity." If use_bankers=True, then it uses
        "round-half-even", also known as "banker's rounding".
 
+       If `decimal_places` > 0, `round` returns a column of `Decimal`;
+       otherwise, it returns a column of `Integer`.
+
        Arguments:
        - decimal_places: The number of decimal places to round to. Can be
          negative, which results in rounding to positive integer powers of 10.
@@ -690,11 +693,40 @@ type Column
          multiple of 10^(-n)". For negative decimal counts, this results in
          rounding to the nearest positive integer power of 10.
     round : Integer -> Boolean -> Problem_Behavior -> Column | Illegal_Argument
-    round self decimal_places=0 use_bankers=False on_problems=Report_Warning =
+    round self decimal_places=0 use_bankers=False on_problems=Report_Warning = Value_Type.expect_numeric self <|
         returns_double = decimal_places > 0
         builder = if returns_double then make_double_builder else make_long_builder
         fun = _.round decimal_places use_bankers
         Column_Ops.map_over_storage self fun builder skip_nothing=True on_problems=on_problems
+
+    ## ALIAS int
+
+       Truncate the floating-point values in a column to an integer by dropping
+       the fractional part. This is equivalent to "round-toward-zero".
+
+       Returns a column of `Integer`.
+    truncate : Column
+    truncate self = Value_Type.expect_numeric self <|
+        fun = _.truncate
+        Column_Ops.map_over_storage self fun make_long_builder skip_nothing=True
+
+    ## Computes the nearest integer above this number for values in numeric
+       column.
+
+       Returns a column of `Integer`.
+    ceil : Column
+    ceil self = Value_Type.expect_numeric self <|
+        fun = _.ceil
+        Column_Ops.map_over_storage self fun make_long_builder skip_nothing=True
+
+    ## Computes the nearest integer below this number for values in numeric
+       column.
+
+       Returns a column of `Integer`.
+    floor : Column
+    floor self = Value_Type.expect_numeric self <|
+        fun = _.floor
+        Column_Ops.map_over_storage self fun make_long_builder skip_nothing=True
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
