@@ -31,7 +31,9 @@ const MESSAGES = {
     forgotPasswordSuccess: 'We have sent you an email with further instructions!',
     changePasswordSuccess: 'Successfully changed password!',
     resetPasswordSuccess: 'Successfully reset password!',
+    signOutLoading: 'Logging out...',
     signOutSuccess: 'Successfully logged out!',
+    signOutError: 'Error logging out, please try again.',
     pleaseWait: 'Please wait...',
 } as const
 
@@ -326,8 +328,12 @@ export function AuthProvider(props: AuthProviderProps) {
     }
 
     const signOut = async () => {
-        await cognito.signOut()
-        toast.success(MESSAGES.signOutSuccess)
+        setUserSession(null)
+        await toast.promise(cognito.signOut(), {
+            success: MESSAGES.signOutSuccess,
+            error: MESSAGES.signOutError,
+            loading: MESSAGES.signOutLoading,
+        })
         return true
     }
 
