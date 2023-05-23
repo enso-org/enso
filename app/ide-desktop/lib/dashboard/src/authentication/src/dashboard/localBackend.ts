@@ -47,6 +47,14 @@ export class LocalBackend implements Partial<backend.Backend> {
             modifiedAt: project.lastOpened,
             parentId: newtype.asNewtype<backend.AssetId>(''),
             permissions: [],
+            projectState: {
+                type:
+                    project.id === LocalBackend.currentlyOpeningProjectId
+                        ? backend.ProjectState.openInProgress
+                        : project.lastOpened != null
+                        ? backend.ProjectState.closed
+                        : backend.ProjectState.created,
+            },
         }))
     }
 
@@ -134,7 +142,9 @@ export class LocalBackend implements Partial<backend.Backend> {
                         type:
                             projectId === LocalBackend.currentlyOpeningProjectId
                                 ? backend.ProjectState.openInProgress
-                                : backend.ProjectState.closed,
+                                : project.lastOpened != null
+                                ? backend.ProjectState.closed
+                                : backend.ProjectState.created,
                     },
                 })
             }
