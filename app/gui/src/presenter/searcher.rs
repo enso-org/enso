@@ -105,7 +105,7 @@ impl Model {
     fn commit_editing(&self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
         let result = match entry_id {
             Some(id) => self.controller.execute_action_by_index(id),
-            None => self.controller.commit_node().map(Some),
+            None => self.controller.commit_node(),
         };
         result.unwrap_or_else(|err| {
             error!("Error while executing action: {err}.");
@@ -236,7 +236,7 @@ impl Model {
         if let Some(entry_id) = entry_id {
             self.suggestion_accepted(entry_id);
         }
-        self.controller.commit_node().map(Some).unwrap_or_else(|err| {
+        self.controller.commit_node().unwrap_or_else(|err| {
             error!("Error while committing node expression: {err}.");
             None
         })

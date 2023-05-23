@@ -683,11 +683,13 @@ impl Searcher {
         });
 
         let suggestion_change = preview_change_result.transpose()?;
+        let empty_node_ast = || Ast::cons(ast::constants::keywords::NOTHING).with_new_id();
         let preview_ast = match &suggestion_change {
-            Some(change) => self.ide.parser().parse_line_ast(&change.new_input).ok(),
-            None => self.data.borrow().input.ast().cloned(),
+            Some(change) if change.new_input.trim().is_empty() => empty_node_ast(),
+            Some(change) => self.ide.parser().parse_line_ast(&change.new_input)?,
+            None => self.data.borrow().input.ast().cloned().unwrap_or_else(empty_node_ast),
         };
-        let expression = self.get_expression(preview_ast.as_ref());
+        let expression = self.get_expression(preview_ast);
 
         {
             // This block serves to limit the borrow of `self.data`.
@@ -699,7 +701,7 @@ impl Searcher {
                 current_input_requirements.chain(picked_suggestion_requirement.iter().cloned());
             self.add_required_imports(all_requirements, false)?;
         }
-        self.graph.graph().set_expression(self.mode.node_id(), expression)?;
+        self.graph.graph().set_expression_ast(self.mode.node_id(), expression)?;
 
         Ok(())
     }
@@ -713,7 +715,7 @@ impl Searcher {
         match action {
             Action::Suggestion(suggestion) => {
                 self.use_suggestion(suggestion)?;
-                self.commit_node().map(Some)
+                self.commit_node()
             }
             Action::Example(example) => match *self.mode {
                 Mode::NewNode { .. } => self.add_example(&example).map(Some),
@@ -780,43 +782,54 @@ impl Searcher {
     /// expression, otherwise a new node is added. This will also add all imports required by
     /// picked suggestions.
     #[profile(Debug)]
-    pub fn commit_node(&self) -> FallibleResult<ast::Id> {
+    pub fn commit_node(&self) -> FallibleResult<Option<ast::Id>> {
         let _transaction_guard = self.graph.get_or_open_transaction("Commit node");
         self.clear_temporary_imports();
 
-        // We add the required imports before we edit its content. This way, we avoid an
-        // intermediate state where imports would already be in use but not yet available.
-        {
-            let data = self.data.borrow();
-            let requirements = data.picked_suggestions.iter().filter_map(|ps| ps.import.clone());
-            self.add_required_imports(requirements, true)?;
-        }
+        let expression = match &self.data.borrow().input.ast {
+            input::InputAst::Line(ast) => Some(ast.clone()),
+            input::InputAst::Invalid(input) if input.trim().is_empty() => None,
+            input::InputAst::Invalid(input) => Some(self.ide.parser().parse_line(input)?),
+        };
 
-        let node_id = self.mode.node_id();
-        let expression = self.get_expression(self.data.borrow().input.ast());
-        let graph = self.graph.graph();
-        graph.set_expression(node_id, expression)?;
-        if let Mode::NewNode { .. } = *self.mode {
-            graph.introduce_name_on(node_id)?;
+        if let Some(expression) = expression {
+            // We add the required imports before we edit its content. This way, we avoid an
+            // intermediate state where imports would already be in use but not yet available.
+            {
+                let data = self.data.borrow();
+                let requirements =
+                    data.picked_suggestions.iter().filter_map(|ps| ps.import.clone());
+                self.add_required_imports(requirements, true)?;
+            }
+
+            let node_id = self.mode.node_id();
+            let graph = self.graph.graph();
+            graph.set_expression_ast(node_id, expression.elem)?;
+            if let Mode::NewNode { .. } = *self.mode {
+                graph.introduce_name_on(node_id)?;
+            }
+            if let Some(this) = self.this_arg.deref().as_ref() {
+                this.introduce_pattern(graph.clone_ref())?;
+            }
+            // Should go last, as we want to prevent a revert only when the committing process was
+            // successful.
+            if let Some(guard) = self.node_edit_guard.deref().as_ref() {
+                guard.prevent_revert()
+            }
+            Ok(Some(node_id))
+        } else {
+            // if `expression` is none, meaning that the input is empty or contains spaces only.
+            // In that case we cannot update the node, but, as the empty input is an expected thing,
+            // we also do not report error.
+            Ok(None)
         }
-        if let Some(this) = self.this_arg.deref().as_ref() {
-            this.introduce_pattern(graph.clone_ref())?;
-        }
-        // Should go last, as we want to prevent a revert only when the committing process was
-        // successful.
-        if let Some(guard) = self.node_edit_guard.deref().as_ref() {
-            guard.prevent_revert()
-        }
-        Ok(node_id)
     }
 
-    fn get_expression(&self, input: Option<&Ast>) -> String {
-        let expression = match (self.this_var(), input) {
-            (Some(this_var), Some(input)) => apply_this_argument(this_var, input).repr(),
-            (None, Some(input)) => input.repr(),
-            (_, None) => "".to_owned(),
-        };
-        expression
+    fn get_expression(&self, input: Ast) -> Ast {
+        match self.this_var() {
+            Some(this_var) => apply_this_argument(this_var, &input),
+            None => input,
+        }
     }
 
     /// Adds an example to the graph.
