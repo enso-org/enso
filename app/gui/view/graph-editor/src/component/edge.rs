@@ -207,8 +207,9 @@ impl EdgeModel {
     fn calculate_state(&self) -> State {
         let target_offset = self.target_offset();
         let source_max_x_offset = self.source_max_x_offset();
-        let junction_points = layout::junction_points(source_max_x_offset, target_offset);
-        let corners = layout::corners(&junction_points).collect_vec();
+        let (junction_points, max_radius) =
+            layout::junction_points(source_max_x_offset, target_offset);
+        let corners = layout::corners(&junction_points, max_radius).collect_vec();
         let target_attached = self.inputs.target_attached.get();
         let source_attached = self.inputs.source_attached.get();
         let is_attached = target_attached && source_attached;

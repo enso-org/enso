@@ -366,6 +366,7 @@ fn draw_geometry(shape: Rectangle, geometry: RectangleGeometry) -> Rectangle {
     shape.set_clip(geometry.clip);
     shape.set_size(geometry.size);
     shape.set_xy(geometry.xy);
+    shape.set_corner_radius(geometry.radius);
     shape
 }
 

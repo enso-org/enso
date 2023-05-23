@@ -70,7 +70,7 @@ use super::*;
 // =================
 
 const MIN_RADIUS: f32 = 20.0;
-const MAX_RADIUS: f32 = 30.0;
+const MAX_RADIUS: f32 = 24.0;
 
 
 
@@ -79,8 +79,9 @@ const MAX_RADIUS: f32 = 30.0;
 // =======================
 
 /// Calculate the start and end positions of each 1-corner section composing an edge to the
-/// given offset.
-pub(super) fn junction_points(source_max_x_offset: f32, target: Vector2) -> Vec<Vector2> {
+/// given offset. Return the points, and the maximum radius that should be used to draw the corners
+/// connecting them.
+pub(super) fn junction_points(source_max_x_offset: f32, target: Vector2) -> (Vec<Vector2>, f32) {
     let (target_x, target_y) = (target.x(), target.y());
     if target_y < -MIN_RADIUS
         || (target_y <= 0.0 && target_x.abs() <= source_max_x_offset + 3.0 * MAX_RADIUS)
@@ -90,7 +91,8 @@ pub(super) fn junction_points(source_max_x_offset: f32, target: Vector2) -> Vec<
         // The edge can originate anywhere along the length of the node.
         let source_x = target_x.clamp(-source_max_x_offset, source_max_x_offset);
         let source = Vector2(source_x, 0.0);
-        vec![source, target]
+        let max_radius = 1000000.0;
+        (vec![source, target], max_radius)
     } else {
         // === Three corners ===
 
@@ -114,7 +116,7 @@ pub(super) fn junction_points(source_max_x_offset: f32, target: Vector2) -> Vec<
         let source = Vector2(source_x, 0.0);
         let j0 = Vector2(j0_x, top / 2.0);
         let j1 = Vector2(j1_x, top);
-        vec![source, j0, j1, target]
+        (vec![source, j0, j1, target], MAX_RADIUS)
     }
 }
 
@@ -188,14 +190,19 @@ pub(super) fn find_position(
 // === Connecting points with corners ===
 // ======================================
 
-pub(super) fn corners(points: &[Vector2]) -> impl Iterator<Item = Oriented<Corner>> + '_ {
+pub(super) fn corners(
+    points: &[Vector2],
+    max_radius: f32,
+) -> impl Iterator<Item = Oriented<Corner>> + '_ {
     let mut next_direction = CornerDirection::HorizontalToVertical;
     points.array_windows().map(move |&[p0, p1]| {
         let direction = next_direction;
         next_direction = next_direction.reverse();
         let corner = match direction {
-            CornerDirection::HorizontalToVertical => Corner { horizontal: p0, vertical: p1 },
-            CornerDirection::VerticalToHorizontal => Corner { horizontal: p1, vertical: p0 },
+            CornerDirection::HorizontalToVertical =>
+                Corner { horizontal: p0, vertical: p1, max_radius },
+            CornerDirection::VerticalToHorizontal =>
+                Corner { horizontal: p1, vertical: p0, max_radius },
         };
         Oriented::new(corner, direction)
     })
@@ -211,21 +218,23 @@ pub(super) fn corners(points: &[Vector2]) -> impl Iterator<Item = Oriented<Corne
 pub(super) struct Corner {
     horizontal: Vector2,
     vertical:   Vector2,
+    max_radius: f32,
 }
 
 impl Corner {
     /// Return [`Rectangle`] geometry parameters to draw this corner shape.
     pub(super) fn to_rectangle_geometry(self, line_width: f32) -> RectangleGeometry {
         RectangleGeometry {
-            clip: self.clip(),
-            size: self.size(line_width),
-            xy:   self.origin(line_width),
+            clip:   self.clip(),
+            size:   self.size(line_width),
+            xy:     self.origin(line_width),
+            radius: self.max_radius,
         }
     }
 
     #[inline]
     pub(super) fn clip(self) -> Vector2 {
-        let Corner { horizontal, vertical } = self;
+        let Corner { horizontal, vertical, .. } = self;
         let (dx, dy) = (vertical.x() - horizontal.x(), horizontal.y() - vertical.y());
         let (x_clip, y_clip) = (0.5f32.copysign(dx), 0.5f32.copysign(dy));
         Vector2(x_clip, y_clip)
@@ -233,7 +242,7 @@ impl Corner {
 
     #[inline]
     pub(super) fn origin(self, line_width: f32) -> Vector2 {
-        let Corner { horizontal, vertical } = self;
+        let Corner { horizontal, vertical, .. } = self;
         let x = horizontal.x().min(vertical.x() - line_width / 2.0);
         let y = vertical.y().min(horizontal.y() - line_width / 2.0);
         Vector2(x, y)
@@ -241,7 +250,7 @@ impl Corner {
 
     #[inline]
     pub(super) fn size(self, line_width: f32) -> Vector2 {
-        let Corner { horizontal, vertical } = self;
+        let Corner { horizontal, vertical, .. } = self;
         let offset = horizontal - vertical;
         let width = (offset.x().abs() + line_width / 2.0).max(line_width);
         let height = (offset.y().abs() + line_width / 2.0).max(line_width);
@@ -256,10 +265,10 @@ impl Corner {
 
     #[allow(unused)]
     pub(super) fn euclidean_length(self) -> f32 {
-        let Corner { horizontal, vertical } = self;
+        let Corner { horizontal, vertical, max_radius } = self;
         let offset = horizontal - vertical;
         let (dx, dy) = (offset.x().abs(), offset.y().abs());
-        let radius = dx.min(dy);
+        let radius = min(dx, dy).min(max_radius);
         let linear_x = dx - radius;
         let linear_y = dy - radius;
         let arc = std::f32::consts::FRAC_PI_2 * radius;
@@ -267,15 +276,15 @@ impl Corner {
     }
 
     pub(super) fn rectilinear_length(self) -> f32 {
-        let Corner { horizontal, vertical } = self;
+        let Corner { horizontal, vertical, .. } = self;
         let offset = horizontal - vertical;
         offset.x().abs() + offset.y().abs()
     }
 
     #[allow(unused)]
     pub(super) fn transpose(self) -> Self {
-        let Corner { horizontal, vertical } = self;
-        Corner { horizontal: vertical.yx(), vertical: horizontal.yx() }
+        let Corner { horizontal, vertical, max_radius } = self;
+        Corner { horizontal: vertical.yx(), vertical: horizontal.yx(), max_radius }
     }
 
     pub(super) fn vertical_end_angle(self) -> f32 {
@@ -295,9 +304,10 @@ impl Corner {
 
 #[derive(Debug, Copy, Clone, Default)]
 pub(super) struct RectangleGeometry {
-    pub clip: Vector2,
-    pub size: Vector2,
-    pub xy:   Vector2,
+    pub clip:   Vector2,
+    pub size:   Vector2,
+    pub xy:     Vector2,
+    pub radius: f32,
 }
 
 
@@ -372,10 +382,10 @@ impl Oriented<Corner> {
     /// Split the shape at the given point, if the point is within the tolerance specified by
     /// `snap_line_width` of the shape.
     pub(super) fn split(self, split_point: Vector2, snap_line_width: f32) -> Option<SplitCorner> {
-        let Corner { horizontal, vertical } = self.value;
+        let Corner { horizontal, vertical, max_radius } = self.value;
         let hv_offset = horizontal - vertical;
         let (dx, dy) = (hv_offset.x().abs(), hv_offset.y().abs());
-        let radius = min(dx, dy);
+        let radius = min(dx, dy).min(max_radius);
 
         // Calculate closeness to the straight segments.
         let (linear_x, linear_y) = (dx - radius, dy - radius);
