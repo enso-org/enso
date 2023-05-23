@@ -123,7 +123,7 @@ export class LocalBackend implements Partial<backend.Backend> {
             } else if (engineVersion == null) {
                 throw new Error(`The project '${projectId}' does not have an engine version.`)
             } else {
-                return Promise.resolve<backend.Project>({
+                return {
                     name: project.name,
                     engineVersion: {
                         lifecycle: backend.VersionLifecycle.stable,
@@ -146,11 +146,11 @@ export class LocalBackend implements Partial<backend.Backend> {
                                 ? backend.ProjectState.closed
                                 : backend.ProjectState.created,
                     },
-                })
+                }
             }
         } else {
             const project = LocalBackend.currentlyOpenProject.project
-            return Promise.resolve<backend.Project>({
+            return {
                 name: project.projectName,
                 engineVersion: {
                     lifecycle: backend.VersionLifecycle.stable,
@@ -168,7 +168,7 @@ export class LocalBackend implements Partial<backend.Backend> {
                 state: {
                     type: backend.ProjectState.opened,
                 },
-            })
+            }
         }
     }
 
