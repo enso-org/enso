@@ -31,8 +31,8 @@ map_over_storage input_column function builder skip_nothing=True on_problems=Rep
    Map a text-returning function over the values of two columns, using Storage
    directly. The output column has the same name as the first input column.
    `skip_nothing` applies to the first input to the function, not both inputs.
-map_2_over_storage : Column -> Column -> (Any -> Any -> Text) -> (Integer -> Any) -> Boolean -> Problem_Behavior -> Column
-map_2_over_storage input_column_0 input_column_1 function builder skip_nothing=True on_problems=Report_Warning =
+map_2_over_storage : Column -> Column -> (Any -> Any -> Text) -> (Integer -> Any) -> Boolean -> Column
+map_2_over_storage input_column_0 input_column_1 function builder skip_nothing=True =
     input_storage_0 = input_column_0.java_column.getStorage
     input_storage_1 = input_column_1.java_column.getStorage
     case input_storage_0.size != input_storage_1.size of
