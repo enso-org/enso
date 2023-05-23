@@ -486,6 +486,15 @@ impl Model {
             }
         }
     }
+
+    fn reopen_file_in_ls(&self) {
+        let module = self.controller.graph().module.clone_ref();
+        executor::global::spawn(async move {
+            if let Err(error) = module.reopen_file_in_language_server().await {
+                error!("Error while reopening file in Language Server: {error}");
+            }
+        });
+    }
 }
 
 
@@ -768,6 +777,7 @@ impl Graph {
             eval view.node_action_skip(((node_id, enabled)) model.node_action_skip(*node_id, *enabled));
             eval view.node_action_freeze(((node_id, enabled)) model.node_action_freeze(*node_id, *enabled));
             eval view.request_import((import_path) model.add_import_if_missing(import_path));
+            eval_ view.reopen_file_in_language_server (model.reopen_file_in_ls());
 
 
             // === Dropping Files ===

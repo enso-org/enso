@@ -55,28 +55,20 @@ function UserMenu() {
                 event.stopPropagation()
             }}
         >
-            {/* FIXME[sb]: Figure out whether this conditional is *actually* needed. */}
-            {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
-            {organization ? (
-                <>
-                    <UserMenuItem>
-                        Signed in as <span className="font-bold">{organization.name}</span>
-                    </UserMenuItem>
-                    <UserMenuItem onClick={goToProfile}>Your profile</UserMenuItem>
-                    {canChangePassword && (
-                        <UserMenuItem
-                            onClick={() => {
-                                setModal(() => <ChangePasswordModal />)
-                            }}
-                        >
-                            Change your password
-                        </UserMenuItem>
-                    )}
-                    <UserMenuItem onClick={signOut}>Sign out</UserMenuItem>
-                </>
-            ) : (
-                <UserMenuItem>Not logged in currently.</UserMenuItem>
+            <UserMenuItem>
+                Signed in as <span className="font-bold">{organization.name}</span>
+            </UserMenuItem>
+            <UserMenuItem onClick={goToProfile}>Your profile</UserMenuItem>
+            {canChangePassword && (
+                <UserMenuItem
+                    onClick={() => {
+                        setModal(() => <ChangePasswordModal />)
+                    }}
+                >
+                    Change your password
+                </UserMenuItem>
             )}
+            <UserMenuItem onClick={signOut}>Sign out</UserMenuItem>
         </div>
     )
 }
