@@ -606,10 +606,10 @@ impl SpanWidget for Widget {
                 && node_expr.ends_with(']')
                 && matches!(ctx.span_node.tree_type, Some(ast::TreeType::Expression));
 
-            /// We now know that the node expression begins with `[`. Check if the node actually
-            /// contains a token as a direct child at its location. It will not be the case for
-            /// expressions that contain nested arrays within the first chain element, but are not
-            /// an array themselves (e.g. `[1, 2] + [3, 4]`).
+            // We now know that the node expression begins with `[`. Check if the node actually
+            // contains a token as a direct child at its location. It will not be the case for
+            // expressions that contain nested arrays within the first chain element, but are not
+            // an array themselves (e.g. `[1, 2] + [3, 4]`).
             let children = &ctx.span_node.children;
             looks_like_vector
                 && children.iter().take_while(|c| c.parent_offset.value == 0).any(|c| c.is_token())
