@@ -24,7 +24,7 @@ from project.Internal.Column_Format import all
 from project.Data.Table import print_table
 from project.Data.Type.Value_Type import Value_Type, Auto
 from project.Errors import No_Index_Set_Error, Floating_Point_Equality, Invalid_Value_Type, Inexact_Type_Coercion, Conversion_Failure
-from project.Internal.Java_Exports import make_string_builder, make_double_builder, make_long_builder
+from project.Internal.Java_Exports import make_string_builder, make_double_builder, make_long_builder, make_date_builder
 
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
@@ -692,7 +692,7 @@ type Column
          Rounding to `n` digits can be thought of as "rounding to the nearest
          multiple of 10^(-n)". For negative decimal counts, this results in
          rounding to the nearest positive integer power of 10.
-    round : Integer -> Boolean -> Problem_Behavior -> Column | Illegal_Argument
+    round : Integer -> Boolean -> Problem_Behavior -> Column | Illegal_Argument | Invalid_Value_Type
     round self decimal_places=0 use_bankers=False on_problems=Report_Warning = Value_Type.expect_numeric self <|
         returns_double = decimal_places > 0
         builder = if returns_double then make_double_builder else make_long_builder
@@ -705,16 +705,23 @@ type Column
        the fractional part. This is equivalent to "round-toward-zero".
 
        Returns a column of `Integer`.
-    truncate : Column
-    truncate self = Value_Type.expect_numeric self <|
-        fun = _.truncate
-        Column_Ops.map_over_storage self fun make_long_builder skip_nothing=True
+    truncate : Column ! Invalid_Value_Type
+    truncate self =
+        case self.value_type.is_numeric of
+            True ->
+                fun = _.truncate
+                Column_Ops.map_over_storage self fun make_long_builder skip_nothing=True
+            False -> case self.value_type == Value_Type.Date_Time of
+                True ->
+                    fun = _.date
+                    Column_Ops.map_over_storage self fun make_date_builder skip_nothing=True
+                False -> Invalid_Value_Type.Column "Numeric or Date_Time" self.value_type
 
     ## Computes the nearest integer above this number for values in numeric
        column.
 
        Returns a column of `Integer`.
-    ceil : Column
+    ceil : Column ! Invalid_Value_Type
     ceil self = Value_Type.expect_numeric self <|
         fun = _.ceil
         Column_Ops.map_over_storage self fun make_long_builder skip_nothing=True
@@ -723,7 +730,7 @@ type Column
        column.
 
        Returns a column of `Integer`.
-    floor : Column
+    floor : Column ! Invalid_Value_Type
     floor self = Value_Type.expect_numeric self <|
         fun = _.floor
         Column_Ops.map_over_storage self fun make_long_builder skip_nothing=True

@@ -9,6 +9,7 @@ polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.index.DefaultIndex
 polyglot java import org.enso.table.data.column.storage.Storage
 polyglot java import org.enso.table.data.column.builder.object.BoolBuilder
+polyglot java import org.enso.table.data.column.builder.object.DateBuilder
 polyglot java import org.enso.table.data.column.builder.object.DateTimeBuilder
 polyglot java import org.enso.table.data.column.builder.object.InferredBuilder
 polyglot java import org.enso.table.data.column.builder.object.NumericBuilder
@@ -38,6 +39,10 @@ make_time_of_day_builder initial_size = TimeOfDayBuilder.new initial_size
 ## PRIVATE
 make_date_time_builder : Integer -> DateTimeBuilder
 make_date_time_builder initial_size = DateTimeBuilder.new initial_size
+
+## PRIVATE
+make_date_builder : Integer -> DateBuilder
+make_date_builder initial_size = DateBuilder.new initial_size
 
 ## PRIVATE
 make_inferred_builder : Integer -> InferredBuilder
