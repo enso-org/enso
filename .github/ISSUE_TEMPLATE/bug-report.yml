@@ -62,10 +62,10 @@ body:
       label: "How we can reproduce it?"
       description: "Bug reports with clear reproduction will get prioritized higher and addressed more quickly."
       placeholder: |
-          Steps to reproduce:
-          1. Click on ...
-          2. Scroll down to ...
-          3. See error ...
+        Steps to reproduce:
+        1. Click on ...
+        2. Scroll down to ...
+        3. See error ...
     validations:
       required: false
 
@@ -74,6 +74,14 @@ body:
     attributes:
       label: "Screenshots or screencasts"
       description: "If applicable, add screenshots or screencasts to help explain your problem. While optional, they help expedite the time in which your bug is addressed."
+    validations:
+      required: false
+
+  - type: textarea
+    id: "logs"
+    attributes:
+      label: "Logs"
+      description: "Attach a log file to help identify the issue. You can find the logs in the `ENSO_DATA_DIRECTORY`, which location is described in the [distribution.md](https://github.com/enso-org/enso/blob/develop/docs/distribution/distribution.md)."
     validations:
       required: false
 

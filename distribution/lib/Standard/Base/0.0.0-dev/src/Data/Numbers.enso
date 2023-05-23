@@ -2,7 +2,9 @@ import project.Data.Text.Text
 import project.Data.Locale.Locale
 import project.Errors.Common.Arithmetic_Error
 import project.Errors.Common.Incomparable_Values
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Error.Error
+import project.Function.Function
 import project.Nothing.Nothing
 import project.Panic.Panic
 
@@ -545,6 +547,88 @@ type Decimal
     floor : Integer
     floor self = @Builtin_Method "Decimal.floor"
 
+    ## ALIAS int
+
+       Truncate a floating-point number to an integer by dropping the fractional
+       part. This is equivalent to "round-toward-zero".
+    truncate : Integer
+    truncate self = self.truncate_builtin
+
+    ## Round to a specified number of decimal places.
+
+       By default, rounding uses "asymmetric round-half-up", also known as
+       "round towards positive infinity." If use_bankers=True, then it uses
+       "round-half-even", also known as "banker's rounding".
+
+       If `decimal_places` > 0, `round` returns a `Decimal`; otherwise, it
+       returns an `Integer`.
+
+       If the argument is `NaN` or `+/-Inf`, an `Arithmetic_Error` error is
+       thrown.
+
+       Arguments:
+       - decimal_places: The number of decimal places to round to. Can be
+         negative, which results in rounding to positive integer powers of 10.
+         Must be between -15 and 15 (inclusive).
+       - use_bankers: Rounds mid-point to nearest even number.
+
+       ! Error Conditions
+
+         If `decimal_places` is outside the range -15..15 (inclusive), an
+         `Illegal_Argument` error is thrown.
+
+       ? Negative decimal place counts
+         Rounding to `n` digits can be thought of as "rounding to the nearest
+         multiple of 10^(-n)". For negative decimal counts, this results in
+         rounding to the nearest positive integer power of 10.
+
+       > Example
+         Round to the nearest integer.
+
+            3.3 . round == 3
+
+       > Example
+         Round to two decimal places.
+
+            3.1415 . round 2 == 3.14
+
+       > Example
+         Round to the nearest hundred.
+
+            1234.0 . round -2 == 1200
+
+       > Example
+         Use Banker's Rounding.
+
+            2.5 . round use_bankers=True == 2
+    round : Integer -> Integer | Decimal ! Illegal_Argument
+    round self decimal_places=0 use_bankers=False =
+        check_decimal_places decimal_places <|
+            case self.is_nan || self.is_infinite of
+                True ->
+                    msg = "round cannot accept " + self.to_text
+                    Error.throw (Arithmetic_Error.Error msg)
+                False ->
+                    decimal_result = case use_bankers of
+                        False ->
+                            scale = 10 ^ decimal_places
+                            ((self * scale) + 0.5).floor / scale
+                        True ->
+                            ## If the largest integer <= self is odd, use normal
+                               round-towards-positive-infinity rounding; otherwise,
+                               use round-towards-negative-infinity rounding.
+                            scale = 10 ^ decimal_places
+                            scaled_self = self * scale
+                            self_scaled_floor = scaled_self.floor
+                            is_even = (self_scaled_floor % 2) == 0
+                            case is_even of
+                                False ->
+                                    (scaled_self + 0.5).floor / scale
+                                True ->
+                                    (scaled_self - 0.5).ceil / scale
+                    # Convert to integer if it's really an integer anyway.
+                    if decimal_places > 0 then decimal_result else decimal_result.truncate
+
     ## Compute the negation of this.
 
        > Example
@@ -788,6 +872,70 @@ type Integer
     floor : Integer
     floor self = @Builtin_Method "Integer.floor"
 
+    ## ALIAS int
+
+       Truncate an `Integer` to an `Integer`, i.e. returns its argument. For
+       compatibility with `Decimal.truncate`.
+    truncate : Integer
+    truncate self = self
+
+    ## Round to a specified number of decimal places.
+
+       For integers, rounding to 0 or more decimal places simply returns the
+       argument. For negative decimal places, see below.
+
+       By default, rounding uses "asymmetric round-half-up", also known as
+       "round towards positive infinity." If use_bankers=True, then it uses
+       "round-half-even", also known as "banker's rounding".
+
+       Arguments:
+       - decimal_places: The number of decimal places to round to. Can be
+         negative, which results in rounding to positive integer powers of 10.
+         Must be between -15 and 15 (inclusive).
+       - use_bankers: Rounds mid-point to nearest even number.
+
+       ! Error Conditions
+         Throws `Illegal_Argument` if the number is 15 or more decimal places.
+         Above 14 digits, it is possible that the underlying long, converted to
+         double in the rounding process, would lose precision in the least
+         significant bits.
+         (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
+
+         If `decimal_places` is outside the range -15..15 (inclusive), an
+         `Illegal_Argument` error is thrown.
+
+       ? Negative decimal place counts
+         Rounding to `n` digits can be thought of as "rounding to the nearest
+         multiple of 10^(-n)". For negative decimal counts, this results in
+         rounding to the nearest positive integer power of 10.
+
+       > Example
+         Round an integer (returns the value unchanged).
+
+            3 . round == 3
+
+       > Example
+         Round to the nearest thousand.
+
+            2511 . round -3 == 3000
+
+       > Example
+         Round to the nearest hundred, using Banker's Rounding.
+
+            12250 . round -2 use_bankers=True == 12200
+    round : Integer -> Integer ! Illegal_Argument
+    round self decimal_places=0 use_bankers=False =
+        check_decimal_places decimal_places <|
+            case self < round_min_long || self > round_max_long of
+                True ->
+                    msg = "Error: Integer.round can only accept values between " + round_min_long.to_text + " and " + round_max_long.to_text + "(inclusive), but was " + self.to_text
+                    Error.throw (Illegal_Argument.Error msg)
+                False ->
+                    ## It's already an integer so unless decimal_places is
+                       negative, the value is unchanged.
+                    if decimal_places >= 0 then self else
+                        self.to_decimal.round decimal_places use_bankers . truncate
+
     ## Compute the negation of this.
 
        > Example
@@ -957,3 +1105,35 @@ type Number_Parse_Error
     to_display_text : Text
     to_display_text =
         "Could not parse " + self.text.to_text + " as a double."
+
+## PRIVATE
+   The smallest allowed value for the `decimal_places` argument to `round`
+round_min_decimal_places : Integer
+round_min_decimal_places = -15
+
+## PRIVATE
+   The largest allowed value for the `decimal_places` argument to `round`
+round_max_decimal_places : Integer
+round_max_decimal_places = 15
+
+## PRIVATE
+   The largest smallInteger (Long) that integer round can handle. Above 14
+   digits, it is possible that the underlying long, converted to double in the
+   rounding process, would lose precision in the least significant bits.
+   (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
+round_max_long : Integer
+round_max_long = 99999999999999
+
+## PRIVATE
+   The largest smallInteger (Long) that integer round can handle. Above 14
+   digits, it is possible that the underlying long, converted to double in the
+   rounding process, would lose precision in the least significant bits.
+   (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
+round_min_long : Integer
+round_min_long = -99999999999999
+
+check_decimal_places : Integer -> Function
+check_decimal_places decimal_places ~action =
+    if decimal_places >= round_min_decimal_places && decimal_places <= round_max_decimal_places then action else
+        msg = "round: decimal_places must be between " + round_min_decimal_places.to_text + " and " + round_max_decimal_places.to_text + "(inclusive), but was " + decimal_places.to_text
+        Error.throw (Illegal_Argument.Error msg)

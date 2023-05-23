@@ -17,6 +17,7 @@ export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta
 // === Bundler ===
 // ===============
 
+/** Clean up old build output and runs the esbuild bundler. */
 async function bundle() {
     try {
         try {
