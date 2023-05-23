@@ -667,8 +667,9 @@ type Column
        "round towards positive infinity." If use_bankers=True, then it uses
        "round-half-even", also known as "banker's rounding".
 
-       If `decimal_places` > 0, `round` returns a column of `Decimal`;
-       otherwise, it returns a column of `Integer`.
+       If the column is of type `Decimal` and `decimal_places` > 0, `round`
+       returns a column of `Decimal`; otherwise, it returns a column of
+       `Integer`.
 
        Arguments:
        - decimal_places: The number of decimal places to round to. Can be
@@ -706,12 +707,10 @@ type Column
 
     ## ALIAS int
 
-       Truncate the floating-point values in a column to an integer by dropping
-       the fractional part. This is equivalent to "round-toward-zero".
-
-       Truncate the `Date_Time` values in a column to `Date`.
-
-       Returns a column of `Integer`.
+       If the column is numeric, truncate the floating-point values to an
+       integer by dropping the fractional part. This is equivalent to
+       "round-toward-zero". If the column is of type `Date_Time`, truncates the
+       values to `Date`.
 
        > Example
          Truncate a column of `Decimal` values.
@@ -735,7 +734,7 @@ type Column
                     Column_Ops.map_over_storage self fun make_date_builder skip_nothing=True
                 False -> Invalid_Value_Type.Column "Numeric or Date_Time" self.value_type
 
-    ## Computes the nearest integer above this number for values in numeric
+    ## Computes the nearest integer above this number for values in a numeric
        column.
 
        Returns a column of `Integer`.
@@ -749,7 +748,7 @@ type Column
         fun = _.ceil
         Column_Ops.map_over_storage self fun make_long_builder skip_nothing=True
 
-    ## Computes the nearest integer below this number for values in numeric
+    ## Computes the nearest integer below this number for values in a numeric
        column.
 
        Returns a column of `Integer`.
