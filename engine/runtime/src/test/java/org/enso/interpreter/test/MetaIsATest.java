@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -37,7 +38,6 @@ public class MetaIsATest extends TestBase {
     var module = ctx.eval(src);
     isACheck = module.invokeMember("eval_expression", "check");
     assertTrue("it is a function", isACheck.canExecute());
-    generator = ValuesGenerator.create(ctx);
   }
 
   @AfterClass
@@ -45,10 +45,26 @@ public class MetaIsATest extends TestBase {
     ctx.close();
   }
 
+  /** Override to create different values generator.
+  *
+  * @param context the context to allocate values in
+  * @return an instance of values generator
+  */
+  ValuesGenerator createGenerator(Context context) {
+    return ValuesGenerator.create(context, Language.ENSO, Language.JAVA);
+  }
+
+  private ValuesGenerator generator() {
+    if (generator == null) {
+      generator = createGenerator(ctx);
+    }
+    return generator;
+  }
+
   @Test
   public void checkNumbersAreNumber() {
-    var typeNumber = generator.typeNumber();
-    for (var v : generator.numbers()) {
+    var typeNumber = generator().typeNumber();
+    for (var v : generator().numbers()) {
       var r = isACheck.execute(v, typeNumber);
       assertTrue("Value " + v + " is a number, type: " + v.getMetaObject(), r.asBoolean());
     }
@@ -56,8 +72,8 @@ public class MetaIsATest extends TestBase {
 
   @Test
   public void checkValuesAreAny() throws Exception {
-    var typeAny = generator.typeAny();
-    for (var v : generator.allValues()) {
+    var typeAny = generator().typeAny();
+    for (var v : generator().allValues()) {
       var r = isACheck.execute(v, typeAny);
       assertTrue("Value " + v + " is any", r.asBoolean());
     }
@@ -65,71 +81,71 @@ public class MetaIsATest extends TestBase {
 
   @Test
   public void checkNumbersAreNotText() {
-    for (var v : generator.numbers()) {
-      var r = isACheck.execute(v, generator.typeText());
+    for (var v : generator().numbers()) {
+      var r = isACheck.execute(v, generator().typeText());
       assertFalse("Value " + v + " is not a string", r.asBoolean());
     }
   }
 
   @Test
   public void checkTextsAreText() {
-    for (var v : generator.textual()) {
-      var r = isACheck.execute(v, generator.typeText());
+    for (var v : generator().textual()) {
+      var r = isACheck.execute(v, generator().typeText());
       assertTrue("Value " + v + " is a string", r.asBoolean());
     }
   }
 
   @Test
   public void mapsAreMaps() {
-    for (var v : generator.maps()) {
-      var r = isACheck.execute(v, generator.typeMap());
+    for (var v : generator().maps()) {
+      var r = isACheck.execute(v, generator().typeMap());
       assertTrue("Value " + v + " type " + v.getClass().getName() + " is a map", r.asBoolean());
     }
   }
 
   @Test
   public void checkIntegerIsNotInstanceOfInteger() {
-    var t = generator.typeInteger();
+    var t = generator().typeInteger();
     var r = isACheck.execute(t, t);
     assertFalse("Integer is not instance of Integer", r.asBoolean());
   }
 
   @Test
   public void checkNumberIsNotInstanceOfNumber() {
-    var t = generator.typeNumber();
+    var t = generator().typeNumber();
     var r = isACheck.execute(t, t);
     assertFalse("Number is not instance of Number", r.asBoolean());
   }
 
   @Test
   public void checkAnyIsInstanceOfAny() {
-    var t = generator.typeAny();
+    var t = generator().typeAny();
     var r = isACheck.execute(t, t);
     assertTrue("Everything is instance of Any even Any", r.asBoolean());
   }
 
   @Test
   public void checkTextsAreNotNumbers() {
-    for (var v : generator.textual()) {
-      var r = isACheck.execute(v, generator.typeNumber());
+    for (var v : generator().textual()) {
+      var r = isACheck.execute(v, generator().typeNumber());
       assertFalse("Value " + v + " is not a number", r.asBoolean());
     }
   }
 
   @Test
   public void checkArraysAreArrays() {
-    for (var v : generator.arrayLike()) {
-      var isVector = isACheck.execute(v, generator.typeVector());
-      var isArray = isACheck.execute(v, generator.typeArray());
+    for (var v : generator().arrayLike()) {
+      var isVector = isACheck.execute(v, generator().typeVector());
+      var isArray = isACheck.execute(v, generator().typeArray());
       assertTrue("Value " + v + " of type " + v.getMetaObject() + " should either be array (" + isArray + ") or vector (" + isVector + ")", isArray.asBoolean() ^ isVector.asBoolean());
     }
   }
 
   @Test
   public void valuesAreNotInstancesOfThemselves() throws Exception {
-    for (var v : generator.allValues()) {
+    for (var v : generator().allValues()) {
       var r = isACheck.execute(v, v);
-      if (v.equals(generator.typeNothing())) {
+      if (v.equals(generator().typeNothing())) {
         assertTrue("Nothing is instance of itself", r.asBoolean());
       } else {
         assertFalse("Value " + v + " shall not be instance of itself", r.isBoolean() && r.asBoolean());
@@ -140,7 +156,7 @@ public class MetaIsATest extends TestBase {
   @Test
   public void constructorVariants() throws Exception {
     var found = new HashMap<Value, Value>();
-    final List<Value> values = generator.constructorsAndValuesAndSumType();
+    final List<Value> values = generator().constructorsAndValuesAndSumType();
     for (var v1 : values) {
       for (var v2 : values) {
         assertTypeWithCheck(generator, v1, v2, found);
@@ -171,12 +187,12 @@ public class MetaIsATest extends TestBase {
   @Test
   public void typesAreNotInstancesOfThemselves() throws Exception {
     var f = new StringBuilder();
-    for (var v : generator.allTypes()) {
-      if (v.equals(generator.typeAny())) {
+    for (var v : generator().allTypes()) {
+      if (v.equals(generator().typeAny())) {
         continue;
       }
       var r = isACheck.execute(v, v);
-      if (v.equals(generator.typeNothing())) {
+      if (v.equals(generator().typeNothing())) {
         assertTrue("Nothing is instance of itself", r.asBoolean());
       } else {
         if (r.asBoolean()) {
@@ -190,10 +206,10 @@ public class MetaIsATest extends TestBase {
   @Test
   public void consistencyWithCase() throws Exception {
     var f = new StringBuilder();
-    for (var t : generator.allTypes()) {
-      var typeCaseOf = generator.withType(t);
+    for (var t : generator().allTypes()) {
+      var typeCaseOf = generator().withType(t);
 
-      for (var v : generator.allValues()) {
+      for (var v : generator().allValues()) {
         assertTypeAndValue(typeCaseOf, v, t, f, generator);
       }
     }

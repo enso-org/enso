@@ -591,6 +591,17 @@ class ValuesGenerator {
       map.put("C", 3);
       collect.add(ctx.asValue(map));
     }
+    if (languages.contains(Language.JAVASCRIPT)) {
+      var fn = ctx.eval("js", """
+      (function() {
+        var map = new Map();
+        map.set('A', 1);
+        map.set('B', 2);
+        return map;
+      })
+      """);
+      collect.add(fn.execute());
+    }
     return collect;
   }
 
