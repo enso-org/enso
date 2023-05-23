@@ -1,7 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import org.enso.interpreter.epb.runtime.PolyglotExceptionProxy;
-import org.enso.interpreter.epb.runtime.PolyglotProxy;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.Type;
@@ -167,16 +165,16 @@ public abstract class IsValueOfTypeNode extends Node {
       return true;
     }
 
-    @Specialization
-    boolean doPolyglotProxy(Object expectedType, PolyglotProxy proxy) {
-      Object tpeOfPayload = typeOfNode.execute(proxy);
-      return isSameObject.execute(expectedType, tpeOfPayload);
+    @Specialization(guards = {"isDateType(expectedType, iop)", "iop.isDate(payload)"})
+    boolean doDate(
+        Type expectedType, Object payload, @CachedLibrary(limit = "3") InteropLibrary iop) {
+      return true;
     }
 
-    @Specialization(guards = "!isAnyType(expectedType)")
-    boolean doPolyglotExceptionProxy(Object expectedType, PolyglotExceptionProxy proxy) {
-      Object tpeOfPayload = typeOfNode.execute(proxy.getDelegate());
-      return isSameObject.execute(expectedType, tpeOfPayload);
+    @Specialization(guards = {"isDateTimeType(expectedType, iop)", "iop.isTime(payload)"})
+    boolean doDateTime(
+        Type expectedType, Object payload, @CachedLibrary(limit = "3") InteropLibrary iop) {
+      return true;
     }
 
     @Specialization(
@@ -197,6 +195,16 @@ public abstract class IsValueOfTypeNode extends Node {
     static boolean isMapType(Object type, Node node) {
       var ctx = EnsoContext.get(node);
       return type == ctx.getBuiltins().map();
+    }
+
+    static boolean isDateType(Object type, Node node) {
+      var ctx = EnsoContext.get(node);
+      return type == ctx.getBuiltins().date();
+    }
+
+    static boolean isDateTimeType(Object type, Node node) {
+      var ctx = EnsoContext.get(node);
+      return type == ctx.getBuiltins().dateTime();
     }
 
     boolean isAnyType(Object expectedType) {
