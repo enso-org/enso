@@ -29,29 +29,25 @@ public abstract class IsValueOfTypeNode extends Node {
 
   public abstract boolean execute(Object expectedType, Object payload);
 
-  @Specialization(guards={
-    "types.hasType(payload)"
-  })
+  @Specialization(guards = {"types.hasType(payload)"})
   boolean doTyped(
-    Object expectedType, Object payload,
-    @CachedLibrary(limit="3") TypesLibrary types,
-    @Cached Typed typed
-  ) {
+      Object expectedType,
+      Object payload,
+      @CachedLibrary(limit = "3") TypesLibrary types,
+      @Cached Typed typed) {
     return typed.execute(expectedType, payload);
   }
 
-  @Specialization(guards={
-    "!types.hasType(payload)"
-  })
+  @Specialization(guards = {"!types.hasType(payload)"})
   boolean doPolyglot(
-    Object expectedType, Object payload,
-    @CachedLibrary(limit="3") TypesLibrary types,
-    @Cached Untyped typed
-  ) {
+      Object expectedType,
+      Object payload,
+      @CachedLibrary(limit = "3") TypesLibrary types,
+      @Cached Untyped typed) {
     return typed.execute(expectedType, payload);
   }
 
-  static abstract class Typed extends Node {
+  abstract static class Typed extends Node {
     private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
     private @Child TypeOfNode typeOfNode = TypeOfNode.build();
     private final ConditionProfile profile = ConditionProfile.createCountingProfile();
@@ -100,14 +96,9 @@ public abstract class IsValueOfTypeNode extends Node {
       }
     }
 
-    @Specialization(guards = {
-      "!isArrayType(expectedType)",
-      "!isAnyType(expectedType)"
-    })
+    @Specialization(guards = {"!isArrayType(expectedType)", "!isAnyType(expectedType)"})
     boolean doType(
-      Type expectedType, Object payload,
-      @CachedLibrary(limit="3") TypesLibrary types
-    ) {
+        Type expectedType, Object payload, @CachedLibrary(limit = "3") TypesLibrary types) {
       Object tpeOfPayload = typeOfNode.execute(payload);
       if (profile.profile(isSameObject.execute(expectedType, tpeOfPayload))) {
         return true;
@@ -154,7 +145,7 @@ public abstract class IsValueOfTypeNode extends Node {
     }
   }
 
-  static abstract class Untyped extends Node {
+  abstract static class Untyped extends Node {
     private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
     private @Child TypeOfNode typeOfNode = TypeOfNode.build();
 
@@ -166,20 +157,13 @@ public abstract class IsValueOfTypeNode extends Node {
           "interop.hasArrayElements(payload)",
         })
     boolean doArray(
-        Object expectedType,
-        Object payload,
-        @CachedLibrary(limit = "3") InteropLibrary interop) {
+        Object expectedType, Object payload, @CachedLibrary(limit = "3") InteropLibrary interop) {
       return true;
     }
 
-    @Specialization(guards={
-      "isMapType(expectedType, iop)",
-      "iop.hasHashEntries(payload)"
-    })
+    @Specialization(guards = {"isMapType(expectedType, iop)", "iop.hasHashEntries(payload)"})
     boolean doMap(
-      Type expectedType, Object payload,
-      @CachedLibrary(limit="3") InteropLibrary iop
-    ) {
+        Type expectedType, Object payload, @CachedLibrary(limit = "3") InteropLibrary iop) {
       return true;
     }
 
@@ -195,16 +179,14 @@ public abstract class IsValueOfTypeNode extends Node {
       return isSameObject.execute(expectedType, tpeOfPayload);
     }
 
-    @Specialization(guards = {
-      "!isArrayType(expectedType)",
-      "!isMapType(expectedType, interop)",
-      "interop.isMetaObject(expectedType)"
-    })
+    @Specialization(
+        guards = {
+          "!isArrayType(expectedType)",
+          "!isMapType(expectedType, interop)",
+          "interop.isMetaObject(expectedType)"
+        })
     boolean doPolyglotType(
-      Object expectedType,
-      Object payload,
-      @CachedLibrary(limit = "3") InteropLibrary interop
-    ) {
+        Object expectedType, Object payload, @CachedLibrary(limit = "3") InteropLibrary interop) {
       try {
         return interop.isMetaInstance(expectedType, payload);
       } catch (UnsupportedMessageException e) {
@@ -230,5 +212,4 @@ public abstract class IsValueOfTypeNode extends Node {
       return false;
     }
   }
-
 }
