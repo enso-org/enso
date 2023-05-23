@@ -56,11 +56,14 @@ impl<'a> LaidGroup<'a> {
 
     /// The id of element at given row, or `None` if row is outside the group.
     pub fn element_at_row(&self, row: Row) -> Option<ElementId> {
-        let element = self.rows().contains(&row).as_some_from(|| {
+        let rows = self.rows();
+        let element = rows.contains(&row).then(|| {
             if row < self.header_row + HEADER_HEIGHT_IN_ROWS {
                 ElementInGroup::Header
             } else {
-                ElementInGroup::Entry(row - self.header_row - HEADER_HEIGHT_IN_ROWS)
+                // We may unwrap here, as we check above if rows.contains(&row) - if range contains
+                // something, it has to have last element.
+                ElementInGroup::Entry(rows.last().unwrap() - row)
             }
         });
         element.map(|element| ElementId { group: self.group.id, element })
@@ -226,8 +229,7 @@ impl Layout {
             let header_pos = rows.start;
             match element.element {
                 ElementInGroup::Header => Some((header_pos, col)),
-                ElementInGroup::Entry(index) =>
-                    Some((header_pos + HEADER_HEIGHT_IN_ROWS + index, col)),
+                ElementInGroup::Entry(index) => Some((rows.last()? - index, col)),
             }
         }
     }

@@ -388,7 +388,7 @@ impl ComponentsProvider {
 }
 
 /// An information used for filtering entries.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Eq, PartialEq)]
 pub struct Filter {
     /// The part of the input used for filtering.
     pub pattern: ImString,
@@ -560,6 +560,7 @@ impl Searcher {
         let parsed_input = input::Input::parse(self.ide.parser(), new_input, cursor_position);
         let new_context = parsed_input.context().map(|ctx| ctx.into_ast().repr());
         let new_literal = parsed_input.edited_literal().cloned();
+        let old_filter = self.filter();
         let old_input = mem::replace(&mut self.data.borrow_mut().input, parsed_input);
         let old_context = old_input.context().map(|ctx| ctx.into_ast().repr());
         let old_literal = old_input.edited_literal();
@@ -572,12 +573,14 @@ impl Searcher {
             self.reload_list();
         } else {
             let filter = self.filter();
-            let data = self.data.borrow();
-            data.components.update_filtering(filter.clone_ref());
-            if let Actions::Loaded { list } = &data.actions {
-                debug!("Update filtering.");
-                list.update_filtering(filter.pattern);
-                executor::global::spawn(self.notifier.publish(Notification::NewActionList));
+            if filter != old_filter {
+                let data = self.data.borrow();
+                data.components.update_filtering(filter.clone_ref());
+                if let Actions::Loaded { list } = &data.actions {
+                    debug!("Update filtering.");
+                    list.update_filtering(filter.pattern);
+                    executor::global::spawn(self.notifier.publish(Notification::NewActionList));
+                }
             }
         }
         Ok(())
