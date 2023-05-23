@@ -58,19 +58,6 @@ handle_illegal_argument_exception format_string ~action =
         Panic.catch UnsupportedTemporalTypeException handler=handler action
 
 ## PRIVATE
-   Iterate over a range, exiting early if the body produces an `Error`.
-each_propagate : Range -> (Number -> Any) -> Nothing ! Error
-each_propagate range function =
-    if range.step == 0 then Error.throw (Illegal_State.Error "A range with step = 0 is ill-formed.") else
-        end_condition = if range.step > 0 then (>=) else (<=)
-        go current =
-            if end_condition current range.end then Nothing else
-                result = function current
-                result.if_not_error <|
-                    @Tail_Call go current+range.step
-        go range.start
-
-## PRIVATE
    Map a text-returning function over the column values, using Storage directly.
    The output column has the same name as the input.
 map_over_storage : Column -> (Any -> Text) -> (Integer -> Any) -> Boolean -> Column
@@ -78,7 +65,7 @@ map_over_storage input_column function builder skip_nothing=True =
     input_storage = input_column.java_column.getStorage
     num_input_rows = input_storage.size
     output_storage_builder = builder num_input_rows
-    ok = each_propagate (0.up_to num_input_rows) i->
+    ok = 0.up_to num_input_rows.each_propagate i->
         input_value = input_storage.getItemBoxed i
         if skip_nothing && input_value.is_nothing then output_storage_builder.append Nothing else
             output_value = function input_value
@@ -103,7 +90,7 @@ map_2_over_storage input_column_0 input_column_1 function builder skip_nothing=T
         False ->
             num_input_rows = input_storage_0.size
             output_storage_builder = builder num_input_rows
-            ok = each_propagate (0.up_to num_input_rows) i->
+            ok = 0.up_to num_input_rows.each_propagate i->
                 input_value_0 = input_storage_0.getItemBoxed i
                 input_value_1 = input_storage_1.getItemBoxed i
                 if skip_nothing && input_value_0.is_nothing then output_storage_builder.append Nothing else
