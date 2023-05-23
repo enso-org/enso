@@ -333,7 +333,7 @@ impl<T> SpanTree<T> {
             }
 
             if let Some(tt) = node.tree_type.as_ref() {
-                write!(buffer, " tt={:?}", tt).unwrap();
+                write!(buffer, " tt={tt:?}").unwrap();
             }
 
             buffer.push('\n');
