@@ -1411,7 +1411,7 @@ pub mod test {
     #[test]
     fn hierarchy_index_of_standard_db_mock() {
         let db = mock::standard_db_mock();
-        assert_eq!(db.hierarchy_index.borrow().len(), 4);
+        assert_eq!(db.hierarchy_index.borrow().len(), 5);
         verify_hierarchy_index(&db, "Standard.Base", &[
             "Standard.Base.Maybe",
             "Standard.Base.Number",
@@ -1459,7 +1459,7 @@ pub mod test {
             current_version: 1,
         };
         db.apply_update_event(update);
-        assert_eq!(db.hierarchy_index.borrow().len(), 4);
+        assert_eq!(db.hierarchy_index.borrow().len(), 5);
         verify_hierarchy_index(&db, "local.Project.Submodule.TestType", &[
             "local.Project.Submodule.TestType.static_method",
             "local.Project.Submodule.TestType.new_method",
@@ -1485,7 +1485,7 @@ pub mod test {
             current_version: 2,
         };
         db.apply_update_event(update);
-        assert_eq!(db.hierarchy_index.borrow().len(), 4);
+        assert_eq!(db.hierarchy_index.borrow().len(), 5);
         verify_hierarchy_index(&db, "local.Project.Submodule.TestType", &[
             "local.Project.Submodule.TestType.static_method",
         ]);
@@ -1504,7 +1504,7 @@ pub mod test {
             current_version: 3,
         };
         db.apply_update_event(update);
-        assert_eq!(db.hierarchy_index.borrow().len(), 4);
+        assert_eq!(db.hierarchy_index.borrow().len(), 5);
         verify_hierarchy_index(&db, "Standard.Base.Maybe", &[
             "Standard.Base.Maybe.Some",
             "Standard.Base.Maybe.None",
@@ -1576,7 +1576,7 @@ pub mod test {
             current_version: 1,
         };
         db.apply_update_event(update);
-        assert_eq!(db.hierarchy_index.borrow().len(), 5);
+        assert_eq!(db.hierarchy_index.borrow().len(), 6);
         verify_hierarchy_index(&db, "Standard.Base", &["Standard.Base.Maybe"]);
         verify_hierarchy_index(&db, "Standard.Base.Maybe", &[
             "Standard.Base.Maybe.Some",
@@ -1614,7 +1614,7 @@ pub mod test {
             current_version: 1,
         };
         db.apply_update_event(update);
-        assert_eq!(db.hierarchy_index.borrow().len(), 4);
+        assert_eq!(db.hierarchy_index.borrow().len(), 5);
         let update = SuggestionDatabaseUpdatesEvent {
             updates:         vec![entry::Update::Add {
                 id:         21,
@@ -1631,7 +1631,7 @@ pub mod test {
             current_version: 2,
         };
         db.apply_update_event(update);
-        assert_eq!(db.hierarchy_index.borrow().len(), 5);
+        assert_eq!(db.hierarchy_index.borrow().len(), 6);
         let new_type = lookup_id_by_name(&db, "Standard.Base.NewType").unwrap();
         let new_method = lookup_id_by_name(&db, "Standard.Base.NewType.new_method").unwrap();
         assert_eq!(db.lookup_hierarchy(new_type).unwrap(), HashSet::from([new_method]));
@@ -1656,7 +1656,7 @@ pub mod test {
             current_version: 1,
         };
         db.apply_update_event(update);
-        assert_eq!(db.hierarchy_index.borrow().len(), 4);
+        assert_eq!(db.hierarchy_index.borrow().len(), 5);
         let update = SuggestionDatabaseUpdatesEvent {
             updates:         vec![entry::Update::Add {
                 id:         21,
@@ -1669,7 +1669,7 @@ pub mod test {
             current_version: 2,
         };
         db.apply_update_event(update);
-        assert_eq!(db.hierarchy_index.borrow().len(), 5);
+        assert_eq!(db.hierarchy_index.borrow().len(), 6);
         let new_module = lookup_id_by_name(&db, "Standard.NewModule").unwrap();
         let new_type = lookup_id_by_name(&db, "Standard.NewModule.NewType").unwrap();
         assert_eq!(db.lookup_hierarchy(new_module).unwrap(), HashSet::from([new_type]));

@@ -164,6 +164,10 @@
   added in various other PRs. The new dashboard includes tables for projects,
   folders, files and secrets, a list of templates from which new projects can be
   created, a user menu, and a search bar.
+- [When selecting a function from the main module through the component browser,
+  it is now referenced via the `Main` namespace instead of the project
+  namespace,][6719] e.g. `Main.func1` instead of `MyProject.func1`. This makes
+  it robust against project name changes.
 - [Added a button to return from an opened project back to the project
   dashboard.][6474]
 
@@ -173,6 +177,7 @@
 [6617]: https://github.com/enso-org/enso/pull/6617
 [6620]: https://github.com/enso-org/enso/pull/6620
 [6663]: https://github.com/enso-org/enso/pull/6663
+[6719]: https://github.com/enso-org/enso/pull/6719
 [6474]: https://github.com/enso-org/enso/pull/6474
 
 #### EnsoGL (rendering engine)
@@ -773,6 +778,7 @@
 - [Reimplement `enso_project` as a proper builtin][6352]
 - [Limit number of reported warnings per value][6577]
 - [Suggestions are updated only when the type of the expression changes][6755]
+- [Add project creation time to project metadata][6780]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -884,6 +890,7 @@
 [6352]: https://github.com/enso-org/enso/pull/6352
 [6577]: https://github.com/enso-org/enso/pull/6577
 [6755]: https://github.com/enso-org/enso/pull/6755
+[6780]: https://github.com/enso-org/enso/pull/6780
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

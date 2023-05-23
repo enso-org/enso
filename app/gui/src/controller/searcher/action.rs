@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use double_representation::module::MethodId;
+use double_representation::name::QualifiedNameRef;
 use ordered_float::OrderedFloat;
 
 
@@ -29,9 +30,9 @@ pub enum Suggestion {
 
 impl Suggestion {
     /// Return the code to be inserted in searcher input upon picking suggestion.
-    pub fn code_to_insert(&self, generate_this: bool) -> Cow<str> {
+    pub fn code_to_insert(&self, generate_this: bool, in_module: QualifiedNameRef) -> Cow<str> {
         match self {
-            Suggestion::FromDatabase(s) => s.code_to_insert(generate_this),
+            Suggestion::FromDatabase(s) => s.code_to_insert(generate_this, in_module),
             Suggestion::Hardcoded(s) => s.code.as_str().into(),
         }
     }
