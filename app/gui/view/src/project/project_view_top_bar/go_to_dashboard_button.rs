@@ -85,7 +85,8 @@ impl View {
     fn color_scheme(style_sheet: &style::Sheet) -> toggle_button::ColorScheme {
         let default_color_scheme = toggle_button::default_color_scheme(style_sheet);
         toggle_button::ColorScheme {
-            // Make it look like a normal button by not having a toggled state visually.
+            // Make it look like a normal button (as opposed to a toggle button) by not having a
+            // toggled state visually.
             toggled: default_color_scheme.non_toggled,
             toggled_hovered: default_color_scheme.hovered,
             ..default_color_scheme
