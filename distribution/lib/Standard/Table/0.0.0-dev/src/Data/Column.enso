@@ -13,6 +13,7 @@ import project.Data.Type.Storage
 import project.Data.Type.Value_Type_Helpers
 import project.Data.Table.Table
 import project.Internal.Cast_Helpers
+import project.Internal.Column_Ops
 import project.Internal.Java_Problems
 import project.Internal.Naming_Helpers.Naming_Helpers
 import project.Internal.Parse_Values_Helper
@@ -1278,18 +1279,18 @@ type Column
         new_column = case format of
             "" ->
                 formatter = .to_text
-                map_over_storage self formatter make_string_builder
+                Column_Ops.map_over_storage self formatter make_string_builder
             Nothing ->
                 formatter = .to_text
-                map_over_storage self formatter make_string_builder
+                Column_Ops.map_over_storage self formatter make_string_builder
             _ : Text ->
                 formatter = create_formatter
                 formatter.if_not_error <|
-                    map_over_storage self (formatter format=format) make_string_builder
+                    Column_Ops.map_over_storage self (formatter format=format) make_string_builder
             format_column : Column -> Value_Type.expect_text format_column <|
                 formatter = create_formatter
                 formatter.if_not_error <|
-                    map_2_over_storage self format_column formatter make_string_builder
+                    Column_Ops.map_2_over_storage self format_column formatter make_string_builder
             _ -> Error.throw <| Illegal_Argument.Error <| "Unsupported format type: " + format.to_text
         new_column
 

@@ -212,9 +212,6 @@ type Range
             go current =
                 if end_condition current self.end then Nothing else
                     result = function current
-                    IO.println "RES"
-                    IO.println current
-                    IO.println result
                     result.if_not_error <|
                         @Tail_Call go current+self.step
             go self.start
