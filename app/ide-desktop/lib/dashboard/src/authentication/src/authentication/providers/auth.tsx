@@ -39,25 +39,29 @@ const MESSAGES = {
 /** The `localStorage` key under which the type of the current backend is stored. */
 const BACKEND_TYPE_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-backend-type`
 
-// =============
-// === Types ===
-// =============
-
+// ===================
 // === UserSession ===
+// ===================
 
-/** A user session for a user that may be either fully registered,
- * or in the process of registering. */
-export type UserSession = FullUserSession | PartialUserSession
+/** Possible types of {@link BaseUserSession}. */
+export enum UserSessionType {
+    partial = 'partial',
+    awaitingAcceptance = 'awaitingAcceptance',
+    full = 'full',
+}
 
-/** Object containing the currently signed-in user's session data. */
-export interface FullUserSession {
-    /** A discriminator for TypeScript to be able to disambiguate between this interface and other
-     * `UserSession` variants. */
-    variant: 'full'
+/** Properties common to all {@link UserSession}s. */
+interface BaseUserSession<Type extends UserSessionType> {
+    /** A discriminator for TypeScript to be able to disambiguate between `UserSession` variants. */
+    type: Type
     /** User's JSON Web Token (JWT), used for authenticating and authorizing requests to the API. */
     accessToken: string
     /** User's email address. */
     email: string
+}
+
+/** Object containing the currently signed-in user's session data. */
+export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
     /** User's organization information. */
     organization: backendModule.UserOrOrganization
 }
@@ -68,15 +72,11 @@ export interface FullUserSession {
  * If a user has not yet set their username, they do not yet have an organization associated with
  * their account. Otherwise, this type is identical to the `Session` type. This type should ONLY be
  * used by the `SetUsername` component. */
-export interface PartialUserSession {
-    /** A discriminator for TypeScript to be able to disambiguate between this interface and other
-     * `UserSession` variants. */
-    variant: 'partial'
-    /** User's JSON Web Token (JWT), used for authenticating and authorizing requests to the API. */
-    accessToken: string
-    /** User's email address. */
-    email: string
-}
+export interface PartialUserSession extends BaseUserSession<UserSessionType.partial> {}
+
+/** A user session for a user that may be either fully registered,
+ * or in the process of registering. */
+export type UserSession = FullUserSession | PartialUserSession
 
 // ===================
 // === AuthContext ===
@@ -143,8 +143,8 @@ const AuthContext = react.createContext<AuthContextType>({} as AuthContextType)
 
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
-    platform: platformModule.Platform
     authService: authServiceModule.AuthService
+    platform: platformModule.Platform
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: () => void
     children: react.ReactNode
@@ -152,7 +152,7 @@ export interface AuthProviderProps {
 
 /** A React provider for the Cognito API. */
 export function AuthProvider(props: AuthProviderProps) {
-    const { platform, authService, children } = props
+    const { authService, platform, children } = props
     const { cognito } = authService
     const { session } = sessionProvider.useSession()
     const { setBackend } = backendProvider.useSetBackend()
@@ -188,17 +188,16 @@ export function AuthProvider(props: AuthProviderProps) {
                 }
                 const organization = await backend.usersMe().catch(() => null)
                 let newUserSession: UserSession
+                const sharedSessionData = { email, accessToken }
                 if (!organization) {
                     newUserSession = {
-                        variant: 'partial',
-                        email,
-                        accessToken,
+                        type: UserSessionType.partial,
+                        ...sharedSessionData,
                     }
                 } else {
                     newUserSession = {
-                        variant: 'full',
-                        email,
-                        accessToken,
+                        type: UserSessionType.full,
+                        ...sharedSessionData,
                         organization,
                     }
 
@@ -407,7 +406,7 @@ export function ProtectedLayout() {
 
     if (!session) {
         return <router.Navigate to={app.LOGIN_PATH} />
-    } else if (session.variant === 'partial') {
+    } else if (session.type === UserSessionType.partial) {
         return <router.Navigate to={app.SET_USERNAME_PATH} />
     } else {
         return <router.Outlet context={session} />
@@ -423,7 +422,7 @@ export function ProtectedLayout() {
 export function SemiProtectedLayout() {
     const { session } = useAuth()
 
-    if (session?.variant === 'full') {
+    if (session?.type === UserSessionType.full) {
         return <router.Navigate to={app.DASHBOARD_PATH} />
     } else {
         return <router.Outlet context={session} />
@@ -439,9 +438,9 @@ export function SemiProtectedLayout() {
 export function GuestLayout() {
     const { session } = useAuth()
 
-    if (session?.variant === 'partial') {
+    if (session?.type === UserSessionType.partial) {
         return <router.Navigate to={app.SET_USERNAME_PATH} />
-    } else if (session?.variant === 'full') {
+    } else if (session?.type === UserSessionType.full) {
         return <router.Navigate to={app.DASHBOARD_PATH} />
     } else {
         return <router.Outlet />

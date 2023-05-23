@@ -8783,6 +8783,29 @@ object IR {
         override def message: String = s"The module $name does not exist."
       }
 
+      case class TypeDoesNotExist(
+        typeName: String,
+        moduleName: String
+      ) extends Reason {
+        override def message: String =
+          s"The type $typeName does not exist in module $moduleName"
+      }
+
+      case class SymbolDoesNotExist(
+        symbolName: String,
+        moduleName: String
+      ) extends Reason {
+        override def message: String =
+          s"The symbol $symbolName (module or type) does not exist in module $moduleName."
+      }
+
+      case class NoSuchConstructor(
+        typeName: String,
+        constructorName: String
+      ) extends Reason {
+        override def message: String =
+          s"No such constructor ${constructorName} in type $typeName"
+      }
     }
 
     /** An erroneous import or export statement.

@@ -45,7 +45,7 @@ import tempfile
 import zipfile
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from csv import DictWriter
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from os import path
 from typing import List, Dict, Optional, Any, Union
 from dataclasses import dataclass
@@ -621,8 +621,8 @@ def compare_runs(bench_run_id_1: str, bench_run_id_2: str, cache: Cache, tmp_dir
 
 
 if __name__ == '__main__':
-    default_since = datetime.now() - timedelta(days=14)
-    default_until = datetime.now()
+    default_since: date = (datetime.now() - timedelta(days=14)).date()
+    default_until: date = datetime.now().date()
     default_cache_dir = path.expanduser("~/.cache/enso_bench_download")
     date_format_help = DATE_FORMAT.replace("%", "%%")
 
@@ -631,14 +631,14 @@ if __name__ == '__main__':
     arg_parser.add_argument("-s", "--since", action="store",
                             default=default_since,
                             metavar="SINCE_DATE",
-                            type=lambda s: datetime.strptime(s, DATE_FORMAT),
+                            type=lambda s: datetime.strptime(s, DATE_FORMAT).date(),
                             help=f"The date from which the benchmark results will be gathered. "
                                  f"Format is {date_format_help}. "
                                  f"The default is 14 days before")
     arg_parser.add_argument("-u", "--until", action="store",
                             default=default_until,
                             metavar="UNTIL_DATE",
-                            type=lambda s: datetime.strptime(s, DATE_FORMAT),
+                            type=lambda s: datetime.strptime(s, DATE_FORMAT).date(),
                             help=f"The date until which the benchmark results will be gathered. "
                                  f"Format is {date_format_help}. "
                                  f"The default is today")

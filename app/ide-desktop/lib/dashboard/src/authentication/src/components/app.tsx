@@ -173,8 +173,8 @@ function AppRouter(props: AppProps) {
                 {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
                 <backendProvider.BackendProvider initialBackend={initialBackend!}>
                     <authProvider.AuthProvider
-                        platform={platform}
                         authService={memoizedAuthService}
+                        platform={platform}
                         onAuthenticated={onAuthenticated}
                     >
                         <modalProvider.ModalProvider>{routes}</modalProvider.ModalProvider>

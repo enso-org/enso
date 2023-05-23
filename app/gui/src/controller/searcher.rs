@@ -394,6 +394,12 @@ pub struct Filter {
     pub pattern: ImString,
     /// Additional context. A string representation of the edited accessor chain.
     pub context: Option<ImString>,
+    /// The name of the currently active module. This is necessary since the module influences what
+    /// code to generate. At the time of writing, this is only the case when importing a module
+    /// method of a main module: the module is referred to as `Main` from within the same module
+    /// or by the project name when referenced elsewhere. See
+    /// `enso_suggestion_database::Entry::code_with_static_this` for its usage.
+    module_name: Rc<QualifiedName>,
 }
 
 /// Searcher Controller.
@@ -477,7 +483,7 @@ impl Searcher {
 
     /// Return true if user is currently filtering entries (the input has non-empty _pattern_ part).
     pub fn is_filtering(&self) -> bool {
-        !self.data.borrow().input.filter().pattern.is_empty()
+        !self.filter().pattern.is_empty()
     }
 
     /// Subscribe to controller's notifications.
@@ -560,8 +566,8 @@ impl Searcher {
             debug!("Reloading list.");
             self.reload_list();
         } else {
+            let filter = self.filter();
             let data = self.data.borrow();
-            let filter = data.input.filter();
             data.components.update_filtering(filter.clone_ref());
             if let Actions::Loaded { list } = &data.actions {
                 debug!("Update filtering.");
@@ -590,7 +596,12 @@ impl Searcher {
         let change = {
             let mut data = self.data.borrow_mut();
             let has_this = self.this_var().is_some();
-            let inserted = data.input.after_inserting_suggestion(&picked_suggestion, has_this)?;
+            let module_name = self.module_qualified_name();
+            let inserted = data.input.after_inserting_suggestion(
+                &picked_suggestion,
+                has_this,
+                module_name.as_ref(),
+            )?;
             let new_cursor_position = inserted.inserted_text.end;
             let inserted_code = inserted.new_input[inserted.inserted_code].to_owned();
             let import = inserted.import.clone();
@@ -647,8 +658,12 @@ impl Searcher {
         self.clear_temporary_imports();
 
         let has_this = self.this_var().is_some();
-        let preview_change =
-            self.data.borrow().input.after_inserting_suggestion(&picked_suggestion, has_this)?;
+        let module_name = self.module_qualified_name();
+        let preview_change = self.data.borrow().input.after_inserting_suggestion(
+            &picked_suggestion,
+            has_this,
+            module_name.as_ref(),
+        )?;
         let preview_ast = self.ide.parser().parse_line_ast(preview_change.new_input).ok();
         let expression = self.get_expression(preview_ast.as_ref());
 
@@ -969,8 +984,8 @@ impl Searcher {
                 Ok(response) => {
                     info!("Received suggestions from Language Server.");
                     let list = this.make_action_list(&response);
+                    let filter = this.filter();
                     let mut data = this.data.borrow_mut();
-                    let filter = data.input.filter();
                     list.update_filtering(filter.pattern.clone_ref());
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     let completions = response.results;
@@ -980,10 +995,11 @@ impl Searcher {
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
                     error!("{msg}: {err}");
+                    let filter = this.filter();
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
                     data.components = this.make_component_list(this.database.keys(), &this_type);
-                    data.components.update_filtering(data.input.filter());
+                    data.components.update_filtering(filter);
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;
@@ -1076,6 +1092,10 @@ impl Searcher {
 
     fn module_qualified_name(&self) -> QualifiedName {
         self.graph.module_qualified_name(&*self.project)
+    }
+
+    fn filter(&self) -> Filter {
+        self.data.borrow().input.filter(self.module_qualified_name())
     }
 }
 

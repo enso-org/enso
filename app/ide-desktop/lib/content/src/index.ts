@@ -34,7 +34,9 @@ const FETCH_TIMEOUT = 300
 
 if (IS_DEV_MODE) {
     new EventSource(ESBUILD_PATH).addEventListener(ESBUILD_EVENT_NAME, () => {
-        location.reload()
+        // This acts like `location.reload`, but it preserves the query-string.
+        // The `toString()` is to bypass a lint without using a comment.
+        location.href = location.href.toString()
     })
     void navigator.serviceWorker.register(SERVICE_WORKER_PATH)
 }
