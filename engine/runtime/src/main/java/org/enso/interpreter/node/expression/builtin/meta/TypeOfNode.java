@@ -1,14 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Fallback;
-import com.oracle.truffle.api.dsl.GenerateUncached;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -21,6 +12,16 @@ import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
+
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.Node;
 
 @BuiltinMethod(
     type = "Meta",
@@ -82,7 +83,8 @@ public abstract class TypeOfNode extends Node {
       @CachedLibrary(limit = "3") InteropLibrary interop,
       @CachedLibrary(limit = "3") TypesLibrary types,
       @Cached WithoutType delegate) {
-    return delegate.execute(value);
+    var type = WithoutType.Interop.resolve(value, interop);
+    return delegate.execute(type, value);
   }
 
   @Specialization(guards = {"types.hasType(value)", "!interop.isNumber(value)"})
@@ -106,20 +108,21 @@ public abstract class TypeOfNode extends Node {
 
   @GenerateUncached
   abstract static class WithoutType extends Node {
-    abstract Object execute(Object value);
+    abstract Object execute(Interop op, Object value);
 
-    @Specialization(guards = {"findInterop(value, interop).isArray()"})
-    Type doPolyglotArray(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+    @Specialization(guards = {"type.isArray()"})
+    Type doPolyglotArray(Interop type, Object value) {
       return EnsoContext.get(this).getBuiltins().array();
     }
 
-    @Specialization(guards = {"findInterop(value, interop).isString()"})
-    Type doPolyglotString(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+    @Specialization(guards = {"type.isString()"})
+    Type doPolyglotString(Interop type, Object value) {
       return EnsoContext.get(this).getBuiltins().text();
     }
 
-    @Specialization(guards = {"findInterop(value, interop).isNumber()"})
-    Type doPolyglotNumber(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+    @Specialization(guards = {"type.isNumber()"})
+    Type doPolyglotNumber(
+        Interop type, Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
       Builtins builtins = EnsoContext.get(this).getBuiltins();
       if (interop.fitsInInt(value)) {
         return builtins.number().getInteger();
@@ -130,37 +133,40 @@ public abstract class TypeOfNode extends Node {
       }
     }
 
-    @Specialization(guards = {"findInterop(value, interop).isDateTime()"})
-    Type doDateTime(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+    @Specialization(guards = {"type.isDateTime()"})
+    Type doDateTime(Interop type, Object value) {
       return EnsoContext.get(this).getBuiltins().dateTime();
     }
 
-    @Specialization(guards = {"findInterop(value, interop).isTimeZone()"})
-    Type doTimeZone(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+    @Specialization(guards = {"type.isTimeZone()"})
+    Type doTimeZone(Interop type, Object value) {
       EnsoContext ctx = EnsoContext.get(this);
       return ctx.getBuiltins().timeZone();
     }
 
-    @Specialization(guards = {"findInterop(value, interop).isDate()"})
-    Type doDate(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+    @Specialization(guards = {"type.isDate()"})
+    Type doDate(Interop type, Object value) {
+
       EnsoContext ctx = EnsoContext.get(this);
       return ctx.getBuiltins().date();
     }
 
-    @Specialization(guards = {"findInterop(value, interop).isTime()"})
-    Type doTime(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+    @Specialization(guards = {"type.isTime()"})
+    Type doTime(Interop type, Object value) {
+
       EnsoContext ctx = EnsoContext.get(this);
       return ctx.getBuiltins().timeOfDay();
     }
 
-    @Specialization(guards = "findInterop(value, interop).isDuration()")
-    Type doDuration(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+    @Specialization(guards = "type.isDuration()")
+    Type doDuration(Interop type, Object value) {
       EnsoContext ctx = EnsoContext.get(this);
       return ctx.getBuiltins().duration();
     }
 
-    @Specialization(guards = {"findInterop(value, interop).isMetaObject()"})
-    Object doMetaObject(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+    @Specialization(guards = {"type.isMetaObject()"})
+    Object doMetaObject(
+        Interop type, Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
       try {
         return interop.getMetaObject(value);
       } catch (UnsupportedMessageException e) {
@@ -172,7 +178,7 @@ public abstract class TypeOfNode extends Node {
 
     @Fallback
     @CompilerDirectives.TruffleBoundary
-    Object doAny(Object value) {
+    Object doAny(Interop any, Object value) {
       return DataflowError.withoutTrace(
           EnsoContext.get(this)
               .getBuiltins()
@@ -181,11 +187,7 @@ public abstract class TypeOfNode extends Node {
           this);
     }
 
-    static InteropType findInterop(Object value, InteropLibrary interop) {
-      return InteropType.find(value, interop);
-    }
-
-    enum InteropType {
+    enum Interop {
       NONE,
       STRING,
       NUMBER,
@@ -197,7 +199,7 @@ public abstract class TypeOfNode extends Node {
       DURATION,
       META_OBJECT;
 
-      static InteropType find(Object value, InteropLibrary interop) {
+      static Interop resolve(Object value, InteropLibrary interop) {
         if (interop.isString(value)) {
           return STRING;
         }
