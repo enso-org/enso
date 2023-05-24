@@ -159,7 +159,7 @@ public abstract class TypeOfNode extends Node {
       return ctx.getBuiltins().duration();
     }
 
-    @Specialization(guards = {"findInterop(value, interop).isNone()"})
+    @Specialization(guards = {"findInterop(value, interop).isMetaObject()"})
     Object doMetaObject(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
       try {
         return interop.getMetaObject(value);
@@ -168,6 +168,17 @@ public abstract class TypeOfNode extends Node {
         Builtins builtins = EnsoContext.get(this).getBuiltins();
         throw new PanicException(builtins.error().makeCompileError("invalid meta object"), this);
       }
+    }
+
+    @Fallback
+    @CompilerDirectives.TruffleBoundary
+    Object doAny(Object value) {
+      return DataflowError.withoutTrace(
+          EnsoContext.get(this)
+              .getBuiltins()
+              .error()
+              .makeCompileError("unknown type_of for " + value),
+          this);
     }
 
     static InteropType findInterop(Object value, InteropLibrary interop) {
@@ -183,7 +194,8 @@ public abstract class TypeOfNode extends Node {
       TIME_ZONE,
       DATE,
       TIME,
-      DURATION;
+      DURATION,
+      META_OBJECT;
 
       static InteropType find(Object value, InteropLibrary interop) {
         if (interop.isString(value)) {
@@ -208,6 +220,9 @@ public abstract class TypeOfNode extends Node {
         }
         if (interop.isDuration(value)) {
           return DURATION;
+        }
+        if (interop.isMetaObject(value)) {
+          return META_OBJECT;
         }
         return NONE;
       }
@@ -242,6 +257,10 @@ public abstract class TypeOfNode extends Node {
 
       boolean isDuration() {
         return this == DURATION;
+      }
+
+      boolean isMetaObject() {
+        return this == META_OBJECT;
       }
 
       boolean isNone() {
