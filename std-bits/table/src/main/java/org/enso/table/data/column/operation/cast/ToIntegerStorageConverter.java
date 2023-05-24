@@ -7,6 +7,7 @@ import org.enso.table.data.column.storage.DoubleStorage;
 import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.Bits;
 import org.enso.table.data.column.storage.type.IntegerType;
 
 public class ToIntegerStorageConverter implements StorageConverter<Long> {
@@ -16,6 +17,10 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   public ToIntegerStorageConverter(IntegerType targetType) {
     this.min = (double) targetType.getMinValue();
     this.max = (double) targetType.getMaxValue();
+
+    if (targetType.bits() != Bits.BITS_64) {
+      throw new IllegalStateException("Internal error: Only 64-bit integers are currently supported. To support other sizes, this class will need a few adaptations.");
+    }
   }
 
   public Storage<Long> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {

@@ -8,14 +8,14 @@ public interface StorageConverter<T> {
 
   static StorageConverter<?> fromStorageType(StorageType storageType) {
     return switch (storageType) {
-      case AnyObjectType anyObjectType -> throw new IllegalStateException("TODO");
-      case BooleanType booleanType -> throw new IllegalStateException("TODO");
-      case DateType dateType -> throw new IllegalStateException("TODO");
-      case DateTimeType dateTimeType -> throw new IllegalStateException("TODO");
-      case FloatType floatType -> throw new IllegalStateException("TODO");
+      case AnyObjectType anyObjectType -> new ToMixedStorageConverter();
+      case BooleanType booleanType -> new ToBooleanStorageConverter();
+      case DateType dateType -> new ToDateStorageConverter();
+      case DateTimeType dateTimeType -> new ToDateTimeStorageConverter();
+      case FloatType floatType -> new ToFloatStorageConverter(floatType);
       case IntegerType integerType -> new ToIntegerStorageConverter(integerType);
-      case TextType textType -> throw new IllegalStateException("TODO");
-      case TimeOfDayType timeOfDayType -> throw new IllegalStateException("TODO");
+      case TextType textType -> new ToTextStorageConverter();
+      case TimeOfDayType timeOfDayType -> new ToTimeOfDayStorageConverter();
     };
   }
 }
