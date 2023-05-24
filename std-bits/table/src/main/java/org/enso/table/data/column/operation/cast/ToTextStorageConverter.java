@@ -36,18 +36,19 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       } else {
         return adaptStringStorage(stringStorage);
       }
-    } if (storage instanceof LongStorage longStorage) {
-      return castLongStorage(longStorage);
+    }
+    if (storage instanceof LongStorage longStorage) {
+      return castLongStorage(longStorage, problemBuilder);
     } else if (storage instanceof DoubleStorage doubleStorage) {
-      return castDoubleStorage(doubleStorage);
+      return castDoubleStorage(doubleStorage, problemBuilder);
     } else if (storage instanceof BoolStorage boolStorage) {
-      return castBoolStorage(boolStorage);
+      return castBoolStorage(boolStorage, problemBuilder);
     } else if (storage instanceof TimeOfDayStorage timeOfDayStorage) {
-      return castDateTimeStorage(timeOfDayStorage, this::convertTime);
+      return castDateTimeStorage(timeOfDayStorage, this::convertTime, problemBuilder);
     } else if (storage instanceof DateStorage dateStorage) {
-      return castDateTimeStorage(dateStorage, this::convertDate);
+      return castDateTimeStorage(dateStorage, this::convertDate, problemBuilder);
     } else if (storage instanceof DateTimeStorage dateTimeStorage) {
-      return castDateTimeStorage(dateTimeStorage, this::convertDateTime);
+      return castDateTimeStorage(dateTimeStorage, this::convertDateTime, problemBuilder);
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemBuilder);
     } else {
@@ -61,11 +62,11 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       Object o = mixedStorage.getItemBoxed(i);
       switch (o) {
         case null -> builder.appendNulls(1);
-        case LocalTime d -> builder.append(adapt(convertTime(d)));
-        case LocalDate d -> builder.append(adapt(convertDate(d)));
-        case ZonedDateTime d -> builder.append(adapt(convertDateTime(d)));
-        case Boolean b -> builder.append(adapt(convertBoolean(b)));
-        default -> builder.append(adapt(o.toString()));
+        case LocalTime d -> builder.append(adapt(convertTime(d), problemBuilder));
+        case LocalDate d -> builder.append(adapt(convertDate(d), problemBuilder));
+        case ZonedDateTime d -> builder.append(adapt(convertDateTime(d), problemBuilder));
+        case Boolean b -> builder.append(adapt(convertBoolean(b), problemBuilder));
+        default -> builder.append(adapt(o.toString(), problemBuilder));
       }
     }
 
@@ -93,46 +94,46 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return b ? "True" : "False";
   }
 
-  private Storage<String> castLongStorage(LongStorage longStorage) {
+  private Storage<String> castLongStorage(LongStorage longStorage, CastProblemBuilder problemBuilder) {
     StringBuilder builder = new StringBuilder(longStorage.size());
     for (int i = 0; i < longStorage.size(); i++) {
       if (longStorage.isNa(i)) {
         builder.appendNulls(1);
       } else {
         long value = longStorage.getItem(i);
-        builder.append(adapt(Long.toString(value)));
+        builder.append(adapt(Long.toString(value), problemBuilder));
       }
     }
     return builder.seal();
   }
 
-  private Storage<String> castBoolStorage(BoolStorage boolStorage) {
+  private Storage<String> castBoolStorage(BoolStorage boolStorage, CastProblemBuilder problemBuilder) {
     StringBuilder builder = new StringBuilder(boolStorage.size());
     for (int i = 0; i < boolStorage.size(); i++) {
       if (boolStorage.isNa(i)) {
         builder.appendNulls(1);
       } else {
         boolean value = boolStorage.getItem(i);
-        builder.append(adapt(convertBoolean(value)));
+        builder.append(adapt(convertBoolean(value), problemBuilder));
       }
     }
     return builder.seal();
   }
 
-  private Storage<String> castDoubleStorage(DoubleStorage doubleStorage) {
+  private Storage<String> castDoubleStorage(DoubleStorage doubleStorage, CastProblemBuilder problemBuilder) {
     StringBuilder builder = new StringBuilder(doubleStorage.size());
     for (int i = 0; i < doubleStorage.size(); i++) {
       if (doubleStorage.isNa(i)) {
         builder.appendNulls(1);
       } else {
         double value = doubleStorage.getItem(i);
-        builder.append(adapt(Double.toString(value)));
+        builder.append(adapt(Double.toString(value), problemBuilder));
       }
     }
     return builder.seal();
   }
 
-  private <T> Storage<String> castDateTimeStorage(Storage<T> storage, Function<T, String> converter) {
+  private <T> Storage<String> castDateTimeStorage(Storage<T> storage, Function<T, String> converter, CastProblemBuilder problemBuilder) {
     StringBuilder builder = new StringBuilder(storage.size());
     for (int i = 0; i < storage.size(); i++) {
       if (storage.isNa(i)) {
@@ -140,13 +141,24 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       } else {
         T value = storage.getItemBoxed(i);
         String converted = converter.apply(value);
-        builder.append(adapt(converted));
+        builder.append(adapt(converted, problemBuilder));
       }
     }
     return builder.seal();
   }
 
-  private String adapt(String value) {
+  private String adapt(String value, CastProblemBuilder problemBuilder) {
+    String adapted = adaptWithoutWarning(value);
+
+    // If the value was truncated, report the data loss.
+    if (adapted.length() < value.length()) {
+      problemBuilder.reportConversionFailure();
+    }
+
+    return adapted;
+  }
+
+  private String adaptWithoutWarning(String value) {
     if (maxLength == -1) {
       return value;
     }
@@ -169,7 +181,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         builder.appendNulls(1);
       } else {
         String value = stringStorage.getItem(i);
-        builder.append(adapt(value));
+        // Adapting an existing string storage into a new type is done without warnings.
+        builder.append(adaptWithoutWarning(value));
       }
     }
     return builder.seal();
