@@ -110,13 +110,7 @@ function UploadFileModal(props: UploadFileModalProps) {
                                     {file ? fileInfo.toReadableSize(file.size) : '\u00a0'}
                                 </div>
                             </div>
-                            <div>
-                                {file ? (
-                                    fileInfo.fileIcon(fileInfo.fileExtension(file.name))
-                                ) : (
-                                    <></>
-                                )}
-                            </div>
+                            <div>{file && fileInfo.fileIcon()}</div>
                         </div>
                     </div>
                     <div className="m-1">

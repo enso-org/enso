@@ -7,7 +7,7 @@ import * as semver from 'semver'
 import * as authentication from 'enso-authentication'
 import * as contentConfig from 'enso-content-config'
 
-import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
+import * as app from '../../../../../target/ensogl-pack/linked-dist'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
@@ -34,7 +34,9 @@ const FETCH_TIMEOUT = 300
 
 if (IS_DEV_MODE) {
     new EventSource(ESBUILD_PATH).addEventListener(ESBUILD_EVENT_NAME, () => {
-        location.reload()
+        // This acts like `location.reload`, but it preserves the query-string.
+        // The `toString()` is to bypass a lint without using a comment.
+        location.href = location.href.toString()
     })
     void navigator.serviceWorker.register(SERVICE_WORKER_PATH)
 }

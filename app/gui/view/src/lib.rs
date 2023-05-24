@@ -38,7 +38,6 @@ pub mod project_list;
 pub mod root;
 pub mod searcher;
 pub mod status_bar;
-pub mod window_control_buttons;
 
 pub use ide_view_component_browser as component_browser;
 pub use ide_view_documentation as documentation;
