@@ -157,19 +157,4 @@ public final class StringStorage extends SpecializedStorage<String> {
         });
     return t;
   }
-
-  /**
-   * A helper method that can be used to adapt a variable length storage to a target type that may
-   * potentially be fixed length.
-   *
-   * <p>It will ensure that the values are trimmed or padded wherever necessary.
-   */
-  public static Storage<String> adapt(Storage<String> storage, TextType type) {
-    if (type.fixedLength()) {
-      // TODO [RW] #5159
-      throw new IllegalStateException("Fixed length conversion is currently not supported.");
-    } else {
-      return storage;
-    }
-  }
 }

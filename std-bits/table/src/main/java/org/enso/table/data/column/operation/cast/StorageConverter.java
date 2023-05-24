@@ -14,7 +14,7 @@ public interface StorageConverter<T> {
       case DateTimeType dateTimeType -> new ToDateTimeStorageConverter();
       case FloatType floatType -> new ToFloatStorageConverter(floatType);
       case IntegerType integerType -> new ToIntegerStorageConverter(integerType);
-      case TextType textType -> new ToTextStorageConverter();
+      case TextType textType -> new ToTextStorageConverter(textType);
       case TimeOfDayType timeOfDayType -> new ToTimeOfDayStorageConverter();
     };
   }

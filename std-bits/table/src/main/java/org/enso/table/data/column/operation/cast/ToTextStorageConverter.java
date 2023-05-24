@@ -1,9 +1,11 @@
 package org.enso.table.data.column.operation.cast;
 
+import org.enso.base.Text_Utils;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.TextType;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -12,9 +14,28 @@ import java.time.format.DateTimeFormatter;
 import java.util.function.Function;
 
 public class ToTextStorageConverter implements StorageConverter<String> {
+  private final int minLength;
+  private final int maxLength;
+  private final TextType targetType;
+
+  public ToTextStorageConverter(TextType textType) {
+    maxLength = Math.toIntExact(textType.maxLength());
+    if (textType.fixedLength()) {
+      minLength = maxLength;
+    } else {
+      minLength = -1;
+    }
+
+    targetType = textType;
+  }
+
   public Storage<String> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
     if (storage instanceof StringStorage stringStorage) {
-      return stringStorage;
+      if (stringStorage.getType().equals(targetType)) {
+        return stringStorage;
+      } else {
+        return adaptStringStorage(stringStorage);
+      }
     } if (storage instanceof LongStorage longStorage) {
       return castLongStorage(longStorage);
     } else if (storage instanceof DoubleStorage doubleStorage) {
@@ -40,11 +61,11 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       Object o = mixedStorage.getItemBoxed(i);
       switch (o) {
         case null -> builder.appendNulls(1);
-        case LocalTime d -> builder.append(convertTime(d));
-        case LocalDate d -> builder.append(convertDate(d));
-        case ZonedDateTime d -> builder.append(convertDateTime(d));
-        case Boolean b -> builder.append(convertBoolean(b));
-        default -> builder.append(o.toString());
+        case LocalTime d -> builder.append(adapt(convertTime(d)));
+        case LocalDate d -> builder.append(adapt(convertDate(d)));
+        case ZonedDateTime d -> builder.append(adapt(convertDateTime(d)));
+        case Boolean b -> builder.append(adapt(convertBoolean(b)));
+        default -> builder.append(adapt(o.toString()));
       }
     }
 
@@ -79,7 +100,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         builder.appendNulls(1);
       } else {
         long value = longStorage.getItem(i);
-        builder.append(Long.toString(value));
+        builder.append(adapt(Long.toString(value)));
       }
     }
     return builder.seal();
@@ -92,7 +113,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         builder.appendNulls(1);
       } else {
         boolean value = boolStorage.getItem(i);
-        builder.append(convertBoolean(value));
+        builder.append(adapt(convertBoolean(value)));
       }
     }
     return builder.seal();
@@ -105,7 +126,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         builder.appendNulls(1);
       } else {
         double value = doubleStorage.getItem(i);
-        builder.append(Double.toString(value));
+        builder.append(adapt(Double.toString(value)));
       }
     }
     return builder.seal();
@@ -118,7 +139,37 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         builder.appendNulls(1);
       } else {
         T value = storage.getItemBoxed(i);
-        builder.append(converter.apply(value));
+        String converted = converter.apply(value);
+        builder.append(adapt(converted));
+      }
+    }
+    return builder.seal();
+  }
+
+  private String adapt(String value) {
+    if (maxLength == -1) {
+      return value;
+    }
+
+    int textLength = (int) Text_Utils.grapheme_length(value);
+
+    if (textLength > maxLength) {
+      return Text_Utils.take_prefix(value, maxLength);
+    } else if (textLength < minLength) {
+      return value + " ".repeat(minLength - textLength);
+    } else {
+      return value;
+    }
+  }
+
+  private Storage<String> adaptStringStorage(StringStorage stringStorage) {
+    StringBuilder builder = new StringBuilder(stringStorage.size());
+    for (int i = 0; i < stringStorage.size(); i++) {
+      if (stringStorage.isNa(i)) {
+        builder.appendNulls(1);
+      } else {
+        String value = stringStorage.getItem(i);
+        builder.append(adapt(value));
       }
     }
     return builder.seal();
