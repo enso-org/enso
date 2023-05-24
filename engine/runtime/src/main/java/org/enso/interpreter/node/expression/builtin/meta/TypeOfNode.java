@@ -14,11 +14,9 @@ import org.enso.interpreter.epb.runtime.PolyglotProxy;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -124,31 +122,30 @@ public abstract class TypeOfNode extends Node {
     }
   }
 
-  @Specialization(guards = {"interop.isTime(value)", "interop.isDate(value)"})
+  @Specialization(guards = {"findInterop(value, interop).isDateTime()"})
   Object doDateTime(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     return EnsoContext.get(this).getBuiltins().dateTime();
   }
 
-  @Specialization(
-      guards = {"interop.isTimeZone(value)", "!interop.isDate(value)", "!interop.isTime(value)"})
+  @Specialization(guards = {"findInterop(value, interop).isTimeZone()"})
   Object doTimeZone(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     EnsoContext ctx = EnsoContext.get(this);
     return ctx.getBuiltins().timeZone();
   }
 
-  @Specialization(guards = {"interop.isDate(value)", "!interop.isTime(value)"})
+  @Specialization(guards = {"findInterop(value, interop).isDate()"})
   Object doDate(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     EnsoContext ctx = EnsoContext.get(this);
     return ctx.getBuiltins().date();
   }
 
-  @Specialization(guards = {"interop.isTime(value)", "!interop.isDate(value)"})
+  @Specialization(guards = {"findInterop(value, interop).isTime()"})
   Object doTime(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     EnsoContext ctx = EnsoContext.get(this);
     return ctx.getBuiltins().timeOfDay();
   }
 
-  @Specialization(guards = "interop.isDuration(value)")
+  @Specialization(guards = "findInterop(value, interop).isDuration()")
   Object doDuration(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
     EnsoContext ctx = EnsoContext.get(this);
     return ctx.getBuiltins().duration();
@@ -158,9 +155,7 @@ public abstract class TypeOfNode extends Node {
       guards = {
         "interop.hasMetaObject(value)",
         "!types.hasType(value)",
-        "!interop.isDate(value)",
-        "!interop.isTime(value)",
-        "!interop.isTimeZone(value)"
+        "findInterop(value, interop).isNone()"
       })
   Object doMetaObject(
       Object value,
@@ -181,6 +176,61 @@ public abstract class TypeOfNode extends Node {
       @CachedLibrary(limit = "3") InteropLibrary interop,
       @CachedLibrary(limit = "3") TypesLibrary types) {
     return types.getType(value);
+  }
+
+  static InteropType findInterop(Object value, InteropLibrary interop) {
+    return InteropType.find(value, interop);
+  }
+
+  enum InteropType {
+    NONE,
+    DATE_TIME,
+    TIME_ZONE,
+    DATE,
+    TIME,
+    DURATION;
+
+    static InteropType find(Object value, InteropLibrary interop) {
+      boolean time = interop.isTime(value);
+      boolean date = interop.isDate(value);
+      if (time) {
+        return date ? DATE_TIME : TIME;
+      }
+      if (date) {
+        return DATE;
+      }
+      if (interop.isTimeZone(value)) {
+        return TIME_ZONE;
+      }
+      if (interop.isDuration(value)) {
+        return DURATION;
+      }
+      return NONE;
+    }
+
+    boolean isDateTime() {
+      return this == DATE_TIME;
+    }
+
+    boolean isTimeZone() {
+      return this == TIME_ZONE;
+    }
+
+    boolean isTime() {
+      return this == TIME;
+    }
+
+    boolean isDate() {
+      return this == DATE;
+    }
+
+    boolean isDuration() {
+      return this == DURATION;
+    }
+
+    boolean isNone() {
+      return this == NONE;
+    }
   }
 
   @Fallback
