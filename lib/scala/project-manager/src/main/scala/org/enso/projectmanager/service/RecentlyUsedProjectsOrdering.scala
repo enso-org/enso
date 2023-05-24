@@ -19,7 +19,7 @@ object RecentlyUsedProjectsOrdering extends Ordering[Project] {
   override def compare(x: Project, y: Project): Int = {
     val xOpenedOrCreated = x.lastOpened.getOrElse(x.created)
     val yOpenedOrCreated = y.lastOpened.getOrElse(y.created)
-    compareDates(xOpenedOrCreated, xOpenedOrCreated)
+    compareDates(xOpenedOrCreated, yOpenedOrCreated)
   }
 
   private def compareDates(x: OffsetDateTime, y: OffsetDateTime): Int =
