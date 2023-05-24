@@ -1587,6 +1587,7 @@ impl GraphEditorModelWithNetwork {
         let touch = &self.touch_state;
         let model = &self.model;
         let NodeCreationContext { pointer_style, output_press, input_press, output } = ctx;
+        let visualisation = node.visualization();
 
         if let Some(network) = self.network.upgrade_or_warn() {
             frp::new_bridge_network! { [network, node_network] graph_node_bridge
@@ -1688,8 +1689,8 @@ impl GraphEditorModelWithNetwork {
 
                 // === Visualizations ===
 
-                visualization_shown  <- node.visualization_visible.gate(&node.visualization_visible);
-                visualization_hidden <- node.visualization_visible.gate_not(&node.visualization_visible);
+                visualization_shown  <- visualisation.visible.on_true();
+                visualization_hidden <- visualisation.visible.on_false();
 
                 let vis_is_selected = node_model.visualization.frp.is_selected.clone_ref();
 
@@ -1702,7 +1703,7 @@ impl GraphEditorModelWithNetwork {
                     node_model.visualization.frp.preprocessor.map(move |preprocessor| {
                         (node_id,preprocessor.clone())
                     });
-                output.visualization_preprocessor_changed <+ preprocessor_changed.gate(&node.visualization_visible);
+                output.visualization_preprocessor_changed <+ preprocessor_changed;
 
 
                 metadata <- any(...);
@@ -1720,7 +1721,7 @@ impl GraphEditorModelWithNetwork {
 
                 init <- source::<()>();
                 enabled_visualization_path <- init.all_with3(
-                    &node.visualization_enabled, &node.visualization_path,
+                    &visualisation.visible, &visualisation.visualization_path,
                     move |_init, is_enabled, path| (node_id, is_enabled.and_option(path.clone()))
                 );
                 output.enabled_visualization_path <+ enabled_visualization_path;
@@ -1998,14 +1999,14 @@ impl GraphEditorModel {
     fn enable_visualization_fullscreen(&self, node_id: impl Into<NodeId>) {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.model().visualization.frp.enable_fullscreen.emit(());
+            node.model().visualization.frp.set_view_state(visualization::ViewState::Fullscreen);
         }
     }
 
     fn disable_visualization_fullscreen(&self, node_id: impl Into<NodeId>) {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.model().visualization.frp.disable_fullscreen.emit(());
+            node.model().visualization.frp.set_view_state(visualization::ViewState::Enabled);
         }
     }
 
@@ -3570,7 +3571,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     viz_tgt_nodes_off <- viz_tgt_nodes.map(f!([model](node_ids) {
         node_ids.iter().cloned().filter(|node_id| {
             model.nodes.get_cloned_ref(node_id)
-                .map(|node| !node.visualization_enabled.value())
+                .map(|node| !node.visualization().visible.value())
                 .unwrap_or_default()
         }).collect_vec()
     }));

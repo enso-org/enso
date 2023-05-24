@@ -389,7 +389,11 @@ impl ActionBar {
             hide              <- any(mouse_out_no_menu,remote_click);
             eval_ hide (model.hide());
 
-            frp.source.visualisation_selection <+ visualization_chooser.chosen_entry;
+            // The action bar does not allow to deselect the visualisation, so we prohibit these
+            // events, which can occur on re-initialization.
+            has_selection <- visualization_chooser.chosen_entry.is_some();
+            frp.source.visualisation_selection
+                <+ visualization_chooser.chosen_entry.gate(&has_selection);
 
             let reset_position_icon = &model.icons.reset_position_icon.events_deprecated;
             let reset_position_icon_down = reset_position_icon.mouse_down_primary.clone_ref();

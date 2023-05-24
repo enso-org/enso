@@ -317,12 +317,6 @@ ensogl::define_endpoints_2! {
         freeze                   (bool),
         hover                    (bool),
         error                    (Option<Error>),
-        /// Whether visualization was permanently enabled (e.g. by pressing the button).
-        visualization_enabled    (bool),
-        /// Visualization can be visible even when it is not enabled, e.g. when showing preview.
-        /// Visualization can be invisible even when enabled, e.g. when the node has an error.
-        visualization_visible    (bool),
-        visualization_path       (Option<visualization::Path>),
         expression_label_visible (bool),
         /// The [`display::object::Model::position`] of the Node. Emitted when the Display Object
         /// hierarchy is updated (see: [`ensogl_core::display::object::Instance::update`]).
@@ -607,12 +601,6 @@ impl NodeModel {
     }
 
     #[profile(Debug)]
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn visualization(&self) -> &visualization::Container {
-        &self.visualization
-    }
-
-    #[profile(Debug)]
     fn set_error(&self, error: Option<&Error>) {
         if let Some(error) = error {
             self.error_visualization.display_kind(*error.kind);
@@ -752,7 +740,6 @@ impl Node {
 
             // === Action Bar ===
 
-            let visualization_button_state = action_bar.action_visibility.clone_ref();
             out.context_switch <+ action_bar.action_context_switch;
             out.skip   <+ action_bar.action_skip;
             out.freeze <+ action_bar.action_freeze;
@@ -789,7 +776,11 @@ impl Node {
         hover_onset_delay.set_delay(VIS_PREVIEW_ONSET_MS);
         hover_onset_delay.set_duration(0.0);
 
+        let visualization = &model.visualization.frp;
+
         frp::extend! { network
+            visualization.set_view_state <+ input.enable_visualization.constant(visualization::ViewState::Enabled);
+            visualization.set_view_state <+ input.disable_visualization.constant(visualization::ViewState::Disabled);
 
             out.error <+ input.set_error;
             is_error_set <- input.set_error.map(
@@ -805,11 +796,11 @@ impl Node {
                     }
                 ));
 
-            eval input.set_visualization ((t) model.visualization.frp.set_visualization.emit(t));
-            visualization_enabled_frp <- bool(&input.disable_visualization,&input.enable_visualization);
-            eval visualization_enabled_frp ((enabled)
-                model.action_bar.set_action_visibility_state(enabled)
-            );
+            // Integration between visualization and action bar.
+            visualization.set_visualization <+ input.set_visualization;
+            action_bar.set_action_visibility_state <+ visualization.visible.on_change();
+            visualization.set_view_state <+ action_bar.user_action_visibility.on_true().constant(visualization::ViewState::Enabled);
+            visualization.set_view_state <+ action_bar.user_action_visibility.on_false().constant(visualization::ViewState::Disabled);
 
             // Show preview visualisation after some delay, depending on whether we show an error
             // or are in quick preview mode. Also, omit the preview if we don't have an
@@ -840,37 +831,8 @@ impl Node {
             preview_enabled <- bool(&hide_preview, &input.show_preview);
             preview_visible <- hover_preview_visible || preview_enabled;
             preview_visible <- preview_visible.on_change();
-
-            // If the preview is visible while the visualization button is disabled, clicking the
-            // visualization button hides the preview and keeps the visualization button disabled.
-            vis_button_on <- visualization_button_state.filter(|e| *e).constant(());
-            vis_button_off <- visualization_button_state.filter(|e| !*e).constant(());
-            visualization_on <- vis_button_on.gate_not(&preview_visible);
-            vis_button_on_while_preview_visible <- vis_button_on.gate(&preview_visible);
-            hide_preview <+ vis_button_on_while_preview_visible;
-            hide_preview <+ vis_button_off;
-            action_bar.set_action_visibility_state <+
-                vis_button_on_while_preview_visible.constant(false);
-            visualization_enabled <- bool(&vis_button_off, &visualization_on);
-
-            visualization_visible            <- visualization_enabled || preview_visible;
-            visualization_visible            <- visualization_visible && no_error_set;
-            visualization_visible_on_change  <- visualization_visible.on_change();
-            out.visualization_visible <+ visualization_visible_on_change;
-            out.visualization_enabled <+ visualization_enabled;
-            eval visualization_visible_on_change ((is_visible)
-                model.visualization.frp.set_visibility(is_visible)
-            );
-            out.visualization_path <+ model.visualization.frp.visualisation.all_with(&init,|def_opt,_| {
-                def_opt.as_ref().map(|def| def.signature.path.clone_ref())
-            });
-
-            // Ensure the preview is visible above all other elements, but the normal visualisation
-            // is below nodes.
-            layer_on_hover     <- hover_preview_visible.on_false().map(|_| visualization::Layer::Default);
-            layer_on_not_hover <- hover_preview_visible.on_true().map(|_| visualization::Layer::Front);
-            layer              <- any(layer_on_hover,layer_on_not_hover);
-            model.visualization.frp.set_layer <+ layer;
+            visualization.set_view_state <+ preview_visible.on_true().constant(visualization::ViewState::Preview);
+            visualization.set_view_state <+ preview_visible.on_false().constant(visualization::ViewState::Disabled);
 
             update_error <- all(input.set_error,preview_visible);
             eval update_error([model]((error,visible)){
@@ -948,16 +910,14 @@ impl Node {
             // === Type Labels ===
 
             model.output.set_type_label_visibility
-                <+ visualization_visible.not().and(&no_error_set);
+                <+ visualization.visible.not().and(&no_error_set);
 
 
             // === Bounding Box ===
 
             let visualization_size = &model.visualization.frp.size;
-            // Visualization can be enabled and not visible when the node has an error.
-            visualization_enabled_and_visible <- visualization_enabled && visualization_visible;
             bbox_input <- all4(
-                &out.position,&new_size,&visualization_enabled_and_visible,visualization_size);
+                &out.position,&new_size,&visualization.visible,visualization_size);
             out.bounding_box <+ bbox_input.map(|(a,b,c,d)| bounding_box(*a,*b,c.then(|| *d)));
 
             inner_bbox_input <- all2(&out.position,&new_size);
@@ -995,6 +955,11 @@ impl Node {
         } else {
             color::Lcha::transparent()
         }
+    }
+
+    /// FRP API of the visualization container attached to this node.
+    pub fn visualization(&self) -> &visualization::container::Frp {
+        &self.model().visualization.frp
     }
 }
 
