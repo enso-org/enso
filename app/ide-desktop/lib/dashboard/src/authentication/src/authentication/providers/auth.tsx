@@ -174,7 +174,7 @@ export function AuthProvider(props: AuthProviderProps) {
                 const backend = new remoteBackend.RemoteBackend(client, logger)
                 // The backend MUST be the remote backend before login is finished.
                 // This is because the "set username" flow requires the remote backend.
-                if (!initialized) {
+                if (!initialized || userSession == null) {
                     setBackend(backend)
                 }
                 const organization = await backend.usersMe().catch(() => null)
