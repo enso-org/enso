@@ -941,11 +941,12 @@ class ProjectManagementApiSpec
           }
           """)
       //teardown
-      closeProject(fooId)
       closeProject(barId)
+      closeProject(bazId)
       deleteProject(fooId)
       deleteProject(barId)
       deleteProject(bazId)
+      deleteProject(quuxId)
     }
 
     "resolve clashing ids" taggedAs Flaky in {
