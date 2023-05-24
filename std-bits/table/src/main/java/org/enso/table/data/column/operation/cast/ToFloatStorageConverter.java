@@ -47,7 +47,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemBuilder);
     } else {
-      throw new IllegalStateException("No known strategy for casting storage " + storage + " to Integer.");
+      throw new IllegalStateException("No known strategy for casting storage " + storage + " to Float.");
     }
   }
 
@@ -58,7 +58,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       if (o == null) {
         builder.appendNulls(1);
       } else if (o instanceof Boolean b) {
-        builder.appendLong(b ? 1 : 0);
+        builder.appendDouble(b ? 1 : 0);
       } else if (NumericConverter.isCoercibleToDouble(o)) {
         double x = NumericConverter.coerceToDouble(o);
         builder.appendDouble(x);

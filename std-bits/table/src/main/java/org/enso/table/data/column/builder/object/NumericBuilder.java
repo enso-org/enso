@@ -234,6 +234,8 @@ public class NumericBuilder extends TypedBuilder {
      * @param data the integer to append
      */
     public void appendLong(long data) {
+        assert !isDouble;
+
         int wasSize = currentSize;
         int wasLength = this.data.length;
 
@@ -253,6 +255,8 @@ public class NumericBuilder extends TypedBuilder {
      * @param data the double to append
      */
     public void appendDouble(double data) {
+        assert isDouble;
+
         if (currentSize >= this.data.length) {
             grow();
         }

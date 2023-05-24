@@ -15,7 +15,7 @@ public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemBuilder);
     } else {
-      throw new IllegalStateException("No known strategy for casting storage " + storage + " to Integer.");
+      throw new IllegalStateException("No known strategy for casting storage " + storage + " to Boolean.");
     }
   }
 

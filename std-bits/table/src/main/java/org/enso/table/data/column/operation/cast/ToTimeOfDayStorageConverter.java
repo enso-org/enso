@@ -1,6 +1,7 @@
 package org.enso.table.data.column.operation.cast;
 
 import org.enso.table.data.column.builder.object.TimeOfDayBuilder;
+import org.enso.table.data.column.storage.DateTimeStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.TimeOfDayStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
@@ -15,10 +16,12 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
   public Storage<LocalTime> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
     if (storage instanceof TimeOfDayStorage timeOfDayStorage) {
       return timeOfDayStorage;
-    } else if (storage.getType() instanceof AnyObjectType) {
+    } else if (storage instanceof DateTimeStorage dateTimeStorage) {
+      return convertDateTimeStorage(dateTimeStorage);
+    }else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemBuilder);
     } else {
-      throw new IllegalStateException("No known strategy for casting storage " + storage + " to Integer.");
+      throw new IllegalStateException("No known strategy for casting storage " + storage + " to Time_Of_Day.");
     }
   }
 
@@ -42,5 +45,14 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
 
   private LocalTime convertDateTime(ZonedDateTime dateTime) {
     return dateTime.toLocalTime();
+  }
+
+  private Storage<LocalTime> convertDateTimeStorage(DateTimeStorage dateTimeStorage) {
+    TimeOfDayBuilder builder = new TimeOfDayBuilder(dateTimeStorage.size());
+    for (int i = 0; i < dateTimeStorage.size(); i++) {
+      ZonedDateTime dateTime = dateTimeStorage.getItem(i);
+      builder.append(convertDateTime(dateTime));
+    }
+    return builder.seal();
   }
 }
