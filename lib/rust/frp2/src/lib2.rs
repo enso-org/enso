@@ -925,7 +925,7 @@ mod benches {
         });
     }
 
-    // 802285
+    // 694589
     #[bench]
     fn bench_create_frp(bencher: &mut Bencher) {
         bencher.iter(move || {
@@ -939,8 +939,7 @@ mod benches {
         });
     }
 
-    // 9649256
-    // 9849220
+    // 8784825
     #[bench]
     fn bench_create_frp_old(bencher: &mut Bencher) {
         bencher.iter(move || {
