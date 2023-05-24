@@ -50,7 +50,7 @@ interface AuthenticationApi {
 declare global {
     /** */
     interface Window {
-        enso: Enso
+        enso: AppRunner & Enso
         authenticationApi: AuthenticationApi
     }
 

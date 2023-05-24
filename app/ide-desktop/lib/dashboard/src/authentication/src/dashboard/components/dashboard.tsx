@@ -220,7 +220,7 @@ function columnsFor(displayMode: ColumnDisplayMode, backendType: backendModule.B
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
     supportsLocalBackend: boolean
-    appRunner: AppRunner | null
+    appRunner: AppRunner
 }
 
 // TODO[sb]: Implement rename when clicking name of a selected row.

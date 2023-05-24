@@ -45,5 +45,12 @@ authentication.run({
     onAuthenticated() {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
     },
-    appRunner: null,
+    // This cannot be `appRunner: window.enso` as `window.enso` is set to a new value
+    // every time a new project is opened.
+    appRunner: {
+        stopApp: () => {
+            window.enso.stopApp()
+        },
+        runApp: config => window.enso.runApp(config),
+    },
 })

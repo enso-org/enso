@@ -89,7 +89,7 @@ export interface AppProps {
     /** Whether the dashboard should be rendered. */
     showDashboard: boolean
     onAuthenticated: () => void
-    appRunner: AppRunner | null
+    appRunner: AppRunner
 }
 
 /** Component called by the parent module, returning the root React component for this

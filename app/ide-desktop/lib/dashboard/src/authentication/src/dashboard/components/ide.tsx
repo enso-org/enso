@@ -21,7 +21,7 @@ const JS_EXTENSION: Record<backendModule.BackendType, string> = {
 /** Props for an {@link Ide}. */
 export interface IdeProps {
     project: backendModule.Project
-    appRunner: AppRunner | null
+    appRunner: AppRunner
 }
 
 /** The ontainer that launches the IDE. */
@@ -67,7 +67,7 @@ function Ide(props: IdeProps) {
                     }
                 })()
                 const runNewProject = async () => {
-                    await appRunner?.runApp({
+                    await appRunner.runApp({
                         loader: {
                             assetsUrl: `${assetsRoot}dynamic-assets`,
                             wasmUrl: `${assetsRoot}pkg-opt.wasm`,
