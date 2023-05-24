@@ -187,7 +187,7 @@ function FileName(props: FileNameProps) {
                 }
             }}
         >
-            {fileInfo.fileIcon(fileInfo.fileExtension(item.title))}{' '}
+            {fileInfo.fileIcon()}{' '}
             <span className="px-2">{item.title}</span>
         </div>
     )

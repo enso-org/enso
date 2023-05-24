@@ -6,6 +6,7 @@
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "moduleResolution": "node",
+    "noEmit": true,
     "allowJs": true,
     "checkJs": true,
     "strict": true,
