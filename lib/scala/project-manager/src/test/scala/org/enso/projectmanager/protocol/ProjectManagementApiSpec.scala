@@ -905,9 +905,9 @@ class ProjectManagementApiSpec
             "result": {
               "projects": [
                 {
-                  "name": "Baz",
+                  "name": "Quuz",
                   "namespace": "local",
-                  "id": $bazId,
+                  "id": $quuxId,
                   "engineVersion": $engineToInstall,
                   "created": $projectQuuxCreationTime,
                   "lastOpened": null
