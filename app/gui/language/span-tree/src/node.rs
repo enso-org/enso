@@ -44,7 +44,9 @@ pub struct Node<T> {
     /// span-tree, but not in AST), this field will contain the AST ID of the expression it extends
     /// (e.g. the AST of a function call with missing arguments, extended with expected arguments).
     pub extended_ast_id: Option<ast::Id>,
-    pub parenthesized:   bool,
+    /// A tree type of the associated AST node. Only present when the AST node was a
+    /// [`ast::Shape::Tree`].
+    pub tree_type:       Option<ast::TreeType>,
     pub payload:         T,
 }
 
@@ -74,13 +76,13 @@ impl<T> Node<T> {
     /// Payload mapping utility.
     pub fn map<S>(self, f: impl Copy + Fn(T) -> S) -> Node<S> {
         let kind = self.kind;
-        let parenthesized = self.parenthesized;
+        let tree_type = self.tree_type;
         let size = self.size;
         let children = self.children.into_iter().map(|t| t.map(f)).collect_vec();
         let ast_id = self.ast_id;
         let extended_ast_id = self.extended_ast_id;
         let payload = f(self.payload);
-        Node { kind, parenthesized, size, children, ast_id, extended_ast_id, payload }
+        Node { kind, tree_type, size, children, ast_id, extended_ast_id, payload }
     }
 }
 
@@ -88,9 +90,6 @@ impl<T> Node<T> {
 
 #[allow(missing_docs)]
 impl<T> Node<T> {
-    pub fn parenthesized(&self) -> bool {
-        self.parenthesized
-    }
     pub fn is_root(&self) -> bool {
         self.kind.is_root()
     }
