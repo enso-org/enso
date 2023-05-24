@@ -18,9 +18,7 @@ import org.graalvm.polyglot.Value;
 import java.util.BitSet;
 import java.util.List;
 
-/**
- * A column containing floating point numbers.
- */
+/** A column containing floating point numbers. */
 public final class DoubleStorage extends NumericStorage<Double> {
   private final long[] data;
   private final BitSet isMissing;
@@ -30,7 +28,8 @@ public final class DoubleStorage extends NumericStorage<Double> {
   /**
    * @param data the underlying data
    * @param size the number of items stored
-   * @param isMissing a bit set denoting at index {@code i} whether the value at index {@code i} is missing.
+   * @param isMissing a bit set denoting at index {@code i} whether the value at index {@code i} is
+   *     missing.
    */
   public DoubleStorage(long[] data, int size, BitSet isMissing) {
     this.data = data;
@@ -44,17 +43,13 @@ public final class DoubleStorage extends NumericStorage<Double> {
     return new DoubleStorage(new long[0], size, isMissing);
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public int size() {
     return size;
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public int countMissing() {
     return isMissing.cardinality();
@@ -78,17 +73,13 @@ public final class DoubleStorage extends NumericStorage<Double> {
     return isMissing.get(idx) ? null : Double.longBitsToDouble(data[idx]);
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public StorageType getType() {
     return FloatType.FLOAT_64;
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public boolean isNa(long idx) {
     return isMissing.get((int) idx);

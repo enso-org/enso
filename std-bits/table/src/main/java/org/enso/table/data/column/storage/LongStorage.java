@@ -19,9 +19,7 @@ import org.graalvm.polyglot.Value;
 import java.util.BitSet;
 import java.util.List;
 
-/**
- * A column storing 64-bit integers.
- */
+/** A column storing 64-bit integers. */
 public final class LongStorage extends NumericStorage<Long> {
   // TODO [RW] at some point we will want to add separate storage classes for byte, short and int,
   // for more compact storage and more efficient handling of smaller integers; for now we will be
@@ -32,10 +30,10 @@ public final class LongStorage extends NumericStorage<Long> {
   private static final MapOpStorage<Long, LongStorage> ops = buildOps();
 
   /**
-   * @param data      the underlying data
-   * @param size      the number of items stored
+   * @param data the underlying data
+   * @param size the number of items stored
    * @param isMissing a bit set denoting at index {@code i} whether or not the value at index {@code
-   *                  i} is missing.
+   *     i} is missing.
    */
   public LongStorage(long[] data, int size, BitSet isMissing) {
     this.data = data;
@@ -53,17 +51,13 @@ public final class LongStorage extends NumericStorage<Long> {
     this(data, data.length, new BitSet());
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public int size() {
     return size;
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public int countMissing() {
     return isMissing.cardinality();
@@ -87,18 +81,14 @@ public final class LongStorage extends NumericStorage<Long> {
     return isMissing.get(idx) ? null : data[idx];
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public StorageType getType() {
     // TODO add possibility to set integer bit limit (#5159)
     return IntegerType.INT_64;
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public boolean isNa(long idx) {
     return isMissing.get((int) idx);
