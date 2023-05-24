@@ -23,6 +23,7 @@ use enso_frp::prelude::bytemuck::ZeroableInOption;
 
 
 #[derive(Debug, Default, Zeroable)]
+#[repr(transparent)]
 pub struct OptRefCell<T> {
     inner: UnsafeCell<T>,
 }
@@ -150,17 +151,17 @@ impl Debug for NodeData {
 }
 
 impl NodeData {
-    fn new(tp: impl EventConsumer + 'static, network_id: NetworkId, def: DefInfo) -> Self {
-        Self {
-            tp: ZeroableOption::Some(Box::new(tp)),
-            network_id,
-            def,
-            inputs: default(),
-            outputs: default(),
-            output: default(),
-            behavior_requests: default(),
-        }
-    }
+    // fn new(tp: impl EventConsumer + 'static, network_id: NetworkId, def: DefInfo) -> Self {
+    //     Self {
+    //         tp: ZeroableOption::Some(Box::new(tp)),
+    //         network_id,
+    //         def,
+    //         inputs: default(),
+    //         outputs: default(),
+    //         output: default(),
+    //         behavior_requests: default(),
+    //     }
+    // }
 
     #[inline(always)]
     fn on_event(
@@ -172,8 +173,7 @@ impl NodeData {
     ) {
         // println!("on_event: {:?}", event);
         match &self.tp {
-            ZeroableOption::Some(f) =>
-                f(EventData { runtime, data: self, source_id, source_edge }, event),
+            ZeroableOption::Some(f) => f(runtime, self, source_id, source_edge, event),
             ZeroableOption::None => {}
         }
     }
@@ -234,6 +234,7 @@ impl Runtime {
         self.current_node.set(default());
     }
 
+    #[inline(always)]
     fn new_network(&self) -> NetworkId {
         self.metrics.inc_networks();
         self.metrics.inc_network_refs();
@@ -241,6 +242,7 @@ impl Runtime {
         networks.insert(NetworkData { nodes: Vec::new(), refs: 1 })
     }
 
+    #[inline(always)]
     fn new_node(
         &self,
         tp: impl EventConsumer + 'static,
@@ -264,6 +266,7 @@ impl Runtime {
         }
     }
 
+    #[inline(always)]
     fn connect(&self, src_id: NodeId, tgt_id: NodeId, behavior_request: bool) {
         let output_connection = OutputConnection { target: tgt_id, behavior_request };
         self.nodes.with_item_borrow_mut(src_id, |src| {
@@ -314,6 +317,7 @@ impl Runtime {
         // }
     }
 
+    #[inline(always)]
     unsafe fn with_borrowed_node_output_coerced<T: Default>(
         &self,
         node_id: NodeId,
@@ -341,19 +345,13 @@ impl Runtime {
 #[derivative(Debug)]
 pub struct Network {
     pub(crate) id: NetworkId,
-    // #[derivative(Debug = "ignore")]
-    // rt:            Rc<Runtime>,
-    #[cfg(feature = "stack-trace")]
-    span:          Cell<Option<DefInfo>>,
-    #[cfg(not(feature = "stack-trace"))]
-    span:          (),
 }
 
 impl Network {
+    #[inline(never)]
     pub fn new() -> Self {
-        // let rt = rc_runtime();
         let id = with_runtime(|rt| rt.new_network());
-        Network { id, span: default() }
+        Network { id }
     }
 }
 
@@ -394,12 +392,18 @@ trait NodeDefinition<Kind, Inputs, Output, F> {
 }
 
 impl<Kind, Output, F> NodeDefinition<Kind, (), Output, F> for &Network
-where F: Fn(TypedNodeData<Output>) + 'static
+where F: Fn(TypedNodeData<Output>, &NodeData, NodeId, OutputConnection) + 'static
 {
     #[inline(always)]
     fn define_node(&self, _inputs: (), f: F) -> NodeTemplate<Kind, Output> {
         let node = NodeTemplate::new_template(
-            move |event_data: EventData, _event: &dyn Data| f(event_data.unchecked_into()),
+            move |runtime: &Runtime,
+                  node_data: &NodeData,
+                  source_id: NodeId,
+                  source_edge: OutputConnection,
+                  _event: &dyn Data| {
+                f(xx_unchecked_into(runtime), node_data, source_id, source_edge)
+            },
             self.id,
         );
         node
@@ -409,14 +413,18 @@ where F: Fn(TypedNodeData<Output>) + 'static
 impl<Kind, N0, T0, Output, F> NodeDefinition<Kind, Event<N0>, Output, F> for &Network
 where
     N0: Node<Output = T0>,
-    F: Fn(TypedNodeData<Output>, &T0) + 'static,
+    F: Fn(TypedNodeData<Output>, &NodeData, NodeId, OutputConnection, &T0) + 'static,
 {
     #[inline(always)]
     fn define_node(&self, inputs: Event<N0>, f: F) -> NodeTemplate<Kind, Output> {
         let node = NodeTemplate::new_template(
-            move |event_data: EventData, event: &dyn Data| {
+            move |runtime: &Runtime,
+                  node_data: &NodeData,
+                  source_id: NodeId,
+                  source_edge: OutputConnection,
+                  event: &dyn Data| {
                 let event = unsafe { &*(event as *const dyn Data as *const T0) };
-                f(event_data.unchecked_into(), event);
+                f(xx_unchecked_into(runtime), node_data, source_id, source_edge, event);
             },
             self.id,
         );
@@ -430,19 +438,22 @@ impl<Kind, N0, N1, T0, T1: Default, Output, F>
 where
     N0: Node<Output = T0>,
     N1: Node<Output = T1>,
-    F: Fn(TypedNodeData<Output>, &T0, &T1) + 'static,
+    F: Fn(TypedNodeData<Output>, &NodeData, NodeId, OutputConnection, &T0, &T1) + 'static,
 {
     #[inline(always)]
     fn define_node(&self, inputs: (Event<N0>, Behavior<N1>), f: F) -> NodeTemplate<Kind, Output> {
         let node = NodeTemplate::new_template(
-            move |event_data: EventData, event: &dyn Data| {
-                if event_data.source_id == event_data.data.inputs.get(0) {
+            move |runtime: &Runtime,
+                  node_data: &NodeData,
+                  source_id: NodeId,
+                  source_edge: OutputConnection,
+                  event: &dyn Data| {
+                if source_id == node_data.inputs.get(0) {
                     unsafe {
                         let t0 = &*(event as *const dyn Data as *const T0);
-                        event_data.runtime.with_borrowed_node_output_coerced(
-                            event_data.data.inputs.get(1),
-                            |t1| f(event_data.unchecked_into(), t0, t1),
-                        );
+                        runtime.with_borrowed_node_output_coerced(node_data.inputs.get(1), |t1| {
+                            f(xx_unchecked_into(runtime), node_data, source_id, source_edge, t0, t1)
+                        });
                     }
                 }
             },
@@ -460,7 +471,7 @@ where
     N0: Node<Output = T0>,
     N1: Node<Output = T1>,
     N2: Node<Output = T2>,
-    F: Fn(TypedNodeData<Output>, &T0, &T1, &T2) + 'static,
+    F: Fn(TypedNodeData<Output>, &NodeData, NodeId, OutputConnection, &T0, &T1, &T2) + 'static,
 {
     #[inline(always)]
     fn define_node(
@@ -469,19 +480,30 @@ where
         f: F,
     ) -> NodeTemplate<Kind, Output> {
         let node = NodeTemplate::new_template(
-            move |event_data: EventData, event: &dyn Data| {
-                if event_data.source_id == event_data.data.inputs.get(0) {
+            move |runtime: &Runtime,
+                  node_data: &NodeData,
+                  source_id: NodeId,
+                  source_edge: OutputConnection,
+                  event: &dyn Data| {
+                if source_id == node_data.inputs.get(0) {
                     unsafe {
                         let t0 = &*(event as *const dyn Data as *const T0);
-                        event_data.runtime.with_borrowed_node_output_coerced(
-                            event_data.data.inputs.get(1),
-                            |t1| {
-                                event_data.runtime.with_borrowed_node_output_coerced(
-                                    event_data.data.inputs.get(2),
-                                    |t2| f(event_data.unchecked_into(), t0, t1, t2),
-                                )
-                            },
-                        );
+                        runtime.with_borrowed_node_output_coerced(node_data.inputs.get(1), |t1| {
+                            runtime.with_borrowed_node_output_coerced(
+                                node_data.inputs.get(2),
+                                |t2| {
+                                    f(
+                                        xx_unchecked_into(runtime),
+                                        node_data,
+                                        source_id,
+                                        source_edge,
+                                        t0,
+                                        t1,
+                                        t2,
+                                    )
+                                },
+                            )
+                        });
                     }
                 }
             },
@@ -500,6 +522,7 @@ where
 #[derivative(Copy(bound = ""))]
 #[derivative(Clone(bound = ""))]
 #[derivative(Debug(bound = ""))]
+#[repr(transparent)]
 pub struct NodeTemplate<Kind, Output> {
     _marker: PhantomData<(Kind, Output)>,
     id:      NodeId,
@@ -507,6 +530,8 @@ pub struct NodeTemplate<Kind, Output> {
 
 impl<Kind, Output> Node for NodeTemplate<Kind, Output> {
     type Output = Output;
+
+    #[inline(always)]
     fn id(self) -> NodeId {
         self.id
     }
@@ -520,10 +545,10 @@ impl<Kind, Output> NodeTemplate<Kind, Output> {
         Self { _marker, id }
     }
 
-    #[inline(always)]
-    pub fn emit(&self, value: Output)
+    #[inline(never)]
+    pub fn emit(&self, value: &Output)
     where Output: Data {
-        with_runtime(|rt| rt.unchecked_emit(self.id, &value));
+        with_runtime(|rt| rt.unchecked_emit(self.id, value));
     }
 }
 
@@ -544,7 +569,7 @@ pub type Source<Output> = NodeTemplate<SourceType, Output>;
 impl Network {
     #[inline(always)]
     pub fn source<T>(&self) -> Source<T> {
-        self.define_node((), |_| {})
+        self.define_node((), |_, _, _, _| {})
     }
 }
 
@@ -553,9 +578,9 @@ impl Network {
 
 impl Network {
     pub fn trace<T0: Data>(&self, source: impl Node<Output = T0>) -> Stream<T0> {
-        self.define_node(Event(source), move |event, t0| {
+        self.define_node(Event(source), move |event, _, _, e, t0| {
             println!("TRACE: {:?}", t0);
-            event.emit(t0);
+            event.emit(e.target, t0);
         })
     }
 }
@@ -584,9 +609,9 @@ impl Network {
     ) -> (Stream<Vec<T0>>, DebugCollectData<T0>) {
         let data: DebugCollectData<T0> = default();
         let out = data.clone();
-        let node = self.define_node(Event(source), move |event, t0| {
+        let node = self.define_node(Event(source), move |event, _, _, e, t0| {
             data.cell.borrow_mut().push(t0.clone());
-            event.emit(&*data.cell.borrow());
+            event.emit(e.target, &*data.cell.borrow());
         });
         (node, out)
     }
@@ -597,51 +622,59 @@ impl Network {
 // === Map2 ===
 
 impl Network {
+    #[inline(never)]
     pub fn map<T0, Output: Data>(
         &self,
         n0: impl Node<Output = T0>,
         f: impl Fn(&T0) -> Output + 'static,
     ) -> Stream<Output> {
-        self.define_node(Event(n0), move |event, t0| event.emit(&f(t0)))
+        self.define_node(Event(n0), move |event, _, _, e, t0| event.emit(e.target, &f(t0)))
     }
 
+    #[inline(never)]
     pub fn map2<T0, T1: Default, Output: Data>(
         &self,
         n0: impl Node<Output = T0>,
         n1: impl Node<Output = T1>,
         f: impl Fn(&T0, &T1) -> Output + 'static,
     ) -> Stream<Output> {
-        self.define_node((Event(n0), Behavior(n1)), move |event, t0, t1| event.emit(&f(t0, t1)))
+        self.define_node((Event(n0), Behavior(n1)), move |event, _, _, e, t0, t1| {
+            event.emit(e.target, &f(t0, t1))
+        })
     }
 }
 
-#[derive(Deref)]
+// #[derive(Deref)]
+#[repr(transparent)]
 struct TypedNodeData<'a, Output> {
-    #[deref]
-    data: EventData<'a>,
-    tp:   PhantomData<Output>,
+    runtime: &'a Runtime,
+    // target:  NodeId,
+    tp:      PhantomData<Output>,
 }
 
 impl<'a, Output: Data> TypedNodeData<'a, Output> {
-    fn emit(self, value: &Output) {
-        self.data.runtime.unchecked_emit(self.data.source_edge.target, value);
+    #[inline(always)]
+    fn emit(self, target: NodeId, value: &Output) {
+        self.runtime.unchecked_emit(target, value);
     }
 }
 
-impl<'a> EventData<'a> {
-    fn unchecked_into<Output>(self) -> TypedNodeData<'a, Output> {
-        TypedNodeData { data: self, tp: PhantomData }
-    }
+#[inline(always)]
+fn xx_unchecked_into<'a, Output>(
+    runtime: &'a Runtime,
+    // target: NodeId,
+) -> TypedNodeData<'a, Output> {
+    TypedNodeData { runtime, tp: PhantomData } // target
 }
 
-struct EventData<'a> {
-    pub runtime:     &'a Runtime,
-    pub data:        &'a NodeData,
-    pub source_id:   NodeId,
-    pub source_edge: OutputConnection,
-}
+// struct EventData<'a> {
+//     pub runtime:     &'a Runtime,
+//     pub data:        &'a NodeData,
+//     pub source_id:   NodeId,
+//     pub source_edge: OutputConnection,
+// }
 
-trait EventConsumer = Fn(EventData, &dyn Data);
+trait EventConsumer = Fn(&Runtime, &NodeData, NodeId, OutputConnection, &dyn Data);
 
 // trait EventConsumer {
 //     fn on_event(&self, event_data: EventData, event: &dyn Data);
@@ -674,11 +707,11 @@ mod tests {
         let m1 = net.map2(src1, src2, |a, b| 10 * a + b);
         let (_, results) = net.debug_collect(m1);
         results.assert_eq(&[]);
-        src1.emit(1);
+        src1.emit(&1);
         results.assert_eq(&[10]);
-        src2.emit(2);
+        src2.emit(&2);
         results.assert_eq(&[10]);
-        src1.emit(3);
+        src1.emit(&3);
         results.assert_eq(&[10, 32]);
     }
 
@@ -693,6 +726,42 @@ mod tests {
     }
 }
 
+
+pub fn pub_bench() {
+    let net = Network::new();
+    let n1 = net.source::<usize>();
+    let n2 = net.map(n1, |t| t + 1);
+    let mut prev = n2;
+    for _ in 0..100_0 {
+        let next = net.map(prev, |t| t + 1);
+        prev = next;
+    }
+
+    let _keep = &net;
+    for i in 0..1_000 {
+        n1.emit(&i);
+    }
+}
+
+pub fn pub_bench_old() {
+    let net = frp_old::Network::new("label");
+    frp_old::extend! { net
+        n1 <- source::<usize>();
+        n2 <- map(&n1, |t| t + 1);
+    }
+    let mut prev = n2;
+    for _ in 0..100_0 {
+        frp_old::extend! { net
+            next <- map(&prev, |t| t + 1);
+        }
+        prev = next;
+    }
+
+    let _keep = &net;
+    for i in 0..1_000 {
+        n1.emit(i);
+    }
+}
 
 #[cfg(test)]
 mod benches {
@@ -723,25 +792,30 @@ mod benches {
 
     // 3739029
     // 1744908
+    // 1661864
+    // 1595170
+    // 1604364
+    // 1493188
+    // 1454128
     #[bench]
-    fn bench_emit_frp(bencher: &mut Bencher) {
+    fn bench_emit_frp_pod(bencher: &mut Bencher) {
         let net = Network::new();
         let src1 = net.source::<usize>();
         let src2 = net.source::<usize>();
         let m1 = net.map2(src1, src2, map_fn);
-        src2.emit(2);
+        src2.emit(&2);
 
         bencher.iter(move || {
             let _keep = &net;
             for i in 0..REPS {
-                src1.emit(i);
+                src1.emit(&i);
             }
         });
     }
 
     // 1036659
     #[bench]
-    fn bench_emit_frp_old(bencher: &mut Bencher) {
+    fn bench_emit_frp_pod_old(bencher: &mut Bencher) {
         let net = frp_old::Network::new("label");
         frp_old::extend! { net
             src1 <- source::<usize>();
@@ -754,6 +828,99 @@ mod benches {
             let _keep = &net;
             for i in 0..REPS {
                 src1.emit(i);
+            }
+        });
+    }
+
+    // 5:    3914927
+    // 10:   9121847
+    // 15:  16824475
+    // 20:  40505458
+    // 25:  46262641
+    // 30:  52400266
+    // 35:  78494166
+    // 40:  83136525
+    // 45:  84143279
+    // 50: 107633658
+    #[bench]
+    fn bench_emit_frp_chain_pod(bencher: &mut Bencher) {
+        let net = Network::new();
+        let n1 = net.source::<usize>();
+        let n2 = net.map(n1, |t| t + 1);
+        let mut prev = n2;
+        for _ in 0..3 {
+            let next = net.map(prev, |t| t + 1);
+            prev = next;
+        }
+
+        bencher.iter(move || {
+            let _keep = &net;
+            for i in 0..REPS {
+                n1.emit(&i);
+            }
+        });
+    }
+
+    // 5: 2843612
+    // 10: 6370118
+    // 50: 74304958
+    #[bench]
+    fn bench_emit_frp_chain_pod_old(bencher: &mut Bencher) {
+        let net = frp_old::Network::new("label");
+        frp_old::extend! { net
+            n1 <- source::<usize>();
+            n2 <- map(&n1, |t| t + 1);
+        }
+        let mut prev = n2;
+        for _ in 0..48 {
+            frp_old::extend! { net
+                next <- map(&prev, |t| t + 1);
+            }
+            prev = next;
+        }
+
+        bencher.iter(move || {
+            let _keep = &net;
+            for i in 0..REPS {
+                n1.emit(i);
+            }
+        });
+    }
+
+    // 1488912
+    #[bench]
+    fn bench_emit_non_pod_frp(bencher: &mut Bencher) {
+        let net = Network::new();
+        let src1 = net.source::<String>();
+        let src2 = net.source::<usize>();
+        let m1 = net.map2(src1, src2, |s, i| s.len() + i);
+        src2.emit(&2);
+
+        bencher.iter(move || {
+            let str = "test".to_owned();
+            let _keep = &net;
+            for i in 0..REPS {
+                src1.emit(&str);
+            }
+        });
+    }
+
+    // 1077895
+    #[bench]
+    fn bench_emit_frp_non_pod_old(bencher: &mut Bencher) {
+        let net = frp_old::Network::new("label");
+        frp_old::extend! { net
+            src1 <- source::<Rc<String>>();
+            src2 <- source::<usize>();
+            m1 <- map2(&src1, &src2, |s, i| s.len() + i);
+        }
+        src2.emit(2);
+
+        bencher.iter(move || {
+            let str = Rc::new("test".to_owned());
+            let _keep = &net;
+            for i in 0..REPS {
+                src1.emit(&str);
             }
         });
     }
@@ -837,15 +1004,18 @@ pub struct CellSlotMap {
 }
 
 impl CellSlotMap {
+    #[inline(always)]
     pub fn new() -> Self {
         default()
     }
 
+    #[inline(always)]
     pub fn clear(&self) {
         self.free_indexes.borrow_mut().clear();
         self.list.clear();
     }
 
+    #[inline(always)]
     pub fn insert(&self, val: NodeData) -> NodeId {
         let mut free_indexes = self.free_indexes.borrow_mut();
         if let Some(index) = free_indexes.pop() {
@@ -862,6 +1032,7 @@ impl CellSlotMap {
         }
     }
 
+    #[inline(always)]
     pub fn insert_default(&self) -> NodeId {
         let mut free_indexes = self.free_indexes.borrow_mut();
         if let Some(index) = free_indexes.pop() {
@@ -879,6 +1050,7 @@ impl CellSlotMap {
         }
     }
 
+    #[inline(always)]
     pub fn insert_at(&self, key: NodeId, val: NodeData) -> bool {
         self.list.with_item_borrow_mut(key.index, |slot| {
             if slot.version != key.version {
@@ -897,6 +1069,7 @@ impl CellSlotMap {
         })
     }
 
+    #[inline(always)]
     pub fn with_item_borrow_mut<R>(
         &self,
         key: NodeId,
@@ -922,6 +1095,7 @@ pub struct Segment<T, const N: usize> {
 }
 
 impl<T: Zeroable, const N: usize> Default for Segment<T, N> {
+    #[inline(always)]
     fn default() -> Self {
         let items = {
             let layout = std::alloc::Layout::array::<OptRefCell<T>>(N).unwrap();
@@ -947,23 +1121,28 @@ pub struct LinkedCellArray<T, const N: usize = 32> {
 unsafe impl<T, const N: usize> Zeroable for LinkedCellArray<T, N> {}
 
 impl<T: Default + Zeroable, const N: usize> LinkedCellArray<T, N> {
+    #[inline(always)]
     pub fn clear(&self) {
         self.size.set(0);
     }
 
+    #[inline(always)]
     pub fn new() -> Self {
         Self::default()
     }
 
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.size.get()
     }
 
+    #[inline(always)]
     pub fn push(&self, elem: T) {
         self.with_first_segment(|s| s.push(self.size.get(), elem));
         self.size.modify(|t| *t += 1);
     }
 
+    #[inline(always)]
     fn push_default(&self) -> usize {
         let index = self.size.get();
         if index % N == 0 {
@@ -983,10 +1162,12 @@ impl<T: Zeroable, const N: usize> LinkedCellArray<T, N> {
         f(&*self.first_segment.borrow().as_ref().unwrap())
     }
 
+    #[inline(always)]
     pub fn set(&self, index: usize, elem: T) {
         self.with_first_segment(|s| s.set(index, elem));
     }
 
+    #[inline(always)]
     pub fn get_cloned(&self, index: usize) -> T
     where T: Clone {
         self.with_item_borrow(index, Clone::clone)
@@ -1014,12 +1195,14 @@ impl<T: Zeroable, const N: usize> LinkedCellArray<T, N> {
 }
 
 impl<T: Copy + Zeroable, const N: usize> LinkedCellArray<T, N> {
+    #[inline(always)]
     pub fn get(&self, index: usize) -> T {
         self.with_item_borrow(index, |t| *t)
     }
 }
 
 impl<T: Default + Zeroable, const N: usize> Segment<T, N> {
+    #[inline(always)]
     fn push(&self, offset: usize, elem: T) {
         if offset < N {
             *self.items[offset].borrow_mut() = elem;
@@ -1032,6 +1215,7 @@ impl<T: Default + Zeroable, const N: usize> Segment<T, N> {
         }
     }
 
+    #[inline(always)]
     fn add_tail_segment(&self) {
         let no_next = self.next.borrow().is_none();
         if no_next {

@@ -6,7 +6,7 @@
 #![feature(type_alias_impl_trait)]
 
 mod callstack;
-mod lib2;
+pub mod lib2;
 
 use bumpalo::Bump;
 use enso_prelude::*;

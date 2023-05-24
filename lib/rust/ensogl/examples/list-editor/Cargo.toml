@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 enso-frp = { path = "../../../frp" }
+enso-frp2 = { path = "../../../frp2" }
 ensogl-core = { path = "../../core" }
 ensogl-list-editor = { path = "../../component/list-editor" }
 ensogl-slider = { path = "../../component/slider" }

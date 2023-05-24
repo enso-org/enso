@@ -2871,6 +2871,7 @@ name = "ensogl-example-list-editor"
 version = "0.1.0"
 dependencies = [
  "enso-frp",
+ "enso-frp2",
  "ensogl-core",
  "ensogl-list-editor",
  "ensogl-slider",
