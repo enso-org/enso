@@ -7,6 +7,7 @@ import * as auth from '../../authentication/providers/auth'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
 
+import Input from './input'
 import Modal from './modal'
 
 // ==========================
@@ -63,7 +64,7 @@ function ChangePasswordModal() {
                                     {svg.LOCK}
                                 </div>
 
-                                <input
+                                <Input
                                     autoFocus
                                     required
                                     id="old_password"
@@ -71,9 +72,7 @@ function ChangePasswordModal() {
                                     name="old_password"
                                     placeholder="Old Password"
                                     value={oldPassword}
-                                    onChange={event => {
-                                        setOldPassword(event.target.value)
-                                    }}
+                                    setValue={setOldPassword}
                                     className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
                                 />
                             </div>
@@ -90,16 +89,14 @@ function ChangePasswordModal() {
                                     {svg.LOCK}
                                 </div>
 
-                                <input
+                                <Input
                                     required
                                     id="new_password"
                                     type="password"
                                     name="new_password"
                                     placeholder="New Password"
                                     value={newPassword}
-                                    onChange={event => {
-                                        setNewPassword(event.target.value)
-                                    }}
+                                    setValue={setNewPassword}
                                     className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
                                 />
                             </div>
@@ -116,16 +113,14 @@ function ChangePasswordModal() {
                                     {svg.LOCK}
                                 </div>
 
-                                <input
+                                <Input
                                     required
                                     id="confirm_new_password"
                                     type="password"
                                     name="confirm_new_password"
                                     placeholder="Confirm New Password"
                                     value={confirmNewPassword}
-                                    onChange={event => {
-                                        setConfirmNewPassword(event.target.value)
-                                    }}
+                                    setValue={setConfirmNewPassword}
                                     className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-lg border border-gray-400 w-full py-2 focus:outline-none focus:border-blue-400"
                                 />
                             </div>
