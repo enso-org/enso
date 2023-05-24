@@ -221,7 +221,7 @@ public abstract class TypeOfNode extends Node {
         if (interop.isDuration(value)) {
           return DURATION;
         }
-        if (interop.isMetaObject(value)) {
+        if (interop.hasMetaObject(value)) {
           return META_OBJECT;
         }
         return NONE;
