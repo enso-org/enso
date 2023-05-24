@@ -21,29 +21,9 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     if (storage instanceof DoubleStorage doubleStorage) {
       return doubleStorage;
     } else if (storage instanceof LongStorage longStorage) {
-      int n = longStorage.size();
-      NumericBuilder builder = NumericBuilder.createDoubleBuilder(n);
-      for (int i = 0; i < n; i++) {
-        if (longStorage.isNa(i)) {
-          builder.appendNulls(1);
-        } else {
-          double value = longStorage.getItemDouble(i);
-          builder.appendDouble(value);
-        }
-      }
-      return builder.sealDouble();
+      return convertDoubleStorage(longStorage);
     } else if (storage instanceof BoolStorage boolStorage) {
-      int n = boolStorage.size();
-      NumericBuilder builder = NumericBuilder.createDoubleBuilder(n);
-      for (int i = 0; i < n; i++) {
-        if (boolStorage.isNa(i)) {
-          builder.appendNulls(1);
-        } else {
-          boolean value = boolStorage.getItem(i);
-          builder.appendDouble(value ? 1.0 : 0.0);
-        }
-      }
-      return builder.sealDouble();
+      return convertBoolStorage(boolStorage);
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemBuilder);
     } else {
@@ -70,4 +50,33 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
 
     return builder.sealDouble();
   }
+
+  private Storage<Double> convertDoubleStorage(LongStorage longStorage) {
+    int n = longStorage.size();
+    NumericBuilder builder = NumericBuilder.createDoubleBuilder(n);
+    for (int i = 0; i < n; i++) {
+      if (longStorage.isNa(i)) {
+        builder.appendNulls(1);
+      } else {
+        double value = longStorage.getItemDouble(i);
+        builder.appendDouble(value);
+      }
+    }
+    return builder.sealDouble();
+  }
+
+  private Storage<Double> convertBoolStorage(BoolStorage boolStorage) {
+    int n = boolStorage.size();
+    NumericBuilder builder = NumericBuilder.createDoubleBuilder(n);
+    for (int i = 0; i < n; i++) {
+      if (boolStorage.isNa(i)) {
+        builder.appendNulls(1);
+      } else {
+        boolean value = boolStorage.getItem(i);
+        builder.appendDouble(value ? 1.0 : 0.0);
+      }
+    }
+    return builder.sealDouble();
+  }
+
 }

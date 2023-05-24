@@ -27,35 +27,9 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     if (storage instanceof LongStorage longStorage) {
       return longStorage;
     } else if (storage instanceof DoubleStorage doubleStorage) {
-      int n = doubleStorage.size();
-      NumericBuilder builder = NumericBuilder.createLongBuilder(n);
-      for (int i = 0; i < n; i++) {
-        if (doubleStorage.isNa(i)) {
-          builder.appendNulls(1);
-        } else {
-          double value = doubleStorage.getItemDouble(i);
-          if (fitsInTargetRange(value)) {
-            long converted = (long) value;
-            builder.appendLong(converted);
-          } else {
-            builder.appendNulls(1);
-            problemBuilder.reportConversionFailure();
-          }
-        }
-      }
-      return builder.sealLong();
+      return convertDoubleStorage(problemBuilder, doubleStorage);
     } else if (storage instanceof BoolStorage boolStorage) {
-      int n = boolStorage.size();
-      NumericBuilder builder = NumericBuilder.createLongBuilder(n);
-      for (int i = 0; i < n; i++) {
-        if (boolStorage.isNa(i)) {
-          builder.appendNulls(1);
-        } else {
-          boolean value = boolStorage.getItem(i);
-          builder.appendLong(value ? 1 : 0);
-        }
-      }
-      return builder.sealLong();
+      return convertBoolStorage(boolStorage);
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemBuilder);
     } else {
@@ -94,5 +68,39 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
 
   private boolean fitsInTargetRange(double value) {
     return value >= min && value <= max;
+  }
+
+  private Storage<Long> convertBoolStorage(BoolStorage boolStorage) {
+    int n = boolStorage.size();
+    NumericBuilder builder = NumericBuilder.createLongBuilder(n);
+    for (int i = 0; i < n; i++) {
+      if (boolStorage.isNa(i)) {
+        builder.appendNulls(1);
+      } else {
+        boolean value = boolStorage.getItem(i);
+        builder.appendLong(value ? 1 : 0);
+      }
+    }
+    return builder.sealLong();
+  }
+
+  private Storage<Long> convertDoubleStorage(CastProblemBuilder problemBuilder, DoubleStorage doubleStorage) {
+    int n = doubleStorage.size();
+    NumericBuilder builder = NumericBuilder.createLongBuilder(n);
+    for (int i = 0; i < n; i++) {
+      if (doubleStorage.isNa(i)) {
+        builder.appendNulls(1);
+      } else {
+        double value = doubleStorage.getItemDouble(i);
+        if (fitsInTargetRange(value)) {
+          long converted = (long) value;
+          builder.appendLong(converted);
+        } else {
+          builder.appendNulls(1);
+          problemBuilder.reportConversionFailure();
+        }
+      }
+    }
+    return builder.sealLong();
   }
 }
