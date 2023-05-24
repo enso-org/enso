@@ -139,8 +139,6 @@ const AuthContext = react.createContext<AuthContextType>({} as AuthContextType)
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
     authService: authServiceModule.AuthService
-    /** False if the app cannot start a Project Manager, which is required for the local backend. */
-    supportsLocalBackend: boolean
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: () => void
     children: react.ReactNode
@@ -148,7 +146,7 @@ export interface AuthProviderProps {
 
 /** A React provider for the Cognito API. */
 export function AuthProvider(props: AuthProviderProps) {
-    const { authService, supportsLocalBackend, onAuthenticated, children } = props
+    const { authService, onAuthenticated, children } = props
     const { cognito } = authService
     const { session } = sessionProvider.useSession()
     const { setBackend } = backendProvider.useSetBackend()
@@ -173,7 +171,9 @@ export function AuthProvider(props: AuthProviderProps) {
                 headers.append('Authorization', `Bearer ${accessToken}`)
                 const client = new http.Client(headers)
                 const backend = new remoteBackend.RemoteBackend(client, logger)
-                if (!supportsLocalBackend) {
+                // The backend MUST be the remote backend before login is finished.
+                // This is because the "set username" flow requires the remote backend.
+                if (!initialized) {
                     setBackend(backend)
                 }
                 const organization = await backend.usersMe().catch(() => null)
@@ -325,6 +325,7 @@ export function AuthProvider(props: AuthProviderProps) {
     }
 
     const signOut = async () => {
+        setInitialized(false)
         await cognito.signOut()
         toast.success(MESSAGES.signOutSuccess)
         return true

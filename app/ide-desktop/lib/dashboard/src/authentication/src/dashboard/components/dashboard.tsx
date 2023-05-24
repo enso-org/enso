@@ -277,8 +277,16 @@ function Dashboard(props: DashboardProps) {
         backendModule.Asset<backendModule.AssetType.file>[]
     >([])
 
+    const canListDirectory =
+        backend.type !== backendModule.BackendType.remote || organization.isEnabled
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
+
+    react.useEffect(() => {
+        if (supportsLocalBackend) {
+            setBackend(new localBackend.LocalBackend())
+        }
+    }, [])
 
     react.useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -602,10 +610,14 @@ function Dashboard(props: DashboardProps) {
     hooks.useAsyncEffect(
         null,
         async signal => {
-            const assets = await backend.listDirectory({ parentId: directoryId })
-            if (!signal.aborted) {
+            if (canListDirectory) {
+                const assets = await backend.listDirectory({ parentId: directoryId })
+                if (!signal.aborted) {
+                    setIsLoadingAssets(false)
+                    setAssets(assets)
+                }
+            } else {
                 setIsLoadingAssets(false)
-                setAssets(assets)
             }
         },
         [accessToken, directoryId, refresh, backend]
@@ -727,7 +739,7 @@ function Dashboard(props: DashboardProps) {
                 query={query}
                 setQuery={setQuery}
             />
-            {backend.type === backendModule.BackendType.remote && !organization.isEnabled ? (
+            {!canListDirectory ? (
                 <div className="grow grid place-items-center">
                     <div className="text-base text-center">
                         We will review your user details and enable the cloud experience for you
