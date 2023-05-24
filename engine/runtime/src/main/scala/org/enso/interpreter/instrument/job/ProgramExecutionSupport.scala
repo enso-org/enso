@@ -549,7 +549,7 @@ object ProgramExecutionSupport {
       typeName   <- Option(call.getTypeName)
     } yield Api.MethodPointer(
       moduleName.toString,
-      typeName.toString,
+      typeName.toString.stripSuffix(TypeSuffix),
       call.getFunctionName
     )
 
@@ -590,4 +590,6 @@ object ProgramExecutionSupport {
     cache: RuntimeCache,
     syncState: UpdatesSynchronizationState
   )
+
+  private val TypeSuffix = ".type"
 }
