@@ -135,6 +135,6 @@ spec =
         Test.specify "should be able to take the floor of a column of decimals" <|
             Column.from_vector "foo" [1.25, 2.33, 3.57] . floor . should_equal <| Column.from_vector "foo" [1, 2, 3]
 
-    Test.group "Date_Time truncate" pending="cannot construct a date column" <|
+    Test.group "Date_Time truncate" <|
         Test.specify "should be able to truncate a column of Date_Times" <|
             Column.from_vector "foo" [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3] . truncate . should_equal <| Column.from_vector "foo" [Date.new 2020 10 24, Date.new 2020 10 24]
