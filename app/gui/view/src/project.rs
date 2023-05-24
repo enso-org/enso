@@ -24,12 +24,19 @@ use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::system::web;
-use ensogl::system::web::dom;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
 use ensogl_component::text::selection::Selection;
 use ensogl_hardcoded_theme::Theme;
 use ide_view_graph_editor::NodeSource;
+use project_view_top_bar::ProjectViewTopBar;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod project_view_top_bar;
 
 
 
@@ -127,6 +134,7 @@ ensogl::define_endpoints! {
         fullscreen_visualization_shown (bool),
         drop_files_enabled             (bool),
         debug_mode                     (bool),
+        go_to_dashboard_button_pressed (),
     }
 }
 
@@ -138,22 +146,20 @@ ensogl::define_endpoints! {
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    app:                    Application,
-    display_object:         display::object::Instance,
-    /// These buttons are present only in a cloud environment.
-    window_control_buttons: Immutable<Option<crate::window_control_buttons::View>>,
-    graph_editor:           Rc<GraphEditor>,
-    searcher:               component_browser::View,
-    code_editor:            code_editor::View,
-    fullscreen_vis:         Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
-    project_list:           Rc<ProjectList>,
-    debug_mode_popup:       debug_mode_popup::View,
-    popup:                  popup::View,
+    app:                  Application,
+    display_object:       display::object::Instance,
+    project_view_top_bar: ProjectViewTopBar,
+    graph_editor:         Rc<GraphEditor>,
+    searcher:             component_browser::View,
+    code_editor:          code_editor::View,
+    fullscreen_vis:       Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
+    project_list:         Rc<ProjectList>,
+    debug_mode_popup:     debug_mode_popup::View,
+    popup:                popup::View,
 }
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
         let searcher = app.new_view::<component_browser::View>();
         let graph_editor = app.new_view::<GraphEditor>();
@@ -161,14 +167,7 @@ impl Model {
         let fullscreen_vis = default();
         let debug_mode_popup = debug_mode_popup::View::new(app);
         let popup = popup::View::new(app);
-        let runs_in_web = ARGS.groups.startup.options.platform.value == "web";
-        let window_control_buttons = runs_in_web.as_some_from(|| {
-            let window_control_buttons = app.new_view::<crate::window_control_buttons::View>();
-            display_object.add_child(&window_control_buttons);
-            scene.layers.panel.add(&window_control_buttons);
-            window_control_buttons
-        });
-        let window_control_buttons = Immutable(window_control_buttons);
+        let project_view_top_bar = ProjectViewTopBar::new(app);
         let project_list = Rc::new(ProjectList::new(app));
 
         display_object.add_child(&graph_editor);
@@ -176,6 +175,7 @@ impl Model {
         display_object.add_child(&searcher);
         display_object.add_child(&debug_mode_popup);
         display_object.add_child(&popup);
+        display_object.add_child(&project_view_top_bar);
         display_object.remove_child(&searcher);
 
         let app = app.clone_ref();
@@ -183,7 +183,7 @@ impl Model {
         Self {
             app,
             display_object,
-            window_control_buttons,
+            project_view_top_bar,
             graph_editor,
             searcher,
             code_editor,
@@ -263,12 +263,18 @@ impl Model {
         }
     }
 
-    fn on_dom_shape_changed(&self, shape: &dom::shape::Shape) {
-        // Top buttons must always stay in top-left corner.
-        if let Some(window_control_buttons) = &*self.window_control_buttons {
-            let pos = Vector2(-shape.width, shape.height) / 2.0;
-            window_control_buttons.set_xy(pos);
-        }
+    fn position_project_view_top_bar(
+        &self,
+        scene_shape: &display::scene::Shape,
+        project_view_top_bar_size: Vector2,
+    ) {
+        let top_left = Vector2(-scene_shape.width, scene_shape.height) / 2.0;
+        let project_view_top_bar_origin = Vector2(
+            0.0,
+            crate::graph_editor::MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER
+                - project_view_top_bar_size.y / 2.0,
+        );
+        self.project_view_top_bar.set_xy(top_left + project_view_top_bar_origin);
     }
 
     fn on_close_clicked(&self) {
@@ -368,6 +374,7 @@ impl View {
         let frp = Frp::new();
         let network = &frp.network;
         let searcher = &model.searcher.frp();
+        let project_view_top_bar = &model.project_view_top_bar;
         let graph = &model.graph_editor.frp;
         let code_editor = &model.code_editor;
         let project_list = &model.project_list;
@@ -378,25 +385,34 @@ impl View {
         model.set_style(theme);
         let input_change_delay = frp::io::timer::Timeout::new(network);
 
-        if let Some(window_control_buttons) = &*model.window_control_buttons {
-            let initial_size = &window_control_buttons.size.value();
-            model.graph_editor.input.space_for_window_buttons(initial_size);
-            frp::extend! { network
-                graph.space_for_window_buttons <+ window_control_buttons.size;
-                eval_ window_control_buttons.close      (model.on_close_clicked());
-                eval_ window_control_buttons.fullscreen (model.on_fullscreen_clicked());
-            }
-        }
-
-        let shape = scene.shape().clone_ref();
-
         frp::extend! { network
-            init <- source::<()>();
-            shape <- all(shape, init)._0();
-            eval shape ((shape) model.on_dom_shape_changed(shape));
+            init <- source_();
 
             eval_ frp.show_graph_editor(model.show_graph_editor());
             eval_ frp.hide_graph_editor(model.hide_graph_editor());
+
+
+            // === Project View Top Bar ===
+
+            let window_control_buttons = &project_view_top_bar.window_control_buttons;
+            eval_ window_control_buttons.close (model.on_close_clicked());
+            eval_ window_control_buttons.fullscreen (model.on_fullscreen_clicked());
+            let go_to_dashboard_button = &project_view_top_bar.go_to_dashboard_button;
+            frp.source.go_to_dashboard_button_pressed <+
+                go_to_dashboard_button.is_pressed.on_true();
+
+            let project_view_top_bar_display_object = project_view_top_bar.display_object();
+            _eval <- all_with3(
+                &init,
+                scene.shape(),
+                &project_view_top_bar_display_object.on_resized,
+                f!((_, scene_shape, project_view_top_bar_size)
+                   model.position_project_view_top_bar(scene_shape, *project_view_top_bar_size)
+                )
+            );
+            project_view_top_bar_width <-
+                project_view_top_bar_display_object.on_resized.map(|new_size| new_size.x);
+            graph.graph_editor_top_bar_offset_x <+ project_view_top_bar_width;
 
 
             // === Read-only mode ===

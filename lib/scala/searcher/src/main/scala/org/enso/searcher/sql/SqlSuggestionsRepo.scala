@@ -745,7 +745,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         row.scopeStartLine === ScopeColumn.EMPTY || row.module === value
       }
       .filterIf(selfTypes.nonEmpty) { row =>
-        row.selfType.inSet(selfTypes)
+        row.selfType.inSet(selfTypes) &&
+        (row.kind =!= SuggestionKind.CONSTRUCTOR)
       }
       .filterOpt(returnType) { case (row, value) =>
         row.returnType === value
