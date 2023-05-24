@@ -336,7 +336,8 @@ spec setup =
 
                 c3 = t2.cast "super-mix" Value_Type.Char . at "super-mix"
                 c3.value_type . should_equal Value_Type.Char
-                c3.to_vector . should_equal ["1.0", "2.25", "3", "-45.25", "2.0", "X", "2020-01-01", "2023-12-15 19:25:00", "12:30:00", "{{{MY Type [x=42] }}}", "True", Nothing, "True"]
+                date_time_str = Date_Time.new 2023 12 15 19 25 . to_text
+                c3.to_vector . should_equal ["1.0", "2.25", "3", "-45.25", "2.0", "X", "2020-01-01", date_time_str, "12:30:00", "{{{MY Type [x=42] }}}", "True", Nothing, "True"]
                 Problems.assume_no_problems c3
 
                 if setup.test_selection.fixed_length_text_columns then
@@ -355,17 +356,17 @@ spec setup =
                 c5 = t2.cast "super-mix" Value_Type.Date . at "super-mix"
                 c5.to_vector . should_equal ((nulls 6) + [Date.new 2020, Date.new 2023 12 15, Nothing] + (nulls 4))
                 w5 = Problems.expect_warning Conversion_Failure c5
-                w5.affected_rows_count 6+3+1
+                w5.affected_rows_count . should_equal 6+3+1
 
                 c6 = t2.cast "super-mix" Value_Type.Time . at "super-mix"
                 c6.to_vector . should_equal ((nulls 6) + [Nothing, Time_Of_Day.new 19 25, Time_Of_Day.new 12 30] + (nulls 4))
                 w6 = Problems.expect_warning Conversion_Failure c6
-                w6.affected_rows_count 6+3+1
+                w6.affected_rows_count . should_equal 6+3+1
 
                 c7 = t2.cast "super-mix" Value_Type.Date_Time . at "super-mix"
                 c7.to_vector . should_equal ((nulls 6) + [Date_Time.new 2020, Date_Time.new 2023 12 15 19 25, Nothing] + (nulls 4))
                 w7 = Problems.expect_warning Conversion_Failure c7
-                w7.affected_rows_count 6+3+1
+                w7.affected_rows_count . should_equal 6+3+1
 
     Test.group prefix+"Simple variant of Table/Column.parse in all backends" <|
         Test.specify "should be able to parse simple integers" <|
