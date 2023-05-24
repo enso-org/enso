@@ -207,7 +207,7 @@ impl Widget {
 
     fn init_dropdown_focus(&self, ctx: &ConfigContext) -> frp::Stream<bool> {
         let widgets_frp = ctx.frp();
-        let focus_receiver = self.display_object.clone_ref();
+        let focus_receiver = &self.dropdown_wrapper;
         let focus_in = focus_receiver.on_event::<event::FocusIn>();
         let focus_out = focus_receiver.on_event::<event::FocusOut>();
         let network = &self.config_frp.network;
@@ -230,7 +230,7 @@ impl Widget {
             // Otherwise the animation finishes within single frame, which looks bad.
             let close_after_selection_timer = frp::io::timer::Timeout::new(network);
             close_after_selection_timer.restart <+ dropdown_frp.user_select_action.constant(1);
-            eval close_after_selection_timer.on_expired((()) focus_receiver.blur());
+            eval_ close_after_selection_timer.on_expired(focus_receiver.blur());
 
         }
         is_open
@@ -278,7 +278,7 @@ impl Widget {
         let widgets_frp = ctx.frp();
         let styles = ctx.styles();
         let activation_shape = &self.activation_shape;
-        let focus_receiver = &self.display_object;
+        let focus_receiver = &self.dropdown_wrapper;
         frp::extend! { network
             is_hovered <- widgets_frp.on_port_hover.map2(&config_frp.current_crumbs, |h, crumbs| {
                 h.on().map_or(false, |h| crumbs.starts_with(h))
