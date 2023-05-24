@@ -276,7 +276,8 @@ pub fn register_views(app: &Application) {
     app.views.register::<ensogl_component::list_view::ListView<PlaceholderEntryType>>();
 
     if enso_config::ARGS.groups.startup.options.platform.value == "web" {
-        app.views.register::<ide_view::window_control_buttons::View>();
+        app.views
+            .register::<ide_view::project::project_view_top_bar::window_control_buttons::View>();
     }
 }
 

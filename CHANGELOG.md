@@ -172,6 +172,8 @@
   it is now referenced via the `Main` namespace instead of the project
   namespace,][6719] e.g. `Main.func1` instead of `MyProject.func1`. This makes
   it robust against project name changes.
+- [Added a button to return from an opened project back to the project
+  dashboard.][6474]
 
 [6279]: https://github.com/enso-org/enso/pull/6279
 [6421]: https://github.com/enso-org/enso/pull/6421
@@ -181,6 +183,7 @@
 [6663]: https://github.com/enso-org/enso/pull/6663
 [6752]: https://github.com/enso-org/enso/pull/6752
 [6719]: https://github.com/enso-org/enso/pull/6719
+[6474]: https://github.com/enso-org/enso/pull/6474
 
 #### EnsoGL (rendering engine)
 

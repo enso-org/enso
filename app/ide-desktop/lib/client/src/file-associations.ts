@@ -111,7 +111,6 @@ export function onFileOpened(event: Event, path: string): string | null {
         if (!electron.app.isReady() && CLIENT_ARGUMENTS.length === 0) {
             event.preventDefault()
             logger.log(`Opening file '${path}'.`)
-            // eslint-disable-next-line no-restricted-syntax
             return handleOpenFile(path)
         } else {
             // Another copy of the application needs to be started, as the first one is
