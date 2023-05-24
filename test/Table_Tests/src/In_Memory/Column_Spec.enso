@@ -126,7 +126,7 @@ spec =
             col = Column.from_vector "foo" [12, 23, 99999999999999999]
             expected = Column.from_vector "foo" [Nothing, Nothing, Nothing]
             action = col.round decimal_places=-1200 on_problems=_
-            problems = [Illegal_Argument.Error "round: decimal_places must be between -15 and 15 (inclusive), but was -1200"]
+            problems = [Illegal_Argument.Error "round: decimal_places must be between -15 and 15 (inclusive), but was 1200"]
             tester = _.should_equal expected
             Problems.test_problem_handling action problems tester
 
