@@ -20,9 +20,6 @@ map_over_storage input_column function builder skip_nothing=True on_problems=Rep
             output_value = function input_value . catch Any err->
                 problem_builder.report_other_warning err
                 Nothing
-            IO.println "USING"
-            IO.println output_storage_builder
-            IO.println output_value
             output_storage_builder.append output_value
     output_storage = output_storage_builder.seal
     new_column = Column.from_storage input_column.name output_storage

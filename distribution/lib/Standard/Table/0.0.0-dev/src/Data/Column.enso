@@ -2024,8 +2024,6 @@ type DateBuilderAdapter
 
     append : Date -> Nothing
     append self date =
-        IO.println "HII"
-        IO.println date
         self.date_builder.appendDate date
 
     seal : Java_Storage
