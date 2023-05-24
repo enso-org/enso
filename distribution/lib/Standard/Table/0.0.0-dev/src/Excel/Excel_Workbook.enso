@@ -126,7 +126,8 @@ type Excel_Workbook
         _ = [alias]
         self.read query
 
-    ## Execute the query and load the results into memory as a Table.
+    ## ALIAS sheet, worksheet, range
+       Execute the query and load the results into memory as a Table.
 
        Arguments:
        - query: sheet name, range name or address to read from the workbook.
