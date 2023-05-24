@@ -70,7 +70,7 @@ type Existing_File_Behavior
                 handle_file_already_exists = catch_already_exists handle_existing_file
                 handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored handler=handle_write_failure_dataflow
                 ## We first attempt to write the file to the original
-                   destination, but if that files due to the file already
+                   destination, but if that fails due to the file already
                    existing, we will run the alternative algorithm which uses a
                    temporary file and creates a backup.
                 handle_file_already_exists <| handle_internal_dataflow <|

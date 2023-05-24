@@ -59,9 +59,9 @@ Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Beha
             actual.create_dry_run_file copy_original=on_existing_file==Existing_File_Behavior.Append
 
         Context.Output.with_enabled <|
-            effective_existing_behaviour.write file stream->
+            r = effective_existing_behaviour.write file stream->
                 stream.write_bytes bytes
-                file
+            r.if_not_error file
 
 ## Writes (or appends) the Vector of bytes into the specified file. The behavior
    specified in the `existing_file` parameter will be used if the file exists.
