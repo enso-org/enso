@@ -102,10 +102,17 @@ spec =
             Column.from_vector "foo" [12.0, 24.0, 25.0, 29.0] . round -1 . should_equal <| Column.from_vector "foo" [10, 20, 30, 30]
             Column.from_vector "foo" [1.5, 2.5, 3.5] . round use_bankers=True . should_equal <| Column.from_vector "foo" [2, 2, 4]
 
+        Test.specify "decimal rounding should return the correct column type" <|
+            Column.from_vector "foo" [1.2, 2.3, 3.6] . round . value_type . should_equal Value_Type.Integer
+            Column.from_vector "foo" [1.2, 2.3, 3.6] . round 1 . value_type . should_equal Value_Type.Float
+
         Test.specify "should be able to round a column of integers" <|
             Column.from_vector "foo" [12, 24, 25, 29] . round . should_equal <| Column.from_vector "foo" [12, 24, 25, 29]
             Column.from_vector "foo" [12, 24, 25, 29] . round -1 . should_equal <| Column.from_vector "foo" [10, 20, 30, 30]
             Column.from_vector "foo" [15, 25, 35] . round -1 use_bankers=True . should_equal <| Column.from_vector "foo" [20, 20, 40]
+
+        Test.specify "integer rounding should return the correct column type" <|
+            Column.from_vector "foo" [12, 24, 25, 29] . round -1 . value_type . should_equal Value_Type.Integer
 
         Test.specify "should report out-of-range values as problems" <|
             col = Column.from_vector "foo" [12, 23, 99999999999999999]
@@ -126,15 +133,19 @@ spec =
     Test.group "truncate" <|
         Test.specify "should be able to truncate a column of decimals" <|
             Column.from_vector "foo" [1.25, 2.33, 3.57] . truncate . should_equal <| Column.from_vector "foo" [1, 2, 3]
+            Column.from_vector "foo" [1.25, 2.33, 3.57] . truncate . value_type . should_equal Value_Type.Integer
 
     Test.group "ceil" <|
         Test.specify "should be able to take the ceil of a column of decimals" <|
             Column.from_vector "foo" [1.25, 2.33, 3.57] . ceil . should_equal <| Column.from_vector "foo" [2, 3, 4]
+            Column.from_vector "foo" [1.25, 2.33, 3.57] . ceil . value_type . should_equal Value_Type.Integer
 
     Test.group "floor" <|
         Test.specify "should be able to take the floor of a column of decimals" <|
             Column.from_vector "foo" [1.25, 2.33, 3.57] . floor . should_equal <| Column.from_vector "foo" [1, 2, 3]
+            Column.from_vector "foo" [1.25, 2.33, 3.57] . floor . value_type . should_equal Value_Type.Integer
 
     Test.group "Date_Time truncate" <|
         Test.specify "should be able to truncate a column of Date_Times" <|
             Column.from_vector "foo" [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3] . truncate . should_equal <| Column.from_vector "foo" [Date.new 2020 10 24, Date.new 2020 10 24]
+            Column.from_vector "foo" [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3] . truncate . value_type . should_equal Value_Type.Date
