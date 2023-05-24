@@ -4,7 +4,7 @@ import java.util.BitSet;
 import java.util.List;
 
 import org.enso.table.data.column.builder.object.StringBuilder;
-import org.enso.table.data.column.operation.CastProblemBuilder;
+import org.enso.table.data.column.operation.cast.CastProblemBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.type.AnyObjectType;

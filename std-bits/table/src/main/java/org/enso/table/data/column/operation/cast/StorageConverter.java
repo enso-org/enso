@@ -1,6 +1,5 @@
 package org.enso.table.data.column.operation.cast;
 
-import org.enso.table.data.column.operation.CastProblemBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.*;
 

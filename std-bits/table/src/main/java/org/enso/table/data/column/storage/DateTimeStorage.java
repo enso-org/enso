@@ -6,12 +6,11 @@ import org.enso.table.data.column.builder.object.DateBuilder;
 import org.enso.table.data.column.builder.object.DateTimeBuilder;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.builder.object.TimeOfDayBuilder;
-import org.enso.table.data.column.operation.CastProblemBuilder;
+import org.enso.table.data.column.operation.cast.CastProblemBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryIntegerOp;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 import org.enso.table.data.column.storage.type.*;
-import org.enso.table.formatting.DateTimeFormatter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;

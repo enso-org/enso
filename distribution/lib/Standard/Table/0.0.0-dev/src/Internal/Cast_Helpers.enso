@@ -5,7 +5,7 @@ import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Parse_Values_Helper
 from project.Errors import Conversion_Failure
 
-polyglot java import org.enso.table.data.column.operation.CastProblemBuilder
+polyglot java import org.enso.table.data.column.operation.cast.CastProblemBuilder
 
 ## PRIVATE
    Checks if one type can be cast into another and returns a dataflow error

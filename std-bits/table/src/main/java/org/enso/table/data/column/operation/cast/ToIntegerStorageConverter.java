@@ -2,7 +2,6 @@ package org.enso.table.data.column.operation.cast;
 
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.object.NumericBuilder;
-import org.enso.table.data.column.operation.CastProblemBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.DoubleStorage;
 import org.enso.table.data.column.storage.LongStorage;
