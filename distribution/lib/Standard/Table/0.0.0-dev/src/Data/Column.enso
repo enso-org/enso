@@ -701,10 +701,12 @@ type Column
              Column.from_vector "foo" [1.2, 2.3, 3.6] . round == (Column.from_vector "foo" [1, 2, 4])
     round : Integer -> Boolean -> Problem_Behavior -> Column | Illegal_Argument | Invalid_Value_Type
     round self decimal_places=0 use_bankers=False on_problems=Report_Warning = Value_Type.expect_numeric self <|
-        returns_double = decimal_places > 0
-        builder = if returns_double then make_double_builder else make_long_builder
-        fun = _.round decimal_places use_bankers
-        Column_Ops.map_over_storage self fun builder skip_nothing=True on_problems=on_problems
+        # If it's an integer column and decimal_places >=0 then it's a no-op.
+        if self.value_type.is_integer && decimal_places >= 0 then self else
+            returns_double = decimal_places > 0
+            builder = if returns_double then make_double_builder else make_long_builder
+            fun = _.round decimal_places use_bankers
+            Column_Ops.map_over_storage self fun builder skip_nothing=True on_problems=on_problems
 
     ## ALIAS int
 
