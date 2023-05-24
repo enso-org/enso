@@ -811,7 +811,6 @@ fn tree_generate_node<T: Payload>(
     context: &impl Context,
     ast_id: Option<Id>,
 ) -> FallibleResult<Node<T>> {
-    let parenthesized = matches!(tree.type_info, ast::TreeType::Group);
     let mut children = vec![];
     let size;
     if let Some(leaf_info) = &tree.leaf_info {
@@ -873,7 +872,9 @@ fn tree_generate_node<T: Payload>(
         }
         size = parent_offset;
     }
-    Ok(Node { kind, parenthesized, size, children, ast_id, ..default() })
+
+    let tree_type = Some(tree.type_info.clone());
+    Ok(Node { kind, tree_type, size, children, ast_id, ..default() })
 }
 
 
