@@ -1385,14 +1385,14 @@ type Column
         new_column = case format of
             "" ->
                 formatter = .to_text
-                Column_Ops.map_over_storage self formatter make_string_builder
+                Column_Ops.map_over_storage self formatter make_string_builder on_problems=Problem_Behavior.Report_Error
             Nothing ->
                 formatter = .to_text
-                Column_Ops.map_over_storage self formatter make_string_builder
+                Column_Ops.map_over_storage self formatter make_string_builder on_problems=Problem_Behavior.Report_Error
             _ : Text ->
                 formatter = create_formatter
                 formatter.if_not_error <|
-                    Column_Ops.map_over_storage self (formatter format=format) make_string_builder
+                    Column_Ops.map_over_storage self (formatter format=format) make_string_builder on_problems=Problem_Behavior.Report_Error
             format_column : Column -> Value_Type.expect_text format_column <|
                 formatter = create_formatter
                 formatter.if_not_error <|
