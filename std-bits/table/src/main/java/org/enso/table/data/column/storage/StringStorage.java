@@ -73,15 +73,6 @@ public final class StringStorage extends SpecializedStorage<String> {
     return new StringBuilder(capacity);
   }
 
-  @Override
-  public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
-    return switch (targetType) {
-      case AnyObjectType any -> new MixedStorageFacade(this);
-      case TextType textType -> adapt(this, textType);
-      default -> throw new IllegalStateException("Conversion of StringStorage to " + targetType + " is not supported");
-    };
-  }
-
   private static MapOpStorage<String, SpecializedStorage<String>> buildOps() {
     MapOpStorage<String, SpecializedStorage<String>> t = ObjectStorage.buildObjectOps();
     t.add(

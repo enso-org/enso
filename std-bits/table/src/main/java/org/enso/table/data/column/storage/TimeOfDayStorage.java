@@ -49,24 +49,4 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   public Builder createDefaultBuilderOfSameType(int capacity) {
     return new TimeOfDayBuilder(capacity);
   }
-
-  @Override
-  public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
-    if (targetType instanceof TextType textType) {
-      int n = size();
-      StringBuilder builder = new StringBuilder(n);
-      var formatter = Core_Date_Utils.defaultLocalTimeFormatter();
-      for (int i = 0; i < n; i++) {
-        LocalTime item = data[i];
-        if (item == null) {
-          builder.appendNulls(1);
-        } else {
-          builder.append(item.format(formatter));
-        }
-      }
-      return StringStorage.adapt(builder.seal(), textType);
-    } else {
-      return super.cast(targetType, castProblemBuilder);
-    }
-  }
 }

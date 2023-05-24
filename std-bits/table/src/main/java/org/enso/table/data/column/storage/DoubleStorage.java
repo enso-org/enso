@@ -367,46 +367,4 @@ public final class DoubleStorage extends NumericStorage<Double> {
 
     return new DoubleStorage(newData, newSize, newMissing);
   }
-
-  @Override
-  public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
-    return switch (targetType) {
-      case AnyObjectType any -> new MixedStorageFacade(this);
-      case FloatType floatType -> this;
-      case IntegerType integerType -> {
-        int n = size();
-        NumericBuilder builder = NumericBuilder.createLongBuilder(n);
-        double min = (double) integerType.getMinValue();
-        double max = (double) integerType.getMaxValue();
-        for (int i = 0; i < n; i++) {
-          if (isMissing.get(i)) {
-            builder.appendNulls(1);
-          } else {
-            double value = getItem(i);
-            if (value < min || value > max) {
-              builder.appendNulls(1);
-              castProblemBuilder.reportConversionFailure();
-            } else {
-              long converted = (long) value;
-              builder.appendLong(converted);
-            }
-          }
-        }
-        yield builder.seal();
-      }
-      case TextType textType -> {
-        int n = size();
-        StringBuilder builder = new StringBuilder(n);
-        for (int i = 0; i < n; i++) {
-          if (isMissing.get(i)) {
-            builder.appendNulls(1);
-          } else {
-            builder.append(Double.toString(getItem(i)));
-          }
-        }
-        yield StringStorage.adapt(builder.seal(), textType);
-      }
-      default -> throw new IllegalStateException("Conversion of DoubleStorage to " + targetType + " is not supported");
-    };
-  }
 }

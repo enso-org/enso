@@ -457,38 +457,4 @@ public final class LongStorage extends NumericStorage<Long> {
 
     return new LongStorage(newData, newSize, newMissing);
   }
-
-  @Override
-  public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
-    return switch (targetType) {
-      case AnyObjectType any -> new MixedStorageFacade(this);
-      case IntegerType integerType -> this;
-      case FloatType floatType -> {
-        int n = size();
-        NumericBuilder builder = NumericBuilder.createDoubleBuilder(n);
-        for (int i = 0; i < n; i++) {
-          if (isNa(i)) {
-            builder.appendNulls(1);
-          } else {
-            double converted = (double) getItem(i);
-            builder.appendDouble(converted);
-          }
-        }
-        yield builder.seal();
-      }
-      case TextType textType -> {
-        int n = size();
-        StringBuilder builder = new StringBuilder(n);
-        for (int i = 0; i < n; i++) {
-          if (isMissing.get(i)) {
-            builder.appendNulls(1);
-          } else {
-            builder.append(Long.toString(getItem(i)));
-          }
-        }
-        yield StringStorage.adapt(builder.seal(), textType);
-      }
-      default -> throw new IllegalStateException("Conversion of LongStorage to " + targetType + " is not supported");
-    };
-  }
 }

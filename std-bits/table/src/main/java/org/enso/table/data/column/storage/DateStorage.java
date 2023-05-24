@@ -75,37 +75,4 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
   public Builder createDefaultBuilderOfSameType(int capacity) {
     return new DateBuilder(capacity);
   }
-
-  @Override
-  public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
-    if (targetType instanceof DateTimeType) {
-      int n = size();
-      DateTimeBuilder builder = new DateTimeBuilder(n);
-      for (int i = 0; i < n; i++) {
-        LocalDate date = data[i];
-        if (date == null) {
-          builder.appendNulls(1);
-        } else {
-          ZonedDateTime converted = date.atStartOfDay().atZone(ZoneId.systemDefault());
-          builder.append(converted);
-        }
-      }
-      return builder.seal();
-    } else if (targetType instanceof TextType textType) {
-      int n = size();
-      StringBuilder builder = new StringBuilder(n);
-      var formatter = Core_Date_Utils.defaultLocalDateFormatter();
-      for (int i = 0; i < n; i++) {
-        LocalDate item = data[i];
-        if (item == null) {
-          builder.appendNulls(1);
-        } else {
-          builder.append(item.format(formatter));
-        }
-      }
-      return StringStorage.adapt(builder.seal(), textType);
-    } else {
-      return super.cast(targetType, castProblemBuilder);
-    }
-  }
 }

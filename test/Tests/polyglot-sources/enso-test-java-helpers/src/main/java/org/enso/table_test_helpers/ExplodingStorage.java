@@ -108,9 +108,4 @@ public class ExplodingStorage extends Storage<Long> {
   public Storage<Long> slice(List<SliceRange> ranges) {
     return null;
   }
-
-  @Override
-  public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
-    return null;
-  }
 }
