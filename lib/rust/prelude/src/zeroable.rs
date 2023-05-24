@@ -15,6 +15,7 @@ pub enum ZeroableOption<T> {
 unsafe impl<T> Zeroable for ZeroableOption<T> {}
 
 impl<T> ZeroableOption<T> {
+    #[inline(always)]
     pub fn as_ref(&self) -> ZeroableOption<&T> {
         match self {
             ZeroableOption::None => ZeroableOption::None,
@@ -22,6 +23,7 @@ impl<T> ZeroableOption<T> {
         }
     }
 
+    #[inline(always)]
     pub fn as_mut(&mut self) -> ZeroableOption<&mut T> {
         match self {
             ZeroableOption::None => ZeroableOption::None,
@@ -29,6 +31,7 @@ impl<T> ZeroableOption<T> {
         }
     }
 
+    #[inline(always)]
     pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> ZeroableOption<U> {
         match self {
             ZeroableOption::None => ZeroableOption::None,
@@ -36,6 +39,7 @@ impl<T> ZeroableOption<T> {
         }
     }
 
+    #[inline(always)]
     pub fn is_some(&self) -> bool {
         match self {
             ZeroableOption::None => false,
@@ -43,10 +47,12 @@ impl<T> ZeroableOption<T> {
         }
     }
 
+    #[inline(always)]
     pub fn is_none(&self) -> bool {
         !self.is_some()
     }
 
+    #[inline(always)]
     pub fn unwrap(self) -> T {
         match self {
             ZeroableOption::None => panic!("Called `ZeroableOption::unwrap()` on a `None` value."),
@@ -57,12 +63,14 @@ impl<T> ZeroableOption<T> {
 
 
 #[derive(Clone, Copy, Zeroable)]
+#[repr(transparent)]
 pub struct ZeroableStaticStr {
     opt_str: ZeroableOption<&'static str>,
 }
 
 impl Deref for ZeroableStaticStr {
     type Target = str;
+    #[inline(always)]
     fn deref(&self) -> &Self::Target {
         match self.opt_str {
             ZeroableOption::None => "",
@@ -72,6 +80,7 @@ impl Deref for ZeroableStaticStr {
 }
 
 impl AsRef<str> for ZeroableStaticStr {
+    #[inline(always)]
     fn as_ref(&self) -> &str {
         self.deref()
     }

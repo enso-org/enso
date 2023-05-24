@@ -194,7 +194,7 @@ type TargetsVec = SmallVec<[NodeId; 1]>;
 // ===============
 
 thread_local! {
-    static RUNTIME: Rc<Runtime>  = default();
+    static RUNTIME: Runtime  = default();
 }
 
 #[inline(always)]
@@ -202,9 +202,9 @@ pub fn with_runtime<T>(f: impl FnOnce(&Runtime) -> T) -> T {
     RUNTIME.with(|runtime| f(runtime))
 }
 
-fn rc_runtime() -> Rc<Runtime> {
-    RUNTIME.with(|runtime| runtime.clone())
-}
+// fn rc_runtime() -> Rc<Runtime> {
+//     RUNTIME.with(|runtime| runtime.clone())
+// }
 
 
 #[derive(Default)]
@@ -341,8 +341,8 @@ impl Runtime {
 #[derivative(Debug)]
 pub struct Network {
     pub(crate) id: NetworkId,
-    #[derivative(Debug = "ignore")]
-    rt:            Rc<Runtime>,
+    // #[derivative(Debug = "ignore")]
+    // rt:            Rc<Runtime>,
     #[cfg(feature = "stack-trace")]
     span:          Cell<Option<DefInfo>>,
     #[cfg(not(feature = "stack-trace"))]
@@ -351,9 +351,9 @@ pub struct Network {
 
 impl Network {
     pub fn new() -> Self {
-        let rt = rc_runtime();
-        let id = rt.new_network();
-        Network { rt, id, span: default() }
+        // let rt = rc_runtime();
+        let id = with_runtime(|rt| rt.new_network());
+        Network { id, span: default() }
     }
 }
 
@@ -721,6 +721,8 @@ mod benches {
         });
     }
 
+    // 3739029
+    // 1744908
     #[bench]
     fn bench_emit_frp(bencher: &mut Bencher) {
         let net = Network::new();
@@ -737,6 +739,7 @@ mod benches {
         });
     }
 
+    // 1036659
     #[bench]
     fn bench_emit_frp_old(bencher: &mut Bencher) {
         let net = frp_old::Network::new("label");
@@ -887,6 +890,7 @@ impl CellSlotMap {
         })
     }
 
+    #[inline(always)]
     pub fn with_item_borrow<R>(&self, key: NodeId, f: impl FnOnce(&NodeData) -> R) -> Option<R> {
         self.list.with_item_borrow(key.index, |slot| {
             (slot.version == key.version).then(|| f(&slot.value))
@@ -971,6 +975,7 @@ impl<T: Default + Zeroable, const N: usize> LinkedCellArray<T, N> {
 }
 
 impl<T: Zeroable, const N: usize> LinkedCellArray<T, N> {
+    #[inline(always)]
     fn with_first_segment<R>(&self, f: impl FnOnce(&Segment<T, N>) -> R) -> R {
         if self.first_segment.borrow().is_none() {
             *self.first_segment.borrow_mut() = ZeroableOption::Some(Box::new(Segment::default()));
@@ -987,18 +992,22 @@ impl<T: Zeroable, const N: usize> LinkedCellArray<T, N> {
         self.with_item_borrow(index, Clone::clone)
     }
 
+    #[inline(always)]
     pub fn with_item_borrow<U>(&self, index: usize, f: impl FnOnce(&T) -> U) -> U {
         self.with_first_segment(|s| s.with_item_borrow(index, f))
     }
 
+    #[inline(always)]
     pub fn with_item_borrow_mut<U>(&self, index: usize, f: impl FnOnce(&mut T) -> U) -> U {
         self.with_first_segment(|s| s.with_item_borrow_mut(index, f))
     }
 
+    #[inline(always)]
     pub fn for_item_borrow(&self, f: impl FnMut(&T)) {
         self.with_first_segment(|s| s.for_item_borrow(self.size.get(), f));
     }
 
+    #[inline(always)]
     pub fn for_item_borrow_mut(&self, f: impl FnMut(&mut T)) {
         self.with_first_segment(|s| s.for_item_borrow_mut(self.size.get(), f));
     }
@@ -1034,10 +1043,12 @@ impl<T: Default + Zeroable, const N: usize> Segment<T, N> {
 }
 
 impl<T, const N: usize> Segment<T, N> {
+    #[inline(always)]
     fn set(&self, offset: usize, elem: T) {
         self.with_item_borrow_mut(offset, |t| *t = elem);
     }
 
+    #[inline(always)]
     fn with_item_borrow<U>(&self, offset: usize, f: impl FnOnce(&T) -> U) -> U {
         if offset < N {
             f(&*self.items[offset].borrow())
@@ -1046,6 +1057,7 @@ impl<T, const N: usize> Segment<T, N> {
         }
     }
 
+    #[inline(always)]
     fn with_item_borrow_mut<U>(&self, offset: usize, f: impl FnOnce(&mut T) -> U) -> U {
         if offset < N {
             f(&mut *self.items[offset].borrow_mut())
@@ -1054,6 +1066,7 @@ impl<T, const N: usize> Segment<T, N> {
         }
     }
 
+    #[inline(always)]
     fn for_item_borrow(&self, count: usize, mut f: impl FnMut(&T)) {
         for item in self.items.iter().take(count) {
             f(&*item.borrow());
@@ -1063,6 +1076,7 @@ impl<T, const N: usize> Segment<T, N> {
         }
     }
 
+    #[inline(always)]
     fn for_item_borrow_mut(&self, count: usize, mut f: impl FnMut(&mut T)) {
         for item in self.items.iter().take(count) {
             f(&mut *item.borrow_mut());
