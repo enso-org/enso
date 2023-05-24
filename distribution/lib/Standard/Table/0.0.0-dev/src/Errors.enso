@@ -473,11 +473,11 @@ type No_Common_Type
     to_display_text : Text
     to_display_text self =
         types = self.types.map .to_display_text . join ", "
-        prefix = "No common type could have been found for the types: "+types
+        prefix = "No common type was found for types: "+types
         infix = case self.related_column_name of
-            column_name : Text -> " when unifying the column ["+column_name+"]."
+            column_name : Text -> " when unifying column ["+column_name+"]."
             _ -> "."
-        suffix = "If you want to allow mixed types, please retype the columns to the `Mixed` before the concatenation (note however that most Database backends do not support `Mixed` types, so it may work only for the in-memory backend)."
+        suffix = " If you want to allow mixed types, please retype one of the columns to `Mixed` before the operation."
         prefix + infix + suffix
 
 type Unmatched_Columns
