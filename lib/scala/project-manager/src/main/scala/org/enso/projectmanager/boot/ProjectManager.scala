@@ -309,7 +309,7 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
     ZIO.succeed(SuccessExitCode)
   }
 
-  private def logServerStartup(processConfig: ProcessConfig): UIO[Unit] =
+  private def logServerStartup(processConfig: MainProcessConfig): UIO[Unit] =
     ZIO.succeed {
       logger.info(
         "Started server at {}:{}, press enter to kill server",
@@ -320,7 +320,7 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
 
   private def bindServer(
     module: MainModule[ZIO[ZAny, +*, +*]],
-    processConfig: ProcessConfig
+    processConfig: MainProcessConfig
   ): UIO[Http.ServerBinding] =
     ZIO.succeed {
       Await.result(
