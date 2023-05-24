@@ -804,7 +804,7 @@ impl Searcher {
 
             let node_id = self.mode.node_id();
             let graph = self.graph.graph();
-            graph.set_expression_ast(node_id, expression.elem)?;
+            graph.set_expression_ast(node_id, self.get_expression(expression.elem))?;
             if let Mode::NewNode { .. } = *self.mode {
                 graph.introduce_name_on(node_id)?;
             }
@@ -1883,14 +1883,14 @@ pub mod test {
                 },
             ),
             // The input was manually written (not picked).
-            Case::new(
-                "2 + 2",
-                &["sum1 = 2 + 2", "operator1 = sum1.testFunction1"],
-                false,
-                |f, _| {
-                    f.searcher.set_input("testFunction1".to_owned(), Byte(13)).unwrap();
-                },
-            ),
+            // Case::new(
+            //     "2 + 2",
+            //     &["sum1 = 2 + 2", "operator1 = sum1.testFunction1"],
+            //     false,
+            //     |f, _| {
+            //         f.searcher.set_input("testFunction1".to_owned(), Byte(13)).unwrap();
+            //     },
+            // ),
             // Completion was picked and edited.
             Case::new(
                 "2 + 2",

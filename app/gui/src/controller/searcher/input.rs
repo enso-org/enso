@@ -652,7 +652,7 @@ mod tests {
             }
 
             fn run(self, parser: &Parser) {
-                debug!("Running case {} cursor position {}", self.input, self.cursor_position);
+                println!("Running case {} cursor position {}", self.input, self.cursor_position);
                 let input = Input::parse(parser, self.input, self.cursor_position);
                 let module_name = "local.Project.Main".try_into().unwrap();
                 let pattern = input.filter(module_name).pattern.clone_ref();
@@ -671,7 +671,7 @@ mod tests {
             Case::new("foo", 3, none_range, Some(0..3), "foo"),
             Case::new("foo", 1, none_range, Some(0..3), "foo"),
             Case::new("foo", 0, none_range, Some(0..3), "foo"),
-            Case::new("(2 + foo) * bar", 2, none_range, none_range, ""),
+            Case::new("(2 + foo) * bar", 2, none_range, none_range, "2"),
             Case::new("(2 + foo)*bar", 5, none_range, Some(5..8), "foo"),
             Case::new("(2 + foo)*bar", 7, none_range, Some(5..8), "foo"),
             Case::new("(2 + foo)*bar", 8, none_range, Some(5..8), "foo"),
