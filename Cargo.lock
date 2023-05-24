@@ -907,9 +907,23 @@ checksum = "be0fdd54b507df8f22012890aadd099979befdba27713c767993f8380112ca7c"
 
 [[package]]
 name = "bytemuck"
-version = "1.13.0"
+version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c041d3eab048880cb0b86b256447da3f18859a163c3b8d8893f4e6368abe6393"
+checksum = "17febce684fd15d89027105661fec94afb475cb995fbc59d2865198446ba2eea"
+dependencies = [
+ "bytemuck_derive",
+]
+
+[[package]]
+name = "bytemuck_derive"
+version = "1.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fdde5c9cd29ebd706ce1b35600920a33550e402fc998a2e53ad3b42c3c47a192"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.15",
+]
 
 [[package]]
 name = "byteorder"
@@ -2114,6 +2128,7 @@ name = "enso-frp2"
 version = "0.1.0"
 dependencies = [
  "bumpalo",
+ "bytemuck",
  "enso-frp",
  "enso-prelude",
  "ouroboros",
@@ -2359,6 +2374,7 @@ dependencies = [
  "assert_approx_eq",
  "backtrace",
  "boolinator",
+ "bytemuck",
  "derivative",
  "derive_more",
  "enso-logging",

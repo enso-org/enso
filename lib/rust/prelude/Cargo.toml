@@ -37,6 +37,7 @@ smallvec = { workspace = true }
 wasm-bindgen = { workspace = true }
 weak-table = { workspace = true }
 gen-iter = { workspace = true }
+bytemuck = { workspace = true }
 
 [dependencies.web-sys]
 version = "0.3.4"

@@ -52,6 +52,7 @@ mod test;
 mod tp;
 mod vec;
 mod wrapper;
+mod zeroable;
 
 pub use crate::bool::*;
 pub use crate::serde::*;
@@ -84,6 +85,7 @@ pub use test::traits::*;
 pub use tp::*;
 pub use vec::*;
 pub use wrapper::*;
+pub use zeroable::*;
 
 pub use assert_approx_eq::assert_approx_eq;
 pub use boolinator::Boolinator;

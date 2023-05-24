@@ -4,10 +4,9 @@ use ouroboros::self_referencing;
 use slotmap::Key;
 use slotmap::SecondaryMap;
 use slotmap::SlotMap;
+use smallvec::SmallVec;
 use std::cell::UnsafeCell;
 use std::process::Output;
-
-use smallvec::SmallVec;
 
 use crate::callstack::CallStack;
 use crate::callstack::DefInfo;
@@ -15,13 +14,15 @@ use crate::callstack::DefInfo;
 pub use enso_prelude as prelude;
 
 use enso_frp as frp_old;
+use enso_frp::prelude::bytemuck::ZeroableInOption;
 // use std::any::Any as Data;
 
 // #[derive(Clone, Copy, Debug)]
 // pub struct Data(usize);
 
 
-#[derive(Debug, Default)]
+
+#[derive(Debug, Default, Zeroable)]
 pub struct OptRefCell<T> {
     inner: UnsafeCell<T>,
 }
@@ -125,20 +126,20 @@ struct NetworkData {
 
 
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Zeroable)]
 pub struct OutputConnection {
     pub target:           NodeId,
     pub behavior_request: bool,
 }
 
-#[derive(Default)]
+#[derive(Default, Zeroable)]
 pub struct NodeData {
-    tp:                Option<Box<dyn EventConsumer>>,
+    tp:                ZeroableOption<Box<dyn EventConsumer>>,
     network_id:        NetworkId,
     def:               DefInfo,
     inputs:            LinkedCellArray<NodeId, 8>,
     outputs:           LinkedCellArray<OutputConnection, 8>,
-    output:            OptRefCell<Option<Box<dyn Data>>>,
+    output:            OptRefCell<ZeroableOption<Box<dyn Data>>>,
     behavior_requests: Cell<usize>,
 }
 
@@ -151,7 +152,7 @@ impl Debug for NodeData {
 impl NodeData {
     fn new(tp: impl EventConsumer + 'static, network_id: NetworkId, def: DefInfo) -> Self {
         Self {
-            tp: Some(Box::new(tp)),
+            tp: ZeroableOption::Some(Box::new(tp)),
             network_id,
             def,
             inputs: default(),
@@ -171,13 +172,17 @@ impl NodeData {
     ) {
         // println!("on_event: {:?}", event);
         match &self.tp {
-            Some(f) => f(EventData { runtime, data: self, source_id, source_edge }, event),
-            None => {}
+            ZeroableOption::Some(f) =>
+                f(EventData { runtime, data: self, source_id, source_edge }, event),
+            ZeroableOption::None => {}
         }
     }
 }
-
 slotmap::new_key_type! { pub struct NetworkId; }
+
+// FIXME: this is wrong!
+unsafe impl Zeroable for NetworkId {}
+
 // slotmap::new_key_type! { pub struct NodeId; }
 
 type TargetsVec = SmallVec<[NodeId; 1]>;
@@ -243,10 +248,14 @@ impl Runtime {
         def: DefInfo,
     ) -> NodeId {
         self.metrics.inc_nodes();
-
         let mut networks = self.networks.borrow_mut();
         if let Some(network) = networks.get_mut(network_id) {
-            let id = self.nodes.insert(NodeData::new(tp, network_id, def));
+            let id = self.nodes.insert_default();
+            self.nodes.with_item_borrow_mut(id, |node| {
+                node.tp = ZeroableOption::Some(Box::new(tp));
+                node.network_id = network_id;
+                node.def = def;
+            });
             network.nodes.push(id);
             id
         } else {
@@ -272,7 +281,7 @@ impl Runtime {
         // println!("unchecked_emit {:?} {:?}", node_id, event);
         self.nodes.with_item_borrow(node_id, |node| {
             if node.behavior_requests.get() > 0 {
-                *node.output.borrow_mut() = Some(event.boxed_clone());
+                *node.output.borrow_mut() = ZeroableOption::Some(event.boxed_clone());
             }
 
             let cleanup_targets = self.stack.with(node.def, || {
@@ -312,7 +321,7 @@ impl Runtime {
     ) {
         self.nodes.with_item_borrow(node_id, |node| {
             let output = node.output.borrow();
-            if let Some(output) = output.as_ref().map(|t| &**t) {
+            if let ZeroableOption::Some(output) = output.as_ref().map(|t| &**t) {
                 let output_coerced = unsafe { &*(output as *const dyn Data as *const T) };
                 f(output_coerced)
             } else {
@@ -390,9 +399,7 @@ where F: Fn(TypedNodeData<Output>) + 'static
     #[inline(always)]
     fn define_node(&self, _inputs: (), f: F) -> NodeTemplate<Kind, Output> {
         let node = NodeTemplate::new_template(
-            move |event_data: EventData, _event: &dyn Data| {
-                f(event_data.unchecked_into());
-            },
+            move |event_data: EventData, _event: &dyn Data| f(event_data.unchecked_into()),
             self.id,
         );
         node
@@ -748,12 +755,13 @@ mod benches {
         });
     }
 
+    // 802285
     #[bench]
     fn bench_create_frp(bencher: &mut Bencher) {
         bencher.iter(move || {
             with_runtime(|rt| rt.unsafe_clear());
             let net = Network::new();
-            for i in 0..10_000 {
+            for i in 0..100_000 {
                 let src1 = net.source::<usize>();
                 // let src2 = net.source::<usize>();
                 // let m1 = net.map2(src1, src2, map_fn);
@@ -761,6 +769,8 @@ mod benches {
         });
     }
 
+    // 9649256
+    // 9849220
     #[bench]
     fn bench_create_frp_old(bencher: &mut Bencher) {
         bencher.iter(move || {
@@ -772,6 +782,18 @@ mod benches {
                 // let src2 = net.source::<usize>();
                 // let m1 = net.map2(src1, src2, map_fn);
             }
+        });
+    }
+
+    // 42284
+    #[bench]
+    fn bench_push_to_vector(bencher: &mut Bencher) {
+        bencher.iter(move || {
+            let mut vec = Vec::with_capacity(100_000);
+            for i in 0..100_000 {
+                vec.push(i);
+            }
+            assert_eq!(vec.len(), 100_000);
         });
     }
 
@@ -793,13 +815,13 @@ mod benches {
 // 3411847
 // 1941622
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Zeroable)]
 pub struct NodeId {
     index:   usize,
     version: usize,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Zeroable)]
 pub struct Slot {
     value:   NodeData,
     version: usize,
@@ -808,7 +830,7 @@ pub struct Slot {
 #[derive(Debug, Default)]
 pub struct CellSlotMap {
     free_indexes: OptRefCell<Vec<usize>>,
-    list:         LinkedCellArray<Slot, 8192>,
+    list:         LinkedCellArray<Slot, 131072>,
 }
 
 impl CellSlotMap {
@@ -891,21 +913,19 @@ pub trait LinkedArrayDefault<T, const N: usize> = where [OptRefCell<T>; N]: Defa
 
 #[derive(Debug)]
 pub struct Segment<T, const N: usize> {
-    items: [OptRefCell<T>; N],
+    items: Box<[OptRefCell<T>; N]>,
     next:  OptRefCell<Option<Box<Segment<T, N>>>>,
 }
 
-impl<T: Default, const N: usize> Default for Segment<T, N> {
+impl<T: Zeroable, const N: usize> Default for Segment<T, N> {
     fn default() -> Self {
         let items = {
-            let mut data: [OptRefCell<T>; N] = unsafe { std::mem::uninitialized() };
-
-            for elem in &mut data[..] {
-                unsafe {
-                    std::ptr::write(elem, default());
-                }
-            }
-            data
+            let layout = std::alloc::Layout::array::<OptRefCell<T>>(N).unwrap();
+            let vec =
+                unsafe { Vec::from_raw_parts(std::alloc::alloc_zeroed(layout) as *mut _, N, N) };
+            let boxed_slice = vec.into_boxed_slice();
+            let ptr = ::std::boxed::Box::into_raw(boxed_slice) as *mut [OptRefCell<T>; N];
+            unsafe { Box::from_raw(ptr) }
         };
         let next = default();
         Self { items, next }
@@ -916,10 +936,13 @@ impl<T: Default, const N: usize> Default for Segment<T, N> {
 #[derivative(Default(bound = "T: Default"))]
 pub struct LinkedCellArray<T, const N: usize = 32> {
     size:          Cell<usize>,
-    first_segment: Segment<T, N>,
+    first_segment: OptRefCell<ZeroableOption<Box<Segment<T, N>>>>,
 }
 
-impl<T: Default, const N: usize> LinkedCellArray<T, N> {
+// FIXME: make it future sound-proof
+unsafe impl<T, const N: usize> Zeroable for LinkedCellArray<T, N> {}
+
+impl<T: Default + Zeroable, const N: usize> LinkedCellArray<T, N> {
     pub fn clear(&self) {
         self.size.set(0);
     }
@@ -933,23 +956,30 @@ impl<T: Default, const N: usize> LinkedCellArray<T, N> {
     }
 
     pub fn push(&self, elem: T) {
-        self.first_segment.push(self.size.get(), elem);
+        self.with_first_segment(|s| s.push(self.size.get(), elem));
         self.size.modify(|t| *t += 1);
     }
 
     fn push_default(&self) -> usize {
         let index = self.size.get();
         if index % N == 0 {
-            self.first_segment.add_tail_segment();
+            self.with_first_segment(|s| s.add_tail_segment());
         }
         self.size.modify(|t| *t += 1);
         index
     }
 }
 
-impl<T, const N: usize> LinkedCellArray<T, N> {
+impl<T: Zeroable, const N: usize> LinkedCellArray<T, N> {
+    fn with_first_segment<R>(&self, f: impl FnOnce(&Segment<T, N>) -> R) -> R {
+        if self.first_segment.borrow().is_none() {
+            *self.first_segment.borrow_mut() = ZeroableOption::Some(Box::new(Segment::default()));
+        }
+        f(&*self.first_segment.borrow().as_ref().unwrap())
+    }
+
     pub fn set(&self, index: usize, elem: T) {
-        self.first_segment.set(index, elem);
+        self.with_first_segment(|s| s.set(index, elem));
     }
 
     pub fn get_cloned(&self, index: usize) -> T
@@ -958,29 +988,29 @@ impl<T, const N: usize> LinkedCellArray<T, N> {
     }
 
     pub fn with_item_borrow<U>(&self, index: usize, f: impl FnOnce(&T) -> U) -> U {
-        self.first_segment.with_item_borrow(index, f)
+        self.with_first_segment(|s| s.with_item_borrow(index, f))
     }
 
     pub fn with_item_borrow_mut<U>(&self, index: usize, f: impl FnOnce(&mut T) -> U) -> U {
-        self.first_segment.with_item_borrow_mut(index, f)
+        self.with_first_segment(|s| s.with_item_borrow_mut(index, f))
     }
 
     pub fn for_item_borrow(&self, f: impl FnMut(&T)) {
-        self.first_segment.for_item_borrow(self.size.get(), f);
+        self.with_first_segment(|s| s.for_item_borrow(self.size.get(), f));
     }
 
     pub fn for_item_borrow_mut(&self, f: impl FnMut(&mut T)) {
-        self.first_segment.for_item_borrow_mut(self.size.get(), f);
+        self.with_first_segment(|s| s.for_item_borrow_mut(self.size.get(), f));
     }
 }
 
-impl<T: Copy, const N: usize> LinkedCellArray<T, N> {
+impl<T: Copy + Zeroable, const N: usize> LinkedCellArray<T, N> {
     pub fn get(&self, index: usize) -> T {
         self.with_item_borrow(index, |t| *t)
     }
 }
 
-impl<T: Default, const N: usize> Segment<T, N> {
+impl<T: Default + Zeroable, const N: usize> Segment<T, N> {
     fn push(&self, offset: usize, elem: T) {
         if offset < N {
             *self.items[offset].borrow_mut() = elem;

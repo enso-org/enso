@@ -1,9 +1,10 @@
+use crate::prelude::bytemuck;
 use crate::prelude::*;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Zeroable)]
 pub struct Label(#[cfg(feature = "stack-trace")] &'static str);
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Zeroable)]
 pub struct Hidden(#[cfg(feature = "stack-trace")] bool);
 
 impl Hidden {
@@ -44,11 +45,11 @@ impl Display for Label {
 }
 
 #[cfg(feature = "stack-trace")]
-#[derive(Clone, Copy, Debug, Default)]
-pub struct Location(u32, &'static str);
+#[derive(Clone, Copy, Debug, Default, Zeroable)]
+pub struct Location(u32, ZeroableStaticStr);
 
 #[cfg(not(feature = "stack-trace"))]
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Zeroable)]
 pub struct Location();
 
 impl Location {
@@ -89,7 +90,7 @@ impl Display for Location {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Zeroable)]
 pub struct DefInfo {
     pub label:    Label,
     pub location: Location,

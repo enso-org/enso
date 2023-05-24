@@ -11,6 +11,7 @@ bumpalo = { version = "3.12.2", features = ["allocator_api"] }
 ouroboros = "0.15.6"
 smallvec = "1.10.0"
 slotmap = "1.0.6"
+bytemuck = { workspace = true }
 
 [features]
 stack-trace = []
