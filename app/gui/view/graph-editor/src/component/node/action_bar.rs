@@ -12,7 +12,8 @@ use ensogl::display;
 use ensogl_component::toggle_button;
 use ensogl_component::toggle_button::ColorableShape;
 use ensogl_component::toggle_button::ToggleButton;
-use ensogl_hardcoded_theme as theme;
+use ensogl_hardcoded_theme::graph_editor::node::actions as theme;
+
 
 
 // ==============
@@ -134,13 +135,6 @@ impl Icons {
         self.context_switch.set_read_only(read_only);
         self.freeze.frp.set_read_only(read_only);
         self.skip.frp.set_read_only(read_only);
-    }
-
-    fn set_color_scheme(&self, color_scheme: &toggle_button::ColorScheme) {
-        self.visibility.frp.set_color_scheme(color_scheme);
-        self.context_switch.set_color_scheme(color_scheme);
-        self.freeze.frp.set_color_scheme(color_scheme);
-        self.skip.frp.set_color_scheme(color_scheme);
     }
 }
 
@@ -378,10 +372,10 @@ impl ActionBar {
     pub fn new(app: &Application) -> Self {
         let model = Rc::new(Model::new(app));
         let frp = Frp::new();
-        ActionBar { frp, model }.init_frp()
+        ActionBar { frp, model }.init_frp(app)
     }
 
-    fn init_frp(self) -> Self {
+    fn init_frp(self, app: &Application) -> Self {
         let network = &self.frp.network;
         let frp = &self.frp;
         let model = &self.model;
@@ -459,20 +453,11 @@ impl ActionBar {
             );
         }
 
-        use theme::graph_editor::node::actions;
-        let color_scheme = toggle_button::ColorScheme {
-            non_toggled: Some(model.styles.get_color(actions::button::non_toggled).into()),
-            toggled: Some(model.styles.get_color(actions::button::toggled).into()),
-            hovered: Some(model.styles.get_color(actions::button::hovered).into()),
-            ..default()
-        };
+        let scene = &app.display.default_scene;
         let context_switch_color_scheme = toggle_button::ColorScheme {
-            non_toggled: Some(model.styles.get_color(actions::context_switch::non_toggled).into()),
-            toggled: Some(model.styles.get_color(actions::context_switch::toggled).into()),
-            hovered: Some(model.styles.get_color(actions::context_switch::hovered).into()),
-            ..default()
+            toggled: Some(model.styles.get_color(theme::context_switch::toggled).into()),
+            ..toggle_button::default_color_scheme(&scene.style_sheet)
         };
-        model.icons.set_color_scheme(&color_scheme);
         model.icons.context_switch.set_color_scheme(&context_switch_color_scheme);
 
         frp.show_on_hover.emit(true);

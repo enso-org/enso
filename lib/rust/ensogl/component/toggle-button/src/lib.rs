@@ -18,6 +18,7 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
@@ -27,7 +28,9 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::system::Shape;
 use ensogl_core::display::shape::system::ShapeWithDefaultableData;
+use ensogl_core::display::style;
 use ensogl_core::gui::component::ShapeView;
+use ensogl_hardcoded_theme::component::toggle_button as theme;
 
 
 
@@ -159,6 +162,18 @@ impl ColorScheme {
     }
 }
 
+/// Return the default color scheme for the given style sheet.
+pub fn default_color_scheme(style_sheet: &style::Sheet) -> ColorScheme {
+    let styles = StyleWatch::new(style_sheet);
+    ColorScheme {
+        non_toggled: Some(styles.get_color(theme::non_toggled).into()),
+        toggled: Some(styles.get_color(theme::toggled).into()),
+        hovered: Some(styles.get_color(theme::hovered).into()),
+        ..default()
+    }
+}
+
+
 
 // === Getters ===
 
@@ -283,7 +298,9 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
         }
 
         frp.set_state.emit(false);
-        color.target_alpha.emit(0.0);
+        frp.set_visibility.emit(true);
+        let color_scheme = default_color_scheme(&app.display.default_scene.style_sheet);
+        frp.set_color_scheme.emit(color_scheme);
         self
     }
 

@@ -329,6 +329,16 @@ impl Model {
             }
         });
     }
+
+    fn show_dashboard(&self) {
+        match enso_web::Event::new("show-dashboard") {
+            Ok(event) =>
+                if let Err(error) = enso_web::document.dispatch_event(&event) {
+                    error!("Failed to dispatch event to show the dashboard. {error:?}");
+                },
+            Err(error) => error!("Failed to create event to show the dashboard. {error:?}"),
+        }
+    }
 }
 
 
@@ -429,6 +439,8 @@ impl Project {
             view.set_read_only <+ view.toggle_read_only.map(f_!(model.toggle_read_only()));
             eval graph_view.execution_environment((env) model.execution_environment_changed(*env));
             eval_ graph_view.execution_environment_play_button_pressed( model.trigger_clean_live_execution());
+
+            eval_ view.go_to_dashboard_button_pressed (model.show_dashboard());
         }
 
         let graph_controller = self.model.graph_controller.clone_ref();

@@ -10,8 +10,8 @@ export function fileExtension(fileName: string) {
     return fileName.match(/\.(.+?)$/)?.[1] ?? ''
 }
 
-/** Return the appropriate icon for a specific file extension. */
-export function fileIcon(_extension: string) {
+/** Returns the appropriate icon for a specific file extension. */
+export function fileIcon() {
     return svg.FILE_ICON
 }
 

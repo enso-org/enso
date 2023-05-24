@@ -96,24 +96,23 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     }, [state])
 
     react.useEffect(() => {
-        void (async () => {
-            const projectDetails = await backend.getProjectDetails(project.id)
-            switch (projectDetails.state.type) {
-                case backendModule.ProjectState.openInProgress:
-                    setState(projectDetails.state.type)
-                    setIsCheckingStatus(true)
-                    break
-                case backendModule.ProjectState.opened:
-                    setState(backendModule.ProjectState.openInProgress)
-                    setIsCheckingResources(true)
-                    break
-                default:
-                    // Some functions below set the state to something different to
-                    // the backend state. In that case, the state should not be overridden.
-                    setState(previousState => previousState ?? projectDetails.state.type)
-                    break
-            }
-        })()
+        switch (project.projectState.type) {
+            case backendModule.ProjectState.opened:
+                setState(backendModule.ProjectState.openInProgress)
+                setSpinnerState(SpinnerState.initial)
+                setIsCheckingResources(true)
+                break
+            case backendModule.ProjectState.openInProgress:
+                setState(backendModule.ProjectState.openInProgress)
+                setSpinnerState(SpinnerState.initial)
+                setIsCheckingStatus(true)
+                break
+            default:
+                // Some functions below set the state to something different to
+                // the backend state. In that case, the state should not be overridden.
+                setState(previousState => previousState ?? project.projectState.type)
+                break
+        }
     }, [])
 
     react.useEffect(() => {
