@@ -41,12 +41,13 @@ pub fn init_frp(frp: &Frp, model: &GraphEditorModelWithNetwork) {
         // === Layout ===
 
         init <- source::<()>();
-        size_update <- all(init,selector.size,inputs.space_for_window_buttons);
-        eval size_update ([model]((_,size,gap_size)) {
+        size_update <- all(init, selector.size, inputs.graph_editor_top_bar_offset_x);
+        eval size_update ([model] ((_, size, graph_editor_top_bar_offset_x)) {
             let y_offset = MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER;
             let traffic_light_width = traffic_lights_gap_width();
 
-            let execution_environment_selector_x = gap_size.x + traffic_light_width;
+            let execution_environment_selector_x =
+                graph_editor_top_bar_offset_x + traffic_light_width;
             model.execution_environment_selector.set_x(execution_environment_selector_x);
             let breadcrumb_gap_width =
                 execution_environment_selector_x + size.x + TOP_BAR_ITEM_MARGIN;

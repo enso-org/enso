@@ -8,6 +8,7 @@ use crate::controller::searcher::RequiredImport;
 
 use ast::HasTokens;
 use double_representation::name::QualifiedName;
+use double_representation::name::QualifiedNameRef;
 use enso_text as text;
 use parser::Parser;
 
@@ -303,7 +304,7 @@ impl Input {
     }
 
     /// Return the filtering pattern for the input.
-    pub fn filter(&self) -> Filter {
+    pub fn filter(&self, module_name: QualifiedName) -> Filter {
         let pattern = if let Some(edited) = &self.edited_ast.edited_name {
             let cursor_position_in_name = self.cursor_position - edited.range.start;
             let name = ast::identifier::name(&edited.ast);
@@ -315,7 +316,8 @@ impl Input {
             default()
         };
         let context = self.context().map(|c| c.into_ast().repr().to_im_string());
-        Filter { pattern, context }
+        let module_name = Rc::new(module_name);
+        Filter { pattern, context, module_name }
     }
 
     /// Return the accessor chain being the context of the edited name, i.e. the preceding fully
@@ -451,13 +453,13 @@ impl InsertContext<'_> {
         }
     }
 
-    fn code_to_insert(&self) -> (Cow<str>, Option<RequiredImport>) {
+    fn code_to_insert(&self, in_module: QualifiedNameRef) -> (Cow<str>, Option<RequiredImport>) {
         match self.suggestion {
             action::Suggestion::FromDatabase(entry) => {
                 if let Some((segments, import)) = self.segments_to_replace() {
                     (Cow::from(segments.iter().join(ast::opr::predefined::ACCESS)), import)
                 } else {
-                    let code = entry.code_to_insert(self.generate_this);
+                    let code = entry.code_to_insert(self.generate_this, in_module);
                     let import = Some(RequiredImport::Entry(entry.clone_ref()));
                     (code, import)
                 }
@@ -475,6 +477,7 @@ impl Input {
         &self,
         suggestion: &action::Suggestion,
         has_this: bool,
+        in_module: QualifiedNameRef,
     ) -> FallibleResult<InsertedSuggestion> {
         let context = self.context();
         let generate_this = !has_this;
@@ -485,7 +488,7 @@ impl Input {
         } else {
             self.edited_name_range().unwrap_or(default_range)
         };
-        let (code_to_insert, import) = context.code_to_insert();
+        let (code_to_insert, import) = context.code_to_insert(in_module);
         debug!("Code to insert: \"{code_to_insert}\"");
         let end_of_inserted_code = replaced.start + text::Bytes(code_to_insert.len());
         let end_of_inserted_text = end_of_inserted_code + text::Bytes(1);
@@ -635,7 +638,8 @@ mod tests {
             fn run(self, parser: &Parser) {
                 debug!("Running case {} cursor position {}", self.input, self.cursor_position);
                 let input = Input::parse(parser, self.input, self.cursor_position);
-                let pattern = input.filter().pattern.clone_ref();
+                let module_name = "local.Project.Main".try_into().unwrap();
+                let pattern = input.filter(module_name).pattern.clone_ref();
                 assert_eq!(input.cursor_position, self.cursor_position);
                 assert_eq!(input.edited_ast.edited_name.map(|a| a.range), self.expected_name_range);
                 assert_eq!(

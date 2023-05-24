@@ -11,9 +11,9 @@ import * as react from 'react'
  * In the browser, this is the `Console` interface. In Electron, this is the `Logger` interface
  * provided by the EnsoGL packager. */
 export interface Logger {
-    /** Logs a message to the console. */
+    /** Log a message to the console. */
     log: (message: unknown, ...optionalParams: unknown[]) => void
-    /** Logs an error message to the console. */
+    /** Log an error message to the console. */
     error: (message: unknown, ...optionalParams: unknown[]) => void
 }
 
@@ -29,11 +29,13 @@ const LoggerContext = react.createContext<Logger>({} as Logger)
 // === LoggerProvider ===
 // ======================
 
-interface LoggerProviderProps {
+/** Props for a {@link LoggerProvider}. */
+export interface LoggerProviderProps {
     children: react.ReactNode
     logger: Logger
 }
 
+/** A React provider containing the diagnostic logger. */
 export function LoggerProvider(props: LoggerProviderProps) {
     const { children, logger } = props
     return <LoggerContext.Provider value={logger}>{children}</LoggerContext.Provider>
@@ -43,6 +45,7 @@ export function LoggerProvider(props: LoggerProviderProps) {
 // === useLogger ===
 // =================
 
+/** A React context hook exposing the diagnostic logger. */
 export function useLogger() {
     return react.useContext(LoggerContext)
 }

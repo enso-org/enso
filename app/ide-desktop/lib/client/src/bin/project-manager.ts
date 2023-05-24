@@ -29,17 +29,17 @@ export function pathOrPanic(args: config.Args): string {
     }
 }
 
-/** Executes the Project Manager with given arguments. */
+/** Execute the Project Manager with given arguments. */
 async function exec(args: config.Args, processArgs: string[]) {
     const binPath = pathOrPanic(args)
     return await execFile(binPath, processArgs)
 }
 
-/** Spawn Project Manager process.
+/** Spawn the Project Manager process.
  *
- * The standard output and error handles will be redirected to the electron's app output and error
- * handles. Input is piped to this process, so it will not be closed, until this process
- * finished. */
+ * The standard output and error handles will be redirected to the output and error handles of the
+ * Electron app. Input is piped to this process, so it will not be closed until this process
+ * finishes. */
 export function spawn(args: config.Args, processArgs: string[]): childProcess.ChildProcess {
     return logger.groupMeasured(
         `Starting the backend process with the following options: ${processArgs.join(', ')}.`,
@@ -47,8 +47,8 @@ export function spawn(args: config.Args, processArgs: string[]): childProcess.Ch
             const binPath = pathOrPanic(args)
             const process = childProcess.spawn(binPath, processArgs, {
                 stdio: [/* stdin */ 'pipe', /* stdout */ 'inherit', /* stderr */ 'inherit'],
-                // The Project Manager should never spawn any windows. On Windows OS this needs to be
-                // manually prevented, as the default is to spawn a console window.
+                // The Project Manager should never spawn any windows. On Windows OS this needs
+                // to be manually prevented, as the default is to spawn a console window.
                 windowsHide: true,
             })
             logger.log(`Backend has been spawned (pid = ${String(process.pid)}).`)

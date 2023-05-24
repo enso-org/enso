@@ -2,6 +2,7 @@
  *
  * It should always be in sync with the Rust interface at
  * `app/gui/controller/engine-protocol/src/project_manager.rs`. */
+import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
 
 import GLOBAL_CONFIG from '../../../../../../../gui/config.yaml' assert { type: 'yaml' }
@@ -12,45 +13,57 @@ import GLOBAL_CONFIG from '../../../../../../../gui/config.yaml' assert { type: 
 
 /** Duration before the {@link ProjectManager} tries to create a WebSocket again. */
 const RETRY_INTERVAL_MS = 1000
-/** Duration after which the {@link ProjectManager} stops re-trying to create a WebSocket. */
-const STOP_TRYING_AFTER_MS = 10000
+/** The number of times in a row the {@link ProjectManager} will try to connect,
+ * before it throws an error. */
+const MAXIMUM_CONSECUTIVE_FAILS = 10
 
 // =============
 // === Types ===
 // =============
 
+/** Possible actions to take when a component is missing. */
 export enum MissingComponentAction {
     fail = 'Fail',
     install = 'Install',
     forceInstallBroken = 'ForceInstallBroken',
 }
 
+/** Metadata for a JSON-RPC error. */
 interface JSONRPCError {
     code: number
     message: string
     data?: unknown
 }
 
+/** Fields common to all return values of any JSON-RPC call. */
 interface JSONRPCBaseResponse {
     jsonrpc: '2.0'
     id: number
 }
 
+/** The return value of a successful JSON-RPC call. */
 interface JSONRPCSuccessResponse<T> extends JSONRPCBaseResponse {
     result: T
 }
 
+/** The return value of a failed JSON-RPC call. */
 interface JSONRPCErrorResponse extends JSONRPCBaseResponse {
     error: JSONRPCError
 }
 
+/** The return value of a JSON-RPC call. */
 type JSONRPCResponse<T> = JSONRPCErrorResponse | JSONRPCSuccessResponse<T>
 
 // This intentionally has the same brand as in the cloud backend API.
+/** An ID of a project. */
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
+/** A name of a project. */
 export type ProjectName = newtype.Newtype<string, 'ProjectName'>
-export type UTCDateTime = newtype.Newtype<string, 'UTCDateTime'>
+/** The newtype's `TypeName` is intentionally different from the name of this type alias,
+ * to match the backend's newtype. */
+export type UTCDateTime = dateTime.Rfc3339DateTime
 
+/** Details for a project. */
 export interface ProjectMetadata {
     name: ProjectName
     namespace: string
@@ -59,19 +72,23 @@ export interface ProjectMetadata {
     lastOpened: UTCDateTime | null
 }
 
+/** A value specifying the hostname and port of a socket. */
 export interface IpWithSocket {
     host: string
     port: number
 }
 
+/** The return value of the "list projects" endpoint. */
 export interface ProjectList {
     projects: ProjectMetadata[]
 }
 
+/** The return value of the "create project" endpoint. */
 export interface CreateProject {
     projectId: ProjectId
 }
 
+/** The return value of the "open project" endpoint. */
 export interface OpenProject {
     engineVersion: string
     languageServerJsonAddress: IpWithSocket
@@ -84,19 +101,23 @@ export interface OpenProject {
 // === Parameters for endpoints ===
 // ================================
 
+/** Parameters for the "open project" endpoint. */
 export interface OpenProjectParams {
     projectId: ProjectId
     missingComponentAction: MissingComponentAction
 }
 
+/** Parameters for the "close project" endpoint. */
 export interface CloseProjectParams {
     projectId: ProjectId
 }
 
+/** Parameters for the "list projects" endpoint. */
 export interface ListProjectsParams {
     numberOfProjects?: number
 }
 
+/** Parameters for the "create project" endpoint. */
 export interface CreateProjectParams {
     name: ProjectName
     projectTemplate?: string
@@ -104,15 +125,18 @@ export interface CreateProjectParams {
     missingComponentAction?: MissingComponentAction
 }
 
+/** Parameters for the "list samples" endpoint. */
 export interface RenameProjectParams {
     projectId: ProjectId
     name: ProjectName
 }
 
+/** Parameters for the "delete project" endpoint. */
 export interface DeleteProjectParams {
     projectId: ProjectId
 }
 
+/** Parameters for the "list samples" endpoint. */
 export interface ListSamplesParams {
     projectId: ProjectId
 }
@@ -134,43 +158,52 @@ export class ProjectManager {
 
     /** Create a {@link ProjectManager} */
     private constructor(protected readonly connectionUrl: string) {
+        let lastConnectionStartMs = 0
+        let consecutiveFails = 0
+        let justErrored = false
         const createSocket = () => {
+            lastConnectionStartMs = Number(new Date())
             this.resolvers = new Map()
             const oldRejecters = this.rejecters
             this.rejecters = new Map()
             for (const reject of oldRejecters.values()) {
                 reject()
             }
-            this.socketPromise = new Promise<WebSocket>((resolve, reject) => {
-                const handle = setInterval(() => {
-                    try {
-                        const socket = new WebSocket(this.connectionUrl)
-                        clearInterval(handle)
-                        socket.onmessage = event => {
-                            // There is no way to avoid this as `JSON.parse` returns `any`.
-                            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
-                            const message: JSONRPCResponse<never> = JSON.parse(event.data)
-                            if ('result' in message) {
-                                this.resolvers.get(message.id)?.(message.result)
-                            } else {
-                                this.rejecters.get(message.id)?.(message.error)
-                            }
-                        }
-                        socket.onopen = () => {
-                            resolve(socket)
-                        }
-                        socket.onerror = createSocket
-                        socket.onclose = createSocket
-                    } catch {
-                        // Ignored; the `setInterval` will retry again eventually.
+            return new Promise<WebSocket>((resolve, reject) => {
+                const socket = new WebSocket(this.connectionUrl)
+                socket.onmessage = event => {
+                    // There is no way to avoid this as `JSON.parse` returns `any`.
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
+                    const message: JSONRPCResponse<never> = JSON.parse(event.data)
+                    if ('result' in message) {
+                        this.resolvers.get(message.id)?.(message.result)
+                    } else {
+                        this.rejecters.get(message.id)?.(message.error)
                     }
-                }, RETRY_INTERVAL_MS)
-                setTimeout(() => {
-                    clearInterval(handle)
-                    reject()
-                }, STOP_TRYING_AFTER_MS)
+                }
+                socket.onopen = () => {
+                    consecutiveFails = 0
+                    resolve(socket)
+                }
+                socket.onerror = event => {
+                    event.preventDefault()
+                    justErrored = true
+                    consecutiveFails += 1
+                    if (consecutiveFails > MAXIMUM_CONSECUTIVE_FAILS) {
+                        reject()
+                    }
+                    const delay = RETRY_INTERVAL_MS - (Number(new Date()) - lastConnectionStartMs)
+                    setTimeout(() => {
+                        void createSocket().then(resolve)
+                    }, Math.max(0, delay))
+                }
+                socket.onclose = () => {
+                    if (!justErrored) {
+                        this.socketPromise = createSocket()
+                    }
+                    justErrored = false
+                }
             })
-            return this.socketPromise
         }
         this.socketPromise = createSocket()
     }
@@ -221,6 +254,7 @@ export class ProjectManager {
         return this.sendRequest<ProjectList>('project/listSample', params)
     }
 
+    /** Remove all handlers for a specified request ID. */
     private cleanup(id: number) {
         this.resolvers.delete(id)
         this.rejecters.delete(id)

@@ -11,11 +11,17 @@ import * as svg from '../../components/svg'
 
 import Modal from './modal'
 
+// =======================
+// === UploadFileModal ===
+// =======================
+
+/** Props for an {@link UploadFileModal}. */
 export interface UploadFileModalProps {
     directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 
+/** A modal for uploading a file. */
 function UploadFileModal(props: UploadFileModalProps) {
     const { directoryId, onSuccess } = props
     const { backend } = backendProvider.useBackend()
@@ -104,13 +110,7 @@ function UploadFileModal(props: UploadFileModalProps) {
                                     {file ? fileInfo.toReadableSize(file.size) : '\u00a0'}
                                 </div>
                             </div>
-                            <div>
-                                {file ? (
-                                    fileInfo.fileIcon(fileInfo.fileExtension(file.name))
-                                ) : (
-                                    <></>
-                                )}
-                            </div>
+                            <div>{file && fileInfo.fileIcon()}</div>
                         </div>
                     </div>
                     <div className="m-1">

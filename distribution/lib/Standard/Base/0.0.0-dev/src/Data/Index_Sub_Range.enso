@@ -17,6 +17,7 @@ import project.Runtime.Ref.Ref
 
 from project.Data.Boolean import Boolean, True, False
 
+import project.Metadata.Widget
 from project.Metadata.Widget import Single_Choice
 from project.Metadata.Choice import Option
 import project.Metadata.Display
@@ -90,7 +91,7 @@ type Index_Sub_Range
         [o1, o2, o3, o4, o5, o6, o7]
 
     ## PRIVATE
-    default_widget : Single_Choice
+    default_widget : Widget
     default_widget =
         Single_Choice display=Display.Always Index_Sub_Range.default_options
 

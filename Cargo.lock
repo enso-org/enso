@@ -1943,6 +1943,7 @@ dependencies = [
  "enso-build",
  "enso-build-base",
  "enso-formatter",
+ "ensogl-pack",
  "futures",
  "futures-util",
  "glob",
@@ -3264,6 +3265,7 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "ensogl-core",
+ "ensogl-hardcoded-theme",
 ]
 
 [[package]]
