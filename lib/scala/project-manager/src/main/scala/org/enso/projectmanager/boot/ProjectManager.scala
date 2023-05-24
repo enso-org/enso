@@ -12,8 +12,7 @@ import org.enso.projectmanager.boot.Globals.{
 }
 import org.enso.projectmanager.boot.configuration.{
   MainProcessConfig,
-  ProjectManagerConfig,
-  ServerConfig
+  ProjectManagerConfig
 }
 import org.enso.version.VersionDescription
 import pureconfig.ConfigSource
