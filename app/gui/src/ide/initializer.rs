@@ -80,9 +80,12 @@ impl Initializer {
 
         match self.initialize_ide_controller_with_retries().await {
             Ok(controller) => {
+                let can_manage_projects = controller.can_manage_projects();
                 let ide = Ide::new(ensogl_app, view.clone_ref(), controller);
-                if let Some(project) = &self.config.project_to_open {
-                    ide.open_or_create_project(project.clone());
+                if can_manage_projects {
+                    if let Some(project) = &self.config.project_to_open {
+                        ide.open_or_create_project(project.clone());
+                    }
                 }
                 info!("IDE was successfully initialized.");
                 Ok(ide)

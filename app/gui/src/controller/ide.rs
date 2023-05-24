@@ -226,6 +226,11 @@ pub trait API: Debug {
     #[allow(clippy::needless_lifetimes)]
     fn manage_projects<'a>(&'a self) -> FallibleResult<&'a dyn ManagingProjectAPI>;
 
+    /// Returns whether the Managing Project API is available.
+    fn can_manage_projects(&self) -> bool {
+        self.manage_projects().is_ok()
+    }
+
     /// Return whether private entries should be visible in the component browser.
     fn are_component_browser_private_entries_visible(&self) -> bool;
 

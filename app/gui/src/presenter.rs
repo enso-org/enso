@@ -252,6 +252,7 @@ impl Presenter {
         self.setup_status_bar_notification_handler();
         self.setup_controller_notification_handler();
         executor::global::spawn(self.clone_ref().set_projects_list_on_welcome_screen());
+        self.model.clone_ref().setup_and_display_new_project();
         self
     }
 
