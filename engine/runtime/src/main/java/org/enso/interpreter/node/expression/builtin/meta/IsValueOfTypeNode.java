@@ -45,6 +45,31 @@ public abstract class IsValueOfTypeNode extends Node {
     return typed.execute(expectedType, payload);
   }
 
+  private static boolean typeAndCheck(
+      Object payload,
+      Object expectedType,
+      TypeOfNode typeOfNode,
+      IsSameObjectNode isSameObject,
+      ConditionProfile profile) {
+    Object tpeOfPayload = typeOfNode.execute(payload);
+    if (profile.profile(isSameObject.execute(expectedType, tpeOfPayload))) {
+      return true;
+    } else if (TypesGen.isType(tpeOfPayload)) {
+      Type tpe = TypesGen.asType(tpeOfPayload);
+      Type superTpe = tpe.getSupertype();
+
+      while (tpe != superTpe && superTpe != null) {
+        boolean testSuperTpe = isSameObject.execute(expectedType, superTpe);
+        if (testSuperTpe) {
+          return true;
+        }
+        tpe = superTpe;
+        superTpe = superTpe.getSupertype();
+      }
+    }
+    return false;
+  }
+
   abstract static class Typed extends Node {
     private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
     private @Child TypeOfNode typeOfNode = TypeOfNode.build();
@@ -97,23 +122,7 @@ public abstract class IsValueOfTypeNode extends Node {
     @Specialization(guards = {"!isArrayType(expectedType)", "!isAnyType(expectedType)"})
     boolean doType(
         Type expectedType, Object payload, @CachedLibrary(limit = "3") TypesLibrary types) {
-      Object tpeOfPayload = typeOfNode.execute(payload);
-      if (profile.profile(isSameObject.execute(expectedType, tpeOfPayload))) {
-        return true;
-      } else if (TypesGen.isType(tpeOfPayload)) {
-        Type tpe = TypesGen.asType(tpeOfPayload);
-        Type superTpe = tpe.getSupertype();
-
-        while (tpe != superTpe && superTpe != null) {
-          boolean testSuperTpe = isSameObject.execute(expectedType, superTpe);
-          if (testSuperTpe) {
-            return true;
-          }
-          tpe = superTpe;
-          superTpe = superTpe.getSupertype();
-        }
-      }
-      return false;
+      return typeAndCheck(payload, expectedType, typeOfNode, isSameObject, profile);
     }
 
     @Specialization(
@@ -146,78 +155,31 @@ public abstract class IsValueOfTypeNode extends Node {
   abstract static class Untyped extends Node {
     private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
     private @Child TypeOfNode typeOfNode = TypeOfNode.build();
+    private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
     abstract boolean execute(Object expectedType, Object payload);
 
     @Specialization(
         guards = {
-          "isArrayType(expectedType)",
-          "interop.hasArrayElements(payload)",
-        })
-    boolean doArray(
-        Object expectedType, Object payload, @CachedLibrary(limit = "3") InteropLibrary interop) {
-      return true;
-    }
-
-    @Specialization(guards = {"isMapType(expectedType, iop)", "iop.hasHashEntries(payload)"})
-    boolean doMap(
-        Type expectedType, Object payload, @CachedLibrary(limit = "3") InteropLibrary iop) {
-      return true;
-    }
-
-    @Specialization(guards = {"isDateType(expectedType, iop)", "iop.isDate(payload)"})
-    boolean doDate(
-        Type expectedType, Object payload, @CachedLibrary(limit = "3") InteropLibrary iop) {
-      return true;
-    }
-
-    @Specialization(guards = {"isDateTimeType(expectedType, iop)", "iop.isTime(payload)"})
-    boolean doDateTime(
-        Type expectedType, Object payload, @CachedLibrary(limit = "3") InteropLibrary iop) {
-      return true;
-    }
-
-    @Specialization(
-        guards = {
-          "!isArrayType(expectedType)",
-          "!isMapType(expectedType, interop)",
-          "interop.isMetaObject(expectedType)"
+          "interop.isMetaObject(expectedType)",
+          "isMetaInstance(interop, expectedType, payload)"
         })
     boolean doPolyglotType(
         Object expectedType, Object payload, @CachedLibrary(limit = "3") InteropLibrary interop) {
+      return true;
+    }
+
+    static boolean isMetaInstance(InteropLibrary interop, Object expectedType, Object payload) {
       try {
         return interop.isMetaInstance(expectedType, payload);
-      } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException(e);
+      } catch (UnsupportedMessageException ex) {
+        return false;
       }
-    }
-
-    static boolean isMapType(Object type, Node node) {
-      var ctx = EnsoContext.get(node);
-      return type == ctx.getBuiltins().map();
-    }
-
-    static boolean isDateType(Object type, Node node) {
-      var ctx = EnsoContext.get(node);
-      return type == ctx.getBuiltins().date();
-    }
-
-    static boolean isDateTimeType(Object type, Node node) {
-      var ctx = EnsoContext.get(node);
-      return type == ctx.getBuiltins().dateTime();
-    }
-
-    boolean isAnyType(Object expectedType) {
-      return EnsoContext.get(this).getBuiltins().any() == expectedType;
-    }
-
-    boolean isArrayType(Object expectedType) {
-      return EnsoContext.get(this).getBuiltins().array() == expectedType;
     }
 
     @Fallback
     public boolean doOther(Object expectedType, Object payload) {
-      return false;
+      return typeAndCheck(payload, expectedType, typeOfNode, isSameObject, profile);
     }
   }
 }

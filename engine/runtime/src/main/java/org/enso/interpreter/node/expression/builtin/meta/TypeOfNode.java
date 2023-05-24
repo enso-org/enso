@@ -115,6 +115,11 @@ public abstract class TypeOfNode extends Node {
       return EnsoContext.get(this).getBuiltins().array();
     }
 
+    @Specialization(guards = {"type.isMap()"})
+    Type doPolygotMap(Interop type, Object value) {
+      return EnsoContext.get(this).getBuiltins().map();
+    }
+
     @Specialization(guards = {"type.isString()"})
     Type doPolyglotString(Interop type, Object value) {
       return EnsoContext.get(this).getBuiltins().text();
@@ -192,6 +197,7 @@ public abstract class TypeOfNode extends Node {
       STRING,
       NUMBER,
       ARRAY,
+      MAP,
       DATE_TIME,
       TIME_ZONE,
       DATE,
@@ -208,6 +214,9 @@ public abstract class TypeOfNode extends Node {
         }
         if (interop.hasArrayElements(value)) {
           return ARRAY;
+        }
+        if (interop.hasHashEntries(value)) {
+          return MAP;
         }
         boolean time = interop.isTime(value);
         boolean date = interop.isDate(value);
@@ -239,6 +248,10 @@ public abstract class TypeOfNode extends Node {
 
       boolean isArray() {
         return this == ARRAY;
+      }
+
+      boolean isMap() {
+        return this == MAP;
       }
 
       boolean isDateTime() {
