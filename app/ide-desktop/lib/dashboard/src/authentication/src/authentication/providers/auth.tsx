@@ -140,7 +140,6 @@ const AuthContext = react.createContext<AuthContextType>({} as AuthContextType)
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
     authService: authServiceModule.AuthService
-    platform: platformModule.Platform
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: () => void
     children: react.ReactNode
@@ -148,13 +147,12 @@ export interface AuthProviderProps {
 
 /** A React provider for the Cognito API. */
 export function AuthProvider(props: AuthProviderProps) {
-    const { authService, platform, children } = props
+    const { authService, onAuthenticated, children } = props
     const { cognito } = authService
     const { session } = sessionProvider.useSession()
     const { setBackend } = backendProvider.useSetBackend()
     const logger = loggerProvider.useLogger()
     const navigate = router.useNavigate()
-    const onAuthenticated = react.useCallback(props.onAuthenticated, [])
     const [initialized, setInitialized] = react.useState(false)
     const [userSession, setUserSession] = react.useState<UserSession | null>(null)
 
@@ -174,7 +172,9 @@ export function AuthProvider(props: AuthProviderProps) {
                 headers.append('Authorization', `Bearer ${accessToken}`)
                 const client = new http.Client(headers)
                 const backend = new remoteBackend.RemoteBackend(client, logger)
-                if (platform === platformModule.Platform.cloud) {
+                // The backend MUST be the remote backend before login is finished.
+                // This is because the "set username" flow requires the remote backend.
+                if (!initialized) {
                     setBackend(backend)
                 }
                 const organization = await backend.usersMe().catch(() => null)
@@ -326,6 +326,7 @@ export function AuthProvider(props: AuthProviderProps) {
     }
 
     const signOut = async () => {
+        setInitialized(false)
         await cognito.signOut()
         toast.success(MESSAGES.signOutSuccess)
         return true
