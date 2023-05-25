@@ -63,7 +63,7 @@ type Table
        - connection: The connection with which the table is associated.
        - internal_columns: The internal representation of the table columns.
        - context: The context associated with this table.
-    Value name:Text connection:Connection (internal_columns:(Vector Internal_Column)) context:IR.Context
+    Value name:Text connection:Connection (internal_columns:(Vector Internal_Column)) context:Context
 
     ## PRIVATE
        ADVANCED
