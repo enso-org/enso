@@ -100,6 +100,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 () => void checkProjectStatus(),
                 CHECK_STATUS_INTERVAL_MS
             )
+            void checkProjectStatus()
             return () => {
                 clearInterval(handle)
             }
@@ -131,6 +132,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 () => void checkProjectResources(),
                 CHECK_RESOURCES_INTERVAL_MS
             )
+            void checkProjectResources()
             return () => {
                 clearInterval(handle)
             }

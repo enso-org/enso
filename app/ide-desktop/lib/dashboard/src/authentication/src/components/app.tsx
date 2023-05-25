@@ -125,6 +125,12 @@ function App(props: AppProps) {
 function AppRouter(props: AppProps) {
     const { logger, showDashboard, onAuthenticated } = props
     const navigate = router.useNavigate()
+    // FIXME[sb]: After platform detection for Electron is merged in, `IS_DEV_MODE` should be
+    // set to true on `ide watch`.
+    if (IS_DEV_MODE) {
+        // @ts-expect-error This is used exclusively for debugging.
+        window.navigate = navigate
+    }
     const mainPageUrl = new URL(window.location.href)
     const memoizedAuthService = react.useMemo(() => {
         const authConfig = { navigate, ...props }
