@@ -9,7 +9,6 @@ use ensogl::display;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::*;
 
-use super::constants::*;
 use super::layout::Corner;
 use super::layout::EdgeSplit;
 use super::layout::Oriented;
@@ -30,6 +29,9 @@ const ARROW_ARM_WIDTH: f32 = LINE_WIDTH;
 /// floating-point math and anti-aliasing would cause a 1-pixel gap artifact right where
 /// the attachment should meet the corner at the edge of the node.
 const ATTACHMENT_TOP_ADJUSTMENT: f32 = 0.5;
+const LINE_WIDTH: f32 = 4.0;
+const HOVER_EXTENSION: f32 = 10.0;
+pub(super) const HOVER_WIDTH: f32 = LINE_WIDTH + HOVER_EXTENSION;
 
 
 

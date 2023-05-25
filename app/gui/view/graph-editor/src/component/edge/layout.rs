@@ -189,12 +189,13 @@ pub(super) fn find_position(
     corners: &[Oriented<Corner>],
     source_height: f32,
     attachment_height: Option<f32>,
+    input_width: f32,
 ) -> Option<EdgeSplit> {
     let position = *position;
     let corner_index = corners
         .iter()
-        .position(|&corner| corner.bounding_box(HOVER_WIDTH).contains_inclusive(position))?;
-    let split_corner = corners[corner_index].split(position, HOVER_WIDTH)?;
+        .position(|&corner| corner.bounding_box(input_width).contains_inclusive(position))?;
+    let split_corner = corners[corner_index].split(position, input_width)?;
     let (full_corners, following_corners) = corners.split_at(corner_index);
     let full_corners_distance: f32 =
         full_corners.iter().map(|&corner| corner.rectilinear_length()).sum();

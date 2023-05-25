@@ -28,19 +28,6 @@ use state::*;
 
 
 
-// =================
-// === Constants ===
-// =================
-
-mod constants {
-    pub const LINE_WIDTH: f32 = 4.0;
-    pub const HOVER_EXTENSION: f32 = 10.0;
-    pub const HOVER_WIDTH: f32 = LINE_WIDTH + HOVER_EXTENSION;
-}
-use constants::*;
-
-
-
 // ===========
 // === FRP ===
 // ===========
@@ -225,7 +212,13 @@ impl EdgeModel {
                 self.inputs.hover_position.get().and_then(|position| {
                     let position = self.scene_pos_to_parent_pos(position);
                     let source_height = self.inputs.source_size.get().y();
-                    layout::find_position(position, &corners, source_height, attachment_length)
+                    layout::find_position(
+                        position,
+                        &corners,
+                        source_height,
+                        attachment_length,
+                        render::HOVER_WIDTH,
+                    )
                 })
             })
             .flatten();
@@ -331,7 +324,7 @@ impl EdgeModel {
         let corners = &state.layout.corners;
         let attachment_length = state.layout.attachment_length;
         let source_height = self.inputs.source_size.get().y();
-        layout::find_position(pos, corners, source_height, attachment_length)
+        layout::find_position(pos, corners, source_height, attachment_length, render::HOVER_WIDTH)
             .map(|split| split.closer_end)
     }
 
