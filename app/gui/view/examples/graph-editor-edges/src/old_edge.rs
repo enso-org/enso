@@ -1,18 +1,16 @@
 //! Definition of the Edge component.
 
-use ide_view_graph_editor::prelude::*;
 use ensogl::display::shape::*;
-
-use ide_view_graph_editor::component::node;
+use ide_view_graph_editor::prelude::*;
 
 use enso_frp as frp;
-use enso_frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Scene;
 use ensogl::gui::component::PointerTarget_DEPRECATED;
 use ensogl_hardcoded_theme as theme;
+use ide_view_graph_editor::component::node;
 use nalgebra::Rotation2;
 
 

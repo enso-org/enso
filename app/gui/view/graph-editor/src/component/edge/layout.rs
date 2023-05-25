@@ -69,7 +69,6 @@ use super::*;
 // === Constants ===
 // =================
 
-const MIN_RADIUS: f32 = 20.0;
 const MAX_RADIUS: f32 = 20.0;
 /// Minimum height above the target the edge must approach it from.
 const MIN_APPROACH_HEIGHT: f32 = 32.25;
@@ -122,7 +121,7 @@ pub(super) fn junction_points(
         let distance_x = (target.x() - source_x).abs();
         let top = target.y() + MIN_APPROACH_HEIGHT + NODE_HEIGHT / 2.0;
         let (j0_x, j1_x);
-        if distance_x > 2.0 * MIN_RADIUS && target.x().abs() > source_x.abs() {
+        if distance_x > 2.0 * MAX_RADIUS && target.x().abs() > source_x.abs() {
             //                 J1
             //                /
             //            ╭──────╮
