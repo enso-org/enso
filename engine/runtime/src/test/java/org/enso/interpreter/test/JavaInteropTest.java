@@ -11,23 +11,29 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class JavaInteropTest extends TestBase {
 
-  private Context ctx;
+  private static Context ctx;
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-  @Before
-  public void prepareCtx() {
+  @BeforeClass
+  public static void prepareCtx() {
     ctx = createDefaultContext(out);
-    out.reset();
   }
 
-  @After
-  public void disposeCtx() {
+  @AfterClass
+  public static void disposeCtx() {
     ctx.close();
+  }
+
+  @Before
+  public void resetOutput() {
+    out.reset();
   }
 
   private void checkPrint(String code, List<String> expected) {
