@@ -98,7 +98,7 @@ pub(super) fn junction_points(
     // The maximum y-length of the target-attachment segment. If the layout allows, the
     // target-attachment segment will fully exit the node before the first corner begins.
     let target_max_attachment_height = target_attached.then_some(NODE_HEIGHT / 2.0);
-    if target.y() + target_max_attachment_height.unwrap_or_default() < -MIN_APPROACH_HEIGHT
+    if target.y() + target_max_attachment_height.unwrap_or_default() <= -MIN_APPROACH_HEIGHT
         || (target.y() <= 0.0 && target.x().abs() <= source_max_x_offset + 3.0 * MAX_RADIUS)
     {
         // === One corner ===
@@ -135,9 +135,9 @@ pub(super) fn junction_points(
         } else {
             //            J1
             //           /
-            //     ╭──────╮
-            //     ▢      │ J0
-            // ╭─────╮    │/
+            //     ╭──────╮ J0
+            //     ▢      │/
+            // ╭─────╮    │
             // ╰─────╯────╯
             // J0 > source; J0 > J1; J1 > target.
             j1_x = target.x() + MAX_RADIUS.copysign(target.x());
