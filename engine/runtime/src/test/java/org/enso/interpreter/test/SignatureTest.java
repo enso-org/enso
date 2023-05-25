@@ -110,19 +110,21 @@ public class SignatureTest extends TestBase {
       var v = module.invokeMember("eval_expression", "Bin.Zero 'hi'");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
-      assertEquals("Type_Error.Error", ex.getMessage());
+      assertTypeError("Argument #1", "Zero", "Text", ex.getMessage());
     }
     try {
       var v = module.invokeMember("eval_expression", "Bin.Zero One");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
-      assertEquals("Type_Error.Error", ex.getMessage());
+      assertTypeError("Argument #1", "Zero", "Zero", ex.getMessage());
     }
   }
 
   private Value exampleWithBinary() throws URISyntaxException {
     var uri = new URI("memory://binary.enso");
     var src = Source.newBuilder("enso", """
+    from Standard.Base import all
+
     type Zero
     type One
 
@@ -143,13 +145,13 @@ public class SignatureTest extends TestBase {
       var v = module.invokeMember("eval_expression", "Bin.One 10");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
-      assertEquals("Type_Error.Error", ex.getMessage());
+      assertTypeError("Argument #1", "One", "Integer", ex.getMessage());
     }
     try {
       var v = module.invokeMember("eval_expression", "Bin.One Zero");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
-      assertEquals("Type_Error.Error", ex.getMessage());
+      assertTypeError("Argument #1", "One", "Zero", ex.getMessage());
     }
   }
 
@@ -162,9 +164,21 @@ public class SignatureTest extends TestBase {
       var v = module.invokeMember("eval_expression", "Bin.Either 10");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
-      assertEquals("Type_Error.Error", ex.getMessage());
+      assertTypeError("Argument #1", "Zero, One", "Integer", ex.getMessage());
     }
     var ok2 = module.invokeMember("eval_expression", "Bin.Either Zero");
     assertEquals("binary.Bin", ok2.getMetaObject().getMetaQualifiedName());
+  }
+
+  private static void assertTypeError(String expArg, String expType, String realType, String msg) {
+    if (!msg.contains(expArg)) {
+      fail("Expecting value " + expArg + " in " + msg);
+    }
+    if (!msg.contains(expType)) {
+      fail("Expecting value " + expType + " in " + msg);
+    }
+    if (!msg.contains(realType)) {
+      fail("Expecting value " + realType + " in " + msg);
+    }
   }
 }
