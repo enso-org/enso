@@ -8,9 +8,11 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+enso-frp = { path = "../../../../../lib/rust/frp" }
 ensogl = { path = "../../../../../lib/rust/ensogl" }
 ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ide-view-graph-editor = { path = "../../graph-editor" }
+nalgebra = { workspace = true }
 wasm-bindgen = { workspace = true }
 
 # Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.

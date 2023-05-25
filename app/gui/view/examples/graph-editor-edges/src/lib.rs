@@ -31,6 +31,10 @@ use ide_view_graph_editor::component::node;
 
 
 
+mod old_edge;
+
+
+
 // =================
 // === Constants ===
 // =================
@@ -57,16 +61,17 @@ pub fn main() {
     let world = &app.display;
     let scene = &world.default_scene;
     let navigator = Navigator::new(scene, &scene.layers.node_searcher.camera());
-    let greenish = color::Lcha(0.5, 0.5, 0.5, 1.0).into();
+    let greenish = color::Lcha(0.5, 0.5, 0.5, 1.0);
 
     let source = Rectangle::new();
     let source_center = SOURCE_CENTER;
     let source_size = Vector2(ARBITRARY_NODE_WIDTH, node::HEIGHT);
     source.set_size(source_size);
-    source.set_color(greenish);
+    source.set_color(color::Rgba(0.75, 0.75, 0.75, 1.0));
     source.set_border_color(color::Rgba::transparent());
     source.set_corner_radius_max();
     source.set_xy(source_center - source_size / 2.0);
+    scene.layers.below_main.add(&source);
     world.add_child(&source);
     let source_moved = make_draggable(scene, &source);
 
@@ -74,10 +79,11 @@ pub fn main() {
     let target_center = source_center + INITIAL_TARGET_OFFSET;
     let target_size = Vector2(node::HEIGHT, node::HEIGHT);
     target.set_size(target_size);
-    target.set_color(greenish);
+    target.set_color(color::Rgba(0.75, 0.75, 0.75, 1.0));
     target.set_border_color(color::Rgba::transparent());
     target.set_corner_radius_max();
     target.set_xy(target_center - target_size / 2.0);
+    scene.layers.below_main.add(&target);
     world.add_child(&target);
     let target_moved = make_draggable(scene, &target);
 
@@ -88,17 +94,35 @@ pub fn main() {
     edge.target_attached(true);
     edge.source_attached(true);
     world.add_child(&edge);
-    scene.layers.below_main.add(&edge);
+    scene.layers.main.add(&edge);
+
+    let old_edge = old_edge::Edge::new(&app);
+    old_edge.frp.source_width.emit(source_size.x());
+    old_edge.frp.source_height.emit(source_size.y());
+    old_edge.frp.target_attached.emit(false);
+    old_edge.frp.source_attached.emit(true);
+    old_edge.frp.set_disabled.emit(false);
+    old_edge.frp.set_color.emit(color::Lcha::from(color::Rgba(1.0, 0.0, 0.0, 1.0)));
+    world.add_child(&old_edge);
+    scene.layers.main.add(&edge);
 
     let network = edge.network();
     let target_ = target.display_object().clone_ref();
     let source_ = source.display_object().clone_ref();
     frp::extend! { network
         init <- source_();
-        _eval <- all_with(&target_moved, &init, f!([edge, target_] (_, _)
-            edge.target_position(target_.xy() + target_size / 2.0)));
-        _eval <- all_with(&source_moved, &init, f!([edge, source_] (_, _)
-            edge.set_xy(source_.xy() + source_size / 2.0)));
+        _eval <- all_with(&target_moved, &init, f!([edge, target_, old_edge] (_, _) {
+            let position = target_.xy() + target_size / 2.0;
+            edge.target_position(position);
+            old_edge.frp.target_position.emit(position);
+            old_edge.frp.redraw.emit(());
+        }));
+        _eval <- all_with(&source_moved, &init, f!([edge, source_] (_, _) {
+            let position = source_.xy() + source_size / 2.0;
+            edge.set_xy(position);
+            old_edge.set_xy(position);
+            old_edge.frp.redraw.emit(());
+        }));
     }
     init.emit(());
 
