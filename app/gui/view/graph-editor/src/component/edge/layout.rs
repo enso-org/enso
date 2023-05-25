@@ -69,26 +69,34 @@ use super::*;
 // === Constants ===
 // =================
 
-const MIN_RADIUS_X3: f32 = 40.0;
-const MAX_RADIUS: f32 = 20.0;
-/// Minimum height above the target the edge must approach it from.
-const MIN_APPROACH_HEIGHT: f32 = 32.25;
-/// Length of the source end of the edge that should be a straight line.
-const MIN_LINEAR_X_DISTANCE: f32 = 20.0;
-const NODE_HEIGHT: f32 = crate::component::node::HEIGHT;
-/// Extra distance toward the inside of the source node the edge should originate, relative to
-/// the point along the y-axis where the node begins to be rounded.
-const SOURCE_INSET: f32 = 8.0;
-const NODE_CORNER_RADIUS: f32 = crate::component::node::CORNER_RADIUS;
+/// Constants affecting all layouts.
+mod shared {
+    pub(super) const MAX_RADIUS: f32 = 20.0;
+    /// Minimum height above the target the edge must approach it from.
+    pub(super) const MIN_APPROACH_HEIGHT: f32 = 32.25;
+    pub(super) const NODE_HEIGHT: f32 = crate::component::node::HEIGHT;
+    /// Extra distance toward the inside of the source node the edge should originate, relative to
+    /// the point along the y-axis where the node begins to be rounded.
+    pub(super) const SOURCE_INSET: f32 = 8.0;
+    pub(super) const NODE_CORNER_RADIUS: f32 = crate::component::node::CORNER_RADIUS;
+}
+use shared::*;
 
-/// Constants configuring the single-corner layout.
-mod downward {
+/// Constants configuring the 1-corner layout.
+mod single_corner {
     /// Base x-allocation for the radius.
     pub(super) const RADIUS_X_BASE: f32 = 20.0;
     /// Proportion (0-1) of extra x-distance allocated to the radius.
     pub(super) const RADIUS_X_FACTOR: f32 = 0.6;
     /// The y-allocation for the radius will be the full available height minus this value.
     pub(super) const RADIUS_Y_ADJUSTMENT: f32 = 29.0;
+}
+
+/// Constants configuring the 3-corner layouts.
+mod three_corner {
+    pub(super) const MIN_RADIUS_X3: f32 = 40.0;
+    /// Length of the source end of the edge that should be a straight line.
+    pub(super) const MIN_LINEAR_X_DISTANCE: f32 = 20.0;
 }
 
 
@@ -111,17 +119,19 @@ pub(super) fn junction_points(
     // The maximum y-length of the target-attachment segment. If the layout allows, the
     // target-attachment segment will fully exit the node before the first corner begins.
     let target_max_attachment_height = target_attached.then_some(NODE_HEIGHT / 2.0);
-    if target.y() + target_max_attachment_height.unwrap_or_default() <= -MIN_APPROACH_HEIGHT
-        || (target.y() <= 0.0 && target.x().abs() <= source_max_x_offset + 3.0 * MAX_RADIUS)
-    {
+    let target_well_below_source =
+        target.y() + target_max_attachment_height.unwrap_or_default() <= -MIN_APPROACH_HEIGHT;
+    let target_below_source = target.y() <= 0.0;
+    let horizontal_room_for_3_corners = target.x().abs() - source_max_x_offset > 3.0 * MAX_RADIUS;
+    if target_well_below_source || (target_below_source && !horizontal_room_for_3_corners) {
         // === One corner ===
 
         // The edge can originate anywhere along the length of the node.
         let source_x = target.x().clamp(-source_max_x_offset, source_max_x_offset);
         let source = Vector2(source_x, 0.0);
         let distance_x = max(target.x().abs() - source_half_width, 0.0);
-        let radius_x = downward::RADIUS_X_BASE + distance_x * downward::RADIUS_X_FACTOR;
-        let radius_y = max(target.y().abs() - downward::RADIUS_Y_ADJUSTMENT, 0.0);
+        let radius_x = single_corner::RADIUS_X_BASE + distance_x * single_corner::RADIUS_X_FACTOR;
+        let radius_y = max(target.y().abs() - single_corner::RADIUS_Y_ADJUSTMENT, 0.0);
         let radius = min(radius_x, radius_y);
         // The target attachment will extend as far toward the edge of the node as it can without
         // rising above the source.
@@ -137,7 +147,7 @@ pub(super) fn junction_points(
         let distance_x = (target.x() - source_x).abs();
         let top = target.y() + MIN_APPROACH_HEIGHT + NODE_HEIGHT / 2.0;
         let (j0_x, j1_x);
-        if distance_x >= MIN_RADIUS_X3 && target.x().abs() > source_x.abs() {
+        if distance_x >= three_corner::MIN_RADIUS_X3 && target.x().abs() > source_x.abs() {
             //               J1
             //              /
             //            ╭──────╮
@@ -148,7 +158,7 @@ pub(super) fn junction_points(
             let arcs_width = min(distance_x, MAX_RADIUS * 3.0);
             let arc_width = arcs_width / 3.0;
             let linear_width = distance_x - arcs_width;
-            let j0_linear_width = min(MIN_LINEAR_X_DISTANCE, linear_width);
+            let j0_linear_width = min(three_corner::MIN_LINEAR_X_DISTANCE, linear_width);
             j0_x = source_x + (j0_linear_width + arc_width).copysign(target.x());
             j1_x = j0_x + arc_width.copysign(target.x());
         } else {
