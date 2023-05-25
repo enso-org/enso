@@ -79,8 +79,8 @@ const MAX_RADIUS: f32 = 24.0;
 // =======================
 
 /// Calculate the start and end positions of each 1-corner section composing an edge to the
-/// given offset. Return the points, and the maximum radius that should be used to draw the corners
-/// connecting them.
+/// given offset. Return the points, the maximum radius that should be used to draw the corners
+/// connecting them, and the length of the target attachment bit.
 pub(super) fn junction_points(
     source_max_x_offset: f32,
     target: Vector2,
@@ -110,11 +110,22 @@ pub(super) fn junction_points(
         let top = target.y() + MAX_RADIUS;
         let (j0_x, j1_x);
         if distance_x > 3.0 * MIN_RADIUS && target.x().abs() > source_x.abs() {
+            //                 J1
+            //                /
+            // ╭─────╮    ╭──────╮
+            // ╰─────╯────╯\     │
+            //             J0    ▢
             // Junctions (J0, J1) are in between source and target.
             let source_side_sections_extra_x = (distance_x / 3.0).min(MAX_RADIUS);
             j0_x = source_x + source_side_sections_extra_x.copysign(target.x());
             j1_x = source_x + 2.0 * source_side_sections_extra_x.copysign(target.x());
         } else {
+            //          J1
+            //         /
+            //     ╭──────╮ J0
+            //     ▢      │/
+            // ╭─────╮    │
+            // ╰─────╯────╯
             // J0 > source; J0 > J1; J1 > target.
             j1_x = target.x() + MAX_RADIUS.copysign(target.x());
             let j0_beyond_target = target.x().abs() + MAX_RADIUS * 2.0;
