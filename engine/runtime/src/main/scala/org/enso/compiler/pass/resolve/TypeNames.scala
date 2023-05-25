@@ -111,6 +111,8 @@ case object TypeNames extends IRPass {
           n,
           bindingsMap.resolveQualifiedName(n.parts.map(_.name))
         )
+      case s: IR.Type.Set =>
+        s.mapExpressions(resolveSignature(typeParams, bindingsMap, _))
     }
 
   private def processResolvedName(

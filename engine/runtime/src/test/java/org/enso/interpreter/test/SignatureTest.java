@@ -152,4 +152,19 @@ public class SignatureTest extends TestBase {
       assertEquals("Type_Error.Error", ex.getMessage());
     }
   }
+
+  @Test
+  public void binaryWithEither() throws Exception {
+    Value module = exampleWithBinary();
+    var ok1 = module.invokeMember("eval_expression", "Bin.Either One");
+    assertEquals("binary.Bin", ok1.getMetaObject().getMetaQualifiedName());
+    try {
+      var v = module.invokeMember("eval_expression", "Bin.Either 10");
+      fail("Expecting an error, not " + v);
+    } catch (PolyglotException ex) {
+      assertEquals("Type_Error.Error", ex.getMessage());
+    }
+    var ok2 = module.invokeMember("eval_expression", "Bin.Either Zero");
+    assertEquals("binary.Bin", ok2.getMetaObject().getMetaQualifiedName());
+  }
 }

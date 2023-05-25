@@ -1,5 +1,7 @@
 package org.enso.interpreter.node.callable.argument;
 
+import java.util.List;
+
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -9,6 +11,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 
@@ -23,13 +26,14 @@ public class ReadArgumentNode extends ExpressionNode {
   @Child IsValueOfTypeNode checkType;
   private final ConditionProfile defaultingProfile = ConditionProfile.createCountingProfile();
   // XXX: Type in a Node is wrong!!!!!
-  private final Type expectedType;
+  @CompilerDirectives.CompilationFinal(dimensions = 1)
+  private final Type[] expectedTypes;
 
-  private ReadArgumentNode(int position, ExpressionNode defaultValue, Type expectedType) {
+  private ReadArgumentNode(int position, ExpressionNode defaultValue, Type[] expectedTypes) {
     this.index = position;
     this.defaultValue = defaultValue;
-    this.expectedType = expectedType;
-    if (expectedType != null) {
+    this.expectedTypes = expectedTypes;
+    if (expectedTypes != null) {
       checkType = IsValueOfTypeNode.build();
     }
   }
@@ -39,12 +43,16 @@ public class ReadArgumentNode extends ExpressionNode {
    *
    * @param position the argument's position at the definition site
    * @param defaultValue the default value provided for that argument
-   * @param expectedType {@code null} or expected type to check input for
+   * @param expectedTypes {@code null} or expected types to check input for
    * @return a node representing the argument at position {@code idx}
    */
   public static ReadArgumentNode build(
-      int position, ExpressionNode defaultValue, Type expectedType) {
-    return new ReadArgumentNode(position, defaultValue, expectedType);
+      int position, ExpressionNode defaultValue, List<Type> expectedTypes) {
+    var arr =
+        expectedTypes == null || expectedTypes.isEmpty()
+            ? null
+            : expectedTypes.toArray(Type[]::new);
+    return new ReadArgumentNode(position, defaultValue, arr);
   }
 
   /**
@@ -59,6 +67,7 @@ public class ReadArgumentNode extends ExpressionNode {
    * @return the computed value of the argument at this position
    */
   @Override
+  @ExplodeLoop
   public Object executeGeneric(VirtualFrame frame) {
     Object arguments[] = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
 
@@ -73,10 +82,15 @@ public class ReadArgumentNode extends ExpressionNode {
         v = arguments[index];
       }
     }
-    if (checkType != null && !checkType.execute(expectedType, v)) {
+    if (checkType != null) {
+      for (Type t : expectedTypes) {
+        if (checkType.execute(t, v)) {
+          return v;
+        }
+      }
       CompilerDirectives.transferToInterpreter();
       var ctx = EnsoContext.get(this);
-      var err = ctx.getBuiltins().error().makeTypeError(expectedType, v, "" + v);
+      var err = ctx.getBuiltins().error().makeTypeError(expectedTypes, v, "" + v);
       throw new PanicException(err, this);
     } else {
       return v;

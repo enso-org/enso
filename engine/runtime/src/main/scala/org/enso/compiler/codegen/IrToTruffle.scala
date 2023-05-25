@@ -241,18 +241,7 @@ class IrToTruffle(
 
           for (idx <- atomDefn.arguments.indices) {
             val unprocessedArg = atomDefn.arguments(idx)
-            val tpe = unprocessedArg.ascribedType
-              .map(t => {
-                t.getMetadata(TypeNames) match {
-                  case Some(
-                        BindingsMap
-                          .Resolution(BindingsMap.ResolvedType(mod, tpe))
-                      ) =>
-                    mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
-                  case _ => null
-                }
-              })
-              .orNull
+            val runtimeTypes   = checkRuntimeTypes(unprocessedArg)
 
             val arg = argFactory.run(unprocessedArg, idx)
             val occInfo = unprocessedArg
@@ -264,7 +253,11 @@ class IrToTruffle(
             val slotIdx = localScope.getVarSlotIdx(occInfo.id)
             argDefs(idx) = arg
             val readArg =
-              ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null), tpe)
+              ReadArgumentNode.build(
+                idx,
+                arg.getDefaultValue.orElse(null),
+                runtimeTypes.asJava
+              )
             val assignmentArg = AssignmentNode.build(readArg, slotIdx)
             val argRead =
               ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
@@ -638,6 +631,24 @@ class IrToTruffle(
   // ==========================================================================
   // === Utility Functions ====================================================
   // ==========================================================================
+
+  private def checkRuntimeTypes(arg: IR.DefinitionArgument): List[Type] = {
+    def extractAscribedType(t: IR.Expression): Type =
+      t.getMetadata(TypeNames) match {
+        case Some(
+              BindingsMap
+                .Resolution(BindingsMap.ResolvedType(mod, tpe))
+            ) =>
+          mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
+        case _ => null
+      }
+
+    val tpe = (arg.ascribedType match {
+      case Some(u: IR.Type.Set.Union) => u.operands.map(extractAscribedType)
+      case t                          => List(t.map(extractAscribedType).orNull)
+    }).filter(_ != null)
+    tpe
+  }
 
   /** Checks if the expression has a @Builtin_Method annotation
     *
@@ -1665,18 +1676,7 @@ class IrToTruffle(
           case (unprocessedArg, idx) =>
             val arg = argFactory.run(unprocessedArg, idx)
             argDefinitions(idx) = arg
-            val tpe = unprocessedArg.ascribedType
-              .map(t => {
-                t.getMetadata(TypeNames) match {
-                  case Some(
-                        BindingsMap
-                          .Resolution(BindingsMap.ResolvedType(mod, tpe))
-                      ) =>
-                    mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
-                  case _ => null
-                }
-              })
-              .getOrElse(null)
+            val runtimeTypes = checkRuntimeTypes(unprocessedArg)
             val occInfo = unprocessedArg
               .unsafeGetMetadata(
                 AliasAnalysis,
@@ -1686,7 +1686,11 @@ class IrToTruffle(
 
             val slotIdx = scope.getVarSlotIdx(occInfo.id)
             val readArg =
-              ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null), tpe)
+              ReadArgumentNode.build(
+                idx,
+                arg.getDefaultValue.orElse(null),
+                runtimeTypes.asJava
+              )
             val assignArg = AssignmentNode.build(readArg, slotIdx)
 
             argExpressions.append(assignArg)
