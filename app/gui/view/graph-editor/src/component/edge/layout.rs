@@ -71,7 +71,6 @@ use super::*;
 
 /// Constants affecting all layouts.
 mod shared {
-    pub(super) const MAX_RADIUS: f32 = 20.0;
     /// Minimum height above the target the edge must approach it from.
     pub(super) const MIN_APPROACH_HEIGHT: f32 = 32.25;
     pub(super) const NODE_HEIGHT: f32 = crate::component::node::HEIGHT;
@@ -79,24 +78,21 @@ mod shared {
     /// the point along the y-axis where the node begins to be rounded.
     pub(super) const SOURCE_INSET: f32 = 8.0;
     pub(super) const NODE_CORNER_RADIUS: f32 = crate::component::node::CORNER_RADIUS;
+    /// Base x-allocation for the radius, in 1-corner layout; maximum radius, in 3-corner layouts.
+    pub(super) const RADIUS_X_BASE: f32 = 20.0;
+    /// Proportion (0-1) of extra x-distance allocated to the radius.
+    pub(super) const RADIUS_X_FACTOR: f32 = 0.6;
 }
 use shared::*;
 
 /// Constants configuring the 1-corner layout.
 mod single_corner {
-    /// Base x-allocation for the radius.
-    pub(super) const RADIUS_X_BASE: f32 = 20.0;
-    /// Proportion (0-1) of extra x-distance allocated to the radius.
-    pub(super) const RADIUS_X_FACTOR: f32 = 0.6;
     /// The y-allocation for the radius will be the full available height minus this value.
     pub(super) const RADIUS_Y_ADJUSTMENT: f32 = 29.0;
 }
 
 /// Constants configuring the 3-corner layouts.
 mod three_corner {
-    pub(super) const MIN_RADIUS_X3: f32 = 40.0;
-    /// Length of the source end of the edge that should be a straight line.
-    pub(super) const MIN_LINEAR_X_DISTANCE: f32 = 20.0;
 }
 
 
@@ -130,7 +126,7 @@ pub(super) fn junction_points(
         let source_x = target.x().clamp(-source_max_x_offset, source_max_x_offset);
         let source = Vector2(source_x, 0.0);
         let distance_x = max(target.x().abs() - source_half_width, 0.0);
-        let radius_x = single_corner::RADIUS_X_BASE + distance_x * single_corner::RADIUS_X_FACTOR;
+        let radius_x = RADIUS_X_BASE + distance_x * RADIUS_X_FACTOR;
         let radius_y = max(target.y().abs() - single_corner::RADIUS_Y_ADJUSTMENT, 0.0);
         let radius = min(radius_x, radius_y);
         // The target attachment will extend as far toward the edge of the node as it can without
@@ -147,7 +143,7 @@ pub(super) fn junction_points(
         let distance_x = (target.x() - source_x).abs();
         let top = target.y() + MIN_APPROACH_HEIGHT + NODE_HEIGHT / 2.0;
         let (j0_x, j1_x);
-        if distance_x >= three_corner::MIN_RADIUS_X3 && target.x().abs() > source_x.abs() {
+        if distance_x >= 2.0 * RADIUS_X_BASE && target.x().abs() > source_x.abs() {
             //               J1
             //              /
             //            ╭──────╮
@@ -155,12 +151,10 @@ pub(super) fn junction_points(
             // ╰─────╯────╯\
             //             J0
             // Junctions (J0, J1) are in between source and target.
-            let arcs_width = min(distance_x, MAX_RADIUS * 3.0);
-            let arc_width = arcs_width / 3.0;
-            let linear_width = distance_x - arcs_width;
-            let j0_linear_width = min(three_corner::MIN_LINEAR_X_DISTANCE, linear_width);
-            j0_x = source_x + (j0_linear_width + arc_width).copysign(target.x());
-            j1_x = j0_x + arc_width.copysign(target.x());
+            let j0_dx = min(2.0 * RADIUS_X_BASE, distance_x / 2.0);
+            let j1_dx = min(RADIUS_X_BASE, (distance_x - j0_dx) / 2.0);
+            j0_x = source_x + j0_dx.copysign(target.x());
+            j1_x = j0_x + j1_dx.copysign(target.x());
         } else {
             //            J1
             //           /
@@ -169,9 +163,9 @@ pub(super) fn junction_points(
             // ╭─────╮    │
             // ╰─────╯────╯
             // J0 > source; J0 > J1; J1 > target.
-            j1_x = target.x() + MAX_RADIUS.copysign(target.x());
-            let j0_beyond_target = target.x().abs() + MAX_RADIUS * 2.0;
-            let j0_beyond_source = source_x.abs() + MAX_RADIUS;
+            j1_x = target.x() + RADIUS_X_BASE.copysign(target.x());
+            let j0_beyond_target = target.x().abs() + RADIUS_X_BASE * 2.0;
+            let j0_beyond_source = source_x.abs() + RADIUS_X_BASE;
             j0_x = j0_beyond_source.max(j0_beyond_target).copysign(target.x());
         }
         let source = Vector2(source_x, 0.0);
@@ -180,7 +174,7 @@ pub(super) fn junction_points(
         // The corners meet the target attachment at the top of the node.
         let attachment_height = target_max_attachment_height.unwrap_or_default();
         let target_attachment = target + Vector2(0.0, attachment_height);
-        (vec![source, j0, j1, target_attachment], MAX_RADIUS, Some(attachment_height))
+        (vec![source, j0, j1, target_attachment], RADIUS_X_BASE, Some(attachment_height))
     }
 }
 
