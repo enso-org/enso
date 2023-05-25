@@ -1,13 +1,14 @@
 package org.enso.compiler;
 
-import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
+
 import org.enso.compiler.core.IR;
 import org.junit.AfterClass;
+import static org.junit.Assert.assertNotNull;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
-import org.junit.Ignore;
+
+import com.oracle.truffle.api.source.Source;
 
 public class EnsoCompilerTest {
   private static EnsoCompiler ensoCompiler;
@@ -947,7 +948,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore // Crashes old parser
   public void testAlternationTypes() throws Exception {
     parseTest("""
     foo : [Integer | Text] -> (Integer | Text)
