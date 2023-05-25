@@ -20,7 +20,7 @@ import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.interpreter.runtime.error.{
   DataflowError,
   PanicSentinel,
-  WithWarnings
+  WarningsLibrary
 }
 import org.enso.interpreter.service.error._
 import org.enso.polyglot.LanguageInfo
@@ -351,27 +351,32 @@ object ProgramExecutionSupport {
               VisualizationResult.findExceptionMessage(panic),
               ErrorResolver.getStackTrace(panic).flatMap(_.expressionId)
             )
-        case withWarnings: WithWarnings =>
-          val warningsCount = withWarnings.getWarningsCount
-          val warning =
-            if (warningsCount == 1) {
-              val warnings = withWarnings.getWarningsArray(null)
-              Option(ctx.executionService.toDisplayString(warnings(0).getValue))
-            } else {
-              None
-            }
-          Api.ExpressionUpdate.Payload.Value(
-            Some(
-              Api.ExpressionUpdate.Payload.Value
-                .Warnings(
-                  warningsCount,
-                  warning,
-                  withWarnings.isLimitReached()
-                )
-            )
-          )
         case _ =>
-          Api.ExpressionUpdate.Payload.Value()
+          if (WarningsLibrary.getUncached.hasWarnings(value.getValue)) {
+            val warnings =
+              WarningsLibrary.getUncached.getWarnings(value.getValue, null)
+            val warningsCount = warnings.length
+            val warning =
+              if (warningsCount == 1) {
+                Option(
+                  ctx.executionService.toDisplayString(warnings(0).getValue)
+                )
+              } else {
+                None
+              }
+            Api.ExpressionUpdate.Payload.Value(
+              Some(
+                Api.ExpressionUpdate.Payload.Value
+                  .Warnings(
+                    warningsCount,
+                    warning,
+                    WarningsLibrary.getUncached.isLimitReached(value.getValue)
+                  )
+              )
+            )
+          } else {
+            Api.ExpressionUpdate.Payload.Value()
+          }
       }
       ctx.endpoint.sendToClient(
         Api.Response(

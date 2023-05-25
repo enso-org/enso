@@ -3004,10 +3004,19 @@ class RuntimeVisualizationsTest
     context.receiveNIgnorePendingExpressionUpdates(
       4
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMain, ConstantsGen.VECTOR),
-      context.executionComplete(contextId)
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.VECTOR,
+        payload = Api.ExpressionUpdate.Payload.Value(
+          Some(
+            Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+          )
+        )
+      ),
+      context.executionComplete(contextId),
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
 
     // attach visualisation

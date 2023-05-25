@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
 
+import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table as Dataframe_Table
 import Standard.Table.Data.Column.Column as Dataframe_Column
 import Standard.Database.Data.Table.Table as Database_Table
@@ -28,6 +29,7 @@ prepare_visualization y max_rows=1000 =
         _ : Array -> prepare_visualization x.to_vector max_rows
         _ : Map -> make_json_for_map x max_rows
         _ : JS_Object -> make_json_for_js_object x max_rows
+        _ : Row -> make_json_for_map x.to_map max_rows "column"
         _ : Dataframe_Column -> prepare_visualization x.to_table max_rows
         _ : Dataframe_Table ->
             dataframe = x.take max_rows
@@ -97,6 +99,9 @@ make_json_for_object_matrix current vector idx=0 = if idx == vector.length then 
         _ : Map ->
             pairs = row.keys.map k-> [k.to_text, make_json_for_value (row.get k)]
             JS_Object.from_pairs pairs
+        _ : Row ->
+            pairs = row.table.column_names.map f-> [f, make_json_for_value (row.get f)]
+            JS_Object.from_pairs pairs
         _ ->
             js_object = row.to_js_object
             if js_object.is_a JS_Object . not then False else
@@ -109,9 +114,9 @@ make_json_for_object_matrix current vector idx=0 = if idx == vector.length then 
 
 ## PRIVATE
    Render Map to JSON
-make_json_for_map : Map -> Integer -> JS_Object
-make_json_for_map map max_items =
-    header = ["header", ["key", "value"]]
+make_json_for_map : Map -> Integer -> Text -> JS_Object
+make_json_for_map map max_items key_name="key" =
+    header = ["header", [key_name, "value"]]
     all_rows = ["all_rows_count", map.size]
     map_vector = Warning.clear (map.to_vector.take max_items)
     mapped = map_vector . map p-> [p.first.to_text, make_json_for_value p.second]

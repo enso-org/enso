@@ -14,7 +14,8 @@ import UserMenu from './userMenu'
 // === TopBar ===
 // ==============
 
-interface TopBarProps {
+/** Props for a {@link TopBar}. */
+export interface TopBarProps {
     platform: platformModule.Platform
     projectName: string | null
     tab: dashboard.Tab
@@ -26,10 +27,8 @@ interface TopBarProps {
     setQuery: (value: string) => void
 }
 
-/**
- * The {@link TopBarProps.setQuery} param is used to communicate with the parent component,
- * because `searchVal` may change parent component's project list.
- */
+/** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,
+ * because `searchVal` may change parent component's project list. */
 function TopBar(props: TopBarProps) {
     const {
         platform,

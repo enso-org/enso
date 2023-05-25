@@ -13,10 +13,14 @@ import * as common from 'enso-common'
 // eslint-disable-next-line no-restricted-syntax
 declare const self: ServiceWorkerGlobalScope
 
+// ===============================
+// === Intercept HTTP requests ===
+// ===============================
+
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url)
     if (url.hostname === 'localhost' && url.pathname !== '/esbuild') {
-        const responsePromise = /\/[^.]+$/.test(event.request.url)
+        const responsePromise = /\/[^.]+$/.test(new URL(event.request.url).pathname)
             ? fetch('/index.html')
             : fetch(event.request.url)
         event.respondWith(
