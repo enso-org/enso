@@ -120,16 +120,17 @@ pub(super) fn junction_points(
         // === Three corners ===
 
         // The edge originates from either side of the node.
-        let source_x = source_max_x_offset.copysign(target.x());
+        let source_x = source_half_width.copysign(target.x());
         let distance_x = (target.x() - source_x).abs();
         let top = target.y() + TARGET_U_BEND_HEIGHT + NODE_HEIGHT / 2.0;
         let (j0_x, j1_x);
         if distance_x > 2.0 * MIN_RADIUS && target.x().abs() > source_x.abs() {
             //                 J1
             //                /
-            // ╭─────╮    ╭──────╮
-            // ╰─────╯────╯\     │
-            //             J0    ▢
+            //            ╭──────╮
+            // ╭─────╮    │      ▢
+            // ╰─────╯────╯\
+            //             J0
             // Junctions (J0, J1) are in between source and target.
             let source_side_sections_extra_x = (distance_x / 3.0).min(MAX_RADIUS);
             j0_x = source_x + source_side_sections_extra_x.copysign(target.x());
@@ -144,7 +145,7 @@ pub(super) fn junction_points(
             // J0 > source; J0 > J1; J1 > target.
             j1_x = target.x() + MAX_RADIUS.copysign(target.x());
             let j0_beyond_target = target.x().abs() + MAX_RADIUS * 2.0;
-            let j0_beyond_source = source_half_width + MAX_RADIUS;
+            let j0_beyond_source = source_x.abs() + MAX_RADIUS;
             j0_x = j0_beyond_source.max(j0_beyond_target).copysign(target.x());
         }
         let source = Vector2(source_x, 0.0);
