@@ -15,26 +15,25 @@ use super::layout::Oriented;
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct State {
     /// The layout.
-    pub layout:            Layout,
+    pub layout:      Layout,
     /// The color scheme.
-    pub colors:            Colors,
+    pub colors:      Colors,
     /// Whether the edge is attached to nodes at both ends.
-    pub is_attached:       IsAttached,
+    pub is_attached: IsAttached,
     /// What part, if any, is focused.
-    pub focus_split:       FocusSplit,
-    /// Whether the target end is attached.
-    pub target_attachment: TargetAttachment,
+    pub focus_split: FocusSplit,
 }
 
 /// An edge's layout.
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct Layout {
-    /// Offset from the edge's parent of the target node's edge attachment point.
-    pub target_offset:   Vector2,
+    /// Offset from the edge's parent to the target end of the edge.
+    pub target_offset:     Vector2,
     /// Points where the corners composing the edge meet. Computed from the target offset.
-    pub junction_points: Vec<Vector2>,
+    pub junction_points:   Vec<Vector2>,
     /// The corners composing the edge. Computed from the junction points.
-    pub corners:         Vec<Oriented<Corner>>,
+    pub corners:           Vec<Oriented<Corner>>,
+    pub attachment_length: Option<f32>,
 }
 
 /// An edge's color scheme.
@@ -60,13 +59,6 @@ pub(super) struct FocusSplit {
     pub focus_split: Option<EdgeSplit>,
 }
 
-/// Whether an edge is attached at the target end.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(super) struct TargetAttachment {
-    /// Whether the target end is attached to a node's input port.
-    pub target_attached: bool,
-}
-
 
 
 // =====================
@@ -76,12 +68,11 @@ pub(super) struct TargetAttachment {
 /// References to all the parts of a [`State`], along with information about whether the values have
 /// changed.
 #[derive(Debug, Copy, Clone)]
-pub(super) struct StateUpdate<'a, 'b, 'c, 'd, 'e> {
-    pub layout:            Update<&'a Layout>,
-    pub colors:            Update<&'b Colors>,
-    pub is_attached:       Update<&'c IsAttached>,
-    pub focus_split:       Update<&'d FocusSplit>,
-    pub target_attachment: Update<&'e TargetAttachment>,
+pub(super) struct StateUpdate<'a, 'b, 'c, 'd> {
+    pub layout:      Update<&'a Layout>,
+    pub colors:      Update<&'b Colors>,
+    pub is_attached: Update<&'c IsAttached>,
+    pub focus_split: Update<&'d FocusSplit>,
 }
 
 /// A value, along with information about whether it has changed.
@@ -102,11 +93,10 @@ impl State {
             };
         }
         StateUpdate {
-            layout:            compare!(layout),
-            colors:            compare!(colors),
-            is_attached:       compare!(is_attached),
-            focus_split:       compare!(focus_split),
-            target_attachment: compare!(target_attachment),
+            layout:      compare!(layout),
+            colors:      compare!(colors),
+            is_attached: compare!(is_attached),
+            focus_split: compare!(focus_split),
         }
     }
 }
@@ -121,14 +111,16 @@ impl<T> Update<T> {
     }
 }
 
-/// Return the cross product of the inputs.
+/// Return the product of the inputs.
+#[allow(unused)]
 pub(super) fn any<'a, 'b, A, B>(a: Update<&'a A>, b: Update<&'b B>) -> Update<(&'a A, &'b B)> {
     let value = (a.value, b.value);
     let changed = a.changed | b.changed;
     Update { value, changed }
 }
 
-/// Return the cross product of the inputs.
+/// Return the product of the inputs.
+#[allow(unused)]
 pub(super) fn any3<'a, 'b, 'c, A, B, C>(
     a: Update<&'a A>,
     b: Update<&'b B>,
@@ -139,7 +131,7 @@ pub(super) fn any3<'a, 'b, 'c, A, B, C>(
     Update { value, changed }
 }
 
-/// Return the cross product of the inputs.
+/// Return the product of the inputs.
 #[allow(unused)]
 pub(super) fn any4<'a, 'b, 'c, 'd, A, B, C, D>(
     a: Update<&'a A>,

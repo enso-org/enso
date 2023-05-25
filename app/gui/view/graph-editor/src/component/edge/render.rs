@@ -25,6 +25,11 @@ use super::layout::SplitArc;
 const BACKWARD_EDGE_ARROW_THRESHOLD: f32 = 30.0;
 const ARROW_ARM_LENGTH: f32 = 12.0;
 const ARROW_ARM_WIDTH: f32 = LINE_WIDTH;
+/// Extra length to add to the top of the target-attachment bit, to ensure that it
+/// appears to pass through the top of the node. Without this adjustment, inexact
+/// floating-point math and anti-aliasing would cause a 1-pixel gap artifact right where
+/// the attachment should meet the corner at the edge of the node.
+const ATTACHMENT_TOP_ADJUSTMENT: f32 = 0.5;
 
 
 
@@ -185,14 +190,15 @@ impl Shapes {
     pub(super) fn redraw_target_attachment(
         &self,
         parent: &impl ShapeParent,
-        target_attached: bool,
+        attachment_length: Option<f32>,
         target: Vector2,
         color: color::Rgba,
     ) {
         let shape = self.target_attachment.take();
-        if target_attached {
+        if let Some(length) = attachment_length && length > f32::EPSILON {
             let shape = shape.unwrap_or_else(|| parent.new_target_attachment());
-            shape.set_xy(target + Vector2(-LINE_WIDTH / 2.0, 0.5 - TARGET_ATTACHMENT_LENGTH));
+            shape.set_size_y(length + ATTACHMENT_TOP_ADJUSTMENT);
+            shape.set_xy(target + Vector2(-LINE_WIDTH / 2.0, ATTACHMENT_TOP_ADJUSTMENT));
             shape.set_color(color);
             self.target_attachment.set(shape);
         }
@@ -321,7 +327,7 @@ pub(super) trait ShapeParent: display::Object {
     /// top of the node.
     fn new_target_attachment(&self) -> Rectangle {
         let new = Rectangle::new();
-        new.set_size(Vector2(LINE_WIDTH, TARGET_ATTACHMENT_LENGTH));
+        new.set_size_x(LINE_WIDTH);
         new.set_border_color(color::Rgba::transparent());
         new.set_pointer_events(false);
         self.display_object().add_child(&new);

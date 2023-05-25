@@ -38,7 +38,6 @@ mod constants {
     pub const HOVER_WIDTH: f32 = LINE_WIDTH + HOVER_EXTENSION;
     pub const NODE_CORNER_RADIUS: f32 = crate::component::node::CORNER_RADIUS;
     pub const NODE_HEIGHT: f32 = crate::component::node::HEIGHT;
-    pub const TARGET_ATTACHMENT_LENGTH: f32 = 6.0;
 }
 use constants::*;
 
@@ -206,9 +205,13 @@ impl EdgeModel {
 
     fn calculate_state(&self) -> State {
         let target_offset = self.target_offset();
-        let source_max_x_offset = self.source_max_x_offset();
-        let (junction_points, max_radius) =
-            layout::junction_points(source_max_x_offset, target_offset);
+        let target_max_attachment_length = self.max_target_attachment_length();
+        let source_max_x_offset = self.source_max_abs_x_offset();
+        let (junction_points, max_radius, attachment_length) = layout::junction_points(
+            source_max_x_offset,
+            target_offset,
+            target_max_attachment_length,
+        );
         let corners = layout::corners(&junction_points, max_radius).collect_vec();
         let target_attached = self.inputs.target_attached.get();
         let source_attached = self.inputs.source_attached.get();
@@ -225,7 +228,8 @@ impl EdgeModel {
                 // `mouse::Out` event.
                 self.inputs.hover_position.get().and_then(|position| {
                     let position = self.scene_pos_to_parent_pos(position);
-                    layout::find_position(position, &corners, self.inputs.source_size.get().y())
+                    let source_height = self.inputs.source_size.get().y();
+                    layout::find_position(position, &corners, source_height, attachment_length)
                 })
             })
             .flatten();
@@ -243,16 +247,15 @@ impl EdgeModel {
             None => (normal_color, normal_color),
         };
         State {
-            layout:            Layout { target_offset, junction_points, corners },
-            colors:            Colors { source_color, target_color },
-            is_attached:       IsAttached { is_attached },
-            focus_split:       FocusSplit { focus_split },
-            target_attachment: TargetAttachment { target_attached },
+            layout:      Layout { target_offset, junction_points, corners, attachment_length },
+            colors:      Colors { source_color, target_color },
+            is_attached: IsAttached { is_attached },
+            focus_split: FocusSplit { focus_split },
         }
     }
 
     fn apply_state(&self, state: &State) {
-        let StateUpdate { layout, colors, is_attached, focus_split, target_attachment } =
+        let StateUpdate { layout, colors, is_attached, focus_split } =
             state.compare(&self.state.borrow());
         let display_object_dirty = None
             .or(any(layout, is_attached).changed(
@@ -285,15 +288,11 @@ impl EdgeModel {
                     });
                 },
             ))
-            .or(any3(layout, colors, target_attachment).changed(
-                |(
-                    Layout { target_offset, .. },
-                    Colors { target_color, .. },
-                    TargetAttachment { target_attached, .. },
-                )| {
+            .or(any(layout, colors).changed(
+                |(Layout { target_offset, attachment_length, .. }, Colors { target_color, .. })| {
                     self.shapes.redraw_target_attachment(
                         self,
-                        *target_attached,
+                        *attachment_length,
                         *target_offset,
                         *target_color,
                     );
@@ -319,8 +318,14 @@ impl EdgeModel {
 impl EdgeModel {
     /// Return the maximum x-distance from the source (our local coordinate origin) for the point
     /// where the edge will begin.
-    fn source_max_x_offset(&self) -> f32 {
+    fn source_max_abs_x_offset(&self) -> f32 {
         (self.inputs.source_size.get().x() / 2.0 - NODE_CORNER_RADIUS).max(0.0)
+    }
+
+    /// Return the maximum y-length of the target-attachment segment. If the layout allows, the
+    /// target-attachment segment will fully exit the node before the first corner begins.
+    fn max_target_attachment_length(&self) -> Option<f32> {
+        self.inputs.target_attached.get().then_some(NODE_HEIGHT / 2.0)
     }
 
     fn screen_pos_to_scene_pos(&self, screen_pos: Vector2) -> SceneCoords {
@@ -329,25 +334,21 @@ impl EdgeModel {
     }
 
     fn scene_pos_to_parent_pos(&self, scene_pos: SceneCoords) -> ParentCoords {
-        ParentCoords(scene_pos.coords - self.display_object.xy())
+        ParentCoords(*scene_pos - self.display_object.xy())
     }
 
     fn closer_end(&self, pos: ParentCoords) -> Option<EndPoint> {
         let state = self.state.borrow();
-        let corners = &state.as_ref()?.layout.corners;
+        let state = state.as_ref()?;
+        let corners = &state.layout.corners;
+        let attachment_length = state.layout.attachment_length;
         let source_height = self.inputs.source_size.get().y();
-        layout::find_position(pos, corners, source_height).map(|split| split.closer_end)
+        layout::find_position(pos, corners, source_height, attachment_length)
+            .map(|split| split.closer_end)
     }
 
     fn target_offset(&self) -> Vector2 {
-        let target_offset = self.inputs.target_position.get().coords - self.display_object.xy();
-        match self.inputs.target_attached.get() {
-            // If the target is a node, connect to a point on its top edge. If the radius is small,
-            // this looks better than connecting to a vertically-centered point.
-            true => target_offset + Vector2(0.0, NODE_HEIGHT / 2.0),
-            // If the target is the cursor, connect all the way to it.
-            false => target_offset,
-        }
+        *self.inputs.target_position.get() - self.display_object.xy()
     }
 }
 
@@ -384,10 +385,11 @@ mod coords {
     pub struct SceneOrigin;
 
     /// Coordinates marked to identify different coordinate spaces.
-    #[derive(Debug, Copy, Clone, PartialEq, Default)]
+    #[derive(Debug, Copy, Clone, PartialEq, Default, Deref)]
     pub struct Coords<Space, Number: Copy + Debug + PartialEq + 'static = f32> {
-        pub coords: Vector2<Number>,
-        space:      PhantomData<*const Space>,
+        #[deref]
+        coords: Vector2<Number>,
+        space:  PhantomData<*const Space>,
     }
 
     pub type ParentCoords = Coords<ParentOrigin>;

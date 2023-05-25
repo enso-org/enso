@@ -81,42 +81,53 @@ const MAX_RADIUS: f32 = 24.0;
 /// Calculate the start and end positions of each 1-corner section composing an edge to the
 /// given offset. Return the points, and the maximum radius that should be used to draw the corners
 /// connecting them.
-pub(super) fn junction_points(source_max_x_offset: f32, target: Vector2) -> (Vec<Vector2>, f32) {
-    let (target_x, target_y) = (target.x(), target.y());
-    if target_y < -MIN_RADIUS
-        || (target_y <= 0.0 && target_x.abs() <= source_max_x_offset + 3.0 * MAX_RADIUS)
+pub(super) fn junction_points(
+    source_max_x_offset: f32,
+    target: Vector2,
+    target_max_attachment_height: Option<f32>,
+) -> (Vec<Vector2>, f32, Option<f32>) {
+    if target.y() < -MIN_RADIUS
+        || (target.y() <= 0.0 && target.x().abs() <= source_max_x_offset + 3.0 * MAX_RADIUS)
     {
         // === One corner ===
 
         // The edge can originate anywhere along the length of the node.
-        let source_x = target_x.clamp(-source_max_x_offset, source_max_x_offset);
+        let source_x = target.x().clamp(-source_max_x_offset, source_max_x_offset);
         let source = Vector2(source_x, 0.0);
         let max_radius = 1000000.0;
-        (vec![source, target], max_radius)
+        // The target attachment will extend as far toward the edge of the node as it can without
+        // rising above the source.
+        let attachment_height = target_max_attachment_height.map(|dy| min(dy, target.y().abs()));
+        let attachment_y = target.y() + attachment_height.unwrap_or_default();
+        let target_attachment = Vector2(target.x(), attachment_y);
+        (vec![source, target_attachment], max_radius, attachment_height)
     } else {
         // === Three corners ===
 
         // The edge originates from either side of the node.
-        let source_x = source_max_x_offset.copysign(target_x);
-        let distance_x = (target_x - source_x).abs();
-        let top = target_y + MAX_RADIUS;
+        let source_x = source_max_x_offset.copysign(target.x());
+        let distance_x = (target.x() - source_x).abs();
+        let top = target.y() + MAX_RADIUS;
         let (j0_x, j1_x);
-        if distance_x > 3.0 * MIN_RADIUS && target_x.abs() > source_x.abs() {
+        if distance_x > 3.0 * MIN_RADIUS && target.x().abs() > source_x.abs() {
             // Junctions (J0, J1) are in between source and target.
             let source_side_sections_extra_x = (distance_x / 3.0).min(MAX_RADIUS);
-            j0_x = source_x + source_side_sections_extra_x.copysign(target_x);
-            j1_x = source_x + 2.0 * source_side_sections_extra_x.copysign(target_x);
+            j0_x = source_x + source_side_sections_extra_x.copysign(target.x());
+            j1_x = source_x + 2.0 * source_side_sections_extra_x.copysign(target.x());
         } else {
             // J0 > source; J0 > J1; J1 > target.
-            j1_x = target_x + MAX_RADIUS.copysign(target_x);
-            let j0_beyond_target = target_x.abs() + MAX_RADIUS * 2.0;
+            j1_x = target.x() + MAX_RADIUS.copysign(target.x());
+            let j0_beyond_target = target.x().abs() + MAX_RADIUS * 2.0;
             let j0_beyond_source = source_x.abs() + MAX_RADIUS;
-            j0_x = j0_beyond_source.max(j0_beyond_target).copysign(target_x);
+            j0_x = j0_beyond_source.max(j0_beyond_target).copysign(target.x());
         }
         let source = Vector2(source_x, 0.0);
         let j0 = Vector2(j0_x, top / 2.0);
         let j1 = Vector2(j1_x, top);
-        (vec![source, j0, j1, target], MAX_RADIUS)
+        // The corners meet the target attachment at the top of the node.
+        let attachment_height = target_max_attachment_height.unwrap_or_default();
+        let target_attachment = target + Vector2(0.0, attachment_height);
+        (vec![source, j0, j1, target_attachment], MAX_RADIUS, Some(attachment_height))
     }
 }
 
@@ -153,8 +164,9 @@ pub(super) fn find_position(
     position: ParentCoords,
     corners: &[Oriented<Corner>],
     source_height: f32,
+    attachment_height: Option<f32>,
 ) -> Option<EdgeSplit> {
-    let position = position.coords;
+    let position = *position;
     let corner_index = corners
         .iter()
         .position(|&corner| corner.bounding_box(HOVER_WIDTH).contains_inclusive(position))?;
@@ -164,7 +176,7 @@ pub(super) fn find_position(
         full_corners.iter().map(|&corner| corner.rectilinear_length()).sum();
     let following_distance: f32 =
         following_corners.iter().map(|&corner| corner.rectilinear_length()).sum();
-    let target_attachment_distance = TARGET_ATTACHMENT_LENGTH;
+    let target_attachment_distance = attachment_height.unwrap_or_default();
     // The source end of the edge is on a horizontal line through the center of the source node
     // (this gives nice behavior when the edge exits the end at an angle). To accurately determine
     // which end a point appears closer to, we must exclude the portion of the edge that is hidden
