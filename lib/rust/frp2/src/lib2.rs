@@ -999,7 +999,7 @@ pub struct Slot {
 #[derive(Debug, Default)]
 pub struct CellSlotMap {
     free_indexes: OptRefCell<Vec<usize>>,
-    list:         LinkedCellArray<Slot, 131072>,
+    list:         Box<LinkedCellArray<Slot, 131072>>,
 }
 
 impl CellSlotMap {
@@ -1113,7 +1113,7 @@ impl<T: Zeroable, const N: usize> Default for Segment<T, N> {
 #[derivative(Default(bound = "T: Default"))]
 pub struct LinkedCellArray<T, const N: usize = 32> {
     size:          Cell<usize>,
-    first_segment: OptRefCell<ZeroableOption<Box<Segment<T, N>>>>,
+    first_segment: OptRefCell<ZeroableOption<Segment<T, N>>>,
 }
 
 // FIXME: make it future sound-proof
@@ -1156,7 +1156,7 @@ impl<T: Zeroable, const N: usize> LinkedCellArray<T, N> {
     #[inline(always)]
     fn with_first_segment<R>(&self, f: impl FnOnce(&Segment<T, N>) -> R) -> R {
         if self.first_segment.borrow().is_none() {
-            *self.first_segment.borrow_mut() = ZeroableOption::Some(Box::new(Segment::default()));
+            *self.first_segment.borrow_mut() = ZeroableOption::Some(Segment::default());
         }
         f(&*self.first_segment.borrow().as_ref().unwrap())
     }
