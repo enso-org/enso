@@ -203,9 +203,9 @@ type Range
     ## PRIVATE
        ADVANCED
 
-       Applies a function for each element in the range. Exits early if the body
+       Executes a function for each element in the range. Exits early if the body
        produces an `Error`.
-    each_propagate : (Integer -> Any) -> Nothing ! Error
+    each_propagate : (Integer -> Nothing) -> Nothing ! Error
     each_propagate self function =
         if self.step == 0 then throw_zero_step_error else
             end_condition = if self.step > 0 then (>=) else (<=)

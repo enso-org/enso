@@ -668,8 +668,8 @@ type Column
        "round towards positive infinity." If use_bankers=True, then it uses
        "round-half-even", also known as "banker's rounding".
 
-       If the column is of type `Decimal` and `decimal_places` > 0, `round`
-       returns a column of `Decimal`; otherwise, it returns a column of
+       If the column is of type `Float` and `decimal_places` > 0, `round`
+       returns a column of `Float`; otherwise, it returns a column of
        `Integer`.
 
        Arguments:
@@ -735,7 +735,7 @@ type Column
                 True ->
                     fun = _.date
                     Column_Ops.map_over_storage self fun make_date_builder_adapter skip_nothing=True
-                False -> Invalid_Value_Type.Column "Numeric or Date_Time" self.value_type
+                False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" self.value_type
 
     ## Computes the nearest integer above this number for values in a numeric
        column.
