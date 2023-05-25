@@ -123,7 +123,7 @@ function App(props: AppProps) {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
-    const { logger, platform, showDashboard, onAuthenticated } = props
+    const { logger, platform, showDashboard, onAuthenticated, projectManagerUrl } = props
     const navigate = router.useNavigate()
     const mainPageUrl = new URL(window.location.href)
     const memoizedAuthService = react.useMemo(() => {
@@ -167,8 +167,10 @@ function AppRouter(props: AppProps) {
             >
                 <backendProvider.BackendProvider
                     initialBackend={
+                        // FIXME[sb]: This is INCORRECT code. However, the fix is being merged
+                        // in another PR, and is too big of a fix to merge in here.
                         platform === platformModule.Platform.desktop
-                            ? new localBackend.LocalBackend()
+                            ? new localBackend.LocalBackend(projectManagerUrl)
                             : // This is UNSAFE. However, the backend will be set by the
                               // authentication flow.
                               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
