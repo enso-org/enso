@@ -71,6 +71,10 @@ use super::*;
 
 const MIN_RADIUS: f32 = 20.0;
 const MAX_RADIUS: f32 = 24.0;
+/// When an inverted U composed of two extra corners is used to ensure the edge reaches the target
+/// from above, this value is how far above the top of the target the center of the U-bend's line
+/// should be.
+const TARGET_U_BEND_HEIGHT: f32 = 30.0;
 
 
 
@@ -107,7 +111,7 @@ pub(super) fn junction_points(
         // The edge originates from either side of the node.
         let source_x = source_max_x_offset.copysign(target.x());
         let distance_x = (target.x() - source_x).abs();
-        let top = target.y() + MAX_RADIUS;
+        let top = target.y() + TARGET_U_BEND_HEIGHT + NODE_HEIGHT / 2.0;
         let (j0_x, j1_x);
         if distance_x > 3.0 * MIN_RADIUS && target.x().abs() > source_x.abs() {
             //                 J1
