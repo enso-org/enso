@@ -71,10 +71,8 @@ use super::*;
 
 const MIN_RADIUS: f32 = 20.0;
 const MAX_RADIUS: f32 = 20.0;
-/// When an inverted U composed of two extra corners is used to ensure the edge reaches the target
-/// from above, this value is how far above the top of the target the center of the U-bend's line
-/// should be.
-const TARGET_U_BEND_HEIGHT: f32 = 32.25;
+/// Minimum height above the target the edge must approach it from.
+const MIN_APPROACH_HEIGHT: f32 = 32.25;
 const NODE_HEIGHT: f32 = crate::component::node::HEIGHT;
 /// Extra distance toward the inside of the source node the edge should originate, relative to
 /// the point along the y-axis where the node begins to be rounded.
@@ -101,7 +99,7 @@ pub(super) fn junction_points(
     // The maximum y-length of the target-attachment segment. If the layout allows, the
     // target-attachment segment will fully exit the node before the first corner begins.
     let target_max_attachment_height = target_attached.then_some(NODE_HEIGHT / 2.0);
-    if target.y() < -MIN_RADIUS
+    if target.y() + target_max_attachment_height.unwrap_or_default() < -MIN_APPROACH_HEIGHT
         || (target.y() <= 0.0 && target.x().abs() <= source_max_x_offset + 3.0 * MAX_RADIUS)
     {
         // === One corner ===
@@ -122,7 +120,7 @@ pub(super) fn junction_points(
         // The edge originates from either side of the node.
         let source_x = source_half_width.copysign(target.x());
         let distance_x = (target.x() - source_x).abs();
-        let top = target.y() + TARGET_U_BEND_HEIGHT + NODE_HEIGHT / 2.0;
+        let top = target.y() + MIN_APPROACH_HEIGHT + NODE_HEIGHT / 2.0;
         let (j0_x, j1_x);
         if distance_x > 2.0 * MIN_RADIUS && target.x().abs() > source_x.abs() {
             //                 J1
