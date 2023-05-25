@@ -81,6 +81,16 @@ const NODE_HEIGHT: f32 = crate::component::node::HEIGHT;
 const SOURCE_INSET: f32 = 8.0;
 const NODE_CORNER_RADIUS: f32 = crate::component::node::CORNER_RADIUS;
 
+/// Constants configuring the single-corner layout.
+mod downward {
+    /// Base x-allocation for the radius.
+    pub(super) const RADIUS_X_BASE: f32 = 20.0;
+    /// Proportion (0-1) of extra x-distance allocated to the radius.
+    pub(super) const RADIUS_X_FACTOR: f32 = 0.6;
+    /// The y-allocation for the radius will be the full available height minus this value.
+    pub(super) const RADIUS_Y_ADJUSTMENT: f32 = 29.0;
+}
+
 
 
 // =======================
@@ -109,9 +119,10 @@ pub(super) fn junction_points(
         // The edge can originate anywhere along the length of the node.
         let source_x = target.x().clamp(-source_max_x_offset, source_max_x_offset);
         let source = Vector2(source_x, 0.0);
-        let distance_x = (target.x() - source_x).abs();
-        let linear_width = max(distance_x, MIN_LINEAR_X_DISTANCE);
-        let radius = distance_x - linear_width;
+        let distance_x = max(target.x().abs() - source_half_width, 0.0);
+        let radius_x = downward::RADIUS_X_BASE + distance_x * downward::RADIUS_X_FACTOR;
+        let radius_y = max(target.y().abs() - downward::RADIUS_Y_ADJUSTMENT, 0.0);
+        let radius = min(radius_x, radius_y);
         // The target attachment will extend as far toward the edge of the node as it can without
         // rising above the source.
         let attachment_height = target_max_attachment_height.map(|dy| min(dy, target.y().abs()));
