@@ -318,6 +318,43 @@ impl Runtime {
     }
 
     #[inline(always)]
+    fn unchecked_emit2(&self, node_id: NodeId, node: &NodeData, event: &dyn Data) {
+        // println!("unchecked_emit {:?} {:?}", node_id, event);
+        // println!("unchecked_emit {:?} {:?}", node_id, event);
+        if node.behavior_requests.get() > 0 {
+            *node.output.borrow_mut() = ZeroableOption::Some(event.boxed_clone());
+        }
+
+        let cleanup_targets = self.stack.with(node.def, || {
+            let mut cleanup_targets = false;
+            node.outputs.for_item_borrow(|&node_output_id| {
+                let done = self.nodes.with_item_borrow(node_output_id.target, |node_output| {
+                    node_output.on_event(self, node_id, node_output_id, event);
+                });
+                if done.is_none() {
+                    cleanup_targets = true;
+                }
+            });
+
+            cleanup_targets
+        });
+        //
+        // Return temporary buffer to pool.
+        // node_outputs.clear();
+        // self.target_store_pool.borrow_mut().push(node_outputs);
+        //
+        // // Remove targets that have been dropped.
+        // if cleanup_targets {
+        //     let mut targets = self.targets.borrow_mut();
+        //     let node_targets = targets.get_mut(node_id);
+        //     if let Some(targets) = node_targets {
+        //         let consumers = self.consumers.borrow();
+        //         targets.retain(|target| consumers.contains_key(*target));
+        //     }
+        // }
+    }
+
+    #[inline(always)]
     unsafe fn with_borrowed_node_output_coerced<T: Default>(
         &self,
         node_id: NodeId,
@@ -578,9 +615,9 @@ impl Network {
 
 impl Network {
     pub fn trace<T0: Data>(&self, source: impl Node<Output = T0>) -> Stream<T0> {
-        self.define_node(Event(source), move |event, _, _, e, t0| {
+        self.define_node(Event(source), move |event, target, _, e, t0| {
             println!("TRACE: {:?}", t0);
-            event.emit(e.target, t0);
+            event.emit(e.target, target, t0);
         })
     }
 }
@@ -609,9 +646,9 @@ impl Network {
     ) -> (Stream<Vec<T0>>, DebugCollectData<T0>) {
         let data: DebugCollectData<T0> = default();
         let out = data.clone();
-        let node = self.define_node(Event(source), move |event, _, _, e, t0| {
+        let node = self.define_node(Event(source), move |event, target, _, e, t0| {
             data.cell.borrow_mut().push(t0.clone());
-            event.emit(e.target, &*data.cell.borrow());
+            event.emit(e.target, target, &*data.cell.borrow());
         });
         (node, out)
     }
@@ -628,7 +665,9 @@ impl Network {
         n0: impl Node<Output = T0>,
         f: impl Fn(&T0) -> Output + 'static,
     ) -> Stream<Output> {
-        self.define_node(Event(n0), move |event, _, _, e, t0| event.emit(e.target, &f(t0)))
+        self.define_node(Event(n0), move |event, target, _, e, t0| {
+            event.emit(e.target, target, &f(t0))
+        })
     }
 
     #[inline(never)]
@@ -638,8 +677,8 @@ impl Network {
         n1: impl Node<Output = T1>,
         f: impl Fn(&T0, &T1) -> Output + 'static,
     ) -> Stream<Output> {
-        self.define_node((Event(n0), Behavior(n1)), move |event, _, _, e, t0, t1| {
-            event.emit(e.target, &f(t0, t1))
+        self.define_node((Event(n0), Behavior(n1)), move |event, target, _, e, t0, t1| {
+            event.emit(e.target, target, &f(t0, t1))
         })
     }
 }
@@ -654,8 +693,8 @@ struct TypedNodeData<'a, Output> {
 
 impl<'a, Output: Data> TypedNodeData<'a, Output> {
     #[inline(always)]
-    fn emit(self, target: NodeId, value: &Output) {
-        self.runtime.unchecked_emit(target, value);
+    fn emit(self, target_id: NodeId, target: &NodeData, value: &Output) {
+        self.runtime.unchecked_emit2(target_id, target, value);
     }
 }
 
@@ -832,23 +871,14 @@ mod benches {
         });
     }
 
-    // 5:    3914927
-    // 10:   9121847
-    // 15:  16824475
-    // 20:  40505458
-    // 25:  46262641
-    // 30:  52400266
-    // 35:  78494166
-    // 40:  83136525
-    // 45:  84143279
-    // 50: 107633658
+    // 10:   6290372
     #[bench]
     fn bench_emit_frp_chain_pod(bencher: &mut Bencher) {
         let net = Network::new();
         let n1 = net.source::<usize>();
         let n2 = net.map(n1, |t| t + 1);
         let mut prev = n2;
-        for _ in 0..3 {
+        for _ in 0..8 {
             let next = net.map(prev, |t| t + 1);
             prev = next;
         }
@@ -872,7 +902,7 @@ mod benches {
             n2 <- map(&n1, |t| t + 1);
         }
         let mut prev = n2;
-        for _ in 0..48 {
+        for _ in 0..8 {
             frp_old::extend! { net
                 next <- map(&prev, |t| t + 1);
             }
