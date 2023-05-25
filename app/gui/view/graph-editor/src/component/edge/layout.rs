@@ -122,8 +122,8 @@ pub(super) fn junction_points(
         let top = target.y() + MIN_APPROACH_HEIGHT + NODE_HEIGHT / 2.0;
         let (j0_x, j1_x);
         if distance_x > 2.0 * MAX_RADIUS && target.x().abs() > source_x.abs() {
-            //                 J1
-            //                /
+            //               J1
+            //              /
             //            ╭──────╮
             // ╭─────╮    │      ▢
             // ╰─────╯────╯\
@@ -133,11 +133,11 @@ pub(super) fn junction_points(
             j0_x = source_x + source_side_sections_extra_x.copysign(target.x());
             j1_x = source_x + 2.0 * source_side_sections_extra_x.copysign(target.x());
         } else {
-            //          J1
-            //         /
-            //     ╭──────╮ J0
-            //     ▢      │/
-            // ╭─────╮    │
+            //            J1
+            //           /
+            //     ╭──────╮
+            //     ▢      │ J0
+            // ╭─────╮    │/
             // ╰─────╯────╯
             // J0 > source; J0 > J1; J1 > target.
             j1_x = target.x() + MAX_RADIUS.copysign(target.x());
