@@ -696,6 +696,18 @@ impl<T: display::Object + CloneRef + Debug> ListEditor<T> {
         self.model.borrow_mut().trash_item_at(index)
     }
 
+    pub fn clear(&self) {
+        self.model.borrow_mut().clear();
+    }
+
+    pub fn len(&self) -> usize {
+        self.model.borrow().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn take_item_no_reposition(&self, index: Index) -> Option<T> {
         let mut model = self.model.borrow_mut();
         let index = model.index_to_item_or_placeholder_index(index)?;
@@ -1119,6 +1131,19 @@ impl<T: display::Object + CloneRef + 'static> Model<T> {
         }
     }
 
+    pub fn clear(&mut self) {
+        let mut removed_item = false;
+        while let Some(item_index) = self.index_to_item_or_placeholder_index(0) {
+            if let Some(item) = self.replace_item_with_placeholder(item_index) {
+                removed_item = true;
+                self.root.add_child(&Trash::new(item));
+            }
+        }
+        if removed_item {
+            self.collapse_all_placeholders_no_margin_update();
+            self.reposition_items();
+        }
+    }
 
     /// Get the center points of items and placeholders. This is used to determine the index of the
     /// insertion point when a new item is being dragged.

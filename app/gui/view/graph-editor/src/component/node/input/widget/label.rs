@@ -1,5 +1,6 @@
 //! Definition of static text label widget.
 
+use crate::component::node::input::widget::prelude::*;
 use crate::prelude::*;
 
 use crate::component::node::input::area::TEXT_SIZE;
@@ -38,14 +39,24 @@ pub struct Widget {
     label: text::Text,
 }
 
-impl super::SpanWidget for Widget {
+impl SpanWidget for Widget {
     type Config = Config;
+
+    fn match_node(_: &ConfigContext) -> Score {
+        Score::Good
+    }
+
+    fn default_config(ctx: &ConfigContext) -> Configuration<Self::Config> {
+        use span_tree::node::Kind;
+        let has_port = !matches!(ctx.span_node.kind, Kind::Token | Kind::NamedArgument);
+        Configuration::maybe_with_port(default(), has_port)
+    }
 
     fn root_object(&self) -> &object::Instance {
         &self.root
     }
 
-    fn new(_: &Config, ctx: &super::ConfigContext) -> Self {
+    fn new(_: &Config, ctx: &ConfigContext) -> Self {
         // Embed the label in a vertically centered fixed height container, so that the label's
         // baseline is properly aligned to center and lines up with other labels in the line.
         let app = ctx.app();
@@ -90,13 +101,13 @@ impl super::SpanWidget for Widget {
         Self { frp, root, label }
     }
 
-    fn configure(&mut self, _: &Config, ctx: super::ConfigContext) {
+    fn configure(&mut self, _: &Config, ctx: ConfigContext) {
         let is_placeholder = ctx.span_node.is_expected_argument();
 
         let content = if is_placeholder {
             ctx.span_node.kind.argument_name().unwrap_or_default()
         } else {
-            ctx.expression_at(ctx.span_node.span())
+            ctx.span_expression()
         };
 
         let is_connected = ctx.info.subtree_connection.is_some();
