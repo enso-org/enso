@@ -1,6 +1,7 @@
 package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.builder.object.Builder;
+import org.enso.table.data.column.operation.CastProblemBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -98,5 +99,10 @@ public class MixedStorageFacade extends Storage<Object> {
   public Storage<Object> slice(List<SliceRange> ranges) {
     Storage<?> newStorage = underlyingStorage.slice(ranges);
     return new MixedStorageFacade(newStorage);
+  }
+
+  @Override
+  public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
+    return null;
   }
 }

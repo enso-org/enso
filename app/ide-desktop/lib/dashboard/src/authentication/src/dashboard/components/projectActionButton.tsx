@@ -37,6 +37,7 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
 // === Component ===
 // =================
 
+/** Props for a {@link ProjectActionButton}. */
 export interface ProjectActionButtonProps {
     project: backendModule.Asset<backendModule.AssetType.project>
     appRunner: AppRunner | null
@@ -56,14 +57,21 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
 
     react.useEffect(() => {
-        void (async () => {
-            const projectDetails = await backend.getProjectDetails(project.id)
-            setState(projectDetails.state.type)
-            if (projectDetails.state.type === backendModule.ProjectState.openInProgress) {
+        switch (project.projectState.type) {
+            case backendModule.ProjectState.opened:
+                setState(backendModule.ProjectState.openInProgress)
+                setSpinnerState(SpinnerState.initial)
+                setIsCheckingResources(true)
+                break
+            case backendModule.ProjectState.openInProgress:
+                setState(backendModule.ProjectState.openInProgress)
                 setSpinnerState(SpinnerState.initial)
                 setIsCheckingStatus(true)
-            }
-        })()
+                break
+            default:
+                setState(project.projectState.type)
+                break
+        }
     }, [])
 
     react.useEffect(() => {
@@ -131,15 +139,16 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         }
     }, [isCheckingResources])
 
-    function closeProject() {
+    const closeProject = () => {
         setState(backendModule.ProjectState.closed)
         appRunner?.stopApp()
         void backend.closeProject(project.id)
         setIsCheckingStatus(false)
+        setIsCheckingResources(false)
         onClose()
     }
 
-    async function openProject() {
+    const openProject = async () => {
         setState(backendModule.ProjectState.openInProgress)
         setSpinnerState(SpinnerState.initial)
         // The `setTimeout` is required so that the completion percentage goes from

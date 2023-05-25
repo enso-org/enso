@@ -6,13 +6,12 @@ import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.SuggestionEntry
 import org.enso.searcher.data.QueryResult
+import org.enso.searcher.sql.SqlSuggestionsRepo.UniqueConstraintViolatedError
 import org.enso.searcher.sql.equality.SuggestionsEquality
 import org.enso.testkit.RetrySpec
 import org.scalactic.TripleEqualsSupport
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-
-import java.sql.SQLException
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -132,7 +131,10 @@ class SuggestionsRepoTest
             _ <- repo.insertAll(Seq(suggestion.local, suggestion.local))
           } yield ()
 
-        an[SQLException] should be thrownBy Await.result(action, Timeout)
+        an[UniqueConstraintViolatedError] should be thrownBy Await.result(
+          action,
+          Timeout
+        )
     }
 
     "select suggestion by id" taggedAs Retry in withRepo { repo =>
@@ -966,6 +968,32 @@ class SuggestionsRepoTest
 
       val (id, res) = Await.result(action, Timeout)
       res should contain theSameElementsAs Seq(id).flatten
+    }
+
+    "search suggestion by self type excluding constructors" taggedAs Retry in withRepo {
+      repo =>
+        val constructorSelfType =
+          Suggestion.SelfType(suggestion.constructor).toSeq
+        val action = for {
+          _ <- repo.insert(suggestion.module)
+          _ <- repo.insert(suggestion.tpe)
+          _ <- repo.insert(suggestion.constructor)
+          _ <- repo.insert(suggestion.method)
+          _ <- repo.insert(suggestion.conversion)
+          _ <- repo.insert(suggestion.function)
+          _ <- repo.insert(suggestion.local)
+          res <- repo.search(
+            None,
+            constructorSelfType,
+            None,
+            None,
+            None,
+            None
+          )
+        } yield res._2
+
+        val res = Await.result(action, Timeout)
+        res.isEmpty shouldEqual true
     }
 
     "search suggestion by return type" taggedAs Retry in withRepo { repo =>

@@ -4,6 +4,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion, Invalid_Value_Type
 
+from Standard.Database.Errors import Unsupported_Database_Operation
+
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
@@ -85,9 +87,9 @@ spec setup =
             ((t.at "A" . month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing]
             ((t.at "A" . day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing]
 
-        Test.specify "should allow to compute expressions with year/month/day" <|
+        Test.specify "should allow to evaluate expressions with year/month/day" <|
             t = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [0, 2, 1, 100]], ["B", [Date_Time.new 2020 10 31 23 59 59, Date_Time.new 2024 4 29 2 30 44, Date_Time.new 1990 10 1 0 0 0, Nothing]]]
-            c = t.compute "year([A]) + [X] + day([A]) * month([B])"
+            c = t.evaluate_expression "year([A]) + [X] + day([A]) * month([B])"
             Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
                 c.value_type.is_integer.should_be_true
             c.to_vector . should_equal [(2020 + 0 + 31 * 10), (2024 + 2 + 29 * 4), (1990 + 1 + 1 * 10), Nothing]
@@ -136,4 +138,4 @@ spec setup =
             Test.specify "will warn when uploading a Table containing Dates" <|
                 d = Date.new 2020 10 24
                 table = table_builder [["A", [d]], ["X", [123]]]
-                Problems.expect_warning Inexact_Type_Coercion table
+                table.should_fail_with Unsupported_Database_Operation

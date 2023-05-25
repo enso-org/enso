@@ -21,10 +21,16 @@ pub const SHORTCUTS: &[(ensogl::application::shortcut::ActionType, &str, &str, &
     (Press, "!read_only", "cmd g", "collapse_selected_nodes"),
     // === Visualization ===
     (Press, "!node_editing", "space", "press_visualization_visibility"),
-    (DoublePress, "!node_editing", "space", "double_press_visualization_visibility"),
+    (
+        Press,
+        "!node_editing & !is_fs_visualization_displayed",
+        "shift space",
+        "open_fullscreen_visualization",
+    ),
     (Release, "!node_editing", "space", "release_visualization_visibility"),
     (Press, "", "cmd i", "reload_visualization_registry"),
-    (Press, "is_fs_visualization_displayed", "space", "close_fullscreen_visualization"),
+    (Press, "is_fs_visualization_displayed", "shift space", "close_fullscreen_visualization"),
+    (Press, "is_fs_visualization_displayed", "escape", "close_fullscreen_visualization"),
     (Press, "", "cmd", "enable_quick_visualization_preview"),
     (Release, "", "cmd", "disable_quick_visualization_preview"),
     // === Selection ===
@@ -63,6 +69,7 @@ pub const SHORTCUTS: &[(ensogl::application::shortcut::ActionType, &str, &str, &
     (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
     (Press, "debug_mode", "ctrl shift up", "debug_pop_breadcrumb"),
     (Press, "debug_mode", "ctrl n", "add_node_at_cursor"),
+    (Press, "", "ctrl shift x", "reopen_file_in_language_server"),
     // Execution Environment
     (Press, "", "cmd shift k", "switch_to_design_execution_environment"),
     (Press, "", "cmd shift l", "switch_to_live_execution_environment"),

@@ -1,8 +1,9 @@
 //! Definition of single choice widget.
 
+use crate::component::node::input::widget::prelude::*;
 use crate::prelude::*;
 
-use crate::component::node::input::widget::Entry;
+use crate::component::node::input::widget::label;
 
 use enso_frp as frp;
 use ensogl::control::io::mouse;
@@ -40,6 +41,7 @@ const DROPDOWN_MAX_SIZE: Vector2 = Vector2(300.0, 500.0);
 pub mod triangle {
     use super::*;
     ensogl::shape! {
+        above = [display::shape::compound::rectangle::shape];
         alignment = left_bottom;
         (style:Style, color:Vector4) {
             let size   = Var::canvas_size();
@@ -93,14 +95,29 @@ pub struct Widget {
     activation_shape: triangle::View,
 }
 
-impl super::SpanWidget for Widget {
+impl SpanWidget for Widget {
     type Config = Config;
+
+    fn match_node(ctx: &ConfigContext) -> Score {
+        let tags = ctx.span_node.kind.tag_values().unwrap_or_default();
+        let has_tags = !tags.is_empty();
+        has_tags.then_val_or_default(Score::Perfect)
+    }
+
+    fn default_config(ctx: &ConfigContext) -> Configuration<Self::Config> {
+        let kind = &ctx.span_node.kind;
+        let label = kind.name().map(Into::into);
+        let tags = kind.tag_values().unwrap_or_default();
+        let entries = Rc::new(tags.iter().map(Entry::from).collect());
+        let default_config = Config { label, entries };
+        Configuration::always(default_config)
+    }
 
     fn root_object(&self) -> &display::object::Instance {
         &self.display_object
     }
 
-    fn new(_: &Config, ctx: &super::ConfigContext) -> Self {
+    fn new(_: &Config, ctx: &ConfigContext) -> Self {
         let app = ctx.app();
         //  ╭─display_object────────────────────╮
         //  │╭─content_wrapper─────────────────╮│
@@ -160,12 +177,11 @@ impl super::SpanWidget for Widget {
         .init(ctx)
     }
 
-    fn configure(&mut self, config: &Config, mut ctx: super::ConfigContext) {
+    fn configure(&mut self, config: &Config, mut ctx: ConfigContext) {
         let input = &self.config_frp.public.input;
 
         let has_value = !ctx.span_node.is_insertion_point();
-        let current_value: Option<ImString> =
-            has_value.then(|| ctx.expression_at(ctx.span_node.span()).into());
+        let current_value: Option<ImString> = has_value.then(|| ctx.span_expression().into());
 
         input.current_crumbs(ctx.span_node.crumbs.clone());
         input.current_value(current_value);
@@ -173,30 +189,25 @@ impl super::SpanWidget for Widget {
         input.is_connected(ctx.info.subtree_connection.is_some());
 
         if has_value {
-            ctx.modify_extension::<super::label::Extension>(|ext| ext.bold = true);
+            ctx.modify_extension::<label::Extension>(|ext| ext.bold = true);
         }
 
-        let config = match ctx.span_node.children.is_empty() {
-            true => super::Configuration::always(super::label::Config),
-            false => super::Configuration::always(super::hierarchy::Config),
-        };
-        let child_level = ctx.info.nesting_level;
-        let child = ctx.builder.child_widget_of_type(ctx.span_node, child_level, Some(&config));
+        let child = ctx.builder.child_widget(ctx.span_node, ctx.info.nesting_level);
         self.label_wrapper.replace_children(&[child.root_object]);
     }
 }
 
 impl Widget {
-    fn init(self, ctx: &super::ConfigContext) -> Self {
+    fn init(self, ctx: &ConfigContext) -> Self {
         let is_open = self.init_dropdown_focus(ctx);
         self.init_dropdown_values(ctx, is_open);
         self.init_activation_shape(ctx);
         self
     }
 
-    fn init_dropdown_focus(&self, ctx: &super::ConfigContext) -> frp::Stream<bool> {
+    fn init_dropdown_focus(&self, ctx: &ConfigContext) -> frp::Stream<bool> {
         let widgets_frp = ctx.frp();
-        let focus_receiver = self.display_object.clone_ref();
+        let focus_receiver = &self.dropdown_wrapper;
         let focus_in = focus_receiver.on_event::<event::FocusIn>();
         let focus_out = focus_receiver.on_event::<event::FocusOut>();
         let network = &self.config_frp.network;
@@ -219,14 +230,14 @@ impl Widget {
             // Otherwise the animation finishes within single frame, which looks bad.
             let close_after_selection_timer = frp::io::timer::Timeout::new(network);
             close_after_selection_timer.restart <+ dropdown_frp.user_select_action.constant(1);
-            eval close_after_selection_timer.on_expired((()) focus_receiver.blur());
+            eval_ close_after_selection_timer.on_expired(focus_receiver.blur());
 
         }
         is_open
     }
 
 
-    fn init_dropdown_values(&self, ctx: &super::ConfigContext, is_open: frp::Stream<bool>) {
+    fn init_dropdown_values(&self, ctx: &ConfigContext, is_open: frp::Stream<bool>) {
         let network = &self.config_frp.network;
         let dropdown_frp = &self.dropdown.borrow();
         let config_frp = &self.config_frp;
@@ -261,13 +272,13 @@ impl Widget {
         };
     }
 
-    fn init_activation_shape(&self, ctx: &super::ConfigContext) {
+    fn init_activation_shape(&self, ctx: &ConfigContext) {
         let network = &self.config_frp.network;
         let config_frp = &self.config_frp;
         let widgets_frp = ctx.frp();
         let styles = ctx.styles();
         let activation_shape = &self.activation_shape;
-        let focus_receiver = &self.display_object;
+        let focus_receiver = &self.dropdown_wrapper;
         frp::extend! { network
             is_hovered <- widgets_frp.on_port_hover.map2(&config_frp.current_crumbs, |h, crumbs| {
                 h.on().map_or(false, |h| crumbs.starts_with(h))

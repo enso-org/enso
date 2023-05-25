@@ -161,12 +161,13 @@ type Value_Type
         _ -> False
 
     ## UNSTABLE
-       Checks if the `Value_Type` represents any numeric type - integer,
+       Checks if the `Value_Type` represents any numeric type - integer, byte,
        floating point or decimal.
     is_numeric : Boolean
     is_numeric self = case self of
-        Value_Type.Integer _ -> True
-        Value_Type.Float _   -> True
+        Value_Type.Integer _   -> True
+        Value_Type.Float _     -> True
+        Value_Type.Byte        -> True
         Value_Type.Decimal _ _ -> True
         _ -> False
 

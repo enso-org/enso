@@ -1,5 +1,7 @@
 package org.enso.interpreter.test;
 
+import java.lang.reflect.Method;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -13,12 +15,14 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+
 import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
@@ -35,6 +39,7 @@ class ValuesGenerator {
   private final Set<Language> languages;
   private final Map<String, ValueInfo> values = new HashMap<>();
   private final Map<String, List<Value>> multiValues = new HashMap<>();
+  private final Map<Method, Object> computed = new HashMap<>();
 
   private ValuesGenerator(Context ctx, Set<Language> languages) {
     this.ctx = ctx;
@@ -577,6 +582,26 @@ class ValuesGenerator {
         collect.add(v("maps-" + expr, imports, expr, "Map").type());
       }
     }
+    if (languages.contains(Language.JAVA)) {
+      collect.add(ctx.asValue(Collections.emptyMap()));
+      collect.add(ctx.asValue(Collections.singletonMap("A", 1)));
+      var map = new HashMap<String,Integer>();
+      map.put("A", 1);
+      map.put("B", 2);
+      map.put("C", 3);
+      collect.add(ctx.asValue(map));
+    }
+    if (languages.contains(Language.JAVASCRIPT)) {
+      var fn = ctx.eval("js", """
+      (function() {
+        var map = new Map();
+        map.set('A', 1);
+        map.set('B', 2);
+        return map;
+      })
+      """);
+      collect.add(fn.execute());
+    }
     return collect;
   }
 
@@ -723,7 +748,7 @@ class ValuesGenerator {
       }
       if (m.getReturnType() == List.class) {
         @SuppressWarnings("unchecked")
-        var r = (List<Value>) m.invoke(this);
+        var r = (List<Value>) invokeWithCache(m);
         collect.addAll(r);
       }
     }
@@ -736,12 +761,22 @@ class ValuesGenerator {
 
       if (m.getName().startsWith("type")) {
         if (m.getReturnType() == Value.class) {
-          var r = (Value) m.invoke(this);
+          @SuppressWarnings("unchecked")
+          var r = (Value) invokeWithCache(m);
           collect.add(r);
         }
       }
     }
     return collect;
+  }
+
+  private Object invokeWithCache(Method m) throws Exception {
+    var v = computed.get(m);
+    if (v == null) {
+      v = m.invoke(this);
+      computed.put(m, v);
+    }
+    return v;
   }
 
   public enum Language {

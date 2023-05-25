@@ -670,6 +670,9 @@ pub trait API: Debug + model::undo_redo::Aware {
     /// have their original expressions restored.
     /// In both cases, the metadata marking as temporary will be removed.
     fn restore_temporary_changes(&self) -> FallibleResult;
+
+    /// Reopen file in language server.
+    fn reopen_file_in_language_server(&self) -> BoxFuture<FallibleResult>;
 }
 
 /// Trait for methods that cannot be defined in `API` because it is a trait object.

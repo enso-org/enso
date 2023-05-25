@@ -198,14 +198,13 @@ async fn check_vcs_status_and_notify(
 #[profile(Detail)]
 async fn update_modules_on_file_change(
     changes: FileEditList,
-    parser: Parser,
     module_registry: Rc<model::registry::Registry<module::Path, module::Synchronized>>,
 ) -> FallibleResult {
     for file_edit in changes.edits {
         let file_path = file_edit.path.clone();
         let module_path = module::Path::from_file_path(file_path).unwrap();
         if let Some(module) = module_registry.get(&module_path).await? {
-            module.apply_text_change_from_ls(file_edit.edits, &parser).await?;
+            module.apply_text_change_from_ls(file_edit.edits).await?;
         }
     }
     Ok(())
@@ -502,7 +501,6 @@ impl Project {
         let publisher = self.notifications.clone_ref();
         let project_root_id = self.project_content_root_id();
         let language_server = self.json_rpc().clone_ref();
-        let parser = self.parser().clone_ref();
         let weak_suggestion_db = Rc::downgrade(&self.suggestion_db);
         let weak_content_roots = Rc::downgrade(&self.content_roots);
         let weak_module_registry = Rc::downgrade(&self.module_registry);
@@ -536,11 +534,9 @@ impl Project {
                     });
                 }
                 Event::Notification(Notification::TextDidChange(changes)) => {
-                    let parser = parser.clone();
                     if let Some(module_registry) = weak_module_registry.upgrade() {
                         executor::global::spawn(async move {
-                            let status =
-                                update_modules_on_file_change(changes, parser, module_registry);
+                            let status = update_modules_on_file_change(changes, module_registry);
                             if let Err(err) = status.await {
                                 error!("Error while applying file changes to modules: {err}");
                             }

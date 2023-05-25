@@ -1,17 +1,15 @@
 from Standard.Base import all
-from Standard.Table.Data.Column_Format import all
-
-import Standard.Base.Data.Locale.Locale
-import Standard.Base.Data.Time.Date.Date
-import Standard.Base.Data.Time.Date_Time.Date_Time
-import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
 import Standard.Table.Data.Type.Value_Type.Bits
-import Standard.Test.Extensions
 
 from Standard.Table import Column, Value_Type
 from Standard.Table.Errors import Invalid_Value_Type
+from Standard.Table.Internal.Column_Format import all
+
+import Standard.Test.Extensions
 from Standard.Test import Test, Test_Suite
+
 from project.Util import all
 
 spec =
@@ -309,7 +307,7 @@ spec_with_numeric_type name numeric_type =
 
         Test.specify "Column with locale" <|
             input = Column.from_vector "values" ["100000000", "2222", "3"] . parse numeric_type
-            expected = Column.from_vector "values" ["100 000 000,00", "2 222,00", "3,00"]
+            expected = Column.from_vector "values" ["100 000 000,00", "2 222,00", "3,00"]
             input.format "#,##0.00" locale=(Locale.new "fr") . should_equal expected
 
         Test.specify "Bad format" <|
@@ -326,7 +324,7 @@ spec_with_numeric_type name numeric_type =
         Test.specify "Column with locale" <|
             input = Column.from_vector "values" ["100000000", "2222", "3"] . parse numeric_type
             formats = Column.from_vector "formats" ["#,##0.00", "0.00", "0"]
-            expected = Column.from_vector "values" ["100 000 000,00", "2222,00", "3"]
+            expected = Column.from_vector "values" ["100 000 000,00", "2222,00", "3"]
             input.format formats locale=(Locale.new "fr") . should_equal expected
 
         Test.specify "Bad format" <|

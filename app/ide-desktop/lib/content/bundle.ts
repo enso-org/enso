@@ -3,6 +3,10 @@ import * as esbuild from 'esbuild'
 
 import * as bundler from './esbuild-config'
 
+// =======================
+// === Generate bundle ===
+// =======================
+
 try {
     void esbuild.build(bundler.bundleOptions())
 } catch (error) {
