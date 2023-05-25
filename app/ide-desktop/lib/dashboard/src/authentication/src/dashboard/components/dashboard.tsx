@@ -406,6 +406,7 @@ function Dashboard(props: DashboardProps) {
                 <ProjectActionButton
                     project={projectAsset}
                     appRunner={appRunner}
+                    doRefresh={doRefresh}
                     onClose={() => {
                         setProject(null)
                     }}

@@ -49,6 +49,10 @@ async function graalSignables(resourcesDir: string): Promise<Signable[]> {
         [`Contents/Home/jmods/jdk.javadoc.jmod`, ['bin/javadoc']],
         [`Contents/Home/jmods/jdk.jconsole.jmod`, ['bin/jconsole']],
         [`Contents/Home/jmods/jdk.javadoc.jmod`, ['bin/javadoc']],
+        [
+            `Contents/Home/jmods/jdk.jpackage.jmod`,
+            ['bin/jpackage', 'classes/jdk/jpackage/internal/resources/jpackageapplauncher'],
+        ],
     ]
 
     const binariesPatterns = [
