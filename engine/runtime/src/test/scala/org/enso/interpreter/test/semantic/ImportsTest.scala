@@ -81,6 +81,14 @@ class ImportsTest extends PackageTest {
     consumeOut should contain("Export statements form a cycle:")
   }
 
+  "Exports system" should "honor logical export" in {
+    val compilationResult = evalTestProject(
+      "Logical_Import_Violated_Test"
+    )
+    compilationResult shouldEqual "Element with Internal"
+    consumeOut shouldEqual List()
+  }
+
   "Import statements" should "allow for importing submodules" in {
     evalTestProject("TestSubmodules") shouldEqual 42
     val outLines = consumeOut
