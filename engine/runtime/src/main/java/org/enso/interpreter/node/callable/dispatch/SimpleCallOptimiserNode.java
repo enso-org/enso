@@ -5,9 +5,11 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
+import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.state.State;
 
 import java.util.concurrent.locks.Lock;
@@ -65,8 +67,13 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
           lock.unlock();
         }
       }
-      return next.executeDispatch(
-          frame, e.getFunction(), e.getCallerInfo(), state, e.getArguments());
+      Object result =
+          next.executeDispatch(frame, e.getFunction(), e.getCallerInfo(), state, e.getArguments());
+      if (e.getWarnings() != null) {
+        return WithWarnings.appendTo(EnsoContext.get(this), result, e.getWarnings());
+      } else {
+        return result;
+      }
     }
   }
 }

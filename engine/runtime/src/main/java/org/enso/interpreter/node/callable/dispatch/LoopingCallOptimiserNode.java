@@ -15,9 +15,12 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RepeatingNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -79,13 +82,22 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       State state,
       Object[] arguments,
       @Cached ExecuteCallNode executeCallNode) {
+    Warning[] warnings = null;
     while (true) {
       try {
-        return executeCallNode.executeCall(frame, function, callerInfo, state, arguments);
+        Object result = executeCallNode.executeCall(frame, function, callerInfo, state, arguments);
+        if (warnings != null) {
+          return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
+        } else {
+          return result;
+        }
       } catch (TailCallException e) {
         function = e.getFunction();
         callerInfo = e.getCallerInfo();
         arguments = e.getArguments();
+        if (warnings == null) {
+          warnings = e.getWarnings();
+        }
       }
     }
   }
