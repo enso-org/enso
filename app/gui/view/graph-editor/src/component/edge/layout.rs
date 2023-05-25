@@ -86,6 +86,7 @@ const TARGET_U_BEND_HEIGHT: f32 = 30.0;
 /// given offset. Return the points, the maximum radius that should be used to draw the corners
 /// connecting them, and the length of the target attachment bit.
 pub(super) fn junction_points(
+    source_half_width: f32,
     source_max_x_offset: f32,
     target: Vector2,
     target_max_attachment_height: Option<f32>,
@@ -133,7 +134,7 @@ pub(super) fn junction_points(
             // J0 > source; J0 > J1; J1 > target.
             j1_x = target.x() + MAX_RADIUS.copysign(target.x());
             let j0_beyond_target = target.x().abs() + MAX_RADIUS * 2.0;
-            let j0_beyond_source = source_x.abs() + MAX_RADIUS;
+            let j0_beyond_source = source_half_width + MAX_RADIUS;
             j0_x = j0_beyond_source.max(j0_beyond_target).copysign(target.x());
         }
         let source = Vector2(source_x, 0.0);

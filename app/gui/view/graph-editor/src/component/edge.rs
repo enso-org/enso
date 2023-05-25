@@ -205,12 +205,11 @@ impl EdgeModel {
 
     fn calculate_state(&self) -> State {
         let target_offset = self.target_offset();
-        let target_max_attachment_length = self.max_target_attachment_length();
-        let source_max_x_offset = self.source_max_abs_x_offset();
         let (junction_points, max_radius, attachment_length) = layout::junction_points(
-            source_max_x_offset,
+            self.source_half_width(),
+            self.source_max_abs_x_offset(),
             target_offset,
-            target_max_attachment_length,
+            self.max_target_attachment_length(),
         );
         let corners = layout::corners(&junction_points, max_radius).collect_vec();
         let target_attached = self.inputs.target_attached.get();
@@ -316,10 +315,14 @@ impl EdgeModel {
 // === Low-level operations ===
 
 impl EdgeModel {
+    fn source_half_width(&self) -> f32 {
+        self.inputs.source_size.get().x() / 2.0
+    }
+
     /// Return the maximum x-distance from the source (our local coordinate origin) for the point
     /// where the edge will begin.
     fn source_max_abs_x_offset(&self) -> f32 {
-        (self.inputs.source_size.get().x() / 2.0 - NODE_CORNER_RADIUS).max(0.0)
+        (self.source_half_width() - NODE_CORNER_RADIUS).max(0.0)
     }
 
     /// Return the maximum y-length of the target-attachment segment. If the layout allows, the
