@@ -713,11 +713,6 @@ class IrToTruffle(
     None
   }
 
-  /** Tries to find a nested class of `hostClass` with the name `nestedClassName`.
-    * @param hostClass
-    * @param nestedClassName
-    * @return
-    */
   private def getNestedClass(
     hostClass: Object,
     nestedClassName: Array[String]
