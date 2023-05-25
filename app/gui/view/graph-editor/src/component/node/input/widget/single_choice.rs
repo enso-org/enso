@@ -65,17 +65,21 @@ pub mod triangle {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
     /// Default label to display when no value is selected. Will use argument name if not provided.
-    pub label:   Option<ImString>,
+    pub label:     Option<ImString>,
     /// Entries that should be displayed by the widget, as proposed by language server. This
     /// list is not exhaustive. The widget implementation might present additional
     /// options or allow arbitrary user input.
-    pub entries: Rc<Vec<Entry>>,
+    pub entries:   Rc<Vec<Entry>>,
+    /// Optional widget configurations for arguments of a method call in entries expression.
+    /// The first element of the tuple is the index of an associated entry in `entries` vector,
+    /// and the vector is also ordered by it.
+    pub arguments: Vec<(usize, ImString, Configuration)>,
 }
 
 ensogl::define_endpoints_2! {
     Input {
-        set_entries    (Rc<Vec<Entry>>),
-        current_value  (Option<ImString>),
+        set_entries    (Rc<Vec<InnerEntry>>),
+        selected_entry  (Option<InnerEntry>),
         current_crumbs (span_tree::Crumbs),
         is_connected   (bool),
     }
@@ -109,7 +113,7 @@ impl SpanWidget for Widget {
         let label = kind.name().map(Into::into);
         let tags = kind.tag_values().unwrap_or_default();
         let entries = Rc::new(tags.iter().map(Entry::from).collect());
-        let default_config = Config { label, entries };
+        let default_config = Config { label, entries, arguments: default() };
         Configuration::always(default_config)
     }
 
@@ -181,12 +185,18 @@ impl SpanWidget for Widget {
         let input = &self.config_frp.public.input;
 
         let has_value = !ctx.span_node.is_insertion_point();
-        let current_value: Option<ImString> = has_value.then(|| ctx.span_expression().into());
+        let current_value = has_value.then(|| ctx.span_expression());
+        let selected_entry = entry_for_current_value(&config.entries, current_value);
 
         input.current_crumbs(ctx.span_node.crumbs.clone());
-        input.current_value(current_value);
         input.set_entries(config.entries.clone());
+        input.selected_entry(selected_entry);
         input.is_connected(ctx.info.subtree_connection.is_some());
+
+        let nested_arguments = selected_entry.map(|e| &e.arguments).filter(|args| !args.is_empty());
+        if let Some(args) = nested_arguments {
+            let nested_call_id = find_nested_call_id(&ctx.span_node);
+        }
 
         if has_value {
             ctx.modify_extension::<label::Extension>(|ext| ext.bold = true);
@@ -195,6 +205,11 @@ impl SpanWidget for Widget {
         let child = ctx.builder.child_widget(ctx.span_node, ctx.info.nesting_level);
         self.label_wrapper.replace_children(&[child.root_object]);
     }
+}
+
+/// Find an unambiguous top-level nested call expression inside given node and return its AST ID.
+fn find_nested_call_id(node: &SpanRef) -> Option<ast::Id> {
+    node.ast_id
 }
 
 impl Widget {
@@ -244,14 +259,9 @@ impl Widget {
         let widgets_frp = ctx.frp();
 
         frp::extend! { network
-            current_value <- config_frp.current_value.on_change();
-            entries <- config_frp.set_entries.on_change();
-            entries_and_value <- all(&entries, &current_value);
-            entries_and_value <- entries_and_value.debounce();
-            dropdown_frp.set_all_entries <+ entries_and_value.map(|(e, _)| e.deref().clone());
-            entries_and_value <- entries_and_value.buffered_gate(&is_open);
-
-            selected_entry <- entries_and_value.map(|(e, v)| entry_for_current_value(e, v));
+            selected_entry <- config_frp.selected_entry.buffered_gate(&is_open).on_change();
+            all_entries <- config_frp.set_entries.buffered_gate(&is_open).on_change();
+            dropdown_frp.set_all_entries <+ all_entries;
             dropdown_frp.set_selected_entries <+ selected_entry.map(|e| e.iter().cloned().collect());
 
             dropdown_entry <- dropdown_frp.selected_entries
@@ -313,29 +323,29 @@ impl Widget {
 
 fn entry_for_current_value(
     all_entries: &[Entry],
-    current_value: &Option<ImString>,
-) -> Option<Entry> {
-    let current_value = current_value.clone()?;
-    let found_entry = all_entries.iter().find(|entry| entry.value.as_ref() == current_value);
+    current_value: Option<&str>,
+) -> Option<(usize, Entry)> {
+    let current_value = current_value?;
+    let found_entry =
+        all_entries.iter().enumerate().find(|(_, entry)| entry.value.as_ref() == current_value);
     let with_partial_match = found_entry.or_else(|| {
         // Handle parentheses in current value. Entries with parenthesized expressions will match if
         // they start with the same expression as the current value. That way it is still matched
         // once extra arguments are added to the nested function call.
         current_value.starts_with('(').and_option_from(|| {
             let current_value = current_value.trim_start_matches('(').trim_end_matches(')');
-            all_entries.iter().find(|entry| {
+            all_entries.iter().enumerate().find(|(_, entry)| {
                 let trimmed_value = entry.value.trim_start_matches('(').trim_end_matches(')');
                 current_value.starts_with(trimmed_value)
             })
         })
     });
 
-    let with_fallback =
-        with_partial_match.cloned().unwrap_or_else(|| Entry::from_value(current_value.clone()));
+    let with_fallback = with_partial_match
+        .cloned()
+        .unwrap_or_else(|| (usize::MAX, Entry::from_value(current_value.into())));
     Some(with_fallback)
 }
-
-
 
 // ====================
 // === LazyDropdown ===

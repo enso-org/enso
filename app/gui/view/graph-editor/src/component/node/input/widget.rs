@@ -67,6 +67,7 @@ pub(super) mod prelude {
     pub use super::IdentityBase;
     pub use super::NodeInfo;
     pub use super::Score;
+    pub use super::SpanRef;
     pub use super::SpanWidget;
     pub use super::TransferRequest;
     pub use super::TreeNode;
@@ -370,7 +371,11 @@ impl Configuration {
 
         let matched_kind = best_match.map_or(DynKindFlags::Label, |(kind, _)| kind);
         let mut config = matched_kind.default_config(ctx);
-        config.has_port = config.has_port || ctx.info.connection.is_some();
+
+        let wants_port = config.has_port;
+        let must_have_port = ctx.info.connection.is_some();
+        let can_have_port = ctx.span_node.ast_id.is_some() || ctx.span_node.is_insertion_point();
+        config.has_port = (wants_port || must_have_port) && can_have_port;
         config
     }
 
@@ -412,7 +417,7 @@ pub enum Display {
 
 /// Widget entry. Represents a possible value choice on the widget, as proposed by the language
 /// server.
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, PartialEq)]
 pub struct Entry {
     /// The expression that should be inserted by the widget. Note that  this expression can still
     /// be preprocessed by the widget before being inserted into the node.
@@ -931,6 +936,7 @@ impl TreeModel {
             usage_type_map: &usage_type_map,
             old_nodes,
             hierarchy,
+            local_overrides: default(),
             pointer_usage: default(),
             new_nodes: default(),
             parent_info: default(),
@@ -1304,6 +1310,10 @@ struct TreeBuilder<'a> {
     node_expression: &'a str,
     styles:          &'a StyleWatch,
     override_map:    &'a HashMap<OverrideKey, Configuration>,
+    /// A list of additional overrides specified during by the widgets during the tree building
+    /// process. Useful for applying overrides conditionally, e.g. only when a specific dropdown
+    /// entry is selected.
+    local_overrides: HashMap<OverrideKey, Configuration>,
     connected_map:   &'a HashMap<span_tree::Crumbs, color::Lcha>,
     usage_type_map:  &'a HashMap<ast::Id, crate::Type>,
     old_nodes:       HashMap<WidgetIdentity, TreeEntry>,
@@ -1322,6 +1332,14 @@ impl<'a> TreeBuilder<'a> {
     /// from previous span.
     pub fn manage_child_margins(&mut self) {
         self.node_settings.manage_margins = true;
+    }
+
+    /// Set an additional config override for widgets that might be built in the future within the
+    /// same tree build process. Takes precedence over overrides specified externally. This is
+    /// useful for applying overrides conditionally, e.g. only when a specific dropdown entry is
+    /// selected.
+    pub fn set_local_override(&mut self, key: OverrideKey, config: Configuration) {
+        self.local_overrides.insert(key, config);
     }
 
     /// Override horizontal port hover area margin for ports of this children. The margin is used
@@ -1411,10 +1429,10 @@ impl<'a> TreeBuilder<'a> {
 
         // Get widget configuration. There are three potential sources for configuration, that are
         // used in order, whichever is available and allowed first:
-        // 1. The `config_override` argument, which can be set by the parent widget if it wants to
+        // 1. The `configuration` argument, which can be set by the parent widget if it wants to
         //    override the configuration for its child.
-        // 2. The override stored in the span tree node, located using `OverrideKey`. This can be
-        //    set by an external source, e.g. based on language server.
+        // 2. The override associated with a the span tree node, located using `OverrideKey`. This
+        // can be    set by an external source, e.g. based on language server.
         // 3. The default configuration for the widget, which is determined based on the node kind,
         // usage type and whether it has children.
         let disallowed_configs = ptr_usage.used_configs;
@@ -1429,17 +1447,18 @@ impl<'a> TreeBuilder<'a> {
 
         let config_override = || {
             let kind = &ctx.span_node.kind;
-            ctx.builder
-                .override_map
-                .get(&OverrideKey {
-                    call_id:       kind.call_id()?,
-                    argument_name: kind.argument_name()?.into(),
-                })
-                .filter(|cfg| {
-                    let flag = cfg.kind.flag();
-                    !disallowed_configs.contains(flag)
-                        && !matches!(flag.match_node(&ctx), Score::Mismatch)
-                })
+            let key = OverrideKey {
+                call_id:       kind.call_id()?,
+                argument_name: kind.argument_name()?.into(),
+            };
+            let is_applicable = |cfg: &&Configuration| {
+                let flag = cfg.kind.flag();
+                !disallowed_configs.contains(flag)
+                    && !matches!(flag.match_node(&ctx), Score::Mismatch)
+            };
+
+            let local = ctx.builder.local_overrides.get(&key).filter(is_applicable);
+            local.or_else(|| ctx.builder.override_map.get(&key).filter(is_applicable))
         };
 
         let inferred_config;

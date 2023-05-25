@@ -24,18 +24,15 @@ pub fn deserialize_widget_definitions(
 ) -> (Vec<ArgumentWidgetConfig>, Vec<failure::Error>) {
     match serde_json::from_slice::<response::WidgetDefinitions>(data) {
         Ok(response) => {
-            let updates = response.into_iter().map(
-                |(argument_name, fallable_widget)| -> FallibleResult<ArgumentWidgetConfig> {
-                    let widget: Option<response::WidgetDefinition> =
-                        fallable_widget.widget.map_err(|e| {
-                            let msg = "Failed to deserialize widget data for argument";
-                            e.context(format!("{msg} '{argument_name}'"))
-                        })?;
-                    let meta = widget.map(to_configuration);
-                    let argument_name = argument_name.into_owned();
-                    Ok(ArgumentWidgetConfig { argument_name, config: meta })
-                },
-            );
+            let updates = response.into_iter().map(|arg| -> FallibleResult<ArgumentWidgetConfig> {
+                let widget: Option<response::WidgetDefinition> = arg.data.widget.map_err(|e| {
+                    let msg = "Failed to deserialize widget data for argument";
+                    e.context(format!("{msg} '{}'", arg.name))
+                })?;
+                let meta = widget.map(to_configuration);
+                let argument_name = arg.name.into_owned();
+                Ok(ArgumentWidgetConfig { argument_name, config: meta })
+            });
 
             updates.partition_result()
         }
@@ -80,5 +77,24 @@ fn to_entries(choices: Vec<response::Choice>) -> Vec<widget::Entry> {
 fn to_entry(choice: response::Choice) -> widget::Entry {
     let value: ImString = choice.value.into();
     let label = choice.label.map_or_else(|| value.clone(), |label| label.into());
-    widget::Entry { required_import: None, value, label }
+
+    let mut arguments = default();
+    for arg in choice.arguments {
+        match arg.data.widget {
+            Ok(None) => {}
+            Ok(Some(config)) => {
+                let config = to_configuration(config);
+                arguments.push((arg.name.into(), config));
+            }
+            Err(err) => {
+                let msg = "Failed to deserialize nested widget data for argument";
+                error!("{msg} '{}'", arg.name);
+            }
+        }
+        if let Some(config) = arg.data.widget.ok().flatten() {
+            arg.name
+        }
+    }
+
+    widget::Entry { required_import: None, value, label, arguments }
 }
