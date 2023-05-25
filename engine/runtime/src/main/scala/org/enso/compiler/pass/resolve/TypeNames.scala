@@ -49,11 +49,11 @@ case object TypeNames extends IRPass {
         bindingsMap,
         mapped match {
           case typ: IR.Module.Scope.Definition.Type =>
-            typ.members.foreach(m => {
-              m.arguments.foreach(a => {
+            typ.members.foreach(m =>
+              m.arguments.foreach(a =>
                 doResolveType(typ.params.map(_.name), bindingsMap, a)
-              })
-            })
+              )
+            )
             typ
           case x => x
         }

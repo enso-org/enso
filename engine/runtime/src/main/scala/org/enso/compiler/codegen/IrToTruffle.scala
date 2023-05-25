@@ -247,14 +247,12 @@ class IrToTruffle(
                   case Some(
                         BindingsMap
                           .Resolution(BindingsMap.ResolvedType(mod, tpe))
-                      ) => {
-                    val t = mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
-                    t
-                  }
+                      ) =>
+                    mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
                   case _ => null
                 }
               })
-              .getOrElse(null)
+              .orNull
 
             val arg = argFactory.run(unprocessedArg, idx)
             val occInfo = unprocessedArg
@@ -1673,10 +1671,8 @@ class IrToTruffle(
                   case Some(
                         BindingsMap
                           .Resolution(BindingsMap.ResolvedType(mod, tpe))
-                      ) => {
-                    val t = mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
-                    t
-                  }
+                      ) =>
+                    mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
                   case _ => null
                 }
               })
