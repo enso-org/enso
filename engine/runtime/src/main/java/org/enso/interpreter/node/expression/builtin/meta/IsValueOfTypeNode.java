@@ -41,8 +41,8 @@ public abstract class IsValueOfTypeNode extends Node {
       Object expectedType,
       Object payload,
       @CachedLibrary(limit = "3") TypesLibrary types,
-      @Cached Untyped typed) {
-    return typed.execute(expectedType, payload);
+      @Cached Untyped untyped) {
+    return untyped.execute(expectedType, payload);
   }
 
   private static boolean typeAndCheck(
@@ -50,9 +50,9 @@ public abstract class IsValueOfTypeNode extends Node {
       Object expectedType,
       TypeOfNode typeOfNode,
       IsSameObjectNode isSameObject,
-      ConditionProfile profile) {
+      ConditionProfile isSameObjectProfile) {
     Object tpeOfPayload = typeOfNode.execute(payload);
-    if (profile.profile(isSameObject.execute(expectedType, tpeOfPayload))) {
+    if (isSameObjectProfile.profile(isSameObject.execute(expectedType, tpeOfPayload))) {
       return true;
     } else if (TypesGen.isType(tpeOfPayload)) {
       Type tpe = TypesGen.asType(tpeOfPayload);
@@ -101,7 +101,7 @@ public abstract class IsValueOfTypeNode extends Node {
     }
 
     @Specialization
-    boolean doUresolvedSymbol(Type expectedType, UnresolvedSymbol value) {
+    boolean doUnresolvedSymbol(Type expectedType, UnresolvedSymbol value) {
       var funTpe = EnsoContext.get(this).getBuiltins().function();
       return expectedType == funTpe;
     }
