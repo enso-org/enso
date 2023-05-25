@@ -8,6 +8,7 @@ import org.graalvm.polyglot.Value;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import org.junit.After;
 import org.junit.Before;
@@ -125,6 +126,41 @@ public class JavaInteropTest extends TestBase {
         main =
             inner_inner_value = StaticInnerInnerClass.new
             inner_inner_value.mul 3 5
+        """;
+    var res = evalModule(ctx, code);
+    assertEquals(15, res.asInt());
+  }
+
+  @Test
+  public void testImportNonExistingInnerClass() {
+    var code = """
+        polyglot java import org.enso.example.TestClass.StaticInnerClass.Non_Existing_Class
+        """;
+    try {
+      evalModule(ctx, code);
+      fail("Should throw exception");
+    } catch (Exception ignored) {}
+  }
+
+  @Test
+  public void testImportNonExistingInnerNestedClass() {
+    var code = """
+        polyglot java import org.enso.example.TestClass.Non_Existing_Class.Another_Non_ExistingClass
+        """;
+    try {
+      evalModule(ctx, code);
+      fail("Should throw exception");
+    } catch (Exception ignored) {}
+  }
+
+  @Test
+  public void testImportOuterClassAndAccessNestedInnerClass() {
+    var code = """
+        polyglot java import org.enso.example.TestClass
+        
+        main =
+            instance = TestClass.StaticInnerClass.StaticInnerInnerClass.new
+            instance.mul 3 5
         """;
     var res = evalModule(ctx, code);
     assertEquals(15, res.asInt());
