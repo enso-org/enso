@@ -69,9 +69,12 @@ use super::*;
 // === Constants ===
 // =================
 
+const MIN_RADIUS_X3: f32 = 40.0;
 const MAX_RADIUS: f32 = 20.0;
 /// Minimum height above the target the edge must approach it from.
 const MIN_APPROACH_HEIGHT: f32 = 32.25;
+/// Length of the source end of the edge that should be a straight line.
+const MIN_LINEAR_X_DISTANCE: f32 = 20.0;
 const NODE_HEIGHT: f32 = crate::component::node::HEIGHT;
 /// Extra distance toward the inside of the source node the edge should originate, relative to
 /// the point along the y-axis where the node begins to be rounded.
@@ -106,13 +109,15 @@ pub(super) fn junction_points(
         // The edge can originate anywhere along the length of the node.
         let source_x = target.x().clamp(-source_max_x_offset, source_max_x_offset);
         let source = Vector2(source_x, 0.0);
-        let max_radius = 1000000.0;
+        let distance_x = (target.x() - source_x).abs();
+        let linear_width = max(distance_x, MIN_LINEAR_X_DISTANCE);
+        let radius = distance_x - linear_width;
         // The target attachment will extend as far toward the edge of the node as it can without
         // rising above the source.
         let attachment_height = target_max_attachment_height.map(|dy| min(dy, target.y().abs()));
         let attachment_y = target.y() + attachment_height.unwrap_or_default();
         let target_attachment = Vector2(target.x(), attachment_y);
-        (vec![source, target_attachment], max_radius, attachment_height)
+        (vec![source, target_attachment], radius, attachment_height)
     } else {
         // === Three corners ===
 
@@ -121,7 +126,7 @@ pub(super) fn junction_points(
         let distance_x = (target.x() - source_x).abs();
         let top = target.y() + MIN_APPROACH_HEIGHT + NODE_HEIGHT / 2.0;
         let (j0_x, j1_x);
-        if distance_x >= 2.0 * MAX_RADIUS && target.x().abs() > source_x.abs() {
+        if distance_x >= MIN_RADIUS_X3 && target.x().abs() > source_x.abs() {
             //               J1
             //              /
             //            ╭──────╮
@@ -129,9 +134,12 @@ pub(super) fn junction_points(
             // ╰─────╯────╯\
             //             J0
             // Junctions (J0, J1) are in between source and target.
-            let source_side_sections_extra_x = (distance_x / 3.0).min(MAX_RADIUS);
-            j0_x = source_x + source_side_sections_extra_x.copysign(target.x());
-            j1_x = source_x + 2.0 * source_side_sections_extra_x.copysign(target.x());
+            let arcs_width = min(distance_x, MAX_RADIUS * 3.0);
+            let arc_width = arcs_width / 3.0;
+            let linear_width = distance_x - arcs_width;
+            let j0_linear_width = min(MIN_LINEAR_X_DISTANCE, linear_width);
+            j0_x = source_x + (j0_linear_width + arc_width).copysign(target.x());
+            j1_x = j0_x + arc_width.copysign(target.x());
         } else {
             //            J1
             //           /
