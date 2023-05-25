@@ -1,5 +1,6 @@
 package org.enso.compiler.codegen
 
+import com.oracle.truffle.api.interop.InteropLibrary
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
@@ -21,14 +22,7 @@ import org.enso.compiler.pass.analyse.{
   TailCall
 }
 import org.enso.compiler.pass.optimise.ApplicationSaturation
-import org.enso.compiler.pass.resolve.{
-  ExpressionAnnotations,
-  GenericAnnotations,
-  GlobalNames,
-  MethodDefinitions,
-  Patterns,
-  TypeSignatures
-}
+import org.enso.compiler.pass.resolve._
 import org.enso.interpreter.epb.EpbParser
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
@@ -67,9 +61,9 @@ import org.enso.interpreter.runtime.callable.function.{
   Function => RuntimeFunction
 }
 import org.enso.interpreter.runtime.callable.{
-  Annotation => RuntimeAnnotation,
   UnresolvedConversion,
-  UnresolvedSymbol
+  UnresolvedSymbol,
+  Annotation => RuntimeAnnotation
 }
 import org.enso.interpreter.runtime.data.Type
 import org.enso.interpreter.runtime.data.text.Text
@@ -81,12 +75,14 @@ import org.enso.interpreter.runtime.scope.{
 import org.enso.interpreter.{Constants, EnsoLanguage}
 
 import java.math.BigInteger
-
 import scala.annotation.tailrec
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
-import scala.jdk.OptionConverters._
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters._
+import scala.util.Try
+import scala.util.Success
+import scala.util.Failure
 
 /** This is an implementation of a codegeneration pass that lowers the Enso
   * [[IR]] into the truffle structures that are actually executed.
@@ -192,7 +188,7 @@ class IrToTruffle(
       case poly @ Import.Polyglot(i: Import.Polyglot.Java, _, _, _, _) =>
         this.moduleScope.registerPolyglotSymbol(
           poly.getVisibleName,
-          context.getEnvironment.lookupHostSymbol(i.getJavaName)
+          tryLookupHostSymbol(i.getJavaName)
         )
       case _: Import.Module =>
       case _: Error         =>
@@ -701,6 +697,81 @@ class IrToTruffle(
     } else {
       BaseNode.TailStatus.NOT_TAIL
     }
+  }
+
+  private def getNestedClass(
+    hostClass: Object,
+    nestedClassName: String
+  ): Option[Object] = {
+    val interop = InteropLibrary.getUncached
+    if (interop.isMemberReadable(hostClass, nestedClassName)) {
+      val nestedClass = interop.readMember(hostClass, nestedClassName)
+      if (interop.isMetaObject(nestedClass)) {
+        return Some(nestedClass)
+      }
+    }
+    None
+  }
+
+  /** Tries to find a nested class of `hostClass` with the name `nestedClassName`.
+    * @param hostClass
+    * @param nestedClassName
+    * @return
+    */
+  private def getNestedClass(
+    hostClass: Object,
+    nestedClassName: Array[String]
+  ): Option[Object] = {
+    val nestedClasses: ListBuffer[Option[Object]] = ListBuffer(
+      Some(hostClass)
+    )
+    nestedClassName.foreach { name =>
+      nestedClasses.last match {
+        case Some(currentClass) =>
+          getNestedClass(currentClass, name) match {
+            case Some(nestedClass) =>
+              nestedClasses.append(Some(nestedClass))
+            case None =>
+              nestedClasses.append(None)
+          }
+        case None =>
+          nestedClasses.append(None)
+      }
+    }
+    nestedClasses.last
+  }
+
+  /** Tries to lookup a host symbol, i.e., Java class by its fully qualified name.
+    * Can also resolved names of inner classes.
+    * @param name Fully qualified name of the host symbol (Java class).
+    * @return Either host symbol, or throws an exception if not found.
+    */
+  private def tryLookupHostSymbol(name: String): Object = {
+    val items = name.split("\\.")
+    for (idx <- (items.length - 1).to(0) by -1) {
+      val pkgName   = items.take(idx).mkString(".")
+      val className = items(idx)
+      // The rest of the name is interpreted as nested class name
+      val nestedClassPart = items.drop(idx + 1)
+      Try(
+        context.getEnvironment.lookupHostSymbol(pkgName + "." + className)
+      ) match {
+        case Success(hostSymbol) =>
+          if (nestedClassPart.isEmpty) {
+            return hostSymbol
+          } else {
+            getNestedClass(hostSymbol, nestedClassPart) match {
+              case Some(nestedSymbol) =>
+                return nestedSymbol
+              case None =>
+            }
+          }
+        case Failure(_) =>
+      }
+    }
+    throw new CompilerError(
+      s"Incorrect polyglot import: Cannot find host symbol (Java class) '$name'"
+    )
   }
 
   /** Sets the source section for a given expression node to the provided
