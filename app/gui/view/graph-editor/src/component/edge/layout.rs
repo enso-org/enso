@@ -70,7 +70,7 @@ use super::*;
 // =================
 
 const MIN_RADIUS: f32 = 20.0;
-const MAX_RADIUS: f32 = 24.0;
+const MAX_RADIUS: f32 = 20.0;
 /// When an inverted U composed of two extra corners is used to ensure the edge reaches the target
 /// from above, this value is how far above the top of the target the center of the U-bend's line
 /// should be.
