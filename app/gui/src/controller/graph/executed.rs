@@ -233,7 +233,7 @@ impl Handle {
             let mut successful_calls = Vec::new();
             let result = stream::iter(stack)
                 .then(|local_call| async {
-                    warn!("Entering node {}.", local_call.call);
+                    debug!("Entering node {}.", local_call.call);
                     self.execution_ctx.push(local_call.clone()).await?;
                     Ok(local_call)
                 })

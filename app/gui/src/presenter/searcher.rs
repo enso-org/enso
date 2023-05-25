@@ -102,17 +102,6 @@ impl Model {
         }
     }
 
-    fn commit_editing(&self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
-        let result = match entry_id {
-            Some(id) => self.controller.execute_action_by_index(id),
-            None => self.controller.commit_node(),
-        };
-        result.unwrap_or_else(|err| {
-            error!("Error while executing action: {err}.");
-            None
-        })
-    }
-
     fn suggestion_for_entry_id(
         &self,
         id: component_grid::GroupEntryId,
@@ -236,10 +225,16 @@ impl Model {
         if let Some(entry_id) = entry_id {
             self.suggestion_accepted(entry_id);
         }
-        self.controller.commit_node().unwrap_or_else(|err| {
-            error!("Error while committing node expression: {err}.");
+        if self.controller.is_input_empty() {
+            self.controller.commit_node().map(Some).unwrap_or_else(|err| {
+                error!("Error while committing node expression: {err}.");
+                None
+            })
+        } else {
+            // if input is empty or contains spaces only, we cannot update the node (there is no
+            // valid AST to assign). Because it is an expected thing, we also do not report error.
             None
-        })
+        }
     }
 
     fn documentation_of_component(
@@ -487,17 +482,6 @@ impl Searcher {
 
         let input = parameters.input;
         Ok(Self::new(searcher_controller, view, input))
-    }
-
-    /// Commit editing in the old Node Searcher.
-    ///
-    /// This method takes `self`, as the presenter (with the searcher view) should be dropped once
-    /// editing finishes. The `entry_id` might be none in case where the searcher should accept
-    /// the node input without any entry selected. If the commitment results in creating a new
-    /// node, its AST ID is returned.
-    #[profile(Task)]
-    pub fn commit_editing(self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
-        self.model.commit_editing(entry_id)
     }
 
     /// Expression accepted in Component Browser.

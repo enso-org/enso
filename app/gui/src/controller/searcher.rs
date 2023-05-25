@@ -715,7 +715,7 @@ impl Searcher {
         match action {
             Action::Suggestion(suggestion) => {
                 self.use_suggestion(suggestion)?;
-                self.commit_node()
+                self.commit_node().map(Some)
             }
             Action::Example(example) => match *self.mode {
                 Mode::NewNode { .. } => self.add_example(&example).map(Some),
@@ -782,47 +782,38 @@ impl Searcher {
     /// expression, otherwise a new node is added. This will also add all imports required by
     /// picked suggestions.
     #[profile(Debug)]
-    pub fn commit_node(&self) -> FallibleResult<Option<ast::Id>> {
+    pub fn commit_node(&self) -> FallibleResult<ast::Id> {
         let _transaction_guard = self.graph.get_or_open_transaction("Commit node");
         self.clear_temporary_imports();
 
         let expression = match &self.data.borrow().input.ast {
-            input::InputAst::Line(ast) => Some(ast.clone()),
-            input::InputAst::Invalid(input) if input.trim().is_empty() => None,
-            input::InputAst::Invalid(input) => Some(self.ide.parser().parse_line(input)?),
+            input::InputAst::Line(ast) => ast.clone(),
+            input::InputAst::Invalid(input) => self.ide.parser().parse_line(input)?,
         };
 
-        if let Some(expression) = expression {
-            // We add the required imports before we edit its content. This way, we avoid an
-            // intermediate state where imports would already be in use but not yet available.
-            {
-                let data = self.data.borrow();
-                let requirements =
-                    data.picked_suggestions.iter().filter_map(|ps| ps.import.clone());
-                self.add_required_imports(requirements, true)?;
-            }
-
-            let node_id = self.mode.node_id();
-            let graph = self.graph.graph();
-            graph.set_expression_ast(node_id, self.get_expression(expression.elem))?;
-            if let Mode::NewNode { .. } = *self.mode {
-                graph.introduce_name_on(node_id)?;
-            }
-            if let Some(this) = self.this_arg.deref().as_ref() {
-                this.introduce_pattern(graph.clone_ref())?;
-            }
-            // Should go last, as we want to prevent a revert only when the committing process was
-            // successful.
-            if let Some(guard) = self.node_edit_guard.deref().as_ref() {
-                guard.prevent_revert()
-            }
-            Ok(Some(node_id))
-        } else {
-            // if `expression` is none, meaning that the input is empty or contains spaces only.
-            // In that case we cannot update the node, but, as the empty input is an expected thing,
-            // we also do not report error.
-            Ok(None)
+        // We add the required imports before we edit its content. This way, we avoid an
+        // intermediate state where imports would already be in use but not yet available.
+        {
+            let data = self.data.borrow();
+            let requirements = data.picked_suggestions.iter().filter_map(|ps| ps.import.clone());
+            self.add_required_imports(requirements, true)?;
         }
+
+        let node_id = self.mode.node_id();
+        let graph = self.graph.graph();
+        graph.set_expression_ast(node_id, self.get_expression(expression.elem))?;
+        if let Mode::NewNode { .. } = *self.mode {
+            graph.introduce_name_on(node_id)?;
+        }
+        if let Some(this) = self.this_arg.deref().as_ref() {
+            this.introduce_pattern(graph.clone_ref())?;
+        }
+        // Should go last, as we want to prevent a revert only when the committing process was
+        // successful.
+        if let Some(guard) = self.node_edit_guard.deref().as_ref() {
+            guard.prevent_revert()
+        }
+        Ok(node_id)
     }
 
     fn get_expression(&self, input: Ast) -> Ast {
@@ -1883,14 +1874,14 @@ pub mod test {
                 },
             ),
             // The input was manually written (not picked).
-            // Case::new(
-            //     "2 + 2",
-            //     &["sum1 = 2 + 2", "operator1 = sum1.testFunction1"],
-            //     false,
-            //     |f, _| {
-            //         f.searcher.set_input("testFunction1".to_owned(), Byte(13)).unwrap();
-            //     },
-            // ),
+            Case::new(
+                "2 + 2",
+                &["sum1 = 2 + 2", "operator1 = sum1.testFunction1"],
+                false,
+                |f, _| {
+                    f.searcher.set_input("testFunction1".to_owned(), Byte(13)).unwrap();
+                },
+            ),
             // Completion was picked and edited.
             Case::new(
                 "2 + 2",

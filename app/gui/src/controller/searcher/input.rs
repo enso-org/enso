@@ -652,7 +652,7 @@ mod tests {
             }
 
             fn run(self, parser: &Parser) {
-                println!("Running case {} cursor position {}", self.input, self.cursor_position);
+                debug!("Running case {} cursor position {}", self.input, self.cursor_position);
                 let input = Input::parse(parser, self.input, self.cursor_position);
                 let module_name = "local.Project.Main".try_into().unwrap();
                 let pattern = input.filter(module_name).pattern.clone_ref();
