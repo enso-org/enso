@@ -27,6 +27,10 @@ const SERVICE_WORKER_PATH = '/serviceWorker.js'
 const SECOND = 1000
 /** Time in seconds after which a `fetchTimeout` ends. */
 const FETCH_TIMEOUT = 300
+/** The URL parameter name of the "Project Manager URL" parameter.
+ * This MUST be changed if the corresponding option in
+ * `content-config/src/config.json` is changed. */
+const PROJECT_MANAGER_URL_PARAMETER_NAME = 'engine.projectManagerUrl'
 
 // ===================
 // === Live reload ===
@@ -241,6 +245,20 @@ class Main implements AppRunner {
             }
             let projectManagerUrl =
                 contentConfig.OPTIONS.groups.engine.options.projectManagerUrl.value || null
+            // This option MUST currently be reset as the dashboard opens the IDE by specifying
+            // the RPC and data WebSocket endpoints, which are mutually exclusive with specifying
+            // the Project Manager WebSocket endpoint.
+            // This SHOULD stay unset when the dashboard switches to specifying the Project Manager
+            // endpoint, as it will still break opening projects on the cloud. Local projects will
+            // not break as this option is re-set by the dashboard.
+            contentConfig.OPTIONS.groups.engine.options.projectManagerUrl.value =
+                contentConfig.OPTIONS.groups.engine.options.projectManagerUrl.default
+            // The option must be removed from the URL as well.
+            if (projectManagerUrl != null) {
+                const parsedLocation = new URL(location.href)
+                parsedLocation.searchParams.delete(PROJECT_MANAGER_URL_PARAMETER_NAME)
+                history.replaceState(null, '', parsedLocation.toString())
+            }
             authentication.run({
                 appRunner: this,
                 logger,
