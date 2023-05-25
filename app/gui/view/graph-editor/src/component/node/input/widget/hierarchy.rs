@@ -1,6 +1,7 @@
 //! Definition of default hierarchy widget. This widget expands each child of its span tree into
 //! a new widget.
 
+use crate::component::node::input::widget::prelude::*;
 use crate::prelude::*;
 
 use ensogl::display::object;
@@ -33,21 +34,33 @@ pub struct Widget {
     display_object: object::Instance,
 }
 
-impl super::SpanWidget for Widget {
+impl SpanWidget for Widget {
     type Config = Config;
+
+    fn match_node(ctx: &ConfigContext) -> Score {
+        match ctx.span_node.children.is_empty() {
+            false => Score::Good,
+            true => Score::Mismatch,
+        }
+    }
+
+    fn default_config(ctx: &ConfigContext) -> Configuration<Self::Config> {
+        let has_port = !ctx.span_node.kind.is_named_argument();
+        Configuration::maybe_with_port(default(), has_port)
+    }
 
     fn root_object(&self) -> &object::Instance {
         &self.display_object
     }
 
-    fn new(_: &Config, _: &super::ConfigContext) -> Self {
+    fn new(_: &Config, _: &ConfigContext) -> Self {
         let display_object = object::Instance::new_named("widget::Hierarchy");
         display_object.use_auto_layout();
         display_object.set_children_alignment_left_center().justify_content_center_y();
         Self { display_object }
     }
 
-    fn configure(&mut self, _: &Config, ctx: super::ConfigContext) {
+    fn configure(&mut self, _: &Config, ctx: ConfigContext) {
         let child_level = ctx.info.nesting_level.next_if(ctx.span_node.is_argument());
         let children_iter = ctx.span_node.children_iter();
         let children =
