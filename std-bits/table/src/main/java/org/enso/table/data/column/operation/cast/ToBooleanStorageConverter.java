@@ -27,7 +27,7 @@ public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
         case null -> builder.appendNulls(1);
         case Boolean b -> builder.appendBoolean(b);
         default -> {
-          problemBuilder.reportConversionFailure();
+          problemBuilder.reportConversionFailure(o);
           builder.appendNulls(1);
         }
       }

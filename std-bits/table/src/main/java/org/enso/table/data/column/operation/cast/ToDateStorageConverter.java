@@ -34,7 +34,7 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
         case LocalDate d -> builder.append(d);
         case ZonedDateTime d -> builder.append(convertDateTime(d));
         default -> {
-          problemBuilder.reportConversionFailure();
+          problemBuilder.reportConversionFailure(o);
           builder.appendNulls(1);
         }
       }

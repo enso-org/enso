@@ -34,7 +34,7 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
         case LocalTime d -> builder.append(d);
         case ZonedDateTime d -> builder.append(convertDateTime(d));
         default -> {
-          problemBuilder.reportConversionFailure();
+          problemBuilder.reportConversionFailure(o);
           builder.appendNulls(1);
         }
       }

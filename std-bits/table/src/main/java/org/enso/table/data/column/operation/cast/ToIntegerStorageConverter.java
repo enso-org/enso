@@ -54,11 +54,11 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
           long converted = (long) x;
           builder.appendLong(converted);
         } else {
-          problemBuilder.reportConversionFailure();
+          problemBuilder.reportConversionFailure(o);
           builder.appendNulls(1);
         }
       } else {
-        problemBuilder.reportConversionFailure();
+        problemBuilder.reportConversionFailure(o);
         builder.appendNulls(1);
       }
     }
@@ -97,7 +97,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
           builder.appendLong(converted);
         } else {
           builder.appendNulls(1);
-          problemBuilder.reportConversionFailure();
+          problemBuilder.reportConversionFailure(value);
         }
       }
     }

@@ -43,7 +43,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
         double x = NumericConverter.coerceToDouble(o);
         builder.appendDouble(x);
       } else {
-        problemBuilder.reportConversionFailure();
+        problemBuilder.reportConversionFailure(o);
         builder.appendNulls(1);
       }
     }

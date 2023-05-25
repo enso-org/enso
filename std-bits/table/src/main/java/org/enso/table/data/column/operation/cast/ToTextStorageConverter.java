@@ -152,7 +152,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
 
     // If the value was truncated, report the data loss.
     if (adapted.length() < value.length()) {
-      problemBuilder.reportConversionFailure();
+      problemBuilder.reportTextTooLong(value);
     }
 
     return adapted;

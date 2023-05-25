@@ -48,7 +48,13 @@ type Cast_Problem_Builder
 
         lossy_conversion_rows = java_instance.getFailedConversionsCount
         if lossy_conversion_rows > 0 then
-            builder.append (Conversion_Failure.Error self.target_type self.column_name lossy_conversion_rows)
+            example_values = Vector.from_polyglot_array java_instance.getFailedConversionExamples
+            builder.append (Conversion_Failure.Error self.target_type self.column_name lossy_conversion_rows example_values)
+
+        text_too_long_rows = java_instance.getTextTooLongCount
+        if text_too_long_rows > 0 then
+            example_values = Vector.from_polyglot_array java_instance.getTextTooLongExamples
+            builder.append (Conversion_Failure.Text_Too_Long self.target_type self.column_name text_too_long_rows example_values)
 
         builder.to_vector
 

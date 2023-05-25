@@ -88,7 +88,10 @@ spec setup =
                 c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
                 c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
                 c.to_vector . should_equal ["15 ", "100", "123"]
-                Problems.expect_warning Conversion_Failure c
+                warning = Problems.expect_warning Conversion_Failure c
+                warning.affected_rows_count . should_equal 2
+                warning.to_display_text . should_contain "2 rows have a text representation that does not fit the target type"
+                warning.to_display_text . should_contain "'1000000', '123456'"
 
     Test.group prefix+"Table/Column.cast - numeric" <|
         Test.specify "should allow to cast a boolean column to integer" <|
@@ -162,6 +165,7 @@ spec setup =
                 c.to_vector . should_equal [1, 2, max_long, Nothing, min_long, Nothing, 4]
                 warning = Problems.expect_warning Conversion_Failure c
                 warning.to_display_text . should_contain "2 rows could not be converted"
+                warning.to_display_text . should_contain too_big_double.to_text
 
     if supports_dates then
         Test.group prefix+"Table/Column.cast - date/time" <|
