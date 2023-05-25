@@ -22,7 +22,7 @@ use enso_frp::prelude::bytemuck::ZeroableInOption;
 
 
 
-#[derive(Debug, Default, Zeroable)]
+#[derive(Default, Zeroable)]
 #[repr(transparent)]
 pub struct OptRefCell<T> {
     inner: UnsafeCell<T>,
@@ -47,6 +47,12 @@ impl<T> OptRefCell<T> {
     #[inline(always)]
     pub fn with_borrowed_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
         f(self.borrow_mut())
+    }
+}
+
+impl<T: Debug> Debug for OptRefCell<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(self.borrow(), f)
     }
 }
 
@@ -325,18 +331,20 @@ impl Runtime {
             *node.output.borrow_mut() = ZeroableOption::Some(event.boxed_clone());
         }
 
-        let cleanup_targets = self.stack.with(node.def, || {
-            let mut cleanup_targets = false;
+        self.stack.with(node.def, || {
+            let mut index = 0;
+            let mut cleanup_targets = vec![];
             node.outputs.for_item_borrow(|&node_output_id| {
                 let done = self.nodes.with_item_borrow(node_output_id.target, |node_output| {
                     node_output.on_event(self, node_id, node_output_id, event);
                 });
                 if done.is_none() {
-                    cleanup_targets = true;
+                    cleanup_targets.push(index);
                 }
+                index += 1;
             });
 
-            cleanup_targets
+            println!("CLEANUP TARGETS: {:?}", cleanup_targets);
         });
         //
         // Return temporary buffer to pool.
@@ -1119,7 +1127,7 @@ pub trait LinkedArrayDefault<T, const N: usize> = where [OptRefCell<T>; N]: Defa
 
 #[derive(Debug)]
 pub struct Segment<T, const N: usize> {
-    items: Box<[OptRefCell<T>; N]>,
+    items: Vec<OptRefCell<T>>,
     next:  OptRefCell<Option<Box<Segment<T, N>>>>,
 }
 
@@ -1128,11 +1136,7 @@ impl<T: Zeroable, const N: usize> Default for Segment<T, N> {
     fn default() -> Self {
         let items = {
             let layout = std::alloc::Layout::array::<OptRefCell<T>>(N).unwrap();
-            let vec =
-                unsafe { Vec::from_raw_parts(std::alloc::alloc_zeroed(layout) as *mut _, N, N) };
-            let boxed_slice = vec.into_boxed_slice();
-            let ptr = ::std::boxed::Box::into_raw(boxed_slice) as *mut [OptRefCell<T>; N];
-            unsafe { Box::from_raw(ptr) }
+            unsafe { Vec::from_raw_parts(std::alloc::alloc_zeroed(layout) as *mut _, N, N) }
         };
         let next = default();
         Self { items, next }
@@ -1149,7 +1153,7 @@ pub struct LinkedCellArray<T, const N: usize = 32> {
 // FIXME: make it future sound-proof
 unsafe impl<T, const N: usize> Zeroable for LinkedCellArray<T, N> {}
 
-impl<T: Default + Zeroable, const N: usize> LinkedCellArray<T, N> {
+impl<T: Default + Zeroable + Debug, const N: usize> LinkedCellArray<T, N> {
     #[inline(always)]
     pub fn clear(&self) {
         self.size.set(0);
@@ -1163,6 +1167,11 @@ impl<T: Default + Zeroable, const N: usize> LinkedCellArray<T, N> {
     #[inline(always)]
     pub fn len(&self) -> usize {
         self.size.get()
+    }
+
+    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.size.get() == 0
     }
 
     #[inline(always)]
@@ -1182,13 +1191,21 @@ impl<T: Default + Zeroable, const N: usize> LinkedCellArray<T, N> {
     }
 }
 
-impl<T: Zeroable, const N: usize> LinkedCellArray<T, N> {
+impl<T: Zeroable + Debug, const N: usize> LinkedCellArray<T, N> {
     #[inline(always)]
     fn with_first_segment<R>(&self, f: impl FnOnce(&Segment<T, N>) -> R) -> R {
         if self.first_segment.borrow().is_none() {
             *self.first_segment.borrow_mut() = ZeroableOption::Some(Segment::default());
         }
         f(&*self.first_segment.borrow().as_ref().unwrap())
+    }
+
+    #[inline(always)]
+    fn with_first_segment_mut<R>(&self, f: impl FnOnce(&mut Segment<T, N>) -> R) -> R {
+        if self.first_segment.borrow().is_none() {
+            *self.first_segment.borrow_mut() = ZeroableOption::Some(Segment::default());
+        }
+        f(&mut *self.first_segment.borrow_mut().as_mut().unwrap())
     }
 
     #[inline(always)]
@@ -1221,16 +1238,31 @@ impl<T: Zeroable, const N: usize> LinkedCellArray<T, N> {
     pub fn for_item_borrow_mut(&self, f: impl FnMut(&mut T)) {
         self.with_first_segment(|s| s.for_item_borrow_mut(self.size.get(), f));
     }
+
+    pub fn retain<F>(&self, mut f: F)
+    where F: FnMut(&T) -> bool {
+        self.with_first_segment_mut(|s| {
+            s.retain_stage1(self.size.get(), f);
+            self.size.set(s.retain_stage2());
+        })
+    }
+
+    pub fn to_vec(&self) -> Vec<T>
+    where T: Clone {
+        let mut vec = Vec::with_capacity(self.size.get());
+        self.for_item_borrow(|t| vec.push(t.clone()));
+        vec
+    }
 }
 
-impl<T: Copy + Zeroable, const N: usize> LinkedCellArray<T, N> {
+impl<T: Copy + Zeroable + Debug, const N: usize> LinkedCellArray<T, N> {
     #[inline(always)]
     pub fn get(&self, index: usize) -> T {
         self.with_item_borrow(index, |t| *t)
     }
 }
 
-impl<T: Default + Zeroable, const N: usize> Segment<T, N> {
+impl<T: Zeroable + Debug, const N: usize> Segment<T, N> {
     #[inline(always)]
     fn push(&self, offset: usize, elem: T) {
         if offset < N {
@@ -1252,6 +1284,43 @@ impl<T: Default + Zeroable, const N: usize> Segment<T, N> {
         } else {
             self.next.with_borrowed(|t| t.as_ref().unwrap().add_tail_segment());
         }
+    }
+
+    /// For each segment, retain the items. Segment lengths will be shortened if necessary, however,
+    /// two adjacent not-full segments will not be merged. Merging will be performed in stage 2.
+    #[inline(always)]
+    pub fn retain_stage1<F>(&mut self, len: usize, mut f: F)
+    where F: FnMut(&T) -> bool {
+        if len < N {
+            unsafe { self.items.set_len(len) }
+        }
+        self.items.retain(|t| f(&*t.borrow()));
+        if let Some(next) = self.next.borrow_mut().as_mut() {
+            next.retain_stage1(len - N, f);
+        }
+    }
+
+    /// For each segment, merge two adjacent not-full segments.
+    #[inline(always)]
+    pub fn retain_stage2(&mut self) -> usize {
+        while self.items.len() < N {
+            let new_next_segment = self.next.borrow_mut().as_mut().and_then(|next| {
+                let end = next.items.len().min(N - self.items.len());
+                self.items.extend(next.items.drain(0..end));
+                next.items.is_empty().then(|| mem::take(&mut *next.next.borrow_mut()))
+            });
+            if let Some(new_next_segment) = new_next_segment {
+                *self.next.borrow_mut() = new_next_segment;
+            }
+            if self.next.borrow().is_none() {
+                break;
+            }
+        }
+        let len = self.items.len();
+        for _ in len..N {
+            self.items.push(Zeroable::zeroed());
+        }
+        len + self.next.borrow_mut().as_mut().map(|next| next.retain_stage2()).unwrap_or_default()
     }
 }
 
@@ -1311,18 +1380,40 @@ mod tests2 {
     use super::*;
 
     #[test]
-    fn test() {
+    fn test_push() {
+        let array = LinkedCellArray::<usize, 2>::new();
+        array.push(1);
+        assert_eq!(&array.to_vec(), &[1]);
+        array.push(2);
+        assert_eq!(&array.to_vec(), &[1, 2]);
+        array.push(3);
+        assert_eq!(&array.to_vec(), &[1, 2, 3]);
+        array.push(4);
+        assert_eq!(&array.to_vec(), &[1, 2, 3, 4]);
+        array.push(5);
+        assert_eq!(&array.to_vec(), &[1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn test_retain() {
         let array = LinkedCellArray::<usize, 2>::new();
         array.push(1);
         array.push(2);
         array.push(3);
         array.push(4);
         array.push(5);
-        array.push_default();
-        array.push_default();
-        // array.with_item_borrow_mut(0, |t| *t = 10);
-        // array.with_item_borrow_mut(5, |t| *t = 10);
-        println!("{:#?}", array);
-        assert_eq!(1, 2);
+        assert_eq!(&array.to_vec(), &[1, 2, 3, 4, 5]);
+        array.retain(|t| *t > 0);
+        assert_eq!(&array.to_vec(), &[1, 2, 3, 4, 5]);
+        array.retain(|t| *t > 3);
+        assert_eq!(&array.to_vec(), &[4, 5]);
+        array.push(6);
+        array.push(7);
+        array.push(8);
+        assert_eq!(&array.to_vec(), &[4, 5, 6, 7, 8]);
+        array.retain(|t| t % 2 == 0);
+        assert_eq!(&array.to_vec(), &[4, 6, 8]);
+        array.retain(|_| false);
+        assert!(&array.is_empty());
     }
 }
