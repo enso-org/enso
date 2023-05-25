@@ -22,7 +22,7 @@ use super::layout::SplitArc;
 // === Constants ===
 // =================
 
-const BACKWARD_EDGE_ARROW_THRESHOLD: f32 = 400.0;
+const BACKWARD_EDGE_ARROW_THRESHOLD: f32 = 30.0;
 const ARROW_ARM_LENGTH: f32 = 12.0;
 const ARROW_ARM_WIDTH: f32 = LINE_WIDTH;
 
@@ -66,11 +66,9 @@ impl Shapes {
             is_attached,
         } = parameters;
         let shape = self.dataflow_arrow.take();
-        let long_backward_edge = (target_offset.y() > BACKWARD_EDGE_ARROW_THRESHOLD)
-            || (target_offset.y() + target_offset.x().abs() / 2.0 > BACKWARD_EDGE_ARROW_THRESHOLD
-                && target_offset.y() > 3.0 * ARROW_ARM_LENGTH);
+        let backward_edge = target_offset.y() > BACKWARD_EDGE_ARROW_THRESHOLD;
         let multicorner_layout = junction_points.len() > 2;
-        if long_backward_edge && multicorner_layout {
+        if backward_edge && multicorner_layout {
             // The points are ordered from source end to destination, and are alternately horizontal
             // and vertical junctions. The arrow must be in a vertical part of the edge. Place it at
             // the first vertical junction.
