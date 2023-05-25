@@ -24,7 +24,7 @@ from project.Internal.Column_Format import all
 from project.Data.Table import print_table
 from project.Data.Type.Value_Type import Value_Type, Auto
 from project.Errors import No_Index_Set_Error, Floating_Point_Equality, Invalid_Value_Type, Inexact_Type_Coercion, Conversion_Failure
-from project.Internal.Java_Exports import make_string_builder, make_double_builder, make_long_builder, make_date_builder
+from project.Internal.Java_Exports import make_string_builder, make_double_builder, make_long_builder, make_date_builder_adapter
 
 polyglot java import org.enso.table.data.column.builder.object.DateBuilder
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
@@ -2017,22 +2017,3 @@ wrap_text_argument_as_value_provider val =
         col : Column ->
             storage = col.java_column.getStorage
             i-> storage.getItemBoxed i
-
-## PRIVATE
-   Wrapper around a DateBuilder that uses DateBuilder.appendDate() to append a
-   value (instead of builder.append())
-type DateBuilderAdapter
-    Value (date_builder : DateBuilder)
-
-    append : Date -> Nothing
-    append self date =
-        self.date_builder.appendDate date
-
-    seal : Java_Storage
-    seal self = self.date_builder.seal
-
-## PRIVATE
-   DateBuilderAdapter constructor that behaves like the builder adapters in
-   Java_Exports.
-make_date_builder_adapter : Integer -> DateBuilderAdapter
-make_date_builder_adapter n = DateBuilderAdapter.Value (make_date_builder n)
