@@ -36,11 +36,6 @@ mod constants {
     pub const LINE_WIDTH: f32 = 4.0;
     pub const HOVER_EXTENSION: f32 = 10.0;
     pub const HOVER_WIDTH: f32 = LINE_WIDTH + HOVER_EXTENSION;
-    pub const NODE_CORNER_RADIUS: f32 = crate::component::node::CORNER_RADIUS;
-    pub const NODE_HEIGHT: f32 = crate::component::node::HEIGHT;
-    /// Extra distance toward the inside of the source node the edge should originate, relative to
-    /// the point along the y-axis where the node begins to be rounded.
-    pub const SOURCE_INSET: f32 = 8.0;
 }
 use constants::*;
 
@@ -210,9 +205,8 @@ impl EdgeModel {
         let target_offset = self.target_offset();
         let (junction_points, max_radius, attachment_length) = layout::junction_points(
             self.source_half_width(),
-            self.source_max_abs_x_offset(),
             target_offset,
-            self.max_target_attachment_length(),
+            self.inputs.target_attached.get(),
         );
         let corners = layout::corners(&junction_points, max_radius).collect_vec();
         let target_attached = self.inputs.target_attached.get();
@@ -320,18 +314,6 @@ impl EdgeModel {
 impl EdgeModel {
     fn source_half_width(&self) -> f32 {
         self.inputs.source_size.get().x() / 2.0
-    }
-
-    /// Return the maximum x-distance from the source (our local coordinate origin) for the point
-    /// where the edge will begin.
-    fn source_max_abs_x_offset(&self) -> f32 {
-        (self.source_half_width() - NODE_CORNER_RADIUS - SOURCE_INSET).max(0.0)
-    }
-
-    /// Return the maximum y-length of the target-attachment segment. If the layout allows, the
-    /// target-attachment segment will fully exit the node before the first corner begins.
-    fn max_target_attachment_length(&self) -> Option<f32> {
-        self.inputs.target_attached.get().then_some(NODE_HEIGHT / 2.0)
     }
 
     fn screen_pos_to_scene_pos(&self, screen_pos: Vector2) -> SceneCoords {

@@ -75,6 +75,11 @@ const MAX_RADIUS: f32 = 20.0;
 /// from above, this value is how far above the top of the target the center of the U-bend's line
 /// should be.
 const TARGET_U_BEND_HEIGHT: f32 = 30.0;
+const NODE_HEIGHT: f32 = crate::component::node::HEIGHT;
+/// Extra distance toward the inside of the source node the edge should originate, relative to
+/// the point along the y-axis where the node begins to be rounded.
+const SOURCE_INSET: f32 = 8.0;
+const NODE_CORNER_RADIUS: f32 = crate::component::node::CORNER_RADIUS;
 
 
 
@@ -87,10 +92,15 @@ const TARGET_U_BEND_HEIGHT: f32 = 30.0;
 /// connecting them, and the length of the target attachment bit.
 pub(super) fn junction_points(
     source_half_width: f32,
-    source_max_x_offset: f32,
     target: Vector2,
-    target_max_attachment_height: Option<f32>,
+    target_attached: bool,
 ) -> (Vec<Vector2>, f32, Option<f32>) {
+    // The maximum x-distance from the source (our local coordinate origin) for the point where the
+    // edge will begin.
+    let source_max_x_offset = (source_half_width - NODE_CORNER_RADIUS - SOURCE_INSET).max(0.0);
+    // The maximum y-length of the target-attachment segment. If the layout allows, the
+    // target-attachment segment will fully exit the node before the first corner begins.
+    let target_max_attachment_height = target_attached.then_some(NODE_HEIGHT / 2.0);
     if target.y() < -MIN_RADIUS
         || (target.y() <= 0.0 && target.x().abs() <= source_max_x_offset + 3.0 * MAX_RADIUS)
     {
