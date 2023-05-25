@@ -532,6 +532,7 @@ mock_data! { Document => EventTarget
     fn create_element(&self, local_name: &str) -> Result<Element, JsValue>;
     fn get_element_by_id(&self, element_id: &str) -> Option<Element>;
     fn create_text_node(&self, data: &str) -> Text;
+    fn dispatch_event(&self, event: &Event) -> Result<bool, JsValue>;
 }
 
 
@@ -575,6 +576,7 @@ impl AddEventListenerOptions {
 
 // === Event ===
 mock_data! { Event => Object
+    fn new(type_: &str) -> Result<Event, JsValue>;
     fn prevent_default(&self);
     fn stop_propagation(&self);
     fn current_target(&self) -> Option<EventTarget>;

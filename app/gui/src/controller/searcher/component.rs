@@ -187,8 +187,9 @@ impl Component {
             .map(|subsequence| MatchInfo::Matches { subsequence, kind: MatchKind::Label });
 
         // Match the input pattern to the code to be inserted.
+        let in_module = QualifiedName::as_ref(&filter.module_name);
         let code = match &self.data {
-            Data::FromDatabase { entry, .. } => entry.code_to_insert(true).to_string(),
+            Data::FromDatabase { entry, .. } => entry.code_to_insert(true, in_module).to_string(),
             Data::Virtual { snippet } => snippet.code.to_string(),
         };
         let code_matches = fuzzly::matches(&code, filter.pattern.clone_ref());
@@ -530,8 +531,14 @@ pub(crate) mod tests {
         builder.set_grouping_and_order_of_favorites(&suggestion_db, &favorites);
         builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, 0..=4);
         let list = builder.build();
+        let module_name: Rc<QualifiedName> = Rc::new("test.Test.TopModule".try_into().unwrap());
+        let filter = |pattern: &str| Filter {
+            pattern:     pattern.into(),
+            context:     None,
+            module_name: module_name.clone(),
+        };
 
-        list.update_filtering(Filter { pattern: "fu".into(), context: None });
+        list.update_filtering(filter("fu"));
         let match_infos = list.top_modules().next().unwrap()[0]
             .entries
             .borrow()
@@ -543,22 +550,22 @@ pub(crate) mod tests {
         assert_ids_of_matches_entries(&list.favorites[0], &[4, 2]);
         assert_ids_of_matches_entries(&list.local_scope, &[2]);
 
-        list.update_filtering(Filter { pattern: "x".into(), context: None });
+        list.update_filtering(filter("x"));
         assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[4]);
         assert_ids_of_matches_entries(&list.favorites[0], &[4]);
         assert_ids_of_matches_entries(&list.local_scope, &[]);
 
-        list.update_filtering(Filter { pattern: "Sub".into(), context: None });
+        list.update_filtering(filter("Sub"));
         assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
         assert_ids_of_matches_entries(&list.local_scope, &[]);
 
-        list.update_filtering(Filter { pattern: "y".into(), context: None });
+        list.update_filtering(filter("y"));
         assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
         assert_ids_of_matches_entries(&list.local_scope, &[]);
 
-        list.update_filtering(Filter { pattern: "".into(), context: None });
+        list.update_filtering(filter(""));
         assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[2, 3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[4, 2]);
         assert_ids_of_matches_entries(&list.local_scope, &[2]);

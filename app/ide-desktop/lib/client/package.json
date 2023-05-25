@@ -30,7 +30,7 @@
     "yargs": "17.6.2"
   },
   "comments": {
-    "electron-builder": "We cannot update it to never version because of NSIS installer issue: https://github.com/enso-org/enso/issues/5169"
+    "electron-builder": "Cannot be updated to a newer version because of a NSIS installer issue: https://github.com/enso-org/enso/issues/5169"
   },
   "devDependencies": {
     "crypto-js": "4.1.1",

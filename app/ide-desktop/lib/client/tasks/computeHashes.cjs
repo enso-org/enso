@@ -17,8 +17,7 @@ const CHECKSUM_TYPE = 'sha256'
 // === Checksum ===
 // ================
 
-/**
- * The `type` argument can be one of `md5`, `sha1`, or `sha256`.
+/** The `type` argument can be one of `md5`, `sha1`, or `sha256`.
  * @param {string} path - Path to the file.
  * @param {ChecksumType} type - The checksum algorithm to use.
  * @returns {Promise<string>} A promise that resolves to the checksum. */
@@ -66,7 +65,8 @@ async function writeFileChecksum(path, type) {
 /** Generates checksums for all build artifacts.
  * @param {import('electron-builder').BuildResult} context - Build information. */
 exports.default = async function (context) {
-    // `context` is BuildResult, see https://www.electron.build/configuration/configuration.html#buildresult
+    // `context` is BuildResult, see
+    // https://www.electron.build/configuration/configuration.html#buildresult
     for (const file of context.artifactPaths) {
         console.log(`Generating ${CHECKSUM_TYPE} checksum for ${file}.`)
         await writeFileChecksum(file, CHECKSUM_TYPE)

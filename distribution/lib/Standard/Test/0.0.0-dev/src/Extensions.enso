@@ -283,7 +283,7 @@ Error.should_succeed self frames_to_skip=0 =
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Handles an unexpected dataflow error.
-Error.should_be_a : Integer -> Any
+Error.should_be_a : Any -> Integer -> Any
 Error.should_be_a self typ frames_to_skip=0 =
     _ = typ
     Test.fail_match_on_unexpected_error self 1+frames_to_skip

@@ -638,19 +638,18 @@ final class SuggestionBuilder[A: IndexedSource](
     * @return the suggestion argument
     */
   private def buildArgument(arg: IR.DefinitionArgument): Suggestion.Argument = {
-    val signatureOpt = arg.name.getMetadata(TypeSignatures).map { meta =>
-      buildTypeSignature(meta.signature) match {
-        case Vector(targ) => buildTypeArgumentName(targ)
-        case _            => Any
-      }
+    buildTypeSignatureFromMetadata(arg.name.getMetadata(TypeSignatures)) match {
+      case Vector(targ) =>
+        buildTypedArgument(arg, targ)
+      case _ =>
+        Suggestion.Argument(
+          name         = arg.name.name,
+          reprType     = Any,
+          isSuspended  = arg.suspended,
+          hasDefault   = arg.defaultValue.isDefined,
+          defaultValue = arg.defaultValue.flatMap(buildDefaultValue)
+        )
     }
-    Suggestion.Argument(
-      name         = arg.name.name,
-      reprType     = signatureOpt.getOrElse(Any),
-      isSuspended  = arg.suspended,
-      hasDefault   = arg.defaultValue.isDefined,
-      defaultValue = arg.defaultValue.flatMap(buildDefaultValue)
-    )
   }
 
   /** Build return type from the type definition.

@@ -1,7 +1,5 @@
-/** @file
- * This file generates the product logo as SVG and then converts it to set of PNGs, MacOS ICNS, and
- * Windows ICO formats.
- */
+/** @file This file generates the product logo as SVG and then converts it to set of PNGs,
+ * MacOS ICNS, and Windows ICO formats. */
 
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs/promises'
@@ -31,7 +29,9 @@ const MACOS_DPI = 144
 // === Logo ===
 // ============
 
+/** A class representing the logo, of the specified size. */
 class Logo {
+    /** Creates a {@link Logo}. */
     constructor(size = DEFAULT_SIZE, compatibleMode = true) {
         this.xsize = size
         this.size = DEFAULT_SIZE
@@ -56,11 +56,12 @@ class Logo {
         this.defs = ''
     }
 
+    /** Outputs the logo as an SVG image. */
     generate() {
         return `
-<svg version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="${
-            this.xsize
-        }" width="${this.xsize}" viewBox="0 0 ${this.xsize} ${this.xsize}">
+<svg version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg" \
+xmlns:xlink="http://www.w3.org/1999/xlink" height="${this.xsize}" width="${this.xsize}" \
+viewBox="0 0 ${this.xsize} ${this.xsize}">
     <defs>
         <circle id="innerCircle" cx="32" cy="32" r="${this.innerRadius}"/>
         <circle id="leftAtom"    cx="${
@@ -125,15 +126,14 @@ class Logo {
 `
     }
 
+    /** Return a reference to the element containing the complete logo. */
     main() {
         return `<g transform="scale(${this.scale})"> <use ${this.ref}="#final"/> </g>`
     }
 }
 
-/**
- * Generate icons.
- * @param {string} outputDir - The directory in which the icons will be placed.
- */
+/** Generate icons.
+ * @param {string} outputDir - The directory in which the icons will be placed. */
 async function genIcons(outputDir) {
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     let sizes = [16, 32, 64, 128, 256, 512, 1024]
@@ -215,7 +215,8 @@ async function main() {
     if (!outputDir) {
         const script = process.env.npm_package_name ?? url.fileURLToPath(import.meta.url)
         throw Error(
-            `Script '${script}' invocation needs to be given an output path either through command line argument or 'ENSO_BUILD_ICONS' environment variable.`
+            `The script '${script}' needs to be given an output path either through a \
+command line argument or the 'ENSO_BUILD_ICONS' environment variable.`
         )
     } else {
         await genIcons(outputDir)
