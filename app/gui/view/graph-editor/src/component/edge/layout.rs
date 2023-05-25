@@ -74,7 +74,7 @@ const MAX_RADIUS: f32 = 20.0;
 /// When an inverted U composed of two extra corners is used to ensure the edge reaches the target
 /// from above, this value is how far above the top of the target the center of the U-bend's line
 /// should be.
-const TARGET_U_BEND_HEIGHT: f32 = 30.0;
+const TARGET_U_BEND_HEIGHT: f32 = 32.25;
 const NODE_HEIGHT: f32 = crate::component::node::HEIGHT;
 /// Extra distance toward the inside of the source node the edge should originate, relative to
 /// the point along the y-axis where the node begins to be rounded.
