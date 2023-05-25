@@ -3,7 +3,6 @@
 use crate::prelude::*;
 
 use crate::node;
-use crate::node::Payload;
 use crate::Node;
 
 
@@ -14,8 +13,8 @@ use crate::Node;
 
 /// A stack frame of DFS searching.
 #[derive(Debug)]
-struct StackFrame<'a, T> {
-    node:                &'a Node<T>,
+struct StackFrame<'a> {
+    node:                &'a Node,
     child_being_visited: usize,
 }
 
@@ -31,15 +30,15 @@ pub enum TreeFragment {
 /// An iterator over the leafs of some specific fragment of SpanTree. See `TreeFragment` for
 /// supported _fragment_ kinds.
 #[derive(Debug)]
-pub struct LeafIterator<'a, T> {
-    stack:     Vec<StackFrame<'a, T>>,
-    next_node: Option<&'a Node<T>>,
-    base_node: node::Ref<'a, T>,
+pub struct LeafIterator<'a> {
+    stack:     Vec<StackFrame<'a>>,
+    next_node: Option<&'a Node>,
+    base_node: node::Ref<'a>,
     fragment:  TreeFragment,
 }
 
-impl<'a, T> Iterator for LeafIterator<'a, T> {
-    type Item = node::Ref<'a, T>;
+impl<'a> Iterator for LeafIterator<'a> {
+    type Item = node::Ref<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.next_node.is_some() {
@@ -54,9 +53,9 @@ impl<'a, T> Iterator for LeafIterator<'a, T> {
     }
 }
 
-impl<'a, T> LeafIterator<'a, T> {
+impl<'a> LeafIterator<'a> {
     /// Create iterator iterating over leafs of subtree rooted  on `node`.
-    pub fn new(node: node::Ref<'a, T>, fragment: TreeFragment) -> Self {
+    pub fn new(node: node::Ref<'a>, fragment: TreeFragment) -> Self {
         let stack = vec![StackFrame { node: node.node, child_being_visited: 0 }];
         let next_node = node.node.children.first().map(|ch| &ch.node);
         let base_node = node;
@@ -91,7 +90,7 @@ impl<'a, T> LeafIterator<'a, T> {
         }
     }
 
-    fn can_descend(&self, current_node: &Node<T>) -> bool {
+    fn can_descend(&self, current_node: &Node) -> bool {
         match &self.fragment {
             TreeFragment::AllNodes => true,
             TreeFragment::ChainAndDirectChildren => current_node.kind.is_chained(),
@@ -109,7 +108,6 @@ impl<'a, T> LeafIterator<'a, T> {
 mod tests {
     use super::*;
 
-    use crate::builder::Builder;
     use crate::builder::TreeBuilder;
     use crate::SpanTree;
 

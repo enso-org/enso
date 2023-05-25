@@ -54,12 +54,15 @@ fn to_configuration(resp: response::WidgetDefinition) -> widget::Configuration {
 
 fn to_kind(inner: response::WidgetKindDefinition) -> widget::DynConfig {
     match inner {
-        response::WidgetKindDefinition::SingleChoice { label, values } =>
+        response::WidgetKindDefinition::SingleChoice { label, values } => {
+            let (entries, arguments) = to_entries_and_arguments(values);
             widget::single_choice::Config {
-                label:   label.map(Into::into),
-                entries: Rc::new(to_entries(values)),
+                label: label.map(Into::into),
+                entries: Rc::new(entries),
+                arguments,
             }
-            .into(),
+            .into()
+        }
         response::WidgetKindDefinition::ListEditor { item_widget, item_default } =>
             widget::list_editor::Config {
                 item_widget:  Some(Rc::new(to_configuration(*item_widget))),
@@ -70,31 +73,36 @@ fn to_kind(inner: response::WidgetKindDefinition) -> widget::DynConfig {
     }
 }
 
-fn to_entries(choices: Vec<response::Choice>) -> Vec<widget::Entry> {
-    choices.into_iter().map(to_entry).collect()
+fn to_entries_and_arguments(
+    choices: Vec<response::Choice>,
+) -> (Vec<widget::Entry>, Vec<(usize, ImString, widget::Configuration)>) {
+    let mut args = Vec::new();
+    let entries = choices.into_iter().enumerate().map(|(i, c)| to_entry(c, i, &mut args)).collect();
+    (entries, args)
 }
 
-fn to_entry(choice: response::Choice) -> widget::Entry {
+fn to_entry(
+    choice: response::Choice,
+    entry_index: usize,
+    arguments: &mut Vec<(usize, ImString, widget::Configuration)>,
+) -> widget::Entry {
     let value: ImString = choice.value.into();
     let label = choice.label.map_or_else(|| value.clone(), |label| label.into());
 
-    let mut arguments = default();
+    arguments.reserve(choice.arguments.len());
     for arg in choice.arguments {
         match arg.data.widget {
             Ok(None) => {}
             Ok(Some(config)) => {
                 let config = to_configuration(config);
-                arguments.push((arg.name.into(), config));
+                arguments.push((entry_index, arg.name.into(), config));
             }
             Err(err) => {
                 let msg = "Failed to deserialize nested widget data for argument";
-                error!("{msg} '{}'", arg.name);
+                error!("{:?}", err.context(format!("{msg} '{}'", arg.name)));
             }
-        }
-        if let Some(config) = arg.data.widget.ok().flatten() {
-            arg.name
         }
     }
 
-    widget::Entry { required_import: None, value, label, arguments }
+    widget::Entry { required_import: None, value, label }
 }

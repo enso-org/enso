@@ -67,12 +67,12 @@ pub(super) mod prelude {
     pub use super::IdentityBase;
     pub use super::NodeInfo;
     pub use super::Score;
-    pub use super::SpanRef;
     pub use super::SpanWidget;
     pub use super::TransferRequest;
     pub use super::TreeNode;
     pub use super::WidgetIdentity;
     pub use super::WidgetsFrp;
+    pub use span_tree::node::Ref as SpanRef;
 }
 
 // =================
@@ -417,7 +417,7 @@ pub enum Display {
 
 /// Widget entry. Represents a possible value choice on the widget, as proposed by the language
 /// server.
-#[derive(Debug, Clone, Hash, PartialEq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Entry {
     /// The expression that should be inserted by the widget. Note that  this expression can still
     /// be preprocessed by the widget before being inserted into the node.
@@ -1451,24 +1451,24 @@ impl<'a> TreeBuilder<'a> {
                 call_id:       kind.call_id()?,
                 argument_name: kind.argument_name()?.into(),
             };
+            let local_override = ctx.builder.local_overrides.remove(&key);
+            let override_map = &ctx.builder.override_map;
+
             let is_applicable = |cfg: &&Configuration| {
                 let flag = cfg.kind.flag();
                 !disallowed_configs.contains(flag)
                     && !matches!(flag.match_node(&ctx), Score::Mismatch)
             };
 
-            let local = ctx.builder.local_overrides.get(&key).filter(is_applicable);
-            local.or_else(|| ctx.builder.override_map.get(&key).filter(is_applicable))
+            let local = local_override.filter(|c| is_applicable(&c)).map(Cow::Owned);
+            local.or_else(|| override_map.get(&key).filter(is_applicable).map(Cow::Borrowed))
         };
 
-        let inferred_config;
-        let configuration = match configuration.or_else(config_override) {
+        let configuration = match configuration.map(Cow::Borrowed).or_else(config_override) {
             Some(config) => config,
-            None => {
-                inferred_config = Configuration::infer_from_context(&ctx, disallowed_configs);
-                &inferred_config
-            }
+            None => Cow::Owned(Configuration::infer_from_context(&ctx, disallowed_configs)),
         };
+        let configuration = configuration.as_ref();
 
         let this = &mut *ctx.builder;
         let ptr_usage = this.pointer_usage.entry(main_ptr).or_default();

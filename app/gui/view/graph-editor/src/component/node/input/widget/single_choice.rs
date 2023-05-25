@@ -78,8 +78,8 @@ pub struct Config {
 
 ensogl::define_endpoints_2! {
     Input {
-        set_entries    (Rc<Vec<InnerEntry>>),
-        selected_entry  (Option<InnerEntry>),
+        set_entries    (Rc<Vec<Entry>>),
+        selected_entry  (Option<Entry>),
         current_crumbs (span_tree::Crumbs),
         is_connected   (bool),
     }
@@ -186,17 +186,18 @@ impl SpanWidget for Widget {
 
         let has_value = !ctx.span_node.is_insertion_point();
         let current_value = has_value.then(|| ctx.span_expression());
-        let selected_entry = entry_for_current_value(&config.entries, current_value);
+        let (_entry_idx, selected_entry) =
+            entry_for_current_value(&config.entries, current_value).unzip();
 
         input.current_crumbs(ctx.span_node.crumbs.clone());
         input.set_entries(config.entries.clone());
         input.selected_entry(selected_entry);
         input.is_connected(ctx.info.subtree_connection.is_some());
 
-        let nested_arguments = selected_entry.map(|e| &e.arguments).filter(|args| !args.is_empty());
-        if let Some(args) = nested_arguments {
-            let nested_call_id = find_nested_call_id(&ctx.span_node);
-        }
+        // let nested_arguments = selected_entry.map(|e| &e.arguments).filter(|args|
+        // !args.is_empty()); if let Some(args) = nested_arguments {
+        //     let nested_call_id = find_nested_call_id(&ctx.span_node);
+        // }
 
         if has_value {
             ctx.modify_extension::<label::Extension>(|ext| ext.bold = true);
@@ -261,7 +262,7 @@ impl Widget {
         frp::extend! { network
             selected_entry <- config_frp.selected_entry.buffered_gate(&is_open).on_change();
             all_entries <- config_frp.set_entries.buffered_gate(&is_open).on_change();
-            dropdown_frp.set_all_entries <+ all_entries;
+            dropdown_frp.set_all_entries <+ all_entries.map(|e| e.deref().clone());
             dropdown_frp.set_selected_entries <+ selected_entry.map(|e| e.iter().cloned().collect());
 
             dropdown_entry <- dropdown_frp.selected_entries
@@ -327,7 +328,7 @@ fn entry_for_current_value(
 ) -> Option<(usize, Entry)> {
     let current_value = current_value?;
     let found_entry =
-        all_entries.iter().enumerate().find(|(_, entry)| entry.value.as_ref() == current_value);
+        all_entries.iter().enumerate().find(|(_, entry)| entry.value == current_value);
     let with_partial_match = found_entry.or_else(|| {
         // Handle parentheses in current value. Entries with parenthesized expressions will match if
         // they start with the same expression as the current value. That way it is still matched
@@ -342,7 +343,7 @@ fn entry_for_current_value(
     });
 
     let with_fallback = with_partial_match
-        .cloned()
+        .map(|(index, entry)| (index, entry.clone()))
         .unwrap_or_else(|| (usize::MAX, Entry::from_value(current_value.into())));
     Some(with_fallback)
 }
