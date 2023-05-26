@@ -402,7 +402,7 @@ pub(super) struct Oriented<T> {
 }
 
 impl<T> Oriented<T> {
-    pub(super) fn new(value: T, direction: CornerDirection) -> Self {
+    fn new(value: T, direction: CornerDirection) -> Self {
         Self { value, direction }
     }
 }
@@ -410,7 +410,7 @@ impl<T> Oriented<T> {
 impl Oriented<Corner> {
     /// Split the shape at the given point, if the point is within the tolerance specified by
     /// `snap_line_width` of the shape.
-    pub(super) fn split(self, split_point: Vector2, snap_line_width: f32) -> Option<SplitCorner> {
+    fn split(self, split_point: Vector2, snap_line_width: f32) -> Option<SplitCorner> {
         let Corner { horizontal, vertical, max_radius } = self.value;
         let hv_offset = horizontal - vertical;
         let (dx, dy) = (hv_offset.x().abs(), hv_offset.y().abs());
@@ -419,8 +419,8 @@ impl Oriented<Corner> {
         // Calculate closeness to the straight segments.
         let (linear_x, linear_y) = (dx - radius, dy - radius);
         let snap_distance = snap_line_width / 2.0;
-        let y_along_vertical = (self.vertical.y() - split_point.y()).abs() <= linear_y;
-        let x_along_horizontal = (self.horizontal.x() - split_point.x()).abs() <= linear_x;
+        let y_along_vertical = (self.vertical.y() - split_point.y()).abs() < linear_y;
+        let x_along_horizontal = (self.horizontal.x() - split_point.x()).abs() < linear_x;
         let y_near_horizontal = (self.horizontal.y() - split_point.y()).abs() <= snap_distance;
         let x_near_vertical = (self.vertical.x() - split_point.x()).abs() <= snap_distance;
 
@@ -439,8 +439,8 @@ impl Oriented<Corner> {
         let input_to_origin = split_point - origin;
         let distance_squared_from_origin =
             input_to_origin.x().powi(2) + input_to_origin.y().powi(2);
-        let min_radius = radius - snap_line_width / 2.0;
-        let max_radius = radius + snap_line_width / 2.0;
+        let min_radius = radius - snap_distance;
+        let max_radius = radius + snap_distance;
         let too_close = distance_squared_from_origin < min_radius.powi(2);
         let too_far = distance_squared_from_origin > max_radius.powi(2);
         let on_arc = !(too_close || too_far);

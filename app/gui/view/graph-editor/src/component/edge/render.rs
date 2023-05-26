@@ -386,11 +386,14 @@ struct RectangleGeometry {
 
 /// Return [`Rectangle`] geometry parameters to draw this corner shape.
 fn rectangle_geometry(corner: Corner, line_width: f32) -> RectangleGeometry {
+    // Convert from a layout radius (in the center of the line) to a [`Rectangle`] radius (on the
+    // inside edge of the border).
+    let radius = max(corner.max_radius() - line_width / 2.0, 0.0);
     RectangleGeometry {
         clip:   corner.clip(),
         size:   corner.size(line_width),
         xy:     corner.origin(line_width),
-        radius: corner.max_radius(),
+        radius,
     }
 }
 
@@ -410,7 +413,6 @@ pub(super) fn draw_split_arc(arc_shapes: [arc::View; 2], split_arc: SplitArc) ->
         split_arc.split_angle,
         split_arc.target_end_angle
     );
-    warn!("geometry: {:?}", geometry);
     for (shape, geometry) in arc_shapes.iter().zip(&geometry) {
         shape.set_xy(split_arc.origin + arc_offset);
         shape.set_size(arc_box);
