@@ -416,6 +416,233 @@ class ImportExportTest
     }
   }
 
+  "Ambiguous symbol error reporting" should {
+    "work when importing same type twice with different import statements" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module.A_Type
+           |from $namespace.$packageName.A_Module import A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val origImport = mainIr.imports(0)
+      val ambiguousImport = mainIr
+        .imports(1)
+        .asInstanceOf[IR.Error.ImportExport]
+        .reason
+        .asInstanceOf[IR.Error.ImportExport.AmbiguousImport]
+      ambiguousImport.symbolName shouldEqual "A_Type"
+      ambiguousImport.originalImport shouldEqual origImport
+    }
+
+    "work when importing same type twice with one-symbol import and all-symbol import" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module.A_Type
+           |from $namespace.$packageName.A_Module import all
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val origImport = mainIr.imports(0)
+      val ambiguousImport = mainIr
+        .imports(1)
+        .asInstanceOf[IR.Error.ImportExport]
+        .reason
+        .asInstanceOf[IR.Error.ImportExport.AmbiguousImport]
+      ambiguousImport.symbolName shouldEqual "A_Type"
+      ambiguousImport.originalImport shouldEqual origImport
+    }
+
+    "work when importing same type twice with two all-symbol imports" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.A_Module import all
+           |from $namespace.$packageName.A_Module import all
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val origImport = mainIr.imports(0)
+      val ambiguousImport = mainIr
+        .imports(1)
+        .asInstanceOf[IR.Error.ImportExport]
+        .reason
+        .asInstanceOf[IR.Error.ImportExport.AmbiguousImport]
+      ambiguousImport.symbolName shouldEqual "A_Type"
+      ambiguousImport.originalImport shouldEqual origImport
+    }
+
+    "work when importing same type twice with two one-symbol import and renamed import" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      s"""
+         |type B_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("B_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.A_Module import A_Type
+           |import $namespace.$packageName.B_Module.B_Type as A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val origImport = mainIr.imports(0)
+      val ambiguousImport = mainIr
+        .imports(1)
+        .asInstanceOf[IR.Error.ImportExport]
+        .reason
+        .asInstanceOf[IR.Error.ImportExport.AmbiguousImport]
+      ambiguousImport.symbolName shouldEqual "A_Type"
+      ambiguousImport.originalImport shouldEqual origImport
+    }
+
+    // TODO[pm]: will be addressed in https://github.com/enso-org/enso/issues/6729
+    "work when importing same type twice with two one-symbol import and renamed re-export" ignore {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      s"""
+         |import $namespace.$packageName.B_Module.B_Type
+         |export $namespace.$packageName.B_Module.B_Type as A_Type
+         |type B_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("B_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.A_Module import A_Type
+           |from $namespace.$packageName.B_Module import all
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val origImport = mainIr.imports(0)
+      val ambiguousImport = mainIr
+        .imports(1)
+        .asInstanceOf[IR.Error.ImportExport]
+        .reason
+        .asInstanceOf[IR.Error.ImportExport.AmbiguousImport]
+      ambiguousImport.symbolName shouldEqual "A_Type"
+      ambiguousImport.originalImport shouldEqual origImport
+    }
+
+    "work when importing same type twice in one import statement" in {
+      s"""
+         |type A_Type
+         |static_method = 42
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |# TODO: This import is both isAll and onlyNames??
+           |from $namespace.$packageName.A_Module import A_Type, static_method, A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      val irErrors = mainIr.imports.collect { case err: IR.Error.ImportExport =>
+        err
+      }
+      irErrors should have size 1
+      val ambiguousImport = irErrors.head.reason
+        .asInstanceOf[IR.Error.ImportExport.AmbiguousImport]
+      ambiguousImport.symbolName shouldEqual "A_Type"
+      // TODO[pm]: Enable this test once we get rid of duplicate imports: There should be
+      // just one import, but it is currently duplicated for every symbol in from-import
+      // statement
+      // ambiguousImport.originalImport shouldEqual ambiguousImport
+    }
+
+    "work when importing same type twice with two one-symbol import and renamed polyglot import" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.A_Module import A_Type
+           |polyglot java import org.enso.example.TestClass as A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val origImport = mainIr.imports(0)
+      val ambiguousImport = mainIr
+        .imports(1)
+        .asInstanceOf[IR.Error.ImportExport]
+        .reason
+        .asInstanceOf[IR.Error.ImportExport.AmbiguousImport]
+      ambiguousImport.symbolName shouldEqual "A_Type"
+      ambiguousImport.originalImport shouldEqual origImport
+    }
+
+    "work when importing same type multiple times with one-symbol import statements" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module.A_Type
+           |import $namespace.$packageName.A_Module.A_Type
+           |import $namespace.$packageName.A_Module.A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 3
+      val origImport = mainIr.imports(0)
+      val ambiguousImports = mainIr.imports
+        .drop(1)
+        .map(
+          _.asInstanceOf[IR.Error.ImportExport].reason
+            .asInstanceOf[IR.Error.ImportExport.AmbiguousImport]
+        )
+      ambiguousImports.foreach(_.symbolName shouldEqual "A_Type")
+      ambiguousImports.foreach(_.originalImport shouldEqual origImport)
+    }
+
+    "work when importing same type multiple times with import-all statements" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.A_Module import all
+           |from $namespace.$packageName.A_Module import all
+           |from $namespace.$packageName.A_Module import all
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 3
+      val origImport = mainIr.imports(0)
+      val ambiguousImports = mainIr.imports
+        .drop(1)
+        .map(
+          _.asInstanceOf[IR.Error.ImportExport].reason
+            .asInstanceOf[IR.Error.ImportExport.AmbiguousImport]
+        )
+      ambiguousImports.foreach(_.symbolName shouldEqual "A_Type")
+      ambiguousImports.foreach(_.originalImport shouldEqual origImport)
+    }
+  }
+
   "Import resolution for three modules" should {
 
     "not resolve symbol that is not explicitly exported" in {

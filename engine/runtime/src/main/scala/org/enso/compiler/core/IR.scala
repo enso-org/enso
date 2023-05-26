@@ -9,9 +9,9 @@ import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.interpreter.epb.EpbParser
 import org.enso.syntax.text.{Debug, Location}
+import com.oracle.truffle.api.source.Source
 
 import java.util.UUID
-
 import scala.annotation.unused
 
 /** [[IR]] is a temporary and fairly unsophisticated internal representation
@@ -8814,6 +8814,36 @@ object IR {
       ) extends Reason {
         override def message: String =
           s"No such constructor ${constructorName} in type $typeName"
+      }
+
+      case class AmbiguousImport(
+        originalImport: IR.Module.Scope.Import,
+        symbolName: String,
+        source: Source
+      ) extends Reason {
+        override def message: String = {
+          val originalImportRepr =
+            originalImport.location match {
+              case Some(location) =>
+                s"'${originalImport.showCode()}' in ${fileLocationFromSection(location, source)}"
+              case None => originalImport.showCode()
+            }
+          s"Ambiguous imported symbol '${symbolName}' in import statement. The original import is ${originalImportRepr}"
+        }
+
+        private def fileLocationFromSection(
+          loc: IR.IdentifiedLocation,
+          source: Source
+        ): String = {
+          val section =
+            source.createSection(loc.location.start, loc.location.length)
+          val locStr =
+            "" + section.getStartLine + ":" +
+            section.getStartColumn + "-" +
+            section.getEndLine + ":" +
+            section.getEndColumn
+          source.getName + "[" + locStr + "]"
+        }
       }
     }
 
