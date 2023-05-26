@@ -414,7 +414,10 @@ impl ActionBar {
            // === Visualisation Chooser ===
 
             // Note: we only want to update the chooser if it is visible, or when it becomes
-            // visible. Thus we avoid many simultaneous updates during initialisation.
+            // visible. During startup we get the type information for every node, and propagate
+            // this information to the chooser. By delaying the creation of UI list elements until
+            // the chooser is visible, we can avoid creating a lot of UI elements that are never
+            // used.
 
             visible <- any(&frp.show_icons, &any_component_over);
             hidden <- any(&frp.hide_icons, &hide);
