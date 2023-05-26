@@ -43,7 +43,6 @@ const MESSAGES = {
 /** Possible types of {@link BaseUserSession}. */
 export enum UserSessionType {
     partial = 'partial',
-    awaitingAcceptance = 'awaitingAcceptance',
     full = 'full',
 }
 
