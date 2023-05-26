@@ -352,102 +352,23 @@ impl View {
         scene.begin_shader_initialization();
         let model = Model::new(app);
         let frp = Frp::new();
-        let network = &frp.network;
-        let searcher = &model.searcher.frp();
-        let graph = &model.graph_editor.frp;
-        let code_editor = &model.code_editor;
-        let project_list = &model.project_list;
 
         // FIXME[WD]: Think how to refactor it, as it needs to be done before model, as we do not
         //   want shader recompilation. Model uses styles already.
         model.set_style(theme);
 
-        frp::extend! { network
-            init <- source_();
-
-            eval_ frp.show_graph_editor(model.show_graph_editor());
-            eval_ frp.hide_graph_editor(model.hide_graph_editor());
-
-            // === Read-only mode ===
-
-            graph.set_read_only <+ frp.set_read_only;
-            code_editor.set_read_only <+ frp.set_read_only;
-
-            // === Project Dialog ===
-
-            eval_ frp.show_project_list  (model.show_project_list());
-            project_chosen <- project_list.frp.selected_project.constant(());
-            mouse_down       <- scene.mouse.frp_deprecated.down.constant(());
-            clicked_on_bg    <- mouse_down.filter(f_!(scene.mouse.target.get().is_background()));
-            should_be_closed <- any(frp.hide_project_list,project_chosen,clicked_on_bg);
-            eval_ should_be_closed (model.hide_project_list());
-            frp.source.project_list_shown <+ bool(&should_be_closed,&frp.show_project_list);
-
-
-            // === Style toggle ===
-
-            let style_toggle_ev   = frp.toggle_style.clone_ref();
-            style_pressed        <- style_toggle_ev.toggle() ;
-            style_was_pressed    <- style_pressed.previous();
-            style_press          <- style_toggle_ev.gate_not(&style_was_pressed);
-            style_press_on_off   <- style_press.map2(&frp.style, |_,s| match s {
-                Theme::Light => Theme::Dark ,
-                _            => Theme::Light,
-            });
-            frp.source.style     <+ style_press_on_off;
-            eval frp.style ((style) model.set_style(style.clone()));
-
-
-            // === Fullscreen Visualization ===
-
-            // TODO[ao]: All DOM elements in visualizations are displayed below canvas, because
-            //     The mouse cursor must be displayed over them. But fullscreen visualization should
-            //     be displayed "above" nodes. The workaround is to hide whole graph editor except
-            //     fullscreen visualization, and bring it back when fullscreen is closed.
-            //
-            //     The workaround should be replaced with proper solution being a part of
-            //     https://github.com/enso-org/ide/issues/526
-            eval  graph.visualization_fullscreen ([model](node_id) {
-                if let Some(node_id) = node_id {
-                    model.show_fullscreen_visualization(*node_id)
-                } else {
-                    model.hide_fullscreen_visualization()
-                }
-            });
-
-            // === Disabling Navigation ===
-
-            let documentation = &model.searcher.model().documentation;
-            searcher_active <- searcher.is_hovered || documentation.frp.is_selected;
-            disable_navigation <- searcher_active || frp.project_list_shown;
-            graph.set_navigator_disabled <+ disable_navigation;
-
-            // === Disabling Dropping ===
-
-            frp.source.drop_files_enabled <+ init.constant(true);
-            frp.source.drop_files_enabled <+ frp.project_list_shown.map(|v| !v);
-
-            // === Debug Mode ===
-
-            frp.source.debug_mode <+ bool(&frp.disable_debug_mode, &frp.enable_debug_mode);
-            graph.set_debug_mode <+ frp.source.debug_mode;
-
-            model.debug_mode_popup.enabled <+ frp.enable_debug_mode;
-            model.debug_mode_popup.disabled <+ frp.disable_debug_mode;
-
-            // === Error Pop-up ===
-
-            model.popup.set_label <+ model.graph_editor.model.breadcrumbs.project_name_error;
-        }
-
-        init.emit(());
-
         Self { model, frp }
             .init_top_bar_frp(scene)
+            .init_graph_editor_frp()
+            .init_code_editor_frp()
             .init_searcher_position_frp(scene)
             .init_searcher_input_changes_frp()
             .init_opening_searcher_frp()
             .init_closing_searcher_frp()
+            .init_open_projects_dialog_frp(scene)
+            .init_style_toggle_frp()
+            .init_fullscreen_visualization_frp()
+            .init_debug_mode_frp()
     }
 
     fn init_top_bar_frp(self, scene: &Scene) -> Self {
@@ -478,6 +399,39 @@ impl View {
             self.model.graph_editor.graph_editor_top_bar_offset_x <+ project_view_top_bar_width;
         }
         init.emit(());
+        self
+    }
+
+    fn init_graph_editor_frp(self) -> Self {
+        let frp = &self.frp;
+        let network = &frp.network;
+        let model = &self.model;
+        let graph = &model.graph_editor;
+        let searcher = &model.searcher;
+        let documentation = &searcher.model().documentation;
+
+        frp::extend! { network
+            eval_ frp.show_graph_editor(model.show_graph_editor());
+            eval_ frp.hide_graph_editor(model.hide_graph_editor());
+
+            // We block graph navigator if it interferes with other panels (searcher, documentation,
+            // etc.)
+            searcher_active <- searcher.is_hovered || documentation.frp.is_selected;
+            disable_navigation <- searcher_active || frp.project_list_shown;
+            graph.set_navigator_disabled <+ disable_navigation;
+
+            model.popup.set_label <+ graph.model.breadcrumbs.project_name_error;
+            graph.set_read_only <+ frp.set_read_only;
+            graph.set_debug_mode <+ frp.source.debug_mode;
+        }
+        self
+    }
+
+    fn init_code_editor_frp(self) -> Self {
+        let network = &self.frp.network;
+        frp::extend! { network
+            self.model.code_editor.set_read_only <+ self.frp.set_read_only;
+        }
         self
     }
 
@@ -530,8 +484,8 @@ impl View {
             eval position ((pos) model.searcher.set_xy(*pos));
 
             // Showing searcher.
-            searcher.show <+ frp.searcher.map(|s| s.is_some()).on_change().constant(());
-            searcher.hide <+ frp.searcher.map(|s| s.is_none()).on_change().constant(());
+            searcher.show <+ frp.searcher.is_some().on_true().constant(());
+            searcher.hide <+ frp.searcher.is_none().on_true().constant(());
             eval searcher.is_visible ([model](is_visible) {
                 let is_attached = model.searcher.has_parent();
                 match (is_attached, is_visible) {
@@ -578,8 +532,11 @@ impl View {
             last_searcher <- frp.searcher.filter_map(|&s| s);
 
             node_editing_finished <- graph.node_editing_finished.gate(&frp.is_searcher_opened);
+            trace node_editing_finished;
             committed_in_searcher <- grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, Some(entry)));
+            trace committed_in_searcher;
             aborted_in_searcher <- frp.close_searcher.map2(&last_searcher, |(), &s| s.input);
+            trace aborted_in_searcher;
             frp.source.editing_committed <+ committed_in_searcher;
             frp.source.editing_committed <+ node_editing_finished.map(|id| (*id,None));
             frp.source.editing_aborted <+ aborted_in_searcher;
@@ -627,6 +584,80 @@ impl View {
                 (searcher.as_ref()?.input == *node_id).then(input_change)
             });
             frp.source.searcher_input_changed <+ input_changed;
+        }
+        self
+    }
+
+    fn init_open_projects_dialog_frp(self, scene: &Scene) -> Self {
+        let frp = &self.frp;
+        let network = &frp.network;
+        let model = &self.model;
+        let project_list = &model.project_list;
+        frp::extend! { network
+            eval_ frp.show_project_list  (model.show_project_list());
+            project_chosen <- project_list.frp.selected_project.constant(());
+            mouse_down <- scene.mouse.frp_deprecated.down.constant(());
+            clicked_on_bg <- mouse_down.filter(f_!(scene.mouse.target.get().is_background()));
+            should_be_closed <- any(frp.hide_project_list,project_chosen,clicked_on_bg);
+            eval_ should_be_closed (model.hide_project_list());
+            frp.source.project_list_shown <+ bool(&should_be_closed,&frp.show_project_list);
+            frp.source.drop_files_enabled <+ frp.project_list_shown.map(|v| !v);
+        }
+        frp.source.drop_files_enabled.emit(true);
+        self
+    }
+
+    fn init_style_toggle_frp(self) -> Self {
+        let frp = &self.frp;
+        let network = &frp.network;
+        let model = &self.model;
+        frp::extend! {network
+            let style_toggle_ev   = frp.toggle_style.clone_ref();
+            style_pressed        <- style_toggle_ev.toggle() ;
+            style_was_pressed    <- style_pressed.previous();
+            style_press          <- style_toggle_ev.gate_not(&style_was_pressed);
+            style_press_on_off   <- style_press.map2(&frp.style, |_,s| match s {
+                Theme::Light => Theme::Dark ,
+                _            => Theme::Light,
+            });
+            frp.source.style     <+ style_press_on_off;
+            eval frp.style ((style) model.set_style(style.clone()));
+        }
+        self
+    }
+
+    fn init_fullscreen_visualization_frp(self) -> Self {
+        let network = &self.frp.network;
+        let model = &self.model;
+        let graph = &self.model.graph_editor;
+        frp::extend! { network
+            // TODO[ao]: All DOM elements in visualizations are displayed below canvas, because
+            //     The mouse cursor must be displayed over them. But fullscreen visualization should
+            //     be displayed "above" nodes. The workaround is to hide whole graph editor except
+            //     fullscreen visualization, and bring it back when fullscreen is closed.
+            //
+            //     The workaround should be replaced with proper solution being a part of
+            //     https://github.com/enso-org/ide/issues/526
+            eval  graph.visualization_fullscreen ([model](node_id) {
+                if let Some(node_id) = node_id {
+                    model.show_fullscreen_visualization(*node_id)
+                } else {
+                    model.hide_fullscreen_visualization()
+                }
+            });
+        }
+        self
+    }
+
+    fn init_debug_mode_frp(self) -> Self {
+        let frp = &self.frp;
+        let network = &frp.network;
+        let popup = &self.model.debug_mode_popup;
+        frp::extend! { network
+            frp.source.debug_mode <+ bool(&frp.disable_debug_mode, &frp.enable_debug_mode);
+
+            popup.enabled <+ frp.enable_debug_mode;
+            popup.disabled <+ frp.disable_debug_mode;
         }
         self
     }

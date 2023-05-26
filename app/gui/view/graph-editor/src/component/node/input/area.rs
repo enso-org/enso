@@ -357,6 +357,7 @@ ensogl::define_endpoints! {
     Output {
         pointer_style       (cursor::Style),
         width               (f32),
+        /// Changes done when nodes is in edit mode.
         expression_edit     (ImString, Vec<Selection<Byte>>),
 
         editing             (bool),
@@ -478,7 +479,7 @@ impl Area {
             model.edit_mode_label.select <+ legit_edit.map(|(range, _)| (range.start.into(), range.end.into()));
             model.edit_mode_label.insert <+ legit_edit._1();
             expression_changed_by_user <- model.edit_mode_label.content.gate(&set_editing);
-            frp.output.source.expression_edit <+ model.edit_mode_label.selections.map2(
+            frp.output.source.expression_edit <+ model.edit_mode_label.selections.gate(&set_editing).map2(
                 &expression_changed_by_user,
                 f!([model](selection, full_content) {
                     let full_content = full_content.into();
