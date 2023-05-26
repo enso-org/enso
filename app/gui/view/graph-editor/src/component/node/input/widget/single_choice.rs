@@ -186,7 +186,7 @@ impl SpanWidget for Widget {
 
         let has_value = !ctx.span_node.is_insertion_point();
         let current_value = has_value.then(|| ctx.span_expression());
-        let (_entry_idx, selected_entry) =
+        let (entry_idx, selected_entry) =
             entry_for_current_value(&config.entries, current_value).unzip();
 
         input.current_crumbs(ctx.span_node.crumbs.clone());
@@ -194,10 +194,17 @@ impl SpanWidget for Widget {
         input.selected_entry(selected_entry);
         input.is_connected(ctx.info.subtree_connection.is_some());
 
-        // let nested_arguments = selected_entry.map(|e| &e.arguments).filter(|args|
-        // !args.is_empty()); if let Some(args) = nested_arguments {
-        //     let nested_call_id = find_nested_call_id(&ctx.span_node);
-        // }
+        if let Some(index) = entry_idx.filter(|i| *i < usize::MAX) {
+            let start = config.arguments.partition_point(|(i, ..)| *i < index);
+            let end = config.arguments.partition_point(|(i, ..)| *i <= index);
+            let nested_args = &config.arguments[start..end];
+            if !nested_args.is_empty() && let Some(call_id) = find_nested_call_id(&ctx.span_node) {
+                for (_, argument_name, config) in nested_args {
+                    let key = OverrideKey { call_id, argument_name: argument_name.clone() };
+                    ctx.builder.set_local_override(key, config.clone())
+                }
+            }
+        }
 
         if has_value {
             ctx.modify_extension::<label::Extension>(|ext| ext.bold = true);
@@ -209,8 +216,18 @@ impl SpanWidget for Widget {
 }
 
 /// Find an unambiguous top-level nested call expression inside given node and return its AST ID.
-fn find_nested_call_id(node: &SpanRef) -> Option<ast::Id> {
-    node.ast_id
+fn find_nested_call_id(node: &span_tree::Node) -> Option<ast::Id> {
+    if node.application.is_some() {
+        return node.ast_id.or(node.extended_ast_id);
+    }
+
+    if let Some(ast::TreeType::Group) = &node.tree_type 
+        && let [a, b, c] = &node.children[..] && a.is_token() && c.is_token()
+    {
+        return find_nested_call_id(&b.node);
+    }
+
+    None
 }
 
 impl Widget {

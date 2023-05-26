@@ -66,6 +66,7 @@ pub(super) mod prelude {
     pub use super::Entry;
     pub use super::IdentityBase;
     pub use super::NodeInfo;
+    pub use super::OverrideKey;
     pub use super::Score;
     pub use super::SpanWidget;
     pub use super::TransferRequest;

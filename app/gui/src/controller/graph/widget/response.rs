@@ -121,14 +121,14 @@ pub enum Display {
 pub(super) struct Choice<'a> {
     /// The value of the choice. Must be a valid Enso expression.
     #[serde(borrow)]
-    pub value: Cow<'a, str>,
+    pub value:      Cow<'a, str>,
     /// Custom label to display in the dropdown. If not provided, IDE will create a label based on
     /// value.
     #[serde(borrow)]
-    pub label: Option<Cow<'a, str>>,
-    /// A list of widget overrides for nested arguments within this choice's expression. 
+    pub label:      Option<Cow<'a, str>>,
+    /// A list of widget overrides for nested arguments within this choice's expression.
     #[serde(borrow, default)]
-    pub arguments: Vec<Argument<'a>>,
+    pub parameters: Vec<Argument<'a>>,
 }
 
 /// Widget data for single function argument. The engine usually serializes it as an tuple array of

@@ -89,13 +89,14 @@ fn to_entry(
     let value: ImString = choice.value.into();
     let label = choice.label.map_or_else(|| value.clone(), |label| label.into());
 
-    arguments.reserve(choice.arguments.len());
-    for arg in choice.arguments {
+    arguments.reserve(choice.parameters.len());
+    for arg in choice.parameters {
         match arg.data.widget {
             Ok(None) => {}
             Ok(Some(config)) => {
                 let config = to_configuration(config);
-                arguments.push((entry_index, arg.name.into(), config));
+                let val = (entry_index, arg.name.into(), config);
+                arguments.push(val);
             }
             Err(err) => {
                 let msg = "Failed to deserialize nested widget data for argument";
