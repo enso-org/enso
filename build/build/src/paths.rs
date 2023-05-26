@@ -57,7 +57,7 @@ pub fn new_repo_root(repo_root: impl Into<PathBuf>, triple: &TargetTriple) -> ge
 pub fn pretty_print_arch(arch: Arch) -> &'static str {
     match arch {
         Arch::X86_64 => "amd64",
-        Arch::AArch64 => "aarch64",
+        Arch::AArch64 => "amd64",
         _ => panic!("Unrecognized architecture {arch}"),
     }
 }

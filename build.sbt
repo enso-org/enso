@@ -571,6 +571,7 @@ val generateRustParserLib =
       "enso-parser-jni",
       "-Z",
       "unstable-options",
+      "--target", "x86_64-apple-darwin",
       "--out-dir",
       (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
     )
