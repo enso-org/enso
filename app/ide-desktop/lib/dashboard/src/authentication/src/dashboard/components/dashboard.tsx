@@ -286,8 +286,7 @@ function Dashboard(props: DashboardProps) {
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
     const isListingRemoteDirectoryAndWillFail =
-        (backend.type === backendModule.BackendType.remote && (organization?.isEnabled ?? false)) ||
-        directoryId == null
+        backend.type === backendModule.BackendType.remote && (organization?.isEnabled ?? false)
     const isListingRemoteDirectoryWhileOffline =
         sessionType === auth.UserSessionType.offline &&
         backend.type === backendModule.BackendType.remote
@@ -318,7 +317,7 @@ function Dashboard(props: DashboardProps) {
 
     react.useEffect(() => {
         if (supportsLocalBackend) {
-            new localBackend.LocalBackend()
+            setBackend(new localBackend.LocalBackend())
         }
     }, [])
 
@@ -647,16 +646,29 @@ function Dashboard(props: DashboardProps) {
     hooks.useAsyncEffect(
         null,
         async signal => {
-            if (isListingLocalDirectoryAndWillFail) {
-                // Do not `setIsLoadingAssets(false)`
-            } else if (!isListingRemoteDirectoryAndWillFail) {
-                const assets = await backend.listDirectory({ parentId: directoryId })
-                if (!signal.aborted) {
-                    setIsLoadingAssets(false)
-                    setAssets(assets)
+            switch (backend.type) {
+                case backendModule.BackendType.local: {
+                    if (!isListingLocalDirectoryAndWillFail) {
+                        const assets = await backend.listDirectory()
+                        if (!signal.aborted) {
+                            setIsLoadingAssets(false)
+                            setAssets(assets)
+                        }
+                    }
+                    return
                 }
-            } else {
-                setIsLoadingAssets(false)
+                case backendModule.BackendType.remote: {
+                    if (!isListingRemoteDirectoryAndWillFail && directoryId != null) {
+                        const assets = await backend.listDirectory({ parentId: directoryId })
+                        if (!signal.aborted) {
+                            setIsLoadingAssets(false)
+                            setAssets(assets)
+                        }
+                    } else {
+                        setIsLoadingAssets(false)
+                    }
+                    return
+                }
             }
         },
         [accessToken, directoryId, refresh, backend]
@@ -1224,7 +1236,9 @@ function Dashboard(props: DashboardProps) {
                                 ))(backend)}
                         </tbody>
                     </table>
-                    {isFileBeingDragged && backend.type === backendModule.BackendType.remote ? (
+                    {isFileBeingDragged &&
+                    directoryId != null &&
+                    backend.type === backendModule.BackendType.remote ? (
                         <div
                             className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary grid place-items-center"
                             onDragLeave={() => {

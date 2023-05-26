@@ -1,7 +1,6 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
 import * as react from 'react'
 import * as router from 'react-router-dom'
-import toast from 'react-hot-toast'
 
 import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
 
@@ -17,8 +16,6 @@ import SvgIcon from './svgIcon'
 // === Constants ===
 // =================
 
-/** A test domain used to check for internet connectivity. */
-const TEST_DOMAIN = 'https://1.1.1.1'
 const LOGIN_QUERY_PARAMS = {
     email: 'email',
 } as const
@@ -30,24 +27,12 @@ const LOGIN_QUERY_PARAMS = {
 /** A form for users to log in. */
 function Login() {
     const { search } = router.useLocation()
-    const { goOffline, signInWithGoogle, signInWithGitHub, signInWithPassword } = auth.useAuth()
+    const { signInWithGoogle, signInWithGitHub, signInWithPassword } = auth.useAuth()
 
     const initialEmail = parseUrlSearchParams(search)
 
     const [email, setEmail] = react.useState(initialEmail ?? '')
     const [password, setPassword] = react.useState('')
-
-    react.useEffect(() => {
-        void (async () => {
-            try {
-                await fetch(TEST_DOMAIN, { mode: 'cors' })
-            } catch {
-                // An error means the internet is disconnected.
-                toast.error('You are offline, switching to offline mode.')
-                await goOffline()
-            }
-        })()
-    }, [])
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">

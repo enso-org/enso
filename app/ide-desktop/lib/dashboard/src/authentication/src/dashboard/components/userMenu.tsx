@@ -1,9 +1,9 @@
 /** @file The UserMenu component provides a dropdown menu of user actions and settings. */
 import * as react from 'react'
-import * as router from 'react-router'
 
 import * as app from '../../components/app'
 import * as auth from '../../authentication/providers/auth'
+import * as hooks from '../../hooks'
 import * as modalProvider from '../../providers/modal'
 
 import ChangePasswordModal from './changePasswordModal'
@@ -38,7 +38,7 @@ function UserMenuItem(props: react.PropsWithChildren<UserMenuItemProps>) {
 function UserMenu() {
     const { signOut } = auth.useAuth()
     const { accessToken, organization } = auth.useNonPartialUserSession()
-    const navigate = router.useNavigate()
+    const navigate = hooks.useNavigate()
 
     const { setModal } = modalProvider.useSetModal()
 

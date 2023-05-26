@@ -12,6 +12,7 @@ import * as authServiceModule from '../service'
 import * as backendModule from '../../dashboard/backend'
 import * as backendProvider from '../../providers/backend'
 import * as errorModule from '../../error'
+import * as hooks from '../../hooks'
 import * as http from '../../http'
 import * as localBackend from '../../dashboard/localBackend'
 import * as loggerProvider from '../../providers/logger'
@@ -66,6 +67,14 @@ interface BaseUserSession<Type extends UserSessionType> {
 export interface OfflineUserSession extends Pick<BaseUserSession<UserSessionType.offline>, 'type'> {
     accessToken: null
     organization: null
+}
+
+/** The singleton instance of {@link OfflineUserSession}.
+ * Minimizes React re-renders. */
+const OFFLINE_USER_SESSION: OfflineUserSession = {
+    type: UserSessionType.offline,
+    accessToken: null,
+    organization: null,
 }
 
 /** Object containing the currently signed-in user's session data, if the user has not yet set their
@@ -165,9 +174,17 @@ export function AuthProvider(props: AuthProviderProps) {
     const { session, deinitializeSession } = sessionProvider.useSession()
     const { setBackend } = backendProvider.useSetBackend()
     const logger = loggerProvider.useLogger()
-    const navigate = router.useNavigate()
+    const navigate = hooks.useNavigate()
     const [initialized, setInitialized] = react.useState(false)
     const [userSession, setUserSession] = react.useState<UserSession | null>(null)
+
+    // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
+    // circular dependency.
+    react.useEffect(() => {
+        if (!navigator.onLine) {
+            void goOffline()
+        }
+    }, [navigator.onLine])
 
     /** Fetch the JWT access token from the session via the AWS Amplify library.
      *
@@ -176,7 +193,9 @@ export function AuthProvider(props: AuthProviderProps) {
      * If the token has expired, automatically refreshes the token and returns the new token. */
     react.useEffect(() => {
         const fetchSession = async () => {
-            if (session.none) {
+            if (!navigator.onLine) {
+                goOfflineInternal()
+            } else if (session.none) {
                 setInitialized(true)
                 setUserSession(null)
             } else {
@@ -190,7 +209,9 @@ export function AuthProvider(props: AuthProviderProps) {
                 if (!initialized || userSession == null) {
                     setBackend(backend)
                 }
-                const organization = await backend.usersMe().catch(() => null)
+                const organization = await backend.usersMe().catch(e => {
+                    console.log(e, e.message)
+                })
                 let newUserSession: UserSession
                 const sharedSessionData = { email, accessToken }
                 if (!organization) {
@@ -242,9 +263,15 @@ export function AuthProvider(props: AuthProviderProps) {
             return result
         }
 
-    const goOffline = () => {
-        setUserSession({ type: UserSessionType.offline, accessToken: null, organization: null })
+    const goOfflineInternal = () => {
+        setInitialized(true)
+        setUserSession(OFFLINE_USER_SESSION)
         setBackend(new localBackend.LocalBackend())
+    }
+
+    const goOffline = () => {
+        toast.error('You are offline, switching to offline mode.')
+        goOfflineInternal()
         navigate(app.DASHBOARD_PATH)
         return Promise.resolve(true)
     }
