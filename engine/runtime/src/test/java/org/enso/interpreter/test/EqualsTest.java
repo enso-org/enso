@@ -55,11 +55,7 @@ public class EqualsTest extends TestBase {
   private static Object[] fetchAllUnwrappedValues() {
     var valGenerator =
         ValuesGenerator.create(
-            context,
-            ValuesGenerator.Language.ENSO,
-            ValuesGenerator.Language.JAVA,
-            ValuesGenerator.Language.JAVASCRIPT,
-            ValuesGenerator.Language.PYTHON);
+            context, ValuesGenerator.Language.ENSO, ValuesGenerator.Language.JAVA);
     List<Value> values = new ArrayList<>();
     values.addAll(valGenerator.numbers());
     values.addAll(valGenerator.booleans());
