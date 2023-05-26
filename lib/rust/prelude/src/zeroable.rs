@@ -1,11 +1,24 @@
 pub use bytemuck;
 pub use bytemuck::Zeroable;
 
+use crate::Deref;
+use crate::DerefMut;
 use core::fmt::Debug;
-use std::ops::Deref;
 
+
+
+// ======================
+// === ZeroableOption ===
+// ======================
+
+
+/// Just like [`Option`], but can be initialized with zeroed memory. The stdlib [`Option`] can not.
+/// For example, `Option::<bool>::None` is not represented as zeroed memory, as can be checked with
+/// `println!("{:?}", unsafe { std::mem::transmute::<Option<bool>, [u8; 1]>(None) });`, which prints
+/// `[2]`.
 #[derive(Clone, Copy, Debug, Default)]
 #[repr(u8)]
+#[allow(missing_docs)]
 pub enum ZeroableOption<T> {
     #[default]
     None = 0,
@@ -14,6 +27,7 @@ pub enum ZeroableOption<T> {
 
 unsafe impl<T> Zeroable for ZeroableOption<T> {}
 
+#[allow(missing_docs)] // All the functions are the same as on the stdlib [`Option`] type.
 impl<T> ZeroableOption<T> {
     #[inline(always)]
     pub fn as_ref(&self) -> ZeroableOption<&T> {
@@ -62,6 +76,12 @@ impl<T> ZeroableOption<T> {
 }
 
 
+
+// =========================
+// === ZeroableStaticStr ===
+// =========================
+
+/// A `&'static str` that can be initialized with zeroed memory.
 #[derive(Clone, Copy, Zeroable)]
 #[repr(transparent)]
 pub struct ZeroableStaticStr {
@@ -72,10 +92,7 @@ impl Deref for ZeroableStaticStr {
     type Target = str;
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
-        match self.opt_str {
-            ZeroableOption::None => "",
-            ZeroableOption::Some(s) => s,
-        }
+        (*self).into()
     }
 }
 
@@ -90,4 +107,90 @@ impl Debug for ZeroableStaticStr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Debug::fmt(self.as_ref(), f)
     }
+}
+
+impl From<&'static str> for ZeroableStaticStr {
+    #[inline(always)]
+    fn from(s: &'static str) -> Self {
+        Self { opt_str: ZeroableOption::Some(s) }
+    }
+}
+
+impl From<ZeroableStaticStr> for &'static str {
+    #[inline(always)]
+    fn from(s: ZeroableStaticStr) -> Self {
+        match s.opt_str {
+            ZeroableOption::None => "",
+            ZeroableOption::Some(s) => s,
+        }
+    }
+}
+
+
+
+// =======================
+// === ZeroableRefCell ===
+// =======================
+
+/// Version of [`RefCell`] that can be initialized with zeroed memory.
+#[derive(Clone, Deref, Default, DerefMut)]
+#[repr(transparent)]
+pub struct ZeroableRefCell<T> {
+    // Please note, that current [`RefCell`] implementation CAN be initialized with zeroed memory,
+    // however, this is not a contract provided by the Rust standard library. Thus, in order not to
+    // copy-paste its code, we are using the stdlib version, but we need to check if the
+    // implementation did not change with the compiler version bump.
+    //
+    // To check if it is still correct after the version bump, you need to check if
+    // [`RefCell::new`] initializes the struct with zero memory. To do it, check if every field
+    // of [`RefCell`] defaults to a zeroable value. In the current case, [`RefCell`] has the
+    // following fields:
+    //
+    // 1. `borrow: Cell<BorrowFlag>`, where `type BorrowFlag = isize;` and it is initialized with
+    // `const UNUSED: BorrowFlag = 0;`.
+    //
+    // 2. `borrowed_at: Cell<Option<& ...>>`, which is zeroable, according to:
+    // https://docs.rs/bytemuck/latest/bytemuck/trait.ZeroableInOption.html
+    //
+    // 3. `value: UnsafeCell<T>`, which is zeroable if `T` is zeroable, according to:
+    // https://docs.rs/bytemuck/latest/bytemuck/trait.Zeroable.html
+    #[cfg(not(version("1.69")))]
+    cell: core::cell::RefCell<T>,
+    #[cfg(version("1.69"))]
+    after_compiler_version_bump: update_this_code_according_to_the_comment_above,
+}
+
+unsafe impl<T: Zeroable> Zeroable for ZeroableRefCell<T> {}
+
+impl<T> Debug for ZeroableRefCell<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(&*self, f)
+    }
+}
+
+
+
+// ==============
+// === Macros ===
+// ==============
+
+/// Allows deriving the [`Zeroable`] trait for parametrized structures without enforcing the
+/// parameters to implement [`Zeroable`] as well. It is similar to how the [`Derivative`] macro
+/// works. This is just a workaround until the official [`Zeroable`] derive macro supports custom
+/// bounds. To learn more, see: https://github.com/Lokathor/bytemuck/issues/190.
+#[macro_export]
+macro_rules! derive_zeroable {
+    (
+        $(#$meta:tt)*
+        pub struct $name:ident $([ $($bounds:tt)* ] [ $($bounds_def:tt)* ])? {
+            $($field:ident : $ty:ty),* $(,)?
+        }
+    ) => {
+        $(#$meta)*
+        pub struct $name $(< $($bounds_def)* >)? {
+            $($field : $ty),*
+        }
+        unsafe impl $(< $($bounds_def)* >)? $crate::Zeroable for $name $(< $($bounds)* >)?
+            where $($ty: Zeroable),* {}
+    };
 }

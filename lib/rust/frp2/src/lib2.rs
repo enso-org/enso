@@ -144,8 +144,8 @@ pub struct NodeData {
     tp:                ZeroableOption<Box<dyn EventConsumer>>,
     network_id:        NetworkId,
     def:               DefInfo,
-    inputs:            LinkedCellArray<NodeId, 8>,
-    outputs:           LinkedCellArray<OutputConnection, 8>,
+    inputs:            ZeroableLinkedArrayRefCell<NodeId, 8>,
+    outputs:           ZeroableLinkedArrayRefCell<OutputConnection, 8>,
     output:            OptRefCell<ZeroableOption<Box<dyn Data>>>,
     behavior_requests: Cell<usize>,
 }
@@ -311,30 +311,18 @@ impl Runtime {
         }
 
         self.stack.with(node.def, || {
-            let mut index = 0;
-            let mut cleanup_targets = Vec::<i32>::new();
+            let mut cleanup_outputs = false;
             node.outputs.for_item_borrow(|&node_output_id| {
                 let done = self.nodes.with_item_borrow(node_output_id.target, |node_output| {
                     node_output.on_event(self, node_id, node_output_id, event);
                 });
                 if done.is_none() {
-                    cleanup_targets.push(index);
+                    cleanup_outputs = true;
                 }
-                index += 1;
             });
 
-            if !cleanup_targets.is_empty() {
-                let mut index = 0;
-                let mut cleanup_targets_iter = cleanup_targets.iter();
-                let mut cleanup_target = *cleanup_targets_iter.next().unwrap();
-                node.outputs.retain(|_| {
-                    let retain = cleanup_target != index;
-                    if !retain {
-                        cleanup_target = cleanup_targets_iter.next().copied().unwrap_or(-1);
-                    }
-                    index += 1;
-                    retain
-                })
+            if cleanup_outputs {
+                node.outputs.retain(|output| self.nodes.exists(output.target));
             }
         });
     }
@@ -1058,7 +1046,7 @@ pub struct Slot {
 #[derive(Debug, Default)]
 pub struct CellSlotMap {
     free_indexes: OptRefCell<Vec<usize>>,
-    list:         Box<LinkedCellArray<Slot, 131072>>,
+    list:         Box<ZeroableLinkedArrayRefCell<Slot, 131072>>,
 }
 
 impl CellSlotMap {
@@ -1127,6 +1115,11 @@ impl CellSlotMap {
     }
 
     #[inline(always)]
+    pub fn exists(&self, key: NodeId) -> bool {
+        self.with_item_borrow(key, |_| ()).is_some()
+    }
+
+    #[inline(always)]
     pub fn with_item_borrow<R>(&self, key: NodeId, f: impl FnOnce(&NodeData) -> R) -> Option<R> {
         self.list.with_item_borrow(key.index, |slot| {
             (slot.version == key.version).then(|| f(&slot.value))
@@ -1156,7 +1149,6 @@ impl CellSlotMap {
 // === LinkedVec ===
 // =================
 
-pub trait LinkedArrayDefault<T, const N: usize> = where [OptRefCell<T>; N]: Default;
 
 #[derive(Debug)]
 pub struct Segment<T, const N: usize> {
@@ -1164,9 +1156,9 @@ pub struct Segment<T, const N: usize> {
     next:  OptRefCell<Option<Box<Segment<T, N>>>>,
 }
 
-impl<T: Zeroable, const N: usize> Default for Segment<T, N> {
+impl<T: Zeroable, const N: usize> Segment<T, N> {
     #[inline(always)]
-    fn default() -> Self {
+    fn new() -> Self {
         let items = {
             let layout = std::alloc::Layout::array::<OptRefCell<T>>(N).unwrap();
             unsafe { Vec::from_raw_parts(std::alloc::alloc_zeroed(layout) as *mut _, N, N) }
@@ -1176,17 +1168,25 @@ impl<T: Zeroable, const N: usize> Default for Segment<T, N> {
     }
 }
 
-#[derive(Debug, Derivative)]
-#[derivative(Default(bound = "T: Default"))]
-pub struct LinkedCellArray<T, const N: usize = 32> {
-    size:          Cell<usize>,
-    first_segment: OptRefCell<ZeroableOption<Segment<T, N>>>,
+impl<T: Zeroable, const N: usize> Default for Segment<T, N> {
+    #[inline(always)]
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
-// FIXME: make it future sound-proof
-unsafe impl<T, const N: usize> Zeroable for LinkedCellArray<T, N> {}
 
-impl<T: Default + Zeroable + Debug, const N: usize> LinkedCellArray<T, N> {
+
+derive_zeroable! {
+    #[derive(Debug, Derivative)]
+    #[derivative(Default(bound = "T: Default"))]
+    pub struct ZeroableLinkedArrayRefCell[T, N][T, const N: usize] {
+        size:          Cell<usize>,
+        first_segment: OptRefCell<ZeroableOption<Segment<T, N>>>,
+    }
+}
+
+impl<T: Default + Zeroable + Debug, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
     #[inline(always)]
     pub fn clear(&self) {
         self.size.set(0);
@@ -1224,7 +1224,7 @@ impl<T: Default + Zeroable + Debug, const N: usize> LinkedCellArray<T, N> {
     }
 }
 
-impl<T: Zeroable + Debug, const N: usize> LinkedCellArray<T, N> {
+impl<T: Zeroable + Debug, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
     #[inline(always)]
     fn with_first_segment<R>(&self, f: impl FnOnce(&Segment<T, N>) -> R) -> R {
         if self.first_segment.borrow().is_none() {
@@ -1288,7 +1288,7 @@ impl<T: Zeroable + Debug, const N: usize> LinkedCellArray<T, N> {
     }
 }
 
-impl<T: Copy + Zeroable + Debug, const N: usize> LinkedCellArray<T, N> {
+impl<T: Copy + Zeroable + Debug, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
     #[inline(always)]
     pub fn get(&self, index: usize) -> T {
         self.with_item_borrow(index, |t| *t)
@@ -1414,7 +1414,7 @@ mod tests2 {
 
     #[test]
     fn test_push() {
-        let array = LinkedCellArray::<usize, 2>::new();
+        let array = ZeroableLinkedArrayRefCell::<usize, 2>::new();
         array.push(1);
         assert_eq!(&array.to_vec(), &[1]);
         array.push(2);
@@ -1429,7 +1429,7 @@ mod tests2 {
 
     #[test]
     fn test_retain() {
-        let array = LinkedCellArray::<usize, 2>::new();
+        let array = ZeroableLinkedArrayRefCell::<usize, 2>::new();
         array.push(1);
         array.push(2);
         array.push(3);
