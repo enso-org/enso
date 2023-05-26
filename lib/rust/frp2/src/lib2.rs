@@ -1097,7 +1097,7 @@ impl CellSlotMap {
             NodeId { index, version }
         } else {
             let index = self.list.len();
-            self.list.push_default();
+            self.list.push_zeroed();
             NodeId { index, version: 0 }
         }
     }
@@ -1150,34 +1150,21 @@ impl CellSlotMap {
 // =================
 
 
-#[derive(Debug)]
-pub struct Segment<T, const N: usize> {
-    items: Vec<OptRefCell<T>>,
-    next:  OptRefCell<Option<Box<Segment<T, N>>>>,
-}
-
-impl<T: Zeroable, const N: usize> Segment<T, N> {
-    #[inline(always)]
-    fn new() -> Self {
-        let items = {
-            let layout = std::alloc::Layout::array::<OptRefCell<T>>(N).unwrap();
-            unsafe { Vec::from_raw_parts(std::alloc::alloc_zeroed(layout) as *mut _, N, N) }
-        };
-        let next = default();
-        Self { items, next }
-    }
-}
-
-impl<T: Zeroable, const N: usize> Default for Segment<T, N> {
-    #[inline(always)]
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-
 
 derive_zeroable! {
+    /// [`Vec`]-like structure that:
+    /// 1. Can be initialized with zeroed memory.
+    /// 2. Is represented as linked list of arrays under the hood and can grow while being immutably
+    ///    borrowed.
+    /// 3. Keeps items in [`RefCell`]s, allowing many operations to be performed without mutable
+    ///    borrow. For example, `push` can be performed without mutable borrow always safely, as the
+    ///    struct can grow without reallocating the underlying memory.
+    ///
+    /// # Zeroed memory representation
+    /// It is guaranteed that all reserved, but not-used memory of this structure is zeroed. For
+    /// example, after removing an item or after cleaning the container, the reserved memory will be
+    /// zeroed. It allows for a very efficient implementation of several utilities, such as
+    /// [`Self::push_zeroed`], which for big enough [`Self::N`] performs in O(1) time.
     #[derive(Debug, Derivative)]
     #[derivative(Default(bound = "T: Default"))]
     pub struct ZeroableLinkedArrayRefCell[T, N][T, const N: usize] {
@@ -1187,34 +1174,46 @@ derive_zeroable! {
 }
 
 impl<T: Default + Zeroable + Debug, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
-    #[inline(always)]
-    pub fn clear(&self) {
-        self.size.set(0);
-    }
-
+    /// Constructor.
     #[inline(always)]
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Clear all data in the container.
+    #[inline(always)]
+    pub fn clear(&self) {
+        self.size.set(0);
+        if let ZeroableOption::Some(first_segment) = self.first_segment.borrow_mut().as_mut() {
+            first_segment.clear();
+        }
+    }
+
+    /// Number of elements in the container.
     #[inline(always)]
     pub fn len(&self) -> usize {
         self.size.get()
     }
 
+    /// Check whether the container is empty.
     #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.size.get() == 0
     }
 
+    /// Add a new element to the container and return its index.
     #[inline(always)]
-    pub fn push(&self, elem: T) {
-        self.with_first_segment(|s| s.push(self.size.get(), elem));
+    pub fn push(&self, elem: T) -> usize {
+        let index = self.size.get();
+        self.with_first_segment(|s| s.push(index, elem));
         self.size.modify(|t| *t += 1);
+        index
     }
 
+    /// Add a new element to the container, initializing it with zeroed memory, and return its
+    /// index.
     #[inline(always)]
-    fn push_default(&self) -> usize {
+    fn push_zeroed(&self) -> usize {
         let index = self.size.get();
         if index % N == 0 {
             self.with_first_segment(|s| s.add_tail_segment());
@@ -1241,37 +1240,44 @@ impl<T: Zeroable + Debug, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
         f(&mut *self.first_segment.borrow_mut().as_mut().unwrap())
     }
 
+    /// Set the element at the given index.
     #[inline(always)]
     pub fn set(&self, index: usize, elem: T) {
         self.with_first_segment(|s| s.set(index, elem));
     }
 
+    /// Get the clone of an element at the given index.
     #[inline(always)]
     pub fn get_cloned(&self, index: usize) -> T
     where T: Clone {
         self.with_item_borrow(index, Clone::clone)
     }
 
+    /// Perform a function on the borrowed element at the given index.
     #[inline(always)]
     pub fn with_item_borrow<U>(&self, index: usize, f: impl FnOnce(&T) -> U) -> U {
         self.with_first_segment(|s| s.with_item_borrow(index, f))
     }
 
+    /// Perform a function on the mutably borrowed element at the given index.
     #[inline(always)]
     pub fn with_item_borrow_mut<U>(&self, index: usize, f: impl FnOnce(&mut T) -> U) -> U {
         self.with_first_segment(|s| s.with_item_borrow_mut(index, f))
     }
 
+    /// Perform a function on every borrowed element.
     #[inline(always)]
     pub fn for_item_borrow(&self, f: impl FnMut(&T)) {
         self.with_first_segment(|s| s.for_item_borrow(self.size.get(), f));
     }
 
+    /// Perform a function on every mutably borrowed element.
     #[inline(always)]
     pub fn for_item_borrow_mut(&self, f: impl FnMut(&mut T)) {
         self.with_first_segment(|s| s.for_item_borrow_mut(self.size.get(), f));
     }
 
+    /// Retain only the elements that satisfy the predicate.
     pub fn retain<F>(&self, mut f: F)
     where F: FnMut(&T) -> bool {
         self.with_first_segment_mut(|s| {
@@ -1280,6 +1286,7 @@ impl<T: Zeroable + Debug, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
         })
     }
 
+    /// Clone all elements to a vector.
     pub fn to_vec(&self) -> Vec<T>
     where T: Clone {
         let mut vec = Vec::with_capacity(self.size.get());
@@ -1289,13 +1296,52 @@ impl<T: Zeroable + Debug, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
 }
 
 impl<T: Copy + Zeroable + Debug, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
+    /// Get the element at the given index.
     #[inline(always)]
     pub fn get(&self, index: usize) -> T {
         self.with_item_borrow(index, |t| *t)
     }
 }
 
+
+
+// ===============
+// === Segment ===
+// ===============
+
+#[derive(Debug)]
+struct Segment<T, const N: usize> {
+    items: Vec<OptRefCell<T>>,
+    next:  OptRefCell<Option<Box<Segment<T, N>>>>,
+}
+
+impl<T: Zeroable, const N: usize> Segment<T, N> {
+    #[inline(always)]
+    fn new() -> Self {
+        let items = {
+            let layout = std::alloc::Layout::array::<OptRefCell<T>>(N).unwrap();
+            unsafe { Vec::from_raw_parts(std::alloc::alloc_zeroed(layout) as *mut _, N, N) }
+        };
+        let next = default();
+        Self { items, next }
+    }
+}
+
+impl<T: Zeroable, const N: usize> Default for Segment<T, N> {
+    #[inline(always)]
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+
 impl<T: Zeroable + Debug, const N: usize> Segment<T, N> {
+    #[inline(always)]
+    fn clear(&mut self) {
+        unsafe { std::intrinsics::volatile_set_memory(self.items.as_mut_ptr(), 0, N) }
+    }
+
+
     #[inline(always)]
     fn push(&self, offset: usize, elem: T) {
         if offset < N {

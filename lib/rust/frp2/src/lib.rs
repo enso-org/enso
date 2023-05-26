@@ -4,6 +4,7 @@
 #![feature(trait_alias)]
 #![feature(downcast_unchecked)]
 #![feature(type_alias_impl_trait)]
+#![feature(core_intrinsics)]
 
 mod callstack;
 pub mod lib2;
