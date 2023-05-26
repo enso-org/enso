@@ -39,7 +39,6 @@ import * as router from 'react-router-dom'
 import * as toast from 'react-hot-toast'
 
 import * as authService from '../authentication/service'
-import * as localBackend from '../dashboard/localBackend'
 import * as platformModule from '../platform'
 
 import * as authProvider from '../authentication/providers/auth'
@@ -122,8 +121,14 @@ function App(props: AppProps) {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
-    const { logger, platform, showDashboard, onAuthenticated } = props
+    const { logger, showDashboard, onAuthenticated } = props
     const navigate = router.useNavigate()
+    // FIXME[sb]: After platform detection for Electron is merged in, `IS_DEV_MODE` should be
+    // set to true on `ide watch`.
+    if (IS_DEV_MODE) {
+        // @ts-expect-error This is used exclusively for debugging.
+        window.navigate = navigate
+    }
     const mainPageUrl = new URL(window.location.href)
     const memoizedAuthService = react.useMemo(() => {
         const authConfig = { navigate, ...props }
@@ -164,20 +169,12 @@ function AppRouter(props: AppProps) {
                 userSession={userSession}
                 registerAuthEventListener={registerAuthEventListener}
             >
-                <backendProvider.BackendProvider
-                    initialBackend={
-                        platform === platformModule.Platform.desktop
-                            ? new localBackend.LocalBackend()
-                            : // This is UNSAFE. However, the backend will be set by the
-                              // authentication flow.
-                              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                              null!
-                    }
-                >
+                {/* This is safe, because the backend is always set by the authentication flow. */}
+                {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
+                <backendProvider.BackendProvider initialBackend={null!}>
                     <authProvider.AuthProvider
                         authService={memoizedAuthService}
                         onAuthenticated={onAuthenticated}
-                        platform={platform}
                     >
                         <modalProvider.ModalProvider>{routes}</modalProvider.ModalProvider>
                     </authProvider.AuthProvider>
