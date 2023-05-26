@@ -31,10 +31,13 @@ async function watch() {
     // This MUST be called before `builder.watch()` as `tailwind.css` must be generated
     // before the copy plugin runs.
     await dashboardBuilder.watch()
-    const opts = bundler.bundlerOptions({
-        ...bundler.argumentsFromEnv(),
-        devMode: true,
-    })
+    const opts = bundler.bundlerOptions(
+        bundler.argumentsFromEnv({
+            devMode: true,
+            supportsLocalBackend: true,
+            supportsDeepLinks: false,
+        })
+    )
     opts.define.REDIRECT_OVERRIDE = JSON.stringify('http://localhost:8080')
     opts.entryPoints.push({
         in: path.resolve(THIS_PATH, 'src', 'serviceWorker.ts'),
