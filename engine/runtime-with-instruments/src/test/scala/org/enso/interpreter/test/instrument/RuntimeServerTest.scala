@@ -570,7 +570,10 @@ class RuntimeServerTest
         contextId,
         idMainFoo,
         ConstantsGen.INTEGER,
-        Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo"))
+        Api.MethodCall(
+          Api.MethodPointer(moduleName, moduleName, "foo"),
+          Vector(0)
+        )
       ),
       TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
@@ -597,13 +600,13 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(105, 120)
-    val idMainX  = metadata.addItem(132, 9)
-    val idMainY  = metadata.addItem(150, 3)
-    val idMainM  = metadata.addItem(162, 8)
-    val idMainP  = metadata.addItem(179, 5)
-    val idMainQ  = metadata.addItem(193, 5)
-    val idMainF  = metadata.addItem(215, 9)
+    val idMain   = metadata.addItem(105, 120, "aa")
+    val idMainX  = metadata.addItem(132, 9, "ab")
+    val idMainY  = metadata.addItem(150, 3, "ac")
+    val idMainM  = metadata.addItem(162, 8, "ad")
+    val idMainP  = metadata.addItem(179, 5, "ae")
+    val idMainQ  = metadata.addItem(193, 5, "af")
+    val idMainF  = metadata.addItem(215, 9, "bb")
 
     val code =
       """from Standard.Base import all
@@ -677,7 +680,7 @@ class RuntimeServerTest
         Api.MethodCall(
           Api.MethodPointer(
             "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.QuuxT.type",
+            "Enso_Test.Test.Main.QuuxT",
             "foo"
           )
         )
@@ -796,6 +799,78 @@ class RuntimeServerTest
         "Enso_Test.Test.Main.T",
         Api.MethodCall(
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "C")
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "send method pointer updates of partially applied constructors" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x_1   = metadata.addItem(35, 5, "aa")
+    val id_x_2   = metadata.addItem(51, 5, "ab")
+
+    val code =
+      """type T
+        |    A x y
+        |
+        |main =
+        |    x_1 = T.A 1
+        |    x_2 = x_1 2
+        |    x_2
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveN(5) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        id_x_1,
+        ConstantsGen.FUNCTION_BUILTIN,
+        Api.MethodCall(
+          Api
+            .MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "A"),
+          Vector(1)
+        )
+      ),
+      TestMessages.update(
+        contextId,
+        id_x_2,
+        ConstantsGen.FUNCTION_BUILTIN,
+        Api.MethodCall(
+          Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "A")
         )
       ),
       context.executionComplete(contextId)
