@@ -407,14 +407,6 @@ impl Model {
         Some(view::graph_editor::Type(info.typename.as_ref()?.clone_ref()))
     }
 
-    /// Extract the expression's current method pointer from controllers.
-    fn expression_method_pointer(&self, id: ast::Id) -> Option<view::graph_editor::MethodPointer> {
-        let registry = self.controller.computed_value_info_registry();
-        let computed_value = registry.get(&id)?;
-        let method_pointer = computed_value.method_call.as_ref()?;
-        Some(view::graph_editor::MethodPointer(Rc::new(method_pointer.clone())))
-    }
-
     fn file_dropped(&self, file: ensogl_drop_manager::File, position: Vector2<f32>) {
         let project = self.project.clone_ref();
         let graph = self.controller.graph();
