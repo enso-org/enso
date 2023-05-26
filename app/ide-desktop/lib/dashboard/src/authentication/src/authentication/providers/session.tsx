@@ -16,6 +16,8 @@ import * as listen from '../listen'
 /** State contained in a {@link SessionContext}. */
 interface SessionContextType {
     session: results.Option<cognito.UserSession>
+    /** Set `initialized` to false. Must be called when logging out. */
+    deinitializeSession: () => void
 }
 
 /** See `AuthContext` for safety details. */
@@ -58,7 +60,7 @@ export function SessionProvider(props: SessionProviderProps) {
     const [initialized, setInitialized] = react.useState(false)
 
     /** Register an async effect that will fetch the user's session whenever the `refresh` state is
-     * incremented. This is useful when a user has just logged in (as their cached credentials are
+     * set. This is useful when a user has just logged in (as their cached credentials are
      * out of date, so this will update them). */
     const session = hooks.useAsyncEffect(
         results.None,
@@ -112,10 +114,14 @@ export function SessionProvider(props: SessionProviderProps) {
         return cancel
     }, [registerAuthEventListener])
 
-    const value = { session }
+    const deinitializeSession = () => {
+        setInitialized(false)
+    }
 
     return (
-        <SessionContext.Provider value={value}>{initialized && children}</SessionContext.Provider>
+        <SessionContext.Provider value={{ session, deinitializeSession }}>
+            {initialized && children}
+        </SessionContext.Provider>
     )
 }
 
