@@ -25,7 +25,9 @@ import * as sessionProvider from './session'
 const MESSAGES = {
     signUpSuccess: 'We have sent you an email with further instructions!',
     confirmSignUpSuccess: 'Your account has been confirmed! Please log in.',
+    setUsernameLoading: 'Setting username...',
     setUsernameSuccess: 'Your username has been set!',
+    setUsernameFailure: 'Could not set your username.',
     signInWithPasswordSuccess: 'Successfully logged in!',
     forgotPasswordSuccess: 'We have sent you an email with further instructions!',
     changePasswordSuccess: 'Successfully changed password!',
@@ -278,15 +280,20 @@ export function AuthProvider(props: AuthProviderProps) {
             return false
         } else {
             try {
-                await backend.createUser({
-                    userName: username,
-                    userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
-                })
+                await toast.promise(
+                    backend.createUser({
+                        userName: username,
+                        userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
+                    }),
+                    {
+                        success: MESSAGES.setUsernameSuccess,
+                        error: MESSAGES.setUsernameFailure,
+                        loading: MESSAGES.setUsernameLoading,
+                    }
+                )
                 navigate(app.DASHBOARD_PATH)
-                toast.success(MESSAGES.setUsernameSuccess)
                 return true
             } catch (e) {
-                toast.error('Could not set your username.')
                 return false
             }
         }
