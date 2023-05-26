@@ -416,6 +416,47 @@ class ImportExportTest
     }
   }
 
+  "Import resolution from another library honor Main" should {
+    "resolve Api from Main" in {
+      val mainIr = """
+                     |from Test.Logical_Export import Api
+                     |
+                     |main =
+                     |    element = Api.Element.Element.create
+                     |    element.describe
+                     |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+        .getIr
+
+      mainIr.imports.size shouldEqual 1
+      val in = mainIr.imports.head
+        .asInstanceOf[IR.Module.Scope.Import.Module]
+
+      in.name.name.toString() should include("Test.Logical_Export.Main")
+      in.onlyNames.get.map(_.name.toString()) shouldEqual List("Api")
+
+      val errors = mainIr.preorder.filter(x => x.isInstanceOf[IR.Error])
+      errors.size shouldEqual 0
+    }
+
+    "don't expose Impl from Main" in {
+      val mainIr = """
+                     |from Test.Logical_Export import Impl
+                     |
+                     |main = Impl
+                     |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+        .getIr
+
+      mainIr.imports.head
+        .asInstanceOf[IR.Error.ImportExport]
+        .reason
+        .message should include(
+        "The symbol Impl (module or type) does not exist in module Test.Logical_Export.Main."
+      )
+    }
+  }
+
   "Import resolution for three modules" should {
 
     "not resolve symbol that is not explicitly exported" in {
