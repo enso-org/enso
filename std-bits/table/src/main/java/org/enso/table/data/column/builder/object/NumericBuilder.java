@@ -3,9 +3,7 @@ package org.enso.table.data.column.builder.object;
 import java.util.Arrays;
 import java.util.BitSet;
 
-/**
- * A common base for numeric builders.
- */
+/** A common base for numeric builders. */
 public abstract class NumericBuilder extends TypedBuilder {
   protected BitSet isMissing;
   protected long[] data;
@@ -27,8 +25,9 @@ public abstract class NumericBuilder extends TypedBuilder {
 
   /**
    * Converts the provided LongBuilder to a DoubleBuilder.
-   * <p>
-   * The original LongBuilder becomes invalidated after this operation and should no longer be used.
+   *
+   * <p>The original LongBuilder becomes invalidated after this operation and should no longer be
+   * used.
    */
   protected static DoubleBuilder retypeLongBuilderToDouble(LongBuilder builder) {
     long[] data = builder.data;
@@ -79,7 +78,7 @@ public abstract class NumericBuilder extends TypedBuilder {
    * capacity, for example if it was initialized with an initial capacity known up-front.
    *
    * @param rawData the raw encoding of the item, for long numbers just the number and for doubles,
-   * its long bytes
+   *     its long bytes
    */
   public void appendRawNoGrow(long rawData) {
     data[currentSize++] = rawData;
@@ -90,12 +89,12 @@ public abstract class NumericBuilder extends TypedBuilder {
     return currentSize;
   }
 
-
   /**
    * Grows the underlying array.
-   * <p>
-   * The method grows the array by 50% by default to amortize the re-allocation time over appends.
-   * It tries to keep the invariant that after calling `grow` the array has at least one free slot.
+   *
+   * <p>The method grows the array by 50% by default to amortize the re-allocation time over
+   * appends. It tries to keep the invariant that after calling `grow` the array has at least one
+   * free slot.
    */
   protected void grow() {
     int desiredCapacity = 3;

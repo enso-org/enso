@@ -7,7 +7,6 @@ public class CastProblemBuilder {
   private int failedConversionsCount = 0;
   private int textTooLongCount = 0;
 
-
   private static final int MAX_EXAMPLES_COUNT = 3;
   private final ArrayList<Object> failedConversionExamples = new ArrayList<>(MAX_EXAMPLES_COUNT);
   private final ArrayList<String> textTooLongExamples = new ArrayList<>(MAX_EXAMPLES_COUNT);
