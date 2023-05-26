@@ -212,7 +212,7 @@ impl<'a> ApplicationBase<'a> {
             return None;
         }
 
-        let invocation_info = context.call_info(self.call_id?, self.function_name.as_deref())?;
+        let invocation_info = context.call_info(self.call_id?)?;
         let invocation_info = invocation_info.with_call_id(self.call_id);
 
         let self_in_access = || {
@@ -235,8 +235,8 @@ impl<'a> ApplicationBase<'a> {
         let argument_in_access = if has_argument_in_access { param_iter.next() } else { None };
         let chain_arguments: VecDeque<(usize, ArgumentInfo)> = param_iter.enumerate().collect();
         let icon_name = invocation_info.icon_name;
-
-        Some(ResolvedApplication { argument_in_access, chain_arguments, icon_name })
+        let suggestion_id = invocation_info.suggestion_id;
+        Some(ResolvedApplication { argument_in_access, chain_arguments, suggestion_id, icon_name })
     }
 
     /// Switch the method application to use different expression as call id, but keep the same
@@ -252,6 +252,7 @@ impl<'a> ApplicationBase<'a> {
 
     fn raw_node_data(&self) -> crate::node::ApplicationData {
         crate::node::ApplicationData {
+            suggestion_id:  None,
             icon_name:      None,
             self_in_access: self.uses_method_notation,
         }
@@ -261,6 +262,8 @@ impl<'a> ApplicationBase<'a> {
 /// A result of resolving arguments of [`ApplicationBase`]. It contains information about the
 /// expected arguments and their positions in the application.
 struct ResolvedApplication {
+    /// The ID of a resolved method suggestion used in this application, if available.
+    suggestion_id:      Option<usize>,
     argument_in_access: Option<ArgumentInfo>,
     /// Arguments are paired with their original positions in the chain. That way the position
     /// information is preserved even after the arguments are popped or removed from deque in
@@ -307,6 +310,7 @@ impl ResolvedApplication {
 
     fn node_data(&self) -> crate::node::ApplicationData {
         crate::node::ApplicationData {
+            suggestion_id:  self.suggestion_id,
             icon_name:      self.icon_name.clone(),
             self_in_access: self.argument_in_access.is_some(),
         }
@@ -341,8 +345,7 @@ fn generate_node_for_ast(
             _ => {
                 let size = (ast.len().value as i32).byte_diff();
                 let ast_id = ast.id;
-                let name = ast::identifier::name(ast);
-                if let Some(info) = ast.id.and_then(|id| context.call_info(id, name)) {
+                if let Some(info) = ast.id.and_then(|id| context.call_info(id)) {
                     let node = { Node { kind: node::Kind::Operation, size, ast_id, ..default() } };
                     // Note that in this place it is impossible that Ast is in form of
                     // `this.method` -- it is covered by the former if arm. As such, we don't
@@ -919,7 +922,7 @@ impl MockContext {
 }
 
 impl Context for MockContext {
-    fn call_info(&self, id: Id, _name: Option<&str>) -> Option<CalledMethodInfo> {
+    fn call_info(&self, id: Id) -> Option<CalledMethodInfo> {
         self.map.get(&id).cloned()
     }
 }

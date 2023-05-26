@@ -52,6 +52,7 @@ pub struct Node {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct ApplicationData {
+    pub suggestion_id:  Option<usize>,
     pub icon_name:      Option<ImString>,
     pub self_in_access: bool,
 }

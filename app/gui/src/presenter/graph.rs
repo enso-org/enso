@@ -3,6 +3,7 @@
 
 use crate::prelude::*;
 use enso_web::traits::*;
+use span_tree::generate::Context as _;
 
 use crate::controller::graph::widget::Request as WidgetRequest;
 use crate::controller::upload::NodeFromDroppedFileHandler;
@@ -12,7 +13,6 @@ use crate::presenter::graph::state::State;
 use double_representation::context_switch::Context;
 use double_representation::context_switch::ContextSwitch;
 use double_representation::context_switch::ContextSwitchExpression;
-use engine_protocol::language_server::SuggestionId;
 use enso_frp as frp;
 use futures::future::LocalBoxFuture;
 use ide_view as view;
@@ -249,14 +249,8 @@ impl Model {
             .state
             .update_from_view()
             .set_call_expression_target_id(call_expression, Some(target_expression))?;
-        let method_id = self.expression_method_suggestion(call_expression)?;
-
-        Some(WidgetRequest {
-            node_id,
-            call_expression,
-            target_expression,
-            call_suggestion: method_id,
-        })
+        let call_suggestion = self.controller.call_info(call_expression)?.suggestion_id?;
+        Some(WidgetRequest { node_id, call_expression, target_expression, call_suggestion })
     }
 
     /// Map widget controller update data to the node views.
@@ -375,11 +369,9 @@ impl Model {
     ///
     /// If the view update is required, the widget query data is returned.
     fn refresh_expression_widgets(&self, expr_id: ast::Id) -> Option<(ast::Id, ast::Id)> {
-        let method_pointer = self.expression_method_pointer(expr_id);
-        let (_, method_target_id) = self
-            .state
-            .update_from_controller()
-            .set_expression_method_pointer(expr_id, method_pointer)?;
+        let suggestion = self.controller.call_info(expr_id).and_then(|i| i.suggestion_id);
+        let (_, method_target_id) =
+            self.state.update_from_controller().set_expression_suggestion(expr_id, suggestion)?;
         Some((expr_id, method_target_id?))
     }
 
@@ -413,15 +405,6 @@ impl Model {
         let registry = self.controller.computed_value_info_registry();
         let info = registry.get(&id)?;
         Some(view::graph_editor::Type(info.typename.as_ref()?.clone_ref()))
-    }
-
-    /// Extract the expression's current suggestion entry from controllers.
-    fn expression_method_suggestion(&self, id: ast::Id) -> Option<SuggestionId> {
-        let registry = self.controller.computed_value_info_registry();
-        let computed_value = registry.get(&id)?;
-        let method_pointer = computed_value.method_call.as_ref()?;
-        let suggestion_db = self.controller.suggestion_db();
-        suggestion_db.get_method_suggestion(method_pointer)
     }
 
     /// Extract the expression's current method pointer from controllers.

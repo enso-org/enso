@@ -403,13 +403,13 @@ impl Handle {
 /// Span Tree generation context for a graph that does not know about execution.
 /// Provides information based on computed value registry, using metadata as a fallback.
 impl Context for Handle {
-    fn call_info(&self, id: ast::Id, _name: Option<&str>) -> Option<CalledMethodInfo> {
+    fn call_info(&self, id: ast::Id) -> Option<CalledMethodInfo> {
         let info = self.computed_value_info_registry().get(&id)?;
         let method_call = info.method_call.as_ref()?;
         let suggestion_db = self.project.suggestion_db();
-        let maybe_entry = suggestion_db.lookup_by_method_pointer(method_call).map(|e| {
-            let invocation_info = e.invocation_info(&suggestion_db, &self.parser());
-            invocation_info.with_called_on_type(false)
+        let maybe_entry = suggestion_db.lookup_by_method_pointer(method_call).map(|(id, entry)| {
+            let invocation_info = entry.invocation_info(&suggestion_db, &self.parser());
+            invocation_info.with_suggestion_id(id).with_called_on_type(false)
         });
 
         // When the entry was not resolved but the `defined_on_type` has a `.type` suffix,
@@ -419,9 +419,9 @@ impl Context for Handle {
         maybe_entry.or_else(|| {
             let defined_on_type = method_call.defined_on_type.strip_suffix(".type")?.to_owned();
             let method_call = MethodPointer { defined_on_type, ..method_call.clone() };
-            let entry = suggestion_db.lookup_by_method_pointer(&method_call)?;
+            let (id, entry) = suggestion_db.lookup_by_method_pointer(&method_call)?;
             let invocation_info = entry.invocation_info(&suggestion_db, &self.parser());
-            Some(invocation_info.with_called_on_type(true))
+            Some(invocation_info.with_suggestion_id(id).with_called_on_type(true))
         })
     }
 }

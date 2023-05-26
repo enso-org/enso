@@ -174,7 +174,11 @@ impl Model {
     ) -> Option<(NodeId, CallWidgetsConfig)> {
         let query_data = self.widget_queries.get_mut(&target)?;
 
-        let (definitions, errors) = configuration::deserialize_widget_definitions(&data);
+        let (definitions, errors) = configuration::deserialize_widget_definitions(
+            &data,
+            &self.graph.suggestion_db(),
+            &self.graph.parser(),
+        );
 
         for error in errors {
             error!("{:?}", error);

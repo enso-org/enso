@@ -233,10 +233,7 @@ impl Model {
 
     /// Traverse all span tree nodes that are considered ports.
     #[profile(Debug)]
-    fn traverse_borrowed_expression(
-        &self,
-        mut f: impl FnMut(bool, &PortRef),
-    ) {
+    fn traverse_borrowed_expression(&self, mut f: impl FnMut(bool, &PortRef)) {
         self.expression.borrow().root_ref().dfs(|node| {
             let is_leaf = node.children.is_empty();
             let is_this = node.is_this();
@@ -280,7 +277,7 @@ impl Model {
                 if let Some(id) = ast_id {
                     id_ports_map.insert(id,port_index);
                 }
-    
+
                 let node_tp: Option<Type> = node.tp().cloned().map(|t| t.into());
                 let node_tp = if port_count != 0 {
                     node_tp
@@ -434,11 +431,7 @@ impl Area {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
         let expression = self.model.expression.borrow();
-        let node = expression
-            .span_tree
-            .root_ref()
-            .get_descendant(crumbs)
-            .ok()?;
+        let node = expression.span_tree.root_ref().get_descendant(crumbs).ok()?;
         let id = node.ast_id?;
         let index = *self.model.id_ports_map.borrow().get(&id)?;
         self.model.port_models.borrow().get(index)?.frp.as_ref()?.tp.value()
