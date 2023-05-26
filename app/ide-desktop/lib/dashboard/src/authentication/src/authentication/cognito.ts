@@ -34,8 +34,8 @@ import * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
 
 import * as config from './config'
+import * as detect from '../detect'
 import * as loggerProvider from '../providers/logger'
-import * as platformModule from '../platform'
 
 // =================
 // === Constants ===
@@ -144,7 +144,7 @@ export class Cognito {
     /** Create a new Cognito wrapper. */
     constructor(
         private readonly logger: loggerProvider.Logger,
-        private readonly platform: platformModule.Platform,
+        private readonly supportsDeepLinks: boolean,
         private readonly amplifyConfig: config.AmplifyConfig
     ) {
         /** Amplify expects `Auth.configure` to be called before any other `Auth` methods are
@@ -173,7 +173,7 @@ export class Cognito {
      *
      * Does not rely on federated identity providers (e.g., Google or GitHub). */
     signUp(username: string, password: string) {
-        return signUp(username, password, this.platform)
+        return signUp(this.supportsDeepLinks, username, password)
     }
 
     /** Send the email address verification code.
@@ -263,7 +263,7 @@ export class Cognito {
      *
      * See: https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970 */
     private customState() {
-        return this.platform === platformModule.Platform.desktop ? window.location.pathname : null
+        return detect.isRunningInElectron() ? window.location.pathname : null
     }
 }
 
@@ -339,9 +339,9 @@ function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
 
 /** A wrapper around the Amplify "sign up" endpoint that converts known errors
  * to {@link SignUpError}s. */
-async function signUp(username: string, password: string, platform: platformModule.Platform) {
+async function signUp(supportsDeepLinks: boolean, username: string, password: string) {
     const result = await results.Result.wrapAsync(async () => {
-        const params = intoSignUpParams(username, password, platform)
+        const params = intoSignUpParams(supportsDeepLinks, username, password)
         await amplify.Auth.signUp(params)
     })
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignUpErrorOrThrow)
@@ -349,9 +349,9 @@ async function signUp(username: string, password: string, platform: platformModu
 
 /** Format a username and password as an {@link amplify.SignUpParams}. */
 function intoSignUpParams(
+    supportsDeepLinks: boolean,
     username: string,
-    password: string,
-    platform: platformModule.Platform
+    password: string
 ): amplify.SignUpParams {
     return {
         username,
@@ -368,7 +368,7 @@ function intoSignUpParams(
              * It is necessary to disable the naming convention rule here, because the key is
              * expected to appear exactly as-is in Cognito, so we must match it. */
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            'custom:fromDesktop': platform === platformModule.Platform.desktop ? 'true' : 'false',
+            ...(supportsDeepLinks ? { 'custom:fromDesktop': JSON.stringify(true) } : {}),
         },
     }
 }

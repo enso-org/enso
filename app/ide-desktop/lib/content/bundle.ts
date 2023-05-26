@@ -8,7 +8,13 @@ import * as bundler from './esbuild-config'
 // =======================
 
 try {
-    void esbuild.build(bundler.bundleOptions())
+    void esbuild.build(
+        bundler.bundleOptions({
+            devMode: false,
+            supportsLocalBackend: true,
+            supportsDeepLinks: true,
+        })
+    )
 } catch (error) {
     console.error(error)
     throw error

@@ -36,7 +36,7 @@ await esbuild.build(BUNDLER_OPTIONS)
 console.log('Linking GUI files.')
 await fs.symlink(path.join(GUI_PATH, 'assets'), path.join(IDE_PATH, 'assets'), 'dir')
 
-console.log('LinkingProject Manager files.')
+console.log('Linking Project Manager files.')
 await fs.symlink(PROJECT_MANAGER_BUNDLE, path.join(IDE_PATH, paths.PROJECT_MANAGER_BUNDLE), 'dir')
 
 console.log('Spawning Electron process.')
