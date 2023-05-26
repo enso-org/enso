@@ -10,15 +10,12 @@ import java.time.LocalDate;
 import java.time.ZonedDateTime;
 
 public class ToDateStorageConverter implements StorageConverter<LocalDate> {
-  public ToDateStorageConverter() {
-  }
-
   public Storage<LocalDate> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
     if (storage instanceof DateStorage dateStorage) {
       return dateStorage;
     } else if (storage instanceof DateTimeStorage dateTimeStorage) {
       return convertDateTimeStorage(dateTimeStorage);
-    }else if (storage.getType() instanceof AnyObjectType) {
+    } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemBuilder);
     } else {
       throw new IllegalStateException("No known strategy for casting storage " + storage + " to Date.");

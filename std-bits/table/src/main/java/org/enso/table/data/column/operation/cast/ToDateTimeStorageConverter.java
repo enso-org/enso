@@ -11,9 +11,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTime> {
-  public ToDateTimeStorageConverter() {
-  }
-
   public Storage<ZonedDateTime> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
     if (storage instanceof DateTimeStorage dateTimeStorage) {
       return dateTimeStorage;

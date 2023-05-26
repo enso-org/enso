@@ -6,9 +6,6 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 
 public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
-  public ToBooleanStorageConverter() {
-  }
-
   public Storage<Boolean> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
     if (storage instanceof BoolStorage boolStorage) {
       return boolStorage;

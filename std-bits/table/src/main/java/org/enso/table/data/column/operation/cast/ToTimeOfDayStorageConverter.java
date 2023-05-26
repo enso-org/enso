@@ -10,15 +10,12 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 
 public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> {
-  public ToTimeOfDayStorageConverter() {
-  }
-
   public Storage<LocalTime> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
     if (storage instanceof TimeOfDayStorage timeOfDayStorage) {
       return timeOfDayStorage;
     } else if (storage instanceof DateTimeStorage dateTimeStorage) {
       return convertDateTimeStorage(dateTimeStorage);
-    }else if (storage.getType() instanceof AnyObjectType) {
+    } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemBuilder);
     } else {
       throw new IllegalStateException("No known strategy for casting storage " + storage + " to Time_Of_Day.");
