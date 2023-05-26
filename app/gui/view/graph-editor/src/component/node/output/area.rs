@@ -224,7 +224,18 @@ impl Model {
     /// Update expression type for the particular `ast::Id`.
     #[profile(Debug)]
     fn set_expression_usage_type(&self, id: ast::Id, tp: &Option<Type>) {
-        let Some(index)  = self.id_ports_map.borrow().get(&id).copied() else { return };
+        let id_ports_map = self.id_ports_map.borrow();
+        let Some(index)  = id_ports_map.get(&id).copied() else { return };
+
+        // When this port is the only port, only accept type of the whole expression.
+        if index == 0
+            && let Some(whole_expr_id) = self.expression.borrow().whole_expr_id
+            && whole_expr_id != id
+            && id_ports_map.contains_key(&whole_expr_id)
+        {
+            return
+        }
+
         let port_models = self.port_models.borrow();
         let Some(port) = port_models.get(index) else { return };
         let Some(frp) = &port.frp else { return };
@@ -273,11 +284,13 @@ impl Model {
             if is_a_port {
                 let port_index = models.len();
 
-                let ast_id = if port_count == 0 { whole_expr_id } else { node.ast_id };
-                if let Some(id) = ast_id {
-                    id_ports_map.insert(id,port_index);
+                if port_count == 0 && let Some(id) = whole_expr_id {
+                    id_ports_map.insert(id, port_index);
                 }
-
+                if let Some(id) = node.ast_id {
+                    id_ports_map.insert(id, port_index);
+                }
+    
                 let node_tp: Option<Type> = node.tp().cloned().map(|t| t.into());
                 let node_tp = if port_count != 0 {
                     node_tp
