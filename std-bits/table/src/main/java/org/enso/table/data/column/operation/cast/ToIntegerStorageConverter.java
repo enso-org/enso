@@ -1,6 +1,7 @@
 package org.enso.table.data.column.operation.cast;
 
 import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.builder.object.LongBuilder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.DoubleStorage;
@@ -38,13 +39,13 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   }
 
   public Storage<Long> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
-    NumericBuilder builder = NumericBuilder.createLongBuilder(mixedStorage.size());
+    LongBuilder builder = NumericBuilder.createLongBuilder(mixedStorage.size());
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
       if (o == null) {
         builder.appendNulls(1);
       } else if (o instanceof Boolean b) {
-        builder.appendLong(b ? 1 : 0);
+        builder.appendLong(booleanAsLong(b));
       } else if (NumericConverter.isCoercibleToLong(o)) {
         long x = NumericConverter.coerceToLong(o);
         builder.appendLong(x);
@@ -63,7 +64,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       }
     }
 
-    return builder.sealLong();
+    return builder.seal();
   }
 
   private boolean fitsInTargetRange(double value) {
@@ -72,21 +73,21 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
 
   private Storage<Long> convertBoolStorage(BoolStorage boolStorage) {
     int n = boolStorage.size();
-    NumericBuilder builder = NumericBuilder.createLongBuilder(n);
+    LongBuilder builder = NumericBuilder.createLongBuilder(n);
     for (int i = 0; i < n; i++) {
       if (boolStorage.isNa(i)) {
         builder.appendNulls(1);
       } else {
         boolean value = boolStorage.getItem(i);
-        builder.appendLong(value ? 1 : 0);
+        builder.appendLong(booleanAsLong(value));
       }
     }
-    return builder.sealLong();
+    return builder.seal();
   }
 
   private Storage<Long> convertDoubleStorage(CastProblemBuilder problemBuilder, DoubleStorage doubleStorage) {
     int n = doubleStorage.size();
-    NumericBuilder builder = NumericBuilder.createLongBuilder(n);
+    LongBuilder builder = NumericBuilder.createLongBuilder(n);
     for (int i = 0; i < n; i++) {
       if (doubleStorage.isNa(i)) {
         builder.appendNulls(1);
@@ -101,6 +102,10 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         }
       }
     }
-    return builder.sealLong();
+    return builder.seal();
+  }
+
+  public static long booleanAsLong(boolean value) {
+    return value ? 1L : 0L;
   }
 }
