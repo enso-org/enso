@@ -19,6 +19,7 @@ import org.enso.polyglot.runtime.Runtime$Api$EditFileNotification;
 import org.enso.polyglot.runtime.Runtime$Api$ExecutionFailed;
 import org.enso.polyglot.runtime.Runtime$Api$ExpressionUpdates;
 import org.enso.polyglot.runtime.Runtime$Api$InitializedNotification;
+import org.enso.polyglot.runtime.Runtime$Api$MethodCall;
 import org.enso.polyglot.runtime.Runtime$Api$MethodPointer;
 import org.enso.polyglot.runtime.Runtime$Api$PushContextRequest;
 import org.enso.polyglot.runtime.Runtime$Api$PushContextResponse;
@@ -39,6 +40,7 @@ import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
 import scala.collection.immutable.Set;
 import scala.collection.immutable.Set$;
+import scala.collection.immutable.Vector$;
 import scala.collection.immutable.Vector1;
 
 public class IncrementalUpdatesTest {
@@ -217,7 +219,7 @@ public class IncrementalUpdatesTest {
 
     assertSameElements(context.receiveNIgnorePendingExpressionUpdates(5, 10, emptySet()),
       Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
-      TestMessages.update(contextId, mainFoo, exprType, new Runtime$Api$MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")),
+      TestMessages.update(contextId, mainFoo, exprType, new Runtime$Api$MethodCall(new Runtime$Api$MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo"), Vector$.MODULE$.empty())),
       TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
       context.executionComplete(contextId),
       Response(new Runtime$Api$BackgroundJobsStartedNotification())
