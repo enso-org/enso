@@ -97,7 +97,7 @@ export function SessionProvider(props: SessionProviderProps) {
                      *
                      * See:
                      * https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970 */
-                    window.history.replaceState({}, '', mainPageUrl)
+                    history.replaceState({}, '', mainPageUrl)
                     doRefresh()
                     break
                 }
