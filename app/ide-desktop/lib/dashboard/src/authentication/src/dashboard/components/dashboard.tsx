@@ -2,6 +2,8 @@
  * interactive components. */
 import * as react from 'react'
 
+import * as common from 'enso-common'
+
 import * as backendModule from '../backend'
 import * as dateTime from '../dateTime'
 import * as fileInfo from '../../fileInfo'
@@ -9,7 +11,7 @@ import * as hooks from '../../hooks'
 import * as http from '../../http'
 import * as localBackend from '../localBackend'
 import * as newtype from '../../newtype'
-import * as platformModule from '../../platform'
+import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
 import * as svg from '../../components/svg'
 import * as uploadMultipleFiles from '../../uploadMultipleFiles'
@@ -129,7 +131,7 @@ const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
 /** CSS classes for every column. Currently only used to set the widths. */
 const COLUMN_CSS_CLASS: Record<Column, string> = {
     [Column.name]: 'w-60',
-    [Column.lastModified]: 'w-32',
+    [Column.lastModified]: 'w-40',
     [Column.sharedWith]: 'w-36',
     [Column.docs]: 'w-96',
     [Column.labels]: 'w-80',
@@ -207,9 +209,9 @@ function rootDirectoryId(userOrOrganizationId: backendModule.UserOrOrganizationI
 }
 
 /** Returns the list of columns to be displayed. */
-function columnsFor(displayMode: ColumnDisplayMode, backendPlatform: platformModule.Platform) {
+function columnsFor(displayMode: ColumnDisplayMode, backendType: backendModule.BackendType) {
     const columns = COLUMNS_FOR[displayMode]
-    return backendPlatform === platformModule.Platform.desktop
+    return backendType === backendModule.BackendType.local
         ? columns.filter(column => column !== Column.sharedWith)
         : columns
 }
@@ -220,8 +222,8 @@ function columnsFor(displayMode: ColumnDisplayMode, backendPlatform: platformMod
 
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
-    platform: platformModule.Platform
-    appRunner: AppRunner | null
+    supportsLocalBackend: boolean
+    appRunner: AppRunner
 }
 
 // TODO[sb]: Implement rename when clicking name of a selected row.
@@ -229,7 +231,7 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 function Dashboard(props: DashboardProps) {
-    const { platform, appRunner } = props
+    const { supportsLocalBackend, appRunner } = props
 
     const logger = loggerProvider.useLogger()
     const { accessToken, organization } = auth.useFullUserSession()
@@ -241,6 +243,7 @@ function Dashboard(props: DashboardProps) {
     const [refresh, doRefresh] = hooks.useRefresh()
 
     const [query, setQuery] = react.useState('')
+    const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = react.useState(false)
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
     const [directoryStack, setDirectoryStack] = react.useState<
         backendModule.Asset<backendModule.AssetType.directory>[]
@@ -278,38 +281,63 @@ function Dashboard(props: DashboardProps) {
         backendModule.Asset<backendModule.AssetType.file>[]
     >([])
 
-    const canListDirectory =
-        backend.platform !== platformModule.Platform.cloud || organization.isEnabled
+    const listingLocalDirectoryAndWillFail =
+        backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
+    const listingRemoteDirectoryAndWillFail =
+        backend.type === backendModule.BackendType.remote && !organization.isEnabled
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
 
+    const switchToIdeTab = react.useCallback(() => {
+        setTab(Tab.ide)
+        const ideElement = document.getElementById(IDE_ELEMENT_ID)
+        if (ideElement) {
+            ideElement.style.top = ''
+            ideElement.style.display = 'absolute'
+        }
+    }, [])
+
+    const switchToDashboardTab = react.useCallback(() => {
+        setTab(Tab.dashboard)
+        const ideElement = document.getElementById(IDE_ELEMENT_ID)
+        if (ideElement) {
+            ideElement.style.top = '-100vh'
+            ideElement.style.display = 'fixed'
+        }
+    }, [])
+
     react.useEffect(() => {
-        if (platform === platformModule.Platform.desktop) {
+        const onProjectManagerLoadingFailed = () => {
+            setLoadingProjectManagerDidFail(true)
+        }
+        document.addEventListener(
+            projectManager.ProjectManagerEvents.loadingFailed,
+            onProjectManagerLoadingFailed
+        )
+        return () => {
+            document.removeEventListener(
+                projectManager.ProjectManagerEvents.loadingFailed,
+                onProjectManagerLoadingFailed
+            )
+        }
+    }, [])
+
+    react.useEffect(() => {
+        if (backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail) {
+            setIsLoadingAssets(false)
+        }
+    }, [isLoadingAssets, loadingProjectManagerDidFail, backend.type])
+
+    react.useEffect(() => {
+        if (supportsLocalBackend) {
             setBackend(new localBackend.LocalBackend())
         }
     }, [])
 
     react.useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (
-                // On macOS, we need to check for combination of `alt` + `d` which is `∂` (`del`).
-                (event.key === 'd' || event.key === '∂') &&
-                event.ctrlKey &&
-                event.altKey &&
-                !event.shiftKey &&
-                !event.metaKey
-            ) {
-                setTab(Tab.dashboard)
-                const ideElement = document.getElementById(IDE_ELEMENT_ID)
-                if (ideElement) {
-                    ideElement.style.top = '-100vh'
-                    ideElement.style.display = 'fixed'
-                }
-            }
-        }
-        document.addEventListener('keydown', onKeyDown)
+        document.addEventListener('show-dashboard', switchToDashboardTab)
         return () => {
-            document.removeEventListener('keydown', onKeyDown)
+            document.removeEventListener('show-dashboard', switchToDashboardTab)
         }
     }, [])
 
@@ -387,7 +415,7 @@ function Dashboard(props: DashboardProps) {
                             <RenameModal
                                 assetType={projectAsset.type}
                                 name={projectAsset.title}
-                                {...(backend.platform === platformModule.Platform.desktop
+                                {...(backend.type === backendModule.BackendType.local
                                     ? {
                                           namePattern: '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*',
                                           title:
@@ -411,14 +439,9 @@ function Dashboard(props: DashboardProps) {
                         setProject(null)
                     }}
                     openIde={async () => {
-                        setTab(Tab.ide)
+                        switchToIdeTab()
                         if (project?.projectId !== projectAsset.id) {
                             setProject(await backend.getProjectDetails(projectAsset.id))
-                        }
-                        const ideElement = document.getElementById(IDE_ELEMENT_ID)
-                        if (ideElement) {
-                            ideElement.style.top = ''
-                            ideElement.style.display = 'absolute'
                         }
                     }}
                 />
@@ -612,7 +635,9 @@ function Dashboard(props: DashboardProps) {
     hooks.useAsyncEffect(
         null,
         async signal => {
-            if (canListDirectory) {
+            if (listingLocalDirectoryAndWillFail) {
+                // Do not `setIsLoadingAssets(false)`
+            } else if (!listingRemoteDirectoryAndWillFail) {
                 const assets = await backend.listDirectory({ parentId: directoryId })
                 if (!signal.aborted) {
                     setIsLoadingAssets(false)
@@ -629,9 +654,7 @@ function Dashboard(props: DashboardProps) {
         const onBlur = () => {
             setIsFileBeingDragged(false)
         }
-
         window.addEventListener('blur', onBlur)
-
         return () => {
             window.removeEventListener('blur', onBlur)
         }
@@ -697,38 +720,28 @@ function Dashboard(props: DashboardProps) {
             onDragEnter={openDropZone}
         >
             <TopBar
-                platform={platform}
+                supportsLocalBackend={supportsLocalBackend}
                 projectName={project?.name ?? null}
                 tab={tab}
                 toggleTab={() => {
                     if (project && tab === Tab.dashboard) {
-                        setTab(Tab.ide)
-                        const ideElement = document.getElementById(IDE_ELEMENT_ID)
-                        if (ideElement) {
-                            ideElement.style.top = ''
-                            ideElement.style.display = 'absolute'
-                        }
+                        switchToIdeTab()
                     } else {
-                        setTab(Tab.dashboard)
-                        const ideElement = document.getElementById(IDE_ELEMENT_ID)
-                        if (ideElement) {
-                            ideElement.style.top = '-100vh'
-                            ideElement.style.display = 'fixed'
-                        }
+                        switchToDashboardTab()
                     }
                 }}
-                setBackendPlatform={newBackendPlatform => {
-                    if (newBackendPlatform !== backend.platform) {
+                setBackendType={newBackendType => {
+                    if (newBackendType !== backend.type) {
                         setIsLoadingAssets(true)
                         setProjectAssets([])
                         setDirectoryAssets([])
                         setSecretAssets([])
                         setFileAssets([])
-                        switch (newBackendPlatform) {
-                            case platformModule.Platform.desktop:
+                        switch (newBackendType) {
+                            case backendModule.BackendType.local:
                                 setBackend(new localBackend.LocalBackend())
                                 break
-                            case platformModule.Platform.cloud: {
+                            case backendModule.BackendType.remote: {
                                 const headers = new Headers()
                                 headers.append('Authorization', `Bearer ${accessToken}`)
                                 const client = new http.Client(headers)
@@ -741,7 +754,14 @@ function Dashboard(props: DashboardProps) {
                 query={query}
                 setQuery={setQuery}
             />
-            {!canListDirectory ? (
+            {listingLocalDirectoryAndWillFail ? (
+                <div className="grow grid place-items-center">
+                    <div className="text-base text-center">
+                        Could not connect to the Project Manager. Please try restarting{' '}
+                        {common.PRODUCT_NAME}, or manually launching the Project Manager.
+                    </div>
+                </div>
+            ) : listingRemoteDirectoryAndWillFail ? (
                 <div className="grow grid place-items-center">
                     <div className="text-base text-center">
                         We will review your user details and enable the cloud experience for you
@@ -754,7 +774,7 @@ function Dashboard(props: DashboardProps) {
                     <div className="flex flex-row flex-nowrap my-2">
                         <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
                         <div className="flex flex-row flex-nowrap mx-4">
-                            {backend.platform === platformModule.Platform.cloud && (
+                            {backend.type === backendModule.BackendType.remote && (
                                 <>
                                     <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
                                         {directory && (
@@ -776,11 +796,11 @@ function Dashboard(props: DashboardProps) {
                             <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
                                 <button
                                     className={`mx-1 ${
-                                        backend.platform === platformModule.Platform.desktop
+                                        backend.type === backendModule.BackendType.local
                                             ? 'opacity-50'
                                             : ''
                                     }`}
-                                    disabled={backend.platform === platformModule.Platform.desktop}
+                                    disabled={backend.type === backendModule.BackendType.local}
                                     onClick={event => {
                                         event.stopPropagation()
                                         setModal(() => (
@@ -864,7 +884,7 @@ function Dashboard(props: DashboardProps) {
                     <table className="table-fixed items-center border-collapse mt-2">
                         <tbody>
                             <tr className="h-10">
-                                {columnsFor(columnDisplayMode, backend.platform).map(column => (
+                                {columnsFor(columnDisplayMode, backend.type).map(column => (
                                     <td key={column} className={COLUMN_CSS_CLASS[column]} />
                                 ))}
                             </tr>
@@ -878,7 +898,7 @@ function Dashboard(props: DashboardProps) {
                                         form above.
                                     </span>
                                 }
-                                columns={columnsFor(columnDisplayMode, backend.platform).map(
+                                columns={columnsFor(columnDisplayMode, backend.type).map(
                                     column => ({
                                         id: column,
                                         heading: ColumnHeading(
@@ -918,8 +938,8 @@ function Dashboard(props: DashboardProps) {
                                             <RenameModal
                                                 name={projectAsset.title}
                                                 assetType={projectAsset.type}
-                                                {...(backend.platform ===
-                                                platformModule.Platform.desktop
+                                                {...(backend.type ===
+                                                backendModule.BackendType.local
                                                     ? {
                                                           namePattern:
                                                               '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*',
@@ -958,8 +978,7 @@ function Dashboard(props: DashboardProps) {
                                             <ContextMenuEntry disabled onClick={doOpenForEditing}>
                                                 Open for editing
                                             </ContextMenuEntry>
-                                            {backend.platform !==
-                                                platformModule.Platform.desktop && (
+                                            {backend.type !== backendModule.BackendType.local && (
                                                 <ContextMenuEntry disabled onClick={doOpenAsFolder}>
                                                     Open as folder
                                                 </ContextMenuEntry>
@@ -974,7 +993,7 @@ function Dashboard(props: DashboardProps) {
                                     ))
                                 }}
                             />
-                            {backend.platform === platformModule.Platform.cloud &&
+                            {backend.type === backendModule.BackendType.remote &&
                                 (remoteBackend => (
                                     <>
                                         <tr className="h-10" />
@@ -993,7 +1012,7 @@ function Dashboard(props: DashboardProps) {
                                             }
                                             columns={columnsFor(
                                                 columnDisplayMode,
-                                                backend.platform
+                                                backend.type
                                             ).map(column => ({
                                                 id: column,
                                                 heading: ColumnHeading(
@@ -1035,7 +1054,7 @@ function Dashboard(props: DashboardProps) {
                                             }
                                             columns={columnsFor(
                                                 columnDisplayMode,
-                                                backend.platform
+                                                backend.type
                                             ).map(column => ({
                                                 id: column,
                                                 heading: ColumnHeading(
@@ -1099,7 +1118,7 @@ function Dashboard(props: DashboardProps) {
                                             }
                                             columns={columnsFor(
                                                 columnDisplayMode,
-                                                backend.platform
+                                                backend.type
                                             ).map(column => ({
                                                 id: column,
                                                 heading: ColumnHeading(
@@ -1173,7 +1192,7 @@ function Dashboard(props: DashboardProps) {
                                 ))(backend)}
                         </tbody>
                     </table>
-                    {isFileBeingDragged && backend.platform === platformModule.Platform.cloud ? (
+                    {isFileBeingDragged && backend.type === backendModule.BackendType.remote ? (
                         <div
                             className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary grid place-items-center"
                             onDragLeave={() => {

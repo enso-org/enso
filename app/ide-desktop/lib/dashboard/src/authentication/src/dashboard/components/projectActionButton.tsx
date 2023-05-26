@@ -4,7 +4,6 @@ import * as react from 'react'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as localBackend from '../localBackend'
-import * as platform from '../../platform'
 import * as svg from '../../components/svg'
 
 // =============
@@ -75,7 +74,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     }, [])
 
     react.useEffect(() => {
-        if (backend.platform === platform.Platform.desktop) {
+        if (backend.type === backendModule.BackendType.local) {
             if (project.id !== localBackend.LocalBackend.currentlyOpeningProjectId) {
                 setIsCheckingResources(false)
                 setIsCheckingStatus(false)
@@ -159,13 +158,13 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         setTimeout(() => {
             setSpinnerState(SpinnerState.loading)
         }, 0)
-        switch (backend.platform) {
-            case platform.Platform.cloud:
+        switch (backend.type) {
+            case backendModule.BackendType.remote:
                 await backend.openProject(project.id)
                 doRefresh()
                 setIsCheckingStatus(true)
                 break
-            case platform.Platform.desktop:
+            case backendModule.BackendType.local:
                 await backend.openProject(project.id)
                 doRefresh()
                 setState(backendModule.ProjectState.opened)

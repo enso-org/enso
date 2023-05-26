@@ -15,7 +15,6 @@ import * as errorModule from '../../error'
 import * as http from '../../http'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
-import * as platformModule from '../../platform'
 import * as remoteBackend from '../../dashboard/remoteBackend'
 import * as sessionProvider from './session'
 
@@ -26,12 +25,16 @@ import * as sessionProvider from './session'
 const MESSAGES = {
     signUpSuccess: 'We have sent you an email with further instructions!',
     confirmSignUpSuccess: 'Your account has been confirmed! Please log in.',
+    setUsernameLoading: 'Setting username...',
     setUsernameSuccess: 'Your username has been set!',
+    setUsernameFailure: 'Could not set your username.',
     signInWithPasswordSuccess: 'Successfully logged in!',
     forgotPasswordSuccess: 'We have sent you an email with further instructions!',
     changePasswordSuccess: 'Successfully changed password!',
     resetPasswordSuccess: 'Successfully reset password!',
+    signOutLoading: 'Logging out...',
     signOutSuccess: 'Successfully logged out!',
+    signOutError: 'Error logging out, please try again.',
     pleaseWait: 'Please wait...',
 } as const
 
@@ -42,7 +45,6 @@ const MESSAGES = {
 /** Possible types of {@link BaseUserSession}. */
 export enum UserSessionType {
     partial = 'partial',
-    awaitingAcceptance = 'awaitingAcceptance',
     full = 'full',
 }
 
@@ -149,7 +151,7 @@ export interface AuthProviderProps {
 export function AuthProvider(props: AuthProviderProps) {
     const { authService, onAuthenticated, children } = props
     const { cognito } = authService
-    const { session } = sessionProvider.useSession()
+    const { session, deinitializeSession } = sessionProvider.useSession()
     const { setBackend } = backendProvider.useSetBackend()
     const logger = loggerProvider.useLogger()
     const navigate = router.useNavigate()
@@ -274,20 +276,25 @@ export function AuthProvider(props: AuthProviderProps) {
         username: string,
         email: string
     ) => {
-        if (backend.platform === platformModule.Platform.desktop) {
+        if (backend.type === backendModule.BackendType.local) {
             toast.error('You cannot set your username on the local backend.')
             return false
         } else {
             try {
-                await backend.createUser({
-                    userName: username,
-                    userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
-                })
+                await toast.promise(
+                    backend.createUser({
+                        userName: username,
+                        userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
+                    }),
+                    {
+                        success: MESSAGES.setUsernameSuccess,
+                        error: MESSAGES.setUsernameFailure,
+                        loading: MESSAGES.setUsernameLoading,
+                    }
+                )
                 navigate(app.DASHBOARD_PATH)
-                toast.success(MESSAGES.setUsernameSuccess)
                 return true
             } catch (e) {
-                toast.error('Could not set your username.')
                 return false
             }
         }
@@ -326,9 +333,14 @@ export function AuthProvider(props: AuthProviderProps) {
     }
 
     const signOut = async () => {
+        deinitializeSession()
         setInitialized(false)
-        await cognito.signOut()
-        toast.success(MESSAGES.signOutSuccess)
+        setUserSession(null)
+        await toast.promise(cognito.signOut(), {
+            success: MESSAGES.signOutSuccess,
+            error: MESSAGES.signOutError,
+            loading: MESSAGES.signOutLoading,
+        })
         return true
     }
 

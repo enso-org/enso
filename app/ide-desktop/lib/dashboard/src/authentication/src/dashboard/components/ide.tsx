@@ -3,16 +3,15 @@ import * as react from 'react'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
-import * as platformModule from '../../platform'
 
 // =================
 // === Constants ===
 // =================
 
 const IDE_CDN_URL = 'https://ensocdn.s3.us-west-1.amazonaws.com/ide'
-const JS_EXTENSION: Record<platformModule.Platform, string> = {
-    [platformModule.Platform.cloud]: '.js.gz',
-    [platformModule.Platform.desktop]: '.js',
+const JS_EXTENSION: Record<backendModule.BackendType, string> = {
+    [backendModule.BackendType.remote]: '.js.gz',
+    [backendModule.BackendType.local]: '.js',
 } as const
 
 // =================
@@ -22,7 +21,7 @@ const JS_EXTENSION: Record<platformModule.Platform, string> = {
 /** Props for an {@link Ide}. */
 export interface IdeProps {
     project: backendModule.Project
-    appRunner: AppRunner | null
+    appRunner: AppRunner
 }
 
 /** The ontainer that launches the IDE. */
@@ -60,19 +59,19 @@ function Ide(props: IdeProps) {
                 throw new Error("Could not get the address of the project's binary endpoint.")
             } else {
                 const assetsRoot = (() => {
-                    switch (backend.platform) {
-                        case platformModule.Platform.cloud:
+                    switch (backend.type) {
+                        case backendModule.BackendType.remote:
                             return `${IDE_CDN_URL}/${ideVersion}/`
-                        case platformModule.Platform.desktop:
+                        case backendModule.BackendType.local:
                             return ''
                     }
                 })()
                 const runNewProject = async () => {
-                    await appRunner?.runApp({
+                    await appRunner.runApp({
                         loader: {
                             assetsUrl: `${assetsRoot}dynamic-assets`,
                             wasmUrl: `${assetsRoot}pkg-opt.wasm`,
-                            jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backend.platform]}`,
+                            jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backend.type]}`,
                         },
                         engine: {
                             rpcUrl: jsonAddress,
@@ -84,7 +83,7 @@ function Ide(props: IdeProps) {
                         },
                     })
                 }
-                if (backend.platform === platformModule.Platform.desktop) {
+                if (backend.type === backendModule.BackendType.local) {
                     await runNewProject()
                     return
                 } else {
