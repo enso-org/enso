@@ -21,7 +21,8 @@ import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidEscapeSequence$;
 import org.enso.compiler.core.IR$Error$Syntax$EmptyParentheses$;
-import org.enso.compiler.core.IR$Error$Syntax$InvalidImport$;
+import org.enso.compiler.core.IR$Error$Syntax$InvalidImport;
+import org.enso.compiler.core.IR$Error$Syntax$InvalidExport;
 import org.enso.compiler.core.IR$Error$Syntax$Reason;
 import org.enso.compiler.core.IR$Error$Syntax$UnrecognizedToken$;
 import org.enso.compiler.core.IR$Error$Syntax$UnsupportedSyntax;
@@ -70,6 +71,7 @@ import org.enso.syntax2.TextElement;
 import org.enso.syntax2.Token;
 import org.enso.syntax2.Tree;
 
+import org.enso.syntax2.Tree.Invalid;
 import scala.Option;
 import scala.collection.immutable.LinearSeq;
 import scala.collection.immutable.List;
@@ -1525,8 +1527,22 @@ final class TreeToIr {
       meta(), diag()
       );
     } catch (SyntaxException err) {
-      return err.toError(IR$Error$Syntax$InvalidImport$.MODULE$);
+      if (err.where instanceof Invalid invalid) {
+        return err.toError(invalidImportReason(invalid.getError()));
+      } else {
+        return err.toError(invalidImportReason(null));
+      }
     }
+  }
+
+  private IR$Error$Syntax$Reason invalidImportReason(String msg) {
+    return new IR$Error$Syntax$InvalidImport(
+        Objects.requireNonNullElse(msg, "Imports must have a valid module path"));
+  }
+
+  private IR$Error$Syntax$Reason invalidExportReason(String msg) {
+    return new IR$Error$Syntax$InvalidExport(
+        Objects.requireNonNullElse(msg, "Exports must have a valid module path"));
   }
 
   @SuppressWarnings("unchecked")
@@ -1583,7 +1599,11 @@ final class TreeToIr {
         meta(), diag()
         );
     } catch (SyntaxException err) {
-      return err.toError(IR$Error$Syntax$InvalidImport$.MODULE$);
+      if (err.where instanceof Invalid invalid) {
+        return err.toError(invalidExportReason(invalid.getError()));
+      } else {
+        return err.toError(invalidExportReason(null));
+      }
     }
   }
 

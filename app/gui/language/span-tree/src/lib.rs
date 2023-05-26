@@ -332,6 +332,10 @@ impl<T> SpanTree<T> {
                 write!(buffer, " ext_id={ext_id:?}").unwrap();
             }
 
+            if let Some(tt) = node.tree_type.as_ref() {
+                write!(buffer, " tt={tt:?}").unwrap();
+            }
+
             buffer.push('\n');
 
             let num_children = node.children.len();

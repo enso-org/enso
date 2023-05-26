@@ -7803,9 +7803,18 @@ object IR {
           s"Cannot define a pattern outside a pattern context"
       }
 
-      case object InvalidImport extends Reason {
+      case class InvalidImport(
+        message: String = "Imports must have a valid module path"
+      ) extends Reason {
         override def explanation: String =
-          s"Imports must have a valid module path"
+          s"Invalid Import: $message"
+      }
+
+      case class InvalidExport(
+        message: String = "Exports must have a valid module path"
+      ) extends Reason {
+        override def explanation: String =
+          s"Invalid Export: $message"
       }
 
       case object InvalidStandaloneSignature extends Reason {

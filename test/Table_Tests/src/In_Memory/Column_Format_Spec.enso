@@ -307,7 +307,7 @@ spec_with_numeric_type name numeric_type =
 
         Test.specify "Column with locale" <|
             input = Column.from_vector "values" ["100000000", "2222", "3"] . parse numeric_type
-            expected = Column.from_vector "values" ["100 000 000,00", "2 222,00", "3,00"]
+            expected = Column.from_vector "values" ["100 000 000,00", "2 222,00", "3,00"]
             input.format "#,##0.00" locale=(Locale.new "fr") . should_equal expected
 
         Test.specify "Bad format" <|
@@ -324,7 +324,7 @@ spec_with_numeric_type name numeric_type =
         Test.specify "Column with locale" <|
             input = Column.from_vector "values" ["100000000", "2222", "3"] . parse numeric_type
             formats = Column.from_vector "formats" ["#,##0.00", "0.00", "0"]
-            expected = Column.from_vector "values" ["100 000 000,00", "2222,00", "3"]
+            expected = Column.from_vector "values" ["100 000 000,00", "2222,00", "3"]
             input.format formats locale=(Locale.new "fr") . should_equal expected
 
         Test.specify "Bad format" <|

@@ -142,7 +142,6 @@ const AuthContext = react.createContext<AuthContextType>({} as AuthContextType)
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
     authService: authServiceModule.AuthService
-    platform: platformModule.Platform
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: () => void
     children: react.ReactNode
@@ -150,13 +149,12 @@ export interface AuthProviderProps {
 
 /** A React provider for the Cognito API. */
 export function AuthProvider(props: AuthProviderProps) {
-    const { authService, platform, children } = props
+    const { authService, onAuthenticated, children } = props
     const { cognito } = authService
     const { session, deinitializeSession } = sessionProvider.useSession()
     const { setBackend } = backendProvider.useSetBackend()
     const logger = loggerProvider.useLogger()
     const navigate = router.useNavigate()
-    const onAuthenticated = react.useCallback(props.onAuthenticated, [])
     const [initialized, setInitialized] = react.useState(false)
     const [userSession, setUserSession] = react.useState<UserSession | null>(null)
 
@@ -176,7 +174,9 @@ export function AuthProvider(props: AuthProviderProps) {
                 headers.append('Authorization', `Bearer ${accessToken}`)
                 const client = new http.Client(headers)
                 const backend = new remoteBackend.RemoteBackend(client, logger)
-                if (platform === platformModule.Platform.cloud) {
+                // The backend MUST be the remote backend before login is finished.
+                // This is because the "set username" flow requires the remote backend.
+                if (!initialized || userSession == null) {
                     setBackend(backend)
                 }
                 const organization = await backend.usersMe().catch(() => null)
@@ -329,6 +329,7 @@ export function AuthProvider(props: AuthProviderProps) {
 
     const signOut = async () => {
         deinitializeSession()
+        setInitialized(false)
         setUserSession(null)
         await toast.promise(cognito.signOut(), {
             success: MESSAGES.signOutSuccess,
@@ -394,6 +395,16 @@ export function useAuth() {
     return react.useContext(AuthContext)
 }
 
+// ===============================
+// === shouldPreventNavigation ===
+// ===============================
+
+/** True if navigation should be prevented, for debugging purposes. */
+function getShouldPreventNavigation() {
+    const location = router.useLocation()
+    return new URLSearchParams(location.search).get('prevent-navigation') === 'true'
+}
+
 // =======================
 // === ProtectedLayout ===
 // =======================
@@ -401,10 +412,11 @@ export function useAuth() {
 /** A React Router layout route containing routes only accessible by users that are logged in. */
 export function ProtectedLayout() {
     const { session } = useAuth()
+    const shouldPreventNavigation = getShouldPreventNavigation()
 
-    if (!session) {
+    if (!shouldPreventNavigation && !session) {
         return <router.Navigate to={app.LOGIN_PATH} />
-    } else if (session.type === UserSessionType.partial) {
+    } else if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
         return <router.Navigate to={app.SET_USERNAME_PATH} />
     } else {
         return <router.Outlet context={session} />
@@ -419,8 +431,9 @@ export function ProtectedLayout() {
  * in the process of registering. */
 export function SemiProtectedLayout() {
     const { session } = useAuth()
+    const shouldPreventNavigation = getShouldPreventNavigation()
 
-    if (session?.type === UserSessionType.full) {
+    if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
         return <router.Navigate to={app.DASHBOARD_PATH} />
     } else {
         return <router.Outlet context={session} />
@@ -435,10 +448,11 @@ export function SemiProtectedLayout() {
  * not logged in. */
 export function GuestLayout() {
     const { session } = useAuth()
+    const shouldPreventNavigation = getShouldPreventNavigation()
 
-    if (session?.type === UserSessionType.partial) {
+    if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
         return <router.Navigate to={app.SET_USERNAME_PATH} />
-    } else if (session?.type === UserSessionType.full) {
+    } else if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
         return <router.Navigate to={app.DASHBOARD_PATH} />
     } else {
         return <router.Outlet />

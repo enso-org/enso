@@ -257,18 +257,17 @@ spec = Test.group "Pattern Matches" <|
             _ -> Test.fail "Expected to match on ArrayList type."
 
         case Meta.type_of list of
-            _ : Vector -> Test.fail "Expected to match in java.lang.Class case."
-            _ : Array -> Test.fail "Expected to match in java.lang.Class case."
-            _ : ArrayList -> Test.fail "Expected to match in java.lang.Class case."
-            _ : Class -> Nothing
-            _ : ArrayList -> Test.fail "Expected to match in java.lang.Class case."
+            _ : Vector -> Test.fail "Expected to match Array case."
+            _ : ArrayList -> Test.fail "Expected to match Array case."
+            _ : Class -> Test.fail "Expected to match Array case."
+            Array -> Nothing
+            _ -> Test.fail "Expected to match Array case."
 
         case Meta.type_of list of
-            Vector -> Test.fail "Expected to match on a polyglot symbol."
-            Array -> Test.fail "Expected to match on a polyglot symbol."
-            ArrayList -> Nothing
-            Class -> Test.fail "Expected to match on a polyglot symbol."
-            _ -> Test.fail "Expected to match on a polyglot symbol."
+            Vector -> Test.fail "Expected to match Array case."
+            Class -> Test.fail "Expected to match Array case."
+            Array -> Nothing
+            _ -> Test.fail "Expected to match Array case."
 
         # Tests a bug where array matching a polyglot Object[] array would fail if the same branch mis-matched earlier.
         foo x = case x of

@@ -6,7 +6,6 @@ use crate::component::node::input::widget::ConfigContext;
 use crate::component::node::input::widget::DynConfig;
 use crate::component::node::input::widget::DynWidget;
 use crate::component::node::input::widget::EdgeData;
-use crate::component::node::input::widget::SpanWidget;
 use crate::component::node::input::widget::WidgetsFrp;
 
 use enso_frp as frp;

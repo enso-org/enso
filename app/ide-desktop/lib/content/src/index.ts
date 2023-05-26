@@ -7,7 +7,7 @@ import * as semver from 'semver'
 import * as authentication from 'enso-authentication'
 import * as contentConfig from 'enso-content-config'
 
-import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
+import * as app from '../../../../../target/ensogl-pack/linked-dist'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger

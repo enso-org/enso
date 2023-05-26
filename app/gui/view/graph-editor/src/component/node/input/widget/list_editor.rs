@@ -3,19 +3,16 @@
 // FIXME[ao]: This code miss important documentation (e.g. for `Element`, `DragData` and `ListItem`)
 //  and may be unreadable at some places. It should be improved in several next debugging PRs.
 
+use crate::component::node::input::widget::prelude::*;
 use crate::prelude::*;
 
 use crate::component::node::input::area::TEXT_SIZE;
-use crate::component::node::input::widget::Configuration;
-use crate::component::node::input::widget::IdentityBase;
-use crate::component::node::input::widget::TransferRequest;
-use crate::component::node::input::widget::TreeNode;
-use crate::component::node::input::widget::WidgetIdentity;
 
 use ensogl::control::io::mouse;
 use ensogl::display;
 use ensogl::display::object;
 use ensogl::display::world::with_context;
+use ensogl::Animation;
 use ensogl_component::list_editor::ListEditor;
 use span_tree::node::Kind;
 use std::collections::hash_map::Entry;
@@ -27,7 +24,7 @@ use std::collections::hash_map::Entry;
 // =================
 
 /// The type name that enables the list editor widget.
-pub const VECTOR_TYPE: &str = "Standard.Base.Data.Vector.Vector";
+const VECTOR_TYPE: &str = "Standard.Base.Data.Vector.Vector";
 
 /// Extra space to the left and right of the list that will respond to mouse events. The list
 /// insertion points will only be shown within the list bounding box extended by this margin.
@@ -151,11 +148,12 @@ impl display::Object for Element {
 pub struct Widget {
     display_object: object::Instance,
     network:        frp::Network,
+    reconfigured:   frp::Any,
     model:          Rc<RefCell<Model>>,
 }
 
 impl Widget {
-    fn init_list_updates(self, ctx: &super::ConfigContext) -> Self {
+    fn init_list_updates(self, ctx: &ConfigContext) -> Self {
         let widgets_frp = ctx.frp();
         let network = &self.network;
         let model = &self.model;
@@ -163,6 +161,7 @@ impl Widget {
         let scene = scene();
         let on_down = scene.on_event::<mouse::Down>();
         let on_up = scene.on_event::<mouse::Up>();
+        let reconfigured = self.reconfigured.clone_ref();
 
         frp::extend! { network
             init <- source_();
@@ -214,6 +213,15 @@ impl Widget {
             list.enable_all_insertion_points <+ enable_insertion;
             list.enable_last_insertion_point <+ enable_insertion;
             list.enable_dragging <+ enable_interaction;
+
+            // Animate margins around the list that are added when it has elements.
+            let margin_anim = Animation::new(network);
+            has_elements <- reconfigured.map(f_!([list] !list.is_empty()));
+            margin_anim.target <+ has_elements
+                .map(|has| has.then_val_or_default(INSERTION_OFFSET));
+
+            update_margin <- all(margin_anim.value, reconfigured)._0().debounce();
+            eval update_margin((margin) model.borrow().set_side_margin(*margin));
         }
 
         init.emit(());
@@ -224,21 +232,24 @@ impl Widget {
 
 #[derive(Debug)]
 struct Model {
-    self_id:              WidgetIdentity,
-    list:                 ListEditor<ListItem>,
+    self_id:                WidgetIdentity,
+    list:                   ListEditor<ListItem>,
+    /// Root element of the last child widget with [`span_tree::node::Kind::InsertionPoint`] node.
+    /// It is stored in the model to allow animating its margins within the FRP network.
+    append_insertion_point: Option<object::Instance>,
     #[allow(dead_code)]
-    background:           display::shape::Rectangle,
-    elements:             HashMap<ElementIdentity, Element>,
-    default_value:        DefaultValue,
-    expression:           String,
-    crumbs:               span_tree::Crumbs,
-    drag_data_rc:         Rc<RefCell<Option<DragData>>>,
-    insertion_indices:    Vec<usize>,
-    insert_with_brackets: bool,
+    background:             display::shape::Rectangle,
+    elements:               HashMap<ElementIdentity, Element>,
+    default_value:          DefaultValue,
+    expression:             String,
+    crumbs:                 span_tree::Crumbs,
+    drag_data_rc:           Rc<RefCell<Option<DragData>>>,
+    insertion_indices:      Vec<usize>,
+    insert_with_brackets:   bool,
 }
 
 impl Model {
-    fn new(ctx: &super::ConfigContext, display_object: &object::Instance) -> Self {
+    fn new(ctx: &ConfigContext, display_object: &object::Instance) -> Self {
         let list = ListEditor::new(&ctx.app().cursor);
         list.gap(ITEMS_GAP);
         list.set_size_hug_y(TEXT_SIZE).allow_grow_y();
@@ -253,6 +264,7 @@ impl Model {
             self_id: ctx.info.identity,
             list,
             background,
+            append_insertion_point: default(),
             elements: default(),
             default_value: default(),
             expression: default(),
@@ -263,10 +275,10 @@ impl Model {
         }
     }
 
-    fn configure(&mut self, root: &object::Instance, cfg: &Config, mut ctx: super::ConfigContext) {
+    fn configure(&mut self, root: &object::Instance, cfg: &Config, mut ctx: ConfigContext) {
         self.expression.clear();
         self.default_value = cfg.item_default.clone();
-        self.expression.push_str(ctx.expression_at(ctx.span_node.span()));
+        self.expression.push_str(ctx.span_expression());
         self.crumbs = ctx.span_node.crumbs.clone();
 
 
@@ -288,19 +300,16 @@ impl Model {
         }
     }
 
-    fn configure_insertion_point(&mut self, root: &object::Instance, ctx: super::ConfigContext) {
+    fn configure_insertion_point(&mut self, root: &object::Instance, ctx: ConfigContext) {
         self.elements.clear();
+        self.list.clear();
+        self.append_insertion_point = None;
         let insertion_point = ctx.builder.child_widget(ctx.span_node, ctx.info.nesting_level);
         root.replace_children(&[&*insertion_point, self.list.display_object()]);
         set_margins(self.list.display_object(), 0.0, 0.0);
     }
 
-    fn configure_vector(
-        &mut self,
-        root: &object::Instance,
-        cfg: &Config,
-        ctx: super::ConfigContext,
-    ) {
+    fn configure_vector(&mut self, root: &object::Instance, cfg: &Config, ctx: ConfigContext) {
         ctx.builder.manage_child_margins();
         let nest = ctx.info.nesting_level.next();
         let child_config = cfg.item_widget.as_deref();
@@ -379,7 +388,6 @@ impl Model {
             }
         }
 
-        let has_elements = !list_items.is_empty();
         let new_items_range = new_items_range.unwrap_or(0..0);
         let mut non_assigned_items = list_items[new_items_range].iter_mut().filter(|c| !c.assigned);
 
@@ -395,21 +403,20 @@ impl Model {
         self.insertion_indices.extend(last_insert_crumb);
         self.insert_with_brackets = open_bracket.is_none() && close_bracket.is_none();
 
-        let border_margins = has_elements.then_val_or_default(INSERTION_OFFSET);
-        let append_insert = last_insert_crumb.map(|index| {
-            let insert = build_child_widget(index, insert_config, INSERT_HOVER_MARGIN).root_object;
-            set_margins(&insert, border_margins, 0.0);
-            insert
-        });
-        let list_right_margin = append_insert.is_none().then_val_or_default(border_margins);
-        set_margins(self.list.display_object(), border_margins, list_right_margin);
+        self.append_insertion_point = last_insert_crumb
+            .map(|index| build_child_widget(index, insert_config, INSERT_HOVER_MARGIN).root_object);
 
         let (open_bracket, close_bracket) = open_bracket.zip(close_bracket).unzip();
-        let mut children = SmallVec::<[&object::Instance; 4]>::new();
-        children.extend(&open_bracket);
-        children.push(self.list.display_object());
-        children.extend(&append_insert);
-        children.extend(&close_bracket);
+        let children: SmallVec<[&object::Instance; 4]> = [
+            open_bracket.as_ref(),
+            Some(self.list.display_object()),
+            self.append_insertion_point.as_ref(),
+            close_bracket.as_ref(),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+
         root.replace_children(&children);
 
         let mut need_reposition = false;
@@ -493,7 +500,7 @@ impl Model {
         }
     }
 
-    fn on_new_item(&mut self, at: usize, frp: &super::WidgetsFrp) {
+    fn on_new_item(&mut self, at: usize, frp: &WidgetsFrp) {
         let (mut expression, import) = match &self.default_value {
             DefaultValue::Tag(tag) =>
                 (tag.expression.clone().into(), tag.required_import.as_ref().map(ImString::from)),
@@ -515,6 +522,18 @@ impl Model {
                 frp.request_import.emit(import);
             }
             frp.value_changed.emit(insertion);
+        }
+    }
+
+    fn set_side_margin(&self, side_margin: f32) {
+        match self.append_insertion_point.as_ref() {
+            Some(insert) => {
+                set_margins(insert, side_margin, 0.0);
+                set_margins(self.list.display_object(), side_margin, 0.0);
+            }
+            None => {
+                set_margins(self.list.display_object(), side_margin, side_margin);
+            }
         }
     }
 }
@@ -565,23 +584,78 @@ impl From<ImString> for DefaultValue {
     }
 }
 
-impl super::SpanWidget for Widget {
+impl SpanWidget for Widget {
     type Config = Config;
+
+    fn match_node(ctx: &ConfigContext) -> Score {
+        let is_placeholder = ctx.span_node.is_expected_argument();
+        let decl_type = ctx.span_node.kind.tp().map(|t| t.as_str());
+
+        let first_decl_is_vector =
+            || decl_type.map_or(false, |t| t.trim_start_matches('(').starts_with(VECTOR_TYPE));
+
+        let type_may_be_vector = || {
+            let usage_type = ctx.info.usage_type.as_ref().map(|t| t.as_str());
+            decl_type.map_or(false, |t| t.contains(VECTOR_TYPE))
+                || usage_type.map_or(false, |t| t.contains(VECTOR_TYPE))
+        };
+
+        let is_vector_expression = || {
+            let node_expr = ctx.span_expression();
+            let looks_like_vector = node_expr.starts_with('[')
+                && node_expr.ends_with(']')
+                && matches!(ctx.span_node.tree_type, Some(ast::TreeType::Expression));
+
+            // We now know that the node expression begins with `[`. Check if the node actually
+            // contains a token as a direct child at its location. It will not be the case for
+            // expressions that contain nested arrays within the first chain element, but are not
+            // an array themselves (e.g. `[1, 2] + [3, 4]`).
+            let children = &ctx.span_node.children;
+            looks_like_vector
+                && children.iter().take_while(|c| c.parent_offset.value == 0).any(|c| c.is_token())
+        };
+
+        match () {
+            _ if ctx.info.connection.is_some() => Score::Mismatch,
+            _ if is_placeholder && first_decl_is_vector() => Score::Perfect,
+            _ if is_placeholder && type_may_be_vector() => Score::Good,
+            _ if is_placeholder => Score::OnlyOverride,
+            _ if is_vector_expression() => Score::Perfect,
+            _ => Score::Mismatch,
+        }
+    }
+
+    fn default_config(ctx: &ConfigContext) -> Configuration<Self::Config> {
+        let default_tag = ctx.span_node.kind.tag_values().and_then(|t| t.first());
+        let item_default = match default_tag {
+            Some(tag) => DefaultValue::Tag(tag.clone()),
+            None => {
+                let usage_type = ctx.info.usage_type.as_ref().map(|t| t.as_str());
+                let decl_type = ctx.span_node.kind.tp().map(|t| t.as_str());
+                let decl_or_usage = decl_type.or(usage_type);
+                DefaultValue::StaticExpression(infer_default_value_from_type(decl_or_usage))
+            }
+        };
+        Configuration::always(Config { item_widget: None, item_default })
+    }
 
     fn root_object(&self) -> &object::Instance {
         &self.display_object
     }
 
-    fn new(_: &Config, ctx: &super::ConfigContext) -> Self {
+    fn new(_: &Config, ctx: &ConfigContext) -> Self {
         let display_object = object::Instance::new_named("widget::ListEditor");
         let model = Model::new(ctx, &display_object);
         let network = frp::Network::new("widget::ListEditor");
-        Self { display_object, network, model: Rc::new(RefCell::new(model)) }.init_list_updates(ctx)
+        let reconfigured = network.any_mut("reconfigured");
+        Self { display_object, network, reconfigured, model: Rc::new(RefCell::new(model)) }
+            .init_list_updates(ctx)
     }
 
-    fn configure(&mut self, cfg: &Config, ctx: super::ConfigContext) {
+    fn configure(&mut self, cfg: &Config, ctx: ConfigContext) {
         let mut model = self.model.borrow_mut();
         model.configure(&self.display_object, cfg, ctx);
+        self.reconfigured.emit(());
     }
 
     fn receive_ownership(&mut self, req: TransferRequest, nodes: Vec<(WidgetIdentity, TreeNode)>) {
