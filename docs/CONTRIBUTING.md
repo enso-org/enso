@@ -607,14 +607,14 @@ For more details about the CI setup, you can check the
 The language interpreter can be started by the `bin/enso` launcher script
 located inside of the Enso runtime distribution. Use the following `sbt` command
 to compile necessary bits (see
-[Building the Interperter CLI Fat Jar](#building-the-interpreter-cli-fat-jar))
+[Building the Interpreter CLI Fat Jar](#building-the-interpreter-cli-fat-jar))
 and generate the Enso distribution:
 
 ##### Bash
 
 ```bash
-$ sbt buildEngineDistribution
-$ sbt runEngineDistribution --help
+sbt buildEngineDistribution
+sbt runEngineDistribution --help
 ```
 
 Engine package created at
@@ -631,7 +631,7 @@ sbt.bat runEngineDistribution --help
 One can use the `runEngineDistribution` command or execute the launcher:
 
 ```bash
-$ built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso
+built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso
 ```
 
 Detailed information on the flags it supports can be shown with the `--help`
@@ -672,7 +672,7 @@ Running development version of the IDE is possible via the `./run` script in the
 root of the repository:
 
 ```bash
-$ ./run ide start --wasm-profile dev --external-backend
+./run ide start --wasm-profile dev --external-backend
 ```
 
 ##### Bash
@@ -722,8 +722,8 @@ Btw. you can specify `ENSO_JVM_OPTS` to turn
 [debugging of the Engine runtime](debugger/README.md) on:
 
 ```bash
-$ export ENSO_JVM_OPTS=-agentlib:jdwp=transport=dt_socket,address=5005
-$ ./built-distribution/enso-project-manager-0.0.0-dev-linux-amd64/enso/bin/project-manager --no-log-masking -v
+export ENSO_JVM_OPTS=-agentlib:jdwp=transport=dt_socket,address=5005
+./built-distribution/enso-project-manager-0.0.0-dev-linux-amd64/enso/bin/project-manager --no-log-masking -v
 [info] [2021-06-16T11:49:33.639Z] [org.enso.projectmanager.boot.ProjectManager$] Starting Project Manager...
 [debug] [2021-06-16T11:49:33.639Z] [org.enso.runtimeversionmanager.distribution.DistributionManager] Detected paths: DistributionPaths(
   dataRoot = /home/dbv/.local/share/enso,
