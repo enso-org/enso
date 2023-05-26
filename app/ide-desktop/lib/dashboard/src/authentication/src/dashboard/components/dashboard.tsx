@@ -2,6 +2,8 @@
  * interactive components. */
 import * as react from 'react'
 
+import * as common from 'enso-common'
+
 import * as backendModule from '../backend'
 import * as dateTime from '../dateTime'
 import * as fileInfo from '../../fileInfo'
@@ -9,6 +11,7 @@ import * as hooks from '../../hooks'
 import * as http from '../../http'
 import * as localBackend from '../localBackend'
 import * as newtype from '../../newtype'
+import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
 import * as svg from '../../components/svg'
 import * as uploadMultipleFiles from '../../uploadMultipleFiles'
@@ -240,6 +243,7 @@ function Dashboard(props: DashboardProps) {
     const [refresh, doRefresh] = hooks.useRefresh()
 
     const [query, setQuery] = react.useState('')
+    const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = react.useState(false)
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
     const [directoryStack, setDirectoryStack] = react.useState<
         backendModule.Asset<backendModule.AssetType.directory>[]
@@ -277,14 +281,38 @@ function Dashboard(props: DashboardProps) {
         backendModule.Asset<backendModule.AssetType.file>[]
     >([])
 
-    const canListDirectory =
-        backend.type !== backendModule.BackendType.remote || organization.isEnabled
+    const listingLocalDirectoryAndWillFail =
+        backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
+    const listingRemoteDirectoryAndWillFail =
+        backend.type === backendModule.BackendType.remote && !organization.isEnabled
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
 
     react.useEffect(() => {
+        const onProjectManagerLoadingFailed = () => {
+            setLoadingProjectManagerDidFail(true)
+        }
+        document.addEventListener(
+            projectManager.ProjectManagerEvents.loadingFailed,
+            onProjectManagerLoadingFailed
+        )
+        return () => {
+            document.removeEventListener(
+                projectManager.ProjectManagerEvents.loadingFailed,
+                onProjectManagerLoadingFailed
+            )
+        }
+    }, [])
+
+    react.useEffect(() => {
+        if (backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail) {
+            setIsLoadingAssets(false)
+        }
+    }, [isLoadingAssets, loadingProjectManagerDidFail, backend.type])
+
+    react.useEffect(() => {
         if (supportsLocalBackend) {
-            setBackend(new localBackend.LocalBackend())
+            new localBackend.LocalBackend()
         }
     }, [])
 
@@ -611,7 +639,9 @@ function Dashboard(props: DashboardProps) {
     hooks.useAsyncEffect(
         null,
         async signal => {
-            if (canListDirectory) {
+            if (listingLocalDirectoryAndWillFail) {
+                // Do not `setIsLoadingAssets(false)`
+            } else if (!listingRemoteDirectoryAndWillFail) {
                 const assets = await backend.listDirectory({ parentId: directoryId })
                 if (!signal.aborted) {
                     setIsLoadingAssets(false)
@@ -740,7 +770,14 @@ function Dashboard(props: DashboardProps) {
                 query={query}
                 setQuery={setQuery}
             />
-            {!canListDirectory ? (
+            {listingLocalDirectoryAndWillFail ? (
+                <div className="grow grid place-items-center">
+                    <div className="text-base text-center">
+                        Could not connect to the Project Manager. Please try restarting{' '}
+                        {common.PRODUCT_NAME}, or manually launching the Project Manager.
+                    </div>
+                </div>
+            ) : listingRemoteDirectoryAndWillFail ? (
                 <div className="grow grid place-items-center">
                     <div className="text-base text-center">
                         We will review your user details and enable the cloud experience for you
