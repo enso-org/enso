@@ -330,7 +330,7 @@ function Dashboard(props: DashboardProps) {
 
     react.useEffect(() => {
         if (supportsLocalBackend) {
-            new localBackend.LocalBackend()
+            setBackend(new localBackend.LocalBackend())
         }
     }, [])
 
@@ -338,12 +338,6 @@ function Dashboard(props: DashboardProps) {
         document.addEventListener('show-dashboard', switchToDashboardTab)
         return () => {
             document.removeEventListener('show-dashboard', switchToDashboardTab)
-        }
-    }, [])
-
-    react.useEffect(() => {
-        if (platform === platformModule.Platform.desktop) {
-            setBackend(new localBackend.LocalBackend())
         }
     }, [])
 
