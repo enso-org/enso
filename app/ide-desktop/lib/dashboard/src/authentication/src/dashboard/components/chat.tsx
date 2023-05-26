@@ -36,6 +36,7 @@ const DEFAULT_THREAD_TITLE = 'New chat thread'
 // === Types ===
 // =============
 
+/** Valid reaction emojis. */
 type Reaction = (typeof REACTION_EMOJIS)[number]
 
 interface ChatDisplayMessage {
@@ -89,17 +90,20 @@ export interface ChatRenameThreadMessageData
     threadId: string
 }
 
+/** A message. */
 export interface ChatMessageMessageData extends ChatMessageBaseData<ChatMessageDataType.message> {
     threadId: string
     content: string
 }
 
+/** A reaction has been clicked. */
 export interface ChatReactionMessageData extends ChatMessageBaseData<ChatMessageDataType.reaction> {
     threadId: string
     messageId: string
     reaction: string
 }
 
+/** Messages the client sends to the server. */
 export type ChatClientMessageData =
     | ChatAuthenticateMessageData
     | ChatMessageMessageData
@@ -182,6 +186,7 @@ export interface ChatMessageProps {
     sendMessage: (message: ChatClientMessageData) => void
 }
 
+/** A chat message, including user info, sent date, and reactions (if any). */
 function ChatMessage(props: ChatMessageProps) {
     const { threadId, message, reactions, shouldShowReactionBar, sendMessage } = props
     return (
@@ -206,12 +211,13 @@ function ChatMessage(props: ChatMessageProps) {
 // ============
 
 /** Props for a {@link Chat}. */
-interface ChatProps {
+export interface ChatProps {
     /** This should only be false when the panel is closing. */
     isOpen: boolean
     doClose: () => void
 }
 
+/** Chat sidebar. */
 function Chat(props: ChatProps) {
     const { isOpen, doClose } = props
     const { accessToken } = authProvider.useFullUserSession()
@@ -220,7 +226,7 @@ function Chat(props: ChatProps) {
     const [isPaidUser, setIsPaidUser] = react.useState(true)
     const [messages, setMessages] = react.useState<ChatDisplayMessage[]>([])
     const [threadId, setThreadId] = react.useState<string | null>(null)
-    const [threadTitle, setThreadTitle] = react.useState('New chat thread')
+    const [threadTitle, setThreadTitle] = react.useState(DEFAULT_THREAD_TITLE)
     const [isThreadTitleEditable, setIsThreadTitleEditable] = react.useState(false)
     // TODO: proper URL
     const [websocket] = react.useState(() => new WebSocket('ws://localhost:8082'))
@@ -304,6 +310,7 @@ function Chat(props: ChatProps) {
     }
 
     const sendCurrentMessage = (event: react.FormEvent) => {
+        console.log('a', threadId)
         event.preventDefault()
         if (threadId == null) {
             sendMessage({
@@ -316,6 +323,7 @@ function Chat(props: ChatProps) {
     }
 
     const createNewThread = () => {
+        console.log('b')
         sendMessage({
             type: ChatMessageDataType.newThread,
             title: threadTitle,
@@ -407,10 +415,10 @@ function Chat(props: ChatProps) {
                                 className="w-full rounded-full"
                             ></input>
                             <div className="flex">
-                                <button className="grow" onClick={createNewThread}>
+                                <button type="button" className="grow" onClick={createNewThread}>
                                     New question? Click to start a new thread!
                                 </button>
-                                <button>Reply!</button>
+                                <button type="submit">Reply!</button>
                             </div>
                         </div>
                     </form>
