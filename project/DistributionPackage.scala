@@ -450,7 +450,6 @@ object DistributionPackage {
       os: OS,
       architecture: Architecture
     ): String =
-      
       s"enso-$component-$ensoVersion-${os.name}-amd64"
 
     def graalInPackageName: String =
