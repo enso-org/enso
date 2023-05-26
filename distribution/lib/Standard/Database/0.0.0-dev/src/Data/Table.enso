@@ -547,6 +547,13 @@ type Table
         msg = "`Table.drop` is not yet implemented."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
+    ## TODO
+    add_row_number : Text -> Integer -> Integer -> (Column_Selector | Vector Text) -> Sort_Column_Selector -> Problem_Behavior -> Table
+    add_row_number self name="Row" from=1 increment=1 group_by=(By_Name []) order_by=(Sort_Column_Selector.By_Name []) on_problems=Problem_Behavior.Report_Warning =
+        _ = [name, from, increment, group_by, order_by, on_problems]
+        msg = "`Table.add_row_number` is not yet implemented in the Database backend."
+        Error.throw (Unsupported_Database_Operation.Error msg)
+
     ## UNSTABLE
 
        Returns a new Table that will include at most `max_rows` rows from the

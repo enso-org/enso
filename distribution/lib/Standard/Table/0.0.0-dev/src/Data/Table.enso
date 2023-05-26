@@ -1192,6 +1192,26 @@ type Table
     drop self range=(First 1) =
         Index_Sub_Range_Module.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
+    ## Adds a new column to the table enumerating the rows.
+
+       Arguments:
+       - name: The name of the new column.
+       - from: The starting value for the enumeration. Defaults to 1.
+       - increment: The amount to increment the enumeration by. Defaults to 1.
+       - group_by: Specifies the columns to group by. By default, all rows are e
+       - order_by: Specifies the columns to order by. Defaults to the order of
+         the rows in the table.
+
+       ! Error Conditions
+
+         - If the columns specified in `group_by` or `order_by` are not present
+           in the table, a `Missing_Input_Columns` error is raised.
+         - If the column with the same name as provided `name` already exists,
+           an `Existing_Column` error is raised.
+    add_row_number : Text -> Integer -> Integer -> (Column_Selector | Vector Text) -> Sort_Column_Selector -> Problem_Behavior -> Table
+    add_row_number self name="Row" from=1 increment=1 group_by=(By_Name []) order_by=(Sort_Column_Selector.By_Name []) on_problems=Problem_Behavior.Report_Warning =
+        ...
+
     ## ALIAS Add Column, Update Column, New Column
        Sets the column value at the given name.
 
