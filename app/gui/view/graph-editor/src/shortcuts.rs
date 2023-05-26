@@ -71,7 +71,12 @@ pub const SHORTCUTS: &[(ensogl::application::shortcut::ActionType, &str, &str, &
         "ctrl space",
         "cycle_visualization_for_selected_node",
     ),
-    (DoublePress, "!read_only", "left-mouse-button", "enter_hovered_node"),
+    (
+        DoublePress,
+        "!read_only & !is_fs_visualization_displayed",
+        "left-mouse-button",
+        "enter_hovered_node",
+    ),
     (DoublePress, "!read_only", "left-mouse-button", "start_node_creation_from_port"),
     (Press, "!read_only", "right-mouse-button", "start_node_creation_from_port"),
     (
