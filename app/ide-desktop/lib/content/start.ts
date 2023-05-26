@@ -17,7 +17,11 @@ const HTTP_STATUS_OK = 200
 
 /** Start the esbuild watcher. */
 async function watch() {
-    const opts = bundler.bundleOptions()
+    const opts = bundler.bundleOptions({
+        devMode: true,
+        supportsLocalBackend: true,
+        supportsDeepLinks: false,
+    })
     const builder = await esbuild.context(opts)
     await builder.watch()
     await builder.serve({

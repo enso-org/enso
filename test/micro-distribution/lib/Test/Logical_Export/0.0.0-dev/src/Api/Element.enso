@@ -1,0 +1,8 @@
+import project.Impl.Internal.Internal
+
+type Element
+    Value impl:Internal
+
+    create = Element.Value (Internal.Impl)
+
+    describe self = "Element with " + self.impl.describe
