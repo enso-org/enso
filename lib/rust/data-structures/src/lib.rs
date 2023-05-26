@@ -4,6 +4,7 @@
 #![feature(associated_type_bounds)]
 #![feature(test)]
 #![feature(trait_alias)]
+#![feature(core_intrinsics)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -29,5 +30,6 @@ pub mod hash_map_tree;
 pub mod im_list;
 pub mod index;
 pub mod opt_vec;
+pub mod zeroable_linked_array_ref_cell;
 
 pub use enso_prelude as prelude;

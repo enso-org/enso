@@ -2129,6 +2129,7 @@ version = "0.1.0"
 dependencies = [
  "bumpalo",
  "bytemuck",
+ "enso-data-structures",
  "enso-frp",
  "enso-prelude",
  "ouroboros",
