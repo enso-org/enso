@@ -234,7 +234,7 @@ function Dashboard(props: DashboardProps) {
     const { supportsLocalBackend, appRunner } = props
 
     const logger = loggerProvider.useLogger()
-    const { accessToken, organization } = auth.useFullUserSession()
+    const { type: sessionType, accessToken, organization } = auth.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setBackend } = backendProvider.useSetBackend()
     const { modal } = modalProvider.useModal()
@@ -244,7 +244,9 @@ function Dashboard(props: DashboardProps) {
 
     const [query, setQuery] = react.useState('')
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = react.useState(false)
-    const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
+    const [directoryId, setDirectoryId] = react.useState(
+        organization != null ? rootDirectoryId(organization.id) : null
+    )
     const [directoryStack, setDirectoryStack] = react.useState<
         backendModule.Asset<backendModule.AssetType.directory>[]
     >([])
@@ -281,10 +283,14 @@ function Dashboard(props: DashboardProps) {
         backendModule.Asset<backendModule.AssetType.file>[]
     >([])
 
-    const listingLocalDirectoryAndWillFail =
+    const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
-    const listingRemoteDirectoryAndWillFail =
-        backend.type === backendModule.BackendType.remote && !organization.isEnabled
+    const isListingRemoteDirectoryAndWillFail =
+        (backend.type === backendModule.BackendType.remote && (organization?.isEnabled ?? false)) ||
+        directoryId == null
+    const isListingRemoteDirectoryWhileOffline =
+        sessionType === auth.UserSessionType.offline &&
+        backend.type === backendModule.BackendType.remote
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
 
@@ -364,7 +370,9 @@ function Dashboard(props: DashboardProps) {
     }
 
     const exitDirectory = () => {
-        setDirectoryId(parentDirectory?.id ?? rootDirectoryId(organization.id))
+        setDirectoryId(
+            parentDirectory?.id ?? (organization != null ? rootDirectoryId(organization.id) : null)
+        )
         setDirectoryStack(
             // eslint-disable-next-line @typescript-eslint/no-magic-numbers
             directoryStack.slice(0, -1)
@@ -394,7 +402,7 @@ function Dashboard(props: DashboardProps) {
     }, [])
 
     react.useEffect(() => {
-        if (directoryId === rootDirectoryId(organization.id)) {
+        if (organization == null || directoryId === rootDirectoryId(organization.id)) {
             localStorage.removeItem(DIRECTORY_STACK_KEY)
         } else {
             localStorage.setItem(DIRECTORY_STACK_KEY, JSON.stringify(directoryStack))
@@ -639,9 +647,9 @@ function Dashboard(props: DashboardProps) {
     hooks.useAsyncEffect(
         null,
         async signal => {
-            if (listingLocalDirectoryAndWillFail) {
+            if (isListingLocalDirectoryAndWillFail) {
                 // Do not `setIsLoadingAssets(false)`
-            } else if (!listingRemoteDirectoryAndWillFail) {
+            } else if (!isListingRemoteDirectoryAndWillFail) {
                 const assets = await backend.listDirectory({ parentId: directoryId })
                 if (!signal.aborted) {
                     setIsLoadingAssets(false)
@@ -759,7 +767,8 @@ function Dashboard(props: DashboardProps) {
                                 break
                             case backendModule.BackendType.remote: {
                                 const headers = new Headers()
-                                headers.append('Authorization', `Bearer ${accessToken}`)
+                                // If `accessToken` is null,
+                                headers.append('Authorization', `Bearer ${accessToken ?? ''}`)
                                 const client = new http.Client(headers)
                                 setBackend(new remoteBackendModule.RemoteBackend(client, logger))
                                 break
@@ -770,14 +779,21 @@ function Dashboard(props: DashboardProps) {
                 query={query}
                 setQuery={setQuery}
             />
-            {listingLocalDirectoryAndWillFail ? (
+            {isListingRemoteDirectoryWhileOffline ? (
+                <div className="grow grid place-items-center">
+                    <div className="text-base text-center">
+                        You are offline. Please conenct to the internet and refresh to access the
+                        cloud backend.
+                    </div>
+                </div>
+            ) : isListingLocalDirectoryAndWillFail ? (
                 <div className="grow grid place-items-center">
                     <div className="text-base text-center">
                         Could not connect to the Project Manager. Please try restarting{' '}
                         {common.PRODUCT_NAME}, or manually launching the Project Manager.
                     </div>
                 </div>
-            ) : listingRemoteDirectoryAndWillFail ? (
+            ) : isListingRemoteDirectoryAndWillFail ? (
                 <div className="grow grid place-items-center">
                     <div className="text-base text-center">
                         We will review your user details and enable the cloud experience for you

@@ -13,6 +13,7 @@ import * as backendModule from '../../dashboard/backend'
 import * as backendProvider from '../../providers/backend'
 import * as errorModule from '../../error'
 import * as http from '../../http'
+import * as localBackend from '../../dashboard/localBackend'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
 import * as remoteBackend from '../../dashboard/remoteBackend'
@@ -44,6 +45,7 @@ const MESSAGES = {
 
 /** Possible types of {@link BaseUserSession}. */
 export enum UserSessionType {
+    offline = 'offline',
     partial = 'partial',
     full = 'full',
 }
@@ -58,10 +60,12 @@ interface BaseUserSession<Type extends UserSessionType> {
     email: string
 }
 
-/** Object containing the currently signed-in user's session data. */
-export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
-    /** User's organization information. */
-    organization: backendModule.UserOrOrganization
+// Extends `BaseUserSession` in order to inherit the documentation.
+/** Empty object of an offline user session.
+ * Contains some fields from {@link FullUserSession} to allow destructuring. */
+export interface OfflineUserSession extends Pick<BaseUserSession<UserSessionType.offline>, 'type'> {
+    accessToken: null
+    organization: null
 }
 
 /** Object containing the currently signed-in user's session data, if the user has not yet set their
@@ -72,9 +76,15 @@ export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
  * used by the `SetUsername` component. */
 export interface PartialUserSession extends BaseUserSession<UserSessionType.partial> {}
 
+/** Object containing the currently signed-in user's session data. */
+export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
+    /** User's organization information. */
+    organization: backendModule.UserOrOrganization
+}
+
 /** A user session for a user that may be either fully registered,
  * or in the process of registering. */
-export type UserSession = FullUserSession | PartialUserSession
+export type UserSession = FullUserSession | OfflineUserSession | PartialUserSession
 
 // ===================
 // === AuthContext ===
@@ -88,6 +98,7 @@ export type UserSession = FullUserSession | PartialUserSession
  *
  * See {@link Cognito} for details on each of the authentication functions. */
 interface AuthContextType {
+    goOffline: () => Promise<boolean>
     signUp: (email: string, password: string) => Promise<boolean>
     confirmSignUp: (email: string, code: string) => Promise<boolean>
     setUsername: (
@@ -231,6 +242,13 @@ export function AuthProvider(props: AuthProviderProps) {
             return result
         }
 
+    const goOffline = () => {
+        setUserSession({ type: UserSessionType.offline, accessToken: null, organization: null })
+        setBackend(new localBackend.LocalBackend())
+        navigate(app.DASHBOARD_PATH)
+        return Promise.resolve(true)
+    }
+
     const signUp = async (username: string, password: string) => {
         const result = await cognito.signUp(username, password)
         if (result.ok) {
@@ -345,19 +363,20 @@ export function AuthProvider(props: AuthProviderProps) {
     }
 
     const value = {
+        goOffline: goOffline,
         signUp: withLoadingToast(signUp),
         confirmSignUp: withLoadingToast(confirmSignUp),
         setUsername,
         signInWithGoogle: () =>
-            cognito
-                .signInWithGoogle()
-                .then(() => true)
-                .catch(() => false),
+            cognito.signInWithGoogle().then(
+                () => true,
+                () => false
+            ),
         signInWithGitHub: () =>
-            cognito
-                .signInWithGitHub()
-                .then(() => true)
-                .catch(() => false),
+            cognito.signInWithGitHub().then(
+                () => true,
+                () => false
+            ),
         signInWithPassword: withLoadingToast(signInWithPassword),
         forgotPassword: withLoadingToast(forgotPassword),
         resetPassword: withLoadingToast(resetPassword),
@@ -474,11 +493,11 @@ export function usePartialUserSession() {
     return router.useOutletContext<PartialUserSession>()
 }
 
-// ==========================
-// === useFullUserSession ===
-// ==========================
+// ================================
+// === useNonPartialUserSession ===
+// ================================
 
-/** A React context hook returning the user session for a user that has completed registration. */
-export function useFullUserSession() {
-    return router.useOutletContext<FullUserSession>()
+/** A React context hook returning the user session for a user that can perform actions. */
+export function useNonPartialUserSession() {
+    return router.useOutletContext<Exclude<UserSession, PartialUserSession>>()
 }

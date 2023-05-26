@@ -1,11 +1,13 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
 import * as react from 'react'
 import * as router from 'react-router-dom'
+import toast from 'react-hot-toast'
 
 import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
+import * as config from '../../config'
 import * as svg from '../../components/svg'
 
 import FontAwesomeIcon from './fontAwesomeIcon'
@@ -27,12 +29,25 @@ const LOGIN_QUERY_PARAMS = {
 /** A form for users to log in. */
 function Login() {
     const { search } = router.useLocation()
-    const { signInWithGoogle, signInWithGitHub, signInWithPassword } = auth.useAuth()
+    const { goOffline, signInWithGoogle, signInWithGitHub, signInWithPassword } = auth.useAuth()
 
     const initialEmail = parseUrlSearchParams(search)
 
     const [email, setEmail] = react.useState(initialEmail ?? '')
     const [password, setPassword] = react.useState('')
+
+    react.useEffect(() => {
+        void (async () => {
+            try {
+                throw ''
+                await fetch(config.CLOUD_DOMAIN)
+            } catch {
+                // An error means the internet is disconnected.
+                toast.error('You are offline, switching to offline mode.')
+                await goOffline()
+            }
+        })()
+    }, [])
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">

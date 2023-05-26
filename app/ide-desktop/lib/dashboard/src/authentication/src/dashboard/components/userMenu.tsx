@@ -35,7 +35,7 @@ function UserMenuItem(props: react.PropsWithChildren<UserMenuItemProps>) {
 /** Handling the UserMenuItem click event logic and displaying its content. */
 function UserMenu() {
     const { signOut } = auth.useAuth()
-    const { accessToken, organization } = auth.useFullUserSession()
+    const { accessToken, organization } = auth.useNonPartialUserSession()
 
     const { setModal } = modalProvider.useSetModal()
 
