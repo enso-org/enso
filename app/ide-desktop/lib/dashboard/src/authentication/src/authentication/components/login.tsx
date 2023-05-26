@@ -7,7 +7,6 @@ import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
-import * as config from '../../config'
 import * as svg from '../../components/svg'
 
 import FontAwesomeIcon from './fontAwesomeIcon'
@@ -18,6 +17,8 @@ import SvgIcon from './svgIcon'
 // === Constants ===
 // =================
 
+/** A test domain used to check for internet connectivity. */
+const TEST_DOMAIN = 'https://1.1.1.1'
 const LOGIN_QUERY_PARAMS = {
     email: 'email',
 } as const
@@ -39,8 +40,7 @@ function Login() {
     react.useEffect(() => {
         void (async () => {
             try {
-                throw ''
-                await fetch(config.CLOUD_DOMAIN)
+                await fetch(TEST_DOMAIN, { mode: 'cors' })
             } catch {
                 // An error means the internet is disconnected.
                 toast.error('You are offline, switching to offline mode.')
