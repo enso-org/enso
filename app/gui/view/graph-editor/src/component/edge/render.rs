@@ -4,17 +4,22 @@
 //! will implement them.
 
 use crate::prelude::*;
+
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::*;
-
 use super::layout::Corner;
 use super::layout::EdgeSplit;
 use super::layout::Oriented;
-use super::layout::RectangleGeometry;
 use super::layout::SplitArc;
 use super::layout::TargetAttachment;
+
+use std::f32::consts::FRAC_PI_2;
+use std::f32::consts::FRAC_PI_4;
+use std::f32::consts::PI;
+use std::f32::consts::SQRT_2;
+use std::f32::consts::TAU;
 
 
 
@@ -75,7 +80,7 @@ impl Shapes {
         let shape = self.dataflow_arrow.take();
         if let Some(arrow_origin) = arrow {
             let arrow_origin_to_center_of_tip =
-                Vector2(0.0, -(arrow::ARM_LENGTH - arrow::ARM_WIDTH) * std::f32::consts::SQRT_2);
+                Vector2(0.0, -(arrow::ARM_LENGTH - arrow::ARM_WIDTH) * SQRT_2);
             // The arrow will have the same color as the target-end of the first corner from the
             // source (this is the `arrow_origin` point).
             let color = match focus_split.map(|split| split.corner_index) {
@@ -130,8 +135,8 @@ impl Shapes {
         }
         let arc_shapes = self.split_arc.take();
         if let Some(split_corner) = split_corner {
-            let source_side = split_corner.source_end.to_rectangle_geometry(LINE_WIDTH);
-            let target_side = split_corner.target_end.to_rectangle_geometry(LINE_WIDTH);
+            let source_side = rectangle_geometry(*split_corner.source_end, LINE_WIDTH);
+            let target_side = rectangle_geometry(*split_corner.target_end, LINE_WIDTH);
             let split_arc = split_corner.split_arc;
             if let Some(split_arc) = split_arc {
                 let arc_shapes = arc_shapes.unwrap_or_else(|| [parent.new_arc(), parent.new_arc()]);
@@ -264,7 +269,7 @@ mod arc {
             sector_angle: f32,
         ) {
             let circle = Circle(outer_radius.px()) - Circle((outer_radius - stroke_width).px());
-            let angle_adjust = Var::<f32>::from(std::f32::consts::FRAC_PI_2);
+            let angle_adjust = Var::<f32>::from(FRAC_PI_2);
             let rotate_angle = -start_angle + angle_adjust - &sector_angle / 2.0;
             let angle = PlaneAngleFast(sector_angle).rotate(rotate_angle);
             let angle = angle.grow(0.5.px());
@@ -338,7 +343,7 @@ pub(super) trait ShapeParent: display::Object {
         new.set_color(color::Rgba::transparent());
         new.set_border_color(color::Rgba::transparent());
         new.set_pointer_events(false);
-        new.set_rotation_z(std::f32::consts::FRAC_PI_4);
+        new.set_rotation_z(FRAC_PI_4);
         new.set_clip(Vector2(0.5, 0.5));
         self.display_object().add_child(&new);
         new
@@ -347,9 +352,9 @@ pub(super) trait ShapeParent: display::Object {
 
 
 
-// ========================================
-// === Implementing layouts with shapes ===
-// ========================================
+// =========================
+// === Rendering Corners ===
+// =========================
 
 /// Set the given [`Rectangle`]'s geometry to draw this corner shape.
 ///
@@ -357,7 +362,7 @@ pub(super) trait ShapeParent: display::Object {
 /// [`line_width`]. They are not set here as an optimization: When shapes are reused, the value does
 /// not need to be set again, reducing needed GPU uploads.
 pub(super) fn draw_corner(shape: Rectangle, corner: Corner, line_width: f32) -> Rectangle {
-    draw_geometry(shape, corner.to_rectangle_geometry(line_width))
+    draw_geometry(shape, rectangle_geometry(corner, line_width))
 }
 
 fn draw_geometry(shape: Rectangle, geometry: RectangleGeometry) -> Rectangle {
@@ -368,35 +373,93 @@ fn draw_geometry(shape: Rectangle, geometry: RectangleGeometry) -> Rectangle {
     shape
 }
 
+
+// === Rectangle Geometry ===
+
+#[derive(Debug, Copy, Clone, Default)]
+struct RectangleGeometry {
+    pub clip:   Vector2,
+    pub size:   Vector2,
+    pub xy:     Vector2,
+    pub radius: f32,
+}
+
+/// Return [`Rectangle`] geometry parameters to draw this corner shape.
+fn rectangle_geometry(corner: Corner, line_width: f32) -> RectangleGeometry {
+    RectangleGeometry {
+        clip:   corner.clip(),
+        size:   corner.size(line_width),
+        xy:     corner.origin(line_width),
+        radius: corner.max_radius(),
+    }
+}
+
+
+
+// ==============================
+// === Rendering Partial Arcs ===
+// ==============================
+
 /// Apply the specified arc-splitting parameters to the given arc shapes.
 pub(super) fn draw_split_arc(arc_shapes: [arc::View; 2], split_arc: SplitArc) -> [arc::View; 2] {
     let outer_radius = split_arc.radius + LINE_WIDTH / 2.0;
     let arc_box = Vector2(outer_radius * 2.0, outer_radius * 2.0);
     let arc_offset = Vector2(-outer_radius, -outer_radius);
-    for shape in &arc_shapes {
+    let geometry = ArcGeometry::bisection(
+        split_arc.source_end_angle,
+        split_arc.split_angle,
+        split_arc.target_end_angle
+    );
+    warn!("geometry: {:?}", geometry);
+    for (shape, geometry) in arc_shapes.iter().zip(&geometry) {
         shape.set_xy(split_arc.origin + arc_offset);
         shape.set_size(arc_box);
-        shape.outer_radius.set(split_arc.radius + LINE_WIDTH / 2.0);
+        shape.outer_radius.set(outer_radius);
+        shape.start_angle.set(geometry.start);
+        shape.sector_angle.set(geometry.sector);
     }
-    let (source, target) = (&arc_shapes[0], &arc_shapes[1]);
-    source.start_angle.set(angle_min(split_arc.split_angle, split_arc.source_end_angle));
-    source.sector_angle.set(abs_diff(split_arc.split_angle, split_arc.source_end_angle));
-    target.start_angle.set(angle_min(split_arc.split_angle, split_arc.target_end_angle));
-    target.sector_angle.set(abs_diff(split_arc.split_angle, split_arc.target_end_angle));
     arc_shapes
 }
 
 
-// === Math helpers ===
+// === Arc geometry ===
 
-fn angle_min(a: f32, b: f32) -> f32 {
-    let a = a.rem_euclid(std::f32::consts::TAU);
-    let b = b.rem_euclid(std::f32::consts::TAU);
-    min(a, b)
+#[derive(Debug, Copy, Clone, PartialEq)]
+struct ArcGeometry {
+    start: f32,
+    sector: f32,
 }
 
-fn abs_diff(a: f32, b: f32) -> f32 {
+impl ArcGeometry {
+    fn bisection(a: f32, b: f32, c: f32) -> [Self; 2] {
+        [Self::new_minor(a, b), Self::new_minor(b, c)]
+    }
+
+    fn new_minor(a: f32, b: f32) -> Self {
+        let start = minor_arc_start(a, b);
+        let sector = minor_arc_sector(a, b);
+        Self { start, sector }
+    }
+}
+
+fn minor_arc_start(a: f32, b: f32) -> f32 {
+    let a = a.rem_euclid(TAU);
+    let b = b.rem_euclid(TAU);
+    let wrapped = (a - b).abs() >= PI;
+    if wrapped {
+        if a < f32::EPSILON {
+            b
+        } else {
+            a
+        }
+    } else {
+        min(a, b)
+    }
+}
+
+fn minor_arc_sector(a: f32, b: f32) -> f32 {
     let a = a.abs();
     let b = b.abs();
-    (a - b).abs()
+    let ab = (a - b).abs();
+    min(ab, TAU - ab)
 }

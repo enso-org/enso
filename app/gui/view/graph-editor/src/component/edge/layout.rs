@@ -304,18 +304,8 @@ pub(super) struct Corner {
 }
 
 impl Corner {
-    /// Return [`Rectangle`] geometry parameters to draw this corner shape.
-    pub(super) fn to_rectangle_geometry(self, line_width: f32) -> RectangleGeometry {
-        RectangleGeometry {
-            clip:   self.clip(),
-            size:   self.size(line_width),
-            xy:     self.origin(line_width),
-            radius: self.max_radius,
-        }
-    }
-
     #[inline]
-    pub(super) fn clip(self) -> Vector2 {
+    pub fn clip(self) -> Vector2 {
         let Corner { horizontal, vertical, .. } = self;
         let (dx, dy) = (vertical.x() - horizontal.x(), horizontal.y() - vertical.y());
         let (x_clip, y_clip) = (0.5f32.copysign(dx), 0.5f32.copysign(dy));
@@ -323,7 +313,7 @@ impl Corner {
     }
 
     #[inline]
-    pub(super) fn origin(self, line_width: f32) -> Vector2 {
+    pub fn origin(self, line_width: f32) -> Vector2 {
         let Corner { horizontal, vertical, .. } = self;
         let x = horizontal.x().min(vertical.x() - line_width / 2.0);
         let y = vertical.y().min(horizontal.y() - line_width / 2.0);
@@ -331,7 +321,7 @@ impl Corner {
     }
 
     #[inline]
-    pub(super) fn size(self, line_width: f32) -> Vector2 {
+    pub fn size(self, line_width: f32) -> Vector2 {
         let Corner { horizontal, vertical, .. } = self;
         let offset = horizontal - vertical;
         let width = (offset.x().abs() + line_width / 2.0).max(line_width);
@@ -339,14 +329,19 @@ impl Corner {
         Vector2(width, height)
     }
 
-    pub(super) fn bounding_box(self, line_width: f32) -> BoundingBox {
+    #[inline]
+    pub fn max_radius(self) -> f32 {
+        self.max_radius
+    }
+
+    fn bounding_box(self, line_width: f32) -> BoundingBox {
         let origin = self.origin(line_width);
         let size = self.size(line_width);
         BoundingBox::from_position_and_size_unchecked(origin, size)
     }
 
     #[allow(unused)]
-    pub(super) fn euclidean_length(self) -> f32 {
+    fn euclidean_length(self) -> f32 {
         let Corner { horizontal, vertical, max_radius } = self;
         let offset = horizontal - vertical;
         let (dx, dy) = (offset.x().abs(), offset.y().abs());
@@ -357,39 +352,28 @@ impl Corner {
         arc + linear_x + linear_y
     }
 
-    pub(super) fn rectilinear_length(self) -> f32 {
+    fn rectilinear_length(self) -> f32 {
         let Corner { horizontal, vertical, .. } = self;
         let offset = horizontal - vertical;
         offset.x().abs() + offset.y().abs()
     }
 
     #[allow(unused)]
-    pub(super) fn transpose(self) -> Self {
+    fn transpose(self) -> Self {
         let Corner { horizontal, vertical, max_radius } = self;
         Corner { horizontal: vertical.yx(), vertical: horizontal.yx(), max_radius }
     }
 
-    pub(super) fn vertical_end_angle(self) -> f32 {
+    fn vertical_end_angle(self) -> f32 {
         match self.vertical.x() > self.horizontal.x() {
             true => 0.0,
             false => std::f32::consts::PI.copysign(self.horizontal.y() - self.vertical.y()),
         }
     }
 
-    pub(super) fn horizontal_end_angle(self) -> f32 {
+    fn horizontal_end_angle(self) -> f32 {
         FRAC_PI_2.copysign(self.horizontal.y() - self.vertical.y())
     }
-}
-
-
-// === Rectangle geometry describing a corner ===
-
-#[derive(Debug, Copy, Clone, Default)]
-pub(super) struct RectangleGeometry {
-    pub clip:   Vector2,
-    pub size:   Vector2,
-    pub xy:     Vector2,
-    pub radius: f32,
 }
 
 
@@ -424,43 +408,6 @@ impl<T> Oriented<T> {
 }
 
 impl Oriented<Corner> {
-    pub(super) fn source_end(self) -> Vector2 {
-        match self.direction {
-            CornerDirection::VerticalToHorizontal => self.value.vertical,
-            CornerDirection::HorizontalToVertical => self.value.horizontal,
-        }
-    }
-
-    #[allow(unused)]
-    pub(super) fn target_end(self) -> Vector2 {
-        match self.direction {
-            CornerDirection::VerticalToHorizontal => self.value.horizontal,
-            CornerDirection::HorizontalToVertical => self.value.vertical,
-        }
-    }
-
-    pub(super) fn with_target_end(mut self, value: Vector2) -> Self {
-        *(match self.direction {
-            CornerDirection::VerticalToHorizontal => &mut self.value.horizontal,
-            CornerDirection::HorizontalToVertical => &mut self.value.vertical,
-        }) = value;
-        self
-    }
-
-    pub(super) fn with_source_end(mut self, value: Vector2) -> Self {
-        *(match self.direction {
-            CornerDirection::VerticalToHorizontal => &mut self.value.vertical,
-            CornerDirection::HorizontalToVertical => &mut self.value.horizontal,
-        }) = value;
-        self
-    }
-
-    pub(super) fn reverse(self) -> Self {
-        let Self { value, direction } = self;
-        let direction = direction.reverse();
-        Self { value, direction }
-    }
-
     /// Split the shape at the given point, if the point is within the tolerance specified by
     /// `snap_line_width` of the shape.
     pub(super) fn split(self, split_point: Vector2, snap_line_width: f32) -> Option<SplitCorner> {
@@ -534,7 +481,7 @@ impl Oriented<Corner> {
         }
     }
 
-    pub(super) fn clamp_to_arc(self, c: f32) -> f32 {
+    fn clamp_to_arc(self, c: f32) -> f32 {
         let a = self.horizontal_end_angle();
         let b = self.vertical_end_angle();
         let a_to_c = (c.rem_euclid(TAU) - a.rem_euclid(TAU)).abs();
@@ -554,15 +501,52 @@ impl Oriented<Corner> {
         }
     }
 
-    pub(super) fn source_end_angle(self) -> f32 {
+    fn source_end(self) -> Vector2 {
+        match self.direction {
+            CornerDirection::VerticalToHorizontal => self.value.vertical,
+            CornerDirection::HorizontalToVertical => self.value.horizontal,
+        }
+    }
+
+    #[allow(unused)]
+    fn target_end(self) -> Vector2 {
+        match self.direction {
+            CornerDirection::VerticalToHorizontal => self.value.horizontal,
+            CornerDirection::HorizontalToVertical => self.value.vertical,
+        }
+    }
+
+    fn with_target_end(mut self, value: Vector2) -> Self {
+        *(match self.direction {
+            CornerDirection::VerticalToHorizontal => &mut self.value.horizontal,
+            CornerDirection::HorizontalToVertical => &mut self.value.vertical,
+        }) = value;
+        self
+    }
+
+    fn with_source_end(mut self, value: Vector2) -> Self {
+        *(match self.direction {
+            CornerDirection::VerticalToHorizontal => &mut self.value.vertical,
+            CornerDirection::HorizontalToVertical => &mut self.value.horizontal,
+        }) = value;
+        self
+    }
+
+    fn source_end_angle(self) -> f32 {
         match self.direction {
             CornerDirection::HorizontalToVertical => self.horizontal_end_angle(),
             CornerDirection::VerticalToHorizontal => self.vertical_end_angle(),
         }
     }
 
-    pub(super) fn target_end_angle(self) -> f32 {
+    fn target_end_angle(self) -> f32 {
         self.reverse().source_end_angle()
+    }
+
+    fn reverse(self) -> Self {
+        let Self { value, direction } = self;
+        let direction = direction.reverse();
+        Self { value, direction }
     }
 }
 
