@@ -360,9 +360,9 @@ public class EnsoContext {
    * is looked up by iterating the members of the outer class via Truffle's interop protocol.
    *
    * @param className Fully qualified class name, can also be nested static inner class.
-   * @return The java class or Optional.empty if not found.
+   * @return If the java class is found, return it, otherwise return null.
    */
-  public Optional<Object> lookupJavaClass(String className) {
+  public Object lookupJavaClass(String className) {
     List<String> items = Arrays.asList(className.split("\\."));
     for (int i = items.size() - 1; i >= 0; i--) {
       String pkgName = String.join(".", items.subList(0, i));
@@ -372,14 +372,14 @@ public class EnsoContext {
       try {
         Object hostSymbol = environment.lookupHostSymbol(pkgName + "." + curClassName);
         if (nestedClassPart.isEmpty()) {
-          return Optional.of(hostSymbol);
+          return hostSymbol;
         } else {
           return getNestedClass(hostSymbol, nestedClassPart);
         }
       } catch (RuntimeException ignored) {
       }
     }
-    return Optional.empty();
+    return null;
   }
 
   /**
@@ -579,7 +579,7 @@ public class EnsoContext {
     return notificationHandler;
   }
 
-  private Optional<Object> getNestedClass(Object hostClass, List<String> nestedClassName) {
+  private Object getNestedClass(Object hostClass, List<String> nestedClassName) {
     Object nestedClass = hostClass;
     var interop = InteropLibrary.getUncached();
     for (String name : nestedClassName) {
@@ -594,13 +594,13 @@ public class EnsoContext {
         if (interop.isMetaObject(member)) {
           nestedClass = member;
         } else {
-          return Optional.empty();
+          return null;
         }
       } else {
-        return Optional.empty();
+        return null;
       }
     }
-    return Optional.of(nestedClass);
+    return nestedClass;
   }
 
   private <T> T getOption(OptionKey<T> key) {

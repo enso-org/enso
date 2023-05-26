@@ -189,17 +189,17 @@ class IrToTruffle(
     // Register the imports in scope
     imports.foreach {
       case poly @ Import.Polyglot(i: Import.Polyglot.Java, _, _, _, _) =>
-        val hostSymbol = context
-          .lookupJavaClass(i.getJavaName)
-          .orElseThrow(() =>
-            new CompilerError(
-              s"Incorrect polyglot import: Cannot find host symbol (Java class) '${i.getJavaName}'"
-            )
+        val hostSymbol = context.lookupJavaClass(i.getJavaName)
+        if (hostSymbol != null) {
+          this.moduleScope.registerPolyglotSymbol(
+            poly.getVisibleName,
+            hostSymbol
           )
-        this.moduleScope.registerPolyglotSymbol(
-          poly.getVisibleName,
-          hostSymbol
-        )
+        } else {
+          throw new CompilerError(
+            s"Incorrect polyglot import: Cannot find host symbol (Java class) '${i.getJavaName}'"
+          )
+        }
       case _: Import.Module =>
       case _: Error         =>
     }
