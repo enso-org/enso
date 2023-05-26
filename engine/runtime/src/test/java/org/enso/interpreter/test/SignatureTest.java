@@ -65,6 +65,38 @@ public class SignatureTest extends TestBase {
   }
 
   @Test
+  public void runtimeCheckOfAscribedFunctionSignature() throws Exception {
+    final URI uri = new URI("memory://neg.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer, Error
+
+    err msg = Error.throw msg
+    neg (a : Integer) = 0 - a
+    """, uri.getHost())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var neg = module.invokeMember("eval_expression", "neg");
+    var err = module.invokeMember("eval_expression", "err");
+    try {
+      var res = neg.execute("Hi");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertTypeError("Argument #2", "Integer", "Text", e.getMessage());
+    }
+
+    var ten = neg.execute(-10);
+    assertEquals("Ten", 10, ten.asInt());
+
+    var error = err.execute("I am an error");
+    assertTrue("Error value", error.isException());
+
+    var yieldsError = neg.execute(error);
+    assertTrue("Yields Error value", yieldsError.isException());
+  }
+
+  @Test
   public void wrongAscribedInConstructor() throws Exception {
     final URI uri = new URI("memory://constructor.enso");
     final Source src = Source.newBuilder("enso", """

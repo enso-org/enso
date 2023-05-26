@@ -8,6 +8,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 
 import com.oracle.truffle.api.CompilerDirectives;
@@ -89,15 +90,16 @@ public class ReadArgumentNode extends ExpressionNode {
           return v;
         }
       }
-      CompilerDirectives.transferToInterpreter();
-      var ctx = EnsoContext.get(this);
-      var expecting =
-          expectedTypes.length == 1 ? expectedTypes[0] : new Array((Object[]) expectedTypes);
-      var err = ctx.getBuiltins().error().makeTypeError(expecting, v, "Argument #" + (index + 1));
-      throw new PanicException(err, this);
-    } else {
-      return v;
+      if (!(v instanceof DataflowError)) {
+        CompilerDirectives.transferToInterpreter();
+        var ctx = EnsoContext.get(this);
+        var expecting =
+            expectedTypes.length == 1 ? expectedTypes[0] : new Array((Object[]) expectedTypes);
+        var err = ctx.getBuiltins().error().makeTypeError(expecting, v, "Argument #" + (index + 1));
+        throw new PanicException(err, this);
+      }
     }
+    return v;
   }
 
   /* Note [Handling Argument Defaults]
