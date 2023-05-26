@@ -7,8 +7,13 @@ case class InterpreterException(
   @transient output: Option[Any]
 ) extends Throwable
     with Serializable {
-  override def getMessage: String =
-    polyglotException.getMessage + output.map("\n" + _.toString()).getOrElse("")
+  override def getMessage: String = {
+    val msg = polyglotException.getMessage
+    output.map(msg + "\n" + _.toString()).getOrElse(msg)
+  }
+  override def getLocalizedMessage: String = {
+    polyglotException.getMessage
+  }
   override def getStackTrace: Array[StackTraceElement] =
     polyglotException.getStackTrace
   override def fillInStackTrace(): Throwable = this

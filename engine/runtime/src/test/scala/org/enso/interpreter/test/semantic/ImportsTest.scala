@@ -3,6 +3,13 @@ package org.enso.interpreter.test.semantic
 import org.enso.interpreter.test.{InterpreterException, PackageTest}
 
 class ImportsTest extends PackageTest {
+  implicit def messagingNatureOInterpreterException
+    : org.scalatest.enablers.Messaging[InterpreterException] =
+    new org.scalatest.enablers.Messaging[InterpreterException] {
+      def messageOf(exception: InterpreterException): String =
+        exception.getLocalizedMessage
+    }
+
   "Atoms and methods" should "be available for import" in {
     evalTestProject("TestSimpleImports") shouldEqual 20
   }
