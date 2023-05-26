@@ -84,14 +84,13 @@ spec setup =
                 Problems.assume_no_problems c
 
             Test.specify "should warn when losing data if the fixed-length text length is too short to fit the data" pending=(if setup.is_database then "Conversion_Failure is not supported in Database yet.") <|
-                t = table_builder [["X", [15, 1000000, 123456]]]
+                t = table_builder [["X", [15, 1000000, 123456, 1000, 1000]]]
                 c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
                 c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
                 c.to_vector . should_equal ["15 ", "100", "123"]
                 warning = Problems.expect_warning Conversion_Failure c
-                warning.affected_rows_count . should_equal 2
-                warning.to_display_text . should_contain "2 rows have a text representation that does not fit the target type"
-                warning.to_display_text . should_contain "'1000000', '123456'"
+                warning.affected_rows_count . should_equal 4
+                warning.to_display_text . should_contain "['1000000', '123456', '1000' and 1 other case] have a text representation that does not fit the target type"
 
     Test.group prefix+"Table/Column.cast - numeric" <|
         Test.specify "should allow to cast a boolean column to integer" <|
@@ -164,7 +163,7 @@ spec setup =
                 c.value_type . should_equal Value_Type.Integer
                 c.to_vector . should_equal [1, 2, max_long, Nothing, min_long, Nothing, 4]
                 warning = Problems.expect_warning Conversion_Failure c
-                warning.to_display_text . should_contain "2 rows could not be converted"
+                warning.to_display_text . should_contain "could not be converted"
                 warning.to_display_text . should_contain too_big_double.to_text
 
     if supports_dates then
