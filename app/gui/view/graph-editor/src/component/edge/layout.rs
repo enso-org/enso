@@ -63,6 +63,9 @@
 
 use super::*;
 
+use std::f32::consts::FRAC_PI_2;
+use std::f32::consts::TAU;
+
 
 
 // =================
@@ -350,7 +353,7 @@ impl Corner {
         let radius = min(dx, dy).min(max_radius);
         let linear_x = dx - radius;
         let linear_y = dy - radius;
-        let arc = std::f32::consts::FRAC_PI_2 * radius;
+        let arc = FRAC_PI_2 * radius;
         arc + linear_x + linear_y
     }
 
@@ -374,7 +377,7 @@ impl Corner {
     }
 
     pub(super) fn horizontal_end_angle(self) -> f32 {
-        std::f32::consts::FRAC_PI_2.copysign(self.horizontal.y() - self.vertical.y())
+        FRAC_PI_2.copysign(self.horizontal.y() - self.vertical.y())
     }
 }
 
@@ -522,18 +525,32 @@ impl Oriented<Corner> {
             let target_end = self.with_source_end(arc_end);
             let source_end_angle = self.source_end_angle();
             let target_end_angle = self.target_end_angle();
-            // Snap the angle to the arc's quadrant, so that the signs don't come out wrong if we
-            // handle an event slightly outside the expected bounds.
-            let (low, high) = match source_end_angle < target_end_angle {
-                true => (source_end_angle, target_end_angle),
-                false => (target_end_angle, source_end_angle),
-            };
-            let split_angle = split_angle.clamp(low, high);
+            let split_angle = self.clamp_to_arc(split_angle);
             let split =
                 SplitArc { origin, radius, source_end_angle, split_angle, target_end_angle };
             Some(SplitCorner { source_end, target_end, split_arc: Some(split) })
         } else {
             None
+        }
+    }
+
+    pub(super) fn clamp_to_arc(self, c: f32) -> f32 {
+        let a = self.horizontal_end_angle();
+        let b = self.vertical_end_angle();
+        let a_to_c = (c.rem_euclid(TAU) - a.rem_euclid(TAU)).abs();
+        let b_to_c = (c.rem_euclid(TAU) - b.rem_euclid(TAU)).abs();
+        let ac = min(a_to_c, TAU - a_to_c);
+        let bc = min(b_to_c, TAU - b_to_c);
+        let close_to_a = ac < FRAC_PI_2;
+        let close_to_b = bc < FRAC_PI_2;
+        // The angle is on the minor arc if it is close to both limits; otherwise, clamp it to
+        // whichever is closer.
+        if close_to_a && close_to_b {
+            c
+        } else if ac < bc {
+            a
+        } else {
+            b
         }
     }
 
