@@ -128,7 +128,7 @@ impl Metrics {
 
 struct NetworkData {
     nodes: Vec<NodeId>,
-    refs:  usize,
+    refs:  usize, // FIXME: remove
 }
 
 
@@ -215,8 +215,8 @@ pub fn with_runtime<T>(f: impl FnOnce(&Runtime) -> T) -> T {
 
 #[derive(Default)]
 pub struct Runtime {
-    networks:     OptRefCell<SlotMap<NetworkId, NetworkData>>,
-    nodes:        CellSlotMap,
+    networks: OptRefCell<SlotMap<NetworkId, NetworkData>>,
+    nodes:    CellSlotMap,
     // consumers:         RefCell<SecondaryMap<NodeId, BumpRc<dyn RawEventConsumer>>>,
     /// Map for each node to its behavior, if any. For nodes that are natively behaviors, points to
     /// itself. For non-behavior streams, may point to a sampler node that listens to it.
@@ -227,8 +227,8 @@ pub struct Runtime {
     // targets: RefCell<SecondaryMap<NodeId, TargetsVec>>,
     // target_store_pool: RefCell<Vec<TargetsVec>>,
     metrics: Metrics,
-    stack:        CallStack,
-    current_node: Cell<NodeId>,
+    stack:    CallStack,
+    // current_node: Cell<NodeId>,
 }
 
 impl Runtime {
@@ -237,7 +237,7 @@ impl Runtime {
         self.nodes.clear();
         // self.metrics = Metrics::default();
         // self.stack.clear();
-        self.current_node.set(default());
+        // self.current_node.set(default());
     }
 
     #[inline(always)]
@@ -246,6 +246,19 @@ impl Runtime {
         self.metrics.inc_network_refs();
         let mut networks = self.networks.borrow_mut();
         networks.insert(NetworkData { nodes: Vec::new(), refs: 1 })
+    }
+
+    fn drop_network(&self, id: NetworkId) {
+        let net_data = self.networks.borrow_mut().remove(id);
+        if let Some(net_data) = net_data {
+            for node_id in net_data.nodes {
+                self.drop_node(node_id);
+            }
+        }
+    }
+
+    fn drop_node(&self, id: NodeId) {
+        self.nodes.remove(id);
     }
 
     #[inline(always)]
@@ -286,54 +299,20 @@ impl Runtime {
 
     #[inline(always)]
     fn unchecked_emit(&self, node_id: NodeId, event: &dyn Data) {
-        // println!("unchecked_emit {:?} {:?}", node_id, event);
-        // println!("unchecked_emit {:?} {:?}", node_id, event);
         self.nodes.with_item_borrow(node_id, |node| {
-            if node.behavior_requests.get() > 0 {
-                *node.output.borrow_mut() = ZeroableOption::Some(event.boxed_clone());
-            }
-
-            let cleanup_targets = self.stack.with(node.def, || {
-                let mut cleanup_targets = false;
-                node.outputs.for_item_borrow(|&node_output_id| {
-                    let done = self.nodes.with_item_borrow(node_output_id.target, |node_output| {
-                        node_output.on_event(self, node_id, node_output_id, event);
-                    });
-                    if done.is_none() {
-                        cleanup_targets = true;
-                    }
-                });
-
-                cleanup_targets
-            });
-            //
-            // Return temporary buffer to pool.
-            // node_outputs.clear();
-            // self.target_store_pool.borrow_mut().push(node_outputs);
+            self.unchecked_emit2(node_id, node, event);
         });
-        //
-        // // Remove targets that have been dropped.
-        // if cleanup_targets {
-        //     let mut targets = self.targets.borrow_mut();
-        //     let node_targets = targets.get_mut(node_id);
-        //     if let Some(targets) = node_targets {
-        //         let consumers = self.consumers.borrow();
-        //         targets.retain(|target| consumers.contains_key(*target));
-        //     }
-        // }
     }
 
     #[inline(always)]
     fn unchecked_emit2(&self, node_id: NodeId, node: &NodeData, event: &dyn Data) {
-        // println!("unchecked_emit {:?} {:?}", node_id, event);
-        // println!("unchecked_emit {:?} {:?}", node_id, event);
         if node.behavior_requests.get() > 0 {
             *node.output.borrow_mut() = ZeroableOption::Some(event.boxed_clone());
         }
 
         self.stack.with(node.def, || {
             let mut index = 0;
-            let mut cleanup_targets = vec![];
+            let mut cleanup_targets = Vec::<i32>::new();
             node.outputs.for_item_borrow(|&node_output_id| {
                 let done = self.nodes.with_item_borrow(node_output_id.target, |node_output| {
                     node_output.on_event(self, node_id, node_output_id, event);
@@ -344,22 +323,20 @@ impl Runtime {
                 index += 1;
             });
 
-            println!("CLEANUP TARGETS: {:?}", cleanup_targets);
+            if !cleanup_targets.is_empty() {
+                let mut index = 0;
+                let mut cleanup_targets_iter = cleanup_targets.iter();
+                let mut cleanup_target = *cleanup_targets_iter.next().unwrap();
+                node.outputs.retain(|_| {
+                    let retain = cleanup_target != index;
+                    if !retain {
+                        cleanup_target = cleanup_targets_iter.next().copied().unwrap_or(-1);
+                    }
+                    index += 1;
+                    retain
+                })
+            }
         });
-        //
-        // Return temporary buffer to pool.
-        // node_outputs.clear();
-        // self.target_store_pool.borrow_mut().push(node_outputs);
-        //
-        // // Remove targets that have been dropped.
-        // if cleanup_targets {
-        //     let mut targets = self.targets.borrow_mut();
-        //     let node_targets = targets.get_mut(node_id);
-        //     if let Some(targets) = node_targets {
-        //         let consumers = self.consumers.borrow();
-        //         targets.retain(|target| consumers.contains_key(*target));
-        //     }
-        // }
     }
 
     #[inline(always)]
@@ -386,20 +363,41 @@ impl Runtime {
 // === Network ===
 // ===============
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug, Deref, Default)]
 pub struct Network {
-    pub(crate) id: NetworkId,
+    rc: Rc<NetworkGuard>,
 }
 
 impl Network {
-    #[inline(never)]
     pub fn new() -> Self {
-        let id = with_runtime(|rt| rt.new_network());
-        Network { id }
+        default()
     }
 }
 
+#[derive(Debug)]
+pub struct NetworkGuard {
+    pub(crate) id: NetworkId,
+}
+
+impl NetworkGuard {
+    #[inline(never)]
+    pub fn new() -> Self {
+        let id = with_runtime(|rt| rt.new_network());
+        NetworkGuard { id }
+    }
+}
+
+impl Default for NetworkGuard {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Drop for NetworkGuard {
+    fn drop(&mut self) {
+        with_runtime(|rt| rt.drop_network(self.id));
+    }
+}
 
 pub trait Node: Copy {
     type Output;
@@ -763,6 +761,29 @@ mod tests {
     }
 
     #[test]
+    fn test_network_drop() {
+        let net1 = Network::new();
+        let net1_src = net1.source::<usize>();
+        let net1_tgt = net1.map(net1_src, |t| t + 1);
+        let (_, net1_results) = net1.debug_collect(net1_tgt);
+
+        let net2 = Network::new();
+        let net2_tgt = net2.map(net1_src, |t| t * 3);
+        let (_, net2_results) = net2.debug_collect(net2_tgt);
+
+        net1_results.assert_eq(&[]);
+        net2_results.assert_eq(&[]);
+        net1_src.emit(&1);
+        net1_results.assert_eq(&[2]);
+        net2_results.assert_eq(&[3]);
+
+        drop(net2);
+        net1_src.emit(&2);
+        net1_results.assert_eq(&[2, 3]);
+        net2_results.assert_eq(&[3]);
+    }
+
+    #[test]
     fn test2() {
         for i in 0..10 {
             let net = Network::new();
@@ -1052,6 +1073,17 @@ impl CellSlotMap {
         self.list.clear();
     }
 
+    pub fn remove(&self, id: NodeId) {
+        let ok = self.with_slot_borrow_mut(id, |slot| {
+            slot.value = default();
+            slot.version += 1;
+        });
+        if ok.is_some() {
+            let mut free_indexes = self.free_indexes.borrow_mut();
+            free_indexes.push(id.index);
+        }
+    }
+
     #[inline(always)]
     pub fn insert(&self, val: NodeData) -> NodeId {
         let mut free_indexes = self.free_indexes.borrow_mut();
@@ -1073,13 +1105,8 @@ impl CellSlotMap {
     pub fn insert_default(&self) -> NodeId {
         let mut free_indexes = self.free_indexes.borrow_mut();
         if let Some(index) = free_indexes.pop() {
-            todo!()
-            // let version = self.list.with_item_borrow_mut(index, |slot| {
-            //     slot.value = val;
-            //     slot.version += 1;
-            //     slot.version
-            // });
-            // NodeId { index, version }
+            let version = self.list.with_item_borrow(index, |slot| slot.version);
+            NodeId { index, version }
         } else {
             let index = self.list.len();
             self.list.push_default();
@@ -1115,6 +1142,12 @@ impl CellSlotMap {
         self.list.with_item_borrow_mut(key.index, |slot| {
             (slot.version == key.version).then(|| f(&mut slot.value))
         })
+    }
+
+    #[inline(always)]
+    fn with_slot_borrow_mut<R>(&self, key: NodeId, f: impl FnOnce(&mut Slot) -> R) -> Option<R> {
+        self.list
+            .with_item_borrow_mut(key.index, |slot| (slot.version == key.version).then(|| f(slot)))
     }
 }
 
