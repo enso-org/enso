@@ -325,6 +325,7 @@ macro_rules! define_corner_start {
 
             ensogl::shape! {
                 $($args)*
+                pointer_events = false;
                 alignment = center;
                 ( style:               Style
                 , radius             : f32
@@ -425,6 +426,7 @@ macro_rules! define_corner_end {
             use super::*;
             ensogl::shape! {
                 $($args)*
+                pointer_events = false;
                 alignment = center;
                 (
                     style: Style,
@@ -530,6 +532,7 @@ macro_rules! define_line {
             use super::*;
             ensogl::shape! {
                 $($args)*
+                pointer_events = false;
                 alignment = center;
                 (
                     style: Style,
@@ -599,6 +602,7 @@ macro_rules! define_arrow { ($($args:tt)*) => {
         use super::*;
         ensogl::shape! {
             $($args)*
+            pointer_events = false;
             alignment = center;
             (
                 style: Style,

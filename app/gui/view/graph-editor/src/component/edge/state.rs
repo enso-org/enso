@@ -4,6 +4,7 @@ use ensogl::data::color;
 use super::layout::Corner;
 use super::layout::EdgeSplit;
 use super::layout::Oriented;
+use super::layout::TargetAttachment;
 
 
 
@@ -27,13 +28,12 @@ pub(super) struct State {
 /// An edge's layout.
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct Layout {
-    /// Offset from the edge's parent to the target end of the edge.
-    pub target_offset:     Vector2,
-    /// Points where the corners composing the edge meet. Computed from the target offset.
-    pub junction_points:   Vec<Vector2>,
-    /// The corners composing the edge. Computed from the junction points.
+    /// The corners composing the main part of the edge.
     pub corners:           Vec<Oriented<Corner>>,
-    pub attachment_length: Option<f32>,
+    /// The center of the backward-edge arrow.
+    pub arrow:             Option<Vector2>,
+    /// The target-attachment end.
+    pub target_attachment: Option<TargetAttachment>,
 }
 
 /// An edge's color scheme.

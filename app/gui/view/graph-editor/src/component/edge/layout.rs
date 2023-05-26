@@ -97,6 +97,23 @@ mod single_corner {
 mod three_corner {
     /// The maximum arc radius.
     pub(super) const RADIUS_MAX: f32 = super::RADIUS_BASE;
+    pub(super) const BACKWARD_EDGE_ARROW_THRESHOLD: f32 = 30.0;
+}
+
+
+
+// ==============
+// === Layout ===
+// ==============
+
+/// Determine the positions and shapes of all the components of the edge.
+pub(super) fn layout(source_half_width: f32, target: Vector2, target_attached: bool) -> Layout {
+    let (junction_points, max_radius, attachment_length) =
+        junction_points(source_half_width, target, target_attached);
+    let corners = corners(&junction_points, max_radius).collect_vec();
+    let arrow = arrow(target, &junction_points);
+    let target_attachment = attachment_length.map(|length| TargetAttachment { target, length });
+    Layout { corners, arrow, target_attachment }
 }
 
 
@@ -108,7 +125,7 @@ mod three_corner {
 /// Calculate the start and end positions of each 1-corner section composing an edge to the
 /// given offset. Return the points, the maximum radius that should be used to draw the corners
 /// connecting them, and the length of the target attachment bit.
-pub(super) fn junction_points(
+fn junction_points(
     source_half_width: f32,
     target: Vector2,
     target_attached: bool,
@@ -213,12 +230,12 @@ pub(super) struct EdgeSplit {
 /// Returns [`None`] if the point is not on the edge.
 pub(super) fn find_position(
     position: ParentCoords,
-    corners: &[Oriented<Corner>],
+    layout: &Layout,
     source_height: f32,
-    attachment_height: Option<f32>,
     input_width: f32,
 ) -> Option<EdgeSplit> {
     let position = *position;
+    let corners = &layout.corners;
     let corner_index = corners
         .iter()
         .position(|&corner| corner.bounding_box(input_width).contains_inclusive(position))?;
@@ -228,7 +245,8 @@ pub(super) fn find_position(
         full_corners.iter().map(|&corner| corner.rectilinear_length()).sum();
     let following_distance: f32 =
         following_corners.iter().map(|&corner| corner.rectilinear_length()).sum();
-    let target_attachment_distance = attachment_height.unwrap_or_default();
+    let target_attachment_distance =
+        layout.target_attachment.map(|bit| bit.length).unwrap_or_default();
     // The source end of the edge is on a horizontal line through the center of the source node
     // (this gives nice behavior when the edge exits the end at an angle). To accurately determine
     // which end a point appears closer to, we must exclude the portion of the edge that is hidden
@@ -254,10 +272,7 @@ pub(super) fn find_position(
 // === Connecting points with corners ===
 // ======================================
 
-pub(super) fn corners(
-    points: &[Vector2],
-    max_radius: f32,
-) -> impl Iterator<Item = Oriented<Corner>> + '_ {
+fn corners(points: &[Vector2], max_radius: f32) -> impl Iterator<Item = Oriented<Corner>> + '_ {
     let mut next_direction = CornerDirection::HorizontalToVertical;
     points.array_windows().map(move |&[p0, p1]| {
         let direction = next_direction;
@@ -560,4 +575,35 @@ pub(super) struct SplitCorner {
     pub source_end: Oriented<Corner>,
     pub target_end: Oriented<Corner>,
     pub split_arc:  Option<SplitArc>,
+}
+
+
+
+// ===========================
+// === Backward-edge arrow ===
+// ===========================
+
+fn arrow(target_offset: Vector2, junction_points: &[Vector2]) -> Option<Vector2> {
+    let three_corner_layout = junction_points.len() > 2;
+    let long_backward_edge = target_offset.y() > three_corner::BACKWARD_EDGE_ARROW_THRESHOLD;
+    // The points are ordered from source end to destination, and are alternately horizontal
+    // and vertical junctions. The arrow must be in a vertical part of the edge. Place it at
+    // the first vertical junction.
+    let arrow_origin = junction_points[1];
+    (three_corner_layout && long_backward_edge).then_some(arrow_origin)
+}
+
+
+
+// =============================
+// === Target-attachment bit ===
+// =============================
+
+/// The target-end of the edge, drawn on top of a node.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(super) struct TargetAttachment {
+    /// The target end.
+    pub target: Vector2,
+    /// How far to extend from the target.
+    pub length: f32,
 }

@@ -62,6 +62,7 @@ pub fn main() {
     let scene = &world.default_scene;
     let navigator = Navigator::new(scene, &scene.layers.node_searcher.camera());
     let greenish = color::Lcha(0.5, 0.5, 0.5, 1.0);
+    let lowest_layer = &scene.layers.viz;
 
     let source = Rectangle::new();
     let source_center = SOURCE_CENTER;
@@ -71,7 +72,7 @@ pub fn main() {
     source.set_border_color(color::Rgba::transparent());
     source.set_corner_radius_max();
     source.set_xy(source_center - source_size / 2.0);
-    scene.layers.below_main.add(&source);
+    lowest_layer.add(&source);
     world.add_child(&source);
     let source_moved = make_draggable(scene, &source);
 
@@ -83,7 +84,7 @@ pub fn main() {
     target.set_border_color(color::Rgba::transparent());
     target.set_corner_radius_max();
     target.set_xy(target_center - target_size / 2.0);
-    scene.layers.below_main.add(&target);
+    lowest_layer.add(&target);
     world.add_child(&target);
     let target_moved = make_draggable(scene, &target);
 
@@ -94,7 +95,6 @@ pub fn main() {
     edge.target_attached(true);
     edge.source_attached(true);
     world.add_child(&edge);
-    scene.layers.main.add(&edge);
 
     let old_edge = old_edge::Edge::new(&app);
     old_edge.frp.source_width.emit(source_size.x());
@@ -104,7 +104,7 @@ pub fn main() {
     old_edge.frp.set_disabled.emit(false);
     old_edge.frp.set_color.emit(color::Lcha::from(color::Rgba(1.0, 0.0, 0.0, 1.0)));
     world.add_child(&old_edge);
-    scene.layers.main.add(&edge);
+    scene.layers.below_main.add(&old_edge);
 
     let network = edge.network();
     let target_ = target.display_object().clone_ref();

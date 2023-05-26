@@ -14,6 +14,7 @@ use super::layout::EdgeSplit;
 use super::layout::Oriented;
 use super::layout::RectangleGeometry;
 use super::layout::SplitArc;
+use super::layout::TargetAttachment;
 
 
 
@@ -21,17 +22,22 @@ use super::layout::SplitArc;
 // === Constants ===
 // =================
 
-const BACKWARD_EDGE_ARROW_THRESHOLD: f32 = 30.0;
-const ARROW_ARM_LENGTH: f32 = 12.0;
-const ARROW_ARM_WIDTH: f32 = LINE_WIDTH;
-/// Extra length to add to the top of the target-attachment bit, to ensure that it
-/// appears to pass through the top of the node. Without this adjustment, inexact
-/// floating-point math and anti-aliasing would cause a 1-pixel gap artifact right where
-/// the attachment should meet the corner at the edge of the node.
-const ATTACHMENT_TOP_ADJUSTMENT: f32 = 0.5;
 const LINE_WIDTH: f32 = 4.0;
 const HOVER_EXTENSION: f32 = 10.0;
 pub(super) const HOVER_WIDTH: f32 = LINE_WIDTH + HOVER_EXTENSION;
+
+mod arrow {
+    pub(super) const ARM_LENGTH: f32 = 12.0;
+    pub(super) const ARM_WIDTH: f32 = super::LINE_WIDTH;
+}
+
+mod attachment {
+    /// Extra length to add to the top of the target-attachment bit, to ensure that it
+    /// appears to pass through the top of the node. Without this adjustment, inexact
+    /// floating-point math and anti-aliasing would cause a 1-pixel gap artifact right where
+    /// the attachment should meet the corner at the edge of the node.
+    pub(super) const TOP_ADJUSTMENT: f32 = 0.5;
+}
 
 
 
@@ -64,24 +70,12 @@ impl Shapes {
         parent: &impl ShapeParent,
         parameters: RedrawDataflowArrow,
     ) {
-        let RedrawDataflowArrow {
-            target_offset,
-            junction_points,
-            source_color,
-            target_color,
-            focus_split,
-            is_attached,
-        } = parameters;
+        let RedrawDataflowArrow { arrow, source_color, target_color, focus_split, is_attached } =
+            parameters;
         let shape = self.dataflow_arrow.take();
-        let backward_edge = target_offset.y() > BACKWARD_EDGE_ARROW_THRESHOLD;
-        let multicorner_layout = junction_points.len() > 2;
-        if backward_edge && multicorner_layout {
-            // The points are ordered from source end to destination, and are alternately horizontal
-            // and vertical junctions. The arrow must be in a vertical part of the edge. Place it at
-            // the first vertical junction.
-            let arrow_origin = junction_points[1];
+        if let Some(arrow_origin) = arrow {
             let arrow_origin_to_center_of_tip =
-                Vector2(0.0, -(ARROW_ARM_LENGTH - ARROW_ARM_WIDTH) * std::f32::consts::SQRT_2);
+                Vector2(0.0, -(arrow::ARM_LENGTH - arrow::ARM_WIDTH) * std::f32::consts::SQRT_2);
             // The arrow will have the same color as the target-end of the first corner from the
             // source (this is the `arrow_origin` point).
             let color = match focus_split.map(|split| split.corner_index) {
@@ -192,15 +186,15 @@ impl Shapes {
     pub(super) fn redraw_target_attachment(
         &self,
         parent: &impl ShapeParent,
-        attachment_length: Option<f32>,
-        target: Vector2,
+        target_attachment: Option<TargetAttachment>,
         color: color::Rgba,
     ) {
         let shape = self.target_attachment.take();
-        if let Some(length) = attachment_length && length > f32::EPSILON {
+        if let Some(TargetAttachment { target, length }) = target_attachment
+                && length > f32::EPSILON {
             let shape = shape.unwrap_or_else(|| parent.new_target_attachment());
-            shape.set_size_y(length + ATTACHMENT_TOP_ADJUSTMENT);
-            shape.set_xy(target + Vector2(-LINE_WIDTH / 2.0, ATTACHMENT_TOP_ADJUSTMENT));
+            shape.set_size_y(length + attachment::TOP_ADJUSTMENT);
+            shape.set_xy(target + Vector2(-LINE_WIDTH / 2.0, attachment::TOP_ADJUSTMENT));
             shape.set_color(color);
             self.target_attachment.set(shape);
         }
@@ -234,19 +228,17 @@ pub(super) struct RedrawSections<'a> {
 }
 
 /// Arguments passed to [`Shapes::redraw_dataflow_arrow`].
-pub(super) struct RedrawDataflowArrow<'a> {
-    /// The offset from the source to the target.
-    pub(super) target_offset:   Vector2,
-    /// The points determining the layout of the corners from source to target.
-    pub(super) junction_points: &'a [Vector2],
+pub(super) struct RedrawDataflowArrow {
+    /// The center of the arrow, if the arrow should be drawn.
+    pub(super) arrow:        Option<Vector2>,
     /// The color to use for the part of the edge closer to the source.
-    pub(super) source_color:    color::Rgba,
+    pub(super) source_color: color::Rgba,
     /// The color to use for the part of the edge closer to the target.
-    pub(super) target_color:    color::Rgba,
+    pub(super) target_color: color::Rgba,
     /// Where the edge should be split into differently-colored source and target parts.
-    pub(super) focus_split:     Option<EdgeSplit>,
+    pub(super) focus_split:  Option<EdgeSplit>,
     /// Whether the edge is fully-attached.
-    pub(super) is_attached:     bool,
+    pub(super) is_attached:  bool,
 }
 
 
@@ -341,8 +333,8 @@ pub(super) trait ShapeParent: display::Object {
     /// direction of data flow.
     fn new_dataflow_arrow(&self) -> Rectangle {
         let new = Rectangle::new();
-        new.set_size(Vector2(ARROW_ARM_LENGTH, ARROW_ARM_LENGTH));
-        new.set_inset_border(ARROW_ARM_WIDTH);
+        new.set_size(Vector2(arrow::ARM_LENGTH, arrow::ARM_LENGTH));
+        new.set_inset_border(arrow::ARM_WIDTH);
         new.set_color(color::Rgba::transparent());
         new.set_border_color(color::Rgba::transparent());
         new.set_pointer_events(false);

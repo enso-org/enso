@@ -189,19 +189,14 @@ impl EdgeModel {
     }
 
     fn calculate_state(&self) -> State {
-        let target_offset = self.target_offset();
-        let (junction_points, max_radius, attachment_length) = layout::junction_points(
-            self.source_half_width(),
-            target_offset,
-            self.inputs.target_attached.get(),
-        );
-        let corners = layout::corners(&junction_points, max_radius).collect_vec();
-        let target_attached = self.inputs.target_attached.get();
-        let source_attached = self.inputs.source_attached.get();
-        let is_attached = target_attached && source_attached;
         if self.inputs.clear_focus.take() {
             self.inputs.hover_position.take();
         }
+        let target_offset = self.target_offset();
+        let target_attached = self.inputs.target_attached.get();
+        let source_attached = self.inputs.source_attached.get();
+        let layout = layout::layout(self.source_half_width(), target_offset, target_attached);
+        let is_attached = target_attached && source_attached;
         let focus_split = is_attached
             .then(|| {
                 // Pointer targets are updated by an asynchronous process, independent of pointer
@@ -212,13 +207,7 @@ impl EdgeModel {
                 self.inputs.hover_position.get().and_then(|position| {
                     let position = self.scene_pos_to_parent_pos(position);
                     let source_height = self.inputs.source_size.get().y();
-                    layout::find_position(
-                        position,
-                        &corners,
-                        source_height,
-                        attachment_length,
-                        render::HOVER_WIDTH,
-                    )
+                    layout::find_position(position, &layout, source_height, render::HOVER_WIDTH)
                 })
             })
             .flatten();
@@ -236,8 +225,8 @@ impl EdgeModel {
             None => (normal_color, normal_color),
         };
         State {
-            layout:      Layout { target_offset, junction_points, corners, attachment_length },
-            colors:      Colors { source_color, target_color },
+            layout,
+            colors: Colors { source_color, target_color },
             is_attached: IsAttached { is_attached },
             focus_split: FocusSplit { focus_split },
         }
@@ -255,7 +244,7 @@ impl EdgeModel {
             ))
             .or(any4(layout, colors, focus_split, is_attached).changed(
                 |(
-                    Layout { target_offset, junction_points, corners, .. },
+                    Layout { corners, arrow, .. },
                     Colors { source_color, target_color, .. },
                     FocusSplit { focus_split, .. },
                     IsAttached { is_attached, .. },
@@ -268,23 +257,17 @@ impl EdgeModel {
                         is_attached: *is_attached,
                     });
                     self.shapes.redraw_dataflow_arrow(self, render::RedrawDataflowArrow {
-                        target_offset: *target_offset,
-                        junction_points,
+                        arrow:        *arrow,
                         source_color: *source_color,
                         target_color: *target_color,
-                        focus_split: *focus_split,
-                        is_attached: *is_attached,
+                        focus_split:  *focus_split,
+                        is_attached:  *is_attached,
                     });
                 },
             ))
             .or(any(layout, colors).changed(
-                |(Layout { target_offset, attachment_length, .. }, Colors { target_color, .. })| {
-                    self.shapes.redraw_target_attachment(
-                        self,
-                        *attachment_length,
-                        *target_offset,
-                        *target_color,
-                    );
+                |(Layout { target_attachment, .. }, Colors { target_color, .. })| {
+                    self.shapes.redraw_target_attachment(self, *target_attachment, *target_color);
                 },
             ))
             .is_some();
@@ -321,10 +304,8 @@ impl EdgeModel {
     fn closer_end(&self, pos: ParentCoords) -> Option<EndPoint> {
         let state = self.state.borrow();
         let state = state.as_ref()?;
-        let corners = &state.layout.corners;
-        let attachment_length = state.layout.attachment_length;
         let source_height = self.inputs.source_size.get().y();
-        layout::find_position(pos, corners, source_height, attachment_length, render::HOVER_WIDTH)
+        layout::find_position(pos, &state.layout, source_height, render::HOVER_WIDTH)
             .map(|split| split.closer_end)
     }
 
