@@ -633,21 +633,22 @@ class IrToTruffle(
   // ==========================================================================
 
   private def checkRuntimeTypes(arg: IR.DefinitionArgument): List[Type] = {
-    def extractAscribedType(t: IR.Expression): Type =
-      t.getMetadata(TypeNames) match {
-        case Some(
-              BindingsMap
-                .Resolution(BindingsMap.ResolvedType(mod, tpe))
-            ) =>
-          mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
-        case _ => null
+    def extractAscribedType(t: IR.Expression): List[Type] = t match {
+      case u: IR.Type.Set.Union     => u.operands.flatMap(extractAscribedType)
+      case p: IR.Application.Prefix => extractAscribedType(p.function)
+      case t => {
+        t.getMetadata(TypeNames) match {
+          case Some(
+                BindingsMap
+                  .Resolution(BindingsMap.ResolvedType(mod, tpe))
+              ) =>
+            List(mod.unsafeAsModule().getScope.getTypes.get(tpe.name))
+          case _ => List()
+        }
       }
+    }
 
-    val tpe = (arg.ascribedType match {
-      case Some(u: IR.Type.Set.Union) => u.operands.map(extractAscribedType)
-      case t                          => List(t.map(extractAscribedType).orNull)
-    }).filter(_ != null)
-    tpe
+    arg.ascribedType.map(extractAscribedType).getOrElse(List())
   }
 
   /** Checks if the expression has a @Builtin_Method annotation

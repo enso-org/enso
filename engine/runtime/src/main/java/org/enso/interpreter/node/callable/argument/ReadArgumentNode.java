@@ -93,7 +93,7 @@ public class ReadArgumentNode extends ExpressionNode {
       var ctx = EnsoContext.get(this);
       var expecting =
           expectedTypes.length == 1 ? expectedTypes[0] : new Array((Object[]) expectedTypes);
-      var err = ctx.getBuiltins().error().makeTypeError(expecting, v, "Argument #" + (index+1));
+      var err = ctx.getBuiltins().error().makeTypeError(expecting, v, "Argument #" + (index + 1));
       throw new PanicException(err, this);
     } else {
       return v;

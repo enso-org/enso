@@ -132,6 +132,7 @@ public class SignatureTest extends TestBase {
         Zero (v:Zero)
         One (v:One)
         Either v:(Zero | One)
+        Vec v:(Integer | Range | Vector (Integer | Range))
     """, uri.getHost()).uri(uri).buildLiteral();
     return ctx.eval(src);
   }
@@ -168,6 +169,23 @@ public class SignatureTest extends TestBase {
     }
     var ok2 = module.invokeMember("eval_expression", "Bin.Either Zero");
     assertEquals("binary.Bin", ok2.getMetaObject().getMetaQualifiedName());
+  }
+
+  @Test
+  public void binaryWithVec() throws Exception {
+    Value module = exampleWithBinary();
+    var ok1 = module.invokeMember("eval_expression", "Bin.Vec [1, 2, 3]");
+    assertEquals("binary.Bin", ok1.getMetaObject().getMetaQualifiedName());
+    try {
+      var v = module.invokeMember("eval_expression", "Bin.Vec 'Hi'");
+      fail("Expecting an error, not " + v);
+    } catch (PolyglotException ex) {
+      assertTypeError("Argument #1", "Integer, Range, Vector", "Integer", ex.getMessage());
+    }
+    var ok2 = module.invokeMember("eval_expression", "Bin.Either Zero");
+    assertEquals("binary.Bin", ok2.getMetaObject().getMetaQualifiedName());
+    var ok3 = module.invokeMember("eval_expression", "Bin.Vec 5");
+    assertEquals("binary.Bin", ok3.getMetaObject().getMetaQualifiedName());
   }
 
   private static void assertTypeError(String expArg, String expType, String realType, String msg) {
