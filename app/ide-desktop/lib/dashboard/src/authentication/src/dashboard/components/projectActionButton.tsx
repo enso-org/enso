@@ -43,11 +43,12 @@ export interface ProjectActionButtonProps {
     appRunner: AppRunner | null
     onClose: () => void
     openIde: () => void
+    doRefresh: () => void
 }
 
 /** An interactive button displaying the status of a project. */
 function ProjectActionButton(props: ProjectActionButtonProps) {
-    const { project, onClose, appRunner, openIde } = props
+    const { project, onClose, appRunner, openIde, doRefresh } = props
     const { backend } = backendProvider.useBackend()
 
     const [state, setState] = react.useState(backendModule.ProjectState.created)
@@ -101,6 +102,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 () => void checkProjectStatus(),
                 CHECK_STATUS_INTERVAL_MS
             )
+            void checkProjectStatus()
             return () => {
                 clearInterval(handle)
             }
@@ -132,6 +134,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 () => void checkProjectResources(),
                 CHECK_RESOURCES_INTERVAL_MS
             )
+            void checkProjectResources()
             return () => {
                 clearInterval(handle)
             }
@@ -159,10 +162,12 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         switch (backend.platform) {
             case platform.Platform.cloud:
                 await backend.openProject(project.id)
+                doRefresh()
                 setIsCheckingStatus(true)
                 break
             case platform.Platform.desktop:
                 await backend.openProject(project.id)
+                doRefresh()
                 setState(backendModule.ProjectState.opened)
                 setSpinnerState(SpinnerState.done)
                 break

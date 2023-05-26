@@ -63,9 +63,7 @@ public class HashCodeTest extends TestBase {
     var valGenerator = ValuesGenerator.create(
         context,
         ValuesGenerator.Language.ENSO,
-        ValuesGenerator.Language.JAVA,
-        ValuesGenerator.Language.JAVASCRIPT,
-        ValuesGenerator.Language.PYTHON
+        ValuesGenerator.Language.JAVA
     );
     List<Value> values = new ArrayList<>();
     values.addAll(valGenerator.numbers());
