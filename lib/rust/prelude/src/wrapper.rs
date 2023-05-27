@@ -7,7 +7,7 @@ use crate::std_reexports::*;
 
 
 // ===============
-// === Wrapper ===
+// === Content ===
 // ===============
 
 /// Trait for any type which wraps other type. See docs of `Wrapper` to learn more.
@@ -21,15 +21,34 @@ pub type Content<T> = <T as HasContent>::Content;
 /// Trait which enables `Sized` super-bound on the `Content` type.
 pub trait HasSizedContent = HasContent where Content<Self>: Sized;
 
-/// Trait for objects which wrap values. Please note that this implements safe wrappers, so the
-/// object - value relation must be bijective.
-pub trait Wrapper = Wrap + ContentRef;
 
-/// Wrapping utility for values.
-pub trait Wrap: HasSizedContent {
-    /// Wraps the value and returns the wrapped type.
-    fn wrap(t: Self::Content) -> Self;
+// === Impls ===
+
+impl<T> HasContent for Option<T> {
+    type Content = T;
 }
+
+impl<T, E> HasContent for Result<T, E> {
+    type Content = T;
+}
+
+impl<T: ?Sized> HasContent for Rc<T> {
+    type Content = T;
+}
+
+impl HasContent for String {
+    type Content = char;
+}
+
+impl<T> HasContent for Vec<T> {
+    type Content = T;
+}
+
+
+
+// ==================
+// === ContentRef ===
+// ==================
 
 /// Unwrapping utility for wrapped types.
 ///
@@ -72,6 +91,29 @@ pub trait ContentRef: HasContent {
     /// Unwraps this type to get the inner value.
     fn content(&self) -> &Self::Content;
 }
+
+impl<T: ?Sized> ContentRef for Rc<T> {
+    fn content(&self) -> &Self::Content {
+        self.deref()
+    }
+}
+
+
+// ============
+// === Wrap ===
+// ============
+
+/// Trait for objects which wrap values. Please note that this implements safe wrappers, so the
+/// object - value relation must be bijective.
+pub trait Wrapper = Wrap + ContentRef;
+
+/// Wrapping utility for values.
+pub trait Wrap: HasSizedContent {
+    /// Wraps the value and returns the wrapped type.
+    fn wrap(t: Self::Content) -> Self;
+}
+
+
 
 /// Runs a function on the reference to the content.
 pub trait WithContent: HasSizedContent {
@@ -125,32 +167,23 @@ impl<T: ContentRef + HasSizedContent> WithContent for T {
 
 // === Impls ===
 
-impl<T: ?Sized> HasContent for Rc<T> {
-    type Content = T;
-}
+
+
 impl<T> Wrap for Rc<T> {
     fn wrap(t: T) -> Self {
         Rc::new(t)
     }
 }
-impl<T: ?Sized> ContentRef for Rc<T> {
-    fn content(&self) -> &Self::Content {
-        self.deref()
-    }
-}
 
-impl HasContent for String {
-    type Content = char;
-}
+
+
 impl Wrap for String {
     fn wrap(t: char) -> Self {
         t.to_string()
     }
 }
 
-impl<T> HasContent for Vec<T> {
-    type Content = T;
-}
+
 impl<T> Wrap for Vec<T> {
     fn wrap(t: T) -> Self {
         vec![t]

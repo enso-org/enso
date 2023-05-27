@@ -1,15 +1,16 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use frp::f;
-use frp::f_;
+use enso_frp3 as frp;
+use enso_frp3::f;
+use enso_frp3::f_;
 
 #[test]
 fn lifetime_management() {
-    frp::new_network! { network1
+    enso_frp3::new_network! { network1
         def source = source::<()>();
     }
-    frp::new_network! { network2
+    enso_frp3::new_network! { network2
         def count   = source.count();
         def sampler = count.sampler();
     }

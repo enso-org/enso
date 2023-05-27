@@ -5,20 +5,23 @@ impl Network {
     pub fn gate<Src, Cond>(&self, src: Src, condition: Cond) -> Stream<Src::Event>
     where
         Src: AsStream,
-        Cond: AsBehavior<Value = bool>,
-    {
+        Cond: AsBehavior<Value = bool>, {
         self.gate_eq(src, condition, true)
     }
 
     pub fn gate_not<Src, Cond>(&self, src: Src, condition: Cond) -> Stream<Src::Event>
     where
         Src: AsStream,
-        Cond: AsBehavior<Value = bool>,
-    {
+        Cond: AsBehavior<Value = bool>, {
         self.gate_eq(src, condition, false)
     }
 
-    pub fn gate_eq<Src, Cond>(&self, src: Src, compare: Cond, eq: Cond::Value) -> Stream<Src::Event>
+    pub fn gate_eq<Src, Cond>(
+        &self,
+        src: Src,
+        compare: Cond,
+        eq: Cond::Value,
+    ) -> Stream<Src::Event>
     where
         Src: AsStream,
         Cond: AsBehavior,
@@ -35,8 +38,7 @@ impl Network {
     fn gate_common<Src, C>(&self, src: Src, condition: C) -> Stream<Src::Event>
     where
         C: GateCond,
-        Src: AsStream,
-    {
+        Src: AsStream, {
         let tok = make_erased!(Src::Event);
 
         let node = self.new_node().with_output();
@@ -49,25 +51,30 @@ impl Network {
     }
 
     /// Multiplex single source into multiple output streams, based on a selector behavior.
-    pub fn mux<const N: usize, Sel, Src>(&self, select: Sel, source: Src) -> [Stream<Src::Event>; N]
+    pub fn mux<const N: usize, Sel, Src>(
+        &self,
+        select: Sel,
+        source: Src,
+    ) -> [Stream<Src::Event>; N]
     where
         Sel: AsBehavior<Value = usize>,
         Src: AsStream,
     {
-        let tok = make_erased!(Src::Event);
-
-        let nodes: [_; N] = std::array::from_fn(|_| self.new_node().with_output::<Src::Event>());
-        let emitters: [_; N] = std::array::from_fn(|i| nodes[i].emitter().erase(tok));
-        let streams: [_; N] = std::array::from_fn(|i| nodes[i].stream());
-        for first_node in nodes {
-            let select = select.as_behavior(self.rt());
-            first_node
-                .with_input(MuxNode { select, emitters })
-                .with_attached(source.as_stream().erase(tok));
-            // Only attach first node.
-            break;
-        }
-        return streams;
+        // let tok = make_erased!(Src::Event);
+        //
+        // let nodes: [_; N] = std::array::from_fn(|_| self.new_node().with_output::<Src::Event>());
+        // let emitters: [_; N] = std::array::from_fn(|i| nodes[i].emitter().erase(tok));
+        // let streams: [_; N] = std::array::from_fn(|i| nodes[i].stream());
+        // for first_node in nodes {
+        //     let select = select.as_behavior(self.rt());
+        //     first_node
+        //         .with_input(MuxNode { select, emitters })
+        //         .with_attached(source.as_stream().erase(tok));
+        //     // Only attach first node.
+        //     break;
+        // }
+        // return streams;
+        panic!()
     }
 }
 

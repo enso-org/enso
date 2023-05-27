@@ -29,33 +29,6 @@ pub use enso_prelude as prelude;
 // pub struct Data(usize);
 
 
-#[derive(Debug, Default)]
-pub struct OptRefCell<T> {
-    inner: UnsafeCell<T>,
-}
-
-impl<T> OptRefCell<T> {
-    #[inline(always)]
-    pub fn borrow(&self) -> &T {
-        unsafe { &*self.inner.get() }
-    }
-
-    #[inline(always)]
-    pub fn borrow_mut(&self) -> &mut T {
-        unsafe { &mut *self.inner.get() }
-    }
-
-    #[inline(always)]
-    pub fn with_borrowed<R>(&self, f: impl FnOnce(&T) -> R) -> R {
-        f(self.borrow())
-    }
-
-    #[inline(always)]
-    pub fn with_borrowed_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
-        f(self.borrow_mut())
-    }
-}
-
 
 // pub trait Data = Any;
 pub trait Data: Debug {

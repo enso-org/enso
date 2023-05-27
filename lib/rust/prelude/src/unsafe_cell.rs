@@ -1,6 +1,7 @@
 use std::cell::UnsafeCell;
 
 pub trait UnsafeCellOps<T> {
+    #[allow(clippy::mut_from_ref)]
     unsafe fn unchecked_borrow_mut(&self) -> &mut T;
     unsafe fn unchecked_borrow(&self) -> &T;
 }

@@ -23,41 +23,6 @@ use enso_frp::prelude::bytemuck::ZeroableInOption;
 
 
 
-#[derive(Default, Zeroable)]
-#[repr(transparent)]
-pub struct OptRefCell<T> {
-    inner: UnsafeCell<T>,
-}
-
-impl<T> OptRefCell<T> {
-    #[inline(always)]
-    pub fn borrow(&self) -> &T {
-        unsafe { &*self.inner.get() }
-    }
-
-    #[inline(always)]
-    pub fn borrow_mut(&self) -> &mut T {
-        unsafe { &mut *self.inner.get() }
-    }
-
-    #[inline(always)]
-    pub fn with_borrowed<R>(&self, f: impl FnOnce(&T) -> R) -> R {
-        f(self.borrow())
-    }
-
-    #[inline(always)]
-    pub fn with_borrowed_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
-        f(self.borrow_mut())
-    }
-}
-
-impl<T: Debug> Debug for OptRefCell<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Debug::fmt(self.borrow(), f)
-    }
-}
-
-
 // pub trait Data = Any;
 pub trait Data: Debug {
     fn boxed_clone(&self) -> Box<dyn Data>;
@@ -337,7 +302,7 @@ impl Runtime {
     ) {
         self.nodes.with_item_borrow(node_id, |node| {
             let output = node.output.borrow();
-            if let ZeroableOption::Some(output) = output.as_ref().map(|t| &**t) {
+            if let Some(output) = output.as_ref().map(|t| &**t) {
                 let output_coerced = unsafe { &*(output as *const dyn Data as *const T) };
                 f(output_coerced)
             } else {
@@ -1096,7 +1061,7 @@ impl<Item> Slot<Item> {
 /// - It is initialized with zeroed memory.
 /// - It pre-allocates space for items, making their initialization with [`Self::insert_zeroed`]
 ///   almost free.
-/// - It is backed by [`ZeroableLinkedArrayRefCell`], allowing to insert new elements even during 
+/// - It is backed by [`ZeroableLinkedArrayRefCell`], allowing to insert new elements even during
 ///   iteration.
 #[derive(Derivative)]
 #[derivative(Debug(bound = "Item: Debug"))]
