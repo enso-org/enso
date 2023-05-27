@@ -273,7 +273,7 @@ impl Runtime {
         self.metrics.inc_nodes();
         let mut networks = self.networks.borrow_mut();
         if let Some(network) = networks.get_mut(network_id) {
-            let id = self.nodes.insert_default();
+            let id = self.nodes.insert_zeroed();
             self.nodes.with_item_borrow_mut(id, |node| {
                 node.tp = ZeroableOption::Some(Box::new(tp));
                 node.network_id = network_id;
@@ -1091,10 +1091,13 @@ impl<Item> Slot<Item> {
 // === ZeroableRefCellSlotMap ===
 // ==============================
 
-/// A slot map with a few interesting properties:
+/// A slot map with the following properties:
 ///
 /// - It is initialized with zeroed memory.
-/// - It is backed by a linked array,
+/// - It pre-allocates space for items, making their initialization with [`Self::insert_zeroed`]
+///   almost free.
+/// - It is backed by [`ZeroableLinkedArrayRefCell`], allowing to insert new elements even during 
+///   iteration.
 #[derive(Derivative)]
 #[derivative(Debug(bound = "Item: Debug"))]
 #[derivative(Default(bound = ""))]
@@ -1147,7 +1150,7 @@ impl<Kind, Item: Default + Zeroable, const N: usize> ZeroableRefCellSlotMap<Kind
     }
 
     #[inline(always)]
-    pub fn insert_default(&self) -> VersionedIndex<Kind> {
+    pub fn insert_zeroed(&self) -> VersionedIndex<Kind> {
         let mut free_indexes = self.free_indexes.borrow_mut();
         if let Some(index) = free_indexes.pop() {
             let version = self.list.with_item_borrow(index, |slot| slot.version);

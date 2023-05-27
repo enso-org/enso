@@ -37,7 +37,7 @@ impl<T: Default + Zeroable, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
     #[inline(always)]
     pub fn clear(&self) {
         self.size.set(0);
-        if let ZeroableOption::Some(first_segment) = self.first_segment.borrow_mut().as_mut() {
+        if let Some(first_segment) = self.first_segment.borrow_mut().as_mut() {
             first_segment.clear();
         }
     }

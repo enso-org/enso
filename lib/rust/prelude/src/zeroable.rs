@@ -30,18 +30,18 @@ unsafe impl<T> Zeroable for ZeroableOption<T> {}
 #[allow(missing_docs)] // All the functions are the same as on the stdlib [`Option`] type.
 impl<T> ZeroableOption<T> {
     #[inline(always)]
-    pub fn as_ref(&self) -> ZeroableOption<&T> {
+    pub fn as_ref(&self) -> Option<&T> {
         match self {
-            ZeroableOption::None => ZeroableOption::None,
-            ZeroableOption::Some(v) => ZeroableOption::Some(v),
+            ZeroableOption::None => None,
+            ZeroableOption::Some(v) => Some(v),
         }
     }
 
     #[inline(always)]
-    pub fn as_mut(&mut self) -> ZeroableOption<&mut T> {
+    pub fn as_mut(&mut self) -> Option<&mut T> {
         match self {
-            ZeroableOption::None => ZeroableOption::None,
-            ZeroableOption::Some(v) => ZeroableOption::Some(v),
+            ZeroableOption::None => None,
+            ZeroableOption::Some(v) => Some(v),
         }
     }
 
