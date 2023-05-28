@@ -388,14 +388,14 @@ pub trait TextureOps {
 }
 
 impl<
-        P: WithContent<Item = Texture<S, I, T>>,
+        P: WithItemRef<Item = Texture<S, I, T>>,
         S: StorageRelation<I, T>,
         I: InternalFormat,
         T: ItemType,
     > TextureOps for P
 {
     fn bind_texture_unit(&self, context: &Context, unit: TextureUnit) -> TextureBindGuard {
-        self.with_content(|this| {
+        self.with_item(|this| {
             let context = context.clone();
             let target = Context::TEXTURE_2D;
             context.active_texture(*Context::TEXTURE0 + unit.to::<u32>());
@@ -406,14 +406,14 @@ impl<
     }
 
     fn gl_texture(&self) -> WebGlTexture {
-        self.with_content(|this| this.gl_texture.clone())
+        self.with_item(|this| this.gl_texture.clone())
     }
 
     fn get_format(&self) -> AnyFormat {
-        self.with_content(|_| <Texture<S, I, T>>::format())
+        self.with_item(|_| <Texture<S, I, T>>::format())
     }
 
     fn get_item_type(&self) -> AnyItemType {
-        self.with_content(|_| <Texture<S, I, T>>::item_type())
+        self.with_item(|_| <Texture<S, I, T>>::item_type())
     }
 }

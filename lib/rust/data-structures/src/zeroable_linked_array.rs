@@ -3,65 +3,7 @@ use std::cell::UnsafeCell;
 
 
 
-pub trait HasValue {
-    type Value;
-}
-
-impl<T> HasValue for Option<T> {
-    type Value = T;
-}
-
-impl<T> HasValue for ZeroableOption<T> {
-    type Value = T;
-}
-
-impl<T, E> HasValue for Result<T, E> {
-    type Value = T;
-}
-
-pub trait OptionLike: HasValue {
-    fn new_some(value: Self::Value) -> Self;
-    fn as_ref(&self) -> Option<&Self::Value>;
-    fn as_mut(&mut self) -> Option<&mut Self::Value>;
-    fn is_none(&self) -> bool;
-    fn is_some(&self) -> bool;
-}
-
-impl<T> OptionLike for Option<T> {
-    fn new_some(value: Self::Value) -> Self {
-        Some(value)
-    }
-    fn as_ref(&self) -> Option<&Self::Value> {
-        Option::as_ref(self)
-    }
-    fn as_mut(&mut self) -> Option<&mut Self::Value> {
-        Option::as_mut(self)
-    }
-    fn is_none(&self) -> bool {
-        Option::is_none(self)
-    }
-    fn is_some(&self) -> bool {
-        Option::is_some(self)
-    }
-}
-
-impl<T> OptionLike for ZeroableOption<T> {
-    fn new_some(value: Self::Value) -> Self {
-        ZeroableOption::Some(value)
-    }
-    fn as_ref(&self) -> Option<&Self::Value> {
-        ZeroableOption::as_ref(self)
-    }
-    fn as_mut(&mut self) -> Option<&mut Self::Value> {
-        ZeroableOption::as_mut(self)
-    }
-    fn is_none(&self) -> bool {
-        ZeroableOption::is_none(self)
-    }
-    fn is_some(&self) -> bool {
-        ZeroableOption::is_some(self)
-    }
-}
+pub trait OptionLike = HasSizedItem + OptItemRefMut + FromItem;
 
 #[derive(Debug, Default)]
 pub struct OptionInitCell<T> {
@@ -74,15 +16,15 @@ pub struct OptionInitCell<T> {
 }
 
 impl<T: OptionLike> OptionInitCell<T> {
-    pub fn init_if_none(&self, f: impl FnOnce() -> T::Value) {
-        if self.is_none() {
+    pub fn init_if_none(&self, f: impl FnOnce() -> T::Item) {
+        if !self.has_item() {
             // # Safety
             // We checked that the current value is [`Nothing`]. We also know that no one has a
             // reference to [`Self::not_exposed`] (see the docs of [`Self`] to learn more).
             // Therefore, it is safe to overwrite the current value.
             #[allow(unsafe_code)]
             unsafe {
-                *self.not_exposed.unchecked_borrow_mut() = T::new_some(f())
+                *self.not_exposed.unchecked_borrow_mut() = T::from_item(f())
             };
         }
     }
@@ -92,41 +34,43 @@ impl<T: OptionLike> OptionInitCell<T> {
     }
 }
 
-impl<T: HasValue> HasValue for OptionInitCell<T> {
-    type Value = T::Value;
+impl<T: HasItem> HasItem for OptionInitCell<T> {
+    type Item = T::Item;
 }
 
-impl<T: OptionLike> OptionLike for OptionInitCell<T> {
-    fn new_some(value: Self::Value) -> Self {
-        Self { not_exposed: UnsafeCell::new(T::new_some(value)) }
-    }
-
-    fn as_ref(&self) -> Option<&Self::Value> {
+impl<T: OptionLike> OptItemRef for OptionInitCell<T> {
+    fn opt_item(&self) -> Option<&Self::Item> {
         // # Safety
         // Every mutable access to the value stored in [`Self::not_exposed`] requires a mutable
         // access to self. The only exception is [`Self::init_if_none`], which is safe, as explained
         // there.
         #[allow(unsafe_code)]
         let not_exposed = unsafe { self.not_exposed.unchecked_borrow() };
-        not_exposed.as_ref()
+        not_exposed.opt_item()
     }
+}
 
-    fn as_mut(&mut self) -> Option<&mut Self::Value> {
+impl<T: OptionLike> OptItemRefMut for OptionInitCell<T> {
+    fn opt_item_mut(&mut self) -> Option<&mut Self::Item> {
         // # Safety
         // Every mutable access to the value stored in [`Self::not_exposed`] requires a mutable
         // access to self. The only exception is [`Self::init_if_none`], which is safe, as explained
         // there.
         #[allow(unsafe_code)]
         let not_exposed = unsafe { self.not_exposed.unchecked_borrow_mut() };
-        not_exposed.as_mut()
+        not_exposed.opt_item_mut()
     }
+}
 
-    fn is_some(&self) -> bool {
-        self.as_ref().is_some()
-    }
+// impl<T: OptionLike> OptionLike for OptionInitCell<T> {
+//     fn new_some(value: Self::Item) -> Self {
+//         Self { not_exposed: UnsafeCell::new(T::new_some(value)) }
+//     }
+// }
 
-    fn is_none(&self) -> bool {
-        self.as_ref().is_none()
+impl<T: OptionLike> FromItem for OptionInitCell<T> {
+    fn from_item(item: Self::Item) -> Self {
+        Self { not_exposed: UnsafeCell::new(T::from_item(item)) }
     }
 }
 
@@ -168,7 +112,7 @@ impl<T: Default + Zeroable, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
     #[inline(always)]
     pub fn clear(&mut self) {
         self.size.set(0);
-        if let Some(first_segment) = self.first_segment.as_mut() {
+        if let Some(first_segment) = self.first_segment.opt_item_mut() {
             first_segment.clear();
         }
     }
@@ -216,13 +160,13 @@ impl<T: Zeroable, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
     #[inline(always)]
     fn get_or_init_first_segment(&self) -> &Segment<T, N> {
         self.init_first_segment();
-        self.first_segment.as_ref().unwrap()
+        self.first_segment.opt_item().unwrap()
     }
 
     #[inline(always)]
     fn get_or_init_first_segment_mut(&mut self) -> &mut Segment<T, N> {
         self.init_first_segment();
-        self.first_segment.as_mut().unwrap()
+        self.first_segment.opt_item_mut().unwrap()
     }
 
     /// Retain only the elements that satisfy the predicate.
@@ -288,7 +232,7 @@ impl<'a, T, const N: usize> Iterator for Iter<'a, T, N> {
             return None;
         }
         if self.next_offset >= N {
-            self.segment = self.segment.next.as_ref().unwrap();
+            self.segment = self.segment.next.opt_item().unwrap();
             self.next_offset = 0;
             self.max_offset -= N;
         }
@@ -350,7 +294,7 @@ impl<T, const N: usize> Segment<T, N> {
     /// Get a mutable reference to the next segment if it exists;
     #[inline(always)]
     fn items_and_next_mut(&mut self) -> (&mut Vec<UnsafeCell<T>>, Option<&mut Box<Self>>) {
-        let next = self.next.as_mut();
+        let next = self.next.opt_item_mut();
         let items = &mut self.items;
         (items, next)
     }
@@ -381,7 +325,7 @@ impl<T: Zeroable, const N: usize> Segment<T, N> {
             };
         } else {
             self.init_next_segment();
-            self.next.as_ref().unwrap().push(offset - N, elem)
+            self.next.opt_item().unwrap().push(offset - N, elem)
         }
     }
 
@@ -389,7 +333,7 @@ impl<T: Zeroable, const N: usize> Segment<T, N> {
     #[allow(unconditional_recursion)]
     fn add_tail_segment(&self) {
         self.init_next_segment();
-        self.next.as_ref().unwrap().add_tail_segment()
+        self.next.opt_item().unwrap().add_tail_segment()
     }
 
     /// For each segment, retain the items. Segment lengths will be shortened if necessary, however,
@@ -412,7 +356,7 @@ impl<T: Zeroable, const N: usize> Segment<T, N> {
         // mutably borrows the newly added item.
         #[allow(unsafe_code)]
         self.items.retain(|t| f(unsafe { t.unchecked_borrow() }));
-        if let Some(next) = self.next.as_mut() {
+        if let Some(next) = self.next.opt_item_mut() {
             next.retain_stage1(len - N, f);
         }
     }
@@ -427,14 +371,14 @@ impl<T: Zeroable, const N: usize> Segment<T, N> {
                     let end = next.items.len().min(N - items.len());
                     items.extend(next.items.drain(0..end));
                     let empty_next_segment = next.items.is_empty();
-                    let next_next_segment = next.next.as_mut();
+                    let next_next_segment = next.next.opt_item_mut();
                     empty_next_segment.then(|| next_next_segment.map(|t| mem::take(t)))
                 })
             };
             if let Some(new_next_segment) = new_next_segment {
                 self.next.set_internal(new_next_segment)
             }
-            if self.next.is_none() {
+            if !self.next.has_item() {
                 break;
             }
         }
@@ -442,7 +386,7 @@ impl<T: Zeroable, const N: usize> Segment<T, N> {
         for _ in len..N {
             self.items.push(Zeroable::zeroed());
         }
-        len + self.next.as_mut().map(|next| next.retain_stage2()).unwrap_or_default()
+        len + self.next.opt_item_mut().map(|next| next.retain_stage2()).unwrap_or_default()
     }
 }
 
@@ -461,7 +405,7 @@ impl<T, const N: usize> Index<usize> for Segment<T, N> {
                 self.items[offset].unchecked_borrow()
             }
         } else {
-            self.next.as_ref().unwrap().index(offset - N)
+            self.next.opt_item().unwrap().index(offset - N)
         }
     }
 }
@@ -479,7 +423,7 @@ impl<T, const N: usize> IndexMut<usize> for Segment<T, N> {
                 self.items[offset].unchecked_borrow_mut()
             }
         } else {
-            self.next.as_mut().unwrap().index_mut(offset - N)
+            self.next.opt_item_mut().unwrap().index_mut(offset - N)
         }
     }
 }

@@ -75,6 +75,13 @@ impl<T> ZeroableOption<T> {
     }
 }
 
+impl<T> From<T> for ZeroableOption<T> {
+    #[inline(always)]
+    fn from(v: T) -> Self {
+        ZeroableOption::Some(v)
+    }
+}
+
 
 
 // =========================
@@ -165,6 +172,13 @@ unsafe impl<T: Zeroable> Zeroable for ZeroableRefCell<T> {}
 impl<T> Debug for ZeroableRefCell<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Debug::fmt(&*self, f)
+    }
+}
+
+impl<T> From<T> for ZeroableRefCell<T> {
+    #[inline(always)]
+    fn from(t: T) -> Self {
+        Self { cell: t.into() }
     }
 }
 

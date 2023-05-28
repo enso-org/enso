@@ -248,8 +248,8 @@ impl<T> HasItem for Uniform<T> {
     type Item = T;
 }
 
-impl<T> WithContent for Uniform<T> {
-    fn with_content<F: FnOnce(&Self::Item) -> R, R>(&self, f: F) -> R {
+impl<T> WithItemRef for Uniform<T> {
+    fn with_item<R>(&self, f: impl FnOnce(&Self::Item) -> R) -> R {
         f(&self.rc.borrow().value)
     }
 }
