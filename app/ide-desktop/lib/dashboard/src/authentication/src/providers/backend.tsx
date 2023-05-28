@@ -4,7 +4,6 @@ import * as react from 'react'
 
 import * as common from 'enso-common'
 
-import * as backendModule from '../dashboard/backend'
 import * as localBackend from '../dashboard/localBackend'
 import * as remoteBackend from '../dashboard/remoteBackend'
 

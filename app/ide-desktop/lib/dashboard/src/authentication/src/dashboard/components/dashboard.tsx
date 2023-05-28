@@ -590,7 +590,9 @@ function Dashboard(props: DashboardProps) {
                 event.preventDefault()
                 event.stopPropagation()
                 setModal(() => (
-                    <ContextMenu event={event}>
+                    // This is a placeholder key. It should be replaced with label ID when labels
+                    // are implemented.
+                    <ContextMenu key={'label'} event={event}>
                         <ContextMenuEntry
                             disabled
                             onClick={() => {
@@ -926,7 +928,7 @@ function Dashboard(props: DashboardProps) {
                             </tr>
                             <Rows<backendModule.Asset<backendModule.AssetType.project>>
                                 items={visibleProjectAssets}
-                                getKey={proj => proj.id}
+                                getKey={projectAsset => projectAsset.id}
                                 isLoading={isLoadingAssets}
                                 placeholder={
                                     <span className="opacity-75">
@@ -1010,7 +1012,7 @@ function Dashboard(props: DashboardProps) {
                                         ))
                                     }
                                     setModal(() => (
-                                        <ContextMenu event={event}>
+                                        <ContextMenu key={projectAsset.id} event={event}>
                                             <ContextMenuEntry onClick={doOpenForEditing}>
                                                 Open for editing
                                             </ContextMenuEntry>
@@ -1037,7 +1039,7 @@ function Dashboard(props: DashboardProps) {
                                             backendModule.Asset<backendModule.AssetType.directory>
                                         >
                                             items={visibleDirectoryAssets}
-                                            getKey={dir => dir.id}
+                                            getKey={directoryAsset => directoryAsset.id}
                                             isLoading={isLoadingAssets}
                                             placeholder={
                                                 <span className="opacity-75">
@@ -1069,11 +1071,14 @@ function Dashboard(props: DashboardProps) {
                                                         : [directoryAsset]
                                                 )
                                             }}
-                                            onContextMenu={(_directory, event) => {
+                                            onContextMenu={(directoryAsset, event) => {
                                                 event.preventDefault()
                                                 event.stopPropagation()
                                                 setModal(() => (
-                                                    <ContextMenu event={event}></ContextMenu>
+                                                    <ContextMenu
+                                                        key={directoryAsset.id}
+                                                        event={event}
+                                                    ></ContextMenu>
                                                 ))
                                             }}
                                         />
@@ -1131,7 +1136,7 @@ function Dashboard(props: DashboardProps) {
                                                     ))
                                                 }
                                                 setModal(() => (
-                                                    <ContextMenu event={event}>
+                                                    <ContextMenu key={secret.id} event={event}>
                                                         <ContextMenuEntry onClick={doDelete}>
                                                             <span className="text-red-700">
                                                                 Delete
@@ -1202,7 +1207,7 @@ function Dashboard(props: DashboardProps) {
                                                     /** TODO: Wait for backend endpoint. */
                                                 }
                                                 setModal(() => (
-                                                    <ContextMenu event={event}>
+                                                    <ContextMenu key={file.id} event={event}>
                                                         <ContextMenuEntry disabled onClick={doCopy}>
                                                             Copy
                                                         </ContextMenuEntry>

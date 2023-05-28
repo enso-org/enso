@@ -17,9 +17,21 @@ export interface ContextMenuProps {
 /** A context menu that opens at the current mouse position. */
 function ContextMenu(props: react.PropsWithChildren<ContextMenuProps>) {
     const { children, event } = props
+    const divRef = react.useRef<HTMLDivElement>(null)
+    const [top, setTop] = react.useState(event.pageY)
+    // This must be the original height before the returned element affects the `scrollHeight`.
+    const [bodyHeight] = react.useState(document.body.scrollHeight)
+
+    react.useEffect(() => {
+        if (divRef.current != null) {
+            setTop(Math.min(top, bodyHeight - divRef.current.clientHeight))
+        }
+    }, [])
+
     return (
         <div
-            style={{ left: event.pageX, top: event.pageY }}
+            ref={divRef}
+            style={{ left: event.pageX, top }}
             className="absolute bg-white rounded-lg shadow-soft flex flex-col flex-nowrap"
         >
             {children}
