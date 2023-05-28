@@ -3,7 +3,9 @@
 //! applicative functors – if lifts a value to the specific type.
 
 use crate::std_reexports::*;
-
+use crate::ZeroableOption;
+use crate::ZeroableRefCell;
+use std::cell::UnsafeCell;
 
 
 // ===============
@@ -11,92 +13,99 @@ use crate::std_reexports::*;
 // ===============
 
 /// Trait for any type which wraps other type. See docs of `Wrapper` to learn more.
-pub trait HasContent {
-    type Content: ?Sized;
+pub trait HasItem {
+    type Item: ?Sized;
 }
 
 /// Accessor for the wrapped value.
-pub type Content<T> = <T as HasContent>::Content;
+pub type Item<T> = <T as HasItem>::Item;
 
-/// Trait which enables `Sized` super-bound on the `Content` type.
-pub trait HasSizedContent = HasContent where Content<Self>: Sized;
+/// Trait which enables `Sized` super-bound on the `Item` type.
+pub trait HasSizedItem = HasItem where Item<Self>: Sized;
 
 
 // === Impls ===
 
-impl<T> HasContent for Option<T> {
-    type Content = T;
-}
-
-impl<T, E> HasContent for Result<T, E> {
-    type Content = T;
-}
-
-impl<T: ?Sized> HasContent for Rc<T> {
-    type Content = T;
-}
-
-impl HasContent for String {
-    type Content = char;
-}
-
-impl<T> HasContent for Vec<T> {
-    type Content = T;
+#[rustfmt::skip]
+mod has_item_impls {
+    use super::*;
+    impl<T>         HasItem for Option<T>          { type Item = T; }
+    impl<T>         HasItem for ZeroableOption<T>  { type Item = T; }
+    impl<T, E>      HasItem for Result<T, E>       { type Item = T; }
+    impl<T: ?Sized> HasItem for Rc<T>              { type Item = T; }
+    impl<T>         HasItem for RefCell<T>         { type Item = T; }
+    impl<T>         HasItem for ZeroableRefCell<T> { type Item = T; }
+    impl<T>         HasItem for Cell<T>            { type Item = T; }
+    impl<T>         HasItem for UnsafeCell<T>      { type Item = T; }
+    impl            HasItem for String             { type Item = char; }
+    impl<T>         HasItem for Vec<T>             { type Item = T; }
 }
 
 
+// =================
+// === ItemClone ===
+// =================
 
-// ==================
-// === ContentRef ===
-// ==================
+pub trait ItemClone = HasItem where <Self as HasItem>::Item: Clone;
 
-/// Unwrapping utility for wrapped types.
+
+
+// ===============
+// === ItemRef ===
+// ===============
+
+/// Get reference to the contained item. This should be implemented by structs which contain
+/// unconditionally one item.
 ///
-/// Please note that this trait is very similar to the Deref trait. However, there is a very
-/// important difference. Unlike `Deref`, there is no `impl<'a, T> Unwrap for &'a T` defined. The
-/// existence of such impl is very error prone when writing complex impls. The `Deref` docs warn
-/// about it explicitly: "[...] Because of this, Deref should only be implemented for smart pointers
-/// to avoid confusion.". As an example, consider the following code which contains infinite loop:
-///
-/// ```text
-/// pub trait HasId {
-///     fn id(&self) -> usize;
-/// }
-///
-/// // Notice the lack of bound `<T as Deref>::Target : HasId`
-/// impl<T:Deref> HasId for T {
-///     fn id(&self) -> usize {
-///         self.deref().id()
-///     }
-/// }
-/// ```
-///
-/// And the correct version:
-///
-/// ```text
-/// pub trait HasId {
-///     fn id(&self) -> usize;
-/// }
-///
-/// // Notice the lack of bound `<T as Deref>::Target : HasId`
-/// impl<T:Deref> HasId for T where <T as Deref>::Target : HasId {
-///     fn id(&self) -> usize {
-///         self.deref().id()
-///     }
-/// }
-/// ```
-///
-/// Both versions compile fine, but the former loops for ever.
-pub trait ContentRef: HasContent {
+/// Please note that this trait is similar to the [`Deref`] trait, however, it does not implement
+/// `impl<'a, T> ItemRef for &'a T`, which allows writing unambiguous code easier.
+pub trait ItemRef: HasItem {
     /// Unwraps this type to get the inner value.
-    fn content(&self) -> &Self::Content;
+    fn item(&self) -> &Self::Item;
 }
 
-impl<T: ?Sized> ContentRef for Rc<T> {
-    fn content(&self) -> &Self::Content {
+impl<T: ?Sized> ItemRef for Rc<T> {
+    fn item(&self) -> &Self::Item {
         self.deref()
     }
 }
+
+
+
+// ==================
+// === ItemOptRef ===
+// ==================
+
+/// Get reference to the contained item in case it exists.
+pub trait ItemOptRef: HasItem {
+    /// Unwraps this type to get the inner value.
+    fn try_item(&self) -> Option<&Self::Item>;
+}
+
+impl<T: ItemRef> ItemOptRef for T {
+    fn try_item(&self) -> Option<&Self::Item> {
+        Some(self.item())
+    }
+}
+
+impl<T> ItemOptRef for Option<T> {
+    fn try_item(&self) -> Option<&Self::Item> {
+        self.as_ref()
+    }
+}
+
+impl<T> ItemOptRef for ZeroableOption<T> {
+    fn try_item(&self) -> Option<&Self::Item> {
+        self.as_ref()
+    }
+}
+
+impl<T, E> ItemOptRef for Result<T, E> {
+    fn try_item(&self) -> Option<&Self::Item> {
+        self.as_ref().ok()
+    }
+}
+
 
 
 // ============
@@ -105,61 +114,61 @@ impl<T: ?Sized> ContentRef for Rc<T> {
 
 /// Trait for objects which wrap values. Please note that this implements safe wrappers, so the
 /// object - value relation must be bijective.
-pub trait Wrapper = Wrap + ContentRef;
+pub trait Wrapper = Wrap + ItemRef;
 
 /// Wrapping utility for values.
-pub trait Wrap: HasSizedContent {
+pub trait Wrap: HasSizedItem {
     /// Wraps the value and returns the wrapped type.
-    fn wrap(t: Self::Content) -> Self;
+    fn wrap(t: Self::Item) -> Self;
 }
 
 
 
 /// Runs a function on the reference to the content.
-pub trait WithContent: HasSizedContent {
+pub trait WithContent: HasSizedItem {
     /// Runs a function on the reference to the content.
     fn with_content<F, T>(&self, f: F) -> T
-    where F: FnOnce(&Content<Self>) -> T;
+    where F: FnOnce(&Item<Self>) -> T;
 }
 
 /// Unwraps the content by consuming this value.
-pub trait Unwrap: HasSizedContent {
+pub trait Unwrap: HasSizedItem {
     /// Unwraps the content by consuming this value.
-    fn unwrap(self) -> Self::Content;
+    fn unwrap(self) -> Self::Item;
 }
 
 
 // === Utils ===
 
 /// Wraps the value and returns the wrapped type.
-pub fn wrap<T: Wrap>(t: T::Content) -> T {
+pub fn wrap<T: Wrap>(t: T::Item) -> T {
     T::wrap(t)
 }
 
 /// Provides reference to the content of this value.
-pub fn content<T: ContentRef>(t: &T) -> &T::Content {
-    T::content(t)
+pub fn item<T: ItemRef>(t: &T) -> &T::Item {
+    T::item(t)
 }
 
 /// Unwrap the content by consuming this value.
-pub fn unwrap<T: Unwrap>(t: T) -> T::Content {
+pub fn unwrap<T: Unwrap>(t: T) -> T::Item {
     T::unwrap(t)
 }
 
 
 // === Default Impls ===
 
-impl<T: ContentRef + HasSizedContent> WithContent for T {
+impl<T: ItemRef + HasSizedItem> WithContent for T {
     fn with_content<F, S>(&self, f: F) -> S
-    where F: FnOnce(&Content<Self>) -> S {
-        f(self.content())
+    where F: FnOnce(&Item<Self>) -> S {
+        f(self.item())
     }
 }
 
 // TODO: This should be implemented with the marker trait overlapping rules magic.
 // impl<T:Deref> Unwrap for T
 // where <T as Deref>::Target: Unwrap {
-//     default fn unwrap(&self) -> &Self::Content {
+//     default fn unwrap(&self) -> &Self::Item {
 //         self.deref().unwrap()
 //     }
 // }

@@ -355,12 +355,12 @@ where
 
 // === Instances ===
 
-impl<S: StorageRelation<I, T>, I, T> HasContent for Texture<S, I, T> {
-    type Content = Texture<S, I, T>;
+impl<S: StorageRelation<I, T>, I, T> HasItem for Texture<S, I, T> {
+    type Item = Texture<S, I, T>;
 }
 
-impl<S: StorageRelation<I, T>, I, T> ContentRef for Texture<S, I, T> {
-    fn content(&self) -> &Self::Content {
+impl<S: StorageRelation<I, T>, I, T> ItemRef for Texture<S, I, T> {
+    fn item(&self) -> &Self::Item {
         self
     }
 }
@@ -388,7 +388,7 @@ pub trait TextureOps {
 }
 
 impl<
-        P: WithContent<Content = Texture<S, I, T>>,
+        P: WithContent<Item = Texture<S, I, T>>,
         S: StorageRelation<I, T>,
         I: InternalFormat,
         T: ItemType,

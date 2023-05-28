@@ -244,12 +244,12 @@ impl<T> From<T> for Uniform<T> {
 // === Texture Uniforms ===
 // ========================
 
-impl<T> HasContent for Uniform<T> {
-    type Content = T;
+impl<T> HasItem for Uniform<T> {
+    type Item = T;
 }
 
 impl<T> WithContent for Uniform<T> {
-    fn with_content<F: FnOnce(&Self::Content) -> R, R>(&self, f: F) -> R {
+    fn with_content<F: FnOnce(&Self::Item) -> R, R>(&self, f: F) -> R {
         f(&self.rc.borrow().value)
     }
 }

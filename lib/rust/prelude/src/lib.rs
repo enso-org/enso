@@ -454,22 +454,22 @@ impl<T: Debug> RefCellOptionOps<T> for RefCell<Option<T>> {
 // === HasItem ===
 // ===============
 
-/// Type family for structures containing items.
-pub trait HasItem {
-    type Item;
-}
-
-pub trait ItemClone = HasItem where <Self as HasItem>::Item: Clone;
-
-impl<T> HasItem for Option<T> {
-    type Item = T;
-}
-impl<T> HasItem for Cell<T> {
-    type Item = T;
-}
-impl<T> HasItem for RefCell<T> {
-    type Item = T;
-}
+// /// Type family for structures containing items.
+// pub trait HasItem {
+//     type Item;
+// }
+//
+// pub trait ItemClone = HasItem where <Self as HasItem>::Item: Clone;
+//
+// impl<T> HasItem for Option<T> {
+//     type Item = T;
+// }
+// impl<T> HasItem for Cell<T> {
+//     type Item = T;
+// }
+// impl<T> HasItem for RefCell<T> {
+//     type Item = T;
+// }
 
 // ===============================
 // === CellGetter / CellSetter ===
