@@ -156,11 +156,41 @@
   <kbd>cmd</kbd>+<kbd>alt</kbd>+<kbd>t</kbd>/<kbd>r</kbd>.
 - [Fixed a bug where selecting a nested breadcrumb would cause the order of
   breadcrumbs to change incorrectly.][6617]
+- [Changed the shortcut to show the full-screen visualization for a node from
+  <kbd>space</kbd> <kbd>space</kbd> to <kbd>shift</kbd>+<kbd>space</kbd>.][6663]
+  so that it doesn't interfere with the shortcut for toggling the small
+  visualization.
+- [Cloud dashboard, which supersedes the startup screen][6279]. Features also
+  added in various other PRs. The new dashboard includes tables for projects,
+  folders, files and secrets, a list of templates from which new projects can be
+  created, a user menu, and a search bar.
+- [The Application will try to reload file in backend on synchronization
+  failure][6752]. It should make it more resilient to connectivity issues and
+  occasional bugs. The reload may be forced by the user with
+  <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>x</kbd> shortcut.
+- [When selecting a function from the main module through the component browser,
+  it is now referenced via the `Main` namespace instead of the project
+  namespace,][6719] e.g. `Main.func1` instead of `MyProject.func1`. This makes
+  it robust against project name changes.
+- [Added a button to return from an opened project back to the project
+  dashboard.][6474]
+- [Keyboard shortcuts for graph editing are now disabled when the full-screen
+  visualization is active.][6844]
+- [A loading animation is now shown when opening and creating projects][6827],
+  as the previous behaviour of showing a blank screen while the project was
+  being loaded was potentially confusing to users.
 
+[6279]: https://github.com/enso-org/enso/pull/6279
 [6421]: https://github.com/enso-org/enso/pull/6421
 [6530]: https://github.com/enso-org/enso/pull/6530
-[6620]: https://github.com/enso-org/enso/pull/6620
 [6617]: https://github.com/enso-org/enso/pull/6617
+[6620]: https://github.com/enso-org/enso/pull/6620
+[6663]: https://github.com/enso-org/enso/pull/6663
+[6752]: https://github.com/enso-org/enso/pull/6752
+[6719]: https://github.com/enso-org/enso/pull/6719
+[6474]: https://github.com/enso-org/enso/pull/6474
+[6844]: https://github.com/enso-org/enso/pull/6844
+[6827]: https://github.com/enso-org/enso/pull/6827
 
 #### EnsoGL (rendering engine)
 
@@ -219,18 +249,17 @@
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
-[4047]: https://github.com/enso-org/enso/pull/4047
 [4003]: https://github.com/enso-org/enso/pull/4003
+[4047]: https://github.com/enso-org/enso/pull/4047
 [5895]: https://github.com/enso-org/enso/pull/5895
-[5895]: https://github.com/enso-org/enso/pull/6130
 [6035]: https://github.com/enso-org/enso/pull/6035
 [6097]: https://github.com/enso-org/enso/pull/6097
-[6097]: https://github.com/enso-org/enso/pull/6341
+[6130]: https://github.com/enso-org/enso/pull/6130
 [6366]: https://github.com/enso-org/enso/pull/6366
-[6487]: https://github.com/enso-org/enso/pull/6487
 [6341]: https://github.com/enso-org/enso/pull/6341
 [6470]: https://github.com/enso-org/enso/pull/6470
 [6595]: https://github.com/enso-org/enso/pull/6595
+[6487]: https://github.com/enso-org/enso/pull/6487
 [6512]: https://github.com/enso-org/enso/pull/6512
 
 #### Enso Standard Library
@@ -439,6 +468,8 @@
 - [Added `at_least_one` flag to `Table.tokenize_to_rows`.][6539]
 - [Moved `Redshift` connector into a separate `AWS` library.][6550]
 - [Added `Date_Range`.][6621]
+- [Implemented the `cast` operation for `Table` and `Column`.][6711]
+- [Added `.round` and `.int` to `Integer` and `Decimal`.][6743]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -649,6 +680,8 @@
 [6539]: https://github.com/enso-org/enso/pull/6539
 [6550]: https://github.com/enso-org/enso/pull/6550
 [6621]: https://github.com/enso-org/enso/pull/6621
+[6711]: https://github.com/enso-org/enso/pull/6711
+[6743]: https://github.com/enso-org/enso/pull/6743
 
 #### Enso Compiler
 
@@ -759,6 +792,9 @@
 - [Warning.get_all returns only unique warnings][6372]
 - [Reimplement `enso_project` as a proper builtin][6352]
 - [Limit number of reported warnings per value][6577]
+- [Suggestions are updated only when the type of the expression changes][6755]
+- [Add project creation time to project metadata][6780]
+- [Upgrade GraalVM to 22.3.1 JDK17][6750]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -869,6 +905,9 @@
 [6372]: https://github.com/enso-org/enso/pull/6372
 [6352]: https://github.com/enso-org/enso/pull/6352
 [6577]: https://github.com/enso-org/enso/pull/6577
+[6750]: https://github.com/enso-org/enso/pull/6750
+[6755]: https://github.com/enso-org/enso/pull/6755
+[6780]: https://github.com/enso-org/enso/pull/6780
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

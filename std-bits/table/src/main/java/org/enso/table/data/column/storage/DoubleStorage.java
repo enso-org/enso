@@ -1,8 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-import java.util.List;
-
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
@@ -18,6 +15,9 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Value;
 
+import java.util.BitSet;
+import java.util.List;
+
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends NumericStorage<Double> {
   private final long[] data;
@@ -28,8 +28,8 @@ public final class DoubleStorage extends NumericStorage<Double> {
   /**
    * @param data the underlying data
    * @param size the number of items stored
-   * @param isMissing a bit set denoting at index {@code i} whether or not the value at index {@code
-   *     i} is missing.
+   * @param isMissing a bit set denoting at index {@code i} whether the value at index {@code i} is
+   *     missing.
    */
   public DoubleStorage(long[] data, int size, BitSet isMissing) {
     this.data = data;

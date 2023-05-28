@@ -245,6 +245,12 @@ impl From<&&str> for ImString {
     }
 }
 
+impl From<Cow<'_, str>> for ImString {
+    fn from(t: Cow<str>) -> Self {
+        t.into_owned().into()
+    }
+}
+
 impl From<ImString> for String {
     fn from(value: ImString) -> Self {
         match Rc::try_unwrap(value.content) {

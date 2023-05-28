@@ -30,11 +30,6 @@ export const OAUTH_RESPONSE_TYPE = newtype.asNewtype<OAuthResponseType>('code')
 // === Types ===
 // =============
 
-/** The types in this section use "branded types". These are types that intersect with an interface
- * with a private `$brand` property. Branding a type makes the resulting type unique from its base
- * type. This makes it impossible to erroneously provide regular `string`s to functions that expect
- * an `AwsRegion`, etc. */
-
 /** The AWS region in which our Cognito pool is located. This is always set to `eu-west-1` because
  * that is the only region in which our Cognito pools are currently available in. */
 type AwsRegion = newtype.Newtype<string, 'AwsRegion'>
@@ -65,13 +60,13 @@ type OAuthResponseType = newtype.Newtype<string, 'OAuthResponseType'>
  * Cognito pool and during the creation of the OAuth client. See the `enso-org/cloud-v2` repo for
  * details. */
 export type OAuthRedirect = newtype.Newtype<string, 'OAuthRedirect'>
-/** Callback used to open URLs for the OAuth flow. This is only used in the desktop app (i.e., not in
+/** Callback used to open URLs for the OAuth flow. This is only used in the desktop app (i.e. not in
  * the cloud). This is because in the cloud we just keep the user in their browser, but in the app
  * we want to open OAuth URLs in the system browser. This is because the user can't be expected to
  * trust their credentials to an Electron app. */
 export type OAuthUrlOpener = (url: string, redirectUrl: string) => void
-/** A function used to save access token to a Enso credentials file. The token is used by the engine to issue
- * http request to cloud API. */
+/** A function used to save the access token to a credentials file. The token is used by the engine
+ * to issue HTTP requests to the cloud API. */
 export type AccessTokenSaver = (accessToken: string) => void
 /** Function used to register a callback. The callback will get called when a deep link is received
  * by the app. This is only used in the desktop app (i.e., not in the cloud). This is used when the
@@ -105,10 +100,12 @@ export interface AmplifyConfig {
 // === NestedAmplifyConfig ===
 // ===========================
 
+/** Configuration options for a {@link OauthAmplifyConfig}. */
 interface OauthAmplifyConfigOptions {
     urlOpener?: OAuthUrlOpener
 }
 
+/** OAuth configuration for a {@link NestedAmplifyConfig}. */
 interface OauthAmplifyConfig {
     options: OauthAmplifyConfigOptions
     domain: OAuthDomain
@@ -126,7 +123,7 @@ export interface NestedAmplifyConfig {
     oauth: OauthAmplifyConfig
 }
 
-/** Converts the flattened `AmplifyConfig` struct to a form recognizable to the AWS Amplify library.
+/** Convert the flattened `AmplifyConfig` struct to a form recognizable to the AWS Amplify library.
  *
  * We use a flattened form of the config for easier object manipulation, but the AWS Amplify library
  * expects a nested form. */

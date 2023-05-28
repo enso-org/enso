@@ -146,7 +146,8 @@ impl Button {
     /// Constructs a new button for toggling the editor's view mode.
     pub fn new(app: &Application) -> Button {
         let scene = &app.display.default_scene;
-        let styles = StyleWatchFrp::new(&scene.style_sheet);
+        let style_sheet = &scene.style_sheet;
+        let styles = StyleWatchFrp::new(style_sheet);
         let frp = Frp::new();
         let network = &frp.network;
 
@@ -154,7 +155,6 @@ impl Button {
             .with_placement(tooltip::Placement::Left);
         let button = ToggleButton::<icon::Shape>::new(app, tooltip_style);
         scene.layers.panel.add(&button);
-        button.set_visibility(true);
         button.frp.set_size(Vector2(32.0, 32.0));
 
         frp::extend! { network
@@ -179,21 +179,20 @@ impl Button {
             // === Color ===
 
             use ensogl_hardcoded_theme::graph_editor::profiling_button as button_theme;
-            let non_toggled_color      = styles.get_color(button_theme::non_toggled);
             let toggled_color          = styles.get_color(button_theme::toggled);
-            let hovered_color          = styles.get_color(button_theme::hovered);
             let toggled_hovered_color  = styles.get_color(button_theme::toggled_hovered);
             init_color_scheme         <- source::<()>();
-            button.set_color_scheme   <+ all_with5(&non_toggled_color,&toggled_color,&hovered_color
-                ,&toggled_hovered_color,&init_color_scheme
-                ,|&non_toggled,&toggled,&hovered,&toggled_hovered,_|
+            button.set_color_scheme <+ all_with3(
+                &toggled_color,
+                &toggled_hovered_color,
+                &init_color_scheme,
+                f!([style_sheet] (&toggled, &toggled_hovered, _)
                     toggle_button::ColorScheme {
-                        non_toggled     : Some(non_toggled.into()),
                         toggled         : Some(toggled.into()),
-                        hovered         : Some(hovered.into()),
                         toggled_hovered : Some(toggled_hovered.into()),
-                        ..default()
+                        ..toggle_button::default_color_scheme(&style_sheet)
                     }
+                )
             );
         }
 

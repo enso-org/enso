@@ -84,7 +84,7 @@ public final class LongStorage extends NumericStorage<Long> {
   /** @inheritDoc */
   @Override
   public StorageType getType() {
-    // TODO add possibility to set integer bit limit
+    // TODO add possibility to set integer bit limit (#5159)
     return IntegerType.INT_64;
   }
 

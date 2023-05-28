@@ -543,7 +543,8 @@ impl Container {
             default_visualisation <- visualisation_uninitialised.on_true().map(|_| {
                 Some(visualization::Registry::default_visualisation())
             });
-            vis_input_type <- frp.set_vis_input_type.gate(&visualisation_uninitialised).unwrap();
+            vis_input_type <- frp.set_vis_input_type.on_change();
+            vis_input_type <- vis_input_type.gate(&visualisation_uninitialised).unwrap();
             default_visualisation_for_type <- vis_input_type.map(f!((tp) {
                registry.default_visualization_for_type(tp)
             }));
@@ -568,10 +569,8 @@ impl Container {
             selected_definition <- action_bar.visualisation_selection.map(f!([registry](path)
                 path.as_ref().and_then(|path| registry.definition_from_path(path))
             ));
-            action_bar.hide_icons <+ selected_definition.constant(());
+            action_bar.set_vis_input_type <+ frp.set_vis_input_type;
             frp.source.vis_input_type <+ frp.set_vis_input_type;
-            let chooser = &model.action_bar.visualization_chooser();
-            chooser.frp.set_vis_input_type <+ frp.set_vis_input_type;
         }
 
 

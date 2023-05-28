@@ -5,9 +5,10 @@
 import * as semver from 'semver'
 
 import * as authentication from 'enso-authentication'
+import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
 
-import * as app from '../../../../../target/ensogl-pack/linked-dist/index'
+import * as app from '../../../../../target/ensogl-pack/linked-dist'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
@@ -16,6 +17,8 @@ const logger = app.log.logger
 // === Constants ===
 // =================
 
+/** The name of the `localStorage` key storing the initial URL of the app. */
+const INITIAL_URL_KEY = `${common.PRODUCT_NAME.toLowerCase()}-initial-url`
 /** Path to the SSE endpoint over which esbuild sends events. */
 const ESBUILD_PATH = '/esbuild'
 /** SSE event indicating a build has finished. */
@@ -34,24 +37,31 @@ const FETCH_TIMEOUT = 300
 
 if (IS_DEV_MODE) {
     new EventSource(ESBUILD_PATH).addEventListener(ESBUILD_EVENT_NAME, () => {
-        location.reload()
+        // This acts like `location.reload`, but it preserves the query-string.
+        // The `toString()` is to bypass a lint without using a comment.
+        location.href = location.href.toString()
     })
     void navigator.serviceWorker.register(SERVICE_WORKER_PATH)
+} else {
+    void navigator.serviceWorker
+        .getRegistration()
+        .then(serviceWorker => serviceWorker?.unregister())
 }
 
 // =============
 // === Fetch ===
 // =============
 
-function timeout(time: number) {
+/** Returns an `AbortController` that aborts after the specified number of seconds. */
+function timeout(timeSeconds: number) {
     const controller = new AbortController()
     setTimeout(() => {
         controller.abort()
-    }, time * SECOND)
+    }, timeSeconds * SECOND)
     return controller
 }
 
-/** A version of `fetch` which timeouts after the provided time. */
+/** A version of `fetch` which times out after the provided time. */
 async function fetchTimeout(url: string, timeoutSeconds: number): Promise<unknown> {
     return fetch(url, { signal: timeout(timeoutSeconds).signal }).then(response => {
         const statusCodeOK = 200
@@ -125,17 +135,22 @@ function displayDeprecatedVersionDialog() {
 // === Main entry point ===
 // ========================
 
+/** Nested configuration options with `string` values. */
 interface StringConfig {
     [key: string]: StringConfig | string
 }
 
+/** Contains the entrypoint into the IDE. */
 class Main implements AppRunner {
     app: app.App | null = null
 
+    /** Stop an app instance, if one is running. */
     stopApp() {
         this.app?.stop()
     }
 
+    /** Run an app instance with the specified configuration.
+     * This includes the scene to run and the WebSocket endpoints to the backend. */
     async runApp(inputConfig?: StringConfig) {
         this.stopApp()
 
@@ -179,62 +194,85 @@ class Main implements AppRunner {
         }
     }
 
+    /** The entrypoint into the IDE. */
     main(inputConfig?: StringConfig) {
-        contentConfig.OPTIONS.loadAll([app.urlParams()])
-        const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
-        const isUsingNewDashboard =
-            contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
-        const isOpeningMainEntryPoint =
-            contentConfig.OPTIONS.groups.startup.options.entry.value ===
-            contentConfig.OPTIONS.groups.startup.options.entry.default
-        if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningMainEntryPoint) {
-            const hideAuth = () => {
-                const auth = document.getElementById('dashboard')
-                const ide = document.getElementById('root')
-                if (auth) {
-                    auth.style.display = 'none'
-                }
-                if (ide) {
-                    ide.hidden = false
-                }
+        /** Note: Signing out always redirects to `/`. It is impossible to make this work,
+         * as it is not possible to distinguish between having just logged out, and explicitly
+         * opening a page with no URL parameters set.
+         *
+         * Client-side routing endpoints are explicitly not supported for live-reload, as they are
+         * transitional pages that should not need live-reload when running `gui watch`. */
+        const url = new URL(location.href)
+        const isInAuthenticationFlow = url.searchParams.has('code') && url.searchParams.has('state')
+        const authenticationUrl = location.href
+        if (isInAuthenticationFlow) {
+            history.replaceState(null, '', localStorage.getItem(INITIAL_URL_KEY))
+        }
+        const parseOk = contentConfig.OPTIONS.loadAllAndDisplayHelpIfUnsuccessful([app.urlParams()])
+        if (isInAuthenticationFlow) {
+            history.replaceState(null, '', authenticationUrl)
+        } else {
+            localStorage.setItem(INITIAL_URL_KEY, location.href)
+        }
+        if (parseOk) {
+            const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
+            const isUsingNewDashboard =
+                contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
+            const isOpeningMainEntryPoint =
+                contentConfig.OPTIONS.groups.startup.options.entry.value ===
+                contentConfig.OPTIONS.groups.startup.options.entry.default
+            const isNotOpeningProject =
+                contentConfig.OPTIONS.groups.startup.options.project.value === ''
+            if (
+                (isUsingAuthentication || isUsingNewDashboard) &&
+                isOpeningMainEntryPoint &&
+                isNotOpeningProject
+            ) {
+                this.runAuthentication(isInAuthenticationFlow, inputConfig)
+            } else {
+                void this.runApp(inputConfig)
             }
-            /** This package is an Electron desktop app (i.e., not in the Cloud), so
-             * we're running on the desktop. */
-            /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
-             * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
-             * should only have one entry point. Right now, we have two. One for the cloud
-             * and one for the desktop. */
-            const currentPlatform = contentConfig.OPTIONS.groups.startup.options.platform.value
-            let platform = authentication.Platform.desktop
-            if (currentPlatform === 'web') {
-                platform = authentication.Platform.cloud
-            }
-            /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
-             * React hooks rerender themselves multiple times. It is resulting in multiple
-             * Enso main scene being initialized. As a temporary workaround we check whether
-             * appInstance was already ran. Target solution should move running appInstance
-             * where it will be called only once. */
-            let appInstanceRan = false
-            const onAuthenticated = () => {
+        }
+    }
+
+    /** Begins the authentication UI flow. */
+    runAuthentication(isInAuthenticationFlow: boolean, inputConfig?: StringConfig) {
+        /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
+         * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
+         * should only have one entry point. Right now, we have two. One for the cloud
+         * and one for the desktop. */
+        /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
+         * React hooks rerender themselves multiple times. It is resulting in multiple
+         * Enso main scene being initialized. As a temporary workaround we check whether
+         * appInstance was already ran. Target solution should move running appInstance
+         * where it will be called only once. */
+        authentication.run({
+            appRunner: this,
+            logger,
+            supportsLocalBackend: SUPPORTS_LOCAL_BACKEND,
+            supportsDeepLinks: SUPPORTS_DEEP_LINKS,
+            showDashboard: contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
+            onAuthenticated: () => {
+                if (isInAuthenticationFlow) {
+                    const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
+                    if (initialUrl != null) {
+                        // This is not used past this point, however it is set to the initial URL
+                        // to make refreshing work as expected.
+                        history.replaceState(null, '', initialUrl)
+                    }
+                }
                 if (!contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) {
-                    hideAuth()
-                    if (!appInstanceRan) {
-                        appInstanceRan = true
+                    document.getElementById('enso-dashboard')?.remove()
+                    const ide = document.getElementById('root')
+                    if (ide) {
+                        ide.hidden = false
+                    }
+                    if (this.app == null) {
                         void this.runApp(inputConfig)
                     }
                 }
-            }
-            authentication.run({
-                appRunner: this,
-                logger,
-                platform,
-                showDashboard:
-                    contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
-                onAuthenticated,
-            })
-        } else {
-            void this.runApp(inputConfig)
-        }
+            },
+        })
     }
 }
 

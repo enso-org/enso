@@ -736,6 +736,25 @@ spec =
             "".drop (Sample 0) . should_equal ""
             "".drop (Sample 100) . should_equal ""
 
+        Test.specify "take and drop should gracefully handle missing constructor arguments" <|
+            "".take "FOO" . should_fail_with Type_Error
+            "".drop "FOO" . should_fail_with Type_Error
+
+            r1 = "".take (Index_Sub_Range.While)
+            r1.should_fail_with Illegal_Argument
+            r1.catch.to_display_text . should_contain "The constructor While is missing some arguments"
+
+            r2 = "".drop (Text_Sub_Range.Before ...)
+            r2.should_fail_with Illegal_Argument
+            r2.catch.to_display_text . should_contain "The constructor Before is missing some arguments"
+
+            r3 = "".take (Index_Sub_Range.First _)
+            r3.should_fail_with Illegal_Argument
+            r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"
+
+            # Double-check that constructors of _unexpected_ types are still yielding a type error.
+            "".take (Case_Sensitivity.Insensitive ...) . should_fail_with Type_Error
+
         Test.specify "should correctly convert character case" <|
             "FooBar Baz".to_case Case.Lower . should_equal "foobar baz"
             "FooBar Baz".to_case Case.Upper . should_equal "FOOBAR BAZ"

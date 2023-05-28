@@ -14,12 +14,12 @@ use crate::view;
 use crate::CallWidgetsConfig;
 use crate::Type;
 
-use super::edge;
 use engine_protocol::language_server::ExecutionEnvironment;
 use enso_frp as frp;
 use enso_frp;
 use ensogl::animation::delayed::DelayedAnimation;
 use ensogl::application::Application;
+use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Layer;
@@ -104,33 +104,13 @@ pub type Comment = ImString;
 // === Shape ===
 // =============
 
-/// Node background definition.
-pub mod background {
-    use super::*;
-
-    ensogl::shape! {
-        pointer_events = false;
-        alignment = center;
-        (style:Style, bg_color:Vector4) {
-            let bg_color = Var::<color::Rgba>::from(bg_color);
-            let width    = Var::<Pixels>::from("input_size.x");
-            let height   = Var::<Pixels>::from("input_size.y");
-            let width    = width  - PADDING.px() * 2.0;
-            let height   = height - PADDING.px() * 2.0;
-            let radius   = RADIUS.px();
-            let shape    = Rect((&width,&height)).corners_radius(radius);
-            let shape    = shape.fill(bg_color);
-            shape.into()
-        }
-    }
-}
-
 /// Node backdrop. Contains shadow and selection.
 pub mod backdrop {
     use super::*;
 
     ensogl::shape! {
         // Disabled to allow interaction with the output port.
+        below = [compound::rectangle::shape];
         pointer_events = false;
         alignment = center;
         (style:Style, selection:f32) {
@@ -186,28 +166,6 @@ pub mod backdrop {
         }
     }
 }
-
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub mod drag_area {
-    use super::*;
-
-    ensogl::shape! {
-        alignment = center;
-        (style:Style) {
-            let width  : Var<Pixels> = "input_size.x".into();
-            let height : Var<Pixels> = "input_size.y".into();
-            let width  = width  - PADDING.px() * 2.0;
-            let height = height - PADDING.px() * 2.0;
-            let radius = 14.px();
-            let shape  = Rect((&width,&height)).corners_radius(radius);
-            let shape  = shape.fill(color::Rgba::new(0.0,0.0,0.0,0.000_001));
-
-            let out = shape;
-            out.into()
-        }
-    }
-}
-
 
 
 // =======================
@@ -336,6 +294,9 @@ ensogl::define_endpoints_2! {
 
         /// Set read-only mode for input ports.
         set_read_only                     (bool),
+
+        /// Set the mode in which the cursor will indicate that editing of the node is possible.
+        set_edit_ready_mode (bool),
     }
     Output {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
@@ -468,8 +429,7 @@ pub struct NodeModel {
     pub app:                 Application,
     pub display_object:      display::object::Instance,
     pub backdrop:            backdrop::View,
-    pub background:          background::View,
-    pub drag_area:           drag_area::View,
+    pub background:          Rectangle,
     pub error_indicator:     error_shape::View,
     pub profiling_label:     ProfilingLabel,
     pub input:               input::Area,
@@ -486,39 +446,18 @@ impl NodeModel {
     /// Constructor.
     #[profile(Debug)]
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
-        ensogl::shapes_order_dependencies! {
-            app.display.default_scene => {
-                //TODO[ao] The two lines below should not be needed - the ordering should be
-                //    transitive. But removing them causes a visual glitches described in
-                //    https://github.com/enso-org/ide/issues/1624
-                //    The matter should be further investigated.
-                edge::back::corner        -> backdrop;
-                edge::back::line          -> backdrop;
-                edge::back::corner        -> error_shape;
-                edge::back::line          -> error_shape;
-                error_shape               -> backdrop;
-                backdrop                  -> output::port::single_port;
-                backdrop                  -> output::port::multi_port;
-                output::port::single_port -> background;
-                output::port::multi_port  -> background;
-                background                -> drag_area;
-                drag_area                 -> edge::front::corner;
-                drag_area                 -> edge::front::line;
-            }
-        }
-
         let scene = &app.display.default_scene;
 
         let error_indicator = error_shape::View::new();
         let profiling_label = ProfilingLabel::new(app);
         let backdrop = backdrop::View::new();
-        let background = background::View::new();
-        let drag_area = drag_area::View::new();
+        let background = Rectangle::new().build(|v| {
+            v.set_corner_radius(RADIUS);
+        });
         let vcs_indicator = vcs::StatusIndicator::new(app);
         let display_object = display::object::Instance::new_named("Node");
 
         display_object.add_child(&profiling_label);
-        display_object.add_child(&drag_area);
         display_object.add_child(&backdrop);
         display_object.add_child(&background);
         display_object.add_child(&vcs_indicator);
@@ -551,7 +490,6 @@ impl NodeModel {
             display_object,
             backdrop,
             background,
-            drag_area,
             error_indicator,
             profiling_label,
             input,
@@ -643,16 +581,18 @@ impl NodeModel {
         let size = Vector2(width, height);
         let padded_size = size + Vector2(PADDING, PADDING) * 2.0;
         self.backdrop.set_size(padded_size);
-        self.background.set_size(padded_size);
-        self.drag_area.set_size(padded_size);
+        self.background.set_size(size);
         self.error_indicator.set_size(padded_size);
         self.vcs_indicator.frp.set_size(padded_size);
         let x_offset_to_node_center = x_offset_to_node_center(width);
+
+        // Position shapes such that the center of their left edge is at the node origin:
+        // - Most shapes are still center-aligned, we have to move them horizontally.
         self.backdrop.set_x(x_offset_to_node_center);
-        self.background.set_x(x_offset_to_node_center);
-        self.drag_area.set_x(x_offset_to_node_center);
         self.error_indicator.set_x(x_offset_to_node_center);
         self.vcs_indicator.set_x(x_offset_to_node_center);
+        // - Background is a bottom-left aligned Rectangle, thus we have to move it vertically.
+        self.background.set_y(-height / 2.0);
 
         let action_bar_width = ACTION_BAR_WIDTH;
         self.action_bar
@@ -730,17 +670,27 @@ impl Node {
             // ths user hovers the drag area. The input port manager merges this information with
             // port hover events and outputs the final hover event for any part inside of the node.
 
-            let drag_area = &model.drag_area.events_deprecated;
-            drag_area_hover <- bool(&drag_area.mouse_out,&drag_area.mouse_over);
-            model.input.set_hover  <+ drag_area_hover;
+            let background_enter = model.background.on_event::<mouse::Enter>();
+            let background_leave = model.background.on_event::<mouse::Leave>();
+            background_hover <- bool(&background_leave, &background_enter);
+            let input_enter = model.input.on_event::<mouse::Over>();
+            let input_leave = model.input.on_event::<mouse::Out>();
+            input_hover <- bool(&input_leave, &input_enter);
+            node_hover <- background_hover || input_hover;
+            node_hover <- node_hover.debounce().on_change();
+            model.input.set_hover <+ node_hover;
             model.output.set_hover <+ model.input.body_hover;
             out.hover <+ model.output.body_hover;
 
 
             // === Background Press ===
 
-            out.background_press <+ model.drag_area.events_deprecated.mouse_down_primary;
-            out.background_press <+ model.input.on_background_press;
+            let background_press = model.background.on_event::<mouse::Down>();
+            let input_press = model.input.on_event::<mouse::Down>();
+            input_as_background_press <- input_press.gate(&input.set_edit_ready_mode);
+            any_background_press <- any(&background_press, &input_as_background_press);
+            any_primary_press <- any_background_press.filter(mouse::event::is_primary);
+            out.background_press <+ any_primary_press.constant(());
 
 
             // === Selection ===
@@ -819,6 +769,7 @@ impl Node {
 
             model.input.set_view_mode <+ input.set_view_mode;
             model.output.set_view_mode <+ input.set_view_mode;
+            model.input.set_edit_ready_mode <+ input.set_edit_ready_mode;
             model.profiling_label.set_view_mode <+ input.set_view_mode;
             model.vcs_indicator.set_visibility  <+ input.set_view_mode.map(|&mode| {
                 !matches!(mode,view::Mode::Profiling {..})
@@ -981,12 +932,8 @@ impl Node {
             //     else         { style.get_color(bg_color_path) }
             // }));
             // bg_color_anim.target <+ bg_color;
-            // eval bg_color_anim.value ((c)
-            //     model.background.bg_color.set(color::Rgba::from(c).into())
-            // );
 
-            eval bg_color_anim.value ((c)
-                model.background.bg_color.set(color::Rgba::from(c).into()));
+            eval bg_color_anim.value ([model] (c) { model.background.set_color(c.into()); });
 
 
             // === Tooltip ===
