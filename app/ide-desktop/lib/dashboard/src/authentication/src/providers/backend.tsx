@@ -2,9 +2,18 @@
  * provider via the shared React context. */
 import * as react from 'react'
 
+import * as common from 'enso-common'
+
 import * as backendModule from '../dashboard/backend'
 import * as localBackend from '../dashboard/localBackend'
 import * as remoteBackend from '../dashboard/remoteBackend'
+
+// =================
+// === Constants ===
+// =================
+
+/** The `localStorage` key under which the type of the current backend is stored. */
+export const BACKEND_TYPE_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-backend-type`
 
 // =============
 // === Types ===
@@ -43,7 +52,7 @@ export function BackendProvider(props: BackendProviderProps) {
         localBackend.LocalBackend | remoteBackend.RemoteBackend
     >(() => new localBackend.LocalBackend())
     react.useEffect(() => {
-        localStorage.setItem(backendModule.BACKEND_TYPE_KEY, backend.type)
+        localStorage.setItem(BACKEND_TYPE_KEY, backend.type)
     }, [backend])
 
     return (

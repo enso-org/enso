@@ -16,7 +16,7 @@ import * as remoteBackendModule from '../remoteBackend'
 import * as svg from '../../components/svg'
 import * as uploadMultipleFiles from '../../uploadMultipleFiles'
 
-import * as auth from '../../authentication/providers/auth'
+import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
@@ -96,7 +96,7 @@ const EXPERIMENTAL = {
 /** The `id` attribute of the element into which the IDE will be rendered. */
 const IDE_ELEMENT_ID = 'root'
 /** The `localStorage` key under which the ID of the current directory is stored. */
-const DIRECTORY_STACK_KEY = 'enso-dashboard-directory-stack'
+const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-directory-stack`
 
 /** English names for the name column. */
 const ASSET_TYPE_NAME: Record<backendModule.AssetType, string> = {
@@ -235,7 +235,7 @@ function Dashboard(props: DashboardProps) {
     const { supportsLocalBackend, appRunner, initialProjectName } = props
 
     const logger = loggerProvider.useLogger()
-    const { accessToken, organization } = auth.useFullUserSession()
+    const { accessToken, organization } = authProvider.useFullUserSession()
     const { backend } = backendProvider.useBackend()
     const { setBackend } = backendProvider.useSetBackend()
     const { modal } = modalProvider.useModal()
@@ -333,7 +333,11 @@ function Dashboard(props: DashboardProps) {
     }, [isLoadingAssets, loadingProjectManagerDidFail, backend.type])
 
     react.useEffect(() => {
-        if (supportsLocalBackend) {
+        if (
+            supportsLocalBackend &&
+            localStorage.getItem(backendProvider.BACKEND_TYPE_KEY) !==
+                backendModule.BackendType.remote
+        ) {
             setBackend(new localBackend.LocalBackend())
         }
     }, [])
