@@ -13,14 +13,14 @@
 //!  - `gpu_memory_usage`
 //!  - `data_upload_size`
 
-use enso_prelude::*;
+use crate::prelude::*;
+use enso_web::traits::*;
 
 use crate::display::world;
 use crate::display::SymbolId;
 
 use enso_types::unit2::Duration;
 use enso_web::Performance;
-use enso_web::TimeProvider;
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
 use wasm_bindgen::JsCast;
@@ -32,55 +32,29 @@ use wasm_bindgen::JsCast;
 // =============
 
 /// Contains all the gathered stats, and provides methods for modifying and retrieving their
-/// values. Uses the Web Performance API to access current time for calculating time-dependent
-/// stats (e.g. FPS).
-pub type Stats = StatsWithTimeProvider<Performance>;
-
-
-
-// =============================
-// === StatsWithTimeProvider ===
-// =============================
-
-/// Contains all the gathered stats, and provides methods for modifying and retrieving their
 /// values.
-/// Uses [`T`] to access current time for calculating time-dependent stats (e.g. FPS).
-#[derive(Debug, Deref, CloneRef)]
-pub struct StatsWithTimeProvider<T> {
-    rc: Rc<RefCell<FramedStatsData<T>>>,
+#[derive(Clone, CloneRef, Debug, Deref, Default)]
+pub struct Stats {
+    rc: Rc<RefCell<StatsInternal>>,
 }
 
-impl<T> Clone for StatsWithTimeProvider<T> {
-    fn clone(&self) -> Self {
-        Self { rc: self.rc.clone() }
-    }
-}
-
-impl<T: TimeProvider> StatsWithTimeProvider<T> {
+impl Stats {
     /// Constructor.
-    pub fn new(time_provider: T) -> Self {
-        let framed_stats_data = FramedStatsData::new(time_provider);
-        let rc = Rc::new(RefCell::new(framed_stats_data));
-        Self { rc }
+    pub fn new() -> Self {
+        default()
     }
 
     /// Calculate FPS for the last frame. This function should be called on the very beginning of
     /// every frame. Please note, that it does not clean the per-frame statistics. You want to run
     /// the [`reset_per_frame_statistics`] function before running rendering operations.
-    pub fn calculate_prev_frame_fps(&self, time: Duration) {
-        self.rc.borrow_mut().calculate_prev_frame_fps(time)
+    pub fn calculate_prev_frame_stats(&self, time: Duration) {
+        self.rc.borrow_mut().calculate_prev_frame_stats(time)
     }
 
     /// Clean the per-frame statistics, such as the per-frame number of draw calls. This function
     /// should be called before any rendering calls were made.
     pub fn reset_per_frame_statistics(&self) {
         self.rc.borrow_mut().reset_per_frame_statistics()
-    }
-
-    /// Ends tracking data for the current animation frame.
-    /// Also, calculates the `frame_time` and `wasm_memory_usage` stats.
-    pub fn end_frame(&self) {
-        self.rc.borrow_mut().end_frame();
     }
 
     /// Register a new draw call for the given symbol.
@@ -94,49 +68,46 @@ impl<T: TimeProvider> StatsWithTimeProvider<T> {
 
 
 
-// =======================
-// === FramedStatsData ===
-// =======================
+// =====================
+// === StatsInternal ===
+// =====================
 
-/// Internal representation of [`StatsWithTimeProvider`].
+/// Internal representation of [`Stats`].
 #[allow(missing_docs)]
 #[derive(Debug)]
-pub struct FramedStatsData<T> {
-    time_provider:    T,
-    pub stats_data:   StatsData,
-    frame_begin_time: Option<f64>,
+pub struct StatsInternal {
+    time_provider:     Performance,
+    pub stats_data:    StatsData,
+    frame_start:       Option<f64>,
+    wasm_memory_usage: u32,
 }
 
-impl<T: TimeProvider> FramedStatsData<T> {
+impl StatsInternal {
     /// Constructor.
-    fn new(time_provider: T) -> Self {
+    fn new() -> Self {
+        let time_provider = enso_web::window.performance_or_panic();
         let stats_data = default();
-        let frame_begin_time = None;
-        Self { time_provider, stats_data, frame_begin_time }
+        let frame_start = None;
+        let wasm_memory_usage = default();
+        Self { time_provider, stats_data, frame_start, wasm_memory_usage }
     }
 
     /// Calculate FPS for the last frame. This function should be called on the very beginning of
     /// every frame. Please note, that it does not clean the per-frame statistics. You want to run
     /// the [`reset_per_frame_statistics`] function before running rendering operations.
-    fn calculate_prev_frame_fps(&mut self, time: Duration) {
-        let time = time.unchecked_raw() as f64;
-        if let Some(previous_frame_begin_time) = self.frame_begin_time.replace(time) {
-            self.stats_data.fps = 1000.0 / (time - previous_frame_begin_time);
+    fn calculate_prev_frame_stats(&mut self, frame_start: Duration) {
+        let frame_start = frame_start.unchecked_raw() as f64;
+        if let Some(prev_frame_start) = self.frame_start.replace(frame_start) {
+            let prev_frame_time = frame_start - prev_frame_start;
+            self.stats_data.frame_time = prev_frame_time;
+            self.stats_data.fps = 1000.0 / prev_frame_time;
         }
-    }
-
-    fn end_frame(&mut self) {
-        if let Some(begin_time) = self.frame_begin_time {
-            let end_time = self.time_provider.now();
-            self.stats_data.frame_time = end_time - begin_time;
-        }
-
-        // TODO[MC,IB]: drop the `cfg!` (outlier in our codebase) once wasm_bindgen::memory()
-        // doesn't panic in non-WASM builds (https://www.pivotaltracker.com/story/show/180978631)
         if cfg!(target_arch = "wasm32") {
             let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
             let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
-            self.stats_data.wasm_memory_usage = buffer.byte_length();
+            let prev_frame_wasm_memory_usage = self.wasm_memory_usage;
+            self.wasm_memory_usage = buffer.byte_length();
+            self.stats_data.wasm_memory_usage = prev_frame_wasm_memory_usage;
         }
     }
 
@@ -147,6 +118,14 @@ impl<T: TimeProvider> FramedStatsData<T> {
         self.stats_data.shader_compile_count = 0;
         self.stats_data.data_upload_count = 0;
         self.stats_data.data_upload_size = 0;
+        self.stats_data.cpu_and_idle_time = None;
+        self.stats_data.gpu_time = None;
+    }
+}
+
+impl Default for StatsInternal {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -164,8 +143,7 @@ macro_rules! emit_if_integer {
     ($other:ty, $($block:tt)*) => ();
 }
 
-/// Emits the StatsData struct, and extends StatsWithTimeProvider with accessors to StatsData
-/// fields.
+/// Emits the [`StatsData`] struct, and extends [`Stats`] with accessors to [`StatsData`].
 macro_rules! gen_stats {
     ($($field:ident : $field_type:ty),* $(,)?) => { paste! {
 
@@ -180,9 +158,9 @@ macro_rules! gen_stats {
         }
 
 
-        // === StatsWithTimeProvider fields accessors ===
+        // === Stats fields accessors ===
 
-        impl<T: TimeProvider> StatsWithTimeProvider<T> { $(
+        impl Stats { $(
             /// Field getter.
             pub fn $field(&self) -> $field_type {
                 self.rc.borrow().stats_data.$field.clone()
@@ -217,8 +195,13 @@ macro_rules! gen_stats {
 }
 
 gen_stats! {
-    frame_time           : f64,
     fps                  : f64,
+    frame_time           : f64,
+    // To learn more why we are not computing CPU-time only, please refer to the docs of
+    // [`crate::core::animation::loops::LoopRegistry`].
+    cpu_and_idle_time    : Option<f64>,
+    gpu_time             : Option<f64>,
+    idle_time            : f64,
     wasm_memory_usage    : u32,
     gpu_memory_usage     : u32,
     draw_calls           : Vec<&'static str>,

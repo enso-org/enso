@@ -542,8 +542,7 @@ mod allocator_tests {
     }
 
     fn check_allocator(partitions: usize, steps: impl IntoIterator<Item = &Op>) {
-        use enso_web::traits::WindowOps;
-        let stats = Stats::new(enso_web::window.performance_or_panic());
+        let stats = Stats::new();
         let scope = AttributeScope::new(&stats, || ());
         let mut instances: Vec<Vec<InstanceId>> = default();
         instances.resize(partitions, default());

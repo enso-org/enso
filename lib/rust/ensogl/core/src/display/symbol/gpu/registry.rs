@@ -3,10 +3,8 @@
 
 use crate::data::dirty::traits::*;
 use crate::prelude::*;
-use crate::system::web::traits::*;
 
 use crate::data::dirty;
-use crate::debug;
 use crate::debug::stats::Stats;
 use crate::display::camera::Camera2d;
 use crate::display::scene;
@@ -20,7 +18,6 @@ use crate::display::symbol::WeakSymbol;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::Context;
-use crate::system::web;
 
 
 
@@ -29,6 +26,7 @@ use crate::system::web;
 // =============
 
 pub type Dirty = dirty::SharedSet<SymbolId>;
+
 
 
 // ===============
@@ -111,7 +109,7 @@ impl SymbolRegistry {
         let z_zoom_1 = variables.add_or_panic("z_zoom_1", 1.0);
         let display_mode = variables.add_or_panic("display_mode", 0);
         let context = default();
-        let stats = debug::stats::Stats::new(web::window.performance_or_panic());
+        let stats = default();
         let global_id_provider = default();
         let next_id = default();
         let style_sheet = style::Sheet::new();
