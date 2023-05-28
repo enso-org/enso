@@ -5,7 +5,6 @@ import toast from 'react-hot-toast'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as localBackend from '../localBackend'
-import * as platform from '../../platform'
 import * as svg from '../../components/svg'
 
 // =============
@@ -61,6 +60,7 @@ export interface ProjectActionButtonProps {
     shouldCancelOpeningImmediately: boolean
     onClose: () => void
     openIde: () => void
+    doRefresh: () => void
 }
 
 /** An interactive button displaying the status of a project. */
@@ -72,6 +72,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         shouldCancelOpeningImmediately,
         appRunner,
         openIde,
+        doRefresh,
     } = props
     const { backend } = backendProvider.useBackend()
 
@@ -149,12 +150,13 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
 
     react.useEffect(() => {
         if (
-            backend.platform === platform.Platform.desktop &&
+            backend.type === backendModule.BackendType.local &&
             project.id !== localBackend.LocalBackend.currentlyOpeningProjectId
         ) {
             setIsCheckingResources(false)
             setIsCheckingStatus(false)
             setState(backendModule.ProjectState.closed)
+            setSpinnerState(SpinnerState.done)
         }
     }, [project, state, localBackend.LocalBackend.currentlyOpeningProjectId])
 
@@ -207,7 +209,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             let continuePolling = true
             let previousTimestamp = 0
             const checkProjectResources = async () => {
-                if (backend.platform === platform.Platform.desktop) {
+                if (backend.type === backendModule.BackendType.local) {
                     setState(backendModule.ProjectState.opened)
                     setIsCheckingResources(false)
                 } else {
@@ -255,14 +257,23 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
 
     const openProject = async () => {
         setState(backendModule.ProjectState.openInProgress)
-        switch (backend.platform) {
-            case platform.Platform.cloud:
+        setSpinnerState(SpinnerState.initial)
+        // The `requestAnimationFrame` is required so that the completion percentage goes from
+        // the `initial` fraction to the `loading` fraction,
+        // rather than starting at the `loading` fraction.
+        requestAnimationFrame(() => {
+            setSpinnerState(SpinnerState.loading)
+        })
+        switch (backend.type) {
+            case backendModule.BackendType.remote:
                 await backend.openProject(project.id)
                 setToastId(toast.loading(LOADING_MESSAGE))
+                doRefresh()
                 setIsCheckingStatus(true)
                 break
-            case platform.Platform.desktop:
+            case backendModule.BackendType.local:
                 await backend.openProject(project.id)
+                doRefresh()
                 setState(backendModule.ProjectState.opened)
                 break
         }

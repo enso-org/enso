@@ -1,8 +1,6 @@
 /** @file Entry point into the cloud dashboard. */
 import * as authentication from 'enso-authentication'
 
-import * as platform from 'enso-authentication/src/platform'
-
 // =================
 // === Constants ===
 // =================
@@ -26,6 +24,10 @@ if (IS_DEV_MODE) {
         location.href = location.href.toString()
     })
     void navigator.serviceWorker.register(SERVICE_WORKER_PATH)
+} else {
+    void navigator.serviceWorker
+        .getRegistration()
+        .then(serviceWorker => serviceWorker?.unregister())
 }
 
 // ===================
@@ -34,9 +36,9 @@ if (IS_DEV_MODE) {
 
 authentication.run({
     logger: console,
-    // This file is only included when building for the cloud,
-    // so the `platform` is always `Platform.cloud`.
-    platform: platform.Platform.cloud,
+    // This file is only included when building for the cloud.
+    supportsLocalBackend: false,
+    supportsDeepLinks: false,
     showDashboard: true,
     initialProjectName: null,
     /** The `onAuthenticated` option is mandatory but is not needed here,
@@ -44,5 +46,12 @@ authentication.run({
     onAuthenticated() {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
     },
-    appRunner: null,
+    // This cannot be `appRunner: window.enso` as `window.enso` is set to a new value
+    // every time a new project is opened.
+    appRunner: {
+        stopApp: () => {
+            window.enso.stopApp()
+        },
+        runApp: config => window.enso.runApp(config),
+    },
 })

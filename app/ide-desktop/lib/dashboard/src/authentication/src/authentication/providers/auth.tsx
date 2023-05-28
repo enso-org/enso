@@ -7,8 +7,6 @@ import * as react from 'react'
 import * as router from 'react-router-dom'
 import toast from 'react-hot-toast'
 
-import * as common from 'enso-common'
-
 import * as app from '../../components/app'
 import * as authServiceModule from '../service'
 import * as backendModule from '../../dashboard/backend'
@@ -17,7 +15,6 @@ import * as errorModule from '../../error'
 import * as http from '../../http'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
-import * as platformModule from '../../platform'
 import * as remoteBackend from '../../dashboard/remoteBackend'
 import * as sessionProvider from './session'
 
@@ -28,16 +25,18 @@ import * as sessionProvider from './session'
 const MESSAGES = {
     signUpSuccess: 'We have sent you an email with further instructions!',
     confirmSignUpSuccess: 'Your account has been confirmed! Please log in.',
+    setUsernameLoading: 'Setting username...',
     setUsernameSuccess: 'Your username has been set!',
+    setUsernameFailure: 'Could not set your username.',
     signInWithPasswordSuccess: 'Successfully logged in!',
     forgotPasswordSuccess: 'We have sent you an email with further instructions!',
     changePasswordSuccess: 'Successfully changed password!',
     resetPasswordSuccess: 'Successfully reset password!',
+    signOutLoading: 'Logging out...',
     signOutSuccess: 'Successfully logged out!',
+    signOutError: 'Error logging out, please try again.',
     pleaseWait: 'Please wait...',
 } as const
-/** The `localStorage` key under which the type of the current backend is stored. */
-const BACKEND_TYPE_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-backend-type`
 
 // ===================
 // === UserSession ===
@@ -46,7 +45,6 @@ const BACKEND_TYPE_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-backend
 /** Possible types of {@link BaseUserSession}. */
 export enum UserSessionType {
     partial = 'partial',
-    awaitingAcceptance = 'awaitingAcceptance',
     full = 'full',
 }
 
@@ -144,7 +142,6 @@ const AuthContext = react.createContext<AuthContextType>({} as AuthContextType)
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
     authService: authServiceModule.AuthService
-    platform: platformModule.Platform
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: () => void
     children: react.ReactNode
@@ -152,13 +149,12 @@ export interface AuthProviderProps {
 
 /** A React provider for the Cognito API. */
 export function AuthProvider(props: AuthProviderProps) {
-    const { authService, platform, children } = props
+    const { authService, onAuthenticated, children } = props
     const { cognito } = authService
-    const { session } = sessionProvider.useSession()
+    const { session, deinitializeSession } = sessionProvider.useSession()
     const { setBackend } = backendProvider.useSetBackend()
     const logger = loggerProvider.useLogger()
     const navigate = router.useNavigate()
-    const onAuthenticated = react.useCallback(props.onAuthenticated, [])
     const [initialized, setInitialized] = react.useState(false)
     const [userSession, setUserSession] = react.useState<UserSession | null>(null)
 
@@ -178,12 +174,9 @@ export function AuthProvider(props: AuthProviderProps) {
                 headers.append('Authorization', `Bearer ${accessToken}`)
                 const client = new http.Client(headers)
                 const backend = new remoteBackend.RemoteBackend(client, logger)
-                // This will catch all invalid values, and `null`. It will not mistakenly catch
-                // any valid values, as there are currently only two valid platforms.
-                if (
-                    platform === platformModule.Platform.cloud ||
-                    localStorage.getItem(BACKEND_TYPE_KEY) === platformModule.Platform.cloud
-                ) {
+                // The backend MUST be the remote backend before login is finished.
+                // This is because the "set username" flow requires the remote backend.
+                if (!initialized || userSession == null) {
                     setBackend(backend)
                 }
                 const organization = await backend.usersMe().catch(() => null)
@@ -283,20 +276,25 @@ export function AuthProvider(props: AuthProviderProps) {
         username: string,
         email: string
     ) => {
-        if (backend.platform === platformModule.Platform.desktop) {
+        if (backend.type === backendModule.BackendType.local) {
             toast.error('You cannot set your username on the local backend.')
             return false
         } else {
             try {
-                await backend.createUser({
-                    userName: username,
-                    userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
-                })
+                await toast.promise(
+                    backend.createUser({
+                        userName: username,
+                        userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
+                    }),
+                    {
+                        success: MESSAGES.setUsernameSuccess,
+                        error: MESSAGES.setUsernameFailure,
+                        loading: MESSAGES.setUsernameLoading,
+                    }
+                )
                 navigate(app.DASHBOARD_PATH)
-                toast.success(MESSAGES.setUsernameSuccess)
                 return true
             } catch (e) {
-                toast.error('Could not set your username.')
                 return false
             }
         }
@@ -335,8 +333,14 @@ export function AuthProvider(props: AuthProviderProps) {
     }
 
     const signOut = async () => {
-        await cognito.signOut()
-        toast.success(MESSAGES.signOutSuccess)
+        deinitializeSession()
+        setInitialized(false)
+        setUserSession(null)
+        await toast.promise(cognito.signOut(), {
+            success: MESSAGES.signOutSuccess,
+            error: MESSAGES.signOutError,
+            loading: MESSAGES.signOutLoading,
+        })
         return true
     }
 
@@ -396,6 +400,16 @@ export function useAuth() {
     return react.useContext(AuthContext)
 }
 
+// ===============================
+// === shouldPreventNavigation ===
+// ===============================
+
+/** True if navigation should be prevented, for debugging purposes. */
+function getShouldPreventNavigation() {
+    const location = router.useLocation()
+    return new URLSearchParams(location.search).get('prevent-navigation') === 'true'
+}
+
 // =======================
 // === ProtectedLayout ===
 // =======================
@@ -403,10 +417,11 @@ export function useAuth() {
 /** A React Router layout route containing routes only accessible by users that are logged in. */
 export function ProtectedLayout() {
     const { session } = useAuth()
+    const shouldPreventNavigation = getShouldPreventNavigation()
 
-    if (!session) {
+    if (!shouldPreventNavigation && !session) {
         return <router.Navigate to={app.LOGIN_PATH} />
-    } else if (session.type === UserSessionType.partial) {
+    } else if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
         return <router.Navigate to={app.SET_USERNAME_PATH} />
     } else {
         return <router.Outlet context={session} />
@@ -421,8 +436,9 @@ export function ProtectedLayout() {
  * in the process of registering. */
 export function SemiProtectedLayout() {
     const { session } = useAuth()
+    const shouldPreventNavigation = getShouldPreventNavigation()
 
-    if (session?.type === UserSessionType.full) {
+    if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
         return <router.Navigate to={app.DASHBOARD_PATH} />
     } else {
         return <router.Outlet context={session} />
@@ -437,10 +453,11 @@ export function SemiProtectedLayout() {
  * not logged in. */
 export function GuestLayout() {
     const { session } = useAuth()
+    const shouldPreventNavigation = getShouldPreventNavigation()
 
-    if (session?.type === UserSessionType.partial) {
+    if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
         return <router.Navigate to={app.SET_USERNAME_PATH} />
-    } else if (session?.type === UserSessionType.full) {
+    } else if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
         return <router.Navigate to={app.DASHBOARD_PATH} />
     } else {
         return <router.Outlet />

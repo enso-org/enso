@@ -3,7 +3,6 @@ import * as common from 'enso-common'
 
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
-import * as platform from '../platform'
 
 // =================
 // === Constants ===
@@ -15,6 +14,12 @@ export const BACKEND_TYPE_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-
 // =============
 // === Types ===
 // =============
+
+/** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
+export enum BackendType {
+    local = 'local',
+    remote = 'remote',
+}
 
 /** Unique identifier for a user/organization. */
 export type UserOrOrganizationId = newtype.Newtype<string, 'UserOrOrganizationId'>
@@ -375,7 +380,7 @@ export function assetIsType<Type extends AssetType>(type: Type) {
 
 /** Interface for sending requests to a backend that manages assets and runs projects. */
 export interface Backend {
-    readonly platform: platform.Platform
+    readonly type: BackendType
 
     /** Set the username of the current user. */
     createUser: (body: CreateUserRequestBody) => Promise<UserOrOrganization>

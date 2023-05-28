@@ -1,10 +1,8 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.StringBuilder;
-import org.enso.table.data.column.operation.CastProblemBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
@@ -13,10 +11,11 @@ import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
-import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.graalvm.polyglot.Value;
+
+import java.util.BitSet;
 
 /** A column storing strings. */
 public final class StringStorage extends SpecializedStorage<String> {
@@ -71,15 +70,6 @@ public final class StringStorage extends SpecializedStorage<String> {
   @Override
   public Builder createDefaultBuilderOfSameType(int capacity) {
     return new StringBuilder(capacity);
-  }
-
-  @Override
-  public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
-    return switch (targetType) {
-      case AnyObjectType any -> new MixedStorageFacade(this);
-      case TextType textType -> adapt(this, textType);
-      default -> throw new IllegalStateException("Conversion of StringStorage to " + targetType + " is not supported");
-    };
   }
 
   private static MapOpStorage<String, SpecializedStorage<String>> buildOps() {
@@ -166,20 +156,5 @@ public final class StringStorage extends SpecializedStorage<String> {
           }
         });
     return t;
-  }
-
-  /**
-   * A helper method that can be used to adapt a variable length storage to a target type that may
-   * potentially be fixed length.
-   *
-   * <p>It will ensure that the values are trimmed or padded wherever necessary.
-   */
-  public static Storage<String> adapt(Storage<String> storage, TextType type) {
-    if (type.fixedLength()) {
-      // TODO [RW] #5159
-      throw new IllegalStateException("Fixed length conversion is currently not supported.");
-    } else {
-      return storage;
-    }
   }
 }

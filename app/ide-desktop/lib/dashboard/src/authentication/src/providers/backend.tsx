@@ -43,7 +43,7 @@ export function BackendProvider(props: BackendProviderProps) {
         localBackend.LocalBackend | remoteBackend.RemoteBackend
     >(() => new localBackend.LocalBackend())
     react.useEffect(() => {
-        localStorage.setItem(backendModule.BACKEND_TYPE_KEY, backend.platform)
+        localStorage.setItem(backendModule.BACKEND_TYPE_KEY, backend.type)
     }, [backend])
 
     return (

@@ -13,9 +13,8 @@ import GLOBAL_CONFIG from '../../../../../../../gui/config.yaml' assert { type: 
 
 /** Duration before the {@link ProjectManager} tries to create a WebSocket again. */
 const RETRY_INTERVAL_MS = 1000
-/** The number of times in a row the {@link ProjectManager} will try to connect,
- * before it throws an error. */
-const MAXIMUM_CONSECUTIVE_FAILS = 10
+/** The maximum amount of time for which the {@link ProjectManager} should try loading. */
+const MAXIMUM_DELAY_MS = 10_000
 
 // =============
 // === Types ===
@@ -145,11 +144,16 @@ export interface ListSamplesParams {
 // === Project Manager ===
 // =======================
 
+/** Possible events that may be emitted by a {@link ProjectManager}. */
+export enum ProjectManagerEvents {
+    loadingFailed = 'project-manager-loading-failed',
+}
+
 /** A {@link WebSocket} endpoint to the project manager.
  *
  * It should always be in sync with the Rust interface at
  * `app/gui/controller/engine-protocol/src/project_manager.rs`. */
-export class ProjectManager {
+export class ProjectManager extends EventTarget {
     private static instance: ProjectManager
     protected id = 0
     protected resolvers = new Map<number, (value: never) => void>()
@@ -158,8 +162,9 @@ export class ProjectManager {
 
     /** Create a {@link ProjectManager} */
     private constructor(protected readonly connectionUrl: string) {
+        super()
+        let firstConnectionStartMs = Number(new Date())
         let lastConnectionStartMs = 0
-        let consecutiveFails = 0
         let justErrored = false
         const createSocket = () => {
             lastConnectionStartMs = Number(new Date())
@@ -182,20 +187,21 @@ export class ProjectManager {
                     }
                 }
                 socket.onopen = () => {
-                    consecutiveFails = 0
                     resolve(socket)
                 }
                 socket.onerror = event => {
                     event.preventDefault()
                     justErrored = true
-                    consecutiveFails += 1
-                    if (consecutiveFails > MAXIMUM_CONSECUTIVE_FAILS) {
+                    if (Number(new Date()) - firstConnectionStartMs > MAXIMUM_DELAY_MS) {
+                        document.dispatchEvent(new Event(ProjectManagerEvents.loadingFailed))
                         reject()
+                    } else {
+                        const delay =
+                            RETRY_INTERVAL_MS - (Number(new Date()) - lastConnectionStartMs)
+                        setTimeout(() => {
+                            void createSocket().then(resolve)
+                        }, Math.max(0, delay))
                     }
-                    const delay = RETRY_INTERVAL_MS - (Number(new Date()) - lastConnectionStartMs)
-                    setTimeout(() => {
-                        void createSocket().then(resolve)
-                    }, Math.max(0, delay))
                 }
                 socket.onclose = () => {
                     if (!justErrored) {
