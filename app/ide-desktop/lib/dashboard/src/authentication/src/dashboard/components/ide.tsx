@@ -3,17 +3,15 @@ import * as React from 'react'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
-import * as error from '../../error'
-import * as platformModule from '../../platform'
 
 // =================
 // === Constants ===
 // =================
 
 const IDE_CDN_URL = 'https://ensocdn.s3.us-west-1.amazonaws.com/ide'
-const JS_EXTENSION: Record<platformModule.Platform, string> = {
-    [platformModule.Platform.cloud]: '.js.gz',
-    [platformModule.Platform.desktop]: '.js',
+const JS_EXTENSION: Record<backendModule.BackendType, string> = {
+    [backendModule.BackendType.remote]: '.js.gz',
+    [backendModule.BackendType.local]: '.js',
 } as const
 
 // =================
@@ -23,7 +21,7 @@ const JS_EXTENSION: Record<platformModule.Platform, string> = {
 /** Props for an {@link Ide}. */
 export interface IdeProps {
     project: backendModule.Project
-    appRunner: AppRunner | null
+    appRunner: AppRunner
 }
 
 /** The ontainer that launches the IDE. */
@@ -35,7 +33,7 @@ function Ide(props: IdeProps) {
         void (async () => {
             const ideVersion =
                 project.ideVersion?.value ??
-                (backend.platform === platformModule.Platform.cloud
+                (backend.type === backendModule.BackendType.remote
                     ? await backend.listVersions({
                           versionType: backendModule.VersionType.ide,
                           default: true,
@@ -43,7 +41,7 @@ function Ide(props: IdeProps) {
                     : null)?.[0].number.value
             const engineVersion =
                 project.engineVersion?.value ??
-                (backend.platform === platformModule.Platform.cloud
+                (backend.type === backendModule.BackendType.remote
                     ? await backend.listVersions({
                           versionType: backendModule.VersionType.backend,
                           default: true,
@@ -61,25 +59,22 @@ function Ide(props: IdeProps) {
                 throw new Error("Could not get the address of the project's binary endpoint.")
             } else {
                 let assetsRoot: string
-                switch (backend.platform) {
-                    case platformModule.Platform.cloud: {
+                switch (backend.type) {
+                    case backendModule.BackendType.remote: {
                         assetsRoot = `${IDE_CDN_URL}/${ideVersion}/`
                         break
                     }
-                    case platformModule.Platform.desktop: {
+                    case backendModule.BackendType.local: {
                         assetsRoot = ''
                         break
                     }
-                    default: {
-                        throw new error.UnreachableCaseError(backend)
-                    }
                 }
                 const runNewProject = async () => {
-                    await appRunner?.runApp({
+                    await appRunner.runApp({
                         loader: {
                             assetsUrl: `${assetsRoot}dynamic-assets`,
                             wasmUrl: `${assetsRoot}pkg-opt.wasm`,
-                            jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backend.platform]}`,
+                            jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backend.type]}`,
                         },
                         engine: {
                             rpcUrl: jsonAddress,
@@ -91,7 +86,7 @@ function Ide(props: IdeProps) {
                         },
                     })
                 }
-                if (backend.platform === platformModule.Platform.desktop) {
+                if (backend.type === backendModule.BackendType.local) {
                     await runNewProject()
                     return
                 } else {

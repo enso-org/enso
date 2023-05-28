@@ -7,7 +7,6 @@ import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
-import * as platform from '../../platform'
 import * as svg from '../../components/svg'
 
 import CreateForm, * as createForm from './createForm'
@@ -36,7 +35,7 @@ function SecretCreateForm(props: SecretCreateFormProps) {
     const [name, setName] = React.useState<string | null>(null)
     const [value, setValue] = React.useState<string | null>(null)
 
-    if (backend.platform === platform.Platform.desktop) {
+    if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
         const onSubmit = async (event: React.FormEvent) => {
@@ -220,7 +219,7 @@ function SecretsTable(props: SecretsTableProps) {
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
 
-    if (backend.platform === platform.Platform.desktop) {
+    if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
         return (
@@ -235,7 +234,7 @@ function SecretsTable(props: SecretsTableProps) {
                         {query ? ' matching your query' : ''}.
                     </span>
                 }
-                columns={columnModule.columnsFor(columnDisplayMode, backend.platform).map(column =>
+                columns={columnModule.columnsFor(columnDisplayMode, backend.type).map(column =>
                     column === columnModule.Column.name
                         ? {
                               id: column,

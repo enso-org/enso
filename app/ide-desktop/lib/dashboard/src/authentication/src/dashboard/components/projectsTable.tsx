@@ -7,7 +7,6 @@ import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
-import * as platform from '../../platform'
 import * as svg from '../../components/svg'
 
 import CreateForm, * as createForm from './createForm'
@@ -44,7 +43,7 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
     const [name, setName] = React.useState<string | null>(null)
     const [template, setTemplate] = React.useState<string | null>(null)
 
-    if (backend.platform === platform.Platform.desktop) {
+    if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
         const onSubmit = async (event: React.FormEvent) => {
@@ -155,6 +154,7 @@ export interface ProjectNamePropsState {
     onRename: () => void
     onOpenIde: (project: backendModule.ProjectAsset) => void
     onCloseIde: () => void
+    doRefresh: () => void
 }
 
 /** Props for a {@link ProjectName}. */
@@ -167,7 +167,7 @@ export interface ProjectNameProps {
 function ProjectName(props: ProjectNameProps) {
     const {
         item,
-        state: { appRunner, onRename, onOpenIde, onCloseIde },
+        state: { appRunner, onRename, onOpenIde, onCloseIde, doRefresh },
     } = props
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
@@ -189,7 +189,7 @@ function ProjectName(props: ProjectNameProps) {
                                 })
                             }}
                             onSuccess={onRename}
-                            {...(backend.platform === platform.Platform.desktop
+                            {...(backend.type === backendModule.BackendType.local
                                 ? DESKTOP_PROJECT_NAME_VALIDATION
                                 : {})}
                         />
@@ -204,6 +204,7 @@ function ProjectName(props: ProjectNameProps) {
                     onOpenIde(item)
                 }}
                 onClose={onCloseIde}
+                doRefresh={doRefresh}
             />
             <span className="px-2">{item.title}</span>
         </div>
@@ -226,6 +227,7 @@ export interface ProjectsTableProps {
         asset: backendModule.ProjectAsset,
         event: React.MouseEvent<HTMLTableRowElement>
     ) => void
+    doRefresh: () => void
 }
 
 /** The table of project assets. */
@@ -242,6 +244,7 @@ function ProjectsTable(props: ProjectsTableProps) {
         onOpenIde,
         onCloseIde,
         onAssetClick,
+        doRefresh,
     } = props
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
@@ -255,6 +258,7 @@ function ProjectsTable(props: ProjectsTableProps) {
                 onRename,
                 onOpenIde,
                 onCloseIde,
+                doRefresh,
             }}
             getKey={backendModule.getAssetId}
             placeholder={
@@ -262,7 +266,7 @@ function ProjectsTable(props: ProjectsTableProps) {
                     You have no project yet. Go ahead and create one using the form above.
                 </span>
             }
-            columns={columnModule.columnsFor(columnDisplayMode, backend.platform).map(column =>
+            columns={columnModule.columnsFor(columnDisplayMode, backend.type).map(column =>
                 column === columnModule.Column.name
                     ? {
                           id: column,
@@ -308,7 +312,7 @@ function ProjectsTable(props: ProjectsTableProps) {
                             assetType={projectAsset.type}
                             doRename={innerDoRename}
                             onSuccess={onRename}
-                            {...(backend.platform === platform.Platform.desktop
+                            {...(backend.type === backendModule.BackendType.local
                                 ? DESKTOP_PROJECT_NAME_VALIDATION
                                 : {})}
                         />
@@ -331,7 +335,7 @@ function ProjectsTable(props: ProjectsTableProps) {
                         <ContextMenuEntry disabled onClick={doOpenForEditing}>
                             Open for editing
                         </ContextMenuEntry>
-                        {backend.platform !== platform.Platform.desktop && (
+                        {backend.type !== backendModule.BackendType.local && (
                             <ContextMenuEntry disabled onClick={doOpenAsFolder}>
                                 Open as folder
                             </ContextMenuEntry>

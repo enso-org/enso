@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import * as auth from '../../authentication/providers/auth'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
+import * as validation from '../validation'
 
 import Modal from './modal'
 
@@ -96,6 +97,8 @@ function ChangePasswordModal() {
                                     type="password"
                                     name="new_password"
                                     placeholder="New Password"
+                                    pattern={validation.PASSWORD_PATTERN}
+                                    title={validation.PASSWORD_TITLE}
                                     value={newPassword}
                                     onChange={event => {
                                         setNewPassword(event.target.value)

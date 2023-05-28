@@ -194,7 +194,8 @@ spec =
             list.add 123
             list_tpe = Meta.type_of list
             list_tpe . should_not_equal_type JObject
-            list_tpe . should_equal_type ArrayList
+            list_tpe . should_not_equal_type ArrayList
+            list_tpe . should_equal_type Array
 
             e = IOException.new "meh"
             e_tpe = Meta.type_of e

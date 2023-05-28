@@ -877,22 +877,23 @@ class ProjectManagementApiSpec
       val creationTime = testClock.currentTime
       val fooId        = createProject("Foo")
       val barId        = createProject("Bar")
-      testClock.moveTimeForward()
-      openProject(fooId)
-      val fooOpenTime = testClock.currentTime
+      val bazId        = createProject("Baz")
       testClock.moveTimeForward()
       openProject(barId)
       val barOpenTime = testClock.currentTime
       testClock.moveTimeForward()
-      val projectBazCreationTime = testClock.currentTime
-      val bazId                  = createProject("Baz")
+      openProject(bazId)
+      val bazOpenTime = testClock.currentTime
+      testClock.moveTimeForward()
+      val projectQuuxCreationTime = testClock.currentTime
+      val quuxId                  = createProject("Quux")
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/list",
               "id": 0,
               "params": {
-                "numberOfProjects": 3
+                "numberOfProjects": 4
               }
             }
           """)
@@ -903,6 +904,22 @@ class ProjectManagementApiSpec
             "id":0,
             "result": {
               "projects": [
+                {
+                  "name": "Quux",
+                  "namespace": "local",
+                  "id": $quuxId,
+                  "engineVersion": $engineToInstall,
+                  "created": $projectQuuxCreationTime,
+                  "lastOpened": null
+                },
+                {
+                  "name": "Baz",
+                  "namespace": "local",
+                  "id": $bazId,
+                  "engineVersion": $engineToInstall,
+                  "created": $creationTime,
+                  "lastOpened": $bazOpenTime
+                },
                 {
                   "name": "Bar",
                   "namespace": "local",
@@ -917,14 +934,6 @@ class ProjectManagementApiSpec
                   "id": $fooId,
                   "engineVersion": $engineToInstall,
                   "created": $creationTime,
-                  "lastOpened": $fooOpenTime
-                },
-                {
-                  "name": "Baz",
-                  "namespace": "local",
-                  "id": $bazId,
-                  "engineVersion": $engineToInstall,
-                  "created": $projectBazCreationTime,
                   "lastOpened": null
                 }
               ]
@@ -932,11 +941,12 @@ class ProjectManagementApiSpec
           }
           """)
       //teardown
-      closeProject(fooId)
       closeProject(barId)
+      closeProject(bazId)
       deleteProject(fooId)
       deleteProject(barId)
       deleteProject(bazId)
+      deleteProject(quuxId)
     }
 
     "resolve clashing ids" taggedAs Flaky in {

@@ -6,7 +6,6 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as column from '../column'
 import * as modalProvider from '../../providers/modal'
-import * as platform from '../../platform'
 import * as svg from '../../components/svg'
 
 import ColumnDisplayModeSwitcher from './columnDisplayModeSwitcher'
@@ -62,9 +61,9 @@ function DriveBar(props: DriveBarProps) {
                 <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
                     <button
                         className={`mx-1 ${
-                            backend.platform === platform.Platform.desktop ? 'opacity-50' : ''
+                            backend.type === backendModule.BackendType.local ? 'opacity-50' : ''
                         }`}
-                        disabled={backend.platform === platform.Platform.desktop}
+                        disabled={backend.type === backendModule.BackendType.local}
                         onClick={event => {
                             event.stopPropagation()
                             setModal(() => (

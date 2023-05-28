@@ -2,11 +2,13 @@
  * interactive components. */
 import * as React from 'react'
 
+import * as common from 'enso-common'
+
 import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
 import * as localBackend from '../localBackend'
-import * as platformModule from '../../platform'
+import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
 import * as uploadMultipleFiles from '../../uploadMultipleFiles'
 
@@ -57,8 +59,8 @@ const IDE_ELEMENT_ID = 'root'
 
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
-    platform: platformModule.Platform
-    appRunner: AppRunner | null
+    supportsLocalBackend: boolean
+    appRunner: AppRunner
 }
 
 // TODO[sb]: Implement rename when clicking name of a selected row.
@@ -66,7 +68,7 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 function Dashboard(props: DashboardProps) {
-    const { platform, appRunner } = props
+    const { supportsLocalBackend, appRunner } = props
 
     const logger = loggerProvider.useLogger()
     const { accessToken, organization } = authProvider.useFullUserSession()
@@ -81,10 +83,16 @@ function Dashboard(props: DashboardProps) {
         backendModule.rootDirectoryId(organization.id)
     )
     const [query, setQuery] = React.useState('')
+    const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
     const [tab, setTab] = React.useState(Tab.dashboard)
     const [project, setProject] = React.useState<backendModule.Project | null>(null)
     const [selectedAssets, setSelectedAssets] = React.useState<backendModule.Asset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
+
+    const listingLocalDirectoryAndWillFail =
+        backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
+    const listingRemoteDirectoryAndWillFail =
+        backend.type === backendModule.BackendType.remote && !organization.isEnabled
 
     React.useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -112,6 +120,28 @@ function Dashboard(props: DashboardProps) {
         return () => {
             document.removeEventListener('keydown', onKeyDown)
             window.removeEventListener('blur', onBlur)
+        }
+    }, [])
+
+    React.useEffect(() => {
+        if (supportsLocalBackend) {
+            setBackend(new localBackend.LocalBackend())
+        }
+    }, [setBackend, supportsLocalBackend])
+
+    React.useEffect(() => {
+        const onProjectManagerLoadingFailed = () => {
+            setLoadingProjectManagerDidFail(true)
+        }
+        document.addEventListener(
+            projectManager.ProjectManagerEvents.loadingFailed,
+            onProjectManagerLoadingFailed
+        )
+        return () => {
+            document.removeEventListener(
+                projectManager.ProjectManagerEvents.loadingFailed,
+                onProjectManagerLoadingFailed
+            )
         }
     }, [])
 
@@ -143,31 +173,39 @@ function Dashboard(props: DashboardProps) {
         }
     }
 
+    const switchToIdeTab = React.useCallback(() => {
+        setTab(Tab.ide)
+        const ideElement = document.getElementById(IDE_ELEMENT_ID)
+        if (ideElement) {
+            ideElement.style.top = ''
+            ideElement.style.display = 'absolute'
+        }
+    }, [])
+
+    const switchToDashboardTab = React.useCallback(() => {
+        setTab(Tab.dashboard)
+        const ideElement = document.getElementById(IDE_ELEMENT_ID)
+        if (ideElement) {
+            ideElement.style.top = '-100vh'
+            ideElement.style.display = 'fixed'
+        }
+    }, [])
+
     const toggleTab = () => {
         if (project && tab === Tab.dashboard) {
-            setTab(Tab.ide)
-            const ideElement = document.getElementById(IDE_ELEMENT_ID)
-            if (ideElement) {
-                ideElement.style.top = ''
-                ideElement.style.display = 'absolute'
-            }
+            switchToIdeTab()
         } else {
-            setTab(Tab.dashboard)
-            const ideElement = document.getElementById(IDE_ELEMENT_ID)
-            if (ideElement) {
-                ideElement.style.top = '-100vh'
-                ideElement.style.display = 'fixed'
-            }
+            switchToDashboardTab()
         }
     }
 
-    const setBackendPlatform = (newBackendPlatform: platformModule.Platform) => {
-        if (newBackendPlatform !== backend.platform) {
-            switch (newBackendPlatform) {
-                case platformModule.Platform.desktop:
+    const setBackendType = (newBackendType: backendModule.BackendType) => {
+        if (newBackendType !== backend.type) {
+            switch (newBackendType) {
+                case backendModule.BackendType.local:
                     setBackend(new localBackend.LocalBackend())
                     break
-                case platformModule.Platform.cloud: {
+                case backendModule.BackendType.remote: {
                     const headers = new Headers()
                     headers.append('Authorization', `Bearer ${accessToken}`)
                     const client = new http.Client(headers)
@@ -234,15 +272,22 @@ function Dashboard(props: DashboardProps) {
             onDragEnter={openDropZone}
         >
             <TopBar
-                platform={platform}
+                supportsLocalBackend={supportsLocalBackend}
                 projectName={project?.name ?? null}
                 tab={tab}
                 toggleTab={toggleTab}
-                setBackendPlatform={setBackendPlatform}
+                setBackendType={setBackendType}
                 query={query}
                 setQuery={setQuery}
             />
-            {backend.platform === platformModule.Platform.cloud && !organization.isEnabled ? (
+            {listingLocalDirectoryAndWillFail ? (
+                <div className="grow grid place-items-center">
+                    <div className="text-base text-center">
+                        Could not connect to the Project Manager. Please try restarting{' '}
+                        {common.PRODUCT_NAME}, or manually launching the Project Manager.
+                    </div>
+                </div>
+            ) : listingRemoteDirectoryAndWillFail ? (
                 <div className="grow grid place-items-center">
                     <div className="text-base text-center">
                         We will review your user details and enable the cloud experience for you
@@ -262,13 +307,14 @@ function Dashboard(props: DashboardProps) {
                         onOpenIde={openIde}
                         onCloseIde={closeIde}
                         appRunner={appRunner}
+                        loadingProjectManagerDidFail={loadingProjectManagerDidFail}
                         experimentalShowColumnDisplayModeSwitcher={
                             EXPERIMENTAL.columnDisplayModeSwitcher
                         }
                     />
                 </>
             )}
-            {isFileBeingDragged && backend.platform === platformModule.Platform.cloud ? (
+            {isFileBeingDragged && backend.type === backendModule.BackendType.remote ? (
                 <div
                     className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary grid place-items-center"
                     onDragLeave={() => {

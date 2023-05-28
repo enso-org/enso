@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as localBackend from '../localBackend'
-import * as platform from '../../platform'
 import * as svg from '../../components/svg'
 
 // =============
@@ -52,11 +51,12 @@ export interface ProjectActionButtonProps {
     onClose: () => void
     appRunner: AppRunner | null
     openIde: () => void
+    doRefresh: () => void
 }
 
 /** An interactive button displaying the status of a project. */
 function ProjectActionButton(props: ProjectActionButtonProps) {
-    const { project, onClose, appRunner, openIde } = props
+    const { project, onClose, appRunner, openIde, doRefresh } = props
     const { backend } = backendProvider.useBackend()
 
     const [state, setState] = React.useState(backendModule.ProjectState.closed)
@@ -82,7 +82,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     }, [project.projectState.type])
 
     React.useEffect(() => {
-        if (backend.platform === platform.Platform.desktop) {
+        if (backend.type === backendModule.BackendType.local) {
             if (project.id !== localBackend.LocalBackend.currentlyOpeningProjectId) {
                 setCheckState(CheckState.notChecking)
                 setState(backendModule.ProjectState.closed)
@@ -91,7 +91,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         }
         // `localBackend.LocalBackend.currentlyOpeningProjectId` is a mutable outer scope value.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [project, state, backend.platform, localBackend.LocalBackend.currentlyOpeningProjectId])
+    }, [project, state, backend.type, localBackend.LocalBackend.currentlyOpeningProjectId])
 
     React.useEffect(() => {
         switch (checkState) {
@@ -111,13 +111,14 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                     () => void checkProjectStatus(),
                     CHECK_STATUS_INTERVAL_MS
                 )
+                void checkProjectStatus()
                 return () => {
                     clearInterval(handle)
                 }
             }
             case CheckState.checkingResources: {
                 const checkProjectResources = async () => {
-                    if (backend.platform === platform.Platform.desktop) {
+                    if (backend.type === backendModule.BackendType.local) {
                         setState(backendModule.ProjectState.opened)
                         setCheckState(CheckState.done)
                         setSpinnerState(SpinnerState.done)
@@ -137,6 +138,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                     () => void checkProjectResources(),
                     CHECK_RESOURCES_INTERVAL_MS
                 )
+                void checkProjectResources()
                 return () => {
                     clearInterval(handle)
                 }
@@ -164,13 +166,15 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         setTimeout(() => {
             setSpinnerState(SpinnerState.loading)
         }, 0)
-        switch (backend.platform) {
-            case platform.Platform.cloud:
+        switch (backend.type) {
+            case backendModule.BackendType.remote:
                 await backend.openProject(project.id)
+                doRefresh()
                 setCheckState(CheckState.checkingStatus)
                 break
-            case platform.Platform.desktop:
+            case backendModule.BackendType.local:
                 await backend.openProject(project.id)
+                doRefresh()
                 setState(backendModule.ProjectState.opened)
                 setSpinnerState(SpinnerState.done)
                 setCheckState(CheckState.done)

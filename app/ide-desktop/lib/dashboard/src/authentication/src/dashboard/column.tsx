@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as backend from './backend'
 import * as modalProvider from '../providers/modal'
-import * as platform from '../platform'
 import * as svg from '../components/svg'
 import * as table from './components/table'
 
@@ -190,9 +189,9 @@ const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {
 }
 
 /** Returns the list of columns to be displayed. */
-export function columnsFor(displayMode: ColumnDisplayMode, backendPlatform: platform.Platform) {
+export function columnsFor(displayMode: ColumnDisplayMode, backendType: backend.BackendType) {
     const columns = COLUMNS_FOR[displayMode]
-    return backendPlatform === platform.Platform.desktop
+    return backendType === backend.BackendType.local
         ? columns.filter(column => column !== Column.sharedWith)
         : columns
 }

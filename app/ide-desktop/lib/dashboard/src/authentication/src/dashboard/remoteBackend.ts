@@ -8,7 +8,6 @@ import * as config from '../config'
 import * as http from '../http'
 import * as loggerProvider from '../providers/logger'
 import * as newtype from '../newtype'
-import * as platformModule from '../platform'
 
 // =================
 // === Constants ===
@@ -144,7 +143,7 @@ interface ListVersionsResponseBody {
 
 /** Class for sending requests to the Cloud backend API endpoints. */
 export class RemoteBackend implements backend.Backend {
-    readonly platform = platformModule.Platform.cloud
+    readonly type = backend.BackendType.remote
 
     /** Create a new instance of the {@link RemoteBackend} API client.
      *

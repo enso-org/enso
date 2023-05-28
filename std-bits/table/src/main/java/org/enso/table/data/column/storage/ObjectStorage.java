@@ -1,15 +1,13 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.ObjectBuilder;
-import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.column.storage.type.TextType;
+
+import java.util.BitSet;
 
 /** A column storing arbitrary objects. */
 public final class ObjectStorage extends SpecializedStorage<Object> {

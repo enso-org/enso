@@ -6,7 +6,6 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as fileInfo from '../../fileInfo'
 import * as modalProvider from '../../providers/modal'
-import * as platform from '../../platform'
 import * as svg from '../../components/svg'
 
 import Modal from './modal'
@@ -30,7 +29,7 @@ function UploadFileModal(props: UploadFileModalProps) {
     const [name, setName] = React.useState<string | null>(null)
     const [file, setFile] = React.useState<File | null>(null)
 
-    if (backend.platform === platform.Platform.desktop) {
+    if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
         const onSubmit = async () => {

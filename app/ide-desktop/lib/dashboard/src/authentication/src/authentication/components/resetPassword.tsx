@@ -7,6 +7,8 @@ import toast from 'react-hot-toast'
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
 import * as svg from '../../components/svg'
+import * as validation from '../../dashboard/validation'
+
 import Input from './input'
 import SvgIcon from './svgIcon'
 
@@ -117,6 +119,8 @@ function ResetPassword() {
                                     type="password"
                                     name="new_password"
                                     placeholder="New Password"
+                                    pattern={validation.PASSWORD_PATTERN}
+                                    title={validation.PASSWORD_TITLE}
                                     value={newPassword}
                                     setValue={setNewPassword}
                                 />

@@ -8,7 +8,6 @@ import * as columnModule from '../column'
 import * as error from '../../error'
 import * as fileInfo from '../../fileInfo'
 import * as modalProvider from '../../providers/modal'
-import * as platform from '../../platform'
 import * as svg from '../../components/svg'
 
 import CreateForm, * as createForm from './createForm'
@@ -36,7 +35,7 @@ function FileCreateForm(props: FileCreateFormProps) {
     const [name, setName] = React.useState<string | null>(null)
     const [file, setFile] = React.useState<File | null>(null)
 
-    if (backend.platform === platform.Platform.desktop) {
+    if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
         const onSubmit = async (event: React.FormEvent) => {
@@ -187,8 +186,7 @@ function FileName(props: FileNameProps) {
                 }
             }}
         >
-            {fileInfo.fileIcon()}{' '}
-            <span className="px-2">{item.title}</span>
+            {fileInfo.fileIcon()} <span className="px-2">{item.title}</span>
         </div>
     )
 }
@@ -229,7 +227,7 @@ function FilesTable(props: FilesTableProps) {
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
 
-    if (backend.platform === platform.Platform.desktop) {
+    if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
         return (
@@ -244,7 +242,7 @@ function FilesTable(props: FilesTableProps) {
                         {query ? ' matching your query' : ''}.
                     </span>
                 }
-                columns={columnModule.columnsFor(columnDisplayMode, backend.platform).map(column =>
+                columns={columnModule.columnsFor(columnDisplayMode, backend.type).map(column =>
                     column === columnModule.Column.name
                         ? {
                               id: column,

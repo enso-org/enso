@@ -37,6 +37,7 @@ export interface DirectoryViewProps {
     onCloseIde: () => void
     onAssetClick: (asset: backendModule.Asset, event: React.MouseEvent<HTMLTableRowElement>) => void
     appRunner: AppRunner | null
+    loadingProjectManagerDidFail: boolean
     experimentalShowColumnDisplayModeSwitcher: boolean
 }
 
@@ -52,6 +53,7 @@ function DirectoryView(props: DirectoryViewProps) {
         onCloseIde,
         onAssetClick,
         appRunner,
+        loadingProjectManagerDidFail,
         experimentalShowColumnDisplayModeSwitcher,
     } = props
     const { organization } = authProvider.useFullUserSession()
@@ -91,8 +93,15 @@ function DirectoryView(props: DirectoryViewProps) {
     const parentDirectory = directoryStack[directoryStack.length - 2] ?? null
 
     React.useEffect(() => {
+        setIsLoadingAssets(true)
         setAssets([])
     }, [setAssets, backend])
+
+    React.useEffect(() => {
+        if (backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail) {
+            setIsLoadingAssets(false)
+        }
+    }, [isLoadingAssets, loadingProjectManagerDidFail, backend])
 
     React.useEffect(() => {
         const cachedDirectoryStackJson = localStorage.getItem(DIRECTORY_STACK_KEY)
@@ -191,6 +200,7 @@ function DirectoryView(props: DirectoryViewProps) {
                 onOpenIde={onOpenIde}
                 onCloseIde={onCloseIde}
                 onAssetClick={onAssetClick}
+                doRefresh={doRefresh}
             />
             <div className="h-10" />
             <DirectoriesTable
