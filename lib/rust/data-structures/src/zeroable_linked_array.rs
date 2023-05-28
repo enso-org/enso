@@ -3,78 +3,6 @@ use std::cell::UnsafeCell;
 
 
 
-pub trait OptionLike = HasSizedItem + OptItemRefMut + FromItem;
-
-#[derive(Debug, Default)]
-pub struct OptionInitCell<T> {
-    // # Safety
-    // Please note that the implementation never exposes reference to this field. If it was
-    // exposed, the implementation of [`Self::init_if_none`] would be unsound, as the user
-    // might acquire a reference to a [`None`] value and then have it changed with
-    // [`Self::init_if_none`], which does not require a mutable reference to self.
-    not_exposed: UnsafeCell<T>,
-}
-
-impl<T: OptionLike> OptionInitCell<T> {
-    pub fn init_if_none(&self, f: impl FnOnce() -> T::Item) {
-        if !self.has_item() {
-            // # Safety
-            // We checked that the current value is [`Nothing`]. We also know that no one has a
-            // reference to [`Self::not_exposed`] (see the docs of [`Self`] to learn more).
-            // Therefore, it is safe to overwrite the current value.
-            #[allow(unsafe_code)]
-            unsafe {
-                *self.not_exposed.unchecked_borrow_mut() = T::from_item(f())
-            };
-        }
-    }
-
-    pub fn set_internal(&mut self, internal: T) {
-        self.not_exposed = UnsafeCell::new(internal);
-    }
-}
-
-impl<T: HasItem> HasItem for OptionInitCell<T> {
-    type Item = T::Item;
-}
-
-impl<T: OptionLike> OptItemRef for OptionInitCell<T> {
-    fn opt_item(&self) -> Option<&Self::Item> {
-        // # Safety
-        // Every mutable access to the value stored in [`Self::not_exposed`] requires a mutable
-        // access to self. The only exception is [`Self::init_if_none`], which is safe, as explained
-        // there.
-        #[allow(unsafe_code)]
-        let not_exposed = unsafe { self.not_exposed.unchecked_borrow() };
-        not_exposed.opt_item()
-    }
-}
-
-impl<T: OptionLike> OptItemRefMut for OptionInitCell<T> {
-    fn opt_item_mut(&mut self) -> Option<&mut Self::Item> {
-        // # Safety
-        // Every mutable access to the value stored in [`Self::not_exposed`] requires a mutable
-        // access to self. The only exception is [`Self::init_if_none`], which is safe, as explained
-        // there.
-        #[allow(unsafe_code)]
-        let not_exposed = unsafe { self.not_exposed.unchecked_borrow_mut() };
-        not_exposed.opt_item_mut()
-    }
-}
-
-// impl<T: OptionLike> OptionLike for OptionInitCell<T> {
-//     fn new_some(value: Self::Item) -> Self {
-//         Self { not_exposed: UnsafeCell::new(T::new_some(value)) }
-//     }
-// }
-
-impl<T: OptionLike> FromItem for OptionInitCell<T> {
-    fn from_item(item: Self::Item) -> Self {
-        Self { not_exposed: UnsafeCell::new(T::from_item(item)) }
-    }
-}
-
-
 // =================
 // === LinkedVec ===
 // =================
@@ -97,7 +25,7 @@ derive_zeroable! {
     #[derivative(Default(bound = ""))]
     pub struct ZeroableLinkedArrayRefCell[T, N][T, const N: usize] {
         size:          Cell<usize>,
-        first_segment: OptionInitCell<ZeroableOption<Segment<T, N>>>,
+        first_segment: InitCell<ZeroableOption<Segment<T, N>>>,
     }
 }
 
@@ -154,7 +82,7 @@ impl<T: Default + Zeroable, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
 impl<T: Zeroable, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
     #[inline(always)]
     fn init_first_segment(&self) {
-        self.first_segment.init_if_none(|| Segment::new());
+        self.first_segment.init_if_empty(|| Segment::new());
     }
 
     #[inline(always)]
@@ -263,7 +191,7 @@ impl<'a, T: Zeroable, const N: usize> IntoIterator for &'a ZeroableLinkedArrayRe
 #[derive(Debug)]
 struct Segment<T, const N: usize> {
     items: Vec<UnsafeCell<T>>,
-    next:  OptionInitCell<Option<Box<Segment<T, N>>>>,
+    next:  InitCell<Option<Box<Segment<T, N>>>>,
 }
 
 impl<T: Zeroable, const N: usize> Segment<T, N> {
@@ -308,7 +236,7 @@ impl<T: Zeroable, const N: usize> Segment<T, N> {
 
     #[inline(always)]
     fn init_next_segment(&self) {
-        self.next.init_if_none(|| default());
+        self.next.init_if_empty(|| default());
     }
 
     #[inline(always)]
@@ -376,7 +304,7 @@ impl<T: Zeroable, const N: usize> Segment<T, N> {
                 })
             };
             if let Some(new_next_segment) = new_next_segment {
-                self.next.set_internal(new_next_segment)
+                self.next.set_value(new_next_segment)
             }
             if !self.next.has_item() {
                 break;

@@ -26,6 +26,7 @@
 #![recursion_limit = "256"]
 
 mod bool;
+mod cell;
 pub mod channel;
 mod collections;
 mod data;
@@ -60,6 +61,7 @@ pub use crate::bool::*;
 pub use crate::serde::*;
 pub use crate::smallvec::*;
 pub use anyhow;
+pub use cell::*;
 pub use collections::*;
 pub use data::*;
 pub use debug::*;
