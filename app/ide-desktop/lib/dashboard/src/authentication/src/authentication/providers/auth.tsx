@@ -12,7 +12,6 @@ import * as authServiceModule from '../service'
 import * as backendModule from '../../dashboard/backend'
 import * as backendProvider from '../../providers/backend'
 import * as errorModule from '../../error'
-import * as hooks from '../../hooks'
 import * as http from '../../http'
 import * as localBackend from '../../dashboard/localBackend'
 import * as loggerProvider from '../../providers/logger'
@@ -174,7 +173,10 @@ export function AuthProvider(props: AuthProviderProps) {
     const { session, deinitializeSession } = sessionProvider.useSession()
     const { setBackend } = backendProvider.useSetBackend()
     const logger = loggerProvider.useLogger()
-    const navigate = hooks.useNavigate()
+    // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
+    // and the function call would error.
+    // eslint-disable-next-line no-restricted-properties
+    const navigate = router.useNavigate()
     const [initialized, setInitialized] = react.useState(false)
     const [userSession, setUserSession] = react.useState<UserSession | null>(null)
 
@@ -209,9 +211,22 @@ export function AuthProvider(props: AuthProviderProps) {
                 if (!initialized || userSession == null) {
                     setBackend(backend)
                 }
-                const organization = await backend.usersMe().catch(e => {
-                    console.log(e, e.message)
-                })
+                let organization
+                // eslint-disable-next-line no-restricted-syntax
+                while (organization === undefined) {
+                    try {
+                        organization = await backend.usersMe()
+                    } catch {
+                        // The value may have changed after the `await`.
+                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                        if (!navigator.onLine) {
+                            goOfflineInternal()
+                            // eslint-disable-next-line no-restricted-syntax
+                            return
+                        }
+                        // Ignored; the code will retry again.
+                    }
+                }
                 let newUserSession: UserSession
                 const sharedSessionData = { email, accessToken }
                 if (!organization) {

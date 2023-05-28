@@ -234,7 +234,7 @@ function Dashboard(props: DashboardProps) {
     const { supportsLocalBackend, appRunner } = props
 
     const logger = loggerProvider.useLogger()
-    const { type: sessionType, accessToken, organization } = auth.useNonPartialUserSession()
+    const session = auth.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setBackend } = backendProvider.useSetBackend()
     const { modal } = modalProvider.useModal()
@@ -245,7 +245,7 @@ function Dashboard(props: DashboardProps) {
     const [query, setQuery] = react.useState('')
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = react.useState(false)
     const [directoryId, setDirectoryId] = react.useState(
-        organization != null ? rootDirectoryId(organization.id) : null
+        session.organization != null ? rootDirectoryId(session.organization.id) : null
     )
     const [directoryStack, setDirectoryStack] = react.useState<
         backendModule.Asset<backendModule.AssetType.directory>[]
@@ -286,9 +286,10 @@ function Dashboard(props: DashboardProps) {
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
     const isListingRemoteDirectoryAndWillFail =
-        backend.type === backendModule.BackendType.remote && (organization?.isEnabled ?? false)
+        backend.type === backendModule.BackendType.remote &&
+        (session.organization?.isEnabled ?? false)
     const isListingRemoteDirectoryWhileOffline =
-        sessionType === auth.UserSessionType.offline &&
+        session.type === auth.UserSessionType.offline &&
         backend.type === backendModule.BackendType.remote
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
@@ -370,7 +371,8 @@ function Dashboard(props: DashboardProps) {
 
     const exitDirectory = () => {
         setDirectoryId(
-            parentDirectory?.id ?? (organization != null ? rootDirectoryId(organization.id) : null)
+            parentDirectory?.id ??
+                (session.organization != null ? rootDirectoryId(session.organization.id) : null)
         )
         setDirectoryStack(
             // eslint-disable-next-line @typescript-eslint/no-magic-numbers
@@ -401,7 +403,10 @@ function Dashboard(props: DashboardProps) {
     }, [])
 
     react.useEffect(() => {
-        if (organization == null || directoryId === rootDirectoryId(organization.id)) {
+        if (
+            session.organization == null ||
+            directoryId === rootDirectoryId(session.organization.id)
+        ) {
             localStorage.removeItem(DIRECTORY_STACK_KEY)
         } else {
             localStorage.setItem(DIRECTORY_STACK_KEY, JSON.stringify(directoryStack))
@@ -604,7 +609,10 @@ function Dashboard(props: DashboardProps) {
                                 <CreateForm
                                     left={buttonPosition.left + window.scrollX}
                                     top={buttonPosition.top + window.scrollY}
-                                    directoryId={directoryId}
+                                    // This is safe; headings are not rendered when there is no
+                                    // internet connection.
+                                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                    directoryId={directoryId!}
                                     onSuccess={doRefresh}
                                 />
                             ))
@@ -658,7 +666,11 @@ function Dashboard(props: DashboardProps) {
                     return
                 }
                 case backendModule.BackendType.remote: {
-                    if (!isListingRemoteDirectoryAndWillFail && directoryId != null) {
+                    if (
+                        !isListingRemoteDirectoryAndWillFail &&
+                        !isListingRemoteDirectoryWhileOffline &&
+                        directoryId != null
+                    ) {
                         const assets = await backend.listDirectory({ parentId: directoryId })
                         if (!signal.aborted) {
                             setIsLoadingAssets(false)
@@ -671,7 +683,7 @@ function Dashboard(props: DashboardProps) {
                 }
             }
         },
-        [accessToken, directoryId, refresh, backend]
+        [session.accessToken, directoryId, refresh, backend]
     )
 
     react.useEffect(() => {
@@ -779,8 +791,11 @@ function Dashboard(props: DashboardProps) {
                                 break
                             case backendModule.BackendType.remote: {
                                 const headers = new Headers()
-                                // If `accessToken` is null,
-                                headers.append('Authorization', `Bearer ${accessToken ?? ''}`)
+                                // If `accessToken` is null, then there is no internet connection.
+                                headers.append(
+                                    'Authorization',
+                                    `Bearer ${session.accessToken ?? ''}`
+                                )
                                 const client = new http.Client(headers)
                                 setBackend(new remoteBackendModule.RemoteBackend(client, logger))
                                 break
@@ -794,7 +809,7 @@ function Dashboard(props: DashboardProps) {
             {isListingRemoteDirectoryWhileOffline ? (
                 <div className="grow grid place-items-center">
                     <div className="text-base text-center">
-                        You are offline. Please conenct to the internet and refresh to access the
+                        You are offline. Please connect to the internet and refresh to access the
                         cloud backend.
                     </div>
                 </div>
@@ -849,7 +864,10 @@ function Dashboard(props: DashboardProps) {
                                         event.stopPropagation()
                                         setModal(() => (
                                             <UploadFileModal
-                                                directoryId={directoryId}
+                                                // This should never be `null` because of
+                                                // the checks above.
+                                                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                                directoryId={directoryId!}
                                                 onSuccess={doRefresh}
                                             />
                                         ))
