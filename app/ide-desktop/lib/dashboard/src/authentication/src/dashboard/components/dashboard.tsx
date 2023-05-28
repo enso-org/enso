@@ -94,31 +94,45 @@ function Dashboard(props: DashboardProps) {
     const listingRemoteDirectoryAndWillFail =
         backend.type === backendModule.BackendType.remote && !organization.isEnabled
 
-    React.useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (
-                // On macOS, we need to check for combination of `alt` + `d` which is `∂` (`del`).
-                (event.key === 'd' || event.key === '∂') &&
-                event.ctrlKey &&
-                event.altKey &&
-                !event.shiftKey &&
-                !event.metaKey
-            ) {
-                setTab(Tab.dashboard)
-                const ideElement = document.getElementById(IDE_ELEMENT_ID)
-                if (ideElement) {
-                    ideElement.style.top = '-100vh'
-                    ideElement.style.display = 'fixed'
-                }
-            }
+    const switchToIdeTab = React.useCallback(() => {
+        setTab(Tab.ide)
+        const ideElement = document.getElementById(IDE_ELEMENT_ID)
+        if (ideElement) {
+            ideElement.style.top = ''
+            ideElement.style.display = 'absolute'
         }
+    }, [])
+
+    const switchToDashboardTab = React.useCallback(() => {
+        setTab(Tab.dashboard)
+        const ideElement = document.getElementById(IDE_ELEMENT_ID)
+        if (ideElement) {
+            ideElement.style.top = '-100vh'
+            ideElement.style.display = 'fixed'
+        }
+    }, [])
+
+    const toggleTab = () => {
+        if (project && tab === Tab.dashboard) {
+            switchToIdeTab()
+        } else {
+            switchToDashboardTab()
+        }
+    }
+
+    React.useEffect(() => {
+        document.addEventListener('show-dashboard', switchToDashboardTab)
+        return () => {
+            document.removeEventListener('show-dashboard', switchToDashboardTab)
+        }
+    }, [switchToDashboardTab])
+
+    React.useEffect(() => {
         const onBlur = () => {
             setIsFileBeingDragged(false)
         }
-        document.addEventListener('keydown', onKeyDown)
         window.addEventListener('blur', onBlur)
         return () => {
-            document.removeEventListener('keydown', onKeyDown)
             window.removeEventListener('blur', onBlur)
         }
     }, [])
@@ -170,32 +184,6 @@ function Dashboard(props: DashboardProps) {
     const openDropZone = (event: React.DragEvent<HTMLDivElement>) => {
         if (event.dataTransfer.types.includes('Files')) {
             setIsFileBeingDragged(true)
-        }
-    }
-
-    const switchToIdeTab = React.useCallback(() => {
-        setTab(Tab.ide)
-        const ideElement = document.getElementById(IDE_ELEMENT_ID)
-        if (ideElement) {
-            ideElement.style.top = ''
-            ideElement.style.display = 'absolute'
-        }
-    }, [])
-
-    const switchToDashboardTab = React.useCallback(() => {
-        setTab(Tab.dashboard)
-        const ideElement = document.getElementById(IDE_ELEMENT_ID)
-        if (ideElement) {
-            ideElement.style.top = '-100vh'
-            ideElement.style.display = 'fixed'
-        }
-    }, [])
-
-    const toggleTab = () => {
-        if (project && tab === Tab.dashboard) {
-            switchToIdeTab()
-        } else {
-            switchToDashboardTab()
         }
     }
 
