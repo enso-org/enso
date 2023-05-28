@@ -266,8 +266,8 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         })
         switch (backend.type) {
             case backendModule.BackendType.remote:
-                await backend.openProject(project.id)
                 setToastId(toast.loading(LOADING_MESSAGE))
+                await backend.openProject(project.id)
                 doRefresh()
                 setIsCheckingStatus(true)
                 break
