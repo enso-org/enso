@@ -1455,11 +1455,6 @@ mod test {
     }
 
     #[test]
-    fn tag_value_shortening_single_entry_with_value() {
-        run_tag_value_test_case(&[("Foo.Bar.Value", Some("Bar.Value"))]);
-    }
-
-    #[test]
     fn tag_value_shortening_common_prefix() {
         run_tag_value_test_case(&[
             ("Location.Start", Some("Start")),
@@ -1471,15 +1466,19 @@ mod test {
     #[test]
     fn tag_value_shortening_multiple_elements() {
         run_tag_value_test_case(&[
-            ("A.B.C.D", Some("C.D")),
-            ("A.B.C.E", Some("C.E")),
-            ("A.B.F.G.H", Some("F.G.H")),
+            ("A.B.C.D", Some("D")),
+            ("A.B.C.E", Some("E")),
+            ("A.B.F.G.H", Some("H")),
         ]);
     }
 
     #[test]
-    fn tag_value_shortening_no_prefix() {
-        run_tag_value_test_case(&[("Foo.Bar", None), ("Foo.Baz", None), ("Baz.Qux", None)]);
+    fn tag_value_shortening_replacement() {
+        run_tag_value_test_case(&[
+            ("Foo.Bar_Baz", Some("Bar Baz")),
+            ("Foo.A_B_C", Some("A B C")),
+            ("Baz.Qux", Some("Qux")),
+        ]);
     }
 
     #[test]
