@@ -373,10 +373,7 @@ impl Configuration {
         let matched_kind = best_match.map_or(DynKindFlags::Label, |(kind, _)| kind);
         let mut config = matched_kind.default_config(ctx);
 
-        let wants_port = config.has_port;
-        let must_have_port = ctx.info.connection.is_some();
-        let can_have_port = ctx.span_node.ast_id.is_some() || ctx.span_node.is_insertion_point();
-        config.has_port = (wants_port || must_have_port) && can_have_port;
+        config.has_port = config.has_port || ctx.info.connection.is_some();
         config
     }
 
