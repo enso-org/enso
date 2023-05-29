@@ -713,7 +713,7 @@ impl Container {
             has_data <- input.set_data.is_some();
             reset_data <- data.sample(&new_vis_definition).gate(&has_data);
             data_update <- any(&data,&reset_data);
-            eval  data_update ((t) model.set_visualization_data(t));
+            eval data_update ((t) model.set_visualization_data(t));
 
         }
 
