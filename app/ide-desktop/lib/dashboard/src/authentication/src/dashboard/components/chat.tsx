@@ -5,6 +5,7 @@ import * as reactDom from 'react-dom'
 import * as animations from '../../animations'
 import * as authProvider from '../../authentication/providers/auth'
 import * as loggerProvider from '../../providers/logger'
+import * as newtype from '../../newtype'
 import * as svg from '../../components/svg'
 
 import Twemoji from './twemoji'
@@ -32,84 +33,162 @@ const REACTION_EMOJIS = ['❤️', '👍', '👎', '😀', '🙁', '👀', '🎉
 /** The initial title of the thread. */
 const DEFAULT_THREAD_TITLE = 'New chat thread'
 
-// =============
-// === Types ===
-// =============
+// =====================
+// === Message Types ===
+// =====================
 
-/** Valid reaction emojis. */
-type Reaction = (typeof REACTION_EMOJIS)[number]
+// FIXME[sb]: Consider deduplicating.
 
-interface ChatDisplayMessage {
-    id: string
-    avatar: string
-    name: string
-    content: string
-    timestamp: number
-    isStaffMessage: boolean
-}
+// Intentionally the same as in `database.ts`; this one is intended to be copied to the frontend.
+/** A Discord thread ID. */
+export type ThreadId = newtype.Newtype<string, 'ThreadId'>
+/** A Discord message ID. */
+export type MessageId = newtype.Newtype<string, 'MessageId'>
 
+/** Types of chat message (both server and client messages). */
 export enum ChatMessageDataType {
-    // Server-only messages.
+    // Messages from the server to the client.
+    /** Metadata for all threads associated with a user. */
+    serverThreads = 'serverThreads',
+    /** Metadata for the currently open thread. */
+    serverThread = 'serverThread',
+    /** A message from the server to the client. */
     serverMessage = 'serverMessage',
-    // Client-only messages.
+    /** An edited message from the server to the client. */
+    serverEditedMessage = 'serverEditedMessage',
+    // Messages from the client to the server.
+    /** The authentication token. */
     authenticate = 'authenticate',
+    /** Create a new thread with an initial message. */
     newThread = 'newThread',
+    /** Rename an existing thread. */
     renameThread = 'renameThread',
+    /** Change the currently active thread. */
+    switchThread = 'switchThread',
+    /** A message from the client to the server. */
     message = 'message',
+    /** A reaction from the client. */
     reaction = 'reaction',
+    /** Mark a message as read. Used to determine whether to show the notification dot
+     * next to a thread. */
+    markAsRead = 'markAsRead',
 }
 
-interface ChatMessageBaseData<Type extends ChatMessageDataType> {
+/** Properties common to all chat messages. */
+interface ChatBaseMessageData<Type extends ChatMessageDataType> {
     type: Type
 }
 
-export interface ChatMessageServerMessageData
-    extends ChatMessageBaseData<ChatMessageDataType.serverMessage> {
-    messageId: string
+// ======================================
+// === Messages from server to client ===
+// ======================================
+
+/** Basic metadata for a single thread. */
+export interface ThreadData {
+    title: string
+    id: string
+    hasUnreadMessages: boolean
+}
+
+/** Basic metadata for a all of a user's threads. */
+export interface ChatServerThreadsMessageData
+    extends ChatBaseMessageData<ChatMessageDataType.serverThreads> {
+    threads: ThreadData[]
+}
+
+/** Thread details and recent messages.
+ * This message is sent every time the user switches threads. */
+export interface ChatServerThreadMessageData
+    extends ChatBaseMessageData<ChatMessageDataType.serverThread> {
+    title: string
+    id: ThreadId
+    // FIXME: decide on the format for serialized messages.
+    messages: ChatServerMessageData[]
+}
+
+/** A regular chat message from the server to the client. */
+export interface ChatServerMessageMessageData
+    extends ChatBaseMessageData<ChatMessageDataType.serverMessage> {
+    id: string
     timestamp: number
     content: string
 }
 
-export type ChatServerMessageData = ChatMessageServerMessageData
+/** A regular edited chat message from the server to the client. */
+export interface ChatServerEditedMessageMessageData
+    extends ChatBaseMessageData<ChatMessageDataType.serverEditedMessage> {
+    id: string
+    timestamp: number
+    content: string
+}
 
+/** A message from the server to the client. */
+export type ChatServerMessageData =
+    | ChatServerEditedMessageMessageData
+    | ChatServerMessageMessageData
+    | ChatServerThreadMessageData
+    | ChatServerThreadsMessageData
+
+// ======================================
+// === Messages from client to server ===
+// ======================================
+
+/** Sent when the user first opens the chat sidebar. */
 export interface ChatAuthenticateMessageData
-    extends ChatMessageBaseData<ChatMessageDataType.authenticate> {
+    extends ChatBaseMessageData<ChatMessageDataType.authenticate> {
     accessToken: string
 }
 
+/** Sent when the user sends a message in a new thread. */
 export interface ChatNewThreadMessageData
-    extends ChatMessageBaseData<ChatMessageDataType.newThread> {
+    extends ChatBaseMessageData<ChatMessageDataType.newThread> {
     title: string
     /** Content of the first message, to reduce the number of round trips. */
     content: string
 }
 
+/** Sent when the user finishes editing the thread name in the chat title bar. */
 export interface ChatRenameThreadMessageData
-    extends ChatMessageBaseData<ChatMessageDataType.renameThread> {
+    extends ChatBaseMessageData<ChatMessageDataType.renameThread> {
     title: string
-    threadId: string
+    threadId: ThreadId
 }
 
-/** A message. */
-export interface ChatMessageMessageData extends ChatMessageBaseData<ChatMessageDataType.message> {
-    threadId: string
+/** Sent when the user picks a thread from the dropdown. */
+export interface ChatSwitchThreadMessageData
+    extends ChatBaseMessageData<ChatMessageDataType.switchThread> {
+    threadId: ThreadId
+}
+
+/** A regular message from the client to the server. */
+export interface ChatMessageMessageData extends ChatBaseMessageData<ChatMessageDataType.message> {
+    threadId: ThreadId
     content: string
 }
 
-/** A reaction has been clicked. */
-export interface ChatReactionMessageData extends ChatMessageBaseData<ChatMessageDataType.reaction> {
-    threadId: string
-    messageId: string
+/** A reaction to a message sent by staff. */
+export interface ChatReactionMessageData extends ChatBaseMessageData<ChatMessageDataType.reaction> {
+    threadId: ThreadId
+    messageId: MessageId
     reaction: string
 }
 
-/** Messages the client sends to the server. */
+/** Sent when the user scrolls to the bottom of a chat thread. */
+export interface ChatMarkAsReadMessageData
+    extends ChatBaseMessageData<ChatMessageDataType.markAsRead> {
+    threadId: ThreadId
+    messageId: MessageId
+}
+
+/** A message from the client to the server. */
 export type ChatClientMessageData =
     | ChatAuthenticateMessageData
+    | ChatMarkAsReadMessageData
     | ChatMessageMessageData
     | ChatNewThreadMessageData
     | ChatReactionMessageData
     | ChatRenameThreadMessageData
+    | ChatSwitchThreadMessageData
 
 // ===================
 // === ReactionBar ===
