@@ -1617,6 +1617,8 @@ type Table
          resulting value will be truncated to the desired type.
        - If a `Date` is to be converted to `Date_Time`, it will be set at
          midnight of the default system timezone.
+       - For a `Mixed` column being converted into a specific type, each row is
+         converted individually.
 
         If the target type cannot fit some of the values (for example due to too
         small range), a `Conversion_Failure` may be reported according to the
@@ -1628,6 +1630,12 @@ type Table
          If the backend does not support the requested target type, the closest
          supported type is chosen and a `Inexact_Type_Coercion` problem is
          reported.
+
+       ! Casting Text values
+
+         The `parse` method should be used to convert text values into other
+         types. Due to this, a Mixed column containing values `[2, "3"]` will
+         actually be converted into `[2, Nothing]` when casting to Integer type.
     @columns Widget_Helpers.make_column_name_vector_selector
     cast : Vector (Text | Integer | Column_Selector) | Text | Integer -> Value_Type -> Boolean -> Problem_Behavior -> Table ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
     cast self columns=[0] value_type error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
