@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.control;
 import com.oracle.truffle.api.nodes.ControlFlowException;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.error.Warning;
 
 /**
  * Used to model the switch of control-flow from standard stack-based execution to looping.
