@@ -82,22 +82,13 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       State state,
       Object[] arguments,
       @Cached ExecuteCallNode executeCallNode) {
-    Warning[] warnings = null;
     while (true) {
       try {
-        Object result = executeCallNode.executeCall(frame, function, callerInfo, state, arguments);
-        if (warnings != null) {
-          return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
-        } else {
-          return result;
-        }
+        return executeCallNode.executeCall(frame, function, callerInfo, state, arguments);
       } catch (TailCallException e) {
         function = e.getFunction();
         callerInfo = e.getCallerInfo();
         arguments = e.getArguments();
-        if (warnings == null) {
-          warnings = e.getWarnings();
-        }
       }
     }
   }

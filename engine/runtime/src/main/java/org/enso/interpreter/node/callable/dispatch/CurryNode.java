@@ -153,8 +153,7 @@ public class CurryNode extends BaseNode {
       VirtualFrame frame, Function function, CallerInfo callerInfo, State state, Object[] arguments) {
     return switch (getTailStatus()) {
       case TAIL_DIRECT -> directCall.executeCall(frame, function, callerInfo, state, arguments);
-      case TAIL_LOOP ->
-              throw new TailCallException(function, callerInfo, arguments);
+      case TAIL_LOOP -> throw new TailCallException(function, callerInfo, arguments);
       default -> loopingCall.executeDispatch(frame, function, callerInfo, state, arguments);
     };
   }

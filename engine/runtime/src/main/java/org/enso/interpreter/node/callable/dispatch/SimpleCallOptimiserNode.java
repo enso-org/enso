@@ -67,13 +67,8 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
           lock.unlock();
         }
       }
-      Object result =
-          next.executeDispatch(frame, e.getFunction(), e.getCallerInfo(), state, e.getArguments());
-      if (e.getWarnings() != null) {
-        return WithWarnings.appendTo(EnsoContext.get(this), result, e.getWarnings());
-      } else {
-        return result;
-      }
+      return next.executeDispatch(
+          frame, e.getFunction(), e.getCallerInfo(), state, e.getArguments());
     }
   }
 }

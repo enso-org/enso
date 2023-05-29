@@ -329,7 +329,7 @@ public abstract class InvokeMethodNode extends BaseNode {
                       invokeFunctionNode.getDefaultsExecutionMode(),
                       invokeFunctionNode.getArgumentsExecutionMode(),
                       thisArgumentPosition));
-          childDispatch.setTailStatus(getTailStatus());
+          childDispatch.setTailStatus(TailStatus.NOT_TAIL);
           childDispatch.setId(invokeFunctionNode.getId());
           notifyInserted(childDispatch);
         }
@@ -340,12 +340,8 @@ public abstract class InvokeMethodNode extends BaseNode {
 
     arguments[thisArgumentPosition] = selfWithoutWarnings;
 
-    try {
-      Object result = childDispatch.execute(frame, state, symbol, selfWithoutWarnings, arguments);
-      return WithWarnings.appendTo(EnsoContext.get(this), result, arrOfWarnings);
-    } catch (TailCallException e) {
-      throw new TailCallException(e, arrOfWarnings);
-    }
+    Object result = childDispatch.execute(frame, state, symbol, selfWithoutWarnings, arguments);
+    return WithWarnings.appendTo(EnsoContext.get(this), result, arrOfWarnings);
   }
 
   @ExplodeLoop
