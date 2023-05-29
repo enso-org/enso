@@ -602,7 +602,7 @@ impl Container {
         // === Cycling Visualizations ===
 
         frp::extend! { network
-            vis_after_cycling <- input.cycle_visualization.map3(&output.visualisation,&output.vis_input_type,
+            vis_after_cycling <- input.cycle_visualization.map3(&output.visualisation, &output.vis_input_type,
                 f!(((),vis,input_type) model.next_visualization(vis,input_type))
             );
         }
