@@ -4,7 +4,6 @@ import * as react from 'react'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as localBackend from '../localBackend'
-import * as platform from '../../platform'
 import * as svg from '../../components/svg'
 
 // =============
@@ -43,11 +42,12 @@ export interface ProjectActionButtonProps {
     appRunner: AppRunner | null
     onClose: () => void
     openIde: () => void
+    doRefresh: () => void
 }
 
 /** An interactive button displaying the status of a project. */
 function ProjectActionButton(props: ProjectActionButtonProps) {
-    const { project, onClose, appRunner, openIde } = props
+    const { project, onClose, appRunner, openIde, doRefresh } = props
     const { backend } = backendProvider.useBackend()
 
     const [state, setState] = react.useState(backendModule.ProjectState.created)
@@ -56,18 +56,25 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
 
     react.useEffect(() => {
-        void (async () => {
-            const projectDetails = await backend.getProjectDetails(project.id)
-            setState(projectDetails.state.type)
-            if (projectDetails.state.type === backendModule.ProjectState.openInProgress) {
+        switch (project.projectState.type) {
+            case backendModule.ProjectState.opened:
+                setState(backendModule.ProjectState.openInProgress)
+                setSpinnerState(SpinnerState.initial)
+                setIsCheckingResources(true)
+                break
+            case backendModule.ProjectState.openInProgress:
+                setState(backendModule.ProjectState.openInProgress)
                 setSpinnerState(SpinnerState.initial)
                 setIsCheckingStatus(true)
-            }
-        })()
+                break
+            default:
+                setState(project.projectState.type)
+                break
+        }
     }, [])
 
     react.useEffect(() => {
-        if (backend.platform === platform.Platform.desktop) {
+        if (backend.type === backendModule.BackendType.local) {
             if (project.id !== localBackend.LocalBackend.currentlyOpeningProjectId) {
                 setIsCheckingResources(false)
                 setIsCheckingStatus(false)
@@ -94,6 +101,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 () => void checkProjectStatus(),
                 CHECK_STATUS_INTERVAL_MS
             )
+            void checkProjectStatus()
             return () => {
                 clearInterval(handle)
             }
@@ -125,6 +133,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 () => void checkProjectResources(),
                 CHECK_RESOURCES_INTERVAL_MS
             )
+            void checkProjectResources()
             return () => {
                 clearInterval(handle)
             }
@@ -136,6 +145,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         appRunner?.stopApp()
         void backend.closeProject(project.id)
         setIsCheckingStatus(false)
+        setIsCheckingResources(false)
         onClose()
     }
 
@@ -148,13 +158,15 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         setTimeout(() => {
             setSpinnerState(SpinnerState.loading)
         }, 0)
-        switch (backend.platform) {
-            case platform.Platform.cloud:
+        switch (backend.type) {
+            case backendModule.BackendType.remote:
                 await backend.openProject(project.id)
+                doRefresh()
                 setIsCheckingStatus(true)
                 break
-            case platform.Platform.desktop:
+            case backendModule.BackendType.local:
                 await backend.openProject(project.id)
+                doRefresh()
                 setState(backendModule.ProjectState.opened)
                 setSpinnerState(SpinnerState.done)
                 break

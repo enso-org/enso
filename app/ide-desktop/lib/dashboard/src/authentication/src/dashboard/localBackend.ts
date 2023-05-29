@@ -5,7 +5,6 @@
  * the API. */
 import * as backend from './backend'
 import * as newtype from '../newtype'
-import * as platformModule from '../platform'
 import * as projectManager from './projectManager'
 
 // ========================
@@ -32,7 +31,7 @@ interface CurrentlyOpenProjectInfo {
 export class LocalBackend implements Partial<backend.Backend> {
     static currentlyOpeningProjectId: backend.ProjectId | null = null
     static currentlyOpenProject: CurrentlyOpenProjectInfo | null = null
-    readonly platform = platformModule.Platform.desktop
+    readonly type = backend.BackendType.local
     private readonly projectManager = projectManager.ProjectManager.default()
 
     /** Return a list of assets in a directory.
@@ -47,6 +46,14 @@ export class LocalBackend implements Partial<backend.Backend> {
             modifiedAt: project.lastOpened,
             parentId: newtype.asNewtype<backend.AssetId>(''),
             permissions: [],
+            projectState: {
+                type:
+                    project.id === LocalBackend.currentlyOpeningProjectId
+                        ? backend.ProjectState.openInProgress
+                        : project.lastOpened != null
+                        ? backend.ProjectState.closed
+                        : backend.ProjectState.created,
+            },
         }))
     }
 
@@ -134,7 +141,9 @@ export class LocalBackend implements Partial<backend.Backend> {
                         type:
                             projectId === LocalBackend.currentlyOpeningProjectId
                                 ? backend.ProjectState.openInProgress
-                                : backend.ProjectState.closed,
+                                : project.lastOpened != null
+                                ? backend.ProjectState.closed
+                                : backend.ProjectState.created,
                     },
                 })
             }

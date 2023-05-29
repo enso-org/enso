@@ -6,7 +6,6 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
-import * as platform from '../../platform'
 import CreateForm, * as createForm from './createForm'
 
 // ======================
@@ -27,7 +26,7 @@ function FileCreateForm(props: FileCreateFormProps) {
     const [name, setName] = react.useState<string | null>(null)
     const [file, setFile] = react.useState<File | null>(null)
 
-    if (backend.platform === platform.Platform.desktop) {
+    if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
         const onSubmit = async (event: react.FormEvent) => {
