@@ -1,12 +1,12 @@
 //! This module defines the `Container` struct and related functionality. This represent the view
-//! a visualisation int he graph editor and includes a visual box that contains the visualisaiton,
-//! a action bar that allows setting the visualisation type.
+//! a visualisation in the graph editor and includes a visual box that contains the visualisation,
+//! and action bar that allows setting the visualisation type.
 //!
 //! The `[Container]` struct is responsible for managing the visualisation and action bar and
 //! providing a unified interface to the graph editor. This includes ensuring that the visualisation
-//! is correctly positioned, sized and layouted in its different `ViewState`s (which include the
-//! `Enabled`, `Fullscreen` and `Preview` states). Importantly, this also includes layer management
-//!  and ensuring that the visualisation is correctly layered with respect to other scene objects.
+//! is correctly positioned, sized and layouted in its different [ViewState]s (which include the
+//! `Enabled`, `Fullscreen` and `Preview` states). Importantly, this also includes EnsoGL layer
+//! management to ensure correct occlusion of the visualisation with respect to other scene objects.
 
 // FIXME There is a serious performance problem in this implementation. It assumes that the
 // FIXME visualization is a child of the container. However, this is very inefficient. Consider a
@@ -135,12 +135,14 @@ pub mod background {
 // ===========
 
 /// Indicates the visibility state of the visualisation.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Derivative)]
+#[derivative(Default)]
 pub enum ViewState {
-    /// Visualisation is permanently enabled and visible in thw graph editor. It is attached to a
+    /// Visualisation is permanently enabled and visible in the graph editor. It is attached to a
     /// single node and can be moved and interacted with when selected.
     Enabled,
     /// Visualisation is disabled and hidden in the graph editor.
+    #[derivative(Default)]
     Disabled,
     /// Visualisation is temporarily enabled and visible in the graph editor. It should be placed
     /// above other scene elements to allow quick inspection.
@@ -150,16 +152,10 @@ pub enum ViewState {
     Fullscreen,
 }
 
-impl Default for ViewState {
-    fn default() -> Self {
-        ViewState::Disabled
-    }
-}
-
 impl ViewState {
     /// Indicates whether the visualisation is visible in the graph editor. It is always visible
     /// when not disabled.
-    pub fn visible(&self) -> bool {
+    pub fn is_visible(&self) -> bool {
         !matches!(self, ViewState::Disabled)
     }
 
@@ -377,14 +373,14 @@ impl ContainerModel {
     fn apply_view_state(&self, view_state: ViewState) {
         // This is a workaround for #6600. It ensures the action bar is removed
         // and receive no further mouse events.
-        if view_state.visible() {
+        if view_state.is_visible() {
             self.view.add_child(&self.action_bar);
         } else {
             self.action_bar.unset_parent();
         }
 
         // Show or hide the visualization.
-        if view_state.visible() {
+        if view_state.is_visible() {
             self.drag_root.add_child(&self.view);
         } else {
             self.drag_root.remove_child(&self.view);
@@ -567,21 +563,23 @@ impl Container {
             eval input.set_view_state((state) model.apply_view_state(*state));
             output.view_state <+ input.set_view_state.on_change();
             output.fullscreen <+ output.view_state.map(|state| state.is_fullscreen()).on_change();
-            output.visible <+ output.view_state.map(|state| state.visible()).on_change();
+            output.visible <+ output.view_state.map(|state| state.is_visible()).on_change();
             output.size <+ input.set_size.on_change();
 
-            visualisation_uninitialised <- input.set_visualization.map(|t| t.is_none());
-            input_type_uninitialised <- input.set_vis_input_type.is_some().not();
-            uninitialised <- visualisation_uninitialised && input_type_uninitialised;
-            default_visualisation <- uninitialised.on_change().on_true().map(|_| {
+            visualisation_not_selected <- input.set_visualization.map(|t| t.is_none());
+            input_type_not_set <- input.set_vis_input_type.is_some().not();
+            uninitialised <- visualisation_not_selected && input_type_not_set;
+            set_default_visualisation <- uninitialised.on_change().on_true().map(|_| {
                 Some(visualization::Registry::default_visualisation())
             });
-            vis_input_type <- input.set_vis_input_type.on_change();
-            vis_input_type <- vis_input_type.gate(&visualisation_uninitialised).unwrap();
-            default_visualisation_for_type <- vis_input_type.map(f!((tp) {
+            vis_input_type_changed <- input.set_vis_input_type.on_change();
+            vis_input_type_changed_without_selection <-
+                vis_input_type_changed.gate(&visualisation_not_selected).unwrap();
+            set_default_visualisation_for_type <- vis_input_type_changed_without_selection.map(f!((tp) {
                registry.default_visualization_for_type(tp)
             }));
-            default_visualisation <- any(&default_visualisation, &default_visualisation_for_type);
+            set_default_visualisation <- any(
+                &set_default_visualisation, &set_default_visualisation_for_type);
 
         }
 
@@ -615,7 +613,7 @@ impl Container {
                 input.set_visualization,
                 selected_definition,
                 vis_after_cycling,
-                default_visualisation);
+                set_default_visualisation);
             new_vis_definition <- vis_definition_set.on_change();
             let preprocessor = &output.preprocessor;
             output.visualisation <+ new_vis_definition.map2(&output.view_state, f!(

@@ -798,7 +798,9 @@ impl Node {
 
             // Integration between visualization and action bar.
             visualization.set_visualization <+ input.set_visualization;
-            action_bar.set_action_visibility_state <+ visualization.visible.on_change();
+            action_bar.set_action_visibility_state <+ visualization.view_state.map(|state|{
+                matches!(state,visualization::ViewState::Enabled)
+            }).on_change();
             visualization.set_view_state <+ action_bar.user_action_visibility.on_true().constant(visualization::ViewState::Enabled);
             visualization.set_view_state <+ action_bar.user_action_visibility.on_false().constant(visualization::ViewState::Disabled);
 
