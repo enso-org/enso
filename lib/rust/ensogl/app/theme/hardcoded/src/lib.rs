@@ -405,12 +405,6 @@ define_themes! { [light:0, dark:1]
         window_control_buttons {
             radius  = 6.5, 6.5;
             spacing = application::window_control_buttons::radius, application::window_control_buttons::radius;
-            padding {
-                left   = 13.0, 13.0;
-                top    = 13.0, 13.0;
-                right  = 13.0, 13.0;
-                bottom = 13.0, 13.0;
-            }
 
             close {
                 normal {
@@ -526,15 +520,8 @@ define_themes! { [light:0, dark:1]
                 selection      = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
             }
             actions {
-                button {
-                    non_toggled = Lcha(0.0,0.0,0.0,0.3)  , Lcha(0.4,0.0,0.0,1.0);
-                    toggled     = Lcha(0.0,0.0,0.0,0.7)  , Lcha(1.0,0.0,0.0,0.7);
-                    hovered     = Lcha(0.0,0.0,0.0,0.45) , Lcha(1.0,0.0,0.0,0.7);
-                }
                 context_switch {
-                    non_toggled = Lcha(0.0,0.0,0.0,0.3)  , Lcha(0.4,0.0,0.0,1.0);
                     toggled     = Lcha(0.58, 0.67, 0.0825, 1.0), Lcha(0.58, 0.67, 0.0825, 1.0);
-                    hovered     = Lcha(0.0,0.0,0.0,0.45) , Lcha(1.0,0.0,0.0,0.7);
                 }
             }
             vcs {
@@ -620,11 +607,7 @@ define_themes! { [light:0, dark:1]
             }
         }
         profiling_button {
-            non_toggled     = graph_editor::node::actions::button::non_toggled
-                ,graph_editor::node::actions::button::non_toggled;
             toggled         = Lcha(0.7,0.5,0.12,1.0) , Lcha(0.7,0.5,0.12,1.0);
-            hovered         = graph_editor::node::actions::button::hovered
-                ,graph_editor::node::actions::button::hovered;
             toggled_hovered = Lcha(0.55,0.5,0.12,1.0) , Lcha(0.85,0.5,0.12,1.0);
         }
         add_node_button {
@@ -725,6 +708,11 @@ define_themes! { [light:0, dark:1]
                 color = Lcha(0.0,0.0,0.0,1.0), Lcha(1.0,0.0,0.0,1.0);
                 scale = 1.0, 1.0;
             }
+        }
+        toggle_button {
+            non_toggled = Lcha(0.0,0.0,0.0,0.3), Lcha(0.4,0.0,0.0,1.0);
+            toggled = Lcha(0.0,0.0,0.0,0.7), Lcha(1.0,0.0,0.0,0.7);
+            hovered = Lcha(0.0,0.0,0.0,0.45), Lcha(1.0,0.0,0.0,0.7);
         }
     }
 

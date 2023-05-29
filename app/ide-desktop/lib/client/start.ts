@@ -9,9 +9,17 @@ import * as esbuild from 'esbuild'
 import * as esbuildConfig from './esbuild-config'
 import * as paths from './paths'
 
+// =================
+// === Constants ===
+// =================
+
 const GUI_PATH = path.resolve(paths.getGuiDirectory())
 const IDE_PATH = paths.getIdeDirectory()
 const PROJECT_MANAGER_BUNDLE = paths.getProjectManagerBundlePath()
+
+// =================
+// === Start IDE ===
+// =================
 
 const SCRIPT_ARGS = process.argv.slice(2)
 console.log('Script arguments:', ...SCRIPT_ARGS.map(arg => JSON.stringify(arg)))
@@ -28,7 +36,7 @@ await esbuild.build(BUNDLER_OPTIONS)
 console.log('Linking GUI files.')
 await fs.symlink(path.join(GUI_PATH, 'assets'), path.join(IDE_PATH, 'assets'), 'dir')
 
-console.log('LinkingProject Manager files.')
+console.log('Linking Project Manager files.')
 await fs.symlink(PROJECT_MANAGER_BUNDLE, path.join(IDE_PATH, paths.PROJECT_MANAGER_BUNDLE), 'dir')
 
 console.log('Spawning Electron process.')

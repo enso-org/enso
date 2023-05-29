@@ -22,6 +22,7 @@ const HTTP_STATUS_OK = 200
 // === Watcher ===
 // ===============
 
+/** Starts the esbuild watcher. */
 async function watch() {
     const dashboardOpts = dashboardBundler.bundleOptions()
     const dashboardBuilder = await esbuild.context(dashboardOpts)
@@ -30,10 +31,13 @@ async function watch() {
     // This MUST be called before `builder.watch()` as `tailwind.css` must be generated
     // before the copy plugin runs.
     await dashboardBuilder.watch()
-    const opts = bundler.bundlerOptions({
-        ...bundler.argumentsFromEnv(),
-        devMode: true,
-    })
+    const opts = bundler.bundlerOptions(
+        bundler.argumentsFromEnv({
+            devMode: true,
+            supportsLocalBackend: true,
+            supportsDeepLinks: false,
+        })
+    )
     opts.define.REDIRECT_OVERRIDE = JSON.stringify('http://localhost:8080')
     opts.entryPoints.push({
         in: path.resolve(THIS_PATH, 'src', 'serviceWorker.ts'),
@@ -44,6 +48,8 @@ async function watch() {
     await builder.serve({
         port: await portfinder.getPortPromise({ port: PORT }),
         servedir: opts.outdir,
+        /** This function is called on every request.
+         * It is used here to show an error if the file to serve was not found. */
         onRequest(args) {
             if (args.status !== HTTP_STATUS_OK) {
                 console.error(

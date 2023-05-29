@@ -1,5 +1,4 @@
 from Standard.Base import all
-from project.Data.Column_Format import all
 
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
@@ -20,6 +19,7 @@ import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
 import project.Data.Type.Value_Type_Helpers
 
+from project.Internal.Column_Format import all
 from project.Data.Table import print_table
 from project.Data.Type.Value_Type import Value_Type, Auto
 from project.Errors import No_Index_Set_Error, Floating_Point_Equality, Invalid_Value_Type, Inexact_Type_Coercion, Conversion_Failure
@@ -736,7 +736,7 @@ type Column
             self.internal_is_nan on_missing=Nothing
 
     ## PRIVATE
-    internal_is_nan : Column
+    internal_is_nan : Any -> Column
     internal_is_nan self on_missing =
         new_name = Naming_Helpers.function_name "is_nan" [self]
         fallback x = case x of
@@ -1094,16 +1094,28 @@ type Column
                 new_vector = self.to_vector.map (Filter_Condition.Is_In true_vector).to_predicate
                 Column.from_vector result_name new_vector
 
-    ## Parses a text column into values
+    ## Parses a text column into values.
+
+       In the Database backends, the default formatting settings of the
+       particular database are used.
+
+       In the in-memory backend, the default parser options only parse values
+       where the process is reversible (e.g., 0123 would not be converted to an
+       integer as there is a leading 0). However, settings in the
+       `Data_Formatter` can control this.
 
        Arguments:
        - type: The type to parse the column to. Defaults to `Auto` meaning that
-         the type will be inferred from the data.
+         the type will be inferred from the data. In the Database backends,
+         `Auto` is not supported, so a specific type must be selected.
        - format: The formatting settings to use when parsing the column.
          For `Date`, `Time_Of_Day` and `Date_Time`, a Java date time style
          can be used. For `Boolean`, it should be two values that represent true
          and false, separated by a `|`. Alternatively, a `Data_Formatter` can be
-         passed to provide complete customisation of the formatting.
+         passed to provide complete customisation of the formatting. If
+         `Nothing` is provided, the default formatting settings of the backend
+         will be used. `Nothing` is currently the only setting accepted by the
+         Database backends.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
 
@@ -1159,14 +1171,15 @@ type Column
 
              example_contains = Examples.text_column_1.parse Boolean 'Yes|No'
     @type Widget_Helpers.parse_type_selector
-    parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
+    parse : Value_Type | Auto -> Text | Data_Formatter | Nothing -> Problem_Behavior -> Column
     parse self type=Auto format=Data_Formatter.Value on_problems=Report_Warning =
         Value_Type.expect_text self <|
             formatter = case format of
                 _ : Text ->
                     Data_Formatter.Value.with_format type format
                 _ : Data_Formatter -> format
-                _ -> Error.throw (Illegal_Argument.Error "Invalid format type. Expected Text or Data_Formatter.")
+                Nothing -> Data_Formatter.Value
+                _ -> Error.throw (Illegal_Argument.Error "Invalid format type. Expected Text or Data_Formatter or Nothing.")
 
             parser = formatter.make_value_type_parser type
             storage = self.java_column.getStorage
@@ -1307,6 +1320,8 @@ type Column
          resulting value will be truncated to the desired type.
        - If a `Date` is to be converted to `Date_Time`, it will be set at
          midnight of the default system timezone.
+       - For a `Mixed` column being converted into a specific type, each row is
+         converted individually.
 
         If the target type cannot fit some of the values (for example due to too
         small range), a `Conversion_Failure` may be reported according to the
@@ -1318,6 +1333,12 @@ type Column
          If the backend does not support the requested target type, the closest
          supported type is chosen and a `Inexact_Type_Coercion` problem is
          reported.
+
+       ! Casting Text values
+
+         The `parse` method should be used to convert text values into other
+         types. Due to this, a Mixed column containing values `[2, "3"]` will
+         actually be converted into `[2, Nothing]` when casting to Integer type.
     cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
     cast self value_type on_problems=Problem_Behavior.Report_Warning =
         Cast_Helpers.check_cast_compatibility self.value_type value_type <|

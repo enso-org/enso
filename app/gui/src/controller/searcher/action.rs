@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use double_representation::module::MethodId;
+use double_representation::name::QualifiedNameRef;
 use ordered_float::OrderedFloat;
 
 
@@ -29,9 +30,9 @@ pub enum Suggestion {
 
 impl Suggestion {
     /// Return the code to be inserted in searcher input upon picking suggestion.
-    pub fn code_to_insert(&self, generate_this: bool) -> Cow<str> {
+    pub fn code_to_insert(&self, generate_this: bool, in_module: QualifiedNameRef) -> Cow<str> {
         match self {
-            Suggestion::FromDatabase(s) => s.code_to_insert(generate_this),
+            Suggestion::FromDatabase(s) => s.code_to_insert(generate_this, in_module),
             Suggestion::Hardcoded(s) => s.code.as_str().into(),
         }
     }
@@ -66,14 +67,6 @@ impl Suggestion {
 /// Action of adding example code.
 pub type Example = Rc<model::suggestion_database::Example>;
 
-/// A variants of project management actions. See also [`Action`].
-#[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug, Eq, PartialEq)]
-pub enum ProjectManagement {
-    CreateNewProject,
-    OpenProject { id: Immutable<Uuid>, name: ImString },
-}
-
 /// A single action on the Searcher list. See also `controller::searcher::Searcher` docs.
 #[derive(Clone, CloneRef, Debug, PartialEq)]
 pub enum Action {
@@ -84,8 +77,6 @@ pub enum Action {
     /// Add to the current module a new function with example code, and a new node in
     /// current scene calling that function.
     Example(Example),
-    /// The project management operation: creating or opening, projects.
-    ProjectManagement(ProjectManagement),
     // In the future, other action types will be added (like module/method management, etc.).
 }
 
@@ -101,10 +92,6 @@ impl Display for Action {
             Self::Suggestion(Suggestion::Hardcoded(suggestion)) =>
                 Display::fmt(&suggestion.name, f),
             Self::Example(example) => write!(f, "Example: {}", example.name),
-            Self::ProjectManagement(ProjectManagement::CreateNewProject) =>
-                write!(f, "New Project"),
-            Self::ProjectManagement(ProjectManagement::OpenProject { name, .. }) =>
-                Display::fmt(name, f),
         }
     }
 }

@@ -1,8 +1,6 @@
 /** @file Entry point into the cloud dashboard. */
 import * as authentication from 'enso-authentication'
 
-import * as platform from 'enso-authentication/src/platform'
-
 // =================
 // === Constants ===
 // =================
@@ -21,9 +19,15 @@ const SERVICE_WORKER_PATH = '/serviceWorker.js'
 
 if (IS_DEV_MODE) {
     new EventSource(ESBUILD_PATH).addEventListener(ESBUILD_EVENT_NAME, () => {
-        location.reload()
+        // This acts like `location.reload`, but it preserves the query-string.
+        // The `toString()` is to bypass a lint without using a comment.
+        location.href = location.href.toString()
     })
     void navigator.serviceWorker.register(SERVICE_WORKER_PATH)
+} else {
+    void navigator.serviceWorker
+        .getRegistration()
+        .then(serviceWorker => serviceWorker?.unregister())
 }
 
 // ===================
@@ -32,12 +36,21 @@ if (IS_DEV_MODE) {
 
 authentication.run({
     logger: console,
-    // This file is only included when building for the cloud,
-    // so it is safe to set `platform` to `cloud`.
-    platform: platform.Platform.cloud,
+    // This file is only included when building for the cloud.
+    supportsLocalBackend: false,
+    supportsDeepLinks: false,
     showDashboard: true,
-    // The `onAuthenticated` parameter is required but we don't need it, so we pass an empty function.
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    onAuthenticated() {},
-    appRunner: null,
+    /** The `onAuthenticated` option is mandatory but is not needed here,
+     * so this function is empty. */
+    onAuthenticated() {
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+    },
+    // This cannot be `appRunner: window.enso` as `window.enso` is set to a new value
+    // every time a new project is opened.
+    appRunner: {
+        stopApp: () => {
+            window.enso.stopApp()
+        },
+        runApp: config => window.enso.runApp(config),
+    },
 })
