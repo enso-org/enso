@@ -51,7 +51,7 @@ pub trait Aware {
     /// Get handle to undo-redo [`Repository`].
     fn undo_redo_repository(&self) -> Rc<Repository>;
 
-    /// Get current ongoing transaction. If there is no ongoing transaction, create a one.
+    /// Get the current ongoing transaction. If there is no ongoing transaction, create one.
     #[profile(Debug)]
     #[must_use]
     fn get_or_open_transaction(&self, name: &str) -> Rc<Transaction> {
@@ -103,15 +103,7 @@ impl Transaction {
     /// the current transaction in context where it is not clear whether transaction was already set
     /// up or not.
     pub fn fill_content(&self, id: model::module::Id, content: model::module::Content) {
-        with(self.frame.borrow_mut(), |mut data| {
-            debug!(
-                "Filling transaction '{}' with snapshot of module '{id}':\n{content}",
-                data.name
-            );
-            if data.snapshots.try_insert(id, content).is_err() {
-                debug!("Skipping this snapshot, as module's state was already saved.")
-            }
-        })
+        with(self.frame.borrow_mut(), |mut data| data.store_module_content(id, content))
     }
 
     /// Ignore the transaction.
@@ -127,16 +119,7 @@ impl Transaction {
 impl Drop for Transaction {
     fn drop(&mut self) {
         if let Some(urm) = self.urm.upgrade() {
-            if !self.ignored.get() {
-                info!("Transaction '{}' will create a new frame. {}", self.name(), backtrace());
-                urm.push_to(Stack::Undo, self.frame.borrow().clone());
-                urm.clear(Stack::Redo);
-            } else {
-                debug!(
-                    "Dropping the ignored transaction '{}' without pushing a frame to repository.",
-                    self.name()
-                )
-            }
+            urm.close_transaction(self)
         }
     }
 }
@@ -175,6 +158,16 @@ impl Display for Frame {
             write!(f, "Code for {id}: {code}; ")?;
         }
         Ok(())
+    }
+}
+
+impl Frame {
+    /// Store the snapshot of given module's content.
+    pub fn store_module_content(&mut self, id: model::module::Id, content: model::module::Content) {
+        debug!("Filling frame '{}' with snapshot of module '{id}':\n{content}", self.name);
+        if self.snapshots.try_insert(id, content).is_err() {
+            debug!("Skipping this snapshot, as module's state was already saved.")
+        }
     }
 }
 
@@ -262,6 +255,21 @@ impl Repository {
         transaction
     }
 
+    /// Close the currently opened transaction.
+    ///
+    /// This method should not be used directly. Instead just drop the [`Transaction`] handle.
+    fn close_transaction(&self, transaction: &Transaction) {
+        if !transaction.ignored.get() {
+            info!("Transaction '{}' will create a new frame. {}", transaction.name(), backtrace());
+            self.push_to(Stack::Undo, transaction.frame.borrow().clone());
+            self.clear(Stack::Redo)
+        } else {
+            debug!(
+                "Closing the ignored transaction '{}' without pushing a frame to repository.",
+                transaction.name()
+            )
+        }
+    }
 
     /// Get currently opened transaction. If there is none, open a new one.
     pub fn transaction(self: &Rc<Self>, name: impl Into<String>) -> Rc<Transaction> {
@@ -291,13 +299,16 @@ impl Repository {
 
     /// Push a new frame to the given stack.
     fn push_to(&self, stack: Stack, frame: Frame) {
-        debug!("Pushing to {stack} stack a new frame: {frame}");
+        debug!(
+            "Pushing to {stack} stack a new frame: {frame}. New frame count: {}",
+            self.borrow(stack).len() + 1
+        );
         self.borrow_mut(stack).push(frame);
     }
 
     /// Clear all frames from the given stack.
     fn clear(&self, stack: Stack) {
-        debug!("Clearing {stack} stack.");
+        debug!("Clearing {stack} stack, dropping {} frames.", self.borrow(stack).len(),);
         self.borrow_mut(stack).clear();
     }
 
@@ -501,7 +512,7 @@ mod tests {
     }
 
     // Collapse two middle nodes.
-    #[wasm_bindgen_test]
+    #[test]
     fn collapse_nodes_atomic() {
         let code = r#"
 main =
@@ -519,7 +530,7 @@ main =
 
     // A complex operation: involves introducing variable name, reordering lines and
     // replacing an argument.
-    #[wasm_bindgen_test]
+    #[test]
     fn connect_nodes_atomic() {
         let code = r#"
 main =
@@ -549,7 +560,7 @@ main =
 
 
     // Check that node position is properly updated.
-    #[wasm_bindgen_test]
+    #[test]
     fn move_node() {
         use model::module::Position;
 
@@ -578,7 +589,7 @@ main =
         assert_eq!(graph.node(node.id()).unwrap().position(), Some(pos2));
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn undo_redo() {
         use crate::test::mock::Fixture;
         // Setup the controller.

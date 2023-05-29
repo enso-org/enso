@@ -490,7 +490,16 @@ impl Project {
         view: view::project::View,
         status_bar: view::status_bar::View,
     ) -> FallibleResult<Self> {
+        debug!("Initializing project controller...");
         let init_result = controller.initialize().await?;
-        Ok(Self::new(ide_controller, controller, init_result, view, status_bar))
+        debug!("Project controller initialized.");
+        let presenter =
+            Self::new(ide_controller, controller.clone(), init_result, view, status_bar);
+        debug!("Project presenter created.");
+        // Following the project initialization, the Undo/Redo stack should be empty.
+        // This makes sure that any initial modifications resulting from the GUI initialization
+        // won't clutter the undo stack.
+        controller.model.urm().repository.clear_all();
+        Ok(presenter)
     }
 }
