@@ -225,7 +225,7 @@ impl Model {
         if let Some(entry_id) = entry_id {
             self.suggestion_accepted(entry_id);
         }
-        if self.controller.is_input_empty() {
+        if !self.controller.is_input_empty() {
             self.controller.commit_node().map(Some).unwrap_or_else(|err| {
                 error!("Error while committing node expression: {err}.");
                 None
