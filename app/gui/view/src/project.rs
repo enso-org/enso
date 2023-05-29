@@ -583,7 +583,7 @@ impl View {
             // === Project Dialog ===
 
             eval_ frp.show_project_list  (model.show_project_list());
-            project_chosen   <- project_list.grid.entry_selected.constant(());
+            project_chosen <- project_list.frp.selected_project.constant(());
             mouse_down       <- scene.mouse.frp_deprecated.down.constant(());
             clicked_on_bg    <- mouse_down.filter(f_!(scene.mouse.target.get().is_background()));
             should_be_closed <- any(frp.hide_project_list,project_chosen,clicked_on_bg);

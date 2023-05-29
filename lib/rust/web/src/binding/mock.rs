@@ -770,6 +770,9 @@ mock_data! { Node => EventTarget
     ) -> Result<Node, JsValue>;
 }
 
+// === WebGlQuery ===
+mock_data! { WebGlQuery => Object }
+
 
 
 // ===========
