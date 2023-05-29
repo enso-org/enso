@@ -85,10 +85,6 @@ ensogl::define_endpoints! {
         hide_project_list(),
         /// Close the searcher without taking any actions
         close_searcher(),
-        /// Show the graph editor.
-        show_graph_editor(),
-        /// Hide the graph editor.
-        hide_graph_editor(),
         /// Simulates a style toggle press event.
         toggle_style(),
         /// Toggles the visibility of private components in the component browser.
@@ -231,6 +227,7 @@ impl Model {
             let visualization =
                 node.view.model().visualization.fullscreen_visualization().clone_ref();
             self.display_object.remove_child(&*self.graph_editor);
+            self.display_object.remove_child(&self.project_view_top_bar);
             self.display_object.add_child(&visualization);
             *self.fullscreen_vis.borrow_mut() = Some(visualization);
         }
@@ -240,6 +237,7 @@ impl Model {
         if let Some(visualization) = std::mem::take(&mut *self.fullscreen_vis.borrow_mut()) {
             self.display_object.remove_child(&visualization);
             self.display_object.add_child(&*self.graph_editor);
+            self.display_object.add_child(&self.project_view_top_bar);
         }
     }
 
@@ -271,14 +269,6 @@ impl Model {
 
     fn hide_project_list(&self) {
         self.display_object.remove_child(&*self.project_list);
-    }
-
-    fn show_graph_editor(&self) {
-        self.display_object.add_child(&*self.graph_editor);
-    }
-
-    fn hide_graph_editor(&self) {
-        self.display_object.remove_child(&*self.graph_editor);
     }
 }
 
@@ -411,9 +401,6 @@ impl View {
         let documentation = &searcher.model().documentation;
 
         frp::extend! { network
-            eval_ frp.show_graph_editor(model.show_graph_editor());
-            eval_ frp.hide_graph_editor(model.hide_graph_editor());
-
             // We block graph navigator if it interferes with other panels (searcher, documentation,
             // etc.)
             searcher_active <- searcher.is_hovered || documentation.frp.is_selected;
