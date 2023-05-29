@@ -15,7 +15,6 @@ use ensogl_component::toggle_button::ToggleButton;
 use ensogl_hardcoded_theme::graph_editor::node::actions as theme;
 
 
-
 // ==============
 // === Export ===
 // ==============
