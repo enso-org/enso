@@ -410,6 +410,9 @@ impl View {
             model.popup.set_label <+ graph.model.breadcrumbs.project_name_error;
             graph.set_read_only <+ frp.set_read_only;
             graph.set_debug_mode <+ frp.source.debug_mode;
+
+            frp.source.fullscreen_visualization_shown <+
+                graph.output.visualization_fullscreen.is_some();
         }
         self
     }
