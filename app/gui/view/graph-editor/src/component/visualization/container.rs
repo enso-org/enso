@@ -617,7 +617,7 @@ impl Container {
                 vis_after_cycling,
                 default_visualisation);
             new_vis_definition <- vis_definition_set.on_change();
-            let preprocessor =  &output.preprocessor;
+            let preprocessor = &output.preprocessor;
             output.visualisation <+ new_vis_definition.map2(&output.view_state, f!(
                 [model,action_bar,app,preprocessor](vis_definition, view_state) {
 
