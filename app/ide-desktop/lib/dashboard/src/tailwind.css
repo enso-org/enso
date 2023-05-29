@@ -16,6 +16,34 @@ body {
   font-feature-settings: normal;
 }
 
+/* Must be kept in sync with app/gui/view/graph-editor/src/builtin/visualization/java_script/helpers/scrollable.js. */
+
+::-webkit-scrollbar {
+  -webkit-appearance: none;
+}
+
+::-webkit-scrollbar-track {
+  -webkit-box-shadow: none;
+}
+
+::-webkit-scrollbar:vertical {
+  width: 11px;
+}
+
+::-webkit-scrollbar:horizontal {
+  height: 11px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  border: 1px solid rgba(220, 220, 220, 0.5);
+  background-color: rgba(190, 190, 190, 0.5);
+}
+
+::-webkit-scrollbar-corner {
+  background: rgba(0, 0, 0, 0);
+}
+
 .enso-dashboard {
   @tailwind base;
   @tailwind components;
