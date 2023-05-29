@@ -1,0 +1,41 @@
+from Standard.Base import all
+import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Errors.Illegal_State.Illegal_State
+
+## PRIVATE
+   An Enso implementation mirroring `OrderedMultiValueKey` and
+   `UnorderedMultiValueKey` from the Java helpers.
+
+   The ordered part is implemented by delegating to comparators of its elements.
+
+   The unordered part is implemented by delegating to the hahses of elements.
+type Multi_Value_Key
+    ## PRIVATE
+    Key values:Vector
+
+    ## PRIVATE
+    from_row columns row_index =
+        arr = Array_Proxy.new columns.length column_ix->
+            columns . at column_ix . at row_index
+        values = Vector.from_polyglot_array arr
+        Multi_Value_Key.Key values
+
+## PRIVATE
+type Multi_Value_Key_Comparator
+    ## PRIVATE
+    compare x y =
+        n = x.values.length
+        if n != y.values.length then Panic.throw (Illegal_State.Error "Multi_Value_Key used with different number of values: " + x.to_text + " vs " + y.to_text) else
+            go ix =
+                if ix >= n then Ordering.Equal else
+                    vx = x.values . at ix
+                    vy = y.values . at ix
+                    cmp = (Comparable.from vx).compare vx vy
+                    if cmp != Ordering.Equal then cmp else
+                        @Tail_Call go (ix + 1)
+            go 0
+
+    ## PRIVATE
+    hash x = (Comparable.from x.values).hash x.values
+
+Comparable.from (_:Multi_Value_Key) = Multi_Value_Key_Comparator
