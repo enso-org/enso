@@ -798,10 +798,16 @@ impl Node {
 
             // Integration between visualization and action bar.
             visualization.set_visualization <+ input.set_visualization;
-            action_bar.set_action_visibility_state <+ visualization.view_state.map(|state|{
+            is_enabled <- visualization.view_state.map(|state|{
                 matches!(state,visualization::ViewState::Enabled)
-            }).on_change();
-            visualization.set_view_state <+ action_bar.user_action_visibility.on_true().constant(visualization::ViewState::Enabled);
+            });
+            action_bar.set_action_visibility_state <+ is_enabled;
+            button_set_to_true <- action_bar.user_action_visibility.on_true();
+            button_set_to_true_without_error <- button_set_to_true.gate_not(&is_error_set);
+            button_set_to_true_with_error <- button_set_to_true.gate(&is_error_set);
+            visualization.set_view_state <+ button_set_to_true_without_error.constant(visualization::ViewState::Enabled);
+            action_bar.set_action_visibility_state <+ button_set_to_true_with_error.constant(false);
+
             visualization.set_view_state <+ action_bar.user_action_visibility.on_false().constant(visualization::ViewState::Disabled);
 
             // Show preview visualisation after some delay, depending on whether we show an error
@@ -846,6 +852,8 @@ impl Node {
             });
 
             eval error_color_anim.value ((value) model.set_error_color(value));
+            visualization.set_view_state <+ input.set_error.is_some().constant(visualization::ViewState::Disabled);
+
 
         }
 
