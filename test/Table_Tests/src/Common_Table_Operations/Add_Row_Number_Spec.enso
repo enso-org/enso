@@ -66,7 +66,7 @@ spec setup =
         Test.specify "should allow to assign row numbers separately within scattered groups, preserving the row layout" <|
             v = ['a', 'b', 'a', 'b', 'b', 'b', 'c', 'a']
             t = table_builder [["X", v]]
-            t1 = t.add_row_number
+            t1 = t.add_row_number group_by=["X"]
             # No reordering of elements:
             t1.at "X" . to_vector . should_equal v
             t1.at "Row" . to_vector . should_equal [1, 1, 2, 2, 3, 4, 1, 3]

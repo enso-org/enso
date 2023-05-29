@@ -30,6 +30,7 @@ import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table_Conversions
 import project.Delimited.Delimited_Format.Delimited_Format
+import project.Internal.Add_Row_Number
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
@@ -1222,7 +1223,7 @@ type Table
            existing column is renamed to avoid the clash.
     add_row_number : Text -> Integer -> Integer -> (Column_Selector | Vector Text) -> Vector (Text | Sort_Column) | Text | Sort_Column -> Problem_Behavior -> Table
     add_row_number self name="Row" from=1 step=1 group_by=[] order_by=[] on_problems=Problem_Behavior.Report_Warning =
-        Error.throw "TODO"
+        Add_Row_Number.add_row_number self name from step group_by order_by on_problems
 
     ## ALIAS Add Column, Update Column, New Column
        Sets the column value at the given name.
@@ -1281,14 +1282,15 @@ type Table
         renamed = case new_name of
            Nothing -> resolved
            _ : Text -> resolved.rename new_name
-        to_add = case set_mode of
+        check_add_mode = case set_mode of
             Set_Mode.Add_Or_Update -> True
             Set_Mode.Add -> if self.java_table.getColumnByName renamed.name . is_nothing then True else
                 Error.throw (Existing_Column.Error renamed.name)
             Set_Mode.Update -> if self.java_table.getColumnByName renamed.name . is_nothing . not then True else
                 Error.throw (Missing_Column.Error renamed.name)
 
-        if to_add then Table.Value (self.java_table.addOrReplaceColumn renamed.java_column) else to_add
+        check_add_mode.if_not_error <|
+            Table.Value (self.java_table.addOrReplaceColumn renamed.java_column)
 
     ## Given an expression, create a derived column where each value is the
        result of evaluating the expression for the row.
