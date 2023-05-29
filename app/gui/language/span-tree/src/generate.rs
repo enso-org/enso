@@ -961,6 +961,7 @@ mod test {
     fn clear_expression_ids(node: &mut Node) {
         node.ast_id = None;
         node.extended_ast_id = None;
+        node.application = None;
         for child in &mut node.children {
             clear_expression_ids(&mut child.node);
         }
