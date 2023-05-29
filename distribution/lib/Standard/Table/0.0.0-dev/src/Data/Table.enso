@@ -1220,8 +1220,8 @@ type Table
          - If the column with the same name as provided `name` already exists,
            a `Duplicate_Output_Column_Names` problem is reported and the
            existing column is renamed to avoid the clash.
-    add_row_number : Text -> Integer -> Integer -> (Column_Selector | Vector Text) -> Sort_Column_Selector -> Problem_Behavior -> Table
-    add_row_number self name="Row" from=1 step=1 group_by=(By_Name []) order_by=(Sort_Column_Selector.By_Name []) on_problems=Problem_Behavior.Report_Warning =
+    add_row_number : Text -> Integer -> Integer -> (Column_Selector | Vector Text) -> Vector (Text | Sort_Column) | Text | Sort_Column -> Problem_Behavior -> Table
+    add_row_number self name="Row" from=1 step=1 group_by=[] order_by=[] on_problems=Problem_Behavior.Report_Warning =
         Error.throw "TODO"
 
     ## ALIAS Add Column, Update Column, New Column
