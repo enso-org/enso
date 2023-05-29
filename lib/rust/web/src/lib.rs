@@ -938,23 +938,6 @@ pub use async_std::task::sleep;
 
 
 // ====================
-// === TimeProvider ===
-// ====================
-
-/// Trait for an entity that can retrieve current time.
-pub trait TimeProvider {
-    /// Returns current time, measured in milliseconds.
-    fn now(&self) -> f64;
-}
-
-impl TimeProvider for Performance {
-    fn now(&self) -> f64 {
-        self.now()
-    }
-}
-
-
-// ====================
 // === FrameCounter ===
 // ====================
 

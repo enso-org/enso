@@ -5,7 +5,6 @@
  * the API. */
 import * as backend from './backend'
 import * as newtype from '../newtype'
-import * as platformModule from '../platform'
 import * as projectManager from './projectManager'
 
 // ========================
@@ -32,9 +31,10 @@ interface CurrentlyOpenProjectInfo {
 export class LocalBackend implements Partial<backend.Backend> {
     static currentlyOpeningProjectId: backend.ProjectId | null = null
     static currentlyOpenProject: CurrentlyOpenProjectInfo | null = null
-    readonly platform = platformModule.Platform.desktop
+    readonly type = backend.BackendType.local
     private readonly projectManager: projectManager.ProjectManager
 
+    /** Create a {@link LocalBackend}. */
     constructor(projectManagerUrl: string | null) {
         this.projectManager = projectManager.ProjectManager.default(projectManagerUrl)
     }

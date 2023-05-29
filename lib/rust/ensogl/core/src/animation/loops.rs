@@ -173,7 +173,6 @@ crate::define_endpoints_2! {
         on_after_animations(TimeInfo),
         on_before_layout(TimeInfo),
         on_before_rendering(TimeInfo),
-        frame_end(TimeInfo),
     }
 }
 
@@ -186,11 +185,6 @@ thread_local! {
 /// Fires at the beginning of every animation frame.
 pub fn on_frame_start() -> enso_frp::Sampler<Duration> {
     LOOP_REGISTRY.with(|registry| registry.on_frame_start.clone_ref())
-}
-
-/// Fires at the end of every animation frame.
-pub fn frame_end() -> enso_frp::Sampler<TimeInfo> {
-    LOOP_REGISTRY.with(|registry| registry.frame_end.clone_ref())
 }
 
 /// Fires before the animations are evaluated.
@@ -213,8 +207,98 @@ pub fn on_before_rendering() -> enso_frp::Sampler<TimeInfo> {
     LOOP_REGISTRY.with(|registry| registry.on_before_rendering.clone_ref())
 }
 
-/// A wrapper for JavaScript `requestAnimationFrame` loop. It allows registering callbacks and also
-/// exposes FRP endpoints that will emit signals on every loop iteration.
+/// A wrapper for JavaScript `requestAnimationFrame` (RAF) loop. It allows registering callbacks and
+/// also exposes FRP endpoints that will emit signals on every loop iteration.
+///
+///
+/// # Warning, the following information is valid in Chrome only.
+/// Handling of events, animation frames, and scheduling tasks is an implementation detail of every
+/// browser. We did an in-depth analysis of how Chrome handles these things. Other browsers'
+/// behavior might differ. This should not affect the correctness of either application behavior nor
+/// performance measurements, but it is important to understand if you are working on
+/// performance-related issues.
+///
+///
+/// # Events scheduling in Chrome
+/// The following graph shows an example order of tasks per frame with the assumptions that all the
+/// frame tasks can be executed within that frame and the application runs with native FPS.
+///
+/// ```text
+///             ║    Frame 1     ║    Frame 2     ║    Frame 3     ║ ...
+/// Idle time   ║█            ███║██         █████║████           █║ ...
+/// Other tasks ║ █          █   ║  █       █     ║    █        █  ║ ...
+/// I/O Events  ║  ██   █████    ║      ████      ║     █   ████   ║ ...
+/// RAF         ║    ███         ║   ███          ║      ███       ║ ...
+/// GPU         ║      ████      ║     ███        ║        ██████  ║ ...
+/// ```
+///
+/// A few things should be noted here:
+///
+/// - **Frame start idle time.** At the beginning of almost every frame, there will be an idle time
+///   of up to a few milliseconds (we've observed idle times between 0 ms and 4 ms). This time is
+///   likely caused by frames being synchronized with the screen refresh rate, while the tasks are
+///   performed by the Chrome task scheduler, which is not fired at the synchronization points. To
+///   learn more, see [this link](https://bugs.chromium.org/p/chromium/issues/detail?id=607650). It
+///   is not clear whether Chrome considers this a bug or if they will ever fix it.
+///
+/// - **Other tasks.** These are Chrome-internal tasks. For example, before every animation frame,
+///   Chrome performs some preparation work, which in most cases is very short (we've observed times
+///   between 20 μs and 40 μs). At the end of the frame, Chrome performs pre-paint, layout,
+///   layerize, and commit jobs, which, in the case of EnsoGL applications (when no HTML elements
+///   are on the stage), are also short, ranging between 0.1 ms and 0.5 ms.
+///
+/// - **I/O Events.** Events such as mouse down/up/move can be scheduled before or after the RAF
+///   callback. Some of these events might originate in the previous frame, and their handling might
+///   be scheduled for the next frame by Chrome.
+///
+/// - **RAF.** The RAF (Request Animation Frame) callback triggers WebGL per-frame functions, such
+///   as animations, Display Object layout recomputation, WebGL buffer updates, and invoking WebGL
+///   draw calls.
+///
+/// - **GPU.** The GPU-related work starts at the end of the RAF callback, as soon as the first
+///   WebGL calls are issued. It is performed in parallel with the rest of the RAF callback, I/O
+///   events, and other tasks performed by Chrome.
+///
+/// In case the total time of all the per-frame tasks is longer than the frame duration with the
+/// native refresh rate, some frames might be skipped, and a very interesting time report behavior
+/// can be observed. Let's consider the following events graph:
+///
+/// ```text
+///             ║ Real frame 1 work  ┆          Real frame 2 work         ┆            ...
+///             ║    Frame 1     ║   ┆Frame 2     ║ Frame 3 (skip) ║    Frame 4     ║  ...
+/// Idle time   ║███             ║   ┆            ║                ║      ┆         ║  ...
+/// Other tasks ║   █            ║  █┆            ║                ║     █┆         ║  ...
+/// RAF         ║    ██████████  ║   ┆  ██████████████████████████████    ┆ ██████████ ...
+/// I/O Events  ║              █████ ┆██          ║                ║  ██  ┆█        ║  ...
+/// GPU         ║              ███   ┆            ║                ║     █┆         ║  ...
+/// ```
+///
+/// A few things should be noted here:
+///
+/// - **Frame start idle time.** As previously mentioned, we can observe an idle time at the
+///   beginning of the first frame. The Chrome task scheduler rendered the previous frame in time,
+///   so there was no pressure to start the next tasks immediately. However, there is no idle time
+///   present in the next frames as their computations took longer than the native frame duration.
+///
+/// - **Frame times.** Even if the real computation time can exceed the time of a few frames issued
+///   with the native refresh rate, the frames are always scheduled with the native refresh rate
+///   time. Thus, some of these frames might be skipped, like frame 3 in the example above.
+///
+/// - **RAF start time.** When the RAF callback is called, it is provided with the frame start time.
+///   However, this time might be smaller than the time reported by performance.now(). For example,
+///   in the graph above, the third call to the RAF callback will report the beginning time of frame
+///   4, even though it was performed in the middle of frame 4. If we measured the time at the end
+///   of the second RAF callback with performance.now(), this time would be bigger than the time
+///   reported by the third RAF callback.
+///
+///
+/// # It is impossible to measure correct CPU-time from within JavaScript.
+/// In Chrome, it is possible to get precise results of the GPU time (see
+/// [ExtDisjointTimerQueryWebgl2]). However, even if we measure the time of all I/O events and the
+/// time of the RAF callback, we cannot measure the time of the other tasks performed by Chrome
+/// because we cannot register an event at the end of the per-frame job. Thus, when measuring
+/// performance within the application, the only reliable way is to base it on the time reported by
+/// the RAF callback and the GPU time measurements.
 #[derive(CloneRef, Derivative, Deref)]
 #[derivative(Clone(bound = ""))]
 #[derivative(Debug(bound = ""))]
@@ -296,24 +380,23 @@ fn on_frame_closure(
     before_animations: &callback::registry::Copy1<TimeInfo>,
     animations: &callback::registry::Copy1<FixedFrameRateStep<TimeInfo>>,
 ) -> OnFrameClosure {
+    let output = frp.private.output.clone_ref();
     let before_animations = before_animations.clone_ref();
     let animations = animations.clone_ref();
-    let output = frp.private.output.clone_ref();
     let mut time_info = InitializedTimeInfo::default();
     let h_cell = Rc::new(Cell::new(callback::Handle::default()));
     let fixed_fps_sampler = Rc::new(RefCell::new(FixedFrameRateSampler::default()));
 
     move |frame_time: Duration| {
+        let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
         let time_info = time_info.next_frame(frame_time);
         let on_frame_start = output.on_frame_start.clone_ref();
         let on_before_animations = output.on_before_animations.clone_ref();
         let on_after_animations = output.on_after_animations.clone_ref();
         let on_before_layout = output.on_before_layout.clone_ref();
         let on_before_rendering = output.on_before_rendering.clone_ref();
-        let frame_end = output.frame_end.clone_ref();
         let before_animations = before_animations.clone_ref();
         let animations = animations.clone_ref();
-        let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
         let fixed_fps_sampler = fixed_fps_sampler.clone_ref();
 
         TickPhases::new(&h_cell)
@@ -322,12 +405,9 @@ fn on_frame_closure(
             .then(move || before_animations.run_all(time_info))
             .then(move || fixed_fps_sampler.borrow_mut().run(time_info, |t| animations.run_all(t)))
             .then(move || on_after_animations.emit(time_info))
-            .then(move || frame_end.emit(time_info))
             .then(move || on_before_layout.emit(time_info))
-            .then(move || {
-                on_before_rendering.emit(time_info);
-                drop(_profiler);
-            })
+            .then(move || on_before_rendering.emit(time_info))
+            .then(move || drop(_profiler))
             .schedule();
     }
 }
