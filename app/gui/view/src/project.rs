@@ -428,8 +428,8 @@ impl View {
     }
 
     fn init_code_editor_frp(self) -> Self {
-        let network = &self.frp.network;
-        frp::extend! { network
+        let _network = &self.frp.network;
+        frp::extend! { _network
             self.model.code_editor.set_read_only <+ self.frp.set_read_only;
         }
         self
@@ -476,11 +476,15 @@ impl View {
             // Compute positions. It should be done _before_ showing searcher (or we display it at
             // wrong position).
             input <- frp.searcher.filter_map(|s| Some(s.as_ref()?.input));
-            input_position_changed <- model.graph_editor.output.node_position_set.map2(&input, |&(node_id, _), &input_id| node_id == input_id).on_true();
+            let node_position_set = model.graph_editor.output.node_position_set.clone_ref();
+            is_input_position_update <-
+                node_position_set.map2(&input, |&(node_id, _), &input_id| node_id == input_id);
+            input_position_changed <- is_input_position_update.on_true();
             set_anchor_to_node <- all(input, input_position_changed)._0();
             anchor.target <+ set_anchor_to_node.map(f!((&input) model.searcher_anchor_next_to_node(input)));
             anchor.skip <+ set_anchor_to_node.gate_not(&searcher.is_visible).constant(());
-            position <- all_with(&anchor.value, &model.searcher.expression_input_position, |anchor, pos| anchor - pos);
+            let searcher_offset = &model.searcher.expression_input_position;
+            position <- all_with(&anchor.value, searcher_offset, |anchor, pos| anchor - pos);
             eval position ((pos) model.searcher.set_xy(*pos));
 
             // Showing searcher.
@@ -512,7 +516,8 @@ impl View {
             new_node_edited <- graph.node_editing_started.gate(&frp.adding_new_node);
             frp.source.searcher <+ searcher_for_adding.sample(&new_node_edited).some();
 
-            edit_which_opens_searcher <- graph.node_expression_edited.gate_not(&frp.is_searcher_opened).debounce();
+            edit_which_opens_searcher <-
+                graph.node_expression_edited.gate_not(&frp.is_searcher_opened).debounce();
             frp.source.searcher <+ edit_which_opens_searcher.map(|(node_id, _, selections)| {
                 let cursor_position = selections.last().map(|sel| sel.end).unwrap_or_default();
                 Some(SearcherParams::new_for_edited_node(*node_id, cursor_position))
@@ -532,11 +537,9 @@ impl View {
             last_searcher <- frp.searcher.filter_map(|&s| s);
 
             node_editing_finished <- graph.node_editing_finished.gate(&frp.is_searcher_opened);
-            trace node_editing_finished;
-            committed_in_searcher <- grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, Some(entry)));
-            trace committed_in_searcher;
+            committed_in_searcher <-
+                grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, Some(entry)));
             aborted_in_searcher <- frp.close_searcher.map2(&last_searcher, |(), &s| s.input);
-            trace aborted_in_searcher;
             frp.source.editing_committed <+ committed_in_searcher;
             frp.source.editing_committed <+ node_editing_finished.map(|id| (*id,None));
             frp.source.editing_aborted <+ aborted_in_searcher;
@@ -549,7 +552,11 @@ impl View {
             node_editing_finished_event <- node_editing_finished.constant(());
             committed_in_searcher_event <- committed_in_searcher.constant(());
             aborted_in_searcher_event <- aborted_in_searcher.constant(());
-            searcher_should_close <- any(node_editing_finished_event, committed_in_searcher_event, aborted_in_searcher_event);
+            searcher_should_close <- any(
+                node_editing_finished_event,
+                committed_in_searcher_event,
+                aborted_in_searcher_event
+            );
             graph.stop_editing <+ any(&committed_in_searcher_event, &aborted_in_searcher_event);
             frp.source.searcher <+ searcher_should_close.constant(None);
             frp.source.adding_new_node <+ searcher_should_close.constant(false);
@@ -570,15 +577,14 @@ impl View {
                     (searcher.as_ref()?.input == *node_id).then(input_change)
                 }
             );
-            searcher_input_change <- searcher_input_change_opt.unwrap();
-            input_change_delay.restart <+ searcher_input_change.constant(INPUT_CHANGE_DELAY_MS);
-            update_searcher_input_on_commit <- frp.output.editing_committed.constant(());
-            input_change_delay.cancel <+ update_searcher_input_on_commit;
-            update_searcher_input <- any(&input_change_delay.on_expired, &update_searcher_input_on_commit);
-            input_change_and_searcher <- all_with(&searcher_input_change, &frp.searcher,
-                |c, s| (c.clone(), *s)
-            );
-            updated_input <- input_change_and_searcher.sample(&update_searcher_input);
+            input_change <- searcher_input_change_opt.unwrap();
+            input_change_delay.restart <+ input_change.constant(INPUT_CHANGE_DELAY_MS);
+            update_input_on_commit <- frp.output.editing_committed.constant(());
+            input_change_delay.cancel <+ update_input_on_commit;
+            update_input <- any(&input_change_delay.on_expired, &update_input_on_commit);
+            input_change_and_searcher <-
+                all_with(&input_change, &frp.searcher, |c, s| (c.clone(), *s));
+            updated_input <- input_change_and_searcher.sample(&update_input);
             input_changed <- updated_input.filter_map(|((node_id, expr, selections), searcher)| {
                 let input_change = || (expr.clone_ref(), selections.clone());
                 (searcher.as_ref()?.input == *node_id).then(input_change)
