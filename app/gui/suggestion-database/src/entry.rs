@@ -1435,9 +1435,8 @@ mod test {
     fn run_tag_value_test_case(expression_and_expected_label: &[(&str, Option<&str>)]) {
         let parser = Parser::new();
         let db = SuggestionDatabase::new_empty();
-        let expressions =
-            expression_and_expected_label.iter().map(|(expr, _)| expr.to_string()).collect_vec();
-        let tag_values = argument_tag_values(&expressions, &db, &parser);
+        let expressions = expression_and_expected_label.iter().map(|(expr, _)| *expr);
+        let tag_values = argument_tag_values(expressions, &db, &parser);
         let expected_values = expression_and_expected_label
             .iter()
             .map(|(expression, label)| span_tree::TagValue {

@@ -290,7 +290,7 @@ impl Model {
                 if let Some(id) = node.ast_id {
                     id_ports_map.insert(id, port_index);
                 }
-    
+
                 let node_tp: Option<Type> = node.tp().cloned().map(|t| t.into());
                 let node_tp = if port_count != 0 {
                     node_tp

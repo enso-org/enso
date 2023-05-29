@@ -873,7 +873,6 @@ impl<'a> ViewChange<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use engine_protocol::language_server::MethodPointer;
     use parser::Parser;
 
     fn create_test_node(expression: &str) -> controller::graph::Node {

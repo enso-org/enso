@@ -1330,6 +1330,7 @@ mod test {
 
                 let param = |n: &str| ArgumentInfo { name: Some(n.into()), call_id, ..default() };
                 let application = ResolvedApplication {
+                    suggestion_id:      None,
                     argument_in_access: None,
                     chain_arguments:    [param("a"), param("b"), param("c"), param("d")]
                         .into_iter()
