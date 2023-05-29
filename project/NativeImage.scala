@@ -32,7 +32,12 @@ object NativeImage {
     "cats",
     "io",
     "shapeless",
-    "com"
+    "com",
+    "izumi",
+    "zio",
+    "enumeratum",
+    "akka",
+    "nl",
   )
 
   /** Creates a task that builds a native image for the current project.
