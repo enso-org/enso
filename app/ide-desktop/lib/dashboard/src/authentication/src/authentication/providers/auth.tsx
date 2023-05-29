@@ -23,6 +23,8 @@ import * as sessionProvider from './session'
 // === Constants ===
 // =================
 
+/** The minimum delay between two requests. */
+const REQUEST_DELAY_MS = 200
 const MESSAGES = {
     signUpSuccess: 'We have sent you an email with further instructions!',
     confirmSignUpSuccess: 'Your account has been confirmed! Please log in.',
@@ -224,7 +226,10 @@ export function AuthProvider(props: AuthProviderProps) {
                             // eslint-disable-next-line no-restricted-syntax
                             return
                         }
-                        // Ignored; the code will retry again.
+                        // This prevents a busy loop when request blocking is enabled in DevTools.
+                        // The UI will be blank indefinitely. This is intentional, since for real
+                        // network outages, `navigator.onLine` will be false.
+                        await new Promise(resolve => setTimeout(resolve, REQUEST_DELAY_MS))
                     }
                 }
                 let newUserSession: UserSession
