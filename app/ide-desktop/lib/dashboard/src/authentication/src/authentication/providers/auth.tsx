@@ -152,7 +152,7 @@ export function AuthProvider(props: AuthProviderProps) {
     const { authService, onAuthenticated, children } = props
     const { cognito } = authService
     const { session, deinitializeSession } = sessionProvider.useSession()
-    const { setBackend } = backendProvider.useSetBackend()
+    const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
     const logger = loggerProvider.useLogger()
     const navigate = router.useNavigate()
     const [initialized, setInitialized] = react.useState(false)
@@ -177,7 +177,7 @@ export function AuthProvider(props: AuthProviderProps) {
                 // The backend MUST be the remote backend before login is finished.
                 // This is because the "set username" flow requires the remote backend.
                 if (!initialized || userSession == null) {
-                    setBackend(backend)
+                    setBackendWithoutSavingType(backend)
                 }
                 const organization = await backend.usersMe().catch(() => null)
                 let newUserSession: UserSession

@@ -71,6 +71,8 @@ function ChangePasswordModal() {
                                     type="password"
                                     name="old_password"
                                     placeholder="Old Password"
+                                    pattern={validation.PREVIOUS_PASSWORD_PATTERN}
+                                    title={validation.PREVIOUS_PASSWORD_TITLE}
                                     value={oldPassword}
                                     onChange={event => {
                                         setOldPassword(event.target.value)

@@ -29,6 +29,7 @@ export type AnyBackendAPI = localBackend.LocalBackend | remoteBackend.RemoteBack
 export interface BackendContextType {
     backend: AnyBackendAPI
     setBackend: (backend: AnyBackendAPI) => void
+    setBackendWithoutSavingType: (backend: AnyBackendAPI) => void
 }
 
 // @ts-expect-error The default value will never be exposed
@@ -47,15 +48,16 @@ export interface BackendProviderProps extends React.PropsWithChildren<object> {
 /** A React Provider that lets components get and set the current backend. */
 export function BackendProvider(props: BackendProviderProps) {
     const { children } = props
-    const [backend, setBackend] = react.useState<
+    const [backend, setBackendWithoutSavingType] = react.useState<
         localBackend.LocalBackend | remoteBackend.RemoteBackend
     >(() => new localBackend.LocalBackend())
-    react.useEffect(() => {
-        localStorage.setItem(BACKEND_TYPE_KEY, backend.type)
-    }, [backend])
+    const setBackend = react.useCallback((newBackend: AnyBackendAPI) => {
+        setBackendWithoutSavingType(newBackend)
+        localStorage.setItem(BACKEND_TYPE_KEY, newBackend.type)
+    }, [])
 
     return (
-        <BackendContext.Provider value={{ backend, setBackend }}>
+        <BackendContext.Provider value={{ backend, setBackend, setBackendWithoutSavingType }}>
             {children}
         </BackendContext.Provider>
     )
@@ -69,6 +71,6 @@ export function useBackend() {
 
 /** Exposes a property to set the current backend. */
 export function useSetBackend() {
-    const { setBackend } = react.useContext(BackendContext)
-    return { setBackend }
+    const { setBackend, setBackendWithoutSavingType } = react.useContext(BackendContext)
+    return { setBackend, setBackendWithoutSavingType }
 }

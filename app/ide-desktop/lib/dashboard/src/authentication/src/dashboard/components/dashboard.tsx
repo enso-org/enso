@@ -216,6 +216,11 @@ function columnsFor(displayMode: ColumnDisplayMode, backendType: backendModule.B
         : columns
 }
 
+/** Sanitizes a string for use as a regex. */
+function regexEscape(string: string) {
+    return string.replace(/[\\^$.|?*+()[{]/g, '\\$&')
+}
+
 // =================
 // === Dashboard ===
 // =================
@@ -388,23 +393,27 @@ function Dashboard(props: DashboardProps) {
         newProjectAssets: backendModule.Asset<backendModule.AssetType.project>[]
     ) => {
         setProjectAssetsRaw(newProjectAssets)
-        setVisibleProjectAssets(newProjectAssets.filter(asset => asset.title.includes(query)))
+        const queryRegex = new RegExp(regexEscape(query), 'i')
+        setVisibleProjectAssets(newProjectAssets.filter(asset => queryRegex.test(asset.title)))
     }
     const setDirectoryAssets = (
         newDirectoryAssets: backendModule.Asset<backendModule.AssetType.directory>[]
     ) => {
         setDirectoryAssetsRaw(newDirectoryAssets)
-        setVisibleDirectoryAssets(newDirectoryAssets.filter(asset => asset.title.includes(query)))
+        const queryRegex = new RegExp(regexEscape(query), 'i')
+        setVisibleDirectoryAssets(newDirectoryAssets.filter(asset => queryRegex.test(asset.title)))
     }
     const setSecretAssets = (
         newSecretAssets: backendModule.Asset<backendModule.AssetType.secret>[]
     ) => {
         setSecretAssetsRaw(newSecretAssets)
-        setVisibleSecretAssets(newSecretAssets.filter(asset => asset.title.includes(query)))
+        const queryRegex = new RegExp(regexEscape(query), 'i')
+        setVisibleSecretAssets(newSecretAssets.filter(asset => queryRegex.test(asset.title)))
     }
     const setFileAssets = (newFileAssets: backendModule.Asset<backendModule.AssetType.file>[]) => {
         setFileAssetsRaw(newFileAssets)
-        setVisibleFileAssets(newFileAssets.filter(asset => asset.title.includes(query)))
+        const queryRegex = new RegExp(regexEscape(query), 'i')
+        setVisibleFileAssets(newFileAssets.filter(asset => queryRegex.test(asset.title)))
     }
 
     const exitDirectory = () => {
@@ -657,12 +666,13 @@ function Dashboard(props: DashboardProps) {
             <>{COLUMN_NAME[column]}</>
         )
 
-    // The purpose of this effect is to enable search action.
     react.useEffect(() => {
-        setVisibleProjectAssets(projectAssets.filter(asset => asset.title.includes(query)))
-        setVisibleDirectoryAssets(directoryAssets.filter(asset => asset.title.includes(query)))
-        setVisibleSecretAssets(secretAssets.filter(asset => asset.title.includes(query)))
-        setVisibleFileAssets(fileAssets.filter(asset => asset.title.includes(query)))
+        const queryRegex = new RegExp(regexEscape(query), 'i')
+        const doesItMatchQuery = (asset: backendModule.Asset) => queryRegex.test(asset.title)
+        setVisibleProjectAssets(projectAssets.filter(doesItMatchQuery))
+        setVisibleDirectoryAssets(directoryAssets.filter(doesItMatchQuery))
+        setVisibleSecretAssets(secretAssets.filter(doesItMatchQuery))
+        setVisibleFileAssets(fileAssets.filter(doesItMatchQuery))
     }, [query])
 
     const setAssets = (assets: backendModule.Asset[]) => {
@@ -919,7 +929,7 @@ function Dashboard(props: DashboardProps) {
                             )}
                         </div>
                     </div>
-                    <table className="table-fixed items-center border-collapse mt-2">
+                    <table className="table-fixed items-center border-collapse mt-2 w-0">
                         <tbody>
                             <tr className="h-10">
                                 {columnsFor(columnDisplayMode, backend.type).map(column => (
