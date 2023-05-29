@@ -286,8 +286,7 @@ function Dashboard(props: DashboardProps) {
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
     const isListingRemoteDirectoryAndWillFail =
-        backend.type === backendModule.BackendType.remote &&
-        (session.organization?.isEnabled ?? false)
+        backend.type === backendModule.BackendType.remote && !session.organization?.isEnabled
     const isListingRemoteDirectoryWhileOffline =
         session.type === auth.UserSessionType.offline &&
         backend.type === backendModule.BackendType.remote
