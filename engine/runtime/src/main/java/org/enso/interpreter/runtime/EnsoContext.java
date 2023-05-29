@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -362,6 +363,7 @@ public class EnsoContext {
    * @param className Fully qualified class name, can also be nested static inner class.
    * @return If the java class is found, return it, otherwise return null.
    */
+  @TruffleBoundary
   public Object lookupJavaClass(String className) {
     List<String> items = Arrays.asList(className.split("\\."));
     for (int i = items.size() - 1; i >= 0; i--) {
