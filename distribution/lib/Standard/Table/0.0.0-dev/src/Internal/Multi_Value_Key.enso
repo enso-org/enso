@@ -68,7 +68,7 @@ type Ordered_Multi_Value_Key_Comparator
                     vx = x.columns.at ix . at x.row_index
                     vy = y.columns.at ix . at y.row_index
                     cmp = (Comparable.from vx).compare vx vy
-                    if cmp == Ordering.Equal then adapt_direction ix cmp else
+                    if cmp != Ordering.Equal then adapt_direction ix cmp else
                         @Tail_Call go (ix + 1)
             go 0
 
