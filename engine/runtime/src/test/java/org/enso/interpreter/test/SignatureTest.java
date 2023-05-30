@@ -129,15 +129,13 @@ public class SignatureTest extends TestBase {
     final Source src = Source.newBuilder("enso", """
     from Standard.Base import Integer
     type Neg
-        Singleton
-
-        twice self (a : Integer) = a + a
+        twice (a : Integer) = a + a
     """, uri.getHost())
             .uri(uri)
             .buildLiteral();
 
     var module = ctx.eval(src);
-    var neg = module.invokeMember("eval_expression", "Neg.Singleton.twice");
+    var neg = module.invokeMember("eval_expression", "Neg.twice");
 
     var ten = neg.execute(5);
     assertEquals("Ten", 10, ten.asInt());
