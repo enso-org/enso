@@ -711,9 +711,11 @@ function Dashboard(props: DashboardProps) {
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
             onClick={event => {
-                unsetModal()
-                if (!event.shiftKey) {
-                    setSelectedAssets([])
+                if (getSelection()?.type !== 'Range') {
+                    unsetModal()
+                    if (!event.shiftKey) {
+                        setSelectedAssets([])
+                    }
                 }
             }}
             onKeyDown={handleEscapeKey}
