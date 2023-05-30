@@ -1,5 +1,9 @@
 package org.enso.base.arrays;
 
+/**
+ * A wrapper for a long array, used to expose a random-access mutable array to Enso, needed for some
+ * efficient algorithms.
+ */
 public class LongArray {
   private final long[] storage;
 
