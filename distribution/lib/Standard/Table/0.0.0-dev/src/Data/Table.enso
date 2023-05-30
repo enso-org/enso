@@ -1192,9 +1192,7 @@ type Table
     drop self range=(First 1) =
         Index_Sub_Range_Module.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
-    ## UNSTABLE
-       ALIAS Add Column, Update Column
-
+    ## ALIAS Add Column, Update Column, New Column
        Sets the column value at the given name.
 
        Arguments:

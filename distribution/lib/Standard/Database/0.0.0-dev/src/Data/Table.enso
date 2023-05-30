@@ -582,9 +582,7 @@ type Table
         new_ctx = self.context.set_limit max_rows
         self.updated_context new_ctx
 
-    ## UNSTABLE
-       ALIAS Add Column, Update Column
-
+    ## ALIAS Add Column, Update Column, New Column
        Sets the column value at the given name.
 
        Arguments:

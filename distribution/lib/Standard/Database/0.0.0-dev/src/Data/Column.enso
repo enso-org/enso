@@ -348,8 +348,7 @@ type Column
                 new_name = self.naming_helpers.to_expression_text self + " between " + self.naming_helpers.to_expression_text lower + " and " + self.naming_helpers.to_expression_text upper
                 self.make_op "BETWEEN" [lower, upper] new_name
 
-    ## UNSTABLE
-
+    ## ALIAS Add, Plus, Concatenate
        Element-wise addition.
 
        Arguments:
@@ -365,8 +364,7 @@ type Column
             new_name = self.naming_helpers.binary_operation_name "+" self other
             self.make_binary_op op other new_name
 
-    ## UNSTABLE
-
+    ## ALIAS Subtract, Minus
        Element-wise subtraction.
 
        Arguments:

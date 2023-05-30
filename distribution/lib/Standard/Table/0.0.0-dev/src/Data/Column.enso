@@ -355,8 +355,7 @@ type Column
                 result = (self >= lower) && (self <= upper)
                 result.rename new_name
 
-    ## ALIAS Add Columns
-
+    ## ALIAS Add, Plus, Concatenate
        Element-wise addition.
 
        Arguments:
@@ -385,8 +384,7 @@ type Column
         Value_Type_Helpers.resolve_addition_kind self other . if_not_error <|
             run_vectorized_binary_op self '+' fallback_fn=Nothing other
 
-    ## ALIAS Subtract Columns
-
+    ## ALIAS Subtract, Minus
        Element-wise subtraction.
 
        Arguments:
