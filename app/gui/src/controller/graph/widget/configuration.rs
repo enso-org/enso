@@ -9,6 +9,7 @@ use super::response;
 use enso_suggestion_database::entry::argument_tag_values;
 use enso_suggestion_database::SuggestionDatabase;
 use ide_view::graph_editor::component::node::input::widget;
+use ide_view::graph_editor::component::node::input::widget::single_choice::ChoiceArgConfig;
 use ide_view::graph_editor::ArgumentWidgetConfig;
 
 
@@ -71,10 +72,10 @@ fn to_kind(
 ) -> widget::DynConfig {
     match inner {
         response::WidgetKindDefinition::SingleChoice { label, values } => {
-            let (entries, arguments) = to_entries_and_arguments(values, db, parser);
+            let (choices, arguments) = to_choices_and_arguments(values, db, parser);
             widget::single_choice::Config {
                 label: label.map(Into::into),
-                entries: Rc::new(entries),
+                choices: Rc::new(choices),
                 arguments,
             }
             .into()
@@ -89,11 +90,11 @@ fn to_kind(
     }
 }
 
-fn to_entries_and_arguments(
+fn to_choices_and_arguments(
     choices: Vec<response::Choice>,
     db: &SuggestionDatabase,
     parser: &parser::Parser,
-) -> (Vec<widget::Entry>, Vec<(usize, ImString, widget::Configuration)>) {
+) -> (Vec<widget::Choice>, Vec<ChoiceArgConfig>) {
     let mut args = Vec::new();
 
     let expressions = choices.iter().map(|c| c.value.as_ref());
@@ -103,19 +104,19 @@ fn to_entries_and_arguments(
         .into_iter()
         .enumerate()
         .zip(as_tags)
-        .map(|((index, choice), tag)| to_entry(choice, index, db, parser, tag, &mut args))
+        .map(|((index, choice), tag)| to_widget_choice(choice, index, db, parser, tag, &mut args))
         .collect();
     (entries, args)
 }
 
-fn to_entry(
+fn to_widget_choice(
     choice: response::Choice,
-    entry_index: usize,
+    choice_index: usize,
     db: &SuggestionDatabase,
     parser: &parser::Parser,
     tag: span_tree::TagValue,
-    arguments: &mut Vec<(usize, ImString, widget::Configuration)>,
-) -> widget::Entry {
+    arguments: &mut Vec<ChoiceArgConfig>,
+) -> widget::Choice {
     let value: ImString = tag.expression.into();
     let label = choice.label.map_or_else(|| value.clone(), |label| label.into());
 
@@ -124,9 +125,9 @@ fn to_entry(
         match arg.data.widget {
             Ok(None) => {}
             Ok(Some(config)) => {
-                let config = to_configuration(config, db, parser);
-                let val = (entry_index, arg.name.into(), config);
-                arguments.push(val);
+                let configuration = to_configuration(config, db, parser);
+                let arg = ChoiceArgConfig { choice_index, name: arg.name.into(), configuration };
+                arguments.push(arg);
             }
             Err(err) => {
                 let msg = "Failed to deserialize nested widget data for argument";
@@ -135,5 +136,5 @@ fn to_entry(
         }
     }
 
-    widget::Entry { required_import: tag.required_import.map(Into::into), value, label }
+    widget::Choice { required_import: tag.required_import.map(Into::into), value, label }
 }

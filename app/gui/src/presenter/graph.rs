@@ -3,7 +3,6 @@
 
 use crate::prelude::*;
 use enso_web::traits::*;
-use span_tree::generate::Context as _;
 
 use crate::controller::graph::widget::Request as WidgetRequest;
 use crate::controller::upload::NodeFromDroppedFileHandler;
@@ -19,6 +18,7 @@ use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
+use span_tree::generate::Context as _;
 use view::graph_editor::CallWidgetsConfig;
 
 

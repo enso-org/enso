@@ -1,7 +1,8 @@
 //! An utility builder to be used in tests.
 
-use crate::node;
 use crate::prelude::*;
+
+use crate::node;
 use crate::Node;
 use crate::SpanTree;
 

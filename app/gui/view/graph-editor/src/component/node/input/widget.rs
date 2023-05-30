@@ -60,10 +60,12 @@ use span_tree::node::Ref as SpanRef;
 use span_tree::TagValue;
 use text::index::Byte;
 
+
+
 pub(super) mod prelude {
+    pub use super::Choice;
     pub use super::ConfigContext;
     pub use super::Configuration;
-    pub use super::Entry;
     pub use super::IdentityBase;
     pub use super::NodeInfo;
     pub use super::OverrideKey;
@@ -413,47 +415,47 @@ pub enum Display {
     ExpandedOnly,
 }
 
-/// Widget entry. Represents a possible value choice on the widget, as proposed by the language
-/// server.
+/// A possible value to choose in the widget (e.g. a single- or multi-choice widget). Can either be
+/// derived from a `TagValue`, or from a widget configuration received from the language server.
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Entry {
+pub struct Choice {
     /// The expression that should be inserted by the widget. Note that  this expression can still
     /// be preprocessed by the widget before being inserted into the node.
     pub value:           ImString,
-    /// The import that must be present in the module when the widget entry is selected.
+    /// The import that must be present in the module or added when the widget entry is selected.
     pub required_import: Option<ImString>,
     /// The text that should be displayed by the widget to represent this option. The exact
     /// appearance of the label is up to the widget implementation.
     pub label:           ImString,
 }
 
-impl From<&TagValue> for Entry {
+impl From<&TagValue> for Choice {
     fn from(tag_value: &TagValue) -> Self {
         let value: ImString = (&tag_value.expression).into();
         let label: ImString = tag_value.label.as_ref().map_or_else(|| value.clone(), Into::into);
         let required_import = tag_value.required_import.clone().map(Into::into);
-        Entry { value, required_import, label }
+        Choice { value, required_import, label }
     }
 }
 
-impl Entry {
-    /// Create an entry with the same value and label.
+impl Choice {
+    /// Create a choice with the same value and label.
     pub fn from_value(value: ImString) -> Self {
         Self { label: value.clone(), required_import: None, value }
     }
 
-    /// Cloning entry value getter.
+    /// Cloning choice value getter.
     pub fn value(&self) -> ImString {
         self.value.clone()
     }
 
-    /// Cloning entry getter of import that must be present for value insertion to be valid.
+    /// Cloning choice getter of import that must be present for value insertion to be valid.
     pub fn required_import(&self) -> Option<ImString> {
         self.required_import.clone()
     }
 }
 
-impl DropdownValue for Entry {
+impl DropdownValue for Choice {
     fn label(&self) -> ImString {
         self.label.clone()
     }
@@ -1307,10 +1309,13 @@ struct TreeBuilder<'a> {
     node_disabled:   bool,
     node_expression: &'a str,
     styles:          &'a StyleWatch,
+    /// A list of widget overrides configured on the widget tree. It is persistent between tree
+    /// builds, and cannot be modified during the tree building process.
     override_map:    &'a HashMap<OverrideKey, Configuration>,
-    /// A list of additional overrides specified during by the widgets during the tree building
-    /// process. Useful for applying overrides conditionally, e.g. only when a specific dropdown
-    /// entry is selected.
+    /// A list of additional overrides specified by the widgets during the tree building process.
+    /// Useful for applying overrides conditionally, e.g. only when a specific dropdown choice is
+    /// selected. This is a temporary map that is cleared and created from scratch for
+    /// each tree building process.
     local_overrides: HashMap<OverrideKey, Configuration>,
     connected_map:   &'a HashMap<span_tree::Crumbs, color::Lcha>,
     usage_type_map:  &'a HashMap<ast::Id, crate::Type>,
@@ -1334,7 +1339,7 @@ impl<'a> TreeBuilder<'a> {
 
     /// Set an additional config override for widgets that might be built in the future within the
     /// same tree build process. Takes precedence over overrides specified externally. This is
-    /// useful for applying overrides conditionally, e.g. only when a specific dropdown entry is
+    /// useful for applying overrides conditionally, e.g. only when a specific dropdown choice is
     /// selected.
     pub fn set_local_override(&mut self, key: OverrideKey, config: Configuration) {
         self.local_overrides.insert(key, config);

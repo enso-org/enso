@@ -69,17 +69,30 @@ pub struct Config {
     /// Entries that should be displayed by the widget, as proposed by language server. This
     /// list is not exhaustive. The widget implementation might present additional
     /// options or allow arbitrary user input.
-    pub entries:   Rc<Vec<Entry>>,
-    /// Optional widget configurations for arguments of a method call in entries expression.
-    /// The first element of the tuple is the index of an associated entry in `entries` vector,
-    /// and the vector is also ordered by it.
-    pub arguments: Vec<(usize, ImString, Configuration)>,
+    pub choices:   Rc<Vec<Choice>>,
+    /// Optional widget configurations for arguments for method or constructor applications within
+    /// choices' expressions. This list is always ordered by `choice_index`.
+    pub arguments: Vec<ChoiceArgConfig>,
+}
+
+/// An optional configuration override for an argument nested within a given dropdown choice. Only
+/// applies to the arguments of an application directly nested within the choice's expression. That
+/// includes method calls, standalone functions or constructors.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ChoiceArgConfig {
+    /// The index of an associated choice in `choices` vector.
+    pub choice_index:  usize,
+    /// The name of the function argument for which the configuration is specified.
+    pub name:          ImString,
+    /// The widget configuration to apply for the argument node (or placeholder) matching the
+    /// specified name.
+    pub configuration: Configuration,
 }
 
 ensogl::define_endpoints_2! {
     Input {
-        set_entries    (Rc<Vec<Entry>>),
-        selected_entry  (Option<Entry>),
+        set_entries    (Rc<Vec<Choice>>),
+        selected_entry  (Option<Choice>),
         current_crumbs (span_tree::Crumbs),
         is_connected   (bool),
     }
@@ -112,8 +125,8 @@ impl SpanWidget for Widget {
         let kind = &ctx.span_node.kind;
         let label = kind.name().map(Into::into);
         let tags = kind.tag_values().unwrap_or_default();
-        let entries = Rc::new(tags.iter().map(Entry::from).collect());
-        let default_config = Config { label, entries, arguments: default() };
+        let choices = Rc::new(tags.iter().map(Choice::from).collect());
+        let default_config = Config { label, choices, arguments: default() };
         Configuration::always(default_config)
     }
 
@@ -187,21 +200,21 @@ impl SpanWidget for Widget {
         let has_value = !ctx.span_node.is_insertion_point();
         let current_value = has_value.then(|| ctx.span_expression());
         let (entry_idx, selected_entry) =
-            entry_for_current_value(&config.entries, current_value).unzip();
+            entry_for_current_value(&config.choices, current_value).unzip();
 
         input.current_crumbs(ctx.span_node.crumbs.clone());
-        input.set_entries(config.entries.clone());
+        input.set_entries(config.choices.clone());
         input.selected_entry(selected_entry);
         input.is_connected(ctx.info.subtree_connection.is_some());
 
         if !config.arguments.is_empty() && let Some(index) = entry_idx.filter(|i| *i < usize::MAX) {
-            let start = config.arguments.partition_point(|(i, ..)| *i < index);
-            let end = config.arguments.partition_point(|(i, ..)| *i <= index);
-            let entry_args = &config.arguments[start..end];
-            if !entry_args.is_empty() && let Some(call_id) = find_nested_call_id(&ctx.span_node) {
-                for (_, argument_name, config) in entry_args {
-                    let key = OverrideKey { call_id, argument_name: argument_name.clone() };
-                    ctx.builder.set_local_override(key, config.clone())
+            let start = config.arguments.partition_point(|arg| arg.choice_index < index);
+            let end = config.arguments.partition_point(|arg| arg.choice_index <= index);
+            let choice_args = &config.arguments[start..end];
+            if !choice_args.is_empty() && let Some(call_id) = find_call_id(&ctx.span_node) {
+                for arg in choice_args {
+                    let key = OverrideKey { call_id, argument_name: arg.name.clone() };
+                    ctx.builder.set_local_override(key, arg.configuration.clone())
                 }
             }
         }
@@ -215,14 +228,22 @@ impl SpanWidget for Widget {
     }
 }
 
-/// Find an unambiguous top-level nested call expression inside given node and return its AST ID.
-fn find_nested_call_id(node: &span_tree::Node) -> Option<ast::Id> {
+/// Find an unambiguous single node with attached application within a given subtree and return its
+/// AST ID. It represents the call ID that can have its arguments's configuration overridden
+/// depending on currently selected dropdown choice.
+///
+/// Currently handled cases:
+/// - `foo` - where `foo` is a resolved application with potential placeholders arguments.
+/// - `foo bar` - the node itself is an application with specified arguments.
+/// - `(<any previous case>)` - the node is a group with an singular child with an unambiguous
+///   application.
+fn find_call_id(node: &span_tree::Node) -> Option<ast::Id> {
     if node.application.is_some() {
         node.ast_id.or(node.extended_ast_id)
     } else if let Some(ast::TreeType::Group) = &node.tree_type
            && let [a, b, c] = &node.children[..] && a.is_token() && c.is_token()
     {
-        find_nested_call_id(&b.node)
+        find_call_id(&b.node)
     } else {
         None
     }
@@ -281,14 +302,14 @@ impl Widget {
             dropdown_frp.set_selected_entries <+ selected_entry.map(|e| e.iter().cloned().collect());
 
             dropdown_entry <- dropdown_frp.selected_entries
-                .map(|e: &HashSet<Entry>| e.iter().next().cloned());
+                .map(|e: &HashSet<Choice>| e.iter().next().cloned());
 
             // Emit the output value only after actual user action. This prevents the
             // dropdown from emitting its initial value when it is opened, which can
             // represent slightly different version of code than actually written.
             submitted_entry <- dropdown_entry.sample(&dropdown_frp.user_select_action);
-            dropdown_out_value <- submitted_entry.map(|e| e.as_ref().map(Entry::value));
-            dropdown_out_import <- submitted_entry.map(|e| e.as_ref().and_then(Entry::required_import));
+            dropdown_out_value <- submitted_entry.map(|e| e.as_ref().map(Choice::value));
+            dropdown_out_import <- submitted_entry.map(|e| e.as_ref().and_then(Choice::required_import));
 
             widgets_frp.request_import <+ dropdown_out_import.unwrap();
             widgets_frp.value_changed <+ dropdown_out_value.map2(&config_frp.current_crumbs,
@@ -338,9 +359,9 @@ impl Widget {
 }
 
 fn entry_for_current_value(
-    all_entries: &[Entry],
+    all_entries: &[Choice],
     current_value: Option<&str>,
-) -> Option<(usize, Entry)> {
+) -> Option<(usize, Choice)> {
     let current_value = current_value?;
     let found_entry =
         all_entries.iter().enumerate().find(|(_, entry)| entry.value == current_value);
@@ -359,7 +380,7 @@ fn entry_for_current_value(
 
     let with_fallback = with_partial_match
         .map(|(index, entry)| (index, entry.clone()))
-        .unwrap_or_else(|| (usize::MAX, Entry::from_value(current_value.into())));
+        .unwrap_or_else(|| (usize::MAX, Choice::from_value(current_value.into())));
     Some(with_fallback)
 }
 
@@ -373,15 +394,15 @@ fn entry_for_current_value(
 #[derive(Debug)]
 struct LazyDropdown {
     app: ensogl::application::Application,
-    set_all_entries: frp::Any<Vec<Entry>>,
-    set_selected_entries: frp::Any<HashSet<Entry>>,
+    set_all_entries: frp::Any<Vec<Choice>>,
+    set_selected_entries: frp::Any<HashSet<Choice>>,
     set_open: frp::Any<bool>,
-    sampled_set_all_entries: frp::Sampler<Vec<Entry>>,
-    sampled_set_selected_entries: frp::Sampler<HashSet<Entry>>,
+    sampled_set_all_entries: frp::Sampler<Vec<Choice>>,
+    sampled_set_selected_entries: frp::Sampler<HashSet<Choice>>,
     sampled_set_open: frp::Sampler<bool>,
-    selected_entries: frp::Any<HashSet<Entry>>,
+    selected_entries: frp::Any<HashSet<Choice>>,
     user_select_action: frp::Any<()>,
-    dropdown: Option<Dropdown<Entry>>,
+    dropdown: Option<Dropdown<Choice>>,
 }
 
 impl LazyDropdown {
@@ -418,7 +439,7 @@ impl LazyDropdown {
             return;
         }
 
-        let dropdown = self.dropdown.insert(self.app.new_view::<Dropdown<Entry>>());
+        let dropdown = self.dropdown.insert(self.app.new_view::<Dropdown<Choice>>());
         parent.add_child(dropdown);
         self.app.display.default_scene.layers.above_nodes.add(&*dropdown);
 
