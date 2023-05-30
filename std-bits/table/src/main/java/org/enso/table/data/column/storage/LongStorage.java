@@ -3,15 +3,14 @@ package org.enso.table.data.column.storage;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
-import org.enso.table.data.column.builder.object.StringBuilder;
-import org.enso.table.data.column.operation.CastProblemBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -20,9 +19,7 @@ import org.graalvm.polyglot.Value;
 import java.util.BitSet;
 import java.util.List;
 
-/**
- * A column storing 64-bit integers.
- */
+/** A column storing 64-bit integers. */
 public final class LongStorage extends NumericStorage<Long> {
   // TODO [RW] at some point we will want to add separate storage classes for byte, short and int,
   // for more compact storage and more efficient handling of smaller integers; for now we will be
@@ -33,10 +30,10 @@ public final class LongStorage extends NumericStorage<Long> {
   private static final MapOpStorage<Long, LongStorage> ops = buildOps();
 
   /**
-   * @param data      the underlying data
-   * @param size      the number of items stored
+   * @param data the underlying data
+   * @param size the number of items stored
    * @param isMissing a bit set denoting at index {@code i} whether or not the value at index {@code
-   *                  i} is missing.
+   *     i} is missing.
    */
   public LongStorage(long[] data, int size, BitSet isMissing) {
     this.data = data;
@@ -54,17 +51,13 @@ public final class LongStorage extends NumericStorage<Long> {
     this(data, data.length, new BitSet());
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public int size() {
     return size;
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public int countMissing() {
     return isMissing.cardinality();
@@ -88,18 +81,14 @@ public final class LongStorage extends NumericStorage<Long> {
     return isMissing.get(idx) ? null : data[idx];
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public StorageType getType() {
     // TODO add possibility to set integer bit limit (#5159)
     return IntegerType.INT_64;
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public boolean isNa(long idx) {
     return isMissing.get((int) idx);
@@ -456,39 +445,5 @@ public final class LongStorage extends NumericStorage<Long> {
     }
 
     return new LongStorage(newData, newSize, newMissing);
-  }
-
-  @Override
-  public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
-    return switch (targetType) {
-      case AnyObjectType any -> new MixedStorageFacade(this);
-      case IntegerType integerType -> this;
-      case FloatType floatType -> {
-        int n = size();
-        NumericBuilder builder = NumericBuilder.createDoubleBuilder(n);
-        for (int i = 0; i < n; i++) {
-          if (isNa(i)) {
-            builder.appendNulls(1);
-          } else {
-            double converted = (double) getItem(i);
-            builder.appendDouble(converted);
-          }
-        }
-        yield builder.seal();
-      }
-      case TextType textType -> {
-        int n = size();
-        StringBuilder builder = new StringBuilder(n);
-        for (int i = 0; i < n; i++) {
-          if (isMissing.get(i)) {
-            builder.appendNulls(1);
-          } else {
-            builder.append(Long.toString(getItem(i)));
-          }
-        }
-        yield StringStorage.adapt(builder.seal(), textType);
-      }
-      default -> throw new IllegalStateException("Conversion of LongStorage to " + targetType + " is not supported");
-    };
   }
 }

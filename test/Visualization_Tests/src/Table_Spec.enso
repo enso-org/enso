@@ -13,6 +13,7 @@ import Standard.Visualization.Id.Id
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
+import Standard.Base.Errors.Common.Type_Error
 
 polyglot java import java.util.UUID
 
@@ -37,11 +38,13 @@ visualization_spec connection =
 
     Test.group "Table Visualization" <|
         Test.specify "should forward internal errors" <|
-            bad_table = Database_Table.Value Nothing Nothing Nothing Nothing
-            result = Panic.catch Any (Visualization.prepare_visualization bad_table 2) caught_panic->
-                caught_panic.payload
-            message = "Method `set_limit` of type Nothing could not be found."
-            result.to_display_text . should_equal message
+            bad_table_test =
+                bad_table = Database_Table.Value Nothing Nothing Nothing Nothing
+                result = Panic.catch Any (Visualization.prepare_visualization bad_table 2) caught_panic->
+                    caught_panic.payload
+                message = "Method `set_limit` of type Nothing could not be found."
+                result.to_display_text . should_equal message
+            Panic.catch Type_Error bad_table_test (x -> x.payload) . should_be_a Type_Error
 
         Test.specify "should visualize database tables" <|
             vis = Visualization.prepare_visualization t 1

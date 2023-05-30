@@ -2,15 +2,14 @@ package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
-import org.enso.table.data.column.builder.object.StringBuilder;
-import org.enso.table.data.column.operation.CastProblemBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -19,9 +18,7 @@ import org.graalvm.polyglot.Value;
 import java.util.BitSet;
 import java.util.List;
 
-/**
- * A column containing floating point numbers.
- */
+/** A column containing floating point numbers. */
 public final class DoubleStorage extends NumericStorage<Double> {
   private final long[] data;
   private final BitSet isMissing;
@@ -31,7 +28,8 @@ public final class DoubleStorage extends NumericStorage<Double> {
   /**
    * @param data the underlying data
    * @param size the number of items stored
-   * @param isMissing a bit set denoting at index {@code i} whether the value at index {@code i} is missing.
+   * @param isMissing a bit set denoting at index {@code i} whether the value at index {@code i} is
+   *     missing.
    */
   public DoubleStorage(long[] data, int size, BitSet isMissing) {
     this.data = data;
@@ -45,17 +43,13 @@ public final class DoubleStorage extends NumericStorage<Double> {
     return new DoubleStorage(new long[0], size, isMissing);
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public int size() {
     return size;
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public int countMissing() {
     return isMissing.cardinality();
@@ -79,17 +73,13 @@ public final class DoubleStorage extends NumericStorage<Double> {
     return isMissing.get(idx) ? null : Double.longBitsToDouble(data[idx]);
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public StorageType getType() {
     return FloatType.FLOAT_64;
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public boolean isNa(long idx) {
     return isMissing.get((int) idx);
@@ -366,47 +356,5 @@ public final class DoubleStorage extends NumericStorage<Double> {
     }
 
     return new DoubleStorage(newData, newSize, newMissing);
-  }
-
-  @Override
-  public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
-    return switch (targetType) {
-      case AnyObjectType any -> new MixedStorageFacade(this);
-      case FloatType floatType -> this;
-      case IntegerType integerType -> {
-        int n = size();
-        NumericBuilder builder = NumericBuilder.createLongBuilder(n);
-        double min = (double) integerType.getMinValue();
-        double max = (double) integerType.getMaxValue();
-        for (int i = 0; i < n; i++) {
-          if (isMissing.get(i)) {
-            builder.appendNulls(1);
-          } else {
-            double value = getItem(i);
-            if (value < min || value > max) {
-              builder.appendNulls(1);
-              castProblemBuilder.reportLossyConversion();
-            } else {
-              long converted = (long) value;
-              builder.appendLong(converted);
-            }
-          }
-        }
-        yield builder.seal();
-      }
-      case TextType textType -> {
-        int n = size();
-        StringBuilder builder = new StringBuilder(n);
-        for (int i = 0; i < n; i++) {
-          if (isMissing.get(i)) {
-            builder.appendNulls(1);
-          } else {
-            builder.append(Double.toString(getItem(i)));
-          }
-        }
-        yield StringStorage.adapt(builder.seal(), textType);
-      }
-      default -> throw new IllegalStateException("Conversion of DoubleStorage to " + targetType + " is not supported");
-    };
   }
 }

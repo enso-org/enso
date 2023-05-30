@@ -148,7 +148,7 @@ type Detected_File_Metadata
        - ends_with_newline: specifies if the last line ends with a line
          separator that is consistent with the detected one.
        - has_any_content: specifies if the file contains any content.
-    Value (headers : Detected_Headers) (line_separator : Text|Nothing) (ends_with_newline : Boolean) (has_any_content : Boolean)
+    Value (headers : Detected_Headers | Nothing) (line_separator : Text|Nothing) (ends_with_newline : Boolean) (has_any_content : Boolean)
 
 ## PRIVATE
    Reads the beginning of the file to detect the existing headers and column

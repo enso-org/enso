@@ -27,6 +27,7 @@ import org.enso.compiler.pass.resolve.{
   GlobalNames,
   MethodDefinitions,
   Patterns,
+  TypeNames,
   TypeSignatures
 }
 import org.enso.interpreter.epb.EpbParser
@@ -240,7 +241,9 @@ class IrToTruffle(
 
           for (idx <- atomDefn.arguments.indices) {
             val unprocessedArg = atomDefn.arguments(idx)
-            val arg            = argFactory.run(unprocessedArg, idx)
+            val runtimeTypes   = checkRuntimeTypes(unprocessedArg)
+
+            val arg = argFactory.run(unprocessedArg, idx)
             val occInfo = unprocessedArg
               .unsafeGetMetadata(
                 AliasAnalysis,
@@ -250,7 +253,12 @@ class IrToTruffle(
             val slotIdx = localScope.getVarSlotIdx(occInfo.id)
             argDefs(idx) = arg
             val readArg =
-              ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
+              ReadArgumentNode.build(
+                arg.getName(),
+                idx,
+                arg.getDefaultValue.orElse(null),
+                runtimeTypes.asJava
+              )
             val assignmentArg = AssignmentNode.build(readArg, slotIdx)
             val argRead =
               ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
@@ -291,6 +299,7 @@ class IrToTruffle(
           if (!atomCons.isInitialized) {
             atomCons.initializeFields(
               language,
+              makeSection(moduleScope, atomDefn.location),
               localScope,
               assignments.toArray,
               reads.toArray,
@@ -624,6 +633,25 @@ class IrToTruffle(
   // ==========================================================================
   // === Utility Functions ====================================================
   // ==========================================================================
+
+  private def checkRuntimeTypes(arg: IR.DefinitionArgument): List[Type] = {
+    def extractAscribedType(t: IR.Expression): List[Type] = t match {
+      case u: IR.Type.Set.Union     => u.operands.flatMap(extractAscribedType)
+      case p: IR.Application.Prefix => extractAscribedType(p.function)
+      case t => {
+        t.getMetadata(TypeNames) match {
+          case Some(
+                BindingsMap
+                  .Resolution(BindingsMap.ResolvedType(mod, tpe))
+              ) =>
+            List(mod.unsafeAsModule().getScope.getTypes.get(tpe.name))
+          case _ => List()
+        }
+      }
+    }
+
+    arg.ascribedType.map(extractAscribedType).getOrElse(List())
+  }
 
   /** Checks if the expression has a @Builtin_Method annotation
     *
@@ -1651,7 +1679,7 @@ class IrToTruffle(
           case (unprocessedArg, idx) =>
             val arg = argFactory.run(unprocessedArg, idx)
             argDefinitions(idx) = arg
-
+            val runtimeTypes = checkRuntimeTypes(unprocessedArg)
             val occInfo = unprocessedArg
               .unsafeGetMetadata(
                 AliasAnalysis,
@@ -1661,7 +1689,12 @@ class IrToTruffle(
 
             val slotIdx = scope.getVarSlotIdx(occInfo.id)
             val readArg =
-              ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
+              ReadArgumentNode.build(
+                arg.getName(),
+                idx,
+                arg.getDefaultValue.orElse(null),
+                runtimeTypes.asJava
+              )
             val assignArg = AssignmentNode.build(readArg, slotIdx)
 
             argExpressions.append(assignArg)

@@ -293,6 +293,24 @@ function Dashboard(props: DashboardProps) {
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
 
+    const switchToIdeTab = react.useCallback(() => {
+        setTab(Tab.ide)
+        const ideElement = document.getElementById(IDE_ELEMENT_ID)
+        if (ideElement) {
+            ideElement.style.top = ''
+            ideElement.style.display = 'absolute'
+        }
+    }, [])
+
+    const switchToDashboardTab = react.useCallback(() => {
+        setTab(Tab.dashboard)
+        const ideElement = document.getElementById(IDE_ELEMENT_ID)
+        if (ideElement) {
+            ideElement.style.top = '-100vh'
+            ideElement.style.display = 'fixed'
+        }
+    }, [])
+
     react.useEffect(() => {
         const onProjectManagerLoadingFailed = () => {
             setLoadingProjectManagerDidFail(true)
@@ -322,26 +340,9 @@ function Dashboard(props: DashboardProps) {
     }, [])
 
     react.useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (
-                // On macOS, we need to check for combination of `alt` + `d` which is `∂` (`del`).
-                (event.key === 'd' || event.key === '∂') &&
-                event.ctrlKey &&
-                event.altKey &&
-                !event.shiftKey &&
-                !event.metaKey
-            ) {
-                setTab(Tab.dashboard)
-                const ideElement = document.getElementById(IDE_ELEMENT_ID)
-                if (ideElement) {
-                    ideElement.style.top = '-100vh'
-                    ideElement.style.display = 'fixed'
-                }
-            }
-        }
-        document.addEventListener('keydown', onKeyDown)
+        document.addEventListener('show-dashboard', switchToDashboardTab)
         return () => {
-            document.removeEventListener('keydown', onKeyDown)
+            document.removeEventListener('show-dashboard', switchToDashboardTab)
         }
     }, [])
 
@@ -449,14 +450,9 @@ function Dashboard(props: DashboardProps) {
                         setProject(null)
                     }}
                     openIde={async () => {
-                        setTab(Tab.ide)
+                        switchToIdeTab()
                         if (project?.projectId !== projectAsset.id) {
                             setProject(await backend.getProjectDetails(projectAsset.id))
-                        }
-                        const ideElement = document.getElementById(IDE_ELEMENT_ID)
-                        if (ideElement) {
-                            ideElement.style.top = ''
-                            ideElement.style.display = 'absolute'
                         }
                     }}
                 />
@@ -689,9 +685,7 @@ function Dashboard(props: DashboardProps) {
         const onBlur = () => {
             setIsFileBeingDragged(false)
         }
-
         window.addEventListener('blur', onBlur)
-
         return () => {
             window.removeEventListener('blur', onBlur)
         }
@@ -748,9 +742,11 @@ function Dashboard(props: DashboardProps) {
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
             onClick={event => {
-                unsetModal()
-                if (!event.shiftKey) {
-                    setSelectedAssets([])
+                if (getSelection()?.type !== 'Range') {
+                    unsetModal()
+                    if (!event.shiftKey) {
+                        setSelectedAssets([])
+                    }
                 }
             }}
             onKeyDown={handleEscapeKey}
@@ -762,19 +758,9 @@ function Dashboard(props: DashboardProps) {
                 tab={tab}
                 toggleTab={() => {
                     if (project && tab === Tab.dashboard) {
-                        setTab(Tab.ide)
-                        const ideElement = document.getElementById(IDE_ELEMENT_ID)
-                        if (ideElement) {
-                            ideElement.style.top = ''
-                            ideElement.style.display = 'absolute'
-                        }
+                        switchToIdeTab()
                     } else {
-                        setTab(Tab.dashboard)
-                        const ideElement = document.getElementById(IDE_ELEMENT_ID)
-                        if (ideElement) {
-                            ideElement.style.top = '-100vh'
-                            ideElement.style.display = 'fixed'
-                        }
+                        switchToDashboardTab()
                     }
                 }}
                 setBackendType={newBackendType => {
