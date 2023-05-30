@@ -1349,7 +1349,9 @@ class IrToTruffle(
       * @param binding the binding to generate code for
       * @return the truffle nodes corresponding to `binding`
       */
-    private def processBinding(binding: IR.Expression.Binding): RuntimeExpression = {
+    private def processBinding(
+      binding: IR.Expression.Binding
+    ): RuntimeExpression = {
       val occInfo = binding
         .unsafeGetMetadata(
           AliasAnalysis,
