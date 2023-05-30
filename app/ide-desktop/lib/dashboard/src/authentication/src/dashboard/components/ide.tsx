@@ -4,6 +4,8 @@ import * as react from 'react'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 
+import GLOBAL_CONFIG from '../../../../../../../../gui/config.yaml' assert { type: 'yaml' }
+
 // =================
 // === Constants ===
 // =================
@@ -67,6 +69,15 @@ function Ide(props: IdeProps) {
                     }
                 })()
                 const runNewProject = async () => {
+                    const engineConfig =
+                        backend.type === backendModule.BackendType.remote
+                            ? {
+                                  rpcUrl: jsonAddress,
+                                  dataUrl: binaryAddress,
+                              }
+                            : {
+                                  projectManagerUrl: GLOBAL_CONFIG.projectManagerEndpoint,
+                              }
                     await appRunner.runApp({
                         loader: {
                             assetsUrl: `${assetsRoot}dynamic-assets`,
@@ -74,8 +85,7 @@ function Ide(props: IdeProps) {
                             jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backend.type]}`,
                         },
                         engine: {
-                            rpcUrl: jsonAddress,
-                            dataUrl: binaryAddress,
+                            ...engineConfig,
                             preferredVersion: engineVersion,
                         },
                         startup: {
