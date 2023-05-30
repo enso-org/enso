@@ -888,7 +888,7 @@ fn resolve_tag_value<'a>(
     db: &SuggestionDatabase,
     parser: &parser::Parser,
 ) -> TagValueResolution<'a> {
-    let stripped_expr = raw_expression.trim_matches('(').trim_matches(' ');
+    let stripped_expr = raw_expression.trim_start_matches(['(', ' ']).trim_end_matches([')', ' ']);
     let qualified_name = QualifiedName::from_text(stripped_expr).ok();
     if let Some(qualified_name) = qualified_name {
         let entry = db.lookup_by_qualified_name(&qualified_name);

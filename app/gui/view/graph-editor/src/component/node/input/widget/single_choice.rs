@@ -72,6 +72,13 @@ pub struct Config {
     pub choices:   Rc<Vec<Choice>>,
     /// Optional widget configurations for arguments for method or constructor applications within
     /// choices' expressions. This list is always ordered by `choice_index`.
+    ///
+    /// Note: The list of arguments could in theory be a part of a `Choice` struct, but doing so
+    /// would add a requirement that all widget `Configuration`s would need to implement `Eq` trait
+    /// and in effect could not use `f32` values. Additionally, the actual dropdown component
+    /// doesn't require the arguments to be present in its entries, so having to clone them would
+    /// be a waste. By separating the argument configurations and the choices into separate lists,
+    /// we can avoid both of these issues.
     pub arguments: Vec<ChoiceArgConfig>,
 }
 
@@ -80,7 +87,7 @@ pub struct Config {
 /// includes method calls, standalone functions or constructors.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChoiceArgConfig {
-    /// The index of an associated choice in `choices` vector.
+    /// The index of an associated choice in [`Config.choices`] vector.
     pub choice_index:  usize,
     /// The name of the function argument for which the configuration is specified.
     pub name:          ImString,
