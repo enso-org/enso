@@ -8,25 +8,20 @@ import * as columnModule from '../column'
 import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
+import * as validation from '../validation'
 
 import CreateForm, * as createForm from './createForm'
+import Table, * as table from './table'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import ProjectActionButton from './projectActionButton'
 import RenameModal from './renameModal'
-import Table from './table'
+import EditableSpan from './editableSpan'
 
-// =================
-// === Constants ===
-// =================
-
-/** HTML validation attributes for project names when using the local backend.
- * There are no such limitations on the remote backend. */
-const DESKTOP_PROJECT_NAME_VALIDATION = {
-    namePattern: '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*',
-    title: 'Names must be in Upper_Snake_Case. (Numbers (_0, _1) are also allowed.)',
-} as const
+// =========================
+// === ProjectCreateForm ===
+// =========================
 
 /** Props for a {@link ProjectCreateForm}. */
 export interface ProjectCreateFormProps extends createForm.CreateFormPassthroughProps {
@@ -158,42 +153,45 @@ export interface ProjectNamePropsState {
 }
 
 /** Props for a {@link ProjectName}. */
-export interface ProjectNameProps {
-    item: backendModule.ProjectAsset
-    state: ProjectNamePropsState
-}
+export interface ProjectNameProps
+    extends table.ColumnProps<backendModule.ProjectAsset, ProjectNamePropsState> {}
 
 /** The icon and name of a specific project asset. */
 function ProjectName(props: ProjectNameProps) {
     const {
         item,
+        selected,
         state: { appRunner, onRename, onOpenIde, onCloseIde, doRefresh },
     } = props
     const { backend } = backendProvider.useBackend()
-    const { setModal } = modalProvider.useSetModal()
+    const [isNameEditable, setIsNameEditable] = React.useState(false)
+
+    const doRename = async (newName: string) => {
+        await toast.promise(
+            backend.projectUpdate(item.id, {
+                ami: null,
+                ideVersion: null,
+                projectName: newName,
+            }),
+            {
+                loading: 'Renaming project...',
+                success: 'Renamed project',
+                error: reason => `Error renaming project: ${error.unsafeIntoErrorMessage(reason)}`,
+            }
+        )
+        onRename()
+    }
 
     return (
         <div
             className="flex text-left items-center align-middle whitespace-nowrap"
             onClick={event => {
-                if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
-                    setModal(() => (
-                        <RenameModal
-                            assetType={item.type}
-                            name={item.title}
-                            doRename={async newName => {
-                                await backend.projectUpdate(item.id, {
-                                    ami: null,
-                                    ideVersion: null,
-                                    projectName: newName,
-                                })
-                            }}
-                            onSuccess={onRename}
-                            {...(backend.type === backendModule.BackendType.local
-                                ? DESKTOP_PROJECT_NAME_VALIDATION
-                                : {})}
-                        />
-                    ))
+                if (
+                    event.detail === 1 &&
+                    (selected ||
+                        (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey))
+                ) {
+                    setIsNameEditable(true)
                 }
             }}
         >
@@ -206,7 +204,29 @@ function ProjectName(props: ProjectNameProps) {
                 onClose={onCloseIde}
                 doRefresh={doRefresh}
             />
-            <span className="px-2">{item.title}</span>
+            <EditableSpan
+                editable={isNameEditable}
+                onBlur={async event => {
+                    setIsNameEditable(false)
+                    if (event.target.value === item.title) {
+                        toast.success('The project name is unchanged.')
+                    } else {
+                        await doRename(event.target.value)
+                    }
+                }}
+                onCancel={() => {
+                    setIsNameEditable(false)
+                }}
+                {...(backend.type === backendModule.BackendType.local
+                    ? {
+                          inputPattern: validation.LOCAL_PROJECT_NAME_PATTERN,
+                          inputTitle: validation.LOCAL_PROJECT_NAME_TITLE,
+                      }
+                    : {})}
+                className="px-2 bg-transparent"
+            >
+                {item.title}
+            </EditableSpan>
         </div>
     )
 }
@@ -313,7 +333,10 @@ function ProjectsTable(props: ProjectsTableProps) {
                             doRename={innerDoRename}
                             onSuccess={onRename}
                             {...(backend.type === backendModule.BackendType.local
-                                ? DESKTOP_PROJECT_NAME_VALIDATION
+                                ? {
+                                      namePattern: validation.LOCAL_PROJECT_NAME_PATTERN,
+                                      title: validation.LOCAL_PROJECT_NAME_TITLE,
+                                  }
                                 : {})}
                         />
                     ))

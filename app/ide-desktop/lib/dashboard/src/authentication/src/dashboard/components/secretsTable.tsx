@@ -10,11 +10,12 @@ import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
 
 import CreateForm, * as createForm from './createForm'
+import Table, * as table from './table'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import RenameModal from './renameModal'
-import Table from './table'
+import EditableSpan from './editableSpan'
 
 // ========================
 // === SecretCreateForm ===
@@ -148,37 +149,54 @@ export interface SecretNamePropsState {
 }
 
 /** Props for a {@link SecretName}. */
-export interface SecretNameProps {
-    item: backendModule.SecretAsset
-    state: SecretNamePropsState
-}
+export interface SecretNameProps
+    extends table.ColumnProps<backendModule.SecretAsset, SecretNamePropsState> {}
 
 /** The icon and name of a specific secret asset. */
 function SecretName(props: SecretNameProps) {
     const {
         item,
+        selected,
         state: { onRename },
     } = props
-    const { setModal } = modalProvider.useSetModal()
+    const [isNameEditable, setIsNameEditable] = React.useState(false)
+
+    // TODO: Wait for backend implementation.
+    const doRename = async (_newName: string) => {
+        onRename()
+    }
 
     return (
         <div
             className="flex text-left items-center align-middle whitespace-nowrap"
             onClick={event => {
-                if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
-                    setModal(() => (
-                        <RenameModal
-                            assetType={item.type}
-                            name={item.title}
-                            // FIXME[sb]: Wait for backend implementation.
-                            doRename={() => Promise.resolve()}
-                            onSuccess={onRename}
-                        />
-                    ))
+                if (
+                    event.detail === 1 &&
+                    (selected ||
+                        (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey))
+                ) {
+                    setIsNameEditable(true)
                 }
             }}
         >
-            {svg.SECRET_ICON} <span className="px-2">{item.title}</span>
+            {svg.SECRET_ICON}{' '}
+            <EditableSpan
+                editable={isNameEditable}
+                onBlur={async event => {
+                    setIsNameEditable(false)
+                    if (event.target.value === item.title) {
+                        toast.success('The secret name is unchanged.')
+                    } else {
+                        await doRename(event.target.value)
+                    }
+                }}
+                onCancel={() => {
+                    setIsNameEditable(false)
+                }}
+                className="px-2 bg-transparent"
+            >
+                {item.title}
+            </EditableSpan>
         </div>
     )
 }

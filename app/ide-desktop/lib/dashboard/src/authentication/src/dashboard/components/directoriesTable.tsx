@@ -10,9 +10,10 @@ import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
 
 import CreateForm, * as createForm from './createForm'
+import Table, * as table from './table'
 import ContextMenu from './contextMenu'
 import RenameModal from './renameModal'
-import Table from './table'
+import EditableSpan from './editableSpan'
 
 // ===========================
 // === DirectoryCreateForm ===
@@ -127,46 +128,56 @@ export interface DirectoryNamePropsState {
 }
 
 /** Props for a {@link DirectoryName}. */
-export interface DirectoryNameProps {
-    item: backendModule.DirectoryAsset
-    state: DirectoryNamePropsState
-}
+export interface DirectoryNameProps
+    extends table.ColumnProps<backendModule.DirectoryAsset, DirectoryNamePropsState> {}
 
 /** The icon and name of a specific directory asset. */
 function DirectoryName(props: DirectoryNameProps) {
     const {
         item,
+        selected,
         state: { onRename, enterDirectory },
     } = props
-    const { setModal } = modalProvider.useSetModal()
+    const [isNameEditable, setIsNameEditable] = React.useState(false)
+
+    // TODO: Wait for backend implementation.
+    const doRename = async (_newName: string) => {
+        onRename()
+    }
 
     return (
         <div
             className="flex text-left items-center align-middle whitespace-nowrap"
             onClick={event => {
-                switch (event.detail) {
-                    case 1: {
-                        if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
-                            setModal(() => (
-                                <RenameModal
-                                    assetType={item.type}
-                                    name={item.title}
-                                    // TODO: Wait for backend implementation.
-                                    doRename={() => Promise.resolve()}
-                                    onSuccess={onRename}
-                                />
-                            ))
-                        }
-                        break
-                    }
-                    case 2: {
-                        enterDirectory(item)
-                        break
-                    }
+                if (
+                    event.detail === 1 &&
+                    (selected ||
+                        (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey))
+                ) {
+                    setIsNameEditable(true)
+                } else if (event.detail === 2) {
+                    enterDirectory(item)
                 }
             }}
         >
-            {svg.DIRECTORY_ICON} <span className="px-2">{item.title}</span>
+            {svg.DIRECTORY_ICON}
+            <EditableSpan
+                editable={isNameEditable}
+                onBlur={async event => {
+                    setIsNameEditable(false)
+                    if (event.target.value === item.title) {
+                        toast.success('The folder name is unchanged.')
+                    } else {
+                        await doRename(event.target.value)
+                    }
+                }}
+                onCancel={() => {
+                    setIsNameEditable(false)
+                }}
+                className="px-2 bg-transparent"
+            >
+                {item.title}
+            </EditableSpan>
         </div>
     )
 }

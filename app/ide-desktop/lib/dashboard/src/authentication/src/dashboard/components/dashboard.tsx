@@ -159,13 +159,6 @@ function Dashboard(props: DashboardProps) {
         }
     }, [])
 
-    const clearModalAndSelectedAssets = (event: React.MouseEvent) => {
-        unsetModal()
-        if (!event.shiftKey) {
-            setSelectedAssets([])
-        }
-    }
-
     const handleEscapeKey = (event: React.KeyboardEvent<HTMLDivElement>) => {
         if (
             event.key === 'Escape' &&
@@ -255,7 +248,7 @@ function Dashboard(props: DashboardProps) {
             className={`flex flex-col relative select-none text-primary text-xs min-h-screen p-2 ${
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
-            onClick={clearModalAndSelectedAssets}
+            onClick={unsetModal}
             onKeyDown={handleEscapeKey}
             onDragEnter={openDropZone}
         >

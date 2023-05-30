@@ -21,6 +21,7 @@ const SPINNER_LOADING_CLASSES = 'grow dasharray-75 duration-1000 ease-linear'
 /** Props for a {@link Column}. */
 export interface ColumnProps<T, State = never> {
     item: T
+    selected: boolean
     state: State
 }
 
@@ -52,6 +53,7 @@ export interface TableProps<T, State = never> {
 function Table<T, State = never>(props: TableProps<T, State>) {
     const { items, state, getKey, columns, isLoading, placeholder, onClick, onContextMenu } = props
     const [spinnerClasses, setSpinnerClasses] = React.useState(SPINNER_INITIAL_CLASSES)
+    const [selectedItems, setSelectedItems] = React.useState(() => new Set<T>())
 
     const headerRow = (
         <tr>
@@ -67,6 +69,18 @@ function Table<T, State = never>(props: TableProps<T, State>) {
     )
 
     React.useEffect(() => {
+        const onDocumentClick = (event: MouseEvent) => {
+            if (!event.ctrlKey) {
+                setSelectedItems(new Set())
+            }
+        }
+        document.addEventListener('click', onDocumentClick)
+        return () => {
+            document.removeEventListener('click', onDocumentClick)
+        }
+    }, [])
+
+    React.useEffect(() => {
         if (isLoading) {
             // Ensure the spinner stays in the "initial" state for at least one frame.
             requestAnimationFrame(() => {
@@ -76,6 +90,23 @@ function Table<T, State = never>(props: TableProps<T, State>) {
             setSpinnerClasses(SPINNER_INITIAL_CLASSES)
         }
     }, [isLoading])
+
+    const onItemClicked = (item: T, event: React.MouseEvent) => {
+        event.stopPropagation()
+        // The Shift key should select a range of item, however the current architecture
+        // is not designed to handle this.
+        if (event.ctrlKey) {
+            const newItems = new Set(selectedItems)
+            if (selectedItems.has(item)) {
+                newItems.delete(item)
+            } else {
+                newItems.add(item)
+            }
+            setSelectedItems(newItems)
+        } else {
+            setSelectedItems(new Set([item]))
+        }
+    }
 
     const itemRows = isLoading ? (
         <tr className="h-10">
@@ -95,12 +126,15 @@ function Table<T, State = never>(props: TableProps<T, State>) {
                 key={getKey(item)}
                 tabIndex={-1}
                 onClick={event => {
+                    onItemClicked(item, event)
                     onClick(item, event)
                 }}
                 onContextMenu={event => {
                     onContextMenu(item, event)
                 }}
-                className="h-10 transition duration-300 ease-in-out hover:bg-gray-100 focus:bg-gray-200"
+                className={`h-10 transition duration-300 ease-in-out hover:bg-gray-100 ${
+                    selectedItems.has(item) ? 'bg-gray-200' : ''
+                }`}
             >
                 {columns.map(column => {
                     // This is a React component even though it does not contain JSX.
@@ -114,7 +148,7 @@ function Table<T, State = never>(props: TableProps<T, State>) {
                             {/* This is UNSAFE if `State` is explicitly specified by the caller,
                              * however it is unavoidable. */}
                             {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
-                            <Render item={item} state={state!} />
+                            <Render item={item} selected={selectedItems.has(item)} state={state!} />
                         </td>
                     )
                 })}

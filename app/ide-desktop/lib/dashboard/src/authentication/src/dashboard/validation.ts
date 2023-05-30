@@ -8,3 +8,9 @@ export const PASSWORD_PATTERN =
 export const PASSWORD_TITLE =
     'Your password must include numbers, letters (both lowercase and uppercase) and symbols, ' +
     'and must be between 6 and 256 characters long.'
+
+/** Regex pattern for valid names for local projects. */
+export const LOCAL_PROJECT_NAME_PATTERN = '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*'
+/** Human readable explanation of project name restrictions for local projects. */
+export const LOCAL_PROJECT_NAME_TITLE =
+    'Project names must be in Upper_Snake_Case. (Numbers (_0, _1) are also allowed.)'

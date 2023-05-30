@@ -11,11 +11,12 @@ import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
 
 import CreateForm, * as createForm from './createForm'
+import Table, * as table from './table'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import RenameModal from './renameModal'
-import Table from './table'
+import EditableSpan from './editableSpan'
 
 // ======================
 // === FileCreateForm ===
@@ -156,37 +157,54 @@ export interface FileNamePropsState {
 }
 
 /** Props for a {@link FileName}. */
-export interface FileNameProps {
-    item: backendModule.FileAsset
-    state: FileNamePropsState
-}
+export interface FileNameProps
+    extends table.ColumnProps<backendModule.FileAsset, FileNamePropsState> {}
 
 /** The icon and name of a specific file asset. */
 function FileName(props: FileNameProps) {
     const {
         item,
+        selected,
         state: { onRename },
     } = props
-    const { setModal } = modalProvider.useSetModal()
+    const [isNameEditable, setIsNameEditable] = React.useState(false)
+
+    // TODO: Wait for backend implementation.
+    const doRename = async (_newName: string) => {
+        onRename()
+    }
 
     return (
         <div
             className="flex text-left items-center align-middle whitespace-nowrap"
             onClick={event => {
-                if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
-                    setModal(() => (
-                        <RenameModal
-                            assetType={item.type}
-                            name={item.title}
-                            // TODO: Wait for backend implementation.
-                            doRename={() => Promise.resolve()}
-                            onSuccess={onRename}
-                        />
-                    ))
+                if (
+                    event.detail === 1 &&
+                    (selected ||
+                        (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey))
+                ) {
+                    setIsNameEditable(true)
                 }
             }}
         >
-            {fileInfo.fileIcon()} <span className="px-2">{item.title}</span>
+            {fileInfo.fileIcon()}
+            <EditableSpan
+                editable={isNameEditable}
+                onBlur={async event => {
+                    setIsNameEditable(false)
+                    if (event.target.value === item.title) {
+                        toast.success('The file name is unchanged.')
+                    } else {
+                        await doRename(event.target.value)
+                    }
+                }}
+                onCancel={() => {
+                    setIsNameEditable(false)
+                }}
+                className="px-2 bg-transparent"
+            >
+                {item.title}
+            </EditableSpan>
         </div>
     )
 }
