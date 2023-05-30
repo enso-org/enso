@@ -44,7 +44,20 @@ case object TypeNames extends IRPass {
       ir.unsafeGetMetadata(BindingAnalysis, "bindings analysis did not run")
     ir.copy(bindings = ir.bindings.map { d =>
       val mapped = d.mapExpressions(resolveExpression(bindingsMap, _))
-      doResolveType(bindingsMap, mapped)
+      doResolveType(
+        Nil,
+        bindingsMap,
+        mapped match {
+          case typ: IR.Module.Scope.Definition.Type =>
+            typ.members.foreach(m =>
+              m.arguments.foreach(a =>
+                doResolveType(typ.params.map(_.name), bindingsMap, a)
+              )
+            )
+            typ
+          case x => x
+        }
+      )
     })
   }
 
@@ -53,17 +66,27 @@ case object TypeNames extends IRPass {
     ir: IR.Expression
   ): IR.Expression = {
     def go(ir: IR.Expression): IR.Expression = {
-      doResolveType(bindingsMap, ir.mapExpressions(go))
+      doResolveType(Nil, bindingsMap, ir.mapExpressions(go))
     }
-    go(ir)
+    go(ir match {
+      case fn: IR.Function.Lambda =>
+        fn.copy(arguments =
+          fn.arguments.map(doResolveType(Nil, bindingsMap, _))
+        )
+      case x => x
+    })
   }
 
-  private def doResolveType[T <: IR](bindingsMap: BindingsMap, ir: T): T = {
+  private def doResolveType[T <: IR](
+    typeParams: List[IR.Name],
+    bindingsMap: BindingsMap,
+    ir: T
+  ): T = {
     ir.getMetadata(TypeSignatures)
       .map { s =>
         ir.updateMetadata(
           TypeSignatures -->> TypeSignatures.Signature(
-            resolveSignature(bindingsMap, s.signature)
+            resolveSignature(typeParams, bindingsMap, s.signature)
           )
         )
       }
@@ -71,18 +94,25 @@ case object TypeNames extends IRPass {
   }
 
   private def resolveSignature(
+    typeParams: List[IR.Name],
     bindingsMap: BindingsMap,
     expression: IR.Expression
   ): IR.Expression =
     expression.transformExpressions {
       case expr if SuspendedArguments.representsSuspended(expr) => expr
       case n: IR.Name.Literal =>
-        processResolvedName(n, bindingsMap.resolveName(n.name))
+        if (typeParams.exists(_.name == n.name)) {
+          n
+        } else {
+          processResolvedName(n, bindingsMap.resolveName(n.name))
+        }
       case n: IR.Name.Qualified =>
         processResolvedName(
           n,
           bindingsMap.resolveQualifiedName(n.parts.map(_.name))
         )
+      case s: IR.Type.Set =>
+        s.mapExpressions(resolveSignature(typeParams, bindingsMap, _))
     }
 
   private def processResolvedName(
