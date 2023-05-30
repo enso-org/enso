@@ -448,7 +448,7 @@ type Invalid_JSON_Format
 type Column_Type_Mismatch
     ## PRIVATE
        An error indicating a mismatch of column types of merged columns.
-    Error (column_name : Text) (expected_type : Text) (got_type : Text)
+    Error (column_name : Text) (expected_type : Text | Any) (got_type : Text | Any)
 
     ## PRIVATE
 
