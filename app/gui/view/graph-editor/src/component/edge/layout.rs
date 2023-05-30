@@ -142,7 +142,9 @@ fn junction_points(
     let target_well_below_source =
         target.y() + target_max_attachment_height.unwrap_or_default() <= -MIN_APPROACH_HEIGHT;
     let target_below_source = target.y() <= 0.0;
-    let horizontal_room_for_3_corners = target.x().abs() - source_max_x_offset > 3.0 * RADIUS_BASE;
+    let target_beyond_source = target.x().abs() > source_max_x_offset;
+    let horizontal_room_for_3_corners =
+        target_beyond_source && target.x().abs() - source_max_x_offset > 3.0 * RADIUS_BASE;
     if target_well_below_source || (target_below_source && !horizontal_room_for_3_corners) {
         use single_corner::*;
         // The edge can originate anywhere along the length of the node.
@@ -164,7 +166,7 @@ fn junction_points(
         let source_x = source_half_width.copysign(target.x());
         let distance_x = (target.x() - source_x).abs();
         let (j0_x, j1_x, height_adjustment);
-        if distance_x >= 2.0 * RADIUS_MAX && target.x().abs() > source_x.abs() {
+        if horizontal_room_for_3_corners {
             //               J1
             //              /
             //            ╭──────╮
@@ -191,7 +193,9 @@ fn junction_points(
             j0_x = j0_beyond_source.max(j0_beyond_target).copysign(target.x());
             height_adjustment = 0.0;
         }
-        let top = target.y() + MIN_APPROACH_HEIGHT + NODE_HEIGHT / 2.0 - height_adjustment;
+        let attachment_height = target_max_attachment_height.unwrap_or_default();
+        let top =
+            max(target.y() + MIN_APPROACH_HEIGHT + attachment_height - height_adjustment, 0.0);
         let source = Vector2(source_x, 0.0);
         let j0 = Vector2(j0_x, top / 2.0);
         let j1 = Vector2(j1_x, top);
