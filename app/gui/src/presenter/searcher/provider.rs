@@ -205,12 +205,21 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
         if self.is_filtered() {
             groups.sort_by_key(|group| ordered_float::OrderedFloat(-group.best_match_score));
         }
-        let local_scope_entry_count = local_scope.matched_items.get();
-        let namespace_section_count = self.namespace_section_count();
+        let local_scope_score = local_scope.best_match_score.get();
+        let first_group = groups.first();
+        let first_group_best_matching =
+            first_group.filter(|grp| grp.best_match_score > local_scope_score);
+        let (score, best_match) = first_group_best_matching.map_or(
+            (local_scope_score, component_grid::GroupId::local_scope_group().first_element()),
+            |grp| (grp.best_match_score, grp.id.first_element()),
+        );
+
         component_list_panel::grid::content::Info {
             groups,
-            local_scope_entry_count,
-            namespace_section_count,
+            local_scope_entry_count: local_scope.matched_items.get(),
+            namespace_section_count: self.namespace_section_count(),
+            best_match: (score > component::NOT_MATCHING_SCORE).then_some(best_match),
+            displaying_module_content: self.displaying_module(),
         }
     }
 
@@ -392,24 +401,8 @@ impl Component {
             grid.model_for_entry <+ entry_model;
             grid.model_for_header <+ header_model;
         }
-        let local_scope = provider.local_scope();
-        let local_scope_score = local_scope.best_match_score.get();
         let content = provider.create_grid_content_info();
-        let first_group = content.groups.first();
-        let first_group_best_matching =
-            first_group.filter(|grp| grp.best_match_score > local_scope_score);
-        let (matching_section, matching_section_score) = first_group_best_matching
-            .map_or((component_grid::SectionId::LocalScope, local_scope_score), |grp| {
-                (grp.id.section, grp.best_match_score)
-            });
-
         grid.reset(content);
-        if matching_section_score > component::NOT_MATCHING_SCORE {
-            grid.switch_section_no_animation(matching_section);
-        } else if provider.displaying_module() {
-            grid.switch_section_no_animation(component_grid::SectionId::LocalScope);
-        }
-
         Self { _network: network }
     }
 }
