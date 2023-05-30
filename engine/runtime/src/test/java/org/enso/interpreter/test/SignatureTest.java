@@ -2,7 +2,6 @@ package org.enso.interpreter.test;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -131,6 +130,27 @@ public class SignatureTest extends TestBase {
     var module = ctx.eval(src);
     var some = module.invokeMember("eval_expression", "Maybe.Some 10");
     assertEquals("Can read ten", 10, some.getMember("unwrap").asInt());
+  }
+
+  @Test
+  public void suspendedAscribedParameter() throws Exception {
+    final URI uri = new URI("memory://suspended.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer
+
+    type Maybe a
+        Nothing
+        Some (~unwrap : Integer)
+    """, uri.getHost())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var some = module.invokeMember("eval_expression", "Maybe.Some 10");
+    assertEquals("Can read ten", 10, some.getMember("unwrap").asInt());
+    var lazy = module.invokeMember("eval_expression", "Maybe.Some (2 * 5)");
+    assertEquals("Can read first time ", 10, lazy.getMember("unwrap").asInt());
+    assertEquals("Can read second time", 10, lazy.getMember("unwrap").asInt());
   }
 
   @Test
