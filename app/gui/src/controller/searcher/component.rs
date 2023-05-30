@@ -68,9 +68,7 @@ pub enum Order {
     /// Order non-modules by name, followed by modules (also by name).
     ByNameNonModulesThenModules,
     /// Order [`Component`]s by [`Component::match_info`] score. The matching entries will go
-    /// first, and the _lesser_ score will take precedence. That is due to way of displaying
-    /// components in component browser - the lower (with greater indices) entries are more
-    /// handy.
+    /// first, and the greater score will take precedence.
     ByMatch,
 }
 
@@ -546,8 +544,8 @@ pub(crate) mod tests {
             .map(|c| c.match_info.borrow().clone())
             .collect_vec();
         debug!("{match_infos:?}");
-        assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[4, 2]);
-        assert_ids_of_matches_entries(&list.favorites[0], &[4, 2]);
+        assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[2, 4]);
+        assert_ids_of_matches_entries(&list.favorites[0], &[2, 4]);
         assert_ids_of_matches_entries(&list.local_scope, &[2]);
 
         list.update_filtering(filter("x"));

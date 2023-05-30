@@ -29,5 +29,6 @@ pub mod hash_map_tree;
 pub mod im_list;
 pub mod index;
 pub mod opt_vec;
+pub mod size_capped_vec_deque;
 
 pub use enso_prelude as prelude;

@@ -477,7 +477,7 @@ impl View {
 
         let grid = &model.searcher.model().list.model().grid;
         frp::extend! { network
-            committed_in_browser <- grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, Some(entry)));
+            committed_in_browser <- grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, entry));
             frp.source.editing_committed <+ committed_in_browser;
             frp.source.editing_committed <+ finished_with_searcher.map(|id| (*id,None));
         }
@@ -583,7 +583,7 @@ impl View {
             // === Project Dialog ===
 
             eval_ frp.show_project_list  (model.show_project_list());
-            project_chosen   <- project_list.grid.entry_selected.constant(());
+            project_chosen <- project_list.frp.selected_project.constant(());
             mouse_down       <- scene.mouse.frp_deprecated.down.constant(());
             clicked_on_bg    <- mouse_down.filter(f_!(scene.mouse.target.get().is_background()));
             should_be_closed <- any(frp.hide_project_list,project_chosen,clicked_on_bg);

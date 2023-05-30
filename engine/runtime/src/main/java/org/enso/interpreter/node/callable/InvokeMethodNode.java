@@ -328,7 +328,7 @@ public abstract class InvokeMethodNode extends BaseNode {
                       invokeFunctionNode.getDefaultsExecutionMode(),
                       invokeFunctionNode.getArgumentsExecutionMode(),
                       thisArgumentPosition));
-          childDispatch.setTailStatus(getTailStatus());
+          childDispatch.setTailStatus(TailStatus.NOT_TAIL);
           childDispatch.setId(invokeFunctionNode.getId());
           notifyInserted(childDispatch);
         }

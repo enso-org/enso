@@ -39,7 +39,7 @@ type File_Error
 
     ## Indicates that the given type cannot be serialized to the provided file
        format.
-    Unsupported_Output_Type (format : File_Format | File) (data_type : Any)
+    Unsupported_Output_Type (format : File_Format | File | Any) (data_type : Any)
 
     ## Indicates that the given file is corrupted, i.e. the data it contains
        is not in the expected format.
