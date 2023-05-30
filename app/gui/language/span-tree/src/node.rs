@@ -26,19 +26,16 @@ pub use kind::*;
 // === Node ===
 // ============
 
-/// The node payload constraints.
-pub trait Payload = Default + Clone;
-
 /// SpanTree Node.
 ///
 /// Each node in SpanTree is bound to some span of code, and potentially may have corresponding
 /// AST node.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)]
-pub struct Node<T> {
+pub struct Node {
     pub kind:            Kind,
     pub size:            ByteDiff,
-    pub children:        Vec<Child<T>>,
+    pub children:        Vec<Child>,
     pub ast_id:          Option<ast::Id>,
     /// When this `Node` is a part of an AST extension (a virtual span that only exists in
     /// span-tree, but not in AST), this field will contain the AST ID of the expression it extends
@@ -47,49 +44,34 @@ pub struct Node<T> {
     /// A tree type of the associated AST node. Only present when the AST node was a
     /// [`ast::Shape::Tree`].
     pub tree_type:       Option<ast::TreeType>,
-    pub payload:         T,
+    pub application:     Option<ApplicationData>,
 }
 
-impl<T> Deref for Node<T> {
-    type Target = T;
-    fn deref(&self) -> &Self::Target {
-        &self.payload
-    }
+/// For any SpanTree Node that is a function application, this struct contains additional
+/// information about it.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub struct ApplicationData {
+    pub suggestion_id:  Option<usize>,
+    pub icon_name:      Option<ImString>,
+    pub self_in_access: bool,
 }
 
-impl<T> DerefMut for Node<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.payload
-    }
-}
 
 
 // === API ===
 
-impl<T> Node<T> {
+impl Node {
     /// Constructor.
-    pub fn new() -> Self
-    where T: Default {
+    pub fn new() -> Self {
         default()
-    }
-
-    /// Payload mapping utility.
-    pub fn map<S>(self, f: impl Copy + Fn(T) -> S) -> Node<S> {
-        let kind = self.kind;
-        let tree_type = self.tree_type;
-        let size = self.size;
-        let children = self.children.into_iter().map(|t| t.map(f)).collect_vec();
-        let ast_id = self.ast_id;
-        let extended_ast_id = self.extended_ast_id;
-        let payload = f(self.payload);
-        Node { kind, tree_type, size, children, ast_id, extended_ast_id, payload }
     }
 }
 
 // === Kind utils ===
 
 #[allow(missing_docs)]
-impl<T> Node<T> {
+impl Node {
     pub fn is_root(&self) -> bool {
         self.kind.is_root()
     }
@@ -129,7 +111,7 @@ impl<T> Node<T> {
 // === Setters ===
 
 #[allow(missing_docs)]
-impl<T> Node<T> {
+impl Node {
     pub fn with_kind(mut self, kind: impl Into<Kind>) -> Self {
         self.kind = kind.into();
         self
@@ -138,7 +120,7 @@ impl<T> Node<T> {
         self.size = size;
         self
     }
-    pub fn with_children(mut self, ts: Vec<Child<T>>) -> Self {
+    pub fn with_children(mut self, ts: Vec<Child>) -> Self {
         self.children = ts;
         self
     }
@@ -146,8 +128,8 @@ impl<T> Node<T> {
         self.ast_id = Some(id);
         self
     }
-    pub fn with_payload(mut self, payload: T) -> Self {
-        self.payload = payload;
+    pub fn with_application(mut self, application: ApplicationData) -> Self {
+        self.application = Some(application);
         self
     }
 }
@@ -156,7 +138,7 @@ impl<T> Node<T> {
 // === Kind getters & setters ===
 
 #[allow(missing_docs)]
-impl<T> Node<T> {
+impl Node {
     pub fn name(&self) -> Option<&str> {
         self.kind.name()
     }
@@ -183,9 +165,9 @@ impl<T> Node<T> {
 /// A structure which contains `Node` being a child of some parent. It contains some additional
 /// data regarding this relation
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct Child<T = ()> {
+pub struct Child {
     /// A child node.
-    pub node:           Node<T>,
+    pub node:           Node,
     /// An offset counted from the parent node starting index to the start of this node's span.
     pub parent_offset:  ByteDiff,
     /// The offset counted from the end of previous sibling node.
@@ -194,25 +176,15 @@ pub struct Child<T = ()> {
     pub ast_crumbs:     ast::Crumbs,
 }
 
-impl<T> Child<T> {
-    /// Payload mapping utility.
-    pub fn map<S>(self, f: impl Copy + Fn(T) -> S) -> Child<S> {
-        let node = self.node.map(f);
-        let parent_offset = self.parent_offset;
-        let ast_crumbs = self.ast_crumbs;
-        let sibling_offset = self.sibling_offset;
-        Child { node, parent_offset, sibling_offset, ast_crumbs }
-    }
-}
 
-impl<T> Deref for Child<T> {
-    type Target = Node<T>;
+impl Deref for Child {
+    type Target = Node;
     fn deref(&self) -> &Self::Target {
         &self.node
     }
 }
 
-impl<T> DerefMut for Child<T> {
+impl DerefMut for Child {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.node
     }
@@ -331,13 +303,12 @@ impl InvalidCrumb {
 // ===========
 
 /// A reference to node inside some specific tree.
-#[derive(Debug, Derivative)]
-#[derivative(Clone(bound = ""))]
-pub struct Ref<'a, T = ()> {
+#[derive(Debug, Derivative, Clone)]
+pub struct Ref<'a> {
     /// The span tree that the node is a part of.
-    pub span_tree:      &'a SpanTree<T>,
+    pub span_tree:      &'a SpanTree,
     /// The node's ref.
-    pub node:           &'a Node<T>,
+    pub node:           &'a Node,
     /// Span begin's offset counted from the root expression.
     pub span_offset:    Byte,
     /// The offset counted from the end of previous sibling node.
@@ -350,16 +321,16 @@ pub struct Ref<'a, T = ()> {
 
 /// A result of `get_subnode_by_ast_crumbs`
 #[derive(Clone, Debug)]
-pub struct NodeFoundByAstCrumbs<'a, 'b, T = ()> {
+pub struct NodeFoundByAstCrumbs<'a, 'b> {
     /// A node being a result of the lookup.
-    pub node:       Ref<'a, T>,
+    pub node:       Ref<'a>,
     /// AST crumbs locating the searched AST node inside the AST of found SpanTree node.
     pub ast_crumbs: &'b [ast::Crumb],
 }
 
-impl<'a, T> Ref<'a, T> {
+impl<'a> Ref<'a> {
     /// Constructor.
-    pub fn root(span_tree: &'a SpanTree<T>) -> Self {
+    pub fn root(span_tree: &'a SpanTree) -> Self {
         let span_offset = default();
         let sibling_offset = default();
         let crumbs = default();
@@ -429,13 +400,13 @@ impl<'a, T> Ref<'a, T> {
     }
 
     /// Iterator over all direct children producing `Ref`s.
-    pub fn children_iter(self) -> impl DoubleEndedIterator<Item = Ref<'a, T>> + Clone {
+    pub fn children_iter(self) -> impl DoubleEndedIterator<Item = Ref<'a>> + Clone {
         let children_count = self.node.children.len();
         (0..children_count).map(move |i| self.clone().child(i).unwrap())
     }
 
     /// Iterator over all leaves of subtree rooted in the `self`.
-    pub fn leaf_iter(self) -> Box<dyn Iterator<Item = Ref<'a, T>> + 'a> {
+    pub fn leaf_iter(self) -> Box<dyn Iterator<Item = Ref<'a>> + 'a> {
         // FIXME rather should be part of the `LeafIterator`,
         //       see https://github.com/enso-org/ide/issues/698
         if self.children.is_empty() {
@@ -447,7 +418,7 @@ impl<'a, T> Ref<'a, T> {
 
     /// Iterator over all children of operator/prefix chain starting from this node. See crate's
     /// documentation for more information about _chaining_.
-    pub fn chain_children_iter(self) -> LeafIterator<'a, T> {
+    pub fn chain_children_iter(self) -> LeafIterator<'a> {
         LeafIterator::new(self, TreeFragment::ChainAndDirectChildren)
     }
 
@@ -455,7 +426,7 @@ impl<'a, T> Ref<'a, T> {
     pub fn get_descendant<'b>(
         self,
         crumbs: impl IntoIterator<Item = &'b Crumb>,
-    ) -> FallibleResult<Ref<'a, T>> {
+    ) -> FallibleResult<Ref<'a>> {
         crumbs.into_iter().try_fold(self, |node, crumb| node.child(*crumb))
     }
 
@@ -477,7 +448,7 @@ impl<'a, T> Ref<'a, T> {
     pub fn get_descendant_by_ast_crumbs<'b>(
         self,
         ast_crumbs: &'b [ast::Crumb],
-    ) -> Option<NodeFoundByAstCrumbs<'a, 'b, T>> {
+    ) -> Option<NodeFoundByAstCrumbs<'a, 'b>> {
         if self.node.children.is_empty() || ast_crumbs.is_empty() {
             let node = self;
             let remaining_ast_crumbs = ast_crumbs;
@@ -511,7 +482,7 @@ impl<'a, T> Ref<'a, T> {
 
     /// Get the node which exactly matches the given Span. If there are many such nodes, pick first
     /// found by DFS.
-    pub fn find_by_span(self, span: &text::Range<Byte>) -> Option<Ref<'a, T>> {
+    pub fn find_by_span(self, span: &text::Range<Byte>) -> Option<Ref<'a>> {
         if self.span() == *span {
             Some(self)
         } else {
@@ -522,8 +493,8 @@ impl<'a, T> Ref<'a, T> {
     }
 }
 
-impl<'a, T> Deref for Ref<'a, T> {
-    type Target = Node<T>;
+impl<'a> Deref for Ref<'a> {
+    type Target = Node;
     fn deref(&self) -> &Self::Target {
         self.node
     }
@@ -531,7 +502,7 @@ impl<'a, T> Deref for Ref<'a, T> {
 
 // === Specialized Iterators ===
 
-impl<'a, T> Ref<'a, T> {
+impl<'a> Ref<'a> {
     /// Perform a depth-first-search algorithm on the `SpanTree`. The order of the layers will be
     /// preserved - after all children of a node will be traversed, the next node sibling will be
     /// traversed and then it's children.
@@ -609,9 +580,9 @@ impl<'a, T> Ref<'a, T> {
 /// A mutable reference to node inside some specific tree. Please note that tree structure
 /// modification is disallowed. The only part that can be modified is the payload.
 #[derive(Debug)]
-pub struct RefMut<'a, T = ()> {
+pub struct RefMut<'a> {
     /// The node's ref.
-    node:              &'a mut Node<T>,
+    node:              &'a mut Node,
     /// An offset counted from the parent node start to the start of this node's span.
     pub parent_offset: ByteDiff,
     /// Span begin's offset counted from the root expression.
@@ -622,24 +593,14 @@ pub struct RefMut<'a, T = ()> {
     pub ast_crumbs:    ast::Crumbs,
 }
 
-impl<'a, T> RefMut<'a, T> {
+impl<'a> RefMut<'a> {
     /// Constructor.
-    pub fn new(node: &'a mut Node<T>) -> Self {
+    pub fn new(node: &'a mut Node) -> Self {
         let parent_offset = default();
         let span_begin = default();
         let crumbs = default();
         let ast_crumbs = default();
         Self { node, parent_offset, span_offset: span_begin, crumbs, ast_crumbs }
-    }
-
-    /// Payload accessor.
-    pub fn payload(&self) -> &T {
-        &self.node.payload
-    }
-
-    /// Mutable payload accessor.
-    pub fn payload_mut(&mut self) -> &mut T {
-        &mut self.node.payload
     }
 
     /// Get span of current node.
@@ -650,11 +611,11 @@ impl<'a, T> RefMut<'a, T> {
     /// Helper function for building child references.
     fn child_from_ref(
         index: usize,
-        child: &'a mut Child<T>,
+        child: &'a mut Child,
         span_begin: Byte,
         crumbs: Crumbs,
         mut ast_crumbs: ast::Crumbs,
-    ) -> RefMut<'a, T> {
+    ) -> RefMut<'a> {
         let parent_offset = child.parent_offset;
         let node = &mut child.node;
         let span_offset = span_begin + parent_offset;
@@ -664,7 +625,7 @@ impl<'a, T> RefMut<'a, T> {
     }
 
     /// Get the reference to child with given index. Fails if index if out of bounds.
-    pub fn child(self, index: usize) -> FallibleResult<RefMut<'a, T>> {
+    pub fn child(self, index: usize) -> FallibleResult<RefMut<'a>> {
         let node = self.node;
         let span_begin = self.span_offset;
         let crumbs = self.crumbs;
@@ -677,7 +638,7 @@ impl<'a, T> RefMut<'a, T> {
     }
 
     /// Iterator over all direct children producing `RefMut`s.
-    pub fn children_iter(self) -> impl Iterator<Item = RefMut<'a, T>> {
+    pub fn children_iter(self) -> impl Iterator<Item = RefMut<'a>> {
         let span_begin = self.span_offset;
         let crumbs = self.crumbs;
         let ast_crumbs = self.ast_crumbs;
@@ -699,14 +660,14 @@ impl<'a, T> RefMut<'a, T> {
     }
 }
 
-impl<'a, T> Deref for RefMut<'a, T> {
-    type Target = Node<T>;
+impl<'a> Deref for RefMut<'a> {
+    type Target = Node;
     fn deref(&self) -> &Self::Target {
         self.node
     }
 }
 
-impl<'a, T> DerefMut for RefMut<'a, T> {
+impl<'a> DerefMut for RefMut<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.node
     }
@@ -715,7 +676,7 @@ impl<'a, T> DerefMut for RefMut<'a, T> {
 
 // === Specialized Iterators ===
 
-impl<'a, T: Payload> RefMut<'a, T> {
+impl<'a> RefMut<'a> {
     /// Perform a depth-first-search algorithm on the `SpanTree`. The order of the layers will be
     /// preserved - after all children of a node will be traversed, the next node sibling will be
     /// traversed and then it's children.
@@ -813,7 +774,6 @@ impl<'a, T: Payload> RefMut<'a, T> {
 
 #[cfg(test)]
 mod test {
-    use crate::builder::Builder;
     use crate::builder::TreeBuilder;
     use crate::node;
     use crate::node::InsertionPoint;

@@ -115,7 +115,7 @@ pub trait Implementation {
     fn erase_impl<C: Context>(&self) -> Option<EraseOperation<C>>;
 }
 
-impl<'a, T> Implementation for node::Ref<'a, T> {
+impl<'a> Implementation for node::Ref<'a> {
     fn set_impl(&self) -> Option<SetOperation> {
         match &self.node.kind {
             node::Kind::InsertionPoint(ins_point) => Some(Box::new(move |root, new| {
@@ -406,7 +406,7 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                     }
                 }
 
-                let new_span_tree = SpanTree::<()>::new(&new_root, context)?;
+                let new_span_tree = SpanTree::new(&new_root, context)?;
 
                 // For resolved arguments, the valid insertion point of this argument is its
                 // placeholder. The position of placeholder is not guaranteed to be in the same
@@ -659,7 +659,7 @@ mod test {
 
         // Consider Span Tree for `foo bar` where `foo` is a method known to take 3 parameters.
         // We can try setting each of 3 arguments to `baz`.
-        let tree = TreeBuilder::<()>::new(7)
+        let tree = TreeBuilder::new(7)
             .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
             .add_leaf(4, 7, node::Kind::this(), PrefixCrumb::Arg)
             .add_empty_child(7, InsertionPoint::expected_argument(1))

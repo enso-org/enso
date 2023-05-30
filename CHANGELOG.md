@@ -244,6 +244,8 @@
 - [ToggleButtons can now have tooltips][6035].
 - [Rendering of tooltips was improved.][6097] Their text is now more vertically
   centered and the delay before showing them was extended.
+- [Accurate GPU performance measurements have been implemented][6595]. It is
+  possible now to track both the time spent on both the CPU and the GPU sides.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
@@ -256,6 +258,7 @@
 [6366]: https://github.com/enso-org/enso/pull/6366
 [6341]: https://github.com/enso-org/enso/pull/6341
 [6470]: https://github.com/enso-org/enso/pull/6470
+[6595]: https://github.com/enso-org/enso/pull/6595
 [6487]: https://github.com/enso-org/enso/pull/6487
 [6512]: https://github.com/enso-org/enso/pull/6512
 
@@ -794,6 +797,7 @@
 - [Suggestions are updated only when the type of the expression changes][6755]
 - [Add project creation time to project metadata][6780]
 - [Upgrade GraalVM to 22.3.1 JDK17][6750]
+- [Ascribed types are checked during runtime][6790]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -907,6 +911,7 @@
 [6750]: https://github.com/enso-org/enso/pull/6750
 [6755]: https://github.com/enso-org/enso/pull/6755
 [6780]: https://github.com/enso-org/enso/pull/6780
+[6790]: https://github.com/enso-org/enso/pull/6790
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

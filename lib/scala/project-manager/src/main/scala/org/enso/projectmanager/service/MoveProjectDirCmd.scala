@@ -47,4 +47,17 @@ class MoveProjectDirCmd[F[+_, +_]: CovariantFlatMap: ErrorChannel](
     )
   }
 
+  /** Returns the project ID to which this hook refers to */
+  def getProjectId(): UUID =
+    projectId
+
+  /** @inheritdoc */
+  override def isSameKind(hook: ShutdownHook[F]): Boolean = {
+    hook match {
+      case cmd: MoveProjectDirCmd[_] =>
+        projectId == cmd.getProjectId()
+      case _ =>
+        false
+    }
+  }
 }

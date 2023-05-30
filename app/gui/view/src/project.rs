@@ -477,7 +477,7 @@ impl View {
 
         let grid = &model.searcher.model().list.model().grid;
         frp::extend! { network
-            committed_in_browser <- grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, Some(entry)));
+            committed_in_browser <- grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, entry));
             frp.source.editing_committed <+ committed_in_browser;
             frp.source.editing_committed <+ finished_with_searcher.map(|id| (*id,None));
         }

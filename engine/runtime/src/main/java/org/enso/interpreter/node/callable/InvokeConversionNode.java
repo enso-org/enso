@@ -163,7 +163,7 @@ public abstract class InvokeConversionNode extends BaseNode {
                       invokeFunctionNode.getDefaultsExecutionMode(),
                       invokeFunctionNode.getArgumentsExecutionMode(),
                       thatArgumentPosition));
-          childDispatch.setTailStatus(getTailStatus());
+          childDispatch.setTailStatus(TailStatus.NOT_TAIL);
           childDispatch.setId(invokeFunctionNode.getId());
           notifyInserted(childDispatch);
         }
