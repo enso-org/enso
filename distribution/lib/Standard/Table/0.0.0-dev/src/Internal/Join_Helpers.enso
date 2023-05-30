@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from project.Errors import Invalid_Value_Type, No_Such_Column, Missing_Input_Columns, Column_Indexes_Out_Of_Range
+from project.Errors import Invalid_Value_Type, No_Such_Column, Missing_Input_Columns
 import project.Data.Join_Condition.Join_Condition
 import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Problem_Builder.Problem_Builder
@@ -23,8 +23,8 @@ type Join_Condition_Resolver
     resolve : Join_Condition | Text | Vector (Join_Condition | Text) -> Problem_Behavior -> Join_Condition_Resolution
     resolve self conditions on_problems =
         redundant_names = Vector.new_builder
-        left_problem_builder = Problem_Builder.new missing_input_columns_location="the left table" types_to_always_throw=[Missing_Input_Columns, Column_Indexes_Out_Of_Range]
-        right_problem_builder = Problem_Builder.new missing_input_columns_location="the right table" types_to_always_throw=[Missing_Input_Columns, Column_Indexes_Out_Of_Range]
+        left_problem_builder = Problem_Builder.new missing_input_columns_location="the left table" types_to_always_throw=[Missing_Input_Columns]
+        right_problem_builder = Problem_Builder.new missing_input_columns_location="the right table" types_to_always_throw=[Missing_Input_Columns]
 
         resolve_selector problem_builder resolver selector =
             r_1 = resolver selector

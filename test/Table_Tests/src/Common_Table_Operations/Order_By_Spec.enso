@@ -84,9 +84,9 @@ spec setup =
 
         Test.specify "should correctly handle problems: out of bounds indices" <|
             selector = [0, 100, Sort_Column.Index -200, Sort_Column.Index 300]
-            expected_problem = Column_Indexes_Out_Of_Range.Error [100, -200, 300]
+            expected_problem = Missing_Input_Columns.Error [100, -200, 300]
             t1 = table.order_by selector
-            t1.should_fail_with Column_Indexes_Out_Of_Range
+            t1.should_fail_with Missing_Input_Columns
             t1.catch . should_equal expected_problem
 
             action = table.order_by selector error_on_missing_columns=False on_problems=_

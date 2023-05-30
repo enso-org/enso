@@ -110,7 +110,7 @@ spec setup =
             err1.catch.criteria . should_equal ["Name"]
 
             err2 = table.cross_tab [] 42
-            err2.should_fail_with Column_Indexes_Out_Of_Range
+            err2.should_fail_with Missing_Input_Columns
             err2.catch.indexes . should_equal [42]
 
         Test.specify "should fail if group-by contains missing columns" <|
@@ -119,7 +119,7 @@ spec setup =
             err1.catch.criteria . should_equal ["Nonexistent Group", "OTHER"]
 
             err2 = table2.cross_tab [0, 42] "Key"
-            err2.should_fail_with Column_Indexes_Out_Of_Range
+            err2.should_fail_with Missing_Input_Columns
             err2.catch.indexes . should_equal [42]
 
         Test.specify "should fail if aggregate values contain missing columns" <|
@@ -128,7 +128,7 @@ spec setup =
             err1.catch.name . should_equal "Nonexistent Value"
 
             err2 = table.cross_tab values=[Count, Sum "Nonexistent Value", Sum "Value", Sum 42]
-            err2.should_fail_with Column_Indexes_Out_Of_Range
+            err2.should_fail_with Missing_Input_Columns
             err2.catch.indexes . should_equal [42]
 
         Test.specify "should fail if aggregate values contain invalid expressions" <|
