@@ -93,6 +93,16 @@ class ConfigSpec
       val serialized = parsed.toYaml
       serialized should include("edition: '2020.1'")
     }
+
+    "correctly parse empty edition field" in {
+      val config =
+        """name: FooBar
+          |edition:
+          |""".stripMargin
+      val parsed = Config.fromYaml(config).get
+
+      parsed.edition shouldBe None
+    }
   }
 
   "Component groups" should {
