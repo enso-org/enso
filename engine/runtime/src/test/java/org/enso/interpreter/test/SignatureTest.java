@@ -151,6 +151,33 @@ public class SignatureTest extends TestBase {
   }
 
   @Test
+  public void runtimeCheckOfAscribedLocalMethodSignature() throws Exception {
+    final URI uri = new URI("memory://twice_local.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer
+
+    call_twice x =
+        twice (a : Integer) = a + a
+        twice x
+    """, uri.getHost())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var neg = module.invokeMember("eval_expression", "call_twice");
+
+    var ten = neg.execute(5);
+    assertEquals("Ten", 10, ten.asInt());
+
+    try {
+      var res = neg.execute("Hi");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertTypeError("`a`", "Integer", "Text", e.getMessage());
+    }
+  }
+
+  @Test
   public void wrongAscribedInConstructor() throws Exception {
     final URI uri = new URI("memory://constructor.enso");
     final Source src = Source.newBuilder("enso", """
