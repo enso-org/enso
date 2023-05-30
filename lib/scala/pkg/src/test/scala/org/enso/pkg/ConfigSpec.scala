@@ -94,7 +94,7 @@ class ConfigSpec
       serialized should include("edition: '2020.1'")
     }
 
-    "correctly de-serialize missing edition" in {
+    "correctly parse empty edition field" in {
       val config =
         """name: FooBar
           |edition:
