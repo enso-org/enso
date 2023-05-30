@@ -5,15 +5,15 @@
 
 use crate::prelude::*;
 
-use ensogl::data::color;
-use ensogl::display;
-use ensogl::display::scene::Scene;
-use ensogl::display::shape::*;
 use super::layout::Corner;
 use super::layout::EdgeSplit;
 use super::layout::Oriented;
 use super::layout::SplitArc;
 use super::layout::TargetAttachment;
+use ensogl::data::color;
+use ensogl::display;
+use ensogl::display::scene::Scene;
+use ensogl::display::shape::*;
 
 use std::f32::consts::FRAC_PI_2;
 use std::f32::consts::PI;
@@ -31,7 +31,7 @@ pub(super) const HOVER_WIDTH: f32 = LINE_WIDTH + HOVER_EXTENSION;
 
 mod arrow {
     use super::*;
-    pub(super) const SIZE: Vector2 = Vector2(18.5, 18.5);
+    pub(super) const SIZE: Vector2 = Vector2(18.75, 18.75);
 }
 
 mod attachment {
@@ -380,9 +380,9 @@ fn rectangle_geometry(corner: Corner, line_width: f32) -> RectangleGeometry {
     // inside edge of the border).
     let radius = max(corner.max_radius() - line_width / 2.0, 0.0);
     RectangleGeometry {
-        clip:   corner.clip(),
-        size:   corner.size(line_width),
-        xy:     corner.origin(line_width),
+        clip: corner.clip(),
+        size: corner.size(line_width),
+        xy: corner.origin(line_width),
         radius,
     }
 }
@@ -401,7 +401,7 @@ pub(super) fn draw_split_arc(arc_shapes: [arc::View; 2], split_arc: SplitArc) ->
     let geometry = ArcGeometry::bisection(
         split_arc.source_end_angle,
         split_arc.split_angle,
-        split_arc.target_end_angle
+        split_arc.target_end_angle,
     );
     for (shape, geometry) in arc_shapes.iter().zip(&geometry) {
         shape.set_xy(split_arc.origin + arc_offset);
@@ -418,7 +418,7 @@ pub(super) fn draw_split_arc(arc_shapes: [arc::View; 2], split_arc: SplitArc) ->
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 struct ArcGeometry {
-    start: f32,
+    start:  f32,
     sector: f32,
 }
 

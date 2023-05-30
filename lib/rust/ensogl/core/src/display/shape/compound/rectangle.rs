@@ -338,7 +338,13 @@ pub fn RightTriangle() -> Rectangle {
     shape
 }
 
-/// Draw an isosceles triangle of any apex angle using a single `Rectangle`. Note that borders are
+
+
+// ========================
+// === Simple triangles ===
+// ========================
+
+/// An isosceles triangle of any apex angle, drawn using a single `Rectangle`. Note that borders are
 /// not not supported by this triangle implementation, and if rounding is used it will be
 /// elliptical. This is a result of this implementation being based on scaling a right triangle.
 ///
@@ -376,7 +382,7 @@ impl SimpleTriangle {
 
 impl display::Object for SimpleTriangle {
     fn display_object(&self) -> &display::object::Instance {
-        &self.shape.display_object()
+        self.shape.display_object()
     }
 }
 
