@@ -335,7 +335,7 @@ spec =
             t1 = Table.new [["A", ["1", "2", "3"]]]
             r1 = t1.parse columns=[0, -1, 42, -5]
             r1.should_fail_with Missing_Input_Columns
-            r1.catch.indexes . should_equal [42, -5]
+            r1.catch.criteria . should_equal [42, -5]
 
             action = t1.parse columns=[0, -1, 42, -5] error_on_missing_columns=False on_problems=_
             tester table =

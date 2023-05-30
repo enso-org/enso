@@ -126,11 +126,7 @@ spec setup =
         Test.specify "should correctly handle problems in mixed case" <|
             err = table.select_columns ["foo", "hmm", 99] on_problems=Problem_Behavior.Ignore
             err.should_fail_with Missing_Input_Columns
-            err.catch.criteria . should_equal ["hmm"]
-
-            err_2 = table.select_columns [99, "foo", "hmm"] on_problems=Problem_Behavior.Ignore
-            err_2.should_fail_with Missing_Input_Columns
-            err_2.catch.criteria . should_equal ["hmm"]
+            err.catch.criteria . should_equal ["hmm", 99]
 
         Test.specify "should correctly handle problems: no columns in the output" <|
             [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
@@ -394,7 +390,7 @@ spec setup =
             tester = expect_column_names ["FirstColumn", "beta", "gamma", "Another"]
             err_checker err =
                 err.catch.should_be_a Missing_Input_Columns.Error
-                err.catch.indexes.should_contain_the_same_elements_as [-200, 100, 300]
+                err.catch.criteria.should_contain_the_same_elements_as [-200, 100, 300]
             Problems.test_advanced_problem_handling action err_checker (x-> x) tester
 
             err = table.rename_columns map

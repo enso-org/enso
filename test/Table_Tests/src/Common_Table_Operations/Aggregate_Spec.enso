@@ -1322,7 +1322,7 @@ spec setup =
 
             t3 = table.aggregate [Sum 42]
             t3 . should_fail_with Missing_Input_Columns
-            t3.catch.indexes.should_equal [42]
+            t3.catch.criteria.should_equal [42]
 
         Test.specify "should raise a warning when can't find a column by name, but a hard error if the missing column is in a Group_By" <|
             err1 = table.aggregate [Group_By "Missing", Group_By "Index", Group_By "Other_Missing"] on_problems=Problem_Behavior.Ignore
@@ -1348,7 +1348,7 @@ spec setup =
 
             err4 = table.aggregate [Group_By 100, Group_By "Index", Group_By -42] on_problems=Problem_Behavior.Ignore
             err4.should_fail_with Missing_Input_Columns
-            err4.catch.indexes.should_equal [100, -42]
+            err4.catch.criteria.should_equal [100, -42]
 
             action2 = table.aggregate [Group_By "Index", Sum "Value", Sum 42] on_problems=_
             problems2 = [Missing_Input_Columns.Error [42]]
@@ -1358,7 +1358,7 @@ spec setup =
             # As above, missing errors from group-by take precedence over aggregates.
             err5 = table.aggregate [Group_By "Index", Group_By 55, Sum "Value", Sum 144, Group_By -33] on_problems=Problem_Behavior.Report_Error
             err5.should_fail_with Missing_Input_Columns
-            err5.catch.indexes.should_equal [55, -33]
+            err5.catch.criteria.should_equal [55, -33]
 
             err6 = table.aggregate [Group_By "Index", Sum "Value", Sum 42] on_problems=Problem_Behavior.Ignore error_on_missing_columns=True
             err6.catch . should_equal (Missing_Input_Columns.Error [42])

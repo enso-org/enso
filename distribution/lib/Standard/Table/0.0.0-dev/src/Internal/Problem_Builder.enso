@@ -35,7 +35,7 @@ type Problem_Builder
     build_problemset self =
         problems = Vector.new_builder
 
-        missing_criteria = self.missing_input_columns.get.to_vector + self.oob_indices.get.to_vector
+        missing_criteria = self.missing_input_columns.get.build + self.oob_indices.get.build
         if missing_criteria.not_empty then
             problems.append (Missing_Input_Columns.Error missing_criteria where=self.missing_input_columns_location)
         self.other.to_vector.each problems.append
