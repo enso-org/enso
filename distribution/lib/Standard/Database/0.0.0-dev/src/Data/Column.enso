@@ -46,7 +46,7 @@ type Column
        which they come. Combined expressions must come from the same context -
        they must both have the same filtering, grouping etc. rules applied to be
        able to be combined.
-    Value name:Text connection:Connection sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
+    Value name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
 
     ## PRIVATE
        ADVANCED

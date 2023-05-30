@@ -96,6 +96,7 @@ function Dashboard(props: DashboardProps) {
 
     const switchToIdeTab = React.useCallback(() => {
         setTab(Tab.ide)
+        doRefresh()
         const ideElement = document.getElementById(IDE_ELEMENT_ID)
         if (ideElement) {
             ideElement.style.top = ''
@@ -248,7 +249,14 @@ function Dashboard(props: DashboardProps) {
             className={`flex flex-col relative select-none text-primary text-xs min-h-screen p-2 ${
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
-            onClick={unsetModal}
+            onClick={event => {
+                if (getSelection()?.type !== 'Range') {
+                    unsetModal()
+                    if (!event.shiftKey) {
+                        setSelectedAssets([])
+                    }
+                }
+            }}
             onKeyDown={handleEscapeKey}
             onDragEnter={openDropZone}
         >

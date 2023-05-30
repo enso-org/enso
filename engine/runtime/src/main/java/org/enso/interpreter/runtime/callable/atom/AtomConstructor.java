@@ -10,6 +10,9 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.source.SourceSection;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
@@ -17,10 +20,10 @@ import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.BlockNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
-import org.enso.interpreter.runtime.callable.atom.unboxing.Layout;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.atom.unboxing.Layout;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Type;
@@ -28,9 +31,6 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
-
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /** A representation of an Atom constructor. */
 @ExportLibrary(InteropLibrary.class)
@@ -94,10 +94,10 @@ public final class AtomConstructor implements TruffleObject {
   public AtomConstructor initializeFields(EnsoLanguage language, ArgumentDefinition... args) {
     ExpressionNode[] reads = new ExpressionNode[args.length];
     for (int i = 0; i < args.length; i++) {
-      reads[i] = ReadArgumentNode.build(i, null);
+      reads[i] = ReadArgumentNode.build(args[i].getName(), i, null, null);
     }
     return initializeFields(
-        language, LocalScope.root(), new ExpressionNode[0], reads, new Annotation[0], args);
+        language, null, LocalScope.root(), new ExpressionNode[0], reads, new Annotation[0], args);
   }
 
   /**
@@ -111,6 +111,7 @@ public final class AtomConstructor implements TruffleObject {
    */
   public AtomConstructor initializeFields(
       EnsoLanguage language,
+      SourceSection section,
       LocalScope localScope,
       ExpressionNode[] assignments,
       ExpressionNode[] varReads,
@@ -126,7 +127,8 @@ public final class AtomConstructor implements TruffleObject {
       boxedLayout = Layout.create(args.length, 0, args);
     }
     this.constructorFunction =
-        buildConstructorFunction(language, localScope, assignments, varReads, annotations, args);
+        buildConstructorFunction(
+            language, section, localScope, assignments, varReads, annotations, args);
     generateQualifiedAccessor();
     return this;
   }
@@ -146,12 +148,16 @@ public final class AtomConstructor implements TruffleObject {
    */
   private Function buildConstructorFunction(
       EnsoLanguage language,
+      SourceSection section,
       LocalScope localScope,
       ExpressionNode[] assignments,
       ExpressionNode[] varReads,
       Annotation[] annotations,
       ArgumentDefinition[] args) {
     ExpressionNode instantiateNode = InstantiateNode.build(this, varReads);
+    if (section != null) {
+      instantiateNode.setSourceLocation(section.getCharIndex(), section.getCharLength());
+    }
     BlockNode instantiateBlock = BlockNode.buildSilent(assignments, instantiateNode);
     RootNode rootNode =
         ClosureRootNode.build(
@@ -159,7 +165,7 @@ public final class AtomConstructor implements TruffleObject {
             localScope,
             definitionScope,
             instantiateBlock,
-            instantiateNode.getSourceSection(),
+            section,
             type.getName() + "." + name,
             null,
             false);
