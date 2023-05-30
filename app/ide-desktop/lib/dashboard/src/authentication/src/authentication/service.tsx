@@ -12,7 +12,13 @@ import * as config from '../config'
 import * as listen from './listen'
 import * as loggerProvider from '../providers/logger'
 import * as newtype from '../newtype'
-import * as platformModule from '../platform'
+
+// =============
+// === Types ===
+// =============
+
+/** The subset of Amplify configuration related to sign in and sign out redirects. */
+interface AmplifyRedirects extends Pick<auth.AmplifyConfig, 'redirectSignIn' | 'redirectSignOut'> {}
 
 // =================
 // === Constants ===
@@ -31,21 +37,19 @@ const CONFIRM_REGISTRATION_PATHNAME = '//auth/confirmation'
  * password email. */
 const LOGIN_PATHNAME = '//auth/login'
 
-/** URL used as the OAuth redirect when running in the desktop app. */
-const DESKTOP_REDIRECT = newtype.asNewtype<auth.OAuthRedirect>(`${common.DEEP_LINK_SCHEME}://auth`)
-/** Map from platform to the OAuth redirect URL that should be used for that platform. */
-const PLATFORM_TO_CONFIG: Record<
-    platformModule.Platform,
-    Pick<auth.AmplifyConfig, 'redirectSignIn' | 'redirectSignOut'>
-> = {
-    [platformModule.Platform.desktop]: {
-        redirectSignIn: DESKTOP_REDIRECT,
-        redirectSignOut: DESKTOP_REDIRECT,
-    },
-    [platformModule.Platform.cloud]: {
-        redirectSignIn: config.ACTIVE_CONFIG.cloudRedirect,
-        redirectSignOut: config.ACTIVE_CONFIG.cloudRedirect,
-    },
+/** URI used as the OAuth redirect when deep links are supported. */
+const DEEP_LINK_REDIRECT = newtype.asNewtype<auth.OAuthRedirect>(
+    `${common.DEEP_LINK_SCHEME}://auth`
+)
+/** OAuth redirect URLs for the electron app. */
+const DEEP_LINK_REDIRECTS: AmplifyRedirects = {
+    redirectSignIn: DEEP_LINK_REDIRECT,
+    redirectSignOut: DEEP_LINK_REDIRECT,
+}
+/** OAuth redirect URLs for the browser. */
+const CLOUD_REDIRECTS: AmplifyRedirects = {
+    redirectSignIn: config.ACTIVE_CONFIG.cloudRedirect,
+    redirectSignOut: config.ACTIVE_CONFIG.cloudRedirect,
 }
 
 const BASE_AMPLIFY_CONFIG = {
@@ -88,8 +92,9 @@ const AMPLIFY_CONFIGS = {
 export interface AuthConfig {
     /** Logger for the authentication service. */
     logger: loggerProvider.Logger
-    /** Whether the application is running on a desktop (i.e., versus in the Cloud). */
-    platform: platformModule.Platform
+    /** Whether the application supports deep links. This is only true when using
+     * the installed app on macOS and Windows. */
+    supportsDeepLinks: boolean
     /** Function to navigate to a given (relative) URL.
      *
      * Used to redirect to pages like the password reset page with the query parameters set in the
@@ -116,9 +121,9 @@ export interface AuthService {
  * This function should only be called once, and the returned service should be used throughout the
  * application. This is because it performs global configuration of the Amplify library. */
 export function initAuthService(authConfig: AuthConfig): AuthService {
-    const { logger, platform, navigate } = authConfig
-    const amplifyConfig = loadAmplifyConfig(logger, platform, navigate)
-    const cognitoClient = new cognito.Cognito(logger, platform, amplifyConfig)
+    const { logger, supportsDeepLinks, navigate } = authConfig
+    const amplifyConfig = loadAmplifyConfig(logger, supportsDeepLinks, navigate)
+    const cognitoClient = new cognito.Cognito(logger, supportsDeepLinks, amplifyConfig)
     return {
         cognito: cognitoClient,
         registerAuthEventListener: listen.registerAuthEventListener,
@@ -128,34 +133,35 @@ export function initAuthService(authConfig: AuthConfig): AuthService {
 /** Return the appropriate Amplify configuration for the current platform. */
 function loadAmplifyConfig(
     logger: loggerProvider.Logger,
-    platform: platformModule.Platform,
+    supportsDeepLinks: boolean,
     navigate: (url: string) => void
 ): auth.AmplifyConfig {
     /** Load the environment-specific Amplify configuration. */
     const baseConfig = AMPLIFY_CONFIGS[config.ENVIRONMENT]
-    let urlOpener = null
-    let accessTokenSaver = null
-    if (platform === platformModule.Platform.desktop) {
-        /** If we're running on the desktop, we want to override the default URL opener for OAuth
-         * flows.  This is because the default URL opener opens the URL in the desktop app itself,
-         * but we want the user to be sent to their system browser instead. The user should be sent
-         * to their system browser because:
+    let urlOpener: ((url: string) => void) | null = null
+    let accessTokenSaver: ((accessToken: string) => void) | null = null
+    if ('authenticationApi' in window) {
+        /** When running on destop we want to have option to save access token to a file,
+         * so it can be later reuse when issuing requests to Cloud API. */
+        accessTokenSaver = saveAccessToken
+    }
+    if (supportsDeepLinks) {
+        /** If we support redirecting back here via deep links, we want to override the default
+         * URL opener for OAuth flows.  This is because the default URL opener opens the URL
+         * in the desktop app itself, but we want the user to be sent to their system browser
+         * instead. The user should be sent to their system browser because:
          *
          * - users trust their system browser with their credentials more than they trust our app;
          * - our app can keep itself on the relevant page until the user is sent back to it (i.e.,
          * we avoid unnecessary reloads/refreshes caused by redirects. */
         urlOpener = openUrlWithExternalBrowser
 
-        /** When running on destop we want to have option to save access token to a file,
-         * so it can be later reused when issuing requests to the Cloud API. */
-        accessTokenSaver = saveAccessToken
-
         /** To handle redirects back to the application from the system browser, we also need to
          * register a custom URL handler. */
         setDeepLinkHandler(logger, navigate)
     }
     /** Load the platform-specific Amplify configuration. */
-    const platformConfig = PLATFORM_TO_CONFIG[platform]
+    const platformConfig = supportsDeepLinks ? DEEP_LINK_REDIRECTS : CLOUD_REDIRECTS
     return {
         ...baseConfig,
         ...platformConfig,
@@ -243,19 +249,19 @@ function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: strin
  * URL to the Amplify library, which will parse the URL and complete the OAuth flow. */
 function handleAuthResponse(url: string) {
     void (async () => {
-        /** Temporarily override the `window.location` object so that Amplify doesn't try to call
-         * `window.location.replaceState` (which doesn't work in the renderer process because of
+        /** Temporarily override the `history` object so that Amplify doesn't try to call
+         * `history.replaceState` (which doesn't work in the renderer process because of
          * Electron's `webSecurity`). This is a hack, but it's the only way to get Amplify to work
          * with a custom URL protocol in Electron.
          *
          * # Safety
          *
          * It is safe to disable the `unbound-method` lint here because we intentionally want to use
-         * the original `window.history.replaceState` function, which is not bound to the
-         * `window.history` object. */
+         * the original `history.replaceState` function, which is not bound to the
+         * `history` object. */
         // eslint-disable-next-line @typescript-eslint/unbound-method
-        const replaceState = window.history.replaceState
-        window.history.replaceState = () => false
+        const replaceState = history.replaceState
+        history.replaceState = () => false
         try {
             /** # Safety
              *
@@ -267,8 +273,8 @@ function handleAuthResponse(url: string) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             await amplify.Auth._handleAuthResponse(url)
         } finally {
-            /** Restore the original `window.location.replaceState` function. */
-            window.history.replaceState = replaceState
+            /** Restore the original `history.replaceState` function. */
+            history.replaceState = replaceState
         }
     })()
 }
