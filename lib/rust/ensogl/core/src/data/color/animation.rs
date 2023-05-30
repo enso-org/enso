@@ -11,6 +11,18 @@ use enso_frp as frp;
 
 
 
+/// =================
+/// === Constants ===
+/// =================
+
+/// The animation precision used when animating individual color components. The `Lcha` color
+/// components are represented using normalized values in the range [0,1], and the precision should
+/// approximate the smallest possible change in the normalized value which can still result in a
+/// change in the color representation in display color space.
+const COLOR_ANIM_PRECISION: f32 = 0.01;
+
+
+
 // =================
 // === Animation ===
 // =================
@@ -68,6 +80,8 @@ impl Animation {
                 |(color,alpha)| color.with_alpha(*alpha)
             );
         }
+        self.color_anim.precision.emit(COLOR_ANIM_PRECISION);
+        self.alpha_anim.precision.emit(COLOR_ANIM_PRECISION);
         self
     }
 }
