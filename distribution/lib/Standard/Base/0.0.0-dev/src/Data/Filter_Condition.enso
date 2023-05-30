@@ -46,7 +46,7 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Starts_With (prefix:Text) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default)
+    Starts_With (prefix : Text | Any) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default)
 
     ## Does the value end with a suffix (Text only)?
 
@@ -54,7 +54,7 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Ends_With (suffix:Text) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default)
+    Ends_With (suffix : Text | Any) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default)
 
     ## Does the value contain the substring (Text only)?
 
@@ -62,7 +62,7 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Contains (substring:Text) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default)
+    Contains (substring : Text | Any) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default)
 
     ## Is the substring not present in the value (Text only)?
 
@@ -70,7 +70,7 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Not_Contains (substring:Text) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default)
+    Not_Contains (substring : Text | Any) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default)
 
     ## Is equal to Nothing?
     Is_Nothing
@@ -107,7 +107,7 @@ type Filter_Condition
          Due to this limitation, Unicode normalization has been disabled for
          this function, so beware that some equivalent graphemes like 'ś' and
          's\u0301' will not be matched.
-    Like pattern:Text
+    Like (pattern : Text | Any)
 
     ## Does the value not match the SQL pattern (Text only)?
 
@@ -126,7 +126,7 @@ type Filter_Condition
          Due to this limitation, Unicode normalization has been disabled for
          this function, so beware that some equivalent graphemes like 'ś' and
          's\u0301' will not be matched.
-    Not_Like pattern:Text
+    Not_Like pattern:Text|Any
 
     ## Is the value contained in `values`?
 
@@ -140,7 +140,7 @@ type Filter_Condition
          Using Columns can be particularly useful for Database operations, as
          uploading a temporary table and using its column for an `Is_In` check
          will likely be faster than using the vector directly.
-    Is_In values:Vector
+    Is_In values:Vector|Any
 
     ## Is the value not contained in `values`?
 
@@ -154,7 +154,7 @@ type Filter_Condition
          Using Columns can be particularly useful for Database operations, as
          uploading a temporary table and using its column for an `Not_In` check
          will likely be faster than using the vector directly.
-    Not_In values:Vector
+    Not_In values:(Vector | Any)
 
     ## Converts a `Filter_Condition` condition into a predicate taking an
        element and returning a value indicating whether the element should be

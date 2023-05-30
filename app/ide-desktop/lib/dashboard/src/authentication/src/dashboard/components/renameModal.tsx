@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
 
+import Input from './input'
 import Modal from './modal'
 
 // ===================
@@ -68,7 +69,7 @@ function RenameModal(props: RenameModalProps) {
                     <label className="w-1/3" htmlFor="renamed_file_name">
                         File name
                     </label>
-                    <input
+                    <Input
                         autoFocus
                         required
                         // Never disabled, as disabling unfocuses the input.
@@ -77,10 +78,8 @@ function RenameModal(props: RenameModalProps) {
                         pattern={namePattern}
                         title={title}
                         className="border-primary bg-gray-200 rounded-full w-2/3 px-2 mx-2"
-                        onChange={event => {
-                            setNewName(event.target.value)
-                        }}
                         defaultValue={newName ?? name}
+                        setValue={setNewName}
                     />
                 </div>
                 <div className="m-1">

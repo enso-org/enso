@@ -36,8 +36,9 @@ class ShutdownHookActivator[F[+_, +_]: Exec: CovariantFlatMap]
     scheduled: List[UUID] = Nil
   ): Receive = {
     case RegisterShutdownHook(projectId, hook) =>
-      val realHook = hook.asInstanceOf[ShutdownHook[F]]
-      val updated  = hooks.updated(projectId, realHook :: hooks(projectId))
+      val realHook    = hook.asInstanceOf[ShutdownHook[F]]
+      val uniqueHooks = hooks(projectId).filter(!_.isSameKind(realHook))
+      val updated     = hooks.updated(projectId, realHook :: uniqueHooks)
       context.become(running(updated, scheduled))
 
     case ProjectClosed(projectId) =>

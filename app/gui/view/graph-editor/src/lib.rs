@@ -2029,6 +2029,7 @@ impl GraphEditorModel {
 
     /// Warning! This function does not remove connected edges. It needs to be handled by the
     /// implementation.
+    #[profile(Debug)]
     fn remove_node(&self, node_id: impl Into<NodeId>) {
         let node_id = node_id.into();
         self.nodes.remove(&node_id);
@@ -2276,6 +2277,7 @@ impl GraphEditorModel {
 
 impl GraphEditorModel {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    #[profile(Debug)]
     pub fn set_node_position(&self, node_id: impl Into<NodeId>, position: Vector2) {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
