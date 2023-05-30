@@ -22,6 +22,7 @@ import org.enso.interpreter.runtime.error.PanicException;
  */
 @NodeInfo(shortName = "ReadArg", description = "Read function argument.")
 public class ReadArgumentNode extends ExpressionNode {
+  private final String name;
   private final int index;
   @Child ExpressionNode defaultValue;
   @Child IsValueOfTypeNode checkType;
@@ -30,7 +31,8 @@ public class ReadArgumentNode extends ExpressionNode {
   @CompilerDirectives.CompilationFinal(dimensions = 1)
   private final Type[] expectedTypes;
 
-  private ReadArgumentNode(int position, ExpressionNode defaultValue, Type[] expectedTypes) {
+  private ReadArgumentNode(String name, int position, ExpressionNode defaultValue, Type[] expectedTypes) {
+    this.name = name;
     this.index = position;
     this.defaultValue = defaultValue;
     this.expectedTypes = expectedTypes;
@@ -42,18 +44,19 @@ public class ReadArgumentNode extends ExpressionNode {
   /**
    * Creates an instance of this node.
    *
+   * @param name argument name
    * @param position the argument's position at the definition site
    * @param defaultValue the default value provided for that argument
    * @param expectedTypes {@code null} or expected types to check input for
    * @return a node representing the argument at position {@code idx}
    */
   public static ReadArgumentNode build(
-      int position, ExpressionNode defaultValue, List<Type> expectedTypes) {
+      String name, int position, ExpressionNode defaultValue, List<Type> expectedTypes) {
     var arr =
         expectedTypes == null || expectedTypes.isEmpty()
             ? null
             : expectedTypes.toArray(Type[]::new);
-    return new ReadArgumentNode(position, defaultValue, arr);
+    return new ReadArgumentNode(name, position, defaultValue, arr);
   }
 
   /**
@@ -94,7 +97,8 @@ public class ReadArgumentNode extends ExpressionNode {
         var ctx = EnsoContext.get(this);
         var expecting =
             expectedTypes.length == 1 ? expectedTypes[0] : Arrays.stream(expectedTypes).map(Type::toString).collect(Collectors.joining(" | "));
-        var err = ctx.getBuiltins().error().makeTypeError(expecting, v, "Argument #" + (index + 1));
+        var argName = name != null ? name : "Argument #" + (index + 1);
+        var err = ctx.getBuiltins().error().makeTypeError(expecting, v, argName);
         throw new PanicException(err, this);
       }
     }

@@ -254,6 +254,7 @@ class IrToTruffle(
             argDefs(idx) = arg
             val readArg =
               ReadArgumentNode.build(
+                arg.getName(),
                 idx,
                 arg.getDefaultValue.orElse(null),
                 runtimeTypes.asJava
@@ -1689,6 +1690,7 @@ class IrToTruffle(
             val slotIdx = scope.getVarSlotIdx(occInfo.id)
             val readArg =
               ReadArgumentNode.build(
+                arg.getName(),
                 idx,
                 arg.getDefaultValue.orElse(null),
                 runtimeTypes.asJava

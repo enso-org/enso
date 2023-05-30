@@ -82,7 +82,7 @@ public class SignatureTest extends TestBase {
       var res = neg.execute("Hi");
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      assertTypeError("Argument #2", "Integer", "Text", e.getMessage());
+      assertTypeError("`a`", "Integer", "Text", e.getMessage());
     }
 
     var ten = neg.execute(-10);
@@ -162,13 +162,13 @@ public class SignatureTest extends TestBase {
       var v = module.invokeMember("eval_expression", "Bin.Zero 'hi'");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
-      assertTypeError("Argument #1", "Zero", "Text", ex.getMessage());
+      assertTypeError("`v`", "Zero", "Text", ex.getMessage());
     }
     try {
       var v = module.invokeMember("eval_expression", "Bin.Zero One");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
-      assertTypeError("Argument #1", "Zero", "Zero", ex.getMessage());
+      assertTypeError("`v`", "Zero", "Zero", ex.getMessage());
     }
   }
 
@@ -198,13 +198,13 @@ public class SignatureTest extends TestBase {
       var v = module.invokeMember("eval_expression", "Bin.One 10");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
-      assertTypeError("Argument #1", "One", "Integer", ex.getMessage());
+      assertTypeError("`v`", "One", "Integer", ex.getMessage());
     }
     try {
       var v = module.invokeMember("eval_expression", "Bin.One Zero");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
-      assertTypeError("Argument #1", "One", "Zero", ex.getMessage());
+      assertTypeError("`v`", "One", "Zero", ex.getMessage());
     }
   }
 
@@ -217,7 +217,7 @@ public class SignatureTest extends TestBase {
       var v = module.invokeMember("eval_expression", "Bin.Either 10");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
-      assertTypeError("Argument #1", "Zero | One", "Integer", ex.getMessage());
+      assertTypeError("`v`", "Zero | One", "Integer", ex.getMessage());
     }
     var ok2 = module.invokeMember("eval_expression", "Bin.Either Zero");
     assertEquals("binary.Bin", ok2.getMetaObject().getMetaQualifiedName());
@@ -232,7 +232,7 @@ public class SignatureTest extends TestBase {
       var v = module.invokeMember("eval_expression", "Bin.Vec 'Hi'");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
-      assertTypeError("Argument #1", "Integer | Range | Vector", "Integer", ex.getMessage());
+      assertTypeError("`v`", "Integer | Range | Vector", "Integer", ex.getMessage());
     }
     var ok2 = module.invokeMember("eval_expression", "Bin.Either Zero");
     assertEquals("binary.Bin", ok2.getMetaObject().getMetaQualifiedName());
