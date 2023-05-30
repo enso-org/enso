@@ -15,7 +15,6 @@ import Table, * as table from './table'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
-import RenameModal from './renameModal'
 import EditableSpan from './editableSpan'
 
 // ======================
@@ -172,6 +171,7 @@ function FileName(props: FileNameProps) {
     // TODO: Wait for backend implementation.
     const doRename = async (_newName: string) => {
         onRename()
+        return await Promise.resolve(null)
     }
 
     return (

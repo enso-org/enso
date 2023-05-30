@@ -102,7 +102,7 @@ function Dashboard(props: DashboardProps) {
             ideElement.style.top = ''
             ideElement.style.display = 'absolute'
         }
-    }, [])
+    }, [doRefresh])
 
     const switchToDashboardTab = React.useCallback(() => {
         setTab(Tab.dashboard)
@@ -112,7 +112,7 @@ function Dashboard(props: DashboardProps) {
             ideElement.style.top = '-100vh'
             ideElement.style.display = 'fixed'
         }
-    }, [])
+    }, [doRefresh])
 
     const toggleTab = () => {
         if (project && tab === Tab.dashboard) {

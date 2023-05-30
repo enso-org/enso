@@ -12,7 +12,6 @@ import * as svg from '../../components/svg'
 import CreateForm, * as createForm from './createForm'
 import Table, * as table from './table'
 import ContextMenu from './contextMenu'
-import RenameModal from './renameModal'
 import EditableSpan from './editableSpan'
 
 // ===========================
@@ -143,6 +142,7 @@ function DirectoryName(props: DirectoryNameProps) {
     // TODO: Wait for backend implementation.
     const doRename = async (_newName: string) => {
         onRename()
+        return await Promise.resolve(null)
     }
 
     return (

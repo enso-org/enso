@@ -1,4 +1,5 @@
 /** @file A text `<span>` which turns into an `input` when desired. */
+import * as React from 'react'
 
 /** Props of an {@link EditableSpan} that are passed through to the base element. */
 type EditableSpanPassthroughProps = JSX.IntrinsicElements['input'] & JSX.IntrinsicElements['span']

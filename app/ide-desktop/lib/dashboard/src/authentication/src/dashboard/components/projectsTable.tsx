@@ -15,9 +15,9 @@ import Table, * as table from './table'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
+import EditableSpan from './editableSpan'
 import ProjectActionButton from './projectActionButton'
 import RenameModal from './renameModal'
-import EditableSpan from './editableSpan'
 
 // =========================
 // === ProjectCreateForm ===

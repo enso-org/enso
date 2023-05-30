@@ -24,9 +24,9 @@ export interface ContextMenuProps {
 /** A context menu that opens at the current mouse position. */
 function ContextMenu(props: React.PropsWithChildren<ContextMenuProps>) {
     const { children, event } = props
-    const contextMenuRef = react.useRef<HTMLDivElement>(null)
+    const contextMenuRef = React.useRef<HTMLDivElement>(null)
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (contextMenuRef.current != null) {
             const boundingBox = contextMenuRef.current.getBoundingClientRect()
             const scrollBy = boundingBox.bottom - innerHeight + SCROLL_MARGIN
