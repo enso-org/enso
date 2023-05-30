@@ -70,7 +70,7 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Not_Contains (substring:Text) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default)
+    Not_Contains (substring : Text | Any) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default)
 
     ## Is equal to Nothing?
     Is_Nothing
@@ -107,7 +107,7 @@ type Filter_Condition
          Due to this limitation, Unicode normalization has been disabled for
          this function, so beware that some equivalent graphemes like 'ś' and
          's\u0301' will not be matched.
-    Like pattern:Text
+    Like (pattern : Text | Any)
 
     ## Does the value not match the SQL pattern (Text only)?
 
@@ -126,7 +126,7 @@ type Filter_Condition
          Due to this limitation, Unicode normalization has been disabled for
          this function, so beware that some equivalent graphemes like 'ś' and
          's\u0301' will not be matched.
-    Not_Like pattern:Text
+    Not_Like pattern:Text|Any
 
     ## Is the value contained in `values`?
 

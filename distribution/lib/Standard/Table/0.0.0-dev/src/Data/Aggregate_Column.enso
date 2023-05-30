@@ -103,7 +103,7 @@ type Aggregate_Column
        - column: column (specified by name, expression or index) to compute
          percentile.
        - new_name: name of new column.
-    Percentile (percentile:Decimal=0.5) (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) # Column needed because of 6866
+    Percentile (percentile:Number=0.5) (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) # Column needed because of 6866
 
     ## Creates a new column with the mode of values (ignoring missing values)
        of the column within each group. If no rows, evaluates to `Nothing`.
