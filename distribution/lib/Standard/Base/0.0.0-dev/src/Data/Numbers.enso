@@ -1140,5 +1140,5 @@ check_decimal_places decimal_places ~action =
 check_round_input : Number -> Function
 check_round_input n ~action =
     if n >= round_min_long && n <= round_max_long then action else
-        msg = "Error: Integer.round can only accept values between " + round_min_long.to_text + " and " + round_max_long.to_text + " (inclusive), but was " + n.to_text
+        msg = "Error: `round` can only accept values between " + round_min_long.to_text + " and " + round_max_long.to_text + " (inclusive), but was " + n.to_text
         Error.throw (Illegal_Argument.Error msg)
