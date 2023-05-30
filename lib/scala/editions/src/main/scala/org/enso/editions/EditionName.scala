@@ -1,7 +1,7 @@
 package org.enso.editions
 
 import io.circe.syntax.EncoderOps
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 
 /** A helper type to handle special parsing logic of edition names.
   *
@@ -29,9 +29,15 @@ object EditionName {
   implicit val editionNameDecoder: Decoder[EditionName] = { json =>
     json
       .as[String]
-      .orElse(json.as[Int].map(_.toString))
-      .orElse(json.as[Float].map(_.toString))
-      .map(EditionName(_))
+      .fold(
+        _ =>
+          if (json.value == Json.Null)
+            Left(DecodingFailure("edition cannot be empty", Nil))
+          else
+            json.as[Int].orElse(json.as[Float]),
+        Right(_)
+      )
+      .map(v => EditionName(v.toString))
   }
 
   /** An [[Encoder]] instance for serializing [[EditionName]].

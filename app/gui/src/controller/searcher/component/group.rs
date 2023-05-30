@@ -88,15 +88,7 @@ impl Data {
 
     /// Return the entry match ordering when sorting by match. See [`component::Order::ByMatch`].
     fn entry_match_ordering(lhs: &MatchInfo, rhs: &MatchInfo) -> cmp::Ordering {
-        match (lhs, rhs) {
-            (MatchInfo::DoesNotMatch, MatchInfo::DoesNotMatch) => cmp::Ordering::Equal,
-            (MatchInfo::DoesNotMatch, MatchInfo::Matches { .. }) => cmp::Ordering::Greater,
-            (MatchInfo::Matches { .. }, MatchInfo::DoesNotMatch) => cmp::Ordering::Less,
-            (
-                MatchInfo::Matches { subsequence: lhs, .. },
-                MatchInfo::Matches { subsequence: rhs, .. },
-            ) => OrderedFloat(lhs.score).cmp(&OrderedFloat(rhs.score)),
-        }
+        lhs.cmp(rhs).reverse()
     }
 
     fn update_match_info(&self) {

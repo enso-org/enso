@@ -106,6 +106,7 @@ function Dashboard(props: DashboardProps) {
 
     const switchToDashboardTab = React.useCallback(() => {
         setTab(Tab.dashboard)
+        doRefresh()
         const ideElement = document.getElementById(IDE_ELEMENT_ID)
         if (ideElement) {
             ideElement.style.top = '-100vh'
