@@ -108,6 +108,11 @@ spec setup =
             Problems.assume_no_problems t3
             t3.at "Row" . to_vector . should_equal [1, 3, 2, 4, 5]
 
+            t4 = table_builder [["X", [1, "A", 1, 24.0, 24.0, 24.0, 24]]]
+            t5 = t4.add_row_number group_by=["X"]
+            Problems.expect_warning Floating_Point_Equality t5
+            t5.at "Row" . to_vector . should_equal [1, 1, 2, 1, 2, 3, 4]
+
         Test.specify "should fail if columns provided in ordering/grouping do not exist" <|
             t = table_builder [["X", [20, 30, 10]]]
             r1 = t.add_row_number group_by=["X", "Y", "Z"]

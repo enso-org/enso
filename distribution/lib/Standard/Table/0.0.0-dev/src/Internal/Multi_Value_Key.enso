@@ -3,6 +3,8 @@ import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Data.Column.Column
+import project.Data.Type.Value_Type.Value_Type
+from project.Errors import Floating_Point_Equality
 
 ## PRIVATE
    An Enso implementation mirroring `UnorderedMultiValueKey` from the Java
@@ -19,6 +21,18 @@ type Unordered_Multi_Value_Key
         vector = Vector.from_polyglot_array arr
         hash_code = Comparable.from vector . hash vector
         Unordered_Multi_Value_Key.Key hash_code columns row_index
+
+    ## PRIVATE
+       Checks which column may cause problems in the grouping due to imprecise
+       floating-point values.
+    validate_grouping_columns columns problem_builder =
+        validate_column column =
+            value_type = column.value_type
+            is_float x = x.is_a Decimal
+            has_floats = value_type.is_floating_point || ((value_type == Value_Type.Mixed) && column.to_vector.any is_float)
+            if has_floats then
+                problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
+        columns.each validate_column
 
 ## PRIVATE
 type Unordered_Multi_Value_Key_Comparator

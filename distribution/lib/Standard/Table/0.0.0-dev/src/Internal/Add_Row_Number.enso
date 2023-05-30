@@ -22,6 +22,7 @@ add_row_number : Table -> Text -> Integer -> Integer -> (Column_Selector | Vecto
 add_row_number table name from step group_by order_by on_problems =
     problem_builder = Problem_Builder.new error_on_missing_columns=True
     grouping_columns = table.columns_helper.select_columns_helper group_by True problem_builder
+    Unordered_Multi_Value_Key.validate_grouping_columns grouping_columns problem_builder
     ordering = Table_Helpers.resolve_order_by table.columns order_by problem_builder
     problem_builder.attach_problems_before on_problems <|
         new_column = case ordering.is_empty of
