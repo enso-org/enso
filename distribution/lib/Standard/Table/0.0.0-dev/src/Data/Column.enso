@@ -413,8 +413,7 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             run_vectorized_binary_op self '-' fallback_fn=Nothing other
 
-    ## ALIAS Multiply Columns
-
+    ## ALIAS Multiply, Times, Product
        Element-wise multiplication.
 
        Arguments:
@@ -444,7 +443,6 @@ type Column
             run_vectorized_binary_op self '*' fallback_fn=Nothing other
 
     ## ALIAS Divide Columns
-
        Element-wise division.
 
        Arguments:

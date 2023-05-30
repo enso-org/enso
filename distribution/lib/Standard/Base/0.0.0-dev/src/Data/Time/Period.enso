@@ -136,7 +136,8 @@ type Period
             catch_java_exceptions "Period.-" <|
                 Period.Value (self.internal_period.minus other_period.internal_period)
 
-    ## Multiply the amount of time in this period by the specified scalar.
+    ## ALIAS Multiply, Times
+       Multiply the amount of time in this period by the specified scalar.
 
        Arguments:
        - factor: The scalar to multiply by.

@@ -378,8 +378,7 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op "-" other
 
-    ## UNSTABLE
-
+    ## ALIAS Multiply, Times, Product
        Element-wise multiplication.
 
        Arguments:
@@ -394,7 +393,6 @@ type Column
             self.make_binary_op "*" other
 
     ## ALIAS Divide Columns
-
        Element-wise division.
 
        Arguments:

@@ -85,7 +85,6 @@ type Number
              10 / 4
     / : Number -> Number
     / self that = @Builtin_Method "Integer./"
-
     ## ALIAS Power
 
        Compute the result of raising this to the power that.
@@ -400,7 +399,8 @@ type Decimal
     - : Number -> Number
     - self that = @Builtin_Method "Decimal.-"
 
-    ## Multiply a decimal by an arbitrary number.
+    ## ALIAS Multiply, Times, Product
+       Multiply a decimal by an arbitrary number.
 
        Arguments:
        - that: The number to multiply this by.
@@ -415,7 +415,8 @@ type Decimal
     * : Number -> Number
     * self that = @Builtin_Method "Decimal.*"
 
-    ## Divides a decimal by an arbitrary number.
+    ## ALIAS Divide
+       Divides a decimal by an arbitrary number.
 
        Arguments:
        - that: The number to divide this by.
@@ -711,7 +712,8 @@ type Integer
     - : Number -> Number
     - self that = @Builtin_Method "Integer.-"
 
-    ## Multiply an integer by an arbitrary number.
+    ## ALIAS Multiply, Times, Product
+       Multiply an integer by an arbitrary number.
 
        Arguments:
        - that: The number to multiply this by.
@@ -726,7 +728,8 @@ type Integer
     * : Number -> Number
     * self that = @Builtin_Method "Integer.*"
 
-    ## Divides an integer by an arbitrary number.
+    ## ALIAS Divide
+       Divides an integer by an arbitrary number.
 
        Arguments:
        - that: The number to divide this by.
