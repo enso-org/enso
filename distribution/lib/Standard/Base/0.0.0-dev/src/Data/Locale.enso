@@ -438,7 +438,7 @@ type Locale
     predefined_locale_fields : Vector Text
     predefined_locale_fields =
         locale_meta = Meta.meta Locale
-        remove_us = (Meta.meta Locale . methods) + ["Value", "new", "default", "from_language_tag", "from_java", "predefined_locale_fields", "default_widget", "widget_options"]
+        remove_us = locale_meta.methods + ["Value", "new", "default", "from_language_tag", "from_java", "predefined_locale_fields", "default_widget", "widget_options"]
         Meta.Type.Value (Meta.type_of locale_meta.value) . methods . filter (Filter_Condition.Not_In remove_us) . sort
 
     ## PRIVATE
