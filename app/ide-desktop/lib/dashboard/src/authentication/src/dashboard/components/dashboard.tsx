@@ -1,6 +1,7 @@
 /** @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components. */
 import * as react from 'react'
+import toast from 'react-hot-toast'
 
 import * as common from 'enso-common'
 
@@ -697,7 +698,9 @@ function Dashboard(props: DashboardProps) {
             initialProjectName != null &&
             !newProjectAssets.some(projectAsset => projectAsset.title === initialProjectName)
         ) {
-            logger.error(`Startup project '${initialProjectName}' not found.`)
+            const errorMessage = `No project named '${initialProjectName}' was found.`
+            toast.error(errorMessage)
+            logger.error(`Error opening project on startup: ${errorMessage}`)
         }
     }
 

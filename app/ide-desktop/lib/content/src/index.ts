@@ -215,25 +215,19 @@ class Main implements AppRunner {
             localStorage.setItem(INITIAL_URL_KEY, location.href)
         }
         if (parseOk) {
-            // This MUST be removed as it would otherwise override the `startup.project` passed
-            // explicitly in `ide.tsx`.
-            if (url.searchParams.has('startup.project')) {
-                url.searchParams.delete('startup.project')
-                history.replaceState(null, '', url.toString())
-            }
             const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
             const isUsingNewDashboard =
                 contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
             const isOpeningMainEntryPoint =
                 contentConfig.OPTIONS.groups.startup.options.entry.value ===
                 contentConfig.OPTIONS.groups.startup.options.entry.default
-            const isNotOpeningProject =
-                contentConfig.OPTIONS.groups.startup.options.project.value === ''
-            if (
-                (isUsingAuthentication || isUsingNewDashboard) &&
-                isOpeningMainEntryPoint &&
-                isNotOpeningProject
-            ) {
+            // This MUST be removed as it would otherwise override the `startup.project` passed
+            // explicitly in `ide.tsx`.
+            if (isOpeningMainEntryPoint && url.searchParams.has('startup.project')) {
+                url.searchParams.delete('startup.project')
+                history.replaceState(null, '', url.toString())
+            }
+            if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningMainEntryPoint) {
                 this.runAuthentication(isInAuthenticationFlow, inputConfig)
             } else {
                 void this.runApp(inputConfig)
