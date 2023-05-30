@@ -1,26 +1,25 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-import java.util.List;
-import java.util.function.IntFunction;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.BoolBuilder;
 import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.data.column.builder.object.NumericBuilder;
-import org.enso.table.data.column.builder.object.StringBuilder;
-import org.enso.table.data.column.operation.CastProblemBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.bool.BooleanIsInOp;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Value;
+
+import java.util.BitSet;
+import java.util.List;
+import java.util.function.IntFunction;
 
 /** A boolean column storage. */
 public final class BoolStorage extends Storage<Boolean> {
@@ -398,52 +397,5 @@ public final class BoolStorage extends Storage<Boolean> {
     }
 
     return new BoolStorage(newValues, newMissing, newSize, negated);
-  }
-
-  @Override
-  public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
-    return switch (targetType) {
-      case AnyObjectType any ->
-        new MixedStorageFacade(this);
-      case BooleanType booleanType ->
-        this;
-      case FloatType floatType -> {
-        int n = size();
-        NumericBuilder builder = NumericBuilder.createDoubleBuilder(n);
-        for (int i = 0; i < n; i++) {
-          if (isNa(i)) {
-            builder.appendNulls(1);
-          } else {
-            builder.appendDouble(values.get(i) ? 1.0 : 0.0);
-          }
-        }
-        yield builder.seal();
-      }
-      case IntegerType integerType -> {
-        int n = size();
-        NumericBuilder builder = NumericBuilder.createLongBuilder(n);
-        for (int i = 0; i < n; i++) {
-          if (isNa(i)) {
-            builder.appendNulls(1);
-          } else {
-            builder.appendLong(values.get(i) ? 1 : 0);
-          }
-        }
-        yield builder.seal();
-      }
-      case TextType textType -> {
-        int n = size();
-        StringBuilder builder = new StringBuilder(n);
-        for (int i = 0; i < n; i++) {
-          if (isMissing.get(i)) {
-            builder.appendNulls(1);
-          } else {
-            builder.append(values.get(i) ? "True" : "False");
-          }
-        }
-        yield StringStorage.adapt(builder.seal(), textType);
-      }
-      default -> throw new IllegalStateException("Conversion of BoolStorage to " + targetType + " is not supported");
-    };
   }
 }

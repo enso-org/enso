@@ -23,6 +23,7 @@ use crate::display::style::data::DataMatch;
 use crate::display::symbol::Symbol;
 use crate::display::world;
 use crate::system;
+use crate::system::gpu::context::profiler::Results;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::shader;
@@ -944,6 +945,16 @@ impl SceneData {
         world::with_context(|t| t.new(label))
     }
 
+    /// If enabled, the scene will be rendered with 1.0 device pixel ratio, even on high-dpi
+    /// monitors.
+    pub fn low_resolution_mode(&self, enabled: bool) {
+        if enabled {
+            self.dom.root.override_device_pixel_ratio(Some(1.0));
+        } else {
+            self.dom.root.override_device_pixel_ratio(None);
+        }
+    }
+
     fn update_shape(&self) -> bool {
         if self.dirty.shape.check_all() {
             let screen = self.dom.shape();
@@ -1021,16 +1032,20 @@ impl SceneData {
     }
 
     pub fn render(&self, update_status: UpdateStatus) {
-        self.renderer.run(update_status);
-        // WebGL `flush` should be called when expecting results such as queries, or at completion
-        // of a rendering frame. Flush tells the implementation to push all pending commands out
-        // for execution, flushing them out of the queue, instead of waiting for more commands to
-        // enqueue before sending for execution.
-        //
-        // Not flushing commands can sometimes cause context loss. To learn more, see:
-        // [https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#flush_when_expecting_results].
         if let Some(context) = &*self.context.borrow() {
-            context.flush()
+            context.profiler.measure_drawing(|| {
+                self.renderer.run(update_status);
+                // WebGL `flush` should be called when expecting results such as queries, or at
+                // completion of a rendering frame. Flush tells the implementation
+                // to push all pending commands out for execution, flushing them out
+                // of the queue, instead of waiting for more commands to
+                // enqueue before sending for execution.
+                //
+                // Not flushing commands can sometimes cause context loss. To learn more, see:
+                // [https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#flush_when_expecting_results].
+
+                context.flush()
+            });
         }
     }
 
@@ -1167,6 +1182,18 @@ impl Scene {
         }
     }
 
+    /// Run the GPU profiler. If the result is [`None`], either the GPU context is not initialized
+    /// to the profiler is not available at the current platform. In case the resulting vector
+    /// is empty, the previous frame measurements are not available yet and they will be
+    /// provided in the future.
+    pub fn on_frame_start(&self) -> Option<Vec<Results>> {
+        if let Some(context) = &*self.context.borrow() {
+            context.profiler.start_frame()
+        } else {
+            None
+        }
+    }
+
     pub fn extension<T: Extension>(&self) -> T {
         self.extensions.get(self)
     }
@@ -1296,7 +1323,9 @@ impl Scene {
                     early_status;
                 scene_was_dirty |= self.layers.update();
                 scene_was_dirty |= self.update_shape();
-                scene_was_dirty |= self.update_symbols();
+                context.profiler.measure_data_upload(|| {
+                    scene_was_dirty |= self.update_symbols();
+                });
                 self.handle_mouse_over_and_out_events();
                 scene_was_dirty |= self.shader_compiler.run(context, time);
 

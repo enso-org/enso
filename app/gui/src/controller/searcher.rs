@@ -694,33 +694,6 @@ impl Searcher {
                 Mode::NewNode { .. } => self.add_example(&example).map(Some),
                 _ => Err(CannotExecuteWhenEditingNode.into()),
             },
-            Action::ProjectManagement(action) => {
-                match self.ide.manage_projects() {
-                    Ok(_) => {
-                        let ide = self.ide.clone_ref();
-                        executor::global::spawn(async move {
-                            // We checked that manage_projects returns Some just a moment ago, so
-                            // unwrapping is safe.
-                            let manage_projects = ide.manage_projects().unwrap();
-                            let result = match action {
-                                action::ProjectManagement::CreateNewProject =>
-                                    manage_projects.create_new_project(None),
-                                action::ProjectManagement::OpenProject { id, .. } =>
-                                    manage_projects.open_project(*id),
-                            };
-                            if let Err(err) = result.await {
-                                error!("Error when creating new project: {err}");
-                            }
-                        });
-                        Ok(None)
-                    }
-                    Err(err) => Err(NotSupported {
-                        action_label: Action::ProjectManagement(action).to_string(),
-                        reason:       err,
-                    }
-                    .into()),
-                }
-            }
         }
     }
 
@@ -1017,12 +990,6 @@ impl Searcher {
         let mut actions = action::ListWithSearchResultBuilder::new();
         let (libraries_icon, default_icon) =
             action::hardcoded::ICONS.with(|i| (i.libraries.clone_ref(), i.default.clone_ref()));
-        if should_add_additional_entries && self.ide.manage_projects().is_ok() {
-            let mut root_cat = actions.add_root_category("Projects", default_icon.clone_ref());
-            let category = root_cat.add_category("Projects", default_icon.clone_ref());
-            let create_project = action::ProjectManagement::CreateNewProject;
-            category.add_action(Action::ProjectManagement(create_project));
-        }
         let mut libraries_root_cat =
             actions.add_root_category("Libraries", libraries_icon.clone_ref());
         if should_add_additional_entries {

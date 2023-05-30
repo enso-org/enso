@@ -12,7 +12,7 @@
 import * as React from 'react'
 import * as reactDOM from 'react-dom/client'
 
-import * as platformModule from './platform'
+import * as detect from './detect'
 import App, * as app from './components/app'
 
 // =================
@@ -37,7 +37,7 @@ export // This export declaration must be broken up to satisfy the `require-jsdo
 // This is not a React component even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax
 function run(props: app.AppProps) {
-    const { logger } = props
+    const { logger, supportsDeepLinks } = props
     logger.log('Starting authentication/dashboard UI.')
     /** The root element that the authentication/dashboard app will be rendered into. */
     const root = document.getElementById(ROOT_ELEMENT_ID)
@@ -49,12 +49,14 @@ function run(props: app.AppProps) {
     } else {
         ideElement.style.top = '-100vh'
         ideElement.style.display = 'fixed'
-        reactDOM.createRoot(root).render(<App {...props} />)
+        // `supportsDeepLinks` will be incorrect when accessing the installed Electron app's pages
+        // via the browser.
+        const actuallySupportsDeepLinks = supportsDeepLinks && detect.isRunningInElectron()
+        reactDOM
+            .createRoot(root)
+            .render(<App {...props} supportsDeepLinks={actuallySupportsDeepLinks} />)
     }
 }
 
 /** Global configuration for the {@link App} component. */
 export type AppProps = app.AppProps
-// This export should be `PascalCase` because it is a re-export.
-// eslint-disable-next-line no-restricted-syntax
-export const Platform = platformModule.Platform

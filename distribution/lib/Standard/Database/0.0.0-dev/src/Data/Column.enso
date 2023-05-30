@@ -1069,6 +1069,8 @@ type Column
          resulting value will be truncated to the desired type.
        - If a `Date` is to be converted to `Date_Time`, it will be set at
          midnight of the default system timezone.
+       - For a `Mixed` column being converted into a specific type, each row is
+         converted individually.
 
         If the target type cannot fit some of the values (for example due to too
         small range), a `Conversion_Failure` may be reported according to the
@@ -1080,6 +1082,12 @@ type Column
          If the backend does not support the requested target type, the closest
          supported type is chosen and a `Inexact_Type_Coercion` problem is
          reported.
+
+       ! Casting Text values
+
+         The `parse` method should be used to convert text values into other
+         types. Due to this, a Mixed column containing values `[2, "3"]` will
+         actually be converted into `[2, Nothing]` when casting to Integer type.
     cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
     cast self value_type on_problems=Problem_Behavior.Report_Warning =
         check_cast_compatibility self.value_type value_type <|

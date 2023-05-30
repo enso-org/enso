@@ -473,11 +473,11 @@ type No_Common_Type
     to_display_text : Text
     to_display_text self =
         types = self.types.map .to_display_text . join ", "
-        prefix = "No common type could have been found for the types: "+types
+        prefix = "No common type was found for types: "+types
         infix = case self.related_column_name of
-            column_name : Text -> " when unifying the column ["+column_name+"]."
+            column_name : Text -> " when unifying column ["+column_name+"]."
             _ -> "."
-        suffix = "If you want to allow mixed types, please retype the columns to the `Mixed` before the concatenation (note however that most Database backends do not support `Mixed` types, so it may work only for the in-memory backend)."
+        suffix = " If you want to allow mixed types, please cast one of the columns to `Mixed` beforehand."
         prefix + infix + suffix
 
 type Unmatched_Columns
@@ -558,7 +558,11 @@ type Conversion_Failure
 
        This may occur for example when a number does not fit the range of the
        target type.
-    Error (target_type : Value_Type) (related_column : Text) (affected_rows_count : Nothing|Integer)
+    Error (target_type : Value_Type) (related_column : Text) (affected_rows_count : Nothing|Integer) (example_values : Vector Any)
+
+    ## Indicates that for some values, their text representation is too long for
+       the target text type.
+    Text_Too_Long (target_type : Value_Type) (related_column : Text) (affected_rows_count : Nothing|Integer) (example_values : Vector Text)
 
     ## PRIVATE
 
@@ -567,8 +571,22 @@ type Conversion_Failure
     to_display_text self =
         rows_info = case self.affected_rows_count of
             Nothing -> "Some values"
-            count -> count.to_text+" rows"
-        rows_info + " could not be converted into the target type "+self.target_type.to_display_text+" when converting the column ["+self.related_column+"]."
+            count -> case self.example_values.is_empty of
+                True -> count.to_text+" rows"
+                False ->
+                    # We first `pretty` to wrap texts in quotes and avoid special characters, but then also `to_display_text` to limit the result length.
+                    examples = self.example_values.map (t-> t.pretty.to_display_text) . join ", "
+                    remaining_count = count - self.example_values.length
+                    additional = if remaining_count <= 0 then "" else
+                        cases = if remaining_count == 1 then "case" else "cases"
+                        " and "+remaining_count.to_text+" other "+cases
+                    "["+examples+additional+"]"
+
+        case self of
+            Conversion_Failure.Error _ _ _ _ ->
+                rows_info + " could not be converted into the target type "+self.target_type.to_display_text+" when converting the column ["+self.related_column+"]."
+            Conversion_Failure.Text_Too_Long _ _ _ _ ->
+                rows_info + " have a text representation that does not fit the target type "+self.target_type.to_display_text+" when converting the column ["+self.related_column+"]."
 
 type Invalid_Value_For_Type
     ## PRIVATE
