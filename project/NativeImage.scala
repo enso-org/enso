@@ -16,13 +16,12 @@ object NativeImage {
     */
   private val includeDebugInfo: Boolean = false
 
-  /**
-   * List of classes that should be initialized at build time by the native image.
-   * Note that we strive to initialize as much classes during the native image build
-   * time as possible, as this reduces the time needed to start the native image.
-   * One wildcard could theoretically be used instead of the list, but to make things
-   * more explicit, we use the list.
-   */
+  /** List of classes that should be initialized at build time by the native image.
+    * Note that we strive to initialize as much classes during the native image build
+    * time as possible, as this reduces the time needed to start the native image.
+    * One wildcard could theoretically be used instead of the list, but to make things
+    * more explicit, we use the list.
+    */
   private val defaultBuildTimeInitClasses = Seq(
     "org",
     "org.enso",
@@ -37,7 +36,7 @@ object NativeImage {
     "zio",
     "enumeratum",
     "akka",
-    "nl",
+    "nl"
   )
 
   /** Creates a task that builds a native image for the current project.
@@ -66,8 +65,8 @@ object NativeImage {
     * @param initializeAtRuntime a list of classes that should be initialized at
     *                            run time - useful to set exceptions if build
     *                            time initialization is set to default
-   * @param initializeAtBuildtime a list of classes that should be initialized at
-   *                              build time.
+    * @param initializeAtBuildtime a list of classes that should be initialized at
+    *                              build time.
     */
   def buildNativeImage(
     artifactName: String,
