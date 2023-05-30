@@ -217,7 +217,7 @@ public class SignatureTest extends TestBase {
       var v = module.invokeMember("eval_expression", "Bin.Either 10");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
-      assertTypeError("Argument #1", "Zero, One", "Integer", ex.getMessage());
+      assertTypeError("Argument #1", "Zero | One", "Integer", ex.getMessage());
     }
     var ok2 = module.invokeMember("eval_expression", "Bin.Either Zero");
     assertEquals("binary.Bin", ok2.getMetaObject().getMetaQualifiedName());
@@ -232,7 +232,7 @@ public class SignatureTest extends TestBase {
       var v = module.invokeMember("eval_expression", "Bin.Vec 'Hi'");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
-      assertTypeError("Argument #1", "Integer, Range, Vector", "Integer", ex.getMessage());
+      assertTypeError("Argument #1", "Integer | Range | Vector", "Integer", ex.getMessage());
     }
     var ok2 = module.invokeMember("eval_expression", "Bin.Either Zero");
     assertEquals("binary.Bin", ok2.getMetaObject().getMetaQualifiedName());
