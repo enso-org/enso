@@ -97,7 +97,8 @@ type Period
     days : Integer
     days self = self.internal_period.getDays
 
-    ## Add the specified amount of time to this period.
+    ## ALIAS Add Period
+       Add the specified amount of time to this period.
 
        Arguments:
        - other_period: The period to add to `self`. Note that this cannot be a
@@ -115,7 +116,8 @@ type Period
             catch_java_exceptions "Period.+" <|
                 Period.Value (self.internal_period.plus other_period.internal_period)
 
-    ## Subtract a specified amount of time from this period.
+    ## ALIAS Subtract Period
+       Subtract a specified amount of time from this period.
 
        Arguments:
        - other_period: Other Period to add to this Period. Note that this

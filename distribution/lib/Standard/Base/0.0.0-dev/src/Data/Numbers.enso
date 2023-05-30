@@ -25,8 +25,7 @@ polyglot java import java.text.ParseException
    an Integer in its place.
 @Builtin_Type
 type Number
-    ## ALIAS Add
-
+    ## ALIAS Add, Plus
        Adds two arbitrary numbers.
 
        Arguments:
@@ -42,8 +41,7 @@ type Number
     + : Number -> Number
     + self that = @Builtin_Method "Integer.+"
 
-    ## ALIAS Subtract
-
+    ## ALIAS Subtract, Minus
        Subtract an arbitrary number from this.
 
        Arguments:
@@ -56,8 +54,7 @@ type Number
     - : Number -> Number
     - self that = @Builtin_Method "Integer.-"
 
-    ## ALIAS Multiply
-
+    ## ALIAS Multiply, Times, Product
        Multiply two arbitrary numbers.
 
        Arguments:
@@ -74,7 +71,6 @@ type Number
     * self that = @Builtin_Method "Integer.*"
 
     ## ALIAS Divide
-
        Divides an this by an arbitrary number.
 
        Arguments:
@@ -375,8 +371,8 @@ type Number
      floating point numbers.
 @Builtin_Type
 type Decimal
-
-    ## Adds a deceimal and an arbitrary number.
+    ## ALIAS Add, Plus
+       Adds a decimal and an arbitrary number.
 
        Arguments:
        - that: The number to add to this.
@@ -391,7 +387,8 @@ type Decimal
     + : Number -> Number
     + self that = @Builtin_Method "Decimal.+"
 
-    ## Subtract an arbitrary number from this.
+    ## ALIAS Subtract, Minus
+       Subtract an arbitrary number from this.
 
        Arguments:
        - that: The number to subtract from this.
@@ -685,8 +682,8 @@ type Decimal
      degrade.
 @Builtin_Type
 type Integer
-
-    ## Adds an integer and an arbitrary number.
+    ## ALIAS Add, Plus
+       Adds an integer and an arbitrary number.
 
        Arguments:
        - that: The number to add to this.
@@ -701,7 +698,8 @@ type Integer
     + : Number -> Number
     + self that = @Builtin_Method "Integer.+"
 
-    ## Subtract an arbitrary number from this.
+    ## ALIAS Subtract, Minus
+       Subtract an arbitrary number from this.
 
        Arguments:
        - that: The number to subtract from this.

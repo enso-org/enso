@@ -20,7 +20,8 @@ polyglot java import org.enso.base.Text_Utils
 @Builtin_Type
 type Text
 
-    ## Concatenates the text that to the right side of this.
+    ## ALIAS Concatenate
+       Concatenates the text that to the right side of this.
 
        Arguments:
        - that: The text to concatenate to this.
