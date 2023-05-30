@@ -103,7 +103,7 @@ fn to_entries_and_arguments(
         .into_iter()
         .enumerate()
         .zip(as_tags)
-        .map(|((i, c), tag)| to_entry(c, i, db, parser, tag, &mut args))
+        .map(|((index, choice), tag)| to_entry(choice, index, db, parser, tag, &mut args))
         .collect();
     (entries, args)
 }
