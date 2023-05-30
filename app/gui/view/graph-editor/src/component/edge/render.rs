@@ -16,9 +16,7 @@ use super::layout::SplitArc;
 use super::layout::TargetAttachment;
 
 use std::f32::consts::FRAC_PI_2;
-use std::f32::consts::FRAC_PI_4;
 use std::f32::consts::PI;
-use std::f32::consts::SQRT_2;
 use std::f32::consts::TAU;
 
 
@@ -32,8 +30,8 @@ const HOVER_EXTENSION: f32 = 10.0;
 pub(super) const HOVER_WIDTH: f32 = LINE_WIDTH + HOVER_EXTENSION;
 
 mod arrow {
-    pub(super) const ARM_LENGTH: f32 = 12.0;
-    pub(super) const ARM_WIDTH: f32 = super::LINE_WIDTH;
+    use super::*;
+    pub(super) const SIZE: Vector2 = Vector2(18.5, 18.5);
 }
 
 mod attachment {
@@ -78,18 +76,16 @@ impl Shapes {
         let RedrawDataflowArrow { arrow, source_color, target_color, focus_split, is_attached } =
             parameters;
         let shape = self.dataflow_arrow.take();
-        if let Some(arrow_origin) = arrow {
-            let arrow_origin_to_center_of_tip =
-                Vector2(0.0, -(arrow::ARM_LENGTH - arrow::ARM_WIDTH) * SQRT_2);
+        if let Some(arrow_center) = arrow {
             // The arrow will have the same color as the target-end of the first corner from the
-            // source (this is the `arrow_origin` point).
+            // source (this is the `arrow_center` point).
             let color = match focus_split.map(|split| split.corner_index) {
                 Some(0) => target_color,
                 _ => source_color,
             };
             let shape = shape.unwrap_or_else(|| parent.new_dataflow_arrow());
-            shape.set_xy(arrow_origin + arrow_origin_to_center_of_tip);
-            shape.set_border_color(color);
+            shape.set_xy(arrow_center - arrow::SIZE / 2.0);
+            shape.set_color(color);
             Self::set_layer(parent, is_attached, &shape);
             self.dataflow_arrow.set(shape);
         }
@@ -337,16 +333,10 @@ pub(super) trait ShapeParent: display::Object {
     /// Create a shape object to render the arrow that is drawn on long backward edges to show the
     /// direction of data flow.
     fn new_dataflow_arrow(&self) -> Rectangle {
-        let new = Rectangle::new();
-        new.set_size(Vector2(arrow::ARM_LENGTH, arrow::ARM_LENGTH));
-        new.set_inset_border(arrow::ARM_WIDTH);
-        new.set_color(color::Rgba::transparent());
-        new.set_border_color(color::Rgba::transparent());
+        let new = SimpleTriangle::from_size(arrow::SIZE);
         new.set_pointer_events(false);
-        new.set_rotation_z(FRAC_PI_4);
-        new.set_clip(Vector2(0.5, 0.5));
         self.display_object().add_child(&new);
-        new
+        new.into()
     }
 }
 

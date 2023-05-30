@@ -100,7 +100,7 @@ mod single_corner {
 mod three_corner {
     /// The maximum arc radius.
     pub(super) const RADIUS_MAX: f32 = super::RADIUS_BASE;
-    pub(super) const BACKWARD_EDGE_ARROW_THRESHOLD: f32 = 30.0;
+    pub(super) const BACKWARD_EDGE_ARROW_THRESHOLD: f32 = 15.0;
 }
 
 
@@ -586,7 +586,7 @@ pub(super) struct SplitCorner {
 
 fn arrow(target_offset: Vector2, junction_points: &[Vector2]) -> Option<Vector2> {
     let three_corner_layout = junction_points.len() > 2;
-    let long_backward_edge = target_offset.y() > three_corner::BACKWARD_EDGE_ARROW_THRESHOLD;
+    let long_backward_edge = target_offset.y() >= three_corner::BACKWARD_EDGE_ARROW_THRESHOLD;
     // The points are ordered from source end to destination, and are alternately horizontal
     // and vertical junctions. The arrow must be in a vertical part of the edge. Place it at
     // the first vertical junction.
