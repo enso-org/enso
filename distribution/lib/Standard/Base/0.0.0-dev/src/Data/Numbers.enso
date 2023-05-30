@@ -85,8 +85,8 @@ type Number
              10 / 4
     / : Number -> Number
     / self that = @Builtin_Method "Integer./"
-    ## ALIAS Power
 
+    ## ALIAS Power
        Compute the result of raising this to the power that.
 
        Arguments:
@@ -431,7 +431,8 @@ type Decimal
     / : Number -> Number
     / self that = @Builtin_Method "Decimal./"
 
-    ## Computes the remainder when dividing this by that.
+    ## ALIAS Modulus
+       Computes the remainder when dividing this by that.
 
        Arguments:
        - that: The number to divide this by.
@@ -451,7 +452,8 @@ type Decimal
     % : Number -> Number ! Arithmetic_Error
     % self that = @Builtin_Method "Decimal.%"
 
-    ## Compute the result of raising this to the power that.
+    ## ALIAS Power
+       Compute the result of raising this to the power that.
 
        Arguments:
        - that: The exponent.
@@ -463,7 +465,8 @@ type Decimal
     ^ : Number -> Number
     ^ self that = @Builtin_Method "Decimal.^"
 
-    ## Checks if this is greater than that.
+    ## ALIAS Greater Than
+       Checks if this is greater than that.
 
        Arguments:
        - that: The number to compare this against.
@@ -475,7 +478,8 @@ type Decimal
     > : Number -> Boolean
     > self that = @Builtin_Method "Decimal.>"
 
-    ## Checks if this is greater than or equal to thatthat.
+    ## ALIAS Greater Than or Equal
+       Checks if this is greater than or equal to that.
 
        Arguments:
        - that: The number to compare this against.
@@ -487,7 +491,8 @@ type Decimal
     >= : Number -> Boolean
     >= self that = @Builtin_Method "Decimal.>="
 
-    ## Checks if this is less than that.
+    ## ALIAS Less Than
+       Checks if this is less than that.
 
        Arguments:
        - that: The number to compare this against.
@@ -499,7 +504,8 @@ type Decimal
     < : Number -> Boolean
     < self that = @Builtin_Method "Decimal.<"
 
-    ## Checks if this is less than or equal to thatthat.
+    ## ALIAS Less Than Or Equal
+       Checks if this is less than or equal to that.
 
        Arguments:
        - that: The number to compare this against.
@@ -744,7 +750,8 @@ type Integer
     / : Number -> Number
     / self that = @Builtin_Method "Integer./"
 
-    ## Computes the remainder when dividing this by that.
+    ## ALIAS Modulus
+       Computes the remainder when dividing this by that.
 
        Arguments:
        - that: The number to divide this by.
@@ -761,7 +768,8 @@ type Integer
     % : Number -> Number ! Arithmetic_Error
     % self that = @Builtin_Method "Integer.%"
 
-    ## Compute the result of raising this to the power that.
+    ## ALIAS Power
+       Compute the result of raising this to the power that.
 
        Arguments:
        - that: The exponent.
@@ -773,7 +781,8 @@ type Integer
     ^ : Number -> Number
     ^ self that = @Builtin_Method "Integer.^"
 
-    ## Checks if this is greater than that.
+    ## ALIAS Greater Than
+       Checks if this is greater than that.
 
        Arguments:
        - that: The number to compare this against.
@@ -785,7 +794,8 @@ type Integer
     > : Number -> Boolean
     > self that = @Builtin_Method "Integer.>"
 
-    ## Checks if this is greater than or equal to thatthat.
+    ## ALIAS Greater Than or Equal
+       Checks if this is greater than or equal to that.
 
        Arguments:
        - that: The number to compare this against.
@@ -797,7 +807,8 @@ type Integer
     >= : Number -> Boolean
     >= self that = @Builtin_Method "Integer.>="
 
-    ## Checks if this is less than that.
+    ## ALIAS Less Than
+       Checks if this is less than that.
 
        Arguments:
        - that: The number to compare this against.
@@ -809,7 +820,8 @@ type Integer
     < : Number -> Boolean
     < self that = @Builtin_Method "Integer.<"
 
-    ## Checks if this is less than or equal to thatthat.
+    ## ALIAS Less Than Or Equal
+       Checks if this is less than or equal to that.
 
        Arguments:
        - that: The number to compare this against.
