@@ -84,11 +84,13 @@ spec setup =
                 Problems.assume_no_problems c
 
             Test.specify "should warn when losing data if the fixed-length text length is too short to fit the data" pending=(if setup.is_database then "Conversion_Failure is not supported in Database yet.") <|
-                t = table_builder [["X", [15, 1000000, 123456]]]
+                t = table_builder [["X", [15, 1000000, 123456, 1000, 1000]]]
                 c = t.at "X" . cast (Value_Type.Char size=3 variable_length=False)
                 c.value_type . should_equal (Value_Type.Char size=3 variable_length=False)
                 c.to_vector . should_equal ["15 ", "100", "123"]
-                Problems.expect_warning Conversion_Failure c
+                warning = Problems.expect_warning Conversion_Failure c
+                warning.affected_rows_count . should_equal 4
+                warning.to_display_text . should_contain "['1000000', '123456', '1000' and 1 other case] have a text representation that does not fit the target type"
 
     Test.group prefix+"Table/Column.cast - numeric" <|
         Test.specify "should allow to cast a boolean column to integer" <|
@@ -161,7 +163,8 @@ spec setup =
                 c.value_type . should_equal Value_Type.Integer
                 c.to_vector . should_equal [1, 2, max_long, Nothing, min_long, Nothing, 4]
                 warning = Problems.expect_warning Conversion_Failure c
-                warning.to_display_text . should_contain "2 rows could not be converted"
+                warning.to_display_text . should_contain "could not be converted"
+                warning.to_display_text . should_contain too_big_double.to_text
 
     if supports_dates then
         Test.group prefix+"Table/Column.cast - date/time" <|
@@ -283,6 +286,90 @@ spec setup =
                 t3.at "X" . value_type . should_equal (t2.at "X" . value_type)
                 t3.at "Y" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
                 t3.at "Y" . to_vector . should_equal ["a  ", "abc", "abc"]
+
+        if setup.is_database.not then
+            Test.specify "should allow converting a Mixed type back to a specific type" <|
+                t1 = table_builder [["A", [1, Nothing, 2]], ["B", [1.5, Nothing, 2.5]], ["C", [Nothing, "x", "y"]], ["D", [Nothing, True, False]]]
+                m1 = t1.cast t1.column_names Value_Type.Mixed
+                ["A", "B", "C", "D"].each c->
+                    m1.at c . value_type . should_equal Value_Type.Mixed
+                m1.at "A" . to_vector . should_equal [1, Nothing, 2]
+                c1 = m1.at "A" . cast Value_Type.Integer
+                c1.value_type . should_equal Value_Type.Integer
+                c1.to_vector . should_equal [1, Nothing, 2]
+
+                m1.at "B" . cast Value_Type.Float . value_type . should_equal Value_Type.Float
+                m1.at "C" . cast Value_Type.Char . value_type . should_equal Value_Type.Char
+                m1.at "D" . cast Value_Type.Boolean . value_type . should_equal Value_Type.Boolean
+
+                t2 = table_builder [["E", [Date.new 2020, Date.new 2023, Nothing]], ["F", [Time_Of_Day.new 10, Time_Of_Day.new 11, Nothing]], ["G", [Date_Time.new 2022 12 30 13 45, Nothing, Date_Time.new 2020]]]
+                m2 = t2.cast t2.column_names Value_Type.Mixed
+                ["E", "F", "G"].each c->
+                    m2.at c . value_type . should_equal Value_Type.Mixed
+                m2.at "E" . cast Value_Type.Date . value_type . should_equal Value_Type.Date
+                m2.at "F" . cast Value_Type.Time . value_type . should_equal Value_Type.Time
+                m2.at "G" . cast Value_Type.Date_Time . value_type . should_equal Value_Type.Date_Time
+
+            Test.specify "will extract matching values from a mixed column and replace unconvertible ones with Nothing" <|
+                t0 = table_builder [["X", ["a", "b", "c", My_Type.Value 42]]]
+                t0.at "X" . value_type . should_equal Value_Type.Mixed
+                r0 = t0.cast ["X"] Value_Type.Integer
+                w0 = Problems.expect_warning Conversion_Failure r0
+                w0.affected_rows_count . should_equal 4
+                r0.at "X" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
+
+                mixed_values = [1, 2.25, "3", "-45.25", "2.0", "X", Date.new 2020, Date_Time.new 2023 12 15 19 25, Time_Of_Day.new 12 30, My_Type.Value 42, True, Nothing, "True"]
+                t2 = table_builder [["super-mix", mixed_values]]
+                t2.at "super-mix" . value_type . should_equal Value_Type.Mixed
+
+                nulls n = Vector.fill n Nothing
+
+                c1 = t2.cast "super-mix" Value_Type.Integer . at "super-mix"
+                c1.value_type . should_equal Value_Type.Integer
+                # Texts are not parsed, since cast does not do Text->numeric.
+                c1.to_vector . should_equal ([1, 2] + (nulls 8) + [1, Nothing, Nothing])
+                w1 = Problems.expect_warning Conversion_Failure c1
+                w1.affected_rows_count . should_equal 9
+
+                c2 = t2.cast "super-mix" Value_Type.Float . at "super-mix"
+                c2.value_type . should_equal Value_Type.Float
+                c2.to_vector . should_equal ([1.0, 2.25] + (nulls 8) + [1.0, Nothing, Nothing])
+                w2 = Problems.expect_warning Conversion_Failure c2
+                w2.affected_rows_count . should_equal 9
+
+                c3 = t2.cast "super-mix" Value_Type.Char . at "super-mix"
+                c3.value_type . should_equal Value_Type.Char
+                date_time_str = Date_Time.new 2023 12 15 19 25 . to_text
+                c3.to_vector . should_equal ["1.0", "2.25", "3", "-45.25", "2.0", "X", "2020-01-01", date_time_str, "12:30:00", "{{{MY Type [x=42] }}}", "True", Nothing, "True"]
+                Problems.assume_no_problems c3
+
+                if setup.test_selection.fixed_length_text_columns then
+                    c3_2 = t2.cast "super-mix" (Value_Type.Char size=2) . at "super-mix"
+                    c3_2.value_type . should_equal (Value_Type.Char size=2)
+                    c3.to_vector . should_equal ["1.", "2.", "3", "-4", "2.", "X", "20", "20", "12", "{{", "Tr", Nothing, "Tr"]
+                    w3_2 = Problems.expect_warning Conversion_Failure c3_2
+                    w3_2.affected_rows_count . should_equal 10
+
+                c4 = t2.cast "super-mix" Value_Type.Boolean . at "super-mix"
+                c4.value_type . should_equal Value_Type.Boolean
+                c4.to_vector . should_equal ((nulls 10) + [True, Nothing, Nothing])
+                w4 = Problems.expect_warning Conversion_Failure c4
+                w4.affected_rows_count . should_equal 11
+
+                c5 = t2.cast "super-mix" Value_Type.Date . at "super-mix"
+                c5.to_vector . should_equal ((nulls 6) + [Date.new 2020, Date.new 2023 12 15, Nothing] + (nulls 4))
+                w5 = Problems.expect_warning Conversion_Failure c5
+                w5.affected_rows_count . should_equal 6+3+1
+
+                c6 = t2.cast "super-mix" Value_Type.Time . at "super-mix"
+                c6.to_vector . should_equal ((nulls 6) + [Nothing, Time_Of_Day.new 19 25, Time_Of_Day.new 12 30] + (nulls 4))
+                w6 = Problems.expect_warning Conversion_Failure c6
+                w6.affected_rows_count . should_equal 6+3+1
+
+                c7 = t2.cast "super-mix" Value_Type.Date_Time . at "super-mix"
+                c7.to_vector . should_equal ((nulls 6) + [Date_Time.new 2020, Date_Time.new 2023 12 15 19 25, Nothing] + (nulls 4))
+                w7 = Problems.expect_warning Conversion_Failure c7
+                w7.affected_rows_count . should_equal 6+3+1
 
     Test.group prefix+"Simple variant of Table/Column.parse in all backends" <|
         Test.specify "should be able to parse simple integers" <|

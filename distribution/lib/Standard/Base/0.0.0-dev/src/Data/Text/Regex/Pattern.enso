@@ -378,10 +378,10 @@ type Match_Iterator
 ## PRIVATE
 type Match_Iterator_Value
     ## PRIVATE
-    Next (filler : Span) (match : Match) (next_iterator : Match_Iterator)
+    Next (filler : Utf_16_Span) (match : Match) (next_iterator : Match_Iterator)
 
     ## PRIVATE
-    Last (filler : Span)
+    Last (filler : Utf_16_Span)
 
 ## PRIVATE
    Convert the polyglot map to a Map.

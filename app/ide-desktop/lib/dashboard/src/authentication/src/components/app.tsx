@@ -39,8 +39,7 @@ import * as router from 'react-router-dom'
 import * as toast from 'react-hot-toast'
 
 import * as authService from '../authentication/service'
-import * as localBackend from '../dashboard/localBackend'
-import * as platformModule from '../platform'
+import * as detect from '../detect'
 
 import * as authProvider from '../authentication/providers/auth'
 import * as backendProvider from '../providers/backend'
@@ -82,11 +81,15 @@ export const SET_USERNAME_PATH = '/set-username'
 /** Global configuration for the `App` component. */
 export interface AppProps {
     logger: loggerProvider.Logger
-    platform: platformModule.Platform
+    /** Whether the application may have the local backend running. */
+    supportsLocalBackend: boolean
+    /** Whether the application supports deep links. This is only true when using
+     * the installed app on macOS and Windows. */
+    supportsDeepLinks: boolean
     /** Whether the dashboard should be rendered. */
     showDashboard: boolean
     onAuthenticated: () => void
-    appRunner: AppRunner | null
+    appRunner: AppRunner
 }
 
 /** Component called by the parent module, returning the root React component for this
@@ -95,11 +98,9 @@ export interface AppProps {
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
 function App(props: AppProps) {
-    const { platform } = props
     // This is a React component even though it does not contain JSX.
     // eslint-disable-next-line no-restricted-syntax
-    const Router =
-        platform === platformModule.Platform.desktop ? router.MemoryRouter : router.BrowserRouter
+    const Router = detect.isRunningInElectron() ? router.MemoryRouter : router.BrowserRouter
     /** Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
      * will redirect the user between the login/register pages and the dashboard. */
     return (
@@ -122,8 +123,14 @@ function App(props: AppProps) {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
-    const { logger, platform, showDashboard, onAuthenticated } = props
+    const { logger, showDashboard, onAuthenticated } = props
     const navigate = router.useNavigate()
+    // FIXME[sb]: After platform detection for Electron is merged in, `IS_DEV_MODE` should be
+    // set to true on `ide watch`.
+    if (IS_DEV_MODE) {
+        // @ts-expect-error This is used exclusively for debugging.
+        window.navigate = navigate
+    }
     const mainPageUrl = new URL(window.location.href)
     const memoizedAuthService = react.useMemo(() => {
         const authConfig = { navigate, ...props }
@@ -164,20 +171,12 @@ function AppRouter(props: AppProps) {
                 userSession={userSession}
                 registerAuthEventListener={registerAuthEventListener}
             >
-                <backendProvider.BackendProvider
-                    initialBackend={
-                        platform === platformModule.Platform.desktop
-                            ? new localBackend.LocalBackend()
-                            : // This is UNSAFE. However, the backend will be set by the
-                              // authentication flow.
-                              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                              null!
-                    }
-                >
+                {/* This is safe, because the backend is always set by the authentication flow. */}
+                {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
+                <backendProvider.BackendProvider initialBackend={null!}>
                     <authProvider.AuthProvider
                         authService={memoizedAuthService}
                         onAuthenticated={onAuthenticated}
-                        platform={platform}
                     >
                         <modalProvider.ModalProvider>{routes}</modalProvider.ModalProvider>
                     </authProvider.AuthProvider>

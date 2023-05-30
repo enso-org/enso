@@ -5,13 +5,13 @@ import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Parse_Values_Helper
 from project.Errors import Conversion_Failure
 
-polyglot java import org.enso.table.data.column.operation.CastProblemBuilder
+polyglot java import org.enso.table.data.column.operation.cast.CastProblemBuilder
 
 ## PRIVATE
    Checks if one type can be cast into another and returns a dataflow error
    explaining the situation if not.
 check_cast_compatibility source_type target_type ~action =
-    are_compatible = if (target_type == Value_Type.Mixed) || target_type.is_text || (source_type == target_type) then True else
+    are_compatible = if (target_type == Value_Type.Mixed) || (source_type == Value_Type.Mixed) || target_type.is_text || (source_type == target_type) then True else
         if source_type.is_text && is_a_valid_parse_target target_type then Error.throw (Illegal_Argument.Error "To parse a text column into "+target_type.to_display_text+" type, `parse` should be used instead of `cast`.") else
             if source_type == Value_Type.Boolean then target_type.is_numeric else
                 if source_type.is_numeric then target_type.is_numeric else
@@ -46,9 +46,15 @@ type Cast_Problem_Builder
         builder = Vector.new_builder
         java_instance = self.to_java
 
-        lossy_conversion_rows = java_instance.getLossyConversionRowCount
+        lossy_conversion_rows = java_instance.getFailedConversionsCount
         if lossy_conversion_rows > 0 then
-            builder.append (Conversion_Failure.Error self.target_type self.column_name lossy_conversion_rows)
+            example_values = Vector.from_polyglot_array java_instance.getFailedConversionExamples
+            builder.append (Conversion_Failure.Error self.target_type self.column_name lossy_conversion_rows example_values)
+
+        text_too_long_rows = java_instance.getTextTooLongCount
+        if text_too_long_rows > 0 then
+            example_values = Vector.from_polyglot_array java_instance.getTextTooLongExamples
+            builder.append (Conversion_Failure.Text_Too_Long self.target_type self.column_name text_too_long_rows example_values)
 
         builder.to_vector
 

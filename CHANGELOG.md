@@ -172,6 +172,13 @@
   it is now referenced via the `Main` namespace instead of the project
   namespace,][6719] e.g. `Main.func1` instead of `MyProject.func1`. This makes
   it robust against project name changes.
+- [Added a button to return from an opened project back to the project
+  dashboard.][6474]
+- [Keyboard shortcuts for graph editing are now disabled when the full-screen
+  visualization is active.][6844]
+- [A loading animation is now shown when opening and creating projects][6827],
+  as the previous behaviour of showing a blank screen while the project was
+  being loaded was potentially confusing to users.
 
 [6279]: https://github.com/enso-org/enso/pull/6279
 [6421]: https://github.com/enso-org/enso/pull/6421
@@ -181,6 +188,9 @@
 [6663]: https://github.com/enso-org/enso/pull/6663
 [6752]: https://github.com/enso-org/enso/pull/6752
 [6719]: https://github.com/enso-org/enso/pull/6719
+[6474]: https://github.com/enso-org/enso/pull/6474
+[6844]: https://github.com/enso-org/enso/pull/6844
+[6827]: https://github.com/enso-org/enso/pull/6827
 
 #### EnsoGL (rendering engine)
 
@@ -234,6 +244,8 @@
 - [ToggleButtons can now have tooltips][6035].
 - [Rendering of tooltips was improved.][6097] Their text is now more vertically
   centered and the delay before showing them was extended.
+- [Accurate GPU performance measurements have been implemented][6595]. It is
+  possible now to track both the time spent on both the CPU and the GPU sides.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
@@ -246,6 +258,7 @@
 [6366]: https://github.com/enso-org/enso/pull/6366
 [6341]: https://github.com/enso-org/enso/pull/6341
 [6470]: https://github.com/enso-org/enso/pull/6470
+[6595]: https://github.com/enso-org/enso/pull/6595
 [6487]: https://github.com/enso-org/enso/pull/6487
 [6512]: https://github.com/enso-org/enso/pull/6512
 
@@ -781,6 +794,7 @@
 - [Limit number of reported warnings per value][6577]
 - [Suggestions are updated only when the type of the expression changes][6755]
 - [Add project creation time to project metadata][6780]
+- [Upgrade GraalVM to 22.3.1 JDK17][6750]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -891,6 +905,7 @@
 [6372]: https://github.com/enso-org/enso/pull/6372
 [6352]: https://github.com/enso-org/enso/pull/6352
 [6577]: https://github.com/enso-org/enso/pull/6577
+[6750]: https://github.com/enso-org/enso/pull/6750
 [6755]: https://github.com/enso-org/enso/pull/6755
 [6780]: https://github.com/enso-org/enso/pull/6780
 

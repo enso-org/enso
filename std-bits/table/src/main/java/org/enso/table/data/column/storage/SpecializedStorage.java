@@ -1,18 +1,14 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-import java.util.List;
-
-import org.enso.table.data.column.builder.object.StringBuilder;
-import org.enso.table.data.column.operation.CastProblemBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
-import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+
+import java.util.BitSet;
+import java.util.List;
 
 public abstract class SpecializedStorage<T> extends Storage<T> {
 
@@ -153,28 +149,5 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     }
 
     return newInstance(newData, newSize);
-  }
-
-  @Override
-  public Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
-    if (targetType == getType()) {
-      return this;
-    } else if (targetType instanceof AnyObjectType) {
-      return new MixedStorageFacade(this);
-    } else if (targetType instanceof TextType textType) {
-      int n = size();
-      StringBuilder builder = new StringBuilder(n);
-      for (int i = 0; i < n; i++) {
-        Object item = data[i];
-        if (item == null) {
-          builder.appendNulls(1);
-        } else {
-          builder.append(item.toString());
-        }
-      }
-      return StringStorage.adapt(builder.seal(), textType);
-    } else {
-      throw new IllegalStateException("Conversion of " + this.getClass().getSimpleName() + " to " + targetType + " is not supported");
-    }
   }
 }
