@@ -3,7 +3,7 @@ import Standard.Base.Data.List.Empty_Error
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Common.Not_Found
-import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Runtime.State
 
 from Standard.Test import Test, Test_Suite
@@ -131,7 +131,7 @@ spec = Test.group "List" <|
         txt.filter (Filter_Condition.Less than="a") . should_equal List.Nil
         txt.filter (Filter_Condition.Greater than="b") . should_equal ["bbb", "cccc", "baaa", "ś"].to_list
         txt.filter (Filter_Condition.Between "b" "c") . should_equal ["bbb", "baaa"].to_list
-        Test.expect_panic_with (txt.filter (Filter_Condition.Starts_With 42)) Type_Error
+        Test.expect_panic_with (txt.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types
 
         ["", Nothing, " ", "a"].to_list.filter (Filter_Condition.Is_Empty) . should_equal ["", Nothing].to_list
         ["", Nothing, " ", "a"].to_list.filter (Filter_Condition.Not_Empty) . should_equal [" ", "a"].to_list
