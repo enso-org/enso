@@ -317,7 +317,7 @@ object Runtime {
     /** A representation of a method call.
       *
       * @param methodPointer the method pointer of a call
-      * @param notAppliedArguments indexes of arguments that have not benn applied
+      * @param notAppliedArguments indexes of arguments that have not been applied
       * to this method
       */
     case class MethodCall(
