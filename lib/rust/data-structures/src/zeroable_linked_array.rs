@@ -23,13 +23,13 @@ derive_zeroable! {
     /// [`Self::push_zeroed`], which for big enough [`Self::N`] performs in O(1) time.
     #[derive(Debug, Derivative)]
     #[derivative(Default(bound = ""))]
-    pub struct ZeroableLinkedArrayRefCell[T, N][T, const N: usize] {
+    pub struct ZeroableLinkedArray[T, N][T, const N: usize] {
         size:          Cell<usize>,
         first_segment: InitCell<ZeroableOption<Segment<T, N>>>,
     }
 }
 
-impl<T: Default + Zeroable, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
+impl<T: Default + Zeroable, const N: usize> ZeroableLinkedArray<T, N> {
     /// Constructor.
     #[inline(always)]
     pub fn new() -> Self {
@@ -79,7 +79,7 @@ impl<T: Default + Zeroable, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
     }
 }
 
-impl<T: Zeroable, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
+impl<T: Zeroable, const N: usize> ZeroableLinkedArray<T, N> {
     #[inline(always)]
     fn init_first_segment(&self) {
         self.first_segment.init_if_empty(|| Segment::new());
@@ -121,7 +121,7 @@ impl<T: Zeroable, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
     }
 }
 
-// impl<T: Copy + Zeroable, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
+// impl<T: Copy + Zeroable, const N: usize> ZeroableLinkedArray<T, N> {
 //     /// Get the element at the given index.
 //     #[inline(always)]
 //     pub fn get(&self, index: usize) -> T {
@@ -130,7 +130,7 @@ impl<T: Zeroable, const N: usize> ZeroableLinkedArrayRefCell<T, N> {
 // }
 
 
-impl<T: Zeroable, const N: usize> Index<usize> for ZeroableLinkedArrayRefCell<T, N> {
+impl<T: Zeroable, const N: usize> Index<usize> for ZeroableLinkedArray<T, N> {
     type Output = T;
     #[inline(always)]
     fn index(&self, offset: usize) -> &Self::Output {
@@ -138,7 +138,7 @@ impl<T: Zeroable, const N: usize> Index<usize> for ZeroableLinkedArrayRefCell<T,
     }
 }
 
-impl<T: Zeroable, const N: usize> IndexMut<usize> for ZeroableLinkedArrayRefCell<T, N> {
+impl<T: Zeroable, const N: usize> IndexMut<usize> for ZeroableLinkedArray<T, N> {
     #[inline(always)]
     fn index_mut(&mut self, offset: usize) -> &mut Self::Output {
         self.get_or_init_first_segment_mut().index_mut(offset)
@@ -170,7 +170,7 @@ impl<'a, T, const N: usize> Iterator for Iter<'a, T, N> {
     }
 }
 
-impl<'a, T: Zeroable, const N: usize> IntoIterator for &'a ZeroableLinkedArrayRefCell<T, N> {
+impl<'a, T: Zeroable, const N: usize> IntoIterator for &'a ZeroableLinkedArray<T, N> {
     type Item = &'a T;
     type IntoIter = Iter<'a, T, N>;
 
@@ -413,7 +413,7 @@ mod tests2 {
 
     #[test]
     fn test_push() {
-        let array = ZeroableLinkedArrayRefCell::<usize, 2>::new();
+        let array = ZeroableLinkedArray::<usize, 2>::new();
         array.push(1);
         assert_eq!(&array.to_vec(), &[1]);
         array.push(2);
@@ -428,7 +428,7 @@ mod tests2 {
 
     #[test]
     fn test_retain() {
-        let mut array = ZeroableLinkedArrayRefCell::<usize, 2>::new();
+        let mut array = ZeroableLinkedArray::<usize, 2>::new();
         array.push(1);
         array.push(2);
         array.push(3);
