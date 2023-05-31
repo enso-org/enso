@@ -931,25 +931,15 @@ type Integer
                 remainder = self % scale
                 scaled_down = self.div scale
                 result_unnudged = scaled_down * scale
-                case use_bankers of
-                    False ->
-                        case self >= 0 of
-                            True ->
-                                should_nudge = remainder >= halfway
-                                if should_nudge  then result_unnudged + scale else result_unnudged
-                            False ->
-                                should_nudge = remainder < -halfway
-                                if should_nudge then result_unnudged - scale else result_unnudged
+                case self >= 0 of
                     True ->
-                        case self >= 0 of
-                            True ->
-                                half_goes_up = (scaled_down % 2) != 0
-                                should_nudge = if half_goes_up then remainder >= halfway else remainder > halfway
-                                if should_nudge  then result_unnudged + scale else result_unnudged
-                            False ->
-                                half_goes_up = (scaled_down % 2) == 0
-                                should_nudge = if half_goes_up then remainder < -halfway else remainder <= -halfway
-                                if should_nudge then result_unnudged - scale else result_unnudged
+                        half_goes_up = if use_bankers then (scaled_down % 2) != 0 else True
+                        should_nudge = if half_goes_up then remainder >= halfway else remainder > halfway
+                        if should_nudge  then result_unnudged + scale else result_unnudged
+                    False ->
+                        half_goes_up = if use_bankers then (scaled_down % 2) == 0 else True
+                        should_nudge = if half_goes_up then remainder < -halfway else remainder <= -halfway
+                        if should_nudge then result_unnudged - scale else result_unnudged
 
     ## Compute the negation of this.
 
