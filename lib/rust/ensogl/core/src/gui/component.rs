@@ -241,40 +241,25 @@ impl<S: Shape> display::Object for ShapeView<S> {
 // We use type bounds here, because Drop implementation requires them
 #[derive(Debug)]
 struct WidgetData<Model: 'static, Frp: 'static> {
-    app:            Application,
     display_object: display::object::Instance,
-    frp:            mem::ManuallyDrop<Frp>,
-    model:          mem::ManuallyDrop<Rc<Model>>,
+    frp:            Frp,
+    model:          Rc<Model>,
 }
 
 impl<Model: 'static, Frp: 'static> WidgetData<Model, Frp> {
     pub fn new(
-        app: &Application,
+        _app: &Application,
         frp: Frp,
         model: Rc<Model>,
         display_object: display::object::Instance,
     ) -> Self {
-        Self {
-            app: app.clone_ref(),
-            display_object,
-            frp: mem::ManuallyDrop::new(frp),
-            model: mem::ManuallyDrop::new(model),
-        }
+        Self { display_object, frp, model }
     }
 }
 
 impl<Model: 'static, Frp: 'static> Drop for WidgetData<Model, Frp> {
     fn drop(&mut self) {
         self.display_object.unset_parent();
-        // Taking the value from `ManuallyDrop` requires us to not use it anymore.
-        // This is clearly the case, because the structure will be soon dropped anyway.
-        #[allow(unsafe_code)]
-        unsafe {
-            let frp = mem::ManuallyDrop::take(&mut self.frp);
-            let model = mem::ManuallyDrop::take(&mut self.model);
-            self.app.display.collect_garbage(frp);
-            self.app.display.collect_garbage(model);
-        }
     }
 }
 
@@ -332,13 +317,6 @@ impl<Model: 'static, Frp: 'static> Widget<Model, Frp> {
     /// Get the Model structure.
     pub fn model(&self) -> &Model {
         &self.data.model
-    }
-
-    /// Reference to the application the Widget belongs to. It's required for handling model and
-    /// FRP garbage collection, but also may be helpful when, for example, implementing
-    /// `application::View`.
-    pub fn app(&self) -> &Application {
-        &self.data.app
     }
 }
 
