@@ -550,7 +550,7 @@ type Table
     ## Adds a new column to the table enumerating the rows.
 
        Arguments:
-       - name: The name of the new column.
+       - name: The name of the new column. Defaults to "Row".
        - from: The starting value for the enumeration. Defaults to 1.
        - step: The amount to increment the enumeration by. Defaults to 1.
        - group_by: Specifies the columns to group by. The row numbers are
