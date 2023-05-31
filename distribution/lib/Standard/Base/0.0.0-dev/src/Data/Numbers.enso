@@ -931,30 +931,24 @@ type Integer
             check_decimal_places decimal_places <| check_round_input self <|
                 scale = 10 ^ (-decimal_places)
                 halfway = scale.div 2
+                remainder = self % scale
+                result_unnudged = (self.div scale) * scale
                 case use_bankers of
                     False ->
                         case self >= 0 of
                             True ->
-                                remainder = self % scale
-                                result_unnudged = (self.div scale) * scale
                                 should_nudge = remainder >= halfway
                                 if should_nudge  then result_unnudged + scale else result_unnudged
                             False ->
-                                remainder = self % scale
-                                result_unnudged = (self.div scale) * scale
                                 should_nudge = remainder < (-halfway)
                                 if should_nudge then result_unnudged - scale else result_unnudged
                     True ->
                         case self >= 0 of
                             True ->
-                                remainder = self % scale
-                                result_unnudged = (self.div scale) * scale
                                 half_goes_down = ((self.div scale) % 2) == 0
                                 should_nudge = if half_goes_down then remainder > halfway else remainder >= halfway
                                 if should_nudge  then result_unnudged + scale else result_unnudged
                             False ->
-                                remainder = self % scale
-                                result_unnudged = (self.div scale) * scale
                                 half_goes_up = ((self.div scale) % 2) == 0
                                 should_nudge = if half_goes_up then remainder < (-halfway) else remainder <= (-halfway)
                                 if should_nudge then result_unnudged - scale else result_unnudged
