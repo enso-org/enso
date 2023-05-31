@@ -932,7 +932,8 @@ type Integer
                 scale = 10 ^ (-decimal_places)
                 halfway = scale.div 2
                 remainder = self % scale
-                result_unnudged = (self.div scale) * scale
+                scaled_down = self.div scale
+                result_unnudged = scaled_down * scale
                 case use_bankers of
                     False ->
                         case self >= 0 of
@@ -945,11 +946,11 @@ type Integer
                     True ->
                         case self >= 0 of
                             True ->
-                                half_goes_down = ((self.div scale) % 2) == 0
+                                half_goes_down = (scaled_down % 2) == 0
                                 should_nudge = if half_goes_down then remainder > halfway else remainder >= halfway
                                 if should_nudge  then result_unnudged + scale else result_unnudged
                             False ->
-                                half_goes_up = ((self.div scale) % 2) == 0
+                                half_goes_up = (scaled_down % 2) == 0
                                 should_nudge = if half_goes_up then remainder < (-halfway) else remainder <= (-halfway)
                                 if should_nudge then result_unnudged - scale else result_unnudged
 
