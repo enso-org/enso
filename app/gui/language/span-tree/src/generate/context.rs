@@ -13,6 +13,8 @@ use ast::Id;
 /// Additional information available on nodes that are an invocation of a known methods.
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct CalledMethodInfo {
+    /// The ID of resolved suggestion entry for this method call, if any.
+    pub suggestion_id:  Option<usize>,
     /// Whether or not this call represents a static method.
     pub is_static:      bool,
     /// Whether or not this call represents a constructor.
@@ -24,8 +26,11 @@ pub struct CalledMethodInfo {
     pub called_on_type: Option<bool>,
     /// Information about arguments taken by a called method.
     pub parameters:     Vec<ArgumentInfo>,
+    /// Name of an icon to display on node when this is its main method call, in PascalCase.
+    pub icon_name:      Option<ImString>,
 }
 
+#[allow(missing_docs)]
 impl CalledMethodInfo {
     /// Assign call and target expression IDs to all parameters.
     pub fn with_call_id(mut self, call_id: Option<Id>) -> Self {
@@ -35,7 +40,11 @@ impl CalledMethodInfo {
         self
     }
 
-    /// Add information whether this method was called on .
+    pub fn with_suggestion_id(mut self, suggestion_id: usize) -> Self {
+        self.suggestion_id = Some(suggestion_id);
+        self
+    }
+
     pub fn with_called_on_type(mut self, called_on_type: bool) -> Self {
         self.called_on_type = Some(called_on_type);
         self
@@ -59,7 +68,7 @@ pub trait Context {
     ///
     /// Trait implementors may used it to filter-out results, however they are not required to do
     /// so. Caller should not assume that the called method has the same name as given identifier.
-    fn call_info(&self, id: Id, name: Option<&str>) -> Option<CalledMethodInfo>;
+    fn call_info(&self, id: Id) -> Option<CalledMethodInfo>;
 }
 
 
@@ -73,7 +82,7 @@ pub trait Context {
 pub struct Empty;
 
 impl Context for Empty {
-    fn call_info(&self, _id: Id, _name: Option<&str>) -> Option<CalledMethodInfo> {
+    fn call_info(&self, _id: Id) -> Option<CalledMethodInfo> {
         None
     }
 }

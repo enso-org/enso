@@ -11,7 +11,6 @@ use span_tree::*;
 use wasm_bindgen::prelude::*;
 
 use enso_web as web;
-use span_tree::builder::Builder;
 use span_tree::node;
 use span_tree::node::InsertionPointType;
 use uuid::Uuid;
@@ -25,7 +24,7 @@ pub fn main() {
     let val = ast::crumbs::SegmentMatchCrumb::Body { val: pattern_cr };
     let parens_cr1 = ast::crumbs::MatchCrumb::Segs { val: val.clone(), index: 0 };
     let parens_cr = ast::crumbs::MatchCrumb::Segs { val, index: 0 };
-    let _input_span_tree = builder::TreeBuilder::<()>::new(36)
+    let _input_span_tree = builder::TreeBuilder::new(36)
         .add_child(0, 14, node::Kind::chained(), PrefixCrumb::Func)
         .add_child(0, 9, node::Kind::Operation, PrefixCrumb::Func)
         .set_ast_id(Uuid::new_v4())

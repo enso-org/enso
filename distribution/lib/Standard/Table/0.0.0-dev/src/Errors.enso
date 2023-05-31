@@ -241,7 +241,7 @@ type Unquoted_Characters_In_Output
 ## Indicates that a specified location was not valid.
 type Invalid_Location
     ## PRIVATE
-    Error (location:Text)
+    Error (location : Text | Any)
 
     ## PRIVATE
        Pretty print the invalid location error.
@@ -259,7 +259,7 @@ type Invalid_Location
      format.
 type Invalid_Format
     ## PRIVATE
-    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean) (cells:[Text])
+    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean|Any) (cells:[Text])
 
     ## PRIVATE
        Pretty print the invalid format error.
@@ -448,7 +448,7 @@ type Invalid_JSON_Format
 type Column_Type_Mismatch
     ## PRIVATE
        An error indicating a mismatch of column types of merged columns.
-    Error (column_name : Text) (expected_type : Text) (got_type : Text)
+    Error (column_name : Text) (expected_type : Text | Any) (got_type : Text | Any)
 
     ## PRIVATE
 

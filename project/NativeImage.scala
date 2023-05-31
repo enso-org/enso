@@ -16,6 +16,29 @@ object NativeImage {
     */
   private val includeDebugInfo: Boolean = false
 
+  /** List of classes that should be initialized at build time by the native image.
+    * Note that we strive to initialize as much classes during the native image build
+    * time as possible, as this reduces the time needed to start the native image.
+    * One wildcard could theoretically be used instead of the list, but to make things
+    * more explicit, we use the list.
+    */
+  private val defaultBuildTimeInitClasses = Seq(
+    "org",
+    "org.enso",
+    "scala",
+    "java",
+    "sun",
+    "cats",
+    "io",
+    "shapeless",
+    "com",
+    "izumi",
+    "zio",
+    "enumeratum",
+    "akka",
+    "nl"
+  )
+
   /** Creates a task that builds a native image for the current project.
     *
     * This task must be setup in such a way that the assembly JAR is built
@@ -42,6 +65,8 @@ object NativeImage {
     * @param initializeAtRuntime a list of classes that should be initialized at
     *                            run time - useful to set exceptions if build
     *                            time initialization is set to default
+    * @param initializeAtBuildtime a list of classes that should be initialized at
+    *                              build time.
     */
   def buildNativeImage(
     artifactName: String,
@@ -50,6 +75,7 @@ object NativeImage {
     buildMemoryLimitMegabytes: Option[Int]   = Some(15608),
     runtimeThreadStackMegabytes: Option[Int] = Some(2),
     initializeAtRuntime: Seq[String]         = Seq.empty,
+    initializeAtBuildtime: Seq[String]       = defaultBuildTimeInitClasses,
     mainClass: Option[String]                = None,
     cp: Option[String]                       = None
   ): Def.Initialize[Task[Unit]] = Def
@@ -110,6 +136,13 @@ object NativeImage {
       val runtimeMemoryOptions =
         runtimeThreadStackMegabytes.map(megs => s"-R:StackSize=${megs}M").toSeq
 
+      val initializeAtBuildtimeOptions =
+        if (initializeAtBuildtime.isEmpty) Seq()
+        else {
+          val classes = initializeAtBuildtime.mkString(",")
+          Seq(s"--initialize-at-build-time=$classes")
+        }
+
       val initializeAtRuntimeOptions =
         if (initializeAtRuntime.isEmpty) Seq()
         else {
@@ -122,7 +155,7 @@ object NativeImage {
         quickBuildOption ++
         debugParameters ++ staticParameters ++ configs ++
         Seq("--no-fallback", "--no-server") ++
-        Seq("--initialize-at-build-time=") ++
+        initializeAtBuildtimeOptions ++
         initializeAtRuntimeOptions ++
         buildMemoryLimitOptions ++
         runtimeMemoryOptions ++

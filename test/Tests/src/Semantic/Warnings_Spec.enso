@@ -87,6 +87,13 @@ throw_a_bar =
 
 Any.is_static_nothing self x = x.is_nothing
 
+do_fold_tail v =
+    v.fold 0 (+)
+
+do_fold_non_tail v =
+    res = v.fold 0 (+)
+    res
+
 spec = Test.group "Dataflow Warnings" <|
     Test.specify "should allow to attach multiple warnings and read them back" <|
         x = 1233
@@ -418,5 +425,16 @@ spec = Test.group "Dataflow Warnings" <|
         vec_2 = (0.up_to 500).map(e -> if (e < 30) then Warning.attach "Foo!" e else (warn + e))
         Warning.get_all vec_2 . length . should_equal 31
         Warning.limit_reached vec_2 . should_equal False
+
+    Test.specify "should preserve warnings in tail calls" <|
+        v = Warning.attach "Foo" [1, 2, 3]
+
+        result_tail = do_fold_tail v
+        result_tail . should_equal 6
+        Warning.get_all result_tail . map .value . should_equal ["Foo"]
+
+        result_non_tail = do_fold_non_tail v
+        result_non_tail . should_equal 6
+        Warning.get_all result_non_tail . map .value . should_equal ["Foo"]
 
 main = Test_Suite.run_main spec

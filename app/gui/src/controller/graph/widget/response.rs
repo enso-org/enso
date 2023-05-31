@@ -14,25 +14,7 @@ use ide_view::graph_editor::component::node::input::widget;
 /// A top level object received from the widget visualization, which contains widget definitions for
 /// all arguments of a single Enso method. Configurations are paired with the name of function
 /// argument they are associated with.
-pub(super) type WidgetDefinitions<'a> = Vec<(Cow<'a, str>, FallableWidgetDefinition<'a>)>;
-
-/// A wrapper type that allows deserialization of a widget definitions to partially fail: failure
-/// message of individual widget definition deserialization will be preserved and deserialization
-/// will continue.
-#[derive(Debug)]
-pub(super) struct FallableWidgetDefinition<'a> {
-    pub(super) widget: FallibleResult<Option<WidgetDefinition<'a>>>,
-}
-
-impl<'de: 'a, 'a> serde::Deserialize<'de> for FallableWidgetDefinition<'a> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where D: serde::Deserializer<'de> {
-        let widget = <Option<WidgetDefinition>>::deserialize(deserializer)
-            .map_err(|e| failure::err_msg(e.to_string()));
-        Ok(Self { widget })
-    }
-}
-
+pub(super) type WidgetDefinitions<'a> = Vec<Argument<'a>>;
 
 
 // ========================
@@ -138,9 +120,41 @@ pub enum Display {
 #[derive(Debug, serde::Deserialize)]
 pub(super) struct Choice<'a> {
     /// The value of the choice. Must be a valid Enso expression.
-    pub value: Cow<'a, str>,
+    #[serde(borrow)]
+    pub value:      Cow<'a, str>,
     /// Custom label to display in the dropdown. If not provided, IDE will create a label based on
     /// value.
     #[serde(borrow)]
-    pub label: Option<Cow<'a, str>>,
+    pub label:      Option<Cow<'a, str>>,
+    /// A list of widget overrides for nested arguments within this choice's expression.
+    #[serde(borrow, default)]
+    pub parameters: Vec<Argument<'a>>,
+}
+
+/// Widget data for single function argument. The engine usually serializes it as an tuple array of
+/// argument name and widget definition, but sometimes it is incorrectly represented as a Tuple type
+/// constructor, so for now we have to support deserializing both formats.
+#[derive(Debug, serde::Deserialize)]
+pub(super) struct Argument<'a> {
+    #[serde(alias = "first")]
+    pub name: Cow<'a, str>,
+    #[serde(borrow, alias = "second")]
+    pub data: FallableWidgetDefinition<'a>,
+}
+
+/// A wrapper type that allows deserialization of a widget definitions to partially fail: failure
+/// message of individual widget definition deserialization will be preserved and deserialization
+/// will continue.
+#[derive(Debug)]
+pub(super) struct FallableWidgetDefinition<'a> {
+    pub(super) widget: FallibleResult<Option<WidgetDefinition<'a>>>,
+}
+
+impl<'de: 'a, 'a> serde::Deserialize<'de> for FallableWidgetDefinition<'a> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where D: serde::Deserializer<'de> {
+        let widget = <Option<WidgetDefinition>>::deserialize(deserializer)
+            .map_err(|e| failure::err_msg(e.to_string()));
+        Ok(Self { widget })
+    }
 }

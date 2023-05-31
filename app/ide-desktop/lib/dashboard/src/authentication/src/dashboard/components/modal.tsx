@@ -27,7 +27,8 @@ function Modal(props: ModalProps) {
                 centered ? 'fixed w-screen h-screen grid place-items-center ' : ''
             }${className ?? ''}`}
             onClick={event => {
-                if (event.currentTarget === event.target) {
+                if (event.currentTarget === event.target && getSelection()?.type !== 'Range') {
+                    event.stopPropagation()
                     unsetModal()
                 }
             }}

@@ -528,7 +528,7 @@ impl View {
 
             node_editing_finished <- graph.node_editing_finished.gate(&frp.is_searcher_opened);
             committed_in_searcher <-
-                grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, Some(entry)));
+                grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, entry));
             aborted_in_searcher <- frp.close_searcher.map2(&last_searcher, |(), &s| s.input);
             frp.source.editing_committed <+ committed_in_searcher;
             frp.source.editing_committed <+ node_editing_finished.map(|id| (*id,None));
