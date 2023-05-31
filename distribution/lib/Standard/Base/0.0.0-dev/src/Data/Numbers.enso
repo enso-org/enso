@@ -929,7 +929,7 @@ type Integer
            negative, the value is unchanged.
         if decimal_places >= 0 then self else
             check_decimal_places decimal_places <| check_round_input self <|
-                scale = 10 ^ (-decimal_places)
+                scale = 10 ^ -decimal_places
                 halfway = scale.div 2
                 remainder = self % scale
                 scaled_down = self.div scale
