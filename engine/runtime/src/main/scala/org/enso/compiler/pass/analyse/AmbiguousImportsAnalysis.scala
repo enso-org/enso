@@ -5,9 +5,11 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
 import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 /** A pass that checks for ambiguous (duplicated) symbols from imports. For every encountered
   * imported symbol that has already been imported before, the pass replaces the import with
@@ -71,6 +73,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
     bindingMap: BindingsMap,
     encounteredSymbols: EncounteredSymbols
   ): List[IR.Module.Scope.Import] = {
+    println(s"Analyzing ambiguous symbols in '${imp.showCode()}'")
     imp match {
       // Import multiple symbols
       case moduleImport @ IR.Module.Scope.Import.Module(
@@ -84,16 +87,14 @@ case object AmbiguousImportsAnalysis extends IRPass {
             _,
             _
           ) =>
-        onlyNames.flatMap(symbol => {
+        onlyNames.map(symbol => {
           tryAddEncounteredSymbol(
             module,
+            bindingMap,
             encounteredSymbols,
             moduleImport,
             symbol.name
-          ) match {
-            case Some(irError) => List(irError)
-            case None          => List(moduleImport)
-          }
+          )
         })
 
       // Import all symbols
@@ -108,24 +109,43 @@ case object AmbiguousImportsAnalysis extends IRPass {
             _,
             _
           ) =>
-        bindingMap.resolvedImports.find(_.importDef == moduleImport) match {
-          case Some(resolvedImport) =>
-            val symbolsFromImport =
-              resolvedImport.target.exportedSymbols.keySet
-            val encounteredErrors: List[IR.Error.ImportExport] =
-              symbolsFromImport.toList.flatMap(symbol => {
-                tryAddEncounteredSymbol(
-                  module,
-                  encounteredSymbols,
-                  moduleImport,
-                  symbol
-                )
-              })
-            if (encounteredErrors.nonEmpty) {
-              encounteredErrors
-            } else {
-              List(moduleImport)
+        getImportTarget(moduleImport, bindingMap) match {
+          case Some(importTarget) =>
+            importTarget match {
+              case resolvedModule: BindingsMap.ResolvedModule =>
+                val encounteredErrors: ListBuffer[IR.Error.ImportExport] =
+                  ListBuffer()
+                resolvedModule.exportedSymbols.foreach {
+                  case (symbolName, resolvedNames) =>
+                    if (resolvedNames.size > 1) {
+                      // TODO: Report IR.Error.ImportExport ?
+                      // Should be handled by other compiler passes
+                      throw new CompilerError(
+                        s"Ambiguous import of $symbolName"
+                      )
+                    } else {
+                      tryAddEncounteredSymbol(
+                        module,
+                        bindingMap,
+                        encounteredSymbols,
+                        moduleImport,
+                        symbolName
+                      ) match {
+                        case irError: IR.Error.ImportExport =>
+                          encounteredErrors += irError
+                        case _ => ()
+                      }
+                    }
+                }
+                if (encounteredErrors.nonEmpty) {
+                  encounteredErrors.toList
+                } else {
+                  List(moduleImport)
+                }
+              case BindingsMap.ResolvedType(_, _) =>
+                throw new CompilerError("ResolvedType not yet supported")
             }
+
           case None =>
             List(moduleImport)
         }
@@ -142,15 +162,15 @@ case object AmbiguousImportsAnalysis extends IRPass {
             _,
             _
           ) =>
-        tryAddEncounteredSymbol(
-          module,
-          encounteredSymbols,
-          moduleImport,
-          rename.name
-        ) match {
-          case Some(irError) => List(irError)
-          case None          => List(moduleImport)
-        }
+        List(
+          tryAddEncounteredSymbol(
+            module,
+            bindingMap,
+            encounteredSymbols,
+            moduleImport,
+            rename.name
+          )
+        )
 
       // Import one symbol
       case moduleImport @ IR.Module.Scope.Import.Module(
@@ -164,54 +184,127 @@ case object AmbiguousImportsAnalysis extends IRPass {
             _,
             _
           ) =>
-        tryAddEncounteredSymbol(
-          module,
-          encounteredSymbols,
-          moduleImport,
-          symbolName.parts.last.name
-        ) match {
-          case Some(irError) => List(irError)
-          case None          => List(moduleImport)
-        }
+        List(
+          tryAddEncounteredSymbol(
+            module,
+            bindingMap,
+            encounteredSymbols,
+            moduleImport,
+            symbolName.parts.last.name
+          )
+        )
 
-      case polyImport @ Import.Polyglot(_, rename, _, _, _) =>
+      case polyImport @ Import.Polyglot(entity, rename, _, _, _) =>
         val symbolName = rename match {
           case Some(rename) => rename
-          case None         => polyImport.entity.getVisibleName
+          case None         => entity.getVisibleName
         }
-        tryAddEncounteredSymbol(
-          module,
-          encounteredSymbols,
-          polyImport,
-          symbolName
-        ) match {
-          case Some(irError) => List(irError)
-          case None          => List(polyImport)
+        encounteredSymbols.getOriginalImportForSymbol(symbolName) match {
+          case Some(originalImport) =>
+            originalImport match {
+              case IR.Module.Scope.Import.Polyglot(
+                    originalEntity,
+                    _,
+                    _,
+                    _,
+                    _
+                  ) =>
+                if (entity.getVisibleName == originalEntity.getVisibleName) {
+                  // Same symbol, same entity --> attach duplicated import warning
+                  val warn =
+                    createWarningForDuplicatedImport(
+                      module,
+                      originalImport,
+                      polyImport,
+                      symbolName
+                    )
+                  List(polyImport.addDiagnostic(warn))
+                } else {
+                  // Same symbol, different entity --> generate error
+                  List(
+                    createErrorForAmbiguousImport(
+                      module,
+                      originalImport,
+                      polyImport,
+                      symbolName
+                    )
+                  )
+                }
+              case _ =>
+                // originalImport is a different type than Import.Polyglot, which means that
+                // symbolName already points to a different object than a polyglot entity.
+                // This is an error.
+                List(
+                  createErrorForAmbiguousImport(
+                    module,
+                    originalImport,
+                    polyImport,
+                    symbolName
+                  )
+                )
+            }
+          case None =>
+            encounteredSymbols.addSymbol(polyImport, symbolName, None)
+            List(polyImport)
         }
 
       case _ => List(imp)
     }
   }
 
+  private def getImportTarget(
+    imp: IR.Module.Scope.Import,
+    bindingMap: BindingsMap
+  ): Option[BindingsMap.ImportTarget] = {
+    bindingMap.resolvedImports.find(_.importDef == imp) match {
+      case Some(resolvedImport) =>
+        Some(resolvedImport.target)
+      case None =>
+        None
+    }
+  }
+
   private def tryAddEncounteredSymbol(
     module: Module,
+    bindingMap: BindingsMap,
     encounteredSymbols: EncounteredSymbols,
     currentImport: IR.Module.Scope.Import,
-    symbol: String
-  ): Option[IR.Error.ImportExport] = {
-    encounteredSymbols.getOriginalImportForSymbol(symbol) match {
-      case Some(definingImport) =>
-        Some(
-          createErrorForAmbiguousImport(
-            module,
-            definingImport,
-            currentImport,
-            symbol
-          )
-        )
+    symbolName: String
+  ): IR.Module.Scope.Import = {
+    getImportTarget(currentImport, bindingMap) match {
+      case Some(resolvedName) =>
+        encounteredSymbols.getResolvedNameForSymbol(symbolName) match {
+          case Some(encounteredResolvedName) =>
+            if (encounteredResolvedName == resolvedName) {
+              // It is a duplicate --> create a warning
+              val warn =
+                createWarningForDuplicatedImport(
+                  module,
+                  encounteredSymbols.getOriginalImportForSymbol(symbolName).get,
+                  currentImport,
+                  symbolName
+                )
+              currentImport.addDiagnostic(warn)
+            } else {
+              createErrorForAmbiguousImport(
+                module,
+                encounteredSymbols.getOriginalImportForSymbol(symbolName).get,
+                currentImport,
+                symbolName
+              )
+            }
+          case None =>
+            encounteredSymbols.addSymbol(
+              currentImport,
+              symbolName,
+              Some(resolvedName)
+            )
+            currentImport
+        }
+
       case None =>
-        encounteredSymbols.addSymbol(currentImport, symbol)
-        None
+        encounteredSymbols.addSymbol(currentImport, symbolName, None)
+        currentImport
     }
   }
 
@@ -221,6 +314,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
     duplicatingImport: IR.Module.Scope.Import,
     ambiguousSymbol: String
   ): IR.Error.ImportExport = {
+    println(s"Creating error for ambiguous import of $ambiguousSymbol")
     IR.Error.ImportExport(
       duplicatingImport,
       IR.Error.ImportExport.AmbiguousImport(
@@ -231,17 +325,52 @@ case object AmbiguousImportsAnalysis extends IRPass {
     )
   }
 
+  private def createWarningForDuplicatedImport(
+    module: Module,
+    originalImport: IR.Module.Scope.Import,
+    duplicatingImport: IR.Module.Scope.Import,
+    duplicatedSymbol: String
+  ): IR.Warning = {
+    println(s"Creating warning for duplicated import of $duplicatedSymbol")
+    IR.Warning.DuplicatedImport(
+      duplicatingImport.location,
+      originalImport,
+      duplicatedSymbol,
+      module.getSource
+    )
+  }
+
   private class EncounteredSymbols(
     private val encounteredSymbols: mutable.Map[
       String,
-      IR.Module.Scope.Import
+      (IR.Module.Scope.Import, Option[BindingsMap.ResolvedName])
     ] = mutable.HashMap.empty
   ) {
+
+    /** @param imp Import where the symbol is located
+      */
     def addSymbol(
       imp: IR.Module.Scope.Import,
-      symbol: String
+      symbol: String,
+      resolvedName: Option[BindingsMap.ResolvedName]
     ): Unit = {
-      encounteredSymbols.put(symbol, imp)
+      println(s"Adding symbol $symbol to encountered symbols")
+      encounteredSymbols.put(symbol, (imp, resolvedName))
+      debugPrint()
+    }
+
+    def getResolvedNameForSymbol(
+      symbol: String
+    ): Option[BindingsMap.ResolvedName] = {
+      print(s"Getting resolved name for symbol $symbol: ")
+      encounteredSymbols.get(symbol) match {
+        case Some((_, resolvedName)) =>
+          println(s"Found resolved name $resolvedName")
+          resolvedName
+        case None =>
+          println("No resolved name found")
+          None
+      }
     }
 
     /** Returns the original import from which the symbol was imported, if any.
@@ -249,7 +378,36 @@ case object AmbiguousImportsAnalysis extends IRPass {
     def getOriginalImportForSymbol(
       symbol: String
     ): Option[IR.Module.Scope.Import] = {
-      encounteredSymbols.get(symbol)
+      encounteredSymbols.get(symbol) match {
+        case Some((originalImport, _)) => Some(originalImport)
+        case None                      => None
+      }
+    }
+
+    def debugPrint(): Unit = {
+      println("Encountered symbols:")
+      encounteredSymbols.foreach { case (symbol, (imp, resolvedNameOpt)) =>
+        val resolvedNameRepr = resolvedNameOpt match {
+          case Some(resolvedName) =>
+            resolvedName match {
+              case BindingsMap.ResolvedType(_, tp) =>
+                s"ResolvedType(${tp.name})"
+              case BindingsMap.ResolvedConstructor(_, cons) =>
+                s"ResolvedConstructor(${cons.name})"
+              case BindingsMap.ResolvedModule(module) =>
+                s"ResolvedModule(${module.getName})"
+              case BindingsMap.ResolvedMethod(_, method) =>
+                s"ResolvedMethod(${method.name})"
+              case BindingsMap.ResolvedPolyglotSymbol(module, symbol) =>
+                s"ResolvedPolyglotSymbol(${module.getName}, ${symbol})"
+            }
+          case None => "None"
+        }
+        val impRepr = "'" + imp.showCode() + "'"
+        println(
+          s"  $symbol: importDef = $impRepr, resolvedName = $resolvedNameRepr"
+        )
+      }
     }
   }
 }

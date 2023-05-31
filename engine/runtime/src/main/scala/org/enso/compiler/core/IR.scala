@@ -198,6 +198,20 @@ object IR {
     " " * n
   }
 
+  private def fileLocationFromSection(
+    loc: IR.IdentifiedLocation,
+    source: Source
+  ): String = {
+    val section =
+      source.createSection(loc.location.start, loc.location.length)
+    val locStr =
+      "" + section.getStartLine + ":" +
+      section.getStartColumn + "-" +
+      section.getEndLine + ":" +
+      section.getEndColumn
+    source.getName + "[" + locStr + "]"
+  }
+
   /** The size of a single indentation level. */
   val indentLevel: Int = 4
 
@@ -6999,6 +7013,25 @@ object IR {
       }
     }
 
+    case class DuplicatedImport(
+      override val location: Option[IdentifiedLocation],
+      originalImport: IR.Module.Scope.Import,
+      symbolName: String,
+      source: Source
+    ) extends Warning {
+      override def message: String = {
+        val originalImportRepr =
+          originalImport.location match {
+            case Some(location) =>
+              s"'${originalImport.showCode()}' in ${fileLocationFromSection(location, source)}"
+            case None => originalImport.showCode()
+          }
+        s"Duplicated import of $symbolName. The original import is ${originalImportRepr}."
+      }
+
+      override def diagnosticKeys(): Array[Any] = Array()
+    }
+
     /** A warning about a `@Tail_Call` annotation placed in a non-tail
       * position.
       * @param location the location of the annotated application
@@ -8831,19 +8864,6 @@ object IR {
           s"Ambiguous imported symbol '${symbolName}' in import statement. The original import is ${originalImportRepr}"
         }
 
-        private def fileLocationFromSection(
-          loc: IR.IdentifiedLocation,
-          source: Source
-        ): String = {
-          val section =
-            source.createSection(loc.location.start, loc.location.length)
-          val locStr =
-            "" + section.getStartLine + ":" +
-            section.getStartColumn + "-" +
-            section.getEndLine + ":" +
-            section.getEndColumn
-          source.getName + "[" + locStr + "]"
-        }
       }
     }
 
