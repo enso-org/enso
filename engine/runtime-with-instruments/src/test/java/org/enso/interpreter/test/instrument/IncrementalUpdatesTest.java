@@ -226,7 +226,7 @@ public class IncrementalUpdatesTest {
     );
     assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
 
-    nodeCountingInstrument.assertNewNodes("Execution creates some nodes", 20, 35);
+    var allNodesAfterException = nodeCountingInstrument.assertNewNodes("Execution creates some nodes", 20, 35);
 
     // push foo call
     context.send(
@@ -243,7 +243,7 @@ public class IncrementalUpdatesTest {
     );
     assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
 
-    var allNodesAfterException = nodeCountingInstrument.assertNewNodes("There shall be more nodes after execution", 23, Integer.MAX_VALUE);
+    nodeCountingInstrument.assertNewNodes("No new nodes created", 0, 0);
     var literalNode = findLiteralNode(truffleNodeType, allNodesAfterException);
     assertEquals("Check Literal node text in the source", originalText, literalNode.getSourceSection().getCharacters().toString());
 
