@@ -249,7 +249,26 @@ function Dashboard(props: DashboardProps) {
 
     const [refresh, doRefresh] = hooks.useRefresh()
 
-    const [isInitialized, setIsInitialized] = react.useState(false)
+    const [shouldOpenProjectAfterNextLoad, setShouldOpenProjectAfterNextLoad] = react.useState(true)
+    const [onDirectoryNextLoaded, setOnDirectoryNextLoaded] = react.useState<
+        ((assets: backendModule.Asset[]) => void) | null
+    >(() =>
+        initialProjectName != null
+            ? (assets: backendModule.Asset[]) => {
+                  if (
+                      !assets.some(
+                          asset =>
+                              asset.type === backendModule.AssetType.project &&
+                              asset.title === initialProjectName
+                      )
+                  ) {
+                      const errorMessage = `No project named '${initialProjectName}' was found.`
+                      toast.error(errorMessage)
+                      logger.error(`Error opening project on startup: ${errorMessage}`)
+                  }
+              }
+            : null
+    )
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         react.useState(initialProjectName)
     const [query, setQuery] = react.useState('')
@@ -357,10 +376,10 @@ function Dashboard(props: DashboardProps) {
     }, [])
 
     react.useEffect(() => {
-        if (isInitialized) {
+        if (!shouldOpenProjectAfterNextLoad) {
             setNameOfProjectToImmediatelyOpen(null)
         }
-    }, [isInitialized, nameOfProjectToImmediatelyOpen])
+    }, [shouldOpenProjectAfterNextLoad, nameOfProjectToImmediatelyOpen])
 
     const openIde = async (projectId: backendModule.ProjectId) => {
         switchToIdeTab()
@@ -692,16 +711,9 @@ function Dashboard(props: DashboardProps) {
         setDirectoryAssets(newDirectoryAssets)
         setSecretAssets(newSecretAssets)
         setFileAssets(newFileAssets)
-        setIsInitialized(true)
-        if (
-            !isInitialized &&
-            initialProjectName != null &&
-            !newProjectAssets.some(projectAsset => projectAsset.title === initialProjectName)
-        ) {
-            const errorMessage = `No project named '${initialProjectName}' was found.`
-            toast.error(errorMessage)
-            logger.error(`Error opening project on startup: ${errorMessage}`)
-        }
+        setShouldOpenProjectAfterNextLoad(false)
+        onDirectoryNextLoaded?.(assets)
+        setOnDirectoryNextLoaded(null)
     }
 
     hooks.useAsyncEffect(
@@ -774,6 +786,8 @@ function Dashboard(props: DashboardProps) {
             parentDirectoryId: directoryId,
         }
         await backend.createProject(body)
+        setShouldOpenProjectAfterNextLoad(true)
+        setNameOfProjectToImmediatelyOpen(projectName)
         doRefresh()
     }
 
