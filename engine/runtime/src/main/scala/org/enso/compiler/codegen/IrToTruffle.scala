@@ -68,9 +68,9 @@ import org.enso.interpreter.runtime.callable.function.{
   Function => RuntimeFunction
 }
 import org.enso.interpreter.runtime.callable.{
-  Annotation => RuntimeAnnotation,
   UnresolvedConversion,
-  UnresolvedSymbol
+  UnresolvedSymbol,
+  Annotation => RuntimeAnnotation
 }
 import org.enso.interpreter.runtime.data.Type
 import org.enso.interpreter.runtime.data.text.Text
@@ -82,12 +82,11 @@ import org.enso.interpreter.runtime.scope.{
 import org.enso.interpreter.{Constants, EnsoLanguage}
 
 import java.math.BigInteger
-
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-import scala.jdk.OptionConverters._
 import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters._
 
 /** This is an implementation of a codegeneration pass that lowers the Enso
   * [[IR]] into the truffle structures that are actually executed.
@@ -191,10 +190,17 @@ class IrToTruffle(
     // Register the imports in scope
     imports.foreach {
       case poly @ Import.Polyglot(i: Import.Polyglot.Java, _, _, _, _) =>
-        this.moduleScope.registerPolyglotSymbol(
-          poly.getVisibleName,
-          context.getEnvironment.lookupHostSymbol(i.getJavaName)
-        )
+        val hostSymbol = context.lookupJavaClass(i.getJavaName)
+        if (hostSymbol != null) {
+          this.moduleScope.registerPolyglotSymbol(
+            poly.getVisibleName,
+            hostSymbol
+          )
+        } else {
+          throw new CompilerError(
+            s"Incorrect polyglot import: Cannot find host symbol (Java class) '${i.getJavaName}'"
+          )
+        }
       case _: Import.Module =>
       case _: Error         =>
     }
