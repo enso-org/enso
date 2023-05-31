@@ -941,7 +941,7 @@ type Integer
                                 should_nudge = remainder >= halfway
                                 if should_nudge  then result_unnudged + scale else result_unnudged
                             False ->
-                                should_nudge = remainder < (-halfway)
+                                should_nudge = remainder < -halfway
                                 if should_nudge then result_unnudged - scale else result_unnudged
                     True ->
                         case self >= 0 of
@@ -951,7 +951,7 @@ type Integer
                                 if should_nudge  then result_unnudged + scale else result_unnudged
                             False ->
                                 half_goes_up = (scaled_down % 2) == 0
-                                should_nudge = if half_goes_up then remainder < (-halfway) else remainder <= (-halfway)
+                                should_nudge = if half_goes_up then remainder < -halfway else remainder <= -halfway
                                 if should_nudge then result_unnudged - scale else result_unnudged
 
     ## Compute the negation of this.
