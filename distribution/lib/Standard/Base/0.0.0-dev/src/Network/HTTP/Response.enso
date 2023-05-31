@@ -1,8 +1,18 @@
+import project.Any.Any
+import project.Data.Boolean.Boolean
 import project.Data.Json.JS_Object
+import project.Data.Numbers.Number
+import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Extensions
+import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Error
+import project.Nothing.Nothing
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
 import project.Network.HTTP.Response_Body.Response_Body
+
+from project.System.File_Format import Auto_Detect, File_Format
 
 polyglot java import org.enso.base.Http_Utils
 
@@ -30,6 +40,13 @@ type Response
         header_entries = Vector.from_polyglot_array (Http_Utils.get_headers self.internal_http_response.headers)
         header_entries.map e-> Header.new e.getKey e.getValue
 
+    ## Get the response content type.
+    content_type : Text | Nothing
+    content_type self =
+        response_headers = self.headers
+        content_type = response_headers.find if_missing=Nothing h-> "Content-Type".equals_ignore_case h.name
+        if content_type.is_nothing then Nothing else content_type.value
+
     ## Get the response body.
 
        > Example
@@ -54,6 +71,41 @@ type Response
     code : HTTP_Status_Code
     code self = HTTP_Status_Code.Value self.internal_http_response.statusCode
 
+    ## ALIAS Parse
+       Uses the format to decode the body.
+       If using `Auto_Detect`, the content-type will be used to determine the
+       format.
+    @format File_Format.default_widget
+    decode : File_Format -> Any -> Any
+    decode self format=Auto_Detect ~if_unsupported=(Error.throw (Unsupported_Content_Type.Value self.content_type)) =
+        if format != Auto_Detect then format.read_web self else
+            content_type = self.content_type
+            format = if content_type.is_nothing then Nothing else
+                Auto_Detect.get_web_parser content_type (self.internal_http_response.uri.toString)
+            if format.is_nothing then if_unsupported else
+                format.value.read_web self
+
+    ## ALIAS Parse as Text
+       Decodes the body to a Text value.
+    @encoding Encoding.default_widget
+    decode_as_text : Encoding -> Text
+    decode_as_text self encoding=Encoding.utf_8 =
+        self.body.decode_as_text encoding
+
+    ## ALIAS Parse as JSON, Parse JSON
+       Decodes the body as JSON.
+
+       > Example
+         Convert a response from JSON.
+
+             import Standard.Examples
+
+             example_to_text = Examples.get_geo_data.decode_as_json
+    @encoding Encoding.default_widget
+    decode_as_json : Encoding -> JS_Object | Boolean | Number | Nothing | Text | Vector
+    decode_as_json self encoding=Encoding.utf_8 =
+        self.decode_as_text encoding . parse_json
+
     ## PRIVATE
        Convert to a JavaScript Object representing this Response.
 
@@ -69,3 +121,19 @@ type Response
         type_pair = ["type", "Response"]
         cons_pair = ["constructor", "Value"]
         JS_Object.from_pairs [type_pair, cons_pair, ["headers", self.headers], ["body", self.body], ["code", self.code]]
+
+## PRIVATE
+type Unsupported_Content_Type
+    ## PRIVATE
+       A type representing an unsupported content type.
+
+       Arguments:
+       - content_type: The content type that is unsupported.
+    Value content_type
+
+    ## PRIVATE
+       Convert the error to a human readable string.
+    to_display_text : Text
+    to_display_text self = case self.content_type of
+        Nothing -> "The response did not contain a content type."
+        _ : Text -> "The content type '" + self.content_type +"' cannot be automatically decoded."

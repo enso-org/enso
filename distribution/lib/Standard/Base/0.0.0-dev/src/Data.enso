@@ -162,12 +162,7 @@ fetch uri method=HTTP_Method.Get headers=[] parse=True =
     response = HTTP.new.request request
 
     if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.to_text)) else
-        response_headers = response.headers
-        content_type = response_headers.find if_missing=Nothing h-> "Content-Type".equals_ignore_case h.name
-        if (parse == False) || (content_type == Nothing) then response else
-            format = Auto_Detect.get_web_parser content_type.value uri
-            if format == Nothing then response else
-                format.read_web response
+        if parse then response.decode if_unsupported=response else response
 
 ## ALIAS Download, HTTP Get
    Fetches from the URI and returns the response, parsing the body if the
