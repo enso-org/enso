@@ -2,16 +2,13 @@ package org.enso.table.data.column.operation.map.numeric;
 
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
-import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.DoubleStorage;
-import org.enso.table.data.column.storage.LongStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.*;
 import org.enso.table.error.UnexpectedTypeException;
 
 import java.util.BitSet;
 
 /** An operation expecting a numeric argument and returning a boolean. */
-public abstract class LongBooleanOp extends MapOperation<Long, LongStorage> {
+public abstract class LongBooleanOp extends MapOperation<Long, AbstractLongStorage> {
   public LongBooleanOp(String name) {
     super(name);
   }
@@ -25,7 +22,7 @@ public abstract class LongBooleanOp extends MapOperation<Long, LongStorage> {
   }
 
   @Override
-  public BoolStorage runMap(LongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runMap(AbstractLongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     if (arg instanceof Long) {
       long x = (Long) arg;
       BitSet newVals = new BitSet();
@@ -62,7 +59,7 @@ public abstract class LongBooleanOp extends MapOperation<Long, LongStorage> {
   }
 
   @Override
-  public BoolStorage runZip(LongStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runZip(AbstractLongStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
     if (arg instanceof DoubleStorage v) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();

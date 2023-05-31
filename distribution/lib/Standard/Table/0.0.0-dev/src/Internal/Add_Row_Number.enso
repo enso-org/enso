@@ -16,6 +16,7 @@ from project.Internal.Java_Exports import make_long_builder
 
 polyglot java import org.enso.base.arrays.LongArray
 polyglot java import org.enso.table.data.column.storage.LongStorage
+polyglot java import org.enso.table.data.column.storage.LongRangeStorage
 
 ## PRIVATE
 add_row_number : Table -> Text -> Integer -> Integer -> (Column_Selector | Vector Text) -> Vector (Text | Sort_Column) | Text | Sort_Column -> Problem_Behavior -> Table
@@ -50,10 +51,7 @@ nth_index start step n =
 
 ## PRIVATE
 make_range_column name start step length =
-    builder = make_long_builder length
-    0.up_to length . each ix->
-        builder.appendLong (nth_index start step ix)
-    storage = builder.seal
+    storage = LongRangeStorage.new start step length
     Column.from_storage name storage
 
 ## PRIVATE
