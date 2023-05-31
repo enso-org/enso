@@ -28,10 +28,10 @@ import static org.junit.Assert.fail;
     services = NodeCountingTestInstrument.class)
 public class NodeCountingTestInstrument extends TruffleInstrument {
   public static final String INSTRUMENT_ID = "node-count-test";
-  private Map<Node, Node> all = new ConcurrentHashMap<>();
+  private final Map<Node, Node> all = new ConcurrentHashMap<>();
   private Map<Class, List<Node>> counter = new ConcurrentHashMap<>();
 
-  private Map<UUID, FunctionCallInfo> calls = new ConcurrentHashMap<>();
+  private final Map<UUID, FunctionCallInfo> calls = new ConcurrentHashMap<>();
   private Env env;
 
   @Override
@@ -107,7 +107,7 @@ public class NodeCountingTestInstrument extends TruffleInstrument {
     }
   }
 
-  private class NodeWrapper extends ExecutionEventNode {
+  private static class NodeWrapper extends ExecutionEventNode {
 
     private final EventContext context;
 
@@ -134,7 +134,7 @@ public class NodeCountingTestInstrument extends TruffleInstrument {
 
   }
 
-  public class FunctionCallInfo {
+  public static class FunctionCallInfo {
 
     private final QualifiedName moduleName;
     private final QualifiedName typeName;

@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.nodes.RootNode;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
@@ -15,7 +16,10 @@ import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
 import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.logger.masking.MaskedString;
 import org.enso.pkg.QualifiedName;
 
@@ -203,6 +207,8 @@ public interface IdExecutionService {
     private final QualifiedName typeName;
     private final String functionName;
 
+    private final int[] notAppliedArguments;
+
     /**
      * Creates a new instance of this class.
      *
@@ -210,24 +216,31 @@ public interface IdExecutionService {
      */
     public FunctionCallInfo(FunctionCallInstrumentationNode.FunctionCall call) {
       RootNode rootNode = call.getFunction().getCallTarget().getRootNode();
-      if (rootNode instanceof MethodRootNode methodNode) {
-        moduleName = methodNode.getModuleScope().getModule().getName();
-        typeName = methodNode.getType().getQualifiedName();
-        functionName = methodNode.getMethodName();
-      } else if (rootNode instanceof QualifiedAccessorNode qualifiedAccessor) {
-        AtomConstructor atomConstructor = qualifiedAccessor.getAtomConstructor();
-        moduleName = atomConstructor.getDefinitionScope().getModule().getName();
-        typeName = atomConstructor.getType().getQualifiedName();
-        functionName = atomConstructor.getDisplayName();
-      } else if (rootNode instanceof EnsoRootNode ensoRootNode) {
-        moduleName = ensoRootNode.getModuleScope().getModule().getName();
-        typeName = null;
-        functionName = rootNode.getName();
-      } else {
-        moduleName = null;
-        typeName = null;
-        functionName = rootNode.getName();
+      switch (rootNode) {
+        case MethodRootNode methodNode -> {
+          moduleName = methodNode.getModuleScope().getModule().getName();
+          typeName = methodNode.getType().getQualifiedName();
+          functionName = methodNode.getMethodName();
+        }
+        case QualifiedAccessorNode qualifiedAccessor -> {
+          AtomConstructor atomConstructor = qualifiedAccessor.getAtomConstructor();
+          moduleName = atomConstructor.getDefinitionScope().getModule().getName();
+          typeName = atomConstructor.getType().getQualifiedName();
+          functionName = atomConstructor.getDisplayName();
+        }
+        case EnsoRootNode ensoRootNode -> {
+          moduleName = ensoRootNode.getModuleScope().getModule().getName();
+          typeName = null;
+          functionName = rootNode.getName();
+        }
+        case default -> {
+          moduleName = null;
+          typeName = null;
+          functionName = rootNode.getName();
+        }
       }
+
+      notAppliedArguments = collectNotAppliedArguments(call);
     }
 
     @Override
@@ -267,6 +280,28 @@ public interface IdExecutionService {
     /** @return the name of this function. */
     public String getFunctionName() {
       return functionName;
+    }
+
+    /** @return the arguments of this function that have not yet been applied. */
+    public int[] getNotAppliedArguments() {
+      return notAppliedArguments;
+    }
+
+    private static int[] collectNotAppliedArguments(FunctionCallInstrumentationNode.FunctionCall call) {
+      Object[] arguments = call.getArguments();
+      int[] notAppliedArgs = new int[arguments.length];
+      int notAppliedArgsSize = 0;
+      boolean isStatic = arguments[0] instanceof Type;
+      int selfTypePosition = isStatic ? -1 : 0;
+
+      for (int i = 0; i < arguments.length; i++) {
+        if (arguments[i] == null) {
+          notAppliedArgs[notAppliedArgsSize] = i + selfTypePosition;
+          notAppliedArgsSize += 1;
+        }
+      }
+
+      return Arrays.copyOf(notAppliedArgs, notAppliedArgsSize);
     }
   }
 }

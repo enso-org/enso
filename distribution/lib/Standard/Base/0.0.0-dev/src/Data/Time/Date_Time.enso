@@ -244,6 +244,7 @@ type Date_Time
 
              example_parse =
                 Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
+    @locale Locale.default_widget
     parse : Text -> Text | Nothing -> Locale -> Date_Time ! Time_Error
     parse text pattern=Nothing locale=Locale.default =
         Panic.catch JException handler=(cause -> Error.throw (Time_Error.Error cause.payload.getMessage)) <|
@@ -656,6 +657,7 @@ type Date_Time
 
              example_format =
                  Date_Time.parse "2020-06-21T16:41:13+03:00" . format "d. MMMM yyyy" (Locale.new "fr")
+    @locale Locale.default_widget
     format : Text -> Locale -> Text
     format self pattern locale=Locale.default = case locale of
         Nothing -> Time_Utils.date_time_format self pattern
