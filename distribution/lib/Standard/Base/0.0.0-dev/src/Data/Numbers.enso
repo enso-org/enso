@@ -616,7 +616,7 @@ type Decimal
                         frac = scaled - scaled.truncate
                         case self >= 0 of
                             True ->
-                                half_goes_up = if use_bankers then (scaled.truncate % 2) == 1 else True
+                                half_goes_up = if use_bankers then (scaled.truncate % 2) != 0 else True
                                 round_up = if half_goes_up then frac >= 0.5 else frac > 0.5
                                 if round_up then ((scaled+0.9).floor) / scale else (scaled.floor) / scale
                             False ->
