@@ -9,4 +9,7 @@ trait ShutdownHook[F[+_, +_]] {
     */
   def execute(): F[Nothing, Unit]
 
+  /** Checks if the provided `hook`` refers to the same kind of action as `this`` */
+  def isSameKind(hook: ShutdownHook[F]): Boolean
+
 }
