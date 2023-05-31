@@ -73,7 +73,7 @@ pub const SHORTCUTS: &[(ensogl::application::shortcut::ActionType, &str, &str, &
     ),
     (
         DoublePress,
-        "!read_only & !is_fs_visualization_displayed",
+        "!read_only & !node_editing & !is_fs_visualization_displayed",
         "left-mouse-button",
         "enter_hovered_node",
     ),
