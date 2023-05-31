@@ -55,6 +55,21 @@ case class Package[F](
   def setPackageName(newName: String): Package[F] =
     this.copy(config = config.copy(name = newName))
 
+  def findModule(name : String): Any = {
+    val m = modules.get(name)
+    if (m != null) {
+      return m
+    }
+    return null
+  }
+
+  private val modules = new java.util.HashMap[String, Any]();
+  def registerModule(name : String, module : Any) : Unit = {
+    modules.put(name, module)
+  }
+
+
+
   /** Stores the package metadata on the hard drive. If the package does not exist,
     * creates the required directory structure.
     */
