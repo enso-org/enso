@@ -77,9 +77,6 @@ mod shared {
     /// Minimum height above the target the edge must approach it from.
     pub(super) const MIN_APPROACH_HEIGHT: f32 = 32.25;
     pub(super) const NODE_HEIGHT: f32 = crate::component::node::HEIGHT;
-    /// Extra distance toward the inside of the source node the edge should originate, relative to
-    /// the point along the y-axis where the node begins to be rounded.
-    pub(super) const SOURCE_INSET: f32 = 8.0;
     pub(super) const NODE_CORNER_RADIUS: f32 = crate::component::node::CORNER_RADIUS;
     /// The preferred arc radius.
     pub(super) const RADIUS_BASE: f32 = 20.0;
@@ -94,6 +91,10 @@ mod single_corner {
     pub(super) const RADIUS_X_BASE: f32 = super::RADIUS_BASE;
     /// Proportion (0-1) of extra x-distance allocated to the radius.
     pub(super) const RADIUS_X_FACTOR: f32 = 0.6;
+    /// Distance for the line to continue under the node, to ensure that there isn't a gap.
+    pub(super) const SOURCE_NODE_OVERLAP: f32 = 4.0;
+    /// Minimum arc radius at which we offset the source end to exit normal to the node's curve.
+    pub(super) const MINIMUM_TANGENT_EXIT_RADIUS: f32 = 2.0;
 }
 
 /// Constants configuring the 3-corner layouts.
@@ -135,7 +136,7 @@ fn junction_points(
 ) -> (Vec<Vector2>, f32, Option<f32>) {
     // The maximum x-distance from the source (our local coordinate origin) for the point where the
     // edge will begin.
-    let source_max_x_offset = (source_half_width - NODE_CORNER_RADIUS - SOURCE_INSET).max(0.0);
+    let source_max_x_offset = (source_half_width - NODE_CORNER_RADIUS).max(0.0);
     // The maximum y-length of the target-attachment segment. If the layout allows, the
     // target-attachment segment will fully exit the node before the first corner begins.
     let target_max_attachment_height = target_attached.then_some(NODE_HEIGHT / 2.0);
@@ -144,22 +145,35 @@ fn junction_points(
     let target_below_source = target.y() <= 0.0;
     let target_beyond_source = target.x().abs() > source_max_x_offset;
     let horizontal_room_for_3_corners =
-        target_beyond_source && target.x().abs() - source_max_x_offset > 3.0 * RADIUS_BASE;
+        target_beyond_source && target.x().abs() - source_max_x_offset >= 3.0 * RADIUS_BASE;
     if target_well_below_source || (target_below_source && !horizontal_room_for_3_corners) {
         use single_corner::*;
         // The edge can originate anywhere along the length of the node.
         let source_x = target.x().clamp(-source_max_x_offset, source_max_x_offset);
-        let source = Vector2(source_x, 0.0);
         let distance_x = max(target.x().abs() - source_half_width, 0.0);
         let radius_x = RADIUS_X_BASE + distance_x * RADIUS_X_FACTOR;
         let radius_y = max(target.y().abs() - RADIUS_Y_ADJUSTMENT, 0.0);
-        let radius = min(radius_x, radius_y);
+        let max_radius = min(radius_x, radius_y);
+        let natural_radius = min((target.x() - source_x).abs(), target.y().abs());
+        let source_y = if natural_radius > MINIMUM_TANGENT_EXIT_RADIUS {
+            // Offset the beginning of the edge so that it is normal to the curve of the source node
+            // at the point that it exits the node.
+            let radius = min(natural_radius, max_radius);
+            let arc_origin_x = target.x().abs() - radius;
+            let source_arc_origin = source_half_width - NODE_CORNER_RADIUS;
+            let circle_offset = arc_origin_x - source_arc_origin;
+            let intersection = circle_intersection(circle_offset, NODE_CORNER_RADIUS, radius);
+            -(radius - intersection).abs()
+        } else {
+            SOURCE_NODE_OVERLAP - NODE_HEIGHT / 2.0
+        };
+        let source = Vector2(source_x, source_y);
         // The target attachment will extend as far toward the edge of the node as it can without
         // rising above the source.
         let attachment_height = target_max_attachment_height.map(|dy| min(dy, target.y().abs()));
         let attachment_y = target.y() + attachment_height.unwrap_or_default();
         let target_attachment = Vector2(target.x(), attachment_y);
-        (vec![source, target_attachment], radius, attachment_height)
+        (vec![source, target_attachment], max_radius, attachment_height)
     } else {
         use three_corner::*;
         // The edge originates from either side of the node.
@@ -611,4 +625,35 @@ pub(super) struct TargetAttachment {
     pub target: Vector2,
     /// How far to extend from the target.
     pub length: f32,
+}
+
+
+
+// ==================
+// === Math Utils ===
+// ==================
+
+/// For the given radius of the first circle (`r1`), radius of the second circle (`r2`), and the
+/// x-axis position of the second circle (`x`), computes the y-axis position of the second circle in
+/// such a way, that the borders of the circle cross at the right angle. It also computes the angle
+/// of the intersection. Please note, that the center of the first circle is in the origin.
+///
+/// ```text
+///       r1
+///      ◄───►                (1) x^2 + y^2 = r1^2 + r2^2
+///    _____                  (1) => y = sqrt((r1^2 + r2^2)/x^2)
+///  .'     `.
+/// /   _.-"""B-._     ▲
+/// | .'0┼    |   `.   │      angle1 = A-XY-0
+/// \/   │    /     \  │ r2   angle2 = 0-XY-B
+/// |`._ │__.'       | │      alpha  = B-XY-X_AXIS
+/// |   A└───┼─      | ▼
+/// |      (x,y)     |        tg(angle1) = y  / x
+///  \              /         tg(angle2) = r1 / r2
+///   `._        _.'          alpha      = PI - angle1 - angle2
+///      `-....-'
+/// ```
+fn circle_intersection(x: f32, r1: f32, r2: f32) -> f32 {
+    let x_norm = x.clamp(-r2, r1);
+    (r1 * r1 + r2 * r2 - x_norm * x_norm).sqrt()
 }
