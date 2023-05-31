@@ -613,7 +613,16 @@ type Decimal
                     decimal_result = case use_bankers of
                         False ->
                             scale = 10 ^ decimal_places
-                            ((self * scale) + 0.5).floor / scale
+                            scaled = self * scale
+                            frac = scaled - scaled.truncate
+                            case self >= 0 of
+                                True ->
+                                    round_up = frac >= 0.5
+                                    if round_up then ((scaled+0.9).floor) / scale else (scaled.floor) / scale
+                                False ->
+                                    round_up = frac >= -0.5
+                                    if round_up then ((scaled+0.9).floor) / scale else (scaled.floor) / scale
+                            #((self * scale) + 0.5).floor / scale
                         True ->
                             ## If the largest integer <= self is odd, use normal
                                round-towards-positive-infinity rounding; otherwise,
