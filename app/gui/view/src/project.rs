@@ -146,7 +146,6 @@ ensogl::define_endpoints! {
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    app:                  Application,
     display_object:       display::object::Instance,
     project_view_top_bar: ProjectViewTopBar,
     graph_editor:         Rc<GraphEditor>,
@@ -178,10 +177,8 @@ impl Model {
         display_object.add_child(&project_view_top_bar);
         display_object.remove_child(&searcher);
 
-        let app = app.clone_ref();
         let graph_editor = Rc::new(graph_editor);
         Self {
-            app,
             display_object,
             project_view_top_bar,
             graph_editor,
@@ -702,10 +699,6 @@ impl application::View for View {
 
     fn new(app: &Application) -> Self {
         View::new(app)
-    }
-
-    fn app(&self) -> &Application {
-        &self.model.app
     }
 
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {

@@ -246,7 +246,6 @@ pub struct Model {
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let app = app.clone_ref();
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
 

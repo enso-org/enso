@@ -192,7 +192,6 @@ impl Default for JumpTarget {
 /// The Model of Select Component.
 #[derive(Clone, CloneRef, Debug)]
 struct Model<E: Entry> {
-    app:            Application,
     entries:        entry::List<E>,
     selection:      selection::View,
     background:     background::View,
@@ -203,7 +202,6 @@ struct Model<E: Entry> {
 
 impl<E: Entry> Model<E> {
     fn new(app: &Application) -> Self {
-        let app = app.clone_ref();
         let display_object = display::object::Instance::new();
         let scrolled_area = display::object::Instance::new();
         let entries = entry::List::new(&app);
@@ -215,7 +213,7 @@ impl<E: Entry> Model<E> {
         display_object.add_child(&scrolled_area);
         scrolled_area.add_child(&entries);
         scrolled_area.add_child(&selection);
-        Model { app, entries, selection, background, overlay, scrolled_area, display_object }
+        Model { entries, selection, background, overlay, scrolled_area, display_object }
     }
 
     fn show_background_shadow(&self, value: bool) {
@@ -717,12 +715,11 @@ impl<E: Entry> application::View for ListView<E> {
     fn label() -> &'static str {
         "ListView"
     }
+
     fn new(app: &Application) -> Self {
         ListView::new(app)
     }
-    fn app(&self) -> &Application {
-        &self.model.app
-    }
+
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [

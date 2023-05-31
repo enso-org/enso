@@ -400,6 +400,7 @@ fn entry_for_current_value(
 /// is minimal, as the actual dropdown view is not created.
 #[derive(Debug)]
 struct LazyDropdown {
+    // Required for lazy initialization
     app: ensogl::application::Application,
     set_all_entries: frp::Any<Vec<Choice>>,
     set_selected_entries: frp::Any<HashSet<Choice>>,

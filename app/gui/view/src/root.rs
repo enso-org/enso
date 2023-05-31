@@ -33,6 +33,7 @@ enum State {
 /// visibility.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
+    // Required for creating project view dynamically
     app:            Application,
     display_object: display::object::Instance,
     state:          Rc<CloneCell<State>>,
@@ -190,9 +191,5 @@ impl application::View for View {
 
     fn new(app: &Application) -> Self {
         Self::new(app)
-    }
-
-    fn app(&self) -> &Application {
-        &self.model.app
     }
 }
