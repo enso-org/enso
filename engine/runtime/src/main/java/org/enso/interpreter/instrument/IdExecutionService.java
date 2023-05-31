@@ -233,7 +233,7 @@ public interface IdExecutionService {
           typeName = null;
           functionName = rootNode.getName();
         }
-        case null, default -> {
+        case default -> {
           moduleName = null;
           typeName = null;
           functionName = rootNode.getName();
