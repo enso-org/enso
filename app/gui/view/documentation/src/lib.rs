@@ -196,19 +196,19 @@ impl Model {
         linked_pages: Vec<LinkedDocPage>,
         display_doc: &frp::Source<EntryDocumentation>,
     ) {
-        let mut handlers = self.event_handlers.borrow_mut();
-        handlers.clear();
-        for page in linked_pages {
+        let new_handlers = linked_pages.into_iter().filter_map(|page| {
             let content = page.page.clone_ref();
             let anchor = html::anchor_name(&page.name);
             if let Some(element) = web::document.get_element_by_id(&anchor) {
                 let closure: web::JsEventHandler = web::Closure::new(f_!([display_doc, content] {
                     display_doc.emit(content.clone_ref());
                 }));
-                let handler = web::add_event_listener(&element, "click", closure);
-                handlers.push(handler);
+                Some(web::add_event_listener(&element, "click", closure))
+            } else {
+                None
             }
-        }
+        });
+        let _ = self.event_handlers.replace(new_handlers.collect());
     }
 
     /// Load an HTML file into the documentation view when user is waiting for data to be received.
