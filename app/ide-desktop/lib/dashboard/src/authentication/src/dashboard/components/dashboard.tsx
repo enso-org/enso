@@ -23,10 +23,10 @@ import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
 import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
+import ProjectActionButton, * as projectActionButton from './projectActionButton'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import Ide from './ide'
-import ProjectActionButton from './projectActionButton'
 import Rows from './rows'
 import Templates from './templates'
 import TopBar from './topBar'
@@ -249,7 +249,6 @@ function Dashboard(props: DashboardProps) {
 
     const [refresh, doRefresh] = hooks.useRefresh()
 
-    const [shouldOpenProjectAfterNextLoad, setShouldOpenProjectAfterNextLoad] = react.useState(true)
     const [onDirectoryNextLoaded, setOnDirectoryNextLoaded] = react.useState<
         ((assets: backendModule.Asset[]) => void) | null
     >(() =>
@@ -271,6 +270,9 @@ function Dashboard(props: DashboardProps) {
     )
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         react.useState(initialProjectName)
+    const [projectEvent, setProjectEvent] = react.useState<projectActionButton.ProjectEvent | null>(
+        null
+    )
     const [query, setQuery] = react.useState('')
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = react.useState(false)
     const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
@@ -376,16 +378,20 @@ function Dashboard(props: DashboardProps) {
     }, [])
 
     react.useEffect(() => {
-        if (!shouldOpenProjectAfterNextLoad) {
-            setNameOfProjectToImmediatelyOpen(null)
+        if (projectEvent != null) {
+            setProjectEvent(null)
         }
-    }, [shouldOpenProjectAfterNextLoad, nameOfProjectToImmediatelyOpen])
+    }, [projectEvent])
 
     const openIde = async (projectId: backendModule.ProjectId) => {
         switchToIdeTab()
         if (project?.projectId !== projectId) {
             setProject(await backend.getProjectDetails(projectId))
         }
+    }
+
+    const closeIde = () => {
+        setProject(null)
     }
 
     const setBackendType = (newBackendType: backendModule.BackendType) => {
@@ -483,9 +489,12 @@ function Dashboard(props: DashboardProps) {
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
-                    if (event.detail === 2) {
+                    if (event.detail === 2 && event.target === event.currentTarget) {
                         // It is a double click; open the project.
-                        setNameOfProjectToImmediatelyOpen(projectAsset.title)
+                        setProjectEvent({
+                            type: projectActionButton.ProjectEventType.open,
+                            projectId: projectAsset.id,
+                        })
                     } else if (
                         event.ctrlKey &&
                         !event.altKey &&
@@ -515,11 +524,19 @@ function Dashboard(props: DashboardProps) {
                 <ProjectActionButton
                     project={projectAsset}
                     appRunner={appRunner}
-                    shouldOpenImmediately={nameOfProjectToImmediatelyOpen === projectAsset.title}
-                    shouldCancelOpeningImmediately={Boolean(nameOfProjectToImmediatelyOpen)}
+                    event={projectEvent}
                     doRefresh={doRefresh}
+                    doOpenManually={() => {
+                        setProjectEvent({
+                            type: projectActionButton.ProjectEventType.open,
+                            projectId: projectAsset.id,
+                        })
+                    }}
                     onClose={() => {
-                        setProject(null)
+                        setProjectEvent({
+                            type: projectActionButton.ProjectEventType.cancelOpeningAll,
+                        })
+                        closeIde()
                     }}
                     openIde={() => openIde(projectAsset.id)}
                 />
@@ -711,7 +728,17 @@ function Dashboard(props: DashboardProps) {
         setDirectoryAssets(newDirectoryAssets)
         setSecretAssets(newSecretAssets)
         setFileAssets(newFileAssets)
-        setShouldOpenProjectAfterNextLoad(false)
+        if (nameOfProjectToImmediatelyOpen != null) {
+            const projectToLoad = newProjectAssets.find(
+                projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen
+            )
+            if (projectToLoad != null) {
+                setProjectEvent({
+                    type: projectActionButton.ProjectEventType.open,
+                    projectId: projectToLoad.id,
+                })
+            }
+        }
         onDirectoryNextLoaded?.(assets)
         setOnDirectoryNextLoaded(null)
     }
@@ -786,7 +813,9 @@ function Dashboard(props: DashboardProps) {
             parentDirectoryId: directoryId,
         }
         await backend.createProject(body)
-        setShouldOpenProjectAfterNextLoad(true)
+        // `newProject.projectId` cannot be used directly in a `ProjectEvet` as the project
+        // does not yet exist in the project list. Opening the project would work, but the project
+        // would display as closed as it would be created after the event is sent.
         setNameOfProjectToImmediatelyOpen(projectName)
         doRefresh()
     }
@@ -990,7 +1019,10 @@ function Dashboard(props: DashboardProps) {
                                     event.stopPropagation()
                                     const doOpenForEditing = () => {
                                         unsetModal()
-                                        setNameOfProjectToImmediatelyOpen(projectAsset.title)
+                                        setProjectEvent({
+                                            type: projectActionButton.ProjectEventType.open,
+                                            projectId: projectAsset.id,
+                                        })
                                     }
                                     const doOpenAsFolder = () => {
                                         // FIXME[sb]: Uncomment once backend support

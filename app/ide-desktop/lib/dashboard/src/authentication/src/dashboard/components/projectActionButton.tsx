@@ -11,6 +11,33 @@ import * as svg from '../../components/svg'
 // === Types ===
 // =============
 
+/** Possible types of project state change. */
+export enum ProjectEventType {
+    open = 'open',
+    cancelOpeningAll = 'cancelOpeningAll',
+}
+
+/** Properties common to all project state change events. */
+interface ProjectBaseEvent<Type extends ProjectEventType> {
+    type: Type
+}
+
+/** Requests the specified project to be opened. */
+export interface ProjectOpenEvent extends ProjectBaseEvent<ProjectEventType.open> {
+    // FIXME: provide projectId instead
+    /** This must be a name because it may be specified by name on the command line.
+     * Note that this will not work properly with the cloud backend if there are multiple projects
+     * with the same name. */
+    projectId: backendModule.ProjectId
+}
+
+/** Requests the specified project to be opened. */
+export interface ProjectCancelOpeningAllEvent
+    extends ProjectBaseEvent<ProjectEventType.cancelOpeningAll> {}
+
+/** Every possible type of project event. */
+export type ProjectEvent = ProjectCancelOpeningAllEvent | ProjectOpenEvent
+
 /** The state of the spinner. It should go from initial, to loading, to done. */
 enum SpinnerState {
     initial = 'initial',
@@ -53,11 +80,9 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
 export interface ProjectActionButtonProps {
     project: backendModule.Asset<backendModule.AssetType.project>
     appRunner: AppRunner | null
-    /** Whether this Project should open immediately. */
-    shouldOpenImmediately: boolean
-    /** Whether this Project should cancel opening immediately.
-     * This would happen if another project is being opened immediately instead. */
-    shouldCancelOpeningImmediately: boolean
+    event: ProjectEvent | null
+    /** Called when the project is opened via the {@link ProjectActionButton}. */
+    doOpenManually: () => void
     onClose: () => void
     openIde: () => void
     doRefresh: () => void
@@ -65,21 +90,13 @@ export interface ProjectActionButtonProps {
 
 /** An interactive button displaying the status of a project. */
 function ProjectActionButton(props: ProjectActionButtonProps) {
-    const {
-        project,
-        onClose,
-        shouldOpenImmediately,
-        shouldCancelOpeningImmediately,
-        appRunner,
-        openIde,
-        doRefresh,
-    } = props
+    const { project, event, appRunner, doOpenManually, onClose, openIde, doRefresh } = props
     const { backend } = backendProvider.useBackend()
 
     const [state, setState] = react.useState<backendModule.ProjectState | null>(null)
     const [isCheckingStatus, setIsCheckingStatus] = react.useState(false)
     const [isCheckingResources, setIsCheckingResources] = react.useState(false)
-    const [spinnerState, setSpinnerState] = react.useState(SpinnerState.done)
+    const [spinnerState, setSpinnerState] = react.useState(SpinnerState.initial)
     const [shouldOpenWhenReady, setShouldOpenWhenReady] = react.useState(false)
     const [toastId, setToastId] = react.useState<string | null>(null)
 
@@ -100,46 +117,38 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         switch (project.projectState.type) {
             case backendModule.ProjectState.opened:
                 setState(backendModule.ProjectState.openInProgress)
-                setSpinnerState(SpinnerState.initial)
                 setIsCheckingResources(true)
                 break
             case backendModule.ProjectState.openInProgress:
                 setState(backendModule.ProjectState.openInProgress)
-                setSpinnerState(SpinnerState.initial)
                 setIsCheckingStatus(true)
                 break
             default:
                 // Some functions below set the state to something different to
                 // the backend state. In that case, the state should not be overridden.
-                setState(previousState => previousState ?? project.projectState.type)
+                setState(oldState => oldState ?? project.projectState.type)
                 break
         }
     }, [])
 
     react.useEffect(() => {
-        // `shouldOpenImmediately` (set to `true` for the relevant project) takes precedence over
-        // `shouldCancelOpeningImmediately` (set to `true` for all projects, including the relevant
-        // project).
-        if (shouldOpenImmediately) {
-            setShouldOpenWhenReady(true)
-            switch (state) {
-                case backendModule.ProjectState.opened: {
-                    setIsCheckingResources(true)
+        if (event != null) {
+            switch (event.type) {
+                case ProjectEventType.open: {
+                    if (event.projectId !== project.id) {
+                        setShouldOpenWhenReady(false)
+                    } else {
+                        setShouldOpenWhenReady(true)
+                        void openProject()
+                    }
                     break
                 }
-                case backendModule.ProjectState.openInProgress: {
-                    setIsCheckingStatus(true)
-                    break
-                }
-                default: {
-                    void openProject()
-                    break
+                case ProjectEventType.cancelOpeningAll: {
+                    setShouldOpenWhenReady(false)
                 }
             }
-        } else if (shouldCancelOpeningImmediately) {
-            setShouldOpenWhenReady(false)
         }
-    }, [shouldOpenImmediately, shouldCancelOpeningImmediately])
+    }, [event])
 
     react.useEffect(() => {
         if (shouldOpenWhenReady && state === backendModule.ProjectState.opened) {
@@ -153,10 +162,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             backend.type === backendModule.BackendType.local &&
             project.id !== localBackend.LocalBackend.currentlyOpeningProjectId
         ) {
-            setIsCheckingResources(false)
-            setIsCheckingStatus(false)
             setState(backendModule.ProjectState.closed)
-            setSpinnerState(SpinnerState.done)
         }
     }, [project, state, localBackend.LocalBackend.currentlyOpeningProjectId])
 
@@ -247,23 +253,17 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     }, [isCheckingResources])
 
     const closeProject = () => {
+        onClose()
+        setShouldOpenWhenReady(false)
         setState(backendModule.ProjectState.closed)
         appRunner?.stopApp()
-        void backend.closeProject(project.id)
         setIsCheckingStatus(false)
         setIsCheckingResources(false)
-        onClose()
+        void backend.closeProject(project.id)
     }
 
     const openProject = async () => {
         setState(backendModule.ProjectState.openInProgress)
-        setSpinnerState(SpinnerState.initial)
-        // The `requestAnimationFrame` is required so that the completion percentage goes from
-        // the `initial` fraction to the `loading` fraction,
-        // rather than starting at the `loading` fraction.
-        requestAnimationFrame(() => {
-            setSpinnerState(SpinnerState.loading)
-        })
         switch (backend.type) {
             case backendModule.BackendType.remote:
                 setToastId(toast.loading(LOADING_MESSAGE))
@@ -273,8 +273,14 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 break
             case backendModule.BackendType.local:
                 await backend.openProject(project.id)
-                doRefresh()
-                setState(backendModule.ProjectState.opened)
+                setState(oldState => {
+                    if (oldState === backendModule.ProjectState.openInProgress) {
+                        doRefresh()
+                        return backendModule.ProjectState.opened
+                    } else {
+                        return oldState
+                    }
+                })
                 break
         }
     }
@@ -284,16 +290,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         case backendModule.ProjectState.created:
         case backendModule.ProjectState.new:
         case backendModule.ProjectState.closed:
-            return (
-                <button
-                    onClick={async () => {
-                        setShouldOpenWhenReady(true)
-                        await openProject()
-                    }}
-                >
-                    {svg.PLAY_ICON}
-                </button>
-            )
+            return <button onClick={doOpenManually}>{svg.PLAY_ICON}</button>
         case backendModule.ProjectState.openInProgress:
             return (
                 <button onClick={closeProject}>
