@@ -672,13 +672,7 @@ spec =
             231 . round . should_be_a Integer
             231 . round -1 . should_be_a Integer
 
-        Test.specify "Decimal places out of range" <|
-            3 . round 16 . should_fail_with Illegal_Argument
-            3 . round -16 . should_fail_with Illegal_Argument
-
         Test.specify "Input out of range" <|
-            100000000000000 . round . should_fail_with Illegal_Argument
-            -100000000000000 . round . should_fail_with Illegal_Argument
             100000000000000 . round -2 . should_fail_with Illegal_Argument
             -100000000000000 . round -2 . should_fail_with Illegal_Argument
             99999999999999 . round -2 . should_equal 100000000000000

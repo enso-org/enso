@@ -925,11 +925,21 @@ type Integer
             12250 . round -2 use_bankers=True == 12200
     round : Integer -> Boolean -> Integer ! Illegal_Argument
     round self decimal_places=0 use_bankers=False =
-        check_decimal_places decimal_places <| check_round_input self <|
-            ## It's already an integer so unless decimal_places is
-               negative, the value is unchanged.
-            if decimal_places >= 0 then self else
-                self.to_decimal.round decimal_places use_bankers . truncate
+        ## It's already an integer so unless decimal_places is
+           negative, the value is unchanged.
+        if decimal_places >= 0 then self else
+            check_decimal_places decimal_places <| check_round_input self <|
+                scale = 10 ^ (-decimal_places)
+                halfway = scale.div 2
+                case self >= 0 of
+                    True ->
+                        remainder = self % scale
+                        result_unmodified = (self.div scale) * scale
+                        if remainder >= halfway then result_unmodified + scale else result_unmodified
+                    False ->
+                        remainder = self % scale
+                        result_unmodified = (self.div scale) * scale
+                        if remainder < (-halfway) then result_unmodified - scale else result_unmodified
 
     ## Compute the negation of this.
 
