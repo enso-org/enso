@@ -432,7 +432,7 @@ class ImportExportTest
       val in = mainIr.imports.head
         .asInstanceOf[IR.Module.Scope.Import.Module]
 
-      in.name.name.toString() should include("Test.Logical_Export.Main")
+      in.name.name.toString() should include("Test.Logical_Export")
       in.onlyNames.get.map(_.name.toString()) shouldEqual List("Api")
 
       val errors = mainIr.preorder.filter(x => x.isInstanceOf[IR.Error])
@@ -442,6 +442,23 @@ class ImportExportTest
     "don't expose Impl from Main" in {
       val mainIr = """
                      |from Test.Logical_Export import Impl
+                     |
+                     |main = Impl
+                     |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+        .getIr
+
+      mainIr.imports.head
+        .asInstanceOf[IR.Error.ImportExport]
+        .reason
+        .message should include(
+        "The symbol Impl (module or type) does not exist in module Test.Logical_Export.Main."
+      )
+    }
+
+    "avoid exposing Impl when Main exists" in {
+      val mainIr = """
+                     |import Test.Logical_Export.Impl
                      |
                      |main = Impl
                      |""".stripMargin
