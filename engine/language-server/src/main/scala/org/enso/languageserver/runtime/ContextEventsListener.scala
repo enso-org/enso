@@ -186,7 +186,7 @@ final class ContextEventsListener(
       ContextRegistryProtocol.ExpressionUpdate(
         update.expressionId,
         update.expressionType,
-        update.methodCall.map(toProtocolMethodPointer),
+        update.methodCall.map(toProtocolMethodCall),
         update.profilingInfo.map(toProtocolProfilingInfo),
         update.fromCache,
         toProtocolPayload(update.payload)
@@ -248,8 +248,20 @@ final class ContextEventsListener(
         ProfilingInfo.ExecutionTime(t)
     }
 
+  /** Convert the runtime method call to the context registry protocol
+    * representation.
+    *
+    * @param methodCall the method call
+    * @return the registry protocol representation of the method call
+    */
+  private def toProtocolMethodCall(methodCall: Api.MethodCall): MethodCall =
+    MethodCall(
+      toProtocolMethodPointer(methodCall.methodPointer),
+      methodCall.notAppliedArguments
+    )
+
   /** Convert the runtime method pointer to the context registry protocol
-    * representation
+    * representation.
     *
     * @param methodPointer the method pointer
     * @return the registry protocol representation of the method pointer

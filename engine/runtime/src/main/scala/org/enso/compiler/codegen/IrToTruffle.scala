@@ -961,7 +961,7 @@ class IrToTruffle(
       * @param block the block to generate code for
       * @return the truffle nodes corresponding to `block`
       */
-    def processBlock(block: IR.Expression.Block): RuntimeExpression = {
+    private def processBlock(block: IR.Expression.Block): RuntimeExpression = {
       if (block.suspended) {
         val scopeInfo = block
           .unsafeGetMetadata(
@@ -1383,7 +1383,9 @@ class IrToTruffle(
       * @param binding the binding to generate code for
       * @return the truffle nodes corresponding to `binding`
       */
-    def processBinding(binding: IR.Expression.Binding): RuntimeExpression = {
+    private def processBinding(
+      binding: IR.Expression.Binding
+    ): RuntimeExpression = {
       val occInfo = binding
         .unsafeGetMetadata(
           AliasAnalysis,

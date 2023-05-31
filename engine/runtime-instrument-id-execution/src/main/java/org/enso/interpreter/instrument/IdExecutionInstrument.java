@@ -308,8 +308,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
     @CompilerDirectives.TruffleBoundary
     private void onFunctionReturn(UUID nodeId, FunctionCallInstrumentationNode.FunctionCall result, EventContext context) throws ThreadDeath {
-        calls.put(
-                nodeId, new FunctionCallInfo(result));
+        calls.put(nodeId, new FunctionCallInfo(result));
         functionCallCallback.accept(new ExpressionCall(nodeId, result));
         // Return cached value after capturing the enterable function call in `functionCallCallback`
         Object cachedResult = cache.get(nodeId);

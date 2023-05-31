@@ -307,13 +307,33 @@ object Runtime {
       */
     sealed trait Error extends ApiResponse
 
-    /** A representation of a pointer to a method definition.
-      */
+    /** A representation of a pointer to a method definition. */
     case class MethodPointer(
       module: String,
       definedOnType: String,
       name: String
     )
+
+    /** A representation of a method call.
+      *
+      * @param methodPointer the method pointer of a call
+      * @param notAppliedArguments indexes of arguments that have not been applied
+      * to this method
+      */
+    case class MethodCall(
+      methodPointer: MethodPointer,
+      notAppliedArguments: Vector[Int]
+    )
+    object MethodCall {
+
+      /** Create a method call with all the arguments applied.
+        *
+        * @param methodPointer the method pointer of a call
+        * @return a new [[MethodCall]].
+        */
+      def apply(methodPointer: MethodPointer): MethodCall =
+        MethodCall(methodPointer, Vector())
+    }
 
     /** A representation of an executable position in code.
       */
@@ -362,7 +382,7 @@ object Runtime {
       *
       * @param expressionId the expression id
       * @param expressionType the type of expression
-      * @param methodCall the pointer to a method definition
+      * @param methodCall the underlying method call of this expression
       * @param profilingInfo profiling information about the execution of this
       * expression
       * @param fromCache whether or not the value for this expression came
@@ -374,7 +394,7 @@ object Runtime {
     case class ExpressionUpdate(
       expressionId: ExpressionId,
       expressionType: Option[String],
-      methodCall: Option[MethodPointer],
+      methodCall: Option[MethodCall],
       profilingInfo: Vector[ProfilingInfo],
       fromCache: Boolean,
       typeChanged: Boolean,
