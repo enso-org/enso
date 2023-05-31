@@ -1271,6 +1271,7 @@ type Column
              input = Column.from_vector "values" ["100000000", "2222", "3"] . parse numeric_type
              input.format "#,##0.00" locale=(Locale.new "fr")
              # ==> ["100 000 000,00", "2 222,00", "3,00"]
+    @locale Locale.default_widget
     format : Text | Column -> Locale -> Column ! Illegal_Argument
     format self format=Nothing locale=Locale.default =
         create_formatter = make_value_formatter_for_value_type self.value_type locale

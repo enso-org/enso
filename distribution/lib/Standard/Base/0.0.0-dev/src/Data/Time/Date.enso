@@ -705,6 +705,7 @@ type Date
          Format "2020-06-21" with French locale as "21. juin 2020"
 
              example_format = Date.new 2020 6 21 . format "d. MMMM yyyy" (Locale.new "fr")
+    @locale Locale.default_widget
     format : Text -> Locale -> Text
     format self pattern locale=Locale.default = case locale of
         Nothing -> Time_Utils.local_date_format self pattern

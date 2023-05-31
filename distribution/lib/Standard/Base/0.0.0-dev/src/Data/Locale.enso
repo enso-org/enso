@@ -1,9 +1,16 @@
 import project.Any.Any
+import project.Data.Filter_Condition.Filter_Condition
+import project.Data.Text.Case.Case
+import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Metadata.Display
 import project.Nothing.Nothing
+import project.Meta
 
 from project.Data.Boolean import Boolean, False
+from project.Metadata.Widget import Single_Choice
+from project.Metadata.Choice import Option
 
 polyglot java import java.util.Locale as JavaLocale
 
@@ -421,3 +428,22 @@ type Locale
        Convert Locale to a friendly string.
     to_display_text : Text
     to_display_text self = "Locale(" + self.to_text + ")"
+
+    ## PRIVATE
+       Gets the default drop down option for this encoding.
+    default_widget : Single_Choice
+    default_widget = Single_Choice values=Locale.widget_options display=Display.When_Modified
+
+    ## PRIVATE
+    predefined_locale_fields : Vector Text
+    predefined_locale_fields =
+        locale_meta = Meta.meta Locale
+        remove_us = locale_meta.methods + ["Value", "new", "default", "from_language_tag", "from_java", "predefined_locale_fields", "default_widget", "widget_options"]
+        Meta.Type.Value (Meta.type_of locale_meta.value) . methods . filter (Filter_Condition.Not_In remove_us) . sort
+
+    ## PRIVATE
+    widget_options : Vector Option
+    widget_options = Locale.predefined_locale_fields.map field_name->
+        display_string = field_name.replace '_' ' ' . to_case (if field_name.length == 2 then Case.Upper else Case.Title)
+        code_string = "Locale." + field_name
+        Option display_string code_string
