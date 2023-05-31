@@ -161,7 +161,7 @@ fn render_type_documentation(docs: &TypeDocumentation, back_link: Option<BackLin
     let tags = section_content(list_of_tags(&docs.tags));
 
     let content = owned_html! {
-        : header(ICON_TYPE, type_header(name.name(), arguments_list(arguments), back_link.clone()));
+        : header(ICON_TYPE, type_header(name.name(), arguments_list(arguments), back_link.as_ref()));
         : &tags;
         : &synopsis;
         @ if methods_exist {
@@ -180,7 +180,7 @@ fn render_type_documentation(docs: &TypeDocumentation, back_link: Option<BackLin
 fn type_header<'a>(
     name: &'a str,
     arguments: impl Render + 'a,
-    back_link: Option<BackLink>,
+    back_link: Option<&'a BackLink>,
 ) -> Box<dyn Render + 'a> {
     box_html! {
         @ if let Some(BackLink { id, displayed }) = &back_link {
@@ -418,7 +418,7 @@ fn render_function_documentation(docs: &Function, back_link: Option<BackLink>) -
     let tags = section_content(list_of_tags(tags));
     let examples = section_content(list_of_examples(&docs.examples));
     let content = owned_html! {
-        : header(ICON_TYPE, function_header(name.name(), arguments_list(arguments), back_link.clone()));
+        : header(ICON_TYPE, function_header(name.name(), arguments_list(arguments), back_link.as_ref()));
         : &tags;
         : &synopsis;
         @ if examples_exist {
@@ -433,7 +433,7 @@ fn render_function_documentation(docs: &Function, back_link: Option<BackLink>) -
 fn function_header<'a>(
     name: &'a str,
     arguments: impl Render + 'a,
-    back_link: Option<BackLink>,
+    back_link: Option<&'a BackLink>,
 ) -> Box<dyn Render + 'a> {
     box_html! {
         @ if let Some(BackLink { id, displayed }) = &back_link {
