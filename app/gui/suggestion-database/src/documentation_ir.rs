@@ -1,9 +1,21 @@
 //! The intermediate representation of the entry's documentation.
 //!
 //! [`EntryDocumentation`] contains all the necessary information to generate HTML
-//! documentation of the specific entry. [`EntryDocumentation`] is created by aggregating
-//! documentation of the entry, and also its children entries, such as methods of the type or types
-//! defined in the module.
+//! documentation of the specific entry.
+//!
+//! When displaying the documentation for the user, we render the information contained in
+//! [`EntryDocumentation`], and include hyperlinks to other related documentation pages. For
+//! example, the type's documentation has a link to its parent module's documentation, and
+//! to every method or constructor it has. These links are created by the
+//! [`EntryDocumentation::linked_doc_pages`] method.
+//!
+//! We don't link modules to each other, but a type's documentation does link to its module. Since
+//! we don't have a documentation registry, we must create a whole module's documentation for each
+//! method entry, following the `method -> type -> module` link path. We can't create module
+//! documentation on demand as the link handler doesn't have access to the suggestion database, and
+//! we can't share module documentation between entries because it needs mutable state. We store the
+//! suggestion database in memory, so this process is quick, but we might need to improve it in the
+//! future.
 
 use crate::prelude::*;
 
@@ -103,6 +115,8 @@ impl EntryDocumentation {
     pub fn linked_doc_pages(&self) -> Vec<LinkedDocPage> {
         match self {
             EntryDocumentation::Docs(docs) => match docs {
+                // Module documentation contains links to all methods and types defined in this
+                // module.
                 Documentation::Module(docs) => {
                     let methods = docs.methods.iter().map(|method| LinkedDocPage {
                         name: method.name.clone_ref(),
@@ -122,6 +136,8 @@ impl EntryDocumentation {
                     });
                     methods.chain(types).collect()
                 }
+                // Type documentation contains links to all constructors and methods of this type,
+                // and also a link to the parent module.
                 Documentation::Type { docs, module_docs } => {
                     let methods = docs.methods.iter().map(|method| LinkedDocPage {
                         name: method.name.clone_ref(),
@@ -147,6 +163,9 @@ impl EntryDocumentation {
                     };
                     methods.chain(constructors).chain(iter::once(parent_module)).collect()
                 }
+                // Constructor documentation contains a link to the type. We also need to provide a
+                // module documentation here, because the type documentation has a link to the
+                // module documentation.
                 Documentation::Constructor { type_docs, module_docs, .. } => vec![LinkedDocPage {
                     name: type_docs.name.clone_ref(),
                     page: Documentation::Type {
@@ -155,6 +174,9 @@ impl EntryDocumentation {
                     }
                     .into(),
                 }],
+                // Method documentation contains a link to the type. We also need to provide a
+                // module documentation here, because the type documentation has a link to the
+                // module documentation.
                 Documentation::Method { type_docs, module_docs, .. } => vec![LinkedDocPage {
                     name: type_docs.name.clone_ref(),
                     page: Documentation::Type {
@@ -163,6 +185,7 @@ impl EntryDocumentation {
                     }
                     .into(),
                 }],
+                // Module method documentation contains a link to the module.
                 Documentation::ModuleMethod { module_docs, .. } => vec![LinkedDocPage {
                     name: module_docs.name.clone_ref(),
                     page: Documentation::Module(module_docs.clone_ref()).into(),
