@@ -61,4 +61,35 @@ public class TestClass {
       default -> 2;
     };
   }
+
+  public static String enumToString(InnerEnum e) {
+    return e.toString();
+  }
+
+  public static class StaticInnerClass {
+    private final String data;
+
+    public StaticInnerClass(String data) {
+      this.data = data;
+    }
+
+    public String getData() {
+      return data;
+    }
+
+    public long add(long a, long b) {
+      return a + b;
+    }
+
+    public static class StaticInnerInnerClass {
+      public long mul(long a, long b) {
+        return a * b;
+      }
+    }
+  }
+
+  public enum InnerEnum {
+    ENUM_VALUE_1,
+    ENUM_VALUE_2
+  }
 }

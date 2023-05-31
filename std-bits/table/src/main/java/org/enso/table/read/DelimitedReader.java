@@ -3,7 +3,7 @@ package org.enso.table.read;
 import com.univocity.parsers.csv.CsvFormat;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
-import org.enso.table.data.column.builder.string.StringStorageBuilder;
+import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
@@ -60,7 +60,7 @@ public class DelimitedReader {
   private long targetTableIndex = 0;
   /** The line number of the start of the current row in the input file. */
   private long currentLine = 0;
-  private StringStorageBuilder[] builders = null;
+  private StringBuilder[] builders = null;
 
   /**
    * Creates a new reader.
@@ -291,21 +291,21 @@ public class DelimitedReader {
 
       if (keepInvalidRows) {
         for (int i = 0; i < builders.length && i < row.length; i++) {
-          builders[i] = builders[i].parseAndAppend(row[i]);
+          builders[i].append(row[i]);
         }
 
         // If the current row had fewer columns than expected, nulls are inserted for the missing
         // values.
         // If it had more columns, the excess columns are discarded.
         for (int i = row.length; i < builders.length; i++) {
-          builders[i] = builders[i].parseAndAppend(null);
+          builders[i].append(null);
         }
 
         targetTableIndex++;
       }
     } else {
       for (int i = 0; i < builders.length; i++) {
-        builders[i] = builders[i].parseAndAppend(row[i]);
+        builders[i].append(row[i]);
       }
 
       targetTableIndex++;
@@ -490,10 +490,12 @@ public class DelimitedReader {
     return new WithProblems<>(new Table(columns), getReportedProblems(headerProblems));
   }
 
+  private static final int INITIAL_ROW_CAPACITY = 100;
+
   private void initBuilders(int count) {
-    builders = new StringStorageBuilder[count];
+    builders = new StringBuilder[count];
     for (int i = 0; i < count; i++) {
-      builders[i] = new StringStorageBuilder();
+      builders[i] = new StringBuilder(INITIAL_ROW_CAPACITY);
     }
   }
 

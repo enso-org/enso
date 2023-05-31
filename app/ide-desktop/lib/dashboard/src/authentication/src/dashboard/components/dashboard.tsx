@@ -299,6 +299,7 @@ function Dashboard(props: DashboardProps) {
 
     const switchToDashboardTab = react.useCallback(() => {
         setTab(Tab.dashboard)
+        doRefresh()
         const ideElement = document.getElementById(IDE_ELEMENT_ID)
         if (ideElement) {
             ideElement.style.top = '-100vh'
@@ -711,9 +712,11 @@ function Dashboard(props: DashboardProps) {
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
             onClick={event => {
-                unsetModal()
-                if (!event.shiftKey) {
-                    setSelectedAssets([])
+                if (getSelection()?.type !== 'Range') {
+                    unsetModal()
+                    if (!event.shiftKey) {
+                        setSelectedAssets([])
+                    }
                 }
             }}
             onKeyDown={handleEscapeKey}

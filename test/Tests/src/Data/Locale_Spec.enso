@@ -1,9 +1,10 @@
 from Standard.Base import all
 
-polyglot java import java.util.Locale as JavaLocale
-
+from Standard.Base.Metadata.Choice import Option
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
+
+polyglot java import java.util.Locale as JavaLocale
 
 with_locale locale ~test =
     default_locale = JavaLocale.getDefault
@@ -14,7 +15,8 @@ with_locale locale ~test =
     JavaLocale.setDefault default_locale
     result
 
-spec = Test.group "Locale" <|
+spec =
+  Test.group "Locale" <|
     en_gb = Locale.new "en" "GB"
     Test.specify "allow constructing a locale with optional parts" <|
         loc = Locale.new "en"
@@ -73,5 +75,9 @@ spec = Test.group "Locale" <|
     Test.specify "should allow equality comparisons" <|
         Locale.uk . should_equal Locale.uk
         Locale.uk . should_not_equal Locale.us
+
+    Test.specify "Should correctly auto-discover static Locales" <|
+        locale_names = Locale.widget_options.map x-> case x of Option locale_name _ _ _ -> locale_name
+        locale_names . should_equal ['Bangladesh', 'Brazil', 'Canada English', 'Canada French', 'China', 'France', 'Germany', 'India English', 'India Hindi', 'Indonesia', 'Italy', 'Japan', 'Mexico', 'Nigeria', 'Pakistan English', 'Pakistan Urdu', 'Poland', 'Russia', 'South Korea', 'UK', 'US']
 
 main = Test_Suite.run_main spec

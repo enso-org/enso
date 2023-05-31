@@ -569,10 +569,8 @@ impl Container {
             selected_definition <- action_bar.visualisation_selection.map(f!([registry](path)
                 path.as_ref().and_then(|path| registry.definition_from_path(path))
             ));
-            action_bar.hide_icons <+ selected_definition.constant(());
+            action_bar.set_vis_input_type <+ frp.set_vis_input_type;
             frp.source.vis_input_type <+ frp.set_vis_input_type;
-            let chooser = &model.action_bar.visualization_chooser();
-            chooser.frp.set_vis_input_type <+ frp.set_vis_input_type;
         }
 
 

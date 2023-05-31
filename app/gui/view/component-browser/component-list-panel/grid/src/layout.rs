@@ -56,11 +56,14 @@ impl<'a> LaidGroup<'a> {
 
     /// The id of element at given row, or `None` if row is outside the group.
     pub fn element_at_row(&self, row: Row) -> Option<ElementId> {
-        let element = self.rows().contains(&row).as_some_from(|| {
+        let rows = self.rows();
+        let element = rows.contains(&row).then(|| {
             if row < self.header_row + HEADER_HEIGHT_IN_ROWS {
                 ElementInGroup::Header
             } else {
-                ElementInGroup::Entry(row - self.header_row - HEADER_HEIGHT_IN_ROWS)
+                // We may unwrap here, as we check above if rows.contains(&row) - if range contains
+                // something, it has to have last element.
+                ElementInGroup::Entry(rows.last().unwrap() - row)
             }
         });
         element.map(|element| ElementId { group: self.group.id, element })
@@ -226,8 +229,7 @@ impl Layout {
             let header_pos = rows.start;
             match element.element {
                 ElementInGroup::Header => Some((header_pos, col)),
-                ElementInGroup::Entry(index) =>
-                    Some((header_pos + HEADER_HEIGHT_IN_ROWS + index, col)),
+                ElementInGroup::Entry(index) => Some((rows.last()? - index, col)),
             }
         }
     }
@@ -333,17 +335,17 @@ mod tests {
         assert_eq!(layout.element_at_location(0, CENTER), Some(header_of(3)));
         assert_eq!(layout.element_at_location(0, RIGHT), None);
         assert_eq!(layout.element_at_location(1, LEFT), None);
-        assert_eq!(layout.element_at_location(1, CENTER), Some(entry_of(3, 0)));
+        assert_eq!(layout.element_at_location(1, CENTER), Some(entry_of(3, 2)));
         assert_eq!(layout.element_at_location(1, RIGHT), Some(header_of(5)));
         assert_eq!(layout.element_at_location(2, LEFT), Some(header_of(4)));
         assert_eq!(layout.element_at_location(2, CENTER), Some(entry_of(3, 1)));
         assert_eq!(layout.element_at_location(2, RIGHT), Some(entry_of(5, 0)));
         assert_eq!(layout.element_at_location(5, LEFT), Some(header_of(1)));
-        assert_eq!(layout.element_at_location(5, CENTER), Some(entry_of(0, 0)));
+        assert_eq!(layout.element_at_location(5, CENTER), Some(entry_of(0, 1)));
         assert_eq!(layout.element_at_location(5, RIGHT), Some(entry_of(2, 1)));
         assert_eq!(layout.element_at_location(6, LEFT), Some(entry_of(1, 0)));
-        assert_eq!(layout.element_at_location(6, CENTER), Some(entry_of(0, 1)));
-        assert_eq!(layout.element_at_location(6, RIGHT), Some(entry_of(2, 2)));
+        assert_eq!(layout.element_at_location(6, CENTER), Some(entry_of(0, 0)));
+        assert_eq!(layout.element_at_location(6, RIGHT), Some(entry_of(2, 0)));
         assert_eq!(layout.element_at_location(7, LEFT), Some(local_scope_entry(0)));
         assert_eq!(layout.element_at_location(7, CENTER), Some(local_scope_entry(1)));
         assert_eq!(layout.element_at_location(7, RIGHT), Some(local_scope_entry(2)));
@@ -353,17 +355,17 @@ mod tests {
 
         // Check location of all possible elements
         assert_eq!(layout.location_of_element(header_of(3)), Some((0, CENTER)));
-        assert_eq!(layout.location_of_element(entry_of(3, 0)), Some((1, CENTER)));
+        assert_eq!(layout.location_of_element(entry_of(3, 2)), Some((1, CENTER)));
         assert_eq!(layout.location_of_element(header_of(5)), Some((1, RIGHT)));
         assert_eq!(layout.location_of_element(header_of(4)), Some((2, LEFT)));
         assert_eq!(layout.location_of_element(entry_of(3, 1)), Some((2, CENTER)));
         assert_eq!(layout.location_of_element(entry_of(5, 0)), Some((2, RIGHT)));
         assert_eq!(layout.location_of_element(header_of(1)), Some((5, LEFT)));
-        assert_eq!(layout.location_of_element(entry_of(0, 0)), Some((5, CENTER)));
+        assert_eq!(layout.location_of_element(entry_of(0, 1)), Some((5, CENTER)));
         assert_eq!(layout.location_of_element(entry_of(2, 1)), Some((5, RIGHT)));
         assert_eq!(layout.location_of_element(entry_of(1, 0)), Some((6, LEFT)));
-        assert_eq!(layout.location_of_element(entry_of(0, 1)), Some((6, CENTER)));
-        assert_eq!(layout.location_of_element(entry_of(2, 2)), Some((6, RIGHT)));
+        assert_eq!(layout.location_of_element(entry_of(0, 0)), Some((6, CENTER)));
+        assert_eq!(layout.location_of_element(entry_of(2, 0)), Some((6, RIGHT)));
         assert_eq!(layout.location_of_element(local_scope_entry(0)), Some((7, LEFT)));
         assert_eq!(layout.location_of_element(local_scope_entry(1)), Some((7, CENTER)));
         assert_eq!(layout.location_of_element(local_scope_entry(2)), Some((7, RIGHT)));
@@ -372,7 +374,7 @@ mod tests {
     }
 
     #[test]
-    fn checking_element_at_location_and_location_of_element_empty_column_and_empty_local_scope() {
+    fn checking_element_at_location_empty_column_and_empty_local_scope() {
         let mut layout = Layout::new(3, 3, 0);
         let group = Group {
             id:               GroupId { section: SectionId::Popular, index: 0 },
@@ -388,7 +390,7 @@ mod tests {
             layout.element_at_location(2, CENTER),
             Some(ElementId {
                 group:   GroupId { section: SectionId::Popular, index: 0 },
-                element: ElementInGroup::Entry(1),
+                element: ElementInGroup::Entry(0),
             })
         );
         assert_eq!(layout.element_at_location(2, RIGHT), None);

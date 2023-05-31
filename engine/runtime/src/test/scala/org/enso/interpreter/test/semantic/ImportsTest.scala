@@ -3,6 +3,13 @@ package org.enso.interpreter.test.semantic
 import org.enso.interpreter.test.{InterpreterException, PackageTest}
 
 class ImportsTest extends PackageTest {
+  implicit def messagingNatureOInterpreterException
+    : org.scalatest.enablers.Messaging[InterpreterException] =
+    new org.scalatest.enablers.Messaging[InterpreterException] {
+      def messageOf(exception: InterpreterException): String =
+        exception.getLocalizedMessage
+    }
+
   "Atoms and methods" should "be available for import" in {
     evalTestProject("TestSimpleImports") shouldEqual 20
   }
@@ -79,6 +86,14 @@ class ImportsTest extends PackageTest {
       "Cycle_Test"
     )) should have message "Compilation aborted due to errors."
     consumeOut should contain("Export statements form a cycle:")
+  }
+
+  "Exports system" should "honor logical export" in {
+    val compilationResult = evalTestProject(
+      "Logical_Import_Violated_Test"
+    )
+    compilationResult shouldEqual "Element with Internal"
+    consumeOut shouldEqual List()
   }
 
   "Import statements" should "allow for importing submodules" in {

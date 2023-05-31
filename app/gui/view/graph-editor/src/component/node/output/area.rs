@@ -29,7 +29,6 @@ use span_tree;
 // === Constants ===
 // =================
 
-const DEBUG: bool = false;
 const HIDE_DELAY_DURATION_MS: f32 = 150.0;
 const SHOW_DELAY_DURATION_MS: f32 = 150.0;
 
@@ -39,17 +38,9 @@ const SHOW_DELAY_DURATION_MS: f32 = 150.0;
 // === SpanTree ===
 // ================
 
-pub use span_tree::Crumb;
-pub use span_tree::Crumbs;
-
-/// Specialized `SpanTree` for the output ports model.
-pub type SpanTree = span_tree::SpanTree<port::Model>;
-
-/// Reference to port inside of a `SpanTree`.
-pub type PortRef<'a> = span_tree::node::Ref<'a, port::Model>;
-
-/// Mutable reference to port inside of a `SpanTree`.
-pub type PortRefMut<'a> = span_tree::node::RefMut<'a, port::Model>;
+use span_tree::node::Ref as PortRef;
+use span_tree::Crumbs;
+use span_tree::SpanTree;
 
 
 
@@ -104,13 +95,7 @@ impl From<node::Expression> for Expression {
         let code = expr.pattern.clone();
         let whole_expr_type = expr.input_span_tree.root.tp().map(|t| t.to_owned().into());
         let whole_expr_id = expr.whole_expression_id;
-        let mut span_tree = expr.output_span_tree.map(|_| port::Model::default());
-        span_tree.root_ref_mut().dfs_with_layer_data((), |node, ()| {
-            let span = node.span();
-            let port = node.payload_mut();
-            port.index = span.start.into();
-            port.length = span.size();
-        });
+        let span_tree = expr.output_span_tree;
         Expression { code, span_tree, whole_expr_type, whole_expr_id }
     }
 }
@@ -158,10 +143,10 @@ pub struct Model {
     app:            Application,
     display_object: display::object::Instance,
     ports:          display::object::Instance,
+    port_models:    RefCell<Vec<port::Model>>,
     label:          text::Text,
     expression:     RefCell<Expression>,
-    id_crumbs_map:  RefCell<HashMap<ast::Id, Crumbs>>,
-    port_count:     Cell<usize>,
+    id_ports_map:   RefCell<HashMap<ast::Id, usize>>,
     styles:         StyleWatch,
     styles_frp:     StyleWatchFrp,
     frp:            FrpEndpoints,
@@ -171,13 +156,13 @@ impl Model {
     /// Constructor.
     #[profile(Debug)]
     pub fn new(app: &Application, frp: &Frp) -> Self {
+        let app = app.clone_ref();
         let display_object = display::object::Instance::new_named("output");
         let ports = display::object::Instance::new();
-        let app = app.clone_ref();
+        let port_models = default();
         let label = app.new_view::<text::Text>();
-        let id_crumbs_map = default();
+        let id_ports_map = default();
         let expression = default();
-        let port_count = default();
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let frp = frp.output.clone_ref();
@@ -187,10 +172,10 @@ impl Model {
             app,
             display_object,
             ports,
+            port_models,
             label,
             expression,
-            id_crumbs_map,
-            port_count,
+            id_ports_map,
             styles,
             styles_frp,
             frp,
@@ -221,14 +206,7 @@ impl Model {
 
     /// Return a list of Node's output ports.
     pub fn ports(&self) -> Vec<port::Model> {
-        let port_count = self.port_count.get();
-        let mut ports = Vec::with_capacity(port_count);
-        self.traverse_borrowed_expression(|is_a_port, node, _| {
-            if is_a_port {
-                ports.push(node.payload.clone());
-            }
-        });
-        ports
+        self.port_models.borrow().clone()
     }
 
     #[profile(Debug)]
@@ -246,87 +224,34 @@ impl Model {
     /// Update expression type for the particular `ast::Id`.
     #[profile(Debug)]
     fn set_expression_usage_type(&self, id: ast::Id, tp: &Option<Type>) {
-        let crumbs_map = self.id_crumbs_map.borrow();
-        let Some(crumbs)  = crumbs_map.get(&id) else { return };
-        let expression = self.expression.borrow();
-        let Ok(port) = expression.span_tree.get_node(crumbs) else { return };
+        let id_ports_map = self.id_ports_map.borrow();
+        let Some(index)  = id_ports_map.get(&id).copied() else { return };
+
+        // When this port is the only port, only accept type of the whole expression.
+        if index == 0
+            && let Some(whole_expr_id) = self.expression.borrow().whole_expr_id
+            && whole_expr_id != id
+            && id_ports_map.contains_key(&whole_expr_id)
+        {
+            return
+        }
+
+        let port_models = self.port_models.borrow();
+        let Some(port) = port_models.get(index) else { return };
         let Some(frp) = &port.frp else { return };
         frp.set_usage_type(tp);
     }
 
-    /// Traverse all span tree nodes that are considered ports. In case of empty span tree, include
-    /// its root as the port as well.
-    #[profile(Debug)]
-    fn traverse_borrowed_expression_mut(
-        &self,
-        mut f: impl FnMut(bool, &mut PortRefMut, &mut PortLayerBuilder),
-    ) {
-        let port_count = self.port_count.get();
-        self.traverse_borrowed_expression_raw_mut(|is_a_port, node, builder| {
-            let is_a_port = is_a_port || port_count == 0;
-            f(is_a_port, node, builder)
-        })
-    }
-
-    /// Traverse all span tree nodes that are considered ports. In case of empty span tree, include
-    /// its root as the port as well.
-    #[profile(Debug)]
-    fn traverse_borrowed_expression(
-        &self,
-        mut f: impl FnMut(bool, &PortRef, &mut PortLayerBuilder),
-    ) {
-        let port_count = self.port_count.get();
-        self.traverse_borrowed_expression_raw(|is_a_port, node, builder| {
-            let is_a_port = is_a_port || port_count == 0;
-            f(is_a_port, node, builder)
-        })
-    }
-
     /// Traverse all span tree nodes that are considered ports.
     #[profile(Debug)]
-    fn traverse_borrowed_expression_raw_mut(
-        &self,
-        mut f: impl FnMut(bool, &mut PortRefMut, &mut PortLayerBuilder),
-    ) {
-        let mut expression = self.expression.borrow_mut();
-        expression.root_ref_mut().dfs_with_layer_data(
-            PortLayerBuilder::default(),
-            |node, builder| {
-                let is_leaf = node.children.is_empty();
-                let is_this = node.is_this();
-                let is_argument = node.is_argument();
-                let is_a_port = (is_this || is_argument) && is_leaf;
-                f(is_a_port, node, builder);
-                builder.nested()
-            },
-        );
-    }
-
-    /// Traverse all span tree nodes that are considered ports.
-    #[profile(Debug)]
-    fn traverse_borrowed_expression_raw(
-        &self,
-        mut f: impl FnMut(bool, &PortRef, &mut PortLayerBuilder),
-    ) {
-        let expression = self.expression.borrow();
-        expression.root_ref().dfs_with_layer_data(PortLayerBuilder::default(), |node, builder| {
+    fn traverse_borrowed_expression(&self, mut f: impl FnMut(bool, &PortRef)) {
+        self.expression.borrow().root_ref().dfs(|node| {
             let is_leaf = node.children.is_empty();
             let is_this = node.is_this();
             let is_argument = node.is_argument();
             let is_a_port = (is_this || is_argument) && is_leaf;
-            f(is_a_port, node, builder);
-            builder.nested()
+            f(is_a_port, node);
         });
-    }
-
-    fn count_ports(&self) -> usize {
-        let mut count = 0;
-        self.traverse_borrowed_expression_raw_mut(|is_a_port, _, _| {
-            if is_a_port {
-                count += 1
-            }
-        });
-        count
     }
 
     #[profile(Debug)]
@@ -341,35 +266,46 @@ impl Model {
 
     #[profile(Debug)]
     fn build_port_shapes_on_new_expression(&self) {
-        let mut port_index = 0;
-        let mut id_crumbs_map = HashMap::new();
+        let mut id_ports_map = HashMap::new();
         let whole_expr_id = self.expression.borrow().whole_expr_id;
-        let port_count = self.port_count.get();
-        self.traverse_borrowed_expression_mut(|is_a_port,mut node,builder| {
-            let ast_id = if port_count == 0 { whole_expr_id } else { node.ast_id };
-            if let Some(id) = ast_id {
-                id_crumbs_map.insert(id,node.crumbs.clone_ref());
-            }
+        let whole_expr_type = self.expression.borrow().whole_expr_type.clone();
 
-            if DEBUG {
-                let indent  = " ".repeat(4*builder.depth);
-                let skipped = if !is_a_port { "(skip)" } else { "" };
-                debug!(
-                    "{indent}[{},{}] {skipped} {:?} (tp: {:?}) (id: {:?})",
-                    node.payload.index,
-                    node.payload.length,
-                    node.kind.variant_name(),
-                    node.tp(),
-                    node.ast_id
-                );
+        let mut port_count = 0;
+        self.traverse_borrowed_expression(|is_a_port, _| {
+            if is_a_port {
+                port_count += 1
             }
+        });
+
+        let mut models = Vec::new();
+        self.traverse_borrowed_expression(|is_a_port, node| {
+            let is_a_port = is_a_port || port_count == 0;
 
             if is_a_port {
-                let port   = &mut node;
-                let crumbs = port.crumbs.clone_ref();
-                let (port_shape,port_frp) = port.payload_mut()
-                    .init_shape(&self.app,&self.styles,&self.styles_frp,port_index
-                    ,port_count);
+                let port_index = models.len();
+
+                if port_count == 0 && let Some(id) = whole_expr_id {
+                    id_ports_map.insert(id, port_index);
+                }
+                if let Some(id) = node.ast_id {
+                    id_ports_map.insert(id, port_index);
+                }
+
+                let node_tp: Option<Type> = node.tp().cloned().map(|t| t.into());
+                let node_tp = if port_count != 0 {
+                    node_tp
+                } else {
+                    node_tp.or_else(|| whole_expr_type.clone())
+                };
+
+                let crumbs = node.crumbs.clone_ref();
+                let mut model = port::Model::default();
+                let span = node.span();
+                model.index = span.start.into();
+                model.length = span.size();
+
+                let (port_shape,port_frp) = model
+                    .init_shape(&self.app,&self.styles,&self.styles_frp,port_index,port_count);
                 let port_network = &port_frp.network;
 
                 frp::extend! { port_network
@@ -388,46 +324,22 @@ impl Model {
                 port_frp.set_type_label_visibility.emit(self.frp.type_label_visibility.value());
                 port_frp.set_view_mode.emit(self.frp.view_mode.value());
                 port_frp.set_size.emit(self.frp.size.value());
+                port_frp.set_definition_type.emit(node_tp);
                 self.ports.add_child(&port_shape);
-                port_index += 1;
+                models.push(model);
             }
         });
-        *self.id_crumbs_map.borrow_mut() = id_crumbs_map;
+        *self.port_models.borrow_mut() = models;
+        *self.id_ports_map.borrow_mut() = id_ports_map;
     }
 
-    #[profile(Debug)]
-    fn init_definition_types(&self) {
-        let port_count = self.port_count.get();
-        let whole_expr_type = self.expression.borrow().whole_expr_type.clone();
-        let mut signals_to_emit = Vec::<(frp::Any<Option<Type>>, Option<Type>)>::new();
-        self.traverse_borrowed_expression(|_, node, _| {
-            if let Some(port_frp) = &node.payload.frp {
-                let node_tp: Option<Type> = node.tp().cloned().map(|t| t.into());
-                let node_tp = if port_count != 0 {
-                    node_tp
-                } else {
-                    node_tp.or_else(|| whole_expr_type.clone())
-                };
-                signals_to_emit.push((port_frp.set_definition_type.clone_ref(), node_tp));
-            }
-        });
-        for (endpoint, tp) in signals_to_emit {
-            endpoint.emit(tp);
-        }
-    }
 
     #[profile(Debug)]
     fn set_expression(&self, new_expression: impl Into<node::Expression>) {
         let new_expression = Expression::from(new_expression.into());
-        if DEBUG {
-            debug!("\n\n=====================\nSET EXPR: {new_expression:?}")
-        }
-
         self.set_label_on_new_expression(&new_expression);
         *self.expression.borrow_mut() = new_expression;
-        self.port_count.set(self.count_ports());
         self.build_port_shapes_on_new_expression();
-        self.init_definition_types();
     }
 }
 
@@ -450,20 +362,13 @@ impl Model {
 /// ## Origin
 /// Please note that the origin of the node is on its left side, centered vertically. To learn more
 /// about this design decision, please read the docs for the [`node::Node`].
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 #[allow(missing_docs)]
 pub struct Area {
+    #[deref]
     pub frp:   Frp,
     pub model: Rc<Model>,
 }
-
-impl Deref for Area {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
-}
-
 
 impl Area {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
@@ -539,37 +444,16 @@ impl Area {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
         let expression = self.model.expression.borrow();
-        expression
-            .span_tree
-            .root_ref()
-            .get_descendant(crumbs)
-            .ok()
-            .and_then(|t| t.frp.as_ref().and_then(|frp| frp.tp.value()))
+        let node = expression.span_tree.root_ref().get_descendant(crumbs).ok()?;
+        let id = node.ast_id?;
+        let index = *self.model.id_ports_map.borrow().get(&id)?;
+        self.model.port_models.borrow().get(index)?.frp.as_ref()?.tp.value()
     }
 
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn whole_expr_id(&self) -> Option<ast::Id> {
         self.model.expression.borrow().whole_expr_id
-    }
-}
-
-
-
-// ==========================
-// === Expression Setting ===
-// ==========================
-
-#[derive(Clone, Debug, Default)]
-struct PortLayerBuilder {
-    /// The depth at which the current expression is, where root is at depth 0.
-    depth: usize,
-}
-
-impl PortLayerBuilder {
-    fn nested(&self) -> Self {
-        let depth = self.depth + 1;
-        Self { depth }
     }
 }
 
