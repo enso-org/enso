@@ -604,7 +604,7 @@ spec =
 
         Test.specify "Floating point imperfect representation counter-examples" pending="Fails because of basic floating-point inaccuracy when adding 0.5" <|
             1.225 . round 2 use_bankers=True . should_equal 1.22 # Actual result 1.23
-            37.785 round 2 . should_equal 37.79
+            37.785 . round 2 . should_equal 37.79
 
     Test.group "Integer.round" <|
         Test.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)"
