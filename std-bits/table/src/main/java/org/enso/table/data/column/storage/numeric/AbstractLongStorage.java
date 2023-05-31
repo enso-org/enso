@@ -197,7 +197,9 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
             new LongBooleanOp(Storage.Maps.EQ) {
               @Override
               public BoolStorage runMap(
-                  AbstractLongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+                  AbstractLongStorage storage,
+                  Object arg,
+                  MapOperationProblemBuilder problemBuilder) {
                 if (arg instanceof Double) {
                   problemBuilder.reportFloatingPointEquality(-1);
                 }
@@ -206,7 +208,9 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
 
               @Override
               public BoolStorage runZip(
-                  AbstractLongStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+                  AbstractLongStorage storage,
+                  Storage<?> arg,
+                  MapOperationProblemBuilder problemBuilder) {
                 if (arg instanceof DoubleStorage) {
                   problemBuilder.reportFloatingPointEquality(-1);
                 } else if (!(arg instanceof LongStorage)) {

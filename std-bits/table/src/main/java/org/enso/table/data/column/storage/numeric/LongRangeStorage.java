@@ -1,7 +1,8 @@
 package org.enso.table.data.column.storage.numeric;
 
 /**
- * Implements a storage that can store a simple range of integers (e.g. row indices) with a specified start, step and length.
+ * Implements a storage that can store a simple range of integers (e.g. row indices) with a
+ * specified start, step and length.
  */
 public class LongRangeStorage extends ComputedLongStorage {
   private final long start;

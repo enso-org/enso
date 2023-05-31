@@ -10,9 +10,10 @@ import org.enso.table.data.mask.SliceRange;
 import java.util.BitSet;
 import java.util.List;
 
-/** Implements a storage that computes the ith stored value using some function.
- * <p>
- * This storage assumes that _all_ values are present.
+/**
+ * Implements a storage that computes the ith stored value using some function.
+ *
+ * <p>This storage assumes that _all_ values are present.
  */
 public abstract class ComputedLongStorage extends AbstractLongStorage {
   protected final int size;
@@ -50,7 +51,8 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
 
   public long getItem(int idx) {
     if (idx < 0 || idx >= size) {
-      throw new IndexOutOfBoundsException("Index " + idx + " is out of bounds for range of length " + size + ".");
+      throw new IndexOutOfBoundsException(
+          "Index " + idx + " is out of bounds for range of length " + size + ".");
     }
 
     return computeItem(idx);
