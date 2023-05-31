@@ -39,7 +39,7 @@ pub struct Model {
     status_bar:     crate::status_bar::View,
     welcome_view:   crate::welcome_screen::View,
     project_view:   Rc<CloneCell<Option<crate::project::View>>>,
-    frp:            Frp,
+    frp_outputs:    FrpOutputsSource,
 }
 
 impl Model {
@@ -53,9 +53,9 @@ impl Model {
         let welcome_view = app.new_view::<crate::welcome_screen::View>();
         let project_view = Rc::new(CloneCell::new(None));
         display_object.add_child(&welcome_view);
-        let frp = frp.clone_ref();
+        let frp_outputs = frp.output.source.clone_ref();
 
-        Self { app, display_object, state, status_bar, welcome_view, project_view, frp }
+        Self { app, display_object, state, status_bar, welcome_view, project_view, frp_outputs }
     }
 
     /// Switch displayed view from Project View to Welcome Screen. Project View will not be
@@ -87,7 +87,7 @@ impl Model {
             let view = self.app.new_view::<crate::project::View>();
             let project_list_frp = &view.project_list().frp;
             frp::extend! { network
-                self.frp.source.selected_project <+ project_list_frp.selected_project;
+                self.frp_outputs.selected_project <+ project_list_frp.selected_project;
             }
             self.project_view.set(Some(view));
         }
