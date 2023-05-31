@@ -29,6 +29,13 @@ pub struct InitCell<T> {
     not_exposed: UnsafeCell<T>,
 }
 
+impl<T> InitCell<T> {
+    pub fn into_inner(self) -> T {
+        self.not_exposed.into_inner()
+    }
+}
+
+
 impl<T: InitCellContent> InitCell<T> {
     /// Initialize the value stored in this cell if it is empty. It is impossible to re-initialize
     /// the value without requiring mutable access to self, as there might exist a reference to the

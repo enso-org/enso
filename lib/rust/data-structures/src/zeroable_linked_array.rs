@@ -3,49 +3,55 @@ use std::cell::UnsafeCell;
 
 
 
+pub mod preallocation {
+    pub struct Default;
+    pub struct Zeroed;
+    pub struct Disabled;
+}
+
+
 // =================
 // === LinkedVec ===
 // =================
 
 derive_zeroable! {
     /// [`Vec`]-like structure that:
-    /// 1. Can be initialized with zeroed memory.
-    /// 2. Is represented as linked list of arrays under the hood and can grow while being immutably
-    ///    borrowed.
-    /// 3. Keeps items in [`RefCell`]s, allowing many operations to be performed without mutable
-    ///    borrow. For example, `push` can be performed without mutable borrow always safely, as the
-    ///    struct can grow without reallocating the underlying memory.
-    ///
-    /// # Zeroed memory representation
-    /// It is guaranteed that all reserved, but not-used memory of this structure is zeroed. For
-    /// example, after removing an item or after cleaning the container, the reserved memory will be
-    /// zeroed. It allows for a very efficient implementation of several utilities, such as
-    /// [`Self::push_zeroed`], which for big enough [`Self::N`] performs in O(1) time.
+    /// 1. Can be configured (the [`B`] parameter) to preallocate memory for items, allowing for
+    ///    almost zero-cost push with [`Self::push_new`] if the preallocated memory is not fully
+    ///    occupied. The preallocation can be performed either by initializing values with their
+    ///    defaults, or by zeroing the memory.
+    /// 2. Can be initialized with zeroed memory.
+    /// 3. Allows pushing new elements without requiring mutable access to self. This is safe, as
+    ///    it never re-allocates the underlying memory. In case there is not enough space, a new
+    ///    memory segment will be allocated and linked to the previous segment.
     #[derive(Debug, Derivative)]
     #[derivative(Default(bound = ""))]
-    pub struct ZeroableLinkedArray[T, N][T, const N: usize] {
+    pub struct LinkedArray
+    [T, N, B][T, const N: usize, B][T, const N: usize, B = preallocation::Zeroed] {
         size:          Cell<usize>,
-        first_segment: InitCell<ZeroableOption<Segment<T, N>>>,
+        first_segment: InitCell<ZeroableOption<Segment<T, N, B>>>,
     }
 }
 
-impl<T: Default + Zeroable, const N: usize> ZeroableLinkedArray<T, N> {
+impl<T, const N: usize, B> LinkedArray<T, N, B>
+where B: AllocationBehavior<T, N>
+{
     /// Constructor.
     #[inline(always)]
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Clear all data in the container.
+    /// Remove all items.
     #[inline(always)]
     pub fn clear(&mut self) {
         self.size.set(0);
         if let Some(first_segment) = self.first_segment.opt_item_mut() {
-            first_segment.clear();
+            AllocationBehavior::clear_segments(first_segment);
         }
     }
 
-    /// Number of elements in the container.
+    /// Number of items stored.
     #[inline(always)]
     pub fn len(&self) -> usize {
         self.size.get()
@@ -57,59 +63,31 @@ impl<T: Default + Zeroable, const N: usize> ZeroableLinkedArray<T, N> {
         self.size.get() == 0
     }
 
-    /// Add a new element to the container and return its index.
+    /// Add an item at the end and return its index.
     #[inline(always)]
-    pub fn push(&self, elem: T) -> usize {
+    pub fn push(&self, item: T) -> usize {
         let index = self.size.get();
-        self.get_or_init_first_segment().push(index, elem);
+        self.get_or_init_first_segment().push(index, item);
         self.size.modify(|t| *t += 1);
         index
     }
 
-    /// Add a new element to the container, initializing it with zeroed memory, and return its
-    /// index.
-    #[inline(always)]
-    pub fn push_zeroed(&self) -> usize {
-        let index = self.size.get();
-        if index % N == 0 {
-            self.get_or_init_first_segment().add_tail_segment();
-        }
-        self.size.modify(|t| *t += 1);
-        index
-    }
-}
-
-impl<T: Zeroable, const N: usize> ZeroableLinkedArray<T, N> {
-    #[inline(always)]
-    fn init_first_segment(&self) {
-        self.first_segment.init_if_empty(|| Segment::new());
+    /// Add a new item at the end and return its index. If the container uses preallocated memory,
+    /// this operation is almost zero-cost.
+    pub fn push_new(&self) -> usize {
+        AllocationBehavior::push_new(self)
     }
 
+    /// Return an iterator over the items.
     #[inline(always)]
-    fn get_or_init_first_segment(&self) -> &Segment<T, N> {
-        self.init_first_segment();
-        self.first_segment.opt_item().unwrap()
+    pub fn iter(&self) -> Iter<T, N, B> {
+        IntoIterator::into_iter(self)
     }
 
+    /// Consume the container and return an iterator over its items.
     #[inline(always)]
-    fn get_or_init_first_segment_mut(&mut self) -> &mut Segment<T, N> {
-        self.init_first_segment();
-        self.first_segment.opt_item_mut().unwrap()
-    }
-
-    /// Retain only the elements that satisfy the predicate.
-    pub fn retain<F>(&mut self, mut f: F)
-    where F: FnMut(&T) -> bool {
-        let size = self.size.get();
-        let first_segment = self.get_or_init_first_segment_mut();
-        first_segment.retain_stage1(size, f);
-        let new_size = first_segment.retain_stage2();
-        self.size.set(new_size);
-    }
-
-    #[inline(always)]
-    pub fn iter(&self) -> Iter<T, N> {
-        self.into_iter()
+    pub fn into_iter(self) -> IntoIter<T, N, B> {
+        IntoIterator::into_iter(self)
     }
 
     /// Clone all elements to a vector.
@@ -119,18 +97,55 @@ impl<T: Zeroable, const N: usize> ZeroableLinkedArray<T, N> {
         vec.extend(self.iter().cloned());
         vec
     }
+
+    #[inline(always)]
+    fn init_first_segment(&self) {
+        self.first_segment.init_if_empty(|| AllocationBehavior::new_segment());
+    }
+
+    #[inline(always)]
+    fn get_or_init_first_segment(&self) -> &Segment<T, N, B> {
+        self.init_first_segment();
+        self.first_segment.opt_item().unwrap()
+    }
+
+    #[inline(always)]
+    fn get_or_init_first_segment_mut(&mut self) -> &mut Segment<T, N, B> {
+        self.init_first_segment();
+        self.first_segment.opt_item_mut().unwrap()
+    }
+
+    #[inline(always)]
+    fn push_new_assume_initialized(&self) -> usize {
+        let index = self.size.get();
+        if index % N == 0 {
+            self.get_or_init_first_segment().add_tail_segment();
+        }
+        self.size.modify(|t| *t += 1);
+        index
+    }
 }
 
-// impl<T: Copy + Zeroable, const N: usize> ZeroableLinkedArray<T, N> {
-//     /// Get the element at the given index.
-//     #[inline(always)]
-//     pub fn get(&self, index: usize) -> T {
-//         self.with_item_borrow(index, |t| *t)
-//     }
-// }
+impl<T: Default, const N: usize, B> LinkedArray<T, N, B>
+where B: AllocationBehavior<T, N>
+{
+    /// Retain only the elements that satisfy the predicate.
+    pub fn retain<F>(&mut self, mut f: F)
+    where F: FnMut(&T) -> bool {
+        let size = self.size.get();
+        let first_segment = self.get_or_init_first_segment_mut();
+        first_segment.retain_stage1(size, f);
+        let new_size = first_segment.retain_stage2();
+        self.size.set(new_size);
+    }
+}
 
 
-impl<T: Zeroable, const N: usize> Index<usize> for ZeroableLinkedArray<T, N> {
+// === Indexing ===
+
+impl<T, const N: usize, B> Index<usize> for LinkedArray<T, N, B>
+where B: AllocationBehavior<T, N>
+{
     type Output = T;
     #[inline(always)]
     fn index(&self, offset: usize) -> &Self::Output {
@@ -138,50 +153,15 @@ impl<T: Zeroable, const N: usize> Index<usize> for ZeroableLinkedArray<T, N> {
     }
 }
 
-impl<T: Zeroable, const N: usize> IndexMut<usize> for ZeroableLinkedArray<T, N> {
+impl<T, const N: usize, B> IndexMut<usize> for LinkedArray<T, N, B>
+where B: AllocationBehavior<T, N>
+{
     #[inline(always)]
     fn index_mut(&mut self, offset: usize) -> &mut Self::Output {
         self.get_or_init_first_segment_mut().index_mut(offset)
     }
 }
 
-pub struct Iter<'a, T, const N: usize> {
-    segment:     &'a Segment<T, N>,
-    next_offset: usize,
-    max_offset:  usize,
-}
-
-impl<'a, T, const N: usize> Iterator for Iter<'a, T, N> {
-    type Item = &'a T;
-
-    #[inline(always)]
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.next_offset == self.max_offset {
-            return None;
-        }
-        if self.next_offset >= N {
-            self.segment = self.segment.next.opt_item().unwrap();
-            self.next_offset = 0;
-            self.max_offset -= N;
-        }
-        let item = self.segment.index(self.next_offset);
-        self.next_offset += 1;
-        Some(item)
-    }
-}
-
-impl<'a, T: Zeroable, const N: usize> IntoIterator for &'a ZeroableLinkedArray<T, N> {
-    type Item = &'a T;
-    type IntoIter = Iter<'a, T, N>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        Iter {
-            segment:     self.get_or_init_first_segment(),
-            next_offset: 0,
-            max_offset:  self.size.get(),
-        }
-    }
-}
 
 
 // ===============
@@ -189,36 +169,22 @@ impl<'a, T: Zeroable, const N: usize> IntoIterator for &'a ZeroableLinkedArray<T
 // ===============
 
 #[derive(Debug)]
-struct Segment<T, const N: usize> {
-    items: Vec<UnsafeCell<T>>,
-    next:  InitCell<Option<Box<Segment<T, N>>>>,
+pub struct Segment<T, const N: usize, B> {
+    _allocation_behavior: PhantomData<B>,
+    items:                Vec<UnsafeCell<T>>,
+    next:                 InitCell<Option<Box<Segment<T, N, B>>>>,
 }
 
-impl<T: Zeroable, const N: usize> Segment<T, N> {
-    #[inline(always)]
-    fn new() -> Self {
-        let items = {
-            let layout = std::alloc::Layout::array::<UnsafeCell<T>>(N).unwrap();
-            // # Safety
-            // The bound `T: Zeroable` guarantees that `T` can be initialized with zeroed memory.
-            #[allow(unsafe_code)]
-            unsafe {
-                Vec::from_raw_parts(std::alloc::alloc_zeroed(layout) as *mut _, N, N)
-            }
-        };
-        let next = default();
-        Self { items, next }
-    }
-}
-
-impl<T: Zeroable, const N: usize> Default for Segment<T, N> {
+impl<T, const N: usize, B> Default for Segment<T, N, B>
+where B: AllocationBehavior<T, N>
+{
     #[inline(always)]
     fn default() -> Self {
-        Self::new()
+        AllocationBehavior::new_segment()
     }
 }
 
-impl<T, const N: usize> Segment<T, N> {
+impl<T, const N: usize, B> Segment<T, N, B> {
     /// Get a mutable reference to the next segment if it exists;
     #[inline(always)]
     fn items_and_next_mut(&mut self) -> (&mut Vec<UnsafeCell<T>>, Option<&mut Box<Self>>) {
@@ -228,7 +194,9 @@ impl<T, const N: usize> Segment<T, N> {
     }
 }
 
-impl<T: Zeroable, const N: usize> Segment<T, N> {
+impl<T, const N: usize, B> Segment<T, N, B>
+where B: AllocationBehavior<T, N>
+{
     #[inline(always)]
     fn clear(&mut self) {
         unsafe { std::intrinsics::volatile_set_memory(self.items.as_mut_ptr(), 0, N) }
@@ -263,7 +231,11 @@ impl<T: Zeroable, const N: usize> Segment<T, N> {
         self.init_next_segment();
         self.next.opt_item().unwrap().add_tail_segment()
     }
+}
 
+impl<T: Default, const N: usize, B> Segment<T, N, B>
+where B: AllocationBehavior<T, N>
+{
     /// For each segment, retain the items. Segment lengths will be shortened if necessary, however,
     /// two adjacent not-full segments will not be merged. Merging will be performed in stage 2.
     #[inline(always)]
@@ -312,13 +284,14 @@ impl<T: Zeroable, const N: usize> Segment<T, N> {
         }
         let len = self.items.len();
         for _ in len..N {
-            self.items.push(Zeroable::zeroed());
+            // FIXME: can be optimized
+            self.items.push(default());
         }
         len + self.next.opt_item_mut().map(|next| next.retain_stage2()).unwrap_or_default()
     }
 }
 
-impl<T, const N: usize> Index<usize> for Segment<T, N> {
+impl<T, const N: usize, B> Index<usize> for Segment<T, N, B> {
     type Output = T;
 
     #[inline(always)]
@@ -338,7 +311,7 @@ impl<T, const N: usize> Index<usize> for Segment<T, N> {
     }
 }
 
-impl<T, const N: usize> IndexMut<usize> for Segment<T, N> {
+impl<T, const N: usize, B> IndexMut<usize> for Segment<T, N, B> {
     #[inline(always)]
     fn index_mut(&mut self, offset: usize) -> &mut Self::Output {
         if offset < N {
@@ -356,49 +329,198 @@ impl<T, const N: usize> IndexMut<usize> for Segment<T, N> {
     }
 }
 
-impl<T, const N: usize> Segment<T, N> {
-    // #[inline(always)]
-    // fn set(&self, offset: usize, elem: T) {
-    //     self.with_item_borrow_mut(offset, |t| *t = elem);
-    // }
 
-    // #[inline(always)]
-    // fn with_item_borrow<U>(&self, offset: usize, f: impl FnOnce(&T) -> U) -> U {
-    //     if offset < N {
-    //         f(self.items[offset].unchecked_borrow())
-    //     } else {
-    //         self.next.unchecked_borrow().as_ref().unwrap().with_item_borrow(offset - N, f)
-    //     }
-    // }
-    //
-    // #[inline(always)]
-    // fn with_item_borrow_mut<U>(&self, offset: usize, f: impl FnOnce(&mut T) -> U) -> U {
-    //     if offset < N {
-    //         f(self.items[offset].unchecked_borrow_mut())
-    //     } else {
-    //         self.next.unchecked_borrow().as_ref().unwrap().with_item_borrow_mut(offset - N, f)
-    //     }
-    // }
-    //
-    // #[inline(always)]
-    // fn for_item_borrow(&self, count: usize, mut f: impl FnMut(&T)) {
-    //     for item in self.items.iter().take(count) {
-    //         f(item.unchecked_borrow());
-    //     }
-    //     if count > N {
-    //         self.next.unchecked_borrow().as_ref().unwrap().for_item_borrow(count - N, f);
-    //     }
-    // }
-    //
-    // #[inline(always)]
-    // fn for_item_borrow_mut(&self, count: usize, mut f: impl FnMut(&mut T)) {
-    //     for item in self.items.iter().take(count) {
-    //         f(item.unchecked_borrow_mut());
-    //     }
-    //     if count > N {
-    //         self.next.unchecked_borrow().as_ref().unwrap().for_item_borrow_mut(count - N, f);
-    //     }
-    // }
+
+// ==========================
+// === AllocationBehavior ===
+// ==========================
+
+pub trait AllocationBehavior<T, const N: usize>: Sized {
+    /// Add a new item at the end and return its index. If the container uses preallocated memory,
+    /// this operation is almost zero-cost.
+    fn push_new(array: &LinkedArray<T, N, Self>) -> usize;
+    /// Create a new segment.
+    fn new_segment() -> Segment<T, N, Self>;
+    /// Clear the memory in all the segments. If the allocation behavior pre-allocates items, the
+    /// memory will be populated with new instances.
+    fn clear_segments(segment: &mut Segment<T, N, Self>);
+}
+
+impl<T: Default, const N: usize> AllocationBehavior<T, N> for preallocation::Default {
+    #[inline(always)]
+    fn push_new(array: &LinkedArray<T, N, Self>) -> usize {
+        array.push_new_assume_initialized()
+    }
+
+    #[inline(always)]
+    fn new_segment() -> Segment<T, N, Self> {
+        let mut items = Vec::with_capacity(N);
+        for _ in 0..N {
+            items.push(default());
+        }
+        let next = default();
+        let _allocation_behavior = PhantomData;
+        Segment { _allocation_behavior, items, next }
+    }
+
+    #[inline(always)]
+    fn clear_segments(segment: &mut Segment<T, N, Self>) {
+        segment.items.clear();
+        for _ in 0..N {
+            segment.items.push(default());
+        }
+        if let Some(next) = segment.next.opt_item_mut() {
+            Self::clear_segments(next);
+        }
+    }
+}
+
+impl<T: Zeroable, const N: usize> AllocationBehavior<T, N> for preallocation::Zeroed {
+    #[inline(always)]
+    fn push_new(array: &LinkedArray<T, N, Self>) -> usize {
+        array.push_new_assume_initialized()
+    }
+
+    #[inline(always)]
+    fn new_segment() -> Segment<T, N, Self> {
+        let items = {
+            let layout = std::alloc::Layout::array::<UnsafeCell<T>>(N).unwrap();
+            // # Safety
+            // The bound `T: Zeroable` guarantees that `T` can be initialized with zeroed memory.
+            #[allow(unsafe_code)]
+            unsafe {
+                Vec::from_raw_parts(std::alloc::alloc_zeroed(layout) as *mut _, N, N)
+            }
+        };
+        let next = default();
+        let _allocation_behavior = PhantomData;
+        Segment { _allocation_behavior, items, next }
+    }
+
+    #[inline(always)]
+    fn clear_segments(segment: &mut Segment<T, N, Self>) {
+        unsafe { std::intrinsics::volatile_set_memory(segment.items.as_mut_ptr(), 0, N) }
+        if let Some(next) = segment.next.opt_item_mut() {
+            Self::clear_segments(next);
+        }
+    }
+}
+
+impl<T: Default, const N: usize> AllocationBehavior<T, N> for preallocation::Disabled {
+    #[inline(always)]
+    fn push_new(array: &LinkedArray<T, N, Self>) -> usize {
+        array.push(default())
+    }
+
+    #[inline(always)]
+    fn new_segment() -> Segment<T, N, Self> {
+        let items = default();
+        let next = default();
+        let _allocation_behavior = PhantomData;
+        Segment { _allocation_behavior, items, next }
+    }
+
+    #[inline(always)]
+    fn clear_segments(segment: &mut Segment<T, N, Self>) {
+        segment.clear();
+        if let Some(next) = segment.next.opt_item_mut() {
+            Self::clear_segments(next);
+        }
+    }
+}
+
+
+
+// =================
+// === Iterators ===
+// =================
+
+// === Iter for &T ===
+
+/// An iterator over immutable references to [`LinkedArray`] items.
+#[derive(Debug)]
+pub struct Iter<'a, T, const N: usize, B> {
+    segment:     &'a Segment<T, N, B>,
+    next_offset: usize,
+    max_offset:  usize,
+}
+
+impl<'a, T, const N: usize, B> Iterator for Iter<'a, T, N, B> {
+    type Item = &'a T;
+    #[inline(always)]
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.next_offset == self.max_offset {
+            return None;
+        }
+        if self.next_offset >= N {
+            self.segment = self.segment.next.opt_item().unwrap();
+            self.next_offset = 0;
+            self.max_offset -= N;
+        }
+        let item = self.segment.index(self.next_offset);
+        self.next_offset += 1;
+        Some(item)
+    }
+}
+
+impl<'a, T, const N: usize, B> IntoIterator for &'a LinkedArray<T, N, B>
+where B: AllocationBehavior<T, N>
+{
+    type Item = &'a T;
+    type IntoIter = Iter<'a, T, N, B>;
+    #[inline(always)]
+    fn into_iter(self) -> Self::IntoIter {
+        Iter {
+            segment:     self.get_or_init_first_segment(),
+            next_offset: 0,
+            max_offset:  self.size.get(),
+        }
+    }
+}
+
+
+// === Iter for T ===
+
+/// An iterator over owned [`LinkedArray`] items.
+#[derive(Debug)]
+pub struct IntoIter<T, const N: usize, B> {
+    next_segment:    Option<Box<Segment<T, N, B>>>,
+    current_segment: std::vec::IntoIter<UnsafeCell<T>>,
+    next_offset:     usize,
+    max_offset:      usize,
+}
+
+impl<T, const N: usize, B> IntoIterator for LinkedArray<T, N, B>
+where B: AllocationBehavior<T, N>
+{
+    type Item = T;
+    type IntoIter = IntoIter<T, N, B>;
+    #[inline(always)]
+    fn into_iter(self) -> Self::IntoIter {
+        self.init_first_segment();
+        let first_segment = self.first_segment.into_inner().unwrap();
+        let current_segment = first_segment.items.into_iter();
+        let next_segment = first_segment.next.into_inner();
+        IntoIter { next_segment, current_segment, next_offset: 0, max_offset: self.size.get() }
+    }
+}
+
+impl<T, const N: usize, B> Iterator for IntoIter<T, N, B> {
+    type Item = T;
+    #[inline(always)]
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.next_offset == self.max_offset {
+            return None;
+        }
+        if self.next_offset >= N {
+            if let Some(next_segment) = self.next_segment.take() {
+                self.current_segment = next_segment.items.into_iter();
+                self.next_segment = next_segment.next.into_inner();
+            }
+        }
+        self.next_offset += 1;
+        self.current_segment.next().map(|t| t.into_inner())
+    }
 }
 
 
@@ -413,7 +535,7 @@ mod tests2 {
 
     #[test]
     fn test_push() {
-        let array = ZeroableLinkedArray::<usize, 2>::new();
+        let array = LinkedArray::<usize, 2>::new();
         array.push(1);
         assert_eq!(&array.to_vec(), &[1]);
         array.push(2);
@@ -428,7 +550,7 @@ mod tests2 {
 
     #[test]
     fn test_retain() {
-        let mut array = ZeroableLinkedArray::<usize, 2>::new();
+        let mut array = LinkedArray::<usize, 2>::new();
         array.push(1);
         array.push(2);
         array.push(3);

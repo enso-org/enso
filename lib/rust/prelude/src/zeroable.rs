@@ -73,6 +73,14 @@ impl<T> ZeroableOption<T> {
             ZeroableOption::Some(v) => v,
         }
     }
+
+    #[inline(always)]
+    pub fn into_option(self) -> Option<T> {
+        match self {
+            ZeroableOption::None => None,
+            ZeroableOption::Some(v) => Some(v),
+        }
+    }
 }
 
 impl<T> From<T> for ZeroableOption<T> {
@@ -196,7 +204,7 @@ impl<T> From<T> for ZeroableRefCell<T> {
 macro_rules! derive_zeroable {
     (
         $(#$meta:tt)*
-        pub struct $name:ident $([ $($bounds:tt)* ] [ $($bounds_def:tt)* ])? {
+        pub struct $name:ident $([ $($bounds:tt)* ] [ $($bounds_impl:tt)* ] [ $($bounds_def:tt)* ])? {
             $($field:ident : $ty:ty),* $(,)?
         }
     ) => {
@@ -204,7 +212,7 @@ macro_rules! derive_zeroable {
         pub struct $name $(< $($bounds_def)* >)? {
             $($field : $ty),*
         }
-        unsafe impl $(< $($bounds_def)* >)? $crate::Zeroable for $name $(< $($bounds)* >)?
+        unsafe impl $(< $($bounds_impl)* >)? $crate::Zeroable for $name $(< $($bounds)* >)?
             where $($ty: Zeroable),* {}
     };
 }

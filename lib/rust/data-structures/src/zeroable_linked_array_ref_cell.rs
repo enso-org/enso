@@ -20,7 +20,7 @@ derive_zeroable! {
     /// [`Self::push_zeroed`], which for big enough [`Self::N`] performs in O(1) time.
     #[derive(Debug, Derivative)]
     #[derivative(Default(bound = ""))]
-    pub struct ZeroableLinkedArrayRefCell[T, N][T, const N: usize] {
+    pub struct ZeroableLinkedArrayRefCell[T, N][T, const N: usize][T, const N: usize] {
         size:          Cell<usize>,
         first_segment: OptRefCell<ZeroableOption<Segment<T, N>>>,
     }
