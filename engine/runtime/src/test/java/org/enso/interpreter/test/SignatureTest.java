@@ -96,6 +96,86 @@ public class SignatureTest extends TestBase {
   }
 
   @Test
+  public void runtimeCheckOfAscribedInstanceMethodSignature() throws Exception {
+    final URI uri = new URI("memory://twice_instance.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer
+    type Neg
+        Singleton
+
+        twice self (a : Integer) = a + a
+    """, uri.getHost())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var neg = module.invokeMember("eval_expression", "Neg.Singleton.twice");
+
+    var ten = neg.execute(5);
+    assertEquals("Ten", 10, ten.asInt());
+
+    try {
+      var res = neg.execute("Hi");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertTypeError("`a`", "Integer", "Text", e.getMessage());
+    }
+  }
+
+
+  @Test
+  public void runtimeCheckOfAscribedStaticMethodSignature() throws Exception {
+    final URI uri = new URI("memory://twice_static.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer
+    type Neg
+        twice (a : Integer) = a + a
+    """, uri.getHost())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var neg = module.invokeMember("eval_expression", "Neg.twice");
+
+    var ten = neg.execute(5);
+    assertEquals("Ten", 10, ten.asInt());
+
+    try {
+      var res = neg.execute("Hi");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertTypeError("`a`", "Integer", "Text", e.getMessage());
+    }
+  }
+
+  @Test
+  public void runtimeCheckOfAscribedLocalMethodSignature() throws Exception {
+    final URI uri = new URI("memory://twice_local.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer
+
+    call_twice x =
+        twice (a : Integer) = a + a
+        twice x
+    """, uri.getHost())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var neg = module.invokeMember("eval_expression", "call_twice");
+
+    var ten = neg.execute(5);
+    assertEquals("Ten", 10, ten.asInt());
+
+    try {
+      var res = neg.execute("Hi");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertTypeError("`a`", "Integer", "Text", e.getMessage());
+    }
+  }
+
+  @Test
   public void wrongAscribedInConstructor() throws Exception {
     final URI uri = new URI("memory://constructor.enso");
     final Source src = Source.newBuilder("enso", """
