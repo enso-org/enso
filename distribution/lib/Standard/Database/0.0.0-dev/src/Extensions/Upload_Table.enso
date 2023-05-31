@@ -133,6 +133,9 @@ Database_Table.create_database_table self connection table_name=Nothing primary_
     upload_status.if_not_error <|
         connection.query (SQL_Query.Table_Name effective_table_name)
 
+In_Memory_Table.update_database_table : Connection -> Text -> (Vector Text) | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | Missing_Input_Columns | Non_Unique_Primary_Key | SQL_Error | Illegal_Argument
+In_Memory_Table.update_database_table connection (table_name : Text) update_action
+
 ## PRIVATE
    Ensures that provided primary key columns are present in the table and that
    there are no duplicates.
