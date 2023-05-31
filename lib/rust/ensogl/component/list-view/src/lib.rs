@@ -518,7 +518,7 @@ where E::Model: Default
 
             // === Selected Entry ===
 
-            eval frp.source.focused([frp](f) if !f { frp.deselect_entries.emit(()) } );
+            frp.deselect_entries <+ frp.focused.on_false();
 
             frp.source.selected_entry <+ frp.select_entry;
             frp.source.selected_entry <+ frp.output.chosen_entry;
