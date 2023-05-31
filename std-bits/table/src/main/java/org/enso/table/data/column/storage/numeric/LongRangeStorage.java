@@ -1,5 +1,6 @@
-package org.enso.table.data.column.storage;
+package org.enso.table.data.column.storage.numeric;
 
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;

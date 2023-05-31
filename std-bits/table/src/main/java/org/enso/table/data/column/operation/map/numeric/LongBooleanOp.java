@@ -3,6 +3,9 @@ package org.enso.table.data.column.operation.map.numeric;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
+import org.enso.table.data.column.storage.numeric.DoubleStorage;
+import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.error.UnexpectedTypeException;
 
 import java.util.BitSet;

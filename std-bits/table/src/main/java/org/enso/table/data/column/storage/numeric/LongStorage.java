@@ -1,14 +1,8 @@
-package org.enso.table.data.column.storage;
+package org.enso.table.data.column.storage.numeric;
 
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
-import org.enso.table.data.column.operation.map.MapOpStorage;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
-import org.enso.table.data.column.operation.map.UnaryMapOperation;
-import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
-import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
-import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;

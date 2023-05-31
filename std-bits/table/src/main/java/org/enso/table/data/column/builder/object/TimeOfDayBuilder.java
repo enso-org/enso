@@ -1,7 +1,7 @@
 package org.enso.table.data.column.builder.object;
 
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.TimeOfDayStorage;
+import org.enso.table.data.column.storage.datetime.TimeOfDayStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 

@@ -1,4 +1,4 @@
-package org.enso.table.data.column.storage;
+package org.enso.table.data.column.storage.numeric;
 
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
@@ -8,6 +8,8 @@ import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
+import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.Storage;
 
 import java.util.BitSet;
 
@@ -48,7 +50,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
   private static MapOpStorage<Long, AbstractLongStorage> buildOps() {
     MapOpStorage<Long, AbstractLongStorage> ops = new MapOpStorage<>();
     ops.add(
-            new LongNumericOp(Maps.ADD) {
+            new LongNumericOp(Storage.Maps.ADD) {
               @Override
               public double doDouble(
                   long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
@@ -62,7 +64,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new LongNumericOp(Maps.SUB) {
+            new LongNumericOp(Storage.Maps.SUB) {
               @Override
               public double doDouble(
                   long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
@@ -76,7 +78,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new LongNumericOp(Maps.MUL) {
+            new LongNumericOp(Storage.Maps.MUL) {
               @Override
               public double doDouble(
                   long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
@@ -90,7 +92,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new LongNumericOp(Maps.MOD) {
+            new LongNumericOp(Storage.Maps.MOD) {
               @Override
               public double doDouble(
                   long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
@@ -112,7 +114,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new LongNumericOp(Maps.POWER, true) {
+            new LongNumericOp(Storage.Maps.POWER, true) {
               @Override
               public double doDouble(
                   long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
@@ -127,7 +129,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new LongNumericOp(Maps.DIV, true) {
+            new LongNumericOp(Storage.Maps.DIV, true) {
               @Override
               public double doDouble(
                   long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
@@ -144,7 +146,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new LongBooleanOp(Maps.GT) {
+            new LongBooleanOp(Storage.Maps.GT) {
               @Override
               protected boolean doLong(long a, long b) {
                 return a > b;
@@ -156,7 +158,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new LongBooleanOp(Maps.GTE) {
+            new LongBooleanOp(Storage.Maps.GTE) {
               @Override
               protected boolean doLong(long a, long b) {
                 return a >= b;
@@ -168,7 +170,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new LongBooleanOp(Maps.LT) {
+            new LongBooleanOp(Storage.Maps.LT) {
               @Override
               protected boolean doLong(long a, long b) {
                 return a < b;
@@ -180,7 +182,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new LongBooleanOp(Maps.LTE) {
+            new LongBooleanOp(Storage.Maps.LTE) {
               @Override
               protected boolean doLong(long a, long b) {
                 return a <= b;
@@ -192,7 +194,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new LongBooleanOp(Maps.EQ) {
+            new LongBooleanOp(Storage.Maps.EQ) {
               @Override
               public BoolStorage runMap(
                   AbstractLongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
@@ -242,7 +244,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new UnaryMapOperation<>(Maps.IS_NOTHING) {
+            new UnaryMapOperation<>(Storage.Maps.IS_NOTHING) {
               @Override
               public BoolStorage run(AbstractLongStorage storage) {
                 return new BoolStorage(storage.getIsMissing(), new BitSet(), storage.size(), false);

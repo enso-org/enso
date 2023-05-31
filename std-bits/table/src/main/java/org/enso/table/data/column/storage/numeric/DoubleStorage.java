@@ -1,4 +1,4 @@
-package org.enso.table.data.column.storage;
+package org.enso.table.data.column.storage.numeric;
 
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
@@ -8,6 +8,8 @@ import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
+import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
