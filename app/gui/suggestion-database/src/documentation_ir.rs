@@ -26,9 +26,9 @@ use std::cmp::Ordering;
 // ==============
 
 #[allow(missing_docs)]
-#[derive(Debug, Clone, Copy, Eq, Fail, PartialEq)]
-#[fail(display = "Can't find parent module for entry with id {}", _0)]
-pub struct NoParentModule(entry::Id);
+#[derive(Debug, Clone, Eq, Fail, PartialEq)]
+#[fail(display = "Can't find parent module for entry {}.", _0)]
+pub struct NoParentModule(String);
 
 
 
@@ -178,25 +178,18 @@ impl EntryDocumentation {
     fn parent_module(
         db: &SuggestionDatabase,
         entry: &Entry,
-        entry_id: entry::Id,
     ) -> Result<ModuleDocumentation, NoParentModule> {
         let defined_in = &entry.defined_in;
         let parent_module = db.lookup_by_qualified_name(defined_in);
         match parent_module {
             Some((id, parent)) => match parent.kind {
                 Kind::Module => Ok(ModuleDocumentation::new(id, &parent, db)
-                    .map_err(|_| NoParentModule(entry_id))?),
-                _ => {
-                    error!(
-                        "Unexpected parent entry ({}) kind, expected Module.",
-                        entry.qualified_name()
-                    );
-                    Err(NoParentModule(entry_id))
-                }
+                    .map_err(|_| NoParentModule(entry.qualified_name().to_string()))?),
+                _ => Err(NoParentModule(entry.qualified_name().to_string())),
             },
             None => {
                 error!("Parent module for entry {} not found.", entry.qualified_name());
-                Err(NoParentModule(entry_id))
+                Err(NoParentModule(entry.qualified_name().to_string()))
             }
         }
     }
@@ -206,7 +199,7 @@ impl EntryDocumentation {
         entry: &Entry,
         entry_id: entry::Id,
     ) -> FallibleResult<EntryDocumentation> {
-        let module_docs = Self::parent_module(db, entry, entry_id)?;
+        let module_docs = Self::parent_module(db, entry)?;
         let type_docs = TypeDocumentation::new(entry_id, entry, db)?;
         Ok(Documentation::Type { docs: type_docs, module_docs }.into())
     }
@@ -225,7 +218,7 @@ impl EntryDocumentation {
                 Kind::Type => {
                     let docs = Function::from_entry(entry);
                     let type_docs = TypeDocumentation::new(id, &parent, db)?;
-                    let module_docs = Self::parent_module(db, &parent, id)?;
+                    let module_docs = Self::parent_module(db, &parent)?;
                     Ok(Documentation::Method { docs, type_docs, module_docs }.into())
                 }
                 Kind::Module => {
@@ -256,7 +249,7 @@ impl EntryDocumentation {
             Some((id, parent)) => {
                 let docs = Function::from_entry(entry);
                 let type_docs = TypeDocumentation::new(id, &parent, db)?;
-                let module_docs = Self::parent_module(db, &parent, id)?;
+                let module_docs = Self::parent_module(db, &parent)?;
                 Ok(Documentation::Constructor { docs, type_docs, module_docs }.into())
             }
             None => {
