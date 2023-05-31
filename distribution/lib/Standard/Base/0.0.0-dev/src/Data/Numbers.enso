@@ -943,8 +943,8 @@ type Integer
                     True ->
                         case self >= 0 of
                             True ->
-                                half_goes_down = (scaled_down % 2) == 0
-                                should_nudge = if half_goes_down then remainder > halfway else remainder >= halfway
+                                half_goes_up = (scaled_down % 2) != 0
+                                should_nudge = if half_goes_up then remainder >= halfway else remainder > halfway
                                 if should_nudge  then result_unnudged + scale else result_unnudged
                             False ->
                                 half_goes_up = (scaled_down % 2) == 0
