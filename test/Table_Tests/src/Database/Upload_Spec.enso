@@ -227,6 +227,58 @@ spec make_new_connection prefix persistent_connector=True =
             r1.should_fail_with Unsupported_Database_Operation
             r1.catch.message . should_contain "same connection"
 
+    test_table_append table_builder =
+        Test.specify "should be able to append new rows to a table" <|
+            Nothing
+
+        Test.specify "should be able to update existing rows in a table" <|
+            Nothing
+
+        Test.specify "should upsert by default (update existing rows, insert new rows)" <|
+            Nothing
+
+        Test.specify "should allow to align an existing table with a source (upsert + delete rows missing from source)" <|
+            Nothing
+
+        Test.specify "should be able to detect the primary key of a table for row correlation" <|
+            Nothing
+
+        Test.specify "should fail if the key is not unique in the unique table" <|
+            Nothing
+
+        Test.specify "should fail if the key causes update of multiple values (it's not unique in the target table)" <|
+            Nothing
+
+        Test.specify "should fail if the source table contains columns not present in the target (data loss)" <|
+            Nothing
+
+        Test.specify "by default should keep columns missing from source as-is and use defaults when inserting" <|
+            Nothing
+
+        Test.specify "should fail if the source table is missing some columns and the column in the target has no default value" <|
+            Nothing
+
+        Test.specify "should fail if the source table is missing some columns, if asked to" <|
+            Nothing
+
+        Test.specify "TODO mapping of primary key columns - wrong name TODO" <|
+            Nothing
+
+        Test.specify "should fail if types of columns are not compatible" <|
+            # TODO how do we define compatibility? I assume we allow type widening, but not narrowing
+            Nothing
+
+
+    Test.group "Appending an in-memory table to a Database table" <|
+        table_builder = Table.new
+        test_table_append table_builder
+
+    Test.group "Appending a Database table to a Database table" <|
+        table_builder args =
+            in_memory_table = Table.new args
+            in_memory_table.create_database_table connection (Name_Generator.random_name "source-table") temporary=True
+        test_table_append table_builder
+
 
 ## PRIVATE
    Creates a mock column containing `values`.
