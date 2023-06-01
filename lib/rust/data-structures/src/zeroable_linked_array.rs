@@ -3,9 +3,6 @@ use std::cell::UnsafeCell;
 
 
 
-
-
-
 // =================
 // === LinkedVec ===
 // =================
@@ -18,8 +15,13 @@ derive_zeroable! {
     ///    defaults, or by zeroing the memory.
     /// 2. Can be initialized with zeroed memory.
     /// 3. Allows pushing new elements without requiring mutable access to self. This is safe, as
-    ///    it never re-allocates the underlying memory. In case there is not enough space, a new
-    ///    memory segment will be allocated and linked to the previous segment.
+    ///    it never re-allocates the underlying memory when adding new items. In case there is not
+    ///    enough space, a new memory segment will be allocated and linked to the previous one.
+    ///
+    /// [`LinkedArray`] will never automatically shrink itself, even if completely empty. This
+    /// ensures no unnecessary allocations or deallocations occur. Emptying a [`LinkedArray`] and
+    /// then filling it back up to the same len should incur no calls to the allocator. If you wish
+    /// to free up unused memory, use [`shrink_to_fit`].
     #[derive(Derivative)]
     #[derivative(Default(bound = ""))]
     pub struct LinkedArray
@@ -49,15 +51,6 @@ where B: AllocationBehavior<T, N>
         Self::default()
     }
 
-    /// Remove all items.
-    #[inline(always)]
-    pub fn clear(&mut self) {
-        self.len.set(0);
-        if let Some(first_segment) = self.first_segment.opt_item_mut() {
-            AllocationBehavior::clear_segments(first_segment);
-        }
-    }
-
     /// The capacity of the container.
     #[inline(always)]
     pub fn capacity(&self) -> usize {
@@ -76,28 +69,72 @@ where B: AllocationBehavior<T, N>
         self.len.get() == 0
     }
 
+    /// Remove all items. It does not deallocate the memory.
+    #[inline(always)]
+    pub fn clear(&mut self) {
+        self.len.set(0);
+        if let Some(first_segment) = self.first_segment.opt_item_mut() {
+            AllocationBehavior::clear_segments(first_segment);
+        }
+    }
+
+    /// Deallocate segments that are not used.
+    pub fn shrink_to_fit(&mut self) {
+        let len = self.len();
+        if len == 0 {
+            self.first_segment.set_default();
+        } else {
+            if let Some(first_segment) = self.first_segment.opt_item_mut() {
+                let new_capacity = first_segment.shrink_to_fit(len);
+                self.capacity.set(new_capacity)
+            }
+        }
+    }
+
     /// Number of segments used to store the items.
     #[inline(always)]
     pub fn segment_count(&self) -> usize {
         self.first_segment.opt_item().map(|t| t.segment_count()).unwrap_or(0)
     }
 
-    /// Add an item at the end and return its index.
+    /// Add the provided item at the end and return its index.
     #[inline(always)]
     pub fn push(&self, item: T) -> usize {
         let index = self.len.get();
-        let new_segment_added = self.get_or_init_first_segment().push(index, item);
         self.len.modify(|t| *t += 1);
+        let new_segment_added = self.get_or_init_first_segment().push(index, item);
         if new_segment_added {
             self.capacity.modify(|t| *t += N);
         }
         index
     }
 
-    /// Add a new item at the end and return its index. If the container uses preallocated memory,
-    /// this operation is almost zero-cost.
+    /// Add a new item at the end and return its index. If the container uses preallocated memory
+    /// and there is enough space, this operation is almost zero-cost.
     pub fn push_new(&self) -> usize {
-        AllocationBehavior::push_new(self)
+        self.push_new_multiple(1)
+    }
+
+    /// Add several new items at the end  and return the index of the first added item. If the
+    /// container uses preallocated memory and there is enough space, this operation is almost
+    /// zero-cost.
+    #[inline(always)]
+    pub fn push_new_multiple(&self, count: usize) -> usize {
+        AllocationBehavior::push_new_multiple(self, count)
+    }
+
+    /// Add a new element by shifting the element counter and assuming that the memory is already
+    /// initialized.
+    #[inline(always)]
+    fn push_new_assume_initialized(&self, count: usize) -> usize {
+        let index = self.len.get();
+        self.len.modify(|t| *t += count);
+        let last_index = self.len.get() - 1;
+        let new_segments_needed = (last_index + N).saturating_sub(self.capacity.get()) / N;
+        if new_segments_needed > 0 {
+            self.add_tail_segments(new_segments_needed);
+        }
+        index
     }
 
     /// Return an iterator over the items.
@@ -148,21 +185,9 @@ where B: AllocationBehavior<T, N>
         self.first_segment.opt_item_mut().unwrap()
     }
 
-    /// Add a new element by shifting the element counter and assuming that the memory is already
-    /// initialized.
-    #[inline(always)]
-    fn push_new_assume_initialized(&self) -> usize {
-        let index = self.len.get();
-        if index >= self.capacity.get() {
-            self.add_tail_segment();
-        }
-        self.len.modify(|t| *t += 1);
-        index
-    }
-
-    fn add_tail_segment(&self) {
-        self.get_or_init_first_segment().add_tail_segment();
-        self.capacity.modify(|t| *t += N);
+    fn add_tail_segments(&self, count: usize) {
+        self.get_or_init_first_segment().add_tail_segments(count);
+        self.capacity.modify(|t| *t += N * count);
     }
 }
 
@@ -237,6 +262,16 @@ impl<T, const N: usize, B> Segment<T, N, B> {
         self.next.opt_item().map(|t| t.segment_count()).unwrap_or(0) + 1
     }
 
+    #[inline(always)]
+    fn shrink_to_fit(&mut self, count: usize) -> usize {
+        if count < N {
+            self.next.set_default();
+            N
+        } else {
+            self.next.opt_item_mut().unwrap().shrink_to_fit(count - N)
+        }
+    }
+
     /// Get a mutable reference to the next segment if it exists;
     #[inline(always)]
     fn items_and_next_mut(&mut self) -> (&mut Vec<UnsafeCell<T>>, Option<&mut Box<Self>>) {
@@ -307,9 +342,11 @@ where B: AllocationBehavior<T, N>
 
     #[inline(always)]
     #[allow(unconditional_recursion)]
-    fn add_tail_segment(&self) {
-        if !self.init_next_segment() {
-            self.next.opt_item().unwrap().add_tail_segment()
+    fn add_tail_segments(&self, count: usize) {
+        if count > 0 {
+            if !self.init_next_segment() {
+                self.next.opt_item().unwrap().add_tail_segments(count - 1)
+            }
         }
     }
 }
@@ -424,23 +461,27 @@ impl<T, const N: usize, B> IndexMut<usize> for Segment<T, N, B> {
 // === AllocationBehavior ===
 // ==========================
 
+/// Operations that differ depending on the preallocation behavior.
 pub trait AllocationBehavior<T, const N: usize>: Sized {
-    /// Add a new item at the end and return its index. If the container uses preallocated memory,
-    /// this operation is almost zero-cost.
-    fn push_new(array: &LinkedArray<T, N, Self>) -> usize;
+    /// Add new items at the end and return the index of the first added item. If the container uses
+    /// preallocated memory, this operation is almost zero-cost.
+    fn push_new_multiple(array: &LinkedArray<T, N, Self>, count: usize) -> usize;
     /// Create a new segment.
     fn new_segment() -> Segment<T, N, Self>;
+    /// Push new item to the segment. Return `true` if a new segment was added.
     fn push_to_segment(segment: &Segment<T, N, Self>, offset: usize, elem: T) -> bool;
     /// Clear the memory in all the segments. If the allocation behavior pre-allocates items, the
     /// memory will be populated with new instances.
     fn clear_segments(segment: &mut Segment<T, N, Self>);
+    /// Preallocate missing items in the segment. If the container was configured not to preallocate
+    /// items, this is a no-op.
     fn preallocate_missing_segment_items(segment: &mut Segment<T, N, Self>);
 }
 
 impl<T: Default, const N: usize> AllocationBehavior<T, N> for prealloc::Default {
     #[inline(always)]
-    fn push_new(array: &LinkedArray<T, N, Self>) -> usize {
-        array.push_new_assume_initialized()
+    fn push_new_multiple(array: &LinkedArray<T, N, Self>, count: usize) -> usize {
+        array.push_new_assume_initialized(count)
     }
 
     #[inline(always)]
@@ -482,8 +523,8 @@ impl<T: Default, const N: usize> AllocationBehavior<T, N> for prealloc::Default 
 
 impl<T: Zeroable, const N: usize> AllocationBehavior<T, N> for prealloc::Zeroed {
     #[inline(always)]
-    fn push_new(array: &LinkedArray<T, N, Self>) -> usize {
-        array.push_new_assume_initialized()
+    fn push_new_multiple(array: &LinkedArray<T, N, Self>, count: usize) -> usize {
+        array.push_new_assume_initialized(count)
     }
 
     #[inline(always)]
@@ -527,8 +568,12 @@ impl<T: Zeroable, const N: usize> AllocationBehavior<T, N> for prealloc::Zeroed 
 
 impl<T: Default, const N: usize> AllocationBehavior<T, N> for prealloc::Disabled {
     #[inline(always)]
-    fn push_new(array: &LinkedArray<T, N, Self>) -> usize {
-        array.push(default())
+    fn push_new_multiple(array: &LinkedArray<T, N, Self>, count: usize) -> usize {
+        let index = array.len();
+        for _ in 0..count {
+            array.push(default());
+        }
+        index
     }
 
     #[inline(always)]
@@ -666,7 +711,7 @@ impl<T, const N: usize, B> Iterator for IntoIter<T, N, B> {
 // =============
 
 #[cfg(test)]
-mod tests2 {
+mod tests {
     use super::*;
 
     macro_rules! test_all_configs {

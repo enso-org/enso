@@ -63,6 +63,12 @@ impl<T: InitCellContent> InitCell<T> {
     pub fn set_value(&mut self, internal: T) {
         self.not_exposed = UnsafeCell::new(internal);
     }
+
+    /// Set this value to its default.
+    pub fn set_default(&mut self)
+    where T: Default {
+        self.set_value(default())
+    }
 }
 
 impl<T: HasItem> HasItem for InitCell<T> {
