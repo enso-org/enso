@@ -215,8 +215,8 @@ class Main implements AppRunner {
             localStorage.setItem(INITIAL_URL_KEY, location.href)
         }
         if (parseOk) {
-            const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
-            const isUsingNewDashboard =
+            const shouldUseAuthentication = contentConfig.OPTIONS.options.authentication.value
+            const shouldUseNewDashboard =
                 contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
             const isOpeningMainEntryPoint =
                 contentConfig.OPTIONS.groups.startup.options.entry.value ===
@@ -224,11 +224,16 @@ class Main implements AppRunner {
             const isNotOpeningProject =
                 contentConfig.OPTIONS.groups.startup.options.project.value === ''
             if (
-                (isUsingAuthentication || isUsingNewDashboard) &&
+                (shouldUseAuthentication || shouldUseNewDashboard) &&
                 isOpeningMainEntryPoint &&
                 isNotOpeningProject
             ) {
-                this.runAuthentication(isInAuthenticationFlow, inputConfig)
+                this.runAuthentication(
+                    isInAuthenticationFlow,
+                    shouldUseAuthentication,
+                    shouldUseNewDashboard,
+                    inputConfig
+                )
             } else {
                 void this.runApp(inputConfig)
             }
@@ -236,7 +241,12 @@ class Main implements AppRunner {
     }
 
     /** Begins the authentication UI flow. */
-    runAuthentication(isInAuthenticationFlow: boolean, inputConfig?: StringConfig) {
+    runAuthentication(
+        isInAuthenticationFlow: boolean,
+        shouldUseAuthentication: boolean,
+        shouldUseNewDashboard: boolean,
+        inputConfig?: StringConfig
+    ) {
         /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
          * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
          * should only have one entry point. Right now, we have two. One for the cloud
@@ -251,7 +261,8 @@ class Main implements AppRunner {
             logger,
             supportsLocalBackend: SUPPORTS_LOCAL_BACKEND,
             supportsDeepLinks: SUPPORTS_DEEP_LINKS,
-            showDashboard: contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
+            shouldStartInOfflineMode: !shouldUseAuthentication,
+            shouldShowDashboard: shouldUseNewDashboard,
             onAuthenticated: () => {
                 if (isInAuthenticationFlow) {
                     const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
@@ -261,11 +272,12 @@ class Main implements AppRunner {
                         history.replaceState(null, '', initialUrl)
                     }
                 }
-                if (!contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) {
+                if (!shouldUseNewDashboard) {
                     document.getElementById('enso-dashboard')?.remove()
-                    const ide = document.getElementById('root')
-                    if (ide) {
-                        ide.hidden = false
+                    const ideElement = document.getElementById('root')
+                    if (ideElement) {
+                        ideElement.style.top = ''
+                        ideElement.style.display = ''
                     }
                     if (this.app == null) {
                         void this.runApp(inputConfig)

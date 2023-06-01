@@ -86,8 +86,10 @@ export interface AppProps {
     /** Whether the application supports deep links. This is only true when using
      * the installed app on macOS and Windows. */
     supportsDeepLinks: boolean
+    /** If true, starts in offline mode, completely skipping the authentication flow. */
+    shouldStartInOfflineMode: boolean
     /** Whether the dashboard should be rendered. */
-    showDashboard: boolean
+    shouldShowDashboard: boolean
     onAuthenticated: () => void
     appRunner: AppRunner
 }
@@ -127,7 +129,7 @@ function App(props: AppProps) {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
-    const { logger, showDashboard, onAuthenticated } = props
+    const { logger, shouldShowDashboard: showDashboard, onAuthenticated } = props
     const navigate = router.useNavigate()
     // FIXME[sb]: After platform detection for Electron is merged in, `IS_DEV_MODE` should be
     // set to true on `ide watch`.
