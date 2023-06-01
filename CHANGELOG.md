@@ -179,6 +179,8 @@
 - [A loading animation is now shown when opening and creating projects][6827],
   as the previous behaviour of showing a blank screen while the project was
   being loaded was potentially confusing to users.
+- [Error message is displayed in the status bar when the backend reports
+  execution failed][6918].
 
 [6279]: https://github.com/enso-org/enso/pull/6279
 [6421]: https://github.com/enso-org/enso/pull/6421
@@ -191,6 +193,7 @@
 [6474]: https://github.com/enso-org/enso/pull/6474
 [6844]: https://github.com/enso-org/enso/pull/6844
 [6827]: https://github.com/enso-org/enso/pull/6827
+[6918]: https://github.com/enso-org/enso/pull/6918
 
 #### EnsoGL (rendering engine)
 
