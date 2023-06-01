@@ -424,7 +424,7 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op "/" other
 
-    ## ALIAS Modulus
+    ## ALIAS Modulus, Modulo
        Element-wise modulus.
 
        Arguments:

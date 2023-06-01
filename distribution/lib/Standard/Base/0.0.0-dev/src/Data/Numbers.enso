@@ -431,7 +431,7 @@ type Decimal
     / : Number -> Number
     / self that = @Builtin_Method "Decimal./"
 
-    ## ALIAS Modulus
+    ## ALIAS Modulus, Modulo
        Computes the remainder when dividing this by that.
 
        Arguments:
@@ -750,7 +750,7 @@ type Integer
     / : Number -> Number
     / self that = @Builtin_Method "Integer./"
 
-    ## ALIAS Modulus
+    ## ALIAS Modulus, Modulo
        Computes the remainder when dividing this by that.
 
        Arguments:
