@@ -19,6 +19,7 @@ import org.scalatest.matchers.should.Matchers
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
+import org.apache.commons.io.output.TeeOutputStream
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeServerTest
@@ -67,8 +68,8 @@ class RuntimeServerTest
             .getAbsolutePath
         )
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
-        .logHandler(logOut)
-        .out(out)
+        .logHandler(new TeeOutputStream(logOut, System.err))
+        .out(new TeeOutputStream(out, System.err))
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
     )
