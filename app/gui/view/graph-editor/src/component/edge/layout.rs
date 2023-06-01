@@ -102,6 +102,9 @@ mod three_corner {
     /// The maximum arc radius.
     pub(super) const RADIUS_MAX: f32 = super::RADIUS_BASE;
     pub(super) const BACKWARD_EDGE_ARROW_THRESHOLD: f32 = 15.0;
+    /// The maximum radius reduction (from [`RADIUS_BASE`]) to allow when choosing whether to use
+    /// the three-corner layout that doesn't use a backward corner.
+    pub(super) const MAX_SQUEEZE: f32 = 6.0;
 }
 
 
@@ -144,8 +147,9 @@ fn junction_points(
         target.y() + target_max_attachment_height.unwrap_or_default() <= -MIN_APPROACH_HEIGHT;
     let target_below_source = target.y() <= 0.0;
     let target_beyond_source = target.x().abs() > source_max_x_offset;
-    let horizontal_room_for_3_corners =
-        target_beyond_source && target.x().abs() - source_max_x_offset >= 3.0 * RADIUS_BASE;
+    let horizontal_room_for_3_corners = target_beyond_source
+        && target.x().abs() - source_max_x_offset
+            >= 3.0 * (RADIUS_BASE - three_corner::MAX_SQUEEZE);
     if target_well_below_source || (target_below_source && !horizontal_room_for_3_corners) {
         use single_corner::*;
         // The edge can originate anywhere along the length of the node.
