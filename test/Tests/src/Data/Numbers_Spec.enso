@@ -472,6 +472,7 @@ spec =
             Number.nan . equals 0 . should_fail_with Incomparable_Values
 
     Test.group "Decimal.round" <|
+
         Test.specify "Can round positive decimals correctly" <|
             3.0 . round . should_equal 3
             3.00001 . round . should_equal 3
@@ -602,11 +603,12 @@ spec =
             Number.positive_infinity . round . should_fail_with Arithmetic_Error
             Number.negative_infinity . round . should_fail_with Arithmetic_Error
 
-        Test.specify "Floating point imperfect representation counter-examples" pending="Fails because of basic floating-point inaccuracy when adding 0.5" <|
+        Test.specify "Floating point imperfect representation counter-examples" <|
             1.225 . round 2 use_bankers=True . should_equal 1.22 # Actual result 1.23
             37.785 . round 2 . should_equal 37.79
 
     Test.group "Integer.round" <|
+
         Test.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)"
             0 . round . should_equal 0
             3 . round . should_equal 3
@@ -713,6 +715,7 @@ spec =
             -99999999999999 . round -2 . should_equal -100000000000000
 
     Test.group "Decimal.truncate"
+
         Test.specify "Correctly converts to Integer" <|
             0.1.truncate . should_equal 0
             0.9.truncate . should_equal 0
@@ -724,6 +727,7 @@ spec =
             -3.9.truncate . should_equal -3
 
     Test.group "Integer.truncate"
+
         Test.specify "Returns its argument" <|
             0.truncate . should_equal 0
             3.truncate . should_equal 3
