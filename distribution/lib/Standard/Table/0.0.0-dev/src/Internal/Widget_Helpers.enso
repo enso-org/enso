@@ -82,14 +82,14 @@ make_join_condition_selector : Table -> Display -> Widget
 make_join_condition_selector table display=Display.Always =
     col_names_selector = make_column_name_selector table display=Display.Always
 
-    fqn = Meta.get_qualified_type_name Join_Condition
+    fqn = "Join_Condition"
     equals = Option "Equals" fqn+".Equals" [["left", col_names_selector]]
     equals_ci = Option "Equals (Ignore Case)" fqn+".Equals_Ignore_Case" [["left", col_names_selector]]
     between = Option "Between" fqn+".Between" [["left", col_names_selector]]
     names=[equals, equals_ci, between]
 
     item_editor = Single_Choice display=display values=names
-    Vector_Editor item_editor=item_editor item_default="Join_Condition.Equals" display=display
+    Vector_Editor item_editor=item_editor item_default="("+item_editor.values.first.value+")" display=display
 
 ## PRIVATE
    Make a column name selector.
