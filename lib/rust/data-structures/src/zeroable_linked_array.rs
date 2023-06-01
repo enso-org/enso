@@ -3,11 +3,7 @@ use std::cell::UnsafeCell;
 
 
 
-pub mod preallocation {
-    pub struct Default;
-    pub struct Zeroed;
-    pub struct Disabled;
-}
+
 
 
 // =================
@@ -24,12 +20,23 @@ derive_zeroable! {
     /// 3. Allows pushing new elements without requiring mutable access to self. This is safe, as
     ///    it never re-allocates the underlying memory. In case there is not enough space, a new
     ///    memory segment will be allocated and linked to the previous segment.
-    #[derive(Debug, Derivative)]
+    #[derive(Derivative)]
     #[derivative(Default(bound = ""))]
     pub struct LinkedArray
-    [T, N, B][T, const N: usize, B][T, const N: usize, B = preallocation::Zeroed] {
-        size:          Cell<usize>,
+    [T, N, B][T, const N: usize, B][T, const N: usize, B = prealloc::Zeroed] {
+        len:           Cell<usize>,
+        capacity:      Cell<usize>,
         first_segment: InitCell<ZeroableOption<Segment<T, N, B>>>,
+    }
+}
+
+impl<T: Debug, const N: usize, B> Debug for LinkedArray<T, N, B> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("LinkedArray")
+            .field("len", &self.len.get())
+            .field("capacity", &self.capacity.get())
+            .field("first_segment", &self.first_segment)
+            .finish()
     }
 }
 
@@ -45,30 +52,45 @@ where B: AllocationBehavior<T, N>
     /// Remove all items.
     #[inline(always)]
     pub fn clear(&mut self) {
-        self.size.set(0);
+        self.len.set(0);
         if let Some(first_segment) = self.first_segment.opt_item_mut() {
             AllocationBehavior::clear_segments(first_segment);
         }
     }
 
+    /// The capacity of the container.
+    #[inline(always)]
+    pub fn capacity(&self) -> usize {
+        self.capacity.get()
+    }
+
     /// Number of items stored.
     #[inline(always)]
     pub fn len(&self) -> usize {
-        self.size.get()
+        self.len.get()
     }
 
     /// Check whether the container is empty.
     #[inline(always)]
     pub fn is_empty(&self) -> bool {
-        self.size.get() == 0
+        self.len.get() == 0
+    }
+
+    /// Number of segments used to store the items.
+    #[inline(always)]
+    pub fn segment_count(&self) -> usize {
+        self.first_segment.opt_item().map(|t| t.segment_count()).unwrap_or(0)
     }
 
     /// Add an item at the end and return its index.
     #[inline(always)]
     pub fn push(&self, item: T) -> usize {
-        let index = self.size.get();
-        self.get_or_init_first_segment().push(index, item);
-        self.size.modify(|t| *t += 1);
+        let index = self.len.get();
+        let new_segment_added = self.get_or_init_first_segment().push(index, item);
+        self.len.modify(|t| *t += 1);
+        if new_segment_added {
+            self.capacity.modify(|t| *t += N);
+        }
         index
     }
 
@@ -93,14 +115,25 @@ where B: AllocationBehavior<T, N>
     /// Clone all elements to a vector.
     pub fn to_vec(&self) -> Vec<T>
     where T: Clone {
-        let mut vec = Vec::with_capacity(self.size.get());
+        let mut vec = Vec::with_capacity(self.len.get());
         vec.extend(self.iter().cloned());
+        vec
+    }
+
+    /// Convert the container into a vector.
+    pub fn into_vec(self) -> Vec<T>
+    where T: Clone {
+        let mut vec = Vec::with_capacity(self.len.get());
+        vec.extend(self.into_iter());
         vec
     }
 
     #[inline(always)]
     fn init_first_segment(&self) {
-        self.first_segment.init_if_empty(|| AllocationBehavior::new_segment());
+        self.first_segment.init_if_empty(|| {
+            self.capacity.set(N);
+            AllocationBehavior::new_segment()
+        });
     }
 
     #[inline(always)]
@@ -115,14 +148,21 @@ where B: AllocationBehavior<T, N>
         self.first_segment.opt_item_mut().unwrap()
     }
 
+    /// Add a new element by shifting the element counter and assuming that the memory is already
+    /// initialized.
     #[inline(always)]
     fn push_new_assume_initialized(&self) -> usize {
-        let index = self.size.get();
-        if index % N == 0 {
-            self.get_or_init_first_segment().add_tail_segment();
+        let index = self.len.get();
+        if index >= self.capacity.get() {
+            self.add_tail_segment();
         }
-        self.size.modify(|t| *t += 1);
+        self.len.modify(|t| *t += 1);
         index
+    }
+
+    fn add_tail_segment(&self) {
+        self.get_or_init_first_segment().add_tail_segment();
+        self.capacity.modify(|t| *t += N);
     }
 }
 
@@ -132,11 +172,12 @@ where B: AllocationBehavior<T, N>
     /// Retain only the elements that satisfy the predicate.
     pub fn retain<F>(&mut self, mut f: F)
     where F: FnMut(&T) -> bool {
-        let size = self.size.get();
+        let len = self.len.get();
         let first_segment = self.get_or_init_first_segment_mut();
-        first_segment.retain_stage1(size, f);
-        let new_size = first_segment.retain_stage2();
-        self.size.set(new_size);
+        first_segment.retain_stage1(len, f);
+        let (new_size, new_capacity) = first_segment.retain_stage2();
+        self.len.set(new_size);
+        self.capacity.set(new_capacity);
     }
 }
 
@@ -168,11 +209,17 @@ where B: AllocationBehavior<T, N>
 // === Segment ===
 // ===============
 
-#[derive(Debug)]
 pub struct Segment<T, const N: usize, B> {
     _allocation_behavior: PhantomData<B>,
-    items:                Vec<UnsafeCell<T>>,
+    items:                UnsafeCell<Vec<UnsafeCell<T>>>,
     next:                 InitCell<Option<Box<Segment<T, N, B>>>>,
+}
+
+impl<T: Debug, const N: usize, B> Debug for Segment<T, N, B> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let items = self.items().iter().map(|t| unsafe { t.unchecked_borrow() }).collect_vec();
+        f.debug_struct("Segment").field("items", &items).field("next", &self.next).finish()
+    }
 }
 
 impl<T, const N: usize, B> Default for Segment<T, N, B>
@@ -185,12 +232,27 @@ where B: AllocationBehavior<T, N>
 }
 
 impl<T, const N: usize, B> Segment<T, N, B> {
+    #[inline(always)]
+    fn segment_count(&self) -> usize {
+        self.next.opt_item().map(|t| t.segment_count()).unwrap_or(0) + 1
+    }
+
     /// Get a mutable reference to the next segment if it exists;
     #[inline(always)]
     fn items_and_next_mut(&mut self) -> (&mut Vec<UnsafeCell<T>>, Option<&mut Box<Self>>) {
         let next = self.next.opt_item_mut();
-        let items = &mut self.items;
+        let items = unsafe { self.items.unchecked_borrow_mut() };
         (items, next)
+    }
+
+    #[inline(always)]
+    fn items(&self) -> &Vec<UnsafeCell<T>> {
+        unsafe { self.items.unchecked_borrow() }
+    }
+
+    #[inline(always)]
+    fn items_mut(&mut self) -> &mut Vec<UnsafeCell<T>> {
+        unsafe { self.items.unchecked_borrow_mut() }
     }
 }
 
@@ -198,18 +260,33 @@ impl<T, const N: usize, B> Segment<T, N, B>
 where B: AllocationBehavior<T, N>
 {
     #[inline(always)]
-    fn clear(&mut self) {
-        unsafe { std::intrinsics::volatile_set_memory(self.items.as_mut_ptr(), 0, N) }
+    fn init_next_segment(&self) -> bool {
+        let mut was_empty = false;
+        self.next.init_if_empty(|| {
+            was_empty = true;
+            default()
+        });
+        was_empty
     }
 
     #[inline(always)]
-    fn init_next_segment(&self) {
-        self.next.init_if_empty(|| default());
+    fn push(&self, offset: usize, elem: T) -> bool {
+        AllocationBehavior::push_to_segment(self, offset, elem)
     }
 
     #[inline(always)]
-    fn push(&self, offset: usize, elem: T) {
+    fn push_internal(&self, offset: usize, elem: T, resize_items: bool) -> bool {
         if offset < N {
+            if resize_items {
+                // # Safety
+                // The vector was initialized with capacity of `N` elements, so it is safe to set
+                // its new size here, as the value will be written below.
+                #[allow(unsafe_code)]
+                unsafe {
+                    self.items.unchecked_borrow_mut().set_len(offset + 1);
+                }
+            }
+
             // # Safety
             // The item at `offset` either:
             // 1. Did not exist yet.
@@ -217,19 +294,23 @@ where B: AllocationBehavior<T, N>
             //    mutable borrows to the element.
             #[allow(unsafe_code)]
             unsafe {
-                *self.items[offset].unchecked_borrow_mut() = elem
+                *self.items()[offset].unchecked_borrow_mut() = elem
             };
+            false
         } else {
-            self.init_next_segment();
-            self.next.opt_item().unwrap().push(offset - N, elem)
+            let next_segment_added = self.init_next_segment();
+            let some_segment_added =
+                self.next.opt_item().unwrap().push_internal(offset - N, elem, resize_items);
+            next_segment_added || some_segment_added
         }
     }
 
     #[inline(always)]
     #[allow(unconditional_recursion)]
     fn add_tail_segment(&self) {
-        self.init_next_segment();
-        self.next.opt_item().unwrap().add_tail_segment()
+        if !self.init_next_segment() {
+            self.next.opt_item().unwrap().add_tail_segment()
+        }
     }
 }
 
@@ -247,7 +328,7 @@ where B: AllocationBehavior<T, N>
             // at the end.
             #[allow(unsafe_code)]
             unsafe {
-                self.items.set_len(len)
+                self.items_mut().set_len(len)
             }
         }
         // # Safety
@@ -255,7 +336,7 @@ where B: AllocationBehavior<T, N>
         // are no other mutable borrows currently. The only exception is [`Self::push`] which
         // mutably borrows the newly added item.
         #[allow(unsafe_code)]
-        self.items.retain(|t| f(unsafe { t.unchecked_borrow() }));
+        self.items_mut().retain(|t| f(unsafe { t.unchecked_borrow() }));
         if let Some(next) = self.next.opt_item_mut() {
             next.retain_stage1(len - N, f);
         }
@@ -263,14 +344,14 @@ where B: AllocationBehavior<T, N>
 
     /// For each segment, merge two adjacent not-full segments.
     #[inline(always)]
-    pub fn retain_stage2(&mut self) -> usize {
-        while self.items.len() < N {
+    pub fn retain_stage2(&mut self) -> (usize, usize) {
+        while self.items().len() < N {
             let new_next_segment = {
                 let (items, mut next_segment) = self.items_and_next_mut();
                 next_segment.as_mut().and_then(|next| {
-                    let end = next.items.len().min(N - items.len());
-                    items.extend(next.items.drain(0..end));
-                    let empty_next_segment = next.items.is_empty();
+                    let end = next.items().len().min(N - items.len());
+                    items.extend(next.items_mut().drain(0..end));
+                    let empty_next_segment = next.items().is_empty();
                     let next_next_segment = next.next.opt_item_mut();
                     empty_next_segment.then(|| next_next_segment.map(|t| mem::take(t)))
                 })
@@ -282,12 +363,20 @@ where B: AllocationBehavior<T, N>
                 break;
             }
         }
-        let len = self.items.len();
-        for _ in len..N {
-            // FIXME: can be optimized
-            self.items.push(default());
+        match self.next.opt_item_mut() {
+            None => {
+                let len = self.items().len();
+                AllocationBehavior::preallocate_missing_segment_items(self);
+                (len, N)
+            }
+            Some(next) => {
+                let (next_len, next_capacity) = next.retain_stage2();
+                (N + next_len, N + next_capacity)
+            }
         }
-        len + self.next.opt_item_mut().map(|next| next.retain_stage2()).unwrap_or_default()
+        // let len = self.items().len();
+        // AllocationBehavior::preallocate_missing_segment_items(self);
+        // len + self.next.opt_item_mut().map(|next| next.retain_stage2()).unwrap_or_default()
     }
 }
 
@@ -303,7 +392,7 @@ impl<T, const N: usize, B> Index<usize> for Segment<T, N, B> {
             // [`Self::push`] which mutably borrows the newly added item.
             #[allow(unsafe_code)]
             unsafe {
-                self.items[offset].unchecked_borrow()
+                self.items()[offset].unchecked_borrow()
             }
         } else {
             self.next.opt_item().unwrap().index(offset - N)
@@ -321,7 +410,7 @@ impl<T, const N: usize, B> IndexMut<usize> for Segment<T, N, B> {
             // [`Self::push`] which mutably borrows the newly added item.
             #[allow(unsafe_code)]
             unsafe {
-                self.items[offset].unchecked_borrow_mut()
+                self.items()[offset].unchecked_borrow_mut()
             }
         } else {
             self.next.opt_item_mut().unwrap().index_mut(offset - N)
@@ -341,12 +430,14 @@ pub trait AllocationBehavior<T, const N: usize>: Sized {
     fn push_new(array: &LinkedArray<T, N, Self>) -> usize;
     /// Create a new segment.
     fn new_segment() -> Segment<T, N, Self>;
+    fn push_to_segment(segment: &Segment<T, N, Self>, offset: usize, elem: T) -> bool;
     /// Clear the memory in all the segments. If the allocation behavior pre-allocates items, the
     /// memory will be populated with new instances.
     fn clear_segments(segment: &mut Segment<T, N, Self>);
+    fn preallocate_missing_segment_items(segment: &mut Segment<T, N, Self>);
 }
 
-impl<T: Default, const N: usize> AllocationBehavior<T, N> for preallocation::Default {
+impl<T: Default, const N: usize> AllocationBehavior<T, N> for prealloc::Default {
     #[inline(always)]
     fn push_new(array: &LinkedArray<T, N, Self>) -> usize {
         array.push_new_assume_initialized()
@@ -358,24 +449,38 @@ impl<T: Default, const N: usize> AllocationBehavior<T, N> for preallocation::Def
         for _ in 0..N {
             items.push(default());
         }
+        let items = UnsafeCell::new(items);
         let next = default();
         let _allocation_behavior = PhantomData;
         Segment { _allocation_behavior, items, next }
     }
 
     #[inline(always)]
+    fn push_to_segment(segment: &Segment<T, N, Self>, offset: usize, elem: T) -> bool {
+        segment.push_internal(offset, elem, false)
+    }
+
+    #[inline(always)]
     fn clear_segments(segment: &mut Segment<T, N, Self>) {
-        segment.items.clear();
+        segment.items_mut().clear();
         for _ in 0..N {
-            segment.items.push(default());
+            segment.items_mut().push(default());
         }
         if let Some(next) = segment.next.opt_item_mut() {
             Self::clear_segments(next);
         }
     }
+
+    #[inline(always)]
+    fn preallocate_missing_segment_items(segment: &mut Segment<T, N, Self>) {
+        let len = segment.items().len();
+        for _ in len..N {
+            segment.items_mut().push(default());
+        }
+    }
 }
 
-impl<T: Zeroable, const N: usize> AllocationBehavior<T, N> for preallocation::Zeroed {
+impl<T: Zeroable, const N: usize> AllocationBehavior<T, N> for prealloc::Zeroed {
     #[inline(always)]
     fn push_new(array: &LinkedArray<T, N, Self>) -> usize {
         array.push_new_assume_initialized()
@@ -392,21 +497,35 @@ impl<T: Zeroable, const N: usize> AllocationBehavior<T, N> for preallocation::Ze
                 Vec::from_raw_parts(std::alloc::alloc_zeroed(layout) as *mut _, N, N)
             }
         };
+        let items = UnsafeCell::new(items);
         let next = default();
         let _allocation_behavior = PhantomData;
         Segment { _allocation_behavior, items, next }
     }
 
     #[inline(always)]
+    fn push_to_segment(segment: &Segment<T, N, Self>, offset: usize, elem: T) -> bool {
+        segment.push_internal(offset, elem, false)
+    }
+
+    #[inline(always)]
     fn clear_segments(segment: &mut Segment<T, N, Self>) {
-        unsafe { std::intrinsics::volatile_set_memory(segment.items.as_mut_ptr(), 0, N) }
+        unsafe { std::intrinsics::volatile_set_memory(segment.items_mut().as_mut_ptr(), 0, N) }
         if let Some(next) = segment.next.opt_item_mut() {
             Self::clear_segments(next);
         }
     }
+
+    #[inline(always)]
+    fn preallocate_missing_segment_items(segment: &mut Segment<T, N, Self>) {
+        let len = segment.items().len();
+        for _ in len..N {
+            segment.items_mut().push(Zeroable::zeroed());
+        }
+    }
 }
 
-impl<T: Default, const N: usize> AllocationBehavior<T, N> for preallocation::Disabled {
+impl<T: Default, const N: usize> AllocationBehavior<T, N> for prealloc::Disabled {
     #[inline(always)]
     fn push_new(array: &LinkedArray<T, N, Self>) -> usize {
         array.push(default())
@@ -414,19 +533,36 @@ impl<T: Default, const N: usize> AllocationBehavior<T, N> for preallocation::Dis
 
     #[inline(always)]
     fn new_segment() -> Segment<T, N, Self> {
-        let items = default();
+        let items = {
+            let layout = std::alloc::Layout::array::<UnsafeCell<T>>(N).unwrap();
+            // # Safety
+            // The bound `T: Zeroable` guarantees that `T` can be initialized with zeroed memory.
+            #[allow(unsafe_code)]
+            unsafe {
+                Vec::from_raw_parts(std::alloc::alloc_zeroed(layout) as *mut _, 0, N)
+            }
+        };
+        let items = UnsafeCell::new(items);
         let next = default();
         let _allocation_behavior = PhantomData;
         Segment { _allocation_behavior, items, next }
     }
 
     #[inline(always)]
+    fn push_to_segment(segment: &Segment<T, N, Self>, offset: usize, elem: T) -> bool {
+        segment.push_internal(offset, elem, true)
+    }
+
+    #[inline(always)]
     fn clear_segments(segment: &mut Segment<T, N, Self>) {
-        segment.clear();
+        segment.items_mut().clear();
         if let Some(next) = segment.next.opt_item_mut() {
             Self::clear_segments(next);
         }
     }
+
+    #[inline(always)]
+    fn preallocate_missing_segment_items(_segment: &mut Segment<T, N, Self>) {}
 }
 
 
@@ -473,7 +609,7 @@ where B: AllocationBehavior<T, N>
         Iter {
             segment:     self.get_or_init_first_segment(),
             next_offset: 0,
-            max_offset:  self.size.get(),
+            max_offset:  self.len.get(),
         }
     }
 }
@@ -499,9 +635,9 @@ where B: AllocationBehavior<T, N>
     fn into_iter(self) -> Self::IntoIter {
         self.init_first_segment();
         let first_segment = self.first_segment.into_inner().unwrap();
-        let current_segment = first_segment.items.into_iter();
+        let current_segment = first_segment.items.into_inner().into_iter();
         let next_segment = first_segment.next.into_inner();
-        IntoIter { next_segment, current_segment, next_offset: 0, max_offset: self.size.get() }
+        IntoIter { next_segment, current_segment, next_offset: 0, max_offset: self.len.get() }
     }
 }
 
@@ -514,7 +650,7 @@ impl<T, const N: usize, B> Iterator for IntoIter<T, N, B> {
         }
         if self.next_offset >= N {
             if let Some(next_segment) = self.next_segment.take() {
-                self.current_segment = next_segment.items.into_iter();
+                self.current_segment = next_segment.items.into_inner().into_iter();
                 self.next_segment = next_segment.next.into_inner();
             }
         }
@@ -533,9 +669,42 @@ impl<T, const N: usize, B> Iterator for IntoIter<T, N, B> {
 mod tests2 {
     use super::*;
 
+    macro_rules! test_all_configs {
+        ($f:ident) => {
+            $f(&mut LinkedArray::<usize, 1, prealloc::Default>::new());
+            $f(&mut LinkedArray::<usize, 1, prealloc::Zeroed>::new());
+            $f(&mut LinkedArray::<usize, 1, prealloc::Disabled>::new());
+
+            $f(&mut LinkedArray::<usize, 2, prealloc::Default>::new());
+            $f(&mut LinkedArray::<usize, 2, prealloc::Zeroed>::new());
+            $f(&mut LinkedArray::<usize, 2, prealloc::Disabled>::new());
+
+            $f(&mut LinkedArray::<usize, 4, prealloc::Default>::new());
+            $f(&mut LinkedArray::<usize, 4, prealloc::Zeroed>::new());
+            $f(&mut LinkedArray::<usize, 4, prealloc::Disabled>::new());
+
+            $f(&mut LinkedArray::<usize, 8, prealloc::Default>::new());
+            $f(&mut LinkedArray::<usize, 8, prealloc::Zeroed>::new());
+            $f(&mut LinkedArray::<usize, 8, prealloc::Disabled>::new());
+
+            $f(&mut LinkedArray::<usize, 16, prealloc::Default>::new());
+            $f(&mut LinkedArray::<usize, 16, prealloc::Zeroed>::new());
+            $f(&mut LinkedArray::<usize, 16, prealloc::Disabled>::new());
+
+            // $f(&mut LinkedArray::<usize, 2, prealloc::Zeroed>::new());
+        };
+    }
+
+
+    // === Push ===
+
     #[test]
     fn test_push() {
-        let array = LinkedArray::<usize, 2>::new();
+        test_all_configs!(test_template_push);
+    }
+
+    fn test_template_push<const N: usize, B>(array: &mut LinkedArray<usize, N, B>)
+    where B: AllocationBehavior<usize, N> {
         array.push(1);
         assert_eq!(&array.to_vec(), &[1]);
         array.push(2);
@@ -548,9 +717,43 @@ mod tests2 {
         assert_eq!(&array.to_vec(), &[1, 2, 3, 4, 5]);
     }
 
+
+    // === Clear ===
+
+    #[test]
+    fn test_clear() {
+        test_all_configs!(test_template_clear);
+    }
+
+    fn test_template_clear<const N: usize, B>(array: &mut LinkedArray<usize, N, B>)
+    where B: AllocationBehavior<usize, N> {
+        array.push(1);
+        array.push(2);
+        array.push(3);
+        array.push(4);
+        array.push(5);
+        assert_eq!(&array.to_vec(), &[1, 2, 3, 4, 5]);
+        array.clear();
+        assert!(&array.is_empty());
+        array.push_new();
+        array.push_new();
+        array.push_new();
+        array.push_new();
+        array.push_new();
+        assert_eq!(&array.to_vec(), &[0, 0, 0, 0, 0]);
+    }
+
+
+
+    // === Retain ===
+
     #[test]
     fn test_retain() {
-        let mut array = LinkedArray::<usize, 2>::new();
+        test_all_configs!(test_template_retain);
+    }
+
+    fn test_template_retain<const N: usize, B>(array: &mut LinkedArray<usize, N, B>)
+    where B: AllocationBehavior<usize, N> {
         array.push(1);
         array.push(2);
         array.push(3);

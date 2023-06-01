@@ -41,6 +41,7 @@ mod macros;
 mod not_same;
 mod option;
 mod phantom;
+pub mod prealloc;
 mod range;
 mod rc;
 mod refcell;

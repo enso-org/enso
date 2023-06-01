@@ -17,7 +17,7 @@ pub trait InitCellContent = HasSizedItem + OptItemRef + FromItem;
 /// A zero-cost abstraction allowing initialization of some structures without requiring mutable
 /// access to them. For example, given `my_var: InitCell<Option<T>>` can be initialized with a
 /// default `T` value, even if there exists a reference to `my_var`.
-#[derive(Debug, Default)]
+#[derive(Default)]
 #[repr(transparent)]
 pub struct InitCell<T> {
     // # Safety
@@ -27,6 +27,12 @@ pub struct InitCell<T> {
     // [`None`] value and then have it changed with [`Self::init_if_empty`] while keeping the
     // reference, causing undefined behavior.
     not_exposed: UnsafeCell<T>,
+}
+
+impl<T: Debug> Debug for InitCell<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Debug::fmt(unsafe { self.not_exposed.unchecked_borrow() }, f)
+    }
 }
 
 impl<T> InitCell<T> {
