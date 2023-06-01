@@ -142,13 +142,13 @@ object Suggestion {
 
     def apply(suggestion: Suggestion): Seq[String] =
       suggestion match {
-        case _: Module      => Seq()
-        case _: Type        => Seq()
-        case _: Constructor => Seq()
-        case method: Method => method.annotations
-        case _: Conversion  => Seq()
-        case _: Function    => Seq()
-        case _: Local       => Seq()
+        case _: Module                => Seq()
+        case _: Type                  => Seq()
+        case constructor: Constructor => constructor.annotations
+        case method: Method           => method.annotations
+        case _: Conversion            => Seq()
+        case _: Function              => Seq()
+        case _: Local                 => Seq()
       }
   }
 
@@ -298,6 +298,7 @@ object Suggestion {
     * @param arguments the list of arguments
     * @param returnType the type of an atom
     * @param documentation the documentation string
+    * @param annotations the list of annotations
     * @param reexport the module re-exporting this atom
     */
   case class Constructor(
@@ -307,6 +308,7 @@ object Suggestion {
     arguments: Seq[Argument],
     returnType: String,
     documentation: Option[String],
+    annotations: Seq[String],
     reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {

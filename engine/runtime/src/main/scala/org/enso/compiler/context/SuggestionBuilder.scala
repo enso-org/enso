@@ -78,7 +78,7 @@ final class SuggestionBuilder[A: IndexedSource](
               case data @ IR.Module.Scope.Definition.Data(
                     name,
                     arguments,
-                    _,
+                    annotations,
                     _,
                     _,
                     _
@@ -88,6 +88,7 @@ final class SuggestionBuilder[A: IndexedSource](
                   tpName.name,
                   name.name,
                   arguments,
+                  annotations,
                   data.getMetadata(DocumentationComments).map(_.documentation)
                 )
             }
@@ -352,6 +353,7 @@ final class SuggestionBuilder[A: IndexedSource](
     tp: String,
     name: String,
     arguments: Seq[IR.DefinitionArgument],
+    genericAnnotations: Seq[IR.Name.GenericAnnotation],
     doc: Option[String]
   ): Suggestion.Constructor =
     Suggestion.Constructor(
@@ -360,7 +362,8 @@ final class SuggestionBuilder[A: IndexedSource](
       name          = name,
       arguments     = arguments.map(buildArgument),
       returnType    = module.createChild(tp).toString,
-      documentation = doc
+      documentation = doc,
+      annotations   = genericAnnotations.map(_.name)
     )
 
   /** Build getter methods from atom arguments. */

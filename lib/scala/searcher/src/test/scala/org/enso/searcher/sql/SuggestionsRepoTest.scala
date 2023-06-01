@@ -1490,7 +1490,8 @@ class SuggestionsRepoTest
           Suggestion.Argument("b", "Any", false, false, None)
         ),
         returnType    = "Standard.Builtins.Pair",
-        documentation = Some("Awesome")
+        documentation = Some("Awesome"),
+        annotations   = Seq()
       )
 
     val method: Suggestion.Method =
