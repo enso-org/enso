@@ -353,7 +353,7 @@ type Match_Iterator
        Also returns the next iterator, if there was a match.
     next : Match_Iterator_Value
     next self =
-        regex_result = if self.cursor >= self.input.char_vector.length then Nothing else self.pattern.internal_regex_object.exec self.input self.cursor
+        regex_result = if self.cursor > self.input.char_vector.length then Nothing else self.pattern.internal_regex_object.exec self.input self.cursor
         case regex_result.is_nothing.not && regex_result.isMatch of
             False ->
                 filler_range = Range.new self.cursor (Text_Utils.char_length self.input)
@@ -364,7 +364,8 @@ type Match_Iterator
                 filler_range = Range.new self.cursor match_start
                 filler_span = (Utf_16_Span.Value filler_range self.input)
                 match = Match.Value self.pattern regex_result self.input
-                next_cursor = match.utf_16_end 0
+                ## Handle edge case where match is 0 length
+                next_cursor = (self.cursor + 1).max (match.utf_16_end 0)
                 next_iterator = Match_Iterator.Value self.pattern self.input next_cursor
                 Match_Iterator_Value.Next filler_span match next_iterator
 
