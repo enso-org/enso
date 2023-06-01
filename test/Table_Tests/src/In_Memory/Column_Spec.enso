@@ -118,7 +118,7 @@ spec =
             col = Column.from_vector "foo" [12, 23, 99999999999999999]
             expected = Column.from_vector "foo" [10, 20, Nothing]
             action = col.round -1 on_problems=_
-            problems = [Illegal_Argument.Error "Error: Integer.round can only accept values between -99999999999999 and 99999999999999 (inclusive), but was 99999999999999999"]
+            problems = [Illegal_Argument.Error "Error: `round` can only accept values between -99999999999999 and 99999999999999 (inclusive), but was 99999999999999999"]
             tester = _.should_equal expected
             Problems.test_problem_handling action problems tester
 
