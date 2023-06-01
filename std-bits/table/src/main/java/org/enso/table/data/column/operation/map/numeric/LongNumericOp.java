@@ -2,7 +2,7 @@ package org.enso.table.data.column.operation.map.numeric;
 
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
-import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
@@ -12,7 +12,9 @@ import org.enso.table.util.BitSets;
 
 import java.util.BitSet;
 
-/** An operation expecting a numeric argument and returning a boolean. */
+/**
+ * An operation expecting a numeric argument and returning a boolean.
+ */
 public abstract class LongNumericOp extends MapOperation<Long, AbstractLongStorage> {
   private final boolean alwaysCastToDouble;
 
@@ -85,9 +87,7 @@ public abstract class LongNumericOp extends MapOperation<Long, AbstractLongStora
           newMissing.set(i);
         }
       }
-      return alwaysCastToDouble
-          ? new DoubleStorage(out, storage.size(), newMissing)
-          : new LongStorage(out, storage.size(), newMissing);
+      return alwaysCastToDouble ? new DoubleStorage(out, storage.size(), newMissing) : new LongStorage(out, storage.size(), newMissing);
     } else if (arg instanceof DoubleStorage v) {
       long[] out = new long[storage.size()];
       BitSet newMissing = new BitSet();
