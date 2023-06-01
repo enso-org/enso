@@ -156,7 +156,7 @@ make_batched_insert_template connection table_name column_names =
     template
 
 ## PRIVATE
-common_update_table source_table connection table_name update_action key_columns error_on_missing_columns on_problems =
+common_update_table source_table connection table_name update_action key_columns error_on_missing_columns =
     Panic.recover SQL_Error <|
         connection.jdbc_connection.run_within_transaction <|
             target_table = connection.query (SQL_Query.Table_Name table_name)
@@ -170,7 +170,7 @@ common_update_table source_table connection table_name update_action key_columns
                 tmp_table_name = "temporary-source-table-"+random_uuid
                 tmp_table = upload_table source_table connection tmp_table_name key_columns temporary=True structure_only=False on_problems=Problem_Behavior.Report_Error
                 tmp_table.if_not_error <|
-                    resulting_table = append_to_existing_table
+                    resulting_table = append_to_existing_table tmp_table target_table update_action key_columns error_on_missing_columns
                     connection.drop_table tmp_table.name
                     resulting_table
 

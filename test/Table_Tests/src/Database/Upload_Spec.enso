@@ -247,6 +247,9 @@ spec make_new_connection prefix persistent_connector=True =
         Test.specify "should allow to align an existing table with a source (upsert + delete rows missing from source)" <|
             Nothing
 
+        Test.specify "should allow to use a transformed table, with computed fields, as a source" <|
+            Nothing
+
         Test.specify "should be able to detect the primary key of a table for row correlation" <|
             Nothing
 

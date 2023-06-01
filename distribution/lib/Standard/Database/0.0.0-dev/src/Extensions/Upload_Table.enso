@@ -132,9 +132,9 @@ Database_Table.create_database_table self connection table_name=Nothing primary_
        `Column_Type_Mismatch` error is raised.
 
      If any error was raised, the data in the target table is not modified.
-In_Memory_Table.update_database_table : Connection -> Text -> Update_Action -> Vector Text-> Boolean -> Problem_Behavior -> Database_Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
-In_Memory_Table.update_database_table connection (table_name : Text) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector = default_key_columns connection table_name) (error_on_missing_columns : Boolean = False) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
-    common_update_table self source_table connection table_name update_action key_columns error_on_missing_columns on_problems
+In_Memory_Table.update_database_table : Connection -> Text -> Update_Action -> Vector Text-> Boolean -> Database_Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
+In_Memory_Table.update_database_table connection (table_name : Text) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector = default_key_columns connection table_name) (error_on_missing_columns : Boolean = False) =
+    common_update_table self source_table connection table_name update_action key_columns error_on_missing_columns
 
 ## Updates the target table with the contents of this table.
 
@@ -168,9 +168,9 @@ In_Memory_Table.update_database_table connection (table_name : Text) (update_act
        `Column_Type_Mismatch` error is raised.
 
      If any error was raised, the data in the target table is not modified.
-Database_Table.update_database_table : Connection -> Text -> Update_Action -> Vector Text-> Boolean -> Problem_Behavior -> Database_Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
-Database_Table.update_database_table connection (table_name : Text) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector = default_key_columns connection table_name) (error_on_missing_columns : Boolean = False) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
-    common_update_table self source_table connection table_name update_action key_columns error_on_missing_columns on_problems
+Database_Table.update_database_table : Connection -> Text -> Update_Action -> Vector Text-> Boolean -> Database_Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
+Database_Table.update_database_table connection (table_name : Text) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector = default_key_columns connection table_name) (error_on_missing_columns : Boolean = False) =
+    common_update_table self source_table connection table_name update_action key_columns error_on_missing_columns
 
 ## PRIVATE
 default_key_columns connection table_name =
