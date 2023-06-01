@@ -561,6 +561,7 @@ impl Project {
                         "Execution failed in context {}. Error: {}.",
                         update.context_id, update.message
                     );
+                    publisher.notify(model::project::Notification::ExecutionFailed);
                 }
                 Event::Notification(Notification::SuggestionDatabaseUpdates(update)) =>
                     if let Some(suggestion_db) = weak_suggestion_db.upgrade() {

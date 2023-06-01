@@ -181,6 +181,8 @@ pub enum Notification {
     VcsStatusChanged(VcsStatus),
     /// Indicates that the project has finished execution.
     ExecutionFinished,
+    /// Indicates failure of the project execution.
+    ExecutionFailed,
 }
 
 /// Denotes one of backend connections used by a project.
