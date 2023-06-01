@@ -1502,7 +1502,8 @@ class SuggestionsRepoTest
         selfType      = "local.Test.Main",
         returnType    = "Standard.Builtins.IO",
         isStatic      = true,
-        documentation = None
+        documentation = None,
+        annotations   = Seq()
       )
 
     val instanceMethod: Suggestion.Method =
@@ -1514,7 +1515,8 @@ class SuggestionsRepoTest
         selfType      = "local.Test.Main.A",
         returnType    = "Standard.Builtins.Nothing",
         isStatic      = false,
-        documentation = None
+        documentation = None,
+        annotations   = Seq()
       )
 
     val conversion: Suggestion.Conversion =

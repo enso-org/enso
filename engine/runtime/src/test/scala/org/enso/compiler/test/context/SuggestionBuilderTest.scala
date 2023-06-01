@@ -79,7 +79,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -110,7 +111,43 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = Some(" The foo")
+              documentation = Some(" The foo"),
+              annotations   = Seq()
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build method with annotations111" in {
+
+      val code =
+        """@a foo
+          |@b bar
+          |foo a b = a + b""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None),
+                Suggestion
+                  .Argument("a", SuggestionBuilder.Any, false, false, None),
+                Suggestion
+                  .Argument("b", SuggestionBuilder.Any, false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None,
+              annotations   = Seq("a", "b")
             ),
             Vector()
           )
@@ -142,7 +179,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = "Number",
               isStatic      = true,
-              documentation = Some(" The foo")
+              documentation = Some(" The foo"),
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -172,7 +210,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = "Foo.Bar",
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -211,7 +250,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = "Standard.Base.Data.Numbers.Number",
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -248,7 +288,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = "Number",
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -279,7 +320,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = "Foo.Bar Baz",
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -315,7 +357,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector(
               Tree.Node(
@@ -375,7 +418,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -423,7 +467,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.MyType",
               returnType    = SuggestionBuilder.Any,
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -483,7 +528,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.MyAtom",
               returnType    = "Number",
               isStatic      = false,
-              documentation = Some(" My bar")
+              documentation = Some(" My bar"),
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -529,7 +575,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.MyAtom",
               returnType    = "Number",
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -633,7 +680,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.Other_Atom",
               returnType    = "Number",
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -734,7 +782,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = "Any",
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -764,7 +813,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -815,7 +865,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = "Unnamed.Test.A",
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -865,7 +916,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.MyType",
               returnType    = SuggestionBuilder.Any,
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           ),
@@ -945,7 +997,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.MyMaybe",
               returnType    = SuggestionBuilder.Any,
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           ),
@@ -998,7 +1051,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.New",
               returnType    = SuggestionBuilder.Any,
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           ),
@@ -1041,7 +1095,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector(
               Tree.Node(
@@ -1091,7 +1146,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector(
               Tree.Node(
@@ -1155,7 +1211,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector(
               Tree.Node(
@@ -1217,7 +1274,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector(
               Tree.Node(
@@ -1273,7 +1331,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector(
               Tree.Node(
@@ -1327,7 +1386,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector(
               Tree.Node(
@@ -1373,7 +1433,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector(
               Tree.Node(
@@ -1433,7 +1494,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector(
               Tree.Node(
@@ -1492,7 +1554,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector(
               Tree.Node(
@@ -1537,7 +1600,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector(
               Tree.Node(
@@ -1610,7 +1674,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.MyType",
               returnType    = SuggestionBuilder.Any,
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           ),
@@ -1626,7 +1691,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.MyType",
               returnType    = SuggestionBuilder.Any,
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -1688,7 +1754,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.Mtp",
               returnType    = SuggestionBuilder.Any,
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           ),
@@ -1704,7 +1771,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.Mtp",
               returnType    = SuggestionBuilder.Any,
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -1772,7 +1840,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.Maybe",
               returnType    = SuggestionBuilder.Any,
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -1845,7 +1914,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.Maybe",
               returnType    = SuggestionBuilder.Any,
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -1916,7 +1986,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.List",
               returnType    = "Unnamed.Test.List",
               isStatic      = true,
-              documentation = Some(" a method")
+              documentation = Some(" a method"),
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -1987,7 +2058,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.Maybe",
               returnType    = SuggestionBuilder.Any,
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           ),
@@ -2005,7 +2077,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.Maybe",
               returnType    = SuggestionBuilder.Any,
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -2106,7 +2179,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.T",
               returnType    = "Unnamed.Test.S",
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -2171,7 +2245,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.T",
               returnType    = "Standard.Base.Data.Numbers.Number",
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -2247,7 +2322,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.E",
               returnType    = "a",
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           ),
@@ -2263,7 +2339,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.E",
               returnType    = "b",
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -2386,7 +2463,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.MyType",
               returnType    = SuggestionBuilder.Any,
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           ),
@@ -2402,7 +2480,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.MyType",
               returnType    = SuggestionBuilder.Any,
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           ),
@@ -2415,7 +2494,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -2472,7 +2552,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           ),
@@ -2485,7 +2566,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -2559,18 +2641,18 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           ),
           Tree.Node(
             Suggestion.Method(
-              None,
-              "Unnamed.Test",
-              "a",
-              Vector(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "a",
+              arguments = Vector(
                 Suggestion
                   .Argument("self", "Unnamed.Test.A", false, false, None, None)
               ),
-              "Unnamed.Test.A",
-              "Standard.Base.Any.Any",
-              false,
-              None,
-              None
+              selfType      = "Unnamed.Test.A",
+              returnType    = "Standard.Base.Any.Any",
+              isStatic      = false,
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           ),
@@ -2594,7 +2676,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.A",
               returnType    = "Unnamed.Test.A",
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           ),
@@ -2617,7 +2700,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = "Unnamed.Test.A",
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           ),
@@ -2630,7 +2714,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -2700,7 +2785,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test.A",
               returnType    = "Unnamed.Test.A",
               isStatic      = false,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           ),
@@ -2723,7 +2809,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = "Unnamed.Test.A",
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           ),
@@ -2736,7 +2823,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -2768,7 +2856,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector()
           )
@@ -2801,7 +2890,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector(
               Tree.Node(
@@ -2855,7 +2945,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = None
+              documentation = None,
+              annotations   = Seq()
             ),
             Vector(
               Tree.Node(
@@ -2909,7 +3000,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               isStatic      = true,
-              documentation = Some(" The foo")
+              documentation = Some(" The foo"),
+              annotations   = Seq()
             ),
             Vector()
           )

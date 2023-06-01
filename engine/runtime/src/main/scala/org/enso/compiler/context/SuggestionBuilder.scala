@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.resolve.{
   DocumentationComments,
+  GenericAnnotations,
   MethodDefinitions,
   TypeNames,
   TypeSignatures
@@ -108,6 +109,7 @@ final class SuggestionBuilder[A: IndexedSource](
                   _
                 ) if !m.isStaticWrapperForInstanceMethod =>
             val typeSignature = ir.getMetadata(TypeSignatures)
+            val annotations   = ir.getMetadata(GenericAnnotations)
             val (selfTypeOpt, isStatic) = typePtr match {
               case Some(typePtr) =>
                 val selfType = typePtr
@@ -126,7 +128,8 @@ final class SuggestionBuilder[A: IndexedSource](
                 isStatic,
                 args,
                 doc,
-                typeSignature
+                typeSignature,
+                annotations
               )
             }
             val subforest = go(
@@ -224,11 +227,14 @@ final class SuggestionBuilder[A: IndexedSource](
     isStatic: Boolean,
     args: Seq[IR.DefinitionArgument],
     doc: Option[String],
-    typeSignature: Option[TypeSignatures.Metadata]
+    typeSignature: Option[TypeSignatures.Metadata],
+    genericAnnotations: Option[GenericAnnotations.Metadata]
   ): Suggestion.Method = {
     val typeSig = buildTypeSignatureFromMetadata(typeSignature)
     val (methodArgs, returnTypeDef) =
       buildMethodArguments(args, typeSig, selfType)
+    val annotations =
+      genericAnnotations.map(buildAnnotationsFromMetadata).getOrElse(Seq())
     Suggestion.Method(
       externalId    = externalId,
       module        = module.toString,
@@ -237,7 +243,8 @@ final class SuggestionBuilder[A: IndexedSource](
       selfType      = selfType.toString,
       returnType    = buildReturnType(returnTypeDef),
       isStatic      = isStatic,
-      documentation = doc
+      documentation = doc,
+      annotations   = annotations
     )
   }
 
@@ -371,14 +378,15 @@ final class SuggestionBuilder[A: IndexedSource](
       location     = None
     )
     buildMethod(
-      externalId    = None,
-      module        = module,
-      name          = getterName,
-      selfType      = module.createChild(typeName),
-      isStatic      = false,
-      args          = Seq(thisArg),
-      doc           = None,
-      typeSignature = argument.name.getMetadata(TypeSignatures)
+      externalId         = None,
+      module             = module,
+      name               = getterName,
+      selfType           = module.createChild(typeName),
+      isStatic           = false,
+      args               = Seq(thisArg),
+      doc                = None,
+      typeSignature      = argument.name.getMetadata(TypeSignatures),
+      genericAnnotations = None
     )
   }
 
@@ -419,6 +427,12 @@ final class SuggestionBuilder[A: IndexedSource](
       case _: BindingsMap.ResolvedName =>
         TypeArg.Value(resolvedName.qualifiedName)
     }
+
+  /** Build annotations from metadata. */
+  private def buildAnnotationsFromMetadata(
+    genericAnnotations: GenericAnnotations.Metadata
+  ): Seq[String] =
+    genericAnnotations.annotations.map(_.name)
 
   /** Build type signature from the ir metadata.
     *
