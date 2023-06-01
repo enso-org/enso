@@ -471,6 +471,7 @@
 - [Implemented the `cast` operation for `Table` and `Column`.][6711]
 - [Added `.round` and `.int` to `Integer` and `Decimal`.][6743]
 - [Added `.round`, `.truncate`, `.ceil`, and `.floor` to `Column`.][6817]
+- [Added execution control to `Table.write` and various bug fixes.][6835]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -684,6 +685,7 @@
 [6711]: https://github.com/enso-org/enso/pull/6711
 [6743]: https://github.com/enso-org/enso/pull/6743
 [6817]: https://github.com/enso-org/enso/pull/6817
+[6835]: https://github.com/enso-org/enso/pull/6835
 
 #### Enso Compiler
 
