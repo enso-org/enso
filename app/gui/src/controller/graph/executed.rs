@@ -5,6 +5,7 @@
 //! visualisations, retrieving types on ports, etc.
 
 use crate::prelude::*;
+use std::time::Duration;
 
 use crate::model::execution_context::ComponentGroup;
 use crate::model::execution_context::ComputedValueInfo;
@@ -18,6 +19,7 @@ use crate::model::execution_context::VisualizationUpdateData;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::MethodPointer;
+use enso_web::sleep;
 use futures::stream;
 use futures::TryStreamExt;
 use span_tree::generate::context::CalledMethodInfo;
@@ -49,8 +51,13 @@ pub struct NoResolvedMethod(double_representation::node::Id);
 
 #[allow(missing_docs)]
 #[derive(Debug, Fail, Clone, Copy)]
-#[fail(display = "Operation is not permitted in read only mode")]
+#[fail(display = "Operation is not permitted in read only mode.")]
 pub struct ReadOnly;
+
+#[allow(missing_docs)]
+#[derive(Debug, Fail, Clone, Copy)]
+#[fail(display = "Previous operation modifying call stack is still in progress.")]
+pub struct SyncingStack;
 
 
 // ====================
@@ -92,6 +99,7 @@ pub struct Handle {
     /// The publisher allowing sending notification to subscribed entities. Note that its outputs
     /// is merged with publishers from the stored graph and execution controllers.
     notifier:      notification::Publisher<Notification>,
+    syncing_stack: Rc<RefCell<()>>, // FIXME[ao] is there a better way?
 }
 
 impl Handle {
@@ -122,9 +130,13 @@ impl Handle {
         project: model::Project,
         execution_ctx: model::ExecutionContext,
     ) -> Self {
-        let graph = Rc::new(RefCell::new(graph));
-        let notifier = default();
-        Handle { graph, execution_ctx, project, notifier }
+        Handle {
+            graph: Rc::new(RefCell::new(graph)),
+            execution_ctx,
+            project,
+            notifier: default(),
+            syncing_stack: default(),
+        }
     }
 
     /// See [`model::ExecutionContext::when_ready`].
@@ -229,27 +241,55 @@ impl Handle {
     pub async fn enter_stack(&self, stack: Vec<LocalCall>) -> FallibleResult {
         if self.project.read_only() {
             Err(ReadOnly.into())
-        } else {
-            let mut successful_calls = Vec::new();
-            let result = stream::iter(stack)
+        } else if let Some(last_call) = stack.last() {
+            let _syncing = self.syncing_stack.try_borrow_mut().map_err(|_| SyncingStack)?;
+            // Before adding new items to stack, first make sure we're actually able to construct
+            // the graph controller.
+            let graph = controller::Graph::new_method(&self.project, &last_call.definition).await?;
+            let mut successful_calls = 0;
+            let result = stream::iter(stack.iter())
                 .then(|local_call| async {
-                    debug!("Entering node {}.", local_call.call);
+                    warn!("Entering node {}.", local_call.call);
                     self.execution_ctx.push(local_call.clone()).await?;
-                    Ok(local_call)
+                    Ok(())
                 })
-                .map_ok(|local_call| successful_calls.push(local_call))
+                .map_ok(|()| successful_calls += 1)
                 .try_collect::<()>()
                 .await;
-            if let Some(last_successful_call) = successful_calls.last() {
-                let graph =
-                    controller::Graph::new_method(&self.project, &last_successful_call.definition)
-                        .await?;
-                debug!("Replacing graph with {graph:?}.");
-                self.graph.replace(graph);
-                debug!("Sending graph invalidation signal.");
-                self.notifier.publish(Notification::EnteredStack(successful_calls)).await;
+            match &result {
+                Ok(()) => {
+                    warn!("Replacing graph with {graph:?}.");
+                    self.graph.replace(graph);
+                    warn!("Sending graph invalidation signal.");
+                    self.notifier.publish(Notification::EnteredStack(stack)).await;
+                }
+                Err(_) => {
+                    let mut successful_calls_to_revert = successful_calls;
+                    let mut retry_time = Duration::from_secs(1);
+                    while successful_calls_to_revert > 0 {
+                        match self.execution_ctx.pop().await {
+                            Ok(_) => {
+                                successful_calls_to_revert -= 1;
+                                retry_time = Duration::from_secs(1);
+                            }
+                            Err(error) => {
+                                error!(
+                                    "Error while restoring execution context stack after \
+                                    unsuccessful entering node: {error}"
+                                );
+                                warn!("Retrying in {} s.", retry_time.as_secs());
+                                sleep(retry_time).await;
+                                retry_time = (2 * retry_time).min(Duration::from_secs(30));
+                            }
+                        }
+                    }
+                }
             }
+
             result
+        } else {
+            // The stack passed as argument is empty; nothing to do.
+            Ok(())
         }
     }
 
@@ -487,7 +527,7 @@ pub mod tests {
     }
 
     // Test that checks that value computed notification is properly relayed by the executed graph.
-    #[wasm_bindgen_test]
+    #[test]
     fn dispatching_value_computed_notification() {
         use crate::test::mock::Fixture;
         // Setup the controller.
@@ -535,7 +575,7 @@ pub mod tests {
     }
 
     // Test that moving nodes is possible in read-only mode.
-    #[wasm_bindgen_test]
+    #[test]
     fn read_only_mode_does_not_restrict_moving_nodes() {
         use model::module::Position;
 
@@ -555,7 +595,7 @@ pub mod tests {
     }
 
     // Test that certain actions are forbidden in read-only mode.
-    #[wasm_bindgen_test]
+    #[test]
     fn read_only_mode() {
         fn run(code: &str, f: impl FnOnce(&Handle)) {
             let mut data = crate::test::mock::Unified::new();
