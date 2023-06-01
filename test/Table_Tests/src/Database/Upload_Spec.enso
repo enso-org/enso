@@ -6,6 +6,7 @@ from Standard.Table.Errors import Missing_Input_Columns
 from Standard.Database import all
 from Standard.Database.Errors import all
 from Standard.Database.Internal.Result_Set import result_set_to_table
+from Standard.Database.Extensions.Upload_Table import get_primary_key
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -231,6 +232,12 @@ spec make_new_connection prefix persistent_connector=True =
         Test.specify "should be able to append new rows to a table" <|
             Nothing
 
+        Test.specify "should error if new rows clash with existing ones and mode is Insert, target table should remain unchanged" <|
+            Nothing
+
+        Test.specify "should use the target table primary key for the key by default" <|
+            Nothing
+
         Test.specify "should be able to update existing rows in a table" <|
             Nothing
 
@@ -241,6 +248,12 @@ spec make_new_connection prefix persistent_connector=True =
             Nothing
 
         Test.specify "should be able to detect the primary key of a table for row correlation" <|
+            Nothing
+
+        Test.specify "should allow specifying no key in Insert mode" <|
+            Nothing
+
+        Test.specify "should fail if no key is specified in other modes" <|
             Nothing
 
         Test.specify "should fail if the key is not unique in the unique table" <|
@@ -261,7 +274,20 @@ spec make_new_connection prefix persistent_connector=True =
         Test.specify "should fail if the source table is missing some columns, if asked to" <|
             Nothing
 
-        Test.specify "TODO mapping of primary key columns - wrong name TODO" <|
+        Test.specify "should fail if some of key_columns do not exist in either table" <|
+            Nothing
+
+        Test.specify "by default, should fail if the target table does not exist" <|
+            Nothing
+
+        Test.specify "should allow to create the target table if it does not exist, but make it temporary and attach a warning" <|
+            Nothing
+
+        Test.specify "should report a meaningful error when the primary key could not be determined" <|
+            # TODO temporary (only SQLite?)
+            Nothing
+
+            # TODO non-existent target
             Nothing
 
         Test.specify "should fail if types of columns are not compatible" <|
@@ -287,27 +313,3 @@ spec make_new_connection prefix persistent_connector=True =
 make_mock_column name values exploding_index =
     storage = ExplodingStorage.new values.to_array exploding_index
     Column.from_storage name storage
-
-## PRIVATE
-
-   This method may not work correctly with temporary tables, possibly resulting
-   in `SQL_Error` as such tables may not be found.
-
-   ! Temporary Tables in SQLite
-
-     The temporary tables in SQLite live in a `temp` database. There is a bug in
-     how JDBC retrieves primary keys - it only queries the `sqlite_schema` table
-     which contains schemas of only permanent tables. For now, we just adapt to
-     it and check primary keys for non-temporary tables only. If we ever want to
-     use the primary key information in the actual product, we will likely need
-     to reimplement this by ourselves and UNION both `sqlite_schema` and
-     `temp.sqlite_schema` tables to get results for both temporary and permanent
-     tables.
-get_primary_key connection table_name =
-    connection.jdbc_connection.with_connection java_connection->
-        rs = java_connection.getMetaData.getPrimaryKeys Nothing Nothing table_name
-        keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
-        # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
-        selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True
-        key_column_names = selected.order_by 1 . at 0 . to_vector
-        if key_column_names.is_empty then Nothing else key_column_names

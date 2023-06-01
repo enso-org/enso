@@ -1,0 +1,81 @@
+import project.Any.Any
+import project.Data.Array_Proxy.Array_Proxy
+import project.Data.Map.Map
+import project.Data.Numbers.Integer
+import project.Data.Vector.Vector
+import project.Data.Text.Extensions
+import project.Data.Text.Text
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Nothing.Nothing
+import project.Panic.Panic
+
+from project.Data.Boolean import Boolean, True, False
+
+## UNSTABLE
+   An unordered collection of unique values.
+type Set
+    ## PRIVATE
+    Value (underlying_map : Map Any Boolean)
+
+    ## Constructs a new set from a vector.
+
+       Arguments:
+       - vector: the vector of elements to add to the set.
+       - allow_duplicates: specifies if duplicate elements in the input are
+         allowed. Defaults to `True`, meaning that the last occurrence of each
+         duplicated element is added to the set. If set to `False` it will raise
+         an `Illegal_Argument` if duplicate elements are encountered.
+    from_vector : Vector Any -> Boolean -> Set ! Illegal_Argument
+    from_vector (vector : Vector) (allow_duplicates : Boolean = True) =
+        pairs_array = Array_Proxy.new vector.length (i-> [vector.at i, True])
+        pairs = Vector.from_polyglot_array pairs_array
+        map = Map.from_vector pairs allow_duplicates
+        Set.Value map
+
+    ## Returns a vector containing all elements of this set.
+    to_vector : Vector
+    to_vector self = self.underlying_map.keys
+
+    ## Returns the number of elements in this set.
+    size : Integer
+    size self = self.underlying_map.size
+
+    ## Checks if this set contains a given value.
+    contains : Any -> Boolean
+    contains self value = self.underlying_map.contains_key value
+
+    ## ALIAS Add
+       Adds a value to this set.
+    insert : Any -> Set
+    insert self value =
+        new_map = self.self.underlying_map.insert value True
+        Set.Value new_map
+
+    ## ALIAS Union
+       Creates a union of the two sets.
+    + : Set -> Set
+    + self (other : Set) =
+        Set.from_vector (self.to_vector + other.to_vector)
+
+    ## ALIAS Intersection
+       Creates an intersection of the two sets.
+    & : Set -> Set
+    & self (other : Set) =
+        other_map = other.underlying_map
+        new_map = self.underlying_map.to_vector.fold Map.empty m-> el->
+            if other_map.contains_key el then m.insert el True else m
+
+    ## ALIAS Difference
+       Computes a set difference.
+
+       Returns the set that contains all elements of this set that are not in
+       the other set.
+    - : Set -> Set
+    - self (other : Set) =
+        other_map = other.underlying_map
+        new_map = self.underlying_map.to_vector.fold Map.empty m-> el->
+            if other_map.contains_key el then m else m.insert el True
+
+    ## PRIVATE
+    to_text : Text
+    to_text self = self.to_vector.join ", " "Set{" "}"

@@ -11,6 +11,7 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table as Database_Table
 import project.Internal.Statement_Setter.Statement_Setter
+import project.Internal.In_Transaction.In_Transaction
 
 from project.Errors import SQL_Error, SQL_Timeout
 
@@ -140,13 +141,15 @@ type JDBC_Connection
        take precedence over the original panic that caused that rollback.
     run_within_transaction : Any -> Any
     run_within_transaction self ~action =
+        if In_Transaction.is_in_transaction then
+            Panic.throw (Illegal_State.Error "`run_within_transaction` is executed within an existing transaction. Nesting transactions is not allowed as its semantics are unclear.")
         self.run_without_autocommit <|
             self.with_connection java_connection->
                 handle_panic caught_panic =
                     java_connection.rollback
                     Panic.throw caught_panic
                 result = Panic.catch Any handler=handle_panic <|
-                    action
+                    In_Transaction.mark_running_in_transaction action
                 java_connection.commit
                 result
 

@@ -162,7 +162,7 @@ type Connection
                 case self.dialect.is_probably_a_query query of
                     True -> result
                     False ->
-                        Error.throw (Table_Not_Found.Error query sql_error treated_as_query=True)
+                        Error.throw (Table_Not_Found.Error query sql_error treated_as_query=True extra_message="")
         SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <|
             self.jdbc_connection.ensure_query_has_no_holes raw_sql . if_not_error <|
                 columns = self.fetch_columns raw_sql Statement_Setter.null
@@ -177,7 +177,7 @@ type Connection
                 columns = self.fetch_columns statement statement_setter
                 Database_Table_Module.make_table self name columns ctx
             result.catch SQL_Error sql_error->
-                Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False)
+                Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False extra_message="")
 
     ## PRIVATE
        Execute the query and load the results into memory as a Table.

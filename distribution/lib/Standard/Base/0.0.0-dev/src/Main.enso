@@ -4,6 +4,7 @@ import project.Data.Boolean
 import project.Data.List.List
 import project.Data.Numbers
 import project.Data.Map.Map
+import project.Data.Set.Set
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -36,6 +37,7 @@ export project.Any.Any
 export project.Data.Array.Array
 export project.Data.List.List
 export project.Data.Map.Map
+export project.Data.Set.Set
 export project.Data.Text.Text
 export project.Data.Vector.Vector
 export project.Error.Error
