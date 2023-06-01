@@ -586,6 +586,64 @@ spec =
             231.2 . round . should_be_a Integer
             231.2 . round -1 . should_be_a Integer
 
+        Test.specify "Can round correctly near the precision limit" <|
+            1.22222222225 . round 10 . should_equal 1.2222222223
+            1.222222222225 . round 11 . should_equal 1.22222222223
+            1.2222222222225 . round 12 . should_equal 1.222222222223
+            1.22222222222225 . round 13 . should_equal 1.2222222222223
+            1.222222222222225 . round 14 . should_equal 1.22222222222223
+            1.2222222222222225 . round 15 . should_equal 1.222222222222223
+
+            -1.22222222225 . round 10 . should_equal -1.2222222222
+            -1.222222222225 . round 11 . should_equal -1.22222222222
+            -1.2222222222225 . round 12 . should_equal -1.222222222222
+            -1.22222222222225 . round 13 . should_equal -1.2222222222222
+            -1.222222222222225 . round 14 . should_equal -1.22222222222222
+            -1.2222222222222225 . round 15 . should_equal -1.222222222222222
+
+            1.22222222235 . round 10 . should_equal 1.2222222224
+            1.222222222235 . round 11 . should_equal 1.22222222224
+            1.2222222222235 . round 12 . should_equal 1.222222222224
+            1.22222222222235 . round 13 . should_equal 1.2222222222224
+            1.222222222222235 . round 14 . should_equal 1.22222222222224
+            1.2222222222222235 . round 15 . should_equal 1.222222222222224
+
+            -1.22222222235 . round 10 . should_equal -1.2222222223
+            -1.222222222235 . round 11 . should_equal -1.22222222223
+            -1.2222222222235 . round 12 . should_equal -1.222222222223
+            -1.22222222222235 . round 13 . should_equal -1.2222222222223
+            -1.222222222222235 . round 14 . should_equal -1.22222222222223
+            -1.2222222222222235 . round 15 . should_equal -1.222222222222223
+
+        Test.specify "Can round correctly near the precision limit, using banker's rounding" <|
+            1.22222222225 . round 10 use_bankers=True . should_equal 1.2222222222
+            1.222222222225 . round 11 use_bankers=True . should_equal 1.22222222222
+            1.2222222222225 . round 12 use_bankers=True . should_equal 1.222222222222
+            1.22222222222225 . round 13 use_bankers=True . should_equal 1.2222222222222
+            1.222222222222225 . round 14 use_bankers=True . should_equal 1.22222222222222
+            1.2222222222222225 . round 15 use_bankers=True . should_equal 1.222222222222222
+
+            -1.22222222225 . round 10 use_bankers=True . should_equal -1.2222222222
+            -1.222222222225 . round 11 use_bankers=True . should_equal -1.22222222222
+            -1.2222222222225 . round 12 use_bankers=True . should_equal -1.222222222222
+            -1.22222222222225 . round 13 use_bankers=True . should_equal -1.2222222222222
+            -1.222222222222225 . round 14 use_bankers=True . should_equal -1.22222222222222
+            -1.2222222222222225 . round 15 use_bankers=True . should_equal -1.222222222222222
+
+            1.22222222235 . round 10 use_bankers=True . should_equal 1.2222222224
+            1.222222222235 . round 11 use_bankers=True . should_equal 1.22222222224
+            1.2222222222235 . round 12 use_bankers=True . should_equal 1.222222222224
+            1.22222222222235 . round 13 use_bankers=True . should_equal 1.2222222222224
+            1.222222222222235 . round 14 use_bankers=True . should_equal 1.22222222222224
+            1.2222222222222235 . round 15 use_bankers=True . should_equal 1.222222222222224
+
+            -1.22222222235 . round 10 use_bankers=True . should_equal -1.2222222224
+            -1.222222222235 . round 11 use_bankers=True . should_equal -1.22222222224
+            -1.2222222222235 . round 12 use_bankers=True . should_equal -1.222222222224
+            -1.22222222222235 . round 13 use_bankers=True . should_equal -1.2222222222224
+            -1.222222222222235 . round 14 use_bankers=True . should_equal -1.22222222222224
+            -1.2222222222222235 . round 15 use_bankers=True . should_equal -1.222222222222224
+
         Test.specify "Input out of range" <|
             100000000000000.0 . round . should_fail_with Illegal_Argument
             -100000000000000.0 . round . should_fail_with Illegal_Argument
