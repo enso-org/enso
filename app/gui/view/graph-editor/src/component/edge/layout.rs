@@ -156,8 +156,16 @@ fn junction_points(
         let source_x = target.x().clamp(-source_max_x_offset, source_max_x_offset);
         let distance_x = max(target.x().abs() - source_half_width, 0.0);
         let radius_x = RADIUS_X_BASE + distance_x * RADIUS_X_FACTOR;
-        let radius_y = max(target.y().abs() - RADIUS_Y_ADJUSTMENT, 0.0);
+        // The minimum length of straight line there should be at the target end of the edge. This
+        // is a fixed value, except it is reduced when the target is horizontally very close to the
+        // edge of the source, so that very short edges are less sharp.
+        let y_adjustment = min(
+            target.x().abs() - source_half_width + RADIUS_Y_ADJUSTMENT / 2.0,
+            RADIUS_Y_ADJUSTMENT,
+        );
+        let radius_y = max(target.y().abs() - y_adjustment, 0.0);
         let max_radius = min(radius_x, radius_y);
+        // The radius the edge would have, if the arc portion were as large as possible.
         let natural_radius = min((target.x() - source_x).abs(), target.y().abs());
         let source_y = if natural_radius > MINIMUM_TANGENT_EXIT_RADIUS {
             // Offset the beginning of the edge so that it is normal to the curve of the source node
