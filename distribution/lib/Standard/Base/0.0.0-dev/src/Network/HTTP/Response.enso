@@ -7,12 +7,19 @@ import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Meta
 import project.Nothing.Nothing
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
 import project.Network.HTTP.Response_Body.Response_Body
 
-from project.System.File_Format import Auto_Detect, File_Format
+from project.System.File_Format import Auto_Detect, File_Format, format_types
+
+import project.Metadata.Widget
+from project.Metadata.Widget import Single_Choice
+from project.Metadata.Choice import Option
+import project.Metadata.Display
 
 polyglot java import org.enso.base.Http_Utils
 
@@ -74,15 +81,20 @@ type Response
        Uses the format to decode the body.
        If using `Auto_Detect`, the content-type will be used to determine the
        format.
-    @format File_Format.default_widget
+    @format decode_format_selector
     decode : File_Format -> Any -> Any
-    decode self format=Auto_Detect ~if_unsupported=(Error.throw (Unsupported_Content_Type.Value self.content_type)) =
-        if format != Auto_Detect then format.read_web self else
-            content_type = self.content_type
-            format = if content_type.is_nothing then Nothing else
-                Auto_Detect.get_web_parser content_type (self.internal_http_response.uri.toString)
-            if format.is_nothing then if_unsupported else
-                format.value.read_web self
+    decode self format=Auto_Detect ~if_unsupported=(Error.throw (Unsupported_Content_Type.Error self.content_type)) =
+        case format of
+            Auto_Detect ->
+                content_type = self.content_type
+                format = if content_type.is_nothing then Nothing else
+                    Auto_Detect.get_web_parser content_type (self.internal_http_response.uri.toString)
+                if format.is_nothing then if_unsupported else
+                    format.value.read_web self
+            _ ->
+                type_obj = Meta.type_of format
+                if can_decode type_obj then format.read_web self else
+                    Error.throw (Illegal_Argument.Error type_obj.to_text+" cannot be used to decode from the web.")
 
     ## ALIAS Parse as Text
        Decodes the body to a Text value.
@@ -128,7 +140,7 @@ type Unsupported_Content_Type
 
        Arguments:
        - content_type: The content type that is unsupported.
-    Value (content_type : Text | Nothing)
+    Error (content_type : Text | Nothing)
 
     ## PRIVATE
        Convert the error to a human readable string.
@@ -136,3 +148,15 @@ type Unsupported_Content_Type
     to_display_text self = case self.content_type of
         Nothing -> "The response did not contain a content type."
         _ : Text -> "The content type '" + self.content_type +"' cannot be automatically decoded."
+
+## PRIVATE
+can_decode : File_Format -> Boolean
+can_decode type = Meta.meta type . methods . contains "read_web"
+
+## PRIVATE
+   Selector for decoding from the web.
+decode_format_selector : Widget
+decode_format_selector =
+    all_types = [Auto_Detect] + (format_types.filter can_decode)
+    make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
+    Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (File_Format.constructor_code n)))

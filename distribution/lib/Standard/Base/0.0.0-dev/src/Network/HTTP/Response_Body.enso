@@ -43,7 +43,7 @@ type Response_Body
     ## PRIVATE
        Convert response body to Text.
     to_text : Text
-    to_text self = "Response_Body [" ++ self.bytes.length.to_text ++ " bytes]"
+    to_text self = "Response_Body [" + self.bytes.length.to_text + " bytes]"
 
     ## Write response body to a File.
 
