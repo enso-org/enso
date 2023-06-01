@@ -21,7 +21,7 @@ derive_zeroable! {
     /// [`LinkedArray`] will never automatically shrink itself, even if completely empty. This
     /// ensures no unnecessary allocations or deallocations occur. Emptying a [`LinkedArray`] and
     /// then filling it back up to the same len should incur no calls to the allocator. If you wish
-    /// to free up unused memory, use [`shrink_to_fit`].
+    /// to free up unused memory, use [`Self::shrink_to_fit`] or [`Self::shrink_to`].
     #[derive(Derivative)]
     #[derivative(Default(bound = ""))]
     pub struct LinkedArray
@@ -80,12 +80,19 @@ where B: AllocationBehavior<T, N>
 
     /// Deallocate segments that are not used.
     pub fn shrink_to_fit(&mut self) {
-        let len = self.len();
-        if len == 0 {
+        self.shrink_to(self.len())
+    }
+
+    /// Shrink the capacity of the container with a lower bound.
+    ///
+    /// The capacity will remain at least as large as both the length and the supplied value.
+    pub fn shrink_to(&mut self, capacity: usize) {
+        let new_capacity = self.len().max(capacity);
+        if new_capacity == 0 {
             self.first_segment.set_default();
         } else {
             if let Some(first_segment) = self.first_segment.opt_item_mut() {
-                let new_capacity = first_segment.shrink_to_fit(len);
+                let new_capacity = first_segment.shrink_to_fit(new_capacity);
                 self.capacity.set(new_capacity)
             }
         }
