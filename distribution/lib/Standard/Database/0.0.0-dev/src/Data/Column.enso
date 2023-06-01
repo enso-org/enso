@@ -190,7 +190,8 @@ type Column
     count self =
         self.to_table.filter 0 Filter_Condition.Not_Nothing . row_count
 
-    ## Element-wise equality comparison.
+    ## ALIAS Equals
+       Element-wise equality comparison.
 
        Arguments:
        - other: The value to compare `self` against. If `other` is a column, the
@@ -240,7 +241,8 @@ type Column
                     new_name = self.naming_helpers.function_name "equals_ignore_case" [self, other]
                     self.make_binary_op "equals_ignore_case" other new_name
 
-    ## Element-wise non-equality comparison.
+    ## ALIAS Not Equals
+       Element-wise non-equality comparison.
 
        Arguments:
        - other: The value to compare `self` against. If `other` is a column, the
@@ -273,8 +275,7 @@ type Column
     != self other =
         make_equality_check_with_floating_point_handling self other "!="
 
-    ## UNSTABLE
-
+    ## ALIAS Greater Than Or Equal
        Element-wise order comparison.
 
        Arguments:
@@ -287,8 +288,7 @@ type Column
     >= self other = Value_Type.expect_comparable self other <|
         self.make_binary_op ">=" other
 
-    ## UNSTABLE
-
+    ## ALIAS Less Than Or Equal
        Element-wise order comparison.
 
        Arguments:
@@ -301,8 +301,7 @@ type Column
     <= self other = Value_Type.expect_comparable self other <|
         self.make_binary_op "<=" other
 
-    ## UNSTABLE
-
+    ## ALIAS Greater Than
        Element-wise order comparison.
 
        Arguments:
@@ -315,8 +314,7 @@ type Column
     > self other = Value_Type.expect_comparable self other <|
         self.make_binary_op ">" other
 
-    ## UNSTABLE
-
+    ## ALIAS Less Than
        Element-wise order comparison.
 
        Arguments:
@@ -348,8 +346,7 @@ type Column
                 new_name = self.naming_helpers.to_expression_text self + " between " + self.naming_helpers.to_expression_text lower + " and " + self.naming_helpers.to_expression_text upper
                 self.make_op "BETWEEN" [lower, upper] new_name
 
-    ## UNSTABLE
-
+    ## ALIAS Add, Plus, Concatenate
        Element-wise addition.
 
        Arguments:
@@ -365,8 +362,7 @@ type Column
             new_name = self.naming_helpers.binary_operation_name "+" self other
             self.make_binary_op op other new_name
 
-    ## UNSTABLE
-
+    ## ALIAS Subtract, Minus
        Element-wise subtraction.
 
        Arguments:
@@ -380,8 +376,7 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op "-" other
 
-    ## UNSTABLE
-
+    ## ALIAS Multiply, Times, Product
        Element-wise multiplication.
 
        Arguments:
@@ -395,8 +390,7 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op "*" other
 
-    ## ALIAS Divide Columns
-
+    ## ALIAS Divide
        Element-wise division.
 
        Arguments:
@@ -430,7 +424,8 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op "/" other
 
-    ## Element-wise modulus.
+    ## ALIAS Modulus, Modulo
+       Element-wise modulus.
 
        Arguments:
        - other: The value to modulo `self` against. If `other` is a column, the
@@ -468,7 +463,6 @@ type Column
             self.make_binary_op op other new_name
 
     ## ALIAS Power
-
        Element-wise raising to the power.
 
        Arguments:
@@ -497,8 +491,7 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op '^' other
 
-    ## UNSTABLE
-
+    ## ALIAS And
        Element-wise boolean conjunction.
 
        Arguments:
@@ -514,8 +507,7 @@ type Column
             new_name = self.naming_helpers.binary_operation_name "&&" self other
             self.make_binary_op "AND" other new_name
 
-    ## UNSTABLE
-
+    ## ALIAS Or
        Element-wise boolean disjunction.
 
        Arguments:

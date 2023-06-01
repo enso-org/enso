@@ -8,6 +8,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
+from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
 from Standard.Table import Aggregate_Column, Data_Formatter, Column_Selector, Sort_Column, Match_Columns, Position, Set_Mode, Auto, Value_Type
@@ -190,13 +191,14 @@ type Table
              table.select_columns [-1, 0, 1] reorder=True
 
        Icon: select_column
-    @columns (Widget_Helpers.make_column_name_vector_selector include_blanks=True)
+    @columns Widget_Helpers.make_column_name_vector_selector
     select_columns :  Vector (Integer | Text | Column_Selector) | Text | Integer -> Boolean -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range
     select_columns self (columns = [self.columns.first.name]) (reorder = False) (error_on_missing_columns = True) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.select_columns selectors=columns reorder=reorder error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
 
-    ## Returns a new table with the chosen set of columns, as specified by the
+    ## ALIAS drop_columns
+       Returns a new table with the chosen set of columns, as specified by the
        `columns`, removed from the input table. Any unmatched input columns will
        be kept in the output. Columns are returned in the same order as in the
        input.
@@ -243,7 +245,7 @@ type Table
          Remove the first two columns and the last column.
 
              table.remove_columns [-1, 0, 1]
-    @columns (Widget_Helpers.make_column_name_vector_selector include_blanks=True)
+    @columns Widget_Helpers.make_column_name_vector_selector
     remove_columns :  Vector (Integer | Text | Column_Selector) | Text | Integer -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range
     remove_columns self (columns = [self.columns.first.name]) (error_on_missing_columns = False) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.remove_columns selectors=columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
@@ -299,7 +301,7 @@ type Table
          Move the first column to back.
 
              table.reorder_columns [0] position=Position.After_Other_Columns
-    @columns (Widget_Helpers.make_column_name_vector_selector include_blanks=True)
+    @columns Widget_Helpers.make_column_name_vector_selector
     reorder_columns : Vector (Integer | Text | Column_Selector) | Text | Integer -> Position -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range
     reorder_columns self (columns = [self.columns.first.name]) (position = Position.Before_Other_Columns) (error_on_missing_columns = False) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.reorder_columns selectors=columns position=position error_on_missing_columns on_problems=on_problems
@@ -580,9 +582,7 @@ type Table
         new_ctx = self.context.set_limit max_rows
         self.updated_context new_ctx
 
-    ## UNSTABLE
-       ALIAS Add Column, Update Column
-
+    ## ALIAS Add Column, Update Column, New Column
        Sets the column value at the given name.
 
        Arguments:
@@ -809,7 +809,7 @@ type Table
 
               table.order_by [(Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive)]
     @columns Widget_Helpers.make_order_by_selector
-    order_by : Vector (Text | Sort_Column) | Text | Sort_Column -> Text_Ordering -> Boolean -> Problem_Behavior -> Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns | Column_Indexes_Out_Of_Range
+    order_by : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns | Column_Indexes_Out_Of_Range
     order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning = Panic.handle_wrapped_dataflow_error <|
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
@@ -927,8 +927,8 @@ type Table
          allows to join the two tables on equality of corresponding columns with
          the same name. So `table.join other on=["A", "B"]` is a shorthand for:
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
-    @on Widget_Helpers.make_column_name_selector
-    join : Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> Table
+    @on Widget_Helpers.make_join_condition_selector
+    join : Table -> Join_Kind -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
     join self right join_kind=Join_Kind.Left_Outer on=[Join_Condition.Equals self.column_names.first] right_prefix="Right " on_problems=Report_Warning =
         can_proceed = if Table_Helpers.is_table right . not then Error.throw (Type_Error.Error Table right "right") else
             same_backend = case right of
@@ -1062,6 +1062,7 @@ type Table
          defined nor any ordering was specified explicitly by the user, the
          order of columns is undefined and the operation will fail, reporting a
          `Undefined_Column_Order` problem and returning an empty table.
+    @keep_unmatched (make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Meta.get_qualified_type_name Report_Unmatched]])
     zip : Table -> Boolean | Report_Unmatched -> Text -> Problem_Behavior -> Table
     zip self right keep_unmatched=Report_Unmatched right_prefix="Right " on_problems=Report_Warning =
         _ = [right, keep_unmatched, right_prefix, on_problems]
@@ -1276,6 +1277,7 @@ type Table
          Group by the Key column, count the rows
 
               table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count]
+    @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self error_on_missing_columns=error_on_missing_columns

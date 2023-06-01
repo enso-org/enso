@@ -445,5 +445,6 @@ type Locale
     widget_options : Vector Option
     widget_options = Locale.predefined_locale_fields.map field_name->
         display_string = field_name.replace '_' ' ' . to_case (if field_name.length == 2 then Case.Upper else Case.Title)
-        code_string = "Locale." + field_name
+        fqn = Meta.get_qualified_type_name Locale
+        code_string = fqn + "." + field_name
         Option display_string code_string

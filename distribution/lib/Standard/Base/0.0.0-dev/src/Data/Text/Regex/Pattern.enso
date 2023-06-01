@@ -4,6 +4,7 @@ import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
 import project.Data.Range.Range
+import project.Data.Text.Extensions
 import project.Data.Text.Helpers
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
@@ -15,6 +16,7 @@ import project.Data.Vector.Vector
 import project.Errors.Common.Type_Error
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Math
 import project.Meta
 import project.Nothing.Nothing
 import project.Polyglot.Polyglot
@@ -97,7 +99,7 @@ type Pattern
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
-    find_all : Text -> Vector Text | Type_Error
+    find_all : Text -> Vector Text ! Type_Error
     find_all self input =
         Helpers.expect_text input <|
            self.match_all input . map match_to_group_maybe
@@ -352,8 +354,8 @@ type Match_Iterator
        Also returns the next iterator, if there was a match.
     next : Match_Iterator_Value
     next self =
-        regex_result = self.pattern.internal_regex_object.exec self.input self.cursor
-        case regex_result.isMatch of
+        regex_result = if self.cursor > self.input.char_vector.length then Nothing else self.pattern.internal_regex_object.exec self.input self.cursor
+        case regex_result.is_nothing.not && regex_result.isMatch of
             False ->
                 filler_range = Range.new self.cursor (Text_Utils.char_length self.input)
                 filler_span = (Utf_16_Span.Value filler_range self.input)
@@ -363,7 +365,8 @@ type Match_Iterator
                 filler_range = Range.new self.cursor match_start
                 filler_span = (Utf_16_Span.Value filler_range self.input)
                 match = Match.Value self.pattern regex_result self.input
-                next_cursor = match.utf_16_end 0
+                ## Handle edge case where match is 0 length
+                next_cursor = Math.max (self.cursor + 1) (match.utf_16_end 0)
                 next_iterator = Match_Iterator.Value self.pattern self.input next_cursor
                 Match_Iterator_Value.Next filler_span match next_iterator
 

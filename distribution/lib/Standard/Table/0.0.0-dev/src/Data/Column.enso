@@ -131,7 +131,8 @@ type Column
         IO.println (self.display show_rows format_terminal=True)
         IO.println ''
 
-    ## Element-wise equality comparison.
+    ## ALIAS Equals
+       Element-wise equality comparison.
 
        Arguments:
        - other: The value to compare `self` against. If `other` is a column, the
@@ -193,7 +194,8 @@ type Column
                 new_name = Naming_Helpers.function_name "equals_ignore_case" [self, other]
                 run_vectorized_binary_op self "equals_ignore_case" fallback other expected_result_type=Value_Type.Boolean new_name
 
-    ## Element-wise non-equality comparison.
+    ## ALIAS Not Equals
+       Element-wise non-equality comparison.
 
        Arguments:
        - other: The value to compare `self` against. If `other` is a column, the
@@ -227,7 +229,8 @@ type Column
         new_name = Naming_Helpers.binary_operation_name "!=" self other
         (self == other).not . rename new_name
 
-    ## Element-wise order comparison.
+    ## ALIAS Greater Than Or Equal
+       Element-wise order comparison.
 
        Arguments:
        - other: The value to compare `self` against. If `other` is a column, the
@@ -254,7 +257,8 @@ type Column
     >= self other = Value_Type.expect_comparable self other <|
         run_vectorized_binary_op self ">=" (>=) other expected_result_type=Value_Type.Boolean
 
-    ## Element-wise order comparison.
+    ## ALIAS Less Than Or Equal
+       Element-wise order comparison.
 
        Arguments:
        - other: The value to compare `self` against. If `other` is a column, the
@@ -281,7 +285,8 @@ type Column
     <= self other = Value_Type.expect_comparable self other <|
         run_vectorized_binary_op self "<=" (<=) other expected_result_type=Value_Type.Boolean
 
-    ## Element-wise order comparison.
+    ## ALIAS Greater Than
+       Element-wise order comparison.
 
        Arguments:
        - other: The value to compare `self` against. If `other` is a column, the
@@ -308,7 +313,8 @@ type Column
     > self other = Value_Type.expect_comparable self other <|
         run_vectorized_binary_op self ">" (>) other expected_result_type=Value_Type.Boolean
 
-    ## Element-wise order comparison.
+    ## ALIAS Less Than
+       Element-wise order comparison.
 
        Arguments:
        - other: The value to compare `self` against. If `other` is a column, the
@@ -355,8 +361,7 @@ type Column
                 result = (self >= lower) && (self <= upper)
                 result.rename new_name
 
-    ## ALIAS Add Columns
-
+    ## ALIAS Add, Plus, Concatenate
        Element-wise addition.
 
        Arguments:
@@ -385,8 +390,7 @@ type Column
         Value_Type_Helpers.resolve_addition_kind self other . if_not_error <|
             run_vectorized_binary_op self '+' fallback_fn=Nothing other
 
-    ## ALIAS Subtract Columns
-
+    ## ALIAS Subtract, Minus
        Element-wise subtraction.
 
        Arguments:
@@ -415,8 +419,7 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             run_vectorized_binary_op self '-' fallback_fn=Nothing other
 
-    ## ALIAS Multiply Columns
-
+    ## ALIAS Multiply, Times, Product
        Element-wise multiplication.
 
        Arguments:
@@ -445,8 +448,7 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             run_vectorized_binary_op self '*' fallback_fn=Nothing other
 
-    ## ALIAS Divide Columns
-
+    ## ALIAS Divide
        Element-wise division.
 
        Arguments:
@@ -481,7 +483,8 @@ type Column
             new_name = Naming_Helpers.binary_operation_name "/" self other
             run_vectorized_binary_op_with_problem_handling self "/" fallback_fn=Nothing other new_name
 
-    ## Element-wise modulus.
+    ## ALIAS Modulus, Modulo
+       Element-wise modulus.
 
        Arguments:
        - other: The value to modulo `self` against. If `other` is a column, the
@@ -515,8 +518,7 @@ type Column
             new_name = Naming_Helpers.binary_operation_name "%" self other
             run_vectorized_binary_op_with_problem_handling self "%" fallback_fn=Nothing other new_name
 
-    ## ALIAS Power Columns
-
+    ## ALIAS Power
        Element-wise raising to the power.
 
        Arguments:
@@ -545,8 +547,7 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             run_vectorized_binary_op self '^' fallback_fn=Nothing other
 
-    ## ALIAS AND Columns
-
+    ## ALIAS And
        Element-wise boolean conjunction.
 
        Arguments:
@@ -576,7 +577,7 @@ type Column
         Value_Type_Helpers.check_binary_boolean_op self other <|
             run_vectorized_binary_op self "&&" fallback_fn=Nothing other
 
-    ## ALIAS OR Columns
+    ## ALIAS Or
 
        Element-wise boolean disjunction.
 
