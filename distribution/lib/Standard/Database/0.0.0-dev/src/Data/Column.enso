@@ -557,6 +557,27 @@ type Column
                 op_result = self.make_op "IIF" [when_true, when_false] new_name
                 adapt_unified_column op_result common_type
 
+    ## Rounding values is not supported in database columns.
+    round : Integer -> Boolean -> Problem_Behavior -> Column | Illegal_Argument | Invalid_Value_Type
+    round self decimal_places=0 use_bankers=False on_problems=Report_Warning =
+        _ = [decimal_places, use_bankers, on_problems]
+        Error.throw <| Unsupported_Database_Operation.Error "`Column.round` is not implemented yet for the Database backends."
+
+    ## Truncating values is not supported in database columns.
+    truncate : Column ! Invalid_Value_Type
+    truncate self =
+        Error.throw <| Unsupported_Database_Operation.Error "`Column.truncate` is not implemented yet for the Database backends."
+
+    ## Taking the ceiling of values is not supported in database columns.
+    ceil : Column ! Invalid_Value_Type
+    ceil self =
+        Error.throw <| Unsupported_Database_Operation.Error "`Column.ceil` is not implemented yet for the Database backends."
+
+    ## Taking the floor of values is not supported in database columns.
+    floor : Column ! Invalid_Value_Type
+    floor self =
+        Error.throw <| Unsupported_Database_Operation.Error "`Column.floor` is not implemented yet for the Database backends."
+
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
 

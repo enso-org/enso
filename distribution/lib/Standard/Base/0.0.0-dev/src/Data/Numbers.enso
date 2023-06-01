@@ -601,14 +601,14 @@ type Decimal
          Use Banker's Rounding.
 
             2.5 . round use_bankers=True == 2
-    round : Integer -> Integer | Decimal ! Illegal_Argument
+    round : Integer -> Boolean -> Integer | Decimal ! Illegal_Argument
     round self decimal_places=0 use_bankers=False =
         check_decimal_places decimal_places <|
             case self.is_nan || self.is_infinite of
                 True ->
                     msg = "round cannot accept " + self.to_text
                     Error.throw (Arithmetic_Error.Error msg)
-                False ->
+                False ->  check_round_input self <|
                     decimal_result = case use_bankers of
                         False ->
                             scale = 10 ^ decimal_places
@@ -923,18 +923,13 @@ type Integer
          Round to the nearest hundred, using Banker's Rounding.
 
             12250 . round -2 use_bankers=True == 12200
-    round : Integer -> Integer ! Illegal_Argument
+    round : Integer -> Boolean -> Integer ! Illegal_Argument
     round self decimal_places=0 use_bankers=False =
-        check_decimal_places decimal_places <|
-            case self < round_min_long || self > round_max_long of
-                True ->
-                    msg = "Error: Integer.round can only accept values between " + round_min_long.to_text + " and " + round_max_long.to_text + "(inclusive), but was " + self.to_text
-                    Error.throw (Illegal_Argument.Error msg)
-                False ->
-                    ## It's already an integer so unless decimal_places is
-                       negative, the value is unchanged.
-                    if decimal_places >= 0 then self else
-                        self.to_decimal.round decimal_places use_bankers . truncate
+        check_decimal_places decimal_places <| check_round_input self <|
+            ## It's already an integer so unless decimal_places is
+               negative, the value is unchanged.
+            if decimal_places >= 0 then self else
+                self.to_decimal.round decimal_places use_bankers . truncate
 
     ## Compute the negation of this.
 
@@ -1132,8 +1127,18 @@ round_max_long = 99999999999999
 round_min_long : Integer
 round_min_long = -99999999999999
 
+## PRIVATE
+   Restrict rounding decimal_places parameter.
 check_decimal_places : Integer -> Function
 check_decimal_places decimal_places ~action =
     if decimal_places >= round_min_decimal_places && decimal_places <= round_max_decimal_places then action else
-        msg = "round: decimal_places must be between " + round_min_decimal_places.to_text + " and " + round_max_decimal_places.to_text + "(inclusive), but was " + decimal_places.to_text
+        msg = "round: decimal_places must be between " + round_min_decimal_places.to_text + " and " + round_max_decimal_places.to_text + " (inclusive), but was " + decimal_places.to_text
+        Error.throw (Illegal_Argument.Error msg)
+
+## PRIVATE
+   Restrict allowed range of input to rounding methods.
+check_round_input : Number -> Function
+check_round_input n ~action =
+    if n >= round_min_long && n <= round_max_long then action else
+        msg = "Error: `round` can only accept values between " + round_min_long.to_text + " and " + round_max_long.to_text + " (inclusive), but was " + n.to_text
         Error.throw (Illegal_Argument.Error msg)

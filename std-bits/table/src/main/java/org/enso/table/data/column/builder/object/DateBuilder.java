@@ -28,6 +28,10 @@ public class DateBuilder extends TypedBuilderImpl<LocalDate> {
     data[currentSize++] = (LocalDate) o;
   }
 
+  public void appendDate(LocalDate date) {
+    append(date);
+  }
+
   @Override
   public boolean accepts(Object o) {
     return o instanceof LocalDate;
