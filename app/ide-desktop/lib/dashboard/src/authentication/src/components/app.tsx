@@ -105,7 +105,11 @@ function App(props: AppProps) {
      * will redirect the user between the login/register pages and the dashboard. */
     return (
         <>
-            <toast.Toaster position="top-center" reverseOrder={false} />
+            <toast.Toaster
+                toastOptions={{ style: { maxWidth: '100%' } }}
+                position="top-center"
+                reverseOrder={false}
+            />
             <Router>
                 <AppRouter {...props} />
             </Router>

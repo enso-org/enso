@@ -216,6 +216,23 @@ function columnsFor(displayMode: ColumnDisplayMode, backendType: backendModule.B
         : columns
 }
 
+/** Returns a new array, in which the given asset is replaced with a new asset with the new name. */
+function arrayWithAssetTitleChanged<T extends backendModule.AssetType>(
+    assets: backendModule.Asset<T>[],
+    asset: backendModule.Asset<T>,
+    newTitle: string
+) {
+    return assets.map(item => (item === asset ? { ...asset, title: newTitle } : item))
+}
+
+/** Returns a new array, in which the given asset is omitted. */
+function arrayWithAssetOmitted<T extends backendModule.AssetType>(
+    assets: backendModule.Asset<T>[],
+    asset: backendModule.Asset<T>
+) {
+    return assets.filter(item => item !== asset)
+}
+
 // =================
 // === Dashboard ===
 // =================
@@ -424,9 +441,21 @@ function Dashboard(props: DashboardProps) {
                                               '(Numbers (_0, _1) are also allowed.)',
                                       }
                                     : {})}
-                                // TODO: Wait for backend implementation.
-                                doRename={() => Promise.resolve()}
-                                onSuccess={doRefresh}
+                                doRename={async newName => {
+                                    setProjectAssets(
+                                        arrayWithAssetTitleChanged(
+                                            projectAssets,
+                                            projectAsset,
+                                            newName
+                                        )
+                                    )
+                                    await backend.projectUpdate(projectAsset.id, {
+                                        ami: null,
+                                        ideVersion: null,
+                                        projectName: newName,
+                                    })
+                                }}
+                                onComplete={doRefresh}
                             />
                         ))
                     }
@@ -459,8 +488,19 @@ function Dashboard(props: DashboardProps) {
                                 assetType={directoryAsset.type}
                                 name={directoryAsset.title}
                                 // TODO: Wait for backend implementation.
-                                doRename={() => Promise.resolve()}
-                                onSuccess={doRefresh}
+                                doRename={newName => {
+                                    setDirectoryAssets(
+                                        arrayWithAssetTitleChanged(
+                                            directoryAssets,
+                                            directoryAsset,
+                                            newName
+                                        )
+                                    )
+                                    return Promise.reject(
+                                        'The backend endpoint does not exist yet.'
+                                    )
+                                }}
+                                onComplete={doRefresh}
                             />
                         ))
                     }
@@ -482,8 +522,15 @@ function Dashboard(props: DashboardProps) {
                                 assetType={secret.type}
                                 name={secret.title}
                                 // FIXME[sb]: Wait for backend implementation.
-                                doRename={() => Promise.resolve()}
-                                onSuccess={doRefresh}
+                                doRename={newName => {
+                                    setSecretAssets(
+                                        arrayWithAssetTitleChanged(secretAssets, secret, newName)
+                                    )
+                                    return Promise.reject(
+                                        'The backend endpoint does not exist yet.'
+                                    )
+                                }}
+                                onComplete={doRefresh}
                             />
                         ))
                     }
@@ -502,8 +549,15 @@ function Dashboard(props: DashboardProps) {
                                 assetType={file.type}
                                 name={file.title}
                                 // TODO: Wait for backend implementation.
-                                doRename={() => Promise.resolve()}
-                                onSuccess={doRefresh}
+                                doRename={newName => {
+                                    setFileAssets(
+                                        arrayWithAssetTitleChanged(fileAssets, file, newName)
+                                    )
+                                    return Promise.reject(
+                                        'The backend endpoint does not exist yet.'
+                                    )
+                                }}
+                                onComplete={doRefresh}
                             />
                         ))
                     }
@@ -702,7 +756,26 @@ function Dashboard(props: DashboardProps) {
             projectTemplateName: templateId ?? null,
             parentDirectoryId: directoryId,
         }
-        await backend.createProject(body)
+        const templateText = templateId != null ? ` from template '${templateId}'` : ''
+        await toast.promise(backend.createProject(body), {
+            loading: `Creating project '${projectName}'${templateText}...`,
+            success: `Created project '${projectName}'${templateText}.`,
+            // This is UNSAFE, as the original function's parameter is of type `any`.
+            error: (promiseError: Error) =>
+                `Error creating '${projectName}'${templateText}: ${promiseError.message}`,
+        })
+        setProjectAssets([
+            {
+                type: backendModule.AssetType.project,
+                title: projectName,
+                id: newtype.asNewtype<backendModule.ProjectId>(''),
+                modifiedAt: dateTime.toRfc3339(new Date()),
+                parentId: directoryId,
+                permissions: [],
+                projectState: { type: backendModule.ProjectState.new },
+            },
+            ...projectAssets,
+        ])
         doRefresh()
     }
 
@@ -968,14 +1041,21 @@ function Dashboard(props: DashboardProps) {
                                                               '(Numbers (_0, _1) are also allowed.)',
                                                       }
                                                     : {})}
-                                                doRename={async name => {
+                                                doRename={async newName => {
+                                                    setProjectAssets(
+                                                        arrayWithAssetTitleChanged(
+                                                            projectAssets,
+                                                            projectAsset,
+                                                            newName
+                                                        )
+                                                    )
                                                     await backend.projectUpdate(projectAsset.id, {
                                                         ami: null,
                                                         ideVersion: null,
-                                                        projectName: name,
+                                                        projectName: newName,
                                                     })
                                                 }}
-                                                onSuccess={doRefresh}
+                                                onComplete={doRefresh}
                                             />
                                         ))
                                     }
@@ -986,10 +1066,16 @@ function Dashboard(props: DashboardProps) {
                                             <ConfirmDeleteModal
                                                 name={projectAsset.title}
                                                 assetType={projectAsset.type}
-                                                doDelete={() =>
-                                                    backend.deleteProject(projectAsset.id)
-                                                }
-                                                onSuccess={doRefresh}
+                                                doDelete={() => {
+                                                    setProjectAssets(
+                                                        arrayWithAssetOmitted(
+                                                            projectAssets,
+                                                            projectAsset
+                                                        )
+                                                    )
+                                                    return backend.deleteProject(projectAsset.id)
+                                                }}
+                                                onComplete={doRefresh}
                                             />
                                         ))
                                     }
@@ -1105,12 +1191,18 @@ function Dashboard(props: DashboardProps) {
                                                         <ConfirmDeleteModal
                                                             name={secret.title}
                                                             assetType={secret.type}
-                                                            doDelete={() =>
-                                                                remoteBackend.deleteSecret(
+                                                            doDelete={() => {
+                                                                setSecretAssets(
+                                                                    arrayWithAssetOmitted(
+                                                                        secretAssets,
+                                                                        secret
+                                                                    )
+                                                                )
+                                                                return remoteBackend.deleteSecret(
                                                                     secret.id
                                                                 )
-                                                            }
-                                                            onSuccess={doRefresh}
+                                                            }}
+                                                            onComplete={doRefresh}
                                                         />
                                                     ))
                                                 }
@@ -1175,10 +1267,18 @@ function Dashboard(props: DashboardProps) {
                                                         <ConfirmDeleteModal
                                                             name={file.title}
                                                             assetType={file.type}
-                                                            doDelete={() =>
-                                                                remoteBackend.deleteFile(file.id)
-                                                            }
-                                                            onSuccess={doRefresh}
+                                                            doDelete={() => {
+                                                                setFileAssets(
+                                                                    arrayWithAssetOmitted(
+                                                                        fileAssets,
+                                                                        file
+                                                                    )
+                                                                )
+                                                                return remoteBackend.deleteFile(
+                                                                    file.id
+                                                                )
+                                                            }}
+                                                            onComplete={doRefresh}
                                                         />
                                                     ))
                                                 }

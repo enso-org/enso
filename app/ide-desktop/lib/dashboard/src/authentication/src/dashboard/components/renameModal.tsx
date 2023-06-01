@@ -19,12 +19,12 @@ export interface RenameModalProps {
     namePattern?: string
     title?: string
     doRename: (newName: string) => Promise<void>
-    onSuccess: () => void
+    onComplete: () => void
 }
 
 /** A modal for renaming an asset. */
 function RenameModal(props: RenameModalProps) {
-    const { assetType, name, namePattern, title, doRename, onSuccess } = props
+    const { assetType, name, namePattern, title, doRename, onComplete } = props
     const { unsetModal } = modalProvider.useSetModal()
 
     const [newName, setNewName] = react.useState<string | null>(null)
@@ -35,14 +35,17 @@ function RenameModal(props: RenameModalProps) {
             toast.error('Please provide a new name.')
         } else {
             unsetModal()
-            await toast.promise(doRename(newName), {
-                loading: `Renaming ${assetType}...`,
-                success: `Renamed ${assetType}.`,
-                // This is UNSAFE, as the original function's parameter is of type `any`.
-                error: (promiseError: Error) =>
-                    `Error renaming ${assetType}: ${promiseError.message}`,
-            })
-            onSuccess()
+            try {
+                await toast.promise(doRename(newName), {
+                    loading: `Renaming ${assetType} '${name}' to '${newName}'...`,
+                    success: `Renamed ${assetType} '${name}' to '${newName}'.`,
+                    // This is UNSAFE, as the original function's parameter is of type `any`.
+                    error: (promiseError: Error) =>
+                        `Error renaming ${assetType} '${name}' to '${newName}': ${promiseError.message}`,
+                })
+            } finally {
+                onComplete()
+            }
         }
     }
 

@@ -15,22 +15,27 @@ export interface ConfirmDeleteModalProps {
     assetType: string
     name: string
     doDelete: () => Promise<void>
-    onSuccess: () => void
+    onComplete: () => void
 }
 
 /** A modal for confirming the deletion of an asset. */
 function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
-    const { assetType, name, doDelete, onSuccess } = props
+    const { assetType, name, doDelete, onComplete } = props
     const { unsetModal } = modalProvider.useSetModal()
 
     const onSubmit = async () => {
         unsetModal()
-        await toast.promise(doDelete(), {
-            loading: `Deleting ${assetType}...`,
-            success: `Deleted ${assetType}.`,
-            error: `Could not delete ${assetType}.`,
-        })
-        onSuccess()
+        try {
+            await toast.promise(doDelete(), {
+                loading: `Deleting ${assetType} '${name}'...`,
+                success: `Deleted ${assetType} '${name}'.`,
+                // This is UNSAFE, as the original function's parameter is of type `any`.
+                error: (promiseError: Error) =>
+                    `Error deleting ${assetType} '${name}': ${promiseError.message}`,
+            })
+        } finally {
+            onComplete()
+        }
     }
 
     return (
