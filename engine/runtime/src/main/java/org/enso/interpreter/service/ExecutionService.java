@@ -345,10 +345,7 @@ public class ExecutionService {
     if (module.isEmpty()) {
       module = context.createModuleForFile(path);
     }
-    module.ifPresent(
-        mod -> {
-          mod.setLiteralSource(contents);
-        });
+    module.ifPresent(mod -> mod.setLiteralSource(contents));
   }
 
   /**
