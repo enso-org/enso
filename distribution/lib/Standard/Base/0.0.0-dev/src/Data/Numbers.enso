@@ -567,6 +567,8 @@ type Decimal
        If the argument is `NaN` or `+/-Inf`, an `Arithmetic_Error` error is
        thrown.
 
+       Algorithm taken from https://stackoverflow.com/a/7211688.
+
        Arguments:
        - decimal_places: The number of decimal places to round to. Can be
          negative, which results in rounding to positive integer powers of 10.
@@ -617,16 +619,10 @@ type Decimal
                         round_down = round_base / scale
                         round_midpoint = (round_base + 0.5) / scale
                         round_up = (round_base + 1.0) / scale
-                        case self >= 0 of
-                            True ->
-                                half_goes_up = if use_bankers then (scaled.truncate % 2) != 0 else True
-                                do_round_up = if half_goes_up then self >= round_midpoint else self > round_midpoint
-                                if do_round_up then round_up else round_down
-                            False ->
-                                half_goes_up = if use_bankers then (scaled.truncate % 2) == 0 else True
-                                #do_round_up = if half_goes_up then self >= -round_midpoint else self > -round_midpoint
-                                do_round_up = if half_goes_up then self >= round_midpoint else self > round_midpoint
-                                if do_round_up then round_up else round_down
+                        even_is_up = if self >= 0 then (scaled.truncate % 2) != 0 else (scaled.truncate % 2) == 0
+                        half_goes_up = if use_bankers then even_is_up else True
+                        do_round_up = if half_goes_up then self >= round_midpoint else self > round_midpoint
+                        if do_round_up then round_up else round_down
                     # Convert to integer if it's really an integer anyway.
                     if decimal_places > 0 then decimal_result else decimal_result.truncate
 
