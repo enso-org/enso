@@ -9,6 +9,7 @@ import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
+import org.enso.table.data.column.operation.map.UnaryIntegerOp;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
@@ -287,6 +288,13 @@ public final class LongStorage extends NumericStorage<Long> {
                   long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 throw new IllegalStateException(
                     "Internal error: Power operation should cast to double.");
+              }
+            })
+        .add(
+            new UnaryIntegerOp<>(Maps.TRUNCATE) {
+              @Override
+              protected long doOperation(Long a) {
+                return a.longValue();
               }
             })
         .add(
