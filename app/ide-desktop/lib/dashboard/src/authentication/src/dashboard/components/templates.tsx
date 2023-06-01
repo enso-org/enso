@@ -14,7 +14,7 @@ export interface Template {
 }
 
 /** The full list of templates. */
-export const TEMPLATES: Template[] = [
+export const TEMPLATES: [Template, ...Template[]] = [
     {
         title: 'Colorado COVID',
         id: 'Colorado_COVID',

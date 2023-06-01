@@ -36,8 +36,8 @@ import UploadFileModal from './uploadFileModal'
 
 import DirectoryCreateForm from './directoryCreateForm'
 import FileCreateForm from './fileCreateForm'
-import SecretCreateForm from './secretCreateForm'
 import ProjectCreateForm from './projectCreateForm'
+import SecretCreateForm from './secretCreateForm'
 
 // =============
 // === Types ===
@@ -577,37 +577,33 @@ function Dashboard(props: DashboardProps) {
     /** Heading element for every column. */
     const ColumnHeading = (column: Column, assetType: backendModule.AssetType) =>
         column === Column.name ? (
-            assetType === backendModule.AssetType.project ? (
-                <>{ASSET_TYPE_NAME[assetType]}</>
-            ) : (
-                <div className="inline-flex">
-                    {ASSET_TYPE_NAME[assetType]}
-                    <button
-                        className="mx-1"
-                        onClick={event => {
-                            event.stopPropagation()
-                            const buttonPosition =
-                                // This type assertion is safe as this event handler is on a button.
-                                // eslint-disable-next-line no-restricted-syntax
-                                (event.target as HTMLButtonElement).getBoundingClientRect()
-                            // This is a React component even though it doesn't contain JSX.
+            <div className="inline-flex">
+                {ASSET_TYPE_NAME[assetType]}
+                <button
+                    className="mx-1"
+                    onClick={event => {
+                        event.stopPropagation()
+                        const buttonPosition =
+                            // This type assertion is safe as this event handler is on a button.
                             // eslint-disable-next-line no-restricted-syntax
-                            const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
-                            setModal(() => (
-                                <CreateForm
-                                    left={buttonPosition.left + window.scrollX}
-                                    top={buttonPosition.top + window.scrollY}
-                                    getNewProjectName={getNewProjectName}
-                                    directoryId={directoryId}
-                                    onSuccess={doRefresh}
-                                />
-                            ))
-                        }}
-                    >
-                        {svg.ADD_ICON}
-                    </button>
-                </div>
-            )
+                            (event.target as HTMLButtonElement).getBoundingClientRect()
+                        // This is a React component even though it doesn't contain JSX.
+                        // eslint-disable-next-line no-restricted-syntax
+                        const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
+                        setModal(() => (
+                            <CreateForm
+                                left={buttonPosition.left + window.scrollX}
+                                top={buttonPosition.top + window.scrollY}
+                                getNewProjectName={getNewProjectName}
+                                directoryId={directoryId}
+                                onSuccess={doRefresh}
+                            />
+                        ))
+                    }}
+                >
+                    {svg.ADD_ICON}
+                </button>
+            </div>
         ) : (
             <>{COLUMN_NAME[column]}</>
         )
