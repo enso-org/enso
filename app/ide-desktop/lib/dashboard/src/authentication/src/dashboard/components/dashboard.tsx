@@ -1,6 +1,7 @@
 /** @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components. */
 import * as react from 'react'
+import toast from 'react-hot-toast'
 
 import * as common from 'enso-common'
 
@@ -32,7 +33,6 @@ import TopBar from './topBar'
 
 import ConfirmDeleteModal from './confirmDeleteModal'
 import RenameModal from './renameModal'
-import UploadFileModal from './uploadFileModal'
 
 import DirectoryCreateForm from './directoryCreateForm'
 import FileCreateForm from './fileCreateForm'
@@ -797,25 +797,42 @@ function Dashboard(props: DashboardProps) {
                                 </>
                             )}
                             <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
-                                <button
+                                <input
+                                    type="file"
+                                    multiple
+                                    disabled={backend.type === backendModule.BackendType.local}
+                                    id="upload_file_input"
+                                    name="upload_file_input"
+                                    className="w-0 h-0"
+                                    onInput={async event => {
+                                        if (backend.type === backendModule.BackendType.local) {
+                                            // FIXME[sb]: Allow uploading `.enso-project`s
+                                            toast.error('Cannot upload files to the local backend.')
+                                        } else if (
+                                            event.currentTarget.files == null ||
+                                            event.currentTarget.files.length === 0
+                                        ) {
+                                            toast.success('No files selected to upload.')
+                                        } else {
+                                            await uploadMultipleFiles.uploadMultipleFiles(
+                                                backend,
+                                                directoryId,
+                                                Array.from(event.currentTarget.files)
+                                            )
+                                            doRefresh()
+                                        }
+                                    }}
+                                />
+                                <label
+                                    htmlFor="upload_file_input"
                                     className={`mx-1 ${
                                         backend.type === backendModule.BackendType.local
                                             ? 'opacity-50'
-                                            : ''
+                                            : 'cursor-pointer'
                                     }`}
-                                    disabled={backend.type === backendModule.BackendType.local}
-                                    onClick={event => {
-                                        event.stopPropagation()
-                                        setModal(() => (
-                                            <UploadFileModal
-                                                directoryId={directoryId}
-                                                onSuccess={doRefresh}
-                                            />
-                                        ))
-                                    }}
                                 >
                                     {svg.UPLOAD_ICON}
-                                </button>
+                                </label>
                                 <button
                                     className={`mx-1 opacity-50`}
                                     disabled={true}
