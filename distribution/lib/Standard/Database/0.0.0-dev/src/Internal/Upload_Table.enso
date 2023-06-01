@@ -14,17 +14,32 @@ import project.Data.Update_Action.Update_Action
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
+from project.Connection.Connection import all_known_table_names
 from project.Errors import all
+
+## PRIVATE
+create_table_structure connection table_name structure primary_key temporary allow_existing on_problems =
+    case table_name.is_nothing.not && all_known_table_names connection . contains table_name of
+        True ->
+            if allow_existing then Nothing else Error.throw (Table_Already_Exists.Error table_name)
+        False ->
+            effective_table_name = resolve_effective_table_name table_name temporary
+            # TODO fix this structure not necessarily being a Table
+            # TODO migrate select into to use this method
+            resolved_primary_key = resolve_primary_key structure primary_key
+            create_table_statement = prepare_create_table_statement connection effective_table_name self.columns resolved_primary_key temporary on_problems
+            create_table_statement.if_not_error <|
+                connection.execute_update create_table_statement
 
 ## PRIVATE
    A helper that can upload a table from any backend to a database.
    It should be run within a transaction.
-upload_table source_table connection table_name primary_key temporary structure_only on_problems =
+upload_table source_table connection table_name primary_key temporary on_problems =
     case source_table of
         _ : In_Memory_Table ->
-            upload_in_memory_table source_table connection table_name primary_key temporary structure_only on_problems
+            upload_in_memory_table source_table connection table_name primary_key temporary on_problems
         _ : Database_Table ->
-            upload_database_table source_table connection table_name primary_key temporary structure_only on_problems
+            upload_database_table source_table connection table_name primary_key temporary on_problems
         _ ->
             Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.get_qualified_type_name source_table)
 

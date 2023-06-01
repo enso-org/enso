@@ -23,9 +23,6 @@ from project.Internal.Upload_Table import all
      empty vector, no primary key will be created.
    - temporary: if set to `True`, the table will be temporary, meaning that it
      will be dropped once the `connection` is closed. Defaults to `False`.
-   - structure_only: if set to `True`, the created table will inherit the
-     structure (column names and types) of the source table, but no rows will be
-     inserted. Defaults to `False`.
    - on_problems: the behavior to use when encountering non-fatal problems.
      Defaults to reporting them as warning.
 
@@ -47,11 +44,11 @@ from project.Internal.Upload_Table import all
 
      If an error has been raised, the table is not created (that may not always
      apply to `SQL_Error`).
-In_Memory_Table.select_into_database_table : Connection -> Text|Nothing -> (Vector Text) | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | Missing_Input_Columns | Non_Unique_Primary_Key | SQL_Error | Illegal_Argument
-In_Memory_Table.select_into_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False structure_only=False on_problems=Problem_Behavior.Report_Warning =
+In_Memory_Table.select_into_database_table : Connection -> Text|Nothing -> (Vector Text) | Nothing -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | Missing_Input_Columns | Non_Unique_Primary_Key | SQL_Error | Illegal_Argument
+In_Memory_Table.select_into_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False on_problems=Problem_Behavior.Report_Warning =
     Panic.recover SQL_Error <|
         connection.jdbc_connection.run_within_transaction <|
-            upload_in_memory_table source_table connection table_name primary_key temporary structure_only on_problems
+            upload_in_memory_table source_table connection table_name primary_key temporary on_problems
 
 ## Creates a new database table from this table.
 
@@ -66,9 +63,6 @@ In_Memory_Table.select_into_database_table self connection table_name=Nothing pr
      empty vector, no primary key will be created.
    - temporary: if set to `True`, the table will be temporary, meaning that it
      will be dropped once the `connection` is closed. Defaults to `False`.
-   - structure_only: if set to `True`, the created table will inherit the
-     structure (column names and types) of the source table, but no rows will be
-     inserted. Defaults to `False`.
    - on_problems: the behavior to use when encountering non-fatal problems.
      Defaults to reporting them as warning.
 
@@ -90,11 +84,11 @@ In_Memory_Table.select_into_database_table self connection table_name=Nothing pr
 
      If an error has been raised, the table is not created (that may not always
      apply to `SQL_Error`).
-Database_Table.select_into_database_table : Connection -> Text|Nothing -> (Vector Text) | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | Missing_Input_Columns | Non_Unique_Primary_Key | SQL_Error | Illegal_Argument
-Database_Table.select_into_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False structure_only=False on_problems=Problem_Behavior.Report_Warning = Panic.recover SQL_Error <|
+Database_Table.select_into_database_table : Connection -> Text|Nothing -> (Vector Text) | Nothing -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | Missing_Input_Columns | Non_Unique_Primary_Key | SQL_Error | Illegal_Argument
+Database_Table.select_into_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False on_problems=Problem_Behavior.Report_Warning = Panic.recover SQL_Error <|
     Panic.recover SQL_Error <|
         connection.jdbc_connection.run_within_transaction <|
-            upload_database_table source_table connection table_name primary_key temporary structure_only on_problems
+            upload_database_table source_table connection table_name primary_key temporary on_problems
 
 ## Updates the target table with the contents of this table.
 

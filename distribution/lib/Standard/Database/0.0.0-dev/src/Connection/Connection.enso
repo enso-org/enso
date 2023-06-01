@@ -9,6 +9,7 @@ from Standard.Base.Metadata.Choice import Option
 import Standard.Base.Metadata.Display
 
 import Standard.Table.Data.Table.Table as Materialized_Table
+import Standard.Table.Data.Type.Value_Type.Value_Type
 
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
@@ -192,6 +193,43 @@ type Connection
         self.query query . read max_rows=limit
 
     ## PRIVATE
+       Creates a new empty table in the database.
+
+       Arguments:
+       - table_name: the name of the table to create. If not provided, a random
+         name will be generated for temporary tables. If `temporary=False`, then
+         a name must be provided.
+       - structure: the structure of the table. This can be provided as a vector
+         of pairs of column names and types or an existing `Table` to copy the
+         structure from it. Note that if a `Table` is provided, only its column
+         structure is inherited - no table content is copied.
+       - primary_key: the names of the columns to use as the primary key. The
+         first column from the table is used by default. If it is set to
+         `Nothing` or an empty vector, no primary key will be created.
+       - temporary: if set to `True`, the table will be temporary, meaning that
+         it will be dropped once the `connection` is closed. Defaults to
+         `False`.
+       - on_problems: the behavior to use when encountering non-fatal problems.
+         Defaults to reporting them as warning.
+
+       ! Error Conditions
+
+         - If a table with the given name already exists, then a
+           `Table_Already_Exists` error is raised.
+         - If a column type is not supported and is coerced to a similar
+           supported type, an `Inexact_Type_Coercion` problem is reported
+           according to the `on_problems` setting.
+         - If a column type is not supported and there is no replacement (e.g.
+           native Enso types), an `Unsupported_Type` error is raised.
+         - If the provided primary key columns are not present in table
+           structure provided, `Missing_Input_Columns` error is raised.
+         - An `SQL_Error` may be reported if there is a failure on the database
+           side.
+    create_table : Text|Nothing -> Table | Vector (Pair Text Value_Type) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Table_Already_Exists
+    create_table (table_name : Text | Nothing = Nothing) (structure : Vector | Table | Materialized_Table) (primary_key : Vector Text = first_column_in_structure structure) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+        create_table_structure connection table_name structure primary_key temporary allow_existing on_problems
+
+    ## PRIVATE
        Internal read function for a statement with optional types.
 
        Arguments:
@@ -260,3 +298,8 @@ make_table_name_selector : Connection -> Widget
 make_table_name_selector connection =
     tables_to_display = connection.tables.at "Name" . to_vector
     Single_Choice display=Display.Always values=(tables_to_display.map t-> Option t t.pretty)
+
+## PRIVATE
+first_column_in_structure structure = case structure of
+    _ : Vector -> structure.first.first
+    _ -> structure.columns_names.first
