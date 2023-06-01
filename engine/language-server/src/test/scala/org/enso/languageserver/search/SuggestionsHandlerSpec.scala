@@ -1095,7 +1095,8 @@ class SuggestionsHandlerSpec
         selfType      = "Test.Main",
         returnType    = "IO",
         isStatic      = true,
-        documentation = None
+        documentation = None,
+        annotations   = Seq()
       )
   }
 
