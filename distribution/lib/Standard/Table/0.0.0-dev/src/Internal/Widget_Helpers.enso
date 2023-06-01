@@ -6,12 +6,13 @@ from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 from Standard.Base.Metadata.Choice import Option
 import Standard.Base.Metadata.Display
 
+import project.Data.Aggregate_Column.Aggregate_Column
+import project.Data.Join_Condition.Join_Condition
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Auto
 import project.Data.Type.Value_Type.Value_Type
-import project.Data.Aggregate_Column.Aggregate_Column
-import project.Internal.Parse_Values_Helper
 import project.Data.Table_Conversions
+import project.Internal.Parse_Values_Helper
 
 ## PRIVATE
    Make an aggregate column selector.
@@ -74,6 +75,21 @@ make_column_name_vector_selector : Table -> Display -> Widget
 make_column_name_vector_selector table display=Display.Always =
     item_editor = make_column_name_selector table display=Display.Always
     Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=display
+
+## PRIVATE
+   Make a join condition selector.
+make_join_condition_selector : Table -> Display -> Widget
+make_join_condition_selector table display=Display.Always =
+    col_names_selector = make_column_name_selector table display=Display.Always
+
+    fqn = Meta.get_qualified_type_name Join_Condition
+    equals = Option "Equals" fqn+".Equals" [["left", col_names_selector]]
+    equals_ci = Option "Equals (Ignore Case)" fqn+".Equals_Ignore_Case" [["left", col_names_selector]]
+    between = Option "Between" fqn+".Between" [["left", col_names_selector]]
+    names=[equals, equals_ci, between]
+
+    item_editor = Single_Choice display=display values=names
+    Vector_Editor item_editor=item_editor item_default="Join_Condition.Equals" display=display
 
 ## PRIVATE
    Make a column name selector.

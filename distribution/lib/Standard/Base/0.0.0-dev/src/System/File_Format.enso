@@ -90,11 +90,16 @@ type File_Format
        Create the constructor code for a File_Format type.
     constructor_code : Any -> Text
     constructor_code type_obj =
-        type_name = Meta.get_qualified_type_name type_obj
-        ctors = Meta.meta type_obj . constructors
-        is_singleton_type = ctors.length == 0
-        if is_singleton_type then type_name else
-            type_name + "." + ctors.first.name
+        ## Workaround for JSON and Auto_Detect
+        case type_obj of
+            JSON_Format -> "JSON_Format"
+            Auto_Detect -> "Auto_Detect"
+            _ ->
+                type_name = Meta.get_qualified_type_name type_obj
+                ctors = Meta.meta type_obj . constructors
+                is_singleton_type = ctors.length == 0
+                if is_singleton_type then type_name else
+                    type_name + "." + ctors.first.name
 
     ## PRIVATE
     default_widget : Widget

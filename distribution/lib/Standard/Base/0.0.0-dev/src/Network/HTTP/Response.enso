@@ -90,7 +90,7 @@ type Response
                 format = if content_type.is_nothing then Nothing else
                     Auto_Detect.get_web_parser content_type (self.internal_http_response.uri.toString)
                 if format.is_nothing then if_unsupported else
-                    format.value.read_web self
+                    format.read_web self
             _ ->
                 type_obj = Meta.type_of format
                 if can_decode type_obj then format.read_web self else
