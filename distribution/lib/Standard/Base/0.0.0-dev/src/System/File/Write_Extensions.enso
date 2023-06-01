@@ -56,7 +56,8 @@ Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Beha
         actual = File.new path
         effective_existing_behaviour = on_existing_file.get_effective_behavior actual
         file = if Context.Output.is_enabled then actual else
-            actual.create_dry_run_file copy_original=on_existing_file==Existing_File_Behavior.Append
+            should_copy_file = on_existing_file==Existing_File_Behavior.Append
+            actual.create_dry_run_file copy_original=should_copy_file
 
         Context.Output.with_enabled <|
             r = effective_existing_behaviour.write file stream->

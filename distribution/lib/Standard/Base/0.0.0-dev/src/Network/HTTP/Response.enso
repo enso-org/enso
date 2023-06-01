@@ -43,9 +43,8 @@ type Response
     ## Get the response content type.
     content_type : Text | Nothing
     content_type self =
-        response_headers = self.headers
-        content_type = response_headers.find if_missing=Nothing h-> "Content-Type".equals_ignore_case h.name
-        if content_type.is_nothing then Nothing else content_type.value
+        content_type_optional = self.internal_http_response.headers.firstValue "Content-Type"
+        if content_type_optional.isPresent then content_type_optional.get else Nothing
 
     ## Get the response body.
 
@@ -129,7 +128,7 @@ type Unsupported_Content_Type
 
        Arguments:
        - content_type: The content type that is unsupported.
-    Value content_type
+    Value (content_type : Text | Nothing)
 
     ## PRIVATE
        Convert the error to a human readable string.

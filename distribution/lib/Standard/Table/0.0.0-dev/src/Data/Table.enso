@@ -1959,7 +1959,8 @@ type Table
                 if methods.contains "write_table" . not then Error.throw (File_Error.Unsupported_Output_Type format Table) else
                     effective_existing_behaviour = on_existing_file.get_effective_behavior file
                     tgt_file = if Context.Output.is_enabled then file else
-                        file.create_dry_run_file copy_original=on_existing_file==Existing_File_Behavior.Append
+                        should_copy_file = on_existing_file==Existing_File_Behavior.Append
+                        file.create_dry_run_file copy_original=should_copy_file
 
                     to_write = if Context.Output.is_enabled then self else self.take 1000
                     Context.Output.with_enabled <|
