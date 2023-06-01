@@ -94,11 +94,16 @@ spec = Test.group 'Various File Format support on Table' <|
             s.exists.should_be_true
 
             r_data = s.read
-            r_data.row_count . should_equal 1000
+            row_count = if r_data . is_a Table then r_data.row_count else r_data.length
+            row_count . should_equal 1000
             s
 
         f_bak.exists.should_be_false
-        f.read.row_count . should_equal 1999
+
+        f.exists.should_be_true
+        f_data = f.read
+        f_row_count = if f_data . is_a Table then f_data.row_count else f_data.length
+        f_row_count . should_equal 1999
 
         f.delete_if_exists
         f_bak.delete_if_exists
