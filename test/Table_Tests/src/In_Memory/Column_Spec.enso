@@ -136,19 +136,31 @@ spec =
             Problems.test_problem_handling action problems tester
 
     Test.group "truncate" <|
-        Test.specify "should be able to truncate a column of decimals" <|
-            Column.from_vector "foo" [1.25, 2.33, 3.57] . truncate . should_equal <| Column.from_vector "foo" [1, 2, 3]
+        Test.specify "should be able to truncate a column of floats" <|
+            Column.from_vector "foo" [1.25, 2.33, 3.57] . truncate . should_equal <| Column.from_vector "truncate([foo])" [1, 2, 3]
             Column.from_vector "foo" [1.25, 2.33, 3.57] . truncate . value_type . should_equal Value_Type.Integer
 
+        Test.specify "should also work on ints" <|
+            Column.from_vector "foo" [1, 2, 3] . truncate . should_equal <| Column.from_vector "truncate([foo])" [1, 2, 3]
+            Column.from_vector "foo" [1, 2, 3] . truncate . value_type . should_equal Value_Type.Integer
+
     Test.group "ceil" <|
-        Test.specify "should be able to take the ceil of a column of decimals" <|
+        Test.specify "should be able to take the ceil of a column of floats" <|
             Column.from_vector "foo" [1.25, 2.33, 3.57] . ceil . should_equal <| Column.from_vector "foo" [2, 3, 4]
             Column.from_vector "foo" [1.25, 2.33, 3.57] . ceil . value_type . should_equal Value_Type.Integer
 
+        Test.specify "should also work on ints" <|
+            Column.from_vector "foo" [1, 2, 3] . ceil . should_equal <| Column.from_vector "foo" [1, 2, 3]
+            Column.from_vector "foo" [1, 2, 3] . ceil . value_type . should_equal Value_Type.Integer
+
     Test.group "floor" <|
-        Test.specify "should be able to take the floor of a column of decimals" <|
+        Test.specify "should be able to take the floor of a column of floats" <|
             Column.from_vector "foo" [1.25, 2.33, 3.57] . floor . should_equal <| Column.from_vector "foo" [1, 2, 3]
             Column.from_vector "foo" [1.25, 2.33, 3.57] . floor . value_type . should_equal Value_Type.Integer
+
+        Test.specify "should also work on ints" <|
+            Column.from_vector "foo" [1, 2, 3] . floor . should_equal <| Column.from_vector "foo" [1, 2, 3]
+            Column.from_vector "foo" [1, 2, 3] . floor . value_type . should_equal Value_Type.Integer
 
     Test.group "Date_Time truncate" <|
         Test.specify "should be able to truncate a column of Date_Times" <|
