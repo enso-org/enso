@@ -6,6 +6,8 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
+import * as templates from './templates'
+
 import CreateForm, * as createForm from './createForm'
 
 // =========================
@@ -15,17 +17,19 @@ import CreateForm, * as createForm from './createForm'
 /** Props for a {@link ProjectCreateForm}. */
 export interface ProjectCreateFormProps extends createForm.CreateFormPassthroughProps {
     directoryId: backendModule.DirectoryId
+    getNewProjectName: (templateId: string | null) => string
     onSuccess: () => void
 }
 
 /** A form to create a project. */
 function ProjectCreateForm(props: ProjectCreateFormProps) {
-    const { directoryId, onSuccess, ...passThrough } = props
+    const { directoryId, getNewProjectName, onSuccess, ...passThrough } = props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
 
+    const [defaultName, setDefaultName] = react.useState(() => getNewProjectName(null))
     const [name, setName] = react.useState<string | null>(null)
-    const [template, setTemplate] = react.useState<string | null>(null)
+    const [templateId, setTemplateId] = react.useState<string | null>(null)
 
     if (backend.type === backendModule.BackendType.local) {
         return <></>
@@ -41,7 +45,7 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
                         backend.createProject({
                             parentDirectoryId: directoryId,
                             projectName: name,
-                            projectTemplateName: template,
+                            projectTemplateName: templateId,
                         }),
                         {
                             loading: 'Creating project...',
@@ -64,6 +68,7 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
                         type="text"
                         size={1}
                         className="bg-gray-200 rounded-full flex-1 grow-2 px-2 m-1"
+                        defaultValue={defaultName}
                         onChange={event => {
                             setName(event.target.value)
                         }}
@@ -74,15 +79,21 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
                     <label className="inline-block flex-1 grow m-1" htmlFor="project_template_name">
                         Template
                     </label>
-                    <input
+                    <select
                         id="project_template_name"
-                        type="text"
-                        size={1}
-                        className="bg-gray-200 rounded-full flex-1 grow-2 px-2 m-1"
                         onChange={event => {
-                            setTemplate(event.target.value)
+                            const templateId = event.target.value
+                            setTemplateId(event.target.value)
+                            if (name == null) {
+                                setDefaultName(getNewProjectName(templateId))
+                            }
                         }}
-                    />
+                        className="bg-gray-200 rounded-full flex-1 grow-2 px-2 m-1"
+                    >
+                        {templates.TEMPLATES.map(templateOption => (
+                            <option value={templateOption.id}>{templateOption.title}</option>
+                        ))}
+                    </select>
                 </div>
             </CreateForm>
         )

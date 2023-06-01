@@ -37,6 +37,7 @@ import UploadFileModal from './uploadFileModal'
 import DirectoryCreateForm from './directoryCreateForm'
 import FileCreateForm from './fileCreateForm'
 import SecretCreateForm from './secretCreateForm'
+import ProjectCreateForm from './projectCreateForm'
 
 // =============
 // === Types ===
@@ -80,6 +81,7 @@ export interface CreateFormProps {
     left: number
     top: number
     directoryId: backendModule.DirectoryId
+    getNewProjectName: (templateId: string | null) => string
     onSuccess: () => void
 }
 
@@ -108,9 +110,10 @@ const ASSET_TYPE_NAME: Record<backendModule.AssetType, string> = {
 
 /** Forms to create each asset type. */
 const ASSET_TYPE_CREATE_FORM: Record<
-    Exclude<backendModule.AssetType, backendModule.AssetType.project>,
+    backendModule.AssetType,
     (props: CreateFormProps) => JSX.Element
 > = {
+    [backendModule.AssetType.project]: ProjectCreateForm,
     [backendModule.AssetType.file]: FileCreateForm,
     [backendModule.AssetType.secret]: SecretCreateForm,
     [backendModule.AssetType.directory]: DirectoryCreateForm,
@@ -594,6 +597,7 @@ function Dashboard(props: DashboardProps) {
                                 <CreateForm
                                     left={buttonPosition.left + window.scrollX}
                                     top={buttonPosition.top + window.scrollY}
+                                    getNewProjectName={getNewProjectName}
                                     directoryId={directoryId}
                                     onSuccess={doRefresh}
                                 />
