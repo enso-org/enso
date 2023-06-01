@@ -251,6 +251,20 @@ public final class DoubleStorage extends NumericStorage<Double> {
                   }
                 })
         .add(
+                new UnaryIntegerOp<>(Maps.CEIL) {
+                  @Override
+                  protected long doOperation(Double a) {
+                    return (long) Math.ceil(a);
+                  }
+                })
+        .add(
+                new UnaryIntegerOp<>(Maps.FLOOR) {
+                  @Override
+                  protected long doOperation(Double a) {
+                    return (long) Math.floor(a);
+                  }
+                })
+        .add(
             new DoubleBooleanOp(Maps.LT) {
               @Override
               protected boolean doDouble(double a, double b) {
