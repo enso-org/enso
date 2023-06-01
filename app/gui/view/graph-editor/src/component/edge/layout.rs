@@ -145,7 +145,7 @@ fn junction_points(
     let target_max_attachment_height = target_attached.then_some(NODE_HEIGHT / 2.0);
     let target_well_below_source =
         target.y() + target_max_attachment_height.unwrap_or_default() <= -MIN_APPROACH_HEIGHT;
-    let target_below_source = target.y() <= 0.0;
+    let target_below_source = target.y() < -NODE_HEIGHT / 2.0;
     let target_beyond_source = target.x().abs() > source_max_x_offset;
     let horizontal_room_for_3_corners = target_beyond_source
         && target.x().abs() - source_max_x_offset
