@@ -779,8 +779,7 @@ impl Node {
         let visualization = &model.visualization.frp;
 
         frp::extend! { network
-            visualization.set_view_state <+ input.enable_visualization.constant(visualization::ViewState::Enabled);
-            visualization.set_view_state <+ input.disable_visualization.constant(visualization::ViewState::Disabled);
+            enabled <- bool(&input.disable_visualization, &input.enable_visualization);
 
             out.error <+ input.set_error;
             is_error_set <- input.set_error.map(
@@ -795,6 +794,10 @@ impl Node {
                         view::Mode::Profiling => error_color.to_grayscale(),
                     }
                 ));
+
+            viz_enabled <- enabled && no_error_set;
+            visualization.set_view_state <+ viz_enabled.on_true().constant(visualization::ViewState::Enabled);
+            visualization.set_view_state <+ viz_enabled.on_false().constant(visualization::ViewState::Disabled);
 
             // Integration between visualization and action bar.
             visualization.set_visualization <+ input.set_visualization;
@@ -838,9 +841,10 @@ impl Node {
             hide_preview <+ editing_finished;
             preview_enabled <- bool(&hide_preview, &input.show_preview);
             preview_visible <- hover_preview_visible || preview_enabled;
-            preview_visible <- preview_visible.on_change();
-            visualization.set_view_state <+ preview_visible.on_true().constant(visualization::ViewState::Preview);
-            visualization.set_view_state <+ preview_visible.on_false().constant(visualization::ViewState::Disabled);
+            vis_preview_visible <- preview_visible && no_error_set;
+            vis_preview_visible <- vis_preview_visible.on_change();
+            visualization.set_view_state <+ vis_preview_visible.on_true().constant(visualization::ViewState::Preview);
+            visualization.set_view_state <+ vis_preview_visible.on_false().constant(visualization::ViewState::Disabled);
 
             update_error <- all(input.set_error,preview_visible);
             eval update_error([model]((error,visible)){
