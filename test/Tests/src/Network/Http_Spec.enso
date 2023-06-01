@@ -90,7 +90,7 @@ spec =
         Test.specify "should send Head request" <|
             res = HTTP.new.head url_get
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.to_text.should_equal ''
+            res.body.decode_as_text.should_equal ''
 
         Test.specify "should Post empty body" <|
             expected_response = Json.parse <| '''
