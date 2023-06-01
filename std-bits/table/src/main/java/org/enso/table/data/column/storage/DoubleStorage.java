@@ -8,6 +8,7 @@ import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
+import org.enso.table.data.column.operation.map.UnaryIntegerOp;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
@@ -242,6 +243,13 @@ public final class DoubleStorage extends NumericStorage<Double> {
                 return Math.pow(a, b);
               }
             })
+        .add(
+                new UnaryIntegerOp<>(Maps.TRUNCATE) {
+                  @Override
+                  protected long doOperation(Double a) {
+                    return (long) a.doubleValue();
+                  }
+                })
         .add(
             new DoubleBooleanOp(Maps.LT) {
               @Override

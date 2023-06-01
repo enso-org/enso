@@ -729,8 +729,7 @@ type Column
     truncate self =
         case self.value_type.is_numeric of
             True ->
-                fun = _.truncate
-                Column_Ops.map_over_storage self fun make_long_builder skip_nothing=True
+                simple_unary_op self "truncate"
             False -> case self.value_type == Value_Type.Date_Time of
                 True ->
                     fun = _.date
