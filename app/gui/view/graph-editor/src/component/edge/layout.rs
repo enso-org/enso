@@ -104,7 +104,7 @@ mod three_corner {
     pub(super) const BACKWARD_EDGE_ARROW_THRESHOLD: f32 = 15.0;
     /// The maximum radius reduction (from [`RADIUS_BASE`]) to allow when choosing whether to use
     /// the three-corner layout that doesn't use a backward corner.
-    pub(super) const MAX_SQUEEZE: f32 = 6.0;
+    pub(super) const MAX_SQUEEZE: f32 = 2.0;
 }
 
 
