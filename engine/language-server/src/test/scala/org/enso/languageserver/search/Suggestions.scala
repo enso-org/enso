@@ -45,7 +45,8 @@ object Suggestions {
     name          = "MyType",
     arguments     = Vector(Suggestion.Argument("a", "Any", false, false, None)),
     returnType    = "MyAtom",
-    documentation = Some(comment.atom)
+    documentation = Some(comment.atom),
+    annotations   = Seq("a")
   )
 
   val method: Suggestion.Method = Suggestion.Method(

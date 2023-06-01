@@ -357,7 +357,8 @@ class SuggestionsHandlerSpec
           name          = "Foo",
           arguments     = Vector(),
           returnType    = moduleName,
-          documentation = None
+          documentation = None,
+          annotations   = Seq()
         )
         val module = Suggestion.Module(
           module        = moduleName,
@@ -1083,7 +1084,8 @@ class SuggestionsHandlerSpec
           Suggestion.Argument("b", "Any", false, false, None)
         ),
         returnType    = "Pair",
-        documentation = Some("Awesome")
+        documentation = Some("Awesome"),
+        annotations   = Seq()
       )
 
     val method: Suggestion.Method =
