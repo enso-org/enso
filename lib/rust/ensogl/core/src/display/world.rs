@@ -560,6 +560,8 @@ impl WorldData {
         {
             if let Some(gpu_perf_results) = &gpu_perf_results {
                 for result in gpu_perf_results {
+                    // If run in the first frame, the results can be reported with frame offset
+                    // being 0. In such a case, we are ignoring it.
                     if result.frame_offset > 0 {
                         // The monitor is not updated yet, so the last sample is from the previous
                         // frame.
