@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import all
 from Standard.Table.Errors import Missing_Input_Columns
@@ -66,12 +67,13 @@ spec make_new_connection prefix persistent_connector=True =
             db_table.row_count . should_equal 0
 
         Test.specify "should fail if the table already exists" <|
-            name = Name_Generator.random_name "table"
+            name = Name_Generator.random_name "table-already-exists 1"
             r0 = connection.create_table name structure=[["X", Value_Type.Integer], ["Y", Value_Type.Char]] temporary=True
             r1 = connection.create_table name structure=[["X", Value_Type.Integer], ["Y", Value_Type.Char]] temporary=True
             r1.should_fail_with Table_Already_Exists
 
         Test.specify "should not fail if the table exists, if `allow_existing=True`, even if the structure does not match" <|
+            name = Name_Generator.random_name "table-already-exists 2"
             r0 = connection.create_table name structure=[["X", Value_Type.Integer], ["Y", Value_Type.Char]] temporary=True
             r1 = connection.create_table name structure=[["Z", Value_Type.Float]] temporary=True allow_existing=True
             r1.column_names . should_equal ["X", "Y"]
@@ -110,7 +112,6 @@ spec make_new_connection prefix persistent_connector=True =
                 name = Name_Generator.random_name "persistent_table 2"
                 tmp_connection = make_new_connection Nothing
                 db_table = tmp_connection.create_table name [["X", Value_Type.Integer]] temporary=False
-                name = db_table.name
                 Panic.with_finalizer (connection.drop_table name) <|
                     t1 = tmp_connection.query (SQL_Query.Table_Name name)
                     t1.column_names . should_equal ["X"]
@@ -135,6 +136,10 @@ spec make_new_connection prefix persistent_connector=True =
 
         Test.specify "should not allow creating a table without columns" <|
             r1 = connection.create_table structure=[] temporary=True
+            r1.should_fail_with Illegal_Argument
+
+        Test.specify "should check types of primary key" <|
+            r1 = connection.create_table structure=[["X", Value_Type.Integer]] primary_key=[0] temporary=True
             r1.should_fail_with Illegal_Argument
 
     Test.group prefix+"Uploading an in-memory Table" <|
@@ -211,7 +216,7 @@ spec make_new_connection prefix persistent_connector=True =
             r1 = in_memory_table.select_into_database_table connection (Name_Generator.random_name "primary-key-4") primary_key=["X", "nonexistent"]
             r1.should_fail_with Missing_Input_Columns
 
-            db_table_2 = in_memory_table.select_into_database_table connection (Name_Generator.random_name "primary-key-5") primary_key=["X", 0]
+            db_table_2 = in_memory_table.select_into_database_table connection (Name_Generator.random_name "primary-key-5") primary_key=["X", "X"]
             Panic.with_finalizer (connection.drop_table db_table_2.name) <|
                 get_primary_key connection db_table_2.name . should_equal ["X"]
 

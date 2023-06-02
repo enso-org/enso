@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
+import project.Data.Ordering.Ordering
 import project.Data.Vector.Vector
 import project.Data.Text.Extensions
 import project.Data.Text.Text
@@ -32,6 +33,10 @@ type Set
         map = Map.from_vector pairs allow_duplicates
         Set.Value map
 
+    ## Constructs an empty set.
+    empty : Set
+    empty = Set.Value Map.empty
+
     ## Returns a vector containing all elements of this set.
     to_vector : Vector
     to_vector self = self.underlying_map.keys
@@ -39,6 +44,14 @@ type Set
     ## Returns the number of elements in this set.
     size : Integer
     size self = self.underlying_map.size
+
+    ## Checks if the set is empty.
+    is_empty : Boolean
+    is_empty self = self.underlying_map.is_empty
+
+    ## Checks if the set is not empty.
+    not_empty : Boolean
+    not_empty self = self.underlying_map.not_empty
 
     ## Checks if this set contains a given value.
     contains : Any -> Boolean
@@ -81,3 +94,15 @@ type Set
     ## PRIVATE
     to_text : Text
     to_text self = self.to_vector.join ", " "Set{" "}"
+
+## PRIVATE
+type Set_Comparator
+    ## PRIVATE
+    compare x y =
+        if x.size != y.size then Nothing else
+            if (x - y).is_empty then Ordering.Equal else Nothing
+
+    ## PRIVATE
+    hash x =
+        vec = x.to_vector.sort . remove_warnings
+        Comparable.from vec . hash vec

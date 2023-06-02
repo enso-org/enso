@@ -24,12 +24,12 @@ create_table_structure connection table_name structure primary_key temporary all
             if allow_existing then Nothing else Error.throw (Table_Already_Exists.Error table_name)
         False ->
             effective_table_name = resolve_effective_table_name table_name temporary
-            # TODO fix this structure not necessarily being a Table
-            # TODO migrate select into to use this method
+            aligned_structure = align_structure structure
             resolved_primary_key = resolve_primary_key structure primary_key
-            create_table_statement = prepare_create_table_statement connection effective_table_name self.columns resolved_primary_key temporary on_problems
-            create_table_statement.if_not_error <|
+            create_table_statement = prepare_create_table_statement connection effective_table_name aligned_structure resolved_primary_key temporary on_problems
+            update_result = create_table_statement.if_not_error <|
                 connection.execute_update create_table_statement
+            update_result.if_not_error
 
 ## PRIVATE
    A helper that can upload a table from any backend to a database.
@@ -45,8 +45,9 @@ upload_table source_table connection table_name primary_key temporary on_problem
 
 ## PRIVATE
    It should be run within a transaction.
-upload_in_memory_table source_table connection table_name primary_key temporary structure_only on_problems =
+upload_in_memory_table source_table connection table_name primary_key temporary on_problems =
     In_Transaction.ensure_in_transaction <|
+
         resolved_primary_key = resolve_primary_key self primary_key
         effective_table_name = resolve_effective_table_name table_name temporary
         create_table_statement = prepare_create_table_statement connection effective_table_name self.columns resolved_primary_key temporary on_problems
@@ -58,17 +59,17 @@ upload_in_memory_table source_table connection table_name primary_key temporary 
         upload_status = create_table_statement.if_not_error <|
             translate_known_upload_errors self connection resolved_primary_key <|
                 Panic.rethrow <| connection.execute_update create_table_statement
-                if structure_only.not then
-                    insert_template = make_batched_insert_template connection effective_table_name self.column_names
-                    statement_setter = connection.dialect.get_statement_setter
-                    Panic.rethrow <| connection.jdbc_connection.batch_insert insert_template statement_setter self default_batch_size
+
+                insert_template = make_batched_insert_template connection effective_table_name self.column_names
+                statement_setter = connection.dialect.get_statement_setter
+                Panic.rethrow <| connection.jdbc_connection.batch_insert insert_template statement_setter self default_batch_size
 
         upload_status.if_not_error <|
             connection.query (SQL_Query.Table_Name effective_table_name)
 
 ## PRIVATE
    It should be run within a transaction.
-upload_database_table source_table connection table_name primary_key temporary structure_only on_problems =
+upload_database_table source_table connection table_name primary_key temporary on_problems =
     In_Transaction.ensure_in_transaction <|
         resolved_primary_key = resolve_primary_key self primary_key
         effective_table_name = resolve_effective_table_name table_name temporary
@@ -79,13 +80,13 @@ upload_database_table source_table connection table_name primary_key temporary s
         upload_status = connection_check.if_not_error <| create_table_statement.if_not_error <|
             translate_known_upload_errors self connection resolved_primary_key <|
                 Panic.rethrow <| connection.execute_update create_table_statement
-                if structure_only.not then
-                    ## We need to ensure that the columns in this statement are matching
-                       positionally the columns in `create_table_statement`. But we
-                       create both from the same table, so that is guaranteed.
-                    copy_into_statement = connection.dialect.generate_sql <|
-                        Query.Insert_From_Select effective_table_name self.to_select_query
-                    Panic.rethrow <| connection.execute_update copy_into_statement
+
+                ## We need to ensure that the columns in this statement are matching
+                   positionally the columns in `create_table_statement`. But we
+                   create both from the same table, so that is guaranteed.
+                copy_into_statement = connection.dialect.generate_sql <|
+                    Query.Insert_From_Select effective_table_name self.to_select_query
+                Panic.rethrow <| connection.execute_update copy_into_statement
 
         upload_status.if_not_error <|
             connection.query (SQL_Query.Table_Name effective_table_name)
@@ -93,10 +94,17 @@ upload_database_table source_table connection table_name primary_key temporary s
 ## PRIVATE
    Ensures that provided primary key columns are present in the table and that
    there are no duplicates.
-resolve_primary_key table primary_key = case primary_key of
+resolve_primary_key structure primary_key = case primary_key of
     Nothing -> Nothing
     _ : Vector -> if primary_key.is_empty then Nothing else
-        table.select_columns primary_key reorder=True . column_names
+        validated = primary_key.map key->
+            if key.is_a Text then key else
+                Error.throw (Illegal_Argument.Error "Primary key must be a vector of column names.")
+        validated.if_not_error <|
+            column_names = Set.from_vector (structure.map .first)
+            missing_columns = (Set.from_vector primary_key) - column_names
+            if missing_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_columns.to_vector) else
+                primary_key
 
 ## PRIVATE
    Inspects any `SQL_Error` thrown and replaces it with a more precise error
@@ -129,6 +137,18 @@ raise_duplicated_primary_key_error source_table primary_key original_panic =
             example_entry = row.drop 1
             Error.throw (Non_Unique_Primary_Key.Error primary_key example_entry example_count)
 
+## PRIVATE
+align_structure : Table | Vector (Pair Text Value_Type) -> Vector (Pair Text Value_Type)
+align_structure table_or_columns = case table_or_columns of
+    _ : Vector -> table_or_columns.map pair->
+        if pair.length != 2 then Error.throw (Illegal_Argument.Error "The structure must be an existing Table or vector of pairs.") else
+            name = pair.first
+            value_type = pair.second
+            if name . is_a Text . not then Error.throw (Illegal_Argument.Error "Column names must be a Text. Instead, got a: "+name.to_display_text+".") else
+                if value_type . is_a Value_Type . not then Error.throw (Illegal_Argument.Error "Column value types must be a Value_Type. Instead, got a: "+value_type.to_display_text+".") else
+                    pair
+    _ -> table_or_columns.columns.map column->
+        Pair.new column.name column.value_type
 
 ## PRIVATE
    Creates a statement that will create a table with structure determined by the
@@ -140,9 +160,9 @@ raise_duplicated_primary_key_error source_table primary_key original_panic =
 prepare_create_table_statement : Connection -> Text -> Vector -> Vector Text -> Boolean -> Problem_Behavior -> SQL_Statement
 prepare_create_table_statement connection table_name columns primary_key temporary on_problems =
     type_mapping = connection.dialect.get_type_mapping
-    column_descriptors = columns.map column->
-        name = column.name
-        value_type = column.value_type
+    column_descriptors = columns.map pair->
+        name = pair.first
+        value_type = pair.second
         sql_type = type_mapping.value_type_to_sql value_type on_problems
         sql_type_text = type_mapping.sql_type_to_text sql_type
         Pair.new name sql_type_text
