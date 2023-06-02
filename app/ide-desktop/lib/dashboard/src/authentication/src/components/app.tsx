@@ -40,6 +40,7 @@ import * as toast from 'react-hot-toast'
 
 import * as authService from '../authentication/service'
 import * as detect from '../detect'
+import * as hooks from '../hooks'
 
 import * as authProvider from '../authentication/providers/auth'
 import * as backendProvider from '../providers/backend'
@@ -124,7 +125,7 @@ function App(props: AppProps) {
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
     const { logger, showDashboard, onAuthenticated } = props
-    const navigate = router.useNavigate()
+    const navigate = hooks.useNavigate()
     // FIXME[sb]: After platform detection for Electron is merged in, `IS_DEV_MODE` should be
     // set to true on `ide watch`.
     if (IS_DEV_MODE) {

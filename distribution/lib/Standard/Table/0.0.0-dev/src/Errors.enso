@@ -14,12 +14,12 @@ type Missing_Input_Columns
        One or more columns not found in the input table.
 
        Arguments:
-       - criteria: the names of the columns or regular expressions that did not
-         have any matches.
+       - criteria: the names of the columns, regular expressions or indices that
+         did not matches any columns.
        - where: an optional text describing to which object this error is
          related to (for example in join, whether the reported error is for the
          left or right table).
-    Error (criteria : [Text]) (where:Text|Nothing = Nothing)
+    Error (criteria : [Text | Integer]) (where:Text|Nothing = Nothing)
 
     ## PRIVATE
 
@@ -29,21 +29,11 @@ type Missing_Input_Columns
         where = case self.where of
             Nothing -> "."
             location : Text -> " in "+location+"."
-        "The criteria "+self.criteria.to_text+" did not match any columns"+where
-
-type Column_Indexes_Out_Of_Range
-    ## PRIVATE
-       One or more column indexes were invalid on the input table.
-       Can occur when using By_Index.
-    Error (indexes : [Integer])
-
-    ## PRIVATE
-
-       Convert a column indexes out of bounds error to a human-readable form.
-    to_display_text : Text
-    to_display_text self = case self.indexes.length == 1 of
-        True -> "The index " + (self.indexes.at 0).to_text + " is out of range."
-        False -> "The indexes "+self.indexes.short_display_text+" are out of range."
+        criteria_texts = self.criteria.map c-> case c of
+            _ : Integer -> c.to_text+" (index)"
+            _ -> c.pretty
+        criteria_text = criteria_texts.join ", "
+        "The criteria "+criteria_text+" did not match any columns"+where
 
 type Too_Many_Column_Names_Provided
     ## PRIVATE

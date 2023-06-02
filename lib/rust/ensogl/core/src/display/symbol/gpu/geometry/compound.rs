@@ -21,6 +21,6 @@ pub mod types {
     use super::*;
     pub use mask_composer::MaskComposer;
     pub use screen::Screen;
-    pub use sprite::Sprite;
+    pub use sprite::RawSprite;
     pub use sprite::SpriteSystem;
 }

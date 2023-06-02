@@ -1,0 +1,101 @@
+from Standard.Base import all
+
+import project.Data.Column.Column
+import project.Data.Column_Selector.Column_Selector
+import project.Data.Sort_Column.Sort_Column
+import project.Data.Set_Mode.Set_Mode
+import project.Data.Table.Table
+import project.Internal.Multi_Value_Key.Unordered_Multi_Value_Key
+import project.Internal.Multi_Value_Key.Ordered_Multi_Value_Key
+import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Table_Helpers
+import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+
+from project.Errors import Duplicate_Output_Column_Names
+from project.Internal.Java_Exports import make_long_builder
+
+polyglot java import org.enso.base.arrays.LongArray
+polyglot java import org.enso.table.data.column.storage.numeric.LongStorage
+polyglot java import org.enso.table.data.column.storage.numeric.LongRangeStorage
+
+## PRIVATE
+add_row_number : Table -> Text -> Integer -> Integer -> (Column_Selector | Vector Text) -> Vector (Text | Sort_Column) | Text | Sort_Column -> Problem_Behavior -> Table
+add_row_number table name from step group_by order_by on_problems =
+    problem_builder = Problem_Builder.new error_on_missing_columns=True
+    grouping_columns = table.columns_helper.select_columns_helper group_by True problem_builder
+    Unordered_Multi_Value_Key.validate_grouping_columns grouping_columns problem_builder
+    ordering = Table_Helpers.resolve_order_by table.columns order_by problem_builder
+    problem_builder.attach_problems_before on_problems <|
+        new_column = case ordering.is_empty of
+            True ->
+                case grouping_columns.is_empty of
+                    True -> make_range_column name from step table.row_count
+                    False -> make_grouped_enumeration name grouping_columns from step
+            False -> make_grouped_ordered_enumeration name grouping_columns ordering from step
+
+        column_names = table.column_names
+        renamed_table = if column_names.contains name . not then table else
+            problems = [Duplicate_Output_Column_Names.Error [name]]
+            on_problems.attach_problems_before problems <|
+                unique_name_strategy = Unique_Name_Strategy.new
+                unique_name_strategy.mark_used column_names
+                new_name = unique_name_strategy.make_unique name
+                new_columns = table.columns.map column->
+                    if column.name == name then column.rename new_name else column
+                Table.new new_columns
+        renamed_table.set new_column name set_mode=Set_Mode.Add
+
+## PRIVATE
+nth_index start step n =
+    start + n*step
+
+## PRIVATE
+make_range_column name start step length =
+    storage = LongRangeStorage.new start step length
+    Column.from_storage name storage
+
+## PRIVATE
+make_grouped_enumeration name grouping_columns start step =
+    n = grouping_columns.at 0 . length
+    column_builder = make_long_builder n
+    0.up_to n . fold Map.empty grouping_counters-> ix->
+        key = Unordered_Multi_Value_Key.from_row grouping_columns ix
+        enum_index = grouping_counters.get key 0
+        column_builder.appendLong (nth_index start step enum_index)
+        new_counters = grouping_counters.insert key (enum_index + 1)
+        new_counters
+    storage = column_builder.seal
+    Column.from_storage name storage
+
+## PRIVATE
+   If the `grouping_columns` are empty, all rows are considered to be in the same group.
+make_grouped_ordered_enumeration name grouping_columns ordering from step =
+    ordering_columns = ordering.map .column
+    ordering_flip_directions = ordering.map descriptor-> case descriptor.associated_selector.direction of
+        Sort_Direction.Ascending -> False
+        Sort_Direction.Descending -> True
+    n = ordering_columns.at 0 . length
+    grouped_rows = (0.up_to n).fold Map.empty grouped_rows-> ix->
+        key = Unordered_Multi_Value_Key.from_row grouping_columns ix
+        new_grouped_rows = case grouped_rows.get key of
+            Nothing ->
+                builder = Vector.new_builder
+                builder.append ix
+                grouped_rows.insert key builder
+            existing_builder ->
+                existing_builder.append ix
+                grouped_rows
+        new_grouped_rows
+
+    long_array = LongArray.new n
+
+    grouped_rows.each row_group_builder->
+        row_group = row_group_builder.to_vector
+        sorted_group = row_group.sort on=ix->
+            Ordered_Multi_Value_Key.from_row ordering_columns ordering_flip_directions ix
+        sorted_group.each_with_index enum_ix-> row_ix->
+            enum_value = nth_index from step enum_ix
+            long_array.set row_ix enum_value
+
+    storage = LongStorage.fromArray long_array.to_array
+    Column.from_storage name storage

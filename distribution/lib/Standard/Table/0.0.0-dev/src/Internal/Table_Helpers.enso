@@ -355,8 +355,20 @@ type Column_Transform_Element
     Value column associated_selector
 
 ## PRIVATE
+   Resolves the `Sort_Column` selectors and ensures that at least one column was
+   selected.
 prepare_order_by : Vector -> Text | Sort_Column | Vector (Text | Sort_Column) -> Problem_Builder -> Vector Column_Transform_Element
 prepare_order_by internal_columns column_selectors problem_builder =
+    selected_elements = resolve_order_by internal_columns column_selectors problem_builder
+    if selected_elements.is_empty then
+        problem_builder.report_other_warning No_Input_Columns_Selected
+    selected_elements
+
+## PRIVATE
+   Resolves the `Sort_Column` selectors and returns a list of elements
+   containing the original selector and the selected column.
+resolve_order_by : Vector -> Text | Sort_Column | Vector (Text | Sort_Column) -> Problem_Builder -> Vector Column_Transform_Element
+resolve_order_by internal_columns column_selectors problem_builder =
     resolve_selector selector = case selector of
         name : Text -> resolve_selector (Sort_Column.Name name)
         ix : Integer -> resolve_selector (Sort_Column.Index ix)
@@ -373,10 +385,7 @@ prepare_order_by internal_columns column_selectors problem_builder =
     selectors_vec = case column_selectors of
         _ : Vector -> column_selectors
         _ -> [column_selectors]
-    selected_elements = selectors_vec.flat_map resolve_selector
-    if selected_elements.is_empty then
-        problem_builder.report_other_warning No_Input_Columns_Selected
-    selected_elements
+    selectors_vec.flat_map resolve_selector
 
 ## PRIVATE
    A helper method gathering the common logic for constructing expressions that
