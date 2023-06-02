@@ -1,9 +1,21 @@
 //! The intermediate representation of the entry's documentation.
 //!
 //! [`EntryDocumentation`] contains all the necessary information to generate HTML
-//! documentation of the specific entry. [`EntryDocumentation`] is created by aggregating
-//! documentation of the entry, and also its children entries, such as methods of the type or types
-//! defined in the module.
+//! documentation of the specific entry.
+//!
+//! When displaying the documentation for the user, we render the information contained in
+//! [`EntryDocumentation`], and include hyperlinks to other related documentation pages. For
+//! example, the type's documentation has a link to its parent module's documentation, and
+//! to every method or constructor it has. These links are created by the
+//! [`EntryDocumentation::linked_doc_pages`] method.
+//!
+//! We don't link modules to each other, but a type's documentation does link to its module. Since
+//! we don't have a documentation registry, we must create a whole module's documentation for each
+//! method entry, following the `method -> type -> module` link path. We can't create module
+//! documentation on demand as the link handler doesn't have access to the suggestion database, and
+//! we can't share module documentation between entries because it needs mutable state. We store the
+//! suggestion database in memory, so this process is quick, but we might need to improve it in the
+//! future.
 
 use crate::prelude::*;
 
@@ -18,6 +30,17 @@ use double_representation::name::QualifiedName;
 use enso_doc_parser::DocSection;
 use enso_doc_parser::Mark;
 use std::cmp::Ordering;
+
+
+
+// ==============
+// === Errors ===
+// ==============
+
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Eq, Fail, PartialEq)]
+#[fail(display = "Can't find parent module for entry {}.", _0)]
+pub struct NoParentModule(String);
 
 
 
@@ -42,28 +65,35 @@ impl Default for EntryDocumentation {
     }
 }
 
+/// A link to the other documentation entry. It is used to connect documentation pages (for
+/// example, the module documentation with every type's documentation).
+#[derive(Debug)]
+pub struct LinkedDocPage {
+    /// The name of the liked entry. It is used to produce a unique ID for the link.
+    pub name: Rc<QualifiedName>,
+    /// The intermediate reprentation of the linked entry's documentation.
+    pub page: EntryDocumentation,
+}
+
 impl EntryDocumentation {
     /// Constructor.
-    pub fn new(db: &SuggestionDatabase, id: &entry::Id) -> Result<Self, NoSuchEntry> {
+    pub fn new(db: &SuggestionDatabase, id: &entry::Id) -> FallibleResult<Self> {
         let entry = db.lookup(*id);
         let result = match entry {
             Ok(entry) => match entry.kind {
-                Kind::Type => {
-                    let type_docs = TypeDocumentation::new(*id, &entry, db)?.into();
-                    Documentation::Type(type_docs).into()
-                }
+                Kind::Type => Self::type_docs(db, &entry, *id)?,
                 Kind::Module => {
-                    let module_docs = ModuleDocumentation::new(*id, &entry, db)?.into();
+                    let module_docs = ModuleDocumentation::new(*id, &entry, db)?;
                     Documentation::Module(module_docs).into()
                 }
                 Kind::Constructor => Self::constructor_docs(db, &entry)?,
                 Kind::Method => Self::method_docs(db, &entry)?,
                 Kind::Function => {
-                    let function_docs = FunctionDocumentation::from_entry(&entry).into();
+                    let function_docs = Function::from_entry(&entry);
                     Documentation::Function(function_docs).into()
                 }
                 Kind::Local => {
-                    let local_docs = LocalDocumentation::from_entry(&entry).into();
+                    let local_docs = LocalDocumentation::from_entry(&entry);
                     Documentation::Local(local_docs).into()
                 }
             },
@@ -75,24 +105,129 @@ impl EntryDocumentation {
         Ok(result)
     }
 
-    /// Qualified name of the function-like entry. See [`Documentation::function_name`].
-    pub fn function_name(&self) -> Option<&QualifiedName> {
-        match self {
-            EntryDocumentation::Docs(docs) => docs.function_name(),
-            _ => None,
-        }
-    }
-
     /// Create documentation for a hard-coded builtin entry.
     pub fn builtin(sections: impl IntoIterator<Item = &DocSection>) -> Self {
-        let sections = Rc::new(BuiltinDocumentation::from_doc_sections(sections.into_iter()));
+        let sections = BuiltinDocumentation::from_doc_sections(sections.into_iter());
         Self::Docs(Documentation::Builtin(sections))
     }
 
-    fn method_docs(
+    /// The list of links displayed on the documentation page.
+    pub fn linked_doc_pages(&self) -> Vec<LinkedDocPage> {
+        match self {
+            EntryDocumentation::Docs(docs) => match docs {
+                // Module documentation contains links to all methods and types defined in this
+                // module.
+                Documentation::Module(docs) => {
+                    let methods = docs.methods.iter().map(|method| LinkedDocPage {
+                        name: method.name.clone_ref(),
+                        page: Documentation::ModuleMethod {
+                            docs:        method.clone_ref(),
+                            module_docs: docs.clone_ref(),
+                        }
+                        .into(),
+                    });
+                    let types = docs.types.iter().map(|type_| LinkedDocPage {
+                        name: type_.name.clone_ref(),
+                        page: Documentation::Type {
+                            docs:        type_.clone_ref(),
+                            module_docs: docs.clone_ref(),
+                        }
+                        .into(),
+                    });
+                    methods.chain(types).collect()
+                }
+                // Type documentation contains links to all constructors and methods of this type,
+                // and also a link to the parent module.
+                Documentation::Type { docs, module_docs } => {
+                    let methods = docs.methods.iter().map(|method| LinkedDocPage {
+                        name: method.name.clone_ref(),
+                        page: Documentation::Method {
+                            docs:        method.clone_ref(),
+                            type_docs:   docs.clone_ref(),
+                            module_docs: module_docs.clone_ref(),
+                        }
+                        .into(),
+                    });
+                    let constructors = docs.constructors.iter().map(|constructor| LinkedDocPage {
+                        name: constructor.name.clone_ref(),
+                        page: Documentation::Constructor {
+                            docs:        constructor.clone_ref(),
+                            type_docs:   docs.clone_ref(),
+                            module_docs: module_docs.clone_ref(),
+                        }
+                        .into(),
+                    });
+                    let parent_module = LinkedDocPage {
+                        name: module_docs.name.clone_ref(),
+                        page: Documentation::Module(module_docs.clone_ref()).into(),
+                    };
+                    methods.chain(constructors).chain(iter::once(parent_module)).collect()
+                }
+                // Constructor documentation contains a link to the type. We also need to provide a
+                // module documentation here, because the type documentation has a link to the
+                // module documentation.
+                Documentation::Constructor { type_docs, module_docs, .. } => vec![LinkedDocPage {
+                    name: type_docs.name.clone_ref(),
+                    page: Documentation::Type {
+                        docs:        type_docs.clone_ref(),
+                        module_docs: module_docs.clone_ref(),
+                    }
+                    .into(),
+                }],
+                // Method documentation contains a link to the type. We also need to provide a
+                // module documentation here, because the type documentation has a link to the
+                // module documentation.
+                Documentation::Method { type_docs, module_docs, .. } => vec![LinkedDocPage {
+                    name: type_docs.name.clone_ref(),
+                    page: Documentation::Type {
+                        docs:        type_docs.clone_ref(),
+                        module_docs: module_docs.clone_ref(),
+                    }
+                    .into(),
+                }],
+                // Module method documentation contains a link to the module.
+                Documentation::ModuleMethod { module_docs, .. } => vec![LinkedDocPage {
+                    name: module_docs.name.clone_ref(),
+                    page: Documentation::Module(module_docs.clone_ref()).into(),
+                }],
+                Documentation::Function(_) => default(),
+                Documentation::Local(_) => default(),
+                Documentation::Builtin(_) => default(),
+            },
+            EntryDocumentation::Placeholder(_) => default(),
+        }
+    }
+
+    fn parent_module(
         db: &SuggestionDatabase,
         entry: &Entry,
-    ) -> Result<EntryDocumentation, NoSuchEntry> {
+    ) -> Result<ModuleDocumentation, NoParentModule> {
+        let defined_in = &entry.defined_in;
+        let parent_module = db.lookup_by_qualified_name(defined_in);
+        match parent_module {
+            Some((id, parent)) => match parent.kind {
+                Kind::Module => Ok(ModuleDocumentation::new(id, &parent, db)
+                    .map_err(|_| NoParentModule(entry.qualified_name().to_string()))?),
+                _ => Err(NoParentModule(entry.qualified_name().to_string())),
+            },
+            None => {
+                error!("Parent module for entry {} not found.", entry.qualified_name());
+                Err(NoParentModule(entry.qualified_name().to_string()))
+            }
+        }
+    }
+
+    fn type_docs(
+        db: &SuggestionDatabase,
+        entry: &Entry,
+        entry_id: entry::Id,
+    ) -> FallibleResult<EntryDocumentation> {
+        let module_docs = Self::parent_module(db, entry)?;
+        let type_docs = TypeDocumentation::new(entry_id, entry, db)?;
+        Ok(Documentation::Type { docs: type_docs, module_docs }.into())
+    }
+
+    fn method_docs(db: &SuggestionDatabase, entry: &Entry) -> FallibleResult<EntryDocumentation> {
         let self_type = match &entry.self_type {
             Some(self_type) => self_type,
             None => {
@@ -100,26 +235,25 @@ impl EntryDocumentation {
                 return Ok(Placeholder::NoDocumentation.into());
             }
         };
-        let return_type = db.lookup_by_qualified_name(self_type);
-        match return_type {
-            Some((id, parent)) => {
-                let name = entry.qualified_name().into();
-                match parent.kind {
-                    Kind::Type => {
-                        let type_docs = TypeDocumentation::new(id, &parent, db)?.into();
-                        Ok(Documentation::Method { name, type_docs }.into())
-                    }
-                    Kind::Module => {
-                        let module_docs = ModuleDocumentation::new(id, &parent, db)?;
-                        let module_docs = module_docs.into();
-                        Ok(Documentation::ModuleMethod { name, module_docs }.into())
-                    }
-                    _ => {
-                        error!("Unexpected parent kind for method {}.", entry.qualified_name());
-                        Ok(Placeholder::NoDocumentation.into())
-                    }
+        let self_type = db.lookup_by_qualified_name(self_type);
+        match self_type {
+            Some((id, parent)) => match parent.kind {
+                Kind::Type => {
+                    let docs = Function::from_entry(entry);
+                    let type_docs = TypeDocumentation::new(id, &parent, db)?;
+                    let module_docs = Self::parent_module(db, &parent)?;
+                    Ok(Documentation::Method { docs, type_docs, module_docs }.into())
                 }
-            }
+                Kind::Module => {
+                    let docs = Function::from_entry(entry);
+                    let module_docs = ModuleDocumentation::new(id, &parent, db)?;
+                    Ok(Documentation::ModuleMethod { docs, module_docs }.into())
+                }
+                _ => {
+                    error!("Unexpected parent kind for method {}.", entry.qualified_name());
+                    Ok(Placeholder::NoDocumentation.into())
+                }
+            },
             None => {
                 error!("Parent entry for method {} not found.", entry.qualified_name());
                 Ok(Self::Placeholder(Placeholder::NoDocumentation))
@@ -130,15 +264,16 @@ impl EntryDocumentation {
     fn constructor_docs(
         db: &SuggestionDatabase,
         entry: &Entry,
-    ) -> Result<EntryDocumentation, NoSuchEntry> {
+    ) -> FallibleResult<EntryDocumentation> {
         let return_type = &entry.return_type;
         let return_type = db.lookup_by_qualified_name(return_type);
 
         match return_type {
             Some((id, parent)) => {
-                let name = entry.qualified_name().into();
-                let type_docs = TypeDocumentation::new(id, &parent, db)?.into();
-                Ok(Documentation::Constructor { name, type_docs }.into())
+                let docs = Function::from_entry(entry);
+                let type_docs = TypeDocumentation::new(id, &parent, db)?;
+                let module_docs = Self::parent_module(db, &parent)?;
+                Ok(Documentation::Constructor { docs, type_docs, module_docs }.into())
             }
             None => {
                 error!("No return type found for constructor {}.", entry.qualified_name());
@@ -166,30 +301,31 @@ pub enum Placeholder {
 #[derive(Debug, Clone, CloneRef, PartialEq)]
 #[allow(missing_docs)]
 pub enum Documentation {
-    Module(Rc<ModuleDocumentation>),
-    Type(Rc<TypeDocumentation>),
-    Constructor { name: Rc<QualifiedName>, type_docs: Rc<TypeDocumentation> },
-    Method { name: Rc<QualifiedName>, type_docs: Rc<TypeDocumentation> },
-    ModuleMethod { name: Rc<QualifiedName>, module_docs: Rc<ModuleDocumentation> },
-    Function(Rc<FunctionDocumentation>),
-    Local(Rc<LocalDocumentation>),
-    Builtin(Rc<BuiltinDocumentation>),
+    Module(ModuleDocumentation),
+    Type {
+        docs:        TypeDocumentation,
+        module_docs: ModuleDocumentation,
+    },
+    Constructor {
+        docs:        Function,
+        type_docs:   TypeDocumentation,
+        module_docs: ModuleDocumentation,
+    },
+    Method {
+        docs:        Function,
+        type_docs:   TypeDocumentation,
+        module_docs: ModuleDocumentation,
+    },
+    ModuleMethod {
+        docs:        Function,
+        module_docs: ModuleDocumentation,
+    },
+    Function(Function),
+    Local(LocalDocumentation),
+    Builtin(BuiltinDocumentation),
 }
 
-impl Documentation {
-    /// Qualified name of the documented function. Functions are part of the documentation for
-    /// the larger entity, e.g., constructor documentation is embedded into the type
-    /// documentation. The returned qualified name is used to scroll to the corresponding section in
-    /// a larger documentation page.
-    pub fn function_name(&self) -> Option<&QualifiedName> {
-        match self {
-            Documentation::Constructor { name, .. } => Some(name),
-            Documentation::Method { name, .. } => Some(name),
-            Documentation::ModuleMethod { name, .. } => Some(name),
-            _ => None,
-        }
-    }
-}
+
 
 // =========================
 // === TypeDocumentation ===
@@ -242,7 +378,7 @@ impl TypeDocumentation {
 // ===========================
 
 /// Documentation of the [`EntryKind::Module`] entries.
-#[derive(Debug, Clone, CloneRef, PartialEq)]
+#[derive(Debug, Clone, CloneRef, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub struct ModuleDocumentation {
     pub name:     Rc<QualifiedName>,
@@ -266,38 +402,6 @@ impl ModuleDocumentation {
             methods: Methods::of_entry(id, db)?,
             examples,
         })
-    }
-}
-
-
-
-// =============================
-// === FunctionDocumentation ===
-// =============================
-
-/// Documentation of the [`EntryKind::Function`] entries.
-#[derive(Debug, Clone, CloneRef, PartialEq)]
-#[allow(missing_docs)]
-pub struct FunctionDocumentation {
-    pub name:      Rc<QualifiedName>,
-    pub arguments: Rc<Vec<Argument>>,
-    pub tags:      Tags,
-    pub synopsis:  Synopsis,
-    pub examples:  Examples,
-}
-
-impl FunctionDocumentation {
-    /// Constructor.
-    pub fn from_entry(entry: &Entry) -> Self {
-        let FilteredDocSections { tags, synopsis, examples } =
-            FilteredDocSections::new(entry.documentation.iter());
-        Self {
-            name: entry.qualified_name().into(),
-            arguments: entry.arguments.clone().into(),
-            tags,
-            synopsis,
-            examples,
-        }
     }
 }
 
@@ -422,7 +526,7 @@ impl Synopsis {
 // =============
 
 /// A list of types defined in the module.
-#[derive(Debug, Clone, CloneRef, PartialEq, Default, Deref)]
+#[derive(Debug, Clone, CloneRef, PartialEq, Eq, Default, Deref)]
 pub struct Types {
     list: SortedVec<TypeDocumentation>,
 }
@@ -663,8 +767,9 @@ mod tests {
     fn test_documentation_of_constructor() {
         let db = mock_db();
         let name = Rc::new(QualifiedName::from_text("Standard.Base.A.Foo").unwrap());
-        let type_docs = a_type().into();
-        let expected = Documentation::Constructor { name: name.clone(), type_docs };
+        let type_docs = a_type();
+        let docs = a_foo_constructor();
+        let expected = Documentation::Constructor { docs, type_docs, module_docs: module_docs() };
         assert_docs(&db, name, expected);
     }
 
@@ -676,23 +781,26 @@ mod tests {
         // === Type method ===
 
         let name = Rc::new(QualifiedName::from_text("Standard.Base.A.baz").unwrap());
-        let type_docs = a_type().into();
-        let expected = Documentation::Method { name: name.clone(), type_docs };
+        let type_docs = a_type();
+        let docs = a_baz_method();
+        let expected =
+            Documentation::Method { docs, type_docs, module_docs: module_docs().clone_ref() };
         assert_docs(&db, name, expected);
 
 
         // === Module method ===
 
         let name = Rc::new(QualifiedName::from_text("Standard.Base.module_method").unwrap());
-        let module_docs = module_docs().into();
-        let expected = Documentation::ModuleMethod { name: name.clone(), module_docs };
+        let module_docs = module_docs();
+        let docs = module_method_function();
+        let expected = Documentation::ModuleMethod { docs, module_docs };
         assert_docs(&db, name, expected);
     }
 
     #[test]
     fn test_documentation_of_module() {
         let db = mock_db();
-        let expected = Documentation::Module(Rc::new(module_docs()));
+        let expected = Documentation::Module(module_docs());
         let name = Rc::new(QualifiedName::from_text("Standard.Base").unwrap());
         assert_docs(&db, name, expected);
     }
@@ -703,7 +811,7 @@ mod tests {
 
         // === Type Standard.Base.A ===
 
-        let expected = Documentation::Type(Rc::new(a_type()));
+        let expected = Documentation::Type { docs: a_type(), module_docs: module_docs() };
         let name = QualifiedName::from_text("Standard.Base.A").unwrap();
         let (entry_id, _) = db.lookup_by_qualified_name(&name).unwrap();
         let docs = EntryDocumentation::new(&db, &entry_id).unwrap();
@@ -711,7 +819,7 @@ mod tests {
 
         // === Type Standard.Base.B ===
 
-        let expected = Documentation::Type(Rc::new(b_type()));
+        let expected = Documentation::Type { docs: b_type(), module_docs: module_docs() };
         let name = Rc::new(QualifiedName::from_text("Standard.Base.B").unwrap());
         assert_docs(&db, name, expected);
     }
