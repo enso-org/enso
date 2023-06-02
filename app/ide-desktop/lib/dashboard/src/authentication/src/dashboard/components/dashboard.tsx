@@ -788,18 +788,12 @@ function Dashboard(props: DashboardProps) {
             parentDirectoryId: directoryId,
         }
         const templateText = templateId != null ? ` from template '${templateId}'` : ''
-        await toast.promise(backend.createProject(body), {
-            loading: `Creating project '${projectName}'${templateText}...`,
-            success: `Created project '${projectName}'${templateText}.`,
-            // This is UNSAFE, as the original function's parameter is of type `any`.
-            error: (promiseError: Error) =>
-                `Error creating '${projectName}'${templateText}: ${promiseError.message}`,
-        })
         setProjectAssets([
             {
                 type: backendModule.AssetType.project,
                 title: projectName,
-                id: newtype.asNewtype<backendModule.ProjectId>(''),
+                // The ID must be unique in order to be updated correctly in the UI.
+                id: newtype.asNewtype<backendModule.ProjectId>(String(Number(new Date()))),
                 modifiedAt: dateTime.toRfc3339(new Date()),
                 // Falling back to the empty string is okay as this is what the local backend does.
                 parentId: directoryId ?? newtype.asNewtype<backendModule.AssetId>(''),
@@ -808,6 +802,13 @@ function Dashboard(props: DashboardProps) {
             },
             ...projectAssets,
         ])
+        await toast.promise(backend.createProject(body), {
+            loading: `Creating project '${projectName}'${templateText}...`,
+            success: `Created project '${projectName}'${templateText}.`,
+            // This is UNSAFE, as the original function's parameter is of type `any`.
+            error: (promiseError: Error) =>
+                `Error creating '${projectName}'${templateText}: ${promiseError.message}`,
+        })
         doRefresh()
     }
 
