@@ -291,26 +291,26 @@ public final class LongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-                new UnaryIntegerOp<>(Maps.TRUNCATE) {
-                  @Override
-                  protected long doOperation(Long a) {
-                    return a.longValue();
-                  }
-                })
+            new UnaryIntegerOp<>(Maps.TRUNCATE) {
+              @Override
+              protected long doOperation(Long a) {
+                return a.longValue();
+              }
+            })
         .add(
-                new UnaryIntegerOp<>(Maps.CEIL) {
-                  @Override
-                  protected long doOperation(Long a) {
-                    return a.longValue();
-                  }
-                })
+            new UnaryIntegerOp<>(Maps.CEIL) {
+              @Override
+              protected long doOperation(Long a) {
+                return a.longValue();
+              }
+            })
         .add(
-                new UnaryIntegerOp<>(Maps.FLOOR) {
-                  @Override
-                  protected long doOperation(Long a) {
-                    return a.longValue();
-                  }
-                })
+            new UnaryIntegerOp<>(Maps.FLOOR) {
+              @Override
+              protected long doOperation(Long a) {
+                return a.longValue();
+              }
+            })
         .add(
             new LongNumericOp(Maps.DIV, true) {
               @Override
