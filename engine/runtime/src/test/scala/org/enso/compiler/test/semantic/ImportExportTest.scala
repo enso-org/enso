@@ -472,13 +472,14 @@ class ImportExportTest
           .getIr
       mainIr.imports.size shouldEqual 2
       val origImport = mainIr.imports(0)
-      val ambiguousImport = mainIr
+      val warn = mainIr
         .imports(1)
-        .asInstanceOf[IR.Error.ImportExport]
-        .reason
-        .asInstanceOf[IR.Error.ImportExport.AmbiguousImport]
-      ambiguousImport.symbolName shouldEqual "A_Type"
-      ambiguousImport.originalImport shouldEqual origImport
+        .diagnostics
+        .collect({ case w: IR.Warning.DuplicatedImport => w })
+      warn.size shouldEqual 1
+      warn.head.originalImport shouldEqual origImport
+      warn.head.symbolName shouldEqual "A_Type"
+      warn.head.originalImport shouldEqual origImport
     }
 
     "generate warning when importing same type twice with one-symbol import and all-symbol import" in {
@@ -495,13 +496,14 @@ class ImportExportTest
           .getIr
       mainIr.imports.size shouldEqual 2
       val origImport = mainIr.imports(0)
-      val ambiguousImport = mainIr
+      val warn = mainIr
         .imports(1)
-        .asInstanceOf[IR.Error.ImportExport]
-        .reason
-        .asInstanceOf[IR.Error.ImportExport.AmbiguousImport]
-      ambiguousImport.symbolName shouldEqual "A_Type"
-      ambiguousImport.originalImport shouldEqual origImport
+        .diagnostics
+        .collect({ case w: IR.Warning.DuplicatedImport => w })
+      warn.size shouldEqual 1
+      warn.head.originalImport shouldEqual origImport
+      warn.head.symbolName shouldEqual "A_Type"
+      warn.head.originalImport shouldEqual origImport
     }
 
     "generate warning when importing same type twice with two all-symbol imports" in {
