@@ -472,6 +472,7 @@ pub fn standard_db_mock() -> SuggestionDatabase {
             }
         }
         local.Project {
+            static fn main_module_method() -> Standard.Base.Any;
             mod Submodule {
                 type TestType (a: Standard.Base.Number, b: Standard.Base.Maybe) {
                     static fn static_method(x) -> Standard.Base.Number;

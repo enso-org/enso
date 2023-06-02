@@ -1,7 +1,6 @@
 package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -278,7 +277,7 @@ public abstract class InvokeCallableNode extends BaseNode {
                                     invokeFunctionNode.getSchema(),
                                     invokeFunctionNode.getDefaultsExecutionMode(),
                                     invokeFunctionNode.getArgumentsExecutionMode()));
-            childDispatch.setTailStatus(getTailStatus());
+            childDispatch.setTailStatus(TailStatus.NOT_TAIL);
             childDispatch.setId(invokeFunctionNode.getId());
             notifyInserted(childDispatch);
           }

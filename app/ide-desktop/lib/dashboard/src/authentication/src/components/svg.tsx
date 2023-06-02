@@ -270,6 +270,7 @@ export interface SpinnerProps {
     className: string
 }
 
+/** A spinning arc that animates using the `dasharray-<percentage>` custom Tailwind classes. */
 export function Spinner(props: SpinnerProps) {
     const { size, className } = props
     return (
@@ -297,6 +298,7 @@ export function Spinner(props: SpinnerProps) {
     )
 }
 
+/** Props for a {@link StopIcon}. */
 export interface StopIconProps {
     className?: string
 }
@@ -347,8 +349,8 @@ export function StopIcon(props: StopIconProps) {
 // === Svg ===
 // ===========
 
-/** Props for the `Svg` component. */
-interface Props {
+/** Props for a {@link Svg}. */
+export interface SvgProps {
     path: string
 }
 
@@ -356,7 +358,7 @@ interface Props {
  *
  * @param props - Extra props for the SVG path. The `props.data` field in particular contains the
  * SVG path data. */
-function Svg(props: Props) {
+function Svg(props: SvgProps) {
     return (
         <svg
             className="h-6 w-6"

@@ -4,15 +4,14 @@
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API. */
 import * as backend from './backend'
-import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
-import * as platformModule from '../platform'
 import * as projectManager from './projectManager'
 
 // ========================
 // === Helper functions ===
 // ========================
 
+/** Convert a {@link projectManager.IpWithSocket} to a {@link backend.Address}. */
 function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
     return newtype.asNewtype<backend.Address>(`ws://${ipWithSocket.host}:${ipWithSocket.port}`)
 }
@@ -32,9 +31,12 @@ interface CurrentlyOpenProjectInfo {
 export class LocalBackend implements Partial<backend.Backend> {
     static currentlyOpeningProjectId: backend.ProjectId | null = null
     static currentlyOpenProject: CurrentlyOpenProjectInfo | null = null
-    readonly platform = platformModule.Platform.desktop
+    readonly type = backend.BackendType.local
     private readonly projectManager = projectManager.ProjectManager.default()
 
+    /** Return a list of assets in a directory.
+     *
+     * @throws An error if the JSON-RPC call fails. */
     async listDirectory(): Promise<backend.Asset[]> {
         const result = await this.projectManager.listProjects({})
         return result.projects.map(project => ({
@@ -44,9 +46,20 @@ export class LocalBackend implements Partial<backend.Backend> {
             modifiedAt: project.lastOpened,
             parentId: newtype.asNewtype<backend.AssetId>(''),
             permissions: [],
+            projectState: {
+                type:
+                    project.id === LocalBackend.currentlyOpeningProjectId
+                        ? backend.ProjectState.openInProgress
+                        : project.lastOpened != null
+                        ? backend.ProjectState.closed
+                        : backend.ProjectState.created,
+            },
         }))
     }
 
+    /** Return a list of projects belonging to the current user.
+     *
+     * @throws An error if the JSON-RPC call fails. */
     async listProjects(): Promise<backend.ListedProject[]> {
         const result = await this.projectManager.listProjects({})
         return result.projects.map(project => ({
@@ -62,6 +75,9 @@ export class LocalBackend implements Partial<backend.Backend> {
         }))
     }
 
+    /** Create a project.
+     *
+     * @throws An error if the JSON-RPC call fails. */
     async createProject(body: backend.CreateProjectRequestBody): Promise<backend.CreatedProject> {
         const project = await this.projectManager.createProject({
             name: newtype.asNewtype<projectManager.ProjectName>(body.projectName),
@@ -79,6 +95,9 @@ export class LocalBackend implements Partial<backend.Backend> {
         }
     }
 
+    /** Close the project identified by the given project ID.
+     *
+     * @throws An error if the JSON-RPC call fails. */
     async closeProject(projectId: backend.ProjectId): Promise<void> {
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null
@@ -90,6 +109,9 @@ export class LocalBackend implements Partial<backend.Backend> {
         }
     }
 
+    /** Close the project identified by the given project ID.
+     *
+     * @throws An error if the JSON-RPC call fails. */
     async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
         if (projectId !== LocalBackend.currentlyOpenProject?.id) {
             const result = await this.projectManager.listProjects({})
@@ -119,7 +141,9 @@ export class LocalBackend implements Partial<backend.Backend> {
                         type:
                             projectId === LocalBackend.currentlyOpeningProjectId
                                 ? backend.ProjectState.openInProgress
-                                : backend.ProjectState.closed,
+                                : project.lastOpened != null
+                                ? backend.ProjectState.closed
+                                : backend.ProjectState.created,
                     },
                 })
             }
@@ -147,6 +171,9 @@ export class LocalBackend implements Partial<backend.Backend> {
         }
     }
 
+    /** Prepare a project for execution.
+     *
+     * @throws An error if the JSON-RPC call fails. */
     async openProject(projectId: backend.ProjectId): Promise<void> {
         LocalBackend.currentlyOpeningProjectId = projectId
         const project = await this.projectManager.openProject({
@@ -156,6 +183,9 @@ export class LocalBackend implements Partial<backend.Backend> {
         LocalBackend.currentlyOpenProject = { id: projectId, project }
     }
 
+    /** Change the name of a project.
+     *
+     * @throws An error if the JSON-RPC call fails. */
     async projectUpdate(
         projectId: backend.ProjectId,
         body: backend.ProjectUpdateRequestBody
@@ -195,6 +225,9 @@ export class LocalBackend implements Partial<backend.Backend> {
         }
     }
 
+    /** Delete a project.
+     *
+     * @throws An error if the JSON-RPC call fails. */
     async deleteProject(projectId: backend.ProjectId): Promise<void> {
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null

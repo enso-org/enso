@@ -112,7 +112,8 @@ const MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH: f32 = 52.0;
 const MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT: f32 = 12.0;
 /// Horizontal and vertical offset between traffic lights and window border
 const MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET: f32 = 13.0;
-const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
+/// The vertical center of the traffic lights, relative to the window border.
+pub const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
     -MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET - MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT / 2.0;
 const MAX_ZOOM: f32 = 1.0;
 /// Space between items in the top bar.
@@ -125,7 +126,7 @@ fn traffic_lights_gap_width() -> f32 {
     if is_macos && !ARGS.groups.window.options.frame.value {
         MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH + MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET
     } else {
-        TOP_BAR_ITEM_MARGIN
+        0.0
     }
 }
 
@@ -452,7 +453,10 @@ ensogl::define_endpoints_2! {
 
 
         // === Layout ===
-        space_for_window_buttons (Vector2<f32>),
+
+        /// The offset in the x-axis at which the part of the top bar of the graph editor should
+        /// start.
+        graph_editor_top_bar_offset_x (f32),
 
 
         // === Read-only mode ===
@@ -609,6 +613,10 @@ ensogl::define_endpoints_2! {
         /// Set a test visualization data for the selected nodes. Useful for testing visualizations
         /// during their development.
         debug_set_test_visualization_data_for_selected_node(),
+        /// Reopen file in language server.
+        ///
+        /// Used as a debug or a fallback for the user when synchronization errors are spotted.
+        reopen_file_in_language_server(),
 
 
         // === VCS Status ===
@@ -2017,6 +2025,7 @@ impl GraphEditorModel {
 
     /// Warning! This function does not remove connected edges. It needs to be handled by the
     /// implementation.
+    #[profile(Debug)]
     fn remove_node(&self, node_id: impl Into<NodeId>) {
         let node_id = node_id.into();
         self.nodes.remove(&node_id);
@@ -2285,6 +2294,7 @@ impl GraphEditorModel {
 
 impl GraphEditorModel {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    #[profile(Debug)]
     pub fn set_node_position(&self, node_id: impl Into<NodeId>, position: Vector2) {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {

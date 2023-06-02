@@ -164,6 +164,21 @@
   added in various other PRs. The new dashboard includes tables for projects,
   folders, files and secrets, a list of templates from which new projects can be
   created, a user menu, and a search bar.
+- [The Application will try to reload file in backend on synchronization
+  failure][6752]. It should make it more resilient to connectivity issues and
+  occasional bugs. The reload may be forced by the user with
+  <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>x</kbd> shortcut.
+- [When selecting a function from the main module through the component browser,
+  it is now referenced via the `Main` namespace instead of the project
+  namespace,][6719] e.g. `Main.func1` instead of `MyProject.func1`. This makes
+  it robust against project name changes.
+- [Added a button to return from an opened project back to the project
+  dashboard.][6474]
+- [Keyboard shortcuts for graph editing are now disabled when the full-screen
+  visualization is active.][6844]
+- [A loading animation is now shown when opening and creating projects][6827],
+  as the previous behaviour of showing a blank screen while the project was
+  being loaded was potentially confusing to users.
 
 [6279]: https://github.com/enso-org/enso/pull/6279
 [6421]: https://github.com/enso-org/enso/pull/6421
@@ -171,6 +186,11 @@
 [6617]: https://github.com/enso-org/enso/pull/6617
 [6620]: https://github.com/enso-org/enso/pull/6620
 [6663]: https://github.com/enso-org/enso/pull/6663
+[6752]: https://github.com/enso-org/enso/pull/6752
+[6719]: https://github.com/enso-org/enso/pull/6719
+[6474]: https://github.com/enso-org/enso/pull/6474
+[6844]: https://github.com/enso-org/enso/pull/6844
+[6827]: https://github.com/enso-org/enso/pull/6827
 
 #### EnsoGL (rendering engine)
 
@@ -224,6 +244,8 @@
 - [ToggleButtons can now have tooltips][6035].
 - [Rendering of tooltips was improved.][6097] Their text is now more vertically
   centered and the delay before showing them was extended.
+- [Accurate GPU performance measurements have been implemented][6595]. It is
+  possible now to track both the time spent on both the CPU and the GPU sides.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
@@ -236,6 +258,7 @@
 [6366]: https://github.com/enso-org/enso/pull/6366
 [6341]: https://github.com/enso-org/enso/pull/6341
 [6470]: https://github.com/enso-org/enso/pull/6470
+[6595]: https://github.com/enso-org/enso/pull/6595
 [6487]: https://github.com/enso-org/enso/pull/6487
 [6512]: https://github.com/enso-org/enso/pull/6512
 
@@ -446,6 +469,9 @@
 - [Moved `Redshift` connector into a separate `AWS` library.][6550]
 - [Added `Date_Range`.][6621]
 - [Implemented the `cast` operation for `Table` and `Column`.][6711]
+- [Added `.round` and `.int` to `Integer` and `Decimal`.][6743]
+- [Added `.round`, `.truncate`, `.ceil`, and `.floor` to `Column`.][6817]
+- [Added execution control to `Table.write` and various bug fixes.][6835]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -657,6 +683,9 @@
 [6550]: https://github.com/enso-org/enso/pull/6550
 [6621]: https://github.com/enso-org/enso/pull/6621
 [6711]: https://github.com/enso-org/enso/pull/6711
+[6743]: https://github.com/enso-org/enso/pull/6743
+[6817]: https://github.com/enso-org/enso/pull/6817
+[6835]: https://github.com/enso-org/enso/pull/6835
 
 #### Enso Compiler
 
@@ -768,6 +797,9 @@
 - [Reimplement `enso_project` as a proper builtin][6352]
 - [Limit number of reported warnings per value][6577]
 - [Suggestions are updated only when the type of the expression changes][6755]
+- [Add project creation time to project metadata][6780]
+- [Upgrade GraalVM to 22.3.1 JDK17][6750]
+- [Ascribed types are checked during runtime][6790]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -878,7 +910,10 @@
 [6372]: https://github.com/enso-org/enso/pull/6372
 [6352]: https://github.com/enso-org/enso/pull/6352
 [6577]: https://github.com/enso-org/enso/pull/6577
+[6750]: https://github.com/enso-org/enso/pull/6750
 [6755]: https://github.com/enso-org/enso/pull/6755
+[6780]: https://github.com/enso-org/enso/pull/6780
+[6790]: https://github.com/enso-org/enso/pull/6790
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -244,6 +244,7 @@ type Date_Time
 
              example_parse =
                 Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
+    @locale Locale.default_widget
     parse : Text -> Text | Nothing -> Locale -> Date_Time ! Time_Error
     parse text pattern=Nothing locale=Locale.default =
         Panic.catch JException handler=(cause -> Error.throw (Time_Error.Error cause.payload.getMessage)) <|
@@ -500,7 +501,8 @@ type Date_Time
     at_zone : Time_Zone -> Date_Time
     at_zone self zone = @Builtin_Method "Date_Time.at_zone"
 
-    ## Add the specified amount of time to this instant to produce a new instant.
+    ## ALIAS Add Period, Add Duration
+       Add the specified amount of time to this instant to produce a new instant.
 
        Arguments:
        - amount: The amount of time to add to this instant, either `Duration` for
@@ -563,7 +565,8 @@ type Date_Time
         ensure_in_epoch self <|
             self.date.add_work_days days holidays . to_date_time self.time_of_day self.zone
 
-    ## Subtract the specified amount of time from this instant to get a new
+    ## ALIAS Subtract Duration, Subtract Period
+       Subtract the specified amount of time from this instant to get a new
        instant.
 
        Produces a warning if the resulting date time is before an Enso epoch.
@@ -656,6 +659,7 @@ type Date_Time
 
              example_format =
                  Date_Time.parse "2020-06-21T16:41:13+03:00" . format "d. MMMM yyyy" (Locale.new "fr")
+    @locale Locale.default_widget
     format : Text -> Locale -> Text
     format self pattern locale=Locale.default = case locale of
         Nothing -> Time_Utils.date_time_format self pattern

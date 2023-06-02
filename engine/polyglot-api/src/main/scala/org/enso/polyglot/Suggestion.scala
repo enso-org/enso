@@ -46,6 +46,9 @@ sealed trait Suggestion extends ToLogString {
   def name:          String
   def returnType:    String
   def documentation: Option[String]
+
+  /** Set the reexport field of the suggestion. */
+  def withReexport(reexport: Option[String]): Suggestion
 }
 
 object Suggestion {
@@ -221,6 +224,10 @@ object Suggestion {
       module
 
     /** @inheritdoc */
+    override def withReexport(reexport: Option[String]): Module =
+      copy(reexport = reexport)
+
+    /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
       s"Module(module=$module,name=$name,documentation=" +
       (if (shouldMask) documentation.map(_ => STUB) else documentation) +
@@ -249,6 +256,10 @@ object Suggestion {
     reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
+
+    /** @inheritdoc */
+    override def withReexport(reexport: Option[String]): Type =
+      copy(reexport = reexport)
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
@@ -284,6 +295,10 @@ object Suggestion {
     reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
+
+    /** @inheritdoc */
+    override def withReexport(reexport: Option[String]): Constructor =
+      copy(reexport = reexport)
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
@@ -324,6 +339,10 @@ object Suggestion {
       with ToLogString {
 
     /** @inheritdoc */
+    override def withReexport(reexport: Option[String]): Method =
+      copy(reexport = reexport)
+
+    /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
       "Method(" +
       s"module=$module," +
@@ -356,6 +375,10 @@ object Suggestion {
     documentation: Option[String],
     reexport: Option[String] = None
   ) extends Suggestion {
+
+    /** @inheritdoc */
+    override def withReexport(reexport: Option[String]): Conversion =
+      copy(reexport = reexport)
 
     /** @inheritdoc */
     override def name: String =
@@ -395,6 +418,10 @@ object Suggestion {
       with ToLogString {
 
     /** @inheritdoc */
+    override def withReexport(reexport: Option[String]): Function =
+      this
+
+    /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
       "Function(" +
       s"externalId=$externalId," +
@@ -424,6 +451,10 @@ object Suggestion {
     scope: Scope,
     documentation: Option[String]
   ) extends Suggestion {
+
+    /** @inheritdoc */
+    override def withReexport(reexport: Option[String]): Local =
+      this
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =

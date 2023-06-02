@@ -103,10 +103,15 @@ type Excel_Workbook
     @types (self-> Single_Choice values=(self.table_types.map t-> Option t t.pretty))
     tables : Text -> Text -> Text -> Vector -> Boolean -> Table
     tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
+        types_vector = case types of
+            Nothing -> Nothing
+            _ : Vector -> types
+            _ -> [types]
+
         _ = [all_fields]
         rows = if schema != Nothing then [] else
-            sheets = if types==Nothing || types.contains "Worksheet" then self.sheet_names.map s-> [s, 'Worksheet', database, Nothing] else []
-            ranges = if types==Nothing || types.contains "Named Range" then self.named_ranges.map r-> [r, 'Named Range', database, Nothing] else []
+            sheets = if types_vector.is_nothing || types_vector.contains "Worksheet" then self.sheet_names.map s-> [s, 'Worksheet', database, Nothing] else []
+            ranges = if types_vector.is_nothing || types_vector.contains "Named Range" then self.named_ranges.map r-> [r, 'Named Range', database, Nothing] else []
             sheets + ranges
 
         filtered = if name_like == Nothing then rows else
@@ -126,7 +131,8 @@ type Excel_Workbook
         _ = [alias]
         self.read query
 
-    ## Execute the query and load the results into memory as a Table.
+    ## ALIAS sheet, worksheet, range
+       Execute the query and load the results into memory as a Table.
 
        Arguments:
        - query: sheet name, range name or address to read from the workbook.

@@ -2016,10 +2016,12 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     "build type with ascribed constructor" in {
 
       val code =
-        """type X
+        """type S
+          |  X
+          |  Y
           |
           |type T
-          |    A (x : X)
+          |    A (x : S)
           |""".stripMargin
       val module = code.preprocessModule
 
@@ -2030,10 +2032,32 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
             Suggestion.Type(
               externalId    = None,
               module        = "Unnamed.Test",
-              name          = "X",
+              name          = "S",
               params        = Seq(),
-              returnType    = "Unnamed.Test.X",
+              returnType    = "Unnamed.Test.S",
               parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "X",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.S",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Y",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.S",
               documentation = None
             ),
             Vector()
@@ -2056,8 +2080,14 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "A",
               arguments = Seq(
-                Suggestion
-                  .Argument("x", "Unnamed.Test.X", false, false, None)
+                Suggestion.Argument(
+                  "x",
+                  "Unnamed.Test.S",
+                  false,
+                  false,
+                  None,
+                  Some(Seq("Unnamed.Test.S.X", "Unnamed.Test.S.Y"))
+                )
               ),
               returnType    = "Unnamed.Test.T",
               documentation = None
@@ -2074,7 +2104,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   .Argument("self", "Unnamed.Test.T", false, false, None)
               ),
               selfType      = "Unnamed.Test.T",
-              returnType    = "Unnamed.Test.X",
+              returnType    = "Unnamed.Test.S",
               isStatic      = false,
               documentation = None
             ),

@@ -366,7 +366,9 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         mainBodyId,
-        Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo"),
+        Api.MethodCall(
+          Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")
+        ),
         Api.ExpressionUpdate.Payload.Panic(
           "Compile_Error.Error",
           Seq(mainBodyId)
@@ -440,7 +442,9 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         mainBodyId,
-        Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo"),
+        Api.MethodCall(
+          Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")
+        ),
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `x` could not be found.",
           Seq(mainBodyId)
@@ -994,7 +998,7 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         xId,
-        Api.MethodPointer(moduleName, moduleName, "foo"),
+        Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
         Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId))
       ),
       TestMessages.error(
@@ -1449,7 +1453,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         xId,
-        Api.MethodPointer(moduleName, moduleName, "foo"),
+        Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
         Api.ExpressionUpdate.Payload.Panic(
           "9 (Integer)",
           Seq(xId)
@@ -1498,7 +1502,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         ConstantsGen.INTEGER,
-        Api.MethodPointer(moduleName, moduleName, "foo"),
+        Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
         fromCache   = false,
         typeChanged = true
       ),
@@ -1568,7 +1572,7 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         xId,
-        Api.MethodPointer(moduleName, moduleName, "foo"),
+        Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
         Api.ExpressionUpdate.Payload.Panic(
           "java.lang.NullPointerException",
           Seq(xId)
@@ -1637,7 +1641,7 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         xId,
-        Api.MethodPointer(moduleName, moduleName, "foo"),
+        Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
@@ -1677,7 +1681,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         ConstantsGen.INTEGER,
-        Api.MethodPointer(moduleName, moduleName, "foo"),
+        Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
         fromCache   = false,
         typeChanged = true
       ),

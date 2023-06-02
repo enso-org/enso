@@ -71,7 +71,7 @@ object TestMessages {
     * @param expressionType a type of the expression
     * @param fromCache whether or not the value for this expression came from cache
     * @param typeChanged a flag indicating whether the the type of expression has changed
-    * @param methodPointer method pointer
+    * @param methodCall the method call
     * @param payload the update payload
     * @return the expression update response
     */
@@ -79,10 +79,10 @@ object TestMessages {
     contextId: UUID,
     expressionId: UUID,
     expressionType: String,
-    fromCache: Boolean                       = false,
-    typeChanged: Boolean                     = true,
-    methodPointer: Option[Api.MethodPointer] = None,
-    payload: Api.ExpressionUpdate.Payload    = Api.ExpressionUpdate.Payload.Value()
+    fromCache: Boolean                    = false,
+    typeChanged: Boolean                  = true,
+    methodCall: Option[Api.MethodCall]    = None,
+    payload: Api.ExpressionUpdate.Payload = Api.ExpressionUpdate.Payload.Value()
   ): Api.Response =
     Api.Response(
       Api.ExpressionUpdates(
@@ -91,7 +91,7 @@ object TestMessages {
           Api.ExpressionUpdate(
             expressionId,
             Some(expressionType),
-            methodPointer,
+            methodCall,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             fromCache,
             typeChanged,
@@ -106,23 +106,23 @@ object TestMessages {
     * @param contextId an identifier of the context
     * @param expressionId an identifier of the expression
     * @param expressionType a type of the expression
-    * @param methodPointer a pointer to the method definition
+    * @param methodCall a pointer to the method definition
     * @return the expression update response
     */
   def update(
     contextId: UUID,
     expressionId: UUID,
     expressionType: String,
-    methodPointer: Api.MethodPointer
+    methodCall: Api.MethodCall
   ): Api.Response =
-    update(contextId, expressionId, expressionType, methodPointer, false, true)
+    update(contextId, expressionId, expressionType, methodCall, false, true)
 
   /** Create an update response.
     *
     * @param contextId an identifier of the context
     * @param expressionId an identifier of the expression
     * @param expressionType a type of the expression
-    * @param methodPointer a pointer to the method definition
+    * @param methodCall a pointer to the method definition
     * @param fromCache whether or not the value for this expression came
     * from the cache
     * @param typeChanged a flag indicating whether the the type of expression has changed
@@ -132,7 +132,7 @@ object TestMessages {
     contextId: UUID,
     expressionId: UUID,
     expressionType: String,
-    methodPointer: Api.MethodPointer,
+    methodCall: Api.MethodCall,
     fromCache: Boolean,
     typeChanged: Boolean
   ): Api.Response =
@@ -143,7 +143,7 @@ object TestMessages {
           Api.ExpressionUpdate(
             expressionId,
             Some(expressionType),
-            Some(methodPointer),
+            Some(methodCall),
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             fromCache,
             typeChanged,
@@ -178,20 +178,20 @@ object TestMessages {
     *
     * @param contextId an identifier of the context
     * @param expressionId an identifier of the expression
-    * @param methodPointer a pointer to the method definition
+    * @param methodCall a pointer to the method definition
     * @param payload the error payload
     * @return the expression update response
     */
   def error(
     contextId: UUID,
     expressionId: UUID,
-    methodPointer: Api.MethodPointer,
+    methodCall: Api.MethodCall,
     payload: Api.ExpressionUpdate.Payload
   ): Api.Response =
     error(
       contextId,
       expressionId,
-      methodPointer,
+      methodCall,
       false,
       true,
       payload
@@ -201,7 +201,7 @@ object TestMessages {
     *
     * @param contextId an identifier of the context
     * @param expressionId an identifier of the expression
-    * @param methodPointer a pointer to the method definition
+    * @param methodCall a pointer to the method definition
     * @param fromCache whether or not the value for this expression came
     * from the cache
     * @param typeChanged a flag indicating whether the the type of expression has changed
@@ -211,7 +211,7 @@ object TestMessages {
   def error(
     contextId: UUID,
     expressionId: UUID,
-    methodPointer: Api.MethodPointer,
+    methodCall: Api.MethodCall,
     fromCache: Boolean,
     typeChanged: Boolean,
     payload: Api.ExpressionUpdate.Payload
@@ -219,7 +219,7 @@ object TestMessages {
     errorBuilder(
       contextId,
       expressionId,
-      Some(methodPointer),
+      Some(methodCall),
       fromCache,
       typeChanged,
       payload
@@ -229,7 +229,7 @@ object TestMessages {
     *
     * @param contextId an identifier of the context
     * @param expressionId an identifier of the expression
-    * @param methodPointerOpt a pointer to the method definition
+    * @param methodCallOpt a pointer to the method definition
     * @param fromCache whether or not the value for this expression came
     * from the cache
     * @param typeChanged a flag indicating whether the the type of expression has changed
@@ -239,7 +239,7 @@ object TestMessages {
   private def errorBuilder(
     contextId: UUID,
     expressionId: UUID,
-    methodPointerOpt: Option[Api.MethodPointer],
+    methodCallOpt: Option[Api.MethodCall],
     fromCache: Boolean,
     typeChanged: Boolean,
     payload: Api.ExpressionUpdate.Payload
@@ -251,7 +251,7 @@ object TestMessages {
           Api.ExpressionUpdate(
             expressionId,
             Some(ConstantsGen.ERROR),
-            methodPointerOpt,
+            methodCallOpt,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             fromCache,
             typeChanged,
@@ -304,7 +304,7 @@ object TestMessages {
     *
     * @param contextId an identifier of the context
     * @param expressionId an identifier of the expression
-    * @param methodPointer a pointer to the method definition
+    * @param methodCall a pointer to the method definition
     * @param payload the error payload
     * @param builtin a flag indicating what is the type of Panic (a builtin Panic type or stdlib Panic)
     * @return the expression update response
@@ -312,14 +312,14 @@ object TestMessages {
   def panic(
     contextId: UUID,
     expressionId: UUID,
-    methodPointer: Api.MethodPointer,
+    methodCall: Api.MethodCall,
     payload: Api.ExpressionUpdate.Payload,
     builtin: Boolean
   ): Api.Response =
     panicBuilder(
       contextId,
       expressionId,
-      Some(methodPointer),
+      Some(methodCall),
       payload,
       builtin,
       true
@@ -329,7 +329,7 @@ object TestMessages {
     *
     * @param contextId an identifier of the context
     * @param expressionId an identifier of the expression
-    * @param methodPointer a pointer to the method definition
+    * @param methodCall a pointer to the method definition
     * @param payload the error payload
     * @param builtin the type to use
     * @return the expression update response
@@ -337,14 +337,14 @@ object TestMessages {
   def panic(
     contextId: UUID,
     expressionId: UUID,
-    methodPointer: Api.MethodPointer,
+    methodCall: Api.MethodCall,
     payload: Api.ExpressionUpdate.Payload,
     builtin: Option[String]
   ): Api.Response =
     panicBuilder(
       contextId,
       expressionId,
-      Some(methodPointer),
+      Some(methodCall),
       payload,
       builtin,
       true
@@ -353,7 +353,7 @@ object TestMessages {
   def panic(
     contextId: UUID,
     expressionId: UUID,
-    methodPointer: Api.MethodPointer,
+    methodCall: Api.MethodCall,
     payload: Api.ExpressionUpdate.Payload,
     builtin: Option[String],
     typeChanged: Boolean
@@ -361,7 +361,7 @@ object TestMessages {
     panicBuilder(
       contextId,
       expressionId,
-      Some(methodPointer),
+      Some(methodCall),
       payload,
       builtin,
       typeChanged
@@ -371,7 +371,7 @@ object TestMessages {
     *
     * @param contextId an identifier of the context
     * @param expressionId an identifier of the expression
-    * @param methodPointer a pointer to the method definition
+    * @param methodCall a pointer to the method definition
     * @param payload the error payload
     * @param builtin a flag indicating what is the type of Panic (a builtin Panic type or stdlib Panic)
     * @param typeChanged a flag indicating whether the the type of expression has changed
@@ -380,14 +380,14 @@ object TestMessages {
   private def panicBuilder(
     contextId: UUID,
     expressionId: UUID,
-    methodPointer: Option[Api.MethodPointer],
+    methodCall: Option[Api.MethodCall],
     payload: Api.ExpressionUpdate.Payload,
     builtin: Boolean,
     typeChanged: Boolean
   ): Api.Response = panicBuilder(
     contextId,
     expressionId,
-    methodPointer,
+    methodCall,
     payload,
     Some(
       if (builtin) ConstantsGen.PANIC_BUILTIN else ConstantsGen.PANIC
@@ -398,7 +398,7 @@ object TestMessages {
   private def panicBuilder(
     contextId: UUID,
     expressionId: UUID,
-    methodPointer: Option[Api.MethodPointer],
+    methodCall: Option[Api.MethodCall],
     payload: Api.ExpressionUpdate.Payload,
     builtin: Option[String],
     typeChanged: Boolean
@@ -410,7 +410,7 @@ object TestMessages {
           Api.ExpressionUpdate(
             expressionId,
             builtin,
-            methodPointer,
+            methodCall,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             false,
             typeChanged,

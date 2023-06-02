@@ -535,7 +535,7 @@ main =
             assert_eq!(product_node.expression().to_string(), "5 * 5");
 
             let context = &span_tree::generate::context::Empty;
-            let sum_tree = SpanTree::<()>::new(&sum_node.expression(), context).unwrap();
+            let sum_tree = SpanTree::new(&sum_node.expression(), context).unwrap();
             let sum_input =
                 sum_tree.root_ref().leaf_iter().find(|n| n.is_argument()).unwrap().crumbs;
             let connection = controller::graph::Connection {

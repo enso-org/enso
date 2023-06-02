@@ -2,6 +2,10 @@
 
 import * as wasmRustGlue from 'wasm_rust_glue'
 
+// =============================
+// === Export WASM Rust glue ===
+// =============================
+
 // Eslint is not (and should not be) set up to check CommonJS.
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 exports.init = wasmRustGlue.default

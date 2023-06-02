@@ -23,7 +23,7 @@ class TableVisualization extends Visualization {
     // type names do not go out of sync. Should be removed once
     // https://github.com/enso-org/enso/issues/5195 is implemented.
     static inputType =
-        'Standard.Table.Data.Table.Table | Standard.Table.Data.Column.Column | Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any '
+        'Standard.Table.Data.Table.Table | Standard.Table.Data.Column.Column | Standard.Table.Data.Row.Row |Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any '
     static label = 'Table'
 
     constructor(data) {
@@ -109,7 +109,7 @@ class TableVisualization extends Visualization {
 
             const style =
                 '.ag-theme-alpine { --ag-grid-size: 3px; --ag-list-item-height: 20px; display: inline; }\n' +
-                '.vis-status-bar { height: 20x; background-color: white; font-size:14px; white-space:nowrap; padding: 0 5px; overflow:hidden; border-radius: 16px }\n' +
+                '.vis-status-bar { height: 20px; background-color: white; font-size:14px; white-space:nowrap; padding: 0 5px; overflow:hidden; border-radius: 16px 16px 0 0 }\n' +
                 '.vis-status-bar > button { width: 12px; margin: 0 2px; display: none }\n' +
                 '.vis-tbl-grid { height: calc(100% - 20px); width: 100%; }\n'
             const styleElem = document.createElement('style')
@@ -314,10 +314,7 @@ class TableVisualization extends Visualization {
             const rowCounts = [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter(
                 r => r <= all_rows_count
             )
-            if (
-                all_rows_count < rowCounts[rowCounts.length - 1] &&
-                rowCounts.indexOf(all_rows_count) === -1
-            ) {
+            if (all_rows_count < 100000 && rowCounts.indexOf(all_rows_count) === -1) {
                 rowCounts.push(all_rows_count)
             }
             rowLimitElem.innerHTML = ''

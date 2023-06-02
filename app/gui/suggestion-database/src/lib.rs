@@ -399,9 +399,9 @@ impl SuggestionDatabase {
     pub fn lookup_by_method_pointer(
         &self,
         method_pointer: &language_server::MethodPointer,
-    ) -> Option<Rc<Entry>> {
+    ) -> Option<(SuggestionId, Rc<Entry>)> {
         let entry_id = self.method_pointer_to_id_map.borrow().get(method_pointer).copied();
-        entry_id.and_then(|id| self.entries.borrow().get(&id).cloned())
+        entry_id.and_then(|id| Some((id, self.entries.borrow().get(&id).cloned()?)))
     }
 
     /// Get suggestion entry id by method pointer.
@@ -502,6 +502,33 @@ impl SuggestionDatabase {
             .filter(|entry| entry.matches_name(name.as_ref()) && entry.is_visible_at(location))
             .cloned()
             .collect()
+    }
+
+    /// Search the database for first matching entry with public visibility and fully qualified name
+    /// ending with specified name segments.
+    pub fn find_public_entry_by_partial_name(
+        &self,
+        name: impl Str,
+    ) -> Option<(SuggestionId, Rc<Entry>)> {
+        let name: &str = name.as_ref();
+        let access = ast::opr::predefined::ACCESS;
+        let (module_trail, entry_name) = name.rsplit_once(access).unwrap_or(("", name));
+        let module_segments = module_trail.split(access);
+        let num_module_segments = module_segments.clone().count();
+        self.entries
+            .borrow()
+            .iter()
+            .find(|(_, entry)| {
+                entry.scope == entry::Scope::Everywhere && entry.name == entry_name && {
+                    let path = entry.defined_in.path();
+                    path.len() >= num_module_segments
+                        && module_segments
+                            .clone()
+                            .zip(&path[path.len() - num_module_segments..])
+                            .all(|(a, b)| a == b)
+                }
+            })
+            .map(|(id, entry)| (*id, entry.clone()))
     }
 
     /// Search the database for Local or Function entries with given name and visible at given
@@ -773,7 +800,7 @@ pub mod test {
     ) {
         let lookup = db.lookup_by_method_pointer(method_pointer);
         let lookup_method_pointer: Option<language_server::MethodPointer> =
-            lookup.and_then(|method_pointer| method_pointer.deref().try_into().ok());
+            lookup.and_then(|(_, entry)| entry.deref().try_into().ok());
         assert_eq!(lookup_method_pointer.unwrap(), method_pointer.clone());
     }
 
@@ -1411,7 +1438,7 @@ pub mod test {
     #[test]
     fn hierarchy_index_of_standard_db_mock() {
         let db = mock::standard_db_mock();
-        assert_eq!(db.hierarchy_index.borrow().len(), 4);
+        assert_eq!(db.hierarchy_index.borrow().len(), 5);
         verify_hierarchy_index(&db, "Standard.Base", &[
             "Standard.Base.Maybe",
             "Standard.Base.Number",
@@ -1459,7 +1486,7 @@ pub mod test {
             current_version: 1,
         };
         db.apply_update_event(update);
-        assert_eq!(db.hierarchy_index.borrow().len(), 4);
+        assert_eq!(db.hierarchy_index.borrow().len(), 5);
         verify_hierarchy_index(&db, "local.Project.Submodule.TestType", &[
             "local.Project.Submodule.TestType.static_method",
             "local.Project.Submodule.TestType.new_method",
@@ -1485,7 +1512,7 @@ pub mod test {
             current_version: 2,
         };
         db.apply_update_event(update);
-        assert_eq!(db.hierarchy_index.borrow().len(), 4);
+        assert_eq!(db.hierarchy_index.borrow().len(), 5);
         verify_hierarchy_index(&db, "local.Project.Submodule.TestType", &[
             "local.Project.Submodule.TestType.static_method",
         ]);
@@ -1504,7 +1531,7 @@ pub mod test {
             current_version: 3,
         };
         db.apply_update_event(update);
-        assert_eq!(db.hierarchy_index.borrow().len(), 4);
+        assert_eq!(db.hierarchy_index.borrow().len(), 5);
         verify_hierarchy_index(&db, "Standard.Base.Maybe", &[
             "Standard.Base.Maybe.Some",
             "Standard.Base.Maybe.None",
@@ -1576,7 +1603,7 @@ pub mod test {
             current_version: 1,
         };
         db.apply_update_event(update);
-        assert_eq!(db.hierarchy_index.borrow().len(), 5);
+        assert_eq!(db.hierarchy_index.borrow().len(), 6);
         verify_hierarchy_index(&db, "Standard.Base", &["Standard.Base.Maybe"]);
         verify_hierarchy_index(&db, "Standard.Base.Maybe", &[
             "Standard.Base.Maybe.Some",
@@ -1614,7 +1641,7 @@ pub mod test {
             current_version: 1,
         };
         db.apply_update_event(update);
-        assert_eq!(db.hierarchy_index.borrow().len(), 4);
+        assert_eq!(db.hierarchy_index.borrow().len(), 5);
         let update = SuggestionDatabaseUpdatesEvent {
             updates:         vec![entry::Update::Add {
                 id:         21,
@@ -1631,7 +1658,7 @@ pub mod test {
             current_version: 2,
         };
         db.apply_update_event(update);
-        assert_eq!(db.hierarchy_index.borrow().len(), 5);
+        assert_eq!(db.hierarchy_index.borrow().len(), 6);
         let new_type = lookup_id_by_name(&db, "Standard.Base.NewType").unwrap();
         let new_method = lookup_id_by_name(&db, "Standard.Base.NewType.new_method").unwrap();
         assert_eq!(db.lookup_hierarchy(new_type).unwrap(), HashSet::from([new_method]));
@@ -1656,7 +1683,7 @@ pub mod test {
             current_version: 1,
         };
         db.apply_update_event(update);
-        assert_eq!(db.hierarchy_index.borrow().len(), 4);
+        assert_eq!(db.hierarchy_index.borrow().len(), 5);
         let update = SuggestionDatabaseUpdatesEvent {
             updates:         vec![entry::Update::Add {
                 id:         21,
@@ -1669,7 +1696,7 @@ pub mod test {
             current_version: 2,
         };
         db.apply_update_event(update);
-        assert_eq!(db.hierarchy_index.borrow().len(), 5);
+        assert_eq!(db.hierarchy_index.borrow().len(), 6);
         let new_module = lookup_id_by_name(&db, "Standard.NewModule").unwrap();
         let new_type = lookup_id_by_name(&db, "Standard.NewModule.NewType").unwrap();
         assert_eq!(db.lookup_hierarchy(new_module).unwrap(), HashSet::from([new_type]));
