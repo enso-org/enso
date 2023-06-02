@@ -4,9 +4,9 @@
 
 import * as semver from 'semver'
 
-import * as authentication from 'enso-authentication'
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
+import * as dashboard from 'enso-authentication'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
@@ -254,12 +254,12 @@ class Main implements AppRunner {
          * Enso main scene being initialized. As a temporary workaround we check whether
          * appInstance was already ran. Target solution should move running appInstance
          * where it will be called only once. */
-        authentication.run({
+        dashboard.run({
             appRunner: this,
             logger,
             supportsLocalBackend: SUPPORTS_LOCAL_BACKEND,
             supportsDeepLinks: SUPPORTS_DEEP_LINKS,
-            shouldStartInOfflineMode: !shouldUseAuthentication,
+            isAuthenticationDisabled: !shouldUseAuthentication,
             shouldShowDashboard: shouldUseNewDashboard,
             onAuthenticated: () => {
                 if (isInAuthenticationFlow) {

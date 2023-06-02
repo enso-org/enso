@@ -162,6 +162,7 @@ const AuthContext = react.createContext<AuthContextType>({} as AuthContextType)
 
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
+    enabled: boolean
     authService: authServiceModule.AuthService
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: () => void
@@ -170,7 +171,7 @@ export interface AuthProviderProps {
 
 /** A React provider for the Cognito API. */
 export function AuthProvider(props: AuthProviderProps) {
-    const { authService, onAuthenticated, children } = props
+    const { enabled, authService, onAuthenticated, children } = props
     const { cognito } = authService
     const { session, deinitializeSession } = sessionProvider.useSession()
     const { setBackend } = backendProvider.useSetBackend()
@@ -197,7 +198,7 @@ export function AuthProvider(props: AuthProviderProps) {
      * If the token has expired, automatically refreshes the token and returns the new token. */
     react.useEffect(() => {
         const fetchSession = async () => {
-            if (!navigator.onLine) {
+            if (!navigator.onLine || !enabled) {
                 goOfflineInternal()
             } else if (session.none) {
                 setInitialized(true)

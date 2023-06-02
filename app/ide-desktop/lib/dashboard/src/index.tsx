@@ -39,7 +39,7 @@ authentication.run({
     // This file is only included when building for the cloud.
     supportsLocalBackend: false,
     supportsDeepLinks: false,
-    shouldStartInOfflineMode: false,
+    isAuthenticationDisabled: false,
     shouldShowDashboard: true,
     /** The `onAuthenticated` option is mandatory but is not needed here,
      * so this function is empty. */

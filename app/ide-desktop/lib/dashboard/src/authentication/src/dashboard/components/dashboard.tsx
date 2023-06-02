@@ -239,7 +239,10 @@ function arrayWithAssetOmitted<T extends backendModule.AssetType>(
 
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
+    /** Whether the application may have the local backend running. */
     supportsLocalBackend: boolean
+    /** If true, the app can only be used in offline mode. */
+    isAuthenticationDisabled: boolean
     appRunner: AppRunner
 }
 
@@ -248,7 +251,7 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 function Dashboard(props: DashboardProps) {
-    const { supportsLocalBackend, appRunner } = props
+    const { supportsLocalBackend, isAuthenticationDisabled, appRunner } = props
 
     const logger = loggerProvider.useLogger()
     const session = auth.useNonPartialUserSession()
@@ -830,6 +833,7 @@ function Dashboard(props: DashboardProps) {
         >
             <TopBar
                 supportsLocalBackend={supportsLocalBackend}
+                isAuthenticationDisabled={isAuthenticationDisabled}
                 projectName={project?.name ?? null}
                 tab={tab}
                 toggleTab={() => {
