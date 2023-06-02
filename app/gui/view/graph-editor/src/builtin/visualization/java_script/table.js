@@ -99,7 +99,13 @@ class TableVisualization extends Visualization {
             } else if (params.value === '') {
                 return '<span style="color:grey; font-style: italic;">Empty</span>'
             }
-            return params.value.toString()
+            return params.value
+                .toString()
+                .replace(
+                    /[&<"'>]/g,
+                    m =>
+                        ({ '&': '&amp;', '<': '&lt;', '"': '&quot;', "'": '&#39;', '>': '&gt;' }[m])
+                )
         }
 
         if (!this.tabElem) {
@@ -146,6 +152,7 @@ class TableVisualization extends Visualization {
                     cellRenderer: cellRenderer,
                 },
                 onColumnResized: e => this.lockColumnSize(e),
+                suppressFieldDotNotation: true,
             }
             this.agGrid = new agGrid.Grid(tabElem, this.agGridOptions)
         }
