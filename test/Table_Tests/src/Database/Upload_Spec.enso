@@ -236,6 +236,18 @@ spec make_new_connection prefix persistent_connector=True =
             r4.should_fail_with Non_Unique_Primary_Key
             r4.catch . clashing_primary_key . should_equal [1, 'a']
 
+        Test.specify "should fail if the target table already exists" <|
+            name = Name_Generator.random_name "table-already-exists"
+            db_table = connection.create_table name [["X", Value_Type.Integer]] temporary=True
+            t = Table.new ["Y", ['a', 'b']]
+            r1 = t.select_into_database_table connection name temporary=True
+            r1.should_fail_with Table_Already_Exists
+            r2 = t.select_into_database_table connection name temporary=False
+            r2.should_fail_with Table_Already_Exists
+
+            db_table.column_names . should_equal ["X"]
+            db_table.at "X" . to_vector . should_equal []
+
     Test.group prefix+"Persisting a Database Table (query)" <|
         Test.specify "should be able to create a persistent copy of a DB table" <|
             t = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [1.0, 2.0, 3.0]]]
@@ -342,7 +354,20 @@ spec make_new_connection prefix persistent_connector=True =
             r1.should_fail_with Unsupported_Database_Operation
             r1.catch.message . should_contain "same connection"
 
-    test_table_append table_builder =
+        Test.specify "should fail if the target table already exists" <|
+            name = Name_Generator.random_name "table-already-exists"
+            db_table = connection.create_table name [["X", Value_Type.Integer]] temporary=True
+            t = Table.new ["Y", ['a', 'b']]
+            db_table_2 = t.select_into_database_table connection temporary=True
+            r1 = db_table_2.select_into_database_table connection name temporary=True
+            r1.should_fail_with Table_Already_Exists
+            r2 = db_table_2.select_into_database_table connection name temporary=False
+            r2.should_fail_with Table_Already_Exists
+
+            db_table.column_names . should_equal ["X"]
+            db_table.at "X" . to_vector . should_equal []
+
+    test_table_append source_table_builder target_table_builder =
         Test.specify "should be able to append new rows to a table" <|
             Nothing
 
@@ -394,11 +419,11 @@ spec make_new_connection prefix persistent_connector=True =
         Test.specify "should fail if some of key_columns do not exist in either table" <|
             Nothing
 
-        Test.specify "by default, should fail if the target table does not exist" <|
-            Nothing
-
-        Test.specify "should allow to create the target table if it does not exist, but make it temporary and attach a warning" <|
-            Nothing
+        Test.specify "should fail if the target table does not exist" <|
+            t = source_table_builder ["X", [1, 2, 3], "Y", ['a', 'b', 'c']]
+            nonexistent_name = Name_Generator.random_name "nonexistent-table"
+            r1 = t.update_database_table connection nonexistent_name
+            r1.should_fail_with Table_Not_Found
 
         Test.specify "should report a meaningful error when the primary key could not be determined" <|
             # TODO temporary (only SQLite?)
@@ -411,16 +436,14 @@ spec make_new_connection prefix persistent_connector=True =
             # TODO how do we define compatibility? I assume we allow type widening, but not narrowing
             Nothing
 
+    table_builder name_prefix args =
+        in_memory_table = Table.new args
+        in_memory_table.select_into_database_table connection (Name_Generator.random_name name_prefix) temporary=True
+    Test.group "Appending an in-memory table to a Database table" pending="TODO" <|
+        test_table_append Table.new (table_builder "target-table")
 
-    Test.group "Appending an in-memory table to a Database table" <|
-        table_builder = Table.new
-        test_table_append table_builder
-
-    Test.group "Appending a Database table to a Database table" <|
-        table_builder args =
-            in_memory_table = Table.new args
-            in_memory_table.select_into_database_table connection (Name_Generator.random_name "source-table") temporary=True
-        test_table_append table_builder
+    Test.group "Appending a Database table to a Database table" pending="TODO" <|
+        test_table_append (table_builder "source-table") (table_builder "target-table")
 
 
 ## PRIVATE
