@@ -1666,8 +1666,7 @@ type Column
     info : Table
     info self = self.to_table.info
 
-    ## UNSTABLE
-
+    ## ALIAS order_by
        Sorts the column according to the specified rules.
 
        Arguments:

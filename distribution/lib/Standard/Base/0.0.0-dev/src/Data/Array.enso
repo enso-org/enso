@@ -156,7 +156,8 @@ type Array
     # For compatibility with Vector
     #
 
-    ## Sort the array.
+    ## ALIAS order_by
+       Sort the array.
 
        Arguments:
        - order: The order in which the array elements are sorted.

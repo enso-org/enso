@@ -735,8 +735,7 @@ type Column
     rename self name = self.naming_helpers.ensure_name_is_valid name <|
         Column.Value name self.connection self.sql_type_reference self.expression self.context
 
-    ## UNSTABLE
-
+    ## ALIAS order_by
        Sorts the column according to the specified rules.
 
        Arguments:
