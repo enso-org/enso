@@ -2004,10 +2004,13 @@ impl GraphEditorModel {
         }
     }
 
-    fn enable_visualization_fullscreen(&self, node_id: impl Into<NodeId>) {
+    fn enable_visualization_fullscreen(&self, node_id: impl Into<NodeId>) -> bool {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.model().visualization.frp.set_view_state(visualization::ViewState::Fullscreen);
+            node.frp().enable_fullscreen_visualization();
+            node.visualization().fullscreen.value()
+        } else {
+            false
         }
     }
 
@@ -3595,7 +3598,9 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     eval viz_enable          ((id) model.enable_visualization(id));
     eval viz_disable         ((id) model.disable_visualization(id));
     eval viz_preview_disable ((id) model.disable_visualization(id));
-    eval viz_fullscreen_on   ((id) model.enable_visualization_fullscreen(id));
+    fullscreen_vis_was_enabled <- viz_fullscreen_on.map(f!((id)
+        model.enable_visualization_fullscreen(id).then(|| *id))
+    ).unwrap();
 
     viz_fs_to_close <- out.visualization_fullscreen.sample(&inputs.close_fullscreen_visualization);
     eval viz_fs_to_close ([model](vis) {
@@ -3605,7 +3610,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         }
     });
 
-    out.visualization_fullscreen <+ viz_fullscreen_on.map(|id| Some(*id));
+    out.visualization_fullscreen <+ fullscreen_vis_was_enabled.map(|id| Some(*id));
     out.visualization_fullscreen <+ inputs.close_fullscreen_visualization.constant(None);
 
     out.is_fs_visualization_displayed <+ out.visualization_fullscreen.map(Option::is_some);

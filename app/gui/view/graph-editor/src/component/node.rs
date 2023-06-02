@@ -258,6 +258,7 @@ ensogl::define_endpoints_2! {
         select                (),
         deselect              (),
         enable_visualization  (),
+        enable_fullscreen_visualization  (),
         disable_visualization (),
         set_visualization     (Option<visualization::Definition>),
         set_disabled          (bool),
@@ -858,6 +859,8 @@ impl Node {
             eval error_color_anim.value ((value) model.set_error_color(value));
             visualization.set_view_state <+ input.set_error.is_some().constant(visualization::ViewState::Disabled);
 
+            enable_fullscreen <- frp.enable_fullscreen_visualization.gate(&no_error_set);
+            visualization.set_view_state <+ enable_fullscreen.constant(visualization::ViewState::Fullscreen);
 
         }
 
