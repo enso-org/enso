@@ -8851,6 +8851,7 @@ object IR {
 
       case class AmbiguousImport(
         originalImport: IR.Module.Scope.Import,
+        originalSymbolPath: String,
         symbolName: String,
         source: Source
       ) extends Reason {
@@ -8861,7 +8862,7 @@ object IR {
                 s"'${originalImport.showCode()}' in ${fileLocationFromSection(location, source)}"
               case None => originalImport.showCode()
             }
-          s"Ambiguous imported symbol '${symbolName}' in import statement. The original import is ${originalImportRepr}"
+          s"Ambiguous imported symbol '${symbolName}' in import statement. The original import `${originalImportRepr}` points to ${originalSymbolPath}"
         }
 
       }
