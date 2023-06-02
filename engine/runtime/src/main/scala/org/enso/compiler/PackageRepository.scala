@@ -337,6 +337,12 @@ object PackageRepository {
         .unzip
 
       regularModules.foreach(registerModule)
+      regularModules.foreach(module => {
+        val fqn        = module.getName.toString
+        val prefix     = libraryName.qualifiedName
+        val moduleName = fqn.substring(prefix.length() + 1)
+        pkg.registerModule(moduleName, module)
+      })
 
       syntheticModulesMetadata.flatten
         .groupMap(_._1)(v => (v._2, v._3))
@@ -344,15 +350,20 @@ object PackageRepository {
           val source = modulesWithSources
             .map(_._2)
             .foldLeft("")(_ ++ "\n" ++ _)
+          val module = Module.synthetic(
+            qName,
+            pkg,
+            Rope(source),
+            context
+          )
           registerSyntheticModule(
-            Module.synthetic(
-              qName,
-              pkg,
-              Rope(source),
-              context
-            ),
+            module,
             modulesWithSources.map(_._1)
           )
+          val fqn        = module.getName.toString
+          val prefix     = libraryName.qualifiedName
+          val moduleName = fqn.substring(prefix.length() + 1)
+          pkg.registerModule(moduleName, module)
         }
 
       if (isLibrary) {
