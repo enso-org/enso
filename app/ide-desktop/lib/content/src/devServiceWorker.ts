@@ -3,6 +3,8 @@
  * to work when developing locally on `localhost:8080`. */
 // Bring globals and interfaces specific to Web Workers into scope.
 /// <reference lib="WebWorker" />
+import * as common from 'enso-common'
+
 import * as constants from './serviceWorkerConstants'
 
 // =====================
@@ -24,8 +26,27 @@ self.addEventListener('install', event => {
 
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url)
-    if (url.hostname === 'localhost') {
+    if (url.hostname === 'localhost' && url.pathname === '/esbuild') {
         return false
+    } else if (url.hostname === 'localhost') {
+        const responsePromise = caches
+            .open(constants.CACHE_NAME)
+            .then(cache => cache.match(event.request))
+            .then(response =>
+                response ?? /\/[^.]+$/.test(url.pathname)
+                    ? fetch('/index.html')
+                    : fetch(event.request.url)
+            )
+        event.respondWith(
+            responsePromise.then(response => {
+                const clonedResponse = new Response(response.body, response)
+                for (const [header, value] of common.COOP_COEP_CORP_HEADERS) {
+                    clonedResponse.headers.set(header, value)
+                }
+                return clonedResponse
+            })
+        )
+        return
     } else {
         event.respondWith(
             caches
