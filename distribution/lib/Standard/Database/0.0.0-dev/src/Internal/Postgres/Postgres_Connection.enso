@@ -135,7 +135,8 @@ type Postgres_Connection
     read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table
     read self query limit=Nothing = self.connection.read query limit
 
-    ## Creates a new empty table in the database.
+    ## Creates a new empty table in the database and returns a query referencing
+       the new table.
 
        Arguments:
        - table_name: the name of the table to create. If not provided, a random
@@ -151,6 +152,10 @@ type Postgres_Connection
        - temporary: if set to `True`, the table will be temporary, meaning that
          it will be dropped once the `connection` is closed. Defaults to
          `False`.
+       - allow_existing: Defaults to `False`, meaning that if the table with the
+         provided name already exists, an error will be raised. If set to `True`,
+         the existing table will be returned instead. Note that the existing
+         table is not guaranteed to have the same structure as the one provided.
        - on_problems: the behavior to use when encountering non-fatal problems.
          Defaults to reporting them as warning.
 

@@ -34,28 +34,120 @@ spec make_new_connection prefix persistent_connector=True =
     connection = make_new_connection Nothing
     Test.group prefix+"Creating an empty table" <|
         Test.specify "should allow to specify the column names and types" <|
-            Nothing
+            t = connection.create_table structure=[["X", Value_Type.Integer], ["Y", Value_Type.Char]] temporary=True
+            t.column_names . should_equal ["X", "Y"]
+            t.at "X" . to_vector . should_equal []
+            t.at "X" . value_type . is_integer . should_be_true
+            t.at "Y" . to_vector . should_equal []
+            t.at "Y" . value_type . is_text . should_be_true
+            t.row_count . should_equal 0
 
         Test.specify "should allow to inherit the structure of an existing in-memory table" <|
-            Nothing
+            t = Table.new [["X", [1, 2]], ["Y", ['a', 'b']]]
+            db_table = connection.create_table structure=t temporary=True
+            db_table.column_names . should_equal ["X", "Y"]
+            db_table.at "X" . to_vector . should_equal []
+            db_table.at "X" . value_type . is_integer . should_be_true
+            db_table.at "Y" . to_vector . should_equal []
+            db_table.at "Y" . value_type . is_text . should_be_true
+            db_table.row_count . should_equal 0
 
         Test.specify "should allow to inherit the structure of an existing Database table" <|
-            Nothing
+            t = Table.new [["X", [1, 2]], ["Y", ['a', 'b']]]
+            input_db_table = t.select_into_database_table connection (Name_Generator.random_name "input_table") temporary=True
+            input_db_table.at "X" . to_vector . should_equal [1, 2]
+
+            db_table = connection.create_table structure=input_db_table temporary=True
+            db_table.column_names . should_equal ["X", "Y"]
+            db_table.at "X" . to_vector . should_equal []
+            db_table.at "X" . value_type . is_integer . should_be_true
+            db_table.at "Y" . to_vector . should_equal []
+            db_table.at "Y" . value_type . is_text . should_be_true
+            db_table.row_count . should_equal 0
 
         Test.specify "should fail if the table already exists" <|
-            Nothing
+            name = Name_Generator.random_name "table"
+            r0 = connection.create_table name structure=[["X", Value_Type.Integer], ["Y", Value_Type.Char]] temporary=True
+            r1 = connection.create_table name structure=[["X", Value_Type.Integer], ["Y", Value_Type.Char]] temporary=True
+            r1.should_fail_with Table_Already_Exists
 
-        Test.specify "should not fail if the table exists, if `if_not_exists=True`, even if the structure does not match" <|
-            Nothing
+        Test.specify "should not fail if the table exists, if `allow_existing=True`, even if the structure does not match" <|
+            r0 = connection.create_table name structure=[["X", Value_Type.Integer], ["Y", Value_Type.Char]] temporary=True
+            r1 = connection.create_table name structure=[["Z", Value_Type.Float]] temporary=True allow_existing=True
+            r1.column_names . should_equal ["X", "Y"]
 
-        Test.specify "should drop the temporary table after the connection is closed" <|
-            Nothing
+        Test.specify "should include the created table in the tables directory" <|
+            name = Name_Generator.random_name "persistent_table 1"
+            db_table = connection.create_table name structure=[["X", Value_Type.Integer], ["Y", Value_Type.Char]] temporary=False
+            Panic.with_finalizer (connection.drop_table db_table.name) <|
+                db_table.column_names . should_equal ["X", "Y"]
+                db_table.at "X" . to_vector . should_equal []
 
-        Test.specify "should preserve the regular table after the connection is closed" <|
-            Nothing
+                connection.tables.at "Name" . to_vector . should_contain name
+                connection.query name . column_names . should_equal ["X", "Y"]
+                connection.query name . at "X" . to_vector . should_equal []
+
+        Test.specify "should include the temporary table in the tables directory" <|
+            name = Name_Generator.random_name "temporary_table 1"
+            db_table = connection.create_table name structure=[["X", Value_Type.Integer], ["Y", Value_Type.Char]] temporary=True
+            db_table.column_names . should_equal ["X", "Y"]
+            db_table.at "X" . to_vector . should_equal []
+
+            connection.tables.at "Name" . to_vector . should_contain name
+            connection.query name . column_names . should_equal ["X", "Y"]
+            connection.query name . at "X" . to_vector . should_equal []
+
+        if persistent_connector then
+            Test.specify "should drop the temporary table after the connection is closed" <|
+                name = Name_Generator.random_name "temporary_table 2"
+                tmp_connection = make_new_connection Nothing
+                db_table = tmp_connection.create_table name [["X", Value_Type.Integer]] temporary=True
+                tmp_connection.query (SQL_Query.Table_Name name) . column_names . should_equal ["X"]
+                tmp_connection.close
+                connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
+
+            Test.specify "should preserve the regular table after the connection is closed" <|
+                name = Name_Generator.random_name "persistent_table 2"
+                tmp_connection = make_new_connection Nothing
+                db_table = tmp_connection.create_table name [["X", Value_Type.Integer]] temporary=False
+                name = db_table.name
+                Panic.with_finalizer (connection.drop_table name) <|
+                    t1 = tmp_connection.query (SQL_Query.Table_Name name)
+                    t1.column_names . should_equal ["X"]
+                    t1.at "X" . value_type . is_integer . should_be_true
+                    tmp_connection.close
+                    t2 = connection.query (SQL_Query.Table_Name name)
+                    t2.column_names . should_equal ["X"]
+                    t2.at "X" . value_type . is_integer . should_be_true
+
+        Test.specify "should be able to specify a primary key" <|
+            db_table = connection.create_table structure=[["X", Value_Type.Integer], ["Y", Value_Type.Char], ["Z", Value_Type.Integer], ["W", Value_Type.Float]] primary_key=["Y", "Z"] temporary=True
+            Panic.with_finalizer (connection.drop_table db_table.name) <|
+                get_primary_key connection db_table.name . should_equal ["Y", "Z"]
+
+        Test.specify "should ensure that primary key columns specified are valid" <|
+            r1 = connection.create_table structure=[["X", Value_Type.Integer]] primary_key=["Y"] temporary=True
+            r1.should_fail_with Missing_Input_Columns
+
+            t = Table.new [["X", [1, 2, 3]]]
+            r2 = connection.create_table structure=t primary_key=["Y"] temporary=True
+            r2.should_fail_with Missing_Input_Columns
+
+        Test.specify "should not allow creating a table without columns" <|
+            r1 = connection.create_table structure=[] temporary=True
+            r1.should_fail_with Illegal_Argument
 
     Test.group prefix+"Uploading an in-memory Table" <|
         in_memory_table = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
+        Test.specify "should create a database table with the same contents as the source" <|
+            db_table = in_memory_table.select_into_database_table connection temporary=True
+            db_table.column_names . should_equal ["X", "Y"]
+            db_table.at "X" . to_vector . should_equal [1, 2, 3]
+            db_table.at "Y" . to_vector . should_equal ['a', 'b', 'c']
+            db_table.at "X" . value_type . is_integer . should_be_true
+            db_table.at "Y" . value_type . is_text . should_be_true
+            db_table.row_count . should_equal 3
+
         Test.specify "should include the created table in the tables directory" <|
             db_table = in_memory_table.select_into_database_table connection (Name_Generator.random_name "permanent_table 1") temporary=False
             Panic.with_finalizer (connection.drop_table db_table.name) <|
@@ -88,7 +180,7 @@ spec make_new_connection prefix persistent_connector=True =
                     tmp_connection.close
                     connection.query (SQL_Query.Table_Name name) . at "X" . to_vector . should_equal [1, 2, 3]
 
-        Test.specify "should rollback the table creation if select_into_database_table fails" <|
+        Test.specify "should not create any table if upload fails" <|
             normal_column = Column.from_vector "Y" ((100+0).up_to (100+1000)).to_vector
             exploding_column = make_mock_column "X" (0.up_to 1000).to_vector 512
             exploding_table = Table.new [normal_column, exploding_column]
