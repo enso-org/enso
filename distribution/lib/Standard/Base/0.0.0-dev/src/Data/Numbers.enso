@@ -271,6 +271,7 @@ type Number
          Convert the value 5000 to a string.
 
              5000.format "#,##0"
+    @locale Locale.default_widget
     format : Text -> Locale -> Text
     format self format locale=Locale.default =
         symbols = DecimalFormatSymbols.new locale.java_locale
