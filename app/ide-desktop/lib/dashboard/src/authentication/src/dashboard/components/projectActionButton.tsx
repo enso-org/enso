@@ -274,24 +274,31 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
 
     const openProject = async () => {
         setState(backendModule.ProjectState.openInProgress)
-        switch (backend.type) {
-            case backendModule.BackendType.remote:
-                setToastId(toast.loading(LOADING_MESSAGE))
-                await backend.openProject(project.id)
-                doRefresh()
-                setIsCheckingStatus(true)
-                break
-            case backendModule.BackendType.local:
-                await backend.openProject(project.id)
-                setState(oldState => {
-                    if (oldState === backendModule.ProjectState.openInProgress) {
-                        doRefresh()
-                        return backendModule.ProjectState.opened
-                    } else {
-                        return oldState
-                    }
-                })
-                break
+        try {
+            switch (backend.type) {
+                case backendModule.BackendType.remote:
+                    setToastId(toast.loading(LOADING_MESSAGE))
+                    await backend.openProject(project.id)
+                    doRefresh()
+                    setIsCheckingStatus(true)
+                    break
+                case backendModule.BackendType.local:
+                    await backend.openProject(project.id)
+                    setState(oldState => {
+                        if (oldState === backendModule.ProjectState.openInProgress) {
+                            doRefresh()
+                            return backendModule.ProjectState.opened
+                        } else {
+                            return oldState
+                        }
+                    })
+                    break
+            }
+        } catch {
+            setIsCheckingStatus(false)
+            setIsCheckingResources(false)
+            toast.error(`Error opening project '${project.title}'.`)
+            setState(backendModule.ProjectState.closed)
         }
     }
 
