@@ -51,7 +51,7 @@ impl<'a, T> MutexGuard<'a, T> {
 
 impl<'a, T> Drop for MutexGuard<'a, T> {
     fn drop(&mut self) {
-        if self.created_when_panicking || !thread::panicking() {
+        if !self.created_when_panicking && thread::panicking() {
             self.mutex.poisoned.set(true);
         }
     }
@@ -90,5 +90,26 @@ impl<T> SingleThreadMutex<T> {
         } else {
             Ok(guard)
         }
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn locking() {
+        let mutex = SingleThreadMutex::new(13);
+        let lock = mutex.try_lock().expect("First lock should be successful");
+        assert_eq!(*lock, 13);
+        mutex.try_lock().expect_err("Locking while already lock should fail");
+        drop(lock);
+        mutex.try_lock().expect("Locking after dropping previous lock should succeed");
     }
 }
