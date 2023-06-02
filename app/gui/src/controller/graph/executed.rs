@@ -16,8 +16,6 @@ use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 use crate::retry::retry_operation_errors_cap;
 
-use std::assert_matches::debug_assert_matches;
-use std::time::Duration;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::MethodPointer;
@@ -25,6 +23,8 @@ use futures::stream;
 use futures::TryStreamExt;
 use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::context::Context;
+use std::assert_matches::debug_assert_matches;
+use std::time::Duration;
 
 
 // ==============
@@ -596,12 +596,6 @@ pub mod tests {
         notifications.expect_pending();
     }
 
-    #[test]
-    fn entering_node() {
-        let fixture = test::mock::Unified::new().fixture_customize();
-
-        let Fixture =
-    }
 
     // Test that moving nodes is possible in read-only mode.
     #[test]

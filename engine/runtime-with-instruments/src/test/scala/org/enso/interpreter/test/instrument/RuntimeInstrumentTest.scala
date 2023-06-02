@@ -248,7 +248,7 @@ class RuntimeInstrumentTest
         contextId,
         mainBody,
         fooTypeName,
-        Api.MethodPointer(moduleName, fooTypeName, "from")
+        Api.MethodCall(Api.MethodPointer(moduleName, fooTypeName, "from"))
       ),
       context.executionComplete(contextId)
     )
@@ -607,7 +607,9 @@ class RuntimeInstrumentTest
           contextId,
           xExpr,
           ConstantsGen.INTEGER_BUILTIN,
-          Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "f")
+          Api.MethodCall(
+            Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "f")
+          )
         ),
       TestMessages.update(contextId, mainRes, ConstantsGen.INTEGER_BUILTIN),
       TestMessages.update(contextId, mainExpr, ConstantsGen.INTEGER_BUILTIN),

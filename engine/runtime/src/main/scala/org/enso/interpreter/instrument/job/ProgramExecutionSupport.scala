@@ -326,7 +326,7 @@ object ProgramExecutionSupport {
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
     val expressionId  = value.getExpressionId
-    val methodPointer = toMethodPointer(value)
+    val methodPointer = toMethodCall(value)
     if (
       !syncState.isExpressionSync(expressionId) ||
       (
@@ -391,7 +391,7 @@ object ProgramExecutionSupport {
                   Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
                 }.toVector,
                 value.wasCached(),
-                value.isTypeChanged() || value.isFunctionCallChanged(),
+                value.isTypeChanged || value.isFunctionCallChanged,
                 payload
               )
             )
@@ -535,23 +535,26 @@ object ProgramExecutionSupport {
     )
   }
 
-  /** Extract method pointer information from the expression value.
+  /** Extract the method call information from the provided expression value.
     *
     * @param value the expression value.
-    * @return the method pointer info
+    * @return the method call info
     */
-  private def toMethodPointer(
-    value: ExpressionValue
-  ): Option[Api.MethodPointer] =
+  private def toMethodCall(value: ExpressionValue): Option[Api.MethodCall] =
     for {
       call       <- Option(value.getCallInfo).orElse(Option(value.getCachedCallInfo))
       moduleName <- Option(call.getModuleName)
       typeName   <- Option(call.getTypeName)
-    } yield Api.MethodPointer(
-      moduleName.toString,
-      typeName.toString,
-      call.getFunctionName
-    )
+    } yield {
+      Api.MethodCall(
+        methodPointer = Api.MethodPointer(
+          moduleName.toString,
+          typeName.toString.stripSuffix(TypeSuffix),
+          call.getFunctionName
+        ),
+        notAppliedArguments = call.getNotAppliedArguments.toVector
+      )
+    }
 
   /** Find source file path by the module name.
     *
@@ -590,4 +593,6 @@ object ProgramExecutionSupport {
     cache: RuntimeCache,
     syncState: UpdatesSynchronizationState
   )
+
+  private val TypeSuffix = ".type"
 }

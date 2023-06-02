@@ -64,7 +64,7 @@ impl From<ExpressionUpdate> for ComputedValueInfo {
     fn from(update: ExpressionUpdate) -> Self {
         ComputedValueInfo {
             typename:    update.typename.map(ImString::new),
-            method_call: update.method_pointer,
+            method_call: update.method_call.map(|mc| mc.method_pointer),
             payload:     update.payload,
         }
     }

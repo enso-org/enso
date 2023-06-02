@@ -11,11 +11,11 @@ use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 
-use std::cmp::Ordering;
 use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::VisualisationConfiguration;
 use futures::future::LocalBoxFuture;
+use std::cmp::Ordering;
 
 
 

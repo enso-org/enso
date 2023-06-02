@@ -425,7 +425,8 @@ type Date
     to_date_time : Time_Of_Day -> Time_Zone -> Date_Time
     to_date_time self (time_of_day=Time_Of_Day.new) (zone=Time_Zone.system) = self.to_time_builtin time_of_day zone
 
-    ## Add the specified amount of time to this instant to get another date.
+    ## ALIAS Add Period
+       Add the specified amount of time to this instant to get another date.
 
        Arguments:
        - amount: The time duration to add to this instant.
@@ -447,7 +448,6 @@ type Date
                 Error.throw (Illegal_Argument.Error "Illegal period argument")
 
     ## ALIAS Date Range
-
        Creates an increasing range of dates from `self` to `end`.
 
        Arguments:
@@ -472,7 +472,6 @@ type Date
         _ -> Error.throw (Type_Error.Error Date end "end")
 
     ## ALIAS Date Range
-
        Creates a decreasing range of dates from `self` to `end`.
 
        Arguments:
@@ -618,7 +617,8 @@ type Date
                         if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date - (Period.new days=1)) else end_date
                     go end
 
-    ## Subtract the specified amount of time from this instant to get another
+    ## ALIAS Subtract Period
+       Subtract the specified amount of time from this instant to get another
        date.
 
        Arguments:
