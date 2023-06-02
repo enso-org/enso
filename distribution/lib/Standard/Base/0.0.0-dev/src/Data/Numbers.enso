@@ -611,9 +611,7 @@ type Decimal
                     Error.throw (Arithmetic_Error.Error msg)
                 False ->  check_round_input self <|
                     decimal_result =
-                        ## The approach to tie-breaking here reduces precision error by comparing
-                           the original value with a scaled midpoint (0.5 x 10^N) rather than
-                           scaling the value and comparing with 0.5.
+                        # Algorithm taken from https://stackoverflow.com/a/7211688
                         scale = 10 ^ decimal_places
                         scaled = self * scale
                         round_base = scaled.floor
