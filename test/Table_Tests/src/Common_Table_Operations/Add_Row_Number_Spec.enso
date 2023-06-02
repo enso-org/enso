@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Table import Sort_Column
-from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Output_Column_Names, Floating_Point_Equality
+from Standard.Table.Errors import Missing_Input_Columns, Duplicate_Output_Column_Names, Floating_Point_Equality
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
@@ -124,4 +124,4 @@ spec setup =
             r2.catch.criteria . should_equal ["Z", "Y"]
 
             r3 = t.add_row_number group_by=[44]
-            r3.should_fail_with Column_Indexes_Out_Of_Range
+            r3.should_fail_with Missing_Input_Columns

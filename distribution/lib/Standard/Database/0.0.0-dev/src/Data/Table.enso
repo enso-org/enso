@@ -166,10 +166,6 @@ type Table
            `Missing_Input_Columns` is raised as an error, unless
            `error_on_missing_columns` is set to `False`, in which case the
            problem is reported according to the `on_problems` setting.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
-           raised as an error, unless `error_on_missing_columns` is set to
-           `False`, in which case the problem is reported according to the
-           `on_problems` setting.
        > Example
          Select columns by name.
 
@@ -192,7 +188,7 @@ type Table
 
        Icon: select_column
     @columns Widget_Helpers.make_column_name_vector_selector
-    select_columns :  Vector (Integer | Text | Column_Selector) | Text | Integer -> Boolean -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range
+    select_columns :  Vector (Integer | Text | Column_Selector) | Text | Integer -> Boolean -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
     select_columns self (columns = [self.columns.first.name]) (reorder = False) (error_on_missing_columns = True) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.select_columns selectors=columns reorder=reorder error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
@@ -221,10 +217,6 @@ type Table
            `Missing_Input_Columns` is reported according to the `on_problems`
            setting, unless `error_on_missing_columns` is set to `True`, in which
            case it is raised as an error.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
-           reported according to the `on_problems` setting, unless
-           `error_on_missing_columns` is set to `True`, in which case it is
-           raised as an error.
 
        > Example
          Remove columns with given names.
@@ -246,7 +238,7 @@ type Table
 
              table.remove_columns [-1, 0, 1]
     @columns Widget_Helpers.make_column_name_vector_selector
-    remove_columns :  Vector (Integer | Text | Column_Selector) | Text | Integer -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range
+    remove_columns :  Vector (Integer | Text | Column_Selector) | Text | Integer -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
     remove_columns self (columns = [self.columns.first.name]) (error_on_missing_columns = False) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.remove_columns selectors=columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
@@ -272,10 +264,6 @@ type Table
            `Missing_Input_Columns` is reported according to the `on_problems`
            setting, unless `error_on_missing_columns` is set to `True`, in which
            case it is raised as an error.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
-           reported according to the `on_problems` setting, unless
-           `error_on_missing_columns` is set to `True`, in which case it is
-           raised as an error.
 
        > Example
          Move a column with a specified name to back.
@@ -302,7 +290,7 @@ type Table
 
              table.reorder_columns [0] position=Position.After_Other_Columns
     @columns Widget_Helpers.make_column_name_vector_selector
-    reorder_columns : Vector (Integer | Text | Column_Selector) | Text | Integer -> Position -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range
+    reorder_columns : Vector (Integer | Text | Column_Selector) | Text | Integer -> Position -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns
     reorder_columns self (columns = [self.columns.first.name]) (position = Position.Before_Other_Columns) (error_on_missing_columns = False) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.reorder_columns selectors=columns position=position error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
@@ -352,10 +340,6 @@ type Table
            `Missing_Input_Columns` is raised as an error, unless
            `error_on_missing_columns` is set to `False`, in which case the
            problem is reported according to the `on_problems` setting.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
-           raised as an error, unless `error_on_missing_columns` is set to
-           `False`, in which case the problem is reported according to the
-           `on_problems` setting.
          - Other problems are reported according to the `on_problems` setting:
              - If a column is matched by two selectors resulting in a different
                name mapping, a `Ambiguous_Column_Rename`.
@@ -397,7 +381,7 @@ type Table
               by_name = Column_Selector.By_Name "name=(.*)" Case_Sensitivity.Sensitive use_regex=True
               table.rename_columns (Map.from_vector [[by_name, "key:$1"]])
     @column_map Widget_Helpers.make_rename_name_vector_selector
-    rename_columns : Map (Text | Integer | Column_Selector) Text | Vector Text | Vector Vector -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
+    rename_columns : Map (Text | Integer | Column_Selector) Text | Vector Text | Vector Vector -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
     rename_columns self column_map=["Column"] (error_on_missing_columns=True) (on_problems=Report_Warning) =
         new_names = Table_Helpers.rename_columns internal_columns=self.internal_columns mapping=column_map error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         Warning.with_suspended new_names names->
@@ -570,8 +554,7 @@ type Table
        ! Error Conditions
 
          - If the columns specified in `group_by` or `order_by` are not present
-           in the table, a `Missing_Input_Columns` or
-           `Column_Indexes_Out_Of_Range` error is raised.
+           in the table, a `Missing_Input_Columns` error is raised.
          - If the column with the same name as provided `name` already exists,
            a `Duplicate_Output_Column_Names` problem is reported and the
            existing column is renamed to avoid the clash.
@@ -798,10 +781,6 @@ type Table
            `Missing_Input_Columns` is raised as an error, unless
            `error_on_missing_columns` is set to `False`, in which case the
            problem is reported according to the `on_problems` setting.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
-           raised as an error, unless `error_on_missing_columns` is set to
-           `False`, in which case the problem is reported according to the
-           `on_problems` setting.
          - If no columns have been selected for ordering,
            a `No_Input_Columns_Selected` is raised as dataflow error regardless
            of any settings.
@@ -847,7 +826,7 @@ type Table
 
               table.order_by [(Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive)]
     @columns Widget_Helpers.make_order_by_selector
-    order_by : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns | Column_Indexes_Out_Of_Range
+    order_by : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
     order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning = Panic.handle_wrapped_dataflow_error <|
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
@@ -1282,7 +1261,7 @@ type Table
            not possible to create a table without any columns.
          - If a given aggregate is not supported by the backend,
            `Unsupported_Database_Operation` is reported.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
+         - If a column index is out of range, a `Missing_Input_Columns` is
            reported according to the `on_problems` setting, unless
            `error_on_missing_columns` is set to `True`, in which case it is
            raised as an error. Problems resolving `Group_By` columns are
@@ -1391,15 +1370,11 @@ type Table
            `Missing_Input_Columns` is raised as an error, unless
            `error_on_missing_columns` is set to `False`, in which case the
            problem is reported according to the `on_problems` setting.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
-           raised as an error, unless `error_on_missing_columns` is set to
-           `False`, in which case the problem is reported according to the
-           `on_problems` setting.
          - If any column names in the new table are clashing, a
            `Duplicate_Output_Column_Names` is reported according to the
            `on_problems` setting.
     @id_fields Widget_Helpers.make_column_name_vector_selector
-    transpose : Vector (Integer | Text | Column_Selector) | Text | Integer -> Text -> Text -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range | Duplicate_Output_Column_Names
+    transpose : Vector (Integer | Text | Column_Selector) | Text | Integer -> Text -> Text -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names
     transpose self id_fields=[] (name_field="Name") (value_field="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
@@ -1426,8 +1401,6 @@ type Table
 
          - If a column in `group_by` or `name_field` is not in the input table,
            a `Missing_Input_Columns` is raised as a dataflow error.
-         - If a column index in `group_by`, `name_field` or `values` is out of
-           range, a `Column_Indexes_Out_Of_Range` is raised as a dataflow error.
          - If a column selector in `values` given as a `Text` and it does not
            match any columns in the input table nor is it a valid expression, an
            `Invalid_Aggregate_Column` dataflow error is raised.
@@ -1444,7 +1417,7 @@ type Table
     @group_by Widget_Helpers.make_column_name_vector_selector
     @name_column Widget_Helpers.make_column_name_selector
     @values (Widget_Helpers.make_aggregate_column_selector include_group_by=False)
-    cross_tab : Vector (Integer | Text | Column_Selector | Aggregate_Column) | Text | Integer -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    cross_tab : Vector (Integer | Text | Column_Selector | Aggregate_Column) | Text | Integer -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     cross_tab self group_by=[] name_column=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
@@ -1488,9 +1461,6 @@ type Table
          - If a column in `columns` is not in the input table, a
            `Missing_Input_Columns` is raised as an error or problem
            following the `error_on_missing_columns` rules.
-         - If a column index is out of range, a `Column_Indexes_Out_Of_Range` is
-           raised as an error or problem following the
-           `error_on_missing_columns` rules.
          - If a column selected for parsing is not a text column, an
            `Invalid_Value_Type` error is raised.
          - If no columns have been selected for parsing,
