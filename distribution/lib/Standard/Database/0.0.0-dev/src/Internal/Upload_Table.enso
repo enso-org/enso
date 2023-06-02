@@ -18,6 +18,8 @@ from project.Connection.Connection import all_known_table_names
 from project.Errors import all
 
 ## PRIVATE
+   Creates a new database table with the provided structure and returns the name
+   of the created table.
 create_table_structure connection table_name structure primary_key temporary allow_existing on_problems =
     case table_name.is_nothing.not && all_known_table_names connection . contains table_name of
         True ->
@@ -29,7 +31,8 @@ create_table_structure connection table_name structure primary_key temporary all
             create_table_statement = prepare_create_table_statement connection effective_table_name aligned_structure resolved_primary_key temporary on_problems
             update_result = create_table_statement.if_not_error <|
                 connection.execute_update create_table_statement
-            update_result.if_not_error
+            update_result.if_not_error <|
+                effective_table_name
 
 ## PRIVATE
    A helper that can upload a table from any backend to a database.
@@ -47,49 +50,43 @@ upload_table source_table connection table_name primary_key temporary on_problem
    It should be run within a transaction.
 upload_in_memory_table source_table connection table_name primary_key temporary on_problems =
     In_Transaction.ensure_in_transaction <|
+        created_table_name = create_table_structure connection table_name structure=source_table primary_key temporary=temporary allow_existing=False on_problems=on_problems
 
-        resolved_primary_key = resolve_primary_key self primary_key
-        effective_table_name = resolve_effective_table_name table_name temporary
-        create_table_statement = prepare_create_table_statement connection effective_table_name self.columns resolved_primary_key temporary on_problems
-
-        ## `create_table_statement.if_not_error` is used to ensure that if there are
+        ## `created_table_name.if_not_error` is used to ensure that if there are
            any dataflow errors up to this point, we want to propagate them and not
            continue. Otherwise, they could 'leak' to `Panic.rethrow` and be wrongly
            raised as panics.
-        upload_status = create_table_statement.if_not_error <|
+        upload_status = created_table_name.if_not_error <|
             translate_known_upload_errors self connection resolved_primary_key <|
                 Panic.rethrow <| connection.execute_update create_table_statement
 
-                insert_template = make_batched_insert_template connection effective_table_name self.column_names
+                insert_template = make_batched_insert_template connection created_table_name self.column_names
                 statement_setter = connection.dialect.get_statement_setter
                 Panic.rethrow <| connection.jdbc_connection.batch_insert insert_template statement_setter self default_batch_size
 
         upload_status.if_not_error <|
-            connection.query (SQL_Query.Table_Name effective_table_name)
+            connection.query (SQL_Query.Table_Name created_table_name)
 
 ## PRIVATE
    It should be run within a transaction.
 upload_database_table source_table connection table_name primary_key temporary on_problems =
     In_Transaction.ensure_in_transaction <|
-        resolved_primary_key = resolve_primary_key self primary_key
-        effective_table_name = resolve_effective_table_name table_name temporary
-        create_table_statement = prepare_create_table_statement connection effective_table_name self.columns resolved_primary_key temporary on_problems
-        connection_check = if self.connection.jdbc_connection == connection.jdbc_connection then True else
+        connection_check = if source_table.connection.jdbc_connection == connection.jdbc_connection then True else
             Error.throw (Unsupported_Database_Operation.Error "The Database table to be uploaded must be coming from the same connection as the connection on which the new table is being created. Cross-connection uploads are currently not supported. To work around this, you can first `.read` the table into memory and then upload it from memory to a different connection.")
 
-        upload_status = connection_check.if_not_error <| create_table_statement.if_not_error <|
-            translate_known_upload_errors self connection resolved_primary_key <|
-                Panic.rethrow <| connection.execute_update create_table_statement
+        connection_check.if_not_error <|
+            created_table_name = create_table_structure connection table_name structure=source_table primary_key temporary=temporary allow_existing=False on_problems=on_problems
+            upload_status = created_table_name.if_not_error <|
+                translate_known_upload_errors self connection resolved_primary_key <|
+                    ## We need to ensure that the columns in this statement are matching
+                       positionally the columns in `create_table_statement`. But we
+                       create both from the same table, so that is guaranteed.
+                    copy_into_statement = connection.dialect.generate_sql <|
+                        Query.Insert_From_Select created_table_name self.to_select_query
+                    Panic.rethrow <| connection.execute_update copy_into_statement
 
-                ## We need to ensure that the columns in this statement are matching
-                   positionally the columns in `create_table_statement`. But we
-                   create both from the same table, so that is guaranteed.
-                copy_into_statement = connection.dialect.generate_sql <|
-                    Query.Insert_From_Select effective_table_name self.to_select_query
-                Panic.rethrow <| connection.execute_update copy_into_statement
-
-        upload_status.if_not_error <|
-            connection.query (SQL_Query.Table_Name effective_table_name)
+            upload_status.if_not_error <|
+                connection.query (SQL_Query.Table_Name created_table_name)
 
 ## PRIVATE
    Ensures that provided primary key columns are present in the table and that

@@ -233,7 +233,8 @@ type Connection
            side.
     create_table : Text|Nothing -> Vector (Pair Text Value_Type) | Database_Table | Materialized_Table -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
     create_table (table_name : Text | Nothing = Nothing) (structure : Vector | Database_Table | Materialized_Table) (primary_key : Vector Text = first_column_in_structure structure) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
-        create_table_structure self table_name structure primary_key temporary allow_existing on_problems
+        created_table_name = create_table_structure self table_name structure primary_key temporary allow_existing on_problems
+        self.query (SQL_Query.Table_Name created_table_name)
 
     ## PRIVATE
        Internal read function for a statement with optional types.
