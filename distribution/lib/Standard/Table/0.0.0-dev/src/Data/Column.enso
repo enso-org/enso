@@ -904,7 +904,7 @@ type Column
             _ -> self.is_nothing
         result.rename new_name
 
-    ## ALIAS Fill Missing
+    ## ALIAS Fill Missing, if_nothing
 
        Returns a new column where missing values have been replaced with the
        provided default.
@@ -936,7 +936,7 @@ type Column
             col = Java_Column.new new_name new_st
             Column.Value col
 
-    ## ALIAS Fill Empty
+    ## ALIAS Fill Empty, if_empty
 
        Returns a new column where empty Text values have been replaced with the
        provided default.
