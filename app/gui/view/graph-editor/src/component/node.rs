@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 use ensogl::display::shape::*;
+use ensogl::display::shape::compound::rectangle;
 use ensogl::display::traits::*;
 
 use crate::component::node::profiling::ProfilingLabel;
@@ -157,7 +158,7 @@ pub mod error_shape {
     use super::*;
 
     ensogl::shape! {
-        below = [backdrop];
+        below = [rectangle];
         alignment = center;
         (style:Style,color_rgba:Vector4<f32>) {
             use ensogl_hardcoded_theme::graph_editor::node as node_theme;
