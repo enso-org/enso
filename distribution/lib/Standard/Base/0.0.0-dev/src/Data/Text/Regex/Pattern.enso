@@ -2,7 +2,7 @@ import project.Any.Any
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
-import project.Data.Range.Extensions
+import project.Data.Range.Range_Extensions
 import project.Data.Range.Range
 import project.Data.Text.Helpers
 import project.Data.Text.Span.Span

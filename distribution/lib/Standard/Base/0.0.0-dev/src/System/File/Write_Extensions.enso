@@ -1,6 +1,6 @@
 import project.Data.Text.Text
 import project.Data.Text.Encoding.Encoding
-import project.Data.Text.Extensions
+import project.Data.Text.Text_Extensions
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Dry_Run_Operation

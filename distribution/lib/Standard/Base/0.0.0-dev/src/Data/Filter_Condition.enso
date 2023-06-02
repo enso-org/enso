@@ -1,7 +1,7 @@
 import project.Any.Any
 import project.Data.Boolean.Boolean
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
-import project.Data.Text.Extensions
+import project.Data.Text.Text_Extensions
 import project.Data.Text.Regex
 import project.Data.Text.Text
 import project.Data.Vector.Vector

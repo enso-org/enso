@@ -1,7 +1,7 @@
 import project.Any.Any
 import project.Data.Json.Json
 import project.Data.Text.Encoding.Encoding
-import project.Data.Text.Extensions
+import project.Data.Text.Text_Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
