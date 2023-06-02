@@ -1,6 +1,7 @@
 from Standard.Base import all
 from Standard.Base.Random import random_uuid
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.Data.Table.Table as In_Memory_Table
 import Standard.Table.Data.Type.Value_Type.Value_Type
@@ -215,6 +216,6 @@ append_to_existing_table source_table target_table update_action key_columns err
     if extra_columns.not_empty then Error.throw (Unmatched_Columns.Error extra_columns) else
         missing_columns = target_columns.difference source_columns
         if missing_columns.not_empty && error_on_missing_columns then Error.throw (Missing_Input_Columns.Error missing_columns "the source table") else
-            # TODO
+            # TODO [RW] to be finished in follow up PR
             _ = [update_action, key_columns]
-            Error.throw "TODO: Implement the actual update logic."
+            Error.throw (Illegal_State.Error "TODO: Not implemented yet.")
