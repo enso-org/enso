@@ -7,11 +7,10 @@ use crate::ide::Ide;
 use crate::transport::web::WebSocket;
 use crate::FailedIde;
 
+use crate::retry::retry_operation;
 use engine_protocol::project_manager;
-use enso_web::sleep;
 use ensogl::application::Application;
 use std::time::Duration;
-
 
 
 // =================
@@ -99,22 +98,11 @@ impl Initializer {
     }
 
     async fn initialize_ide_controller_with_retries(&self) -> FallibleResult<controller::Ide> {
-        let mut retry_after = INITIALIZATION_RETRY_TIMES.iter();
-        loop {
-            match self.initialize_ide_controller().await {
-                Ok(controller) => break Ok(controller),
-                Err(error) => {
-                    error!("Failed to initialize controller: {error}");
-                    match retry_after.next() {
-                        Some(time) => {
-                            error!("Retrying after {} seconds", time.as_secs_f32());
-                            sleep(*time).await;
-                        }
-                        None => break Err(error),
-                    }
-                }
-            }
-        }
+        let retry_times = INITIALIZATION_RETRY_TIMES.iter().copied();
+        let error_message = "Failed to initialize controller.";
+        retry_operation(|| self.initialize_ide_controller(), retry_times, error_message)
+            .await
+            .into()
     }
 
     /// Initialize and return a new Ide Controller.

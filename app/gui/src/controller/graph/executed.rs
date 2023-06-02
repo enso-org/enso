@@ -19,11 +19,11 @@ use crate::model::execution_context::VisualizationUpdateData;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::MethodPointer;
-use enso_web::sleep;
 use futures::stream;
 use futures::TryStreamExt;
 use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::context::Context;
+
 
 
 // ==============
@@ -32,7 +32,7 @@ use span_tree::generate::context::Context;
 
 pub use crate::controller::graph::Connection;
 pub use crate::controller::graph::Connections;
-
+use crate::retry::retry_operation_errors_cap;
 
 
 // ==============
@@ -99,7 +99,11 @@ pub struct Handle {
     /// The publisher allowing sending notification to subscribed entities. Note that its outputs
     /// is merged with publishers from the stored graph and execution controllers.
     notifier:      notification::Publisher<Notification>,
-    syncing_stack: Rc<RefCell<()>>, // FIXME[ao] is there a better way?
+    /// A mutex guarding a process syncing Execution Context stack with the current graph. As
+    /// the syncing requires multiple async calls to the engine, and the stack updates depend on
+    /// each other, we should not mix various operations (e.g. entering node while still in
+    /// process of entering another node).
+    syncing_stack: Rc<sync::SingleThreadMutex<()>>,
 }
 
 impl Handle {
@@ -242,14 +246,14 @@ impl Handle {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else if let Some(last_call) = stack.last() {
-            let _syncing = self.syncing_stack.try_borrow_mut().map_err(|_| SyncingStack)?;
+            let _syncing = self.syncing_stack.try_lock().map_err(|_| SyncingStack)?;
             // Before adding new items to stack, first make sure we're actually able to construct
             // the graph controller.
             let graph = controller::Graph::new_method(&self.project, &last_call.definition).await?;
             let mut successful_calls = 0;
             let result = stream::iter(stack.iter())
                 .then(|local_call| async {
-                    warn!("Entering node {}.", local_call.call);
+                    info!("Entering node {}.", local_call.call);
                     self.execution_ctx.push(local_call.clone()).await?;
                     Ok(())
                 })
@@ -258,30 +262,22 @@ impl Handle {
                 .await;
             match &result {
                 Ok(()) => {
-                    warn!("Replacing graph with {graph:?}.");
+                    info!("Replacing graph with {graph:?}.");
                     self.graph.replace(graph);
-                    warn!("Sending graph invalidation signal.");
+                    info!("Sending graph invalidation signal.");
                     self.notifier.publish(Notification::EnteredStack(stack)).await;
                 }
                 Err(_) => {
-                    let mut successful_calls_to_revert = successful_calls;
-                    let mut retry_time = Duration::from_secs(1);
-                    while successful_calls_to_revert > 0 {
-                        match self.execution_ctx.pop().await {
-                            Ok(_) => {
-                                successful_calls_to_revert -= 1;
-                                retry_time = Duration::from_secs(1);
-                            }
-                            Err(error) => {
-                                error!(
-                                    "Error while restoring execution context stack after \
-                                    unsuccessful entering node: {error}"
-                                );
-                                warn!("Retrying in {} s.", retry_time.as_secs());
-                                sleep(retry_time).await;
-                                retry_time = (2 * retry_time).min(Duration::from_secs(30));
-                            }
-                        }
+                    let successful_calls_to_revert = iter::repeat(()).take(successful_calls);
+                    for () in successful_calls_to_revert {
+                        let error_msg = "Error while restoring execution context stack after \
+                                    unsuccessful entering node";
+                        retry_operation_errors_cap(
+                            || self.execution_ctx.pop(),
+                            self.retry_times_for_restoring_stack_operations(),
+                            error_msg,
+                            0,
+                        );
                     }
                 }
             }
@@ -316,20 +312,42 @@ impl Handle {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else {
-            let mut successful_pop_count = 0;
-            let result = stream::iter(0..frame_count)
-                .then(|_| self.execution_ctx.pop())
-                .map_ok(|_| successful_pop_count += 1)
+            let method = self.execution_ctx.method_at_frame_back(frame_count)?;
+            let _syncing = self.syncing_stack.try_lock().map_err(|_| SyncingStack)?;
+            let graph = controller::Graph::new_method(&self.project, &method).await?;
+
+            let mut successful_pops = Vec::new();
+            let result = stream::iter(iter::repeat(()).take(frame_count))
+                .then(|()| self.execution_ctx.pop())
+                .map_ok(|local_call| successful_pops.push(local_call))
                 .try_collect::<()>()
                 .await;
-            if successful_pop_count > 0 {
-                let method = self.execution_ctx.current_method();
-                let graph = controller::Graph::new_method(&self.project, &method).await?;
-                self.graph.replace(graph);
-                self.notifier.publish(Notification::ExitedStack(successful_pop_count)).await;
+            match &result {
+                Ok(()) => {
+                    self.graph.replace(graph);
+                    self.notifier.publish(Notification::ExitedStack(frame_count)).await;
+                }
+                Err(_) =>
+                    for frame in successful_pops.into_iter().rev() {
+                        let error_msg = "Error while restoring execution context stack after \
+                                    unsuccessful leaving node";
+                        retry_operation_errors_cap(
+                            || self.execution_ctx.push(frame.clone()),
+                            self.retry_times_for_restoring_stack_operations(),
+                            error_msg,
+                            0,
+                        );
+                    },
             }
             result
         }
+    }
+
+    fn retry_times_for_restoring_stack_operations(&self) -> impl Iterator<Item = Duration> {
+        iter::repeat(()).scan(Duration::from_secs(1), |delay, ()| {
+            *delay = min(*delay * 2, Duration::from_secs(30));
+            Some(*delay)
+        })
     }
 
     /// Interrupt the program execution.
@@ -488,7 +506,6 @@ pub mod tests {
     use crate::test::mock::Fixture;
     use controller::graph::SpanTree;
     use engine_protocol::language_server::types::test::value_update_with_type;
-    use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
     wasm_bindgen_test_configure!(run_in_browser);
