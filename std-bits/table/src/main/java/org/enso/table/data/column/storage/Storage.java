@@ -4,7 +4,10 @@ import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.builder.object.ObjectBuilder;
+import org.enso.table.data.column.operation.cast.CastProblemBuilder;
+import org.enso.table.data.column.operation.cast.StorageConverter;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -344,5 +347,10 @@ public abstract class Storage<T> {
       occurenceCount.put(value, count + 1);
     }
     return new LongStorage(data);
+  }
+
+  public final Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
+    StorageConverter<?> converter = StorageConverter.fromStorageType(targetType);
+    return converter.cast(this, castProblemBuilder);
   }
 }

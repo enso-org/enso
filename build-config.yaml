@@ -2,6 +2,7 @@
 
 wasm-size-limit: 15.95 MiB
 
+
 required-versions:
   # NB. The Rust version is pinned in rust-toolchain.toml.
   # NB. The Node version is pinned in .node-version.

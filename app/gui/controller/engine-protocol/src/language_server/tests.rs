@@ -348,7 +348,7 @@ fn test_computed_value_update() {
             let update = &expression_updates.updates.first().unwrap();
             assert_eq!(update.expression_id, id);
             assert_eq!(update.typename.as_deref(), Some(typename));
-            assert!(update.method_pointer.is_none());
+            assert!(update.method_call.is_none());
             assert!(update.from_cache);
             assert!(matches!(update.payload, ExpressionUpdatePayload::Value { warnings: None }))
         }

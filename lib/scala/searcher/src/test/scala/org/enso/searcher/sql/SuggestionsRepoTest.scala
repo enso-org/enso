@@ -970,6 +970,32 @@ class SuggestionsRepoTest
       res should contain theSameElementsAs Seq(id).flatten
     }
 
+    "search suggestion by self type excluding constructors" taggedAs Retry in withRepo {
+      repo =>
+        val constructorSelfType =
+          Suggestion.SelfType(suggestion.constructor).toSeq
+        val action = for {
+          _ <- repo.insert(suggestion.module)
+          _ <- repo.insert(suggestion.tpe)
+          _ <- repo.insert(suggestion.constructor)
+          _ <- repo.insert(suggestion.method)
+          _ <- repo.insert(suggestion.conversion)
+          _ <- repo.insert(suggestion.function)
+          _ <- repo.insert(suggestion.local)
+          res <- repo.search(
+            None,
+            constructorSelfType,
+            None,
+            None,
+            None,
+            None
+          )
+        } yield res._2
+
+        val res = Await.result(action, Timeout)
+        res.isEmpty shouldEqual true
+    }
+
     "search suggestion by return type" taggedAs Retry in withRepo { repo =>
       val action = for {
         _   <- repo.insert(suggestion.module)
@@ -1464,7 +1490,8 @@ class SuggestionsRepoTest
           Suggestion.Argument("b", "Any", false, false, None)
         ),
         returnType    = "Standard.Builtins.Pair",
-        documentation = Some("Awesome")
+        documentation = Some("Awesome"),
+        annotations   = Seq()
       )
 
     val method: Suggestion.Method =
@@ -1476,7 +1503,8 @@ class SuggestionsRepoTest
         selfType      = "local.Test.Main",
         returnType    = "Standard.Builtins.IO",
         isStatic      = true,
-        documentation = None
+        documentation = None,
+        annotations   = Seq()
       )
 
     val instanceMethod: Suggestion.Method =
@@ -1488,7 +1516,8 @@ class SuggestionsRepoTest
         selfType      = "local.Test.Main.A",
         returnType    = "Standard.Builtins.Nothing",
         isStatic      = false,
-        documentation = None
+        documentation = None,
+        annotations   = Seq()
       )
 
     val conversion: Suggestion.Conversion =

@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.resolve.{
   DocumentationComments,
+  GenericAnnotations,
   MethodDefinitions,
   TypeNames,
   TypeSignatures
@@ -77,7 +78,7 @@ final class SuggestionBuilder[A: IndexedSource](
               case data @ IR.Module.Scope.Definition.Data(
                     name,
                     arguments,
-                    _,
+                    annotations,
                     _,
                     _,
                     _
@@ -87,6 +88,7 @@ final class SuggestionBuilder[A: IndexedSource](
                   tpName.name,
                   name.name,
                   arguments,
+                  annotations,
                   data.getMetadata(DocumentationComments).map(_.documentation)
                 )
             }
@@ -108,6 +110,7 @@ final class SuggestionBuilder[A: IndexedSource](
                   _
                 ) if !m.isStaticWrapperForInstanceMethod =>
             val typeSignature = ir.getMetadata(TypeSignatures)
+            val annotations   = ir.getMetadata(GenericAnnotations)
             val (selfTypeOpt, isStatic) = typePtr match {
               case Some(typePtr) =>
                 val selfType = typePtr
@@ -126,7 +129,8 @@ final class SuggestionBuilder[A: IndexedSource](
                 isStatic,
                 args,
                 doc,
-                typeSignature
+                typeSignature,
+                annotations
               )
             }
             val subforest = go(
@@ -224,11 +228,14 @@ final class SuggestionBuilder[A: IndexedSource](
     isStatic: Boolean,
     args: Seq[IR.DefinitionArgument],
     doc: Option[String],
-    typeSignature: Option[TypeSignatures.Metadata]
+    typeSignature: Option[TypeSignatures.Metadata],
+    genericAnnotations: Option[GenericAnnotations.Metadata]
   ): Suggestion.Method = {
     val typeSig = buildTypeSignatureFromMetadata(typeSignature)
     val (methodArgs, returnTypeDef) =
       buildMethodArguments(args, typeSig, selfType)
+    val annotations =
+      genericAnnotations.map(buildAnnotationsFromMetadata).getOrElse(Seq())
     Suggestion.Method(
       externalId    = externalId,
       module        = module.toString,
@@ -237,7 +244,8 @@ final class SuggestionBuilder[A: IndexedSource](
       selfType      = selfType.toString,
       returnType    = buildReturnType(returnTypeDef),
       isStatic      = isStatic,
-      documentation = doc
+      documentation = doc,
+      annotations   = annotations
     )
   }
 
@@ -345,6 +353,7 @@ final class SuggestionBuilder[A: IndexedSource](
     tp: String,
     name: String,
     arguments: Seq[IR.DefinitionArgument],
+    genericAnnotations: Seq[IR.Name.GenericAnnotation],
     doc: Option[String]
   ): Suggestion.Constructor =
     Suggestion.Constructor(
@@ -353,7 +362,8 @@ final class SuggestionBuilder[A: IndexedSource](
       name          = name,
       arguments     = arguments.map(buildArgument),
       returnType    = module.createChild(tp).toString,
-      documentation = doc
+      documentation = doc,
+      annotations   = genericAnnotations.map(_.name)
     )
 
   /** Build getter methods from atom arguments. */
@@ -371,14 +381,15 @@ final class SuggestionBuilder[A: IndexedSource](
       location     = None
     )
     buildMethod(
-      externalId    = None,
-      module        = module,
-      name          = getterName,
-      selfType      = module.createChild(typeName),
-      isStatic      = false,
-      args          = Seq(thisArg),
-      doc           = None,
-      typeSignature = argument.name.getMetadata(TypeSignatures)
+      externalId         = None,
+      module             = module,
+      name               = getterName,
+      selfType           = module.createChild(typeName),
+      isStatic           = false,
+      args               = Seq(thisArg),
+      doc                = None,
+      typeSignature      = argument.name.getMetadata(TypeSignatures),
+      genericAnnotations = None
     )
   }
 
@@ -419,6 +430,12 @@ final class SuggestionBuilder[A: IndexedSource](
       case _: BindingsMap.ResolvedName =>
         TypeArg.Value(resolvedName.qualifiedName)
     }
+
+  /** Build annotations from metadata. */
+  private def buildAnnotationsFromMetadata(
+    genericAnnotations: GenericAnnotations.Metadata
+  ): Seq[String] =
+    genericAnnotations.annotations.map(_.name)
 
   /** Build type signature from the ir metadata.
     *
@@ -638,19 +655,18 @@ final class SuggestionBuilder[A: IndexedSource](
     * @return the suggestion argument
     */
   private def buildArgument(arg: IR.DefinitionArgument): Suggestion.Argument = {
-    val signatureOpt = arg.name.getMetadata(TypeSignatures).map { meta =>
-      buildTypeSignature(meta.signature) match {
-        case Vector(targ) => buildTypeArgumentName(targ)
-        case _            => Any
-      }
+    buildTypeSignatureFromMetadata(arg.name.getMetadata(TypeSignatures)) match {
+      case Vector(targ) =>
+        buildTypedArgument(arg, targ)
+      case _ =>
+        Suggestion.Argument(
+          name         = arg.name.name,
+          reprType     = Any,
+          isSuspended  = arg.suspended,
+          hasDefault   = arg.defaultValue.isDefined,
+          defaultValue = arg.defaultValue.flatMap(buildDefaultValue)
+        )
     }
-    Suggestion.Argument(
-      name         = arg.name.name,
-      reprType     = signatureOpt.getOrElse(Any),
-      isSuspended  = arg.suspended,
-      hasDefault   = arg.defaultValue.isDefined,
-      defaultValue = arg.defaultValue.flatMap(buildDefaultValue)
-    )
   }
 
   /** Build return type from the type definition.

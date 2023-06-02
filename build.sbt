@@ -21,7 +21,7 @@ import java.io.File
 
 val scalacVersion         = "2.13.8"
 val graalVersion          = "22.3.1"
-val javaVersion           = "11"
+val javaVersion           = "17"
 val defaultDevEnsoVersion = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
   "ENSO_VERSION",
@@ -666,6 +666,7 @@ lazy val graph = (project in file("lib/scala/graph/"))
 lazy val pkg = (project in file("lib/scala/pkg"))
   .settings(
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
+    frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "org.scalatest" %% "scalatest"  % scalatestVersion % Test,

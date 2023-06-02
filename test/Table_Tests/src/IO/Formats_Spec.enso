@@ -79,4 +79,40 @@ spec = Test.group 'Various File Format support on Table' <|
         r2.catch.should_be_a File_Error.Unsupported_Output_Type
         r2.catch.format . should_equal my_format
 
+    write_test extension =
+        f = transient / ("big." + extension)
+        f.delete_if_exists
+        f_bak = transient / ("big." + extension + ".bak")
+        f_bak.delete_if_exists
+
+        big_table = Table.new [["a", 1.up_to 2000 . to_vector]]
+        big_table.write f
+
+        new_table = Table.new [["a", 2000.up_to 4000 . to_vector]]
+        r = Context.Output.with_disabled <|
+            s = new_table.write f
+            s.exists.should_be_true
+
+            r_data = s.read
+            row_count = if r_data . is_a Table then r_data.row_count else r_data.length
+            row_count . should_equal 1000
+            s
+
+        f_bak.exists.should_be_false
+
+        f.exists.should_be_true
+        f_data = f.read
+        f_row_count = if f_data . is_a Table then f_data.row_count else f_data.length
+        f_row_count . should_equal 1999
+
+        f.delete_if_exists
+        f_bak.delete_if_exists
+        r.delete_if_exists
+
+    Test.specify "should write to a temporary CSV file part of the data if context disabled" <|
+        write_test "csv"
+
+    Test.specify "should write to a temporary JSON file part of the data if context disabled" <|
+        write_test "json"
+
 main = Test_Suite.run_main spec

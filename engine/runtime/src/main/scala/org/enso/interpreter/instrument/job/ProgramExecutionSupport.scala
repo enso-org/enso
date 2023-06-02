@@ -20,7 +20,7 @@ import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.interpreter.runtime.error.{
   DataflowError,
   PanicSentinel,
-  WithWarnings
+  WarningsLibrary
 }
 import org.enso.interpreter.service.error._
 import org.enso.polyglot.LanguageInfo
@@ -326,7 +326,7 @@ object ProgramExecutionSupport {
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
     val expressionId  = value.getExpressionId
-    val methodPointer = toMethodPointer(value)
+    val methodPointer = toMethodCall(value)
     if (
       !syncState.isExpressionSync(expressionId) ||
       (
@@ -351,27 +351,32 @@ object ProgramExecutionSupport {
               VisualizationResult.findExceptionMessage(panic),
               ErrorResolver.getStackTrace(panic).flatMap(_.expressionId)
             )
-        case withWarnings: WithWarnings =>
-          val warningsCount = withWarnings.getWarningsCount
-          val warning =
-            if (warningsCount == 1) {
-              val warnings = withWarnings.getWarningsArray(null)
-              Option(ctx.executionService.toDisplayString(warnings(0).getValue))
-            } else {
-              None
-            }
-          Api.ExpressionUpdate.Payload.Value(
-            Some(
-              Api.ExpressionUpdate.Payload.Value
-                .Warnings(
-                  warningsCount,
-                  warning,
-                  withWarnings.isLimitReached()
-                )
-            )
-          )
         case _ =>
-          Api.ExpressionUpdate.Payload.Value()
+          if (WarningsLibrary.getUncached.hasWarnings(value.getValue)) {
+            val warnings =
+              WarningsLibrary.getUncached.getWarnings(value.getValue, null)
+            val warningsCount = warnings.length
+            val warning =
+              if (warningsCount == 1) {
+                Option(
+                  ctx.executionService.toDisplayString(warnings(0).getValue)
+                )
+              } else {
+                None
+              }
+            Api.ExpressionUpdate.Payload.Value(
+              Some(
+                Api.ExpressionUpdate.Payload.Value
+                  .Warnings(
+                    warningsCount,
+                    warning,
+                    WarningsLibrary.getUncached.isLimitReached(value.getValue)
+                  )
+              )
+            )
+          } else {
+            Api.ExpressionUpdate.Payload.Value()
+          }
       }
       ctx.endpoint.sendToClient(
         Api.Response(
@@ -386,6 +391,7 @@ object ProgramExecutionSupport {
                   Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
                 }.toVector,
                 value.wasCached(),
+                value.isTypeChanged || value.isFunctionCallChanged,
                 payload
               )
             )
@@ -529,23 +535,26 @@ object ProgramExecutionSupport {
     )
   }
 
-  /** Extract method pointer information from the expression value.
+  /** Extract the method call information from the provided expression value.
     *
     * @param value the expression value.
-    * @return the method pointer info
+    * @return the method call info
     */
-  private def toMethodPointer(
-    value: ExpressionValue
-  ): Option[Api.MethodPointer] =
+  private def toMethodCall(value: ExpressionValue): Option[Api.MethodCall] =
     for {
       call       <- Option(value.getCallInfo).orElse(Option(value.getCachedCallInfo))
       moduleName <- Option(call.getModuleName)
       typeName   <- Option(call.getTypeName)
-    } yield Api.MethodPointer(
-      moduleName.toString,
-      typeName.toString,
-      call.getFunctionName
-    )
+    } yield {
+      Api.MethodCall(
+        methodPointer = Api.MethodPointer(
+          moduleName.toString,
+          typeName.toString.stripSuffix(TypeSuffix),
+          call.getFunctionName
+        ),
+        notAppliedArguments = call.getNotAppliedArguments.toVector
+      )
+    }
 
   /** Find source file path by the module name.
     *
@@ -584,4 +593,6 @@ object ProgramExecutionSupport {
     cache: RuntimeCache,
     syncState: UpdatesSynchronizationState
   )
+
+  private val TypeSuffix = ".type"
 }

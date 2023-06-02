@@ -6,3 +6,6 @@ libraries:
   - name: Standard.Base
     repository: main
     version: 0.0.0-dev
+  - name: Test.Logical_Export
+    repository: main
+    version: 0.0.0-dev

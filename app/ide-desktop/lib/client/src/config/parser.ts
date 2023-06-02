@@ -38,11 +38,14 @@ const USAGE =
     `the application from a web-browser, the creation of a window can be suppressed by ` +
     `entering either '-window=false' or '-no-window'.`
 
+/** Contains information for a category of command line options and the options
+ * it is comprised of. */
 class Section<T> {
     description = ''
     entries: (readonly [cmdOption: string, option: config.Option<T>])[] = []
 }
 
+/** Configuration options controlling how the help information is displayed. */
 interface PrintHelpConfig {
     args: config.Args
     groupsOrdering: string[]
@@ -58,8 +61,7 @@ interface PrintHelpConfig {
  * 3. Every option has a `[type`] annotation and there is no API to disable it.
  * 4. There is no option to print commands with single dash instead of double-dash.
  * 5. Help coloring is not supported, and they do not want to support it:
- * https://github.com/yargs/yargs/issues/251.
- */
+ * https://github.com/yargs/yargs/issues/251. */
 function printHelp(cfg: PrintHelpConfig) {
     console.log(USAGE)
     const totalWidth = logger.terminalWidth() ?? DEFAULT_TERMINAL_WIDTH
@@ -145,7 +147,7 @@ function printHelp(cfg: PrintHelpConfig) {
     }
 }
 
-/** Wraps the text to a specific output width. If a word is longer than the output width, it will be
+/** Wrap the text to a specific output width. If a word is longer than the output width, it will be
  * split. */
 function wordWrap(str: string, width: number): string[] {
     if (width <= 0) {
@@ -201,16 +203,19 @@ function wordWrap(str: string, width: number): string[] {
 // === Chrome Options ===
 // ======================
 
+/** Represents a command line option to be passed to the Chrome instance powering Electron. */
 export class ChromeOption {
+    /** Create a {@link ChromeOption}. */
     constructor(public name: string, public value?: string) {}
 
+    /** Return the option as it would appear on the command line. */
     display(): string {
         const value = this.value == null ? '' : `=${this.value}`
         return `--${this.name}${value}`
     }
 }
 
-/** Replaces `-no-...` with `--no-...`. This is a hotfix for Yargs bug:
+/** Replace `-no-...` with `--no-...`. This is a hotfix for a Yargs bug:
  * https://github.com/yargs/yargs-parser/issues/468. */
 function fixArgvNoPrefix(argv: string[]): string[] {
     const singleDashPrefix = '-no-'
@@ -224,6 +229,7 @@ function fixArgvNoPrefix(argv: string[]): string[] {
     })
 }
 
+/** Command line options, split into regular arguments and Chrome options. */
 interface ArgvAndChromeOptions {
     argv: string[]
     chromeOptions: ChromeOption[]
@@ -265,7 +271,7 @@ function argvAndChromeOptions(processArgs: string[]): ArgvAndChromeOptions {
 // === Option Parser ===
 // =====================
 
-/** Parses command line arguments. */
+/** Parse command line arguments. */
 export function parseArgs(clientArgs: string[] = fileAssociations.CLIENT_ARGUMENTS) {
     const args = config.CONFIG
     const { argv, chromeOptions } = argvAndChromeOptions(fixArgvNoPrefix(clientArgs))
@@ -306,6 +312,7 @@ export function parseArgs(clientArgs: string[] = fileAssociations.CLIENT_ARGUMEN
 
     // === Parsing ===
 
+    /** Command line arguments after being parsed by `yargs`. */
     interface YargsArgs {
         // We don't control the naming of this third-party API.
         /* eslint-disable @typescript-eslint/naming-convention */

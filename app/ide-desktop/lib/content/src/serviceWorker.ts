@@ -3,7 +3,7 @@
  * to work when developing locally on `localhost:8080`. */
 // Bring globals and interfaces specific to Web Workers into scope.
 /// <reference lib="WebWorker" />
-import * as common from 'enso-common'
+import * as constants from './serviceWorkerConstants'
 
 // =====================
 // === Fetch handler ===
@@ -13,23 +13,26 @@ import * as common from 'enso-common'
 // eslint-disable-next-line no-restricted-syntax
 declare const self: ServiceWorkerGlobalScope
 
+self.addEventListener('install', event => {
+    event.waitUntil(
+        caches.open(constants.CACHE_NAME).then(cache => {
+            void cache.addAll(constants.DEPENDENCIES)
+            return
+        })
+    )
+})
+
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url)
-    if (url.hostname === 'localhost' && url.pathname !== '/esbuild') {
-        const responsePromise = /\/[^.]+$/.test(event.request.url)
-            ? fetch('/index.html')
-            : fetch(event.request.url)
+    if (url.hostname === 'localhost') {
+        return false
+    } else {
         event.respondWith(
-            responsePromise.then(response => {
-                const clonedResponse = new Response(response.body, response)
-                for (const [header, value] of common.COOP_COEP_CORP_HEADERS) {
-                    clonedResponse.headers.set(header, value)
-                }
-                return clonedResponse
-            })
+            caches
+                .open(constants.CACHE_NAME)
+                .then(cache => cache.match(event.request))
+                .then(response => response ?? fetch(event.request))
         )
         return
-    } else {
-        return false
     }
 })

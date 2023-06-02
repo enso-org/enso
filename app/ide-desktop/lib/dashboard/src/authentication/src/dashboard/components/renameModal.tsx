@@ -5,8 +5,14 @@ import toast from 'react-hot-toast'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
 
+import Input from './input'
 import Modal from './modal'
 
+// ===================
+// === RenameModal ===
+// ===================
+
+/** Props for a {@link RenameModal}. */
 export interface RenameModalProps {
     assetType: string
     name: string
@@ -16,6 +22,7 @@ export interface RenameModalProps {
     onSuccess: () => void
 }
 
+/** A modal for renaming an asset. */
 function RenameModal(props: RenameModalProps) {
     const { assetType, name, namePattern, title, doRename, onSuccess } = props
     const { unsetModal } = modalProvider.useSetModal()
@@ -39,8 +46,6 @@ function RenameModal(props: RenameModalProps) {
         }
     }
 
-    console.log('what', namePattern, title)
-
     return (
         <Modal centered className="bg-opacity-90">
             <form
@@ -58,7 +63,7 @@ function RenameModal(props: RenameModalProps) {
                     <label className="w-1/3" htmlFor="renamed_file_name">
                         File name
                     </label>
-                    <input
+                    <Input
                         autoFocus
                         id="renamed_file_name"
                         type="text"
@@ -66,10 +71,8 @@ function RenameModal(props: RenameModalProps) {
                         pattern={namePattern}
                         title={title}
                         className="border-primary bg-gray-200 rounded-full w-2/3 px-2 mx-2"
-                        onChange={event => {
-                            setNewName(event.target.value)
-                        }}
                         defaultValue={newName ?? name}
+                        setValue={setNewName}
                     />
                 </div>
                 <div className="m-1">

@@ -22,7 +22,7 @@ import org.enso.interpreter.runtime.Module
 /** Partially resolves fully qualified names corresponding to the library names
   *
   * 1. Identifies potential library names e.g., `Standard.Base`
-  * 2. If the component has not be compiled yet, compilation is triggered
+  * 2. If the component has not been compiled yet, compilation is triggered
   * 3. Replaces the library name with a fresh name and a resolved Main module
   */
 case object FullyQualifiedNames extends IRPass {

@@ -745,7 +745,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         row.scopeStartLine === ScopeColumn.EMPTY || row.module === value
       }
       .filterIf(selfTypes.nonEmpty) { row =>
-        row.selfType.inSet(selfTypes)
+        row.selfType.inSet(selfTypes) &&
+        (row.kind =!= SuggestionKind.CONSTRUCTOR)
       }
       .filterOpt(returnType) { case (row, value) =>
         row.returnType === value
@@ -822,6 +823,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             _,
             returnType,
             doc,
+            _,
             reexport
           ) =>
         SuggestionRow(
@@ -851,6 +853,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             returnType,
             isStatic,
             doc,
+            _,
             reexport
           ) =>
         SuggestionRow(
@@ -980,6 +983,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           arguments     = Seq(),
           returnType    = suggestion.returnType,
           documentation = suggestion.documentation,
+          annotations   = Seq(),
           reexport      = suggestion.reexport
         )
       case SuggestionKind.METHOD =>
@@ -993,6 +997,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           returnType    = suggestion.returnType,
           isStatic      = suggestion.isStatic,
           documentation = suggestion.documentation,
+          annotations   = Seq(),
           reexport      = suggestion.reexport
         )
       case SuggestionKind.CONVERSION =>

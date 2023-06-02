@@ -7,6 +7,8 @@ import toast from 'react-hot-toast'
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
 import * as svg from '../../components/svg'
+import * as validation from '../../dashboard/validation'
+
 import Input from './input'
 import SvgIcon from './svgIcon'
 
@@ -23,6 +25,7 @@ const RESET_PASSWORD_QUERY_PARAMS = {
 // === ResetPassword ===
 // =====================
 
+/** A form for users to reset their password. */
 function ResetPassword() {
     const { resetPassword } = auth.useAuth()
     const { search } = router.useLocation()
@@ -116,6 +119,8 @@ function ResetPassword() {
                                     type="password"
                                     name="new_password"
                                     placeholder="New Password"
+                                    pattern={validation.PASSWORD_PATTERN}
+                                    title={validation.PASSWORD_TITLE}
                                     value={newPassword}
                                     setValue={setNewPassword}
                                 />
@@ -173,6 +178,7 @@ function ResetPassword() {
     )
 }
 
+/** Return an object containing the query parameters, with keys renamed to `camelCase`. */
 function parseUrlSearchParams(search: string) {
     const query = new URLSearchParams(search)
     const verificationCode = query.get(RESET_PASSWORD_QUERY_PARAMS.verificationCode)

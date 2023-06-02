@@ -10,15 +10,35 @@ use ensogl::application::shortcut::ActionType::*;
 
 /// The list of all shortcuts used in the graph editor.
 pub const SHORTCUTS: &[(ensogl::application::shortcut::ActionType, &str, &str, &str)] = &[
-    (Press, "!node_editing & !read_only", "tab", "start_node_creation"),
-    (Press, "!node_editing & !read_only", "enter", "start_node_creation"),
+    (
+        Press,
+        "!node_editing & !read_only & !is_fs_visualization_displayed",
+        "tab",
+        "start_node_creation",
+    ),
+    (
+        Press,
+        "!node_editing & !read_only & !is_fs_visualization_displayed",
+        "enter",
+        "start_node_creation",
+    ),
     // === Drag ===
     (Press, "", "left-mouse-button", "node_press"),
     (Release, "", "left-mouse-button", "node_release"),
-    (Press, "!node_editing & !read_only", "backspace", "remove_selected_nodes"),
-    (Press, "!node_editing & !read_only", "delete", "remove_selected_nodes"),
+    (
+        Press,
+        "!node_editing & !read_only & !is_fs_visualization_displayed",
+        "backspace",
+        "remove_selected_nodes",
+    ),
+    (
+        Press,
+        "!node_editing & !read_only & !is_fs_visualization_displayed",
+        "delete",
+        "remove_selected_nodes",
+    ),
     (Press, "has_detached_edge", "escape", "drop_dragged_edge"),
-    (Press, "!read_only", "cmd g", "collapse_selected_nodes"),
+    (Press, "!read_only & !is_fs_visualization_displayed", "cmd g", "collapse_selected_nodes"),
     // === Visualization ===
     (Press, "!node_editing", "space", "press_visualization_visibility"),
     (
@@ -51,17 +71,26 @@ pub const SHORTCUTS: &[(ensogl::application::shortcut::ActionType, &str, &str, &
         "ctrl space",
         "cycle_visualization_for_selected_node",
     ),
-    (DoublePress, "!read_only", "left-mouse-button", "enter_hovered_node"),
+    (
+        DoublePress,
+        "!read_only & !node_editing & !is_fs_visualization_displayed",
+        "left-mouse-button",
+        "enter_hovered_node",
+    ),
     (DoublePress, "!read_only", "left-mouse-button", "start_node_creation_from_port"),
     (Press, "!read_only", "right-mouse-button", "start_node_creation_from_port"),
-    (Press, "!node_editing & !read_only", "cmd enter", "enter_selected_node"),
-    (Press, "!read_only", "alt enter", "exit_node"),
+    (
+        Press,
+        "!node_editing & !read_only & !is_fs_visualization_displayed",
+        "cmd enter",
+        "enter_selected_node",
+    ),
+    (Press, "!read_only & !is_fs_visualization_displayed", "alt enter", "exit_node"),
     // === Node Editing ===
     (Press, "!read_only", "cmd", "edit_mode_on"),
     (Release, "!read_only", "cmd", "edit_mode_off"),
     (Press, "!read_only", "cmd left-mouse-button", "edit_mode_on"),
     (Release, "!read_only", "cmd left-mouse-button", "edit_mode_off"),
-    (Press, "node_editing & !read_only", "cmd enter", "stop_editing"),
     // === Profiling Mode ===
     (Press, "", "cmd p", "toggle_profiling_mode"),
     // === Debug ===
@@ -69,6 +98,7 @@ pub const SHORTCUTS: &[(ensogl::application::shortcut::ActionType, &str, &str, &
     (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
     (Press, "debug_mode", "ctrl shift up", "debug_pop_breadcrumb"),
     (Press, "debug_mode", "ctrl n", "add_node_at_cursor"),
+    (Press, "", "ctrl shift x", "reopen_file_in_language_server"),
     // Execution Environment
     (Press, "", "cmd shift k", "switch_to_design_execution_environment"),
     (Press, "", "cmd shift l", "switch_to_live_execution_environment"),

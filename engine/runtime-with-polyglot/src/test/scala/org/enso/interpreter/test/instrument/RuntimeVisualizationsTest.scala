@@ -123,7 +123,11 @@ class RuntimeVisualizationsTest
 
       object Update {
 
-        def mainX(contextId: UUID, fromCache: Boolean = false): Api.Response =
+        def mainX(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
           Api.Response(
             Api.ExpressionUpdates(
               contextId,
@@ -134,13 +138,18 @@ class RuntimeVisualizationsTest
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
+                  typeChanged,
                   Api.ExpressionUpdate.Payload.Value()
                 )
               )
             )
           )
 
-        def mainY(contextId: UUID, fromCache: Boolean = false): Api.Response =
+        def mainY(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
           Api.Response(
             Api.ExpressionUpdates(
               contextId,
@@ -149,21 +158,28 @@ class RuntimeVisualizationsTest
                   Main.idMainY,
                   Some(ConstantsGen.INTEGER),
                   Some(
-                    Api.MethodPointer(
-                      "Enso_Test.Test.Main",
-                      ConstantsGen.NUMBER,
-                      "foo"
+                    Api.MethodCall(
+                      Api.MethodPointer(
+                        "Enso_Test.Test.Main",
+                        ConstantsGen.NUMBER,
+                        "foo"
+                      )
                     )
                   ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
+                  typeChanged,
                   Api.ExpressionUpdate.Payload.Value()
                 )
               )
             )
           )
 
-        def mainZ(contextId: UUID, fromCache: Boolean = false): Api.Response =
+        def mainZ(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
           Api.Response(
             Api.ExpressionUpdates(
               contextId,
@@ -174,13 +190,18 @@ class RuntimeVisualizationsTest
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
+                  typeChanged,
                   Api.ExpressionUpdate.Payload.Value()
                 )
               )
             )
           )
 
-        def fooY(contextId: UUID, fromCache: Boolean = false): Api.Response =
+        def fooY(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
           Api.Response(
             Api.ExpressionUpdates(
               contextId,
@@ -191,13 +212,18 @@ class RuntimeVisualizationsTest
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
+                  typeChanged,
                   Api.ExpressionUpdate.Payload.Value()
                 )
               )
             )
           )
 
-        def fooZ(contextId: UUID, fromCache: Boolean = false): Api.Response =
+        def fooZ(
+          contextId: UUID,
+          fromCache: Boolean   = false,
+          typeChanged: Boolean = true
+        ): Api.Response =
           Api.Response(
             Api.ExpressionUpdates(
               contextId,
@@ -208,6 +234,7 @@ class RuntimeVisualizationsTest
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
+                  typeChanged,
                   Api.ExpressionUpdate.Payload.Value()
                 )
               )
@@ -936,8 +963,18 @@ class RuntimeVisualizationsTest
 
     val editFileResponse = context.receiveNIgnorePendingExpressionUpdates(4)
     editFileResponse should contain allOf (
-      TestMessages.update(contextId, context.Main.idFooY, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, context.Main.idFooZ, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        context.Main.idFooY,
+        ConstantsGen.INTEGER,
+        typeChanged = false
+      ),
+      TestMessages.update(
+        contextId,
+        context.Main.idFooZ,
+        ConstantsGen.INTEGER,
+        typeChanged = false
+      ),
       context.executionComplete(contextId)
     )
     val Some(data3) = editFileResponse.collectFirst {
@@ -963,8 +1000,8 @@ class RuntimeVisualizationsTest
     )
     popContextResponses should contain allOf (
       Api.Response(requestId, Api.PopContextResponse(contextId)),
-      context.Main.Update.mainY(contextId),
-      context.Main.Update.mainZ(contextId),
+      context.Main.Update.mainY(contextId, typeChanged = false),
+      context.Main.Update.mainZ(contextId, typeChanged = false),
       context.executionComplete(contextId)
     )
 
@@ -2128,7 +2165,9 @@ class RuntimeVisualizationsTest
       TestMessages.panic(
         contextId,
         idMain,
-        Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain))
+        Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain)),
+        builtin     = false,
+        typeChanged = false
       ),
       Api.Response(
         Api.VisualisationEvaluationFailed(
@@ -2967,10 +3006,19 @@ class RuntimeVisualizationsTest
     context.receiveNIgnorePendingExpressionUpdates(
       4
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMain, ConstantsGen.VECTOR),
-      context.executionComplete(contextId)
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.VECTOR,
+        payload = Api.ExpressionUpdate.Payload.Value(
+          Some(
+            Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+          )
+        )
+      ),
+      context.executionComplete(contextId),
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
 
     // attach visualisation
@@ -3068,11 +3116,13 @@ class RuntimeVisualizationsTest
         contextId,
         idX,
         ConstantsGen.INTEGER,
-        methodPointer = Some(
-          Api.MethodPointer(
-            warningModuleName.toString,
-            warningTypeName.toString + ".type",
-            "attach"
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              warningModuleName.toString,
+              warningTypeName.toString,
+              "attach"
+            )
           )
         ),
         payload = Api.ExpressionUpdate.Payload.Value(
@@ -3085,13 +3135,15 @@ class RuntimeVisualizationsTest
         contextId,
         idRes,
         s"$moduleName.Newtype",
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, s"$moduleName.Newtype", "Mk_Newtype")
+          )
+        ),
         payload = Api.ExpressionUpdate.Payload.Value(
           Some(
             Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'x'"), false)
           )
-        ),
-        methodPointer = Some(
-          Api.MethodPointer(moduleName, s"$moduleName.Newtype", "Mk_Newtype")
         )
       ),
       context.executionComplete(contextId)
@@ -3200,14 +3252,14 @@ class RuntimeVisualizationsTest
         contextId,
         idY,
         ConstantsGen.INTEGER_BUILTIN,
-        Api.MethodPointer(moduleName, s"$moduleName.T", "inc")
+        Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "inc"))
       ),
       TestMessages.update(contextId, idS, ConstantsGen.INTEGER_BUILTIN),
       TestMessages.update(
         contextId,
         idZ,
         ConstantsGen.INTEGER_BUILTIN,
-        Api.MethodPointer(moduleName, moduleName, "p")
+        Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "p"))
       ),
       TestMessages.update(contextId, idZexprS, ConstantsGen.INTEGER_BUILTIN),
       TestMessages.update(contextId, idZexpr1, ConstantsGen.INTEGER_BUILTIN),
