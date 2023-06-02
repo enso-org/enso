@@ -3,11 +3,13 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Table.Table as In_Memory_Table
 from Standard.Table.Errors import all
+from Standard.Table import Column_Selector
 
 import project.Connection.Connection.Connection
 import project.Data.Table.Table as Database_Table
 import project.Data.Update_Action.Update_Action
 from project.Errors import all
+from project.Internal.Result_Set import result_set_to_table
 from project.Internal.Upload_Table import all
 
 ## Creates a new database table from this in-memory table.
@@ -48,7 +50,7 @@ In_Memory_Table.select_into_database_table : Connection -> Text|Nothing -> (Vect
 In_Memory_Table.select_into_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False on_problems=Problem_Behavior.Report_Warning =
     Panic.recover SQL_Error <|
         connection.jdbc_connection.run_within_transaction <|
-            upload_in_memory_table source_table connection table_name primary_key temporary on_problems
+            upload_in_memory_table self connection table_name primary_key temporary on_problems
 
 ## Creates a new database table from this table.
 
@@ -88,7 +90,7 @@ Database_Table.select_into_database_table : Connection -> Text|Nothing -> (Vecto
 Database_Table.select_into_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False on_problems=Problem_Behavior.Report_Warning = Panic.recover SQL_Error <|
     Panic.recover SQL_Error <|
         connection.jdbc_connection.run_within_transaction <|
-            upload_database_table source_table connection table_name primary_key temporary on_problems
+            upload_database_table self connection table_name primary_key temporary on_problems
 
 ## Updates the target table with the contents of this table.
 
@@ -128,7 +130,7 @@ Database_Table.select_into_database_table self connection table_name=Nothing pri
      If any error was raised, the data in the target table is not modified.
 In_Memory_Table.update_database_table : Connection -> Text -> Update_Action -> Vector Text-> Boolean -> Database_Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
 In_Memory_Table.update_database_table connection (table_name : Text) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector = default_key_columns connection table_name) (error_on_missing_columns : Boolean = False) =
-    common_update_table self source_table connection table_name update_action key_columns error_on_missing_columns
+    common_update_table self connection table_name update_action key_columns error_on_missing_columns
 
 ## Updates the target table with the contents of this table.
 
@@ -164,7 +166,7 @@ In_Memory_Table.update_database_table connection (table_name : Text) (update_act
      If any error was raised, the data in the target table is not modified.
 Database_Table.update_database_table : Connection -> Text -> Update_Action -> Vector Text-> Boolean -> Database_Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
 Database_Table.update_database_table connection (table_name : Text) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector = default_key_columns connection table_name) (error_on_missing_columns : Boolean = False) =
-    common_update_table self source_table connection table_name update_action key_columns error_on_missing_columns
+    common_update_table self connection table_name update_action key_columns error_on_missing_columns
 
 ## PRIVATE
 default_key_columns connection table_name =

@@ -64,6 +64,7 @@ type Set
         other_map = other.underlying_map
         new_map = self.underlying_map.to_vector.fold Map.empty m-> el->
             if other_map.contains_key el then m.insert el True else m
+        Set.Value new_map
 
     ## ALIAS Difference
        Computes a set difference.
@@ -75,6 +76,7 @@ type Set
         other_map = other.underlying_map
         new_map = self.underlying_map.to_vector.fold Map.empty m-> el->
             if other_map.contains_key el then m else m.insert el True
+        Set.Value new_map
 
     ## PRIVATE
     to_text : Text

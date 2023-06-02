@@ -1,5 +1,6 @@
 from Standard.Base import all
-from project.Errors.Common import Uninitialized_State
+from Standard.Base.Errors.Common import Uninitialized_State
+import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.State
 
 ## PRIVATE
@@ -19,4 +20,4 @@ type In_Transaction
        Runs the provided action, failing if the call is not made from within a
        transaction.
     ensure_in_transaction ~action =
-        if is_in_transaction then action else Error.throw (Illegal_State.Error "`ensure_in_transaction` called outside of a transaction.")
+        if In_Transaction.is_in_transaction then action else Error.throw (Illegal_State.Error "`ensure_in_transaction` called outside of a transaction.")

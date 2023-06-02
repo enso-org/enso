@@ -14,7 +14,7 @@ import Standard.Table.Data.Type.Value_Type.Value_Type
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
-import project.Data.Table.Table
+import project.Data.Table.Table as Database_Table
 import project.Data.Table as Database_Table_Module
 import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression
@@ -24,7 +24,8 @@ import project.Internal.Statement_Setter.Statement_Setter
 
 from project.Internal.Result_Set import read_column, result_set_to_table
 from project.Internal.JDBC_Connection import handle_sql_errors
-from project.Errors import SQL_Error, Table_Not_Found
+from project.Errors import SQL_Error, Table_Not_Found, Table_Already_Exists
+from project.Internal.Upload_Table import create_table_structure
 
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.UUID
@@ -153,7 +154,7 @@ type Connection
          - If provided with a `Table_Name` or a text short-hand and the table is
            not found, a `Table_Not_Found` error is raised.
     @query make_table_name_selector
-    query : Text | SQL_Query -> Text -> Table ! Table_Not_Found | SQL_Error
+    query : Text | SQL_Query -> Text -> Database_Table ! Table_Not_Found | SQL_Error
     query self query alias="" = case query of
         _ : Text ->
             result = self.query alias=alias <|
@@ -188,7 +189,7 @@ type Connection
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - limit: the maximum number of rows to return.
     @query make_table_name_selector
-    read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table
+    read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table ! Table_Not_Found
     read self query limit=Nothing =
         self.query query . read max_rows=limit
 
@@ -230,9 +231,9 @@ type Connection
            structure provided, `Missing_Input_Columns` error is raised.
          - An `SQL_Error` may be reported if there is a failure on the database
            side.
-    create_table : Text|Nothing -> Table | Vector (Pair Text Value_Type) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Table_Already_Exists
-    create_table (table_name : Text | Nothing = Nothing) (structure : Vector | Table | Materialized_Table) (primary_key : Vector Text = first_column_in_structure structure) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
-        create_table_structure connection table_name structure primary_key temporary allow_existing on_problems
+    create_table : Text|Nothing -> Vector (Pair Text Value_Type) | Database_Table | Materialized_Table -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
+    create_table (table_name : Text | Nothing = Nothing) (structure : Vector | Database_Table | Materialized_Table) (primary_key : Vector Text = first_column_in_structure structure) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+        create_table_structure self table_name structure primary_key temporary allow_existing on_problems
 
     ## PRIVATE
        Internal read function for a statement with optional types.
