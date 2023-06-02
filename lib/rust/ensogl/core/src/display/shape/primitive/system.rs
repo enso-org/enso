@@ -41,7 +41,7 @@
 //! ```
 //!
 //! # Shape system life cycle
-//! The shape's view is a [`Sprite`] with associated attributes and helper functions. Sprites are
+//! The shape's view is a [`RawSprite`] with associated attributes and helper functions. Sprites are
 //! associated with sprite systems, which are always associated with a given scene, because they
 //! contain references to GPU buffers. Thus, creating a new view (e.g. by writing
 //! `shape::View::new()`) has to create a new sprite in the correct sprite system instance. Every
@@ -67,7 +67,7 @@ use crate::display;
 use crate::display::shape::primitive::shader;
 use crate::display::shape::Var;
 use crate::display::symbol;
-use crate::display::symbol::geometry::Sprite;
+use crate::display::symbol::geometry::RawSprite;
 use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::symbol::material;
 use crate::display::symbol::material::Material;
@@ -230,7 +230,7 @@ impl ShapeSystemFlavor {
 pub struct ShapeInstance<S> {
     #[deref]
     shape:      S,
-    pub sprite: RefCell<Sprite>,
+    pub sprite: RefCell<RawSprite>,
 }
 
 impl<S> ShapeInstance<S> {

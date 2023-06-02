@@ -115,17 +115,23 @@ impl Size {
 // === Sprite ===
 // ==============
 
-/// Sprite is a simple rectangle object. In most cases, sprites always face the camera and can be
+/// A sprite is a simple rectangle object. In most cases, sprites always face the camera and can be
 /// freely rotated only by their local z-axis. This implementation, however, implements sprites as
 /// full 3D objects. We may want to fork this implementation in the future to create a specialized
 /// 2d representation as well.
+///
+/// This type is "raw": It implements the GPU side of a sprite. For a raw sprite to be fit into a
+/// display object hierarchy, it should be controlled by the event handlers of a display object.
+/// [`Sprite`] does this in the simplest way, which is not compatible with layers. [`ShapeSystem`]
+/// does so with an indirection allowing one display object to be associated with different
+/// [`Sprite`]s, for full layer support.
 #[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
-pub struct Sprite {
+pub struct RawSprite {
     model: Rc<SpriteModel>,
 }
 
-/// Internal representation of [`Sprite`].
+/// Internal representation of [`RawSprite`].
 #[derive(Debug, Deref)]
 #[allow(missing_docs)]
 pub struct SpriteModel {
@@ -157,7 +163,7 @@ impl SpriteModel {
     }
 }
 
-impl Sprite {
+impl RawSprite {
     /// Constructor.
     pub fn new(
         symbol: &Symbol,
@@ -183,19 +189,23 @@ impl Sprite {
         }
     }
 
-    pub(crate) fn show(&self) {
+    /// Turn on drawing the sprite.
+    pub fn show(&self) {
         self.size.show();
     }
 
-    pub(crate) fn hide(&self) {
+    /// Turn off drawing the sprite.
+    pub fn hide(&self) {
         self.size.hide();
     }
 
-    pub(crate) fn set_transform(&self, transform: Matrix4<f32>) {
+    /// Set the sprite's transformation matrix.
+    pub fn set_transform(&self, transform: Matrix4<f32>) {
         self.transform.set(transform);
     }
 
-    pub(crate) fn set_size(&self, size: Vector2<f32>) {
+    /// Set the sprite's dimensions.
+    pub fn set_size(&self, size: Vector2<f32>) {
         self.size.set(size);
     }
 }
@@ -245,16 +255,16 @@ impl SpriteSystem {
     }
 
     /// Creates a new sprite instance.
-    pub fn new_instance(&self) -> Sprite {
+    pub fn new_instance(&self) -> RawSprite {
         self.new_instance_at(default())
     }
 
     /// Creates a new sprite instance in the specified buffer.
-    pub fn new_instance_at(&self, buffer_partition: attribute::BufferPartitionId) -> Sprite {
+    pub fn new_instance_at(&self, buffer_partition: attribute::BufferPartitionId) -> RawSprite {
         let instance = self.symbol.new_instance(buffer_partition);
         let transform = self.transform.at(instance.instance_id);
         let size = self.size.at(instance.instance_id);
-        Sprite::new(&self.symbol, instance, transform, size, &self.stats)
+        RawSprite::new(&self.symbol, instance, transform, size, &self.stats)
     }
 
     /// Hide the symbol. Hidden symbols will not be rendered.
@@ -363,26 +373,26 @@ impl SpriteSystem {
 
 
 
-// ====================
-// === SpriteObject ===
-// ====================
+// ==============
+// === Sprite ===
+// ==============
 
-/// A [`Sprite`] with an associated display object.
+/// A [`RawSprite`] with an associated display object.
 ///
 /// This simple construct allows configuring sprites via display objects without any other layer
 /// such as a [`ShapeSystem`]; however, because the display object is permanently bound to an
 /// instance from a particular [`SpriteSystem`], it is not possible to implement layer operations
 /// for such objects.
 #[derive(Debug, Clone, CloneRef, Deref)]
-pub struct SpriteObject {
+pub struct Sprite {
     #[deref]
-    sprite:         Sprite,
+    sprite:         RawSprite,
     display_object: display::object::Instance,
 }
 
-impl SpriteObject {
+impl Sprite {
     /// Create a display object and bind it to the sprite.
-    pub fn new(sprite: Sprite) -> Self {
+    pub fn new(sprite: RawSprite) -> Self {
         let display_object = default();
         let this = Self { sprite, display_object };
         this.init_display_object_events();
@@ -407,7 +417,7 @@ impl SpriteObject {
     }
 }
 
-impl display::Object for SpriteObject {
+impl display::Object for Sprite {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
     }

@@ -19,7 +19,7 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-use ensogl_core::display::geometry::compound::sprite::SpriteObject;
+use ensogl_core::display::geometry::compound::sprite::Sprite;
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
 
@@ -38,8 +38,8 @@ pub fn main() {
 
     let sprite2 = sprite_system.new_instance();
     let sprite1 = sprite_system.new_instance();
-    let sprite1 = SpriteObject::new(sprite1);
-    let sprite2 = SpriteObject::new(sprite2);
+    let sprite1 = Sprite::new(sprite1);
+    let sprite2 = Sprite::new(sprite2);
     sprite1.set_size(Vector2::new(15.0, 15.0));
     sprite2.set_size(Vector2::new(15.0, 15.0));
     world.add_child(&sprite1);

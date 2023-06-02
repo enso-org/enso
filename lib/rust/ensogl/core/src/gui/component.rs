@@ -14,7 +14,7 @@ use crate::display::shape::primitive::system::Shape;
 use crate::display::shape::primitive::system::ShapeInstance;
 use crate::display::symbol;
 use crate::display::world;
-use crate::display::Sprite;
+use crate::display::RawSprite;
 use crate::frp;
 
 
@@ -42,7 +42,7 @@ pub trait AnyShapeView: display::Object {
     fn definition_path(&self) -> &'static str;
 
     /// Get the sprite of given shape.
-    fn sprite(&self) -> Sprite;
+    fn sprite(&self) -> RawSprite;
 }
 
 impl<S: Shape> AnyShapeView for ShapeView<S> {
@@ -50,7 +50,7 @@ impl<S: Shape> AnyShapeView for ShapeView<S> {
         S::definition_path()
     }
 
-    fn sprite(&self) -> Sprite {
+    fn sprite(&self) -> RawSprite {
         self.sprite.borrow().clone_ref()
     }
 }

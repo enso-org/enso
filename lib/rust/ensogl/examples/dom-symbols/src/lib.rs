@@ -23,7 +23,7 @@ use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
 use ensogl_core::system::web::traits::*;
 
-use ensogl_core::display::geometry::compound::sprite::SpriteObject;
+use ensogl_core::display::geometry::compound::sprite::Sprite;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::symbol::geometry::SpriteSystem;
 use ensogl_core::display::symbol::DomSymbol;
@@ -44,7 +44,7 @@ const HTML_PADDING: f32 = 10.0;
 const VERTICAL_MARGIN: f32 = 10.0;
 const HEIGHT_FRACTION: f32 = 0.8;
 
-fn update_shape(screen: Shape, sprites: &[SpriteObject], dom_symbols: &[DomSymbol]) {
+fn update_shape(screen: Shape, sprites: &[Sprite], dom_symbols: &[DomSymbol]) {
     let side_offset = 10.0;
     let display_objects = sprites
         .iter()
@@ -88,13 +88,13 @@ pub fn main() {
     let dom_front_layer = &scene.dom.layers.front;
     let dom_back_layer = &scene.dom.layers.back;
 
-    let mut sprites: Vec<SpriteObject> = default();
+    let mut sprites: Vec<Sprite> = default();
     let mut dom_symbols: Vec<DomSymbol> = default();
     for i in 0..ELEM_COUNT {
         let fi = i as f32;
         if i % 2 == 0 {
             let sprite = sprite_system.new_instance();
-            let sprite = SpriteObject::new(sprite);
+            let sprite = Sprite::new(sprite);
             world.add_child(&sprite);
             sprites.push(sprite);
         } else {

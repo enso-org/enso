@@ -25,7 +25,7 @@ use ensogl_core::prelude::*;
 use ensogl_core::animation;
 use ensogl_core::display::camera::Camera2d;
 use ensogl_core::display::navigation::navigator::Navigator;
-use ensogl_core::display::symbol::geometry::compound::sprite::SpriteObject;
+use ensogl_core::display::symbol::geometry::compound::sprite::Sprite;
 use ensogl_core::display::symbol::geometry::SpriteSystem;
 use ensogl_core::display::Scene;
 use nalgebra::Vector2;
@@ -44,16 +44,16 @@ pub fn main() {
     scene.add_child(&sprite_system.symbol);
 
     let sprite1 = sprite_system.new_instance();
-    let sprite1 = SpriteObject::new(sprite1);
+    let sprite1 = Sprite::new(sprite1);
     sprite1.set_size(Vector2::new(10.0, 10.0));
     sprite1.set_position(Vector3::new(5.0, 5.0, 0.0));
     scene.add_child(&sprite1);
 
-    let mut sprites: Vec<SpriteObject> = default();
+    let mut sprites: Vec<Sprite> = default();
     let count = 100;
     for _ in 0..count {
         let sprite = sprite_system.new_instance();
-        let sprite = SpriteObject::new(sprite);
+        let sprite = Sprite::new(sprite);
         sprite.set_size(Vector2::new(1.0, 1.0));
         scene.add_child(&sprite);
         sprites.push(sprite);
@@ -96,8 +96,8 @@ pub fn on_frame(
     camera: &Camera2d,
     time: animation::TimeInfo,
     iter: &mut i32,
-    sprite1: &SpriteObject,
-    sprites: &mut Vec<SpriteObject>,
+    sprite1: &Sprite,
+    sprites: &mut Vec<Sprite>,
     sprite_system: &SpriteSystem,
 ) {
     *iter += 1;
@@ -111,7 +111,7 @@ pub fn on_frame(
     if *iter < cycle_duration {
         for _ in 0..sprite_diff_per_cycle {
             let sprite = sprite_system.new_instance();
-            let sprite = SpriteObject::new(sprite);
+            let sprite = Sprite::new(sprite);
             sprite.set_size(Vector2::new(1.0, 1.0));
             scene.add_child(&sprite);
             sprites.push(sprite);
