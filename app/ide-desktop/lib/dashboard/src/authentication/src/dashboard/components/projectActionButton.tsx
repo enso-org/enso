@@ -101,6 +101,16 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const [toastId, setToastId] = react.useState<string | null>(null)
 
     react.useEffect(() => {
+        if (toastId != null) {
+            return () => {
+                toast.dismiss(toastId)
+            }
+        } else {
+            return
+        }
+    }, [toastId])
+
+    react.useEffect(() => {
         // Ensure that the previous spinner state is visible for at least one frame.
         requestAnimationFrame(() => {
             setSpinnerState(SPINNER_STATE[state ?? DEFAULT_PROJECT_STATE])
@@ -290,20 +300,46 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         case backendModule.ProjectState.created:
         case backendModule.ProjectState.new:
         case backendModule.ProjectState.closed:
-            return <button onClick={doOpenManually}>{svg.PLAY_ICON}</button>
+            return (
+                <button
+                    onClick={clickEvent => {
+                        clickEvent.stopPropagation()
+                        doOpenManually()
+                    }}
+                >
+                    {svg.PLAY_ICON}
+                </button>
+            )
         case backendModule.ProjectState.openInProgress:
             return (
-                <button onClick={closeProject}>
+                <button
+                    onClick={clickEvent => {
+                        clickEvent.stopPropagation()
+                        closeProject()
+                    }}
+                >
                     <svg.StopIcon className={SPINNER_CSS_CLASSES[spinnerState]} />
                 </button>
             )
         case backendModule.ProjectState.opened:
             return (
                 <>
-                    <button onClick={closeProject}>
+                    <button
+                        onClick={clickEvent => {
+                            clickEvent.stopPropagation()
+                            closeProject()
+                        }}
+                    >
                         <svg.StopIcon className={SPINNER_CSS_CLASSES[spinnerState]} />
                     </button>
-                    <button onClick={openIde}>{svg.ARROW_UP_ICON}</button>
+                    <button
+                        onClick={clickEvent => {
+                            clickEvent.stopPropagation()
+                            openIde()
+                        }}
+                    >
+                        {svg.ARROW_UP_ICON}
+                    </button>
                 </>
             )
     }

@@ -538,10 +538,12 @@ function Dashboard(props: DashboardProps) {
                     event={projectEvent}
                     doRefresh={doRefresh}
                     doOpenManually={() => {
-                        setProjectEvent({
-                            type: projectActionButton.ProjectEventType.open,
-                            projectId: projectAsset.id,
-                        })
+                        setProjectEvent(
+                            {
+                                type: projectActionButton.ProjectEventType.open,
+                                projectId: projectAsset.id,
+                            }
+                        )
                     }}
                     onClose={() => {
                         setProjectEvent({
