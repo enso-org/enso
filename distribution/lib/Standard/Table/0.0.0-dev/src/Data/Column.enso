@@ -734,7 +734,7 @@ type Column
                 True ->
                     fun = _.date
                     Column_Ops.map_over_storage self fun make_date_builder_adapter skip_nothing=True
-                False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" self.value_type
+                False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" self.value_type self.name
 
     ## Computes the nearest integer above this number for values in a numeric
        column.
