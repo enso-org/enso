@@ -378,11 +378,71 @@ spec make_new_connection prefix persistent_connector=True =
             result.at "X" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
             result.at "Y" . to_vector . should_equal ['a', 'b', 'c', 'd', 'e', 'f']
 
+
+        Test.specify "should error if new rows clash with existing ones and mode is Insert, target table should remain unchanged" <|
+            Nothing
+
+        Test.specify "should use the target table primary key for the key by default" <|
+            Nothing
+
+        Test.specify "should be able to update existing rows in a table" <|
+            Nothing
+
+        Test.specify "should upsert by default (update existing rows, insert new rows)" <|
+            Nothing
+
+        Test.specify "should allow to align an existing table with a source (upsert + delete rows missing from source)" <|
+            Nothing
+
+        Test.specify "should allow to use a transformed table, with computed fields, as a source" <|
+            Nothing
+
+        Test.specify "should be able to detect the primary key of a table for row correlation" <|
+            Nothing
+
+        Test.specify "should allow specifying no key in Insert mode" <|
+            Nothing
+
+        Test.specify "should fail if no key is specified in other modes" <|
+            Nothing
+
+        Test.specify "should fail if the key is not unique in the unique table" <|
+            Nothing
+
+        Test.specify "should fail if the key causes update of multiple values (it's not unique in the target table)" <|
+            Nothing
+
+        Test.specify "should fail if the source table contains columns not present in the target (data loss)" <|
+            Nothing
+
+        Test.specify "by default should keep columns missing from source as-is and use defaults when inserting" <|
+            Nothing
+
+        Test.specify "should fail if the source table is missing some columns and the column in the target has no default value" <|
+            Nothing
+
+        Test.specify "should fail if the source table is missing some columns, if asked to" <|
+            Nothing
+
+        Test.specify "should fail if some of key_columns do not exist in either table" <|
+            Nothing
+
         Test.specify "should fail if the target table does not exist" <|
             t = source_table_builder ["X", [1, 2, 3], "Y", ['a', 'b', 'c']]
             nonexistent_name = Name_Generator.random_name "nonexistent-table"
             r1 = t.update_database_table connection nonexistent_name
             r1.should_fail_with Table_Not_Found
+
+        Test.specify "should report a meaningful error when the primary key could not be determined" <|
+            # TODO temporary (only SQLite?)
+            Nothing
+
+            # TODO non-existent target
+            Nothing
+
+        Test.specify "should fail if types of columns are not compatible" <|
+            # TODO how do we define compatibility? I assume we allow type widening, but not narrowing
+            Nothing
 
     table_builder name_prefix args primary_key=[] =
         in_memory_table = Table.new args
