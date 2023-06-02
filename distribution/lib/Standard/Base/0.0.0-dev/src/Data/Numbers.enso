@@ -616,13 +616,11 @@ type Decimal
                         scale = 10 ^ decimal_places
                         scaled = self * scale
                         round_base = scaled.floor
-                        round_down = round_base / scale
                         round_midpoint = (round_base + 0.5) / scale
-                        round_up = (round_base + 1.0) / scale
                         even_is_up = if self >= 0 then (scaled.truncate % 2) != 0 else (scaled.truncate % 2) == 0
                         half_goes_up = if use_bankers then even_is_up else True
                         do_round_up = if half_goes_up then self >= round_midpoint else self > round_midpoint
-                        if do_round_up then round_up else round_down
+                        if do_round_up then ((round_base + 1.0) / scale) else (round_base / scale)
                     # Convert to integer if it's really an integer anyway.
                     if decimal_places > 0 then decimal_result else decimal_result.truncate
 
