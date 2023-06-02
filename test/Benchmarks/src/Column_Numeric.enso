@@ -26,8 +26,6 @@ bench =
 
     IO.println <| ".round floats"
     Bench.measure floats.round "Column.round floats" iter_size num_iterations
-    IO.println <| ".round ints"
-    Bench.measure ints.round "Column.round ints" iter_size num_iterations
 
     IO.println <| ".truncate floats"
     Bench.measure floats.truncate "Column.truncate floats" iter_size num_iterations
@@ -36,6 +34,8 @@ bench =
     IO.println <| ".floor floats"
     Bench.measure floats.floor "Column.floor floats" iter_size num_iterations
 
+    IO.println <| ".round ints"
+    Bench.measure ints.round "Column.round ints" iter_size num_iterations
     IO.println <| ".truncate ints"
     Bench.measure ints.truncate "Column.truncate ints" iter_size num_iterations
     IO.println <| ".ceil ints"
