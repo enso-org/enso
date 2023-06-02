@@ -27,7 +27,7 @@ class ImportsTest extends PackageTest {
   "Import statements" should "report errors when they cannot be resolved" in {
     the[InterpreterException] thrownBy evalTestProject(
       "Test_Bad_Imports"
-    ) should have message "Compilation aborted due to errors."
+    ) should have message "Aborting due to"
     val outLines = consumeOut
     outLines(2) should include(
       "Package containing the module Surely_This.Does_Not_Exist.My_Module " +
@@ -124,7 +124,7 @@ class ImportsTest extends PackageTest {
       "TestSubmodulesNameConflict"
     ) should have message "Method `c_mod_method` of type C.type could not be found."
     val outLines = consumeOut
-    outLines(2) should include
+    outLines(1) should include
     "Declaration of type C shadows module local.TestSubmodulesNameConflict.A.B.C making it inaccessible via a qualified name."
   }
 
@@ -160,10 +160,10 @@ class ImportsTest extends PackageTest {
       "Test_Polyglot_Exports"
     ) should have message "Compilation aborted due to errors."
     val outLines = consumeOut
-    outLines should have length 3
+    outLines should have length 4
     outLines(
-      2
-    ) shouldEqual "Main.enso[5:16-5:19]: The name `Long` could not be found."
+      1
+    ) shouldEqual "Main.enso:5:16-19: error: The name `Long` could not be found."
   }
 
   "Constructors" should "be importable" in {
@@ -180,10 +180,10 @@ class ImportsTest extends PackageTest {
     ) should have message "Compilation aborted due to errors."
 
     val outLines = consumeOut
-    outLines should have length 3
+    outLines should have length 4
     outLines(
       2
-    ) shouldEqual "Main.enso[2:14-2:17]: Fully qualified name references a library Standard.Base but an import statement for it is missing."
+    ) shouldEqual "Main.enso:2:14-17: error: Fully qualified name references a library Standard.Base but an import statement for it is missing."
   }
 
   "Fully qualified names" should "be resolved when library has already been loaded" in {
@@ -200,10 +200,10 @@ class ImportsTest extends PackageTest {
       "Test_Fully_Qualified_Name_Conflict"
     ) should have message "Method `Foo` of type Atom.type could not be found."
     val outLines = consumeOut
-    outLines should have length 3
+    outLines should have length 4
     outLines(
-      2
-    ) shouldEqual "Main.enso[2:1-2:57]: The exported type `Atom` in `local.Test_Fully_Qualified_Name_Conflict.Atom` module will cause name conflict when attempting to use a fully qualified name of the `local.Test_Fully_Qualified_Name_Conflict.Atom.Foo` module."
+      1
+    ) shouldEqual "Main.enso:2:1-57: error: The exported type `Atom` in `local.Test_Fully_Qualified_Name_Conflict.Atom` module will cause name conflict when attempting to use a fully qualified name of the `local.Test_Fully_Qualified_Name_Conflict.Atom.Foo` module."
   }
 
   "Deeply nested modules" should "infer correct synthetic modules" in {
