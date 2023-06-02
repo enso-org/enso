@@ -707,7 +707,7 @@ macro_rules! _shape_old {
             use super::*;
             use $crate::prelude::*;
             use $crate::display;
-            use $crate::display::symbol::geometry::Sprite;
+            use $crate::display::symbol::geometry::RawSprite;
             use $crate::system::gpu;
             use $crate::system::gpu::data::Attribute;
             use $crate::display::shape::ShapeSystemId;
@@ -876,7 +876,7 @@ macro_rules! _shape {
             use super::*;
             use $crate::prelude::*;
             use $crate::display;
-            use $crate::display::symbol::geometry::Sprite;
+            use $crate::display::symbol::geometry::RawSprite;
             use $crate::system::gpu;
             use $crate::system::gpu::data::Attribute;
             use $crate::display::shape::ShapeSystemId;
