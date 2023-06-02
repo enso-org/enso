@@ -42,9 +42,12 @@ crate::define_endpoints_2! {
         show_system_cursor(),
         /// Hide the system mouse cursor.
         hide_system_cursor(),
+        /// Show a notification.
+        show_notification(String),
     }
     Output {
-        tooltip(tooltip::Style)
+        tooltip(tooltip::Style),
+        notification(String),
     }
 }
 
