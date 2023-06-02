@@ -1259,18 +1259,20 @@ type Table
             _ : Range -> Column.from_vector (new_name.if_nothing "Range") column.to_vector
             _ : Date_Range -> Column.from_vector (new_name.if_nothing "Date Range") column.to_vector
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
-        renamed = case new_name of
-           Nothing -> resolved
-           _ : Text -> resolved.rename new_name
-        check_add_mode = case set_mode of
-            Set_Mode.Add_Or_Update -> True
-            Set_Mode.Add -> if self.java_table.getColumnByName renamed.name . is_nothing then True else
-                Error.throw (Existing_Column.Error renamed.name)
-            Set_Mode.Update -> if self.java_table.getColumnByName renamed.name . is_nothing . not then True else
-                Error.throw (Missing_Column.Error renamed.name)
 
-        check_add_mode.if_not_error <|
-            Table.Value (self.java_table.addOrReplaceColumn renamed.java_column)
+        if resolved.length != self.row_count then Error.throw (Illegal_Argument.Error "The length of the column does not match the number of rows in the table.") else
+            renamed = case new_name of
+               Nothing -> resolved
+               _ : Text -> resolved.rename new_name
+            check_add_mode = case set_mode of
+                Set_Mode.Add_Or_Update -> True
+                Set_Mode.Add -> if self.java_table.getColumnByName renamed.name . is_nothing then True else
+                    Error.throw (Existing_Column.Error renamed.name)
+                Set_Mode.Update -> if self.java_table.getColumnByName renamed.name . is_nothing . not then True else
+                    Error.throw (Missing_Column.Error renamed.name)
+
+            check_add_mode.if_not_error <|
+                Table.Value (self.java_table.addOrReplaceColumn renamed.java_column)
 
     ## Given an expression, create a derived column where each value is the
        result of evaluating the expression for the row.
