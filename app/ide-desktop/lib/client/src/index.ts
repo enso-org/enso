@@ -50,13 +50,16 @@ class App {
     /** Initialize and run the Electron application. */
     async run() {
         log.addFileLog()
+        this.becomeSingleInstance()
         urlAssociations.registerAssociations()
         // Register file associations for macOS.
         fileAssociations.setOpenFileEventHandler(id => {
             this.setProjectToOpenOnStartup(id)
         })
 
-        const { windowSize, chromeOptions, fileToOpen, urlToOpen } = this.processArguments()
+        const { windowSize, chromeOptions, fileToOpen, urlToOpen } = this.processArguments(
+            fileAssociations.CLIENT_ARGUMENTS
+        )
         this.handleItemOpening(fileToOpen, urlToOpen)
         if (this.args.options.version.value) {
             await this.printVersion()
@@ -84,21 +87,39 @@ class App {
         }
     }
 
+    /** Try to acquire the single-instance lock. If it fails, a new window will be opened in the
+     * original instance, so this instance should be closed. */
+    becomeSingleInstance() {
+        const didAcquireLock = electron.app.requestSingleInstanceLock(
+            fileAssociations.CLIENT_ARGUMENTS
+        )
+        if (didAcquireLock) {
+            electron.app.on('second-instance', (_event, argv) => {
+                const { windowSize, chromeOptions, fileToOpen, urlToOpen } =
+                    this.processArguments(argv)
+                // Check if additional data is an object that contains the URL.
+                const requestOneLastElementSlice = -1
+                const lastArgumentSlice = argv.slice(requestOneLastElementSlice)
+                const isUrlOpenAttempt =
+                    urlAssociations.argsDenoteUrlOpenAttempt(lastArgumentSlice) != null
+                if (!isUrlOpenAttempt) {
+                    void this.main(windowSize)
+                }
+            })
+        }
+        return didAcquireLock
+    }
+
     /** Process the command line arguments. */
-    processArguments() {
+    processArguments(commandLineArguments: string[]) {
         // We parse only "client arguments", so we don't have to worry about the Electron-Dev vs
         // Electron-Proper distinction.
-        const fileToOpen = fileAssociations.argsDenoteFileOpenAttempt(
-            fileAssociations.CLIENT_ARGUMENTS
-        )
-        const urlToOpen = urlAssociations.argsDenoteUrlOpenAttempt(
-            fileAssociations.CLIENT_ARGUMENTS
-        )
+        const fileToOpen = fileAssociations.argsDenoteFileOpenAttempt(commandLineArguments)
+        const urlToOpen = urlAssociations.argsDenoteUrlOpenAttempt(commandLineArguments)
         // If we are opening a file (i.e. we were spawned with just a path of the file to open as
         // the argument) or URL, it means that effectively we don't have any non-standard arguments.
         // We just need to let caller know that we are opening a file.
-        const argsToParse =
-            fileToOpen != null || urlToOpen != null ? [] : fileAssociations.CLIENT_ARGUMENTS
+        const argsToParse = fileToOpen != null || urlToOpen != null ? [] : commandLineArguments
         return { ...configParser.parseArgs(argsToParse), fileToOpen, urlToOpen }
     }
 
@@ -206,7 +227,9 @@ class App {
                  * authentication module uses the lambda providing the window. */
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 authentication.initModule(() => this.window!)
-                this.loadWindowContent()
+                if (this.window != null) {
+                    this.loadWindowContent(this.window)
+                }
             })
         } catch (err) {
             console.error('Failed to initialize the application, shutting down. Error:', err)
@@ -362,20 +385,18 @@ class App {
     }
 
     /** Redirect the web view to `localhost:<port>` to see the served website. */
-    loadWindowContent() {
-        if (this.window != null) {
-            const searchParams: Record<string, string> = {}
-            for (const option of this.args.optionsRecursive()) {
-                if (option.value !== option.default && option.passToWebApplication) {
-                    searchParams[option.qualifiedName()] = option.value.toString()
-                }
+    loadWindowContent(window: electron.BrowserWindow) {
+        const searchParams: Record<string, string> = {}
+        for (const option of this.args.optionsRecursive()) {
+            if (option.value !== option.default && option.passToWebApplication) {
+                searchParams[option.qualifiedName()] = option.value.toString()
             }
-            const address = new URL('http://localhost')
-            address.port = this.serverPort().toString()
-            address.search = new URLSearchParams(searchParams).toString()
-            logger.log(`Loading the window address '${address.toString()}'.`)
-            void this.window.loadURL(address.toString())
         }
+        const address = new URL('http://localhost')
+        address.port = this.serverPort().toString()
+        address.search = new URLSearchParams(searchParams).toString()
+        logger.log(`Loading the window address '${address.toString()}'.`)
+        void window.loadURL(address.toString())
     }
 
     /** Print the version of the frontend and the backend. */
