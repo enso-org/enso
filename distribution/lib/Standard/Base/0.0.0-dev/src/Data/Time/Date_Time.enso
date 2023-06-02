@@ -501,7 +501,8 @@ type Date_Time
     at_zone : Time_Zone -> Date_Time
     at_zone self zone = @Builtin_Method "Date_Time.at_zone"
 
-    ## Add the specified amount of time to this instant to produce a new instant.
+    ## ALIAS Add Period, Add Duration
+       Add the specified amount of time to this instant to produce a new instant.
 
        Arguments:
        - amount: The amount of time to add to this instant, either `Duration` for
@@ -564,7 +565,8 @@ type Date_Time
         ensure_in_epoch self <|
             self.date.add_work_days days holidays . to_date_time self.time_of_day self.zone
 
-    ## Subtract the specified amount of time from this instant to get a new
+    ## ALIAS Subtract Duration, Subtract Period
+       Subtract the specified amount of time from this instant to get a new
        instant.
 
        Produces a warning if the resulting date time is before an Enso epoch.

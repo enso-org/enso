@@ -253,7 +253,8 @@ type Time_Of_Day
     to_date_time : Date -> Time_Zone -> Date_Time
     to_date_time self date (zone=Time_Zone.system) = self.to_date_time_builtin date zone
 
-    ## Add the specified amount of time to this instant to get a new instant.
+    ## ALIAS Add Duration
+       Add the specified amount of time to this instant to get a new instant.
 
        Arguments:
        - amount: The amount of time to add to this instant. Can be only
@@ -270,7 +271,8 @@ type Time_Of_Day
             duration : Duration -> self.plus_builtin duration
             _ : Period -> Error.throw (Time_Error.Error "Time_Of_Day does not support date intervals (periods)")
 
-    ## Subtract the  specified amount of time from this instant to get a new
+    ## ALIAS Subtract Duration
+       Subtract the  specified amount of time from this instant to get a new
        instant.
 
        Arguments:

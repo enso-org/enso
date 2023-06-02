@@ -1,94 +1,151 @@
 from Standard.Base import all
+
+import project.Util
+
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Examples
+import Standard.Test.Extensions
 
 from Standard.Table import Column, Value_Type
-
-import Standard.Examples
-
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test import Test, Test_Suite, Problems
 
 main = Test_Suite.run_main spec
 
-spec = Test.group "Columns" <|
-    test_column = Column.from_vector "Test" [1, 3, 5, 2, 4, 6]
-    empty_column = Column.from_vector "Test" []
+spec =
+    Test.group "Columns" <|
+        test_column = Column.from_vector "Test" [1, 3, 5, 2, 4, 6]
+        empty_column = Column.from_vector "Test" []
 
-    Test.specify "should allow getting specific elements" <|
-        test_column.at 0 . should_equal 1
-        test_column.at 2 . should_equal 5
-        test_column.at 5 . should_equal 6
-        test_column.at 6 . should_fail_with Index_Out_Of_Bounds
-        empty_column.at 0 . should_fail_with Index_Out_Of_Bounds
+        Test.specify "should allow getting specific elements" <|
+            test_column.at 0 . should_equal 1
+            test_column.at 2 . should_equal 5
+            test_column.at 5 . should_equal 6
+            test_column.at 6 . should_fail_with Index_Out_Of_Bounds
+            empty_column.at 0 . should_fail_with Index_Out_Of_Bounds
 
-    Test.specify "should be able to take the first n elements" <|
-        expected_1 = Column.from_vector "Test" [1, 3, 5]
-        expected_2 = Column.from_vector "Test" [1, 3, 5, 2, 4, 6]
-        expected_3 = Column.from_vector "Test" []
-        test_column.take (First 3) . to_vector . should_equal expected_1.to_vector
-        test_column.take (First 7) . to_vector . should_equal expected_2.to_vector
-        test_column.take (First 0) . to_vector . should_equal expected_3.to_vector
+        Test.specify "should be able to take the first n elements" <|
+            expected_1 = Column.from_vector "Test" [1, 3, 5]
+            expected_2 = Column.from_vector "Test" [1, 3, 5, 2, 4, 6]
+            expected_3 = Column.from_vector "Test" []
+            test_column.take (First 3) . to_vector . should_equal expected_1.to_vector
+            test_column.take (First 7) . to_vector . should_equal expected_2.to_vector
+            test_column.take (First 0) . to_vector . should_equal expected_3.to_vector
 
-    Test.specify "should be able to take the first n elements by Integer" <|
-        expected_1 = Column.from_vector "Test" [1, 3, 5]
-        expected_2 = Column.from_vector "Test" [1, 3, 5, 2, 4, 6]
-        expected_3 = Column.from_vector "Test" []
-        test_column.take 3 . to_vector . should_equal expected_1.to_vector
-        test_column.take 7 . to_vector . should_equal expected_2.to_vector
-        test_column.take 0 . to_vector . should_equal expected_3.to_vector
+        Test.specify "should be able to take the first n elements by Integer" <|
+            expected_1 = Column.from_vector "Test" [1, 3, 5]
+            expected_2 = Column.from_vector "Test" [1, 3, 5, 2, 4, 6]
+            expected_3 = Column.from_vector "Test" []
+            test_column.take 3 . to_vector . should_equal expected_1.to_vector
+            test_column.take 7 . to_vector . should_equal expected_2.to_vector
+            test_column.take 0 . to_vector . should_equal expected_3.to_vector
 
-    Test.specify "should be able to take the last n elements" <|
-        expected_1 = Column.from_vector "Test" [2, 4, 6]
-        expected_2 = Column.from_vector "Test" [1, 3, 5, 2, 4, 6]
-        expected_3 = Column.from_vector "Test" []
-        test_column.take (Last 3) . to_vector . should_equal expected_1.to_vector
-        test_column.take (Last 7) . to_vector . should_equal expected_2.to_vector
-        test_column.take (Last 0) . to_vector . should_equal expected_3.to_vector
+        Test.specify "should be able to take the last n elements" <|
+            expected_1 = Column.from_vector "Test" [2, 4, 6]
+            expected_2 = Column.from_vector "Test" [1, 3, 5, 2, 4, 6]
+            expected_3 = Column.from_vector "Test" []
+            test_column.take (Last 3) . to_vector . should_equal expected_1.to_vector
+            test_column.take (Last 7) . to_vector . should_equal expected_2.to_vector
+            test_column.take (Last 0) . to_vector . should_equal expected_3.to_vector
 
-    Test.specify "should be able to get the first element" <|
-        test_column.first . should_equal 1
-        empty_column.first.should_fail_with Index_Out_Of_Bounds
+        Test.specify "should be able to get the first element" <|
+            test_column.first . should_equal 1
+            empty_column.first.should_fail_with Index_Out_Of_Bounds
 
-    Test.specify "should be able to get the last element" <|
-        test_column.last . should_equal 6
-        empty_column.last.should_fail_with Index_Out_Of_Bounds
+        Test.specify "should be able to get the last element" <|
+            test_column.last . should_equal 6
+            empty_column.last.should_fail_with Index_Out_Of_Bounds
 
-    Test.specify "should be able to be reversed" <|
-        expected_1 = Column.from_vector "Test" [6, 4, 2, 5, 3, 1]
-        test_column.reverse.to_vector . should_equal expected_1.to_vector
-        empty_column.reverse.to_vector . should_equal empty_column.to_vector
+        Test.specify "should be able to be reversed" <|
+            expected_1 = Column.from_vector "Test" [6, 4, 2, 5, 3, 1]
+            test_column.reverse.to_vector . should_equal expected_1.to_vector
+            empty_column.reverse.to_vector . should_equal empty_column.to_vector
 
-    Test.specify "should allow to fill missing values from another column" <|
-        nulled = Column.from_vector "col" [0, Nothing, 4, 5, Nothing, Nothing]
-        defaults = Column.from_vector "def" [1, 2, 10, 20, Nothing, 30]
-        r = nulled.fill_nothing defaults
-        r.to_vector . should_equal [0, 2, 4, 5, Nothing, 30]
+        Test.specify "should allow to fill missing values from another column" <|
+            nulled = Column.from_vector "col" [0, Nothing, 4, 5, Nothing, Nothing]
+            defaults = Column.from_vector "def" [1, 2, 10, 20, Nothing, 30]
+            r = nulled.fill_nothing defaults
+            r.to_vector . should_equal [0, 2, 4, 5, Nothing, 30]
 
-    Test.specify "should allow to count duplicate value occurences" <|
-        c_1 = Column.from_vector "c 1" [0, 1, 2, 2, 1, 0, 2]
-        c_1.duplicate_count.to_vector.should_equal [0, 0, 0, 1, 1, 1, 2]
+        Test.specify "should allow to count duplicate value occurences" <|
+            c_1 = Column.from_vector "c 1" [0, 1, 2, 2, 1, 0, 2]
+            c_1.duplicate_count.to_vector.should_equal [0, 0, 0, 1, 1, 1, 2]
 
-        c_2 = Column.from_vector "c 2" ["foo", "bar", "foo", "baz", "bar"]
-        c_2.duplicate_count.to_vector.should_equal [0, 0, 1, 0, 1]
+            c_2 = Column.from_vector "c 2" ["foo", "bar", "foo", "baz", "bar"]
+            c_2.duplicate_count.to_vector.should_equal [0, 0, 1, 0, 1]
 
-    Test.specify "should result in correct Storage if operation allows it" <|
-        another = Column.from_vector "Test" [10, 20, 30, 40, 50, 60]
-        (test_column + 1).value_type . should_equal Value_Type.Integer
-        (test_column - 1).value_type . should_equal Value_Type.Integer
-        (test_column * 2).value_type . should_equal Value_Type.Integer
-        (test_column * 1.5).value_type . should_equal Value_Type.Float
-        (test_column + another).value_type . should_equal Value_Type.Integer
+        Test.specify "should result in correct Storage if operation allows it" <|
+            another = Column.from_vector "Test" [10, 20, 30, 40, 50, 60]
+            (test_column + 1).value_type . should_equal Value_Type.Integer
+            (test_column - 1).value_type . should_equal Value_Type.Integer
+            (test_column * 2).value_type . should_equal Value_Type.Integer
+            (test_column * 1.5).value_type . should_equal Value_Type.Float
+            (test_column + another).value_type . should_equal Value_Type.Integer
 
-    Test.specify "should not allow invalid column names" <|
-        c1 = Column.from_vector "" [1, 2, 3]
-        c1.should_fail_with Illegal_Argument
+        Test.specify "should not allow invalid column names" <|
+            c1 = Column.from_vector "" [1, 2, 3]
+            c1.should_fail_with Illegal_Argument
 
-        c2 = Column.from_vector Nothing [1, 2, 3]
-        c2.should_fail_with Illegal_Argument
+            c2 = Column.from_vector Nothing [1, 2, 3]
+            c2.should_fail_with Illegal_Argument
 
-        c3 = Column.from_vector '\0' [1, 2, 3]
-        c3.should_fail_with Illegal_Argument
+            c3 = Column.from_vector '\0' [1, 2, 3]
+            c3.should_fail_with Illegal_Argument
 
-        c4 = Column.from_vector 'foo\0bar' [1, 2, 3]
-        c4.should_fail_with Illegal_Argument
+            c4 = Column.from_vector 'foo\0bar' [1, 2, 3]
+            c4.should_fail_with Illegal_Argument
+
+    Test.group "Rounding" <|
+        Test.specify "should be able to round a column of decimals" <|
+            Column.from_vector "foo" [1.2, 2.3, 3.6] . round . should_equal (Column.from_vector "foo" [1, 2, 4])
+            Column.from_vector "foo" [1.25, 2.33, 3.57] . round 1 . should_equal <| Column.from_vector "foo" [1.3, 2.3, 3.6]
+            Column.from_vector "foo" [12.0, 24.0, 25.0, 29.0] . round -1 . should_equal <| Column.from_vector "foo" [10, 20, 30, 30]
+            Column.from_vector "foo" [1.5, 2.5, 3.5] . round use_bankers=True . should_equal <| Column.from_vector "foo" [2, 2, 4]
+
+        Test.specify "decimal rounding should return the correct column type" <|
+            Column.from_vector "foo" [1.2, 2.3, 3.6] . round . value_type . should_equal Value_Type.Integer
+            Column.from_vector "foo" [1.2, 2.3, 3.6] . round 1 . value_type . should_equal Value_Type.Float
+
+        Test.specify "should be able to round a column of integers" <|
+            Column.from_vector "foo" [12, 24, 25, 29] . round . should_equal <| Column.from_vector "foo" [12, 24, 25, 29]
+            Column.from_vector "foo" [12, 24, 25, 29] . round -1 . should_equal <| Column.from_vector "foo" [10, 20, 30, 30]
+            Column.from_vector "foo" [15, 25, 35] . round -1 use_bankers=True . should_equal <| Column.from_vector "foo" [20, 20, 40]
+
+        Test.specify "integer rounding should return the correct column type" <|
+            Column.from_vector "foo" [12, 24, 25, 29] . round -1 . value_type . should_equal Value_Type.Integer
+
+        Test.specify "should report out-of-range values as problems" <|
+            col = Column.from_vector "foo" [12, 23, 99999999999999999]
+            expected = Column.from_vector "foo" [10, 20, Nothing]
+            action = col.round -1 on_problems=_
+            problems = [Illegal_Argument.Error "Error: `round` can only accept values between -99999999999999 and 99999999999999 (inclusive), but was 99999999999999999"]
+            tester = _.should_equal expected
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should throw an error on decimal places out of range" <|
+            col = Column.from_vector "foo" [12, 23, 99999999999999999]
+            expected = Column.from_vector "foo" [Nothing, Nothing, Nothing]
+            action = col.round decimal_places=-1200 on_problems=_
+            problems = [Illegal_Argument.Error "round: decimal_places must be between -15 and 15 (inclusive), but was -1200"]
+            tester = _.should_equal expected
+            Problems.test_problem_handling action problems tester
+
+    Test.group "truncate" <|
+        Test.specify "should be able to truncate a column of decimals" <|
+            Column.from_vector "foo" [1.25, 2.33, 3.57] . truncate . should_equal <| Column.from_vector "foo" [1, 2, 3]
+            Column.from_vector "foo" [1.25, 2.33, 3.57] . truncate . value_type . should_equal Value_Type.Integer
+
+    Test.group "ceil" <|
+        Test.specify "should be able to take the ceil of a column of decimals" <|
+            Column.from_vector "foo" [1.25, 2.33, 3.57] . ceil . should_equal <| Column.from_vector "foo" [2, 3, 4]
+            Column.from_vector "foo" [1.25, 2.33, 3.57] . ceil . value_type . should_equal Value_Type.Integer
+
+    Test.group "floor" <|
+        Test.specify "should be able to take the floor of a column of decimals" <|
+            Column.from_vector "foo" [1.25, 2.33, 3.57] . floor . should_equal <| Column.from_vector "foo" [1, 2, 3]
+            Column.from_vector "foo" [1.25, 2.33, 3.57] . floor . value_type . should_equal Value_Type.Integer
+
+    Test.group "Date_Time truncate" <|
+        Test.specify "should be able to truncate a column of Date_Times" <|
+            Column.from_vector "foo" [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3] . truncate . should_equal <| Column.from_vector "foo" [Date.new 2020 10 24, Date.new 2020 10 24]
+            Column.from_vector "foo" [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3] . truncate . value_type . should_equal Value_Type.Date
