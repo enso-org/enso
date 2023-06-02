@@ -1,57 +1,114 @@
+use crate::prelude::Index as IndexOps;
 use crate::prelude::*;
 use std::cell::UnsafeCell;
 
 
 
-// =================
-// === LinkedVec ===
-// =================
+// =============
+// === Index ===
+// =============
+
+/// Trait that list indexes should implemented. If not parametrized explicitly, the list will be
+/// indexed by `usize`.
+pub trait Index = Sized + Copy + Eq + From<usize> + Into<usize>;
+
+
+
+// ==========================
+// === UnrolledLinkedList ===
+// ==========================
 
 derive_zeroable! {
-    /// [`Vec`]-like structure that:
-    /// 1. Can be configured (the [`B`] parameter) to preallocate memory for items, allowing for
+    /// A variation on the linked list which stores multiple elements in each [`Node`]. It can
+    /// dramatically increase cache performance, while decreasing the memory overhead associated
+    /// with storing list metadata such as references. It is related to the B-tree. To learn more,
+    /// see: https://en.wikipedia.org/wiki/Unrolled_linked_list
+    ///
+    /// The [`UnrolledLinkedList`] has several uncommon features:
+    /// 1. It allows pushing new elements without requiring mutable access to self. This is safe, as
+    ///    it never re-allocates the underlying memory when adding new items. In case there is not
+    ///    enough space, a new memory node will be allocated and linked to the previous one.
+    /// 2. Can be configured (the [`B`] parameter) to preallocate memory for items, allowing for
     ///    almost zero-cost push with [`Self::push_new`] if the preallocated memory is not fully
     ///    occupied. The preallocation can be performed either by initializing values with their
     ///    defaults, or by zeroing the memory.
-    /// 2. Can be initialized with zeroed memory.
-    /// 3. Allows pushing new elements without requiring mutable access to self. This is safe, as
-    ///    it never re-allocates the underlying memory when adding new items. In case there is not
-    ///    enough space, a new memory segment will be allocated and linked to the previous one.
+    /// 3. Can be initialized with zeroed memory.
     ///
-    /// [`LinkedArray`] will never automatically shrink itself, even if completely empty. This
-    /// ensures no unnecessary allocations or deallocations occur. Emptying a [`LinkedArray`] and
-    /// then filling it back up to the same len should incur no calls to the allocator. If you wish
-    /// to free up unused memory, use [`Self::shrink_to_fit`] or [`Self::shrink_to`].
+    /// [`UnrolledLinkedList`] will never automatically shrink itself, even if completely empty.
+    /// This ensures no unnecessary allocations or deallocations occur. Emptying it and then filling
+    /// it back up to the same len should incur no calls to the allocator. If you wish to free up
+    /// unused memory, use [`Self::shrink_to_fit`] or [`Self::shrink_to`].
     #[derive(Derivative)]
     #[derivative(Default(bound = ""))]
-    pub struct LinkedArray
-    [T, N, B][T, const N: usize, B][T, const N: usize, B = prealloc::Zeroed] {
-        len:           Cell<usize>,
-        capacity:      Cell<usize>,
-        first_segment: InitCell<ZeroableOption<Segment<T, N, B>>>,
+    pub struct UnrolledLinkedList
+    [T, N, I, B][T, const N: usize, I, B][T, const N: usize, I = usize, B = prealloc::Zeroed] {
+        len:        Cell<usize>,
+        capacity:   Cell<usize>,
+        first_node: InitCell<ZeroableOption<Node<T, N, B>>>,
+        _index_tp:  PhantomData<I>,
     }
 }
 
-impl<T: Debug, const N: usize, B> Debug for LinkedArray<T, N, B> {
+impl<T: Debug, const N: usize, I, B> Debug for UnrolledLinkedList<T, N, I, B> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("LinkedArray")
-            .field("len", &self.len.get())
-            .field("capacity", &self.capacity.get())
-            .field("first_segment", &self.first_segment)
+        f.debug_struct("UnrolledLinkedList")
+            .field("len", &self.len())
+            .field("capacity", &self.capacity())
+            .field("first_node", &self.first_node)
             .finish()
     }
 }
 
-impl<T, const N: usize, B> LinkedArray<T, N, B>
-where B: AllocationBehavior<T, N>
+impl<T: Debug, const N: usize, I, B> Display for UnrolledLinkedList<T, N, I, B>
+where
+    I: Index,
+    B: AllocationBehavior<T, N>,
 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_list().entries(self.iter()).finish()
+    }
+}
+
+
+// === Node Management ===
+
+impl<T, const N: usize, I, B> UnrolledLinkedList<T, N, I, B>
+where
+    I: Index,
+    B: AllocationBehavior<T, N>,
+{
+    #[inline(always)]
+    fn init_first_node_if_empty(&self) {
+        self.first_node.init_if_empty(|| {
+            self.capacity.set(N);
+            AllocationBehavior::new_node()
+        });
+    }
+
+    #[inline(always)]
+    fn get_or_init_first_node(&self) -> &Node<T, N, B> {
+        self.init_first_node_if_empty();
+        self.first_node.opt_item().unwrap()
+    }
+
+    fn add_tail_nodes(&self, count: usize) {
+        self.get_or_init_first_node().add_tail_nodes(count);
+        self.capacity.modify(|t| *t += N * count);
+    }
+}
+
+
+// === Public API ===
+
+impl<T, const N: usize, I, B> UnrolledLinkedList<T, N, I, B> {
     /// Constructor.
     #[inline(always)]
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// The capacity of the container.
+    /// The capacity of the list, which is the count of items the list arrays can hold before
+    /// allocating another node.
     #[inline(always)]
     pub fn capacity(&self) -> usize {
         self.capacity.get()
@@ -63,71 +120,76 @@ where B: AllocationBehavior<T, N>
         self.len.get()
     }
 
-    /// Check whether the container is empty.
+    /// Check whether the list is empty.
     #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.len.get() == 0
     }
+}
 
+impl<T, const N: usize, I, B> UnrolledLinkedList<T, N, I, B>
+where
+    I: Index,
+    B: AllocationBehavior<T, N>,
+{
     /// Remove all items. It does not deallocate the memory.
     #[inline(always)]
     pub fn clear(&mut self) {
         self.len.set(0);
-        if let Some(first_segment) = self.first_segment.opt_item_mut() {
-            AllocationBehavior::clear_segments(first_segment);
+        if let Some(first_node) = self.first_node.opt_item_mut() {
+            AllocationBehavior::clear_nodes(first_node);
         }
     }
 
-    /// Deallocate segments that are not used.
+    /// Deallocate nodes that are not used.
     pub fn shrink_to_fit(&mut self) {
         self.shrink_to(self.len())
     }
 
-    /// Shrink the capacity of the container with a lower bound.
+    /// Shrink the capacity of the list with a lower bound.
     ///
     /// The capacity will remain at least as large as both the length and the supplied value.
     pub fn shrink_to(&mut self, capacity: usize) {
         let new_capacity = self.len().max(capacity);
         if new_capacity == 0 {
-            self.first_segment.set_default();
+            self.first_node.set_default();
         } else {
-            if let Some(first_segment) = self.first_segment.opt_item_mut() {
-                let new_capacity = first_segment.shrink_to_fit(new_capacity);
+            if let Some(first_node) = self.first_node.opt_item_mut() {
+                let new_capacity = first_node.shrink_to_fit(new_capacity);
                 self.capacity.set(new_capacity)
             }
         }
     }
 
-    /// Number of segments used to store the items.
+    /// Number of nodes used to store the items.
     #[inline(always)]
-    pub fn segment_count(&self) -> usize {
-        self.first_segment.opt_item().map(|t| t.segment_count()).unwrap_or(0)
+    pub fn node_count(&self) -> usize {
+        self.first_node.opt_item().map(|t| t.node_count()).unwrap_or(0)
     }
 
     /// Add the provided item at the end and return its index.
     #[inline(always)]
-    pub fn push(&self, item: T) -> usize {
+    pub fn push(&self, item: T) -> I {
         let index = self.len.get();
         self.len.modify(|t| *t += 1);
-        let new_segment_added = self.get_or_init_first_segment().push(index, item);
-        if new_segment_added {
+        let new_node_added = self.get_or_init_first_node().push(index, item);
+        if new_node_added {
             self.capacity.modify(|t| *t += N);
         }
-        index
+        index.into()
     }
 
-    /// Add a new item at the end and return its index. If the container uses preallocated memory
-    /// and there is enough space, this operation is almost zero-cost.
-    pub fn push_new(&self) -> usize {
+    /// Add a new item at the end and return its index. If the list uses preallocated memory and
+    /// there is enough space, this operation is almost zero-cost.
+    pub fn push_new(&self) -> I {
         self.push_new_multiple(1)
     }
 
-    /// Add several new items at the end  and return the index of the first added item. If the
-    /// container uses preallocated memory and there is enough space, this operation is almost
-    /// zero-cost.
+    /// Add several new items at the end  and return the index of the first added item. If the list
+    /// uses preallocated memory and there is enough space, this operation is almost zero-cost.
     #[inline(always)]
-    pub fn push_new_multiple(&self, count: usize) -> usize {
-        AllocationBehavior::push_new_multiple(self, count)
+    pub fn push_new_multiple(&self, count: usize) -> I {
+        AllocationBehavior::push_new_multiple(self, count).into()
     }
 
     /// Add a new element by shifting the element counter and assuming that the memory is already
@@ -137,9 +199,9 @@ where B: AllocationBehavior<T, N>
         let index = self.len.get();
         self.len.modify(|t| *t += count);
         let last_index = self.len.get() - 1;
-        let new_segments_needed = (last_index + N).saturating_sub(self.capacity.get()) / N;
-        if new_segments_needed > 0 {
-            self.add_tail_segments(new_segments_needed);
+        let new_nodes_needed = (last_index + N).saturating_sub(self.capacity.get()) / N;
+        if new_nodes_needed > 0 {
+            self.add_tail_nodes(new_nodes_needed);
         }
         index
     }
@@ -150,7 +212,14 @@ where B: AllocationBehavior<T, N>
         IntoIterator::into_iter(self)
     }
 
-    /// Consume the container and return an iterator over its items.
+    // FIXME: Implement it.
+    // /// Return a mutable iterator over the items.
+    // #[inline(always)]
+    // pub fn iter_mut(&mut self) -> IterMut<T, N, B> {
+    //     IntoIterator::into_iter(self)
+    // }
+
+    /// Consume the list and return an iterator over its items.
     #[inline(always)]
     pub fn into_iter(self) -> IntoIter<T, N, B> {
         IntoIterator::into_iter(self)
@@ -164,109 +233,86 @@ where B: AllocationBehavior<T, N>
         vec
     }
 
-    /// Convert the container into a vector.
-    pub fn into_vec(self) -> Vec<T>
-    where T: Clone {
+    /// Convert the list into a vector.
+    pub fn into_vec(self) -> Vec<T> {
         let mut vec = Vec::with_capacity(self.len.get());
         vec.extend(self.into_iter());
         vec
     }
 
-    #[inline(always)]
-    fn init_first_segment(&self) {
-        self.first_segment.init_if_empty(|| {
-            self.capacity.set(N);
-            AllocationBehavior::new_segment()
-        });
-    }
-
-    #[inline(always)]
-    fn get_or_init_first_segment(&self) -> &Segment<T, N, B> {
-        self.init_first_segment();
-        self.first_segment.opt_item().unwrap()
-    }
-
-    #[inline(always)]
-    fn get_or_init_first_segment_mut(&mut self) -> &mut Segment<T, N, B> {
-        self.init_first_segment();
-        self.first_segment.opt_item_mut().unwrap()
-    }
-
-    fn add_tail_segments(&self, count: usize) {
-        self.get_or_init_first_segment().add_tail_segments(count);
-        self.capacity.modify(|t| *t += N * count);
-    }
-}
-
-impl<T: Default, const N: usize, B> LinkedArray<T, N, B>
-where B: AllocationBehavior<T, N>
-{
     /// Retain only the elements that satisfy the predicate.
     pub fn retain<F>(&mut self, mut f: F)
     where F: FnMut(&T) -> bool {
-        let len = self.len.get();
-        let first_segment = self.get_or_init_first_segment_mut();
-        first_segment.retain_stage1(len, f);
-        let (new_size, new_capacity) = first_segment.retain_stage2();
-        self.len.set(new_size);
-        self.capacity.set(new_capacity);
+        if let Some(first_node) = self.first_node.opt_item_mut() {
+            let len = self.len.get();
+            first_node.retain_stage1(len, f);
+            let (new_size, new_capacity) = first_node.retain_stage2();
+            self.len.set(new_size);
+            self.capacity.set(new_capacity);
+        }
     }
 }
 
 
 // === Indexing ===
 
-impl<T, const N: usize, B> Index<usize> for LinkedArray<T, N, B>
-where B: AllocationBehavior<T, N>
-{
+impl<T, const N: usize, I: Index, B> std::ops::Index<I> for UnrolledLinkedList<T, N, I, B> {
     type Output = T;
     #[inline(always)]
-    fn index(&self, offset: usize) -> &Self::Output {
-        self.get_or_init_first_segment().index(offset)
+    fn index(&self, index: I) -> &Self::Output {
+        if let Some(first_node) = self.first_node.opt_item() {
+            first_node.index(index.into())
+        } else {
+            panic!("Index out of bounds: the list is empty.")
+        }
     }
 }
 
-impl<T, const N: usize, B> IndexMut<usize> for LinkedArray<T, N, B>
-where B: AllocationBehavior<T, N>
-{
+impl<T, const N: usize, I: Index, B> IndexMut<I> for UnrolledLinkedList<T, N, I, B> {
     #[inline(always)]
-    fn index_mut(&mut self, offset: usize) -> &mut Self::Output {
-        self.get_or_init_first_segment_mut().index_mut(offset)
+    fn index_mut(&mut self, index: I) -> &mut Self::Output {
+        if let Some(first_node) = self.first_node.opt_item_mut() {
+            first_node.index_mut(index.into())
+        } else {
+            panic!("Index out of bounds: the list is empty.")
+        }
     }
 }
 
 
 
-// ===============
-// === Segment ===
-// ===============
+// ============
+// === Node ===
+// ============
 
-pub struct Segment<T, const N: usize, B> {
+/// A single node in the [`UnrolledLinkedList`]. It stores up to `N` items in an array and contains
+/// a pointer to the next node, if any.
+pub struct Node<T, const N: usize, B> {
     _allocation_behavior: PhantomData<B>,
     items:                UnsafeCell<Vec<UnsafeCell<T>>>,
-    next:                 InitCell<Option<Box<Segment<T, N, B>>>>,
+    next:                 InitCell<Option<Box<Node<T, N, B>>>>,
 }
 
-impl<T: Debug, const N: usize, B> Debug for Segment<T, N, B> {
+impl<T: Debug, const N: usize, B> Debug for Node<T, N, B> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let items = self.items().iter().map(|t| unsafe { t.unchecked_borrow() }).collect_vec();
-        f.debug_struct("Segment").field("items", &items).field("next", &self.next).finish()
+        f.debug_struct("Node").field("items", &items).field("next", &self.next).finish()
     }
 }
 
-impl<T, const N: usize, B> Default for Segment<T, N, B>
+impl<T, const N: usize, B> Default for Node<T, N, B>
 where B: AllocationBehavior<T, N>
 {
     #[inline(always)]
     fn default() -> Self {
-        AllocationBehavior::new_segment()
+        AllocationBehavior::new_node()
     }
 }
 
-impl<T, const N: usize, B> Segment<T, N, B> {
+impl<T, const N: usize, B> Node<T, N, B> {
     #[inline(always)]
-    fn segment_count(&self) -> usize {
-        self.next.opt_item().map(|t| t.segment_count()).unwrap_or(0) + 1
+    fn node_count(&self) -> usize {
+        self.next.opt_item().map(|t| t.node_count()).unwrap_or(0) + 1
     }
 
     #[inline(always)]
@@ -279,7 +325,7 @@ impl<T, const N: usize, B> Segment<T, N, B> {
         }
     }
 
-    /// Get a mutable reference to the next segment if it exists;
+    /// Get a mutable reference to the next node if it exists;
     #[inline(always)]
     fn items_and_next_mut(&mut self) -> (&mut Vec<UnsafeCell<T>>, Option<&mut Box<Self>>) {
         let next = self.next.opt_item_mut();
@@ -298,11 +344,11 @@ impl<T, const N: usize, B> Segment<T, N, B> {
     }
 }
 
-impl<T, const N: usize, B> Segment<T, N, B>
+impl<T, const N: usize, B> Node<T, N, B>
 where B: AllocationBehavior<T, N>
 {
     #[inline(always)]
-    fn init_next_segment(&self) -> bool {
+    fn init_next_node(&self) -> bool {
         let mut was_empty = false;
         self.next.init_if_empty(|| {
             was_empty = true;
@@ -313,7 +359,7 @@ where B: AllocationBehavior<T, N>
 
     #[inline(always)]
     fn push(&self, offset: usize, elem: T) -> bool {
-        AllocationBehavior::push_to_segment(self, offset, elem)
+        AllocationBehavior::push_to_node(self, offset, elem)
     }
 
     #[inline(always)]
@@ -340,29 +386,29 @@ where B: AllocationBehavior<T, N>
             };
             false
         } else {
-            let next_segment_added = self.init_next_segment();
-            let some_segment_added =
+            let next_node_added = self.init_next_node();
+            let some_node_added =
                 self.next.opt_item().unwrap().push_internal(offset - N, elem, resize_items);
-            next_segment_added || some_segment_added
+            next_node_added || some_node_added
         }
     }
 
     #[inline(always)]
     #[allow(unconditional_recursion)]
-    fn add_tail_segments(&self, count: usize) {
+    fn add_tail_nodes(&self, count: usize) {
         if count > 0 {
-            if !self.init_next_segment() {
-                self.next.opt_item().unwrap().add_tail_segments(count - 1)
+            if !self.init_next_node() {
+                self.next.opt_item().unwrap().add_tail_nodes(count - 1)
             }
         }
     }
 }
 
-impl<T: Default, const N: usize, B> Segment<T, N, B>
+impl<T, const N: usize, B> Node<T, N, B>
 where B: AllocationBehavior<T, N>
 {
-    /// For each segment, retain the items. Segment lengths will be shortened if necessary, however,
-    /// two adjacent not-full segments will not be merged. Merging will be performed in stage 2.
+    /// For each node, retain the items. Node lengths will be shortened if necessary, however,
+    /// two adjacent not-full nodes will not be merged. Merging will be performed in stage 2.
     #[inline(always)]
     pub fn retain_stage1<F>(&mut self, len: usize, mut f: F)
     where F: FnMut(&T) -> bool {
@@ -386,22 +432,22 @@ where B: AllocationBehavior<T, N>
         }
     }
 
-    /// For each segment, merge two adjacent not-full segments.
+    /// For each node, merge two adjacent not-full nodes.
     #[inline(always)]
     pub fn retain_stage2(&mut self) -> (usize, usize) {
         while self.items().len() < N {
-            let new_next_segment = {
-                let (items, mut next_segment) = self.items_and_next_mut();
-                next_segment.as_mut().and_then(|next| {
+            let new_next_node = {
+                let (items, mut next_node) = self.items_and_next_mut();
+                next_node.as_mut().and_then(|next| {
                     let end = next.items().len().min(N - items.len());
                     items.extend(next.items_mut().drain(0..end));
-                    let empty_next_segment = next.items().is_empty();
-                    let next_next_segment = next.next.opt_item_mut();
-                    empty_next_segment.then(|| next_next_segment.map(|t| mem::take(t)))
+                    let empty_next_node = next.items().is_empty();
+                    let next_next_node = next.next.opt_item_mut();
+                    empty_next_node.then(|| next_next_node.map(|t| mem::take(t)))
                 })
             };
-            if let Some(new_next_segment) = new_next_segment {
-                self.next.set_value(new_next_segment)
+            if let Some(new_next_node) = new_next_node {
+                self.next.set_value(new_next_node)
             }
             if !self.next.has_item() {
                 break;
@@ -410,7 +456,7 @@ where B: AllocationBehavior<T, N>
         match self.next.opt_item_mut() {
             None => {
                 let len = self.items().len();
-                AllocationBehavior::preallocate_missing_segment_items(self);
+                AllocationBehavior::preallocate_missing_node_items(self);
                 (len, N)
             }
             Some(next) => {
@@ -418,13 +464,10 @@ where B: AllocationBehavior<T, N>
                 (N + next_len, N + next_capacity)
             }
         }
-        // let len = self.items().len();
-        // AllocationBehavior::preallocate_missing_segment_items(self);
-        // len + self.next.opt_item_mut().map(|next| next.retain_stage2()).unwrap_or_default()
     }
 }
 
-impl<T, const N: usize, B> Index<usize> for Segment<T, N, B> {
+impl<T, const N: usize, B> std::ops::Index<usize> for Node<T, N, B> {
     type Output = T;
 
     #[inline(always)]
@@ -444,7 +487,7 @@ impl<T, const N: usize, B> Index<usize> for Segment<T, N, B> {
     }
 }
 
-impl<T, const N: usize, B> IndexMut<usize> for Segment<T, N, B> {
+impl<T, const N: usize, B> IndexMut<usize> for Node<T, N, B> {
     #[inline(always)]
     fn index_mut(&mut self, offset: usize) -> &mut Self::Output {
         if offset < N {
@@ -470,29 +513,35 @@ impl<T, const N: usize, B> IndexMut<usize> for Segment<T, N, B> {
 
 /// Operations that differ depending on the preallocation behavior.
 pub trait AllocationBehavior<T, const N: usize>: Sized {
-    /// Add new items at the end and return the index of the first added item. If the container uses
+    /// Add new items at the end and return the index of the first added item. If the list uses
     /// preallocated memory, this operation is almost zero-cost.
-    fn push_new_multiple(array: &LinkedArray<T, N, Self>, count: usize) -> usize;
-    /// Create a new segment.
-    fn new_segment() -> Segment<T, N, Self>;
-    /// Push new item to the segment. Return `true` if a new segment was added.
-    fn push_to_segment(segment: &Segment<T, N, Self>, offset: usize, elem: T) -> bool;
-    /// Clear the memory in all the segments. If the allocation behavior pre-allocates items, the
+    fn push_new_multiple<I: Index>(
+        array: &UnrolledLinkedList<T, N, I, Self>,
+        count: usize,
+    ) -> usize;
+    /// Create a new node.
+    fn new_node() -> Node<T, N, Self>;
+    /// Push new item to the node. Return `true` if a new node was added.
+    fn push_to_node(node: &Node<T, N, Self>, offset: usize, elem: T) -> bool;
+    /// Clear the memory in all the nodes. If the allocation behavior pre-allocates items, the
     /// memory will be populated with new instances.
-    fn clear_segments(segment: &mut Segment<T, N, Self>);
-    /// Preallocate missing items in the segment. If the container was configured not to preallocate
+    fn clear_nodes(node: &mut Node<T, N, Self>);
+    /// Preallocate missing items in the node. If the list was configured not to preallocate
     /// items, this is a no-op.
-    fn preallocate_missing_segment_items(segment: &mut Segment<T, N, Self>);
+    fn preallocate_missing_node_items(node: &mut Node<T, N, Self>);
 }
 
 impl<T: Default, const N: usize> AllocationBehavior<T, N> for prealloc::Default {
     #[inline(always)]
-    fn push_new_multiple(array: &LinkedArray<T, N, Self>, count: usize) -> usize {
+    fn push_new_multiple<I: Index>(
+        array: &UnrolledLinkedList<T, N, I, Self>,
+        count: usize,
+    ) -> usize {
         array.push_new_assume_initialized(count)
     }
 
     #[inline(always)]
-    fn new_segment() -> Segment<T, N, Self> {
+    fn new_node() -> Node<T, N, Self> {
         let mut items = Vec::with_capacity(N);
         for _ in 0..N {
             items.push(default());
@@ -500,42 +549,45 @@ impl<T: Default, const N: usize> AllocationBehavior<T, N> for prealloc::Default 
         let items = UnsafeCell::new(items);
         let next = default();
         let _allocation_behavior = PhantomData;
-        Segment { _allocation_behavior, items, next }
+        Node { _allocation_behavior, items, next }
     }
 
     #[inline(always)]
-    fn push_to_segment(segment: &Segment<T, N, Self>, offset: usize, elem: T) -> bool {
-        segment.push_internal(offset, elem, false)
+    fn push_to_node(node: &Node<T, N, Self>, offset: usize, elem: T) -> bool {
+        node.push_internal(offset, elem, false)
     }
 
     #[inline(always)]
-    fn clear_segments(segment: &mut Segment<T, N, Self>) {
-        segment.items_mut().clear();
+    fn clear_nodes(node: &mut Node<T, N, Self>) {
+        node.items_mut().clear();
         for _ in 0..N {
-            segment.items_mut().push(default());
+            node.items_mut().push(default());
         }
-        if let Some(next) = segment.next.opt_item_mut() {
-            Self::clear_segments(next);
+        if let Some(next) = node.next.opt_item_mut() {
+            Self::clear_nodes(next);
         }
     }
 
     #[inline(always)]
-    fn preallocate_missing_segment_items(segment: &mut Segment<T, N, Self>) {
-        let len = segment.items().len();
+    fn preallocate_missing_node_items(node: &mut Node<T, N, Self>) {
+        let len = node.items().len();
         for _ in len..N {
-            segment.items_mut().push(default());
+            node.items_mut().push(default());
         }
     }
 }
 
 impl<T: Zeroable, const N: usize> AllocationBehavior<T, N> for prealloc::Zeroed {
     #[inline(always)]
-    fn push_new_multiple(array: &LinkedArray<T, N, Self>, count: usize) -> usize {
+    fn push_new_multiple<I: Index>(
+        array: &UnrolledLinkedList<T, N, I, Self>,
+        count: usize,
+    ) -> usize {
         array.push_new_assume_initialized(count)
     }
 
     #[inline(always)]
-    fn new_segment() -> Segment<T, N, Self> {
+    fn new_node() -> Node<T, N, Self> {
         let items = {
             let layout = std::alloc::Layout::array::<UnsafeCell<T>>(N).unwrap();
             // # Safety
@@ -548,34 +600,37 @@ impl<T: Zeroable, const N: usize> AllocationBehavior<T, N> for prealloc::Zeroed 
         let items = UnsafeCell::new(items);
         let next = default();
         let _allocation_behavior = PhantomData;
-        Segment { _allocation_behavior, items, next }
+        Node { _allocation_behavior, items, next }
     }
 
     #[inline(always)]
-    fn push_to_segment(segment: &Segment<T, N, Self>, offset: usize, elem: T) -> bool {
-        segment.push_internal(offset, elem, false)
+    fn push_to_node(node: &Node<T, N, Self>, offset: usize, elem: T) -> bool {
+        node.push_internal(offset, elem, false)
     }
 
     #[inline(always)]
-    fn clear_segments(segment: &mut Segment<T, N, Self>) {
-        unsafe { std::intrinsics::volatile_set_memory(segment.items_mut().as_mut_ptr(), 0, N) }
-        if let Some(next) = segment.next.opt_item_mut() {
-            Self::clear_segments(next);
+    fn clear_nodes(node: &mut Node<T, N, Self>) {
+        unsafe { std::intrinsics::volatile_set_memory(node.items_mut().as_mut_ptr(), 0, N) }
+        if let Some(next) = node.next.opt_item_mut() {
+            Self::clear_nodes(next);
         }
     }
 
     #[inline(always)]
-    fn preallocate_missing_segment_items(segment: &mut Segment<T, N, Self>) {
-        let len = segment.items().len();
+    fn preallocate_missing_node_items(node: &mut Node<T, N, Self>) {
+        let len = node.items().len();
         for _ in len..N {
-            segment.items_mut().push(Zeroable::zeroed());
+            node.items_mut().push(Zeroable::zeroed());
         }
     }
 }
 
 impl<T: Default, const N: usize> AllocationBehavior<T, N> for prealloc::Disabled {
     #[inline(always)]
-    fn push_new_multiple(array: &LinkedArray<T, N, Self>, count: usize) -> usize {
+    fn push_new_multiple<I: Index>(
+        array: &UnrolledLinkedList<T, N, I, Self>,
+        count: usize,
+    ) -> usize {
         let index = array.len();
         for _ in 0..count {
             array.push(default());
@@ -584,7 +639,7 @@ impl<T: Default, const N: usize> AllocationBehavior<T, N> for prealloc::Disabled
     }
 
     #[inline(always)]
-    fn new_segment() -> Segment<T, N, Self> {
+    fn new_node() -> Node<T, N, Self> {
         let items = {
             let layout = std::alloc::Layout::array::<UnsafeCell<T>>(N).unwrap();
             // # Safety
@@ -597,24 +652,24 @@ impl<T: Default, const N: usize> AllocationBehavior<T, N> for prealloc::Disabled
         let items = UnsafeCell::new(items);
         let next = default();
         let _allocation_behavior = PhantomData;
-        Segment { _allocation_behavior, items, next }
+        Node { _allocation_behavior, items, next }
     }
 
     #[inline(always)]
-    fn push_to_segment(segment: &Segment<T, N, Self>, offset: usize, elem: T) -> bool {
-        segment.push_internal(offset, elem, true)
+    fn push_to_node(node: &Node<T, N, Self>, offset: usize, elem: T) -> bool {
+        node.push_internal(offset, elem, true)
     }
 
     #[inline(always)]
-    fn clear_segments(segment: &mut Segment<T, N, Self>) {
-        segment.items_mut().clear();
-        if let Some(next) = segment.next.opt_item_mut() {
-            Self::clear_segments(next);
+    fn clear_nodes(node: &mut Node<T, N, Self>) {
+        node.items_mut().clear();
+        if let Some(next) = node.next.opt_item_mut() {
+            Self::clear_nodes(next);
         }
     }
 
     #[inline(always)]
-    fn preallocate_missing_segment_items(_segment: &mut Segment<T, N, Self>) {}
+    fn preallocate_missing_node_items(_node: &mut Node<T, N, Self>) {}
 }
 
 
@@ -625,10 +680,10 @@ impl<T: Default, const N: usize> AllocationBehavior<T, N> for prealloc::Disabled
 
 // === Iter for &T ===
 
-/// An iterator over immutable references to [`LinkedArray`] items.
+/// An iterator over immutable references to [`UnrolledLinkedList`] items.
 #[derive(Debug)]
 pub struct Iter<'a, T, const N: usize, B> {
-    segment:     &'a Segment<T, N, B>,
+    node:        &'a Node<T, N, B>,
     next_offset: usize,
     max_offset:  usize,
 }
@@ -641,25 +696,27 @@ impl<'a, T, const N: usize, B> Iterator for Iter<'a, T, N, B> {
             return None;
         }
         if self.next_offset >= N {
-            self.segment = self.segment.next.opt_item().unwrap();
+            self.node = self.node.next.opt_item().unwrap();
             self.next_offset = 0;
             self.max_offset -= N;
         }
-        let item = self.segment.index(self.next_offset);
+        let item = self.node.index(self.next_offset);
         self.next_offset += 1;
         Some(item)
     }
 }
 
-impl<'a, T, const N: usize, B> IntoIterator for &'a LinkedArray<T, N, B>
-where B: AllocationBehavior<T, N>
+impl<'a, T, const N: usize, I, B> IntoIterator for &'a UnrolledLinkedList<T, N, I, B>
+where
+    I: Index,
+    B: AllocationBehavior<T, N>,
 {
     type Item = &'a T;
     type IntoIter = Iter<'a, T, N, B>;
     #[inline(always)]
     fn into_iter(self) -> Self::IntoIter {
         Iter {
-            segment:     self.get_or_init_first_segment(),
+            node:        self.get_or_init_first_node(),
             next_offset: 0,
             max_offset:  self.len.get(),
         }
@@ -669,27 +726,29 @@ where B: AllocationBehavior<T, N>
 
 // === Iter for T ===
 
-/// An iterator over owned [`LinkedArray`] items.
+/// An iterator over owned [`UnrolledLinkedList`] items.
 #[derive(Debug)]
 pub struct IntoIter<T, const N: usize, B> {
-    next_segment:    Option<Box<Segment<T, N, B>>>,
-    current_segment: std::vec::IntoIter<UnsafeCell<T>>,
-    next_offset:     usize,
-    max_offset:      usize,
+    next_node:    Option<Box<Node<T, N, B>>>,
+    current_node: std::vec::IntoIter<UnsafeCell<T>>,
+    next_offset:  usize,
+    max_offset:   usize,
 }
 
-impl<T, const N: usize, B> IntoIterator for LinkedArray<T, N, B>
-where B: AllocationBehavior<T, N>
+impl<T, const N: usize, I, B> IntoIterator for UnrolledLinkedList<T, N, I, B>
+where
+    I: Index,
+    B: AllocationBehavior<T, N>,
 {
     type Item = T;
     type IntoIter = IntoIter<T, N, B>;
     #[inline(always)]
     fn into_iter(self) -> Self::IntoIter {
-        self.init_first_segment();
-        let first_segment = self.first_segment.into_inner().unwrap();
-        let current_segment = first_segment.items.into_inner().into_iter();
-        let next_segment = first_segment.next.into_inner();
-        IntoIter { next_segment, current_segment, next_offset: 0, max_offset: self.len.get() }
+        self.init_first_node_if_empty();
+        let first_node = self.first_node.into_inner().unwrap();
+        let current_node = first_node.items.into_inner().into_iter();
+        let next_node = first_node.next.into_inner();
+        IntoIter { next_node, current_node, next_offset: 0, max_offset: self.len.get() }
     }
 }
 
@@ -701,13 +760,13 @@ impl<T, const N: usize, B> Iterator for IntoIter<T, N, B> {
             return None;
         }
         if self.next_offset >= N {
-            if let Some(next_segment) = self.next_segment.take() {
-                self.current_segment = next_segment.items.into_inner().into_iter();
-                self.next_segment = next_segment.next.into_inner();
+            if let Some(next_node) = self.next_node.take() {
+                self.current_node = next_node.items.into_inner().into_iter();
+                self.next_node = next_node.next.into_inner();
             }
         }
         self.next_offset += 1;
-        self.current_segment.next().map(|t| t.into_inner())
+        self.current_node.next().map(|t| t.into_inner())
     }
 }
 
@@ -723,27 +782,27 @@ mod tests {
 
     macro_rules! test_all_configs {
         ($f:ident) => {
-            $f(&mut LinkedArray::<usize, 1, prealloc::Default>::new());
-            $f(&mut LinkedArray::<usize, 1, prealloc::Zeroed>::new());
-            $f(&mut LinkedArray::<usize, 1, prealloc::Disabled>::new());
+            $f(&mut UnrolledLinkedList::<usize, 1, usize, prealloc::Default>::new());
+            $f(&mut UnrolledLinkedList::<usize, 1, usize, prealloc::Zeroed>::new());
+            $f(&mut UnrolledLinkedList::<usize, 1, usize, prealloc::Disabled>::new());
 
-            $f(&mut LinkedArray::<usize, 2, prealloc::Default>::new());
-            $f(&mut LinkedArray::<usize, 2, prealloc::Zeroed>::new());
-            $f(&mut LinkedArray::<usize, 2, prealloc::Disabled>::new());
+            $f(&mut UnrolledLinkedList::<usize, 2, usize, prealloc::Default>::new());
+            $f(&mut UnrolledLinkedList::<usize, 2, usize, prealloc::Zeroed>::new());
+            $f(&mut UnrolledLinkedList::<usize, 2, usize, prealloc::Disabled>::new());
 
-            $f(&mut LinkedArray::<usize, 4, prealloc::Default>::new());
-            $f(&mut LinkedArray::<usize, 4, prealloc::Zeroed>::new());
-            $f(&mut LinkedArray::<usize, 4, prealloc::Disabled>::new());
+            $f(&mut UnrolledLinkedList::<usize, 4, usize, prealloc::Default>::new());
+            $f(&mut UnrolledLinkedList::<usize, 4, usize, prealloc::Zeroed>::new());
+            $f(&mut UnrolledLinkedList::<usize, 4, usize, prealloc::Disabled>::new());
 
-            $f(&mut LinkedArray::<usize, 8, prealloc::Default>::new());
-            $f(&mut LinkedArray::<usize, 8, prealloc::Zeroed>::new());
-            $f(&mut LinkedArray::<usize, 8, prealloc::Disabled>::new());
+            $f(&mut UnrolledLinkedList::<usize, 8, usize, prealloc::Default>::new());
+            $f(&mut UnrolledLinkedList::<usize, 8, usize, prealloc::Zeroed>::new());
+            $f(&mut UnrolledLinkedList::<usize, 8, usize, prealloc::Disabled>::new());
 
-            $f(&mut LinkedArray::<usize, 16, prealloc::Default>::new());
-            $f(&mut LinkedArray::<usize, 16, prealloc::Zeroed>::new());
-            $f(&mut LinkedArray::<usize, 16, prealloc::Disabled>::new());
+            $f(&mut UnrolledLinkedList::<usize, 16, usize, prealloc::Default>::new());
+            $f(&mut UnrolledLinkedList::<usize, 16, usize, prealloc::Zeroed>::new());
+            $f(&mut UnrolledLinkedList::<usize, 16, usize, prealloc::Disabled>::new());
 
-            // $f(&mut LinkedArray::<usize, 2, prealloc::Zeroed>::new());
+            // $f(&mut UnrolledLinkedList::<usize, 2, prealloc::Zeroed>::new());
         };
     }
 
@@ -755,8 +814,10 @@ mod tests {
         test_all_configs!(test_template_push);
     }
 
-    fn test_template_push<const N: usize, B>(array: &mut LinkedArray<usize, N, B>)
-    where B: AllocationBehavior<usize, N> {
+    fn test_template_push<const N: usize, I, B>(array: &mut UnrolledLinkedList<usize, N, I, B>)
+    where
+        I: Index,
+        B: AllocationBehavior<usize, N>, {
         array.push(1);
         assert_eq!(&array.to_vec(), &[1]);
         array.push(2);
@@ -777,8 +838,10 @@ mod tests {
         test_all_configs!(test_template_clear);
     }
 
-    fn test_template_clear<const N: usize, B>(array: &mut LinkedArray<usize, N, B>)
-    where B: AllocationBehavior<usize, N> {
+    fn test_template_clear<const N: usize, I, B>(array: &mut UnrolledLinkedList<usize, N, I, B>)
+    where
+        I: Index,
+        B: AllocationBehavior<usize, N>, {
         array.push(1);
         array.push(2);
         array.push(3);
@@ -804,8 +867,10 @@ mod tests {
         test_all_configs!(test_template_retain);
     }
 
-    fn test_template_retain<const N: usize, B>(array: &mut LinkedArray<usize, N, B>)
-    where B: AllocationBehavior<usize, N> {
+    fn test_template_retain<const N: usize, I, B>(array: &mut UnrolledLinkedList<usize, N, I, B>)
+    where
+        I: Index,
+        B: AllocationBehavior<usize, N>, {
         array.push(1);
         array.push(2);
         array.push(3);
