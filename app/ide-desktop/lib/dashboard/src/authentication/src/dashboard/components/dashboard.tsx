@@ -1,6 +1,7 @@
 /** @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components. */
 import * as react from 'react'
+import toast from 'react-hot-toast'
 
 import * as common from 'enso-common'
 
@@ -36,7 +37,6 @@ import UploadFileModal from './uploadFileModal'
 
 import DirectoryCreateForm from './directoryCreateForm'
 import FileCreateForm from './fileCreateForm'
-import ProjectCreateForm from './projectCreateForm'
 import SecretCreateForm from './secretCreateForm'
 
 // =============
@@ -110,10 +110,9 @@ const ASSET_TYPE_NAME: Record<backendModule.AssetType, string> = {
 
 /** Forms to create each asset type. */
 const ASSET_TYPE_CREATE_FORM: Record<
-    backendModule.AssetType,
+    Exclude<backendModule.AssetType, backendModule.AssetType.project>,
     (props: CreateFormProps) => JSX.Element
 > = {
-    [backendModule.AssetType.project]: ProjectCreateForm,
     [backendModule.AssetType.file]: FileCreateForm,
     [backendModule.AssetType.secret]: SecretCreateForm,
     [backendModule.AssetType.directory]: DirectoryCreateForm,
@@ -598,21 +597,32 @@ function Dashboard(props: DashboardProps) {
                             // This type assertion is safe as this event handler is on a button.
                             // eslint-disable-next-line no-restricted-syntax
                             (event.target as HTMLButtonElement).getBoundingClientRect()
-                        // This is a React component even though it doesn't contain JSX.
-                        // eslint-disable-next-line no-restricted-syntax
-                        const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
-                        setModal(() => (
-                            <CreateForm
-                                left={buttonPosition.left + window.scrollX}
-                                top={buttonPosition.top + window.scrollY}
-                                getNewProjectName={getNewProjectName}
-                                // This is safe; headings are not rendered when there is no
-                                // internet connection.
-                                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                                directoryId={directoryId!}
-                                onSuccess={doRefresh}
-                            />
-                        ))
+                        if (assetType === backendModule.AssetType.project) {
+                            void toast.promise(handleCreateProject(null), {
+                                loading: 'Creating new empty project...',
+                                success: 'Created new empty project.',
+                                // This is UNSAFE, as the original function's parameter is of type
+                                // `any`.
+                                error: (promiseError: Error) =>
+                                    `Error creating new empty project: ${promiseError.message}`,
+                            })
+                        } else {
+                            // This is a React component even though it doesn't contain JSX.
+                            // eslint-disable-next-line no-restricted-syntax
+                            const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
+                            setModal(() => (
+                                <CreateForm
+                                    left={buttonPosition.left + window.scrollX}
+                                    top={buttonPosition.top + window.scrollY}
+                                    getNewProjectName={getNewProjectName}
+                                    // This is safe; headings are not rendered when there is no
+                                    // internet connection.
+                                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                    directoryId={directoryId!}
+                                    onSuccess={doRefresh}
+                                />
+                            ))
+                        }
                     }}
                 >
                     {svg.ADD_ICON}
