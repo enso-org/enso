@@ -30,6 +30,7 @@ import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table_Conversions
 import project.Delimited.Delimited_Format.Delimited_Format
+import project.Internal.Add_Row_Number
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
@@ -1192,6 +1193,42 @@ type Table
     drop self range=(First 1) =
         Index_Sub_Range_Module.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
+    ## Adds a new column to the table enumerating the rows.
+
+       Arguments:
+       - name: The name of the new column. Defaults to "Row".
+       - from: The starting value for the enumeration. Defaults to 1.
+       - step: The amount to increment the enumeration by. Defaults to 1.
+       - group_by: Specifies the columns to group by. The row numbers are
+         counted separately for each group. By default, all rows are treated as
+         a single group.
+       - order_by: Specifies the columns to order by. Defaults to the order of
+         the rows in the table. The row numbers are assigned according to the
+         specified ordering.
+
+       ? Ordering of rows
+
+         Note that the ordering of rows from the original table is preserved in
+         all cases. The grouping and ordering settings affect how the row
+         numbers are assigned to each row, but the order of the rows itself is
+         not changed by this operation.
+
+       ! Error Conditions
+
+         - If the columns specified in `group_by` or `order_by` are not present
+           in the table, a `Missing_Input_Columns` or
+           `Column_Indexes_Out_Of_Range` error is raised.
+         - If the column with the same name as provided `name` already exists,
+           a `Duplicate_Output_Column_Names` problem is reported and the
+           existing column is renamed to avoid the clash.
+         - If grouping on floating point numbers, a `Floating_Point_Equality`
+           problem is reported.
+    @group_by Widget_Helpers.make_column_name_vector_selector
+    @order_by Widget_Helpers.make_order_by_selector
+    add_row_number : Text -> Integer -> Integer -> Vector (Text | Integer | Column_Selector) | Text | Integer | Column_Selector -> Vector (Text | Sort_Column) | Text | Sort_Column -> Problem_Behavior -> Table
+    add_row_number self name="Row" from=1 step=1 group_by=[] order_by=[] on_problems=Problem_Behavior.Report_Warning =
+        Add_Row_Number.add_row_number self name from step group_by order_by on_problems
+
     ## ALIAS Add Column, Update Column, New Column
        Sets the column value at the given name.
 
@@ -1249,14 +1286,15 @@ type Table
         renamed = case new_name of
            Nothing -> resolved
            _ : Text -> resolved.rename new_name
-        to_add = case set_mode of
+        check_add_mode = case set_mode of
             Set_Mode.Add_Or_Update -> True
             Set_Mode.Add -> if self.java_table.getColumnByName renamed.name . is_nothing then True else
                 Error.throw (Existing_Column.Error renamed.name)
             Set_Mode.Update -> if self.java_table.getColumnByName renamed.name . is_nothing . not then True else
                 Error.throw (Missing_Column.Error renamed.name)
 
-        if to_add then Table.Value (self.java_table.addOrReplaceColumn renamed.java_column) else to_add
+        check_add_mode.if_not_error <|
+            Table.Value (self.java_table.addOrReplaceColumn renamed.java_column)
 
     ## Given an expression, create a derived column where each value is the
        result of evaluating the expression for the row.

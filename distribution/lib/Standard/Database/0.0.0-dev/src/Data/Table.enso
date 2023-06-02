@@ -547,6 +547,44 @@ type Table
         msg = "`Table.drop` is not yet implemented."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
+    ## Adds a new column to the table enumerating the rows.
+
+       Arguments:
+       - name: The name of the new column. Defaults to "Row".
+       - from: The starting value for the enumeration. Defaults to 1.
+       - step: The amount to increment the enumeration by. Defaults to 1.
+       - group_by: Specifies the columns to group by. The row numbers are
+         counted separately for each group. By default, all rows are treated as
+         a single group.
+       - order_by: Specifies the columns to order by. Defaults to the order of
+         the rows in the table. The row numbers are assigned according to the
+         specified ordering.
+
+       ? Ordering of rows
+
+         Note that the ordering of rows from the original table is preserved in
+         all cases. The grouping and ordering settings affect how the row
+         numbers are assigned to each row, but the order of the rows itself is
+         not changed by this operation.
+
+       ! Error Conditions
+
+         - If the columns specified in `group_by` or `order_by` are not present
+           in the table, a `Missing_Input_Columns` or
+           `Column_Indexes_Out_Of_Range` error is raised.
+         - If the column with the same name as provided `name` already exists,
+           a `Duplicate_Output_Column_Names` problem is reported and the
+           existing column is renamed to avoid the clash.
+         - If grouping on floating point numbers, a `Floating_Point_Equality`
+           problem is reported.
+    @group_by Widget_Helpers.make_column_name_vector_selector
+    @order_by Widget_Helpers.make_order_by_selector
+    add_row_number : Text -> Integer -> Integer -> Vector (Text | Integer | Column_Selector) | Text | Integer | Column_Selector -> Vector (Text | Sort_Column) | Text | Sort_Column -> Problem_Behavior -> Table
+    add_row_number self name="Row" from=1 step=1 group_by=[] order_by=[] on_problems=Problem_Behavior.Report_Warning =
+        _ = [name, from, step, group_by, order_by, on_problems]
+        msg = "`Table.add_row_number` is not yet implemented in the Database backend."
+        Error.throw (Unsupported_Database_Operation.Error msg)
+
     ## UNSTABLE
 
        Returns a new Table that will include at most `max_rows` rows from the
