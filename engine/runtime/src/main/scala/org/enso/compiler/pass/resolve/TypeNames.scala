@@ -66,15 +66,16 @@ case object TypeNames extends IRPass {
     ir: IR.Expression
   ): IR.Expression = {
     def go(ir: IR.Expression): IR.Expression = {
-      doResolveType(Nil, bindingsMap, ir.mapExpressions(go))
+      val processedIr = ir match {
+        case fn: IR.Function.Lambda =>
+          fn.copy(arguments =
+            fn.arguments.map(doResolveType(Nil, bindingsMap, _))
+          )
+        case x => x
+      }
+      doResolveType(Nil, bindingsMap, processedIr.mapExpressions(go))
     }
-    go(ir match {
-      case fn: IR.Function.Lambda =>
-        fn.copy(arguments =
-          fn.arguments.map(doResolveType(Nil, bindingsMap, _))
-        )
-      case x => x
-    })
+    go(ir)
   }
 
   private def doResolveType[T <: IR](

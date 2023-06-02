@@ -23,8 +23,10 @@ const INITIAL_URL_KEY = `${common.PRODUCT_NAME.toLowerCase()}-initial-url`
 const ESBUILD_PATH = '/esbuild'
 /** SSE event indicating a build has finished. */
 const ESBUILD_EVENT_NAME = 'change'
-/** Path to the service worker that resolves all extensionless paths to `/index.html`.
- * This service worker is required for client-side routing to work when doing `./run gui watch`. */
+/** Path to the serice worker that caches assets for offline usage.
+ * In development, it also resolves all extensionless paths to `/index.html`.
+ * This is required for client-side routing to work when doing `./run gui watch`.
+ */
 const SERVICE_WORKER_PATH = '/serviceWorker.js'
 /** One second in milliseconds. */
 const SECOND = 1000
@@ -41,12 +43,8 @@ if (IS_DEV_MODE) {
         // The `toString()` is to bypass a lint without using a comment.
         location.href = location.href.toString()
     })
-    void navigator.serviceWorker.register(SERVICE_WORKER_PATH)
-} else {
-    void navigator.serviceWorker
-        .getRegistration()
-        .then(serviceWorker => serviceWorker?.unregister())
 }
+void navigator.serviceWorker.register(SERVICE_WORKER_PATH)
 
 // =============
 // === Fetch ===

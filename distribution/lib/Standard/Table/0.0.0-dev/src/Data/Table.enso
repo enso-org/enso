@@ -7,7 +7,9 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.Runtime.Context
 
+from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
 import project.Data.Aggregate_Column.Aggregate_Column
@@ -312,13 +314,14 @@ type Table
              table.select_columns [-1, 0, 1] reorder=True
 
        Icon: select_column
-    @columns (Widget_Helpers.make_column_name_vector_selector include_blanks=True)
+    @columns Widget_Helpers.make_column_name_vector_selector
     select_columns :  Vector (Integer | Text | Column_Selector) | Text | Integer -> Boolean -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range
     select_columns self columns=[self.columns.first.name] (reorder = False) (error_on_missing_columns = True) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.select_columns selectors=columns reorder=reorder error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         Table.new new_columns
 
-    ## Returns a new table with the chosen set of columns, as specified by thez
+    ## ALIAS drop_columns
+       Returns a new table with the chosen set of columns, as specified by thez
        `columns`, removed from the input table. Any unmatched input columns will
        be kept in the output. Columns are returned in the same order as in the
        input.
@@ -365,7 +368,7 @@ type Table
          Remove the first two columns and the last column.
 
              table.remove_columns [-1, 0, 1]
-    @columns (Widget_Helpers.make_column_name_vector_selector include_blanks=True)
+    @columns Widget_Helpers.make_column_name_vector_selector
     remove_columns :  Vector (Integer | Text | Column_Selector) | Text | Integer -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Column_Indexes_Out_Of_Range
     remove_columns self (columns=[self.columns.first.name]) (error_on_missing_columns = False) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.remove_columns selectors=columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
@@ -421,7 +424,7 @@ type Table
          Move the first column to back.
 
              table.reorder_columns [0] position=Position.After_Other_Columns
-    @columns (Widget_Helpers.make_column_name_vector_selector include_blanks=True)
+    @columns Widget_Helpers.make_column_name_vector_selector
     reorder_columns : Vector (Integer | Text | Column_Selector) | Text | Integer -> Position -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Column_Indexes_Out_Of_Range
     reorder_columns self (columns = [self.columns.first.name]) (position = Position.Before_Other_Columns) (error_on_missing_columns = False) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.reorder_columns selectors=columns position=position error_on_missing_columns=error_on_missing_columns on_problems=on_problems
@@ -601,6 +604,7 @@ type Table
          Group by the Key column, count the rows
 
               table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count]
+    @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self error_on_missing_columns=error_on_missing_columns
@@ -685,7 +689,7 @@ type Table
 
               table.order_by [(Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive)]
     @columns Widget_Helpers.make_order_by_selector
-    order_by : Vector (Text | Sort_Column) | Text | Sort_Column -> Text_Ordering -> Boolean -> Problem_Behavior -> Table ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns | Column_Indexes_Out_Of_Range
+    order_by : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> Table ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns | Column_Indexes_Out_Of_Range
     order_by self (columns = [self.columns.first.name]) text_ordering=Text_Ordering.Default error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
@@ -1188,9 +1192,7 @@ type Table
     drop self range=(First 1) =
         Index_Sub_Range_Module.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
-    ## UNSTABLE
-       ALIAS Add Column, Update Column
-
+    ## ALIAS Add Column, Update Column, New Column
        Sets the column value at the given name.
 
        Arguments:
@@ -1409,8 +1411,8 @@ type Table
          allows to join the two tables on equality of corresponding columns with
          the same name. So `table.join other on=["A", "B"]` is a shorthand for:
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
-    @on Widget_Helpers.make_column_name_selector
-    join : Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> Table
+    @on Widget_Helpers.make_join_condition_selector
+    join : Table -> Join_Kind -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
     join self right join_kind=Join_Kind.Left_Outer on=[Join_Condition.Equals self.column_names.first] right_prefix="Right " on_problems=Report_Warning =
         if check_table "right" right then
             # [left_unmatched, matched, right_unmatched]
@@ -1527,6 +1529,7 @@ type Table
          defined nor any ordering was specified explicitly by the user, the
          order of columns is undefined and the operation will fail, reporting a
          `Undefined_Column_Order` problem and returning an empty table.
+    @keep_unmatched (make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Meta.get_qualified_type_name Report_Unmatched]])
     zip : Table -> Boolean | Report_Unmatched -> Text -> Problem_Behavior -> Table
     zip self right keep_unmatched=Report_Unmatched right_prefix="Right " on_problems=Report_Warning =
         if check_table "right" right then
@@ -1953,8 +1956,15 @@ type Table
                     self.write file format=base_format on_existing_file match_columns on_problems
             _ ->
                 methods = if format == JSON_Format then ["write_table"] else Meta.meta (Meta.type_of format) . methods
-                if methods.contains "write_table" then format.write_table file self on_existing_file match_columns on_problems else
-                    Error.throw (File_Error.Unsupported_Output_Type format Table)
+                if methods.contains "write_table" . not then Error.throw (File_Error.Unsupported_Output_Type format Table) else
+                    effective_existing_behaviour = on_existing_file.get_effective_behavior file
+                    tgt_file = if Context.Output.is_enabled then file else
+                        should_copy_file = on_existing_file==Existing_File_Behavior.Append
+                        file.create_dry_run_file copy_original=should_copy_file
+
+                    to_write = if Context.Output.is_enabled then self else self.take 1000
+                    Context.Output.with_enabled <|
+                        format.write_table tgt_file to_write effective_existing_behaviour match_columns on_problems
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text

@@ -357,6 +357,7 @@ ensogl::define_endpoints! {
     Output {
         pointer_style       (cursor::Style),
         width               (f32),
+        /// Changes done when nodes is in edit mode.
         expression_edit     (ImString, Vec<Selection<Byte>>),
 
         editing             (bool),
@@ -477,9 +478,10 @@ impl Area {
             legit_edit <- frp.input.edit_expression.gate(&set_editing);
             model.edit_mode_label.select <+ legit_edit.map(|(range, _)| (range.start.into(), range.end.into()));
             model.edit_mode_label.insert <+ legit_edit._1();
-            expression_changed_by_user <- model.edit_mode_label.content.gate(&set_editing);
-            frp.output.source.expression_edit <+ model.edit_mode_label.selections.map2(
-                &expression_changed_by_user,
+            expression_edited <- model.edit_mode_label.content.gate(&set_editing);
+            selections_edited <- model.edit_mode_label.selections.gate(&set_editing);
+            frp.output.source.expression_edit <+ selections_edited.gate(&set_editing).map2(
+                &model.edit_mode_label.content,
                 f!([model](selection, full_content) {
                     let full_content = full_content.into();
                     let to_byte = |loc| text::Byte::from_in_context_snapped(&model.edit_mode_label, loc);
@@ -487,7 +489,7 @@ impl Area {
                     (full_content, selections)
                 })
             );
-            frp.output.source.on_port_code_update <+ expression_changed_by_user.map(|e| {
+            frp.output.source.on_port_code_update <+ expression_edited.map(|e| {
                 // Treat edit mode update as a code modification at the span tree root.
                 (default(), e.into())
             });

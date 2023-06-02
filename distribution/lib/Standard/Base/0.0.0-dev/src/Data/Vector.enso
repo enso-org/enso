@@ -651,7 +651,8 @@ type Vector a
                     "and " + remaining_count.to_text + " more elements"
                 prefix.map .to_text . join ", " "[" " "+remaining_text+"]"
 
-    ## Concatenates two vectors, resulting in a new `Vector`, containing all the
+    ## ALIAS Concatenate
+       Concatenates two vectors, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
 
        Arguments:

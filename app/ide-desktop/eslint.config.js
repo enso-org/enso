@@ -274,6 +274,14 @@ export default [
                 },
             ],
             'sort-imports': ['error', { allowSeparatedGroups: true }],
+            'no-restricted-properties': [
+                'error',
+                {
+                    object: 'router',
+                    property: 'useNavigate',
+                    message: 'Use `hooks.useNavigate` instead.',
+                },
+            ],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
             'prefer-arrow-callback': 'error',
             // Prefer `interface` over `type`.

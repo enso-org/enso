@@ -1490,7 +1490,8 @@ class SuggestionsRepoTest
           Suggestion.Argument("b", "Any", false, false, None)
         ),
         returnType    = "Standard.Builtins.Pair",
-        documentation = Some("Awesome")
+        documentation = Some("Awesome"),
+        annotations   = Seq()
       )
 
     val method: Suggestion.Method =
@@ -1502,7 +1503,8 @@ class SuggestionsRepoTest
         selfType      = "local.Test.Main",
         returnType    = "Standard.Builtins.IO",
         isStatic      = true,
-        documentation = None
+        documentation = None,
+        annotations   = Seq()
       )
 
     val instanceMethod: Suggestion.Method =
@@ -1514,7 +1516,8 @@ class SuggestionsRepoTest
         selfType      = "local.Test.Main.A",
         returnType    = "Standard.Builtins.Nothing",
         isStatic      = false,
-        documentation = None
+        documentation = None,
+        annotations   = Seq()
       )
 
     val conversion: Suggestion.Conversion =

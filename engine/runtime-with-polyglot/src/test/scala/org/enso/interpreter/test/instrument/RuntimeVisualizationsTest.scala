@@ -158,10 +158,12 @@ class RuntimeVisualizationsTest
                   Main.idMainY,
                   Some(ConstantsGen.INTEGER),
                   Some(
-                    Api.MethodPointer(
-                      "Enso_Test.Test.Main",
-                      ConstantsGen.NUMBER,
-                      "foo"
+                    Api.MethodCall(
+                      Api.MethodPointer(
+                        "Enso_Test.Test.Main",
+                        ConstantsGen.NUMBER,
+                        "foo"
+                      )
                     )
                   ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
@@ -3114,11 +3116,13 @@ class RuntimeVisualizationsTest
         contextId,
         idX,
         ConstantsGen.INTEGER,
-        methodPointer = Some(
-          Api.MethodPointer(
-            warningModuleName.toString,
-            warningTypeName.toString + ".type",
-            "attach"
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              warningModuleName.toString,
+              warningTypeName.toString,
+              "attach"
+            )
           )
         ),
         payload = Api.ExpressionUpdate.Payload.Value(
@@ -3131,13 +3135,15 @@ class RuntimeVisualizationsTest
         contextId,
         idRes,
         s"$moduleName.Newtype",
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, s"$moduleName.Newtype", "Mk_Newtype")
+          )
+        ),
         payload = Api.ExpressionUpdate.Payload.Value(
           Some(
             Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'x'"), false)
           )
-        ),
-        methodPointer = Some(
-          Api.MethodPointer(moduleName, s"$moduleName.Newtype", "Mk_Newtype")
         )
       ),
       context.executionComplete(contextId)
@@ -3246,14 +3252,14 @@ class RuntimeVisualizationsTest
         contextId,
         idY,
         ConstantsGen.INTEGER_BUILTIN,
-        Api.MethodPointer(moduleName, s"$moduleName.T", "inc")
+        Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "inc"))
       ),
       TestMessages.update(contextId, idS, ConstantsGen.INTEGER_BUILTIN),
       TestMessages.update(
         contextId,
         idZ,
         ConstantsGen.INTEGER_BUILTIN,
-        Api.MethodPointer(moduleName, moduleName, "p")
+        Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "p"))
       ),
       TestMessages.update(contextId, idZexprS, ConstantsGen.INTEGER_BUILTIN),
       TestMessages.update(contextId, idZexpr1, ConstantsGen.INTEGER_BUILTIN),

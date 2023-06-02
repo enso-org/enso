@@ -202,6 +202,22 @@ type Range
 
     ## PRIVATE
        ADVANCED
+
+       Executes a function for each element in the range. Exits early if the body
+       produces an `Error`.
+    each_propagate : (Integer -> Nothing) -> Nothing ! Error
+    each_propagate self function =
+        if self.step == 0 then throw_zero_step_error else
+            end_condition = if self.step > 0 then (>=) else (<=)
+            go current =
+                if end_condition current self.end then Nothing else
+                    result = function current
+                    result.if_not_error <|
+                        @Tail_Call go current+self.step
+            go self.start
+
+    ## PRIVATE
+       ADVANCED
        Applies a function to each element of the range.
 
        Essentially acts like `range.to_vector.each_with_index`, but it is more

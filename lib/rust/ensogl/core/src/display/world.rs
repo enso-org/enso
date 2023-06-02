@@ -560,22 +560,27 @@ impl WorldData {
         {
             if let Some(gpu_perf_results) = &gpu_perf_results {
                 for result in gpu_perf_results {
-                    // The monitor is not updated yet, so the last sample is from the previous
-                    // frame.
-                    let frame_offset = result.frame_offset - 1;
-                    if frame_offset == 0 {
-                        let stats_data = &mut self.stats.borrow_mut().stats_data;
-                        stats_data.gpu_time = Some(result.total);
-                        stats_data.cpu_and_idle_time = Some(stats_data.frame_time - result.total);
-                    } else {
-                        // The last sampler stored in monitor is from 2 frames ago, as the last
-                        // frame stats are not submitted yet.
-                        let sampler_offset = result.frame_offset - 2;
-                        self.stats_monitor.with_last_nth_sample(sampler_offset, |sample| {
-                            sample.gpu_time = Some(result.total);
-                            sample.cpu_and_idle_time = Some(sample.frame_time - result.total);
-                        });
-                        self.stats_monitor.redraw_historical_data(sampler_offset);
+                    // If run in the first frame, the results can be reported with frame offset
+                    // being 0. In such a case, we are ignoring it.
+                    if result.frame_offset > 0 {
+                        // The monitor is not updated yet, so the last sample is from the previous
+                        // frame.
+                        let frame_offset = result.frame_offset - 1;
+                        if frame_offset == 0 {
+                            let stats_data = &mut self.stats.borrow_mut().stats_data;
+                            stats_data.gpu_time = Some(result.total);
+                            stats_data.cpu_and_idle_time =
+                                Some(stats_data.frame_time - result.total);
+                        } else {
+                            // The last sampler stored in monitor is from 2 frames ago, as the last
+                            // frame stats are not submitted yet.
+                            let sampler_offset = result.frame_offset - 2;
+                            self.stats_monitor.with_last_nth_sample(sampler_offset, |sample| {
+                                sample.gpu_time = Some(result.total);
+                                sample.cpu_and_idle_time = Some(sample.frame_time - result.total);
+                            });
+                            self.stats_monitor.redraw_historical_data(sampler_offset);
+                        }
                     }
                 }
             }

@@ -399,9 +399,9 @@ impl SuggestionDatabase {
     pub fn lookup_by_method_pointer(
         &self,
         method_pointer: &language_server::MethodPointer,
-    ) -> Option<Rc<Entry>> {
+    ) -> Option<(SuggestionId, Rc<Entry>)> {
         let entry_id = self.method_pointer_to_id_map.borrow().get(method_pointer).copied();
-        entry_id.and_then(|id| self.entries.borrow().get(&id).cloned())
+        entry_id.and_then(|id| Some((id, self.entries.borrow().get(&id).cloned()?)))
     }
 
     /// Get suggestion entry id by method pointer.
@@ -502,6 +502,33 @@ impl SuggestionDatabase {
             .filter(|entry| entry.matches_name(name.as_ref()) && entry.is_visible_at(location))
             .cloned()
             .collect()
+    }
+
+    /// Search the database for first matching entry with public visibility and fully qualified name
+    /// ending with specified name segments.
+    pub fn find_public_entry_by_partial_name(
+        &self,
+        name: impl Str,
+    ) -> Option<(SuggestionId, Rc<Entry>)> {
+        let name: &str = name.as_ref();
+        let access = ast::opr::predefined::ACCESS;
+        let (module_trail, entry_name) = name.rsplit_once(access).unwrap_or(("", name));
+        let module_segments = module_trail.split(access);
+        let num_module_segments = module_segments.clone().count();
+        self.entries
+            .borrow()
+            .iter()
+            .find(|(_, entry)| {
+                entry.scope == entry::Scope::Everywhere && entry.name == entry_name && {
+                    let path = entry.defined_in.path();
+                    path.len() >= num_module_segments
+                        && module_segments
+                            .clone()
+                            .zip(&path[path.len() - num_module_segments..])
+                            .all(|(a, b)| a == b)
+                }
+            })
+            .map(|(id, entry)| (*id, entry.clone()))
     }
 
     /// Search the database for Local or Function entries with given name and visible at given
@@ -773,7 +800,7 @@ pub mod test {
     ) {
         let lookup = db.lookup_by_method_pointer(method_pointer);
         let lookup_method_pointer: Option<language_server::MethodPointer> =
-            lookup.and_then(|method_pointer| method_pointer.deref().try_into().ok());
+            lookup.and_then(|(_, entry)| entry.deref().try_into().ok());
         assert_eq!(lookup_method_pointer.unwrap(), method_pointer.clone());
     }
 
