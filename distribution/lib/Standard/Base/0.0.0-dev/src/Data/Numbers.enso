@@ -567,7 +567,10 @@ type Decimal
        If the argument is `NaN` or `+/-Inf`, an `Arithmetic_Error` error is
        thrown.
 
-       Algorithm taken from https://stackoverflow.com/a/7211688.
+       ! Rounding Algorithm
+         The approach to tie-breaking here reduces precision error by comparing
+         the original value with a scaled midpoint (0.5 x 10^N) rather than
+         scaling the value and comparing with 0.5.
 
        Arguments:
        - decimal_places: The number of decimal places to round to. Can be
