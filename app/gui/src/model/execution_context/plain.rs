@@ -1,7 +1,6 @@
 //! Module with plain Execution Context Model (without any synchronization).
 
 use crate::prelude::*;
-use std::cmp::Ordering;
 
 use crate::model::execution_context::AttachedVisualization;
 use crate::model::execution_context::ComponentGroup;
@@ -12,6 +11,7 @@ use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 
+use std::cmp::Ordering;
 use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::VisualisationConfiguration;

@@ -5,7 +5,6 @@
 //! visualisations, retrieving types on ports, etc.
 
 use crate::prelude::*;
-use std::time::Duration;
 
 use crate::model::execution_context::ComponentGroup;
 use crate::model::execution_context::ComputedValueInfo;
@@ -15,7 +14,10 @@ use crate::model::execution_context::QualifiedMethodPointer;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
+use crate::retry::retry_operation_errors_cap;
 
+use std::assert_matches::debug_assert_matches;
+use std::time::Duration;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::MethodPointer;
@@ -25,14 +27,13 @@ use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::context::Context;
 
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub use crate::controller::graph::Connection;
 pub use crate::controller::graph::Connections;
-use crate::retry::retry_operation_errors_cap;
+
 
 
 // ==============
@@ -272,12 +273,14 @@ impl Handle {
                     for () in successful_calls_to_revert {
                         let error_msg = "Error while restoring execution context stack after \
                                     unsuccessful entering node";
-                        retry_operation_errors_cap(
+                        let retry_result = retry_operation_errors_cap(
                             || self.execution_ctx.pop(),
                             self.retry_times_for_restoring_stack_operations(),
                             error_msg,
                             0,
-                        );
+                        )
+                        .await;
+                        debug_assert_matches!(FallibleResult::from(retry_result), Ok(_));
                     }
                 }
             }
@@ -331,12 +334,14 @@ impl Handle {
                     for frame in successful_pops.into_iter().rev() {
                         let error_msg = "Error while restoring execution context stack after \
                                     unsuccessful leaving node";
-                        retry_operation_errors_cap(
+                        let retry_result = retry_operation_errors_cap(
                             || self.execution_ctx.push(frame.clone()),
                             self.retry_times_for_restoring_stack_operations(),
                             error_msg,
                             0,
-                        );
+                        )
+                        .await;
+                        debug_assert_matches!(FallibleResult::from(retry_result), Ok(_));
                     },
             }
             result
@@ -589,6 +594,13 @@ pub mod tests {
         );
 
         notifications.expect_pending();
+    }
+
+    #[test]
+    fn entering_node() {
+        let fixture = test::mock::Unified::new().fixture_customize();
+
+        let Fixture =
     }
 
     // Test that moving nodes is possible in read-only mode.
