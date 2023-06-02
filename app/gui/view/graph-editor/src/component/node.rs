@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 use ensogl::display::shape::*;
-use ensogl::display::shape::compound::rectangle;
 use ensogl::display::traits::*;
 
 use crate::component::node::profiling::ProfilingLabel;
@@ -22,6 +21,7 @@ use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Layer;
+use ensogl::display::shape::compound::rectangle;
 use ensogl::gui;
 use ensogl::Animation;
 use ensogl_component::text;
