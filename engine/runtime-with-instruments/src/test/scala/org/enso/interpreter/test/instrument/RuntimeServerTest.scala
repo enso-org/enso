@@ -807,7 +807,6 @@ class RuntimeServerTest
   }
 
   it should "send method pointer updates of partially applied constructors" in {
-    pending
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -867,9 +866,62 @@ class RuntimeServerTest
           Vector(1)
         )
       ),
+      TestMessages.update(contextId, id_x_2, "Enso_Test.Test.Main.T"),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "send method pointer updates of partially applied constructors with default arguments" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x_1   = metadata.addItem(39, 3, "aa")
+
+    val code =
+      """type T
+        |    A x=1 y=2
+        |
+        |main =
+        |    x_1 = T.A
+        |    x_1
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveN(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
-        id_x_2,
+        id_x_1,
         "Enso_Test.Test.Main.T",
         Api.MethodCall(
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "A")

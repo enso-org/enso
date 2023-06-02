@@ -13,6 +13,8 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.enso.interpreter.Constants;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
@@ -181,7 +183,8 @@ public final class AtomConstructor implements TruffleObject {
             callTarget,
             null,
             new FunctionSchema(
-                new ArgumentDefinition(0, "self", ArgumentDefinition.ExecutionMode.EXECUTE)));
+                new ArgumentDefinition(
+                    0, Constants.Names.SELF_ARGUMENT, ArgumentDefinition.ExecutionMode.EXECUTE)));
     definitionScope.registerMethod(type.getEigentype(), this.name, function);
   }
 

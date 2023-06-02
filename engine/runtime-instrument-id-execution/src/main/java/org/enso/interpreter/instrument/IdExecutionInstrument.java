@@ -12,14 +12,21 @@ import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.Node;
+
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Set;
+import java.util.function.Consumer;
+
 import org.enso.interpreter.instrument.execution.Timer;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
+import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -28,13 +35,10 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.type.Constants;
 import org.enso.interpreter.runtime.Module;
-
-import java.util.function.Consumer;
-import org.enso.interpreter.node.ClosureRootNode;
-import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /** An instrument for getting values from AST-identified expressions. */
 @TruffleInstrument.Registration(
@@ -68,6 +72,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       private final UpdatesSynchronizationState syncState;
       private final UUID nextExecutionItem;
       private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
+      private final Set<UUID> constructorCalls = new HashSet<>();
       private final Timer timer;
 
       /**
@@ -109,8 +114,20 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
       @Override
       public ExecutionEventNode create(EventContext context) {
-          return new IdExecutionEventNode(context, entryCallTarget, cache, methodCallsCache, syncState,
-                  nextExecutionItem, calls, functionCallCallback, onComputedCallback, onCachedCallback, onExceptionalCallback, timer);
+          return new IdExecutionEventNode(
+              context,
+              entryCallTarget,
+              cache,
+              methodCallsCache,
+              syncState,
+              nextExecutionItem,
+              calls,
+              constructorCalls,
+              functionCallCallback,
+              onComputedCallback,
+              onCachedCallback,
+              onExceptionalCallback,
+              timer);
       }
   }
 
@@ -127,6 +144,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     private final UpdatesSynchronizationState syncState;
     private final UUID nextExecutionItem;
     private final Map<UUID, FunctionCallInfo> calls;
+    private final Set<UUID> constructorCalls;
     private final Timer timer;
     private long nanoTimeElapsed = 0;
     private @Child TypeOfNode typeOfNode = TypeOfNode.build();
@@ -139,6 +157,8 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
      * @param methodCallsCache the storage tracking the executed method calls.
      * @param syncState the synchronization state of runtime updates.
      * @param nextExecutionItem the next item scheduled for execution.
+     * @param calls the list of instrumented method calls.
+     * @param constructorCalls the list of instrumented constructor calls.
      * @param functionCallCallback the consumer of function call events.
      * @param onComputedCallback the consumer of the computed value events.
      * @param onCachedCallback the consumer of the cached value events.
@@ -153,6 +173,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         UpdatesSynchronizationState syncState,
         UUID nextExecutionItem, // The expression ID
         Map<UUID, FunctionCallInfo> calls,
+        Set<UUID> constructorCalls,
         Consumer<ExpressionCall> functionCallCallback,
         Consumer<ExpressionValue> onComputedCallback,
         Consumer<ExpressionValue> onCachedCallback,
@@ -162,6 +183,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       this.entryCallTarget = entryCallTarget;
       this.cache = cache;
       this.calls = calls;
+      this.constructorCalls = constructorCalls;
       this.callsCache = methodCallsCache;
       this.syncState = syncState;
       this.nextExecutionItem = nextExecutionItem;
@@ -256,7 +278,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
       String resultType = typeOf(result);
       String cachedType = cache.getType(nodeId);
-      FunctionCallInfo call = functionCallInfoById(nodeId);
+      FunctionCallInfo call = functionCallInfoById(nodeId, result);
       FunctionCallInfo cachedCall = cache.getCall(nodeId);
       ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
 
@@ -302,14 +324,21 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     }
 
     @CompilerDirectives.TruffleBoundary
-    private FunctionCallInfo functionCallInfoById(UUID nodeId) {
+    private FunctionCallInfo functionCallInfoById(UUID nodeId, Object result) {
+        if (constructorCalls.contains(nodeId) && result instanceof Function function) {
+            FunctionCallInfo call = calls.get(nodeId);
+            return new FunctionCallInfo(call, function);
+        }
         return calls.get(nodeId);
     }
 
     @CompilerDirectives.TruffleBoundary
-    private void onFunctionReturn(UUID nodeId, FunctionCallInstrumentationNode.FunctionCall result, EventContext context) throws ThreadDeath {
-        calls.put(nodeId, new FunctionCallInfo(result));
-        functionCallCallback.accept(new ExpressionCall(nodeId, result));
+    private void onFunctionReturn(UUID nodeId, FunctionCallInstrumentationNode.FunctionCall functionCall, EventContext context) throws ThreadDeath {
+        if (functionCall.getFunction().getCallTarget().getRootNode() instanceof QualifiedAccessorNode) {
+            constructorCalls.add(nodeId);
+        }
+        calls.put(nodeId, new FunctionCallInfo(functionCall));
+        functionCallCallback.accept(new ExpressionCall(nodeId, functionCall));
         // Return cached value after capturing the enterable function call in `functionCallCallback`
         Object cachedResult = cache.get(nodeId);
         if (cachedResult != null) {

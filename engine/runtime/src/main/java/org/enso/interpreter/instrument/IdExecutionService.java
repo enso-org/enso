@@ -4,7 +4,6 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.nodes.RootNode;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
@@ -16,9 +15,8 @@ import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
 import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.logger.masking.MaskedString;
 import org.enso.pkg.QualifiedName;
@@ -243,6 +241,19 @@ public interface IdExecutionService {
       notAppliedArguments = collectNotAppliedArguments(call);
     }
 
+    /**
+     * Create a new function call info for partially applied constructors.
+     *
+     * @param call the function call returning the constructor function.
+     * @param function the constructor function creating the type instance.
+     */
+    public FunctionCallInfo(FunctionCallInfo call, Function function) {
+      this.moduleName = call.moduleName;
+      this.typeName = call.typeName;
+      this.functionName = call.functionName;
+      this.notAppliedArguments = collectNotAppliedArguments(function);
+    }
+
     @Override
     public boolean equals(Object o) {
       if (this == o) {
@@ -297,6 +308,21 @@ public interface IdExecutionService {
       for (int i = 0; i < arguments.length; i++) {
         if (arguments[i] == null) {
           notAppliedArgs[notAppliedArgsSize] = i + selfTypePosition;
+          notAppliedArgsSize += 1;
+        }
+      }
+
+      return Arrays.copyOf(notAppliedArgs, notAppliedArgsSize);
+    }
+
+    private static int[] collectNotAppliedArguments(Function function) {
+      Object[] preAppliedArguments = function.getPreAppliedArguments();
+      int[] notAppliedArgs = new int[preAppliedArguments.length];
+      int notAppliedArgsSize = 0;
+
+      for (int i = 0; i < preAppliedArguments.length; i++) {
+        if (preAppliedArguments[i] == null) {
+          notAppliedArgs[notAppliedArgsSize] = i;
           notAppliedArgsSize += 1;
         }
       }
