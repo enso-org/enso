@@ -1,0 +1,37 @@
+from Standard.Base import all
+
+from Standard.Table import Column
+from Standard.Test import Bench, Faker
+
+## Bench Utilities ============================================================
+
+vector_size = 1000000
+iter_size = 100
+num_iterations = 10
+
+# The Benchmarks ==============================================================
+
+bench =
+    ## No specific significance to this constant, just fixed to make generated set deterministic
+    fixed_random_seed = 1644575867
+    faker = Faker.new fixed_random_seed
+
+    IO.println <| "Creating floats"
+    floats_vec = Vector.new vector_size _->(faker.decimal -1000000000 1000000000)
+    floats = Column.from_vector "floats" floats_vec
+
+    IO.println <| "Truncating floats"
+    Bench.measure floats.truncate "Column.truncate floats" iter_size num_iterations
+
+    ##
+        IO.println <| "Creating decimal strings"
+        decimal_strings = Vector.new vector_size _->(faker.decimal -1000000000 1000000000).to_text
+        IO.println <| "Benchmarking Decimal.parse"
+        Bench.measure (decimal_strings.map Decimal.parse) "Decimal.parse" iter_size num_iterations
+
+        IO.println <| "Creating integer strings"
+        int_strings = Vector.new vector_size _->(faker.integer -1000000000 1000000000).to_text
+        IO.println <| "Benchmarking Integer.parse"
+        Bench.measure (int_strings.map Integer.parse) "Integer.parse" iter_size num_iterations
+
+main = bench

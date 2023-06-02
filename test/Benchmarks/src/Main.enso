@@ -16,6 +16,7 @@ import project.Vector
    not breaking them.
 main =
     Collections.bench
+    Column_Numeric.bench
     Equality.bench
     Json_Bench.bench
     Natural_Order_Sort.bench
