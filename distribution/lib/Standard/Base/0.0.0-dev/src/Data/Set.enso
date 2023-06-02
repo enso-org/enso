@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
+import project.Data.Ordering.Comparable
 import project.Data.Ordering.Ordering
 import project.Data.Vector.Vector
 import project.Data.Text.Extensions
@@ -61,33 +62,30 @@ type Set
        Adds a value to this set.
     insert : Any -> Set
     insert self value =
-        new_map = self.self.underlying_map.insert value True
+        new_map = self.underlying_map.insert value True
         Set.Value new_map
 
-    ## ALIAS Union
-       Creates a union of the two sets.
-    + : Set -> Set
-    + self (other : Set) =
+    ## Creates a union of the two sets.
+    union : Set -> Set
+    union self (other : Set) =
         Set.from_vector (self.to_vector + other.to_vector)
 
-    ## ALIAS Intersection
-       Creates an intersection of the two sets.
-    & : Set -> Set
-    & self (other : Set) =
+    ## Creates an intersection of the two sets.
+    intersection : Set -> Set
+    intersection self (other : Set) =
         other_map = other.underlying_map
-        new_map = self.underlying_map.to_vector.fold Map.empty m-> el->
+        new_map = self.underlying_map.keys.fold Map.empty m-> el->
             if other_map.contains_key el then m.insert el True else m
         Set.Value new_map
 
-    ## ALIAS Difference
-       Computes a set difference.
+    ## Computes a set difference.
 
        Returns the set that contains all elements of this set that are not in
        the other set.
-    - : Set -> Set
-    - self (other : Set) =
+    difference : Set -> Set
+    difference self (other : Set) =
         other_map = other.underlying_map
-        new_map = self.underlying_map.to_vector.fold Map.empty m-> el->
+        new_map = self.underlying_map.keys.fold Map.empty m-> el->
             if other_map.contains_key el then m else m.insert el True
         Set.Value new_map
 
@@ -100,7 +98,7 @@ type Set_Comparator
     ## PRIVATE
     compare x y =
         if x.size != y.size then Nothing else
-            if (x - y).is_empty then Ordering.Equal else Nothing
+            if (x.difference y).is_empty then Ordering.Equal else Nothing
 
     ## PRIVATE
     hash x =

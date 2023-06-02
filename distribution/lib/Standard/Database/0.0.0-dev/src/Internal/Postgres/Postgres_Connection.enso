@@ -174,7 +174,7 @@ type Postgres_Connection
          - An `SQL_Error` may be reported if there is a failure on the database
            side.
     create_table : Text|Nothing -> Vector (Pair Text Value_Type) | Database_Table | Materialized_Table -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
-    create_table (table_name : Text | Nothing = Nothing) (structure : Vector | Database_Table | Materialized_Table) (primary_key : Vector Text = first_column_in_structure structure) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+    create_table self (table_name : Text | Nothing = Nothing) (structure : Vector | Database_Table | Materialized_Table) (primary_key : Vector Text = [first_column_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
         self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
 
     ## ADVANCED

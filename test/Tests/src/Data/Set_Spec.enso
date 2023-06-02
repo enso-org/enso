@@ -1,6 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+from Standard.Test import Test, Test_Suite, Problems
+import Standard.Test.Extensions
+
 spec =
     Test.group "Enso Set" <|
         Test.specify "should allow checking for emptiness" <|
@@ -32,12 +35,13 @@ spec =
             s2 = Set.from_vector [2, 3]
             s3 = Set.from_vector [3, 4]
 
-            (s1 + s2).to_vector.sort . should_equal [1, 2, 3]
-            (s1 + s3).to_vector.sort . should_equal [1, 2, 3, 4]
-            (s1 & s2).to_vector.sort . should_equal [2]
-            (s1 & s3).to_vector.sort . should_equal []
-            (s1 - s2).to_vector.sort . should_equal [1]
-            (s1 - s3).to_vector.sort . should_equal [1, 2]
+            (s1.union s2).to_vector.sort . should_equal [1, 2, 3]
+            (s1.union s3).to_vector.sort . should_equal [1, 2, 3, 4]
+            (s1.intersection s2).to_vector.sort . should_equal [2]
+            (s1.intersection s3).to_vector . should_equal []
+            (s1.difference s2).to_vector.sort . should_equal [1]
+            (s1.difference s3).to_vector.sort . should_equal [1, 2]
+            (s1.difference s1).to_vector . should_equal []
 
         Test.specify "should allow to check for equality of two sets" <|
             s1 = Set.from_vector [1, 2]
@@ -47,3 +51,5 @@ spec =
             (s1 == s2) . should_be_true
             (s1 == s1) . should_be_true
             (s1 == s3) . should_be_false
+
+main = Test_Suite.run_main spec
