@@ -595,7 +595,7 @@ type Table
          In the call below, assuming that the table of `t1` contains rows for
          numbers 1, 2, ..., 10, will return rows starting from 6 and not an empty
          result as one could expect if the limit was applied before the filters.
-             t1 = table.order_by ([Sort_Column.Name "A"]) . limit 5
+             t1 = table.order_by [Sort_Column.Name "A"] . limit 5
              t2 = t1.filter 'A' (Greater than=5)
              t2.read
     limit : Integer -> Table

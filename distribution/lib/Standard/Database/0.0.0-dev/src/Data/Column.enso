@@ -753,7 +753,7 @@ type Column
              column.sort Sort_Direction.Descending
     sort : Sort_Direction -> Column
     sort self order=Sort_Direction.Ascending =
-        self.to_table.order_by (Sort_Column.Index 0 order) . at 0
+        self.to_table.order_by [Sort_Column.Index 0 order] . at 0
 
     ## UNSTABLE
        Creates a new Column with the specified range of rows from the input
