@@ -1,44 +1,36 @@
 from Standard.Base import all
 
 type Join_Condition
-    ## Specifies a join condition that correlates rows from the two tables if
-       the element from the `left` of the left table is equal to the element
-       from the `right` of the right table.
+    ## Correlates rows from the two tables if the `left` element is equal to the
+       `right` element.
 
-       Missing values are treated as equal to each other.
+       `Nothing` (or null in database) is considered equal to itself.
 
        Arguments:
         - left: A name or index of a column in the left table.
         - right: A name or index of a column in the right table.
     Equals (left : Text | Integer) (right : Text | Integer = left)
 
-    ## Specifies a join condition that correlates rows from the two tables if
-       the element from the `left` column of the left table is equal to the
-       element from the `right` column of the right table, ignoring case.
+    ## Correlates rows from the two tables if the `left` element is equal to the
+       `right` element, ignoring case. This is only supported for text columns.
 
-       Missing values are treated as equal to each other.
+       Case insensitive comparisons may mean a database has to perform a row
+       scan, which can cause a performance degradation.
 
-       This is only supported for text columns.
-
-       Case insensitive comparisons may make it impossible for a database
-       operation to re-use an existing index, which can possibly lead to
-       performance degradation.
+       `Nothing` (or null in database) is considered equal to itself.
 
        Arguments:
         - left: A name or index of a column in the left table.
-        - right: A name or index of a column in the right table. Defaults to the
-          same column selector as provided for `left`.
+        - right: A name or index of a column in the right table.
         - locale: The locale to use for case insensitive comparisons.
     Equals_Ignore_Case (left : Text | Integer) (right : Text | Integer = left) (locale : Locale = Locale.default)
 
-    ## Specifies a join condition that correlates rows from the two tables if
-       the element from the `left` column of the left table fits between the
-       corresponding elements from `right_lower` and `right_upper` columns of
-       the right table. The comparison is inclusive.
+    ## Correlates rows from the two tables if the `left` element fits between
+       the `right_lower` and `right_upper` elements. The comparison is inclusive
+       for both lower and upper bounds.
 
-       Pairs of rows in which any of `left`, `right_lower`, or `right_upper` is
-       missing are ignored, as the comparison is assumed to be not well-defined
-       for missing values.
+       If any of the values on row are `Nothing` (or null in database) then the
+       rows won't be joined.
 
        Arguments:
         - left: A name or index of a column in the left table.

@@ -45,7 +45,8 @@ object Suggestions {
     name          = "MyType",
     arguments     = Vector(Suggestion.Argument("a", "Any", false, false, None)),
     returnType    = "MyAtom",
-    documentation = Some(comment.atom)
+    documentation = Some(comment.atom),
+    annotations   = Seq("a")
   )
 
   val method: Suggestion.Method = Suggestion.Method(
@@ -59,7 +60,8 @@ object Suggestions {
     selfType      = "MyType",
     returnType    = "Number",
     isStatic      = false,
-    documentation = Some("Lovely")
+    documentation = Some("Lovely"),
+    annotations   = Seq("foo")
   )
 
   val function: Suggestion.Function = Suggestion.Function(
@@ -98,7 +100,8 @@ object Suggestions {
     selfType      = "Any",
     returnType    = "Any",
     isStatic      = false,
-    documentation = Some("Lovely")
+    documentation = Some("Lovely"),
+    annotations   = Seq()
   )
 
   val methodOnNumber: Suggestion.Method = Suggestion.Method(
@@ -111,7 +114,8 @@ object Suggestions {
     selfType      = "Number",
     returnType    = "Number",
     isStatic      = false,
-    documentation = None
+    documentation = None,
+    annotations   = Seq()
   )
 
   val methodOnInteger: Suggestion.Method = Suggestion.Method(
@@ -124,7 +128,8 @@ object Suggestions {
     selfType      = "Integer",
     returnType    = "Number",
     isStatic      = false,
-    documentation = Some("Blah, blah")
+    documentation = Some("Blah, blah"),
+    annotations   = Seq()
   )
 
   val all = Seq(

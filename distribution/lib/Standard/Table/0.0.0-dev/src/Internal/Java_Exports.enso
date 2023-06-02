@@ -9,11 +9,13 @@ polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.index.DefaultIndex
 polyglot java import org.enso.table.data.column.storage.Storage
 polyglot java import org.enso.table.data.column.builder.object.BoolBuilder
+polyglot java import org.enso.table.data.column.builder.object.DateBuilder
 polyglot java import org.enso.table.data.column.builder.object.DateTimeBuilder
 polyglot java import org.enso.table.data.column.builder.object.InferredBuilder
 polyglot java import org.enso.table.data.column.builder.object.NumericBuilder
 polyglot java import org.enso.table.data.column.builder.object.StringBuilder
 polyglot java import org.enso.table.data.column.builder.object.TimeOfDayBuilder
+polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 
 ## PRIVATE
 make_bool_builder : BoolBuilder
@@ -40,9 +42,32 @@ make_date_time_builder : Integer -> DateTimeBuilder
 make_date_time_builder initial_size = DateTimeBuilder.new initial_size
 
 ## PRIVATE
+make_date_builder : Integer -> DateBuilder
+make_date_builder initial_size = DateBuilder.new initial_size
+
+## PRIVATE
 make_inferred_builder : Integer -> InferredBuilder
 make_inferred_builder initial_size = InferredBuilder.new initial_size
 
 ## PRIVATE
 make_column : Text -> Storage -> Column
 make_column name storage = Column.Value (Java_Column.new name storage)
+
+## PRIVATE
+   Wrapper around a DateBuilder that uses DateBuilder.appendDate() to append a
+   value (instead of builder.append())
+type DateBuilderAdapter
+    Value (date_builder : DateBuilder)
+
+    append : Date -> Nothing
+    append self date =
+        self.date_builder.appendDate date
+
+    seal : Java_Storage
+    seal self = self.date_builder.seal
+
+## PRIVATE
+   DateBuilderAdapter constructor that matches the interface of the other
+   make_*_builder functions.
+make_date_builder_adapter : Integer -> DateBuilderAdapter
+make_date_builder_adapter n = DateBuilderAdapter.Value (make_date_builder n)

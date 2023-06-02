@@ -120,12 +120,15 @@ type Connection
        - all_fields: Return all the fields in the metadata table.
     @types make_table_types_selector
     @schema make_schema_selector
-    tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
+    tables : Text -> Text -> Text -> Vector Text | Text | Nothing -> Boolean -> Materialized_Table
     tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
-        types_array = if types.is_nothing then Nothing else types.to_array
+        types_vector = case types of
+            Nothing -> Nothing
+            _ : Vector -> types
+            _ -> [types]
         name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
         self.jdbc_connection.with_metadata metadata->
-            table = Managed_Resource.bracket (metadata.getTables database schema name_like types_array) .close result_set->
+            table = Managed_Resource.bracket (metadata.getTables database schema name_like types_vector) .close result_set->
                 result_set_to_table result_set self.dialect.make_column_fetcher_for_type
             renamed = table.rename_columns name_map
             if all_fields then renamed else

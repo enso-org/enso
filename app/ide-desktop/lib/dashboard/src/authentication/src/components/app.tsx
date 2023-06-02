@@ -40,6 +40,7 @@ import * as toast from 'react-hot-toast'
 
 import * as authService from '../authentication/service'
 import * as detect from '../detect'
+import * as hooks from '../hooks'
 
 import * as authProvider from '../authentication/providers/auth'
 import * as backendProvider from '../providers/backend'
@@ -129,8 +130,8 @@ function App(props: AppProps) {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
-    const { logger, shouldShowDashboard: showDashboard, onAuthenticated } = props
-    const navigate = router.useNavigate()
+    const { logger, shouldShowDashboard: shouldShowDashboard, onAuthenticated } = props
+    const navigate = hooks.useNavigate()
     // FIXME[sb]: After platform detection for Electron is merged in, `IS_DEV_MODE` should be
     // set to true on `ide watch`.
     if (IS_DEV_MODE) {
@@ -156,7 +157,7 @@ function AppRouter(props: AppProps) {
                 <router.Route element={<authProvider.ProtectedLayout />}>
                     <router.Route
                         path={DASHBOARD_PATH}
-                        element={showDashboard && <Dashboard {...props} />}
+                        element={shouldShowDashboard && <Dashboard {...props} />}
                     />
                 </router.Route>
                 {/* Semi-protected pages are visible to users currently registering. */}
