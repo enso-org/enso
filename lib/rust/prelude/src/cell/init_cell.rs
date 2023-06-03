@@ -15,8 +15,8 @@ use crate::*;
 pub trait InitCellContent = HasSizedItem + OptItemRef + FromItem;
 
 /// A zero-cost abstraction allowing initialization of some structures without requiring mutable
-/// access to them. For example, given `my_var: InitCell<Option<T>>` can be initialized with a
-/// default `T` value, even if there exists a reference to `my_var`.
+/// access to them. For example, `my_var: InitCell<Option<T>>` can be initialized with a  default
+/// `T` value, even if there exists an immutable reference to `my_var`.
 #[derive(Default)]
 #[repr(transparent)]
 pub struct InitCell<T> {
