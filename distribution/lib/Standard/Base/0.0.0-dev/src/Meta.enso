@@ -38,11 +38,10 @@ type Type
 
        Returns a vector of method names that can be invoked
        on instances of this type.
+       ? Static Methods
 
-
-
-       To obtain list of _static methods_ on a given type
-       use `Meta.type_of`.
+         To obtain list of _static methods_ on a given type
+         use `Meta.type_of`.
 
        > Example
          All instance methods to invoke on `Integer` as
