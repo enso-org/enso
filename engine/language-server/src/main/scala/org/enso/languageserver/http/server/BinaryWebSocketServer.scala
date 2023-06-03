@@ -25,6 +25,8 @@ import org.enso.languageserver.util.binary.{
   DecodingFailure
 }
 
+import java.nio.ByteBuffer
+
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -35,6 +37,7 @@ import scala.concurrent.{ExecutionContext, Future}
   * @param factory creates front controller per a single connection that is
   *                responsible for handling all incoming requests
   * @param config a configuration object for properties of the server
+  * @param messageCallbacks a list of message callbacks
   * @param system an actor system that hosts the server
   * @param materializer an actor materializer that converts inbound and outbound
   *                     flows into actors running these streams
@@ -45,13 +48,21 @@ class BinaryWebSocketServer[A, B](
   decoder: BinaryDecoder[A],
   encoder: BinaryEncoder[B],
   factory: ConnectionControllerFactory,
-  config: Config = Config.default
+  config: Config                             = Config.default,
+  messageCallbacks: List[ByteBuffer => Unit] = List.empty
 )(
   implicit val system: ActorSystem,
   implicit val materializer: Materializer
 ) extends LazyLogging {
 
   implicit val ec: ExecutionContext = system.dispatcher
+
+  private val messageCallbackSinks =
+    messageCallbacks.map { callback =>
+      Sink.foreach[ByteBuffer] { byteBuffer =>
+        callback(byteBuffer.asReadOnlyBuffer())
+      }
+    }
 
   private val route: Route =
     extractClientIP {
@@ -119,7 +130,7 @@ class BinaryWebSocketServer[A, B](
     frontController: ActorRef,
     ip: RemoteAddress.IP
   ): Sink[Message, NotUsed] = {
-    Flow[Message]
+    val flow = Flow[Message]
       .mapConcat[BinaryMessage] {
         case msg: TextMessage =>
           logger.warn(
@@ -136,7 +147,14 @@ class BinaryWebSocketServer[A, B](
         _.toStrict(config.lazyMessageTimeout)
       }
       .map { binaryMsg =>
-        val bytes = binaryMsg.data.asByteBuffer
+        binaryMsg.data.asByteBuffer
+      }
+
+    val flowWithCallbacks =
+      messageCallbackSinks.foldLeft(flow)(_ alsoTo _)
+
+    flowWithCallbacks
+      .map { bytes =>
         decoder.decode(bytes)
       }
       .to {

@@ -10,6 +10,10 @@ import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
 import org.enso.jsonrpc.JsonRpcServer
+import org.enso.jsonrpc.debug.{
+  SaveBinaryMessageCallback,
+  SaveTextMessageCallback
+}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect
@@ -433,7 +437,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       jsonRpcControllerFactory,
       JsonRpcServer
         .Config(outgoingBufferSize = 10000, lazyMessageTimeout = 10.seconds),
-      List(healthCheckEndpoint, idlenessEndpoint)
+      List(healthCheckEndpoint, idlenessEndpoint),
+      List(SaveTextMessageCallback())
     )
   log.trace("Created JSON RPC Server [{}].", jsonRpcServer)
 
@@ -445,7 +450,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       BinaryWebSocketServer.Config(
         outgoingBufferSize = 100,
         lazyMessageTimeout = 10.seconds
-      )
+      ),
+      List(SaveBinaryMessageCallback())
     )
   log.trace("Created Binary WebSocket Server [{}].", binaryServer)
 
