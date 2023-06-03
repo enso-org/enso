@@ -111,8 +111,8 @@ pub struct NodeData {
     tp:                ZeroableOption<Box<dyn EventConsumer>>,
     network_id:        NetworkId,
     def:               DefInfo,
-    inputs:            ZeroableLinkedArrayRefCell<NodeId, 8>,
-    outputs:           ZeroableLinkedArrayRefCell<OutputConnection, 8>,
+    inputs:            OptRefCell<UnrolledLinkedList<NodeId, 8>>,
+    outputs:           OptRefCell<UnrolledLinkedList<OutputConnection, 8>>,
     output:            OptRefCell<ZeroableOption<Box<dyn Data>>>,
     behavior_requests: Cell<usize>,
 }
@@ -260,9 +260,9 @@ impl Runtime {
             if behavior_request {
                 src.behavior_requests.modify(|t| *t += 1);
             }
-            src.outputs.push(output_connection)
+            src.outputs.borrow().push(output_connection)
         });
-        self.nodes.with_item_borrow_mut(tgt_id, |tgt| tgt.inputs.push(src_id));
+        self.nodes.with_item_borrow_mut(tgt_id, |tgt| tgt.inputs.borrow().push(src_id));
     }
 
     #[inline(always)]
@@ -280,17 +280,17 @@ impl Runtime {
 
         self.stack.with(node.def, || {
             let mut cleanup_outputs = false;
-            node.outputs.for_item_borrow(|&node_output_id| {
+            for &node_output_id in &*node.outputs.borrow() {
                 let done = self.nodes.with_item_borrow(node_output_id.target, |node_output| {
                     node_output.on_event(self, node_id, node_output_id, event);
                 });
                 if done.is_none() {
                     cleanup_outputs = true;
                 }
-            });
+            }
 
             if cleanup_outputs {
-                node.outputs.retain(|output| self.nodes.exists(output.target));
+                node.outputs.borrow_mut().retain(|output| self.nodes.exists(output.target));
             }
         });
     }
@@ -447,12 +447,22 @@ where
                   source_id: NodeId,
                   source_edge: OutputConnection,
                   event: &dyn Data| {
-                if source_id == node_data.inputs.get(0) {
+                if source_id == node_data.inputs.borrow()[0] {
                     unsafe {
                         let t0 = &*(event as *const dyn Data as *const T0);
-                        runtime.with_borrowed_node_output_coerced(node_data.inputs.get(1), |t1| {
-                            f(xx_unchecked_into(runtime), node_data, source_id, source_edge, t0, t1)
-                        });
+                        runtime.with_borrowed_node_output_coerced(
+                            node_data.inputs.borrow()[1],
+                            |t1| {
+                                f(
+                                    xx_unchecked_into(runtime),
+                                    node_data,
+                                    source_id,
+                                    source_edge,
+                                    t0,
+                                    t1,
+                                )
+                            },
+                        );
                     }
                 }
             },
@@ -484,25 +494,28 @@ where
                   source_id: NodeId,
                   source_edge: OutputConnection,
                   event: &dyn Data| {
-                if source_id == node_data.inputs.get(0) {
+                if source_id == node_data.inputs.borrow()[0] {
                     unsafe {
                         let t0 = &*(event as *const dyn Data as *const T0);
-                        runtime.with_borrowed_node_output_coerced(node_data.inputs.get(1), |t1| {
-                            runtime.with_borrowed_node_output_coerced(
-                                node_data.inputs.get(2),
-                                |t2| {
-                                    f(
-                                        xx_unchecked_into(runtime),
-                                        node_data,
-                                        source_id,
-                                        source_edge,
-                                        t0,
-                                        t1,
-                                        t2,
-                                    )
-                                },
-                            )
-                        });
+                        runtime.with_borrowed_node_output_coerced(
+                            node_data.inputs.borrow()[1],
+                            |t1| {
+                                runtime.with_borrowed_node_output_coerced(
+                                    node_data.inputs.borrow()[2],
+                                    |t2| {
+                                        f(
+                                            xx_unchecked_into(runtime),
+                                            node_data,
+                                            source_id,
+                                            source_edge,
+                                            t0,
+                                            t1,
+                                            t2,
+                                        )
+                                    },
+                                )
+                            },
+                        );
                     }
                 }
             },

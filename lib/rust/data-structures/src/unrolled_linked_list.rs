@@ -118,16 +118,19 @@ impl<T, const N: usize, I, B> UnrolledLinkedList<T, N, I, B> {
 
     /// The capacity of the list, which is the count of items the list arrays can hold before
     /// allocating another node.
+    #[inline(always)]
     pub fn capacity(&self) -> usize {
         self.capacity.get()
     }
 
     /// Number of items stored.
+    #[inline(always)]
     pub fn len(&self) -> usize {
         self.len.get()
     }
 
     /// Check whether the list is empty.
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.len.get() == 0
     }
@@ -149,13 +152,18 @@ where
 
     /// Deallocate nodes that are not used.
     pub fn shrink_to_fit(&mut self) {
-        self.shrink_to(self.len())
+        self.shrink_to_internal(self.len())
     }
 
     /// Shrink the capacity of the list with a lower bound.
     ///
     /// The capacity will remain at least as large as both the length and the supplied value.
     pub fn shrink_to(&mut self, capacity: usize) {
+        self.shrink_to_internal(capacity);
+    }
+
+    #[inline(always)]
+    fn shrink_to_internal(&mut self, capacity: usize) {
         let new_capacity = self.len().max(capacity);
         if new_capacity == 0 {
             self.first_node.set_default();
@@ -201,6 +209,7 @@ where
 
     /// Add a new item at the end and return its index. If the list uses preallocated memory and
     /// there is enough space, this operation is almost zero-cost.
+    #[inline(always)]
     pub fn push_new(&self) -> I {
         self.push_new_multiple(1)
     }

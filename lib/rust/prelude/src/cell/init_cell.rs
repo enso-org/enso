@@ -36,6 +36,7 @@ impl<T: Debug> Debug for InitCell<T> {
 }
 
 impl<T> InitCell<T> {
+    #[inline(always)]
     pub fn into_inner(self) -> T {
         self.not_exposed.into_inner()
     }
@@ -46,6 +47,7 @@ impl<T: InitCellContent> InitCell<T> {
     /// Initialize the value stored in this cell if it is empty. It is impossible to re-initialize
     /// the value without requiring mutable access to self, as there might exist a reference to the
     /// value.
+    #[inline(always)]
     pub fn init_if_empty(&self, f: impl FnOnce() -> T::Item) {
         if !self.has_item() {
             // # Safety
@@ -60,11 +62,13 @@ impl<T: InitCellContent> InitCell<T> {
     }
 
     /// Set the internal data of this cell.
+    #[inline(always)]
     pub fn set_value(&mut self, internal: T) {
         self.not_exposed = UnsafeCell::new(internal);
     }
 
     /// Set this value to its default.
+    #[inline(always)]
     pub fn set_default(&mut self)
     where T: Default {
         self.set_value(default())
@@ -76,6 +80,7 @@ impl<T: HasItem> HasItem for InitCell<T> {
 }
 
 impl<T: InitCellContent> OptItemRef for InitCell<T> {
+    #[inline(always)]
     fn opt_item(&self) -> Option<&Self::Item> {
         // # Safety
         // Every mutable access to the value stored in [`Self::not_exposed`] requires a mutable
@@ -88,6 +93,7 @@ impl<T: InitCellContent> OptItemRef for InitCell<T> {
 }
 
 impl<T: InitCellContent + OptItemRefMut> OptItemRefMut for InitCell<T> {
+    #[inline(always)]
     fn opt_item_mut(&mut self) -> Option<&mut Self::Item> {
         // # Safety
         // Every mutable access to the value stored in [`Self::not_exposed`] requires a mutable
@@ -100,6 +106,7 @@ impl<T: InitCellContent + OptItemRefMut> OptItemRefMut for InitCell<T> {
 }
 
 impl<T: InitCellContent> FromItem for InitCell<T> {
+    #[inline(always)]
     fn from_item(item: Self::Item) -> Self {
         Self { not_exposed: UnsafeCell::new(T::from_item(item)) }
     }
