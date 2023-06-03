@@ -1,6 +1,5 @@
 use bumpalo::Bump;
 use enso_data_structures::unrolled_linked_list::UnrolledLinkedList;
-use enso_data_structures::zeroable_linked_array_ref_cell::ZeroableLinkedArrayRefCell;
 use enso_prelude::*;
 use ouroboros::self_referencing;
 use slotmap::Key;
@@ -111,8 +110,8 @@ pub struct NodeData {
     tp:                ZeroableOption<Box<dyn EventConsumer>>,
     network_id:        NetworkId,
     def:               DefInfo,
-    inputs:            OptRefCell<UnrolledLinkedList<NodeId, 8>>,
-    outputs:           OptRefCell<UnrolledLinkedList<OutputConnection, 8>>,
+    inputs:            OptRefCell<UnrolledLinkedList<NodeId, 8, usize, prealloc::Zeroed>>,
+    outputs:           OptRefCell<UnrolledLinkedList<OutputConnection, 8, usize, prealloc::Zeroed>>,
     output:            OptRefCell<ZeroableOption<Box<dyn Data>>>,
     behavior_requests: Cell<usize>,
 }
@@ -200,13 +199,13 @@ pub struct Runtime {
 }
 
 impl Runtime {
-    fn unsafe_clear(&self) {
-        self.networks.borrow_mut().clear();
-        self.nodes.clear();
-        // self.metrics = Metrics::default();
-        // self.stack.clear();
-        // self.current_node.set(default());
-    }
+    // fn unsafe_clear(&self) {
+    //     self.networks.borrow_mut().clear();
+    //     self.nodes.clear();
+    //     // self.metrics = Metrics::default();
+    //     // self.stack.clear();
+    //     // self.current_node.set(default());
+    // }
 
     #[inline(always)]
     fn new_network(&self) -> NetworkId {
@@ -869,7 +868,8 @@ mod benches {
         });
     }
 
-    // 10:   6290372
+    // 10:   5335233
+    // 50:  49194845
     #[bench]
     fn bench_emit_frp_chain_pod(bencher: &mut Bencher) {
         let net = Network::new();
@@ -891,7 +891,7 @@ mod benches {
 
     // 5: 2843612
     // 10: 6370118
-    // 50: 74304958
+    // 50: 79284775
     #[bench]
     fn bench_emit_frp_chain_pod_old(bencher: &mut Bencher) {
         let net = frp_old::Network::new("label");
@@ -957,7 +957,7 @@ mod benches {
     #[bench]
     fn bench_create_frp(bencher: &mut Bencher) {
         bencher.iter(move || {
-            with_runtime(|rt| rt.unsafe_clear());
+            // with_runtime(|rt| rt.unsafe_clear());
             let net = Network::new();
             for i in 0..100_000 {
                 let src1 = net.source::<usize>();
@@ -1082,7 +1082,7 @@ impl<Item> Slot<Item> {
 #[derivative(Default(bound = ""))]
 pub struct ZeroableRefCellSlotMap<Kind, Item, const N: usize> {
     free_indexes: OptRefCell<Vec<usize>>,
-    list:         Box<ZeroableLinkedArrayRefCell<Slot<Item>, N>>,
+    list:         Box<UnrolledLinkedList<OptRefCell<Slot<Item>>, N, usize, prealloc::Zeroed>>,
     _kind:        PhantomData<Kind>,
 }
 
@@ -1092,11 +1092,11 @@ impl<Kind, Item: Default + Zeroable, const N: usize> ZeroableRefCellSlotMap<Kind
         default()
     }
 
-    #[inline(always)]
-    pub fn clear(&self) {
-        self.free_indexes.borrow_mut().clear();
-        self.list.clear();
-    }
+    // #[inline(always)]
+    // pub fn clear(&self) {
+    //     self.free_indexes.borrow_mut().clear();
+    //     self.list.clear();
+    // }
 
     pub fn remove(&self, id: VersionedIndex<Kind>) {
         let ok = self.with_slot_borrow_mut(id, |slot| {
@@ -1113,7 +1113,7 @@ impl<Kind, Item: Default + Zeroable, const N: usize> ZeroableRefCellSlotMap<Kind
     pub fn insert(&self, val: Item) -> VersionedIndex<Kind> {
         let mut free_indexes = self.free_indexes.borrow_mut();
         if let Some(index) = free_indexes.pop() {
-            let version = self.list.with_item_borrow_mut(index, |slot| {
+            let version = self.list[index].with_borrowed_mut(|slot| {
                 slot.value = val;
                 slot.version += 1;
                 slot.version
@@ -1123,7 +1123,7 @@ impl<Kind, Item: Default + Zeroable, const N: usize> ZeroableRefCellSlotMap<Kind
             let index = self.list.len();
             let slot = Slot::new(val);
             let version = slot.version;
-            self.list.push(slot);
+            self.list.push(OptRefCell::new(slot));
             VersionedIndex::new(index, version)
         }
     }
@@ -1132,18 +1132,18 @@ impl<Kind, Item: Default + Zeroable, const N: usize> ZeroableRefCellSlotMap<Kind
     pub fn insert_zeroed(&self) -> VersionedIndex<Kind> {
         let mut free_indexes = self.free_indexes.borrow_mut();
         if let Some(index) = free_indexes.pop() {
-            let version = self.list.with_item_borrow(index, |slot| slot.version);
+            let version = self.list[index].with_borrowed(|slot| slot.version);
             VersionedIndex::new(index, version)
         } else {
             let index = self.list.len();
-            self.list.push_zeroed();
+            self.list.push_new();
             VersionedIndex::new(index, 0)
         }
     }
 
     #[inline(always)]
     pub fn insert_at(&self, key: VersionedIndex<Kind>, val: Item) -> bool {
-        self.list.with_item_borrow_mut(key.index, |slot| {
+        self.list[key.index].with_borrowed_mut(|slot| {
             if slot.version != key.version {
                 false
             } else {
@@ -1164,9 +1164,8 @@ impl<Kind, Item: Default + Zeroable, const N: usize> ZeroableRefCellSlotMap<Kind
         key: VersionedIndex<Kind>,
         f: impl FnOnce(&Item) -> R,
     ) -> Option<R> {
-        self.list.with_item_borrow(key.index, |slot| {
-            (slot.version == key.version).then(|| f(&slot.value))
-        })
+        self.list[key.index]
+            .with_borrowed(|slot| (slot.version == key.version).then(|| f(&slot.value)))
     }
 
     #[inline(always)]
@@ -1175,9 +1174,8 @@ impl<Kind, Item: Default + Zeroable, const N: usize> ZeroableRefCellSlotMap<Kind
         key: VersionedIndex<Kind>,
         f: impl FnOnce(&mut Item) -> R,
     ) -> Option<R> {
-        self.list.with_item_borrow_mut(key.index, |slot| {
-            (slot.version == key.version).then(|| f(&mut slot.value))
-        })
+        self.list[key.index]
+            .with_borrowed_mut(|slot| (slot.version == key.version).then(|| f(&mut slot.value)))
     }
 
     #[inline(always)]
@@ -1186,7 +1184,7 @@ impl<Kind, Item: Default + Zeroable, const N: usize> ZeroableRefCellSlotMap<Kind
         key: VersionedIndex<Kind>,
         f: impl FnOnce(&mut Slot<Item>) -> R,
     ) -> Option<R> {
-        self.list
-            .with_item_borrow_mut(key.index, |slot| (slot.version == key.version).then(|| f(slot)))
+        self.list[key.index]
+            .with_borrowed_mut(|slot| (slot.version == key.version).then(|| f(slot)))
     }
 }

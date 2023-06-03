@@ -31,6 +31,5 @@ pub mod im_list;
 pub mod index;
 pub mod opt_vec;
 pub mod unrolled_linked_list;
-pub mod zeroable_linked_array_ref_cell;
 
 pub use enso_prelude as prelude;

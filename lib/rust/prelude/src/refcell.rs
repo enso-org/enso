@@ -77,6 +77,11 @@ pub struct OptRefCell<T> {
 #[allow(missing_docs)] // The functions reflect the [`RefCell`] API.
 impl<T> OptRefCell<T> {
     #[inline(always)]
+    pub fn new(t: T) -> Self {
+        Self { inner: UnsafeCell::new(t) }
+    }
+
+    #[inline(always)]
     pub fn borrow(&self) -> &T {
         unsafe { &*self.inner.get() }
     }
@@ -94,6 +99,15 @@ impl<T> OptRefCell<T> {
     #[inline(always)]
     pub fn with_borrowed_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
         f(self.borrow_mut())
+    }
+}
+
+#[cfg(debug_assertions)]
+#[allow(missing_docs)] // The functions reflect the [`RefCell`] API.
+impl<T> OptRefCell<T> {
+    #[inline(always)]
+    pub fn new(t: T) -> Self {
+        Self { inner: ZeroableRefCell::new(t) }
     }
 }
 

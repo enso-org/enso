@@ -177,6 +177,13 @@ pub struct ZeroableRefCell<T> {
 
 unsafe impl<T: Zeroable> Zeroable for ZeroableRefCell<T> {}
 
+impl<T> ZeroableRefCell<T> {
+    /// Constructor.
+    pub fn new(t: T) -> Self {
+        Self { cell: core::cell::RefCell::new(t) }
+    }
+}
+
 impl<T> Debug for ZeroableRefCell<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Debug::fmt(&*self, f)
