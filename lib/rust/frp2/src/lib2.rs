@@ -1,4 +1,5 @@
 use bumpalo::Bump;
+use enso_data_structures::unrolled_linked_list::UnrolledLinkedList;
 use enso_data_structures::zeroable_linked_array_ref_cell::ZeroableLinkedArrayRefCell;
 use enso_prelude::*;
 use ouroboros::self_referencing;

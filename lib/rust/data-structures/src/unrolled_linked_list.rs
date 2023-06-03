@@ -107,7 +107,7 @@ impl<T, const N: usize, I, B> UnrolledLinkedList<T, N, I, B> {
     /// Constructor.
     pub fn new() -> Self {
         if N == 0 {
-            panic!("UnrolledLinkedList: N must be greater than 0");
+            panic!("UnrolledLinkedList: N must be greater than 0.");
         }
         let len = default();
         let capacity = default();
@@ -311,6 +311,9 @@ type NodeItem<T> = UnsafeCell<T>;
 /// a pointer to the next node, if any.
 pub struct Node<T, const N: usize, B> {
     _allocation_behavior: PhantomData<B>,
+    // Vec is used here instead of an array in order to re-use some of its functionality, such as
+    // efficient retaining implementation. It is initialized like an array and never allocated or
+    // deallocates memory.
     items:                UnsafeCell<Vec<NodeItem<T>>>,
     next:                 InitCell<Option<Box<Node<T, N, B>>>>,
 }
@@ -355,6 +358,7 @@ impl<T, const N: usize, B> Node<T, N, B> {
     #[inline(always)]
     fn items_and_next_mut(&mut self) -> (&mut Vec<NodeItem<T>>, Option<&mut Box<Self>>) {
         let next = self.next.opt_item_mut();
+        #[allow(unsafe_code)]
         let items = unsafe { self.items.unchecked_borrow_mut() };
         (items, next)
     }
@@ -829,27 +833,27 @@ impl<T, const N: usize, B> Iterator for IntoIter<T, N, B> {
 mod tests {
     use super::*;
 
-    macro_rules! test_all_configs {
+    /// Testing different list configurations and initialization methods.
+    macro_rules! test_multi_config {
         ($tp:ident, $f:ident) => {
-            $f(&mut UnrolledLinkedList::<$tp, 1, usize, prealloc::Default>::new());
-            $f(&mut UnrolledLinkedList::<$tp, 1, usize, prealloc::Zeroed>::new());
-            $f(&mut UnrolledLinkedList::<$tp, 1, usize, prealloc::Disabled>::new());
+            test_multi_config_with_cons! { $tp, $f, new }
+            test_multi_config_with_cons! { $tp, $f, zeroed }
+        };
+    }
 
-            $f(&mut UnrolledLinkedList::<$tp, 2, usize, prealloc::Default>::new());
-            $f(&mut UnrolledLinkedList::<$tp, 2, usize, prealloc::Zeroed>::new());
-            $f(&mut UnrolledLinkedList::<$tp, 2, usize, prealloc::Disabled>::new());
+    macro_rules! test_multi_config_with_cons {
+        ($tp:ident, $f:ident, $cons:ident) => {
+            test_multi_config_with_cons_and_sizes! { $tp, $f, $cons, [1, 2, 3, 4, 7, 8, 16] }
+        };
+    }
 
-            $f(&mut UnrolledLinkedList::<$tp, 4, usize, prealloc::Default>::new());
-            $f(&mut UnrolledLinkedList::<$tp, 4, usize, prealloc::Zeroed>::new());
-            $f(&mut UnrolledLinkedList::<$tp, 4, usize, prealloc::Disabled>::new());
-
-            $f(&mut UnrolledLinkedList::<$tp, 8, usize, prealloc::Default>::new());
-            $f(&mut UnrolledLinkedList::<$tp, 8, usize, prealloc::Zeroed>::new());
-            $f(&mut UnrolledLinkedList::<$tp, 8, usize, prealloc::Disabled>::new());
-
-            $f(&mut UnrolledLinkedList::<$tp, 16, usize, prealloc::Default>::new());
-            $f(&mut UnrolledLinkedList::<$tp, 16, usize, prealloc::Zeroed>::new());
-            $f(&mut UnrolledLinkedList::<$tp, 16, usize, prealloc::Disabled>::new());
+    macro_rules! test_multi_config_with_cons_and_sizes {
+        ($tp:ident, $f:ident, $cons:ident, [$($size:tt),*]) => {
+            $(
+                $f(&mut UnrolledLinkedList::<$tp, $size, usize, prealloc::Default>::$cons());
+                $f(&mut UnrolledLinkedList::<$tp, $size, usize, prealloc::Zeroed>::$cons());
+                $f(&mut UnrolledLinkedList::<$tp, $size, usize, prealloc::Disabled>::$cons());
+            )*
         };
     }
 
@@ -858,7 +862,13 @@ mod tests {
 
     #[test]
     fn test_node_structure() {
-        let mut list = UnrolledLinkedList::<usize, 2, usize, prealloc::Zeroed>::new();
+        test_node_structure_template(UnrolledLinkedList::new());
+        test_node_structure_template(Zeroable::zeroed());
+    }
+
+    fn test_node_structure_template(
+        mut list: UnrolledLinkedList<usize, 2, usize, prealloc::Zeroed>,
+    ) {
         // []
         assert_eq!(list.len(), 0);
         assert_eq!(list.capacity(), 0);
@@ -918,7 +928,7 @@ mod tests {
 
     #[test]
     fn test_push() {
-        test_all_configs!(usize, test_template_push);
+        test_multi_config!(usize, test_template_push);
     }
 
     fn test_template_push<const N: usize, I, B>(list: &mut UnrolledLinkedList<usize, N, I, B>)
@@ -947,7 +957,7 @@ mod tests {
 
     #[test]
     fn test_clear() {
-        test_all_configs!(usize, test_template_clear);
+        test_multi_config!(usize, test_template_clear);
     }
 
     fn test_template_clear<const N: usize, I, B>(list: &mut UnrolledLinkedList<usize, N, I, B>)
@@ -975,7 +985,7 @@ mod tests {
 
     #[test]
     fn test_retain() {
-        test_all_configs!(usize, test_template_retain);
+        test_multi_config!(usize, test_template_retain);
     }
 
     fn test_template_retain<const N: usize, I, B>(list: &mut UnrolledLinkedList<usize, N, I, B>)
@@ -1011,7 +1021,7 @@ mod tests {
     /// https://doc.rust-lang.org/stable/std/mem/union.MaybeUninit.html.
     #[test]
     fn test_bool_ops() {
-        test_all_configs!(bool, test_template_bool_ops);
+        test_multi_config!(bool, test_template_bool_ops);
     }
 
     fn test_template_bool_ops<const N: usize, I, B>(list: &mut UnrolledLinkedList<bool, N, I, B>)
