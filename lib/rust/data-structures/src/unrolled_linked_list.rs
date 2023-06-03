@@ -39,7 +39,7 @@ derive_zeroable! {
     /// it back up to the same len should incur no calls to the allocator. If you wish to free up
     /// unused memory, use [`Self::shrink_to_fit`] or [`Self::shrink_to`].
     pub struct UnrolledLinkedList
-    [T, N, I, B][T, const N: usize, I, B][T, const N: usize, I = usize, B = prealloc::Zeroed] {
+    [T, N, I, B][T, const N: usize, I, B][T, const N: usize, I = usize, B = prealloc::Disabled] {
         len:        Cell<usize>,
         capacity:   Cell<usize>,
         first_node: InitCell<ZeroableOption<Node<T, N, B>>>,

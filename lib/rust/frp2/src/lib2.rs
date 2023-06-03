@@ -98,6 +98,36 @@ struct NetworkData {
 }
 
 
+/// Abstraction for structures that can be cleared and reused.
+///
+/// # Performance
+/// In most cases, clearing is more performance efficient than re-initializing. For example,
+/// [`Vec::clear`] is practically zero-cost and does not drop the allocated memory, allowing for
+/// fast following insertions. However, in some cases, clearing is less memory efficient than struct
+/// re-initialization. For example, clearing a long [`Vec`] and never filling it again would prevent
+/// the previously allocated memory from being re-used. Thus, clearing is recommended in situations
+/// when you plan to fill the cleared memory in a similar way as before.
+///
+/// # Reusing Cleared Values
+/// Clearing does not have to reset all fields of a value. In such a case, it should be combined
+/// with the [`Reusable`] trait. For example, a struct might represent a node in a graph that
+/// contains vec of input connections, vec of output connections, and metadata. Clearing might be
+/// implemented as clearing the input and output connections only, without resetting the metadata.
+/// This is because when creating a new node, we would need to set the metadata anyway, so by not
+/// clearing it, we can save a little bit time.
+#[allow(missing_docs)]
+pub trait Clearable {
+    fn clear(&mut self);
+}
+
+/// Abstraction for structures that can be cleared and reused. See the docs of [`Clearable`] to
+/// learn more.
+#[allow(missing_docs)]
+pub trait Reusable {
+    type Args;
+    fn reuse(&mut self, args: Self::Args);
+}
+
 
 #[derive(Clone, Copy, Debug, Default, Zeroable)]
 pub struct OutputConnection {
@@ -114,6 +144,26 @@ pub struct NodeData {
     outputs:           OptRefCell<UnrolledLinkedList<OutputConnection, 8, usize, prealloc::Zeroed>>,
     output:            OptRefCell<ZeroableOption<Box<dyn Data>>>,
     behavior_requests: Cell<usize>,
+    // When adding new fields, be sure that they are correctly handled by the [`Clearable`] and
+    // [`Reusable`] trait implementations.
+}
+
+impl Clearable for NodeData {
+    fn clear(&mut self) {
+        self.inputs.borrow_mut().clear();
+        self.outputs.borrow_mut().clear();
+        self.output = default();
+        self.behavior_requests.set(0);
+    }
+}
+
+impl Reusable for NodeData {
+    type Args = (ZeroableOption<Box<dyn EventConsumer>>, NetworkId, DefInfo);
+    fn reuse(&mut self, args: Self::Args) {
+        self.tp = args.0;
+        self.network_id = args.1;
+        self.def = args.2;
+    }
 }
 
 impl Debug for NodeData {
@@ -232,17 +282,15 @@ impl Runtime {
     fn new_node(
         &self,
         tp: impl EventConsumer + 'static,
-        network_id: NetworkId,
+        net_id: NetworkId,
         def: DefInfo,
     ) -> NodeId {
         self.metrics.inc_nodes();
         let mut networks = self.networks.borrow_mut();
-        if let Some(network) = networks.get_mut(network_id) {
+        if let Some(network) = networks.get_mut(net_id) {
             let id = self.nodes.insert_zeroed();
             self.nodes.with_item_borrow_mut(id, |node| {
-                node.tp = ZeroableOption::Some(Box::new(tp));
-                node.network_id = network_id;
-                node.def = def;
+                node.reuse((ZeroableOption::Some(Box::new(tp)), net_id, def))
             });
             network.nodes.push(id);
             id
@@ -1086,7 +1134,9 @@ pub struct ZeroableRefCellSlotMap<Kind, Item, const N: usize> {
     _kind:        PhantomData<Kind>,
 }
 
-impl<Kind, Item: Default + Zeroable, const N: usize> ZeroableRefCellSlotMap<Kind, Item, N> {
+impl<Kind, Item: Default + Clearable + Zeroable, const N: usize>
+    ZeroableRefCellSlotMap<Kind, Item, N>
+{
     #[inline(always)]
     pub fn new() -> Self {
         default()
@@ -1100,7 +1150,7 @@ impl<Kind, Item: Default + Zeroable, const N: usize> ZeroableRefCellSlotMap<Kind
 
     pub fn remove(&self, id: VersionedIndex<Kind>) {
         let ok = self.with_slot_borrow_mut(id, |slot| {
-            slot.value = default();
+            slot.value.clear();
             slot.version += 1;
         });
         if ok.is_some() {
@@ -1109,24 +1159,24 @@ impl<Kind, Item: Default + Zeroable, const N: usize> ZeroableRefCellSlotMap<Kind
         }
     }
 
-    #[inline(always)]
-    pub fn insert(&self, val: Item) -> VersionedIndex<Kind> {
-        let mut free_indexes = self.free_indexes.borrow_mut();
-        if let Some(index) = free_indexes.pop() {
-            let version = self.list[index].with_borrowed_mut(|slot| {
-                slot.value = val;
-                slot.version += 1;
-                slot.version
-            });
-            VersionedIndex::new(index, version)
-        } else {
-            let index = self.list.len();
-            let slot = Slot::new(val);
-            let version = slot.version;
-            self.list.push(OptRefCell::new(slot));
-            VersionedIndex::new(index, version)
-        }
-    }
+    // #[inline(always)]
+    // pub fn insert(&self, val: Item) -> VersionedIndex<Kind> {
+    //     let mut free_indexes = self.free_indexes.borrow_mut();
+    //     if let Some(index) = free_indexes.pop() {
+    //         let version = self.list[index].with_borrowed_mut(|slot| {
+    //             slot.value = val;
+    //             slot.version += 1;
+    //             slot.version
+    //         });
+    //         VersionedIndex::new(index, version)
+    //     } else {
+    //         let index = self.list.len();
+    //         let slot = Slot::new(val);
+    //         let version = slot.version;
+    //         self.list.push(OptRefCell::new(slot));
+    //         VersionedIndex::new(index, version)
+    //     }
+    // }
 
     #[inline(always)]
     pub fn insert_zeroed(&self) -> VersionedIndex<Kind> {
