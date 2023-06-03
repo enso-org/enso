@@ -8,6 +8,7 @@ import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.{Materializer, OverflowStrategy}
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.jsonrpc.MessageHandler.WebMessage
 
 import java.util.UUID
 import scala.concurrent.duration._
@@ -19,14 +20,16 @@ import scala.concurrent.ExecutionContext
   * @param clientControllerFactory a factory used to create a client controller
   * @param config a server config
   * @param optionalEndpoints a list of optional endpoints
+  * @param messageCallbacks a list of message callbacks
   * @param system an actor system
   * @param materializer a materializer
   */
 class JsonRpcServer(
   protocolFactory: ProtocolFactory,
   clientControllerFactory: ClientControllerFactory,
-  config: JsonRpcServer.Config      = JsonRpcServer.Config.default,
-  optionalEndpoints: List[Endpoint] = List.empty
+  config: JsonRpcServer.Config               = JsonRpcServer.Config.default,
+  optionalEndpoints: List[Endpoint]          = List.empty,
+  messageCallbacks: List[WebMessage => Unit] = List.empty
 )(
   implicit val system: ActorSystem,
   implicit val materializer: Materializer
@@ -34,6 +37,9 @@ class JsonRpcServer(
     with LazyLogging {
 
   implicit val ec: ExecutionContext = system.dispatcher
+
+  private val messageCallbackSinks =
+    messageCallbacks.map(Sink.foreach[WebMessage])
 
   private def newUser(port: Int): Flow[Message, Message, NotUsed] = {
     val messageHandler =
@@ -48,7 +54,7 @@ class JsonRpcServer(
         s"message-handler-supervisor-${UUID.randomUUID()}"
       )
 
-    val incomingMessages: Sink[Message, NotUsed] =
+    val incomingMessagesFlow =
       Flow[Message]
         .mapConcat({
           case textMsg: TextMessage => textMsg :: Nil
@@ -58,6 +64,11 @@ class JsonRpcServer(
           _.toStrict(config.lazyMessageTimeout)
             .map(msg => MessageHandler.WebMessage(msg.text))
         )
+    val incomingMessagesFlowWithCallbacks =
+      messageCallbackSinks.foldLeft(incomingMessagesFlow)(_ alsoTo _)
+
+    val incomingMessages: Sink[Message, NotUsed] =
+      incomingMessagesFlowWithCallbacks
         .wireTap { webMessage =>
           logger.trace(s"Received text message: ${webMessage.message}.")
         }
