@@ -98,36 +98,6 @@ struct NetworkData {
 }
 
 
-/// Abstraction for structures that can be cleared and reused.
-///
-/// # Performance
-/// In most cases, clearing is more performance efficient than re-initializing. For example,
-/// [`Vec::clear`] is practically zero-cost and does not drop the allocated memory, allowing for
-/// fast following insertions. However, in some cases, clearing is less memory efficient than struct
-/// re-initialization. For example, clearing a long [`Vec`] and never filling it again would prevent
-/// the previously allocated memory from being re-used. Thus, clearing is recommended in situations
-/// when you plan to fill the cleared memory in a similar way as before.
-///
-/// # Reusing Cleared Values
-/// Clearing does not have to reset all fields of a value. In such a case, it should be combined
-/// with the [`Reusable`] trait. For example, a struct might represent a node in a graph that
-/// contains vec of input connections, vec of output connections, and metadata. Clearing might be
-/// implemented as clearing the input and output connections only, without resetting the metadata.
-/// This is because when creating a new node, we would need to set the metadata anyway, so by not
-/// clearing it, we can save a little bit time.
-#[allow(missing_docs)]
-pub trait Clearable {
-    fn clear(&mut self);
-}
-
-/// Abstraction for structures that can be cleared and reused. See the docs of [`Clearable`] to
-/// learn more.
-#[allow(missing_docs)]
-pub trait Reusable {
-    type Args;
-    fn reuse(&mut self, args: Self::Args);
-}
-
 
 #[derive(Clone, Copy, Debug, Default, Zeroable)]
 pub struct OutputConnection {
@@ -144,6 +114,7 @@ pub struct NodeData {
     outputs:           OptRefCell<UnrolledLinkedList<OutputConnection, 8, usize, prealloc::Zeroed>>,
     output:            OptRefCell<ZeroableOption<Box<dyn Data>>>,
     behavior_requests: Cell<usize>,
+    // WARNING!
     // When adding new fields, be sure that they are correctly handled by the [`Clearable`] and
     // [`Reusable`] trait implementations.
 }
@@ -288,7 +259,7 @@ impl Runtime {
         self.metrics.inc_nodes();
         let mut networks = self.networks.borrow_mut();
         if let Some(network) = networks.get_mut(net_id) {
-            let id = self.nodes.insert_zeroed();
+            let id = self.nodes.insert_cleared();
             self.nodes.with_item_borrow_mut(id, |node| {
                 node.reuse((ZeroableOption::Some(Box::new(tp)), net_id, def))
             });
@@ -1121,7 +1092,7 @@ impl<Item> Slot<Item> {
 /// A slot map with the following properties:
 ///
 /// - It is initialized with zeroed memory.
-/// - It pre-allocates space for items, making their initialization with [`Self::insert_zeroed`]
+/// - It pre-allocates space for items, making their initialization with [`Self::insert_cleared`]
 ///   almost free.
 /// - It is backed by [`ZeroableLinkedArrayRefCell`], allowing to insert new elements even during
 ///   iteration.
@@ -1142,12 +1113,6 @@ impl<Kind, Item: Default + Clearable + Zeroable, const N: usize>
         default()
     }
 
-    // #[inline(always)]
-    // pub fn clear(&self) {
-    //     self.free_indexes.borrow_mut().clear();
-    //     self.list.clear();
-    // }
-
     pub fn remove(&self, id: VersionedIndex<Kind>) {
         let ok = self.with_slot_borrow_mut(id, |slot| {
             slot.value.clear();
@@ -1159,27 +1124,8 @@ impl<Kind, Item: Default + Clearable + Zeroable, const N: usize>
         }
     }
 
-    // #[inline(always)]
-    // pub fn insert(&self, val: Item) -> VersionedIndex<Kind> {
-    //     let mut free_indexes = self.free_indexes.borrow_mut();
-    //     if let Some(index) = free_indexes.pop() {
-    //         let version = self.list[index].with_borrowed_mut(|slot| {
-    //             slot.value = val;
-    //             slot.version += 1;
-    //             slot.version
-    //         });
-    //         VersionedIndex::new(index, version)
-    //     } else {
-    //         let index = self.list.len();
-    //         let slot = Slot::new(val);
-    //         let version = slot.version;
-    //         self.list.push(OptRefCell::new(slot));
-    //         VersionedIndex::new(index, version)
-    //     }
-    // }
-
     #[inline(always)]
-    pub fn insert_zeroed(&self) -> VersionedIndex<Kind> {
+    pub fn insert_cleared(&self) -> VersionedIndex<Kind> {
         let mut free_indexes = self.free_indexes.borrow_mut();
         if let Some(index) = free_indexes.pop() {
             let version = self.list[index].with_borrowed(|slot| slot.version);

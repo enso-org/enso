@@ -28,6 +28,7 @@
 mod bool;
 mod cell;
 pub mod channel;
+mod clear_and_reuse;
 mod collections;
 mod data;
 pub mod debug;
@@ -63,6 +64,7 @@ pub use crate::serde::*;
 pub use crate::smallvec::*;
 pub use anyhow;
 pub use cell::*;
+pub use clear_and_reuse::*;
 pub use collections::*;
 pub use data::*;
 pub use debug::*;
