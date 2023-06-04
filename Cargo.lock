@@ -2040,6 +2040,7 @@ dependencies = [
 name = "enso-data-structures"
 version = "0.2.0"
 dependencies = [
+ "bytemuck",
  "criterion",
  "enso-prelude",
  "failure",

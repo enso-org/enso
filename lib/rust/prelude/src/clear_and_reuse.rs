@@ -29,6 +29,12 @@ pub trait Clearable {
     fn clear(&mut self);
 }
 
+/// Immutable version of [`Clearable`].
+#[allow(missing_docs)]
+pub trait ImClearable {
+    fn clear_im(&self);
+}
+
 
 
 // ================

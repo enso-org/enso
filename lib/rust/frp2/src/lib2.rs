@@ -1,5 +1,7 @@
 use bumpalo::Bump;
 use enso_data_structures::unrolled_linked_list::UnrolledLinkedList;
+use enso_data_structures::unrolled_slot_map::UnrolledSlotMap;
+use enso_data_structures::unrolled_slot_map::VersionedIndex;
 use enso_prelude::*;
 use ouroboros::self_referencing;
 use slotmap::Key;
@@ -115,15 +117,15 @@ pub struct NodeData {
     output:            OptRefCell<ZeroableOption<Box<dyn Data>>>,
     behavior_requests: Cell<usize>,
     // WARNING!
-    // When adding new fields, be sure that they are correctly handled by the [`Clearable`] and
+    // When adding new fields, be sure that they are correctly handled by the [`ImClearable`] and
     // [`Reusable`] trait implementations.
 }
 
-impl Clearable for NodeData {
-    fn clear(&mut self) {
+impl ImClearable for NodeData {
+    fn clear_im(&self) {
         self.inputs.borrow_mut().clear();
         self.outputs.borrow_mut().clear();
-        self.output = default();
+        self.output.replace(default());
         self.behavior_requests.set(0);
     }
 }
@@ -204,7 +206,7 @@ pub struct NodesMap;
 #[derive(Default)]
 pub struct Runtime {
     networks: OptRefCell<SlotMap<NetworkId, NetworkData>>,
-    nodes:    ZeroableRefCellSlotMap<NodesMap, NodeData, 131072>,
+    nodes:    UnrolledSlotMap<OptRefCell<NodeData>, 131072, NodesMap, prealloc::Zeroed>,
     // consumers:         RefCell<SecondaryMap<NodeId, BumpRc<dyn RawEventConsumer>>>,
     /// Map for each node to its behavior, if any. For nodes that are natively behaviors, points to
     /// itself. For non-behavior streams, may point to a sampler node that listens to it.
@@ -246,7 +248,10 @@ impl Runtime {
     }
 
     fn drop_node(&self, id: NodeId) {
-        self.nodes.remove(id);
+        if let Some(node) = self.nodes.get(id) {
+            node.borrow().clear_im();
+            self.nodes.invalidate(id);
+        }
     }
 
     #[inline(always)]
@@ -259,10 +264,10 @@ impl Runtime {
         self.metrics.inc_nodes();
         let mut networks = self.networks.borrow_mut();
         if let Some(network) = networks.get_mut(net_id) {
-            let id = self.nodes.insert_cleared();
-            self.nodes.with_item_borrow_mut(id, |node| {
-                node.reuse((ZeroableOption::Some(Box::new(tp)), net_id, def))
-            });
+            let id = self.nodes.reserve();
+            if let Some(node) = self.nodes.get(id) {
+                node.borrow_mut().reuse((ZeroableOption::Some(Box::new(tp)), net_id, def))
+            }
             network.nodes.push(id);
             id
         } else {
@@ -274,20 +279,22 @@ impl Runtime {
     #[inline(always)]
     fn connect(&self, src_id: NodeId, tgt_id: NodeId, behavior_request: bool) {
         let output_connection = OutputConnection { target: tgt_id, behavior_request };
-        self.nodes.with_item_borrow_mut(src_id, |src| {
+        if let Some(src) = self.nodes.get(src_id) {
             if behavior_request {
-                src.behavior_requests.modify(|t| *t += 1);
+                src.borrow().behavior_requests.modify(|t| *t += 1);
             }
-            src.outputs.borrow().push(output_connection)
-        });
-        self.nodes.with_item_borrow_mut(tgt_id, |tgt| tgt.inputs.borrow().push(src_id));
+            src.borrow().outputs.borrow().push(output_connection);
+        }
+        if let Some(tgt) = self.nodes.get(tgt_id) {
+            tgt.borrow().inputs.borrow().push(src_id);
+        }
     }
 
     #[inline(always)]
     fn unchecked_emit(&self, node_id: NodeId, event: &dyn Data) {
-        self.nodes.with_item_borrow(node_id, |node| {
-            self.unchecked_emit2(node_id, node, event);
-        });
+        if let Some(node) = self.nodes.get(node_id) {
+            self.unchecked_emit2(node_id, &*node.borrow(), event);
+        }
     }
 
     #[inline(always)]
@@ -299,8 +306,8 @@ impl Runtime {
         self.stack.with(node.def, || {
             let mut cleanup_outputs = false;
             for &node_output_id in &*node.outputs.borrow() {
-                let done = self.nodes.with_item_borrow(node_output_id.target, |node_output| {
-                    node_output.on_event(self, node_id, node_output_id, event);
+                let done = self.nodes.get(node_output_id.target).map(|node_output| {
+                    node_output.borrow().on_event(self, node_id, node_output_id, event);
                 });
                 if done.is_none() {
                     cleanup_outputs = true;
@@ -319,15 +326,16 @@ impl Runtime {
         node_id: NodeId,
         f: impl FnOnce(&T),
     ) {
-        self.nodes.with_item_borrow(node_id, |node| {
-            let output = node.output.borrow();
+        if let Some(node) = self.nodes.get(node_id) {
+            let borrowed_node = node.borrow();
+            let output = borrowed_node.output.borrow();
             if let Some(output) = output.as_ref().map(|t| &**t) {
                 let output_coerced = unsafe { &*(output as *const dyn Data as *const T) };
                 f(output_coerced)
             } else {
                 f(&default())
             };
-        });
+        }
     }
 }
 
@@ -1032,155 +1040,3 @@ mod benches {
 // 1941622
 
 pub type NodeId = VersionedIndex<NodesMap>;
-
-
-// ======================
-// === VersionedIndex ===
-// ======================
-
-/// An index in the [`ZeroableRefCellSlotMap`]. The index is versioned, so it is invalid if the item
-/// was removed from the map. The [`Kind`] parameter is used to introduce binding between indexes
-/// and a map instance.
-#[derive(Derivative)]
-#[derivative(
-    Copy(bound = ""),
-    Clone(bound = ""),
-    Default(bound = ""),
-    Debug(bound = ""),
-    PartialEq(bound = ""),
-    Eq(bound = "")
-)]
-pub struct VersionedIndex<Kind> {
-    index:   usize,
-    version: usize,
-    _kind:   PhantomData<Kind>,
-}
-unsafe impl<Kind> Zeroable for VersionedIndex<Kind> {}
-
-impl<Kind> VersionedIndex<Kind> {
-    fn new(index: usize, version: usize) -> Self {
-        Self { index, version, _kind: PhantomData }
-    }
-}
-
-
-
-// ============
-// === Slot ===
-// ============
-
-/// A slot, versioned value in the slot map. If the value is not used, it is guaranteed to be stored
-/// as a zeroed memory.
-#[derive(Debug, Default, Zeroable)]
-struct Slot<Item> {
-    value:   Item,
-    version: usize,
-}
-
-impl<Item> Slot<Item> {
-    fn new(value: Item) -> Self {
-        Self { value, version: 0 }
-    }
-}
-
-
-
-// ==============================
-// === ZeroableRefCellSlotMap ===
-// ==============================
-
-/// A slot map with the following properties:
-///
-/// - It is initialized with zeroed memory.
-/// - It pre-allocates space for items, making their initialization with [`Self::insert_cleared`]
-///   almost free.
-/// - It is backed by [`ZeroableLinkedArrayRefCell`], allowing to insert new elements even during
-///   iteration.
-#[derive(Derivative)]
-#[derivative(Debug(bound = "Item: Debug"))]
-#[derivative(Default(bound = ""))]
-pub struct ZeroableRefCellSlotMap<Kind, Item, const N: usize> {
-    free_indexes: OptRefCell<Vec<usize>>,
-    list:         Box<UnrolledLinkedList<OptRefCell<Slot<Item>>, N, usize, prealloc::Zeroed>>,
-    _kind:        PhantomData<Kind>,
-}
-
-impl<Kind, Item: Default + Clearable + Zeroable, const N: usize>
-    ZeroableRefCellSlotMap<Kind, Item, N>
-{
-    #[inline(always)]
-    pub fn new() -> Self {
-        default()
-    }
-
-    pub fn remove(&self, id: VersionedIndex<Kind>) {
-        let ok = self.with_slot_borrow_mut(id, |slot| {
-            slot.value.clear();
-            slot.version += 1;
-        });
-        if ok.is_some() {
-            let mut free_indexes = self.free_indexes.borrow_mut();
-            free_indexes.push(id.index);
-        }
-    }
-
-    #[inline(always)]
-    pub fn insert_cleared(&self) -> VersionedIndex<Kind> {
-        let mut free_indexes = self.free_indexes.borrow_mut();
-        if let Some(index) = free_indexes.pop() {
-            let version = self.list[index].with_borrowed(|slot| slot.version);
-            VersionedIndex::new(index, version)
-        } else {
-            let index = self.list.len();
-            self.list.push_new();
-            VersionedIndex::new(index, 0)
-        }
-    }
-
-    #[inline(always)]
-    pub fn insert_at(&self, key: VersionedIndex<Kind>, val: Item) -> bool {
-        self.list[key.index].with_borrowed_mut(|slot| {
-            if slot.version != key.version {
-                false
-            } else {
-                slot.value = val;
-                true
-            }
-        })
-    }
-
-    #[inline(always)]
-    pub fn exists(&self, key: VersionedIndex<Kind>) -> bool {
-        self.with_item_borrow(key, |_| ()).is_some()
-    }
-
-    #[inline(always)]
-    pub fn with_item_borrow<R>(
-        &self,
-        key: VersionedIndex<Kind>,
-        f: impl FnOnce(&Item) -> R,
-    ) -> Option<R> {
-        self.list[key.index]
-            .with_borrowed(|slot| (slot.version == key.version).then(|| f(&slot.value)))
-    }
-
-    #[inline(always)]
-    pub fn with_item_borrow_mut<R>(
-        &self,
-        key: VersionedIndex<Kind>,
-        f: impl FnOnce(&mut Item) -> R,
-    ) -> Option<R> {
-        self.list[key.index]
-            .with_borrowed_mut(|slot| (slot.version == key.version).then(|| f(&mut slot.value)))
-    }
-
-    #[inline(always)]
-    fn with_slot_borrow_mut<R>(
-        &self,
-        key: VersionedIndex<Kind>,
-        f: impl FnOnce(&mut Slot<Item>) -> R,
-    ) -> Option<R> {
-        self.list[key.index]
-            .with_borrowed_mut(|slot| (slot.version == key.version).then(|| f(slot)))
-    }
-}

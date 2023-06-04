@@ -100,6 +100,11 @@ impl<T> OptRefCell<T> {
     pub fn with_borrowed_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
         f(self.borrow_mut())
     }
+
+    #[inline(always)]
+    pub fn replace(&self, t: T) -> T {
+        std::mem::replace(self.borrow_mut(), t)
+    }
 }
 
 #[cfg(debug_assertions)]

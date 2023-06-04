@@ -1,3 +1,8 @@
+//! A variation on the linked list which stores multiple elements in each [`Node`]. It can
+//! dramatically increase cache performance, while decreasing the memory overhead associated with
+//! storing list metadata such as references. It is related to the B-tree. To learn more, see:
+//! https://en.wikipedia.org/wiki/Unrolled_linked_list
+
 use crate::prelude::Index as IndexOps;
 use crate::prelude::*;
 use std::cell::UnsafeCell;
@@ -141,15 +146,6 @@ where
     I: Index,
     B: AllocationBehavior<T>,
 {
-    /// Remove all items. It does not deallocate the memory.
-    #[inline(always)]
-    pub fn clear(&mut self) {
-        self.len.set(0);
-        if let Some(first_node) = self.first_node.opt_item_mut() {
-            AllocationBehavior::clear_nodes(first_node);
-        }
-    }
-
     /// Deallocate nodes that are not used.
     pub fn shrink_to_fit(&mut self) {
         self.shrink_to_internal(self.len())
@@ -279,6 +275,18 @@ where
         let mut vec = Vec::with_capacity(self.len.get());
         vec.extend(self.into_iter());
         vec
+    }
+}
+
+impl<T, const N: usize, I, B> Clearable for UnrolledLinkedList<T, N, I, B>
+where B: AllocationBehavior<T>
+{
+    #[inline(always)]
+    fn clear(&mut self) {
+        self.len.set(0);
+        if let Some(first_node) = self.first_node.opt_item_mut() {
+            AllocationBehavior::clear_nodes(first_node);
+        }
     }
 }
 
@@ -663,13 +671,19 @@ impl<T: Zeroable> AllocationBehavior<T> for prealloc::Zeroed {
 
     #[inline(always)]
     fn clear_nodes<const N: usize>(node: &mut Node<T, N, Self>) {
+        // The following line is needed to call drop on the items.
+        node.items_mut().clear();
         // # Safety
         // The bound `T: Zeroable` guarantees that `T` can be initialized with zeroed memory.
         // Usage of the `volatile_set_memory` intrinsic is used in order for the compiler not to
         // optimize it away and perform the zeroing always.
+        //
+        // Also, setting the Vec len to `N` is safe, as [`Vec::clear`] does not deallocate the
+        // memory and the [`T: Zeroable`] bound guarantees that the memory is safe to be used
         #[allow(unsafe_code)]
         unsafe {
-            std::intrinsics::volatile_set_memory(node.items_mut().as_mut_ptr(), 0, N)
+            std::intrinsics::volatile_set_memory(node.items_mut().as_mut_ptr(), 0, N);
+            node.items_mut().set_len(N);
         }
         if let Some(next) = node.next.opt_item_mut() {
             Self::clear_nodes(next);
@@ -797,23 +811,6 @@ pub struct IntoIter<T, const N: usize, B> {
     max_offset:   usize,
 }
 
-impl<T, const N: usize, I, B> IntoIterator for UnrolledLinkedList<T, N, I, B>
-where
-    I: Index,
-    B: AllocationBehavior<T>,
-{
-    type Item = T;
-    type IntoIter = IntoIter<T, N, B>;
-    #[inline(always)]
-    fn into_iter(self) -> Self::IntoIter {
-        self.init_first_node_if_empty();
-        let first_node = self.first_node.into_inner().unwrap();
-        let current_node = first_node.items.into_inner().into_iter();
-        let next_node = first_node.next.into_inner();
-        IntoIter { next_node, current_node, next_offset: 0, max_offset: self.len.get() }
-    }
-}
-
 impl<T, const N: usize, B> Iterator for IntoIter<T, N, B> {
     type Item = T;
     #[inline(always)]
@@ -829,6 +826,23 @@ impl<T, const N: usize, B> Iterator for IntoIter<T, N, B> {
         }
         self.next_offset += 1;
         self.current_node.next().map(|t| t.into_inner())
+    }
+}
+
+impl<T, const N: usize, I, B> IntoIterator for UnrolledLinkedList<T, N, I, B>
+where
+    I: Index,
+    B: AllocationBehavior<T>,
+{
+    type Item = T;
+    type IntoIter = IntoIter<T, N, B>;
+    #[inline(always)]
+    fn into_iter(self) -> Self::IntoIter {
+        self.init_first_node_if_empty();
+        let first_node = self.first_node.into_inner().unwrap();
+        let current_node = first_node.items.into_inner().into_iter();
+        let next_node = first_node.next.into_inner();
+        IntoIter { next_node, current_node, next_offset: 0, max_offset: self.len.get() }
     }
 }
 
