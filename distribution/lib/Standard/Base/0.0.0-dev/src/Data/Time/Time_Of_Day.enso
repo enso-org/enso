@@ -257,14 +257,22 @@ type Time_Of_Day
        Add the specified amount of time to this instant to get a new instant.
 
        Arguments:
-       - amount: The amount of time to add to this instant. Can be only
-         `Duration`.
+       - amount: The amount of time to add to this instant. Can be `Duration` or
+         `Time_Period`.
 
        > Example
+         Add a `Duration` to a `Time_Of_Day`.
 
              from Standard.Base import Time_Of_Day, Duration
 
              example_plus = Time_Of_Day.new + (Duration.new seconds=3)
+
+       > Example
+         Add a `Time_Period` to a `Time_Of_Day`.
+
+             from Standard.Base import Time_Of_Day, Time_Period
+
+             example_plus = Time_Of_Day.new + Time_Period.Hour
     + : Duration -> Time_Of_Day ! Time_Error
     + self amount =
         case amount of
@@ -278,7 +286,8 @@ type Time_Of_Day
        instant.
 
        Arguments:
-       - amount: The amount of time to subtract from this instant.
+       - amount: The amount of time to subtract from this instant. Can be
+        `Duration` or `Time_Period`.
 
        > Example
          Subtract 12 hours from a local time.
@@ -286,6 +295,13 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day, Duration
 
              example_minus = Time_Of_Day.now - (Duration.new hours=12)
+
+       > Example
+         Subtract a `Time_Period` from a `Time_Of_Day`.
+
+             from Standard.Base import Time_Of_Day, Time_Period
+
+             example_plus = Time_Of_Day.new - Time_Period.Hour
     - : Duration -> Time_Of_Day ! Time_Error
     - self amount =
         case amount of
