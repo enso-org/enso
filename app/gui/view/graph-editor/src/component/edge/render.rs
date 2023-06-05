@@ -205,7 +205,7 @@ impl Shapes {
     fn set_layer(parent: &impl ShapeParent, is_attached: bool, shape: &Rectangle) {
         (match is_attached {
             true => &parent.scene().layers.main_edges_level,
-            false => &parent.scene().layers.main_above_nodes_level,
+            false => &parent.scene().layers.main_above_inactive_nodes_level,
         })
         .add(shape)
     }
@@ -326,7 +326,7 @@ pub(super) trait ShapeParent: display::Object {
         new.set_border_color(color::Rgba::transparent());
         new.set_pointer_events(false);
         self.display_object().add_child(&new);
-        self.scene().layers.main_above_nodes_level.add(&new);
+        self.scene().layers.main_above_all_nodes_level.add(&new);
         new
     }
 

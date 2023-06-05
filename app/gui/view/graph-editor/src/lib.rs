@@ -2207,6 +2207,7 @@ impl GraphEditorModel {
     fn take_edges_with_detached_targets(&self) -> HashSet<EdgeId> {
         let edges = self.edges.detached_target.mem_take();
         self.check_edge_attachment_status_and_emit_events();
+        self.frp.output.invalidate_sources_of_detached_edges.emit(());
         edges
     }
 
@@ -2231,6 +2232,7 @@ impl GraphEditorModel {
             self.edges.all.remove(edge);
         }
         self.check_edge_attachment_status_and_emit_events();
+        self.frp.output.invalidate_sources_of_detached_edges.emit(());
         source_edges.into_iter().chain(target_edges).collect()
     }
 
