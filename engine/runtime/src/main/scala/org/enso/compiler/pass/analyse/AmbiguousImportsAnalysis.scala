@@ -8,6 +8,7 @@ import org.enso.compiler.core.IR.Module.Scope.Import.Polyglot
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.IRPass
 
+import scala.annotation.unused
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
@@ -68,7 +69,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
         "BindingMap should already be present"
       )
       val encounteredSymbols = new EncounteredSymbols()
-      val ret = ir.copy(
+      ir.copy(
         imports = ir.imports.flatMap(
           analyseAmbiguousSymbols(
             _,
@@ -78,10 +79,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
           )
         )
       )
-      if (encounteredSymbols.encounteredSymbols.nonEmpty) {
-        encounteredSymbols.debugPrint("after")
-      }
-      ret
     }
   }
 
@@ -130,8 +127,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
             _,
             _
           ) =>
-        println(s"Importing all symbols from `${imp.showCode()}`")
-        encounteredSymbols.debugPrint("before")
         getImportTarget(moduleImport, bindingMap) match {
           case Some(importTarget) =>
             // Names of the symbols that are exported by a module or a type refered to via importTarget
@@ -194,8 +189,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
             _,
             _
           ) =>
-        println(s"Importing renamed symbol from `${imp.showCode()}`")
-        encounteredSymbols.debugPrint("before")
         val symbolPath = importPath.name
         List(
           tryAddEncounteredSymbol(
@@ -219,8 +212,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
             _,
             _
           ) =>
-        println(s"Importing one symbol from `${imp.showCode()}`")
-        encounteredSymbols.debugPrint("before")
         List(
           tryAddEncounteredSymbol(
             module,
@@ -233,9 +224,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
 
       // Polyglot import
       case polyImport @ Import.Polyglot(entity, rename, _, _, _) =>
-        println(s"Importing polyglot symbol from `${imp.showCode()}`")
-        encounteredSymbols.debugPrint("before")
-
         val symbolName = rename match {
           case Some(rename) => rename
           case None         => entity.getVisibleName
@@ -374,9 +362,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
       symbol: String,
       fullName: String
     ): Unit = {
-      println(
-        s"Adding symbol $symbol -> (import=`${imp.showCode()}`, path=$fullName)"
-      )
       encounteredSymbols.put(symbol, (imp, fullName))
     }
 
@@ -402,6 +387,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
       }
     }
 
+    @unused
     def debugPrint(title: String): Unit = {
       println(s"Encountered symbols ($title):")
       encounteredSymbols.foreach { case (symbol, (imp, fullName)) =>
