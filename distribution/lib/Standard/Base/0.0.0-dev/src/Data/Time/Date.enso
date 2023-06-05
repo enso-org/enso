@@ -438,10 +438,12 @@ type Date
 
              example_add = Date.new 2020 + (Period.new months=6)
     + : Period -> Date ! (Time_Error | Illegal_Argument)
-    + self period =
-        case period of
-            _ : Period ->
+    + self amount =
+        case amount of
+            period : Period ->
                 Time_Utils.date_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
+            date_period : Date_Period ->
+                self + date_period.to_period
             _ : Duration ->
                 Error.throw (Time_Error.Error "Date does not support adding/subtracting Duration. Use Period instead.")
             _ ->
@@ -632,11 +634,13 @@ type Date
 
              example_subtract = Date.new 2020 - (Period.new days=7)
     - : Period -> Date ! (Time_Error | Illegal_Argument)
-    - self period =
-        case period of
-            _ : Period ->
+    - self amount =
+        case amount of
+            period : Period ->
                 new_java_date = Time_Utils.date_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
                 Date.new new_java_date.year new_java_date.month new_java_date.day
+            date_period : Date_Period ->
+                self - date_period.to_period
             _ : Duration ->
                 Error.throw (Time_Error.Error "Date does not support adding/subtracting Duration. Use Period instead.")
             _ ->
