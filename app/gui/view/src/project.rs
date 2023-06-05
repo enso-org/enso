@@ -366,6 +366,7 @@ impl View {
             .init_style_toggle_frp()
             .init_fullscreen_visualization_frp()
             .init_debug_mode_frp()
+            .init_shortcut_observer()
     }
 
     fn init_top_bar_frp(self, scene: &Scene) -> Self {
@@ -665,6 +666,16 @@ impl View {
         self
     }
 
+    fn init_shortcut_observer(self) -> Self {
+        let frp = &self.frp;
+        let network = &frp.network;
+        frp::extend! { network
+            observer <- any(...);
+            frp.source.current_shortcut <+ observer;
+        }
+        self.model.app.shortcuts.add_observer(shortcut::Observer { observer });
+        self
+    }
     /// Graph Editor View.
     pub fn graph(&self) -> &GraphEditor {
         &self.model.graph_editor
