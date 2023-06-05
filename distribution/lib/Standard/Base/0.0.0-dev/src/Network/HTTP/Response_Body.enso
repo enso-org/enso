@@ -2,6 +2,7 @@ import project.Data.Boolean.Boolean
 import project.Data.Json.Json
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Number
+import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -18,10 +19,31 @@ type Response_Body
        - bytes: The body of the response as binary data.
     Value bytes
 
+    ## ALIAS Parse as Text
+       Decodes the body to a Text value.
+    @encoding Encoding.default_widget
+    decode_as_text : Encoding -> Text
+    decode_as_text self encoding=Encoding.utf_8 =
+        Text.from_bytes self.bytes encoding
+
+    ## ALIAS Parse as JSON, Parse JSON
+       Decodes the body as JSON.
+
+       > Example
+         Convert a response from JSON.
+
+             import Standard.Examples
+
+             example_to_text = Examples.get_geo_data.decode_as_json
+    @encoding Encoding.default_widget
+    decode_as_json : Encoding -> JS_Object | Boolean | Number | Nothing | Text | Vector
+    decode_as_json self encoding=Encoding.utf_8 =
+        self.decode_as_text encoding . parse_json
+
     ## PRIVATE
        Convert response body to Text.
     to_text : Text
-    to_text self = Text.from_utf_8 self.bytes
+    to_text self = "Response_Body [" + self.bytes.length.to_text + " bytes]"
 
     ## Write response body to a File.
 
@@ -41,14 +63,3 @@ type Response_Body
     to_file self file =
         self.bytes.write_bytes file
         file
-
-    ## Convert response body from JSON to the Enso data types.
-
-       > Example
-         Convert a response from JSON. NOTE: This example makes a network request.
-
-             import Standard.Examples
-
-             example_to_text = Examples.get_geo_data.parse_json
-    parse_json : JS_Object | Boolean | Number | Nothing | Text | Vector
-    parse_json self = Json.parse self.to_text

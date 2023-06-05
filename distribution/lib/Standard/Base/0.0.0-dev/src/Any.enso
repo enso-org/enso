@@ -62,8 +62,7 @@ type Any
     to_display_text : Text
     to_display_text self = @Builtin_Method "Any.to_display_text"
 
-    ## ALIAS Equality
-
+    ## ALIAS Equals
        Checks if `self` is equal to `that`.
 
        Arguments:
@@ -110,8 +109,7 @@ type Any
     == : Any -> Boolean
     == self that = @Builtin_Method "Any.=="
 
-    ## ALIAS Inequality
-
+    ## ALIAS Not Equals
        Checks if `self` is not equal to `that`.
 
        Arguments:
@@ -134,7 +132,6 @@ type Any
     != self that = (self == that).not
 
     ## ALIAS Greater Than
-
        Checks if `self` is greater than `that`.
 
        Arguments:
@@ -162,7 +159,6 @@ type Any
                 _ -> False
 
     ## ALIAS Greater Than or Equal
-
        Checks if `self` is greater than or equal to `that`.
 
        Arguments:
@@ -192,7 +188,6 @@ type Any
                 _ -> False
 
     ## ALIAS Less Than
-
        Checks if `self` is less than `that`.
 
        Arguments:
@@ -220,7 +215,6 @@ type Any
                 _ -> False
 
     ## ALIAS Less Than or Equal
-
        Checks if `self` is less than or equal to `that`.
 
        Arguments:

@@ -1,6 +1,9 @@
 /** @file Module containing common custom React hooks used throughout out Dashboard. */
 import * as react from 'react'
+import * as router from 'react-router'
 
+import * as app from './components/app'
+import * as auth from './authentication/providers/auth'
 import * as loggerProvider from './providers/logger'
 
 // ==================
@@ -67,4 +70,32 @@ export function useAsyncEffect<T>(
     }, deps)
 
     return value
+}
+
+// ===================
+// === useNavigate ===
+// ===================
+
+/** A wrapper around {@link router.useNavigate} that goes into offline mode when
+ * offline. */
+export function useNavigate() {
+    const { goOffline } = auth.useAuth()
+    // This function is a wrapper around `router.useNavigate`. It shouldbe the only place where
+    // `router.useNavigate` is used.
+    // eslint-disable-next-line no-restricted-properties
+    const originalNavigate = router.useNavigate()
+
+    const navigate: router.NavigateFunction = (...args: [unknown, unknown?]) => {
+        const isOnline = navigator.onLine
+        if (!isOnline) {
+            void goOffline()
+            originalNavigate(app.DASHBOARD_PATH)
+        } else {
+            // This is safe, because the arguments are being passed through transparently.
+            // eslint-disable-next-line no-restricted-syntax
+            originalNavigate(...(args as [never, never?]))
+        }
+    }
+
+    return navigate
 }

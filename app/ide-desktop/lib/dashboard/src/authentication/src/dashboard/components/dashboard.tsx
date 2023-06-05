@@ -1,6 +1,7 @@
 /** @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components. */
 import * as react from 'react'
+import toast from 'react-hot-toast'
 
 import * as common from 'enso-common'
 
@@ -80,6 +81,7 @@ export interface CreateFormProps {
     left: number
     top: number
     directoryId: backendModule.DirectoryId
+    getNewProjectName: (templateId: string | null) => string
     onSuccess: () => void
 }
 
@@ -234,7 +236,7 @@ function Dashboard(props: DashboardProps) {
     const { supportsLocalBackend, appRunner } = props
 
     const logger = loggerProvider.useLogger()
-    const { accessToken, organization } = auth.useFullUserSession()
+    const session = auth.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setBackend } = backendProvider.useSetBackend()
     const { modal } = modalProvider.useModal()
@@ -244,7 +246,9 @@ function Dashboard(props: DashboardProps) {
 
     const [query, setQuery] = react.useState('')
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = react.useState(false)
-    const [directoryId, setDirectoryId] = react.useState(rootDirectoryId(organization.id))
+    const [directoryId, setDirectoryId] = react.useState(
+        session.organization != null ? rootDirectoryId(session.organization.id) : null
+    )
     const [directoryStack, setDirectoryStack] = react.useState<
         backendModule.Asset<backendModule.AssetType.directory>[]
     >([])
@@ -281,10 +285,13 @@ function Dashboard(props: DashboardProps) {
         backendModule.Asset<backendModule.AssetType.file>[]
     >([])
 
-    const listingLocalDirectoryAndWillFail =
+    const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
-    const listingRemoteDirectoryAndWillFail =
-        backend.type === backendModule.BackendType.remote && !organization.isEnabled
+    const isListingRemoteDirectoryAndWillFail =
+        backend.type === backendModule.BackendType.remote && !session.organization?.isEnabled
+    const isListingRemoteDirectoryWhileOffline =
+        session.type === auth.UserSessionType.offline &&
+        backend.type === backendModule.BackendType.remote
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
 
@@ -366,7 +373,10 @@ function Dashboard(props: DashboardProps) {
     }
 
     const exitDirectory = () => {
-        setDirectoryId(parentDirectory?.id ?? rootDirectoryId(organization.id))
+        setDirectoryId(
+            parentDirectory?.id ??
+                (session.organization != null ? rootDirectoryId(session.organization.id) : null)
+        )
         setDirectoryStack(
             // eslint-disable-next-line @typescript-eslint/no-magic-numbers
             directoryStack.slice(0, -1)
@@ -396,7 +406,10 @@ function Dashboard(props: DashboardProps) {
     }, [])
 
     react.useEffect(() => {
-        if (directoryId === rootDirectoryId(organization.id)) {
+        if (
+            session.organization == null ||
+            directoryId === rootDirectoryId(session.organization.id)
+        ) {
             localStorage.removeItem(DIRECTORY_STACK_KEY)
         } else {
             localStorage.setItem(DIRECTORY_STACK_KEY, JSON.stringify(directoryStack))
@@ -574,19 +587,26 @@ function Dashboard(props: DashboardProps) {
     /** Heading element for every column. */
     const ColumnHeading = (column: Column, assetType: backendModule.AssetType) =>
         column === Column.name ? (
-            assetType === backendModule.AssetType.project ? (
-                <>{ASSET_TYPE_NAME[assetType]}</>
-            ) : (
-                <div className="inline-flex">
-                    {ASSET_TYPE_NAME[assetType]}
-                    <button
-                        className="mx-1"
-                        onClick={event => {
-                            event.stopPropagation()
-                            const buttonPosition =
-                                // This type assertion is safe as this event handler is on a button.
-                                // eslint-disable-next-line no-restricted-syntax
-                                (event.target as HTMLButtonElement).getBoundingClientRect()
+            <div className="inline-flex">
+                {ASSET_TYPE_NAME[assetType]}
+                <button
+                    className="mx-1"
+                    onClick={event => {
+                        event.stopPropagation()
+                        const buttonPosition =
+                            // This type assertion is safe as this event handler is on a button.
+                            // eslint-disable-next-line no-restricted-syntax
+                            (event.target as HTMLButtonElement).getBoundingClientRect()
+                        if (assetType === backendModule.AssetType.project) {
+                            void toast.promise(handleCreateProject(null), {
+                                loading: 'Creating new empty project...',
+                                success: 'Created new empty project.',
+                                // This is UNSAFE, as the original function's parameter is of type
+                                // `any`.
+                                error: (promiseError: Error) =>
+                                    `Error creating new empty project: ${promiseError.message}`,
+                            })
+                        } else {
                             // This is a React component even though it doesn't contain JSX.
                             // eslint-disable-next-line no-restricted-syntax
                             const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
@@ -594,16 +614,20 @@ function Dashboard(props: DashboardProps) {
                                 <CreateForm
                                     left={buttonPosition.left + window.scrollX}
                                     top={buttonPosition.top + window.scrollY}
-                                    directoryId={directoryId}
+                                    getNewProjectName={getNewProjectName}
+                                    // This is safe; headings are not rendered when there is no
+                                    // internet connection.
+                                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                    directoryId={directoryId!}
                                     onSuccess={doRefresh}
                                 />
                             ))
-                        }}
-                    >
-                        {svg.ADD_ICON}
-                    </button>
-                </div>
-            )
+                        }
+                    }}
+                >
+                    {svg.ADD_ICON}
+                </button>
+            </div>
         ) : (
             <>{COLUMN_NAME[column]}</>
         )
@@ -636,19 +660,36 @@ function Dashboard(props: DashboardProps) {
     hooks.useAsyncEffect(
         null,
         async signal => {
-            if (listingLocalDirectoryAndWillFail) {
-                // Do not `setIsLoadingAssets(false)`
-            } else if (!listingRemoteDirectoryAndWillFail) {
-                const assets = await backend.listDirectory({ parentId: directoryId })
-                if (!signal.aborted) {
-                    setIsLoadingAssets(false)
-                    setAssets(assets)
+            switch (backend.type) {
+                case backendModule.BackendType.local: {
+                    if (!isListingLocalDirectoryAndWillFail) {
+                        const assets = await backend.listDirectory()
+                        if (!signal.aborted) {
+                            setIsLoadingAssets(false)
+                            setAssets(assets)
+                        }
+                    }
+                    return
                 }
-            } else {
-                setIsLoadingAssets(false)
+                case backendModule.BackendType.remote: {
+                    if (
+                        !isListingRemoteDirectoryAndWillFail &&
+                        !isListingRemoteDirectoryWhileOffline &&
+                        directoryId != null
+                    ) {
+                        const assets = await backend.listDirectory({ parentId: directoryId })
+                        if (!signal.aborted) {
+                            setIsLoadingAssets(false)
+                            setAssets(assets)
+                        }
+                    } else {
+                        setIsLoadingAssets(false)
+                    }
+                    return
+                }
             }
         },
-        [accessToken, directoryId, refresh, backend]
+        [session.accessToken, directoryId, refresh, backend]
     )
 
     react.useEffect(() => {
@@ -746,7 +787,11 @@ function Dashboard(props: DashboardProps) {
                                 break
                             case backendModule.BackendType.remote: {
                                 const headers = new Headers()
-                                headers.append('Authorization', `Bearer ${accessToken}`)
+                                // If `accessToken` is null, then there is no internet connection.
+                                headers.append(
+                                    'Authorization',
+                                    `Bearer ${session.accessToken ?? ''}`
+                                )
                                 const client = new http.Client(headers)
                                 setBackend(new remoteBackendModule.RemoteBackend(client, logger))
                                 break
@@ -757,14 +802,21 @@ function Dashboard(props: DashboardProps) {
                 query={query}
                 setQuery={setQuery}
             />
-            {listingLocalDirectoryAndWillFail ? (
+            {isListingRemoteDirectoryWhileOffline ? (
+                <div className="grow grid place-items-center">
+                    <div className="text-base text-center">
+                        You are offline. Please connect to the internet and refresh to access the
+                        cloud backend.
+                    </div>
+                </div>
+            ) : isListingLocalDirectoryAndWillFail ? (
                 <div className="grow grid place-items-center">
                     <div className="text-base text-center">
                         Could not connect to the Project Manager. Please try restarting{' '}
                         {common.PRODUCT_NAME}, or manually launching the Project Manager.
                     </div>
                 </div>
-            ) : listingRemoteDirectoryAndWillFail ? (
+            ) : isListingRemoteDirectoryAndWillFail ? (
                 <div className="grow grid place-items-center">
                     <div className="text-base text-center">
                         We will review your user details and enable the cloud experience for you
@@ -808,7 +860,10 @@ function Dashboard(props: DashboardProps) {
                                         event.stopPropagation()
                                         setModal(() => (
                                             <UploadFileModal
-                                                directoryId={directoryId}
+                                                // This should never be `null` because of
+                                                // the checks above.
+                                                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                                directoryId={directoryId!}
                                                 onSuccess={doRefresh}
                                             />
                                         ))
@@ -1195,7 +1250,9 @@ function Dashboard(props: DashboardProps) {
                                 ))(backend)}
                         </tbody>
                     </table>
-                    {isFileBeingDragged && backend.type === backendModule.BackendType.remote ? (
+                    {isFileBeingDragged &&
+                    directoryId != null &&
+                    backend.type === backendModule.BackendType.remote ? (
                         <div
                             className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary grid place-items-center"
                             onDragLeave={() => {

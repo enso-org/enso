@@ -575,6 +575,9 @@ interface Constructor {
 
   /** The documentation string. */
   documentation?: string;
+
+  /** The list of annotations. */
+  annotations: string[];
 }
 
 interface Method {
@@ -604,6 +607,9 @@ interface Method {
 
   /** The documentation string. */
   documentation?: string;
+
+  /** The list of annotations. */
+  annotations: string[];
 }
 
 interface Function {

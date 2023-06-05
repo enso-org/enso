@@ -823,6 +823,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             _,
             returnType,
             doc,
+            _,
             reexport
           ) =>
         SuggestionRow(
@@ -852,6 +853,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             returnType,
             isStatic,
             doc,
+            _,
             reexport
           ) =>
         SuggestionRow(
@@ -981,6 +983,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           arguments     = Seq(),
           returnType    = suggestion.returnType,
           documentation = suggestion.documentation,
+          annotations   = Seq(),
           reexport      = suggestion.reexport
         )
       case SuggestionKind.METHOD =>
@@ -994,6 +997,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           returnType    = suggestion.returnType,
           isStatic      = suggestion.isStatic,
           documentation = suggestion.documentation,
+          annotations   = Seq(),
           reexport      = suggestion.reexport
         )
       case SuggestionKind.CONVERSION =>
