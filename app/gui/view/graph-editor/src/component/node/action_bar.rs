@@ -70,6 +70,7 @@ ensogl::define_endpoints! {
     Input {
         set_size                        (Vector2),
         set_visibility                  (bool),
+        /// Set whether the `visibility` icon should be toggled on or off.
         set_action_visibility_state     (bool),
         set_action_skip_state           (bool),
         set_action_freeze_state         (bool),
@@ -86,6 +87,9 @@ ensogl::define_endpoints! {
         mouse_over            (),
         mouse_out             (),
         action_visibility     (bool),
+        /// The last visibility selection by the user. Ignores changes to the
+        /// visibility chooser icon made through the input API.
+        user_action_visibility (bool),
         action_context_switch (bool),
         action_freeze         (bool),
         action_skip           (bool),
@@ -412,6 +416,7 @@ impl ActionBar {
             // === Icon Actions ===
 
             frp.source.action_visibility <+ model.icons.visibility.state;
+            frp.source.user_action_visibility <+ model.icons.visibility.last_user_state;
             frp.source.action_skip <+ model.icons.skip.state;
             frp.source.action_freeze <+ model.icons.freeze.state;
             disable_context_button_clicked <- model.icons.context_switch.disable_button.is_pressed.on_true();

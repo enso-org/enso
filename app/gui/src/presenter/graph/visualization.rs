@@ -186,12 +186,12 @@ impl Visualization {
             eval view.visualization_preprocessor_changed (((node, preprocessor)) model.visualization_preprocessor_changed(*node, preprocessor.clone_ref()));
             eval view.set_node_error_status (((node, error)) model.error_on_node_changed(*node, error));
 
-            update <- source::<(ViewNodeId, visualization_view::Data)>();
+            set_data <- source::<(ViewNodeId, visualization_view::Data)>();
             error_update <- source::<(ViewNodeId, visualization_view::Data)>();
             visualization_failure <- source::<ViewNodeId>();
             error_vis_failure <- source::<ViewNodeId>();
 
-            view.set_visualization_data <+ update;
+            view.set_visualization_data <+ set_data;
             view.set_error_visualization_data <+ error_update;
             view.disable_visualization <+ visualization_failure;
 
@@ -199,7 +199,7 @@ impl Visualization {
         }
 
         Self { model, _network: network }
-            .spawn_visualization_handler(notifications, manager, update, visualization_failure)
+            .spawn_visualization_handler(notifications, manager, set_data, visualization_failure)
             .spawn_visualization_handler(
                 error_notifications,
                 error_manager,
@@ -213,7 +213,7 @@ impl Visualization {
         self,
         notifier: impl Stream<Item = manager::Notification> + Unpin + 'static,
         manager: Rc<Manager>,
-        update_endpoint: frp::Source<(ViewNodeId, visualization_view::Data)>,
+        set_data_endpoint: frp::Source<(ViewNodeId, visualization_view::Data)>,
         failure_endpoint: frp::Source<ViewNodeId>,
     ) -> Self {
         let weak = Rc::downgrade(&self.model);
@@ -221,7 +221,7 @@ impl Visualization {
             info!("Received update for visualization: {notification:?}");
             match notification {
                 manager::Notification::ValueUpdate { target, data, .. } => {
-                    model.handle_value_update(&update_endpoint, target, data);
+                    model.handle_value_update(&set_data_endpoint, target, data);
                 }
                 manager::Notification::FailedToAttach { visualization, error } => {
                     error!("Visualization {} failed to attach: {error}.", visualization.id);
