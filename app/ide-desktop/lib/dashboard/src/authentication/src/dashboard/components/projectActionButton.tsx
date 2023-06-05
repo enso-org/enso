@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as localBackend from '../localBackend'
+import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
 
 // =============
@@ -114,6 +115,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         doRefresh,
     } = props
     const { backend } = backendProvider.useBackend()
+    const { unsetModal } = modalProvider.useSetModal()
 
     const [state, setState] = react.useState<backendModule.ProjectState | null>(null)
     const [isCheckingStatus, setIsCheckingStatus] = react.useState(false)
@@ -341,6 +343,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 <button
                     onClick={clickEvent => {
                         clickEvent.stopPropagation()
+                        unsetModal()
                         doOpenManually()
                     }}
                 >
@@ -352,6 +355,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 <button
                     onClick={async clickEvent => {
                         clickEvent.stopPropagation()
+                        unsetModal()
                         await closeProject()
                     }}
                 >
@@ -364,6 +368,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                     <button
                         onClick={async clickEvent => {
                             clickEvent.stopPropagation()
+                            unsetModal()
                             await closeProject()
                         }}
                     >
@@ -372,6 +377,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                     <button
                         onClick={clickEvent => {
                             clickEvent.stopPropagation()
+                            unsetModal()
                             openIde()
                         }}
                     >
