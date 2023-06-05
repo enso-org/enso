@@ -356,7 +356,8 @@ async fn binary_visualization_updates_test_hlp() {
     let module_qualified_name = project.qualified_module_name(&module_path);
     let module = project.module(module_path).await.unwrap();
     info!("Got module: {module:?}");
-    let graph_executed = controller::ExecutedGraph::new(project, method).await.unwrap();
+    let context_id = Uuid::new_v4();
+    let graph_executed = controller::ExecutedGraph::new(project, method, context_id).await.unwrap();
 
     let the_node = graph_executed.graph().nodes().unwrap()[0].info.clone();
     graph_executed.graph().set_expression(the_node.id(), "10+20").unwrap();

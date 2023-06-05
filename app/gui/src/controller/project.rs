@@ -131,7 +131,7 @@ impl Project {
         // clients that we currently do not support) that main module exists and contains main
         // method. Thus, we should be able to successfully create a graph controller for it.
         let main_module_text = controller::Text::new(&project, file_path).await?;
-        let main_graph = controller::ExecutedGraph::new(project, method).await?;
+        let main_graph = controller::ExecutedGraph::new(project, method, Uuid::new_v4()).await?;
 
         self.init_call_stack_from_metadata(&main_module_model, &main_graph).await;
         self.notify_about_compiling_process(&main_graph);

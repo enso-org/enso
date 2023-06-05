@@ -97,9 +97,13 @@ pub struct Handle {
 impl Handle {
     /// Create handle for the executed graph that will be running the given method.
     #[profile(Task)]
-    pub async fn new(project: model::Project, method: MethodPointer) -> FallibleResult<Self> {
+    pub async fn new(
+        project: model::Project,
+        method: MethodPointer,
+        context_id: model::execution_context::Id,
+    ) -> FallibleResult<Self> {
         let graph = controller::Graph::new_method(&project, &method).await?;
-        let execution = project.create_execution_context(method.clone()).await?;
+        let execution = project.create_execution_context(method.clone(), context_id).await?;
         Ok(Self::new_internal(graph, project, execution))
     }
 
@@ -482,7 +486,9 @@ pub mod tests {
             let suggestion_db = self.graph.suggestion_db();
             model::project::test::expect_suggestion_db(&mut project, suggestion_db);
             let project = Rc::new(project);
-            Handle::new(project.clone_ref(), method).boxed_local().expect_ok()
+            Handle::new(project.clone_ref(), method, test::mock::data::CONTEXT_ID)
+                .boxed_local()
+                .expect_ok()
         }
     }
 
