@@ -102,10 +102,10 @@ class CodeLocationsTest extends InterpreterTest {
           |main = Nothing.method
           |""".stripMargin.linesIterator.mkString("\n")
 
-      instrumenter.assertNodeExists(137, 5, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(155, 1, classOf[ReadLocalVariableNode])
-      instrumenter.assertNodeExists(151, 7, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(163, 9, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(142, 5, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(160, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(156, 7, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(168, 9, classOf[ApplicationNode])
       eval(code)
       ()
     }
