@@ -8,7 +8,7 @@ import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
-import org.enso.table.data.column.operation.map.UnaryIntegerOp;
+import org.enso.table.data.column.operation.map.UnaryDoubleToLongOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -246,23 +246,23 @@ public final class DoubleStorage extends NumericStorage<Double> {
               }
             })
         .add(
-            new UnaryIntegerOp<>(Maps.TRUNCATE) {
+            new UnaryDoubleToLongOp(Maps.TRUNCATE) {
               @Override
-              protected long doOperation(Double a) {
-                return (long) a.doubleValue();
+              protected long doOperation(double a) {
+                return (long) a;
               }
             })
         .add(
-            new UnaryIntegerOp<>(Maps.CEIL) {
+            new UnaryDoubleToLongOp(Maps.CEIL) {
               @Override
-              protected long doOperation(Double a) {
+              protected long doOperation(double a) {
                 return (long) Math.ceil(a);
               }
             })
         .add(
-            new UnaryIntegerOp<>(Maps.FLOOR) {
+            new UnaryDoubleToLongOp(Maps.FLOOR) {
               @Override
-              protected long doOperation(Double a) {
+              protected long doOperation(double a) {
                 return (long) Math.floor(a);
               }
             })
