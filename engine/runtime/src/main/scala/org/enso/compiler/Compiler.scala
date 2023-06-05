@@ -1,7 +1,7 @@
 package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleLogger
-import com.oracle.truffle.api.source.{Source}
+import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
@@ -34,6 +34,7 @@ import java.util.concurrent.{
   TimeUnit
 }
 import java.util.logging.Level
+
 import scala.jdk.OptionConverters._
 import java.util.concurrent.Future
 
@@ -984,8 +985,25 @@ class Compiler(
     diagnostics: List[IR.Diagnostic],
     source: Source
   ): Boolean = {
-    diagnostics.foreach(diag => output.println(formatDiagnostic(diag, source)))
-    diagnostics.exists(_.isInstanceOf[IR.Error])
+    val errors   = diagnostics.collect { case e: IR.Error => e }
+    val warnings = diagnostics.collect { case w: IR.Warning => w }
+
+    if (warnings.nonEmpty) {
+      output.println("Compiler encountered warnings:")
+      warnings.foreach { warning =>
+        output.println(formatDiagnostic(warning, source))
+      }
+    }
+
+    if (errors.nonEmpty) {
+      output.println("Compiler encountered errors:")
+      errors.foreach { error =>
+        output.println(formatDiagnostic(error, source))
+      }
+      true
+    } else {
+      false
+    }
   }
 
   /** Pretty prints compiler diagnostics.
@@ -998,68 +1016,10 @@ class Compiler(
     diagnostic: IR.Diagnostic,
     source: Source
   ): String = {
-    val outSupportsAnsiColors = System.console() != null
-    val ansiReset             = "\u001B[0m"
-    val ansiRed               = "\u001B[31m"
-    val ansiYellow            = "\u001B[33m"
-    val ansiBold              = "\u001B[1m"
-
-    def yellowBold(text: String) =
-      if (outSupportsAnsiColors) ansiYellow + ansiBold + text + ansiReset
-      else text
-    def redBold(text: String) =
-      if (outSupportsAnsiColors) ansiRed + ansiBold + text + ansiReset else text
-    def bold(text: String) =
-      if (outSupportsAnsiColors) ansiBold + text + ansiReset else text
-
-    val (coloredFunc, subject) = diagnostic match {
-      case _: IR.Error   => (redBold _, "error: ")
-      case _: IR.Warning => (yellowBold _, "warning: ")
-      case _             => throw new IllegalStateException("Unexpected diagnostic type")
-    }
-
-    diagnostic.location match {
-      case Some(location) =>
-        val section   = source.createSection(location.start, location.length)
-        val isOneLine = section.getStartLine == section.getEndLine
-        if (isOneLine) {
-          val lineNumber  = section.getStartLine
-          val startColumn = section.getStartColumn
-          val endColumn   = section.getEndColumn
-          val sectionLen  = endColumn - startColumn
-          val line        = source.createSection(lineNumber).getCharacters.toString
-          val sb          = new StringBuilder()
-          sb
-            .append(
-              bold(
-                source.getName + ":" + lineNumber + ":" + startColumn + "-" + endColumn + ": "
-              )
-            )
-            .append(coloredFunc(subject))
-            .append(diagnostic.formattedMessage)
-            .append("\n")
-          sb
-            .append(line.substring(0, startColumn - 1))
-            .append(coloredFunc(line.substring(startColumn - 1, endColumn)))
-            .append(line.substring(endColumn))
-            .append("\n")
-          sb
-            .append(" " * (startColumn - 1))
-            .append(coloredFunc("^" + "~" * sectionLen))
-          sb.toString
-        } else {
-          bold(fileLocationFromSection(diagnostic.location, source)) +
-          ": " +
-          coloredFunc(subject) +
-          diagnostic.formattedMessage
-        }
-      case None =>
-        // We dont have location information, so we just print the message
-        bold(fileLocationFromSection(diagnostic.location, source)) +
-        ": " +
-        coloredFunc(subject)
-        diagnostic.formattedMessage
-    }
+    fileLocationFromSection(
+      diagnostic.location,
+      source
+    ) + ": " + diagnostic.formattedMessage
   }
 
   private def fileLocationFromSection(
