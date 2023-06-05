@@ -8,7 +8,7 @@ from Standard.Table import Table, Column, Sort_Column, Column_Selector, Aggregat
 import Standard.Table.Main as Table_Module
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 import Standard.Table.Data.Type.Value_Type.Value_Type
-from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column, Floating_Point_Equality, Invalid_Value_Type
+from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column, Floating_Point_Equality, Invalid_Value_Type, Row_Count_Mismatch
 
 import Standard.Visualization
 
@@ -859,6 +859,31 @@ spec =
             r = t.join db_table
             r.should_fail_with Illegal_Argument
             r.catch.message . contains "cross-backend" . should_be_true
+
+    Test.group "[In-Memory-specific] Table.set" <|
+        Test.specify "should allow using vector and range for a new column" <|
+            t = Table.new [["X", [1, 2, 3]]]
+
+            t_vec = t.set [10, 20, 30]
+            t_vec.column_names.should_equal ["X", "Vector"]
+            t_vec.at "Vector" . to_vector . should_equal [10, 20, 30]
+
+            t_range = t.set (100.up_to 103)
+            t_range.column_names.should_equal ["X", "Range"]
+            t_range.at "Range" . to_vector . should_equal [100, 101, 102]
+
+            t_date_range = t.set ((Date.new 2020 1 1).up_to (Date.new 2020 1 4))
+            t_date_range.column_names.should_equal ["X", "Date Range"]
+            t_date_range.at "Date Range" . to_vector . should_equal [Date.new 2020 1 1, Date.new 2020 1 2, Date.new 2020 1 3]
+
+        Test.specify "should fail if there is a length mismatch on a new column" <|
+            t = Table.new [["X", [1, 2, 3]]]
+
+            c = Column.from_vector "Column" [10, 20]
+            t.set c . should_fail_with Row_Count_Mismatch
+            t.set [10, 20] . should_fail_with Row_Count_Mismatch
+            t.set (100.up_to 102) . should_fail_with Row_Count_Mismatch
+            t.set ((Date.new 2020 1 1).up_to (Date.new 2020 1 3)) . should_fail_with Row_Count_Mismatch
 
 main = Test_Suite.run_main spec
 

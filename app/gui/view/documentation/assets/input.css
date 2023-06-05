@@ -17,3 +17,7 @@ ul {
   list-style-type: disc;
   list-style-position: inside;
 }
+
+svg {
+  pointer-events: none;
+}

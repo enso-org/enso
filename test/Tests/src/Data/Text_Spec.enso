@@ -1279,6 +1279,12 @@ spec =
             "Hello World!".find_all ".o" . map (match-> match.span 0) . should_equal [Span.Value (3.up_to 5) "Hello World!", Span.Value (6.up_to 8) "Hello World!"]
             "foobar".find "BAR" Case_Sensitivity.Insensitive . span 0 . should_equal (Span.Value (3.up_to 6) "foobar")
 
+        Test.specify "find_all should handle 0 length matches" <|
+            "Hello World".find_all ".*" . map (_.text) . should_equal ["Hello World", ""]
+            "".find_all ".*" . map (_.text) . should_equal [""]
+            "Hello World".find_all ".*(?=.)" . map (_.text) . should_equal ["Hello Worl", ""]
+            "".find_all ".*(?=.)" . map (_.text) . should_equal []
+
         Test.specify "should handle accents and other multi-point graphemes" <|
             accents = 'a\u{301}e\u{301}o\u{301}he\u{301}h'
 

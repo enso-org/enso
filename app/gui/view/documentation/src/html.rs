@@ -14,7 +14,6 @@ use enso_suggestion_database::documentation_ir::Documentation;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use enso_suggestion_database::documentation_ir::Examples;
 use enso_suggestion_database::documentation_ir::Function;
-use enso_suggestion_database::documentation_ir::FunctionDocumentation;
 use enso_suggestion_database::documentation_ir::LocalDocumentation;
 use enso_suggestion_database::documentation_ir::ModuleDocumentation;
 use enso_suggestion_database::documentation_ir::Placeholder;
@@ -62,14 +61,14 @@ fn svg_icon(content: &'static str) -> impl Render {
 
 /// Render entry documentation to HTML code with Tailwind CSS styles.
 #[profile(Detail)]
-pub fn render(docs: EntryDocumentation) -> String {
+pub fn render(docs: &EntryDocumentation) -> String {
     let html = match docs {
         EntryDocumentation::Placeholder(placeholder) => match placeholder {
             Placeholder::NoDocumentation => String::from("No documentation available."),
             Placeholder::VirtualComponentGroup { name } =>
-                render_virtual_component_group_docs(name),
+                render_virtual_component_group_docs(name.clone_ref()),
         },
-        EntryDocumentation::Docs(docs) => render_documentation(docs),
+        EntryDocumentation::Docs(docs) => render_documentation(docs.clone_ref()),
     };
     match validate_utf8(&html) {
         Ok(_) => html,
@@ -87,17 +86,33 @@ fn validate_utf8(s: &str) -> Result<&str, std::str::Utf8Error> {
 }
 
 fn render_documentation(docs: Documentation) -> String {
+    let back_link = match &docs {
+        Documentation::Constructor { type_docs, .. } => Some(BackLink {
+            displayed: type_docs.name.name().to_owned(),
+            id:        anchor_name(&type_docs.name),
+        }),
+        Documentation::Method { type_docs, .. } => Some(BackLink {
+            displayed: type_docs.name.name().to_owned(),
+            id:        anchor_name(&type_docs.name),
+        }),
+        Documentation::ModuleMethod { module_docs, .. } => Some(BackLink {
+            displayed: module_docs.name.name().to_owned(),
+            id:        anchor_name(&module_docs.name),
+        }),
+        Documentation::Type { module_docs, .. } => Some(BackLink {
+            displayed: module_docs.name.name().to_owned(),
+            id:        anchor_name(&module_docs.name),
+        }),
+        _ => None,
+    };
     match docs {
-        Documentation::Module(module_docs) => render_module_documentation(&module_docs, None),
-        Documentation::Type(type_docs) => render_type_documentation(&type_docs, None),
-        Documentation::Function(docs) => render_function_documentation(&docs),
+        Documentation::Module(module_docs) => render_module_documentation(&module_docs),
+        Documentation::Type { docs, .. } => render_type_documentation(&docs, back_link),
+        Documentation::Function(docs) => render_function_documentation(&docs, back_link),
         Documentation::Local(docs) => render_local_documentation(&docs),
-        Documentation::Constructor { type_docs, name } =>
-            render_type_documentation(&type_docs, Some(&name)),
-        Documentation::Method { type_docs, name } =>
-            render_type_documentation(&type_docs, Some(&name)),
-        Documentation::ModuleMethod { module_docs, name } =>
-            render_module_documentation(&module_docs, Some(&name)),
+        Documentation::Constructor { docs, .. } => render_function_documentation(&docs, back_link),
+        Documentation::Method { docs, .. } => render_function_documentation(&docs, back_link),
+        Documentation::ModuleMethod { docs, .. } => render_function_documentation(&docs, back_link),
         Documentation::Builtin(builtin_docs) => render_builtin_documentation(&builtin_docs),
     }
 }
@@ -112,6 +127,17 @@ fn render_virtual_component_group_docs(name: ImString) -> String {
     docs_content(content).into_string().unwrap()
 }
 
+/// An optional link to the parent entry (module or type), that is displayed in the documentation
+/// header. Pressing this link will switch the documentation to the parent entry, allowing
+/// bidirectional navigation.
+#[derive(Debug, Clone)]
+struct BackLink {
+    /// Displayed text.
+    displayed: String,
+    /// The unique ID of the link.
+    id:        String,
+}
+
 
 // === Types ===
 
@@ -122,23 +148,20 @@ fn render_virtual_component_group_docs(name: ImString) -> String {
 /// - Synopsis and a list of constructors.
 /// - Methods.
 /// - Examples.
-fn render_type_documentation(
-    docs: &TypeDocumentation,
-    function_name: Option<&QualifiedName>,
-) -> String {
+fn render_type_documentation(docs: &TypeDocumentation, back_link: Option<BackLink>) -> String {
     let methods_exist = !docs.methods.is_empty();
     let examples_exist = !docs.examples.is_empty();
     let name = &docs.name;
     let arguments = &docs.arguments;
     let synopsis = &docs.synopsis;
     let constructors = &docs.constructors;
-    let synopsis = section_content(type_synopsis(synopsis, constructors, function_name));
-    let methods = section_content(list_of_functions(&docs.methods, function_name));
+    let synopsis = section_content(type_synopsis(synopsis, constructors));
+    let methods = section_content(list_of_functions(&docs.methods));
     let examples = section_content(list_of_examples(&docs.examples));
     let tags = section_content(list_of_tags(&docs.tags));
 
     let content = owned_html! {
-        : header(ICON_TYPE, type_header(name.name(), arguments_list(arguments)));
+        : header(ICON_TYPE, type_header(name.name(), arguments_list(arguments), back_link.as_ref()));
         : &tags;
         : &synopsis;
         @ if methods_exist {
@@ -154,8 +177,18 @@ fn render_type_documentation(
 }
 
 /// A header for the type documentation.
-fn type_header<'a>(name: &'a str, arguments: impl Render + 'a) -> Box<dyn Render + 'a> {
+fn type_header<'a>(
+    name: &'a str,
+    arguments: impl Render + 'a,
+    back_link: Option<&'a BackLink>,
+) -> Box<dyn Render + 'a> {
     box_html! {
+        @ if let Some(BackLink { id, displayed }) = &back_link {
+            a(id=id, class="text-2xl font-bold text-typeName hover:underline cursor-pointer") {
+                : displayed;
+            }
+            : " :: ";
+        }
         span(class="text-2xl font-bold text-typeName") {
             span { : name }
             span(class="opacity-34") { : &arguments }
@@ -176,7 +209,6 @@ fn methods_header() -> impl Render {
 fn type_synopsis<'a>(
     synopsis: &'a Synopsis,
     constructors: &'a Constructors,
-    function_name: Option<&'a QualifiedName>,
 ) -> Box<dyn Render + 'a> {
     box_html! {
         @ for p in synopsis.iter() {
@@ -189,86 +221,65 @@ fn type_synopsis<'a>(
         }
         ul(class="list-disc list-outside marker:text-typeName") {
             @ for method in constructors.iter() {
-                : single_constructor(method, function_name);
+                : single_constructor(method);
             }
         }
     }
 }
 
 /// A documentation for a single constructor in the list.
-fn single_constructor<'a>(
-    method: &'a Function,
-    function_name: Option<&'a QualifiedName>,
-) -> Box<dyn Render + 'a> {
-    let highlight = function_name.map(|n| n == &*method.name).unwrap_or(false);
+/// If the first [`DocSection`] is of type [`DocSection::Paragraph`], it is rendered on the first
+/// line, after the list of arguments.
+fn single_constructor<'a>(constructor: &'a Function) -> Box<dyn Render + 'a> {
+    let first = match &constructor.synopsis.as_ref()[..] {
+        [DocSection::Paragraph { body }, ..] => Some(body),
+        _ => None,
+    };
     box_html! {
-        li(id=anchor_name(&method.name)) {
-            span(class=labels!("text-typeName", "font-bold", "bg-yellow-100" => highlight)) {
+        li(id=anchor_name(&constructor.name), class="hover:underline cursor-pointer") {
+            span(class=labels!("text-typeName", "font-bold")) {
                 span(class="opacity-85") {
-                    : method.name.name();
+                    : constructor.name.name();
                 }
-                span(class="opacity-34") { : arguments_list(&method.arguments); }
+                span(class="opacity-34") { : arguments_list(&constructor.arguments); }
             }
-            : function_docs(method);
+            @ if let Some(first) = first {
+                span { : ", "; : Raw(first); }
+            }
         }
     }
 }
 
 /// A list of methods defined for the type.
-fn list_of_functions<'a>(
-    functions: &'a [Function],
-    function_name: Option<&'a QualifiedName>,
-) -> Box<dyn Render + 'a> {
+fn list_of_functions<'a>(functions: &'a [Function]) -> Box<dyn Render + 'a> {
     box_html! {
         ul(class="list-disc list-inside") {
             @ for f in functions.iter() {
-                : single_function(f, function_name);
+                : single_function(f);
             }
         }
     }
 }
 
 /// A documentation for a single method in the list.
-fn single_function<'a>(
-    function: &'a Function,
-    function_name: Option<&'a QualifiedName>,
-) -> Box<dyn Render + 'a> {
-    let highlight = function_name.map(|n| n == &*function.name).unwrap_or(false);
+/// If the first [`DocSection`] is of type [`DocSection::Paragraph`], it is rendered on the first
+/// line, after the list of arguments.
+fn single_function<'a>(function: &'a Function) -> Box<dyn Render + 'a> {
+    let first = match &function.synopsis.as_ref()[..] {
+        [DocSection::Paragraph { body }, ..] => Some(body),
+        _ => None,
+    };
     box_html! {
-        li(id=anchor_name(&function.name)) {
-            span(class=labels!("text-methodName", "font-semibold", "bg-yellow-100" => highlight)) {
+        li(id=anchor_name(&function.name), class="hover:underline cursor-pointer") {
+            span(class=labels!("text-methodName", "font-semibold")) {
                 span(class="opacity-85") {
                     : function.name.name();
                 }
                 span(class="opacity-34") { : arguments_list(&function.arguments); }
             }
-            : function_docs(function);
-        }
-    }
-}
-
-/// Synopsis of a function. If the first [`DocSection`] is of type
-/// [`DocSection::Paragraph`], it is rendered on the first line, after the list of arguments. All
-/// other sections are rendered as separate paragraphs below. Examples for the function are rendered
-/// below the main part of the documentation in a separate subsection.
-fn function_docs<'a>(constructor: &'a Function) -> Box<dyn Render + 'a> {
-    let (first, rest) = match &constructor.synopsis.as_ref()[..] {
-        [DocSection::Paragraph { body }, rest @ ..] => (Some(body), rest),
-        [_, rest @ ..] => (None, rest),
-        [] => (None, default()),
-    };
-    let tags = list_of_tags(&constructor.tags);
-    box_html! {
-        @ if let Some(first) = first {
-            span { : ", "; : Raw(first); }
-        }
-        : &tags;
-        @ for p in rest {
-            : paragraph(p);
-        }
-        @ if !constructor.examples.is_empty() {
-            h2(class="font-semibold") { : "Examples" }
-            : list_of_examples(&constructor.examples);
+            @ if let Some(first) = first {
+                span { : ", "; : Raw(first); }
+            }
         }
     }
 }
@@ -284,17 +295,14 @@ fn function_docs<'a>(constructor: &'a Function) -> Box<dyn Render + 'a> {
 /// - Types.
 /// - Functions.
 /// - Examples.
-fn render_module_documentation(
-    docs: &ModuleDocumentation,
-    function_name: Option<&QualifiedName>,
-) -> String {
+fn render_module_documentation(docs: &ModuleDocumentation) -> String {
     let types_exist = !docs.types.is_empty();
     let methods_exist = !docs.methods.is_empty();
     let examples_exist = !docs.examples.is_empty();
     let name = &docs.name;
     let synopsis = section_content(module_synopsis(&docs.synopsis));
     let types = section_content(list_of_types(&docs.types));
-    let methods = section_content(list_of_functions(&docs.methods, function_name));
+    let methods = section_content(list_of_functions(&docs.methods));
     let examples = section_content(list_of_examples(&docs.examples));
     let tags = section_content(list_of_tags(&docs.tags));
     let content = owned_html! {
@@ -331,7 +339,7 @@ fn list_of_types<'a>(types: &'a Types) -> Box<dyn Render + 'a> {
 /// A single type in the list.
 fn single_type<'a>(type_: &'a TypeDocumentation) -> Box<dyn Render + 'a> {
     box_html! {
-        li(id=anchor_name(&type_.name), class="text-typeName font-semibold") {
+        li(id=anchor_name(&type_.name), class="text-typeName font-semibold hover:underline cursor-pointer") {
             span(class="opacity-85") {
                 : type_.name.name();
             }
@@ -402,15 +410,15 @@ fn module_synopsis<'a>(synopsis: &'a Synopsis) -> Box<dyn Render + 'a> {
 // === Functions ===
 
 /// Render documentation of a function.
-fn render_function_documentation(docs: &FunctionDocumentation) -> String {
-    let FunctionDocumentation { name, arguments, synopsis, tags, .. } = docs;
+fn render_function_documentation(docs: &Function, back_link: Option<BackLink>) -> String {
+    let Function { name, arguments, synopsis, tags, .. } = docs;
 
     let examples_exist = !docs.examples.is_empty();
     let synopsis = section_content(function_synopsis(synopsis));
     let tags = section_content(list_of_tags(tags));
     let examples = section_content(list_of_examples(&docs.examples));
     let content = owned_html! {
-        : header(ICON_TYPE, function_header(name.name(), arguments_list(arguments)));
+        : header(ICON_TYPE, function_header(name.name(), arguments_list(arguments), back_link.as_ref()));
         : &tags;
         : &synopsis;
         @ if examples_exist {
@@ -422,8 +430,18 @@ fn render_function_documentation(docs: &FunctionDocumentation) -> String {
 }
 
 /// A header for the function documentation.
-fn function_header<'a>(name: &'a str, arguments: impl Render + 'a) -> Box<dyn Render + 'a> {
+fn function_header<'a>(
+    name: &'a str,
+    arguments: impl Render + 'a,
+    back_link: Option<&'a BackLink>,
+) -> Box<dyn Render + 'a> {
     box_html! {
+        @ if let Some(BackLink { id, displayed }) = &back_link {
+            a(id=id, class="text-2xl font-bold text-typeName hover:underline cursor-pointer") {
+                : displayed;
+            }
+            : " :: ";
+        }
         span(class="text-2xl font-bold text-typeName") {
             span { : name }
             span(class="opacity-34") { : &arguments }

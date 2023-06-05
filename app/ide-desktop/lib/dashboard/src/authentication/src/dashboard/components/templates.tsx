@@ -6,7 +6,7 @@ import * as svg from '../../components/svg'
 // =================
 
 /** Template metadata. */
-interface Template {
+export interface Template {
     title: string
     description: string
     id: string
@@ -14,7 +14,7 @@ interface Template {
 }
 
 /** The full list of templates. */
-const TEMPLATES: Template[] = [
+export const TEMPLATES: [Template, ...Template[]] = [
     {
         title: 'Colorado COVID',
         id: 'Colorado_COVID',

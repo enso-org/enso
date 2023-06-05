@@ -50,10 +50,6 @@ make_inferred_builder : Integer -> InferredBuilder
 make_inferred_builder initial_size = InferredBuilder.new initial_size
 
 ## PRIVATE
-make_column : Text -> Storage -> Column
-make_column name storage = Column.Value (Java_Column.new name storage)
-
-## PRIVATE
    Wrapper around a DateBuilder that uses DateBuilder.appendDate() to append a
    value (instead of builder.append())
 type DateBuilderAdapter

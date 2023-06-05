@@ -3,8 +3,8 @@ package org.enso.table.data.column.operation.map.numeric;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.DoubleStorage;
-import org.enso.table.data.column.storage.LongStorage;
+import org.enso.table.data.column.storage.numeric.DoubleStorage;
+import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.error.UnexpectedTypeException;
 
