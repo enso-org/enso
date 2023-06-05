@@ -11,6 +11,13 @@ import * as svg from '../../components/svg'
 // === Types ===
 // =============
 
+/** Data associated with a project, used for rendering.
+ * FIXME[sb]: This is a hack that is required because each row does not carry its own extra state.
+ * It will be obsoleted by the implementation in https://github.com/enso-org/enso/pull/6546. */
+export interface ProjectData {
+    isRunning: boolean
+}
+
 /** Possible types of project state change. */
 export enum ProjectEventType {
     open = 'open',
@@ -49,6 +56,10 @@ enum SpinnerState {
 // === Constants ===
 // =================
 
+/** The default {@link ProjectData} associated with a {@link backendModule.Project}. */
+export const DEFAULT_PROJECT_DATA: ProjectData = Object.freeze({
+    isRunning: false,
+})
 const LOADING_MESSAGE =
     'Your environment is being created. It will take some time, please be patient.'
 /** The interval between requests checking whether the IDE is ready. */
@@ -79,6 +90,8 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
 /** Props for a {@link ProjectActionButton}. */
 export interface ProjectActionButtonProps {
     project: backendModule.Asset<backendModule.AssetType.project>
+    projectData: ProjectData
+    setProjectData: react.Dispatch<react.SetStateAction<ProjectData>>
     appRunner: AppRunner | null
     event: ProjectEvent | null
     /** Called when the project is opened via the {@link ProjectActionButton}. */
@@ -90,7 +103,16 @@ export interface ProjectActionButtonProps {
 
 /** An interactive button displaying the status of a project. */
 function ProjectActionButton(props: ProjectActionButtonProps) {
-    const { project, event, appRunner, doOpenManually, onClose, openIde, doRefresh } = props
+    const {
+        project,
+        setProjectData,
+        event,
+        appRunner,
+        doOpenManually,
+        onClose,
+        openIde,
+        doRefresh,
+    } = props
     const { backend } = backendProvider.useBackend()
 
     const [state, setState] = react.useState<backendModule.ProjectState | null>(null)
@@ -262,14 +284,20 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         }
     }, [isCheckingResources])
 
-    const closeProject = () => {
+    const closeProject = async () => {
         onClose()
         setShouldOpenWhenReady(false)
         setState(backendModule.ProjectState.closed)
         appRunner?.stopApp()
         setIsCheckingStatus(false)
         setIsCheckingResources(false)
-        void backend.closeProject(project.id)
+        try {
+            await backend.closeProject(project.id)
+        } finally {
+            // This is not 100% correct, but it is better than never setting `isRunning` to `false`,
+            // which would prevent the project from ever being deleted.
+            setProjectData(oldProjectData => ({ ...oldProjectData, isRunning: false }))
+        }
     }
 
     const openProject = async () => {
@@ -279,11 +307,13 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 case backendModule.BackendType.remote:
                     setToastId(toast.loading(LOADING_MESSAGE))
                     await backend.openProject(project.id)
+                    setProjectData(oldProjectData => ({ ...oldProjectData, isRunning: true }))
                     doRefresh()
                     setIsCheckingStatus(true)
                     break
                 case backendModule.BackendType.local:
                     await backend.openProject(project.id)
+                    setProjectData(oldProjectData => ({ ...oldProjectData, isRunning: true }))
                     setState(oldState => {
                         if (oldState === backendModule.ProjectState.openInProgress) {
                             doRefresh()
@@ -320,9 +350,9 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         case backendModule.ProjectState.openInProgress:
             return (
                 <button
-                    onClick={clickEvent => {
+                    onClick={async clickEvent => {
                         clickEvent.stopPropagation()
-                        closeProject()
+                        await closeProject()
                     }}
                 >
                     <svg.StopIcon className={SPINNER_CSS_CLASSES[spinnerState]} />
@@ -332,9 +362,9 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             return (
                 <>
                     <button
-                        onClick={clickEvent => {
+                        onClick={async clickEvent => {
                             clickEvent.stopPropagation()
-                            closeProject()
+                            await closeProject()
                         }}
                     >
                         <svg.StopIcon className={SPINNER_CSS_CLASSES[spinnerState]} />

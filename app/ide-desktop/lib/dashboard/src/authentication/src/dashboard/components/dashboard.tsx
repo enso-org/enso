@@ -313,6 +313,9 @@ function Dashboard(props: DashboardProps) {
     const [visibleFileAssets, setVisibleFileAssets] = react.useState<
         backendModule.Asset<backendModule.AssetType.file>[]
     >([])
+    const [projectDatas, setProjectDatas] = react.useState<
+        Record<backendModule.ProjectId, projectActionButton.ProjectData>
+    >({})
 
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
@@ -534,6 +537,25 @@ function Dashboard(props: DashboardProps) {
             >
                 <ProjectActionButton
                     project={projectAsset}
+                    projectData={
+                        projectDatas[projectAsset.id] ?? projectActionButton.DEFAULT_PROJECT_DATA
+                    }
+                    setProjectData={newProjectData => {
+                        if (typeof newProjectData === 'function') {
+                            setProjectDatas(oldProjectDatas => ({
+                                ...oldProjectDatas,
+                                [projectAsset.id]: newProjectData(
+                                    oldProjectDatas[projectAsset.id] ??
+                                        projectActionButton.DEFAULT_PROJECT_DATA
+                                ),
+                            }))
+                        } else {
+                            setProjectDatas({
+                                ...projectDatas,
+                                [projectAsset.id]: newProjectData,
+                            })
+                        }
+                    }}
                     appRunner={appRunner}
                     event={projectEvent}
                     doRefresh={doRefresh}
@@ -1115,6 +1137,9 @@ function Dashboard(props: DashboardProps) {
                                             />
                                         ))
                                     }
+                                    const isDisabled =
+                                        backend.type === backendModule.BackendType.local &&
+                                        (projectDatas[projectAsset.id]?.isRunning ?? false)
                                     setModal(() => (
                                         <ContextMenu key={projectAsset.id} event={event}>
                                             <ContextMenuEntry onClick={doOpenForEditing}>
@@ -1128,7 +1153,15 @@ function Dashboard(props: DashboardProps) {
                                             <ContextMenuEntry onClick={doRename}>
                                                 Rename
                                             </ContextMenuEntry>
-                                            <ContextMenuEntry onClick={doDelete}>
+                                            <ContextMenuEntry
+                                                disabled={isDisabled}
+                                                {...(isDisabled
+                                                    ? {
+                                                          title: 'A running local project cannot be removed.',
+                                                      }
+                                                    : {})}
+                                                onClick={doDelete}
+                                            >
                                                 <span className="text-red-700">Delete</span>
                                             </ContextMenuEntry>
                                         </ContextMenu>
