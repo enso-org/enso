@@ -140,11 +140,13 @@ list_directory : (File | Text) -> Text -> Boolean -> Vector File
 list_directory directory name_filter=Nothing recursive=False =
     File.new directory . list name_filter=name_filter recursive=recursive
 
-## Fetches from the provided URL and returns the response body.
-   Will error if the status code does not represent a successful response.
+## ALIAS Download, HTTP Get
+   Fetches from the provided URI and returns the response, parsing the body if
+   the content-type is recognised. Returns an  error if the status code does not
+   represent a successful response.
 
    Arguments:
-   - url: The URL to fetch.
+   - uri: The URI to fetch.
    - method: The HTTP method to use. Defaults to `GET`.
    - headers: The headers to send with the request. Defaults to an empty vector.
    - parse:  If successful should the body be parsed to an Enso native object.
@@ -159,10 +161,18 @@ fetch uri method=HTTP_Method.Get headers=[] parse=True =
     request = Request.new method uri parsed_headers
     response = HTTP.new.request request
 
-    if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.to_text)) else
-        response_headers = response.headers
-        content_type = response_headers.find if_missing=Nothing h-> "Content-Type".equals_ignore_case h.name
-        if (parse == False) || (content_type == Nothing) then response else
-            format = Auto_Detect.get_web_parser content_type.value uri
-            if format == Nothing then response else
-                format.read_web response
+    if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
+        if parse then response.decode if_unsupported=response else response
+
+## ALIAS Download, HTTP Get
+   Fetches from the URI and returns the response, parsing the body if the
+   content-type is recognised. Returns an  error if the status code does not
+   represent a successful response.
+
+   Arguments:
+   - method: The HTTP method to use. Defaults to `GET`.
+   - headers: The headers to send with the request. Defaults to an empty vector.
+   - parse:  If successful should the body be parsed to an Enso native object.
+URI.fetch : HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
+URI.fetch self method=HTTP_Method.Get headers=[] parse=True =
+    Data.fetch self method headers parse

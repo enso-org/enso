@@ -1,4 +1,6 @@
-package org.enso.table.data.column.storage;
+package org.enso.table.data.column.storage.numeric;
+
+import org.enso.table.data.column.storage.Storage;
 
 /** A storage containing items representable as a {@code double}. */
 public abstract class NumericStorage<T> extends Storage<T> {

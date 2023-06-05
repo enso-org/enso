@@ -43,7 +43,7 @@ type Query
          `primary_key` actually exist in `columns`, as otherwise the behavior is
          undefined (most likely will result in an `SQL_Error` once executed).
        - temporary: specifies if the table should be marked as temporary.
-    Create_Table (table_name:Text) (columns : Vector (Pair Text Text)) (primary_key : Vector Text) (temporary : Boolean)
+    Create_Table (table_name:Text) (columns : Vector (Pair Text Text)) (primary_key : Nothing | Vector Text) (temporary : Boolean)
 
     ## PRIVATE
        An SQL query that drops a table.

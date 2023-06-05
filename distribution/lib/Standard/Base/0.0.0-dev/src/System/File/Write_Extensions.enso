@@ -3,7 +3,6 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
 import project.Data.Vector.Vector
 import project.Error.Error
-import project.Errors.Common.Dry_Run_Operation
 import project.Errors.Common.Unsupported_Argument_Types
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.File_Error.File_Error
@@ -53,27 +52,17 @@ polyglot java import org.enso.base.Array_Builder
 Text.write : (File|Text) -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> File ! Encoding_Error | Illegal_Argument | File_Error
 Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.Backup on_problems=Problem_Behavior.Report_Warning =
     bytes = self.bytes encoding on_problems
+    bytes.if_not_error <|
+        actual = File.new path
+        effective_existing_behaviour = on_existing_file.get_effective_behavior actual
+        file = if Context.Output.is_enabled then actual else
+            should_copy_file = on_existing_file==Existing_File_Behavior.Append
+            actual.create_dry_run_file copy_original=should_copy_file
 
-    actual = File.new path
-
-    is_enabled = Context.Output.is_enabled
-
-    effective_existing_behaviour = if is_enabled then on_existing_file else
-        case on_existing_file of
-            Existing_File_Behavior.Backup -> Existing_File_Behavior.Overwrite
-            Existing_File_Behavior.Error -> if actual.exists then Error.throw (File_Error.Already_Exists actual) else Existing_File_Behavior.Overwrite
-            _ -> on_existing_file
-
-    file = if is_enabled then actual else actual.create_dry_run_file copy_original=on_existing_file==Existing_File_Behavior.Append
-
-    Context.Output.with_enabled <|
-        r = effective_existing_behaviour.write file stream->
-            bytes.if_not_error <|
+        Context.Output.with_enabled <|
+            r = effective_existing_behaviour.write file stream->
                 stream.write_bytes bytes
-        r.if_not_error <|
-            if is_enabled then file else
-                warning = Dry_Run_Operation.Warning "Only a dry run has occurred, with data written to a temporary file."
-                Warning.attach warning file
+            r.if_not_error file
 
 ## Writes (or appends) the Vector of bytes into the specified file. The behavior
    specified in the `existing_file` parameter will be used if the file exists.

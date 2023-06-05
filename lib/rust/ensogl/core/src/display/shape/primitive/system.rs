@@ -78,6 +78,17 @@ use crate::system::gpu::data::InstanceId;
 use super::def;
 
 
+
+// =================
+// === Constants ===
+// =================
+
+/// Attempt to use the precompiled shaders. If the precompiled shader are not available, a warning
+/// mentioning affected shape will be logged.
+const ENABLE_PRECOMPILED_SHADERS: bool = true;
+
+
+
 // ==============
 // === Export ===
 // ==============
@@ -489,15 +500,20 @@ impl ShapeSystemModel {
 
     /// Generates the shape again. It is called on shape definition change, e.g. after theme update.
     fn reload_shape(&self) {
-        if let Some(shader) = crate::display::world::PRECOMPILED_SHADERS
-            .with_borrow(|map| map.get(*self.definition_path).cloned())
-        {
+        let precompiled_shader = ENABLE_PRECOMPILED_SHADERS.and_option_from(|| {
+            crate::display::world::PRECOMPILED_SHADERS
+                .with_borrow(|map| map.get(*self.definition_path).cloned())
+        });
+
+        if let Some(shader) = precompiled_shader {
             let code = crate::display::shader::builder::CodeTemplate::from_main(&shader.fragment);
             self.material.borrow_mut().set_code(code);
             let code = crate::display::shader::builder::CodeTemplate::from_main(&shader.vertex);
             self.geometry_material.borrow_mut().set_code(code);
         } else {
-            if !display::world::with_context(|t| t.run_mode.get().is_shader_extraction()) {
+            if ENABLE_PRECOMPILED_SHADERS
+                && !display::world::with_context(|t| t.run_mode.get().is_shader_extraction())
+            {
                 let path = *self.definition_path;
                 warn!("No precompiled shader found for '{path}'. This will affect performance.");
             }

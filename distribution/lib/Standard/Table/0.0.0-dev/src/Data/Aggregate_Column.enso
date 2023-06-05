@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import project.Data.Column.Column
 import project.Data.Column_Selector.Column_Selector
 import project.Data.Sort_Column.Sort_Column
 
@@ -11,7 +12,7 @@ type Aggregate_Column
        - column: the column (specified by name, expression or index) to group
          by.
        - new_name: name of new column.
-    Group_By (column:Text|Integer) (new_name:Text|Nothing=Nothing)
+    Group_By (column:Text|Integer|Column|Any) (new_name:Text|Nothing=Nothing) # Column needed because of 6866
 
     ## Creates a new column with the row count of each group. If no rows,
        evaluates to 0.
@@ -31,7 +32,7 @@ type Aggregate_Column
          multiple selection.
        - new_name: name of new column.
        - ignore_nothing: if all values are Nothing won't be included.
-    Count_Distinct (columns:(Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector))=0) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=False)
+    Count_Distinct (columns:(Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector | Column))=0) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=False) # Column needed because of 6866
 
     ## ALIAS Count_Not_Null
 
@@ -41,7 +42,7 @@ type Aggregate_Column
        Arguments:
        - column: the column (specified by name, expression or index) to count.
        - new_name: name of new column.
-    Count_Not_Nothing (column:Text|Integer=0) (new_name:Text|Nothing=Nothing)
+    Count_Not_Nothing (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) # Column needed because of 6866
 
     ## ALIAS Count_Null, Count_Missing
 
@@ -51,7 +52,7 @@ type Aggregate_Column
        Arguments:
        - column: the column (specified by name, expression or index) to count.
        - new_name: name of new column.
-    Count_Nothing (column:Text|Integer=0) (new_name:Text|Nothing=Nothing)
+    Count_Nothing (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) # Column needed because of 6866
 
     ## Creates a new column with the count of not `Nothing` (null) and non-empty
        ("") values of the column within each group. If no rows, evaluates to 0.
@@ -59,7 +60,7 @@ type Aggregate_Column
        Arguments:
        - column: the column (specified by name, expression or index) to count.
        - new_name: name of new column.
-    Count_Not_Empty (column:Text|Integer=0) (new_name:Text|Nothing=Nothing)
+    Count_Not_Empty (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) # Column needed because of 6866
 
     ## Creates a new column with the count of `Nothing` (null) or empty ("")
        text values of the column within each group. If no rows, evaluates to 0.
@@ -67,7 +68,7 @@ type Aggregate_Column
        Arguments:
        - column: the column (specified by name, expression or index) to count.
        - new_name: name of new column.
-    Count_Empty (column:Text|Integer=0) (new_name:Text|Nothing=Nothing)
+    Count_Empty (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) # Column needed because of 6866
 
     ## Creates a new column with the sum of values (ignoring missing values) of
        the column within each group. If no rows, evaluates to `Nothing`.
@@ -75,7 +76,7 @@ type Aggregate_Column
        Arguments:
        - column: the column (specified by name, expression or index) to total.
        - new_name: name of new column.
-    Sum (column:Text|Integer=0) (new_name:Text|Nothing=Nothing)
+    Sum (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) # Column needed because of 6866
 
     ## Creates a new column with the mean of values (ignoring missing values) of
        the column within each group. If no rows, evaluates to `Nothing`.
@@ -83,7 +84,7 @@ type Aggregate_Column
        Arguments:
        - column: the column (specified by name, expression or index) to average.
        - new_name: name of new column.
-    Average (column:Text|Integer=0) (new_name:Text|Nothing=Nothing)
+    Average (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) # Column needed because of 6866
 
     ## Creates a new column with the median of values (ignoring missing values)
        of the column within each group. If no rows, evaluates to `Nothing`.
@@ -92,7 +93,7 @@ type Aggregate_Column
        - column: column (specified by name, expression or index) to calculate
          median on.
        - new_name: name of new column.
-    Median (column:Text|Integer=0) (new_name:Text|Nothing=Nothing)
+    Median (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) # Column needed because of 6866
 
     ## Creates a new column with the median of values (ignoring missing values)
        of the column within each group. If no rows, evaluates to `Nothing`.
@@ -102,7 +103,7 @@ type Aggregate_Column
        - column: column (specified by name, expression or index) to compute
          percentile.
        - new_name: name of new column.
-    Percentile (percentile:Decimal=0.5) (column:Text|Integer=0) (new_name:Text|Nothing=Nothing)
+    Percentile (percentile:Number=0.5) (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) # Column needed because of 6866
 
     ## Creates a new column with the mode of values (ignoring missing values)
        of the column within each group. If no rows, evaluates to `Nothing`.
@@ -111,7 +112,7 @@ type Aggregate_Column
        - column: column (specified by name, expression or index) to find the
          most common value.
        - new_name: name of new column.
-    Mode (column:Text|Integer=0) (new_name:Text|Nothing=Nothing)
+    Mode (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) # Column needed because of 6866
 
     ## Creates a new column with the standard deviation of values (ignoring
        missing values) of the column within each group. If no rows, evaluates to
@@ -122,7 +123,7 @@ type Aggregate_Column
          standard deviation.
        - new_name: name of new column.
        - population: specifies if group is a sample or the population
-    Standard_Deviation (column:Text|Integer=0) (new_name:Text|Nothing=Nothing) (population:Boolean=False)
+    Standard_Deviation (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) (population:Boolean=False) # Column needed because of 6866
 
     ## Creates a new column with the values concatenated together. `Nothing`
        values will become an empty string. If no rows, evaluates to `Nothing`.
@@ -135,7 +136,7 @@ type Aggregate_Column
        - suffix: added at the end of the result.
        - quote_char: character used to quote the values if the value is `Empty`
          or contains the separator.
-    Concatenate (column:Text|Integer=0) (new_name:Text|Nothing=Nothing) (separator:Text="") (prefix:Text="") (suffix:Text="") (quote_char:Text="")
+    Concatenate (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) (separator:Text="") (prefix:Text="") (suffix:Text="") (quote_char:Text="") # Column needed because of 6866
 
     ## Creates a new column with the first value in each group. If no rows,
        evaluates to `Nothing`.
@@ -148,7 +149,7 @@ type Aggregate_Column
          not missing value returned.
        - order_by: required for database tables. Specifies how to order the
          results within the group.
-    First (column:Text|Integer=0) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:(Text | Sort_Column | Vector (Text | Sort_Column) | Nothing)=Nothing)
+    First (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:(Text | Sort_Column | Vector (Text | Sort_Column) | Nothing)=Nothing) # Column needed because of 6866
 
     ## Creates a new column with the last value in each group. If no rows,
        evaluates to `Nothing`.
@@ -161,7 +162,7 @@ type Aggregate_Column
          not missing value returned.
        - order_by: required for database tables. Specifies how to order the
          results within the group.
-    Last (column:Text|Integer=0) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:(Text | Sort_Column | Vector (Text | Sort_Column) | Nothing)=Nothing)
+    Last (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:(Text | Sort_Column | Vector (Text | Sort_Column) | Nothing)=Nothing) # Column needed because of 6866
 
     ## Creates a new column with the maximum value in each group. If no rows,
        evaluates to `Nothing`.
@@ -170,7 +171,7 @@ type Aggregate_Column
        - column: column (specified by name, expression or index) to find the
          group maximum.
        - new_name: name of new column.
-    Maximum (column:Text|Integer=0) (new_name:Text|Nothing=Nothing)
+    Maximum (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) # Column needed because of 6866
 
     ## Creates a new column with the maximum value in each group. If no rows,
        evaluates to `Nothing`.
@@ -179,7 +180,7 @@ type Aggregate_Column
        - column: column (specified by name, expression or index) to find the
          group minimum.
        - new_name: name of new column.
-    Minimum (column:Text|Integer=0) (new_name:Text|Nothing=Nothing)
+    Minimum (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) # Column needed because of 6866
 
     ## Creates a new column with the shortest text in each group. If no rows,
        evaluates to `Nothing`.
@@ -188,7 +189,7 @@ type Aggregate_Column
        - column: column (specified by name, expression or index) to find the
          group shortest value.
        - new_name: name of new column.
-    Shortest (column:Text|Integer=0) (new_name:Text|Nothing=Nothing)
+    Shortest (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) # Column needed because of 6866
 
     ## Creates a new column with the longest text in each group. If no rows,
        evaluates to `Nothing`.
@@ -197,4 +198,4 @@ type Aggregate_Column
        - column: column (specified by name, expression or index) to find the
          group longest value.
        - new_name: name of new column.
-    Longest (column:Text|Integer=0) (new_name:Text|Nothing=Nothing)
+    Longest (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) # Column needed because of 6866

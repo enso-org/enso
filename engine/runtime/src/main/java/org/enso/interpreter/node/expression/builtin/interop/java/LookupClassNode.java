@@ -19,7 +19,7 @@ public abstract class LookupClassNode extends Node {
 
   @Specialization
   Object doExecute(Object name, @Cached("build()") ExpectStringNode expectStringNode) {
-    return EnsoContext.get(this).getEnvironment().lookupHostSymbol(expectStringNode.execute(name));
+    return EnsoContext.get(this).lookupJavaClass(expectStringNode.execute(name));
   }
 
   abstract Object execute(Object name);

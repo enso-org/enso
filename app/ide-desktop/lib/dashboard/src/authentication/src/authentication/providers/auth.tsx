@@ -13,6 +13,7 @@ import * as backendModule from '../../dashboard/backend'
 import * as backendProvider from '../../providers/backend'
 import * as errorModule from '../../error'
 import * as http from '../../http'
+import * as localBackend from '../../dashboard/localBackend'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
 import * as remoteBackend from '../../dashboard/remoteBackend'
@@ -22,6 +23,8 @@ import * as sessionProvider from './session'
 // === Constants ===
 // =================
 
+/** The minimum delay between two requests. */
+const REQUEST_DELAY_MS = 200
 const MESSAGES = {
     signUpSuccess: 'We have sent you an email with further instructions!',
     confirmSignUpSuccess: 'Your account has been confirmed! Please log in.',
@@ -44,6 +47,7 @@ const MESSAGES = {
 
 /** Possible types of {@link BaseUserSession}. */
 export enum UserSessionType {
+    offline = 'offline',
     partial = 'partial',
     full = 'full',
 }
@@ -58,10 +62,20 @@ interface BaseUserSession<Type extends UserSessionType> {
     email: string
 }
 
-/** Object containing the currently signed-in user's session data. */
-export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
-    /** User's organization information. */
-    organization: backendModule.UserOrOrganization
+// Extends `BaseUserSession` in order to inherit the documentation.
+/** Empty object of an offline user session.
+ * Contains some fields from {@link FullUserSession} to allow destructuring. */
+export interface OfflineUserSession extends Pick<BaseUserSession<UserSessionType.offline>, 'type'> {
+    accessToken: null
+    organization: null
+}
+
+/** The singleton instance of {@link OfflineUserSession}.
+ * Minimizes React re-renders. */
+const OFFLINE_USER_SESSION: OfflineUserSession = {
+    type: UserSessionType.offline,
+    accessToken: null,
+    organization: null,
 }
 
 /** Object containing the currently signed-in user's session data, if the user has not yet set their
@@ -72,9 +86,15 @@ export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
  * used by the `SetUsername` component. */
 export interface PartialUserSession extends BaseUserSession<UserSessionType.partial> {}
 
+/** Object containing the currently signed-in user's session data. */
+export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
+    /** User's organization information. */
+    organization: backendModule.UserOrOrganization
+}
+
 /** A user session for a user that may be either fully registered,
  * or in the process of registering. */
-export type UserSession = FullUserSession | PartialUserSession
+export type UserSession = FullUserSession | OfflineUserSession | PartialUserSession
 
 // ===================
 // === AuthContext ===
@@ -88,6 +108,7 @@ export type UserSession = FullUserSession | PartialUserSession
  *
  * See {@link Cognito} for details on each of the authentication functions. */
 interface AuthContextType {
+    goOffline: () => Promise<boolean>
     signUp: (email: string, password: string) => Promise<boolean>
     confirmSignUp: (email: string, code: string) => Promise<boolean>
     setUsername: (
@@ -154,9 +175,20 @@ export function AuthProvider(props: AuthProviderProps) {
     const { session, deinitializeSession } = sessionProvider.useSession()
     const { setBackend } = backendProvider.useSetBackend()
     const logger = loggerProvider.useLogger()
+    // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
+    // and the function call would error.
+    // eslint-disable-next-line no-restricted-properties
     const navigate = router.useNavigate()
     const [initialized, setInitialized] = react.useState(false)
     const [userSession, setUserSession] = react.useState<UserSession | null>(null)
+
+    // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
+    // circular dependency.
+    react.useEffect(() => {
+        if (!navigator.onLine) {
+            void goOffline()
+        }
+    }, [navigator.onLine])
 
     /** Fetch the JWT access token from the session via the AWS Amplify library.
      *
@@ -165,7 +197,9 @@ export function AuthProvider(props: AuthProviderProps) {
      * If the token has expired, automatically refreshes the token and returns the new token. */
     react.useEffect(() => {
         const fetchSession = async () => {
-            if (session.none) {
+            if (!navigator.onLine) {
+                goOfflineInternal()
+            } else if (session.none) {
                 setInitialized(true)
                 setUserSession(null)
             } else {
@@ -179,7 +213,25 @@ export function AuthProvider(props: AuthProviderProps) {
                 if (!initialized || userSession == null) {
                     setBackend(backend)
                 }
-                const organization = await backend.usersMe().catch(() => null)
+                let organization
+                // eslint-disable-next-line no-restricted-syntax
+                while (organization === undefined) {
+                    try {
+                        organization = await backend.usersMe()
+                    } catch {
+                        // The value may have changed after the `await`.
+                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                        if (!navigator.onLine) {
+                            goOfflineInternal()
+                            // eslint-disable-next-line no-restricted-syntax
+                            return
+                        }
+                        // This prevents a busy loop when request blocking is enabled in DevTools.
+                        // The UI will be blank indefinitely. This is intentional, since for real
+                        // network outages, `navigator.onLine` will be false.
+                        await new Promise(resolve => setTimeout(resolve, REQUEST_DELAY_MS))
+                    }
+                }
                 let newUserSession: UserSession
                 const sharedSessionData = { email, accessToken }
                 if (!organization) {
@@ -230,6 +282,19 @@ export function AuthProvider(props: AuthProviderProps) {
             }
             return result
         }
+
+    const goOfflineInternal = () => {
+        setInitialized(true)
+        setUserSession(OFFLINE_USER_SESSION)
+        setBackend(new localBackend.LocalBackend())
+    }
+
+    const goOffline = () => {
+        toast.error('You are offline, switching to offline mode.')
+        goOfflineInternal()
+        navigate(app.DASHBOARD_PATH)
+        return Promise.resolve(true)
+    }
 
     const signUp = async (username: string, password: string) => {
         const result = await cognito.signUp(username, password)
@@ -345,19 +410,20 @@ export function AuthProvider(props: AuthProviderProps) {
     }
 
     const value = {
+        goOffline: goOffline,
         signUp: withLoadingToast(signUp),
         confirmSignUp: withLoadingToast(confirmSignUp),
         setUsername,
         signInWithGoogle: () =>
-            cognito
-                .signInWithGoogle()
-                .then(() => true)
-                .catch(() => false),
+            cognito.signInWithGoogle().then(
+                () => true,
+                () => false
+            ),
         signInWithGitHub: () =>
-            cognito
-                .signInWithGitHub()
-                .then(() => true)
-                .catch(() => false),
+            cognito.signInWithGitHub().then(
+                () => true,
+                () => false
+            ),
         signInWithPassword: withLoadingToast(signInWithPassword),
         forgotPassword: withLoadingToast(forgotPassword),
         resetPassword: withLoadingToast(resetPassword),
@@ -474,11 +540,11 @@ export function usePartialUserSession() {
     return router.useOutletContext<PartialUserSession>()
 }
 
-// ==========================
-// === useFullUserSession ===
-// ==========================
+// ================================
+// === useNonPartialUserSession ===
+// ================================
 
-/** A React context hook returning the user session for a user that has completed registration. */
-export function useFullUserSession() {
-    return router.useOutletContext<FullUserSession>()
+/** A React context hook returning the user session for a user that can perform actions. */
+export function useNonPartialUserSession() {
+    return router.useOutletContext<Exclude<UserSession, PartialUserSession>>()
 }

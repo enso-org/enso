@@ -40,14 +40,12 @@ pub mod node;
 pub use node::Crumb;
 pub use node::Crumbs;
 pub use node::Node;
-pub use node::Payload;
 
 
 
 /// Module gathering all commonly used traits for massive importing.
 pub mod traits {
     pub use crate::action::Actions;
-    pub use crate::builder::Builder;
     pub use crate::generate::SpanTreeGenerator;
 }
 
@@ -153,24 +151,24 @@ impl ArgumentInfo {
 /// in the code. Even in the case of parenthesed expressions, like `(foo)`, the parentheses are also
 /// `SpanTree` tokens.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SpanTree<T = ()> {
+pub struct SpanTree {
     /// A root node of the tree.
-    pub root: Node<T>,
+    pub root: Node,
 }
 
-impl<T> SpanTree<T> {
+impl SpanTree {
     /// Create span tree from something that could generate it (usually AST).
-    pub fn new(gen: &impl SpanTreeGenerator<T>, context: &impl Context) -> FallibleResult<Self> {
+    pub fn new(gen: &impl SpanTreeGenerator, context: &impl Context) -> FallibleResult<Self> {
         gen.generate_tree(context)
     }
 
     /// Get a reference to the root node.
-    pub fn root_ref(&self) -> node::Ref<T> {
+    pub fn root_ref(&self) -> node::Ref {
         node::Ref::root(self)
     }
 
     /// Get a mutable reference to the root node.
-    pub fn root_ref_mut(&mut self) -> node::RefMut<T> {
+    pub fn root_ref_mut(&mut self) -> node::RefMut {
         node::RefMut::new(&mut self.root)
     }
 
@@ -178,14 +176,8 @@ impl<T> SpanTree<T> {
     pub fn get_node<'a>(
         &self,
         crumbs: impl IntoIterator<Item = &'a Crumb>,
-    ) -> FallibleResult<node::Ref<T>> {
+    ) -> FallibleResult<node::Ref> {
         self.root_ref().get_descendant(crumbs)
-    }
-
-    /// Payload mapping utility.
-    pub fn map<S>(self, f: impl Copy + Fn(T) -> S) -> SpanTree<S> {
-        let root = self.root.map(f);
-        SpanTree { root }
     }
 
     /// Map over the nodes in given crumbs chain, from the root to the node identified by the
@@ -196,7 +188,7 @@ impl<T> SpanTree<T> {
         mut f: F,
     ) -> Option<R>
     where
-        F: FnMut(usize, &Node<T>) -> Option<R>,
+        F: FnMut(usize, &Node) -> Option<R>,
     {
         let mut crumbs = crumbs.into_iter();
         let mut current_node = &self.root;
@@ -215,7 +207,7 @@ impl<T> SpanTree<T> {
 
 // === Getters ===
 
-impl<T> SpanTree<T> {
+impl SpanTree {
     /// Get `ast::Id` of the nested node, if exists.
     pub fn nested_ast_id(&self, crumbs: &Crumbs) -> Option<ast::Id> {
         if self.root_ref().crumbs == crumbs {
@@ -230,16 +222,16 @@ impl<T> SpanTree<T> {
 
 // == Impls ===
 
-impl<T: Payload> Default for SpanTree<T> {
+impl Default for SpanTree {
     fn default() -> Self {
-        let root = Node::<T>::new().with_kind(node::Kind::Root);
+        let root = Node::new().with_kind(node::Kind::Root);
         Self { root }
     }
 }
 
 // == Debug utils ==
 
-impl<T> SpanTree<T> {
+impl SpanTree {
     #[allow(dead_code)]
     /// Get pretty-printed representation of this span tree for debugging purposes. The `code`
     /// argument should be identical to the expression that was used during generation of this

@@ -156,7 +156,7 @@ pub struct EditedAst {
     /// Accessor chain (like `Foo.Bar.buz`) which is currently edited.
     pub edited_accessor_chain: Option<AstWithRange<ast::opr::Chain>>,
     /// The currently edited literal.
-    pub edited_literal:        Option<Literal>,
+    pub edited_literal:        Option<AstWithRange<Literal>>,
 }
 
 impl EditedAst {
@@ -190,12 +190,18 @@ impl EditedAst {
                 },
                 ast::Shape::Number(_) => {
                     // Unwrapping is safe here, because we know that the shape is a number.
-                    let ast = ast::known::Number::try_from(leaf.ast).unwrap();
-                    Self { edited_literal: Some(Literal::Number(ast)), ..default() }
+                    let number = ast::known::Number::try_from(leaf.ast).unwrap();
+                    let ast = Literal::Number(number);
+                    Self {
+                        edited_literal: Some(AstWithRange { range: leaf.range, ast }),
+                        ..default()
+                    }
                 }
                 ast::Shape::Tree(tree) =>
                     if let Some(text) = tree.leaf_info.as_ref() {
-                        let edited_literal = Literal::try_new_text(text);
+                        let text = Literal::try_new_text(text);
+                        let edited_literal =
+                            text.map(|ast| AstWithRange { range: leaf.range, ast });
                         Self { edited_literal, ..default() }
                     } else {
                         default()
@@ -306,12 +312,10 @@ impl Input {
     /// Return the filtering pattern for the input.
     pub fn filter(&self, module_name: QualifiedName) -> Filter {
         let pattern = if let Some(edited) = &self.edited_ast.edited_name {
-            let cursor_position_in_name = self.cursor_position - edited.range.start;
             let name = ast::identifier::name(&edited.ast);
-            name.map_or_default(|name| {
-                let range = ..cursor_position_in_name.value as usize;
-                name.get(range).unwrap_or_default().into()
-            })
+            name.map_or_default(|name| name.into())
+        } else if let Some(literal) = &self.edited_ast.edited_literal {
+            literal.ast.to_string().into()
         } else {
             default()
         };
@@ -334,6 +338,11 @@ impl Input {
         self.edited_ast.edited_name.as_ref().map(|name| name.range)
     }
 
+    /// The range of the text which contains the currently edited name, if any.
+    pub fn edited_literal_range(&self) -> Option<text::Range<text::Byte>> {
+        self.edited_ast.edited_literal.as_ref().map(|lit| lit.range)
+    }
+
     /// The range of the text which contains the currently edited accessor chain, if any.
     pub fn accessor_chain_range(&self) -> Option<text::Range<text::Byte>> {
         self.edited_ast.edited_accessor_chain.as_ref().map(|chain| chain.range)
@@ -349,7 +358,12 @@ impl Input {
 
     /// Currently edited literal, if any.
     pub fn edited_literal(&self) -> Option<&Literal> {
-        self.edited_ast.edited_literal.as_ref()
+        self.edited_ast.edited_literal.as_ref().map(|lit| &lit.ast)
+    }
+
+    /// Check if input is empty.
+    pub fn is_empty(&self) -> bool {
+        matches!(&self.ast, InputAst::Invalid(str) if str.trim().is_empty())
     }
 }
 
@@ -486,7 +500,9 @@ impl Input {
         let replaced = if context.has_qualified_name() {
             self.accessor_chain_range().unwrap_or(default_range)
         } else {
-            self.edited_name_range().unwrap_or(default_range)
+            self.edited_name_range()
+                .or_else(|| self.edited_literal_range())
+                .unwrap_or(default_range)
         };
         let (code_to_insert, import) = context.code_to_insert(in_module);
         debug!("Code to insert: \"{code_to_insert}\"");
@@ -653,28 +669,28 @@ mod tests {
         let none_range: Option<text::Range<text::Byte>> = None;
         let cases = [
             Case::new("foo", 3, none_range, Some(0..3), "foo"),
-            Case::new("foo", 1, none_range, Some(0..3), "f"),
-            Case::new("foo", 0, none_range, Some(0..3), ""),
-            Case::new("(2 + foo) * bar", 2, none_range, none_range, ""),
-            Case::new("(2 + foo)*bar", 5, none_range, Some(5..8), ""),
-            Case::new("(2 + foo)*bar", 7, none_range, Some(5..8), "fo"),
+            Case::new("foo", 1, none_range, Some(0..3), "foo"),
+            Case::new("foo", 0, none_range, Some(0..3), "foo"),
+            Case::new("(2 + foo) * bar", 2, none_range, none_range, "2"),
+            Case::new("(2 + foo)*bar", 5, none_range, Some(5..8), "foo"),
+            Case::new("(2 + foo)*bar", 7, none_range, Some(5..8), "foo"),
             Case::new("(2 + foo)*bar", 8, none_range, Some(5..8), "foo"),
             Case::new("(2 + foo)*bar", 9, none_range, none_range, ""),
-            Case::new("(2 + foo)*b", 10, none_range, Some(10..11), ""),
+            Case::new("(2 + foo)*b", 10, none_range, Some(10..11), "b"),
             Case::new("(2 + foo)*b", 11, none_range, Some(10..11), "b"),
-            Case::new("Standard.Base.foo", 0, none_range, Some(0..8), ""),
-            Case::new("Standard.Base.foo", 4, none_range, Some(0..8), "Stan"),
+            Case::new("Standard.Base.foo", 0, none_range, Some(0..8), "Standard"),
+            Case::new("Standard.Base.foo", 4, none_range, Some(0..8), "Standard"),
             Case::new("Standard.Base.foo", 8, none_range, Some(0..8), "Standard"),
-            Case::new("Standard.Base.foo", 9, Some(0..13), Some(9..13), ""),
-            Case::new("Standard.Base.foo", 11, Some(0..13), Some(9..13), "Ba"),
+            Case::new("Standard.Base.foo", 9, Some(0..13), Some(9..13), "Base"),
+            Case::new("Standard.Base.foo", 11, Some(0..13), Some(9..13), "Base"),
             Case::new("Standard.Base.foo", 13, Some(0..13), Some(9..13), "Base"),
-            Case::new("Standard.Base.foo", 14, Some(0..17), Some(14..17), ""),
-            Case::new("Standard.Base.foo", 15, Some(0..17), Some(14..17), "f"),
+            Case::new("Standard.Base.foo", 14, Some(0..17), Some(14..17), "foo"),
+            Case::new("Standard.Base.foo", 15, Some(0..17), Some(14..17), "foo"),
             Case::new("Standard.Base.foo", 17, Some(0..17), Some(14..17), "foo"),
             Case::new("Standard . Base . foo", 17, Some(0..21), none_range, ""),
-            Case::new("Standard . Base.foo", 16, Some(11..19), Some(16..19), ""),
+            Case::new("Standard . Base.foo", 16, Some(11..19), Some(16..19), "foo"),
             Case::new("Standard.Base.", 14, Some(0..14), none_range, ""),
-            Case::new("(2 + Standard.Base.foo)*b", 21, Some(5..22), Some(19..22), "fo"),
+            Case::new("(2 + Standard.Base.foo)*b", 21, Some(5..22), Some(19..22), "foo"),
             Case::new("(2 + Standard.Base.)*b", 19, Some(5..19), none_range, ""),
         ];
 
