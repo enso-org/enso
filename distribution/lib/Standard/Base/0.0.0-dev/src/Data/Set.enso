@@ -29,10 +29,10 @@ type Set
          `True` it will raise an `Illegal_Argument` if duplicate elements are
          encountered.
     from_vector : Vector Any -> Boolean -> Set ! Illegal_Argument
-    from_vector (vector : Vector) (error_on_duplicates : Boolean = True) =
+    from_vector (vector : Vector) (error_on_duplicates : Boolean = False) =
         pairs_array = Array_Proxy.new vector.length (i-> [vector.at i, Nothing])
         pairs = Vector.from_polyglot_array pairs_array
-        map = Map.from_vector pairs allow_duplicates
+        map = Map.from_vector pairs error_on_duplicates=error_on_duplicates
         Set.Value map
 
     ## Constructs an empty set.

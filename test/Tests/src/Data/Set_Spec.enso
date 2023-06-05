@@ -20,7 +20,7 @@ spec =
             s1.size . should_equal 3
             s1.to_vector.sort . should_equal [1, 2, 3]
 
-            r2 = Set.from_vector [1, 2, 2] allow_duplicates=False
+            r2 = Set.from_vector [1, 2, 2] error_on_duplicates=True
             r2.should_fail_with Illegal_Argument
 
         Test.specify "should allow checking contains" <|
