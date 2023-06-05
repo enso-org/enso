@@ -1,6 +1,7 @@
 /** @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components. */
 import * as react from 'react'
+import toast from 'react-hot-toast'
 
 import * as common from 'enso-common'
 
@@ -80,6 +81,7 @@ export interface CreateFormProps {
     left: number
     top: number
     directoryId: backendModule.DirectoryId
+    getNewProjectName: (templateId: string | null) => string
     onSuccess: () => void
 }
 
@@ -585,19 +587,26 @@ function Dashboard(props: DashboardProps) {
     /** Heading element for every column. */
     const ColumnHeading = (column: Column, assetType: backendModule.AssetType) =>
         column === Column.name ? (
-            assetType === backendModule.AssetType.project ? (
-                <>{ASSET_TYPE_NAME[assetType]}</>
-            ) : (
-                <div className="inline-flex">
-                    {ASSET_TYPE_NAME[assetType]}
-                    <button
-                        className="mx-1"
-                        onClick={event => {
-                            event.stopPropagation()
-                            const buttonPosition =
-                                // This type assertion is safe as this event handler is on a button.
-                                // eslint-disable-next-line no-restricted-syntax
-                                (event.target as HTMLButtonElement).getBoundingClientRect()
+            <div className="inline-flex">
+                {ASSET_TYPE_NAME[assetType]}
+                <button
+                    className="mx-1"
+                    onClick={event => {
+                        event.stopPropagation()
+                        const buttonPosition =
+                            // This type assertion is safe as this event handler is on a button.
+                            // eslint-disable-next-line no-restricted-syntax
+                            (event.target as HTMLButtonElement).getBoundingClientRect()
+                        if (assetType === backendModule.AssetType.project) {
+                            void toast.promise(handleCreateProject(null), {
+                                loading: 'Creating new empty project...',
+                                success: 'Created new empty project.',
+                                // This is UNSAFE, as the original function's parameter is of type
+                                // `any`.
+                                error: (promiseError: Error) =>
+                                    `Error creating new empty project: ${promiseError.message}`,
+                            })
+                        } else {
                             // This is a React component even though it doesn't contain JSX.
                             // eslint-disable-next-line no-restricted-syntax
                             const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
@@ -605,6 +614,7 @@ function Dashboard(props: DashboardProps) {
                                 <CreateForm
                                     left={buttonPosition.left + window.scrollX}
                                     top={buttonPosition.top + window.scrollY}
+                                    getNewProjectName={getNewProjectName}
                                     // This is safe; headings are not rendered when there is no
                                     // internet connection.
                                     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -612,12 +622,12 @@ function Dashboard(props: DashboardProps) {
                                     onSuccess={doRefresh}
                                 />
                             ))
-                        }}
-                    >
-                        {svg.ADD_ICON}
-                    </button>
-                </div>
-            )
+                        }
+                    }}
+                >
+                    {svg.ADD_ICON}
+                </button>
+            </div>
         ) : (
             <>{COLUMN_NAME[column]}</>
         )
