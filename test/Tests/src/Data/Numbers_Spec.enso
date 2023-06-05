@@ -772,6 +772,12 @@ spec =
             99999999999999 . round -2 . should_equal 100000000000000
             -99999999999999 . round -2 . should_equal -100000000000000
 
+        Test.specify "Input out of range is ignored when the implementation returns its argument immediately" <|
+            100000000000000 . round . should_equal 100000000000000
+            -100000000000000 . round . should_equal -100000000000000
+            100000000000000 . round 1 . should_equal 100000000000000
+            -100000000000000 . round 1 . should_equal -100000000000000
+
     Test.group "Decimal.truncate"
 
         Test.specify "Correctly converts to Integer" <|
