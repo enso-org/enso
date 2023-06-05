@@ -7,7 +7,8 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   BindingAnalysis,
-  ImportSymbolAnalysis
+  ImportSymbolAnalysis,
+  ImportApiAnalysis
 }
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.{ModuleNameConflicts, ShadowedPatternFields}
@@ -62,6 +63,7 @@ class PassesTest extends CompilerTest {
           OperatorToFunction,
           LambdaShorthandToLambda,
           ImportSymbolAnalysis,
+          ImportApiAnalysis.MODULE$,
           ShadowedPatternFields,
           UnreachableMatchBranches,
           NestedPatternMatch,
