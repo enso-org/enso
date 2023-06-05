@@ -124,13 +124,13 @@ specWith name create_new_time parse_time =
             time+Time_Period.Second . should_equal <| create_new_time 0 0 1
 
         Test.specify "should support subtraction of Time_Period" <|
-            time = create_new_time 12 0 0
+            time = create_new_time 12
             time-Time_Period.Day . should_equal <| create_new_time 12
             time-Time_Period.Hour . should_equal <| create_new_time 11
             time-Time_Period.Minute . should_equal <| create_new_time 11 59
             time-Time_Period.Second . should_equal <| create_new_time 11 59 59
 
-        Test.specify "should support addition and subtraction of Date_Period and Time_Period" <|
+        Test.specify "should support mixed addition and subtraction of Date_Period and Time_Period" <|
             time = create_new_time 0
             time+Time_Period.Hour-Time_Period.Minute . should_equal <| create_new_time 0 59
             time+Time_Period.Minute+Time_Period.Minute-Time_Period.Minute . should_equal <| create_new_time 0 1
