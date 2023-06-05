@@ -530,6 +530,31 @@ class ImportExportTest
       warn.head.originalImport shouldEqual origImport
     }
 
+    "generate two warnings when importing same type twice with two all-symbol imports" in {
+      s"""
+         |type A_Type
+         |type AA_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.A_Module import all
+           |from $namespace.$packageName.A_Module import all
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val origImport = mainIr.imports(0)
+      val warn = mainIr
+        .imports(1)
+        .diagnostics
+        .collect({ case w: IR.Warning.DuplicatedImport => w })
+      warn.size shouldEqual 2
+      warn.foreach(_.originalImport shouldEqual origImport)
+      warn.exists(_.symbolName == "A_Type") shouldEqual true
+      warn.exists(_.symbolName == "AA_Type") shouldEqual true
+    }
+
     "result in error when importing same type twice with two one-symbol import and renamed import" in {
       s"""
          |type A_Type
