@@ -17,7 +17,7 @@ from project.Data.Boolean import Boolean, True, False
    An unordered collection of unique values.
 type Set
     ## PRIVATE
-    Value (underlying_map : Map Any Boolean)
+    Value (underlying_map : Map Any Nothing)
 
     ## Constructs a new set from a vector.
 
@@ -29,7 +29,7 @@ type Set
          an `Illegal_Argument` if duplicate elements are encountered.
     from_vector : Vector Any -> Boolean -> Set ! Illegal_Argument
     from_vector (vector : Vector) (allow_duplicates : Boolean = True) =
-        pairs_array = Array_Proxy.new vector.length (i-> [vector.at i, True])
+        pairs_array = Array_Proxy.new vector.length (i-> [vector.at i, Nothing])
         pairs = Vector.from_polyglot_array pairs_array
         map = Map.from_vector pairs allow_duplicates
         Set.Value map
@@ -62,7 +62,7 @@ type Set
        Adds a value to this set.
     insert : Any -> Set
     insert self value =
-        new_map = self.underlying_map.insert value True
+        new_map = self.underlying_map.insert value Nothing
         Set.Value new_map
 
     ## Creates a union of the two sets.
@@ -75,7 +75,7 @@ type Set
     intersection self (other : Set) =
         other_map = other.underlying_map
         new_map = self.underlying_map.keys.fold Map.empty m-> el->
-            if other_map.contains_key el then m.insert el True else m
+            if other_map.contains_key el then m.insert el Nothing else m
         Set.Value new_map
 
     ## Computes a set difference.
@@ -86,7 +86,7 @@ type Set
     difference self (other : Set) =
         other_map = other.underlying_map
         new_map = self.underlying_map.keys.fold Map.empty m-> el->
-            if other_map.contains_key el then m else m.insert el True
+            if other_map.contains_key el then m else m.insert el Nothing
         Set.Value new_map
 
     ## PRIVATE
