@@ -269,6 +269,8 @@ type Time_Of_Day
     + self amount =
         case amount of
             duration : Duration -> self.plus_builtin duration
+            time_period : Time_Period ->
+                self + time_period.to_duration
             _ : Period -> Error.throw (Time_Error.Error "Time_Of_Day does not support date intervals (periods)")
 
     ## ALIAS Subtract Duration
@@ -288,6 +290,8 @@ type Time_Of_Day
     - self amount =
         case amount of
             duration : Duration -> self.minus_builtin duration
+            time_period : Time_Period ->
+                self - time_period.to_duration
             _ : Period -> Error.throw (Time_Error.Error "Time_Of_Day does not support date intervals (periods)")
 
     ## PRIVATE
