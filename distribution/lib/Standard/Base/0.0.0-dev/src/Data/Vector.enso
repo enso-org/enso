@@ -4,7 +4,6 @@ import project.Data.Filter_Condition.Filter_Condition
 import project.Data.List.List
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Sort_Direction.Sort_Direction
 import project.Data.Pair.Pair
 import project.Data.Range.Range
 import project.Data.Range.Range_Extensions
@@ -938,8 +937,8 @@ type Vector a
          because it has the default comparator.
 
              [My_Type.Value 'hello', 1].sort == [1, My_Type.Value 'hello']
-    sort : Sort_Direction -> (Any -> Any)|Nothing -> (Any -> Any -> (Ordering|Nothing))|Nothing -> Problem_Behavior -> Vector Any ! Incomparable_Values
-    sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
+    sort : Sort_Direction.Sort_Direction -> (Any -> Any)|Nothing -> (Any -> Any -> (Ordering|Nothing))|Nothing -> Problem_Behavior -> Vector Any ! Incomparable_Values
+    sort self (order = Sort_Direction.Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
         comps = case on == Nothing of
             True -> self.map it-> Comparable.from it
             False -> self.map it-> Comparable.from (on it)
