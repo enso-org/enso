@@ -15,8 +15,8 @@ import org.enso.compiler.phase.{
   ImportResolver
 }
 import org.enso.editions.LibraryName
-import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.builtin.Builtins
+import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.runtime.{EnsoContext, Module}
 import org.enso.pkg.QualifiedName
@@ -999,18 +999,16 @@ class Compiler(
     source: Source
   ): String = {
     val outSupportsAnsiColors = System.console() != null
-    val ansiReset             = "\u001B[0m"
-    val ansiRed               = "\u001B[31m"
-    val ansiYellow            = "\u001B[33m"
-    val ansiBold              = "\u001B[1m"
 
     def yellowBold(text: String) =
-      if (outSupportsAnsiColors) ansiYellow + ansiBold + text + ansiReset
+      if (outSupportsAnsiColors) fansi.Str(text).overlay(fansi.Color.Yellow).overlay(fansi.Bold.On).toString
       else text
     def redBold(text: String) =
-      if (outSupportsAnsiColors) ansiRed + ansiBold + text + ansiReset else text
+      if (outSupportsAnsiColors) fansi.Str(text).overlay(fansi.Color.Red).overlay(fansi.Bold.On).toString
+      else text
     def bold(text: String) =
-      if (outSupportsAnsiColors) ansiBold + text + ansiReset else text
+      if (outSupportsAnsiColors) fansi.Str(text).overlay(fansi.Bold.On).toString
+      else text
 
     val (coloredFunc, subject) = diagnostic match {
       case _: IR.Error   => (redBold _, "error: ")
