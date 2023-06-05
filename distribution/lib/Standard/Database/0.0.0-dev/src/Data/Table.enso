@@ -1378,19 +1378,19 @@ type Table
 
          Input Table `table`:
 
-            A | Name    | Country
-           ---|---------|---------
-            A | Example | France
-            B | Another | Germany
+            Id | Name    | Country
+           ----|---------|---------
+            A  | Example | France
+            B  | Another | Germany
 
-         Result `table.transpose ['A'] 'Attribute' 'Value'`:
+         Result `table.transpose ['Id'] 'Attribute' 'Value'`:
 
-            A | Attribute | Value
-           ---|-----------|---------
-            A | Name      | Example
-            A | Country   | France
-            B | Name      | Another
-            B | Country   | Germany
+            Id | Attribute | Value
+           ----|-----------|---------
+            A  | Name      | Example
+            A  | Country   | France
+            B  | Name      | Another
+            B  | Country   | Germany
     @key_columns Widget_Helpers.make_column_name_vector_selector
     transpose : Vector (Integer | Text | Column_Selector) | Text | Integer -> Text -> Text -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names
     transpose self key_columns=[] (attribute_column_name="Name") (value_column_name="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
@@ -1437,16 +1437,16 @@ type Table
 
          Input Table `table`:
 
-            A | B       | C
-           ---|---------|---------
-            A | Name    | Example
-            A | Country | France
+            Id | B       | C
+           ----|---------|---------
+            A  | Name    | Example
+            A  | Country | France
 
-         Result `table.cross_tab ['A'] 'B' (Aggregate_Column.First 'C')`:
+         Result `table.cross_tab ['Id'] 'B' (Aggregate_Column.First 'C')`:
 
-            A | Name    | Country
-           ---|---------|---------
-            A | Example | France
+            Id | Name    | Country
+           ----|---------|---------
+            A  | Example | France
     @group_by Widget_Helpers.make_column_name_vector_selector
     @name_column Widget_Helpers.make_column_name_selector
     @values (Widget_Helpers.make_aggregate_column_selector include_group_by=False)

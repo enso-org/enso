@@ -61,6 +61,8 @@ type Text
         Text_Utils.equals_ignore_case self that locale.java_locale
 
     ## ADVANCED
+       PRIVATE
+       UNSTABLE
        Unifies the case of all letters in the text, generating a key which can be
        used to perform case-insensitive comparisons.
     @locale Locale.default_widget
