@@ -68,6 +68,7 @@ pub use clear_and_reuse::*;
 pub use collections::*;
 pub use data::*;
 pub use debug::*;
+pub use enso_shapely as shapely;
 pub use enso_shapely::before_main;
 pub use enso_shapely::clone_ref::*;
 pub use enso_shapely::impl_clone_ref_as_clone;

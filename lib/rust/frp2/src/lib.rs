@@ -283,12 +283,12 @@ impl Runtime {
     }
 
     #[inline(always)]
-    fn connect(&self, src_id: impl Into<InputType<NodeId>>, tgt_id: NodeId) {
+    fn connect(&self, src_id: impl Into<InputType>, tgt_id: NodeId) {
         let src_id = src_id.into();
         let is_listener = src_id.is_listener();
         let is_sampler = src_id.is_sampler();
         let output_connection = Edge { target: tgt_id, is_sampler };
-        if let Some(src) = self.nodes.get(src_id.value()) {
+        if let Some(src) = self.nodes.get(src_id.node_id()) {
             let src = src.borrow();
             if is_sampler {
                 src.sampler_count.modify(|t| *t += 1);
@@ -297,7 +297,7 @@ impl Runtime {
             outputs.borrow().push(output_connection);
         }
         if let Some(tgt) = self.nodes.get(tgt_id) {
-            tgt.borrow().inputs.borrow().push(src_id.value());
+            tgt.borrow().inputs.borrow().push(src_id.node_id());
         }
     }
 
@@ -474,15 +474,15 @@ impl<T> ListenAndSample<T> {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum InputType<T> {
-    Listen(T),
-    ListenAndSample(T),
-    Sample(T),
+pub enum InputType {
+    Listen(NodeId),
+    ListenAndSample(NodeId),
+    Sample(NodeId),
 }
 
-impl<T> InputType<T> {
+impl InputType {
     #[inline(always)]
-    pub fn value(self) -> T {
+    pub fn node_id(self) -> NodeId {
         match self {
             InputType::Listen(t) => t,
             InputType::ListenAndSample(t) => t,
@@ -509,24 +509,24 @@ impl<T> InputType<T> {
     }
 }
 
-impl<T> From<Listen<T>> for InputType<T> {
+impl<T: Node> From<Listen<T>> for InputType {
     #[inline(always)]
     fn from(t: Listen<T>) -> Self {
-        InputType::Listen(t.0)
+        InputType::Listen(t.0.id())
     }
 }
 
-impl<T> From<ListenAndSample<T>> for InputType<T> {
+impl<T: Node> From<ListenAndSample<T>> for InputType {
     #[inline(always)]
     fn from(t: ListenAndSample<T>) -> Self {
-        InputType::ListenAndSample(t.0)
+        InputType::ListenAndSample(t.0.id())
     }
 }
 
-impl<T> From<Sample<T>> for InputType<T> {
+impl<T: Node> From<Sample<T>> for InputType {
     #[inline(always)]
     fn from(t: Sample<T>) -> Self {
-        InputType::Sample(t.0)
+        InputType::Sample(t.0.id())
     }
 }
 
@@ -572,26 +572,78 @@ impl<'a, Output: Data> EventContext<'a, Output> {
 
 // InputType<NodeId>
 
-trait InputList {
-    type Output;
-    fn input_list(self) -> Self::Output;
+trait TupleMapIntoOps: Sized {
+    fn map_into<T>(self) -> Self::Output
+    where Self: TupleMapInto<T> {
+        TupleMapInto::map_into_impl(self)
+    }
 }
 
-impl InputList for () {
+impl<T> TupleMapIntoOps for T {}
+
+trait TupleMapInto<T> {
+    type Output;
+    fn map_into_impl(self) -> Self::Output;
+}
+
+impl<T> TupleMapInto<T> for () {
     type Output = ();
     #[inline(always)]
-    fn input_list(self) -> Self::Output {
+    fn map_into_impl(self) -> Self::Output {
         ()
     }
 }
-//
-// impl InputList for () {
-//     type Output = ();
-//     #[inline(always)]
-//     fn input_list(self) -> Self::Output {
-//         ()
-//     }
-// }
+
+macro_rules! impl_tuple_into {
+    ($t:tt $(,$ts:tt)* $(,)?) => {
+        impl_tuple_into_internal!{[$t] [$($ts)*]}
+    };
+}
+
+macro_rules! impl_tuple_into_internal {
+    ([$($ts:tt)*] [$r:tt $($rs:tt)*]) => {
+        impl_tuple_into_single! { $($ts),* }
+        impl_tuple_into_internal!{[$($ts)* $r] [$($rs)*]}
+    };
+    ([$($ts:tt)*] []) => {
+        impl_tuple_into_single! { $($ts),* }
+    };
+}
+
+macro_rules! impl_tuple_into_single {
+    ($($t:tt),*) => {
+        paste! {
+            impl<T, $([<T $t>]),*> TupleMapInto<T> for ($([<T $t>]),*,)
+            where $([<T $t>]: Into<T>),*
+            {
+                type Output = ($(shapely::replace!{$t, T}),*,);
+                #[inline(always)]
+                fn map_into_impl(self) -> Self::Output {
+                    ($(self.$t.into()),*,)
+                }
+            }
+        }
+    };
+}
+
+impl_tuple_into![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+
+
+trait TupleSplit<const N: usize> {
+    type Left;
+    type Right;
+    fn split(self) -> (Self::Left, Self::Right);
+}
+
+impl<T0, T1, T2> TupleSplit<1> for (T0, T1, T2) {
+    type Left = (T0,);
+    type Right = (T1, T2);
+    #[inline(always)]
+    fn split(self) -> (Self::Left, Self::Right) {
+        ((self.0,), (self.1, self.2))
+    }
+}
+
 
 // ======================
 // === NodeDefinition ===
@@ -623,18 +675,19 @@ where F: Fn(EventContext<Output>) + 'static
     }
 }
 
-impl<N0, Output, F> NodeDefinition<Output, F> for Listen<N0>
+impl<N0, Output, F> NodeDefinition<Output, F> for (Listen<N0>,)
 where
     N0: Node,
     F: Fn(EventContext<Output>, &N0::Output) + 'static,
 {
     #[inline(always)]
     fn def_node<Kind>(net: &Network, inputs: Self, f: F) -> NodeTemplate<Kind, Output> {
+        let inputs = inputs.map_into::<InputType>();
         let node = net.new_node(move |rt: &Runtime, node: &NodeData, data: &dyn Data| {
             let data = unsafe { &*(data as *const dyn Data as *const N0::Output) };
             f(EventContext::unchecked_new(rt, node), data);
         });
-        with_runtime(|rt| rt.connect(inputs.map(|t| t.id()), node.id));
+        with_runtime(|rt| rt.connect(inputs.0, node.id));
         node
     }
 }
@@ -647,15 +700,16 @@ where
 {
     #[inline(always)]
     fn def_node<Kind>(net: &Network, inputs: Self, f: F) -> NodeTemplate<Kind, Output> {
+        let inputs = inputs.map_into::<InputType>();
         let node = net.new_node(move |rt: &Runtime, node: &NodeData, data: &dyn Data| unsafe {
             let t0 = &*(data as *const dyn Data as *const N0::Output);
-            rt.with_borrowed_node_output_cache_coerced(node.inputs.borrow()[1], |t1| {
+            rt.with_borrowed_node_output_cache_coerced(inputs.1.node_id(), |t1| {
                 f(EventContext::unchecked_new(rt, node), t0, t1)
             });
         });
         with_runtime(|rt| {
-            rt.connect(inputs.0.map(|t| t.id()), node.id);
-            rt.connect(inputs.1.map(|t| t.id()), node.id);
+            rt.connect(inputs.0, node.id);
+            rt.connect(inputs.1, node.id);
         });
         node
     }
@@ -670,18 +724,19 @@ where
 {
     #[inline(always)]
     fn def_node<Kind>(net: &Network, inputs: Self, f: F) -> NodeTemplate<Kind, Output> {
+        let inputs = inputs.map_into::<InputType>();
         let node = net.new_node(move |rt: &Runtime, node: &NodeData, data: &dyn Data| unsafe {
             let t0 = &*(data as *const dyn Data as *const N0::Output);
-            rt.with_borrowed_node_output_cache_coerced(node.inputs.borrow()[1], |t1| {
-                rt.with_borrowed_node_output_cache_coerced(node.inputs.borrow()[2], |t2| {
+            rt.with_borrowed_node_output_cache_coerced(inputs.1.node_id(), |t1| {
+                rt.with_borrowed_node_output_cache_coerced(inputs.2.node_id(), |t2| {
                     f(EventContext::unchecked_new(rt, node), t0, t1, t2)
                 })
             });
         });
         with_runtime(|rt| {
-            rt.connect(inputs.0.map(|t| t.id()), node.id);
-            rt.connect(inputs.1.map(|t| t.id()), node.id);
-            rt.connect(inputs.2.map(|t| t.id()), node.id);
+            rt.connect(inputs.0, node.id);
+            rt.connect(inputs.1, node.id);
+            rt.connect(inputs.2, node.id);
         });
         node
     }
@@ -761,7 +816,7 @@ impl Network {
 
 impl Network {
     pub fn trace<T0: Data>(&self, source: impl Node<Output = T0>) -> Stream<T0> {
-        self.def_node(Listen(source), move |event, t0| {
+        self.def_node((Listen(source),), move |event, t0| {
             println!("TRACE: {:?}", t0);
             event.emit(t0);
         })
@@ -792,7 +847,7 @@ impl Network {
     ) -> (Stream<Vec<T0>>, DebugCollectData<T0>) {
         let data: DebugCollectData<T0> = default();
         let out = data.clone();
-        let node = self.def_node(Listen(source), move |event, t0| {
+        let node = self.def_node((Listen(source),), move |event, t0| {
             data.cell.borrow_mut().push(t0.clone());
             event.emit(&*data.cell.borrow());
         });
@@ -811,7 +866,7 @@ impl Network {
         n0: impl Node<Output = T0>,
         f: impl Fn(&T0) -> Output + 'static,
     ) -> Stream<Output> {
-        self.def_node(Listen(n0), move |event, t0| event.emit(&f(t0)))
+        self.def_node((Listen(n0),), move |event, t0| event.emit(&f(t0)))
     }
 
     #[inline(never)]

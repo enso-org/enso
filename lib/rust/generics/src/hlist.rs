@@ -1,7 +1,13 @@
-//! HList provides many operations to create and manipulate heterogenous lists (HLists) whose length
-//! and element types are known at compile-time. HLists can be used to implement records, variants,
-//! type-indexed products (TIP), type-indexed co-products (TIC), or keyword arguments.
-
+//! [`HList`] provides many operations to create and manipulate heterogenous lists whose length
+//! and element types are known at compile-time. [`HLists`] can be used to implement records,
+//! variants, type-indexed products (TIP), type-indexed co-products (TIC), or keyword arguments.
+//!
+//! Each [`HList`] is encoded using [`Cons`] and [`Nil`]. For example, a two-element [`HList`] can
+//! be encoded as `Cons(A,Cons(B,Nil))`. You can use the provided [`new`], [`pat`] and [`ty`] macros
+//! to easily work with HLists, for example:  
+//! ```text
+//! let HList::pat![t1, t2] : HList::ty![&str, usize] = HList::new!["hello", 7];
+//! ```
 
 
 // =============
@@ -66,6 +72,7 @@ macro_rules! ty {
 #[allow(missing_docs)]
 pub trait HasLength {
     const LEN: usize;
+    #[inline(always)]
     fn len() -> usize {
         Self::LEN
     }
@@ -79,6 +86,7 @@ pub const fn len<T: HasLength>() -> usize {
 impl HasLength for Nil {
     const LEN: usize = 0;
 }
+
 impl<H, T: HasLength> HasLength for Cons<H, T> {
     const LEN: usize = 1 + len::<T>();
 }

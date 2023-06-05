@@ -64,7 +64,7 @@ fn new_list_editor(app: &Application) -> ListEditor<slider::Slider> {
 
     frp::extend! { network
         list_editor.insert <+ list_editor.request_new_item.map(f!([app] (index) {
-            enso_frp2::lib2::pub_bench();
+            // enso_frp2::pub_bench();
             let slider = app.new_view::<slider::Slider>();
             slider.set_size((200.0, 24.0));
             (**index, Rc::new(RefCell::new(Some(slider))))
