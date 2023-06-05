@@ -77,6 +77,12 @@ pub struct Transaction {
     ignored: Cell<bool>,
 }
 
+impl Display for Transaction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Transaction '{}'", self.frame.borrow())
+    }
+}
+
 impl Transaction {
     /// Create a new transaction, that will add to the given's repository undo stack on destruction.
     pub fn new(urm: &Rc<Repository>, name: String) -> Self {
@@ -136,18 +142,27 @@ impl Drop for Transaction {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Frame {
     /// Name of the transaction that created this frame.
-    pub name:      String,
+    pub name:            String,
+    /// Names of all subsequent transactions that were covered by this frame. This serves the
+    /// debugging purposes only, to understand what actions are covered by given frame.
+    pub secondary_names: Vec<String>,
     /// Context module where the change was made.
-    pub module:    Option<model::module::Id>,
+    pub module:          Option<model::module::Id>,
     /// Context graph where the change was made.
-    pub graph:     Option<controller::graph::Id>,
+    pub graph:           Option<controller::graph::Id>,
     /// Snapshots of content for all edited modules.
-    pub snapshots: BTreeMap<model::module::Id, model::module::Content>,
+    pub snapshots:       BTreeMap<model::module::Id, model::module::Content>,
 }
 
 impl Display for Frame {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Name: {}; ", self.name)?;
+        if !self.secondary_names.is_empty() {
+            write!(f, "Secondary names:")?;
+            for name in &self.secondary_names {
+                write!(f, "\t{name}")?;
+            }
+        }
         if let Some(m) = &self.module {
             write!(f, "Module: {m}; ")?;
         }
@@ -168,6 +183,13 @@ impl Frame {
         if self.snapshots.try_insert(id, content).is_err() {
             debug!("Skipping this snapshot, as module's state was already saved.")
         }
+    }
+
+    /// Add secondary name to the frame.
+    ///
+    /// secondary names are used to track sub-transactions that were covered by this frame.
+    pub fn add_secondary_name(&mut self, name: impl Into<String>) {
+        self.secondary_names.push(name.into())
     }
 }
 
@@ -227,6 +249,11 @@ impl Repository {
         name: impl Into<String>,
     ) -> Result<Rc<Transaction>, Rc<Transaction>> {
         if let Some(ongoing_transaction) = self.current_transaction() {
+            // If there is already an ongoing transaction, we will just add a secondary name to it.
+            // This is useful when we want to understand what actions were covered by given frame.
+            // Apart from the debugging purposes, this deos not affect the undo-redo mechanism in
+            // any way.
+            ongoing_transaction.frame.borrow_mut().secondary_names.push(name.into());
             Err(ongoing_transaction)
         } else {
             let name = name.into();
@@ -255,18 +282,28 @@ impl Repository {
         transaction
     }
 
+    fn new_undo_frame(&self, frame: Frame) {
+        info!("Adding a new frame to the stack: {frame}. {}", backtrace());
+        self.push_to(Stack::Undo, frame);
+        self.clear(Stack::Redo)
+    }
+
     /// Close the currently opened transaction.
     ///
     /// This method should not be used directly. Instead just drop the [`Transaction`] handle.
     fn close_transaction(&self, transaction: &Transaction) {
-        if !transaction.ignored.get() {
-            info!("Transaction '{}' will create a new frame. {}", transaction.name(), backtrace());
-            self.push_to(Stack::Undo, transaction.frame.borrow().clone());
-            self.clear(Stack::Redo)
+        if transaction.frame.borrow().snapshots.is_empty() {
+            // If there was a transaction with no snapshots, we will just ignore it.
+            // As we create transactions for every user interaction (command), there will be a lot
+            // of empty transactions. We do not want to pollute the undo-redo stack with them.
+            debug!("Ignoring empty transaction '{}'. It will be skipped.", transaction.name());
+        } else if !transaction.ignored.get() {
+            // If the transaction was not ignored, we will add it to the undo stack.
+            let frame = transaction.frame.borrow().clone();
+            self.new_undo_frame(frame);
         } else {
             debug!(
-                "Closing the ignored transaction '{}' without pushing a frame to repository.",
-                transaction.name()
+                "Closing the ignored transaction '{transaction}' without adding a frame to the repository.",
             )
         }
     }
@@ -341,6 +378,20 @@ impl Repository {
     pub fn len(&self, stack: Stack) -> usize {
         self.borrow(stack).len()
     }
+
+    /// If there is an ongoing transaction, abort it. It will be ignored. After this call, there
+    /// will be no ongoing transaction.
+    ///
+    /// Returns the aborted transaction, if there was one.
+    pub fn abort_current_transaction(&self) -> Option<Rc<Transaction>> {
+        let transaction =
+            self.data.borrow_mut().current_transaction.take().and_then(|t| t.upgrade());
+        if let Some(transaction) = transaction.as_ref() {
+            debug!("Aborting transaction `{}`", transaction.name());
+            transaction.ignore();
+        }
+        transaction
+    }
 }
 
 
@@ -388,6 +439,10 @@ impl Manager {
     pub fn undo(&self) -> FallibleResult {
         debug!("Undo requested, stack size is {}.", self.repository.len(Stack::Undo));
         let frame = self.repository.last(Stack::Undo)?;
+
+        // We need to abort any ongoing transaction before applying undo. Otherwise, we might end up
+        // with a situation when undoing would re-add itself onto the undo stack.
+        self.repository.abort_current_transaction();
 
         // Before applying undo we create a special transaction. The purpose it two-fold:
         // 1) We want to prevent any undo attempt if there is already an ongoing transaction;

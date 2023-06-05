@@ -211,6 +211,20 @@ impl Shortcut {
 
 
 // ================
+// === Observer ===
+// ================
+
+/// A shortcut observer. It is an FRP endpoint that can be used to observe shortcut events.
+#[derive(Clone, CloneRef, Debug)]
+pub struct Observer {
+    /// An FRP that contains the name of the command currently being executed.
+    /// `None` means that no command is being executed.
+    pub observer: frp::Any<Option<ImString>>,
+}
+
+
+
+// ================
 // === Registry ===
 // ================
 
@@ -236,6 +250,8 @@ pub struct RegistryModel {
     mouse:              Mouse_DEPRECATED,
     command_registry:   command::Registry,
     shortcuts_registry: shortcuts::HashSetRegistry<Shortcut>,
+    /// Observers that will be notified when a shortcut-triggered command is being executed.
+    observers:          Rc<RefCell<Vec<Observer>>>,
 }
 
 impl Deref for Registry {
@@ -278,7 +294,8 @@ impl RegistryModel {
         let mouse = mouse.clone_ref();
         let command_registry = command_registry.clone_ref();
         let shortcuts_registry = default();
-        Self { keyboard, mouse, command_registry, shortcuts_registry }
+        let observers = default();
+        Self { keyboard, mouse, command_registry, shortcuts_registry, observers }
     }
 
     fn process_rules(&self, rules: &[Shortcut]) {
@@ -294,7 +311,7 @@ impl RegistryModel {
                             match instance.command_map.borrow().get(command_name) {
                                 Some(cmd) =>
                                     if cmd.enabled {
-                                        targets.push(cmd.frp.clone_ref())
+                                        targets.push((cmd.frp.clone_ref(), command_name))
                                     },
                                 None => warn!("Command {command_name} was not found on {target}."),
                             }
@@ -303,9 +320,23 @@ impl RegistryModel {
                 })
             }
         }
-        for target in targets {
-            target.emit(())
+
+        for (target, name) in targets {
+            debug_span!("Emitting command {name} on {target:?}.").in_scope(|| {
+                let name = Some(ImString::from(name));
+                self.set_active_shortcut(name.as_ref().map(|s| s.as_ref()));
+                target.emit(());
+                self.set_active_shortcut(None);
+            });
         }
+    }
+
+    /// Sends the shortcut that is currently being executed to all observers.
+    fn set_active_shortcut(&self, name: Option<&str>) {
+        let name = name.map(ImString::from);
+        with(self.observers.borrow(), |observers| {
+            observers.iter().for_each(|observer| observer.observer.emit(name.clone_ref()))
+        });
     }
 
     fn condition_checker(
@@ -321,6 +352,11 @@ impl RegistryModel {
             Or(a, b) => Self::condition_checker(a, status) || Self::condition_checker(b, status),
             And(a, b) => Self::condition_checker(a, status) && Self::condition_checker(b, status),
         }
+    }
+
+    /// Register a new observer. It will be notified when a shortcut is executed.
+    pub fn add_observer(&self, observer: Observer) {
+        with(self.observers.borrow_mut(), |mut observers| observers.push(observer))
     }
 }
 

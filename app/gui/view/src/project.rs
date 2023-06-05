@@ -49,6 +49,11 @@ pub mod project_view_top_bar;
 /// Browser when user is quickly typing in the expression input.
 const INPUT_CHANGE_DELAY_MS: i32 = 200;
 
+/// The name of the command used to undo the last action.
+///
+/// It is used to discern undo command in `current_shortcut` output, allowing other components to
+/// handle it in a special way.
+const UNDO_COMMAND_NAME: &str = "undo";
 
 
 // ===========
@@ -135,6 +140,8 @@ ensogl::define_endpoints! {
         drop_files_enabled             (bool),
         debug_mode                     (bool),
         go_to_dashboard_button_pressed (),
+        /// The name of the command currently being handled due to shortcut being pressed.
+        current_shortcut               (Option<ImString>),
     }
 }
 
@@ -646,8 +653,14 @@ impl View {
 
             model.popup.set_label <+ model.graph_editor.model.breadcrumbs.project_name_error;
         }
-
         init.emit(());
+
+        // === Shortcut observer ===
+        frp::extend! { network
+            observer <- any(...);
+            frp.source.current_shortcut <+ observer;
+        }
+        app.shortcuts.add_observer(shortcut::Observer { observer });
 
         Self { model, frp }
     }
@@ -718,7 +731,7 @@ impl application::View for View {
             (Press, "", "cmd alt p", "toggle_component_browser_private_entries_visibility"),
             (Press, "", "cmd s", "save_project_snapshot"),
             (Press, "", "cmd shift r", "restore_project_snapshot"),
-            (Press, "", "cmd z", "undo"),
+            (Press, "", "cmd z", UNDO_COMMAND_NAME),
             (Press, "", "cmd y", "redo"),
             (Press, "", "cmd shift z", "redo"),
             (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),
