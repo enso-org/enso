@@ -432,6 +432,11 @@ impl ActionBar {
         }
         self
     }
+
+    /// Visualization Chooser component getter.
+    pub fn visualization_chooser(&self) -> &VisualizationChooser {
+        &self.model.visualization_chooser
+    }
 }
 
 impl display::Object for ActionBar {

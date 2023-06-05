@@ -398,7 +398,7 @@ filter_blank_rows table when_any treat_nans_as_blank =
             merge = if when_any then (||) else (&&)
             missing_mask = cols.map (_.is_blank treat_nans_as_blank) . reduce merge
             non_missing_mask = missing_mask.not
-            table.filter non_missing_mask
+            table.filter non_missing_mask Filter_Condition.Is_True
         False -> table
 
 ## PRIVATE

@@ -109,6 +109,7 @@ type File_Format
         Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (File_Format.constructor_code n)))
 
 type Plain_Text_Format
+    @encoding Encoding.default_widget
     Plain_Text (encoding:Encoding=Encoding.utf_8)
 
     ## PRIVATE

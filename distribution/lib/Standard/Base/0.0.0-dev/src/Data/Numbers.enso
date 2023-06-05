@@ -1,3 +1,4 @@
+import project.Any.Any
 import project.Data.Text.Text
 import project.Data.Locale.Locale
 import project.Errors.Common.Arithmetic_Error
@@ -271,6 +272,7 @@ type Number
          Convert the value 5000 to a string.
 
              5000.format "#,##0"
+    @locale Locale.default_widget
     format : Text -> Locale -> Text
     format self format locale=Locale.default =
         symbols = DecimalFormatSymbols.new locale.java_locale
@@ -1142,7 +1144,7 @@ round_min_long = -99999999999999
 
 ## PRIVATE
    Restrict rounding decimal_places parameter.
-check_decimal_places : Integer -> Function
+check_decimal_places : Integer -> Any -> Any ! Illegal_Argument
 check_decimal_places decimal_places ~action =
     if decimal_places >= round_min_decimal_places && decimal_places <= round_max_decimal_places then action else
         msg = "round: decimal_places must be between " + round_min_decimal_places.to_text + " and " + round_max_decimal_places.to_text + " (inclusive), but was " + decimal_places.to_text
@@ -1150,7 +1152,7 @@ check_decimal_places decimal_places ~action =
 
 ## PRIVATE
    Restrict allowed range of input to rounding methods.
-check_round_input : Number -> Function
+check_round_input : Number -> Function -> Any ! Illegal_Argument
 check_round_input n ~action =
     if n >= round_min_long && n <= round_max_long then action else
         msg = "Error: `round` can only accept values between " + round_min_long.to_text + " and " + round_max_long.to_text + " (inclusive), but was " + n.to_text

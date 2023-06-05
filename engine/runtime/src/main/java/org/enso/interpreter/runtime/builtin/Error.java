@@ -25,6 +25,7 @@ public class Error {
   private final UninitializedState uninitializedState;
   private final NoSuchMethod noSuchMethod;
   private final NoSuchConversion noSuchConversion;
+  private final NoConversionCurrying noConversionCurrying;
   private final ModuleNotInPackageError moduleNotInPackageError;
   private final ArithmeticError arithmeticError;
   private final InvalidArrayIndex invalidArrayIndex;
@@ -60,6 +61,7 @@ public class Error {
     uninitializedState = builtins.getBuiltinType(UninitializedState.class);
     noSuchMethod = builtins.getBuiltinType(NoSuchMethod.class);
     noSuchConversion = builtins.getBuiltinType(NoSuchConversion.class);
+    noConversionCurrying = builtins.getBuiltinType(NoConversionCurrying.class);
     moduleNotInPackageError = builtins.getBuiltinType(ModuleNotInPackageError.class);
     arithmeticError = builtins.getBuiltinType(ArithmeticError.class);
     invalidArrayIndex = builtins.getBuiltinType(InvalidArrayIndex.class);
@@ -134,6 +136,11 @@ public class Error {
 
   public Atom makeInvalidConversionTarget(Object target) {
     return invalidConversionTarget.newInstance(target);
+  }
+
+  public Atom makeNoConversionCurrying(
+      boolean hasThis, boolean hasThat, UnresolvedConversion conversion) {
+    return noConversionCurrying.newInstance(hasThis, hasThat, conversion);
   }
 
   /**
