@@ -2,7 +2,9 @@
 //!
 //! # Corners
 //!
+//! ```text
 //!   ────╮
+//! ```
 //!
 //! The fundamental unit of edge layout is the [`Corner`]. A corner is a line segment attached to a
 //! 90° arc. The length of the straight segment, the radius of the arc, and the orientation of the
@@ -18,11 +20,13 @@
 //!
 //! # Junction points
 //!
+//! ```text
 //!              3
 //!   1         /
 //!    \    ╭─────╮
 //!     ────╯\     \
 //!           2     4
+//! ```
 //!
 //! The layout algorithm doesn't directly place corners. The layout algorithm places a sequence of
 //! junction points--coordinates where two horizontal corner ends or two vertical corner ends meet
@@ -35,6 +39,7 @@
 //! focused portion and an unfocused portion at an arbitrary location based on the mouse position,
 //! we need to subdivide one of the corners of the edge.
 //!
+//! ```text
 //!                  |\
 //!                  | 3
 //!                 /
@@ -42,11 +47,13 @@
 //!  ..........-'
 //!  \    \
 //!   1    2 (split)
+//! ```
 //!
 //! When the split position is on the straight segment of a corner, the corner can simply be split
 //! into a corner with a shorter segment (2-3), and a trivial corner consisting only of a straight
 //! segment (1-2).
 //!
+//! ```text
 //!                  |\
 //!                  | 4
 //!                 /
@@ -54,6 +61,7 @@
 //!  ..........-'  \
 //!  \         \    3 (split)
 //!   1         2
+//! ```
 //!
 //! The difficult case is when the split position is on the arc. In this case, it is not possible to
 //! draw the split using the same [`Rectangle`] shader that is used for everything else; a
