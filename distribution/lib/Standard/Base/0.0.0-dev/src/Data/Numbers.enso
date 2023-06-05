@@ -615,23 +615,16 @@ type Decimal
                     msg = "round cannot accept " + self.to_text
                     Error.throw (Arithmetic_Error.Error msg)
                 False ->  check_round_input self <|
-                    decimal_result = case use_bankers of
-                        False ->
-                            scale = 10 ^ decimal_places
-                            ((self * scale) + 0.5).floor / scale
-                        True ->
-                            ## If the largest integer <= self is odd, use normal
-                               round-towards-positive-infinity rounding; otherwise,
-                               use round-towards-negative-infinity rounding.
-                            scale = 10 ^ decimal_places
-                            scaled_self = self * scale
-                            self_scaled_floor = scaled_self.floor
-                            is_even = (self_scaled_floor % 2) == 0
-                            case is_even of
-                                False ->
-                                    (scaled_self + 0.5).floor / scale
-                                True ->
-                                    (scaled_self - 0.5).ceil / scale
+                    decimal_result =
+                        # Algorithm taken from https://stackoverflow.com/a/7211688
+                        scale = 10 ^ decimal_places
+                        scaled = self * scale
+                        round_base = scaled.floor
+                        round_midpoint = (round_base + 0.5) / scale
+                        even_is_up = if self >= 0 then (scaled.truncate % 2) != 0 else (scaled.truncate % 2) == 0
+                        half_goes_up = if use_bankers then even_is_up else True
+                        do_round_up = if half_goes_up then self >= round_midpoint else self > round_midpoint
+                        if do_round_up then ((round_base + 1.0) / scale) else (round_base / scale)
                     # Convert to integer if it's really an integer anyway.
                     if decimal_places > 0 then decimal_result else decimal_result.truncate
 
@@ -940,11 +933,24 @@ type Integer
             12250 . round -2 use_bankers=True == 12200
     round : Integer -> Boolean -> Integer ! Illegal_Argument
     round self decimal_places=0 use_bankers=False =
-        check_decimal_places decimal_places <| check_round_input self <|
-            ## It's already an integer so unless decimal_places is
-               negative, the value is unchanged.
-            if decimal_places >= 0 then self else
-                self.to_decimal.round decimal_places use_bankers . truncate
+        ## It's already an integer so unless decimal_places is
+           negative, the value is unchanged.
+        if decimal_places >= 0 then self else
+            check_decimal_places decimal_places <| check_round_input self <|
+                scale = 10 ^ -decimal_places
+                halfway = scale.div 2
+                remainder = self % scale
+                scaled_down = self.div scale
+                result_unnudged = scaled_down * scale
+                case self >= 0 of
+                    True ->
+                        half_goes_up = if use_bankers then (scaled_down % 2) != 0 else True
+                        round_up = if half_goes_up then remainder >= halfway else remainder > halfway
+                        if round_up  then result_unnudged + scale else result_unnudged
+                    False ->
+                        half_goes_up = if use_bankers then (scaled_down % 2) == 0 else True
+                        round_up = if half_goes_up then remainder < -halfway else remainder <= -halfway
+                        if round_up then result_unnudged - scale else result_unnudged
 
     ## Compute the negation of this.
 
