@@ -1,6 +1,9 @@
 import project.IO
 export project.IO
 
+import project.Data
+export project.Data
+
 import project.Panic.Panic
 export project.Panic.Panic
 
@@ -42,3 +45,6 @@ export project.Runtime
 
 import project.Warning
 export project.Warning
+
+import project.Nothing.Nothing
+export project.Nothing.Nothing

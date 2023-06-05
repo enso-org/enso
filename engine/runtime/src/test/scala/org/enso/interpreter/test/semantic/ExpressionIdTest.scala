@@ -68,10 +68,10 @@ class ExpressionIdTest extends InterpreterTest {
           |main = Nothing.method
           |""".stripMargin.linesIterator.mkString("\n")
       val meta = new Metadata
-      val id1  = meta.addItem(137, 5)
-      val id2  = meta.addItem(155, 1)
-      val id3  = meta.addItem(151, 7)
-      val id4  = meta.addItem(163, 9)
+      val id1  = meta.addItem(142, 5)
+      val id2  = meta.addItem(160, 1)
+      val id3  = meta.addItem(156, 7)
+      val id4  = meta.addItem(168, 9)
 
       instrumenter.assertNodeExists(id1, "30")
       instrumenter.assertNodeExists(id2, "10")

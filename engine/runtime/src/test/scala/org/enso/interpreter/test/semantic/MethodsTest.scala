@@ -27,7 +27,7 @@ class MethodsTest extends InterpreterTest {
         """import Standard.Base.IO
           |from Standard.Base import Nothing
           |
-          |Nothing.Nothing.foo = 0
+          |Nothing.foo = 0
           |
           |main = (IO.println "foo").foo
           |""".stripMargin
