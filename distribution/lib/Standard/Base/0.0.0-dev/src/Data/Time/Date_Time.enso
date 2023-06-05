@@ -532,6 +532,8 @@ type Date_Time
                 Panic.catch ArithmeticException (self.plus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))
             period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
+            time_period : Time_Period ->
+                self + time_period.to_duration
             date_period : Date_Period ->
                 self + date_period.to_period
 
@@ -610,6 +612,8 @@ type Date_Time
                 Panic.catch ArithmeticException (self.minus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))
             period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
+            time_period : Time_Period ->
+                self - time_period.to_duration
             date_period : Date_Period ->
                 self - date_period.to_period
         ensure_in_epoch result result
