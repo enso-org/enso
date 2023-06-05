@@ -1373,6 +1373,24 @@ type Table
          - If any column names in the new table are clashing, a
            `Duplicate_Output_Column_Names` is reported according to the
            `on_problems` setting.
+
+       ? Example Transpose Operation
+
+         Input Table `table`:
+
+            A | Name    | Country
+           ---|---------|---------
+            A | Example | France
+            B | Another | Germany
+
+         Result `table.transpose ['A'] 'Attribute' 'Value'`:
+
+            A | Attribute | Value
+           ---|-----------|---------
+            A | Name      | Example
+            A | Country   | France
+            B | Name      | Another
+            B | Country   | Germany
     @key_columns Widget_Helpers.make_column_name_vector_selector
     transpose : Vector (Integer | Text | Column_Selector) | Text | Integer -> Text -> Text -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names
     transpose self key_columns=[] (attribute_column_name="Name") (value_column_name="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
@@ -1414,6 +1432,21 @@ type Table
              an `Unquoted_Delimiter`
            - If there are more than 10 issues with a single column,
              an `Additional_Warnings`.
+
+       ? Example Cross Tab Operation
+
+         Input Table `table`:
+
+            A | B       | C
+           ---|---------|---------
+            A | Name    | Example
+            A | Country | France
+
+         Result `table.cross_tab ['A'] 'B' (Aggregate_Column.First 'C')`:
+
+            A | Name    | Country
+           ---|---------|---------
+            A | Example | France
     @group_by Widget_Helpers.make_column_name_vector_selector
     @name_column Widget_Helpers.make_column_name_selector
     @values (Widget_Helpers.make_aggregate_column_selector include_group_by=False)
