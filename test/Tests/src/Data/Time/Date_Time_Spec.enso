@@ -346,6 +346,15 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time+Time_Period.Minute . should_equal <| create_new_datetime 1970 1 1 0 1 (zone = Time_Zone.utc)
             time+Time_Period.Second . should_equal <| create_new_datetime 1970 1 1 0 0 1 (zone = Time_Zone.utc)
 
+        Test.specify "should support addition and subtraction of Date_Period Time_Period and" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc)
+            time+Date_Period.Quarter+Time_Period.Hour . should_equal <| create_new_datetime 1970 4 1 1 (zone = Time_Zone.utc)
+            time+Time_Period.Hour+Date_Period.Quarter . should_equal <| create_new_datetime 1970 4 1 1 (zone = Time_Zone.utc)
+            time+Date_Period.Year-Time_Period.Minute . should_equal <| create_new_datetime 1970 12 31 23 59 (zone = Time_Zone.utc)
+            time+Time_Period.Minute+Time_Period.Minute-Time_Period.Minute . should_equal <| create_new_datetime 1970 1 1 0 1 (zone = Time_Zone.utc)
+            time+Date_Period.Quarter-Date_Period.Month . should_equal <| create_new_datetime 1970 3 1 (zone = Time_Zone.utc)
+            time+Date_Period.Day-Time_Period.Day . should_equal <| create_new_datetime 1970 (zone = Time_Zone.utc)
+
         Test.specify "should get the default comparator for datetimes" <|
             Comparable.from (create_new_datetime 2023 2 3 23 59) . should_equal Default_Comparator
             Comparable.from (parse_datetime "2021-01-01T00:30:12.7102[UTC]") . should_equal Default_Comparator
