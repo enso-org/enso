@@ -132,17 +132,23 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
         .add(
             new UnaryLongToLongOp(Maps.TRUNCATE) {
               @Override
-              protected long doOperation(long a) { return a; }
+              protected long doOperation(long a) {
+                return a;
+              }
             })
         .add(
             new UnaryLongToLongOp(Maps.CEIL) {
               @Override
-              protected long doOperation(long a) { return a; }
+              protected long doOperation(long a) {
+                return a;
+              }
             })
         .add(
             new UnaryLongToLongOp(Maps.FLOOR) {
               @Override
-              protected long doOperation(long a) { return a; }
+              protected long doOperation(long a) {
+                return a;
+              }
             })
         .add(
             new LongNumericOp(Storage.Maps.DIV, true) {
