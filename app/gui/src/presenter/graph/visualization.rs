@@ -230,7 +230,7 @@ impl Visualization {
                 manager::Notification::FailedToAttach { visualization, error } => {
                     error!("Visualization {} failed to attach: {error}.", visualization.id);
                     let message =
-                        format!("Failed to open visualization because of an error: {error}.");
+                        format!("Failed to open visualization because of an error: {error}");
                     model.handle_controller_failure(
                         &failure_endpoint,
                         visualization.expression_id,
@@ -256,7 +256,7 @@ impl Visualization {
                         desired.id
                     );
                     let message =
-                        format!("Failed to modify visualization because of an error: {error}.");
+                        format!("Failed to modify visualization because of an error: {error}");
                     // Actually it would likely have more sense if we had just restored the previous
                     // visualization, as its LS state should be preserved. However, we already
                     // scrapped it on the GUI side and we don't even know its
