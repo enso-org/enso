@@ -548,8 +548,8 @@ class ValuesGenerator {
       collect.add(v(null, "", "[]").type());
       collect.add(v(null, "", "['a', 2, 0]").type());
       collect.add(v(null, "", "['a', 'b', 'c']").type());
-      collect.add(v(null, "from Standard.Base.Nothing import Nothing", "[Nothing, Nothing]").type());
-      collect.add(v(null, "from Standard.Base.Nothing import Nothing", "[Nothing, 'fff', 0, Nothing]").type());
+      collect.add(v(null, "from Standard.Base import Nothing", "[Nothing, Nothing]").type());
+      collect.add(v(null, "from Standard.Base import Nothing", "[Nothing, 'fff', 0, Nothing]").type());
     }
     return collect;
   }
@@ -559,7 +559,7 @@ class ValuesGenerator {
     if (languages.contains(Language.ENSO)) {
       var imports = """
           import Standard.Base.Data.Map.Map
-          import Standard.Base.Nothing.Nothing
+          from Standard.Base import Nothing
           """;
       for (var expr : List.of(
           "Map.empty",
