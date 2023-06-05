@@ -91,6 +91,11 @@ class TableVisualization extends Visualization {
             return content
         }
 
+        function escapeHTML(str) {
+            const mapping = { '&': '&amp;', '<': '&lt;', '"': '&quot;', "'": '&#39;', '>': '&gt;' }
+            return str.replace(/[&<>"']/g, m => mapping[m])
+        }
+
         function cellRenderer(params) {
             if (params.value === null) {
                 return '<span style="color:grey; font-style: italic;">Nothing</span>'
@@ -99,13 +104,7 @@ class TableVisualization extends Visualization {
             } else if (params.value === '') {
                 return '<span style="color:grey; font-style: italic;">Empty</span>'
             }
-            return params.value
-                .toString()
-                .replace(
-                    /[&<"'>]/g,
-                    m =>
-                        ({ '&': '&amp;', '<': '&lt;', '"': '&quot;', "'": '&#39;', '>': '&gt;' }[m])
-                )
+            return escapeHTML(params.value.toString())
         }
 
         if (!this.tabElem) {
