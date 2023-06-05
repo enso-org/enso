@@ -308,49 +308,53 @@ export class ProgressIndicator {
 /** The main loader class. It connects to the provided fetch responses and tracks their status. */
 export class Loader {
     indicator: ProgressIndicator
-    totalBytes: number
-    receivedBytes: number
-    downloadSpeed: number
-    lastReceiveTime: number
+    totalBytes = 0
+    receivedBytes = 0
+    numberOfResourcesCurrentlyLoading = 0
+    downloadSpeed = 0
+    lastReceiveTime = performance.now()
     initialized: Promise<void>
     capProgressAt: number
     done: Promise<void>
     doneResolve: null | ((value: void | PromiseLike<void>) => void) = null
+
     constructor(cfg: Options) {
         this.indicator = new ProgressIndicator(cfg)
-        this.totalBytes = 0
-        this.receivedBytes = 0
-        this.downloadSpeed = 0
-        this.lastReceiveTime = performance.now()
         this.initialized = this.indicator.initialized
         this.capProgressAt = cfg.groups.loader.options.downloadToInitRatio.value
-
         this.done = new Promise(resolve => {
             this.doneResolve = resolve
         })
     }
 
+    /** Logs a loader error to the console. */
+    error(message: string) {
+        console.error(`Loader error: ${message}`)
+    }
+
     /** Load the provided resources. */
     load(resources: Response[]) {
-        const loaderError = (msg: string) => console.error(`Loader error. ${msg}`)
         let missingContentLength = false
         for (const resource of resources) {
-            const contentLength = resource.headers.get('content-length')
-            if (contentLength) {
-                this.totalBytes += parseInt(contentLength)
+            const contentLengthString = resource.headers.get('content-length')
+            const contentLength = contentLengthString != null ? parseInt(contentLengthString) : null
+            if (contentLength != null) {
+                this.totalBytes += contentLength
             } else {
                 missingContentLength = true
             }
             const body = resource.clone().body
             if (body) {
-                body.pipeTo(this.inputStream()).catch(err => logger.error(err))
+                body.pipeTo(this.inputStream(resource.url, contentLength)).catch(err =>
+                    logger.error(err)
+                )
             } else {
-                loaderError('Cannot read the response body.')
+                this.error(`The body of the response '${resource.url}' cannot be read.`)
             }
         }
 
         if (missingContentLength || Number.isNaN(this.totalBytes)) {
-            loaderError("Server is not configured to send the 'Content-Length' metadata.")
+            this.error("The server is not configured to send the 'Content-Length' metadata.")
             this.totalBytes = 0
         }
     }
@@ -364,9 +368,9 @@ export class Loader {
         }
     }
 
-    /** Check whether the loader finished downloading all assets. */
+    /** Check whether the loader has finished downloading all assets. */
     isDone() {
-        return this.receivedBytes == this.totalBytes
+        return this.numberOfResourcesCurrentlyLoading === 0
     }
 
     /** Run the hide animation and then remove the loader DOM element. */
@@ -391,12 +395,6 @@ export class Loader {
             const indicatorProgress = this.value() * this.capProgressAt
             this.indicator.set(indicatorProgress)
         }
-        if (this.isDone()) {
-            this.indicator.set(1)
-            if (this.doneResolve) {
-                this.doneResolve()
-            }
-        }
     }
 
     /** Download percentage value. */
@@ -420,11 +418,43 @@ export class Loader {
     }
 
     /** Internal function for attaching new fetch responses. */
-    inputStream(): WritableStream<Uint8Array> {
+    inputStream(description: string, expectedLength: number | null): WritableStream<Uint8Array> {
         const loader = this
+        let length = 0
+        this.numberOfResourcesCurrentlyLoading += 1
+        const markResourceAsFinishedLoading = () => {
+            this.numberOfResourcesCurrentlyLoading -= 1
+            if (this.isDone()) {
+                this.indicator.set(1)
+                if (this.doneResolve) {
+                    this.doneResolve()
+                }
+            } else if (this.numberOfResourcesCurrentlyLoading < 0) {
+                this.error(
+                    `There are ${this.numberOfResourcesCurrentlyLoading} resources ` +
+                        `currently loading, which should not be possible. ` +
+                        `The resource '${description}' (or another resource) may have been ` +
+                        `closed multiple times.`
+                )
+            }
+        }
         return new WritableStream({
-            write(t) {
-                loader.onReceive(t.length)
+            write(bytes) {
+                loader.onReceive(bytes.length)
+                length += bytes.length
+            },
+            close() {
+                markResourceAsFinishedLoading()
+                if (expectedLength != null && length != expectedLength) {
+                    loader.error(
+                        `The resource '${description}' has the wrong 'Content-Length' ` +
+                            `header value. ` +
+                            `It should be ${length} but was ${expectedLength} instead.`
+                    )
+                }
+            },
+            abort() {
+                markResourceAsFinishedLoading()
             },
         })
     }
