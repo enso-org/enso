@@ -15,7 +15,7 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be used in function bodies" in {
       val code =
-        """import Standard.Base.Nothing
+        """from Standard.Base import Nothing
           |
           |Nothing.a = 10
           |Nothing.add_ten = b -> Nothing.a + b
@@ -28,7 +28,7 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be passed when given out of order" in {
       val code =
-        """import Standard.Base.Nothing
+        """from Standard.Base import Nothing
           |
           |Nothing.subtract = a -> b -> a - b
           |
@@ -53,7 +53,7 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be definable" in {
       val code =
-        """import Standard.Base.Nothing
+        """from Standard.Base import Nothing
           |
           |Nothing.add_num = a -> (num = 10) -> a + num
           |
@@ -65,7 +65,7 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be able to default to complex expressions" in {
       val code =
-        """import Standard.Base.Nothing
+        """from Standard.Base import Nothing
           |
           |Nothing.add = a -> b -> a + b
           |Nothing.do_thing = a -> (b = Nothing.add 1 2) -> a + b
@@ -91,7 +91,7 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be used in functions when no arguments are supplied" in {
       val code =
-        """import Standard.Base.Nothing
+        """from Standard.Base import Nothing
           |
           |Nothing.add_together = (a = 5) -> (b = 6) -> a + b
           |
@@ -103,7 +103,7 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be overridable by name" in {
       val code =
-        """import Standard.Base.Nothing
+        """from Standard.Base import Nothing
           |
           |Nothing.add_num = a -> (num = 10) -> a + num
           |
@@ -115,7 +115,7 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "overridable by position" in {
       val code =
-        """import Standard.Base.Nothing
+        """from Standard.Base import Nothing
           |
           |Nothing.add_num = a -> (num = 10) -> a + num
           |
@@ -127,7 +127,7 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "work in a recursive context" in {
       val code =
-        """import Standard.Base.Nothing
+        """from Standard.Base import Nothing
           |import Standard.Base.Any.Any
           |
           |Nothing.summer = sumTo ->
@@ -159,7 +159,7 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be applied in a sequence compatible with Eta-expansions" in {
       val code =
-        """import Standard.Base.Nothing
+        """from Standard.Base import Nothing
           |
           |Nothing.foo = a -> b -> c -> a -> a
           |main = Nothing.foo 20 (a = 10) 0 0
@@ -170,7 +170,7 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be able to depend on prior arguments" in {
       val code =
-        """import Standard.Base.Nothing
+        """from Standard.Base import Nothing
           |
           |Nothing.double_or_add = a -> (b = a) -> a + b
           |
@@ -182,7 +182,7 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "not be able to depend on later arguments" in {
       val code =
-        """import Standard.Base.Nothing
+        """from Standard.Base import Nothing
           |
           |Nothing.bad_arg_fn = a -> (b = c) -> (c = a) -> a + b + c
           |
@@ -251,7 +251,7 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "work with constructors" in {
       val code =
-        """import Standard.Base.Nothing
+        """from Standard.Base import Nothing
           |
           |type C2
           |    Cons2 head (rest = Nil2)

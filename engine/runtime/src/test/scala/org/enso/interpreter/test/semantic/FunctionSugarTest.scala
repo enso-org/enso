@@ -22,7 +22,7 @@ class FunctionSugarTest extends InterpreterTest {
 
     "work for methods" in {
       val code =
-        """import Standard.Base.Nothing
+        """from Standard.Base import Nothing
           |
           |Nothing.foo a b = a * b - a
           |

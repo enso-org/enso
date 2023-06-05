@@ -111,7 +111,7 @@ class TextTest extends InterpreterTest {
           |from Standard.Base.Errors.Common import all
           |import Standard.Base.Panic.Panic
           |import Standard.Base.IO
-          |import Standard.Base.Nothing
+          |from Standard.Base import Nothing
           |import Standard.Base.Data.Json.Extensions
           |
           |main =

@@ -1,4 +1,4 @@
-import Standard.Base.Nothing
+from Standard.Base import Nothing
 import local.TestNonImportedOwnMethods.Util
 
 type X

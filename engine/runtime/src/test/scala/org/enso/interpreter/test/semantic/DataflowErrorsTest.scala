@@ -11,7 +11,7 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "propagate through pattern matches" in {
       val code =
-        """import Standard.Base.Nothing
+        """from Standard.Base import Nothing
           |import Standard.Base.Error.Error
           |import Standard.Base.IO
           |
@@ -31,7 +31,7 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "propagate through specialized pattern matches" in {
       val code =
-        """import Standard.Base.Nothing
+        """from Standard.Base import Nothing
           |import Standard.Base.Error.Error
           |import Standard.Base.IO
           |
@@ -63,7 +63,7 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "accept a constructor handler in catch function" in {
       val code =
-        """import Standard.Base.Nothing
+        """from Standard.Base import Nothing
           |import Standard.Base.Error.Error
           |import Standard.Base.IO
           |

@@ -26,7 +26,7 @@ public class PolyglotErrorTest extends TestBase {
     import Standard.Base.Data.Text.Text
     import Standard.Base.Error.Error
     import Standard.Base.Errors.Illegal_State.Illegal_State
-    import Standard.Base.Nothing.Nothing
+    from Standard.Base import Nothing
     import Standard.Base.Warning.Warning
     polyglot java import org.enso.interpreter.test.PolyglotErrorTest
 

@@ -89,7 +89,7 @@ class CodeLocationsTest extends InterpreterTest {
     withLocationsInstrumenter { instrumenter =>
       val code =
         """
-          |import Standard.Base.Nothing
+          |from Standard.Base import Nothing
           |import Standard.Base.IO
           |
           |Nothing.method =

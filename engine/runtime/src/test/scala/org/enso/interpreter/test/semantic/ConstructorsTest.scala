@@ -86,7 +86,7 @@ class ConstructorsTest extends InterpreterTest {
 
     "be usable in code, with arbitrary definition order" in {
       val testCode =
-        """import Standard.Base.Nothing.Nothing
+        """from Standard.Base import Nothing
           |import Standard.Base.Any.Any
           |
           |type C2

@@ -1,4 +1,4 @@
-import Standard.Base.Nothing
+from Standard.Base import Nothing
 
 type X
     Mk_X a

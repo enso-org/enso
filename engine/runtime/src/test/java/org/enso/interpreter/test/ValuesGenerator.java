@@ -148,7 +148,7 @@ class ValuesGenerator {
 
   public Value typeNothing() {
     return v("typeNothing", """
-    import Standard.Base.Nothing.Nothing
+    from Standard.Base import Nothing
     """, "Nothing").type();
   }
 

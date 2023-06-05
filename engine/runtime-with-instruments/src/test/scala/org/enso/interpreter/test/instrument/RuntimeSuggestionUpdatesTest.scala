@@ -799,7 +799,7 @@ class RuntimeSuggestionUpdatesTest
     val contents =
       """from Standard.Base.Data.Numbers import Number
         |import Standard.Base.Data.Text
-        |import Standard.Base.Nothing
+        |from Standard.Base import Nothing
         |
         |main =
         |    x = 15.overloaded 1

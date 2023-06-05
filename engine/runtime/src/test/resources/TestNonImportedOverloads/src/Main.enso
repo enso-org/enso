@@ -1,4 +1,4 @@
-import Standard.Base.Nothing
+from Standard.Base import Nothing
 from Standard.Base.Errors.Common import all
 from local.TestNonImportedOverloads.Util import all
 

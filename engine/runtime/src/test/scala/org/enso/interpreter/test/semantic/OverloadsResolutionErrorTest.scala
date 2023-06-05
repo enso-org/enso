@@ -20,7 +20,7 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
 
     "result in an error at runtime for method overloads" in {
       val code =
-        """import Standard.Base.Nothing
+        """from Standard.Base import Nothing
           |
           |Nothing.foo = 10
           |Nothing.foo = 20

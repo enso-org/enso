@@ -1766,7 +1766,7 @@ class RuntimeServerTest
     val code =
       """from Standard.Base.Data.Numbers import Number
         |from Standard.Base.Data.Text import all
-        |import Standard.Base.Nothing
+        |from Standard.Base import Nothing
         |
         |main =
         |    x = 15.overloaded 1

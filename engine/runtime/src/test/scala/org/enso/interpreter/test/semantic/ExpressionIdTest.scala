@@ -55,7 +55,7 @@ class ExpressionIdTest extends InterpreterTest {
     withIdsInstrumenter { instrumenter =>
       val code =
         """
-          |import Standard.Base.Nothing
+          |from Standard.Base import Nothing
           |import Standard.Base.IO
           |
           |Nothing.method =

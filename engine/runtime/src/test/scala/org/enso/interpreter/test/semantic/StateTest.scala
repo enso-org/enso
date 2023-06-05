@@ -70,7 +70,7 @@ class StateTest extends InterpreterTest {
         """from Standard.Base.Data.Numbers import Number
           |import Standard.Base.Data.List.List
           |import Standard.Base.IO
-          |import Standard.Base.Nothing
+          |from Standard.Base import Nothing
           |import Standard.Base.Runtime.State
           |
           |run =

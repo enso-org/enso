@@ -25,7 +25,7 @@ class MethodsTest extends InterpreterTest {
     "execute `self` argument once" in {
       val code =
         """import Standard.Base.IO
-          |import Standard.Base.Nothing
+          |from Standard.Base import Nothing
           |
           |Nothing.Nothing.foo = 0
           |
@@ -114,7 +114,7 @@ class MethodsTest extends InterpreterTest {
       val code =
         """import Standard.Base.Any.Any
           |import Standard.Base.IO
-          |import Standard.Base.Nothing
+          |from Standard.Base import Nothing
           |
           |type Foo
           |type Bar
@@ -174,7 +174,7 @@ class MethodsTest extends InterpreterTest {
           |
           |    inc self = Foo.Mk_Foo self.a+1
           |
-          |main = 
+          |main =
           |    IO.println (Foo.inc (Foo.Mk_Foo 12))
           |    IO.println (Foo.Mk_Foo 13).inc
           |    IO.println (.inc self=Foo self=(Foo.Mk_Foo 14))
@@ -222,7 +222,7 @@ class MethodsTest extends InterpreterTest {
     "not be callable on Nothing when non-static" in {
       val code =
         """
-          |import Standard.Base.Nothing.Nothing
+          |from Standard.Base import Nothing
           |
           |main = Nothing.is_nothing Nothing
           |""".stripMargin
