@@ -439,6 +439,28 @@ class ImportExportTest
       errors.size shouldEqual 0
     }
 
+    "resolve Element from Main" in {
+      val mainIr = """
+                     |import Test.Logical_Export.Api.Element.Element
+                     |
+                     |main =
+                     |    element = Element.create
+                     |    element.describe
+                     |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+        .getIr
+
+      mainIr.imports.size shouldEqual 1
+      val in = mainIr.imports.head
+        .asInstanceOf[IR.Module.Scope.Import.Module]
+
+      in.name.name.toString() should include("Test.Logical_Export")
+      in.onlyNames shouldEqual None
+
+      val errors = mainIr.preorder.filter(x => x.isInstanceOf[IR.Error])
+      errors.size shouldEqual 0
+    }
+
     "don't expose Impl from Main" in {
       val mainIr = """
                      |from Test.Logical_Export import Impl

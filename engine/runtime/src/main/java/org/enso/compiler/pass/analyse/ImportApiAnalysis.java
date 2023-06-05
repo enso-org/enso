@@ -1,5 +1,10 @@
 package org.enso.compiler.pass.analyse;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.Set;
 import java.util.UUID;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
@@ -17,6 +22,7 @@ import org.enso.compiler.pass.resolve.MethodDefinitions$;
 import org.enso.compiler.pass.resolve.Patterns$;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.util.ScalaConversions;
+import org.enso.pkg.QualifiedName;
 import scala.collection.immutable.Seq;
 
 /** Verifies that all imported symbols are also accessible via {@code Main.enso}.
@@ -53,7 +59,7 @@ public class ImportApiAnalysis implements IRPass {
   @Override
   public IR.Module runModule(IR.Module ir, ModuleContext moduleContext) {
     var map = (BindingsMap) ir.passData().get(BindingAnalysis$.MODULE$).get();
-    var forbiddenImports = new java.util.HashMap<String, String>();
+    var forbiddenImports = new HashMap<String, String>();
 
     for (var imp : ScalaConversions.asJava(map.resolvedImports())) {
       var mod = switch (imp.target()) {
@@ -79,34 +85,11 @@ public class ImportApiAnalysis implements IRPass {
                 forbidden = false;
               } else {
                 // if different that Main mod is requested, do a check
-                SET_FORBIDDEN:
                 if (mainModule.getIr() == null) {
                   // if main mod IR isn't loaded, then certainly the import didn't go thru Main
                   forbidden = true;
                 } else {
-                  var mainMap = (BindingsMap) mainModule.getIr().passData().get(BindingAnalysis$.MODULE$).get();
-                  var itMainMap = mainMap.exportedSymbols().iterator();
-                  while (itMainMap.hasNext()) {
-                    for (var module : ScalaConversions.asJava(itMainMap.next()._2())) {
-                      switch (module) {
-                        case BindingsMap.ResolvedModule rm -> {
-                          switch (rm.module()) {
-                            case BindingsMap$ModuleReference$Concrete allowed -> {
-                              if (allowed.module() == mod) {
-                                forbidden = false;
-                                break SET_FORBIDDEN;
-                              }
-                            }
-                            default -> {
-                            }
-                          }
-                        }
-                        default -> {
-                        }
-                      }
-                    }
-                  }
-                  forbidden = true;
+                  forbidden = findLogicalImport(mod, mainModule);
                 }
               }
               if (forbidden) {
@@ -128,9 +111,9 @@ public class ImportApiAnalysis implements IRPass {
           var segments = name.split("\\.");
           var last = segments[segments.length - 1];
           yield new IR$Error$ImportExport(
-          imp,
-          new IR$Error$ImportExport$SymbolDoesNotExist(last, pkg),
-          imp.passData(), imp.diagnostics()
+            imp,
+            new IR$Error$ImportExport$SymbolDoesNotExist(last, pkg),
+            imp.passData(), imp.diagnostics()
           );
         } else {
           yield mod;
@@ -158,6 +141,64 @@ public class ImportApiAnalysis implements IRPass {
   @Override
   public <T extends IR> T updateMetadataInDuplicate(T sourceIr, T copyOfIr) {
     return copyOfIr;
+  }
+
+  /** @return {@code true} if the {@code mod} isn't allowed to be imported */
+  private static boolean findLogicalImport(Module mod, Module rootModule) {
+    var checked = new HashSet<>();
+    var toProcess = new LinkedList<Module>();
+    toProcess.add(rootModule);
+
+    for (;;) {
+      if (toProcess.isEmpty()) {
+        break;
+      }
+      var current = toProcess.remove();
+      if (!checked.add(current)) {
+        continue;
+      }
+      var map = (BindingsMap) current.getIr().passData().get(BindingAnalysis$.MODULE$).get();
+
+      var itMainMap = map.exportedSymbols().iterator();
+      while (itMainMap.hasNext()) {
+        for (var module : ScalaConversions.asJava(itMainMap.next()._2())) {
+          switch (module) {
+            case BindingsMap.ResolvedModule rm -> {
+              switch (rm.module()) {
+                case BindingsMap$ModuleReference$Concrete allowed -> {
+                  if (allowed.module() == mod) {
+                    // found import
+                    return false;
+                  } else {
+                    if (isParentModule(allowed.getName(), mod.getName())) {
+                      toProcess.add(allowed.module());
+                    }
+                  }
+                }
+                default -> {
+                }
+              }
+            }
+            default -> {
+            }
+          }
+        }
+      }
+    }
+    return true;
+  }
+
+  private static boolean isParentModule(QualifiedName parent, QualifiedName mod) {
+    var path = parent.pathAsJava();
+    for (int i = 0; i < path.size(); i++) {
+      if (mod.pathAsJava().size() >= i) {
+        break;
+      }
+      if (!mod.pathAsJava().get(i).equals(path.get(i))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @SuppressWarnings("unchecked")
