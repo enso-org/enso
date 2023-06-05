@@ -95,7 +95,7 @@ async fn ls_text_protocol_test() {
     response.expect("Couldn't write yaml file.");
 
     // Setting execution context.
-    let execution_context = client.create_execution_context().await;
+    let execution_context = client.create_execution_context(&Uuid::new_v4()).await;
     let execution_context = execution_context.expect("Couldn't create execution context.");
     let execution_context_id = execution_context.context_id;
 
