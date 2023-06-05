@@ -106,19 +106,27 @@ struct NetworkData {
 
 #[derive(Clone, Copy, Debug, Default, Zeroable)]
 pub struct Edge {
-    pub target:           NodeId,
-    pub behavior_request: bool,
+    pub target:     NodeId,
+    pub is_sampler: bool,
 }
 
 #[derive(Default, Zeroable)]
 pub struct NodeData {
-    tp:                ZeroableOption<Box<dyn EventConsumer>>,
-    network_id:        NetworkId,
-    def:               DefInfo,
-    inputs:            OptRefCell<UnrolledLinkedList<NodeId, 8, usize, prealloc::Zeroed>>,
-    outputs:           OptRefCell<UnrolledLinkedList<Edge, 8, usize, prealloc::Zeroed>>,
-    output:            OptRefCell<ZeroableOption<Box<dyn Data>>>,
-    behavior_requests: Cell<usize>,
+    tp:              ZeroableOption<Box<dyn EventConsumer>>,
+    network_id:      NetworkId,
+    def:             DefInfo,
+    inputs:          OptRefCell<UnrolledLinkedList<NodeId, 8, usize, prealloc::Zeroed>>,
+    /// Outputs to which an event should be emitted. This includes both [`Listener`] and
+    /// [`ListenerAndSampler`] connections.
+    outputs:         OptRefCell<UnrolledLinkedList<Edge, 8, usize, prealloc::Zeroed>>,
+    /// Outputs to which an event should NOT be emitted. This includes only [`Sampler`]
+    /// connections.
+    sampler_outputs: OptRefCell<UnrolledLinkedList<Edge, 8, usize, prealloc::Zeroed>>,
+    output_cache:    OptRefCell<ZeroableOption<Box<dyn Data>>>,
+    /// Number of samplers connected to this nodes. This includes both the count of
+    /// [`ListenerAndSampler`] connections in [`Self::outputs`] and the count of all connections in
+    /// [`Self::sampler_outputs`].
+    sampler_count:   Cell<usize>,
     // WARNING!
     // When adding new fields, be sure that they are correctly handled by the [`ImClearable`] and
     // [`Reusable`] trait implementations.
@@ -128,8 +136,9 @@ impl ImClearable for NodeData {
     fn clear_im(&self) {
         self.inputs.borrow_mut().clear();
         self.outputs.borrow_mut().clear();
-        self.output.replace(default());
-        self.behavior_requests.set(0);
+        self.sampler_outputs.borrow_mut().clear();
+        self.output_cache.replace(default());
+        self.sampler_count.set(0);
     }
 }
 
@@ -157,7 +166,7 @@ impl NodeData {
     //         inputs: default(),
     //         outputs: default(),
     //         output: default(),
-    //         behavior_requests: default(),
+    //         sampler_count: default(),
     //     }
     // }
 
@@ -280,16 +289,21 @@ impl Runtime {
     }
 
     #[inline(always)]
-    fn connect(&self, src_id: NodeId, tgt_id: NodeId, behavior_request: bool) {
-        let output_connection = Edge { target: tgt_id, behavior_request };
-        if let Some(src) = self.nodes.get(src_id) {
-            if behavior_request {
-                src.borrow().behavior_requests.modify(|t| *t += 1);
+    fn connect(&self, src_id: impl Into<InputType<NodeId>>, tgt_id: NodeId) {
+        let src_id = src_id.into();
+        let is_listener = src_id.is_listener();
+        let is_sampler = src_id.is_sampler();
+        let output_connection = Edge { target: tgt_id, is_sampler };
+        if let Some(src) = self.nodes.get(src_id.value()) {
+            let src = src.borrow();
+            if is_sampler {
+                src.sampler_count.modify(|t| *t += 1);
             }
-            src.borrow().outputs.borrow().push(output_connection);
+            let outputs = if is_listener { &src.outputs } else { &src.sampler_outputs };
+            outputs.borrow().push(output_connection);
         }
         if let Some(tgt) = self.nodes.get(tgt_id) {
-            tgt.borrow().inputs.borrow().push(src_id);
+            tgt.borrow().inputs.borrow().push(src_id.value());
         }
     }
 
@@ -302,8 +316,8 @@ impl Runtime {
 
     #[inline(always)]
     fn unchecked_emit_internal(&self, src_node_id: NodeId, src_node: &NodeData, event: &dyn Data) {
-        if src_node.behavior_requests.get() > 0 {
-            *src_node.output.borrow_mut() = ZeroableOption::Some(event.boxed_clone());
+        if src_node.sampler_count.get() > 0 {
+            *src_node.output_cache.borrow_mut() = ZeroableOption::Some(event.boxed_clone());
         }
 
         self.stack.with(src_node.def, || {
@@ -318,20 +332,43 @@ impl Runtime {
             }
 
             if cleanup_outputs {
-                src_node.outputs.borrow_mut().retain(|output| self.nodes.exists(output.target));
+                src_node.outputs.borrow_mut().retain(|output| {
+                    let retain = self.nodes.exists(output.target);
+                    if !retain && output.is_sampler {
+                        src_node.sampler_count.update(|t| t - 1);
+                    }
+                    retain
+                });
+            }
+
+            let mut cleanup_sampler_outputs = false;
+            for &output in &*src_node.sampler_outputs.borrow() {
+                if self.nodes.get(output.target).is_none() {
+                    cleanup_sampler_outputs = true;
+                }
+            }
+
+            if cleanup_sampler_outputs {
+                src_node.sampler_outputs.borrow_mut().retain(|output| {
+                    let retain = self.nodes.exists(output.target);
+                    if !retain && output.is_sampler {
+                        src_node.sampler_count.update(|t| t - 1);
+                    }
+                    retain
+                });
             }
         });
     }
 
     #[inline(always)]
-    unsafe fn with_borrowed_node_output_coerced<T: Default>(
+    unsafe fn with_borrowed_node_output_cache_coerced<T: Default>(
         &self,
         node_id: NodeId,
         f: impl FnOnce(&T),
     ) {
         if let Some(node) = self.nodes.get(node_id) {
             let borrowed_node = node.borrow();
-            let output = borrowed_node.output.borrow();
+            let output = borrowed_node.output_cache.borrow();
             if let Some(output) = output.as_ref().map(|t| &**t) {
                 let output_coerced = unsafe { &*(output as *const dyn Data as *const T) };
                 f(output_coerced)
@@ -409,11 +446,102 @@ pub trait Node: Copy {
 // === Node Definition Generics ===
 // ================================
 
-#[derive(Debug, Clone, Copy, Deref, DerefMut)]
-struct Event<T>(T);
 
-#[derive(Debug, Clone, Copy, Deref, DerefMut)]
-struct Behavior<T>(T);
+
+#[derive(Clone, Copy, Debug, Deref, DerefMut, Eq, PartialEq)]
+pub struct Listen<T>(T);
+
+#[derive(Clone, Copy, Debug, Deref, DerefMut, Eq, PartialEq)]
+pub struct Sample<T>(T);
+
+#[derive(Clone, Copy, Debug, Deref, DerefMut, Eq, PartialEq)]
+pub struct ListenAndSample<T>(T);
+
+impl<T> Listen<T> {
+    #[inline(always)]
+    fn map<S>(self, f: impl FnOnce(T) -> S) -> Listen<S> {
+        Listen(f(self.0))
+    }
+}
+
+impl<T> Sample<T> {
+    #[inline(always)]
+    fn map<S>(self, f: impl FnOnce(T) -> S) -> Sample<S> {
+        Sample(f(self.0))
+    }
+}
+
+impl<T> ListenAndSample<T> {
+    #[inline(always)]
+    fn map<S>(self, f: impl FnOnce(T) -> S) -> ListenAndSample<S> {
+        ListenAndSample(f(self.0))
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum InputType<T> {
+    Listen(T),
+    ListenAndSample(T),
+    Sample(T),
+}
+
+impl<T> InputType<T> {
+    #[inline(always)]
+    pub fn value(self) -> T {
+        match self {
+            InputType::Listen(t) => t,
+            InputType::ListenAndSample(t) => t,
+            InputType::Sample(t) => t,
+        }
+    }
+
+    #[inline(always)]
+    pub fn is_sampler(self) -> bool {
+        match self {
+            InputType::Listen(_) => false,
+            InputType::ListenAndSample(_) => true,
+            InputType::Sample(_) => true,
+        }
+    }
+
+    #[inline(always)]
+    pub fn is_listener(self) -> bool {
+        match self {
+            InputType::Listen(_) => true,
+            InputType::ListenAndSample(_) => true,
+            InputType::Sample(_) => false,
+        }
+    }
+}
+
+impl<T> From<Listen<T>> for InputType<T> {
+    #[inline(always)]
+    fn from(t: Listen<T>) -> Self {
+        InputType::Listen(t.0)
+    }
+}
+
+impl<T> From<ListenAndSample<T>> for InputType<T> {
+    #[inline(always)]
+    fn from(t: ListenAndSample<T>) -> Self {
+        InputType::ListenAndSample(t.0)
+    }
+}
+
+impl<T> From<Sample<T>> for InputType<T> {
+    #[inline(always)]
+    fn from(t: Sample<T>) -> Self {
+        InputType::Sample(t.0)
+    }
+}
+
+
+
+// #[derive(Debug, Clone, Copy, Deref, DerefMut)]
+// struct Listen<T>(T);
+//
+// #[derive(Debug, Clone, Copy, Deref, DerefMut)]
+// struct Sample<T>(T);
 
 trait NodeDefinition<Kind, Inputs, Output, F> {
     fn define_node(&self, inputs: Inputs, f: F) -> NodeTemplate<Kind, Output>;
@@ -438,73 +566,64 @@ where F: Fn(TypedNodeData<Output>, &NodeData, NodeId, Edge) + 'static
     }
 }
 
-impl<Kind, N0, T0, Output, F> NodeDefinition<Kind, Event<N0>, Output, F> for &Network
+impl<Kind, N0, T0, Output, F> NodeDefinition<Kind, Listen<N0>, Output, F> for &Network
 where
     N0: Node<Output = T0>,
     F: Fn(TypedNodeData<Output>, &NodeData, NodeId, Edge, &T0) + 'static,
 {
     #[inline(always)]
-    fn define_node(&self, inputs: Event<N0>, f: F) -> NodeTemplate<Kind, Output> {
+    fn define_node(&self, inputs: Listen<N0>, f: F) -> NodeTemplate<Kind, Output> {
         let node = NodeTemplate::new_template(
             move |runtime: &Runtime,
-                  node_data: &NodeData,
-                  source_id: NodeId,
-                  source_edge: Edge,
+                  src_node_data: &NodeData,
+                  src_node_id: NodeId,
+                  src_edge: Edge,
                   event: &dyn Data| {
                 let event = unsafe { &*(event as *const dyn Data as *const T0) };
-                f(xx_unchecked_into(runtime), node_data, source_id, source_edge, event);
+                f(xx_unchecked_into(runtime), src_node_data, src_node_id, src_edge, event);
             },
             self.id,
         );
-        with_runtime(|rt| rt.connect(inputs.0.id(), node.id, false));
+        with_runtime(|rt| rt.connect(inputs.map(|t| t.id()), node.id));
         node
     }
 }
 
 impl<Kind, N0, N1, T0, T1: Default, Output, F>
-    NodeDefinition<Kind, (Event<N0>, Behavior<N1>), Output, F> for &Network
+    NodeDefinition<Kind, (Listen<N0>, Sample<N1>), Output, F> for &Network
 where
     N0: Node<Output = T0>,
     N1: Node<Output = T1>,
     F: Fn(TypedNodeData<Output>, &NodeData, NodeId, Edge, &T0, &T1) + 'static,
 {
     #[inline(always)]
-    fn define_node(&self, inputs: (Event<N0>, Behavior<N1>), f: F) -> NodeTemplate<Kind, Output> {
+    fn define_node(&self, inputs: (Listen<N0>, Sample<N1>), f: F) -> NodeTemplate<Kind, Output> {
         let node = NodeTemplate::new_template(
             move |runtime: &Runtime,
                   node_data: &NodeData,
                   source_id: NodeId,
                   source_edge: Edge,
                   event: &dyn Data| {
-                if source_id == node_data.inputs.borrow()[0] {
-                    unsafe {
-                        let t0 = &*(event as *const dyn Data as *const T0);
-                        runtime.with_borrowed_node_output_coerced(
-                            node_data.inputs.borrow()[1],
-                            |t1| {
-                                f(
-                                    xx_unchecked_into(runtime),
-                                    node_data,
-                                    source_id,
-                                    source_edge,
-                                    t0,
-                                    t1,
-                                )
-                            },
-                        );
-                    }
+                unsafe {
+                    let t0 = &*(event as *const dyn Data as *const T0);
+                    runtime.with_borrowed_node_output_cache_coerced(
+                        node_data.inputs.borrow()[1],
+                        |t1| {
+                            f(xx_unchecked_into(runtime), node_data, source_id, source_edge, t0, t1)
+                        },
+                    );
                 }
             },
             self.id,
         );
-        with_runtime(|rt| rt.connect(inputs.0.id(), node.id, false));
-        with_runtime(|rt| rt.connect(inputs.1.id(), node.id, true));
+        with_runtime(|rt| rt.connect(inputs.0.map(|t| t.id()), node.id));
+        with_runtime(|rt| rt.connect(inputs.1.map(|t| t.id()), node.id));
         node
     }
 }
 
 impl<Kind, N0, N1, N2, T0, T1: Default, T2: Default, Output, F>
-    NodeDefinition<Kind, (Event<N0>, Behavior<N1>, Behavior<N2>), Output, F> for &Network
+    NodeDefinition<Kind, (Listen<N0>, Sample<N1>, Sample<N2>), Output, F> for &Network
 where
     N0: Node<Output = T0>,
     N1: Node<Output = T1>,
@@ -514,7 +633,7 @@ where
     #[inline(always)]
     fn define_node(
         &self,
-        inputs: (Event<N0>, Behavior<N1>, Behavior<N2>),
+        inputs: (Listen<N0>, Sample<N1>, Sample<N2>),
         f: F,
     ) -> NodeTemplate<Kind, Output> {
         let node = NodeTemplate::new_template(
@@ -523,36 +642,34 @@ where
                   source_id: NodeId,
                   source_edge: Edge,
                   event: &dyn Data| {
-                if source_id == node_data.inputs.borrow()[0] {
-                    unsafe {
-                        let t0 = &*(event as *const dyn Data as *const T0);
-                        runtime.with_borrowed_node_output_coerced(
-                            node_data.inputs.borrow()[1],
-                            |t1| {
-                                runtime.with_borrowed_node_output_coerced(
-                                    node_data.inputs.borrow()[2],
-                                    |t2| {
-                                        f(
-                                            xx_unchecked_into(runtime),
-                                            node_data,
-                                            source_id,
-                                            source_edge,
-                                            t0,
-                                            t1,
-                                            t2,
-                                        )
-                                    },
-                                )
-                            },
-                        );
-                    }
+                unsafe {
+                    let t0 = &*(event as *const dyn Data as *const T0);
+                    runtime.with_borrowed_node_output_cache_coerced(
+                        node_data.inputs.borrow()[1],
+                        |t1| {
+                            runtime.with_borrowed_node_output_cache_coerced(
+                                node_data.inputs.borrow()[2],
+                                |t2| {
+                                    f(
+                                        xx_unchecked_into(runtime),
+                                        node_data,
+                                        source_id,
+                                        source_edge,
+                                        t0,
+                                        t1,
+                                        t2,
+                                    )
+                                },
+                            )
+                        },
+                    );
                 }
             },
             self.id,
         );
-        with_runtime(|rt| rt.connect(inputs.0.id(), node.id, false));
-        with_runtime(|rt| rt.connect(inputs.1.id(), node.id, true));
-        with_runtime(|rt| rt.connect(inputs.2.id(), node.id, true));
+        with_runtime(|rt| rt.connect(inputs.0.map(|t| t.id()), node.id));
+        with_runtime(|rt| rt.connect(inputs.1.map(|t| t.id()), node.id));
+        with_runtime(|rt| rt.connect(inputs.2.map(|t| t.id()), node.id));
         node
     }
 }
@@ -619,7 +736,7 @@ impl Network {
 
 impl Network {
     pub fn trace<T0: Data>(&self, source: impl Node<Output = T0>) -> Stream<T0> {
-        self.define_node(Event(source), move |event, target, _, e, t0| {
+        self.define_node(Listen(source), move |event, target, _, e, t0| {
             println!("TRACE: {:?}", t0);
             event.emit(e.target, target, t0);
         })
@@ -650,7 +767,7 @@ impl Network {
     ) -> (Stream<Vec<T0>>, DebugCollectData<T0>) {
         let data: DebugCollectData<T0> = default();
         let out = data.clone();
-        let node = self.define_node(Event(source), move |event, target, _, e, t0| {
+        let node = self.define_node(Listen(source), move |event, target, _, e, t0| {
             data.cell.borrow_mut().push(t0.clone());
             event.emit(e.target, target, &*data.cell.borrow());
         });
@@ -669,7 +786,7 @@ impl Network {
         n0: impl Node<Output = T0>,
         f: impl Fn(&T0) -> Output + 'static,
     ) -> Stream<Output> {
-        self.define_node(Event(n0), move |event, target, _, e, t0| {
+        self.define_node(Listen(n0), move |event, target, _, e, t0| {
             event.emit(e.target, target, &f(t0))
         })
     }
@@ -681,7 +798,7 @@ impl Network {
         n1: impl Node<Output = T1>,
         f: impl Fn(&T0, &T1) -> Output + 'static,
     ) -> Stream<Output> {
-        self.define_node((Event(n0), Behavior(n1)), move |event, target, _, e, t0, t1| {
+        self.define_node((Listen(n0), Sample(n1)), move |event, target, _, e, t0, t1| {
             event.emit(e.target, target, &f(t0, t1))
         })
     }
@@ -718,18 +835,6 @@ fn xx_unchecked_into<'a, Output>(
 // }
 
 trait EventConsumer = Fn(&Runtime, &NodeData, NodeId, Edge, &dyn Data);
-
-// trait EventConsumer {
-//     fn on_event(&self, event_data: EventData, event: &dyn Data);
-// }
-//
-// impl<F> EventConsumer for F
-// where F: Fn(EventData, &dyn Data)
-// {
-//     fn on_event(&self, event_data: EventData, event: &dyn Data) {
-//         self(event_data, event)
-//     }
-// }
 
 
 
