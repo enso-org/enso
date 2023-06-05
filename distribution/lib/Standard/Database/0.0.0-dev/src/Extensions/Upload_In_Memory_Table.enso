@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import Standard.Table.Data.Table.Table as In_Memory_Table
+import Standard.Table.Data.Table.Table
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table.Errors import all
 from Standard.Table import Column_Selector
@@ -48,8 +48,8 @@ from project.Internal.Upload_Table import all
      If an error has been raised, the table is not created (that may not always
      apply to `SQL_Error`).
 @primary_key Widget_Helpers.make_column_name_vector_selector
-In_Memory_Table.select_into_database_table : Connection -> Text|Nothing -> Vector Text | Nothing -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | Missing_Input_Columns | Non_Unique_Primary_Key | SQL_Error | Illegal_Argument
-In_Memory_Table.select_into_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False on_problems=Problem_Behavior.Report_Warning =
+Table.select_into_database_table : Connection -> Text|Nothing -> Vector Text | Nothing -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | Missing_Input_Columns | Non_Unique_Primary_Key | SQL_Error | Illegal_Argument
+Table.select_into_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False on_problems=Problem_Behavior.Report_Warning =
     Panic.recover SQL_Error <|
         connection.jdbc_connection.run_within_transaction <|
             upload_in_memory_table self connection table_name primary_key temporary on_problems
@@ -131,8 +131,8 @@ Database_Table.select_into_database_table self connection table_name=Nothing pri
        `Column_Type_Mismatch` error is raised.
 
      If any error was raised, the data in the target table is not modified.
-In_Memory_Table.update_database_table : Connection -> Text -> Update_Action -> Vector Text-> Boolean -> Database_Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
-In_Memory_Table.update_database_table connection (table_name : Text) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector = default_key_columns connection table_name) (error_on_missing_columns : Boolean = False) =
+Table.update_database_table : Connection -> Text -> Update_Action -> Vector Text-> Boolean -> Database_Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
+Table.update_database_table connection (table_name : Text) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector = default_key_columns connection table_name) (error_on_missing_columns : Boolean = False) =
     common_update_table self connection table_name update_action key_columns error_on_missing_columns
 
 ## Updates the target table with the contents of this table.
@@ -170,34 +170,3 @@ In_Memory_Table.update_database_table connection (table_name : Text) (update_act
 Database_Table.update_database_table : Connection -> Text -> Update_Action -> Vector Text-> Boolean -> Database_Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
 Database_Table.update_database_table connection (table_name : Text) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector = default_key_columns connection table_name) (error_on_missing_columns : Boolean = False) =
     common_update_table self connection table_name update_action key_columns error_on_missing_columns
-
-## PRIVATE
-default_key_columns connection table_name =
-    keys = get_primary_key connection table_name
-    keys.catch Any _->
-        Error.throw (Illegal_Argument.Error "Could not determine the primary key for table "+table_name+". Please provide it explicitly.")
-
-## PRIVATE
-
-   This method may not work correctly with temporary tables, possibly resulting
-   in `SQL_Error` as such tables may not be found.
-
-   ! Temporary Tables in SQLite
-
-     The temporary tables in SQLite live in a `temp` database. There is a bug in
-     how JDBC retrieves primary keys - it only queries the `sqlite_schema` table
-     which contains schemas of only permanent tables.
-
-     Ideally, we should provide a custom implementation for SQLite that will
-     UNION both `sqlite_schema` and `temp.sqlite_schema` tables to get results
-     for both temporary and permanent tables.
-
-     TODO [RW] fix keys for SQLite temporary tables and test it
-get_primary_key connection table_name =
-    connection.jdbc_connection.with_connection java_connection->
-        rs = java_connection.getMetaData.getPrimaryKeys Nothing Nothing table_name
-        keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
-        # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
-        selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True
-        key_column_names = selected.order_by 1 . at 0 . to_vector
-        if key_column_names.is_empty then Nothing else key_column_names

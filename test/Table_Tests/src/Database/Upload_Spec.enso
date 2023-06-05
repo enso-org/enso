@@ -7,7 +7,7 @@ from Standard.Table.Errors import Missing_Input_Columns
 from Standard.Database import all
 from Standard.Database.Errors import all
 from Standard.Database.Internal.Result_Set import result_set_to_table
-from Standard.Database.Extensions.Upload_Table import get_primary_key
+from Standard.Database.Extensions.Upload_Default_Helpers import get_primary_key
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions

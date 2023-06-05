@@ -12,7 +12,8 @@ from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_
 
 import Standard.Visualization
 
-import Standard.Database.Extensions.Upload_Table
+import Standard.Database.Extensions.Upload_Database_Table
+import Standard.Database.Extensions.Upload_In_Memory_Table
 from Standard.Database import Database, SQLite, In_Memory
 
 from Standard.Test import Test, Test_Suite, Problems
