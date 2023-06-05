@@ -47,7 +47,7 @@ class Passes(
       OperatorToFunction,
       LambdaShorthandToLambda,
       ImportSymbolAnalysis,
-      ImportApiAnalysis,
+      ImportApiAnalysis.MODULE$,
       ShadowedPatternFields,
       UnreachableMatchBranches,
       NestedPatternMatch,
