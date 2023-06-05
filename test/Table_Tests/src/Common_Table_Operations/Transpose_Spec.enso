@@ -78,8 +78,8 @@ spec setup =
             err1.catch.criteria . should_equal ["Missing", "Missing 2"]
 
             err2 = t1.transpose [0, -1, 42, -100]
-            err2.should_fail_with Column_Indexes_Out_Of_Range
-            err2.catch.indexes . should_equal [42, -100]
+            err2.should_fail_with Missing_Input_Columns
+            err2.catch.criteria . should_equal [42, -100]
 
             action1 = t1.transpose ["Key", "Missing", "Missing 2"] error_on_missing_columns=False on_problems=_
             tester1 table =
@@ -90,7 +90,7 @@ spec setup =
             action2 = t1.transpose [0, -1, 42, -100] error_on_missing_columns=False on_problems=_
             tester2 table =
                 table.column_names . should_equal ["Key", "Another", "Name", "Value"]
-            problems2 = [Column_Indexes_Out_Of_Range.Error [42, -100]]
+            problems2 = [Missing_Input_Columns.Error [42, -100]]
             Problems.test_problem_handling action2 problems2 tester2
 
         Test.specify "should warn on column name clashes" <|

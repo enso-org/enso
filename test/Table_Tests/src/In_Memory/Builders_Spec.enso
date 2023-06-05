@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+from Standard.Table import Column
 import Standard.Table.Internal.Java_Exports
 
 from Standard.Test import Test, Test_Suite
@@ -27,5 +28,5 @@ spec = Test.group "[In-Memory] Storage Builders" <|
             0.up_to 5 . each _->
                 builder.append e
             storage = builder.seal
-            column = Java_Exports.make_column "X" storage
+            column = Column.from_storage "X" storage
             column.to_vector . should_equal vector
