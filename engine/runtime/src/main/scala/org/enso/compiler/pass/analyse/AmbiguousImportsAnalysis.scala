@@ -91,7 +91,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
     imp match {
       // Import multiple symbols
       case moduleImport @ IR.Module.Scope.Import.Module(
-            importPath,
+            _,
             _,
             _,
             Some(onlyNames),
@@ -101,19 +101,33 @@ case object AmbiguousImportsAnalysis extends IRPass {
             _,
             _
           ) =>
-        println(s"Importing multiple symbols from `${imp.showCode()}`")
-        encounteredSymbols.debugPrint("before")
-        onlyNames.map(symbolName => {
-          val symbolPath =
-            importPath.name + "." + symbolName.name
-          tryAddEncounteredSymbol(
-            module,
-            encounteredSymbols,
-            moduleImport,
-            symbolName.name,
-            symbolPath
-          )
-        })
+        getImportTarget(moduleImport, bindingMap) match {
+          case Some(importTarget) =>
+            onlyNames.map(symbolName => {
+              importTarget.resolveExportedSymbol(symbolName.name) match {
+                case Right(resolvedName) =>
+                  val symbolPath = resolvedName.qualifiedName.toString
+                  tryAddEncounteredSymbol(
+                    module,
+                    encounteredSymbols,
+                    moduleImport,
+                    symbolName.name,
+                    symbolPath
+                  )
+                case Left(_) =>
+                  // TODO: Better error
+                  createErrorForAmbiguousImport(
+                    module,
+                    moduleImport,
+                    symbolName.name,
+                    moduleImport,
+                    symbolName.name
+                  )
+              }
+            })
+          case None =>
+            List(moduleImport)
+        }
 
       // Import all symbols
       case moduleImport @ IR.Module.Scope.Import.Module(
