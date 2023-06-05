@@ -1,7 +1,7 @@
 package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleLogger
-import com.oracle.truffle.api.source.{Source}
+import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
@@ -9,33 +9,22 @@ import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.phase.{
-  ExportCycleException,
-  ExportsResolution,
-  ImportResolver
-}
+import org.enso.compiler.phase.{ExportCycleException, ExportsResolution, ImportResolver}
 import org.enso.editions.LibraryName
-import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
+import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.runtime.{EnsoContext, Module}
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
-import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.Parser
+import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax2.Tree
 
 import java.io.{PrintStream, StringReader}
-import java.util.concurrent.{
-  CompletableFuture,
-  ExecutorService,
-  LinkedBlockingDeque,
-  ThreadPoolExecutor,
-  TimeUnit
-}
+import java.util.concurrent.{CompletableFuture, ExecutorService, Future, LinkedBlockingDeque, ThreadPoolExecutor, TimeUnit}
 import java.util.logging.Level
 import scala.jdk.OptionConverters._
-import java.util.concurrent.Future
 
 /** This class encapsulates the static transformation processes that take place
   * on source code, including parsing, desugaring, type-checking, static
@@ -1030,7 +1019,7 @@ class Compiler(
           sb
             .append(
               bold(
-                source.getName + ":" + lineNumber + ":" + startColumn + "-" + endColumn + ": "
+                source.getPath + ":" + lineNumber + ":" + startColumn + ": "
               )
             )
             .append(coloredFunc(subject))
@@ -1073,10 +1062,10 @@ class Compiler(
           section.getStartColumn + "-" +
           section.getEndLine + ":" +
           section.getEndColumn
-        "[" + locStr + "]"
+        locStr
       }
       .getOrElse("")
-    source.getName + srcLocation
+    source.getPath + ":" + srcLocation
   }
 
   /** Generates code for the truffle interpreter.
