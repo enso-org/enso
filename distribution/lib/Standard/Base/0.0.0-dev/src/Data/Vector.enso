@@ -866,7 +866,8 @@ type Vector a
     second : Any ! Index_Out_Of_Bounds
     second self = self.at 1
 
-    ## Sort the vector.
+    ## ALIAS order_by
+       Sort the vector.
 
        Arguments:
        - order: The order in which the vector elements are sorted.

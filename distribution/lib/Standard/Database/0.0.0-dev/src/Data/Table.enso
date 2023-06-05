@@ -452,7 +452,7 @@ type Table
              people.filter "age" (age -> (age%10 == 0))
     @column Widget_Helpers.make_column_name_selector
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
-    filter self column filter=(Filter_Condition.Is_True) on_problems=Report_Warning = case column of
+    filter self column filter=(Filter_Condition.Equal True) on_problems=Report_Warning = case column of
        _ : Column ->
            mask filter_column = case Helpers.check_integrity self filter_column of
                False ->
@@ -595,7 +595,7 @@ type Table
          In the call below, assuming that the table of `t1` contains rows for
          numbers 1, 2, ..., 10, will return rows starting from 6 and not an empty
          result as one could expect if the limit was applied before the filters.
-             t1 = table.order_by ([Sort_Column.Name "A"]) . limit 5
+             t1 = table.order_by [Sort_Column.Name "A"] . limit 5
              t2 = t1.filter 'A' (Greater than=5)
              t2.read
     limit : Integer -> Table
@@ -1350,14 +1350,14 @@ type Table
        value field.
 
        Arguments:
-       - id_fields: Set of fields to remain as columns. These values will be
+       - key_columns: Set of fields to remain as columns. These values will be
          repeated for each data field that is pivoted.
-       - name_field: The name of the field that will contain the names of the
-         pivoted fields. If this name is already in use, it will be renamed
-         with a numeric suffix.
-       - value_field: The name of the field that will contain the values of the
-         pivoted fields. If this name is already in use, it will be renamed
-         with a numeric suffix.
+       - attribute_column_name: The name of the field that will contain the
+         names of the pivoted fields. If this name is already in use, it will be
+         renamed with a numeric suffix.
+       - value_column_name: The name of the field that will contain the values
+         of the pivoted fields. If this name is already in use, it will be
+         renamed with a numeric suffix.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
@@ -1373,12 +1373,30 @@ type Table
          - If any column names in the new table are clashing, a
            `Duplicate_Output_Column_Names` is reported according to the
            `on_problems` setting.
-    @id_fields Widget_Helpers.make_column_name_vector_selector
+
+       ? Example Transpose Operation
+
+         Input Table `table`:
+
+            Id | Name    | Country
+           ----|---------|---------
+            A  | Example | France
+            B  | Another | Germany
+
+         Result `table.transpose ['Id'] 'Attribute' 'Value'`:
+
+            Id | Attribute | Value
+           ----|-----------|---------
+            A  | Name      | Example
+            A  | Country   | France
+            B  | Name      | Another
+            B  | Country   | Germany
+    @key_columns Widget_Helpers.make_column_name_vector_selector
     transpose : Vector (Integer | Text | Column_Selector) | Text | Integer -> Text -> Text -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names
-    transpose self id_fields=[] (name_field="Name") (value_field="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
+    transpose self key_columns=[] (attribute_column_name="Name") (value_column_name="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
-        _ = [id_fields, name_field, value_field, error_on_missing_columns, on_problems]
+        _ = [key_columns, attribute_column_name, value_column_name, error_on_missing_columns, on_problems]
         msg = "Transposing columns is not supported in database tables, the table has to be materialized first with `read`."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
@@ -1399,7 +1417,7 @@ type Table
 
        ! Error Conditions
 
-         - If a column in `group_by` or `name_field` is not in the input table,
+         - If a column in `group_by` or `name_column` is not in the input table,
            a `Missing_Input_Columns` is raised as a dataflow error.
          - If a column selector in `values` given as a `Text` and it does not
            match any columns in the input table nor is it a valid expression, an
@@ -1414,6 +1432,21 @@ type Table
              an `Unquoted_Delimiter`
            - If there are more than 10 issues with a single column,
              an `Additional_Warnings`.
+
+       ? Example Cross Tab Operation
+
+         Input Table `table`:
+
+            Id | B       | C
+           ----|---------|---------
+            A  | Name    | Example
+            A  | Country | France
+
+         Result `table.cross_tab ['Id'] 'B' (Aggregate_Column.First 'C')`:
+
+            Id | Name    | Country
+           ----|---------|---------
+            A  | Example | France
     @group_by Widget_Helpers.make_column_name_vector_selector
     @name_column Widget_Helpers.make_column_name_selector
     @values (Widget_Helpers.make_aggregate_column_selector include_group_by=False)

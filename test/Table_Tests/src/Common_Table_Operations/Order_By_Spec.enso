@@ -56,19 +56,19 @@ spec setup =
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
         Test.specify "should work with single Sort_Column" <|
-            t1 = table.order_by (Sort_Column.Name "alpha")
+            t1 = table.order_by [Sort_Column.Name "alpha"]
             t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
-            t2 = t1.order_by (Sort_Column.Name "alpha" Sort_Direction.Descending)
+            t2 = t1.order_by [Sort_Column.Name "alpha" Sort_Direction.Descending]
             t2.at "alpha" . to_vector . should_equal [3, 2, 1, 0]
             t2.at "gamma" . to_vector . should_equal [1, 2, 3, 4]
 
-            t3 = table.order_by (Sort_Column.Index 0)
+            t3 = table.order_by [Sort_Column.Index 0]
             t3.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t3.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
-            t4 = t3.order_by (Sort_Column.Index 0 Sort_Direction.Descending)
+            t4 = t3.order_by [Sort_Column.Index 0 Sort_Direction.Descending]
             t4.at "alpha" . to_vector . should_equal [3, 2, 1, 0]
             t4.at "gamma" . to_vector . should_equal [1, 2, 3, 4]
 
