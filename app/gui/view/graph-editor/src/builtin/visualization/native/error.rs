@@ -207,6 +207,7 @@ impl Model {
         self.reload_style();
     }
 
+    #[profile(Debug)]
     fn receive_data(&self, data: &Data) -> Result<(), DataError> {
         match data {
             Data::Json { content } => {

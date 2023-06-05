@@ -201,6 +201,7 @@ impl InstanceModel {
     #[cfg(not(target_arch = "wasm32"))]
     fn set_size(&self, _size: Vector2) {}
 
+    #[profile(Debug)]
     #[cfg(target_arch = "wasm32")]
     fn receive_data(&self, data: &Data) -> result::Result<(), DataError> {
         let data_json = match data {
@@ -227,6 +228,7 @@ impl InstanceModel {
         self.object.emitPreprocessorChange()
     }
 
+    #[profile(Debug)]
     #[cfg(target_arch = "wasm32")]
     /// Helper method to call methods on the wrapped javascript object.
     fn try_call1(
@@ -359,6 +361,7 @@ fn get_method(
 /// Note that we need to use special serializer, as `serde_wasm_bindgen` defaults to outputting
 /// some special `Map` type that is not supported by the visualization API (rather than proper
 /// objects).
+#[profile(Debug)]
 #[cfg(target_arch = "wasm32")]
 pub fn json_to_value(
     json: &serde_json::Value,

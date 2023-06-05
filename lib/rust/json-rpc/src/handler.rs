@@ -1,6 +1,7 @@
 //! Module providing `Handler` and related types used by its API.
 
 use crate::prelude::*;
+use enso_profiler::prelude::*;
 
 use crate::api;
 use crate::api::Result;
@@ -13,6 +14,7 @@ use crate::messages::Id;
 use crate::transport::Transport;
 use crate::transport::TransportEvent;
 
+use enso_profiler as profiler;
 use futures::channel::mpsc::unbounded;
 use futures::channel::mpsc::UnboundedSender;
 use futures::channel::oneshot;
@@ -35,6 +37,7 @@ use std::future::Future;
 pub type ReplyMessage = messages::Result<serde_json::Value>;
 
 /// Converts remote message with JSON-serialized result into `Result<Ret>`.
+#[profile(Debug)]
 pub fn decode_result<Ret: DeserializeOwned>(
     result: messages::Result<serde_json::Value>,
 ) -> Result<Ret> {
@@ -244,6 +247,7 @@ impl<Notification> Handler<Notification> {
 
     /// Sends a request to the peer and returns a `Future` that shall yield a
     /// reply message. It is automatically decoded into the expected type.
+    #[profile(Debug)]
     pub fn open_request<In: api::RemoteMethodCall>(
         &self,
         input: In,
@@ -265,6 +269,7 @@ impl<Notification> Handler<Notification> {
     /// This is suboptimal but still less evil than cloning all input arguments like before.
     ///
     /// FIXME: when possible unify with `open_request`
+    #[profile(Debug)]
     pub fn open_request_with_json<Returned: DeserializeOwned>(
         &self,
         method_name: &str,
@@ -307,6 +312,7 @@ impl<Notification> Handler<Notification> {
     /// Deal with `Response` message from the peer.
     ///
     /// It shall be either matched with an open request or yield an error.
+    #[profile(Debug)]
     pub fn process_response(&self, message: messages::Response<serde_json::Value>) {
         if let Some(sender) = self.remove_ongoing_request(message.id) {
             // Disregard any error. We do not care if RPC caller already
@@ -321,6 +327,7 @@ impl<Notification> Handler<Notification> {
     ///
     /// If possible, emits a message with notification. In case of failure,
     /// emits relevant error.
+    #[profile(Debug)]
     pub fn process_notification(&self, message: messages::Notification<serde_json::Value>)
     where Notification: DeserializeOwned {
         match serde_json::from_value(message.0) {
@@ -339,6 +346,7 @@ impl<Notification> Handler<Notification> {
     ///
     /// The message must conform either to the `Response` or to the
     /// `Notification` JSON-serialized format. Otherwise, an error is raised.
+    #[profile(Debug)]
     pub fn process_incoming_message(&self, message: String)
     where Notification: DeserializeOwned {
         match messages::decode_incoming_message(&message) {

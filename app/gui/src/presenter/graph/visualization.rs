@@ -290,6 +290,7 @@ impl Visualization {
 // === Helper Functions ===
 // ========================
 
+#[profile(Debug)]
 fn deserialize_visualization_data(
     data: VisualizationUpdateData,
 ) -> FallibleResult<visualization_view::Data> {

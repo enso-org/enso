@@ -269,6 +269,7 @@ struct LazyGridDataUpdate {
 impl TryFrom<visualization::Data> for LazyGridDataUpdate {
     type Error = visualization::DataError;
 
+    #[profile(Debug)]
     fn try_from(data: visualization::Data) -> Result<Self, Self::Error> {
         if let visualization::Data::Json { content } = data {
             let grid_data = serde_json::from_value(content.deref().clone());

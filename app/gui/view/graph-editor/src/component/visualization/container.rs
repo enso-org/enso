@@ -441,6 +441,7 @@ impl ContainerModel {
         preprocessor.emit(visualization.on_preprocessor_change.value());
     }
 
+    #[profile(Debug)]
     fn set_visualization_data(&self, data: &visualization::Data) {
         self.visualization.borrow().for_each_ref(|vis| vis.send_data.emit(data))
     }
@@ -498,6 +499,7 @@ impl ContainerModel {
         self.view.overlay.is_this_target(target)
     }
 
+    #[profile(Debug)]
     fn next_visualization(
         &self,
         current_vis: &Option<visualization::Definition>,
