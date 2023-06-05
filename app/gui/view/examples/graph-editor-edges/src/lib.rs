@@ -31,10 +31,6 @@ use ide_view_graph_editor::component::node;
 
 
 
-mod old_edge;
-
-
-
 // =================
 // === Constants ===
 // =================
@@ -96,32 +92,16 @@ pub fn main() {
     edge.source_attached(true);
     world.add_child(&edge);
 
-    let old_edge = old_edge::Edge::new(&app);
-    old_edge.frp.source_width.emit(source_size.x());
-    old_edge.frp.source_height.emit(source_size.y());
-    old_edge.frp.target_attached.emit(false);
-    old_edge.frp.source_attached.emit(true);
-    old_edge.frp.set_disabled.emit(false);
-    old_edge.frp.set_color.emit(color::Lcha::from(color::Rgba(1.0, 0.0, 0.0, 1.0)));
-    world.add_child(&old_edge);
-    scene.layers.below_main.add(&old_edge);
-
     let network = edge.network();
     let target_ = target.display_object().clone_ref();
     let source_ = source.display_object().clone_ref();
     frp::extend! { network
         init <- source_();
-        _eval <- all_with(&target_moved, &init, f!([edge, target_, old_edge] (_, _) {
-            let position = target_.xy() + target_size / 2.0;
-            edge.target_position(position);
-            old_edge.frp.target_position.emit(position);
-            old_edge.frp.redraw.emit(());
+        _eval <- all_with(&target_moved, &init, f!([edge, target_] (_, _) {
+            edge.target_position(target_.xy() + target_size / 2.0)
         }));
         _eval <- all_with(&source_moved, &init, f!([edge, source_] (_, _) {
-            let position = source_.xy() + source_size / 2.0;
-            edge.set_xy(position);
-            old_edge.set_xy(position);
-            old_edge.frp.redraw.emit(());
+            edge.set_xy(source_.xy() + source_size / 2.0)
         }));
     }
     init.emit(());
