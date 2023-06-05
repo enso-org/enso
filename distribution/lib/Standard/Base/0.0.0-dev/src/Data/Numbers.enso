@@ -1144,7 +1144,7 @@ round_min_long = -99999999999999
 
 ## PRIVATE
    Restrict rounding decimal_places parameter.
-check_decimal_places : Integer -> Function -> Any ! Illegal_Argument
+check_decimal_places : Integer -> Any -> Any ! Illegal_Argument
 check_decimal_places decimal_places ~action =
     if decimal_places >= round_min_decimal_places && decimal_places <= round_max_decimal_places then action else
         msg = "round: decimal_places must be between " + round_min_decimal_places.to_text + " and " + round_max_decimal_places.to_text + " (inclusive), but was " + decimal_places.to_text
