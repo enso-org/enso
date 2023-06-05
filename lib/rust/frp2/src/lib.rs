@@ -105,7 +105,7 @@ struct NetworkData {
 
 
 #[derive(Clone, Copy, Debug, Default, Zeroable)]
-pub struct OutputConnection {
+pub struct Edge {
     pub target:           NodeId,
     pub behavior_request: bool,
 }
@@ -116,7 +116,7 @@ pub struct NodeData {
     network_id:        NetworkId,
     def:               DefInfo,
     inputs:            OptRefCell<UnrolledLinkedList<NodeId, 8, usize, prealloc::Zeroed>>,
-    outputs:           OptRefCell<UnrolledLinkedList<OutputConnection, 8, usize, prealloc::Zeroed>>,
+    outputs:           OptRefCell<UnrolledLinkedList<Edge, 8, usize, prealloc::Zeroed>>,
     output:            OptRefCell<ZeroableOption<Box<dyn Data>>>,
     behavior_requests: Cell<usize>,
     // WARNING!
@@ -165,13 +165,13 @@ impl NodeData {
     fn on_event(
         &self,
         runtime: &Runtime,
-        source_id: NodeId,
-        source_edge: OutputConnection,
+        source_node_id: NodeId,
+        source_edge: Edge,
         event: &dyn Data,
     ) {
         // println!("on_event: {:?}", event);
         match &self.tp {
-            ZeroableOption::Some(f) => f(runtime, self, source_id, source_edge, event),
+            ZeroableOption::Some(f) => f(runtime, self, source_node_id, source_edge, event),
             ZeroableOption::None => {}
         }
     }
@@ -281,7 +281,7 @@ impl Runtime {
 
     #[inline(always)]
     fn connect(&self, src_id: NodeId, tgt_id: NodeId, behavior_request: bool) {
-        let output_connection = OutputConnection { target: tgt_id, behavior_request };
+        let output_connection = Edge { target: tgt_id, behavior_request };
         if let Some(src) = self.nodes.get(src_id) {
             if behavior_request {
                 src.borrow().behavior_requests.modify(|t| *t += 1);
@@ -294,23 +294,23 @@ impl Runtime {
     }
 
     #[inline(always)]
-    fn unchecked_emit(&self, node_id: NodeId, event: &dyn Data) {
-        if let Some(node) = self.nodes.get(node_id) {
-            self.unchecked_emit2(node_id, &*node.borrow(), event);
+    fn unchecked_emit(&self, src_node_id: NodeId, event: &dyn Data) {
+        if let Some(src_node) = self.nodes.get(src_node_id) {
+            self.unchecked_emit_internal(src_node_id, &*src_node.borrow(), event);
         }
     }
 
     #[inline(always)]
-    fn unchecked_emit2(&self, node_id: NodeId, node: &NodeData, event: &dyn Data) {
-        if node.behavior_requests.get() > 0 {
-            *node.output.borrow_mut() = ZeroableOption::Some(event.boxed_clone());
+    fn unchecked_emit_internal(&self, src_node_id: NodeId, src_node: &NodeData, event: &dyn Data) {
+        if src_node.behavior_requests.get() > 0 {
+            *src_node.output.borrow_mut() = ZeroableOption::Some(event.boxed_clone());
         }
 
-        self.stack.with(node.def, || {
+        self.stack.with(src_node.def, || {
             let mut cleanup_outputs = false;
-            for &node_output_id in &*node.outputs.borrow() {
-                let done = self.nodes.get(node_output_id.target).map(|node_output| {
-                    node_output.borrow().on_event(self, node_id, node_output_id, event);
+            for &output in &*src_node.outputs.borrow() {
+                let done = self.nodes.get(output.target).map(|tgt_node| {
+                    tgt_node.borrow().on_event(self, src_node_id, output, event);
                 });
                 if done.is_none() {
                     cleanup_outputs = true;
@@ -318,7 +318,7 @@ impl Runtime {
             }
 
             if cleanup_outputs {
-                node.outputs.borrow_mut().retain(|output| self.nodes.exists(output.target));
+                src_node.outputs.borrow_mut().retain(|output| self.nodes.exists(output.target));
             }
         });
     }
@@ -420,7 +420,7 @@ trait NodeDefinition<Kind, Inputs, Output, F> {
 }
 
 impl<Kind, Output, F> NodeDefinition<Kind, (), Output, F> for &Network
-where F: Fn(TypedNodeData<Output>, &NodeData, NodeId, OutputConnection) + 'static
+where F: Fn(TypedNodeData<Output>, &NodeData, NodeId, Edge) + 'static
 {
     #[inline(always)]
     fn define_node(&self, _inputs: (), f: F) -> NodeTemplate<Kind, Output> {
@@ -428,7 +428,7 @@ where F: Fn(TypedNodeData<Output>, &NodeData, NodeId, OutputConnection) + 'stati
             move |runtime: &Runtime,
                   node_data: &NodeData,
                   source_id: NodeId,
-                  source_edge: OutputConnection,
+                  source_edge: Edge,
                   _event: &dyn Data| {
                 f(xx_unchecked_into(runtime), node_data, source_id, source_edge)
             },
@@ -441,7 +441,7 @@ where F: Fn(TypedNodeData<Output>, &NodeData, NodeId, OutputConnection) + 'stati
 impl<Kind, N0, T0, Output, F> NodeDefinition<Kind, Event<N0>, Output, F> for &Network
 where
     N0: Node<Output = T0>,
-    F: Fn(TypedNodeData<Output>, &NodeData, NodeId, OutputConnection, &T0) + 'static,
+    F: Fn(TypedNodeData<Output>, &NodeData, NodeId, Edge, &T0) + 'static,
 {
     #[inline(always)]
     fn define_node(&self, inputs: Event<N0>, f: F) -> NodeTemplate<Kind, Output> {
@@ -449,7 +449,7 @@ where
             move |runtime: &Runtime,
                   node_data: &NodeData,
                   source_id: NodeId,
-                  source_edge: OutputConnection,
+                  source_edge: Edge,
                   event: &dyn Data| {
                 let event = unsafe { &*(event as *const dyn Data as *const T0) };
                 f(xx_unchecked_into(runtime), node_data, source_id, source_edge, event);
@@ -466,7 +466,7 @@ impl<Kind, N0, N1, T0, T1: Default, Output, F>
 where
     N0: Node<Output = T0>,
     N1: Node<Output = T1>,
-    F: Fn(TypedNodeData<Output>, &NodeData, NodeId, OutputConnection, &T0, &T1) + 'static,
+    F: Fn(TypedNodeData<Output>, &NodeData, NodeId, Edge, &T0, &T1) + 'static,
 {
     #[inline(always)]
     fn define_node(&self, inputs: (Event<N0>, Behavior<N1>), f: F) -> NodeTemplate<Kind, Output> {
@@ -474,7 +474,7 @@ where
             move |runtime: &Runtime,
                   node_data: &NodeData,
                   source_id: NodeId,
-                  source_edge: OutputConnection,
+                  source_edge: Edge,
                   event: &dyn Data| {
                 if source_id == node_data.inputs.borrow()[0] {
                     unsafe {
@@ -509,7 +509,7 @@ where
     N0: Node<Output = T0>,
     N1: Node<Output = T1>,
     N2: Node<Output = T2>,
-    F: Fn(TypedNodeData<Output>, &NodeData, NodeId, OutputConnection, &T0, &T1, &T2) + 'static,
+    F: Fn(TypedNodeData<Output>, &NodeData, NodeId, Edge, &T0, &T1, &T2) + 'static,
 {
     #[inline(always)]
     fn define_node(
@@ -521,7 +521,7 @@ where
             move |runtime: &Runtime,
                   node_data: &NodeData,
                   source_id: NodeId,
-                  source_edge: OutputConnection,
+                  source_edge: Edge,
                   event: &dyn Data| {
                 if source_id == node_data.inputs.borrow()[0] {
                     unsafe {
@@ -698,7 +698,7 @@ struct TypedNodeData<'a, Output> {
 impl<'a, Output: Data> TypedNodeData<'a, Output> {
     #[inline(always)]
     fn emit(self, target_id: NodeId, target: &NodeData, value: &Output) {
-        self.runtime.unchecked_emit2(target_id, target, value);
+        self.runtime.unchecked_emit_internal(target_id, target, value);
     }
 }
 
@@ -714,10 +714,10 @@ fn xx_unchecked_into<'a, Output>(
 //     pub runtime:     &'a Runtime,
 //     pub data:        &'a NodeData,
 //     pub source_id:   NodeId,
-//     pub source_edge: OutputConnection,
+//     pub source_edge: Edge,
 // }
 
-trait EventConsumer = Fn(&Runtime, &NodeData, NodeId, OutputConnection, &dyn Data);
+trait EventConsumer = Fn(&Runtime, &NodeData, NodeId, Edge, &dyn Data);
 
 // trait EventConsumer {
 //     fn on_event(&self, event_data: EventData, event: &dyn Data);
