@@ -523,6 +523,8 @@ type Date_Time
                 Panic.catch ArithmeticException (self.plus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))
             period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
+            date_period : Date_Period ->
+                self + date_period.to_period
 
     ## Shift the date by the specified amount of business days.
 

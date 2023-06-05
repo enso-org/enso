@@ -246,7 +246,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . month . should_equal 1
             time . day . should_equal 1
 
-        Test.specify "should add time interval" <|
+        Test.specify "should add Duration" <|
             time = create_new_datetime 1970 (zone = Time_Zone.utc) + (Duration.new nanoseconds=1)
             time . year . should_equal 1970
             time . month . should_equal 1
@@ -257,7 +257,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . nanosecond . should_equal 1
             time . zone . should_equal Time_Zone.utc
 
-        Test.specify "should add date interval" <|
+        Test.specify "should add Period" <|
             time = (create_new_datetime 1970 (zone = Time_Zone.utc)) + (Period.new months=1)
             time . year . should_equal 1970
             time . month . should_equal 2
@@ -268,7 +268,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
-        Test.specify "should add mixed date time interval" <|
+        Test.specify "should add mixed Period and Duration" <|
             time = create_new_datetime 1970 (zone = Time_Zone.utc) + (Period.new months=1) + (Duration.new hours=3)
             time . year . should_equal 1970
             time . month . should_equal 2
@@ -279,7 +279,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
-        Test.specify "should subtract time interval" <|
+        Test.specify "should subtract Duration" <|
             time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Duration.new hours=1)
             time . year . should_equal 1969
             time . month . should_equal 12
@@ -290,7 +290,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
-        Test.specify "should subtract date interval" <|
+        Test.specify "should subtract Period" <|
             time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.new months=1)
             time . year . should_equal 1969
             time . month . should_equal 12
@@ -301,7 +301,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
-        Test.specify "should subtract mixed date time interval" <|
+        Test.specify "should subtract mixed Period and Duration" <|
             time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.new months=1) - (Duration.new hours=3)
             time . year . should_equal 1969
             time . month . should_equal 11
@@ -322,6 +322,14 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . second . should_equal 0
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
+
+        Test.specify "should support addition of Date_Period" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc)
+            (time + Date_Period.Year) . should_equal <| create_new_datetime 1971 (zone = Time_Zone.utc)
+            (time + Date_Period.Quarter) . should_equal <| create_new_datetime 1970 4 (zone = Time_Zone.utc)
+            (time + Date_Period.Month) . should_equal <| create_new_datetime 1970 2 (zone = Time_Zone.utc)
+            (time + Date_Period.Week) . should_equal <| create_new_datetime 1970 1 8 (zone = Time_Zone.utc)
+            (time + Date_Period.Day) . should_equal <| create_new_datetime 1970 1 2 (zone = Time_Zone.utc)
 
         Test.specify "should get the default comparator for datetimes" <|
             Comparable.from (create_new_datetime 2023 2 3 23 59) . should_equal Default_Comparator
