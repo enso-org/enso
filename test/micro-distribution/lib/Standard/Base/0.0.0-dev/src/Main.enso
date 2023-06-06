@@ -10,6 +10,9 @@ export project.Panic.Panic
 import project.Error.Error
 export project.Error.Error
 
+import project.Errors
+export project.Errors
+
 import project.Any.Any
 export project.Any.Any
 
