@@ -27,7 +27,7 @@ type Internal_Dialect
          identifier name in such a way that it can be used in the query; that
          usually consists of wrapping the name in quotes and escaping any quotes
          within it.
-    Value (operation_map:(Map Text (Vector (Builder->Builder)))) (wrap_identifier:(Text->Builder))
+    Value (operation_map:(Map Text ((Vector Builder) -> Builder)))) (wrap_identifier:(Text->Builder))
 
     ## PRIVATE
 
