@@ -174,7 +174,7 @@ type Table_Column_Helper
             _ -> [selectors]
         selected_columns = vector.map resolve_selector . flatten
         if reorder then selected_columns.distinct on=_.name else
-            map = Map.from_vector (selected_columns.map column-> [column.name, True]) allow_duplicates=True
+            map = Map.from_vector (selected_columns.map column-> [column.name, True]) error_on_duplicates=False
             self.internal_columns.filter column-> map.contains_key column.name
 
     ## PRIVATE

@@ -43,10 +43,11 @@ import project.Data.Ordering.Vector_Lexicographic_Order_Spec
 import project.Data.Pair_Spec
 import project.Data.Problems_Spec
 import project.Data.Range_Spec
+import project.Data.Regression_Spec
+import project.Data.Set_Spec
+import project.Data.Statistics_Spec
 import project.Data.Time.Spec as Time_Spec
 import project.Data.Vector_Spec
-import project.Data.Statistics_Spec
-import project.Data.Regression_Spec
 
 import project.Data.Text_Spec
 import project.Data.Text.Text_Sub_Range_Spec
@@ -106,6 +107,7 @@ main = Test_Suite.run_main <|
     List_Spec.spec
     Locale_Spec.spec
     Map_Spec.spec
+    Set_Spec.spec
     Maybe_Spec.spec
     Meta_Spec.spec
     Meta_Location_Spec.spec

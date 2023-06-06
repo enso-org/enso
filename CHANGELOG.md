@@ -476,6 +476,9 @@
 - [Added `.round`, `.truncate`, `.ceil`, and `.floor` to `Column`.][6817]
 - [Added execution control to `Table.write` and various bug fixes.][6835]
 - [Implemented `Table.add_row_number`.][6890]
+- [Handling edge cases in rounding.][6922]
+- [Split `Table.create_database_table` into `Connection.create_table` and
+  `Table.select_into_database_table`.][6925]
 - [Speed improvements to `Column` `.truncate`, `.ceil`, and `.floor`.][6941]
 
 [debug-shortcuts]:
@@ -692,6 +695,8 @@
 [6817]: https://github.com/enso-org/enso/pull/6817
 [6835]: https://github.com/enso-org/enso/pull/6835
 [6890]: https://github.com/enso-org/enso/pull/6890
+[6922]: https://github.com/enso-org/enso/pull/6922
+[6925]: https://github.com/enso-org/enso/pull/6925
 [6941]: https://github.com/enso-org/enso/pull/6941
 
 #### Enso Compiler
