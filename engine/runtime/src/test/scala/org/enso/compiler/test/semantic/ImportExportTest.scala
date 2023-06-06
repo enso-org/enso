@@ -555,6 +555,26 @@ class ImportExportTest
       warn.exists(_.symbolName == "AA_Type") shouldEqual true
     }
 
+    "work when importing two different types with hiding" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("B_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.A_Module import all hiding A_Type
+           |from $namespace.$packageName.B_Module import all
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      mainIr.imports.foreach(_.isInstanceOf[IR.Error.ImportExport] shouldEqual false)
+    }
+
     "result in error when importing same type twice with two one-symbol import and renamed import" in {
       s"""
          |type A_Type

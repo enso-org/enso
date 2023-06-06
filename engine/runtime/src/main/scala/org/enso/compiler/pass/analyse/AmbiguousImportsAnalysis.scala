@@ -154,7 +154,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
             _,
             true,
             _,
-            _,
+            hiddenNames,
             _,
             false,
             _,
@@ -165,10 +165,15 @@ case object AmbiguousImportsAnalysis extends IRPass {
             // Names of the symbols that are exported by a module or a type referred to via importTarget
             val exportedSymbolNames: List[String] =
               importTarget.exportedSymbols.keySet.toList
-
+            val symbolsToIterate = hiddenNames match {
+              case None => exportedSymbolNames
+              case Some(hiddenNamesLiterals) =>
+                val hiddenNames = hiddenNamesLiterals.map(_.name)
+                exportedSymbolNames.filterNot(hiddenNames.contains)
+            }
             val encounteredErrors: ListBuffer[IR.Error.ImportExport] =
               ListBuffer()
-            val imp = exportedSymbolNames.foldLeft(moduleImport: IR.Module.Scope.Import) { case (imp, symbolName) =>
+            val imp = symbolsToIterate.foldLeft(moduleImport: IR.Module.Scope.Import) { case (imp, symbolName) =>
               importTarget.resolveExportedSymbol(symbolName) match {
                 case Left(resolutionError) =>
                   throw new CompilerError(
