@@ -7,11 +7,7 @@ import org.enso.base.time.Time_Of_Day_Utils;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.graalvm.polyglot.Value;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.Period;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoUnit;
@@ -214,5 +210,10 @@ public class Time_Utils {
    */
   public static long months_between(LocalDate start, LocalDate end) {
     return ChronoUnit.MONTHS.between(start, end);
+  }
+
+  /** Constructs a Date_Time from a Date, Time_Of_Day and Zone. */
+  public static ZonedDateTime make_zoned_date_time(LocalDate date, LocalTime time, ZoneId zone) {
+    return ZonedDateTime.of(date, time, zone);
   }
 }
