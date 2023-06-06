@@ -91,6 +91,13 @@ spec_with name create_new_date parse_date =
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
+        Test.specify "date-time conversion should work with interop values" <|
+            date = create_new_date 2000 12 21
+            time = Time_Of_Day.new 12 30 45
+            datetime = time.to_date_time date
+            datetime.date . should_equal date
+            datetime.time_of_day . should_equal time
+
         Test.specify "should convert to Json" <|
             date = create_new_date 2001 12 21
             date.to_json.should_equal <|
