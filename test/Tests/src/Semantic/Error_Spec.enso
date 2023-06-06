@@ -12,7 +12,7 @@ polyglot java import java.util.ArrayList
 polyglot java import java.util.Random
 
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+import Standard.Test.Test_Extensions
 
 type My_Type
     Value foo

@@ -7,7 +7,7 @@ import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+import Standard.Test.Test_Extensions
 
 spec =
     test_uri = URI.parse "https://httpbin.org/post"

@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Table.Errors import all
 
 from Standard.Test import Test, Problems
-import Standard.Test.Extensions
+import Standard.Test.Test_Extensions
 
 from project.Common_Table_Operations.Util import run_default_backend
 

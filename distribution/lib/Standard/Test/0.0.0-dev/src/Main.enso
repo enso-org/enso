@@ -5,7 +5,7 @@ import project.Faker.Faker
 import project.Problems
 import project.Test_Suite.Test_Suite
 import project.Test.Test
-import project.Extensions
+import project.Test_Extensions
 
 export project.Bench.Bench
 export project.Faker.Faker

@@ -4,7 +4,7 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Data.Noise.Deterministic_Random
 
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+import Standard.Test.Test_Extensions
 
 spec =
     Test.group "Deterministic Random Noise Generator" <|

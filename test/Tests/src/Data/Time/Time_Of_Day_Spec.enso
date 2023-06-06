@@ -4,7 +4,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Time_Error.Time_Error
 
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+import Standard.Test.Test_Extensions
 
 polyglot java import java.time.LocalTime
 polyglot java import java.time.format.DateTimeFormatter

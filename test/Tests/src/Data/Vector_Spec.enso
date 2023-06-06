@@ -12,7 +12,7 @@ import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, Sample, Every
 
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+import Standard.Test.Test_Extensions
 
 polyglot java import java.util.ArrayList
 

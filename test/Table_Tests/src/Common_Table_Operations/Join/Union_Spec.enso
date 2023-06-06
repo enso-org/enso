@@ -7,7 +7,7 @@ import Standard.Table.Data.Type.Value_Type.Value_Type
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test, Problems
-import Standard.Test.Extensions
+import Standard.Test.Test_Extensions
 
 from project.Common_Table_Operations.Util import expect_column_names, run_default_backend, within_table
 import project.Util

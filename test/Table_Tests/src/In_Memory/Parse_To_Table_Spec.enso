@@ -4,7 +4,7 @@ import Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Table.Data.Table_Conversions
-import Standard.Test.Extensions
+import Standard.Test.Test_Extensions
 
 from Standard.Table import Table
 from Standard.Table.Data.Type.Value_Type import Bits, Value_Type

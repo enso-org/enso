@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity
-import Standard.Test.Extensions
+import Standard.Test.Test_Extensions
 
 from Standard.Table import Table
 from Standard.Table.Errors import Invalid_Value_Type, Column_Count_Exceeded, Duplicate_Output_Column_Names, No_Such_Column

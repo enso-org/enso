@@ -3,7 +3,7 @@ from Standard.Base import all
 import Standard.Table.Internal.Java_Exports
 
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+import Standard.Test.Test_Extensions
 
 type My
     Data x y

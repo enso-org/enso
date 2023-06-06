@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Test import Test_Suite
-import Standard.Test.Extensions
+import Standard.Test.Test_Extensions
 
 import project.Semantic.Any_Spec
 import project.Semantic.Case_Spec

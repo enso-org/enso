@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Test import Test
-import Standard.Test.Extensions
+import Standard.Test.Test_Extensions
 from Standard.Table import Table
 
 sample_table = Table.new [["A", [1, 2, 3]]]

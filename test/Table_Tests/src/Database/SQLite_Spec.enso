@@ -11,7 +11,7 @@ from Standard.Database import all
 from Standard.Database.Errors import SQL_Error
 
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+import Standard.Test.Test_Extensions
 
 import project.Database.Common_Spec
 import project.Database.Upload_Spec

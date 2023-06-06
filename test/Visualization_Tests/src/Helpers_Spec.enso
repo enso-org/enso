@@ -5,7 +5,7 @@ from Standard.Table import Table
 import Standard.Visualization.Helpers
 
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+import Standard.Test.Test_Extensions
 
 import project.Helpers
 

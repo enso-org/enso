@@ -13,7 +13,7 @@ polyglot java import java.util.Random
 polyglot java import java.util.Locale as JavaLocale
 
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+import Standard.Test.Test_Extensions
 import Standard.Test.Test_Result.Test_Result
 
 type My_Type
