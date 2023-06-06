@@ -507,8 +507,9 @@ type Date_Time
        Arguments:
        - amount: The amount of time to add to this instant, either `Duration` for
          adding time (hours, minutes, etc.), `Period` for adding date (days,
-         months, years), or `Date_Period` for adding a single unit (year,
-         quarter, month, etc.).
+         months, years), `Date_Period` for adding a single unit (year,
+         quarter, month, etc.), or `Time_Period` for adding a single unit (hour,
+         minute, second, etc.)
 
        > Example
          Add 15 years and 3 hours to a zoned date time.
@@ -584,10 +585,11 @@ type Date_Time
        Produces a warning if the resulting date time is before an Enso epoch.
 
        Arguments:
-       - amount: The amount of time to subtract from this instant, either
-       `Duration` for adding time (hours, minutes, etc.), `Period` for adding
-       date (days, months, years), or `Date_Period` for adding a single unit
-       (year, quarter, month, etc.).
+       - amount: The amount of time to add to this instant, either `Duration` for
+         adding time (hours, minutes, etc.), `Period` for adding date (days,
+         months, years), `Date_Period` for adding a single unit (year,
+         quarter, month, etc.), or `Time_Period` for adding a single unit (hour,
+         minute, second, etc.)
 
        > Example
          Subtract 1 year, 9 months and 12 hours from a zoned date time.

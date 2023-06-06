@@ -35,6 +35,7 @@ type Time_Period
     adjust_end self date =
         (Time_Utils.utils_for date).end_of_time_period date self.to_java_unit
 
+    ## PRIVATE
     to_duration : Duration
     to_duration self = case self of
         Time_Period.Day -> Duration.new 24

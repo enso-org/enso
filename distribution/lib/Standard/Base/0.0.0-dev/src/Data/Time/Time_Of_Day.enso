@@ -257,8 +257,8 @@ type Time_Of_Day
        Add the specified amount of time to this instant to get a new instant.
 
        Arguments:
-       - amount: The amount of time to add to this instant. Can be `Duration` or
-         `Time_Period`.
+       - amount: The amount of time to add to this instant. It can an be
+         `Duration` or `Time_Period`.
 
        > Example
          Add a `Duration` to a `Time_Of_Day`.
@@ -286,8 +286,8 @@ type Time_Of_Day
        instant.
 
        Arguments:
-       - amount: The amount of time to subtract from this instant. Can be
-        `Duration` or `Time_Period`.
+       - amount: The amount of time to add to this instant. It can an be
+         `Duration` or `Time_Period`.
 
        > Example
          Subtract 12 hours from a local time.
