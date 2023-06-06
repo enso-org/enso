@@ -216,4 +216,9 @@ public class Time_Utils {
   public static ZonedDateTime make_zoned_date_time(LocalDate date, LocalTime time, ZoneId zone) {
     return ZonedDateTime.of(date, time, zone);
   }
+
+  /** Constructs a new time instant referring to the same moment in time but in a different time zone. */
+  public static ZonedDateTime with_zone_same_instant(ZonedDateTime dateTime, ZoneId zone) {
+    return dateTime.withZoneSameInstant(zone);
+  }
 }
