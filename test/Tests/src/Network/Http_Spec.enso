@@ -10,7 +10,7 @@ import Standard.Base.Network.Proxy.Proxy
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Test_Extensions
 
-polyglot java import java.lang.Java_System
+polyglot java import java.lang.System as Java_System
 
 spec =
     base_url = Java_System.getenv "ENSO_HTTP_TEST_HTTPBIN_URL"

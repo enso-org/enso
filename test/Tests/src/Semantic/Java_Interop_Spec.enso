@@ -5,7 +5,7 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Test_Extensions
 
 polyglot java import java.lang.Float
-polyglot java import java.lang.Java_Integer
+polyglot java import java.lang.Integer as Java_Integer
 polyglot java import java.lang.Long
 polyglot java import java.lang.String
 polyglot java import java.lang.StringBuilder as Java_String_Builder
