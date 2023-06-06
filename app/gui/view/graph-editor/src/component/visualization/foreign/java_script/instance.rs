@@ -204,15 +204,8 @@ impl InstanceModel {
     #[profile(Debug)]
     #[cfg(target_arch = "wasm32")]
     fn receive_data(&self, data: &Data) -> result::Result<(), DataError> {
-        let data_json = match data {
-            Data::Json { content } => content,
-            _ => return Err(DataError::BinaryNotSupported),
-        };
-        let data_json: &serde_json::Value = data_json.deref();
-        let data_js = match json_to_value(data_json) {
-            Ok(value) => value,
-            Err(_) => return Err(DataError::InvalidDataType),
-        };
+        let data_json = data.as_json()?.raw();
+        let data_js = js_sys::JSON::parse(data_json).map_err(|_| DataError::InvalidDataType)?;
         self.try_call1(&self.on_data_received, &data_js)
             .map_err(|_| DataError::InternalComputationError)?;
         Ok(())
@@ -354,19 +347,4 @@ fn get_method(
     _property: &str,
 ) -> Result<web::Function> {
     Ok(default())
-}
-
-/// Convert the given JSON value to a `JsValue`.
-///
-/// Note that we need to use special serializer, as `serde_wasm_bindgen` defaults to outputting
-/// some special `Map` type that is not supported by the visualization API (rather than proper
-/// objects).
-#[profile(Debug)]
-#[cfg(target_arch = "wasm32")]
-pub fn json_to_value(
-    json: &serde_json::Value,
-) -> std::result::Result<JsValue, serde_wasm_bindgen::Error> {
-    use serde::Serialize;
-    let serializer = serde_wasm_bindgen::Serializer::json_compatible();
-    json.serialize(&serializer)
 }

@@ -294,8 +294,5 @@ impl Visualization {
 fn deserialize_visualization_data(
     data: VisualizationUpdateData,
 ) -> FallibleResult<visualization_view::Data> {
-    let binary = data.as_ref();
-    let as_text = std::str::from_utf8(binary)?;
-    let as_json: serde_json::Value = serde_json::from_str(as_text)?;
-    Ok(visualization_view::Data::from(as_json))
+    visualization_view::Data::json(data.as_ref())
 }
