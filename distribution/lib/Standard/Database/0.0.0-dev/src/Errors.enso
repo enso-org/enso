@@ -126,14 +126,23 @@ type Table_Not_Found
          for the table was executed.
        - treated_as_query: Whether the table name was treated as a raw query
          string.
-    Error (name:Text) (related_query_error:SQL_Error) (treated_as_query:Boolean)
+       - extra_message: An extra message to append.
+    Error (name:Text) (related_query_error:SQL_Error|Nothing) (treated_as_query:Boolean) (extra_message:Text)
 
     ## PRIVATE
        Pretty print the table not found error.
     to_display_text : Text
-    to_display_text self = case self.treated_as_query of
-        True -> "The name " + self.name + " was treated as a query, but the query failed with the following error: " + self.related_query_error.to_display_text + "; if you want to force to use that as a table name, wrap it in `SQL_Query.Table_Name`."
-        False -> "Table " + self.name + " was not found in the database."
+    to_display_text self =
+        base_repr = case self.treated_as_query of
+            True -> "The name " + self.name + " was treated as a query, but the query failed with the following error: " + self.related_query_error.to_display_text + "; if you want to force to use that as a table name, wrap it in `SQL_Query.Table_Name`."
+            False -> "Table " + self.name + " was not found in the database."
+        base_repr + self.extra_message
+
+    ## PRIVATE
+       Creates a copy of this error with a changed `extra_message`.
+    with_changed_extra_message : Table_Not_Found
+    with_changed_extra_message self new_extra_message =
+        Table_Not_Found.Error self.name self.related_query_error self.treated_as_query new_extra_message
 
 type Table_Already_Exists
     ## PRIVATE

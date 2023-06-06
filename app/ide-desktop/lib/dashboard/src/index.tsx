@@ -41,6 +41,7 @@ authentication.run({
     supportsDeepLinks: false,
     isAuthenticationDisabled: false,
     shouldShowDashboard: true,
+    initialProjectName: null,
     /** The `onAuthenticated` option is mandatory but is not needed here,
      * so this function is empty. */
     onAuthenticated() {

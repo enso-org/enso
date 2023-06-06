@@ -1,4 +1,12 @@
-//! This module defines the `Container` struct and related functionality.
+//! This module defines the `Container` struct and related functionality. This represent the view
+//! a visualisation in the graph editor and includes a visual box that contains the visualisation,
+//! and action bar that allows setting the visualisation type.
+//!
+//! The `[Container]` struct is responsible for managing the visualisation and action bar and
+//! providing a unified interface to the graph editor. This includes ensuring that the visualisation
+//! is correctly positioned, sized and layouted in its different [ViewState]s (which include the
+//! `Enabled`, `Fullscreen` and `Preview` states). Importantly, this also includes EnsoGL layer
+//! management to ensure correct occlusion of the visualisation with respect to other scene objects.
 
 // FIXME There is a serious performance problem in this implementation. It assumes that the
 // FIXME visualization is a child of the container. However, this is very inefficient. Consider a
@@ -24,6 +32,7 @@ use ensogl::data::color::Rgba;
 use ensogl::display;
 use ensogl::display::scene;
 use ensogl::display::scene::Scene;
+use ensogl::display::DomScene;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::Animation;
@@ -125,29 +134,59 @@ pub mod background {
 // === Frp ===
 // ===========
 
-ensogl::define_endpoints! {
+/// Indicates the visibility state of the visualisation.
+#[derive(Clone, Copy, Debug, PartialEq, Derivative)]
+#[derivative(Default)]
+pub enum ViewState {
+    /// Visualisation is permanently enabled and visible in the graph editor. It is attached to a
+    /// single node and can be moved and interacted with when selected.
+    Enabled,
+    /// Visualisation is disabled and hidden in the graph editor.
+    #[derivative(Default)]
+    Disabled,
+    /// Visualisation is temporarily enabled and visible in the graph editor. It should be placed
+    /// above other scene elements to allow quick inspection.
+    Preview,
+    /// Visualisation is enabled and visible in the graph editor in fullscreen mode. It occludes
+    /// the whole graph and can be interacted with.
+    Fullscreen,
+}
+
+impl ViewState {
+    /// Indicates whether the visualisation is visible in the graph editor. It is always visible
+    /// when not disabled.
+    pub fn is_visible(&self) -> bool {
+        !matches!(self, ViewState::Disabled)
+    }
+
+    /// Indicates whether the visualisation is fullscreen mode.
+    pub fn is_fullscreen(&self) -> bool {
+        matches!(self, ViewState::Fullscreen)
+    }
+}
+
+
+ensogl::define_endpoints_2! {
     Input {
-        set_visibility      (bool),
-        toggle_visibility   (),
+        set_view_state      (ViewState),
         set_visualization   (Option<visualization::Definition>),
         cycle_visualization (),
-        set_data            (visualization::Data),
+        set_data            (Option<visualization::Data>),
         select              (),
         deselect            (),
         set_size            (Vector2),
-        enable_fullscreen   (),
-        disable_fullscreen  (),
         set_vis_input_type  (Option<enso::Type>),
-        set_layer           (visualization::Layer),
     }
-
     Output {
         preprocessor   (PreprocessorConfiguration),
         visualisation  (Option<visualization::Definition>),
+        visualization_path (Option<visualization::Path>),
         size           (Vector2),
         is_selected    (bool),
+        vis_input_type (Option<enso::Type>),
+        fullscreen     (bool),
         visible        (bool),
-        vis_input_type (Option<enso::Type>)
+        view_state     (ViewState),
     }
 }
 
@@ -161,8 +200,7 @@ ensogl::define_endpoints! {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct View {
-    display_object: display::object::Instance,
-
+    display_object:  display::object::Instance,
     background:      background::View,
     overlay:         overlay::View,
     background_dom:  DomSymbol,
@@ -277,7 +315,6 @@ pub struct ContainerModel {
     scene:              Scene,
     view:               View,
     fullscreen_view:    fullscreen::Panel,
-    is_fullscreen:      Rc<Cell<bool>>,
     registry:           visualization::Registry,
     size:               Rc<Cell<Vector2>>,
     action_bar:         ActionBar,
@@ -294,7 +331,6 @@ impl ContainerModel {
         let view = View::new(scene.clone_ref());
         let fullscreen_view = fullscreen::Panel::new(scene);
         let scene = scene.clone_ref();
-        let is_fullscreen = default();
         let size = default();
         let action_bar = ActionBar::new(app, registry.clone_ref());
         view.add_child(&action_bar);
@@ -307,7 +343,6 @@ impl ContainerModel {
             scene,
             view,
             fullscreen_view,
-            is_fullscreen,
             registry,
             size,
             action_bar,
@@ -318,21 +353,16 @@ impl ContainerModel {
     fn init(self) -> Self {
         self.display_object.add_child(&self.drag_root);
         self.scene.layers.above_nodes.add(&self.action_bar);
-
-        self.update_shape_sizes();
+        self.update_shape_sizes(ViewState::default());
         self.init_corner_roundness();
-        // FIXME: These 2 lines fix a bug with display objects visible on stage.
-        self.set_visibility(true);
-        self.set_visibility(false);
-
         self.view.show_waiting_screen();
         self
     }
 
-    /// Indicates whether the visualization container is visible and active.
-    /// Note: can't be called `is_visible` due to a naming conflict with `display::object::class`.
-    pub fn is_active(&self) -> bool {
-        self.view.has_parent()
+    fn set_visualization_layer(&self, layer: visualization::Layer) {
+        if let Some(vis) = self.visualization.borrow().as_ref() {
+            vis.set_layer.emit(layer)
+        }
     }
 }
 
@@ -340,54 +370,60 @@ impl ContainerModel {
 // === Private API ===
 
 impl ContainerModel {
-    fn set_visibility(&self, visibility: bool) {
+    fn apply_view_state(&self, view_state: ViewState) {
         // This is a workaround for #6600. It ensures the action bar is removed
         // and receive no further mouse events.
-        if visibility {
+        if view_state.is_visible() {
             self.view.add_child(&self.action_bar);
         } else {
             self.action_bar.unset_parent();
         }
 
         // Show or hide the visualization.
-        if visibility {
+        if view_state.is_visible() {
             self.drag_root.add_child(&self.view);
-            self.show_visualisation();
         } else {
             self.drag_root.remove_child(&self.view);
         }
+
+        match view_state {
+            ViewState::Enabled => self.enable_default_view(),
+            ViewState::Disabled => {}
+            ViewState::Preview => self.enable_preview(),
+            ViewState::Fullscreen => self.enable_fullscreen(),
+        }
     }
 
-    fn enable_fullscreen(&self) {
-        self.is_fullscreen.set(true);
+    fn set_vis_parents(&self, parent: &dyn display::Object, dom_parent: &DomScene) {
         if let Some(viz) = &*self.visualization.borrow() {
-            self.fullscreen_view.add_child(viz);
+            parent.add_child(viz);
             if let Some(dom) = viz.root_dom() {
-                self.scene.dom.layers.fullscreen_vis.manage(dom);
+                dom_parent.manage(dom);
             }
             viz.inputs.activate.emit(());
         }
     }
 
-    fn disable_fullscreen(&self) {
-        self.is_fullscreen.set(false);
-        if let Some(viz) = &*self.visualization.borrow() {
-            self.view.add_child(viz);
-            if let Some(dom) = viz.root_dom() {
-                self.scene.dom.layers.back.manage(dom);
-            }
-            viz.inputs.deactivate.emit(());
-        }
+    fn enable_fullscreen(&self) {
+        self.set_visualization_layer(visualization::Layer::Fullscreen);
+        self.set_vis_parents(&self.fullscreen_view, &self.scene.dom.layers.fullscreen_vis)
     }
 
-    fn toggle_visibility(&self) {
-        self.set_visibility(!self.is_active())
+    fn enable_default_view(&self) {
+        self.set_visualization_layer(visualization::Layer::Default);
+        self.set_vis_parents(&self.view, &self.scene.dom.layers.back)
+    }
+
+    fn enable_preview(&self) {
+        self.set_visualization_layer(visualization::Layer::Front);
+        self.set_vis_parents(&self.view, &self.scene.dom.layers.front);
     }
 
     fn set_visualization(
         &self,
         visualization: visualization::Instance,
         preprocessor: &frp::Any<PreprocessorConfiguration>,
+        view_state: ViewState,
     ) {
         let size = self.size.get();
         visualization.frp.set_size.emit(size);
@@ -399,31 +435,27 @@ impl ContainerModel {
             vis_preprocessor_change <- visualization.on_preprocessor_change.map(|x| x.clone());
             preprocessor            <+ vis_preprocessor_change;
         }
-        preprocessor.emit(visualization.on_preprocessor_change.value());
-        if self.is_fullscreen.get() {
-            self.fullscreen_view.add_child(&visualization)
-        } else {
-            self.view.add_child(&visualization);
-        }
-        self.visualization.replace(Some(visualization));
+        self.visualization.replace(Some(visualization.clone_ref()));
         self.vis_frp_connection.replace(Some(vis_frp_connection));
+        self.apply_view_state(view_state);
+        preprocessor.emit(visualization.on_preprocessor_change.value());
     }
 
     fn set_visualization_data(&self, data: &visualization::Data) {
         self.visualization.borrow().for_each_ref(|vis| vis.send_data.emit(data))
     }
 
-    fn update_shape_sizes(&self) {
+    fn update_shape_sizes(&self, view_state: ViewState) {
         let size = self.size.get();
-        self.set_size(size);
+        self.update_layout(size, view_state);
     }
 
-    fn set_size(&self, size: impl Into<Vector2>) {
+    fn update_layout(&self, size: impl Into<Vector2>, view_state: ViewState) {
         let dom = self.view.background_dom.dom();
         let bg_dom = self.fullscreen_view.background_dom.dom();
         let size = size.into();
         self.size.set(size);
-        if self.is_fullscreen.get() {
+        if view_state.is_fullscreen() {
             self.view.overlay.set_size(Vector2(0.0, 0.0));
             dom.set_style_or_warn("width", "0");
             dom.set_style_or_warn("height", "0");
@@ -459,16 +491,6 @@ impl ContainerModel {
     fn set_corner_roundness(&self, value: f32) {
         self.view.overlay.roundness.set(value);
         self.view.background.roundness.set(value);
-    }
-
-    fn show_visualisation(&self) {
-        if let Some(vis) = self.visualization.borrow().as_ref() {
-            if self.is_fullscreen.get() {
-                self.fullscreen_view.add_child(vis);
-            } else {
-                self.view.add_child(vis);
-            }
-        }
     }
 
     /// Check if given mouse-event-target means this visualization.
@@ -526,7 +548,9 @@ impl Container {
     }
 
     fn init(self, app: &Application) -> Self {
-        let frp = &self.frp;
+        let frp = &self.frp.private;
+        let input = &frp.input;
+        let output = &frp.output;
         let network = &self.frp.network;
         let model = &self.model;
         let scene = &self.model.scene;
@@ -536,30 +560,27 @@ impl Container {
         let selection = Animation::new(network);
 
         frp::extend! { network
-            eval  frp.set_visibility    ((v) model.set_visibility(*v));
-            eval_ frp.toggle_visibility (model.toggle_visibility());
+            eval input.set_view_state((state) model.apply_view_state(*state));
+            output.view_state <+ input.set_view_state.on_change();
+            output.fullscreen <+ output.view_state.map(|state| state.is_fullscreen()).on_change();
+            output.visible <+ output.view_state.map(|state| state.is_visible()).on_change();
+            output.size <+ input.set_size.on_change();
 
-            visualisation_uninitialised <- frp.set_visualization.map(|t| t.is_none());
-            default_visualisation <- visualisation_uninitialised.on_true().map(|_| {
+            visualisation_not_selected <- input.set_visualization.map(|t| t.is_none());
+            input_type_not_set <- input.set_vis_input_type.is_some().not();
+            uninitialised <- visualisation_not_selected && input_type_not_set;
+            set_default_visualisation <- uninitialised.on_change().on_true().map(|_| {
                 Some(visualization::Registry::default_visualisation())
             });
-            vis_input_type <- frp.set_vis_input_type.on_change();
-            vis_input_type <- vis_input_type.gate(&visualisation_uninitialised).unwrap();
-            default_visualisation_for_type <- vis_input_type.map(f!((tp) {
+            vis_input_type_changed <- input.set_vis_input_type.on_change();
+            vis_input_type_changed_without_selection <-
+                vis_input_type_changed.gate(&visualisation_not_selected).unwrap();
+            set_default_visualisation_for_type <- vis_input_type_changed_without_selection.map(f!((tp) {
                registry.default_visualization_for_type(tp)
             }));
-            default_visualisation <- any(&default_visualisation, &default_visualisation_for_type);
+            set_default_visualisation <- any(
+                &set_default_visualisation, &set_default_visualisation_for_type);
 
-            eval  frp.set_data          ((t) model.set_visualization_data(t));
-            frp.source.size    <+ frp.set_size;
-            frp.source.visible <+ frp.set_visibility;
-            frp.source.visible <+ frp.toggle_visibility.map(f!((()) model.is_active()));
-            eval  frp.set_layer         ([model](l) {
-                if let Some(vis) = model.visualization.borrow().as_ref() {
-                    vis.set_layer.emit(l)
-                }
-                model.view.set_layer(*l);
-            });
         }
 
 
@@ -569,15 +590,17 @@ impl Container {
             selected_definition <- action_bar.visualisation_selection.map(f!([registry](path)
                 path.as_ref().and_then(|path| registry.definition_from_path(path))
             ));
-            action_bar.set_vis_input_type <+ frp.set_vis_input_type;
-            frp.source.vis_input_type <+ frp.set_vis_input_type;
+            action_bar.hide_icons <+ selected_definition.constant(());
+            output.vis_input_type <+ input.set_vis_input_type;
+            let chooser = &model.action_bar.visualization_chooser();
+            chooser.frp.set_vis_input_type <+ input.set_vis_input_type;
         }
 
 
         // === Cycling Visualizations ===
 
         frp::extend! { network
-            vis_after_cycling <- frp.cycle_visualization.map3(&frp.visualisation,&frp.vis_input_type,
+            vis_after_cycling <- input.cycle_visualization.map3(&output.visualisation, &output.vis_input_type,
                 f!(((),vis,input_type) model.next_visualization(vis,input_type))
             );
         }
@@ -587,19 +610,19 @@ impl Container {
 
         frp::extend! { network
             vis_definition_set <- any(
-                frp.set_visualization,
+                input.set_visualization,
                 selected_definition,
                 vis_after_cycling,
-                default_visualisation);
+                set_default_visualisation);
             new_vis_definition <- vis_definition_set.on_change();
-            let preprocessor   =  &frp.source.preprocessor;
-            frp.source.visualisation <+ new_vis_definition.map(f!(
-                [model,action_bar,app,preprocessor](vis_definition) {
+            let preprocessor = &output.preprocessor;
+            output.visualisation <+ new_vis_definition.map2(&output.view_state, f!(
+                [model,action_bar,app,preprocessor](vis_definition, view_state) {
 
                 if let Some(definition) = vis_definition {
                     match definition.new_instance(&app) {
                         Ok(vis)  => {
-                            model.set_visualization(vis,&preprocessor);
+                            model.set_visualization(vis,&preprocessor, *view_state);
                             let path = Some(definition.signature.path.clone());
                             action_bar.set_selected_visualization.emit(path);
                         },
@@ -611,21 +634,24 @@ impl Container {
                 vis_definition.clone()
             }));
 
+            output.visualization_path <+ output.visualisation.map(|definition| {
+                definition.as_ref().map(|def| def.signature.path.clone_ref())
+            });
+        }
 
         // === Visualisation Loading Spinner ===
 
-        eval_ frp.source.visualisation ( model.view.show_waiting_screen() );
-        eval_ frp.set_data ( model.view.disable_waiting_screen() );
-
+        frp::extend! { network
+            eval_ output.visualisation ( model.view.show_waiting_screen() );
+            eval_ input.set_data ( model.view.disable_waiting_screen() );
         }
-
 
 
         // === Selecting Visualization ===
 
         frp::extend! { network
             mouse_down_target <- scene.mouse.frp_deprecated.down.map(f_!(scene.mouse.target.get()));
-            selected_by_click <= mouse_down_target.map(f!([model] (target){
+            selected_by_click <= mouse_down_target.map2(&output.view_state, f!([model] (target,view_state){
                 let vis        = &model.visualization;
                 let activate   = || vis.borrow().as_ref().map(|v| v.activate.clone_ref());
                 let deactivate = || vis.borrow().as_ref().map(|v| v.deactivate.clone_ref());
@@ -634,7 +660,7 @@ impl Container {
                         activate.emit(());
                         return Some(true);
                     }
-                } else if !model.is_fullscreen.get() {
+                } else if !view_state.is_fullscreen() {
                     if let Some(deactivate) = deactivate() {
                         deactivate.emit(());
                         return Some(false);
@@ -645,34 +671,28 @@ impl Container {
             selection_after_click <- selected_by_click.map(|sel| if *sel {1.0} else {0.0});
             selection.target <+ selection_after_click;
             eval selection.value ((selection) model.view.background.selection.set(*selection));
-
-            selected_by_going_fullscreen <- bool(&frp.disable_fullscreen,&frp.enable_fullscreen);
-            selected                     <- any(selected_by_click,selected_by_going_fullscreen);
-
-            is_selected_changed <= selected.map2(&frp.output.is_selected, |&new,&old| {
-                (new != old).as_some(new)
-            });
-            frp.source.is_selected <+ is_selected_changed;
+            is_selected <- selected_by_click || output.fullscreen;
+            output.is_selected <+ is_selected.on_change();
         }
 
 
         // === Fullscreen View ===
 
         frp::extend! { network
-            eval_ frp.enable_fullscreen  (model.enable_fullscreen());
-            eval_ frp.disable_fullscreen (model.disable_fullscreen());
-            fullscreen_enabled_weight  <- frp.enable_fullscreen.constant(1.0);
-            fullscreen_disabled_weight <- frp.disable_fullscreen.constant(0.0);
-            fullscreen_weight          <- any(fullscreen_enabled_weight,fullscreen_disabled_weight);
-            frp.source.size            <+ frp.set_size;
+            enable_fullscreen <- output.fullscreen.on_true();
+            disable_fullscreen <- output.fullscreen.on_false();
 
-            _eval <- fullscreen_weight.all_with3(&frp.size,scene_shape,
-                f!([model] (weight,viz_size,scene_size) {
+            fullscreen_enabled_weight  <- enable_fullscreen.constant(1.0);
+            fullscreen_disabled_weight <- disable_fullscreen.constant(0.0);
+            fullscreen_weight          <- any(fullscreen_enabled_weight,fullscreen_disabled_weight);
+
+            _eval <- fullscreen_weight.all_with4(&output.size,scene_shape,&output.view_state,
+                f!([model] (weight,viz_size,scene_size,view_state) {
                     let weight_inv           = 1.0 - weight;
                     let scene_size : Vector2 = scene_size.into();
                     let current_size         = viz_size * weight_inv + scene_size * *weight;
                     model.set_corner_roundness(weight_inv);
-                    model.set_size(current_size);
+                    model.update_layout(current_size,*view_state);
 
                     let m1  = model.scene.layers.panel.camera().inversed_view_matrix();
                     let m2  = model.scene.layers.viz.camera().view_matrix();
@@ -683,6 +703,16 @@ impl Container {
                     let current_pos = pp * weight_inv;
                     model.fullscreen_view.set_position(current_pos);
             }));
+
+
+            // === Data Update ===
+
+            data <- input.set_data.unwrap();
+            has_data <- input.set_data.is_some();
+            reset_data <- data.sample(&new_vis_definition).gate(&has_data);
+            data_update <- any(&data,&reset_data);
+            eval data_update ((t) model.set_visualization_data(t));
+
         }
 
 
@@ -709,8 +739,8 @@ impl Container {
         //
         // This is not optimal the optimal solution to this problem, as it also means that we have
         // an animation on an invisible component running.
-        frp.set_size.emit(Vector2(DEFAULT_SIZE.0, DEFAULT_SIZE.1));
-        frp.set_visualization.emit(None);
+        self.frp.public.set_size(Vector2(DEFAULT_SIZE.0, DEFAULT_SIZE.1));
+        self.frp.public.set_visualization(None);
         self
     }
 

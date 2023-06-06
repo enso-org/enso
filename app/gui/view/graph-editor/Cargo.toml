@@ -12,6 +12,7 @@ analytics = { path = "../../analytics" }
 ast = { path = "../../language/ast/impl" }
 base64 = "0.13"
 bimap = { version = "0.4.0" }
+derivative = "2.2.0"
 engine-protocol = { path = "../../controller/engine-protocol" }
 enso-config = { path = "../../config" }
 enso-frp = { path = "../../../../lib/rust/frp" }

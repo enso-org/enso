@@ -158,6 +158,10 @@ impl View {
             eval_ frp.switch_view_to_welcome_screen(model.switch_view_to_welcome_screen());
             offset_y <- all(&init,&offset_y)._1();
             eval offset_y ((offset_y) model.status_bar.set_y(*offset_y));
+
+            model.status_bar.add_event <+ app.frp.show_notification.map(|message| {
+                message.into()
+            });
         }
         init.emit(());
         Self { model, frp }

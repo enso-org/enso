@@ -57,18 +57,19 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                 </button>
                 Are you sure you want to delete the {assetType} '{name}'?
                 <div className="m-1">
-                    <div
+                    <button
+                        type="submit"
                         className="hover:cursor-pointer inline-block text-white bg-red-500 rounded-full px-4 py-1 m-1"
-                        onClick={onSubmit}
                     >
                         Delete
-                    </div>
-                    <div
+                    </button>
+                    <button
+                        type="button"
                         className="hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1"
                         onClick={unsetModal}
                     >
                         Cancel
-                    </div>
+                    </button>
                 </div>
             </form>
         </Modal>

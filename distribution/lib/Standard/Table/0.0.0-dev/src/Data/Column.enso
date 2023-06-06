@@ -180,6 +180,7 @@ type Column
 
        Returns a column with results of comparing this column's elements against
        `other`.
+    @locale Locale.default_widget
     equals_ignore_case : Column | Any -> Locale -> Column
     equals_ignore_case self other locale=Locale.default =
         ## TODO currently this always runs the fallback which is slow due to the
@@ -903,7 +904,7 @@ type Column
             _ -> self.is_nothing
         result.rename new_name
 
-    ## ALIAS Fill Missing
+    ## ALIAS Fill Missing, if_nothing
 
        Returns a new column where missing values have been replaced with the
        provided default.
@@ -935,7 +936,7 @@ type Column
             col = Java_Column.new new_name new_st
             Column.Value col
 
-    ## ALIAS Fill Empty
+    ## ALIAS Fill Empty, if_empty
 
        Returns a new column where empty Text values have been replaced with the
        provided default.
@@ -1665,8 +1666,7 @@ type Column
     info : Table
     info self = self.to_table.info
 
-    ## UNSTABLE
-
+    ## ALIAS order_by
        Sorts the column according to the specified rules.
 
        Arguments:

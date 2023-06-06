@@ -138,6 +138,15 @@ interface StringConfig {
     [key: string]: StringConfig | string
 }
 
+/** Configuration options for the authentication flow and dashboard. */
+interface AuthenticationConfig {
+    isInAuthenticationFlow: boolean
+    shouldUseAuthentication: boolean
+    shouldUseNewDashboard: boolean
+    initialProjectName: string | null
+    inputConfig: StringConfig | null
+}
+
 /** Contains the entrypoint into the IDE. */
 class Main implements AppRunner {
     app: app.App | null = null
@@ -149,7 +158,7 @@ class Main implements AppRunner {
 
     /** Run an app instance with the specified configuration.
      * This includes the scene to run and the WebSocket endpoints to the backend. */
-    async runApp(inputConfig?: StringConfig) {
+    async runApp(inputConfig?: StringConfig | null) {
         this.stopApp()
 
         /** FIXME: https://github.com/enso-org/enso/issues/6475
@@ -219,19 +228,22 @@ class Main implements AppRunner {
             const isOpeningMainEntryPoint =
                 contentConfig.OPTIONS.groups.startup.options.entry.value ===
                 contentConfig.OPTIONS.groups.startup.options.entry.default
-            const isNotOpeningProject =
-                contentConfig.OPTIONS.groups.startup.options.project.value === ''
-            if (
-                (shouldUseAuthentication || shouldUseNewDashboard) &&
-                isOpeningMainEntryPoint &&
-                isNotOpeningProject
-            ) {
-                this.runAuthentication(
+            const initialProjectName =
+                contentConfig.OPTIONS.groups.startup.options.project.value || null
+            // This MUST be removed as it would otherwise override the `startup.project` passed
+            // explicitly in `ide.tsx`.
+            if (isOpeningMainEntryPoint && url.searchParams.has('startup.project')) {
+                url.searchParams.delete('startup.project')
+                history.replaceState(null, '', url.toString())
+            }
+            if ((shouldUseAuthentication || shouldUseNewDashboard) && isOpeningMainEntryPoint) {
+                this.runAuthentication({
                     isInAuthenticationFlow,
                     shouldUseAuthentication,
                     shouldUseNewDashboard,
-                    inputConfig
-                )
+                    initialProjectName,
+                    inputConfig: inputConfig ?? null,
+                })
             } else {
                 void this.runApp(inputConfig)
             }
@@ -239,12 +251,7 @@ class Main implements AppRunner {
     }
 
     /** Begins the authentication UI flow. */
-    runAuthentication(
-        isInAuthenticationFlow: boolean,
-        shouldUseAuthentication: boolean,
-        shouldUseNewDashboard: boolean,
-        inputConfig?: StringConfig
-    ) {
+    runAuthentication(config: AuthenticationConfig) {
         /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
          * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
          * should only have one entry point. Right now, we have two. One for the cloud
@@ -259,10 +266,11 @@ class Main implements AppRunner {
             logger,
             supportsLocalBackend: SUPPORTS_LOCAL_BACKEND,
             supportsDeepLinks: SUPPORTS_DEEP_LINKS,
-            isAuthenticationDisabled: !shouldUseAuthentication,
-            shouldShowDashboard: shouldUseNewDashboard,
+            isAuthenticationDisabled: !config.shouldUseAuthentication,
+            shouldShowDashboard: config.shouldUseNewDashboard,
+            initialProjectName: config.initialProjectName,
             onAuthenticated: () => {
-                if (isInAuthenticationFlow) {
+                if (config.isInAuthenticationFlow) {
                     const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
                     if (initialUrl != null) {
                         // This is not used past this point, however it is set to the initial URL
@@ -270,7 +278,7 @@ class Main implements AppRunner {
                         history.replaceState(null, '', initialUrl)
                     }
                 }
-                if (!shouldUseNewDashboard) {
+                if (!config.shouldUseNewDashboard) {
                     document.getElementById('enso-dashboard')?.remove()
                     const ideElement = document.getElementById('root')
                     if (ideElement) {
@@ -278,7 +286,7 @@ class Main implements AppRunner {
                         ideElement.style.display = ''
                     }
                     if (this.app == null) {
-                        void this.runApp(inputConfig)
+                        void this.runApp(config.inputConfig)
                     }
                 }
             },

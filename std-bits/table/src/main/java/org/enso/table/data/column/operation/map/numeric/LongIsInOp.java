@@ -2,12 +2,12 @@ package org.enso.table.data.column.operation.map.numeric;
 
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.SpecializedIsInOp;
-import org.enso.table.data.column.storage.LongStorage;
+import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 
 import java.util.HashSet;
 import java.util.List;
 
-public class LongIsInOp extends SpecializedIsInOp<Long, LongStorage> {
+public class LongIsInOp extends SpecializedIsInOp<Long, AbstractLongStorage> {
   @Override
   protected CompactRepresentation<Long> prepareList(List<?> list) {
     HashSet<Long> set = new HashSet<>();

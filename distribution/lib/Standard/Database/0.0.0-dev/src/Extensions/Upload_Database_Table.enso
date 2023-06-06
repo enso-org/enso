@@ -1,0 +1,88 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import Standard.Table.Internal.Widget_Helpers
+from Standard.Table.Errors import all
+from Standard.Table import Column_Selector
+
+import project.Connection.Connection.Connection
+import project.Data.Table.Table
+import project.Data.Update_Action.Update_Action
+from project.Errors import all
+from project.Extensions.Upload_Default_Helpers import default_key_columns
+from project.Internal.Upload_Table import all
+
+## Creates a new database table from this table.
+
+   Arguments:
+   - connection: the database connection to use. The table will be created in
+     the database and schema associated with this connection.
+   - table_name: the name of the table to create. If not provided, a random name
+     will be generated for temporary tables. If `temporary=False`, then a name
+     must be provided.
+   - primary_key: the names of the columns to use as the primary key. The first
+     column from the table is used by default. If it is set to `Nothing` or an
+     empty vector, no primary key will be created.
+   - temporary: if set to `True`, the table will be temporary, meaning that it
+     will be dropped once the `connection` is closed. Defaults to `False`.
+   - on_problems: the behavior to use when encountering non-fatal problems.
+     Defaults to reporting them as warning.
+
+   ! Error Conditions
+
+     - If a table with the given name already exists, then a
+       `Table_Already_Exists` error is raised.
+     - If a column type is not supported and is coerced to a similar supported
+       type, an `Inexact_Type_Coercion` problem is reported according to the
+       `on_problems` setting.
+     - If a column type is not supported and there is no replacement (e.g.
+       native Enso types), an `Unsupported_Type` error is raised.
+     - If the provided primary key columns are not present in the source table,
+       `Missing_Input_Columns` error is raised.
+     - If the selected primary key columns are not unique, a
+       `Non_Unique_Primary_Key` error is raised.
+     - An `SQL_Error` may be reported if there is a failure on the database
+       side.
+
+     If an error has been raised, the table is not created (that may not always
+     apply to `SQL_Error`).
+@primary_key Widget_Helpers.make_column_name_vector_selector
+Table.select_into_database_table : Connection -> Text|Nothing -> Vector Text | Nothing -> Boolean -> Problem_Behavior -> Table ! Table_Already_Exists | Inexact_Type_Coercion | Missing_Input_Columns | Non_Unique_Primary_Key | SQL_Error | Illegal_Argument
+Table.select_into_database_table self connection table_name=Nothing primary_key=[self.columns.first.name] temporary=False on_problems=Problem_Behavior.Report_Warning = Panic.recover SQL_Error <|
+    upload_database_table self connection table_name primary_key temporary on_problems
+
+## Updates the target table with the contents of this table.
+
+   Arguments:
+   - connection: the database connection of the target table.
+   - table_name: the name of the table to update.
+   - update_action: specifies the update strategy - how to handle existing new
+     and missing rows.
+   - key_columns: the names of the columns to use identify correlate rows from
+     the source table with rows in the target table. This key is used to
+     determine if a row from the source table exists in the target or is a new
+     one.
+   - error_on_missing_columns: if set to `False` (the default), any columns
+     missing from the source table will be left unchanged or initialized with
+     the default value if inserting. If a missing column has no default value,
+     this will trigger a `SQL_Error`. If set to `True`, any columns missing from
+     the source will cause an error.
+    - on_problems: the behavior to use when encountering non-fatal problems.
+
+   ! Error Conditions
+
+     - If `key_columns` are not present in either the source or target tables, a
+       `Missing_Input_Columns` error is raised.
+     - If the target table does not exist, a `Table_Not_Found` error is raised.
+     - If `error_on_missing_columns` is set to `True` and a column is missing
+       from the source table, a `Missing_Input_Columns` error is raised.
+     - If the source table contains columns that are not present in the target
+       table, an `Unmatched_Columns` error is raised.
+     - If a column in the source table has a type that cannot be trivially
+       widened to the corresponding column in the target table, a
+       `Column_Type_Mismatch` error is raised.
+
+     If any error was raised, the data in the target table is not modified.
+Table.update_database_table : Connection -> Text -> Update_Action -> Vector Text-> Boolean -> Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
+Table.update_database_table connection (table_name : Text) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector = default_key_columns connection table_name) (error_on_missing_columns : Boolean = False) =
+    common_update_table self connection table_name update_action key_columns error_on_missing_columns

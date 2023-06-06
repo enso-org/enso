@@ -4347,6 +4347,7 @@ dependencies = [
  "base64 0.13.1",
  "bimap",
  "bitflags 2.2.1",
+ "derivative",
  "engine-protocol",
  "enso-config",
  "enso-frp",

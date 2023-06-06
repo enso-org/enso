@@ -434,6 +434,30 @@ export default [
         },
     },
     {
+        files: [
+            'lib/dashboard/src/**/*.ts',
+            'lib/dashboard/src/**/*.mts',
+            'lib/dashboard/src/**/*.cts',
+            'lib/dashboard/src/**/*.tsx',
+            'lib/dashboard/src/**/*.mtsx',
+            'lib/dashboard/src/**/*.ctsx',
+        ],
+        rules: {
+            'no-restricted-properties': [
+                'error',
+                {
+                    object: 'console',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+                {
+                    object: 'hooks',
+                    property: 'useDebugState',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+            ],
+        },
+    },
+    {
         files: ['**/*.d.ts'],
         rules: {
             'no-undef': 'off',

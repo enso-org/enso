@@ -68,9 +68,10 @@ function RenameModal(props: RenameModalProps) {
                     </label>
                     <Input
                         autoFocus
+                        required
+                        // Never disabled, as disabling unfocuses the input.
                         id="renamed_file_name"
                         type="text"
-                        required
                         pattern={namePattern}
                         title={title}
                         className="border-primary bg-gray-200 rounded-full w-2/3 px-2 mx-2"
@@ -85,12 +86,13 @@ function RenameModal(props: RenameModalProps) {
                     >
                         Rename
                     </button>
-                    <div
+                    <button
+                        type="button"
                         className="hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1"
                         onClick={unsetModal}
                     >
                         Cancel
-                    </div>
+                    </button>
                 </div>
             </form>
         </Modal>

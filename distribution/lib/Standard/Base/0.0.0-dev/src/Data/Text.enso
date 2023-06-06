@@ -55,6 +55,7 @@ type Text
          ACCENT). Therefore:
 
              (('É' . equals_ignore_case 'é') && ('é' . equals_ignore_case 'e\u0301')) == True
+    @locale Locale.default_widget
     equals_ignore_case : Text -> Locale -> Boolean
     equals_ignore_case self that locale=Locale.default =
         Text_Utils.equals_ignore_case self that locale.java_locale
@@ -64,6 +65,7 @@ type Text
        UNSTABLE
        Unifies the case of all letters in the text, generating a key which can be
        used to perform case-insensitive comparisons.
+    @locale Locale.default_widget
     to_case_insensitive_key : Locale -> Text
     to_case_insensitive_key self locale=Locale.default =
         Text_Utils.case_insensitive_key self locale.java_locale
@@ -77,6 +79,7 @@ type Text
          Checking how "a" orders in relation to "b".
 
              "a".compare_to_ignore_case "b"
+    @locale Locale.default_widget
     compare_to_ignore_case : Text -> Locale -> Ordering
     compare_to_ignore_case self that locale=Locale.default =
         if that.is_nothing then Error.throw (Type_Error.Error Text that "that") else

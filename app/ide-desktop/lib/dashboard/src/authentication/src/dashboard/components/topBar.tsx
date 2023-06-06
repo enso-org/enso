@@ -41,19 +41,26 @@ function TopBar(props: TopBarProps) {
         query,
         setQuery,
     } = props
-    const [userMenuVisible, setUserMenuVisible] = react.useState(false)
+    const [isUserMenuVisible, setIsUserMenuVisible] = react.useState(false)
+    const { modal } = modalProvider.useModal()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
 
     const shouldShowBackendSwitcher = supportsLocalBackend && !isAuthenticationDisabled
 
     react.useEffect(() => {
-        if (userMenuVisible) {
+        if (!modal) {
+            setIsUserMenuVisible(false)
+        }
+    }, [modal])
+
+    react.useEffect(() => {
+        if (isUserMenuVisible) {
             setModal(() => <UserMenu />)
         } else {
             unsetModal()
         }
-    }, [userMenuVisible])
+    }, [isUserMenuVisible])
 
     return (
         <div className="flex mb-2 h-8">
@@ -110,6 +117,7 @@ function TopBar(props: TopBarProps) {
                 <div>{svg.MAGNIFYING_GLASS_ICON}</div>
                 <input
                     type="text"
+                    size={1}
                     placeholder="Click here or start typing to search for projects, data connectors, users, and more ..."
                     value={query}
                     onChange={event => {
@@ -127,19 +135,19 @@ function TopBar(props: TopBarProps) {
                 <div className="ml-2">{svg.SPEECH_BUBBLE_ICON}</div>
             </a>
             {/* User profile and menu. */}
-            {
-                !isAuthenticationDisabled && <div className="transform w-8">
+            {!isAuthenticationDisabled && (
+                <div className="transform w-8">
                     <div
                         onClick={event => {
                             event.stopPropagation()
-                            setUserMenuVisible(!userMenuVisible)
+                            setIsUserMenuVisible(!isUserMenuVisible)
                         }}
                         className="rounded-full w-8 h-8 bg-cover cursor-pointer"
                     >
                         {svg.DEFAULT_USER_ICON}
                     </div>
                 </div>
-            }
+            )}
         </div>
     )
 }
