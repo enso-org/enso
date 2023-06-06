@@ -38,19 +38,25 @@ create_table_structure connection table_name structure primary_key temporary all
 
 ## PRIVATE
    A helper that can upload a table from any backend to a database.
-   It should be run within a transaction.
-upload_table source_table connection table_name primary_key temporary on_problems =
+   It should be run within a transaction and wrapped in `handle_upload_errors`.
+internal_upload_table source_table connection table_name primary_key temporary on_problems =
     case source_table of
         _ : In_Memory_Table ->
-            upload_in_memory_table source_table connection table_name primary_key temporary on_problems
+            internal_upload_in_memory_table source_table connection table_name primary_key temporary on_problems
         _ : Database_Table ->
-            upload_database_table source_table connection table_name primary_key temporary on_problems
+            internal_upload_database_table source_table connection table_name primary_key temporary on_problems
         _ ->
             Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.get_qualified_type_name source_table)
 
 ## PRIVATE
-   It should be run within a transaction.
 upload_in_memory_table source_table connection table_name primary_key temporary on_problems =
+    Panic.recover SQL_Error <| handle_upload_errors <|
+        connection.jdbc_connection.run_within_transaction <|
+            internal_upload_in_memory_table source_table connection table_name primary_key temporary on_problems
+
+## PRIVATE
+   It should be run within a transaction and wrapped in `handle_upload_errors`.
+internal_upload_in_memory_table source_table connection table_name primary_key temporary on_problems =
     In_Transaction.ensure_in_transaction <|
         created_table_name = create_table_structure connection table_name structure=source_table primary_key=primary_key temporary=temporary allow_existing=False on_problems=on_problems
         column_names = source_table.column_names
@@ -60,7 +66,7 @@ upload_in_memory_table source_table connection table_name primary_key temporary 
            continue. Otherwise, they could 'leak' to `Panic.rethrow` and be wrongly
            raised as panics.
         upload_status = created_table_name.if_not_error <|
-            translate_known_upload_errors source_table connection primary_key <|
+            internal_translate_known_upload_errors source_table connection primary_key <|
                 insert_template = make_batched_insert_template connection created_table_name column_names
                 statement_setter = connection.dialect.get_statement_setter
                 Panic.rethrow <| connection.jdbc_connection.batch_insert insert_template statement_setter source_table default_batch_size
@@ -69,8 +75,14 @@ upload_in_memory_table source_table connection table_name primary_key temporary 
             connection.query (SQL_Query.Table_Name created_table_name)
 
 ## PRIVATE
-   It should be run within a transaction.
 upload_database_table source_table connection table_name primary_key temporary on_problems =
+    Panic.recover SQL_Error <| handle_upload_errors <|
+        connection.jdbc_connection.run_within_transaction <|
+            internal_upload_database_table source_table connection table_name primary_key temporary on_problems
+
+## PRIVATE
+   It should be run within a transaction and wrapped in `handle_upload_errors`.
+internal_upload_database_table source_table connection table_name primary_key temporary on_problems =
     In_Transaction.ensure_in_transaction <|
         connection_check = if source_table.connection.jdbc_connection == connection.jdbc_connection then True else
             Error.throw (Unsupported_Database_Operation.Error "The Database table to be uploaded must be coming from the same connection as the connection on which the new table is being created. Cross-connection uploads are currently not supported. To work around this, you can first `.read` the table into memory and then upload it from memory to a different connection.")
@@ -78,7 +90,7 @@ upload_database_table source_table connection table_name primary_key temporary o
         connection_check.if_not_error <|
             created_table_name = create_table_structure connection table_name structure=source_table primary_key=primary_key temporary=temporary allow_existing=False on_problems=on_problems
             upload_status = created_table_name.if_not_error <|
-                translate_known_upload_errors source_table connection primary_key <|
+                internal_translate_known_upload_errors source_table connection primary_key <|
                     ## We need to ensure that the columns in this statement are
                        matching positionally the columns in the newly created
                        table. But we create both from the same source table, so
@@ -106,16 +118,31 @@ resolve_primary_key structure primary_key = case primary_key of
                 primary_key
 
 ## PRIVATE
-   Inspects any `SQL_Error` thrown and replaces it with a more precise error
-   type when available.
-translate_known_upload_errors source_table connection primary_key ~action =
+   Inspects any `SQL_Error` thrown and replaces it with an error recipe, that is
+   converted into a proper error in an outer layer.
+
+   The special handling is needed, because computing the
+   `Non_Unique_Primary_Key` error may need to perform a SQL query that must be
+   run outside of the just-failed transaction.
+internal_translate_known_upload_errors source_table connection primary_key ~action =
     handler caught_panic =
         error_mapper = connection.dialect.get_error_mapper
         sql_error = caught_panic.payload
         case error_mapper.is_primary_key_violation sql_error of
-            True -> raise_duplicated_primary_key_error source_table primary_key caught_panic
+            True -> Panic.throw (Non_Unique_Primary_Key_Recipe.Recipe source_table primary_key caught_panic)
             False -> Panic.throw caught_panic
     Panic.catch SQL_Error action handler
+
+## PRIVATE
+handle_upload_errors ~action =
+    Panic.catch Non_Unique_Primary_Key_Recipe action caught_panic->
+        recipe = caught_panic.payload
+        raise_duplicated_primary_key_error recipe.source_table recipe.primary_key recipe.original_panic
+
+## PRIVATE
+type Non_Unique_Primary_Key_Recipe
+    ## PRIVATE
+    Recipe source_table primary_key original_panic
 
 ## PRIVATE
    Creates a `Non_Unique_Primary_Key` error containing information about an
@@ -191,7 +218,7 @@ make_batched_insert_template connection table_name column_names =
 
 ## PRIVATE
 common_update_table source_table connection table_name update_action key_columns error_on_missing_columns =
-    Panic.recover SQL_Error <|
+    Panic.recover SQL_Error <| handle_upload_errors <|
         connection.jdbc_connection.run_within_transaction <|
             target_table = connection.query (SQL_Query.Table_Name table_name)
             # We catch the `Table_Not_Found` error and handle it specially, if the error was different, it will just get passed through further.
@@ -202,7 +229,7 @@ common_update_table source_table connection table_name update_action key_columns
                 Error.throw new_error
             if target_table.is_error then handle_error else
                 tmp_table_name = "temporary-source-table-"+random_uuid
-                tmp_table = upload_table source_table connection tmp_table_name key_columns temporary=True structure_only=False on_problems=Problem_Behavior.Report_Error
+                tmp_table = internal_upload_table source_table connection tmp_table_name key_columns temporary=True structure_only=False on_problems=Problem_Behavior.Report_Error
                 tmp_table.if_not_error <|
                     resulting_table = append_to_existing_table tmp_table target_table update_action key_columns error_on_missing_columns
                     connection.drop_table tmp_table.name
