@@ -38,7 +38,6 @@ import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Json import Json, Invalid_JSON, JS_Object
 from project.Data.Numbers import Decimal, Integer, Number, Number_Parse_Error
-from project.Data.Text.Text_Sub_Range import Codepoint_Ranges, Text_Sub_Range
 
 from project.Widget_Helpers import make_delimiter_selector
 

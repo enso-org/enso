@@ -1,31 +1,10 @@
 from Standard.Base import all
-import project.Any.Any
-import project.Data.Array.Array
-import project.Data.Index_Sub_Range.Index_Sub_Range
-import project.Data.Json.JS_Object
-import project.Data.Numbers.Integer
-import project.Data.Text.Encoding.Encoding
-import project.Data.Text.Text_Extensions
-import project.Data.Text.Matching_Mode.Matching_Mode
-import project.Data.Text.Text
-import project.Data.Time.Time_Of_Day.Time_Of_Day
-import project.Data.Vector.Vector
-import project.Error.Error
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
-import project.Errors.Problem_Behavior.Problem_Behavior
-import project.Meta
-import project.Nothing.Nothing
-import project.Panic.Panic
 import project.Runtime.Context
 import project.Runtime.Managed_Resource.Managed_Resource
-import project.System.File.File_Access.File_Access
-import project.System.File.File_Permissions.File_Permissions
-
-from project.Data.Boolean import Boolean, True, False
-from project.System.File_Format import Auto_Detect, File_Format
 
 import project.Metadata.Widget
 from project.Metadata.Choice import Option
