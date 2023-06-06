@@ -2153,6 +2153,7 @@ name = "enso-generics"
 version = "0.2.0"
 dependencies = [
  "nalgebra",
+ "paste",
  "serde",
 ]
 

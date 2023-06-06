@@ -17,3 +17,4 @@ publish = true
 [dependencies]
 serde = { version = "1.0.0", features = ["derive"] }
 nalgebra = { workspace = true }
+paste = { workspace = true }

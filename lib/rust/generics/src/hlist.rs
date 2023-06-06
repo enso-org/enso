@@ -15,7 +15,7 @@
 // =============
 
 /// Type of every `HList`.
-pub trait HList = HasLength;
+pub trait HList = HasConstLength;
 
 /// Empty `HList` value.
 #[derive(Debug, Clone, Copy)]
@@ -70,7 +70,7 @@ macro_rules! ty {
 
 /// Compile-time known length value.
 #[allow(missing_docs)]
-pub trait HasLength {
+pub trait HasConstLength {
     const LEN: usize;
     #[inline(always)]
     fn len() -> usize {
@@ -79,16 +79,20 @@ pub trait HasLength {
 }
 
 /// Compile-time known length value.
-pub const fn len<T: HasLength>() -> usize {
-    <T as HasLength>::LEN
+///
+/// This function is defined only because currently, Rust does not allow const functions as trait
+/// members.
+#[inline(always)]
+pub const fn const_len<T: HasConstLength>() -> usize {
+    <T as HasConstLength>::LEN
 }
 
-impl HasLength for Nil {
+impl HasConstLength for Nil {
     const LEN: usize = 0;
 }
 
-impl<H, T: HasLength> HasLength for Cons<H, T> {
-    const LEN: usize = 1 + len::<T>();
+impl<H, T: HasConstLength> HasConstLength for Cons<H, T> {
+    const LEN: usize = 1 + const_len::<T>();
 }
 
 
@@ -118,22 +122,6 @@ pub trait GetHeadMut: KnownHead {
     fn head_mut(&mut self) -> &mut Self::Head;
 }
 
-/// Head element clone.
-#[allow(missing_docs)]
-pub trait GetHeadClone: KnownHead {
-    fn head_clone(&self) -> Self::Head;
-}
-
-impl<T> GetHeadClone for T
-where
-    T: GetHead,
-    Head<T>: Clone,
-{
-    default fn head_clone(&self) -> Self::Head {
-        self.head().clone()
-    }
-}
-
 
 // === Impls ===
 
@@ -142,12 +130,14 @@ impl<H, T> KnownHead for Cons<H, T> {
 }
 
 impl<H, T> GetHead for Cons<H, T> {
+    #[inline(always)]
     fn head(&self) -> &Self::Head {
         &self.0
     }
 }
 
 impl<H, T> GetHeadMut for Cons<H, T> {
+    #[inline(always)]
     fn head_mut(&mut self) -> &mut Self::Head {
         &mut self.0
     }
@@ -180,22 +170,6 @@ pub trait GetTailMut: KnownTail {
     fn tail_mut(&mut self) -> &mut Self::Tail;
 }
 
-/// Tail element clone.
-#[allow(missing_docs)]
-pub trait GetTailClone: KnownTail {
-    fn tail_clone(&self) -> Self::Tail;
-}
-
-impl<T> GetTailClone for T
-where
-    T: GetTail,
-    Tail<T>: Clone,
-{
-    default fn tail_clone(&self) -> Self::Tail {
-        self.tail().clone()
-    }
-}
-
 
 // === Impls ===
 
@@ -204,12 +178,14 @@ impl<H, T> KnownTail for Cons<H, T> {
 }
 
 impl<H, T> GetTail for Cons<H, T> {
+    #[inline(always)]
     fn tail(&self) -> &Self::Tail {
         &self.1
     }
 }
 
 impl<H, T> GetTailMut for Cons<H, T> {
+    #[inline(always)]
     fn tail_mut(&mut self) -> &mut Self::Tail {
         &mut self.1
     }
@@ -242,21 +218,6 @@ pub trait GetLastMut: KnownLast {
     fn last_mut(&mut self) -> &mut Self::Last;
 }
 
-/// Last element clone.
-#[allow(missing_docs)]
-pub trait GetLastClone: KnownLast {
-    fn last_clone(&self) -> Self::Last;
-}
-
-impl<T> GetLastClone for T
-where
-    T: GetLast,
-    Last<T>: Clone,
-{
-    default fn last_clone(&self) -> Self::Last {
-        self.last().clone()
-    }
-}
 
 
 // === Impls ===
@@ -269,24 +230,28 @@ impl<H, T: KnownLast> KnownLast for Cons<H, T> {
 }
 
 impl<H> GetLast for Cons<H, Nil> {
+    #[inline(always)]
     fn last(&self) -> &Self::Last {
         &self.0
     }
 }
 
 impl<H> GetLastMut for Cons<H, Nil> {
+    #[inline(always)]
     fn last_mut(&mut self) -> &mut Self::Last {
         &mut self.0
     }
 }
 
 impl<H, T: GetLast> GetLast for Cons<H, T> {
+    #[inline(always)]
     fn last(&self) -> &Self::Last {
         self.tail().last()
     }
 }
 
 impl<H, T: GetLastMut> GetLastMut for Cons<H, T> {
+    #[inline(always)]
     fn last_mut(&mut self) -> &mut Self::Last {
         self.tail_mut().last_mut()
     }
@@ -324,12 +289,14 @@ impl<H, T: KnownInit> KnownInit for Cons<H, T> {
 }
 
 impl<H> GetInitClone for Cons<H, Nil> {
+    #[inline(always)]
     fn init_clone(&self) -> Self::Init {
         Nil
     }
 }
 
 impl<H: Clone, T: GetInitClone> GetInitClone for Cons<H, T> {
+    #[inline(always)]
     fn init_clone(&self) -> Self::Init {
         Cons(self.head().clone(), self.tail().init_clone())
     }
@@ -340,8 +307,6 @@ impl<H: Clone, T: GetInitClone> GetInitClone for Cons<H, T> {
 // ================
 // === PushBack ===
 // ================
-
-// TODO: Consider implementing PushBack for everything that converts to and from HList.
 
 /// Add a new element to the back of the list.
 #[allow(missing_docs)]
@@ -375,8 +340,6 @@ where T: PushBack<X>
 // === PopBack ===
 // ===============
 
-// TODO: Consider implementing PopBack for everything that converts to and from HList.
-
 /// Remove the last element of the list and return it and the new list.
 #[allow(missing_docs)]
 pub trait PopBack: KnownLast + KnownInit {
@@ -392,6 +355,7 @@ impl<H> PopBack for Cons<H, Nil> {
 impl<H, T> PopBack for Cons<H, T>
 where T: PopBack
 {
+    #[inline(always)]
     fn pop_back(self) -> (Self::Last, Self::Init) {
         let (last, tail) = self.1.pop_back();
         (last, Cons(self.0, tail))

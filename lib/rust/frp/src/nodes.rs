@@ -294,29 +294,29 @@ impl Network {
     }
 
     /// Get the 0-based index of the incoming event.
-    pub fn _0<T1>(&self, label: Label, event: &T1) -> Stream<generics::ItemAt0<Output<T1>>>
+    pub fn _0<T1>(&self, label: Label, event: &T1) -> Stream<generics::ItemAt<0, Output<T1>>>
     where
         T1: EventOutput,
         T1::Output: generics::GetItemAt0,
-        generics::ItemAt0<T1::Output>: Data, {
+        generics::ItemAt<0, T1::Output>: Data, {
         self.register(OwnedGet0::new(label, event))
     }
 
     /// Get the 1-based index of the incoming event.
-    pub fn _1<T1>(&self, label: Label, event: &T1) -> Stream<generics::ItemAt1<Output<T1>>>
+    pub fn _1<T1>(&self, label: Label, event: &T1) -> Stream<generics::ItemAt<1, Output<T1>>>
     where
         T1: EventOutput,
         T1::Output: generics::GetItemAt1,
-        generics::ItemAt1<T1::Output>: Data, {
+        generics::ItemAt<1, T1::Output>: Data, {
         self.register(OwnedGet1::new(label, event))
     }
 
     /// Get the 2-based index of the incoming event.
-    pub fn _2<T1>(&self, label: Label, event: &T1) -> Stream<generics::ItemAt2<Output<T1>>>
+    pub fn _2<T1>(&self, label: Label, event: &T1) -> Stream<generics::ItemAt<2, Output<T1>>>
     where
         T1: EventOutput,
         T1::Output: generics::GetItemAt2,
-        generics::ItemAt2<T1::Output>: Data, {
+        generics::ItemAt<2, T1::Output>: Data, {
         self.register(OwnedGet2::new(label, event))
     }
 
@@ -1545,27 +1545,27 @@ impl DynamicNetwork {
         OwnedFold::new(label, event).into()
     }
 
-    pub fn _0<T1>(self, label: Label, event: &T1) -> OwnedStream<generics::ItemAt0<Output<T1>>>
+    pub fn _0<T1>(self, label: Label, event: &T1) -> OwnedStream<generics::ItemAt<0, Output<T1>>>
     where
         T1: EventOutput,
         T1::Output: generics::GetItemAt0,
-        generics::ItemAt0<T1::Output>: Data, {
+        generics::ItemAt<0, T1::Output>: Data, {
         OwnedGet0::new(label, event).into()
     }
 
-    pub fn _1<T1>(self, label: Label, event: &T1) -> OwnedStream<generics::ItemAt1<Output<T1>>>
+    pub fn _1<T1>(self, label: Label, event: &T1) -> OwnedStream<generics::ItemAt<1, Output<T1>>>
     where
         T1: EventOutput,
         T1::Output: generics::GetItemAt1,
-        generics::ItemAt1<T1::Output>: Data, {
+        generics::ItemAt<1, T1::Output>: Data, {
         OwnedGet1::new(label, event).into()
     }
 
-    pub fn _2<T1>(self, label: Label, event: &T1) -> OwnedStream<generics::ItemAt2<Output<T1>>>
+    pub fn _2<T1>(self, label: Label, event: &T1) -> OwnedStream<generics::ItemAt<2, Output<T1>>>
     where
         T1: EventOutput,
         T1::Output: generics::GetItemAt2,
-        generics::ItemAt2<T1::Output>: Data, {
+        generics::ItemAt<2, T1::Output>: Data, {
         OwnedGet2::new(label, event).into()
     }
 
@@ -3100,16 +3100,16 @@ impl<T1> HasOutput for Get0Data<T1>
 where
     T1: EventOutput,
     T1::Output: generics::GetItemAt0,
-    generics::ItemAt0<T1::Output>: Data,
+    generics::ItemAt<0, T1::Output>: Data,
 {
-    type Output = generics::ItemAt0<T1::Output>;
+    type Output = generics::ItemAt<0, T1::Output>;
 }
 
 impl<T1> OwnedGet0<T1>
 where
     T1: EventOutput,
     T1::Output: generics::GetItemAt0,
-    generics::ItemAt0<T1::Output>: Data,
+    generics::ItemAt<0, T1::Output>: Data,
 {
     /// Constructor.
     pub fn new(label: Label, src: &T1) -> Self {
@@ -3123,7 +3123,7 @@ impl<T1> stream::EventConsumer<Output<T1>> for OwnedGet0<T1>
 where
     T1: EventOutput,
     T1::Output: generics::GetItemAt0,
-    generics::ItemAt0<T1::Output>: Data,
+    generics::ItemAt<0, T1::Output>: Data,
 {
     fn on_event(&self, stack: CallStack, event: &Output<T1>) {
         self.emit_event(stack, event._0())
@@ -3156,16 +3156,16 @@ impl<T1> HasOutput for Get1Data<T1>
 where
     T1: EventOutput,
     T1::Output: generics::GetItemAt1,
-    generics::ItemAt1<T1::Output>: Data,
+    generics::ItemAt<1, T1::Output>: Data,
 {
-    type Output = generics::ItemAt1<T1::Output>;
+    type Output = generics::ItemAt<1, T1::Output>;
 }
 
 impl<T1> OwnedGet1<T1>
 where
     T1: EventOutput,
     T1::Output: generics::GetItemAt1,
-    generics::ItemAt1<T1::Output>: Data,
+    generics::ItemAt<1, T1::Output>: Data,
 {
     /// Constructor.
     pub fn new(label: Label, src: &T1) -> Self {
@@ -3179,7 +3179,7 @@ impl<T1> stream::EventConsumer<Output<T1>> for OwnedGet1<T1>
 where
     T1: EventOutput,
     T1::Output: generics::GetItemAt1,
-    generics::ItemAt1<T1::Output>: Data,
+    generics::ItemAt<1, T1::Output>: Data,
 {
     fn on_event(&self, stack: CallStack, event: &Output<T1>) {
         self.emit_event(stack, event._1())
@@ -3212,16 +3212,16 @@ impl<T1> HasOutput for Get2Data<T1>
 where
     T1: EventOutput,
     T1::Output: generics::GetItemAt2,
-    generics::ItemAt2<T1::Output>: Data,
+    generics::ItemAt<2, T1::Output>: Data,
 {
-    type Output = generics::ItemAt2<T1::Output>;
+    type Output = generics::ItemAt<2, T1::Output>;
 }
 
 impl<T1> OwnedGet2<T1>
 where
     T1: EventOutput,
     T1::Output: generics::GetItemAt2,
-    generics::ItemAt2<T1::Output>: Data,
+    generics::ItemAt<2, T1::Output>: Data,
 {
     /// Constructor.
     pub fn new(label: Label, src: &T1) -> Self {
@@ -3235,7 +3235,7 @@ impl<T1> stream::EventConsumer<Output<T1>> for OwnedGet2<T1>
 where
     T1: EventOutput,
     T1::Output: generics::GetItemAt2,
-    generics::ItemAt2<T1::Output>: Data,
+    generics::ItemAt<2, T1::Output>: Data,
 {
     fn on_event(&self, stack: CallStack, event: &Output<T1>) {
         self.emit_event(stack, event._2())

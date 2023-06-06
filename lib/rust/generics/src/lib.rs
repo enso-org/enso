@@ -24,6 +24,9 @@
 #![warn(unused_qualifications)]
 #![feature(specialization)]
 #![feature(trait_alias)]
+#![feature(generic_const_exprs)]
+#![feature(auto_traits)]
+#![feature(negative_impls)]
 
 pub mod generic;
 pub mod hlist;
