@@ -4,11 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  BindingAnalysis,
-  ImportSymbolAnalysis
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, AmbiguousImportsAnalysis, BindingAnalysis, ImportSymbolAnalysis}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.{ModuleNameConflicts, ShadowedPatternFields}
 import org.enso.compiler.pass.optimise.UnreachableMatchBranches
@@ -62,6 +58,7 @@ class PassesTest extends CompilerTest {
           OperatorToFunction,
           LambdaShorthandToLambda,
           ImportSymbolAnalysis,
+          AmbiguousImportsAnalysis,
           ShadowedPatternFields,
           UnreachableMatchBranches,
           NestedPatternMatch,
