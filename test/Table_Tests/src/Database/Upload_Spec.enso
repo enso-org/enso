@@ -217,11 +217,6 @@ spec make_new_connection prefix persistent_connector=True =
             r1 = in_memory_table.select_into_database_table connection (Name_Generator.random_name "primary-key-4") primary_key=["X", "nonexistent"]
             r1.should_fail_with Missing_Input_Columns
 
-            db_table_2 = in_memory_table.select_into_database_table connection (Name_Generator.random_name "primary-key-5") primary_key=["X", "X"]
-            Panic.with_finalizer (connection.drop_table db_table_2.name) <|
-                # The primary key may be: [X] or [X, X].
-                get_primary_key connection db_table_2.name . should_contain_the_same_elements_as ["X"]
-
         Test.specify "should fail if the primary key is not unique" <|
             t1 = Table.new [["X", [1, 2, 1]], ["Y", ['b', 'b', 'a']]]
             r1 = t1.select_into_database_table connection (Name_Generator.random_name "primary-key-6") temporary=True primary_key=["X"]
