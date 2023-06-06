@@ -375,14 +375,15 @@ spec make_new_connection prefix persistent_connector=True =
             src = source_table_builder [["X", [4, 5, 6]], ["Y", ['d', 'e', 'f']]]
             result = src.update_database_table connection dest.name
             result.column_names . should_equal ["X", "Y"]
-            result.at "X" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
-            result.at "Y" . to_vector . should_equal ['a', 'b', 'c', 'd', 'e', 'f']
+            expected_rows = [[1, 'a'], [2, 'b'], [3, 'c'], [4, 'd'], [5, 'e'], [6, 'f']]
+            rows1 = result.rows.to_vector.map .to_vector
+            rows1.should_contain_the_same_elements_as expected_rows
 
         Test.specify "should error if new rows clash with existing ones and mode is Insert, target table should remain unchanged" <|
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
             src = source_table_builder [["X", [1, 5, 6]], ["Y", ['d', 'e', 'f']]]
             r1 = src.update_database_table connection dest.name update_action=Update_Action.Insert
-            r1.should_fail_with Non_Unique_Primary_Key
+            r1.should_fail_with Rows_Already_Present
 
         Test.specify "should use the target table primary key for the key by default" <|
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], [["Z", [4, 5, 6]]] primary_key=["Y", "Z"]
@@ -405,8 +406,7 @@ spec make_new_connection prefix persistent_connector=True =
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", 'a', 'b', 'c']]]
             src = source_table_builder [["X", [2, 100]], ["Y", ['d', 'e']]]
             r1 = src.update_database_table connection dest.name update_action=Update_Action.Update
-            # TODO what error
-            r1.should_fail_with Nothing
+            r1.should_fail_with Unmatched_Rows
 
             # The table should remain unchanged.
             rows = dest.rows.to_vector.map .to_vector
@@ -418,18 +418,49 @@ spec make_new_connection prefix persistent_connector=True =
             r1 = src.update_database_table connection dest.name update_action=Update_Action.Update
             Problems.assume_no_problems r1
             r1.column_names . should_equal ["X", "Y"]
+            expected_rows = [[1, 'a'], [2, 'D'], [3, 'c'], [100, 'E']]
             rows1 = r1.rows.to_vector.map .to_vector
-            rows1.should_contain_the_same_elements_as [[1, 'a'], [2, 'D'], [3, 'c'], [100, 'E']]
+            rows1.should_contain_the_same_elements_as expected_rows
 
             # The original table is updated too.
             rows2 = dest.rows.to_vector.map .to_vector
-            rows2.should_contain_the_same_elements_as [[1, 'a'], [2, 'D'], [3, 'c'], [100, 'E']]
+            rows2.should_contain_the_same_elements_as expected_rows
 
         Test.specify "should allow to align an existing table with a source (upsert + delete rows missing from source)" <|
-            Nothing
+            dest = target_table_builder [["X", [1, 2, 3]], ["Y", 'a', 'b', 'c']]]
+            src = source_table_builder [["X", [2, 100]], ["Y", ['D', 'E']]]
+            r1 = src.update_database_table connection dest.name update_action=Update_Action.Update
+            Problems.assume_no_problems r1
+            r1.column_names . should_equal ["X", "Y"]
+            expected_rows = [[2, 'D'], [100, 'E']]
+            rows1 = r1.rows.to_vector.map .to_vector
+            rows1.should_contain_the_same_elements_as expected_rows
+            rows2 = dest.rows.to_vector.map .to_vector
+            rows2.should_contain_the_same_elements_as expected_rows
+
+        Test.specify "should match columns by name, reordering to destination order if needed" <|
+            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
+            src = source_table_builder [["Y", ['d', 'e', 'f']], ["X", [4, 5, 6]]]
+            result = src.update_database_table connection dest.name
+            result.column_names . should_equal ["X", "Y"]
+            src.column_names . should_equal ["Y", "X"]
+            expected_rows = [[1, 'a'], [2, 'b'], [3, 'c'], [4, 'd'], [5, 'e'], [6, 'f']]
+            rows1 = result.rows.to_vector.map .to_vector
+            rows1.should_contain_the_same_elements_as expected_rows
 
         Test.specify "should allow to use a transformed table, with computed fields, as a source" <|
-            Nothing
+            dest = target_table_builder [["X", [1, 2, 3]], ["Y", 'a', 'b', 'c']]]
+            t1 = source_table_builder [["Z", [10, 20]], ["Y", ['D', 'E']]]
+            t2 = source_table_builder [["Z", [20, 10]], ["X", [-99, 10]]]
+            src = t1.join t2 on=["Z"] . remove_columns "Z" . set "[X] + 100" "X"
+            src.at "X" . to_vector . should_contain_the_same_elements_as [1, 110]
+
+            r1 = src.update_database_table connection dest.name
+            Problems.assume_no_problems r1
+            r1.column_names . should_equal ["X", "Y"]
+            expected_rows = [[1, 'E'], [110, 'D'], [2, 'b'], [3, 'c']]
+            rows1 = r1.rows.to_vector.map .to_vector
+            rows1.should_contain_the_same_elements_as expected_rows
 
         Test.specify "should allow specifying no key in Insert mode" <|
             dest = target_table_builder [["X", [1, 10, 100]]]
@@ -467,22 +498,34 @@ spec make_new_connection prefix persistent_connector=True =
             r2.should_fail_with Non_Unique_Primary_Key
 
         Test.specify "should fail if the key causes update of multiple values (it's not unique in the target table)" <|
-            Nothing
+            dest = target_table_builder [["X", [1, 1, 2]], ["Y", ['a', 'b', 'c']]]
+            src = source_table_builder [["X", [1, 2, 3]], ["Y", ['d', 'e', 'f']]]
+            r1 = src.update_database_table connection dest.name key_columns=["X"]
+            r1.should_fail_with Multiple_Target_Rows_Matched_For_Update
 
         Test.specify "should fail if the source table contains columns not present in the target (data loss)" <|
             dest = target_table_builder [["X", [0, 10, 100]]]
             src = source_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
             r1 = src.update_database_table connection dest.name
             r1.should_fail_with Unmatched_Columns
+            r1.catch.column_names . should_equal ["Y"]
 
+        # TODO default values
         Test.specify "by default should keep columns missing from source as-is and use defaults when inserting" <|
+            Nothing
+
+        Test.specify "should use defaults for missing input columns for newly inserted rows when Aligning the tables, but keep existing values for existing rows" <|
             Nothing
 
         Test.specify "should fail if the source table is missing some columns and the column in the target has no default value" <|
             Nothing
 
         Test.specify "should fail if the source table is missing some columns, if asked to" <|
-            Nothing
+            dest = target_table_builder [["X", [0, 10, 100]], ["Y", ['a', 'b', 'c']]]
+            src = source_table_builder [["X", [1, 2, 3]]]
+            r1 = src.update_database_table connection dest.name error_on_missing_columns=True
+            r1.should_fail_with Missing_Input_Columns
+            r1.catch.criteria . should_equal ["Y"]
 
         Test.specify "should fail if some of key_columns do not exist in either table" <|
             d1 = target_table_builder [["X", [0, 10, 100]]]

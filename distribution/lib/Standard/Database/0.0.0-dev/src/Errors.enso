@@ -1,4 +1,4 @@
-from Standard.Base import all
+ Standard.Base import all
 
 polyglot java import java.sql.SQLException
 
@@ -175,3 +175,21 @@ type Non_Unique_Primary_Key
     to_display_text : Text
     to_display_text self =
         "The primary key " + self.primary_key.to_display_text + " is not unique. The key "+self.clashing_primary_key.to_display_text+" corresponds to "+self.clashing_example_row_count.to_text+" rows."
+
+type Unmatched_Rows
+    ## PRIVATE
+       Indicates that the Update operation encountered input rows that did not
+       have any matching rows in the target table.
+    Error
+
+type Rows_Already_Present
+    ## PRIVATE
+       Indicates that the Insert operation encountered input rows that already
+       had matching rows in the target table.
+    Error
+
+type Multiple_Target_Rows_Matched_For_Update
+    ## PRIVATE
+       Indicates that the source table had rows matching multiple rows in the
+       target table by the specified key.
+    Error
