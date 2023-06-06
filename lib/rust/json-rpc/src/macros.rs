@@ -102,7 +102,7 @@ macro_rules! make_rpc_methods {
 
                 let phantom    = std::marker::PhantomData;
                 let input      = $method_input { phantom, $($param_name:&$param_name),* };
-                let input_json = serde_json::to_value(input).unwrap();
+                let input_json = serde_json::value::to_raw_value(&input).unwrap();
                 let name       = $method_input::NAME;
                 let result_fut = self.handler.borrow().open_request_with_json(name,&input_json);
 

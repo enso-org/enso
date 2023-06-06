@@ -273,7 +273,7 @@ impl<Notification> Handler<Notification> {
     pub fn open_request_with_json<Returned: DeserializeOwned>(
         &self,
         method_name: &str,
-        input: &serde_json::Value,
+        input: &serde_json::value::RawValue,
     ) -> impl Future<Output = Result<Returned>> {
         let id = self.generate_new_id();
         let message = crate::messages::Message::new_request(id, method_name, input);
@@ -285,7 +285,7 @@ impl<Notification> Handler<Notification> {
     ///
     /// Helper common \code for `open_request` and `open_request_with_json`. See
     /// `open_request_with_json` docstring for more information.
-    pub fn open_request_with_message<Returned: DeserializeOwned>(
+    fn open_request_with_message<Returned: DeserializeOwned>(
         &self,
         id: Id,
         message_json: &str,
