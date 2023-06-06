@@ -72,6 +72,9 @@ pub fn main() {
                 .set_border_color(color::Rgba::new(0.0, 0.0, 1.0, 1.0))
                 .keep_left_half();
         }),
+        SimpleTriangle::from_base_and_altitude(100.0, 25.0).into(),
+        SimpleTriangle::from_base_and_altitude(100.0, 50.0).into(),
+        SimpleTriangle::from_base_and_altitude(100.0, 100.0).into(),
     ];
 
     let root = display::object::Instance::new();
