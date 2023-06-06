@@ -1,7 +1,7 @@
 package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleLogger
-import com.oracle.truffle.api.source.Source
+import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.codegen.{IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
@@ -9,7 +9,11 @@ import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.phase.{ExportCycleException, ExportsResolution, ImportResolver}
+import org.enso.compiler.phase.{
+  ExportCycleException,
+  ExportsResolution,
+  ImportResolver
+}
 import org.enso.editions.LibraryName
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.builtin.Builtins
@@ -22,7 +26,14 @@ import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax2.Tree
 
 import java.io.{PrintStream, StringReader}
-import java.util.concurrent.{CompletableFuture, ExecutorService, Future, LinkedBlockingDeque, ThreadPoolExecutor, TimeUnit}
+import java.util.concurrent.{
+  CompletableFuture,
+  ExecutorService,
+  Future,
+  LinkedBlockingDeque,
+  ThreadPoolExecutor,
+  TimeUnit
+}
 import java.util.logging.Level
 import scala.jdk.OptionConverters._
 
@@ -954,7 +965,6 @@ class Compiler(
     diagnostics
       .foldLeft(false) { case (result, (mod, diags)) =>
         if (diags.nonEmpty) {
-          output.println(s"In module ${mod.getName}:")
           reportDiagnostics(diags, mod.getSource) || result
         } else {
           result
@@ -973,79 +983,125 @@ class Compiler(
     diagnostics: List[IR.Diagnostic],
     source: Source
   ): Boolean = {
-    diagnostics.foreach(diag => output.println(formatDiagnostic(diag, source)))
+    diagnostics.foreach(diag =>
+      output.println(new DiagnosticFormatter(diag, source).format())
+    )
     diagnostics.exists(_.isInstanceOf[IR.Error])
   }
 
-  /** Pretty prints compiler diagnostics.
-    *
+  /** Formatter of IR diagnostics. Heavily inspired by GCC. Can format one-line as well as multiline
+    * diagnostics. The output is colorized if the output stream supports ANSI colors.
+    * Also prints the affending lines from the source along with line number - the same way as
+    * GCC does.
     * @param diagnostic the diagnostic to pretty print
-    * @param source the original source code
-    * @return the result of pretty printing `diagnostic`
+    * @param source     the original source code
     */
-  private def formatDiagnostic(
-    diagnostic: IR.Diagnostic,
-    source: Source
-  ): String = {
-    val outSupportsAnsiColors = System.console() != null
-
-    def yellowBold(text: String) =
-      if (outSupportsAnsiColors) fansi.Str(text).overlay(fansi.Color.Yellow).overlay(fansi.Bold.On).toString
-      else text
-    def redBold(text: String) =
-      if (outSupportsAnsiColors) fansi.Str(text).overlay(fansi.Color.Red).overlay(fansi.Bold.On).toString
-      else text
-    def bold(text: String) =
-      if (outSupportsAnsiColors) fansi.Str(text).overlay(fansi.Bold.On).toString
-      else text
-
-    val (coloredFunc, subject) = diagnostic match {
-      case _: IR.Error   => (redBold _, "error: ")
-      case _: IR.Warning => (yellowBold _, "warning: ")
+  private class DiagnosticFormatter(
+    private val diagnostic: IR.Diagnostic,
+    private val source: Source
+  ) {
+    private val maxLineNum                     = 99999
+    private val blankLinePrefix                = "      | "
+    private val linePrefixSize                 = blankLinePrefix.length
+    private val outSupportsAnsiColors: Boolean = System.console() != null
+    private val (textAttrs: fansi.Attrs, subject: String) = diagnostic match {
+      case _: IR.Error   => (fansi.Color.Red ++ fansi.Bold.On, "error: ")
+      case _: IR.Warning => (fansi.Color.Yellow ++ fansi.Bold.On, "warning: ")
       case _             => throw new IllegalStateException("Unexpected diagnostic type")
     }
+    private val sourceSection: Option[SourceSection] =
+      diagnostic.location match {
+        case Some(location) =>
+          Some(source.createSection(location.start, location.length))
+        case None => None
+      }
+    private val shouldPrintLineNumber = sourceSection match {
+      case Some(section) =>
+        section.getStartLine <= maxLineNum && section.getEndLine <= maxLineNum
+      case None => false
+    }
 
-    diagnostic.location match {
-      case Some(location) =>
-        val section   = source.createSection(location.start, location.length)
-        val isOneLine = section.getStartLine == section.getEndLine
-        if (isOneLine) {
-          val lineNumber  = section.getStartLine
-          val startColumn = section.getStartColumn
-          val endColumn   = section.getEndColumn
-          val sectionLen  = endColumn - startColumn
-          val line        = source.createSection(lineNumber).getCharacters.toString
-          val sb          = new StringBuilder()
-          sb
-            .append(
-              bold(
-                source.getPath + ":" + lineNumber + ":" + startColumn + ": "
+    def format(): String = {
+      sourceSection match {
+        case Some(section) =>
+          val isOneLine = section.getStartLine == section.getEndLine
+          if (isOneLine) {
+            val lineNumber  = section.getStartLine
+            val startColumn = section.getStartColumn
+            val endColumn   = section.getEndColumn
+            var str         = fansi.Str()
+            str ++= fansi
+              .Str(source.getPath + ":" + lineNumber + ":" + startColumn + ": ")
+              .overlay(fansi.Bold.On)
+            str ++= fansi.Str(subject).overlay(textAttrs)
+            str ++= diagnostic.formattedMessage
+            str ++= "\n"
+            str ++= oneLineFromSourceColored(lineNumber, startColumn, endColumn)
+            str ++= "\n"
+            str ++= underline(startColumn, endColumn)
+            str ++= "\n"
+            str.render
+          } else {
+            var str = fansi.Str()
+            str ++= fansi
+              .Str(
+                source.getPath + ":" + section.getStartLine + ":" + section.getStartColumn + ": "
               )
-            )
-            .append(coloredFunc(subject))
-            .append(diagnostic.formattedMessage)
-            .append("\n")
-          sb
-            .append(line.substring(0, startColumn - 1))
-            .append(coloredFunc(line.substring(startColumn - 1, endColumn)))
-            .append(line.substring(endColumn))
-            .append("\n")
-          sb
-            .append(" " * (startColumn - 1))
-            .append(coloredFunc("^" + "~" * sectionLen))
-          sb.toString
-        } else {
-          bold(fileLocationFromSection(diagnostic.location, source)) +
-          ": " +
-          coloredFunc(subject) +
-          diagnostic.formattedMessage
-        }
-      case None =>
-        // We dont have location information, so we just print the message
-        bold(fileLocationFromSection(diagnostic.location, source)) +
-        ": " +
-        coloredFunc(subject)
-        diagnostic.formattedMessage
+              .overlay(fansi.Bold.On)
+            str ++= fansi.Str(subject).overlay(textAttrs)
+            str ++= diagnostic.formattedMessage
+            str ++= "\n"
+            for (lineNum <- section.getStartLine to section.getEndLine) {
+              str ++= oneLineFromSource(lineNum)
+              str ++= "\n"
+            }
+            if (outSupportsAnsiColors) str.render else str.plainText
+          }
+        case None =>
+          // We dont have location information, so we just print the message
+          var str = fansi.Str()
+          str ++= fansi
+            .Str(fileLocationFromSection(diagnostic.location, source))
+            .overlay(fansi.Bold.On)
+          str ++= ": "
+          str ++= fansi.Str(subject).overlay(textAttrs)
+          str ++= diagnostic.formattedMessage
+          if (outSupportsAnsiColors) str.render else str.plainText
+      }
+    }
+
+    private def oneLineFromSource(lineNum: Int): String = {
+      val line = source.createSection(lineNum).getCharacters.toString
+      linePrefix(lineNum) + line
+    }
+
+    private def oneLineFromSourceColored(
+      lineNum: Int,
+      startCol: Int,
+      endCol: Int
+    ): String = {
+      val line = source.createSection(lineNum).getCharacters.toString
+      linePrefix(lineNum) + fansi
+        .Str(line)
+        .overlay(textAttrs, startCol - 1, endCol)
+    }
+
+    private def linePrefix(lineNum: Int): String = {
+      if (shouldPrintLineNumber) {
+        val pipeSymbol = " | "
+        val prefixWhitespaces =
+          linePrefixSize - lineNum.toString.length - pipeSymbol.length
+        " " * prefixWhitespaces + lineNum + pipeSymbol
+      } else {
+        blankLinePrefix
+      }
+    }
+
+    private def underline(startColumn: Int, endColumn: Int): String = {
+      val sectionLen = endColumn - startColumn
+      blankLinePrefix +
+      " " * (startColumn - 1) +
+      fansi.Str("^" + ("~" * sectionLen)).overlay(textAttrs)
     }
   }
 
@@ -1062,7 +1118,7 @@ class Compiler(
           section.getStartColumn + "-" +
           section.getEndLine + ":" +
           section.getEndColumn
-        locStr
+        "[" + locStr + "]"
       }
       .getOrElse("")
     source.getPath + ":" + srcLocation
