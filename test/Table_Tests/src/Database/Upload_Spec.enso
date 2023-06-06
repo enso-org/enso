@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import all
-from Standard.Table.Errors import Missing_Input_Columns
+from Standard.Table.Errors import Missing_Input_Columns, Inexact_Type_Coercion
 
 from Standard.Database import all
 from Standard.Database.Errors import all
@@ -378,19 +378,52 @@ spec make_new_connection prefix persistent_connector=True =
             result.at "X" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
             result.at "Y" . to_vector . should_equal ['a', 'b', 'c', 'd', 'e', 'f']
 
-
         Test.specify "should error if new rows clash with existing ones and mode is Insert, target table should remain unchanged" <|
-            Nothing
+            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
+            src = source_table_builder [["X", [1, 5, 6]], ["Y", ['d', 'e', 'f']]]
+            r1 = src.update_database_table connection dest.name update_action=Update_Action.Insert
+            r1.should_fail_with Non_Unique_Primary_Key
 
         Test.specify "should use the target table primary key for the key by default" <|
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], [["Z", [4, 5, 6]]] primary_key=["Y", "Z"]
             default_key_columns dest . should_equal ["Y", "Z"]
 
-        Test.specify "should be able to update existing rows in a table" <|
+        Test.specify "should report a meaningful error when the primary key could not be determined" pending="TODO: needed?" <|
             Nothing
 
+        Test.specify "should be able to Update existing rows in a table" <|
+            dest = target_table_builder [["X", [1, 2, 3]], ["Y", 'a', 'b', 'c']]]
+            src = source_table_builder [["X", [2]], ["Y", ['ZZZ']]]
+
+            r1 = src.update_database_table connection dest.name update_action=Update_Action.Update
+            r1.column_names . should_equal ["X", "Y"]
+
+            rows = dest.rows.to_vector.map .to_vector
+            rows.should_contain_the_same_elements_as [[1, 'a'], [2, 'ZZZ'], [3, 'c']]
+
+        Test.specify "should fail on unmatched rows in Update mode" <|
+            dest = target_table_builder [["X", [1, 2, 3]], ["Y", 'a', 'b', 'c']]]
+            src = source_table_builder [["X", [2, 100]], ["Y", ['d', 'e']]]
+            r1 = src.update_database_table connection dest.name update_action=Update_Action.Update
+            # TODO what error
+            r1.should_fail_with Nothing
+
+            # The table should remain unchanged.
+            rows = dest.rows.to_vector.map .to_vector
+            rows.should_contain_the_same_elements_as [[1, 'a'], [2, 'b'], [3, 'c']]
+
         Test.specify "should upsert by default (update existing rows, insert new rows)" <|
-            Nothing
+            dest = target_table_builder [["X", [1, 2, 3]], ["Y", 'a', 'b', 'c']]]
+            src = source_table_builder [["X", [2, 100]], ["Y", ['D', 'E']]]
+            r1 = src.update_database_table connection dest.name update_action=Update_Action.Update
+            Problems.assume_no_problems r1
+            r1.column_names . should_equal ["X", "Y"]
+            rows1 = r1.rows.to_vector.map .to_vector
+            rows1.should_contain_the_same_elements_as [[1, 'a'], [2, 'D'], [3, 'c'], [100, 'E']]
+
+            # The original table is updated too.
+            rows2 = dest.rows.to_vector.map .to_vector
+            rows2.should_contain_the_same_elements_as [[1, 'a'], [2, 'D'], [3, 'c'], [100, 'E']]
 
         Test.specify "should allow to align an existing table with a source (upsert + delete rows missing from source)" <|
             Nothing
@@ -398,28 +431,49 @@ spec make_new_connection prefix persistent_connector=True =
         Test.specify "should allow to use a transformed table, with computed fields, as a source" <|
             Nothing
 
-        Test.specify "should be able to detect the primary key of a table for row correlation" <|
-            Nothing
-
         Test.specify "should allow specifying no key in Insert mode" <|
-            src = source_table_builder [["X", [1, 2, 3]]]
             dest = target_table_builder [["X", [1, 10, 100]]]
-            result = src.update_database_table connection dest.name key_columns=[]
+            src = source_table_builder [["X", [1, 2, 3]]]
+            result = src.update_database_table connection dest.name update_action=Update_Action.Insert key_columns=[]
 
             result.column_names . should_equal ["X"]
             result.at "X" . to_vector . should_contain_the_same_elements_as [1, 10, 100, 1, 2, 3]
 
         Test.specify "should fail if no key is specified in other modes" <|
-            Nothing
+            dest = target_table_builder [["X", [1, 10, 100]]]
+            src = source_table_builder [["X", [1, 2, 3]]]
 
-        Test.specify "should fail if the key is not unique in the unique table" <|
-            Nothing
+            r1 = src.update_database_table connection dest.name update_action=Update_Action.Update key_columns=[]
+            r1.should_fail_with Illegal_Argument
+
+            r2 = src.update_database_table connection dest.name update_action=Update_Action.Update_Or_Insert key_columns=[]
+            r2.should_fail_with Illegal_Argument
+
+            r3 = src.update_database_table connection dest.name key_columns=[]
+            r3.should_fail_with Illegal_Argument
+
+            r4 = src.update_database_table connection dest.name update_action=Update_Action.Align_Records key_columns=[]
+            r4.should_fail_with Illegal_Argument
+
+        Test.specify "should fail if the key is not unique in the input table" <|
+            d1 = target_table_builder [["X", [0, 10, 100]]] primary_key=["X"]
+            d2 = target_table_builder [["X", [0, 10, 100]]]
+            src = source_table_builder [["X", [1, 1, 3]]]
+
+            r1 = src.update_database_table connection d1.name
+            r1.should_fail_with Non_Unique_Primary_Key
+
+            r2 = src.update_database_table connection d2.name key_columns=["X"]
+            r2.should_fail_with Non_Unique_Primary_Key
 
         Test.specify "should fail if the key causes update of multiple values (it's not unique in the target table)" <|
             Nothing
 
         Test.specify "should fail if the source table contains columns not present in the target (data loss)" <|
-            Nothing
+            dest = target_table_builder [["X", [0, 10, 100]]]
+            src = source_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
+            r1 = src.update_database_table connection dest.name
+            r1.should_fail_with Unmatched_Columns
 
         Test.specify "by default should keep columns missing from source as-is and use defaults when inserting" <|
             Nothing
@@ -431,7 +485,21 @@ spec make_new_connection prefix persistent_connector=True =
             Nothing
 
         Test.specify "should fail if some of key_columns do not exist in either table" <|
-            Nothing
+            d1 = target_table_builder [["X", [0, 10, 100]]]
+            d2 = target_table_builder [["X", [0, 10, 100]], ["Y", ['a', 'b', 'c']]]
+            s1 = source_table_builder [["X", [1, 3]]]
+            s2 = source_table_builder [["X", [1, 3]], ["Y", ['e', 'f']]
+
+            r1 = s1.update_database_table connection d1.name key_columns=["Y"]
+            r1.should_fail_with Missing_Input_Columns
+
+            r2 = s1.update_database_table connection d2.name key_columns=["Y"]
+            r2.should_fail_with Missing_Input_Columns
+
+            # This may be Missing_Input_Columns or Unmatched_Columns
+            r3 = s2.update_database_table connection d1.name key_columns=["Y"]
+            r3.should_fail_with Any
+            ((r3.catch.is_a Missing_Input_Columns) || (r3.catch.is_a Unmatched_Columns)).should_be_true
 
         Test.specify "should fail if the target table does not exist" <|
             t = source_table_builder ["X", [1, 2, 3], "Y", ['a', 'b', 'c']]
@@ -439,24 +507,32 @@ spec make_new_connection prefix persistent_connector=True =
             r1 = t.update_database_table connection nonexistent_name
             r1.should_fail_with Table_Not_Found
 
-        Test.specify "should report a meaningful error when the primary key could not be determined" <|
-            # TODO temporary (only SQLite?)
-            Nothing
+        Test.specify "should warn if type widening occurs" <|
+            dest = target_table_builder [["X", [1, 2, 0]]]
+            src = source_table_builder [["X", [3.25, 4.25, 10.0]]]
+            result = src.update_database_table connection dest.name update_action=Update_Action.Insert key_columns=[]
+            Problems.expect_warning Inexact_Type_Coercion result
 
-            # TODO non-existent target
-            Nothing
+            result.column_names . should_equal ["X"]
+            result.at "X" . to_vector . should_contain_the_same_elements_as [3, 4, 10, 1, 2, 0]
 
         Test.specify "should fail if types of columns are not compatible" <|
-            # TODO how do we define compatibility? I assume we allow type widening, but not narrowing
-            Nothing
+            dest = target_table_builder [["X", ["a", "B", "c"]]]
+            src = source_table_builder [["X", [3.25, 4.25, 10.0]]]
+            result = src.update_database_table connection dest.name update_action=Update_Action.Insert key_columns=[]
+            result.should_fail_with Column_Type_Mismatch
+            err = result.catch
+            err.column_name.should_equal "X"
+            err.expected_type.is_text . should_be_true
+            err.got_type.is_numeric . should_be_true
 
     table_builder name_prefix args primary_key=[] =
         in_memory_table = Table.new args
         in_memory_table.select_into_database_table connection (Name_Generator.random_name name_prefix) temporary=True primary_key=primary_key
-    Test.group "Appending an in-memory table to a Database table" pending="TODO" <|
+    Test.group "Appending an in-memory table to a Database table" <|
         test_table_append Table.new (table_builder "target-table")
 
-    Test.group "Appending a Database table to a Database table" pending="TODO" <|
+    Test.group "Appending a Database table to a Database table" <|
         test_table_append (table_builder "source-table") (table_builder "target-table")
 
 ## PRIVATE
