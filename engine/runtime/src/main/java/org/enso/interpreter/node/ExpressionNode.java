@@ -79,10 +79,19 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    */
   @Override
   public SourceSection getSourceSection() {
+    var bounds = getSourceSectionBounds();
+    return bounds == null ? null : EnsoRootNode.findSourceSection(getRootNode(), bounds[0], bounds[1]);
+  }
+
+  public int[] getSourceSectionBounds() {
     if (this instanceof ExpressionNodeWrapper wrapper) {
-      return wrapper.getDelegateNode().getSourceSection();
+      return wrapper.getDelegateNode().getSourceSectionBounds();
     } else {
-      return EnsoRootNode.findSourceSection(getRootNode(), sourceStartIndex, sourceLength);
+      if (sourceStartIndex == EnsoRootNode.NO_SOURCE && sourceLength == EnsoRootNode.NO_SOURCE) {
+        return null;
+      } else {
+        return new int[] { sourceStartIndex, sourceLength };
+      }
     }
   }
 

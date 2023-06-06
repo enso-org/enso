@@ -80,11 +80,13 @@ public class DebugLocalScope implements TruffleObject {
             && this.bindingsByLevelsIdx < this.bindingsByLevels.size());
   }
 
+  @TruffleBoundary
   public static DebugLocalScope createFromFrame(EnsoRootNode rootNode, MaterializedFrame frame) {
     return new DebugLocalScope(
         rootNode, frame, gatherBindingsByLevels(rootNode.getLocalScope().flattenBindings()), 0);
   }
 
+  @TruffleBoundary
   private static DebugLocalScope createParent(DebugLocalScope childScope) {
     return new DebugLocalScope(
         childScope.rootNode,
@@ -140,6 +142,7 @@ public class DebugLocalScope implements TruffleObject {
 
   /** Returns the members from the current local scope and all the parent scopes. */
   @ExportMessage
+  @TruffleBoundary
   ScopeMembers getMembers(boolean includeInternal) {
     List<String> members = new ArrayList<>();
     bindingsByLevels.stream().skip(bindingsByLevelsIdx).forEach(members::addAll);
@@ -147,6 +150,7 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   @ExportMessage
+  @TruffleBoundary
   boolean isMemberModifiable(String memberName) {
     return allBindings.containsKey(memberName);
   }
@@ -173,6 +177,7 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   @ExportMessage
+  @TruffleBoundary
   boolean isMemberReadable(String memberName) {
     // When a value in a frame is null, it means that the corresponding
     // AssignmentNode was not run yet, and the slot kind of the
@@ -182,7 +187,8 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   @ExportMessage
-  Object readMember(String member) {
+  @TruffleBoundary
+  Object readMember(String member, @CachedLibrary("this") InteropLibrary interop) {
     FramePointer framePtr = allBindings.get(member);
     if (framePtr == null) {
       return null;
@@ -192,6 +198,7 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   @ExportMessage
+  @TruffleBoundary
   void writeMember(String member, Object value) throws UnknownIdentifierException {
     if (!allBindings.containsKey(member)) {
       throw UnknownIdentifierException.create(member);
@@ -231,6 +238,7 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   @ExportMessage
+  @TruffleBoundary
   SourceSection getSourceLocation() {
     return rootNode.getSourceSection();
   }
@@ -242,6 +250,7 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   @Override
+  @TruffleBoundary
   public String toString() {
     return String.format(
         "DebugLocalScope{rootNode = '%s', bindingsByLevels = %s, idx = %d}",

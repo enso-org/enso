@@ -324,7 +324,24 @@ object PackageRepository {
       isLibrary: Boolean
     ): Unit = {
       val extensions = pkg.listPolyglotExtensions("java")
-      extensions.foreach(context.getEnvironment.addToHostClassPath)
+      if ("hosted".equals(System.getenv("ENSO_JAVA"))) {
+        extensions.foreach(context.getEnvironment.addToHostClassPath)
+      } else {
+        val env = context.getEnvironment();
+        val src = com.oracle.truffle.api.source.Source
+          .newBuilder("java", "<Bindings>", "getbindings.java")
+          .build();
+        val espresso = env.parsePublic(src).call();
+        def register(path: TruffleFile) = {
+          val iop = com.oracle.truffle.api.interop.InteropLibrary.getUncached()
+          try {
+            iop.invokeMember(espresso, "addPath", path.toString())
+          } catch {
+            case t: Throwable => t.printStackTrace()
+          }
+        }
+        extensions.foreach(register)
+      }
 
       val (regularModules, syntheticModulesMetadata) = pkg
         .listSources()

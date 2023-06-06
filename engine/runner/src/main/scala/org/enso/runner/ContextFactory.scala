@@ -49,11 +49,22 @@ class ContextFactory {
     executionEnvironment.foreach { name =>
       options.put("enso.ExecutionEnvironment", name)
     }
+    var javaHome = System.getenv("JAVA_HOME");
+    if (javaHome == null) {
+      javaHome = System.getProperty("java.home");
+    }
+    if (javaHome == null) {
+      throw new IllegalStateException("Specify JAVA_HOME environment property");
+    }
     val context = Context
       .newBuilder()
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
       .allowHostAccess(new HostAccessFactory().allWithTypeMapping())
+      .option("java.ExposeNativeJavaVM", "true")
+      .option("java.Polyglot", "true")
+      .option("java.UseBindingsLoader", "true")
+      .option("java.JavaHome", javaHome)
       .option(RuntimeOptions.PROJECT_ROOT, projectRoot)
       .option(RuntimeOptions.STRICT_ERRORS, strictErrors.toString)
       .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true")

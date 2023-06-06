@@ -1,23 +1,30 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.TruffleLanguage.Env;
+import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.object.Shape;
+import com.oracle.truffle.api.source.Source;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
-
+import java.util.logging.Level;
+import java.util.stream.StreamSupport;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
@@ -27,6 +34,7 @@ import org.enso.editions.LibraryName;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.instrument.NotificationHandler;
+import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
@@ -42,17 +50,6 @@ import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.enso.polyglot.RuntimeServerInfo;
 import org.graalvm.options.OptionKey;
-
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.TruffleLanguage.Env;
-import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.object.Shape;
-import java.util.concurrent.ExecutorService;
-import java.util.stream.StreamSupport;
-
 import scala.jdk.javaapi.OptionConverters;
 
 /**
@@ -365,6 +362,14 @@ public class EnsoContext {
    */
   @TruffleBoundary
   public Object lookupJavaClass(String className) {
+    var isHosted = "hosted".equals(System.getenv("ENSO_JAVA"));
+    Object java;
+    if (!isHosted) {
+      var src = Source.newBuilder("java", "<Bindings>", "getbindings.java").build();
+      java = environment.parsePublic(src).call();
+    } else {
+      java = null;
+    }
     List<String> items = Arrays.asList(className.split("\\."));
     for (int i = items.size() - 1; i >= 0; i--) {
       String pkgName = String.join(".", items.subList(0, i));
@@ -372,13 +377,19 @@ public class EnsoContext {
       List<String> nestedClassPart =
           i < items.size() - 1 ? items.subList(i + 1, items.size()) : List.of();
       try {
-        Object hostSymbol = environment.lookupHostSymbol(pkgName + "." + curClassName);
+        Object hostSymbol;
+        if (isHosted) {
+          hostSymbol = environment.lookupHostSymbol(pkgName + "." + curClassName);
+        } else {
+          hostSymbol = InteropLibrary.getUncached().readMember(java, pkgName + "." + curClassName);
+        }
         if (nestedClassPart.isEmpty()) {
           return hostSymbol;
         } else {
           return getNestedClass(hostSymbol, nestedClassPart);
         }
-      } catch (RuntimeException ignored) {
+      } catch (RuntimeException | UnsupportedMessageException | UnknownIdentifierException ex) {
+        logger.log(Level.WARNING, null, ex);
       }
     }
     return null;

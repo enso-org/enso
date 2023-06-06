@@ -281,10 +281,11 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
       if (exprNode.isDefined()) {
         var language = EnsoLanguage.get(exprNode.get());
+        var exprNodeReal = exprNode.get();
         return new ExecutableNode(language) {
           @Override
           public Object execute(VirtualFrame frame) {
-            return exprNode.get().executeGeneric(frame);
+            return exprNodeReal.executeGeneric(frame);
           }
         };
       }
