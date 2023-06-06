@@ -15,7 +15,8 @@ type Boolean
     True
     False
 
-    ## Computes the logical and (conjunction) of two booleans.
+    ## ALIAS And
+       Computes the logical and (conjunction) of two booleans.
 
        Arguments:
        - that: The boolean to compute the conjunction of this with.
@@ -31,7 +32,8 @@ type Boolean
     && : Boolean -> Boolean
     && self ~that = @Builtin_Method "Boolean.&&"
 
-    ## Computes the logical or (disjunction) of two booleans.
+    ## ALIAS Or
+       Computes the logical or (disjunction) of two booleans.
 
        Arguments:
        - that: The boolean to compute the disjunction of this with.

@@ -39,9 +39,12 @@ type URI
 
              example_parse = URI.parse "http://example.com"
     parse : Text -> URI ! Syntax_Error
-    parse uri =
+    parse uri:Text =
         Panic.catch JException (URI.Value (Java_URI.create uri)) caught_panic->
-            Error.throw (Syntax_Error.Error ("URI syntax error: " + caught_panic.payload.getMessage))
+            message = caught_panic.payload.getMessage
+            truncated = if message.is_nothing || message.length > 100 then "Invalid URI '" + uri.to_display_text + "'" else
+                "URI syntax error: " + message
+            Error.throw (Syntax_Error.Error truncated)
 
     ## PRIVATE
 

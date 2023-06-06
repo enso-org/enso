@@ -57,7 +57,7 @@ postgres_specific_spec connection db_name setup =
         connection.execute_update 'CREATE VIEW "'+vinfo+'" AS SELECT "A" FROM "'+tinfo+'";'
 
         temporary_table = Name_Generator.random_name "TemporaryTable"
-        (Table.new [["X", [1, 2, 3]]]).create_database_table connection temporary_table temporary=True
+        (Table.new [["X", [1, 2, 3]]]).select_into_database_table connection temporary_table temporary=True
 
         Test.specify "should be able to list table types" <|
             table_types = connection.table_types
@@ -202,7 +202,7 @@ run_tests connection db_name =
         name = Name_Generator.random_name "table_"+ix.to_text
 
         in_mem_table = Table.new columns
-        in_mem_table.create_database_table connection name primary_key=Nothing temporary=True
+        in_mem_table.select_into_database_table connection name primary_key=Nothing temporary=True
     materialize = .read
 
     Common_Spec.spec prefix connection
@@ -210,9 +210,9 @@ run_tests connection db_name =
     common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True take_drop=False allows_mixed_type_comparisons=False fixed_length_text_columns=True
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
-    agg_table = agg_in_memory_table.create_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
+    agg_table = agg_in_memory_table.select_into_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
     tables.append agg_table.name
-    empty_agg_table = (agg_in_memory_table.take (First 0)).create_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
+    empty_agg_table = (agg_in_memory_table.take (First 0)).select_into_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
     tables.append empty_agg_table.name
 
     setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection

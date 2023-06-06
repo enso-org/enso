@@ -1,0 +1,109 @@
+import project.Any.Any
+import project.Data.Array_Proxy.Array_Proxy
+import project.Data.Map.Map
+import project.Data.Numbers.Integer
+import project.Data.Ordering.Comparable
+import project.Data.Ordering.Ordering
+import project.Data.Vector.Vector
+import project.Data.Text.Extensions
+import project.Data.Text.Text
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Nothing.Nothing
+import project.Panic.Panic
+
+from project.Data.Boolean import Boolean, True, False
+
+## UNSTABLE
+   An unordered collection of unique values.
+type Set
+    ## PRIVATE
+    Value (underlying_map : Map Any Nothing)
+
+    ## Constructs a new set from a vector.
+
+       Arguments:
+       - vector: the vector of elements to add to the set.
+       - error_on_duplicates: specifies if duplicate elements in the input
+         should result in an error. Defaults to `False`, meaning that the last
+         occurrence of each duplicated element is retained in the set. If set to
+         `True` it will raise an `Illegal_Argument` if duplicate elements are
+         encountered.
+    from_vector : Vector Any -> Boolean -> Set ! Illegal_Argument
+    from_vector (vector : Vector) (error_on_duplicates : Boolean = False) =
+        pairs_array = Array_Proxy.new vector.length (i-> [vector.at i, Nothing])
+        pairs = Vector.from_polyglot_array pairs_array
+        map = Map.from_vector pairs error_on_duplicates=error_on_duplicates
+        Set.Value map
+
+    ## Constructs an empty set.
+    empty : Set
+    empty = Set.Value Map.empty
+
+    ## Returns a vector containing all elements of this set.
+    to_vector : Vector
+    to_vector self = self.underlying_map.keys
+
+    ## Returns the number of elements in this set.
+    size : Integer
+    size self = self.underlying_map.size
+
+    ## Checks if the set is empty.
+    is_empty : Boolean
+    is_empty self = self.underlying_map.is_empty
+
+    ## Checks if the set is not empty.
+    not_empty : Boolean
+    not_empty self = self.underlying_map.not_empty
+
+    ## Checks if this set contains a given value.
+    contains : Any -> Boolean
+    contains self value = self.underlying_map.contains_key value
+
+    ## ALIAS Add
+       Adds a value to this set.
+    insert : Any -> Set
+    insert self value =
+        new_map = self.underlying_map.insert value Nothing
+        Set.Value new_map
+
+    ## Creates a union of the two sets.
+    union : Set -> Set
+    union self (other : Set) =
+        start_map = self.underlying_map
+        new_map = other.to_vector.fold start_map m-> el-> m.insert el Nothing
+        Set.Value new_map
+
+    ## Creates an intersection of the two sets.
+    intersection : Set -> Set
+    intersection self (other : Set) =
+        other_map = other.underlying_map
+        new_map = self.underlying_map.keys.fold Map.empty m-> el->
+            if other_map.contains_key el then m.insert el Nothing else m
+        Set.Value new_map
+
+    ## Computes a set difference.
+
+       Returns the set that contains all elements of this set that are not in
+       the other set.
+    difference : Set -> Set
+    difference self (other : Set) =
+        other_map = other.underlying_map
+        new_map = self.underlying_map.keys.fold Map.empty m-> el->
+            if other_map.contains_key el then m else m.insert el Nothing
+        Set.Value new_map
+
+    ## PRIVATE
+    to_text : Text
+    to_text self = self.to_vector.join ", " "Set{" "}"
+
+## PRIVATE
+type Set_Comparator
+    ## PRIVATE
+    compare x y =
+        if x.size != y.size then Nothing else
+            if (x.difference y).is_empty then Ordering.Equal else Nothing
+
+    ## PRIVATE
+    hash x =
+        vec = x.to_vector.sort . remove_warnings
+        Comparable.from vec . hash vec
