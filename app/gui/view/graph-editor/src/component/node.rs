@@ -1,7 +1,5 @@
 //! Definition of the Node component.
 
-// WARNING! UNDER HEAVY DEVELOPMENT. EXPECT DRASTIC CHANGES.
-
 use crate::prelude::*;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
@@ -23,13 +21,13 @@ use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Layer;
+use ensogl::display::shape::compound::rectangle;
 use ensogl::gui;
 use ensogl::Animation;
-use ensogl_component::shadow;
 use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
 use ensogl_hardcoded_theme;
-use std::f32::EPSILON;
+
 
 
 // ==============
@@ -100,72 +98,55 @@ pub type Comment = ImString;
 
 
 
-// =============
-// === Shape ===
-// =============
+// ==============
+// === Shapes ===
+// ==============
 
-/// Node backdrop. Contains shadow and selection.
-pub mod backdrop {
-    use super::*;
+/// A node's background area and selection.
+#[derive(Debug, Clone, CloneRef)]
+pub struct Background {
+    shape:           Rectangle,
+    inset:           Immutable<f32>,
+    selection_color: Immutable<color::Rgba>,
+}
 
-    ensogl::shape! {
-        // Disabled to allow interaction with the output port.
-        below = [compound::rectangle::shape];
-        pointer_events = false;
-        alignment = center;
-        (style:Style, selection:f32) {
+impl Background {
+    fn new(style: &StyleWatchFrp) -> Self {
+        let selection_color =
+            style.get_color(ensogl_hardcoded_theme::graph_editor::node::selection).value();
+        let selection_size =
+            style.get_number(ensogl_hardcoded_theme::graph_editor::node::selection::size).value();
+        let selection_offset =
+            style.get_number(ensogl_hardcoded_theme::graph_editor::node::selection::offset).value();
+        let inset = selection_size + selection_offset;
+        let shape = Rectangle();
+        shape.set_corner_radius(RADIUS);
+        shape.set_border(selection_size);
+        shape.set_border_color(color::Rgba::transparent());
+        shape.set_inset(inset);
+        Self { shape, inset: Immutable(inset), selection_color: Immutable(selection_color) }
+    }
 
-            let width  = Var::<Pixels>::from("input_size.x");
-            let height = Var::<Pixels>::from("input_size.y");
-            let width  = width  - PADDING.px() * 2.0;
-            let height = height - PADDING.px() * 2.0;
+    fn set_selected(&self, degree: f32) {
+        let selected = self.selection_color;
+        let blended = color::Rgba(selected.red, selected.green, selected.blue, degree);
+        self.shape.set_border_color(blended);
+    }
 
-            // === Shadow ===
-
-            let shadow_radius = &height / 2.0;
-            let shadow_base   = Rect((&width,&height)).corners_radius(shadow_radius);
-            let shadow        = shadow::from_shape(shadow_base.into(),style);
-
-
-            // === Selection ===
-
-            let sel_color  = style.get_color(ensogl_hardcoded_theme::graph_editor::node::selection);
-            let sel_size   = style.get_number(ensogl_hardcoded_theme::graph_editor::node::selection::size);
-            let sel_offset = style.get_number(ensogl_hardcoded_theme::graph_editor::node::selection::offset);
-
-            let sel_width   = &width  - 2.px() + &sel_offset.px() * 2.0 * &selection;
-            let sel_height  = &height - 2.px() + &sel_offset.px() * 2.0 * &selection;
-            let sel_radius  = &sel_height / 2.0;
-            let select      = Rect((&sel_width,&sel_height)).corners_radius(sel_radius);
-
-            let sel2_width  = &width  - 2.px() + &(sel_size + sel_offset).px() * 2.0 * &selection;
-            let sel2_height = &height - 2.px() + &(sel_size + sel_offset).px() * 2.0 * &selection;
-            let sel2_radius = &sel2_height / 2.0;
-            let select2     = Rect((&sel2_width,&sel2_height)).corners_radius(sel2_radius);
-
-            let select = select2 - select;
-            let select = select.fill(sel_color);
-
-
-             // === Error Pattern  Alternative ===
-             // TODO: Remove once the error indicator design is finalised.
-             // let repeat      =  Var::<Vector2<Pixels>>::from((10.px(), 10.px()));
-             // let error_width =  Var::<Pixels>::from(5.px());
-             //
-             // let stripe_red   = Rect((error_width, 99999.px()));
-             // let pattern = stripe_red.repeat(repeat).rotate(45.0.radians());
-             // let mask    = Rect((&width,&height)).corners_radius(&radius);
-             // let pattern1 = mask.intersection(pattern).fill(color::Rgba::red());
-
-             // let out =  select + shadow + shape + pattern1;
-
-            // === Final Shape ===
-
-            let out = select + shadow;
-            out.into()
-        }
+    fn set_size_and_center_xy(&self, size: Vector2<f32>, center: Vector2<f32>) {
+        let size_with_inset = size + 2.0 * Vector2(*self.inset, *self.inset);
+        let origin = center - size_with_inset / 2.0;
+        self.shape.set_size(size_with_inset);
+        self.shape.set_xy(origin);
     }
 }
+
+impl display::Object for Background {
+    fn display_object(&self) -> &display::object::Instance {
+        self.shape.display_object()
+    }
+}
+
 
 
 // =======================
@@ -177,7 +158,7 @@ pub mod error_shape {
     use super::*;
 
     ensogl::shape! {
-        below = [backdrop];
+        below = [rectangle];
         alignment = center;
         (style:Style,color_rgba:Vector4<f32>) {
             use ensogl_hardcoded_theme::graph_editor::node as node_theme;
@@ -424,8 +405,7 @@ impl Deref for Node {
 pub struct NodeModel {
     pub app:                 Application,
     pub display_object:      display::object::Instance,
-    pub backdrop:            backdrop::View,
-    pub background:          Rectangle,
+    pub background:          Background,
     pub error_indicator:     error_shape::View,
     pub profiling_label:     ProfilingLabel,
     pub input:               input::Area,
@@ -442,19 +422,25 @@ impl NodeModel {
     /// Constructor.
     #[profile(Debug)]
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
-        let scene = &app.display.default_scene;
+        use display::shape::compound::rectangle;
+        ensogl::shapes_order_dependencies! {
+            app.display.default_scene => {
+                error_shape               -> output::port::single_port;
+                error_shape               -> output::port::multi_port;
+                output::port::single_port -> rectangle;
+                output::port::multi_port  -> rectangle;
+            }
+        }
+
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
 
         let error_indicator = error_shape::View::new();
         let profiling_label = ProfilingLabel::new(app);
-        let backdrop = backdrop::View::new();
-        let background = Rectangle::new().build(|v| {
-            v.set_corner_radius(RADIUS);
-        });
+        let background = Background::new(&style);
         let vcs_indicator = vcs::StatusIndicator::new(app);
         let display_object = display::object::Instance::new_named("Node");
 
         display_object.add_child(&profiling_label);
-        display_object.add_child(&backdrop);
         display_object.add_child(&background);
         display_object.add_child(&vcs_indicator);
 
@@ -470,12 +456,9 @@ impl NodeModel {
 
         let action_bar = action_bar::ActionBar::new(app);
         display_object.add_child(&action_bar);
-        scene.layers.above_nodes.add(&action_bar);
 
         let output = output::Area::new(app);
         display_object.add_child(&output);
-
-        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
 
         let comment = text::Text::new(app);
         display_object.add_child(&comment);
@@ -484,7 +467,6 @@ impl NodeModel {
         Self {
             app,
             display_object,
-            backdrop,
             background,
             error_indicator,
             profiling_label,
@@ -503,12 +485,12 @@ impl NodeModel {
     #[profile(Debug)]
     fn init(self) -> Self {
         self.set_expression(Expression::new_plain("empty"));
+        self.move_to_main_layer();
         self
     }
 
     #[profile(Debug)]
-    fn set_layers(&self, layer: &Layer, text_layer: &Layer, action_bar_layer: &Layer) {
-        layer.add(&self.display_object);
+    fn set_special_layers(&self, text_layer: &Layer, action_bar_layer: &Layer) {
         action_bar_layer.add(&self.action_bar);
         self.output.set_label_layer(text_layer);
         self.input.set_label_layer(text_layer);
@@ -523,13 +505,13 @@ impl NodeModel {
     ///
     /// `action_bar` is moved to the `edited_node` layer as well, though normally it lives on a
     /// separate `above_nodes` layer, unlike every other node component.
-    #[profile(Debug)]
     pub fn move_to_edited_node_layer(&self) {
         let scene = &self.app.display.default_scene;
         let layer = &scene.layers.edited_node;
         let text_layer = &scene.layers.edited_node_text;
         let action_bar_layer = &scene.layers.edited_node;
-        self.set_layers(layer, text_layer, action_bar_layer);
+        layer.add(&self.display_object);
+        self.set_special_layers(text_layer, action_bar_layer);
     }
 
     /// Move all sub-components to `main` layer.
@@ -539,13 +521,25 @@ impl NodeModel {
     ///
     /// `action_bar` is handled separately, as it uses `above_nodes` scene layer unlike any other
     /// node component.
-    #[profile(Debug)]
     pub fn move_to_main_layer(&self) {
         let scene = &self.app.display.default_scene;
-        let layer = &scene.layers.main;
+        let layer = &scene.layers.main_nodes_level;
         let text_layer = &scene.layers.label;
         let action_bar_layer = &scene.layers.above_nodes;
-        self.set_layers(layer, text_layer, action_bar_layer);
+        layer.add(&self.display_object);
+        self.set_special_layers(text_layer, action_bar_layer);
+    }
+
+    /// Move the node to the normal layer used when the node is not connected to a detached edge.
+    pub fn move_to_resting_node_layer(&self) {
+        let layer = &self.app.display.default_scene.layers.main_nodes_level;
+        layer.add(&self.background);
+    }
+
+    /// Move the node to the layer used for nodes that have a detached edge.
+    pub fn move_to_active_node_layer(&self) {
+        let layer = &self.app.display.default_scene.layers.main_active_nodes_level;
+        layer.add(&self.background);
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
@@ -576,19 +570,13 @@ impl NodeModel {
         let height = self.height();
         let size = Vector2(width, height);
         let padded_size = size + Vector2(PADDING, PADDING) * 2.0;
-        self.backdrop.set_size(padded_size);
-        self.background.set_size(size);
         self.error_indicator.set_size(padded_size);
         self.vcs_indicator.frp.set_size(padded_size);
         let x_offset_to_node_center = x_offset_to_node_center(width);
-
-        // Position shapes such that the center of their left edge is at the node origin:
-        // - Most shapes are still center-aligned, we have to move them horizontally.
-        self.backdrop.set_x(x_offset_to_node_center);
+        let background_origin = Vector2(x_offset_to_node_center, 0.0);
+        self.background.set_size_and_center_xy(size, background_origin);
         self.error_indicator.set_x(x_offset_to_node_center);
         self.vcs_indicator.set_x(x_offset_to_node_center);
-        // - Background is a bottom-left aligned Rectangle, thus we have to move it vertically.
-        self.background.set_y(-height / 2.0);
 
         let action_bar_width = ACTION_BAR_WIDTH;
         self.action_bar
@@ -620,11 +608,15 @@ impl NodeModel {
     #[profile(Debug)]
     fn set_error_color(&self, color: &color::Lcha) {
         self.error_indicator.color_rgba.set(color::Rgba::from(color).into());
-        if color.alpha < EPSILON {
+        if color.alpha < f32::EPSILON {
             self.error_indicator.unset_parent();
         } else {
             self.display_object.add_child(&self.error_indicator);
         }
+    }
+
+    fn set_selected(&self, degree: f32) {
+        self.background.set_selected(degree);
     }
 }
 
@@ -657,7 +649,7 @@ impl Node {
 
             // === Hover ===
             // The hover discovery of a node is an interesting process. First, we discover whether
-            // ths user hovers the drag area. The input port manager merges this information with
+            // ths user hovers the background. The input port manager merges this information with
             // port hover events and outputs the final hover event for any part inside of the node.
 
             let background_enter = model.background.on_event::<mouse::Enter>();
@@ -688,7 +680,7 @@ impl Node {
             deselect_target  <- input.deselect.constant(0.0);
             select_target    <- input.select.constant(1.0);
             selection.target <+ any(&deselect_target, &select_target);
-            eval selection.value ((t) model.backdrop.selection.set(*t));
+            eval selection.value ((t) model.set_selected(*t));
 
 
             // === Expression ===
@@ -830,7 +822,7 @@ impl Node {
                 }
             });
             hover_onset_delay.set_delay <+ preview_show_delay;
-            hide_tooltip                <- preview_show_delay.map(|&delay| delay <= EPSILON);
+            hide_tooltip                <- preview_show_delay.map(|&delay| delay <= f32::EPSILON);
 
             output_hover            <- model.output.on_port_hover.map(|s| s.is_on());
             hover_onset_delay.start <+ output_hover.on_true();
@@ -913,7 +905,7 @@ impl Node {
             // }));
             // bg_color_anim.target <+ bg_color;
 
-            eval bg_color_anim.value ([model] (c) { model.background.set_color(c.into()); });
+            eval bg_color_anim.value ((c) model.background.shape.set_color(c.into()););
 
 
             // === Tooltip ===

@@ -12,7 +12,6 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Layer;
 use ensogl_component::grid_view;
-use ensogl_component::list_view;
 use ensogl_component::shadow;
 use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::project_list as theme;
@@ -246,13 +245,6 @@ impl ProjectList {
         app.display.default_scene.layers.panel.add(&display_object);
         caption.set_content("Open Project");
         caption.add_to_scene_layer(&app.display.default_scene.layers.panel_text);
-
-        ensogl::shapes_order_dependencies! {
-            app.display.default_scene => {
-                background            -> list_view::selection;
-                list_view::background -> background;
-            }
-        }
 
         let style_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let style = Style::from_theme(network, &style_frp);

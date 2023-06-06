@@ -30,8 +30,12 @@ type My_Type
     @b (self -> self.foo)
     other_method self a = a
 
+    create foo bar = My_Type.Value foo bar 3
+
 @self ("se" + "lf")
 My_Type.my_method self = self.foo + self.bar + self.baz
+
+My_Type.factory = My_Type.create 1 2
 
 @a (test_method 3 4)
 @b (Test_Type.Value 49)
@@ -247,8 +251,15 @@ spec =
 
             methods.sort . should_equal ['bar', 'baz', 'first_method', 'foo', 'my_method', 'other_method', 'second_method']
 
+        Test.specify "static methods of MyType" <|
+            methods = Meta.meta (Meta.type_of My_Type) . methods
+            methods.sort . should_equal ['Value', 'create', 'factory', 'first_method', 'my_method', 'other_method', 'second_method']
+
         Test.specify "methods of Integer" <|
             Meta.meta Integer . methods . sort . should_equal ['round', 'truncate']
+
+        Test.specify "static methods of Integer" <|
+            Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['parse', 'parse_builtin', 'round', 'truncate']
 
         Test.specify "should correctly handle Java values" <|
             java_meta = Meta.meta Random.new

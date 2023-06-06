@@ -15,18 +15,19 @@ import ChangePasswordModal from './changePasswordModal'
 /** This is the UI component for a `UserMenu` list item.
  * The main interaction logic is in the `onClick` injected by `UserMenu`. */
 export interface UserMenuItemProps {
+    disabled?: boolean
     onClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
 /** User menu item. */
 function UserMenuItem(props: react.PropsWithChildren<UserMenuItemProps>) {
-    const { children, onClick } = props
+    const { children, disabled, onClick } = props
 
     return (
         <div
-            className={`whitespace-nowrap px-4 py-2 ${
-                onClick ? 'hover:bg-blue-500 hover:text-white cursor-pointer' : ''
-            }`}
+            className={`whitespace-nowrap px-4 py-2 ${disabled ? 'opacity-50' : ''} ${
+                onClick ? 'hover:bg-blue-500 hover:text-white' : ''
+            } ${onClick && !disabled ? 'cursor-pointer' : ''}`}
             onClick={onClick}
         >
             {children}
@@ -66,11 +67,12 @@ function UserMenu() {
         >
             {organization != null ? (
                 <>
-                    {' '}
                     <UserMenuItem>
                         Signed in as <span className="font-bold">{organization.name}</span>
                     </UserMenuItem>
-                    <UserMenuItem onClick={goToProfile}>Your profile</UserMenuItem>
+                    <UserMenuItem disabled onClick={goToProfile}>
+                        Your profile
+                    </UserMenuItem>
                     {canChangePassword && (
                         <UserMenuItem
                             onClick={() => {

@@ -1,4 +1,5 @@
 /** @file Type definitions common between all backends. */
+
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
 

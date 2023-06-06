@@ -12,7 +12,8 @@ from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_
 
 import Standard.Visualization
 
-import Standard.Database.Extensions.Upload_Table
+import Standard.Database.Extensions.Upload_Database_Table
+import Standard.Database.Extensions.Upload_In_Memory_Table
 from Standard.Database import Database, SQLite, In_Memory
 
 from Standard.Test import Test, Test_Suite, Problems
@@ -854,7 +855,7 @@ spec =
             t.join 42 . should_fail_with Type_Error
 
             db_connection = Database.connect (SQLite In_Memory)
-            db_table = (Table.new [["Y", [4, 5, 6]]]).create_database_table db_connection "test"
+            db_table = (Table.new [["Y", [4, 5, 6]]]).select_into_database_table db_connection "test"
 
             r = t.join db_table
             r.should_fail_with Illegal_Argument
