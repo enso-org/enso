@@ -204,6 +204,7 @@ pub enum IncomingMessage {
 ///
 /// This checks if has `jsonrpc` version string, and whether it is a
 /// response or a notification.
+#[profile(Debug)]
 pub fn decode_incoming_message(message: &str) -> serde_json::Result<IncomingMessage> {
     use serde_json::from_str;
     use serde_json::from_value;
