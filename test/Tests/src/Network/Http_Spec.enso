@@ -11,10 +11,10 @@ import Standard.Base.Network.Proxy.Proxy
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Test_Extensions
 
-polyglot java import java.lang.System
+polyglot java import java.lang.Java_System
 
 spec =
-    base_url = System.getenv "ENSO_HTTP_TEST_HTTPBIN_URL"
+    base_url = Java_System.getenv "ENSO_HTTP_TEST_HTTPBIN_URL"
     pending = if base_url != Nothing then Nothing else
         "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
 

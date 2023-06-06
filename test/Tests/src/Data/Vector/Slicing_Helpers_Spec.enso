@@ -1,4 +1,4 @@
-from Standard.Base import all
+from Standard.Base import all hiding Index_Sub_Range
 import Standard.Base.Data.Index_Sub_Range
 
 from Standard.Test import Test, Test_Suite

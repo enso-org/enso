@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Table import Sort_Column
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column
 
 from Standard.Database import all

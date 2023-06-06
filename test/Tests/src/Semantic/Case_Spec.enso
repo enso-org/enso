@@ -5,7 +5,7 @@ import Standard.Base.Data.Vector as Vector_Module
 
 polyglot java import java.lang.Class
 polyglot java import java.lang.Object as JObject
-polyglot java import java.util.Random
+polyglot java import java.util.Java_Random
 polyglot java import java.util.AbstractList
 polyglot java import java.util.ArrayList
 polyglot java import java.util.List as JList
@@ -108,7 +108,7 @@ spec = Test.group "Pattern Matches" <|
             Array_Module -> Nothing
             _ -> Test.fail "Expected the Array module to match."
     Test.specify "should be able to match on the Polyglot type" <|
-        random_gen = Random.new
+        random_gen = Java_Random.new
         case random_gen of
             Polyglot -> Nothing
             _ -> Test.fail "Expected a polyglot object to match."
