@@ -50,7 +50,7 @@ type Type
              Meta.meta Integer . methods
 
        > Example
-         All static mehtods to invoke on `Integer` as
+         All static methods to invoke on `Integer` as
          `Integer.method_name...`:
 
             Meta.meta (Meta.type_of Integer) . methods
