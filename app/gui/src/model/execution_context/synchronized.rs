@@ -171,6 +171,10 @@ impl model::execution_context::API for ExecutionContext {
         self.model.current_method()
     }
 
+    fn method_at_frame_back(&self, count: usize) -> FallibleResult<language_server::MethodPointer> {
+        self.model.method_at_frame_back(count)
+    }
+
     fn visualization_info(&self, id: VisualizationId) -> FallibleResult<Visualization> {
         self.model.visualization_info(id)
     }
