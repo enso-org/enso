@@ -10,7 +10,7 @@ import project.Connection.Connection.Connection
 import project.Data.Table.Table as Database_Table
 import project.Data.Update_Action.Update_Action
 from project.Errors import all
-from project.Internal.Result_Set import result_set_to_table
+from project.Extensions.Upload_Default_Helpers import default_key_columns
 from project.Internal.Upload_Table import all
 
 ## Creates a new database table from this in-memory table.

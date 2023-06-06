@@ -3,6 +3,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Column_Selector
 
+from project.Internal.Result_Set import result_set_to_table
+
 ## PRIVATE
 default_key_columns connection table_name =
     keys = get_primary_key connection table_name
