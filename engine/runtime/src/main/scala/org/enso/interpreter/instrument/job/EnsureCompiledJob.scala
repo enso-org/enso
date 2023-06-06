@@ -230,7 +230,6 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     file: File
   )(implicit ctx: RuntimeContext): Option[Changeset[Rope]] = {
     ctx.locking.acquireFileLock(file)
-    ctx.locking.acquireReadCompilationLock()
     ctx.locking.acquirePendingEditsLock()
     try {
       val pendingEdits = ctx.state.pendingEdits.dequeue(file)
@@ -253,7 +252,6 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
       Option.when(shouldExecute)(changeset)
     } finally {
       ctx.locking.releasePendingEditsLock()
-      ctx.locking.releaseReadCompilationLock()
       ctx.locking.releaseFileLock(file)
     }
   }
