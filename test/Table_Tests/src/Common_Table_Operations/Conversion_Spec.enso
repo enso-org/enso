@@ -383,11 +383,11 @@ spec setup =
                 r1 = t.cast "X" Value_Type.Decimal
                 r1.should_fail_with Illegal_Argument
 
-                r2 = t.cast Value_Type.Binary
+                r2 = t.cast "X" Value_Type.Binary
                 r2.should_fail_with Illegal_Argument
 
                 # this is not supposed to be supported, but still needs a friendly message
-                r3 = t.cast (Value_Type.Unsupported_Data_Type "foobar" "foobar")
+                r3 = t.cast "X" (Value_Type.Unsupported_Data_Type "foobar" "foobar")
                 r3.should_fail_with Illegal_Argument
 
     Test.group prefix+"Simple variant of Table/Column.parse in all backends" <|
