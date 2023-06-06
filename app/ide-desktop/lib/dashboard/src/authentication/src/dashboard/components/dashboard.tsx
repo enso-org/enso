@@ -714,7 +714,7 @@ function Dashboard(props: DashboardProps) {
                         key={user.user.organization_id}
                         permissions={PERMISSION[user.permission]}
                     >
-                        {svg.DEFAULT_USER_ICON}
+                        <svg.DefaultUserIcon size={24} />
                     </PermissionDisplay>
                 ))}
             </>

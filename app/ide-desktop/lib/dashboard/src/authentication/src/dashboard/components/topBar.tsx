@@ -144,7 +144,7 @@ function TopBar(props: TopBarProps) {
                         }}
                         className="rounded-full w-8 h-8 bg-cover cursor-pointer"
                     >
-                        {svg.DEFAULT_USER_ICON}
+                        <svg.DefaultUserIcon size={32} />
                     </div>
                 </div>
             )}
