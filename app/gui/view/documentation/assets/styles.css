@@ -1,0 +1,226 @@
+/* Custom CSS rules used by the documentation panel. */
+
+
+/* Common parts. */
+
+:root {
+  --type-name-color: #9640da;
+  --module-name-color: #a239e2;
+  --methods-header-color: #1f71d3;
+  --method-name-color: #1f71d3;
+  --types-header-color: #1f71d3;
+  --examples-header-color: #6da85e;
+  --important-background-color: #edefe7;
+  --info-background-color: #e6f1f8;
+  --example-background-color: #e6f1f8;
+  --docs-background-color: #fcfeff;
+  --docs-text-color: #434343;
+  --tag-background-color: #f5f5f5;
+  --caption-background-color: #0077f6;
+}
+
+.enso-docs {
+  font-family: "M PLUS 1", DejaVuSansMonoBook, sans-serif;
+  font-size: 11.5px;
+  color: var(--docs-text-color);
+  background-color: var(--docs-background-color);
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* It's better to use `.unordered-list` class here instead of `ul`, but it will break the keyed lists that a provided by the engine.
+ * We need a separate way to represent keyed lists without embedded HTML tags. */
+ul {
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+  list-style-position: inside;
+}
+
+ul li:before {
+  content: "•";
+  font-size: 13px;
+  font-weight: 700;
+  margin-right: 3px;
+}
+
+ul li.type-item:before {
+  color: var(--type-name-color);
+}
+
+ul li.method-item:before {
+  color: var(--method-name-color);
+}
+
+.paragraph {
+  margin: 0;
+}
+
+.link {
+  cursor: pointer;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.method {
+  color: var(--method-name-color);
+  font-weight: 600;
+}
+
+.constructor {
+  color: var(--type-name-color);
+  font-weight: 600;
+}
+
+.type {
+  color: var(--type-name-color);
+  font-weight: 600;
+}
+
+.entry-name {
+  opacity: 0.85;
+}
+
+.arguments {
+  opacity: 0.34;
+}
+
+.section-content {
+  padding-left: 1.25rem;
+}
+
+
+/* Headers. */
+
+
+.header-top {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--type-name-color);
+  margin: 0.5rem 0;
+}
+
+.header-icon {
+  pointer-events: none;
+  width: 0.85em;
+  height: 0.85em;
+  margin: .1em .05em 0 .05em;
+  fill: none;
+  align-self: flex-start;
+  padding-top: 0.25em;
+}
+
+.header-container {
+  display: flex;
+  align-items: center;
+}
+
+.header-text {
+  padding-left: 0.25em;
+}
+
+.section-header {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 1rem 0 0.25rem 0;
+}
+
+.methods-header {
+  color: var(--methods-header-color);
+}
+
+.types-header {
+  color: var(--types-header-color);
+}
+
+.examples-header {
+  color: var(--examples-header-color);
+}
+
+
+
+/* Marked sections. */
+
+.background-info {
+  background-color: var(--info-background-color);
+}
+
+.background-important {
+  background-color: var(--important-background-color);
+}
+
+.marked-container {
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.marked-header {
+  font-weight: 700;
+  font-size: 13px;
+  margin: 0;
+}
+
+.marked-icon {
+  pointer-events: none;
+  width: 1em;
+  height: 1em;
+  margin: 0 .05em 0 0;
+  vertical-align: -0.1em;
+  fill: none;
+}
+
+
+/* Examples. */
+
+.example-container {
+  background-color: var(--example-background-color);
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.example {
+  white-space: pre;
+  overflow-x: auto;
+  margin: .05rem .1rem;
+}
+
+
+/* Tags */
+
+.tags-container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.tag {
+  background-color: var(--tag-background-color);
+  border-radius: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  margin-bottom: 0.25rem;
+  margin-right: 0.5rem;
+}
+
+
+/* "Hover item preview" caption. */
+
+.caption-container {
+  background-color: var(--caption-background-color);
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.caption {
+  color: white;
+  font-size: 11.5px;
+}

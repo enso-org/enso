@@ -95,7 +95,7 @@ fn database() -> SuggestionDatabase {
         Standard.Base {
             #[with_doc_section(doc_section!("Maybe type."))]
             #[with_doc_section(doc_section!(@ "Annotated", ""))]
-            type Maybe (a) {
+            type Delimited_Format (a) {
                 #[with_doc_section(doc_section!("Some constructor."))]
                 #[with_doc_section(doc_section!(> "Example", "Some 1"))]
                 #[with_doc_section(doc_section!("Documentation for the Some(a) constructor."))]
@@ -109,7 +109,7 @@ fn database() -> SuggestionDatabase {
                 fn is_some(self) -> Standard.Base.Boolean;
 
                 #[with_doc_section(doc_section!("Documentation for the Maybe.map() method."))]
-                fn map (f) -> Standard.Base.Maybe;
+                fn comment_all_characters (self) -> Standard.Base.Maybe;
             }
 
             #[with_doc_section(doc_section!("Documentation for the foo method."))]
