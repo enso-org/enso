@@ -173,7 +173,7 @@ export function AuthProvider(props: AuthProviderProps) {
     const { authService, onAuthenticated, children } = props
     const { cognito } = authService
     const { session, deinitializeSession } = sessionProvider.useSession()
-    const { setBackend } = backendProvider.useSetBackend()
+    const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
     const logger = loggerProvider.useLogger()
     // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
     // and the function call would error.
@@ -211,7 +211,7 @@ export function AuthProvider(props: AuthProviderProps) {
                 // The backend MUST be the remote backend before login is finished.
                 // This is because the "set username" flow requires the remote backend.
                 if (!initialized || userSession == null) {
-                    setBackend(backend)
+                    setBackendWithoutSavingType(backend)
                 }
                 let organization
                 // eslint-disable-next-line no-restricted-syntax
@@ -286,7 +286,7 @@ export function AuthProvider(props: AuthProviderProps) {
     const goOfflineInternal = () => {
         setInitialized(true)
         setUserSession(OFFLINE_USER_SESSION)
-        setBackend(new localBackend.LocalBackend())
+        setBackendWithoutSavingType(new localBackend.LocalBackend())
     }
 
     const goOffline = () => {

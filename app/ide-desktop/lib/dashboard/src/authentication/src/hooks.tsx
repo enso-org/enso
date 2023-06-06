@@ -99,3 +99,52 @@ export function useNavigate() {
 
     return navigate
 }
+
+// =====================
+// === useDebugState ===
+// =====================
+
+/** A modified `useState` that logs the old and new values when `setState` is called. */
+export function useDebugState<T>(
+    initialState: T | (() => T),
+    name?: string
+): [state: T, setState: (valueOrUpdater: react.SetStateAction<T>, source?: string) => void] {
+    const [state, rawSetState] = react.useState(initialState)
+
+    const description = name != null ? `state for '${name}'` : 'state'
+
+    const setState = react.useCallback(
+        (valueOrUpdater: react.SetStateAction<T>, source?: string) => {
+            const fullDescription = `${description}${source != null ? ` from '${source}'` : ''}`
+            if (typeof valueOrUpdater === 'function') {
+                // This is UNSAFE, however React makes the same assumption.
+                // eslint-disable-next-line no-restricted-syntax
+                const updater = valueOrUpdater as (prevState: T) => T
+                // `console.*` is allowed because this is for debugging purposes only.
+                /* eslint-disable no-restricted-properties */
+                rawSetState(oldState => {
+                    console.group(description)
+                    console.log(`Old ${fullDescription}:`, oldState)
+                    const newState = updater(oldState)
+                    console.log(`New ${fullDescription}:`, newState)
+                    console.groupEnd()
+                    return newState
+                })
+            } else {
+                rawSetState(oldState => {
+                    if (!Object.is(oldState, valueOrUpdater)) {
+                        console.group(description)
+                        console.log(`Old ${fullDescription}:`, oldState)
+                        console.log(`New ${fullDescription}:`, valueOrUpdater)
+                        console.groupEnd()
+                    }
+                    return valueOrUpdater
+                })
+                /* eslint-enable no-restricted-properties */
+            }
+        },
+        []
+    )
+
+    return [state, setState]
+}

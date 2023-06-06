@@ -89,6 +89,8 @@ export interface AppProps {
     supportsDeepLinks: boolean
     /** Whether the dashboard should be rendered. */
     showDashboard: boolean
+    /** The name of the project to open on startup, if any. */
+    initialProjectName: string | null
     onAuthenticated: () => void
     appRunner: AppRunner
 }
