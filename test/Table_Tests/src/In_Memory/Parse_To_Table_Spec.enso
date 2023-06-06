@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Table.Data.Table_Conversions
