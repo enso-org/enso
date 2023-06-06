@@ -1,5 +1,17 @@
 /** @file Renders the list of templates from which a project can be created. */
+import * as react from 'react'
+
+import * as common from 'enso-common'
+
 import * as svg from '../../components/svg'
+
+// =================
+// === Constants ===
+// =================
+
+/** The `localStorage` key used to store whether the {@link Templates} element should be
+ * not collapsed by default. */
+const OPEN_KEY = `${common.PRODUCT_NAME.toLowerCase()}-is-templates-collapsed`
 
 // =================
 // === Templates ===
@@ -127,14 +139,50 @@ export interface TemplatesProps {
 /** A container for a {@link TemplatesRender} which passes it a list of templates. */
 function Templates(props: TemplatesProps) {
     const { onTemplateClick } = props
+    const [isOpen, setIsOpen] = react.useState(() => {
+        /** This must not be in a `useEffect` as it would flash open for one frame.
+         * It can be in a `useLayoutEffect` but as that needs to be checked every re-render,
+         * this is slightly more performant. */
+        const savedIsOpen = localStorage.getItem(OPEN_KEY)
+        let result = true
+        if (savedIsOpen != null) {
+            try {
+                result = JSON.parse(savedIsOpen) !== false
+            } catch {
+                // Ignored. This should only happen when a user manually sets invalid JSON into
+                // the `localStorage` key used by this component.
+            }
+        }
+        return result
+    })
+
+    react.useEffect(() => {
+        localStorage.setItem(OPEN_KEY, JSON.stringify(isOpen))
+    }, [isOpen])
 
     return (
         <div className="bg-white my-2">
-            <div className="mx-auto py-2 px-4 sm:py-4 sm:px-6 lg:px-8">
+            <div className="flex items-center">
+                <span
+                    className="cursor-pointer"
+                    onClick={() => {
+                        setIsOpen(!isOpen)
+                    }}
+                >
+                    {isOpen ? 'v' : '>'}
+                </span>
+                <h1 className="text-xl font-bold mx-4 self-center">Templates</h1>
+            </div>
+            <div
+                className={`mx-auto my-2 mx-4 sm:my-4 sm:mx-6 lg:mx-8 overflow-y-scroll transition-all duration-300 ease-in-out ${
+                    isOpen ? 'h-80' : 'h-0 after:shadow-top-covered-lg after:h-screen'
+                }`}
+            >
                 <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                     <TemplatesRender templates={TEMPLATES} onTemplateClick={onTemplateClick} />
                 </div>
             </div>
+            {/* <div className="shadow-top-covered-lg" /> */}
         </div>
     )
 }

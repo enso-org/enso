@@ -739,7 +739,7 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div
-            className={`flex flex-col relative select-none text-primary text-xs min-h-screen p-2 ${
+            className={`flex flex-col relative select-none text-primary text-xs h-screen p-2 ${
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
             onClick={event => {
@@ -929,7 +929,7 @@ function Dashboard(props: DashboardProps) {
                             )}
                         </div>
                     </div>
-                    <table className="table-fixed items-center border-collapse mt-2">
+                    <table className="grow-1 overflow-scroll table-fixed items-center border-collapse mt-2">
                         <tbody>
                             <tr className="h-10">
                                 {columnsFor(columnDisplayMode, backend.type).map(column => (
