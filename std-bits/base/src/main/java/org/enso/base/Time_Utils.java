@@ -37,6 +37,7 @@ public class Time_Utils {
    * @return DateTimeFormatter
    */
   public static DateTimeFormatter make_formatter(String format, Locale locale) {
+    var usedLocale = locale == Locale.ROOT ? Locale.US : locale;
     return switch (format) {
       case "ENSO_ZONED_DATE_TIME" -> Time_Utils.default_zoned_date_time_formatter();
       case "ISO_ZONED_DATE_TIME" -> DateTimeFormatter.ISO_ZONED_DATE_TIME;
@@ -44,7 +45,7 @@ public class Time_Utils {
       case "ISO_LOCAL_DATE_TIME" -> DateTimeFormatter.ISO_LOCAL_DATE_TIME;
       case "ISO_LOCAL_DATE" -> DateTimeFormatter.ISO_LOCAL_DATE;
       case "ISO_LOCAL_TIME" -> DateTimeFormatter.ISO_LOCAL_TIME;
-      default -> DateTimeFormatter.ofPattern(format, locale);
+      default -> DateTimeFormatter.ofPattern(format, usedLocale);
     };
   }
 
@@ -103,27 +104,27 @@ public class Time_Utils {
   }
 
   public static String local_date_format(LocalDate date, Object format) {
-    return DateTimeFormatter.ofPattern(format.toString()).format(date);
+    return make_output_formatter(format.toString(), Locale.US).format(date);
   }
 
   public static String local_date_format_with_locale(LocalDate date, Object format, Locale locale) {
-    return DateTimeFormatter.ofPattern(format.toString()).withLocale(locale).format(date);
+    return make_output_formatter(format.toString(), locale).format(date);
   }
 
   public static String date_time_format(ZonedDateTime dateTime, Object format) {
-    return DateTimeFormatter.ofPattern(format.toString()).format(dateTime);
+    return make_output_formatter(format.toString(), Locale.US).format(dateTime);
   }
 
   public static String date_time_format_with_locale(ZonedDateTime dateTime, Object format, Locale locale) {
-    return DateTimeFormatter.ofPattern(format.toString()).withLocale(locale).format(dateTime);
-  }
-
-  public static String time_of_day_format_with_locale(LocalTime localTime, Object format, Locale locale) {
-    return DateTimeFormatter.ofPattern(format.toString()).withLocale(locale).format(localTime);
+    return make_output_formatter(format.toString(), locale).format(dateTime);
   }
 
   public static String time_of_day_format(LocalTime localTime, Object format) {
-    return DateTimeFormatter.ofPattern(format.toString()).format(localTime);
+    return make_output_formatter(format.toString(), Locale.US).format(localTime);
+  }
+
+  public static String time_of_day_format_with_locale(LocalTime localTime, Object format, Locale locale) {
+    return make_output_formatter(format.toString(), locale).format(localTime);
   }
 
   public static LocalDate date_adjust(LocalDate date, AdjustOp op, Period period) {
