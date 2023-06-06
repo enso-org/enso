@@ -310,16 +310,10 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
-    pub fn new() -> Self {
+    pub fn new(target: &web::EventTarget) -> Self {
         let frp = enso_frp::io::keyboard::Keyboard::default();
-        let bindings = Rc::new(enso_frp::io::keyboard::DomBindings::new(&frp));
+        let bindings = Rc::new(enso_frp::io::keyboard::DomBindings::new(target, &frp));
         Self { frp, bindings }
-    }
-}
-
-impl Default for Keyboard {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -345,9 +339,11 @@ impl Dom {
         let root = web::document.create_div_or_panic();
         let layers = DomLayers::new(&root);
         root.set_class_name("scene");
+        root.set_attribute_or_warn("tabIndex", "0");
         root.set_style_or_warn("height", "100vh");
         root.set_style_or_warn("width", "100vw");
         root.set_style_or_warn("display", "block");
+        root.set_style_or_warn("outline", "none");
         let root = web::dom::WithKnownShape::new(&root);
         Self { root, layers }
     }
@@ -882,7 +878,7 @@ impl SceneData {
         let mouse =
             Mouse::new(&frp, &dom.root, &variables, &display_mode, &pointer_target_registry);
         let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
-        let keyboard = Keyboard::new();
+        let keyboard = Keyboard::new(&dom.root);
         let network = &frp.network;
         let extensions = Extensions::default();
         let bg_color_var = style_sheet.var("application.background");
