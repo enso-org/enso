@@ -179,3 +179,6 @@ from project.System.File_Format.Plain_Text_Format import Plain_Text
 from project.Data.Index_Sub_Range.Index_Sub_Range export First, Last
 from project.Errors.Problem_Behavior.Problem_Behavior export all
 from project.System.File_Format.Plain_Text_Format export Plain_Text
+
+import project.Widget_Helpers
+export project.Widget_Helpers
