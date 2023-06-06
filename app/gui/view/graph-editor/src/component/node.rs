@@ -209,47 +209,6 @@ pub mod error_shape {
 }
 
 
-
-// ==============
-// === Crumbs ===
-// ==============
-
-#[derive(Clone, Copy, Debug)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub enum Endpoint {
-    Input,
-    Output,
-}
-
-#[derive(Clone, Debug)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub struct Crumbs {
-    pub endpoint: Endpoint,
-    pub crumbs:   span_tree::Crumbs,
-}
-
-impl Crumbs {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn input(crumbs: span_tree::Crumbs) -> Self {
-        let endpoint = Endpoint::Input;
-        Self { endpoint, crumbs }
-    }
-
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn output(crumbs: span_tree::Crumbs) -> Self {
-        let endpoint = Endpoint::Output;
-        Self { endpoint, crumbs }
-    }
-}
-
-impl Default for Crumbs {
-    fn default() -> Self {
-        Self::output(default())
-    }
-}
-
-
-
 // ============
 // === Node ===
 // ============
@@ -262,7 +221,7 @@ ensogl::define_endpoints_2! {
         disable_visualization (),
         set_visualization     (Option<visualization::Definition>),
         set_disabled          (bool),
-        set_input_connected   (span_tree::Crumbs,Option<color::Lcha>),
+        set_connections       (HashMap<ast::Id ,color::Lcha>),
         set_expression        (Expression),
         edit_expression       (text::Range<text::Byte>, ImString),
         set_skip_macro        (bool),
@@ -715,7 +674,7 @@ impl Node {
             out.requested_widgets       <+ model.input.frp.requested_widgets;
             out.request_import          <+ model.input.frp.request_import;
 
-            model.input.set_connected              <+ input.set_input_connected;
+            model.input.set_connections              <+ input.set_connections;
             model.input.set_disabled               <+ input.set_disabled;
             model.input.update_widgets             <+ input.update_widgets;
             model.output.set_expression_visibility <+ input.set_output_expression_visibility;

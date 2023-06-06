@@ -12,6 +12,7 @@ use crate::node::input::widget::OverrideKey;
 use crate::node::profiling;
 use crate::view;
 use crate::CallWidgetsConfig;
+use crate::PortId;
 use crate::Type;
 
 use enso_frp as frp;
@@ -62,9 +63,20 @@ pub use span_tree::SpanTree;
 #[derive(Clone, Default)]
 #[allow(missing_docs)]
 pub struct Expression {
-    pub code:      ImString,
-    pub span_tree: SpanTree,
+    pub code:       ImString,
+    pub span_tree:  SpanTree,
+    /// The map containing either first or "this" argument for each unique `call_id` in the tree.
+    pub target_map: HashMap<ast::Id, CallInfo>,
+    /// Map from each port node's Port ID to its definition type.
+    pub type_map:   HashMap<PortId, Type>,
 }
+
+#[derive(Debug, Deref)]
+struct CallInfoMap {
+    /// The map from node's call_id to call information.
+    call_info: HashMap<ast::Id, CallInfo>,
+}
+
 
 impl Deref for Expression {
     type Target = SpanTree;
@@ -120,7 +132,39 @@ impl Expression {
 impl From<node::Expression> for Expression {
     #[profile(Debug)]
     fn from(t: node::Expression) -> Self {
-        Self { code: t.code, span_tree: t.input_span_tree }
+        let span_tree = t.input_span_tree;
+        let mut target_map: HashMap<ast::Id, ast::Id> = HashMap::new();
+        let mut type_map: HashMap<ast::Id, Type> = HashMap::new();
+        span_tree.root_ref().dfs(|node| {
+            if let Some(ast_id) = node.ast_id {
+                if let Some(call_id) = node.kind.call_id() {
+                    target_map
+                        .entry(call_id)
+                        .and_modify(|e| {
+                            if node.kind.is_this() {
+                                *e = ast_id;
+                            }
+                        })
+                        .or_insert(ast_id);
+                }
+            }
+
+            if let Some(tp) = node.kind.tp() {
+                let port_id =
+                    if let Some(ast_id) = node.ast_id { Some(PortId::Ast(id)) }
+                    else if let Some(index) = node.kind.expected_argument_index()
+                        && let Some(application) = node.kind.call_id() {
+                        Some(PortId::ArgPlaceholder { application, index })
+                    } else {
+                        None
+                    };
+
+                if let Some(port_id) = port_id {
+                    type_map.insert(port_id, Type::from(tp));
+                }
+            }
+        });
+        Self { code: t.code, span_tree, target_map, type_map }
     }
 }
 
@@ -213,8 +257,8 @@ impl Model {
         self.edit_mode_label.add_to_scene_layer(layer);
     }
 
-    fn set_connected(&self, crumbs: &Crumbs, status: Option<color::Lcha>) {
-        self.widget_tree.set_connected(crumbs, status);
+    fn set_connections(&self, map: &HashMap<ast::Id, color::Lcha>) {
+        self.widget_tree.set_connections(map);
     }
 
     fn set_expression_usage_type(&self, id: ast::Id, usage_type: Option<Type>) {
@@ -266,11 +310,8 @@ impl Model {
     /// See also: [`controller::graph::widget`] module of `enso-gui` crate.
     #[profile(Debug)]
     fn request_widget_config_overrides(&self, expression: &Expression, area_frp: &FrpEndpoints) {
-        let call_info = CallInfoMap::scan_expression(&expression.span_tree);
-        for (call_id, info) in call_info.iter() {
-            if let Some(target_id) = info.target_id {
-                area_frp.source.requested_widgets.emit((*call_id, target_id));
-            }
+        for (call_id, target_id) in expression.target_map.iter() {
+            area_frp.source.requested_widgets.emit((*call_id, target_id));
         }
     }
 
@@ -335,7 +376,7 @@ ensogl::define_endpoints! {
 
         /// Set the connection status of the port indicated by the breadcrumbs. For connected ports,
         /// contains the color of connected edge.
-        set_connected (Crumbs, Option<color::Lcha>),
+        set_connections (HashMap<ast::Id, color::Lcha>),
 
         /// Update widget configuration for widgets already present in this input area.
         update_widgets   (CallWidgetsConfig),
@@ -505,7 +546,7 @@ impl Area {
             // === Widgets ===
 
             eval frp.update_widgets((a) model.apply_widget_configuration(a));
-            eval frp.set_connected(((crumbs,status)) model.set_connected(crumbs,*status));
+            eval frp.set_connections((conn) model.set_connections(conn));
             eval frp.set_expression_usage_type(((id,tp)) model.set_expression_usage_type(*id,tp.clone()));
             eval frp.set_disabled ((disabled) model.widget_tree.set_disabled(*disabled));
             eval_ model.widget_tree.rebuild_required(model.rebuild_widget_tree_if_dirty());
@@ -553,9 +594,8 @@ impl Area {
     }
 
     /// A type of the specified port.
-    pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
-        let expression = self.model.expression.borrow();
-        expression.span_tree.get_node(crumbs).ok().and_then(|t| t.tp().map(|t| t.into()))
+    pub fn port_type(&self, port: PortId) -> Option<Type> {
+        self.model.expression.borrow().type_map.get(&port).cloned()
     }
 
     /// Set a scene layer for text rendering.
@@ -570,11 +610,6 @@ impl Area {
 // === CallInfoMap ===
 // ===================
 
-#[derive(Debug, Deref)]
-struct CallInfoMap {
-    /// The map from node's call_id to call information.
-    call_info: HashMap<ast::Id, CallInfo>,
-}
 
 /// Information about the call expression, which are derived from the span tree.
 #[derive(Debug, Default)]

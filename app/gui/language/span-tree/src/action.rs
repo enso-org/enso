@@ -66,7 +66,7 @@ pub trait Actions {
     /// Erase element pointed by this node from operator or prefix chain.
     ///
     /// It returns new ast root with performed action.
-    fn erase(&self, root: &Ast, context: &impl Context) -> FallibleResult<(Ast, crate::Crumbs)>;
+    fn erase(&self, root: &Ast, context: &impl Context) -> FallibleResult<Ast>;
 }
 
 impl<T: Implementation> Actions for T {
@@ -83,7 +83,7 @@ impl<T: Implementation> Actions for T {
         action(root, to)
     }
 
-    fn erase(&self, root: &Ast, context: &impl Context) -> FallibleResult<(Ast, crate::Crumbs)> {
+    fn erase(&self, root: &Ast, context: &impl Context) -> FallibleResult<Ast> {
         let operation = Action::Erase;
         let action = self.erase_impl().ok_or(ActionNotAvailable { operation })?;
         action(root, context)
@@ -104,8 +104,7 @@ pub type SetOperation<'a> = Box<dyn FnOnce(&Ast, Ast) -> FallibleResult<Ast> + '
 
 /// A concrete function for "set" operations on specific SpanTree node. It takes root ast
 /// as argument and returns new root with action performed.
-pub type EraseOperation<'a, C> =
-    Box<dyn FnOnce(&Ast, &C) -> FallibleResult<(Ast, crate::Crumbs)> + 'a>;
+pub type EraseOperation<'a, C> = Box<dyn FnOnce(&Ast, &C) -> FallibleResult<Ast> + 'a>;
 
 /// Implementation of actions - this is for keeping in one place checking of actions availability
 /// and the performing the action.
@@ -272,11 +271,6 @@ impl<'a> Implementation for node::Ref<'a> {
                 let mut ast = root.get_traversing(parent_crumbs)?;
                 let is_named_argument = match_named_argument(ast).is_some();
 
-                // When an element is removed, we have to find an adequate span tree node that
-                // could become a new temporary target of dragged edge. It should be a node that
-                // has an reverse set operation to the erase we are performing now.
-                let mut reinsert_crumbs = None;
-
                 if is_named_argument {
                     // When erasing named argument, we need to remove the whole argument, not only
                     // the value part. The named argument AST is always a single infix expression,
@@ -309,15 +303,12 @@ impl<'a> Implementation for node::Ref<'a> {
                         let is_child = |span: &SpanSeed<Ast>| span.is_child();
                         let child_after_offset = after.iter().position(is_child);
                         let child_before_offset = before.iter().rposition(is_child);
-                        let (insertion_point_offset, removed_range) =
-                            match (child_after_offset, child_before_offset) {
-                                (Some(after), _) => (-1, index..=index + after),
-                                (None, Some(before)) => (-2, before + 1..=index),
-                                (None, None) => (-1, index..=index),
-                            };
+                        let removed_range = match (child_after_offset, child_before_offset) {
+                            (Some(after), _) => index..=index + after,
+                            (None, Some(before)) => before + 1..=index,
+                            (None, None) => index..=index,
+                        };
 
-                        reinsert_crumbs =
-                            Some(self.crumbs.relative_sibling(insertion_point_offset));
                         span_info.drain(removed_range);
                         Ok(ast.with_shape(tree))
                     } else {
@@ -406,67 +397,7 @@ impl<'a> Implementation for node::Ref<'a> {
                     }
                 }
 
-                let new_span_tree = SpanTree::new(&new_root, context)?;
-
-                // For resolved arguments, the valid insertion point of this argument is its
-                // placeholder. The position of placeholder is not guaranteed to be in the same
-                // place as the removed argument, as it might have been out of order. To find
-                // the correct placeholder position, we need to search regenerated span-tree.
-                let reinsert_crumbs = reinsert_crumbs.or_else(|| {
-                    self.kind.definition_index().and_then(|_| {
-                        let call_id = self.kind.call_id();
-                        let name = self.kind.argument_name();
-
-                        let found = new_span_tree.root_ref().find_node(|node| {
-                            node.kind.is_insertion_point()
-                                && node.kind.call_id() == call_id
-                                && node.kind.argument_name() == name
-                        });
-
-                        found.map(|found| found.crumbs)
-                    })
-                });
-
-                // For non-resolved arguments, use the preceding insertion point. After the
-                // span-tree is regenerated, it will contain an insertion point before the next
-                // argument, or an append if there are no more arguments. Both are correct as
-                // reinsertion points. We can find them by scanning new span-tree for the insertion
-                // point at correct location.
-                let reinsert_crumbs = reinsert_crumbs.or_else(|| {
-                    let call_id = self.kind.call_id();
-
-                    let call_root =
-                        new_span_tree.root_ref().find_node(|node| node.ast_id == call_id)?;
-
-
-                    let removed_offset = if is_named_argument {
-                        self.parent().ok()??.span_offset
-                    } else {
-                        self.span_offset
-                    };
-
-                    // If removed offset is past the tree, use last Append as reinsertion point.
-                    let max_span = call_root.span().end;
-                    let removed_offset = removed_offset.min(max_span);
-                    let found = call_root.find_by_span(&(removed_offset..removed_offset).into());
-                    let found = found.filter(|node| node.is_insertion_point());
-                    found.map(|found| found.crumbs)
-                });
-
-                // If all fails, use the root of the span-tree as reinsertion point as a fallback,
-                // and log it as an error.
-                let reinsert_crumbs = reinsert_crumbs.unwrap_or_else(|| {
-                    let printed_tree = new_span_tree.debug_print(&new_root.repr());
-                    let offset = self.span_offset;
-                    error!(
-                        "Failed to find reinsertion point for erased argument. This is a bug.\n\
-                         Removed offset: {offset}\n\
-                         Span tree: \n{printed_tree}"
-                    );
-                    new_span_tree.root_ref().crumbs
-                });
-
-                Ok((new_root, reinsert_crumbs))
+                Ok(new_root)
             }))
         } else {
             None

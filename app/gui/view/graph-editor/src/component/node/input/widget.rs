@@ -92,8 +92,6 @@ pub const WIDGET_SPACING_PER_OFFSET: f32 = 7.224_609_4;
 /// the hover area of the port.
 pub const PRIMARY_PORT_MAX_NESTING_LEVEL: usize = 0;
 
-
-
 // ===========
 // === FRP ===
 // ===========
@@ -592,11 +590,10 @@ impl Tree {
         self.notify_dirty(self.model.set_usage_type(ast_id, usage_type));
     }
 
-    /// Set connection status for given span crumbs. The connected nodes will be highlighted with a
-    /// different color, and the widgets might change behavior depending on the connection
-    /// status.
-    pub fn set_connected(&self, crumbs: &span_tree::Crumbs, status: Option<color::Lcha>) {
-        self.notify_dirty(self.model.set_connected(crumbs, status));
+    /// Set all currently active connections. The connected nodes will be highlighted with a
+    /// different color, and the widgets might change behavior depending on the connection status.
+    pub fn set_connections(&self, map: &HashMap<ast::Id, color::Lcha>) {
+        self.notify_dirty(self.model.set_connections(map));
     }
 
     /// Set disabled status for given span tree node. The disabled nodes will be grayed out.
@@ -608,7 +605,7 @@ impl Tree {
 
     /// Rebuild tree if it has been marked as dirty. The dirty flag is marked whenever more data
     /// external to the span-tree is provided, using `set_config_override`, `set_usage_type`,
-    /// `set_connected` or `set_disabled` methods of the widget tree.
+    /// `set_connections` or `set_disabled` methods of the widget tree.
     pub fn rebuild_tree_if_dirty(
         &self,
         tree: &span_tree::SpanTree,
@@ -764,7 +761,7 @@ struct TreeModel {
     hierarchy:      RefCell<Vec<NodeHierarchy>>,
     ports_map:      RefCell<HashMap<StableSpanIdentity, usize>>,
     override_map:   Rc<RefCell<HashMap<OverrideKey, Configuration>>>,
-    connected_map:  Rc<RefCell<HashMap<span_tree::Crumbs, color::Lcha>>>,
+    connected_map:  Rc<RefCell<HashMap<ast::Id, color::Lcha>>>,
     usage_type_map: Rc<RefCell<HashMap<ast::Id, crate::Type>>>,
     node_disabled:  Cell<bool>,
     tree_dirty:     Cell<bool>,
@@ -814,10 +811,13 @@ impl TreeModel {
     }
 
     /// Set the connection status under given widget. It may cause the tree to be marked as dirty.
-    fn set_connected(&self, crumbs: &span_tree::Crumbs, status: Option<color::Lcha>) -> bool {
-        let mut map = self.connected_map.borrow_mut();
-        let dirty = map.synchronize_entry(crumbs.clone(), status);
-        self.mark_dirty_flag(dirty)
+    fn set_connections(&self, map: &HashMap<ast::Id, color::Lcha>) -> bool {
+        let mut prev_map = self.connected_map.borrow_mut();
+        let modified = &*prev_map != map;
+        if modified {
+            *prev_map = map.clone();
+        }
+        self.mark_dirty_flag(modified)
     }
 
     /// Set the usage type of an expression. It may cause the tree to be marked as dirty.

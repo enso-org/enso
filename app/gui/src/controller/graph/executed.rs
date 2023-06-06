@@ -361,13 +361,11 @@ impl Handle {
         }
     }
 
-    /// Remove the connections from the graph. Returns an updated edge destination endpoint for
-    /// disconnected edge, in case it is still used as destination-only edge. When `None` is
-    /// returned, no update is necessary.
+    /// Remove the connections from the graph.
     ///
     /// ### Errors
     /// - Fails if the project is in read-only mode.
-    pub fn disconnect(&self, connection: &Connection) -> FallibleResult<Option<span_tree::Crumbs>> {
+    pub fn disconnect(&self, connection: &Connection) -> FallibleResult {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else {

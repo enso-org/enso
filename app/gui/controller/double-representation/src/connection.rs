@@ -10,6 +10,7 @@ use crate::node::MainLine;
 
 use ast::crumbs::Crumb;
 use ast::crumbs::Crumbs;
+use ast::crumbs::Located;
 
 
 
@@ -21,10 +22,10 @@ use ast::crumbs::Crumbs;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Endpoint {
     /// Id of the node where the endpoint is located.
-    pub node:   Id,
-    /// Crumbs to the AST creating this endpoint. These crumbs are relative to the node's AST,
-    /// not just expression, if the node is binding, there'll crumb for left/right operand first.
-    pub crumbs: Crumbs,
+    pub node: Id,
+    /// The AST of port creating this endpoint. Port crumbs are relative to the node's AST, not
+    /// just expression, if the node is binding, there'll crumb for left/right operand first.
+    pub port: Located<Id>,
 }
 
 impl Endpoint {
@@ -33,25 +34,15 @@ impl Endpoint {
     ///
     /// Returns None if first crumb is not present or does not denote a valid node.
     fn new_in_block(block: &ast::Block<Ast>, mut crumbs: Crumbs) -> Option<Endpoint> {
-        let line_crumb = crumbs.pop_front()?;
-        let line_crumb = match line_crumb {
-            Crumb::Block(block_crumb) => Some(block_crumb),
-            _ => None,
-        }?;
+        let Some(Crumb::Block(line_crumb)) = crumbs.pop_front() else { return None };
         let line_ast = block.get(&line_crumb).ok()?;
         let definition = DefinitionInfo::from_line_ast(line_ast, ScopeKind::NonRoot, block.indent);
         let is_non_def = definition.is_none();
         let node = is_non_def.and_option_from(|| MainLine::from_ast(line_ast))?.id();
-        Some(Endpoint { node, crumbs })
+        let port_id = line_ast.get_traversing(&crumbs).ok()?.id?;
+        Some(Endpoint { node, port: Located::new(crumbs, port_id) })
     }
 }
-
-/// Connection source, i.e. the port generating the data / identifier introducer.
-pub type Source = Endpoint;
-
-/// Connection destination, i.e. the port receiving data / identifier user.
-pub type Destination = Endpoint;
-
 
 
 // ==================
@@ -62,32 +53,26 @@ pub type Destination = Endpoint;
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Connection {
-    pub source:      Source,
-    pub destination: Destination,
+    pub source:      Endpoint,
+    pub destination: Endpoint,
 }
 
 /// Lists all the connection in the graph for the given code block.
 pub fn list_block(block: &ast::Block<Ast>) -> Vec<Connection> {
     let identifiers = analyze_crumbable(block);
-    let introduced_iter = identifiers.introduced.into_iter();
-    type NameMap = HashMap<String, Endpoint>;
-    let introduced_names = introduced_iter
-        .flat_map(|name| {
-            let endpoint = Endpoint::new_in_block(block, name.crumbs)?;
-            Some((name.item, endpoint))
-        })
-        .collect::<NameMap>();
-    identifiers
-        .used
-        .into_iter()
-        .flat_map(|name| {
-            // If name is both introduced and used in the graph's scope; and both of these
-            // occurrences can be represented as endpoints, then we have a connection.
-            let source = introduced_names.get(&name.item).cloned()?;
-            let destination = Endpoint::new_in_block(block, name.crumbs)?;
-            Some(Connection { source, destination })
-        })
-        .collect()
+    let introduced = identifiers.introduced.into_iter();
+    let used = identifiers.used.into_iter();
+    let introduced_names: HashMap<String, Endpoint> = introduced
+        .flat_map(|ident| Some((ident.item, Endpoint::new_in_block(block, ident.crumbs)?)))
+        .collect();
+    used.flat_map(|ident| {
+        // If name is both introduced and used in the graph's scope; and both of these
+        // occurrences can be represented as endpoints, then we have a connection.
+        let source = introduced_names.get(&ident.item)?.clone();
+        let destination = Endpoint::new_in_block(block, ident.crumbs)?;
+        Some(Connection { source, destination })
+    })
+    .collect()
 }
 
 /// Lists all the connection in the single-expression definition body.

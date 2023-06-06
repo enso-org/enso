@@ -42,6 +42,8 @@ pub mod widget;
 pub use double_representation::graph::Id;
 pub use double_representation::graph::LocationHint;
 
+pub use double_representation::connection::Connection;
+
 
 
 // ==============
@@ -171,45 +173,6 @@ impl NewNodeInfo {
 /// Reference to the port (i.e. the span tree node).
 pub type PortRef<'a> = span_tree::node::Ref<'a>;
 
-
-// === Endpoint
-
-/// Connection endpoint - a port on a node, described using span-tree crumbs.
-#[allow(missing_docs)]
-#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
-pub struct Endpoint {
-    pub node:       double_representation::node::Id,
-    pub port:       span_tree::Crumbs,
-    /// Crumbs which locate the Var in the `port` ast node.
-    ///
-    /// In normal case this is an empty crumb (which means that the whole span of `port` is the
-    /// mentioned Var. However, span tree does not cover all the possible ast of node expression
-    /// (e.g. it does not decompose Blocks), but still we want to pass information about connection
-    /// to such port and be able to remove it.
-    pub var_crumbs: ast::Crumbs,
-}
-
-impl Endpoint {
-    /// Create endpoint with empty `var_crumbs`.
-    pub fn new(node: double_representation::node::Id, port: impl Into<span_tree::Crumbs>) -> Self {
-        let var_crumbs = default();
-        let port = port.into();
-        Endpoint { node, port, var_crumbs }
-    }
-}
-
-
-// === Connection ===
-
-/// Connection described using span-tree crumbs.
-#[allow(missing_docs)]
-#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
-pub struct Connection {
-    pub source:      Endpoint,
-    pub destination: Endpoint,
-}
-
-
 // === NodeTrees ===
 
 /// Stores node's span trees: one for inputs (expression) and optionally another one for outputs
@@ -220,50 +183,14 @@ pub struct NodeTrees {
     pub inputs:  SpanTree,
     /// Describes node outputs, i.e. its pattern. `None` if a node is not an assignment.
     pub outputs: Option<SpanTree>,
-    /// Info about macros used in the node's expression.
-    ast_info:    NodeAstInfo,
 }
 
 impl NodeTrees {
     #[allow(missing_docs)]
     pub fn new(node: &NodeInfo, context: &impl SpanTreeContext) -> Option<NodeTrees> {
         let inputs = SpanTree::new(&node.expression(), context).ok()?;
-        let ast_info = node.main_line.ast_info.clone();
-        let outputs = if let Some(pat) = node.pattern() {
-            Some(SpanTree::new(pat, context).ok()?)
-        } else {
-            None
-        };
-        Some(NodeTrees { inputs, outputs, ast_info })
-    }
-
-    /// Converts AST crumbs (as obtained from double rep's connection endpoint) into the
-    /// appropriate span-tree node reference.
-    pub fn get_span_tree_node<'a, 'b>(
-        &'a self,
-        ast_crumbs: &'b [ast::Crumb],
-    ) -> Option<span_tree::node::NodeFoundByAstCrumbs<'a, 'b>> {
-        use ast::crumbs::Crumb::Infix;
-        // We can display only a part of the expression to the user. We hide [`SKIP`] and [`FREEZE`]
-        // macros and context switch expressions. In this case, we skip an additional
-        // number of AST crumbs.
-        let expression_crumbs_to_skip = self.ast_info.ast_crumbs_to_skip();
-        if let Some(outputs) = self.outputs.as_ref() {
-            // Node in assignment form. First crumb decides which span tree to use.
-            let first_crumb = ast_crumbs.get(0);
-            let is_input = matches!(first_crumb, Some(Infix(InfixCrumb::RightOperand)));
-            let tree = match first_crumb {
-                Some(Infix(InfixCrumb::LeftOperand)) => Some(outputs),
-                Some(Infix(InfixCrumb::RightOperand)) => Some(&self.inputs),
-                _ => None,
-            };
-            let skip = if is_input { expression_crumbs_to_skip + 1 } else { 1 };
-            tree.and_then(|tree| tree.root_ref().get_descendant_by_ast_crumbs(&ast_crumbs[skip..]))
-        } else {
-            let skip = expression_crumbs_to_skip;
-            // Expression node - there is only inputs span tree.
-            self.inputs.root_ref().get_descendant_by_ast_crumbs(&ast_crumbs[skip..])
-        }
+        let outputs = node.pattern().map(|pat| SpanTree::new(pat, context)).transpose().ok()?;
+        Some(NodeTrees { inputs, outputs })
     }
 }
 
@@ -288,36 +215,7 @@ impl Connections {
             .iter()
             .filter_map(|node| Some((node.id(), NodeTrees::new(node, context)?)))
             .collect();
-
-        let mut ret = Connections { trees, connections: default() };
-        let connections =
-            graph.connections().into_iter().filter_map(|c| ret.convert_connection(&c)).collect();
-        ret.connections = connections;
-        ret
-    }
-
-    /// Converts Endpoint from double representation to the span tree crumbs.
-    pub fn convert_endpoint(
-        &self,
-        endpoint: &double_representation::connection::Endpoint,
-    ) -> Option<Endpoint> {
-        let tree = self.trees.get(&endpoint.node)?;
-        let span_tree_node = tree.get_span_tree_node(&endpoint.crumbs)?;
-        Some(Endpoint {
-            node:       endpoint.node,
-            port:       span_tree_node.node.crumbs,
-            var_crumbs: span_tree_node.ast_crumbs.into(),
-        })
-    }
-
-    /// Converts Connection from double representation to the span tree crumbs.
-    pub fn convert_connection(
-        &self,
-        connection: &double_representation::connection::Connection,
-    ) -> Option<Connection> {
-        let source = self.convert_endpoint(&connection.source)?;
-        let destination = self.convert_endpoint(&connection.destination)?;
-        Some(Connection { source, destination })
+        Connections { trees, connections: graph.connections() }
     }
 }
 
@@ -609,7 +507,8 @@ impl Handle {
     /// appended to avoid conflicts with other identifiers used in the graph.
     pub fn variable_name_for(&self, node: &NodeInfo) -> FallibleResult<ast::known::Var> {
         let base_name = Self::variable_name_base_for(node);
-        let used_names = self.used_names()?.into_iter().map(|located_name| located_name.item);
+        let used_names = self.used_names();
+        let used_names = used_names.iter().map(|name| &name.item);
         let name = generate_name(base_name.as_str(), used_names)?.as_var()?;
         Ok(ast::known::Var::new(name, None))
     }
@@ -757,24 +656,19 @@ impl Handle {
         self.place_node_and_dependencies_lines_after(source_node, destination_node)
     }
 
-    /// Remove the connections from the graph. Returns an updated edge destination endpoint for
-    /// disconnected edge, in case it is still used as destination-only edge. When `None` is
-    /// returned, no update is necessary.
+    /// Remove the connections from the graph.
     pub fn disconnect(
         &self,
         connection: &Connection,
         context: &impl SpanTreeContext,
-    ) -> FallibleResult<Option<span_tree::Crumbs>> {
+    ) -> FallibleResult {
         let _transaction_guard = self.get_or_open_transaction("Disconnect");
         let info = self.destination_info(connection, context)?;
 
-        let mut new_destination_crumbs = None;
         let updated_expression = if connection.destination.var_crumbs.is_empty() {
             let port = info.port()?;
             if port.is_action_available(Action::Erase) {
-                let (ast, crumbs) = info.erase(context)?;
-                new_destination_crumbs = Some(crumbs);
-                Ok(ast)
+                info.erase(context)
             } else {
                 info.set(Ast::blank())
             }
@@ -783,7 +677,7 @@ impl Handle {
         }?;
 
         self.set_expression_ast(connection.destination.node, updated_expression)?;
-        Ok(new_destination_crumbs)
+        Ok()
     }
 
     /// Obtain the definition information for this graph from the module's AST.
@@ -1543,8 +1437,8 @@ main =
             src:      &'static str,
             /// An expression of destination node.
             dst:      &'static str,
-            /// Crumbs of source and destination ports (i.e. SpanTree nodes)
-            ports:    (&'static [usize], &'static [usize]),
+            /// Span of source and destination ports
+            ports:    (Range<usize>, Range<usize>),
             /// Expected destination expression after connecting.
             expected: &'static str,
         }

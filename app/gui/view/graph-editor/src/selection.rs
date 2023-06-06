@@ -415,7 +415,7 @@ impl Controller {
 
             // ===  Single Node Selection Box & Mouse IO ===
 
-            should_not_select       <- edit_mode || editor.output.some_edge_endpoints_unset;
+            should_not_select       <- edit_mode || editor.output.has_detached_edge;
             node_to_select_non_edit <- touch.nodes.selected.gate_not(&should_not_select);
             node_to_select_edit     <- touch.nodes.down.gate(&edit_mode);
             node_to_select          <- any(node_to_select_non_edit,

@@ -8,6 +8,7 @@ use crate::component::node::input;
 use crate::component::node::output::port;
 use crate::tooltip;
 use crate::view;
+use crate::PortId;
 use crate::Type;
 
 use enso_config::ARGS;
@@ -442,12 +443,14 @@ impl Area {
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
-        let expression = self.model.expression.borrow();
-        let node = expression.span_tree.root_ref().get_descendant(crumbs).ok()?;
-        let id = node.ast_id?;
-        let index = *self.model.id_ports_map.borrow().get(&id)?;
-        self.model.port_models.borrow().get(index)?.frp.as_ref()?.tp.value()
+    pub fn port_type(&self, port: PortId) -> Option<Type> {
+        match port {
+            PortId::Ast(id) => {
+                let index = *self.model.id_ports_map.borrow().get(&id)?;
+                self.model.port_models.borrow().get(index)?.frp.as_ref()?.tp.value()
+            },
+            _ => None
+        }
     }
 
 

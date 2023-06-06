@@ -16,6 +16,7 @@ use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
+use ide_view::graph_editor::PortId;
 
 
 
@@ -165,73 +166,6 @@ impl Nodes {
 }
 
 
-
-// ===================
-// === Connections ===
-// ===================
-
-/// A structure keeping pairs of AST connections with their views (and list of AST connections
-/// without view).
-#[derive(Clone, Debug, Default)]
-pub struct Connections {
-    connections:              BiMap<AstConnection, ViewConnection>,
-    connections_without_view: HashSet<AstConnection>,
-}
-
-impl Connections {
-    /// Remove all connections not belonging to the given set.
-    ///
-    /// Returns the views of removed connections.
-    pub fn retain_connections(
-        &mut self,
-        connections: &HashSet<AstConnection>,
-    ) -> Vec<ViewConnection> {
-        self.connections_without_view.retain(|x| connections.contains(x));
-        let to_remove = self.connections.iter().filter(|(con, _)| !connections.contains(con));
-        let to_remove_vec = to_remove.map(|(_, edge_id)| *edge_id).collect_vec();
-        self.connections.retain(|con, _| connections.contains(con));
-        to_remove_vec
-    }
-
-    /// Add a new AST connection without view.
-    pub fn add_ast_connection(&mut self, connection: AstConnection) -> bool {
-        if !self.connections.contains_left(&connection) {
-            self.connections_without_view.insert(connection)
-        } else {
-            false
-        }
-    }
-
-    /// Add a connection with view.
-    ///
-    /// Returns `true` if the new connection was added, and `false` if it already existed. In the
-    /// latter case, the new `view` is assigned to it (replacing possible previous view).
-    pub fn add_connection_view(&mut self, connection: AstConnection, view: ViewConnection) -> bool {
-        let existed_without_view = self.connections_without_view.remove(&connection);
-        match self.connections.insert(connection, view) {
-            Overwritten::Neither => !existed_without_view,
-            Overwritten::Left(_, _) => false,
-            Overwritten::Right(previous, _) => {
-                self.connections_without_view.insert(previous);
-                !existed_without_view
-            }
-            Overwritten::Pair(_, _) => false,
-            Overwritten::Both(_, (previous, _)) => {
-                self.connections_without_view.insert(previous);
-                false
-            }
-        }
-    }
-
-    /// Remove the connection by view (if any), and return it.
-    pub fn remove_connection(&mut self, connection: ViewConnection) -> Option<AstConnection> {
-        let (ast_connection, _) = self.connections.remove_by_right(&connection)?;
-        Some(ast_connection)
-    }
-}
-
-
-
 // ===================
 // === Expressions ===
 // ===================
@@ -313,7 +247,6 @@ impl Expressions {
 #[derive(Clone, Debug, Default)]
 pub struct State {
     nodes:       RefCell<Nodes>,
-    connections: RefCell<Connections>,
     expressions: RefCell<Expressions>,
 }
 
@@ -326,38 +259,6 @@ impl State {
     /// Get node's AST ID by the view id.
     pub fn ast_node_id_of_view(&self, node: ViewNodeId) -> Option<AstNodeId> {
         self.nodes.borrow().ast_id_of_view(node)
-    }
-
-    /// Convert the AST connection to pair of [`EdgeEndpoint`]s.
-    pub fn view_edge_targets_of_ast_connection(
-        &self,
-        connection: AstConnection,
-    ) -> Option<(EdgeEndpoint, EdgeEndpoint)> {
-        let convertible_source = connection.source.var_crumbs.is_empty();
-        let convertible_dest = connection.destination.var_crumbs.is_empty();
-        (convertible_source && convertible_dest).and_option_from(|| {
-            let nodes = self.nodes.borrow();
-            let src_node = nodes.get(connection.source.node)?.view_id?;
-            let dst_node = nodes.get(connection.destination.node)?.view_id?;
-            let src = EdgeEndpoint::new(src_node, connection.source.port);
-            let data = EdgeEndpoint::new(dst_node, connection.destination.port);
-            Some((src, data))
-        })
-    }
-
-    /// Convert the pair of [`EdgeEndpoint`]s to AST connection.
-    pub fn ast_connection_from_view_edge_targets(
-        &self,
-        source: EdgeEndpoint,
-        target: EdgeEndpoint,
-    ) -> Option<AstConnection> {
-        let nodes = self.nodes.borrow();
-        let src_node = nodes.ast_id_of_view(source.node_id)?;
-        let dst_node = nodes.ast_id_of_view(target.node_id)?;
-        Some(controller::graph::Connection {
-            source:      controller::graph::Endpoint::new(src_node, source.port),
-            destination: controller::graph::Endpoint::new(dst_node, target.port),
-        })
     }
 
     /// Get id of all node's expressions (ids of the all corresponding line AST nodes).
@@ -617,20 +518,18 @@ impl<'a> ControllerChange<'a> {
 impl<'a> ControllerChange<'a> {
     /// If given connection does not exists yet, add it and return the endpoints of the
     /// to-be-created edge.
-    pub fn set_connection(
-        &self,
-        connection: AstConnection,
-    ) -> Option<(EdgeEndpoint, EdgeEndpoint)> {
-        self.connections
-            .borrow_mut()
-            .add_ast_connection(connection.clone())
-            .and_option_from(move || self.view_edge_targets_of_ast_connection(connection))
-    }
-
-    /// Remove all connection not belonging to the given set. Returns the list of to-be-removed
-    /// views.
-    pub fn retain_connections(&self, connections: &HashSet<AstConnection>) -> Vec<ViewConnection> {
-        self.connections.borrow_mut().retain_connections(connections)
+    pub fn set_connections(&self, connections: &[AstConnection]) -> Vec<ViewConnection> {
+        let nodes = self.nodes.borrow();
+        connections
+            .into_iter()
+            .map(|connection| {
+                let src_node = nodes.get(connection.source.node)?.view_id?;
+                let dst_node = nodes.get(connection.destination.node)?.view_id?;
+                let src = EdgeEndpoint::new(src_node, PortId::Ast(*connection.source.port));
+                let data = EdgeEndpoint::new(dst_node, PortId::Ast(*connection.destination.port));
+                Some((src, data))
+            })
+            .collect()
     }
 }
 
@@ -830,40 +729,6 @@ impl<'a> ViewChange<'a> {
         expression_has_changed.then_some(ast_id)
     }
 }
-
-
-// === Connections ===
-
-impl<'a> ViewChange<'a> {
-    /// If the connections does not already exist, it is created and corresponding to-be-created
-    /// Ast connection is returned.
-    pub fn create_connection(&self, connection: view::graph_editor::Edge) -> Option<AstConnection> {
-        let source = connection.source()?;
-        let target = connection.target()?;
-        self.create_connection_from_endpoints(connection.id(), source, target)
-    }
-
-    /// If the connections with provided endpoints does not already exist, it is created and
-    /// corresponding to-be-created Ast connection is returned.
-    pub fn create_connection_from_endpoints(
-        &self,
-        connection: ViewConnection,
-        source: EdgeEndpoint,
-        target: EdgeEndpoint,
-    ) -> Option<AstConnection> {
-        let ast_connection = self.ast_connection_from_view_edge_targets(source, target)?;
-        let mut connections = self.connections.borrow_mut();
-        let should_update_controllers =
-            connections.add_connection_view(ast_connection.clone(), connection);
-        should_update_controllers.then_some(ast_connection)
-    }
-
-    /// Remove the connection and return the corresponding AST connection which should be removed.
-    pub fn remove_connection(&self, id: ViewConnection) -> Option<AstConnection> {
-        self.connections.borrow_mut().remove_connection(id)
-    }
-}
-
 
 
 // =============
