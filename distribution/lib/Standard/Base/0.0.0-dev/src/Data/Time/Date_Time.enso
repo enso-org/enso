@@ -499,7 +499,8 @@ type Date_Time
 
              example_at_zone = Date_Time.new 2020 . at_zone (Time_Zone.new -4)
     at_zone : Time_Zone -> Date_Time
-    at_zone self zone = @Builtin_Method "Date_Time.at_zone"
+    at_zone self zone =
+        Time_Utils.with_zone_same_instant self zone
 
     ## ALIAS Add Period, Add Duration
        Add the specified amount of time to this instant to produce a new instant.
