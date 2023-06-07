@@ -168,6 +168,7 @@ class LocalScope(
         EnsoContext.get(null)
       } catch {
         case _: RuntimeException => null
+        case _: AssertionError => null
       }
     val defValue = if (ctx != null) {
       ctx.getBuiltins().error().dataFlowErrorUninitializedValue()
