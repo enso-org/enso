@@ -506,8 +506,8 @@ type Date_Time
        Add the specified amount of time to this instant to produce a new instant.
 
        Arguments:
-       - amount: The amount of time to add to this instant, It can be
-         `Duration`, `Period`, `Date_Period`, or `Time_Period`.
+       - amount: The amount of time to add to this instant, It can be a
+         `Duration`, `Period`, `Time_Period`, or `Date_Period`.
 
        > Example
          Add 15 years and 3 hours to a zoned date time.
@@ -583,8 +583,8 @@ type Date_Time
        Produces a warning if the resulting date time is before an Enso epoch.
 
        Arguments:
-       - amount: The amount of time to add to this instant, It can be
-         `Duration`, `Period`, `Date_Period`, or `Time_Period`.
+       - amount: The amount of time to add to this instant, It can be a
+         `Duration`, `Period`, `Time_Period`, or `Date_Period`.
 
        > Example
          Subtract 1 year, 9 months and 12 hours from a zoned date time.

@@ -430,8 +430,8 @@ type Date
        Add the specified amount of time to this instant to get another date.
 
        Arguments:
-       - amount: The amount of time to add to this instant. It can an be
-         `Duration` or `Time_Period`.
+       - amount: The amount of time to add to this instant. It can be a
+         `Period` or `Date_Period`.
 
        > Example
          Add 6 months to a local date.
@@ -629,8 +629,8 @@ type Date
        date.
 
        Arguments:
-       - amount: The amount of time to add to this instant. It can an be
-         `Duration` or `Time_Period`.
+       - amount: The amount of time to add to this instant. It can be a
+         `Period` or `Date_Period`.
 
        > Example
          Subtract 7 days from a local date.
