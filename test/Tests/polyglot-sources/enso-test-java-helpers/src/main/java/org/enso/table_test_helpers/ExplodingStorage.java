@@ -45,11 +45,6 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public StorageType getValuesType() {
-    return getType();
-  }
-
-  @Override
   public boolean isNa(long idx) {
     checkIndex(idx);
     return false;
