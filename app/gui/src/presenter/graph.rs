@@ -434,10 +434,7 @@ impl Model {
         match self.controller.graph().nodes() {
             Ok(nodes) => {
                 // We try to avoid spurious updates for nodes that are already positioned.
-                let nodes_missing_position =
-                    nodes.iter().filter(|node| !node.has_position()).collect_vec();
-
-                if !nodes_missing_position.is_empty() {
+                if nodes.iter().any(|n| !n.has_position()) {
                     use model::module::Position;
 
                     let base_default_position = default_node_position();
@@ -456,7 +453,7 @@ impl Model {
                     let transaction =
                         self.controller.get_or_open_transaction("Setting default positions.");
                     transaction.ignore();
-                    for node in nodes_missing_position {
+                    for node in nodes.iter().filter(|n| !n.has_position()) {
                         if let Err(err) = self
                             .controller
                             .graph()

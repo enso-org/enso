@@ -668,14 +668,13 @@ impl View {
 
     fn init_shortcut_observer(self) -> Self {
         let frp = &self.frp;
-        let network = &frp.network;
         frp::extend! { network
-            observer <- any(...);
-            frp.source.current_shortcut <+ observer;
+            frp.source.current_shortcut <+ self.model.app.shortcuts.currently_handled;
         }
-        self.model.app.shortcuts.add_observer(shortcut::Observer { observer });
+
         self
     }
+
     /// Graph Editor View.
     pub fn graph(&self) -> &GraphEditor {
         &self.model.graph_editor
