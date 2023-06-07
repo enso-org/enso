@@ -81,7 +81,9 @@ export class LocalBackend implements Partial<backend.Backend> {
     async createProject(body: backend.CreateProjectRequestBody): Promise<backend.CreatedProject> {
         const project = await this.projectManager.createProject({
             name: newtype.asNewtype<projectManager.ProjectName>(body.projectName),
-            ...(body.projectTemplateName ? { projectTemplate: body.projectTemplateName } : {}),
+            ...(body.projectTemplateName != null
+                ? { projectTemplate: body.projectTemplateName }
+                : {}),
             missingComponentAction: projectManager.MissingComponentAction.install,
         })
         return {

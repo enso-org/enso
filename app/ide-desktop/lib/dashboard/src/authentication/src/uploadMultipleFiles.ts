@@ -30,6 +30,7 @@ export async function uploadMultipleFiles(
                 backendService
                     .uploadFile(
                         {
+                            fileId: null,
                             fileName: file.name,
                             parentDirectoryId: directoryId,
                         },

@@ -47,7 +47,11 @@ function TopBar(props: TopBarProps) {
         } else {
             unsetModal()
         }
-    }, [isUserMenuVisible])
+    }, [
+        isUserMenuVisible,
+        /* should never change */ setModal,
+        /* should never change */ unsetModal,
+    ])
 
     return (
         <div className="flex mb-2 h-8">
@@ -81,7 +85,9 @@ function TopBar(props: TopBarProps) {
             )}
             <div
                 className={`flex items-center bg-label rounded-full pl-1
-                                pr-2.5 mx-2 ${projectName ? 'cursor-pointer' : 'opacity-50'}`}
+                                pr-2.5 mx-2 ${
+                                    projectName != null ? 'cursor-pointer' : 'opacity-50'
+                                }`}
                 onClick={toggleTab}
             >
                 <span

@@ -38,7 +38,7 @@ function ContextMenu(props: React.PropsWithChildren<ContextMenuProps>) {
                 scroll(scrollX, scrollY + scrollBy)
             }
         }
-    }, [children])
+    }, [bodyHeight, children, top])
 
     return (
         <div

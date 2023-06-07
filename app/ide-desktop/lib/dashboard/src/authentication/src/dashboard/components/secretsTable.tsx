@@ -40,7 +40,7 @@ function SecretCreateForm(props: SecretCreateFormProps) {
     } else {
         const onSubmit = async (event: React.FormEvent) => {
             event.preventDefault()
-            if (!name) {
+            if (name == null) {
                 toast.error('Please provide a secret name.')
             } else if (value == null) {
                 // Secret value explicitly can be empty.

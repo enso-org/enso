@@ -215,7 +215,7 @@ export function directoryWithinBundle(bundlePath: string): string | null {
     })
     // ESLint doesn't know that `commonPrefix` can be not `null` here due to the `onentry` callback.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    return commonPrefix ? pathModule.basename(commonPrefix) : null
+    return commonPrefix != null ? pathModule.basename(commonPrefix) : null
 }
 
 /** Generate a name for a project using given base string. A suffix is added if there is a

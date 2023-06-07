@@ -1,4 +1,4 @@
-/** @file Defines the React provider for the project manager `Backend`, along with hooks to use the
+/** @file The React provider for the project manager `Backend`, along with hooks to use the
  * provider via the shared React context. */
 import * as React from 'react'
 

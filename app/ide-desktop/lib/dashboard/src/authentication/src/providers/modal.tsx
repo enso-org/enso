@@ -1,4 +1,5 @@
-/** @file  */
+/** @file The React provider for modals, along with hooks to use the provider via
+ * the shared React context. */
 import * as React from 'react'
 
 // =============

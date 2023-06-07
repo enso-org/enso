@@ -224,7 +224,10 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
 
         afterSign: async context => {
             // Notarization for macOS.
-            if (passedArgs.platform === electronBuilder.Platform.MAC && process.env.CSC_LINK) {
+            if (
+                passedArgs.platform === electronBuilder.Platform.MAC &&
+                process.env.CSC_LINK != null
+            ) {
                 const {
                     packager: {
                         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

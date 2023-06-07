@@ -1,5 +1,5 @@
 /** @file A select menu with a dropdown. */
-import * as react from 'react'
+import * as React from 'react'
 
 import * as svg from '../../components/svg'
 
@@ -14,9 +14,9 @@ export interface DropdownProps {
 /** A select menu with a dropdown. */
 function Dropdown(props: DropdownProps) {
     const { items, onChange, className, optionsClassName } = props
-    const [value, setValue] = react.useState(items[0])
+    const [value, setValue] = React.useState(items[0])
     // TODO:
-    const [isDropdownVisible, setIsDropdownVisible] = react.useState(false)
+    const [isDropdownVisible, setIsDropdownVisible] = React.useState(false)
 
     return (
         <div
@@ -40,6 +40,7 @@ function Dropdown(props: DropdownProps) {
                 >
                     {items.map(item => (
                         <div
+                            key={item}
                             onClick={() => {
                                 setIsDropdownVisible(false)
                                 setValue(item)

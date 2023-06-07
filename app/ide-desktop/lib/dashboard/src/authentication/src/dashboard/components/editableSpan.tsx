@@ -16,8 +16,15 @@ export interface EditableSpanProps extends EditableSpanPassthroughProps {
 
 /** A `<span>` that can turn into an `<input type="text">`. */
 function EditableSpan(props: EditableSpanProps) {
-    const { editable, children, onBlur, onCancel, inputPattern, inputTitle, ...passthroughProps } =
-        props
+    const {
+        editable = false,
+        children,
+        onBlur,
+        onCancel,
+        inputPattern,
+        inputTitle,
+        ...passthroughProps
+    } = props
 
     if (editable) {
         return (

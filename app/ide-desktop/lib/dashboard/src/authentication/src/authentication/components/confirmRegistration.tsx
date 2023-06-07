@@ -32,7 +32,7 @@ function ConfirmRegistration() {
     const { verificationCode, email } = parseUrlSearchParams(search)
 
     React.useEffect(() => {
-        if (!email || !verificationCode) {
+        if (email == null || verificationCode == null) {
             navigate(app.LOGIN_PATH)
         } else {
             confirmSignUp(email, verificationCode)

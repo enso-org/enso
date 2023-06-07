@@ -179,16 +179,32 @@ export function AuthProvider(props: AuthProviderProps) {
     // and the function call would error.
     // eslint-disable-next-line no-restricted-properties
     const navigate = router.useNavigate()
+
     const [initialized, setInitialized] = React.useState(false)
     const [userSession, setUserSession] = React.useState<UserSession | null>(null)
 
+    const goOfflineInternal = React.useCallback(() => {
+        setInitialized(true)
+        setUserSession(OFFLINE_USER_SESSION)
+        setBackendWithoutSavingType(new localBackend.LocalBackend())
+    }, [setBackendWithoutSavingType])
+
+    const goOffline = React.useCallback(() => {
+        toast.error('You are offline, switching to offline mode.')
+        goOfflineInternal()
+        navigate(app.DASHBOARD_PATH)
+        return Promise.resolve(true)
+    }, [goOfflineInternal, navigate])
+
     // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
     // circular dependency.
-    react.useEffect(() => {
+    React.useEffect(() => {
+        // `navigator.onLine` is not a dependency so that the app doesn't make the remote backend
+        // completely unusable on spotty connections.
         if (!navigator.onLine) {
             void goOffline()
         }
-    }, [navigator.onLine])
+    }, [goOffline])
 
     /** Fetch the JWT access token from the session via the AWS Amplify library.
      *
@@ -284,19 +300,6 @@ export function AuthProvider(props: AuthProviderProps) {
             }
             return result
         }
-
-    const goOfflineInternal = () => {
-        setInitialized(true)
-        setUserSession(OFFLINE_USER_SESSION)
-        setBackendWithoutSavingType(new localBackend.LocalBackend())
-    }
-
-    const goOffline = () => {
-        toast.error('You are offline, switching to offline mode.')
-        goOfflineInternal()
-        navigate(app.DASHBOARD_PATH)
-        return Promise.resolve(true)
-    }
 
     const signUp = async (username: string, password: string) => {
         const result = await cognito.signUp(username, password)
