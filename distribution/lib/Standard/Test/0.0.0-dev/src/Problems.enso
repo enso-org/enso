@@ -88,6 +88,8 @@ assume_no_problems result =
 expect_warning : Any -> Any -> Nothing
 expect_warning expected_warning result =
     loc = Meta.get_source_location 1
+    if result.is_error then
+        Test.fail "Expected a warning "+expected_warning.to_text+", but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+loc+")."
     warnings = get_attached_warnings result
     found = warnings.find if_missing=Nothing x->
         (x == expected_warning) || (x.is_a expected_warning)
@@ -106,6 +108,9 @@ expect_warning expected_warning result =
    - result: The value to check.
 expect_only_warning : Any -> Any -> Any
 expect_only_warning expected_warning result =
+    loc = Meta.get_source_location 1
+    if result.is_error then
+        Test.fail "Expected only warning "+expected_warning.to_text+", but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+loc+")."
     warnings = get_attached_warnings result
     is_expected x =
         (x == expected_warning) || (x.is_a expected_warning)
