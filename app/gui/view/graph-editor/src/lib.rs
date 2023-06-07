@@ -4,6 +4,7 @@
 
 // === Features ===
 #![feature(associated_type_defaults)]
+#![feature(cell_update)]
 #![feature(const_trait_impl)]
 #![feature(drain_filter)]
 #![feature(entry_insert)]
@@ -2263,10 +2264,10 @@ impl GraphEditorModel {
         let new_sources: HashSet<_> =
             detached_target_edges.filter_map(get_edge).filter_map(get_source_id).collect();
         for added in new_sources.difference(&old_sources).filter_map(get_node) {
-            added.model().move_to_active_node_layer();
+            added.model().set_editing_edge(true);
         }
         for removed in old_sources.difference(&new_sources).filter_map(get_node) {
-            removed.model().move_to_resting_node_layer();
+            removed.model().set_editing_edge(false);
         }
         self.sources_of_detached_target_edges.raw.replace(new_sources);
     }

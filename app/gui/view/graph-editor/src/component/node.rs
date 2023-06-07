@@ -20,7 +20,6 @@ use ensogl::application::Application;
 use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::scene::Layer;
 use ensogl::display::shape::compound::rectangle;
 use ensogl::gui;
 use ensogl::Animation;
@@ -416,6 +415,7 @@ pub struct NodeModel {
     pub vcs_indicator:       vcs::StatusIndicator,
     pub style:               StyleWatchFrp,
     pub comment:             text::Text,
+    pub interaction_state:   Rc<Cell<InteractionState>>,
 }
 
 impl NodeModel {
@@ -463,6 +463,8 @@ impl NodeModel {
         let comment = text::Text::new(app);
         display_object.add_child(&comment);
 
+        let interaction_state = default();
+
         let app = app.clone_ref();
         Self {
             app,
@@ -478,6 +480,7 @@ impl NodeModel {
             vcs_indicator,
             style,
             comment,
+            interaction_state,
         }
         .init()
     }
@@ -485,61 +488,61 @@ impl NodeModel {
     #[profile(Debug)]
     fn init(self) -> Self {
         self.set_expression(Expression::new_plain("empty"));
-        self.move_to_main_layer();
+        self.set_layers_for_state(self.interaction_state.get());
         self
     }
 
-    #[profile(Debug)]
-    fn set_special_layers(&self, text_layer: &Layer, action_bar_layer: &Layer) {
+    /// Set whether the node is being edited. This is used to adjust the camera.
+    pub fn set_editing_expression(&self, editing: bool) {
+        let new_state = self.interaction_state.update(|state| state.editing_expression(editing));
+        self.set_layers_for_state(new_state);
+    }
+
+    /// Set whether the node is being interacted with by moving an edge with the mouse.
+    pub fn set_editing_edge(&self, editing: bool) {
+        let new_state = self.interaction_state.update(|state| state.editing_edge(editing));
+        self.set_layers_for_state(new_state);
+    }
+
+    fn set_layers_for_state(&self, new_state: InteractionState) {
+        let scene = &self.app.display.default_scene;
+        let main_layer;
+        let background_layer;
+        let text_layer;
+        let action_bar_layer;
+        match new_state {
+            InteractionState::EditingExpression => {
+                // Move all sub-components to `edited_node` layer.
+                //
+                // `action_bar` is moved to the `edited_node` layer as well, though normally it
+                // lives on a separate `above_nodes` layer, unlike every other node component.
+                main_layer = scene.layers.edited_node.default_partition();
+                background_layer = main_layer.clone();
+                text_layer = &scene.layers.edited_node_text;
+                action_bar_layer = &scene.layers.edited_node;
+            }
+            InteractionState::EditingEdge => {
+                main_layer = scene.layers.main_nodes_level.clone();
+                background_layer = scene.layers.main_active_nodes_level.clone();
+                text_layer = &scene.layers.label;
+                action_bar_layer = &scene.layers.above_nodes;
+            }
+            InteractionState::Normal => {
+                main_layer = scene.layers.main_nodes_level.clone();
+                background_layer = main_layer.clone();
+                text_layer = &scene.layers.label;
+                action_bar_layer = &scene.layers.above_nodes;
+            }
+        }
+        main_layer.add(&self.display_object);
+        background_layer.add(&self.background);
         action_bar_layer.add(&self.action_bar);
+        // For the text layer, [`Layer::add`] can't be used because text rendering currently uses a
+        // separate layer management API.
         self.output.set_label_layer(text_layer);
         self.input.set_label_layer(text_layer);
         self.profiling_label.set_label_layer(text_layer);
         self.comment.add_to_scene_layer(text_layer);
-    }
-
-    /// Move all sub-components to `edited_node` layer.
-    ///
-    /// A simple [`Layer::add`] wouldn't work because text rendering in ensogl uses a
-    /// separate layer management API.
-    ///
-    /// `action_bar` is moved to the `edited_node` layer as well, though normally it lives on a
-    /// separate `above_nodes` layer, unlike every other node component.
-    pub fn move_to_edited_node_layer(&self) {
-        let scene = &self.app.display.default_scene;
-        let layer = &scene.layers.edited_node;
-        let text_layer = &scene.layers.edited_node_text;
-        let action_bar_layer = &scene.layers.edited_node;
-        layer.add(&self.display_object);
-        self.set_special_layers(text_layer, action_bar_layer);
-    }
-
-    /// Move all sub-components to `main` layer.
-    ///
-    /// A simple [`Layer::add`] wouldn't work because text rendering in ensogl uses a
-    /// separate layer management API.
-    ///
-    /// `action_bar` is handled separately, as it uses `above_nodes` scene layer unlike any other
-    /// node component.
-    pub fn move_to_main_layer(&self) {
-        let scene = &self.app.display.default_scene;
-        let layer = &scene.layers.main_nodes_level;
-        let text_layer = &scene.layers.label;
-        let action_bar_layer = &scene.layers.above_nodes;
-        layer.add(&self.display_object);
-        self.set_special_layers(text_layer, action_bar_layer);
-    }
-
-    /// Move the node to the normal layer used when the node is not connected to a detached edge.
-    pub fn move_to_resting_node_layer(&self) {
-        let layer = &self.app.display.default_scene.layers.main_nodes_level;
-        layer.add(&self.background);
-    }
-
-    /// Move the node to the layer used for nodes that have a detached edge.
-    pub fn move_to_active_node_layer(&self) {
-        let layer = &self.app.display.default_scene.layers.main_active_nodes_level;
-        layer.add(&self.background);
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
@@ -1010,6 +1013,38 @@ fn bounding_box(
         node_bbox.concat_ref(visualization_bbox)
     } else {
         node_bbox
+    }
+}
+
+
+// === Interaction state ===
+
+/// Information about how the node is being interacted with.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub enum InteractionState {
+    /// The node is being edited (with the cursor / Component Browser).
+    EditingExpression,
+    /// An edge of the node is being interacted with.
+    EditingEdge,
+    /// The node is not being interacted with.
+    #[default]
+    Normal,
+}
+
+impl InteractionState {
+    fn editing_expression(self, editing: bool) -> Self {
+        match editing {
+            true => Self::EditingExpression,
+            false => Self::Normal,
+        }
+    }
+
+    fn editing_edge(self, active: bool) -> Self {
+        match (self, active) {
+            (Self::EditingExpression, _) => self,
+            (_, true) => Self::EditingEdge,
+            (_, false) => Self::Normal,
+        }
     }
 }
 
