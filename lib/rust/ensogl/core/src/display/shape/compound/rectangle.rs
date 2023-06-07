@@ -60,7 +60,8 @@ pub mod shape {
             let body = body.fill(color);
 
             // === Border ===
-            let border = body.grow(border.px());
+            let padded_body = body.grow((inset - &border).px());
+            let border = padded_body.grow(border.px()) - padded_body;
             let border_color = Var::<color::Rgba>::from(border_color);
             let border = border.fill(border_color);
 

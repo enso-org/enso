@@ -510,8 +510,8 @@ define_themes! { [light:0, dark:1]
             background.skipped = graph_editor::node::background , graph_editor::node::background;
             selection          = selection, selection;
             selection {
-                size = 3.0 , 3.0;
-                offset = 5.0 , 5.0;
+                size = 3.5 , 3.5;
+                offset = 3.75 , 3.75;
             }
             text           = Rgba(0.078,0.067,0.137,0.85) , Lcha(1.0,0.0,0.0,0.7);
             text {
