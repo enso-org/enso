@@ -46,8 +46,13 @@ macro_rules! gen_has_hlist_repr_for_tuples {
             impl <$([<T $t>]),*> HasHListRepr for ($([<T $t>]),*,) {
                 type HListRepr = hlist::ty! { $([<T $t>]),* };
             }
+
             impl <'a, $([<T $t>]),*> HasHListRepr for &'a ($([<T $t>]),*,) {
                 type HListRepr = hlist::ty! { $(&'a [<T $t>]),* };
+            }
+
+            impl <'a, $([<T $t>]),*> HasHListRepr for &'a mut ($([<T $t>]),*,) {
+                type HListRepr = hlist::ty! { $(&'a mut [<T $t>]),* };
             }
         }
         gen_has_hlist_repr_for_tuples! {[$($t)* $r] $($rs)*}
@@ -159,9 +164,9 @@ mod tests {
     use crate::traits::*;
     #[test]
     fn test_field_at() {
-        let tuple = (1, "hello", vec![2, 3]);
-        // assert_eq!(tuple.field_at::<0>(), &1);
-        // assert_eq!(tuple.field_at::<1>(), &"test");
-        // assert_eq!(list.field_at::<2>(), &vec![2, 3]);
+        let tuple = (1, "hello", 1);
+        // assert_eq!(tuple.field_at::<0>(), 1);
+        // assert_eq!(tuple.field_at::<1>(), "hello");
+        // assert_eq!(tuple.field_at::<2>(), 1);
     }
 }
