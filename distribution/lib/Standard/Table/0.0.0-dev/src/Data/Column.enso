@@ -1628,6 +1628,13 @@ type Column
         Storage.to_value_type storage_type
 
     ## PRIVATE
+       Returns the `Value_Type` based on the data in the column.
+    resolved_value_type : Value_Type
+    resolved_value_type self =
+        storage_type = self.java_column.getStorage.getValuesType
+        Storage.to_value_type storage_type
+
+    ## PRIVATE
        Converts this column to JS_Object representation.
 
        > Example

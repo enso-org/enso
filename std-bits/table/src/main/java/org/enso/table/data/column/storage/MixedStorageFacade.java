@@ -5,6 +5,8 @@ import java.util.List;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -17,9 +19,11 @@ import org.enso.table.data.mask.SliceRange;
  */
 public class MixedStorageFacade extends Storage<Object> {
   private final Storage<?> underlyingStorage;
+  private StorageType resolvedType;
 
   public MixedStorageFacade(Storage<?> storage) {
     underlyingStorage = storage;
+    resolvedType = null;
   }
 
   @Override
@@ -35,6 +39,20 @@ public class MixedStorageFacade extends Storage<Object> {
   @Override
   public StorageType getType() {
     return AnyObjectType.INSTANCE;
+  }
+
+  @Override
+  public StorageType getValuesType() {
+    if (resolvedType != null) {
+      return resolvedType;
+    }
+
+    var underlyingType = underlyingStorage.getType();
+    resolvedType = underlyingType instanceof AnyObjectType
+        ? Storage.computeStorageTypeForValues(this)
+        : underlyingType;
+
+    return resolvedType;
   }
 
   @Override

@@ -13,6 +13,7 @@ import org.enso.table.data.column.operation.cast.CastProblemBuilder;
 import org.enso.table.data.column.operation.cast.StorageConverter;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -28,6 +29,30 @@ public abstract class Storage<T> {
 
   /** @return the type tag of this column's storage. */
   public abstract StorageType getType();
+
+  /**
+   * @return the type of the values in this column's storage. Resolves type for Mixed if possible.
+   */
+  public abstract StorageType getValuesType();
+
+  /**
+   * @return the StorageType for a set of values in a Storage.
+   */
+  public static StorageType computeStorageTypeForValues(Storage input) {
+    StorageType currentType = null;
+    for (int i = 0; i < input.size(); i++) {
+      var item = input.getItemBoxed(i);
+      if (item != null) {
+        var itemType = StorageType.forBoxedItem(item);
+        currentType = StorageType.findGeneralType(currentType, itemType);
+        if (currentType instanceof AnyObjectType) {
+          return currentType;
+        }
+      }
+    }
+
+    return currentType;
+  }
 
   /**
    * Checks whether the value at {@code idx} is missing.

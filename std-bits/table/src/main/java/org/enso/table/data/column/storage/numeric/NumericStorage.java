@@ -1,6 +1,7 @@
 package org.enso.table.data.column.storage.numeric;
 
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.StorageType;
 
 /** A storage containing items representable as a {@code double}. */
 public abstract class NumericStorage<T> extends Storage<T> {
@@ -12,4 +13,9 @@ public abstract class NumericStorage<T> extends Storage<T> {
    * @return the value associated with {@code idx}
    */
   public abstract double getItemDouble(int idx);
+
+  @Override
+  public StorageType getValuesType() {
+    return getType();
+  }
 }

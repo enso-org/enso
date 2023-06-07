@@ -61,6 +61,11 @@ public final class BoolStorage extends Storage<Boolean> {
   }
 
   @Override
+  public StorageType getValuesType() {
+    return getType();
+  }
+
+  @Override
   public Boolean getItemBoxed(int idx) {
     return isMissing.get(idx) ? null : getItem(idx);
   }

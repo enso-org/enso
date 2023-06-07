@@ -18,6 +18,11 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   @Override
   public abstract StorageType getType();
 
+  @Override
+  public StorageType getValuesType() {
+    return getType();
+  }
+
   /**
    * @param data the underlying data
    * @param size the number of items stored

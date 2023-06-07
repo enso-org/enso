@@ -10,12 +10,15 @@ import org.enso.table.data.column.storage.type.StorageType;
 
 /** A column storing arbitrary objects. */
 public final class ObjectStorage extends SpecializedStorage<Object> {
+  private StorageType resolvedType;
+
   /**
    * @param data the underlying data
    * @param size the number of items stored
    */
   public ObjectStorage(Object[] data, int size) {
     super(data, size, ops);
+    resolvedType = null;
   }
 
   @Override
@@ -31,6 +34,14 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
   @Override
   public StorageType getType() {
     return AnyObjectType.INSTANCE;
+  }
+
+  @Override
+  public StorageType getValuesType() {
+    if (resolvedType == null) {
+      resolvedType = Storage.computeStorageTypeForValues(this);
+    }
+    return resolvedType;
   }
 
   @Override
