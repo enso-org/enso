@@ -97,7 +97,6 @@ const EXPERIMENTAL = {
 
 /** The `id` attribute of the element into which the IDE will be rendered. */
 const IDE_ELEMENT_ID = 'root'
-const IDE_SCENE_CLASS = 'scene'
 /** The `localStorage` key under which the ID of the current directory is stored. */
 const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-directory-stack`
 
@@ -332,13 +331,9 @@ function Dashboard(props: DashboardProps) {
     const switchToIdeTab = react.useCallback(() => {
         setTab(Tab.ide)
         const ideElement = document.getElementById(IDE_ELEMENT_ID)
-        const ideScene = document.getElementsByClassName(IDE_SCENE_CLASS)[0]
         if (ideElement) {
             ideElement.style.top = ''
             ideElement.style.display = 'absolute'
-            if (ideScene) {
-                ideScene.focus()
-            }
         }
     }, [])
 
@@ -346,13 +341,9 @@ function Dashboard(props: DashboardProps) {
         setTab(Tab.dashboard)
         doRefresh()
         const ideElement = document.getElementById(IDE_ELEMENT_ID)
-        const ideScene = document.getElementsByClassName(IDE_SCENE_CLASS)[0]
         if (ideElement) {
             ideElement.style.top = '-100vh'
             ideElement.style.display = 'fixed'
-            if (ideScene) {
-                ideScene.blur()
-            }
         }
     }, [])
 
