@@ -39,5 +39,5 @@ class TimingsConfig(
 }
 
 object TimingsConfig {
-  def default(): TimingsConfig = new TimingsConfig(10.seconds)
+  def default(): TimingsConfig = new TimingsConfig(20.seconds)
 }
