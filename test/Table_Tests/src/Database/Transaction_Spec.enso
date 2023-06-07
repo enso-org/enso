@@ -12,9 +12,9 @@ type My_Error
     Error
 
 main = Test_Suite.run_main <|
-    spec "[SQLite] " (Database.connect (SQLite In_Memory))
+    spec (Database.connect (SQLite In_Memory)) "[SQLite] "
 
-spec prefix connection =
+spec connection prefix =
     Test.group prefix+"Transaction Support" <|
         Test.specify "should commit the changes after the transaction returns a regular value" <|
             t1 = connection.create_table table_name=Nothing structure=[["X", Value_Type.Integer]] temporary=True
