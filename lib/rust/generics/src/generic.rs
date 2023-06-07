@@ -225,6 +225,14 @@ pub trait _GetFieldAt {
     }
 }
 
+// pub trait GetFieldAt<const I: usize> {
+//     #[inline(always)]
+//     fn _field_at<'t>(&'t self) -> FieldAt<I, &'t Self>
+//         where &'t Self: IntoFieldAt<I> {
+//         IntoFieldAt::<I>::_into_field_at(self)
+//     }
+// }
+
 /// Default implementation for every struct that implements [`IntoHList`].
 impl<T, const N: usize> IntoFieldAt<N> for T
 where
@@ -361,27 +369,32 @@ macro_rules! impl_get_field_at_x_trait {
     ($($t:tt),* $(,)?) => {
         paste! {
             $(
-                impl<T: IntoFieldAt<$t>> [<IntoFieldAt $t>] for T {}
-                pub trait [<IntoFieldAt $t>]: IntoFieldAt<$t> {
+                impl<T> [<GetFieldAt $t>] for T {}
+                pub trait [<GetFieldAt $t>] {
                     #[inline(always)]
-                    fn [<_ $t>](self) -> FieldAt<$t, Self> {
-                        self._into_field_at()
+                    fn [<_ $t>]<'t>(&'t self) -> FieldAt<$t, &'t Self>
+                    where &'t Self: IntoFieldAt<$t> {
+                        IntoFieldAt::<$t>::_into_field_at(self)
                     }
                 }
 
-                // impl<'t, T: GetFieldAtMut<'t, $t>> [<GetFieldAtMut $t>] for T {}
-                // pub trait [<GetFieldAtMut $t>] where Self: for<'t> GetFieldAtMut<'t $t> {
-                //     #[inline(always)]
-                //     fn [<_ $t _mut>](&'t mut self) -> FieldAt<$t, &'t mut Self> {
-                //         self._field_at_mut()
-                //     }
-                // }
+                impl<T> [<GetFieldAtMut $t>] for T where
+                    Self: for<'t> GetFieldAtMut<'t, $t>,
+                    for<'t> &'t mut Self: HasFieldAt<$t> {}
+                pub trait [<GetFieldAtMut $t>] where
+                    Self: for<'t> GetFieldAtMut<'t, $t>,
+                    for<'t> &'t mut Self: HasFieldAt<$t> {
+                    #[inline(always)]
+                    fn [<_ $t _mut>](&mut self) -> FieldAt<$t, &mut Self> {
+                        self._field_at_mut()
+                    }
+                }
             )*
 
             mod get_field_at_x_traits {
                 $(
-                    pub use super::[<IntoFieldAt $t>] as [<_TRAIT_GetFieldAt $t>];
-                    // pub use super::[<GetFieldAtMut $t>] as [<_TRAIT_GetFieldAtMut $t>];
+                    pub use super::[<GetFieldAt $t>] as [<_TRAIT_GetFieldAt $t>];
+                    pub use super::[<GetFieldAtMut $t>] as [<_TRAIT_GetFieldAtMut $t>];
                 )*
             }
         }
@@ -391,17 +404,44 @@ macro_rules! impl_get_field_at_x_trait {
 // Rust does not allow to impl it with default impls, so we need to do it manually.
 impl_get_field_at_x_trait![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 
-// // impl<T> GetFieldAtMut1 for T where Self: for<'t> GetFieldAtMut<'t, 1> {}
-// pub trait GetFieldAtMut1
-// where Self: for<'t> GetFieldAtMut<'t, 1> {
+
+
+// impl<T> GetFieldAt0 for T {}
+// pub trait GetFieldAt0 {
 //     #[inline(always)]
-//     fn _1_mut(&mut self) -> FieldAt<1, &mut Self> {
-//         self._field_at_mut()
+//     fn _0<'t>(&'t self) -> FieldAt<0, &'t Self>
+//         where &'t Self: IntoFieldAt<0> {
+//         IntoFieldAt::<0>::_into_field_at(self)
 //     }
 // }
 
-type Test = FieldAt<2, crate::ty![usize, usize, usize, usize]>;
-type Test2 = FieldAt<0, crate::ty![String]>;
+struct Get0Data<T>(T);
+
+trait Data {}
+
+trait EventOutput {
+    type Output;
+}
+
+trait HasOutput {
+    type Output;
+}
+
+// pub type FieldAt<const I: usize, T> = <T as HasFieldAt<I>>::Type;
+
+impl<T1> HasOutput for Get0Data<T1>
+where
+    T1: EventOutput,
+    T1::Output: HasFieldAt<0>,
+    FieldAt<0, T1::Output>: Data,
+{
+    type Output = usize; //FieldAt<0, T1::Output>;
+}
+
+
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 mod tests {
@@ -409,7 +449,6 @@ mod tests {
     #[test]
     fn test_field_at() {
         let mut list = crate::new![1, 1.0, vec![2, 3]];
-        let foo: Test = 1;
         assert_eq!(list.field_at::<0>(), &1);
         assert_eq!(list.field_at::<1>(), &1.0);
         assert_eq!(list.field_at::<2>(), &vec![2, 3]);
