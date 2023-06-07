@@ -1574,6 +1574,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "debug-scene-graph-editor-edges"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl",
+ "ensogl-hardcoded-theme",
+ "ide-view-graph-editor",
+ "nalgebra",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "debug-scene-icons"
 version = "0.1.0"
 dependencies = [
@@ -2060,6 +2072,7 @@ dependencies = [
  "debug-scene-component-list-panel-view",
  "debug-scene-documentation",
  "debug-scene-execution-environment-dropdown",
+ "debug-scene-graph-editor-edges",
  "debug-scene-icons",
  "debug-scene-interface",
  "debug-scene-text-grid-visualization",

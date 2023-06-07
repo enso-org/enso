@@ -5,7 +5,7 @@
 use crate::prelude::*;
 use crate::system::gpu::data::types::*;
 
-use crate::display::symbol::geometry::Sprite;
+use crate::display::symbol::geometry::RawSprite;
 use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::symbol::material::Material;
 use crate::system::gpu::data::texture;
@@ -15,7 +15,7 @@ use crate::system::gpu::data::texture;
 /// Defines a system containing shapes. It is a specialized `SpriteSystem` version.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Screen {
-    sprite:        Sprite,
+    sprite:        RawSprite,
     sprite_system: SpriteSystem,
 }
 

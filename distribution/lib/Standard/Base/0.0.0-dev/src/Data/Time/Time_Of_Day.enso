@@ -251,7 +251,8 @@ type Time_Of_Day
 
              example_to_time = Time_Of_Day.new 12 30 . to_time (Date.new 2020)
     to_date_time : Date -> Time_Zone -> Date_Time
-    to_date_time self date (zone=Time_Zone.system) = self.to_date_time_builtin date zone
+    to_date_time self date (zone=Time_Zone.system) =
+        Time_Utils.make_zoned_date_time date self zone
 
     ## ALIAS Add Duration
        Add the specified amount of time to this instant to get a new instant.

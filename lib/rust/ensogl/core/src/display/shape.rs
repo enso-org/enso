@@ -16,6 +16,7 @@ pub mod primitive;
 
 pub use compound::rectangle::Rectangle;
 pub use compound::rectangle::RoundedRectangle;
+pub use compound::rectangle::SimpleTriangle;
 pub use constants::*;
 pub use primitive::*;
 

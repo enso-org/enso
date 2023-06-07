@@ -220,6 +220,14 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . zone . zone_id . should_equal tz.zone_id
             time.to_display_text . should_equal "1970-01-01 03:00:00 Europe/Moscow"
 
+        Test.specify "should allow to set an interop timezone" <|
+            interop_tz = ZoneOffset.ofTotalSeconds 3600
+            dt0 = create_new_datetime 2020 (zone = Time_Zone.utc)
+            dt1 = dt0.at_zone interop_tz
+
+            dt1.zone . zone_id . should_equal interop_tz.zone_id
+            dt1.to_display_text . should_equal "2020-01-01 01:00:00 +01:00"
+
         Test.specify "should get time of day from offsed-based time" <|
             time = parse_datetime "1970-01-01T00:00:01+01:00" . time_of_day
             time . hour . should_equal 0

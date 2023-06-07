@@ -17,16 +17,16 @@ import * as remoteBackendModule from '../remoteBackend'
 import * as svg from '../../components/svg'
 import * as uploadMultipleFiles from '../../uploadMultipleFiles'
 
-import * as auth from '../../authentication/providers/auth'
+import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
 import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
+import ProjectActionButton, * as projectActionButton from './projectActionButton'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import Ide from './ide'
-import ProjectActionButton from './projectActionButton'
 import Rows from './rows'
 import Templates from './templates'
 import TopBar from './topBar'
@@ -98,7 +98,7 @@ const EXPERIMENTAL = {
 /** The `id` attribute of the element into which the IDE will be rendered. */
 const IDE_ELEMENT_ID = 'root'
 /** The `localStorage` key under which the ID of the current directory is stored. */
-const DIRECTORY_STACK_KEY = 'enso-dashboard-directory-stack'
+const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-directory-stack`
 
 /** English names for the name column. */
 const ASSET_TYPE_NAME: Record<backendModule.AssetType, string> = {
@@ -218,6 +218,11 @@ function columnsFor(displayMode: ColumnDisplayMode, backendType: backendModule.B
         : columns
 }
 
+/** Sanitizes a string for use as a regex. */
+function regexEscape(string: string) {
+    return string.replace(/[\\^$.|?*+()[{]/g, '\\$&')
+}
+
 // =================
 // === Dashboard ===
 // =================
@@ -226,6 +231,7 @@ function columnsFor(displayMode: ColumnDisplayMode, backendType: backendModule.B
 export interface DashboardProps {
     supportsLocalBackend: boolean
     appRunner: AppRunner
+    initialProjectName: string | null
 }
 
 // TODO[sb]: Implement rename when clicking name of a selected row.
@@ -233,10 +239,10 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 function Dashboard(props: DashboardProps) {
-    const { supportsLocalBackend, appRunner } = props
+    const { supportsLocalBackend, appRunner, initialProjectName } = props
 
     const logger = loggerProvider.useLogger()
-    const session = auth.useNonPartialUserSession()
+    const session = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setBackend } = backendProvider.useSetBackend()
     const { modal } = modalProvider.useModal()
@@ -244,6 +250,30 @@ function Dashboard(props: DashboardProps) {
 
     const [refresh, doRefresh] = hooks.useRefresh()
 
+    const [onDirectoryNextLoaded, setOnDirectoryNextLoaded] = react.useState<
+        ((assets: backendModule.Asset[]) => void) | null
+    >(() =>
+        initialProjectName != null
+            ? (assets: backendModule.Asset[]) => {
+                  if (
+                      !assets.some(
+                          asset =>
+                              asset.type === backendModule.AssetType.project &&
+                              asset.title === initialProjectName
+                      )
+                  ) {
+                      const errorMessage = `No project named '${initialProjectName}' was found.`
+                      toast.error(errorMessage)
+                      logger.error(`Error opening project on startup: ${errorMessage}`)
+                  }
+              }
+            : null
+    )
+    const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
+        react.useState(initialProjectName)
+    const [projectEvent, setProjectEvent] = react.useState<projectActionButton.ProjectEvent | null>(
+        null
+    )
     const [query, setQuery] = react.useState('')
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = react.useState(false)
     const [directoryId, setDirectoryId] = react.useState(
@@ -284,13 +314,16 @@ function Dashboard(props: DashboardProps) {
     const [visibleFileAssets, setVisibleFileAssets] = react.useState<
         backendModule.Asset<backendModule.AssetType.file>[]
     >([])
+    const [projectDatas, setProjectDatas] = react.useState<
+        Record<backendModule.ProjectId, projectActionButton.ProjectData>
+    >({})
 
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
     const isListingRemoteDirectoryAndWillFail =
         backend.type === backendModule.BackendType.remote && !session.organization?.isEnabled
     const isListingRemoteDirectoryWhileOffline =
-        session.type === auth.UserSessionType.offline &&
+        session.type === authProvider.UserSessionType.offline &&
         backend.type === backendModule.BackendType.remote
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
@@ -337,7 +370,11 @@ function Dashboard(props: DashboardProps) {
     }, [isLoadingAssets, loadingProjectManagerDidFail, backend.type])
 
     react.useEffect(() => {
-        if (supportsLocalBackend) {
+        if (
+            supportsLocalBackend &&
+            localStorage.getItem(backendProvider.BACKEND_TYPE_KEY) !==
+                backendModule.BackendType.remote
+        ) {
             setBackend(new localBackend.LocalBackend())
         }
     }, [])
@@ -349,27 +386,70 @@ function Dashboard(props: DashboardProps) {
         }
     }, [])
 
+    react.useEffect(() => {
+        if (projectEvent != null) {
+            setProjectEvent(null)
+        }
+    }, [projectEvent])
+
+    const openIde = async (projectId: backendModule.ProjectId) => {
+        switchToIdeTab()
+        if (project?.projectId !== projectId) {
+            setProject(await backend.getProjectDetails(projectId))
+        }
+    }
+
+    const closeIde = () => {
+        setProject(null)
+    }
+
+    const setBackendType = (newBackendType: backendModule.BackendType) => {
+        if (newBackendType !== backend.type) {
+            setIsLoadingAssets(true)
+            setProjectAssets([])
+            setDirectoryAssets([])
+            setSecretAssets([])
+            setFileAssets([])
+            switch (newBackendType) {
+                case backendModule.BackendType.local:
+                    setBackend(new localBackend.LocalBackend())
+                    break
+                case backendModule.BackendType.remote: {
+                    const headers = new Headers()
+                    headers.append('Authorization', `Bearer ${session.accessToken ?? ''}`)
+                    const client = new http.Client(headers)
+                    setBackend(new remoteBackendModule.RemoteBackend(client, logger))
+                    break
+                }
+            }
+        }
+    }
+
     const setProjectAssets = (
         newProjectAssets: backendModule.Asset<backendModule.AssetType.project>[]
     ) => {
         setProjectAssetsRaw(newProjectAssets)
-        setVisibleProjectAssets(newProjectAssets.filter(asset => asset.title.includes(query)))
+        const queryRegex = new RegExp(regexEscape(query), 'i')
+        setVisibleProjectAssets(newProjectAssets.filter(asset => queryRegex.test(asset.title)))
     }
     const setDirectoryAssets = (
         newDirectoryAssets: backendModule.Asset<backendModule.AssetType.directory>[]
     ) => {
         setDirectoryAssetsRaw(newDirectoryAssets)
-        setVisibleDirectoryAssets(newDirectoryAssets.filter(asset => asset.title.includes(query)))
+        const queryRegex = new RegExp(regexEscape(query), 'i')
+        setVisibleDirectoryAssets(newDirectoryAssets.filter(asset => queryRegex.test(asset.title)))
     }
     const setSecretAssets = (
         newSecretAssets: backendModule.Asset<backendModule.AssetType.secret>[]
     ) => {
         setSecretAssetsRaw(newSecretAssets)
-        setVisibleSecretAssets(newSecretAssets.filter(asset => asset.title.includes(query)))
+        const queryRegex = new RegExp(regexEscape(query), 'i')
+        setVisibleSecretAssets(newSecretAssets.filter(asset => queryRegex.test(asset.title)))
     }
     const setFileAssets = (newFileAssets: backendModule.Asset<backendModule.AssetType.file>[]) => {
         setFileAssetsRaw(newFileAssets)
-        setVisibleFileAssets(newFileAssets.filter(asset => asset.title.includes(query)))
+        const queryRegex = new RegExp(regexEscape(query), 'i')
+        setVisibleFileAssets(newFileAssets.filter(asset => queryRegex.test(asset.title)))
     }
 
     const exitDirectory = () => {
@@ -424,7 +504,18 @@ function Dashboard(props: DashboardProps) {
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
-                    if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
+                    if (event.detail === 2 && event.target === event.currentTarget) {
+                        // It is a double click; open the project.
+                        setProjectEvent({
+                            type: projectActionButton.ProjectEventType.open,
+                            projectId: projectAsset.id,
+                        })
+                    } else if (
+                        event.ctrlKey &&
+                        !event.altKey &&
+                        !event.shiftKey &&
+                        !event.metaKey
+                    ) {
                         setModal(() => (
                             <RenameModal
                                 assetType={projectAsset.type}
@@ -447,17 +538,41 @@ function Dashboard(props: DashboardProps) {
             >
                 <ProjectActionButton
                     project={projectAsset}
-                    appRunner={appRunner}
-                    doRefresh={doRefresh}
-                    onClose={() => {
-                        setProject(null)
-                    }}
-                    openIde={async () => {
-                        switchToIdeTab()
-                        if (project?.projectId !== projectAsset.id) {
-                            setProject(await backend.getProjectDetails(projectAsset.id))
+                    projectData={
+                        projectDatas[projectAsset.id] ?? projectActionButton.DEFAULT_PROJECT_DATA
+                    }
+                    setProjectData={newProjectData => {
+                        if (typeof newProjectData === 'function') {
+                            setProjectDatas(oldProjectDatas => ({
+                                ...oldProjectDatas,
+                                [projectAsset.id]: newProjectData(
+                                    oldProjectDatas[projectAsset.id] ??
+                                        projectActionButton.DEFAULT_PROJECT_DATA
+                                ),
+                            }))
+                        } else {
+                            setProjectDatas({
+                                ...projectDatas,
+                                [projectAsset.id]: newProjectData,
+                            })
                         }
                     }}
+                    appRunner={appRunner}
+                    event={projectEvent}
+                    doRefresh={doRefresh}
+                    doOpenManually={() => {
+                        setProjectEvent({
+                            type: projectActionButton.ProjectEventType.open,
+                            projectId: projectAsset.id,
+                        })
+                    }}
+                    onClose={() => {
+                        setProjectEvent({
+                            type: projectActionButton.ProjectEventType.cancelOpeningAll,
+                        })
+                        closeIde()
+                    }}
+                    openIde={() => openIde(projectAsset.id)}
                 />
                 <span className="px-2">{projectAsset.title}</span>
             </div>
@@ -556,7 +671,9 @@ function Dashboard(props: DashboardProps) {
                 event.preventDefault()
                 event.stopPropagation()
                 setModal(() => (
-                    <ContextMenu event={event}>
+                    // This is a placeholder key. It should be replaced with label ID when labels
+                    // are implemented.
+                    <ContextMenu key={'label'} event={event}>
                         <ContextMenuEntry
                             disabled
                             onClick={() => {
@@ -632,12 +749,13 @@ function Dashboard(props: DashboardProps) {
             <>{COLUMN_NAME[column]}</>
         )
 
-    // The purpose of this effect is to enable search action.
     react.useEffect(() => {
-        setVisibleProjectAssets(projectAssets.filter(asset => asset.title.includes(query)))
-        setVisibleDirectoryAssets(directoryAssets.filter(asset => asset.title.includes(query)))
-        setVisibleSecretAssets(secretAssets.filter(asset => asset.title.includes(query)))
-        setVisibleFileAssets(fileAssets.filter(asset => asset.title.includes(query)))
+        const queryRegex = new RegExp(regexEscape(query), 'i')
+        const doesItMatchQuery = (asset: backendModule.Asset) => queryRegex.test(asset.title)
+        setVisibleProjectAssets(projectAssets.filter(doesItMatchQuery))
+        setVisibleDirectoryAssets(directoryAssets.filter(doesItMatchQuery))
+        setVisibleSecretAssets(secretAssets.filter(doesItMatchQuery))
+        setVisibleFileAssets(fileAssets.filter(doesItMatchQuery))
     }, [query])
 
     const setAssets = (assets: backendModule.Asset[]) => {
@@ -655,6 +773,20 @@ function Dashboard(props: DashboardProps) {
         setDirectoryAssets(newDirectoryAssets)
         setSecretAssets(newSecretAssets)
         setFileAssets(newFileAssets)
+        if (nameOfProjectToImmediatelyOpen != null) {
+            const projectToLoad = newProjectAssets.find(
+                projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen
+            )
+            if (projectToLoad != null) {
+                setProjectEvent({
+                    type: projectActionButton.ProjectEventType.open,
+                    projectId: projectToLoad.id,
+                })
+            }
+            setNameOfProjectToImmediatelyOpen(null)
+        }
+        onDirectoryNextLoaded?.(assets)
+        setOnDirectoryNextLoaded(null)
     }
 
     hooks.useAsyncEffect(
@@ -744,6 +876,10 @@ function Dashboard(props: DashboardProps) {
             parentDirectoryId: directoryId,
         }
         await backend.createProject(body)
+        // `newProject.projectId` cannot be used directly in a `ProjectEvet` as the project
+        // does not yet exist in the project list. Opening the project would work, but the project
+        // would display as closed as it would be created after the event is sent.
+        setNameOfProjectToImmediatelyOpen(projectName)
         doRefresh()
     }
 
@@ -774,31 +910,7 @@ function Dashboard(props: DashboardProps) {
                         switchToDashboardTab()
                     }
                 }}
-                setBackendType={newBackendType => {
-                    if (newBackendType !== backend.type) {
-                        setIsLoadingAssets(true)
-                        setProjectAssets([])
-                        setDirectoryAssets([])
-                        setSecretAssets([])
-                        setFileAssets([])
-                        switch (newBackendType) {
-                            case backendModule.BackendType.local:
-                                setBackend(new localBackend.LocalBackend())
-                                break
-                            case backendModule.BackendType.remote: {
-                                const headers = new Headers()
-                                // If `accessToken` is null, then there is no internet connection.
-                                headers.append(
-                                    'Authorization',
-                                    `Bearer ${session.accessToken ?? ''}`
-                                )
-                                const client = new http.Client(headers)
-                                setBackend(new remoteBackendModule.RemoteBackend(client, logger))
-                                break
-                            }
-                        }
-                    }
-                }}
+                setBackendType={setBackendType}
                 query={query}
                 setQuery={setQuery}
             />
@@ -939,7 +1051,7 @@ function Dashboard(props: DashboardProps) {
                             )}
                         </div>
                     </div>
-                    <table className="table-fixed items-center border-collapse mt-2">
+                    <table className="table-fixed items-center border-collapse mt-2 w-0">
                         <tbody>
                             <tr className="h-10">
                                 {columnsFor(columnDisplayMode, backend.type).map(column => (
@@ -948,7 +1060,7 @@ function Dashboard(props: DashboardProps) {
                             </tr>
                             <Rows<backendModule.Asset<backendModule.AssetType.project>>
                                 items={visibleProjectAssets}
-                                getKey={proj => proj.id}
+                                getKey={projectAsset => projectAsset.id}
                                 isLoading={isLoadingAssets}
                                 placeholder={
                                     <span className="opacity-75">
@@ -979,8 +1091,11 @@ function Dashboard(props: DashboardProps) {
                                     event.preventDefault()
                                     event.stopPropagation()
                                     const doOpenForEditing = () => {
-                                        // FIXME[sb]: Switch to IDE tab
-                                        // once merged with `show-and-open-workspace` branch.
+                                        unsetModal()
+                                        setProjectEvent({
+                                            type: projectActionButton.ProjectEventType.open,
+                                            projectId: projectAsset.id,
+                                        })
                                     }
                                     const doOpenAsFolder = () => {
                                         // FIXME[sb]: Uncomment once backend support
@@ -1031,9 +1146,12 @@ function Dashboard(props: DashboardProps) {
                                             />
                                         ))
                                     }
+                                    const isDisabled =
+                                        backend.type === backendModule.BackendType.local &&
+                                        (projectDatas[projectAsset.id]?.isRunning ?? false)
                                     setModal(() => (
-                                        <ContextMenu event={event}>
-                                            <ContextMenuEntry disabled onClick={doOpenForEditing}>
+                                        <ContextMenu key={projectAsset.id} event={event}>
+                                            <ContextMenuEntry onClick={doOpenForEditing}>
                                                 Open for editing
                                             </ContextMenuEntry>
                                             {backend.type !== backendModule.BackendType.local && (
@@ -1044,7 +1162,15 @@ function Dashboard(props: DashboardProps) {
                                             <ContextMenuEntry onClick={doRename}>
                                                 Rename
                                             </ContextMenuEntry>
-                                            <ContextMenuEntry onClick={doDelete}>
+                                            <ContextMenuEntry
+                                                disabled={isDisabled}
+                                                {...(isDisabled
+                                                    ? {
+                                                          title: 'A running local project cannot be removed.',
+                                                      }
+                                                    : {})}
+                                                onClick={doDelete}
+                                            >
                                                 <span className="text-red-700">Delete</span>
                                             </ContextMenuEntry>
                                         </ContextMenu>
@@ -1059,7 +1185,7 @@ function Dashboard(props: DashboardProps) {
                                             backendModule.Asset<backendModule.AssetType.directory>
                                         >
                                             items={visibleDirectoryAssets}
-                                            getKey={dir => dir.id}
+                                            getKey={directoryAsset => directoryAsset.id}
                                             isLoading={isLoadingAssets}
                                             placeholder={
                                                 <span className="opacity-75">
@@ -1091,11 +1217,14 @@ function Dashboard(props: DashboardProps) {
                                                         : [directoryAsset]
                                                 )
                                             }}
-                                            onContextMenu={(_directory, event) => {
+                                            onContextMenu={(directoryAsset, event) => {
                                                 event.preventDefault()
                                                 event.stopPropagation()
                                                 setModal(() => (
-                                                    <ContextMenu event={event}></ContextMenu>
+                                                    <ContextMenu
+                                                        key={directoryAsset.id}
+                                                        event={event}
+                                                    ></ContextMenu>
                                                 ))
                                             }}
                                         />
@@ -1153,7 +1282,7 @@ function Dashboard(props: DashboardProps) {
                                                     ))
                                                 }
                                                 setModal(() => (
-                                                    <ContextMenu event={event}>
+                                                    <ContextMenu key={secret.id} event={event}>
                                                         <ContextMenuEntry onClick={doDelete}>
                                                             <span className="text-red-700">
                                                                 Delete
@@ -1224,7 +1353,7 @@ function Dashboard(props: DashboardProps) {
                                                     /** TODO: Wait for backend endpoint. */
                                                 }
                                                 setModal(() => (
-                                                    <ContextMenu event={event}>
+                                                    <ContextMenu key={file.id} event={event}>
                                                         <ContextMenuEntry disabled onClick={doCopy}>
                                                             Copy
                                                         </ContextMenuEntry>

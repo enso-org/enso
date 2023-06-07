@@ -12,6 +12,7 @@ use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
 
 use enso_frp as frp;
+use ensogl::application::View;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
@@ -110,11 +111,12 @@ impl Model {
     /// endpoint.
     fn handle_controller_failure(
         &self,
-        failure_endpoint: &frp::Source<ViewNodeId>,
+        failure_endpoint: &frp::Source<(ViewNodeId, String)>,
         node: AstNodeId,
+        message: String,
     ) {
         if let Some(node_view) = self.state.view_id_of_ast_node(node) {
-            failure_endpoint.emit(node_view);
+            failure_endpoint.emit((node_view, message));
         }
     }
 
@@ -179,6 +181,7 @@ impl Visualization {
             state,
         });
 
+        let app = &view.app().frp;
         frp::extend! { network
             eval view.visualization_shown (((node, metadata)) model.visualization_shown(*node, metadata.clone()));
             eval view.visualization_hidden ((node) model.visualization_hidden(*node));
@@ -188,12 +191,13 @@ impl Visualization {
 
             set_data <- source::<(ViewNodeId, visualization_view::Data)>();
             error_update <- source::<(ViewNodeId, visualization_view::Data)>();
-            visualization_failure <- source::<ViewNodeId>();
-            error_vis_failure <- source::<ViewNodeId>();
+            visualization_failure <- source::<(ViewNodeId,String)>();
+            error_vis_failure <- source::<(ViewNodeId,String)>();
 
             view.set_visualization_data <+ set_data;
             view.set_error_visualization_data <+ error_update;
-            view.disable_visualization <+ visualization_failure;
+            view.disable_visualization <+ visualization_failure._0();
+            app.show_notification <+ visualization_failure._1();
 
             eval_ view.visualization_registry_reload_requested (model.load_visualizations());
         }
@@ -214,7 +218,7 @@ impl Visualization {
         notifier: impl Stream<Item = manager::Notification> + Unpin + 'static,
         manager: Rc<Manager>,
         set_data_endpoint: frp::Source<(ViewNodeId, visualization_view::Data)>,
-        failure_endpoint: frp::Source<ViewNodeId>,
+        failure_endpoint: frp::Source<(ViewNodeId, String)>,
     ) -> Self {
         let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, notifier, move |notification, model| {
@@ -225,7 +229,13 @@ impl Visualization {
                 }
                 manager::Notification::FailedToAttach { visualization, error } => {
                     error!("Visualization {} failed to attach: {error}.", visualization.id);
-                    model.handle_controller_failure(&failure_endpoint, visualization.expression_id);
+                    let message =
+                        format!("Failed to open visualization because of an error: {error}");
+                    model.handle_controller_failure(
+                        &failure_endpoint,
+                        visualization.expression_id,
+                        message,
+                    );
                 }
                 manager::Notification::FailedToDetach { visualization, error } => {
                     error!("Visualization {} failed to detach: {error}.", visualization.id);
@@ -245,11 +255,17 @@ impl Visualization {
                         "Visualization {} failed to be modified: {error}. Will hide it in GUI.",
                         desired.id
                     );
+                    let message =
+                        format!("Failed to modify visualization because of an error: {error}");
                     // Actually it would likely have more sense if we had just restored the previous
                     // visualization, as its LS state should be preserved. However, we already
                     // scrapped it on the GUI side and we don't even know its
                     // path anymore.
-                    model.handle_controller_failure(&failure_endpoint, desired.expression_id);
+                    model.handle_controller_failure(
+                        &failure_endpoint,
+                        desired.expression_id,
+                        message,
+                    );
                 }
             }
             std::future::ready(())
