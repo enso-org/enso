@@ -3109,6 +3109,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         out.node_edit_mode       <+ edit_mode;
         out.nodes_labels_visible <+ out.node_edit_mode || node_in_edit_mode;
 
+        eval_ out.node_editing (model.clear_all_detached_edges());
+
         eval out.node_editing_started ([model] (id) {
             let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "node_editing_started");
             if let Some(node) = model.nodes.get_cloned_ref(id) {
