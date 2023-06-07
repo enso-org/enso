@@ -440,6 +440,10 @@ spec setup =
             (x * Nothing).to_vector . should_equal nulls
             (x / Nothing).to_vector . should_equal nulls
 
+        Test.specify "should allow truncate" <|
+            y.truncate.to_vector . should_equal [2, 3, 5, Nothing]
+            y.truncate.value_type . is_integer . should_be_true
+
     Test.group prefix+"Text Column Operations" <|
         t3 = table_builder [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]]
         s1 = t3.at "s1"

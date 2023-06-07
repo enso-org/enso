@@ -556,10 +556,24 @@ type Column
         _ = [decimal_places, use_bankers, on_problems]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.round` is not implemented yet for the Database backends."
 
-    ## Truncating values is not supported in database columns.
+    ## ALIAS int
+       UNSTABLE
+
+       If the column is numeric, truncate the floating-point values to an
+       integer by dropping the fractional part. This is equivalent to
+       "round-toward-zero".
+
+       > Example
+         Truncate a column of floating-point values.
+
+             import Standard.Examples
+
+             example_truncate = Examples.decimal_column.truncate
     truncate : Column ! Invalid_Value_Type
     truncate self =
-        Error.throw <| Unsupported_Database_Operation.Error "`Column.truncate` is not implemented yet for the Database backends."
+        Value_Type.expect_numeric self <|
+            new_name = "trunc " + self.naming_helpers.to_expression_text self
+            self.make_unary_op "TRUNCATE" new_name
 
     ## Taking the ceiling of values is not supported in database columns.
     ceil : Column ! Invalid_Value_Type
