@@ -16,6 +16,34 @@ body {
   font-feature-settings: normal;
 }
 
+/* Must be kept in sync with app/gui/view/graph-editor/src/builtin/visualization/java_script/helpers/scrollable.js. */
+
+::-webkit-scrollbar {
+  -webkit-appearance: none;
+}
+
+::-webkit-scrollbar-track {
+  -webkit-box-shadow: none;
+}
+
+::-webkit-scrollbar:vertical {
+  width: 11px;
+}
+
+::-webkit-scrollbar:horizontal {
+  height: 11px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  border: 1px solid rgba(220, 220, 220, 0.5);
+  background-color: rgba(190, 190, 190, 0.5);
+}
+
+::-webkit-scrollbar-corner {
+  background: rgba(0, 0, 0, 0);
+}
+
 .enso-dashboard {
   @tailwind base;
   @tailwind components;
@@ -72,7 +100,7 @@ body {
     }
 
     .border-dashed-custom {
-      background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%233e515f' stroke-width='4' stroke-dasharray='15%2c 15' stroke-dashoffset='0' stroke-linecap='butt'/%3e%3c/svg%3e");
+      background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%233e515f' stroke-width='4' stroke-dasharray='11 11' stroke-linecap='butt'/%3e%3c/svg%3e");
     }
   }
 }

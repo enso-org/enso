@@ -150,6 +150,7 @@ where for<'t> &'t Self: IntoOwned<Owned = Self> {
     }
 
     /// Fill the shape with the provided color.
+    #[must_use]
     fn fill<Color: Into<Var<color::Rgba>>>(&self, color: Color) -> Fill<Self> {
         Fill(self, color)
     }

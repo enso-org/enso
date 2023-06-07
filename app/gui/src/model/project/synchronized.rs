@@ -704,10 +704,12 @@ impl model::project::API for Project {
     fn create_execution_context(
         &self,
         root_definition: MethodPointer,
+        context_id: execution_context::Id,
     ) -> BoxFuture<FallibleResult<model::ExecutionContext>> {
         async move {
             let ls_rpc = self.language_server_rpc.clone_ref();
-            let context = execution_context::Synchronized::create(ls_rpc, root_definition);
+            let context =
+                execution_context::Synchronized::create(ls_rpc, root_definition, context_id);
             let context = Rc::new(context.await?);
             self.execution_contexts.insert(context.clone_ref());
             let context: model::ExecutionContext = context;
@@ -928,7 +930,8 @@ mod test {
         assert!(result1.is_err());
 
         // Create execution context.
-        let execution = project.create_execution_context(context_data.main_method_pointer());
+        let execution = project
+            .create_execution_context(context_data.main_method_pointer(), context_data.context_id);
         let execution = test.expect_completion(execution).unwrap();
 
         // Now context is in registry.

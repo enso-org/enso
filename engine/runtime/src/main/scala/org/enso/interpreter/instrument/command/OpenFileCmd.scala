@@ -17,16 +17,16 @@ class OpenFileCmd(request: Api.OpenFileNotification) extends Command(None) {
     ec: ExecutionContext
   ): Future[Unit] =
     Future {
-      ctx.locking.acquireFileLock(request.path)
       ctx.locking.acquireReadCompilationLock()
+      ctx.locking.acquireFileLock(request.path)
       try {
         ctx.executionService.setModuleSources(
           request.path,
           request.contents
         )
       } finally {
-        ctx.locking.releaseReadCompilationLock()
         ctx.locking.releaseFileLock(request.path)
+        ctx.locking.releaseReadCompilationLock()
       }
     }
 

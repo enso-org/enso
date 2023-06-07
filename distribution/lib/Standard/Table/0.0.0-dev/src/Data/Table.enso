@@ -1078,7 +1078,7 @@ type Table
              people.filter "age" (age -> (age%10 == 0))
     @column Widget_Helpers.make_column_name_selector
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
-    filter self column filter=(Filter_Condition.Is_True) on_problems=Report_Warning = case column of
+    filter self column filter=(Filter_Condition.Equal True) on_problems=Report_Warning = case column of
         _ : Column ->
             mask filter_column = Table.Value (self.java_table.mask filter_column.java_column)
             case filter of
@@ -1259,18 +1259,20 @@ type Table
             _ : Range -> Column.from_vector (new_name.if_nothing "Range") column.to_vector
             _ : Date_Range -> Column.from_vector (new_name.if_nothing "Date Range") column.to_vector
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
-        renamed = case new_name of
-           Nothing -> resolved
-           _ : Text -> resolved.rename new_name
-        check_add_mode = case set_mode of
-            Set_Mode.Add_Or_Update -> True
-            Set_Mode.Add -> if self.java_table.getColumnByName renamed.name . is_nothing then True else
-                Error.throw (Existing_Column.Error renamed.name)
-            Set_Mode.Update -> if self.java_table.getColumnByName renamed.name . is_nothing . not then True else
-                Error.throw (Missing_Column.Error renamed.name)
 
-        check_add_mode.if_not_error <|
-            Table.Value (self.java_table.addOrReplaceColumn renamed.java_column)
+        if resolved.length != self.row_count then Error.throw (Row_Count_Mismatch.Error self.row_count resolved.length) else
+            renamed = case new_name of
+               Nothing -> resolved
+               _ : Text -> resolved.rename new_name
+            check_add_mode = case set_mode of
+                Set_Mode.Add_Or_Update -> True
+                Set_Mode.Add -> if self.java_table.getColumnByName renamed.name . is_nothing then True else
+                    Error.throw (Existing_Column.Error renamed.name)
+                Set_Mode.Update -> if self.java_table.getColumnByName renamed.name . is_nothing . not then True else
+                    Error.throw (Missing_Column.Error renamed.name)
+
+            check_add_mode.if_not_error <|
+                Table.Value (self.java_table.addOrReplaceColumn renamed.java_column)
 
     ## Given an expression, create a derived column where each value is the
        result of evaluating the expression for the row.
@@ -1732,14 +1734,14 @@ type Table
        value field.
 
        Arguments:
-       - id_fields: Set of fields to remain as columns. These values will be
+       - key_columns: Set of fields to remain as columns. These values will be
          repeated for each data field that is pivoted.
-       - name_field: The name of the field that will contain the names of the
-         pivoted fields. If this name is already in use, it will be renamed
-         with a numeric suffix.
-       - value_field: The name of the field that will contain the values of the
-         pivoted fields. If this name is already in use, it will be renamed
-         with a numeric suffix.
+       - attribute_column_name: The name of the field that will contain the
+         names of the pivoted fields. If this name is already in use, it will be
+         renamed with a numeric suffix.
+       - value_column_name: The name of the field that will contain the values
+         of the pivoted fields. If this name is already in use, it will be
+         renamed with a numeric suffix.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
@@ -1755,14 +1757,32 @@ type Table
          - If any column names in the new table are clashing, a
            `Duplicate_Output_Column_Names` is reported according to the
            `on_problems` setting.
-    @id_fields Widget_Helpers.make_column_name_vector_selector
+
+       ? Example Transpose Operation
+
+         Input Table `table`:
+
+            Id | Name    | Country
+           ----|---------|---------
+            A  | Example | France
+            B  | Another | Germany
+
+         Result `table.transpose ['Id'] 'Attribute' 'Value'`:
+
+            Id | Attribute | Value
+           ----|-----------|---------
+            A  | Name      | Example
+            A  | Country   | France
+            B  | Name      | Another
+            B  | Country   | Germany
+    @key_columns Widget_Helpers.make_column_name_vector_selector
     transpose : Vector (Integer | Text | Column_Selector) | Text | Integer -> Text -> Text -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names
-    transpose self (id_fields = []) (name_field="Name") (value_field="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
+    transpose self (key_columns = []) (attribute_column_name="Name") (value_column_name="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
         columns_helper = self.columns_helper
         unique = Unique_Name_Strategy.new
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
 
-        id_columns = columns_helper.select_columns_helper id_fields False problem_builder
+        id_columns = columns_helper.select_columns_helper key_columns False problem_builder
 
         selected_names = Map.from_vector (id_columns.map column-> [column.name, True])
 
@@ -1772,7 +1792,7 @@ type Table
         java_id = id_columns.map .java_column
 
         unique.mark_used (id_columns.map .name)
-        result = Table.Value (Java_Table.transpose java_id.to_array java_data.to_array (unique.make_unique name_field) (unique.make_unique value_field))
+        result = Table.Value (Java_Table.transpose java_id.to_array java_data.to_array (unique.make_unique attribute_column_name) (unique.make_unique value_column_name))
         problem_builder.report_unique_name_strategy unique
 
         problem_builder.attach_problems_after on_problems result
@@ -1794,7 +1814,7 @@ type Table
 
        ! Error Conditions
 
-         - If a column in `group_by` or `name_field` is not in the input table,
+         - If a column in `group_by` or `name_column` is not in the input table,
            a `Missing_Input_Columns` is raised as a dataflow error.
          - If a column selector in `values` given as a `Text` and it does not
            match any columns in the input table nor is it a valid expression, an
@@ -1809,6 +1829,21 @@ type Table
              an `Unquoted_Delimiter`
            - If there are more than 10 issues with a single column,
              an `Additional_Warnings`.
+
+       ? Example Cross Tab Operation
+
+         Input Table `table`:
+
+            Id | B       | C
+           ----|---------|---------
+            A  | Name    | Example
+            A  | Country | France
+
+         Result `table.cross_tab ['Id'] 'B' (Aggregate_Column.First 'C')`:
+
+            Id | Name    | Country
+           ----|---------|---------
+            A  | Example | France
     @group_by Widget_Helpers.make_column_name_vector_selector
     @name_column Widget_Helpers.make_column_name_selector
     @values (Widget_Helpers.make_aggregate_column_selector include_group_by=False)

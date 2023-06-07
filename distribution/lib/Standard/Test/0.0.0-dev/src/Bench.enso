@@ -32,7 +32,7 @@ type Bench
             act_it_num = num_iters - it_num
             res = times it_size single_call
             avg = avg_list res
-            fmt = (avg / 1000000).format "%.2f"
+            fmt = (avg / 1000000).format "#.##"
             result.put (result.get + avg)
             case dry_run of
                 False ->
@@ -41,7 +41,7 @@ type Bench
                     IO.println (label + "/dry-run: " + fmt)
         if dry_run then times 1 (iteration 1) else
             times num_iters (iteration iter_size)
-            fmt_avg = (result.get / (1000000*num_iters)).format "%.2f"
+            fmt_avg = (result.get / (1000000*num_iters)).format "#.##"
             IO.println (label + " average: " + fmt_avg + "ms")
 
 ## PRIVATE

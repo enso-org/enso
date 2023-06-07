@@ -9,11 +9,12 @@ from Standard.Base.Metadata.Choice import Option
 import Standard.Base.Metadata.Display
 
 import Standard.Table.Data.Table.Table as Materialized_Table
+import Standard.Table.Data.Type.Value_Type.Value_Type
 
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
-import project.Data.Table.Table
+import project.Data.Table.Table as Database_Table
 import project.Data.Table as Database_Table_Module
 import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression
@@ -23,7 +24,8 @@ import project.Internal.Statement_Setter.Statement_Setter
 
 from project.Internal.Result_Set import read_column, result_set_to_table
 from project.Internal.JDBC_Connection import handle_sql_errors
-from project.Errors import SQL_Error, Table_Not_Found
+from project.Errors import SQL_Error, Table_Not_Found, Table_Already_Exists
+from project.Internal.Upload_Table import create_table_structure
 
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.UUID
@@ -152,7 +154,7 @@ type Connection
          - If provided with a `Table_Name` or a text short-hand and the table is
            not found, a `Table_Not_Found` error is raised.
     @query make_table_name_selector
-    query : Text | SQL_Query -> Text -> Table ! Table_Not_Found | SQL_Error
+    query : Text | SQL_Query -> Text -> Database_Table ! Table_Not_Found | SQL_Error
     query self query alias="" = case query of
         _ : Text ->
             result = self.query alias=alias <|
@@ -162,7 +164,7 @@ type Connection
                 case self.dialect.is_probably_a_query query of
                     True -> result
                     False ->
-                        Error.throw (Table_Not_Found.Error query sql_error treated_as_query=True)
+                        Error.throw (Table_Not_Found.Error query sql_error treated_as_query=True extra_message="")
         SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <|
             self.jdbc_connection.ensure_query_has_no_holes raw_sql . if_not_error <|
                 columns = self.fetch_columns raw_sql Statement_Setter.null
@@ -177,7 +179,7 @@ type Connection
                 columns = self.fetch_columns statement statement_setter
                 Database_Table_Module.make_table self name columns ctx
             result.catch SQL_Error sql_error->
-                Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False)
+                Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False extra_message="")
 
     ## PRIVATE
        Execute the query and load the results into memory as a Table.
@@ -187,9 +189,52 @@ type Connection
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - limit: the maximum number of rows to return.
     @query make_table_name_selector
-    read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table
+    read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table ! Table_Not_Found
     read self query limit=Nothing =
         self.query query . read max_rows=limit
+
+    ## PRIVATE
+       Creates a new empty table in the database and returns a query referencing
+       the new table.
+
+       Arguments:
+       - table_name: the name of the table to create. If not provided, a random
+         name will be generated for temporary tables. If `temporary=False`, then
+         a name must be provided.
+       - structure: the structure of the table. This can be provided as a vector
+         of pairs of column names and types or an existing `Table` to copy the
+         structure from it. Note that if a `Table` is provided, only its column
+         structure is inherited - no table content is copied.
+       - primary_key: the names of the columns to use as the primary key. The
+         first column from the table is used by default. If it is set to
+         `Nothing` or an empty vector, no primary key will be created.
+       - temporary: if set to `True`, the table will be temporary, meaning that
+         it will be dropped once the `connection` is closed. Defaults to
+         `False`.
+       - allow_existing: Defaults to `False`, meaning that if the table with the
+         provided name already exists, an error will be raised. If set to `True`,
+         the existing table will be returned instead. Note that the existing
+         table is not guaranteed to have the same structure as the one provided.
+       - on_problems: the behavior to use when encountering non-fatal problems.
+         Defaults to reporting them as warning.
+
+       ! Error Conditions
+
+         - If a table with the given name already exists, then a
+           `Table_Already_Exists` error is raised.
+         - If a column type is not supported and is coerced to a similar
+           supported type, an `Inexact_Type_Coercion` problem is reported
+           according to the `on_problems` setting.
+         - If a column type is not supported and there is no replacement (e.g.
+           native Enso types), an `Unsupported_Type` error is raised.
+         - If the provided primary key columns are not present in table
+           structure provided, `Missing_Input_Columns` error is raised.
+         - An `SQL_Error` may be reported if there is a failure on the database
+           side.
+    create_table : Text|Nothing -> Vector (Pair Text Value_Type) | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
+    create_table self (table_name : Text | Nothing = Nothing) (structure : Vector | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+        created_table_name = create_table_structure self table_name structure primary_key temporary allow_existing on_problems
+        self.query (SQL_Query.Table_Name created_table_name)
 
     ## PRIVATE
        Internal read function for a statement with optional types.
@@ -260,3 +305,8 @@ make_table_name_selector : Connection -> Widget
 make_table_name_selector connection =
     tables_to_display = connection.tables.at "Name" . to_vector
     Single_Choice display=Display.Always values=(tables_to_display.map t-> Option t t.pretty)
+
+## PRIVATE
+first_column_in_structure structure = case structure of
+    _ : Vector -> structure.first.first
+    _ -> structure.column_names.first

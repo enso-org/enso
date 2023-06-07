@@ -102,11 +102,10 @@ export class LocalBackend implements Partial<backend.Backend> {
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null
         }
-        await this.projectManager.closeProject({ projectId })
-        if (projectId === LocalBackend.currentlyOpeningProjectId) {
-            LocalBackend.currentlyOpeningProjectId = null
+        if (LocalBackend.currentlyOpenProject?.id === projectId) {
             LocalBackend.currentlyOpenProject = null
         }
+        await this.projectManager.closeProject({ projectId })
     }
 
     /** Close the project identified by the given project ID.
@@ -180,7 +179,9 @@ export class LocalBackend implements Partial<backend.Backend> {
             projectId,
             missingComponentAction: projectManager.MissingComponentAction.install,
         })
-        LocalBackend.currentlyOpenProject = { id: projectId, project }
+        if (LocalBackend.currentlyOpeningProjectId === projectId) {
+            LocalBackend.currentlyOpenProject = { id: projectId, project }
+        }
     }
 
     /** Change the name of a project.
@@ -232,9 +233,9 @@ export class LocalBackend implements Partial<backend.Backend> {
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null
         }
-        await this.projectManager.deleteProject({ projectId })
         if (LocalBackend.currentlyOpenProject?.id === projectId) {
             LocalBackend.currentlyOpenProject = null
         }
+        await this.projectManager.deleteProject({ projectId })
     }
 }
