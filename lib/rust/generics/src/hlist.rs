@@ -9,13 +9,21 @@
 //! let HList::pat![t1, t2] : HList::ty![&str, usize] = HList::new!["hello", 7];
 //! ```
 
+pub mod traits {
+    pub use super::AsHList as _TRAIT_AsHList;
+    pub use super::AsHListMut as _TRAIT_AsHListMut;
+    pub use super::HasHListRepr as _TRAIT_HasRepr;
+    pub use super::IntoHList as _TRAIT_IntoHList;
+}
+
+
 
 // =============
 // === HList ===
 // =============
 
 /// Type of every `HList`.
-pub trait HList = HasConstLength;
+pub trait HList = crate::HasFieldCount;
 
 /// Empty `HList` value.
 #[derive(Debug, Clone, Copy)]
@@ -64,36 +72,104 @@ macro_rules! ty {
 
 
 
-// ==============
-// === Length ===
-// ==============
+// ====================
+// === HasHListRepr ===
+// ====================
 
-/// Compile-time known length value.
-#[allow(missing_docs)]
-pub trait HasConstLength {
-    const LEN: usize;
+/// A generic representation of the given type. This is a [`HList`] representation of all struct
+/// fields.
+pub trait HasHListRepr {
+    type HListRepr: HList;
+}
+
+impl<'t, 's, T> HasHListRepr for &'t &'s T
+where &'s T: HasHListRepr
+{
+    type HListRepr = <&'s T as HasHListRepr>::HListRepr;
+}
+
+/// A generic representation of the given type. This is a [`HList`] representation of all struct
+/// fields.
+pub type HListRepr<T> = <T as HasHListRepr>::HListRepr;
+
+
+
+// =================
+// === IntoHList ===
+// =================
+
+/// Converts the struct into its generic representation. Please note that this trait is implemented
+/// automatically for every type which implements `Into<HListRepr<Self>>`.
+pub trait IntoHList: HasHListRepr + Into<HListRepr<Self>> {
     #[inline(always)]
-    fn len() -> usize {
-        Self::LEN
+    fn into_hlist(self) -> HListRepr<Self> {
+        self.into()
     }
 }
+impl<T: HasHListRepr + Into<HListRepr<T>>> IntoHList for T {}
 
-/// Compile-time known length value.
-///
-/// This function is defined only because currently, Rust does not allow const functions as trait
-/// members.
-#[inline(always)]
-pub const fn const_len<T: HasConstLength>() -> usize {
-    <T as HasConstLength>::LEN
-}
 
-impl HasConstLength for Nil {
-    const LEN: usize = 0;
-}
 
-impl<H, T: HasConstLength> HasConstLength for Cons<H, T> {
-    const LEN: usize = 1 + const_len::<T>();
+// ===============
+// === AsHList ===
+// ===============
+
+pub trait AsHList
+where for<'t> &'t Self: HasHListRepr + Into<HListRepr<&'t Self>> {
+    #[inline(always)]
+    fn as_hlist(&self) -> HListRepr<&Self> {
+        self.into()
+    }
 }
+impl<T> AsHList for T where for<'t> &'t T: HasHListRepr + Into<HListRepr<&'t T>> {}
+
+
+
+// ==================
+// === AsHListMut ===
+// ==================
+
+pub trait AsHListMut
+where for<'t> &'t mut Self: HasHListRepr + Into<HListRepr<&'t mut Self>> {
+    #[inline(always)]
+    fn as_hlist_mut(&mut self) -> HListRepr<&mut Self> {
+        self.into()
+    }
+}
+impl<T> AsHListMut for T where for<'t> &'t mut T: HasHListRepr + Into<HListRepr<&'t mut T>> {}
+
+
+
+// // ==============
+// // === Length ===
+// // ==============
+//
+// /// Compile-time known length value.
+// #[allow(missing_docs)]
+// pub trait HasConstLength {
+//     const LEN: usize;
+//     #[inline(always)]
+//     fn len() -> usize {
+//         Self::LEN
+//     }
+// }
+//
+// /// Compile-time known length value.
+// ///
+// /// This function is defined only because currently, Rust does not allow const functions as trait
+// /// members.
+// #[inline(always)]
+// pub const fn const_len<T: HasConstLength>() -> usize {
+//     <T as HasConstLength>::LEN
+// }
+//
+// impl HasConstLength for Nil {
+//     const LEN: usize = 0;
+// }
+//
+// impl<H, T: HasConstLength> HasConstLength for Cons<H, T> {
+//     const LEN: usize = 1 + const_len::<T>();
+// }
 
 
 
@@ -192,70 +268,70 @@ impl<H, T> GetTailMut for Cons<H, T> {
 }
 
 
-
-// ============
-// === Last ===
-// ============
-
-/// Last element accessor.
-#[allow(missing_docs)]
-pub trait KnownLast {
-    type Last;
-}
-
-/// Last element type accessor.
-pub type Last<T> = <T as KnownLast>::Last;
-
-/// Last element accessor.
-#[allow(missing_docs)]
-pub trait GetLast: KnownLast {
-    fn last(&self) -> &Self::Last;
-}
-
-/// Mutable last element accessor.
-#[allow(missing_docs)]
-pub trait GetLastMut: KnownLast {
-    fn last_mut(&mut self) -> &mut Self::Last;
-}
-
-
-
-// === Impls ===
-
-impl<H> KnownLast for Cons<H, Nil> {
-    type Last = H;
-}
-impl<H, T: KnownLast> KnownLast for Cons<H, T> {
-    type Last = Last<T>;
-}
-
-impl<H> GetLast for Cons<H, Nil> {
-    #[inline(always)]
-    fn last(&self) -> &Self::Last {
-        &self.0
-    }
-}
-
-impl<H> GetLastMut for Cons<H, Nil> {
-    #[inline(always)]
-    fn last_mut(&mut self) -> &mut Self::Last {
-        &mut self.0
-    }
-}
-
-impl<H, T: GetLast> GetLast for Cons<H, T> {
-    #[inline(always)]
-    fn last(&self) -> &Self::Last {
-        self.tail().last()
-    }
-}
-
-impl<H, T: GetLastMut> GetLastMut for Cons<H, T> {
-    #[inline(always)]
-    fn last_mut(&mut self) -> &mut Self::Last {
-        self.tail_mut().last_mut()
-    }
-}
+//
+// // ============
+// // === Last ===
+// // ============
+//
+// /// Last element accessor.
+// #[allow(missing_docs)]
+// pub trait KnownLast {
+//     type Last;
+// }
+//
+// /// Last element type accessor.
+// pub type Last<T> = <T as KnownLast>::Last;
+//
+// /// Last element accessor.
+// #[allow(missing_docs)]
+// pub trait GetLast: KnownLast {
+//     fn last(&self) -> &Self::Last;
+// }
+//
+// /// Mutable last element accessor.
+// #[allow(missing_docs)]
+// pub trait GetLastMut: KnownLast {
+//     fn last_mut(&mut self) -> &mut Self::Last;
+// }
+//
+//
+//
+// // === Impls ===
+//
+// impl<H> KnownLast for Cons<H, Nil> {
+//     type Last = H;
+// }
+// impl<H, T: KnownLast> KnownLast for Cons<H, T> {
+//     type Last = Last<T>;
+// }
+//
+// impl<H> GetLast for Cons<H, Nil> {
+//     #[inline(always)]
+//     fn last(&self) -> &Self::Last {
+//         &self.0
+//     }
+// }
+//
+// impl<H> GetLastMut for Cons<H, Nil> {
+//     #[inline(always)]
+//     fn last_mut(&mut self) -> &mut Self::Last {
+//         &mut self.0
+//     }
+// }
+//
+// impl<H, T: GetLast> GetLast for Cons<H, T> {
+//     #[inline(always)]
+//     fn last(&self) -> &Self::Last {
+//         self.tail().last()
+//     }
+// }
+//
+// impl<H, T: GetLastMut> GetLastMut for Cons<H, T> {
+//     #[inline(always)]
+//     fn last_mut(&mut self) -> &mut Self::Last {
+//         self.tail_mut().last_mut()
+//     }
+// }
 
 
 
@@ -263,101 +339,69 @@ impl<H, T: GetLastMut> GetLastMut for Cons<H, T> {
 // === Init ===
 // ============
 
-/// Init elements accessor (all but last).
-#[allow(missing_docs)]
-pub trait KnownInit {
-    type Init;
-}
-
-/// Init elements type accessor.
-pub type Init<T> = <T as KnownInit>::Init;
-
-/// Init element clone.
-#[allow(missing_docs)]
-pub trait GetInitClone: KnownInit {
-    fn init_clone(&self) -> Self::Init;
-}
-
-
-// === Impls ===
-
-impl<H> KnownInit for Cons<H, Nil> {
-    type Init = Nil;
-}
-impl<H, T: KnownInit> KnownInit for Cons<H, T> {
-    type Init = Cons<H, Init<T>>;
-}
-
-impl<H> GetInitClone for Cons<H, Nil> {
-    #[inline(always)]
-    fn init_clone(&self) -> Self::Init {
-        Nil
-    }
-}
-
-impl<H: Clone, T: GetInitClone> GetInitClone for Cons<H, T> {
-    #[inline(always)]
-    fn init_clone(&self) -> Self::Init {
-        Cons(self.head().clone(), self.tail().init_clone())
-    }
-}
-
-
-
-// // ================
-// // === PushBack ===
-// // ================
-//
-// /// Add a new element to the back of the list.
+// /// Init elements accessor (all but last).
 // #[allow(missing_docs)]
-// pub trait PushBack<T>: Sized {
-//     type Output: KnownLast<Last = T> + KnownInit<Init = Self>;
-//     fn push_back(self, t: T) -> Self::Output;
+// pub trait KnownInit {
+//     type Init;
 // }
 //
-// impl<X> PushBack<X> for Nil {
-//     type Output = Cons<X, Nil>;
+// /// Init elements type accessor.
+// pub type Init<T> = <T as KnownInit>::Init;
+//
+// /// Init element clone.
+// #[allow(missing_docs)]
+// pub trait GetInitClone: KnownInit {
+//     fn init_clone(&self) -> Self::Init;
+// }
+//
+//
+// // === Impls ===
+//
+// impl<H> KnownInit for Cons<H, Nil> {
+//     type Init = Nil;
+// }
+// impl<H, T: KnownInit> KnownInit for Cons<H, T> {
+//     type Init = Cons<H, Init<T>>;
+// }
+//
+// impl<H> GetInitClone for Cons<H, Nil> {
 //     #[inline(always)]
-//     fn push_back(self, x: X) -> Self::Output {
-//         Cons(x, Nil)
+//     fn init_clone(&self) -> Self::Init {
+//         Nil
 //     }
 // }
 //
-// impl<X, H, T> PushBack<X> for Cons<H, T>
-// where T: PushBack<X>
+// impl<H: Clone, T: GetInitClone> GetInitClone for Cons<H, T> {
+//     #[inline(always)]
+//     fn init_clone(&self) -> Self::Init {
+//         Cons(self.head().clone(), self.tail().init_clone())
+//     }
+// }
+
+
+//
+// // ===============
+// // === PopBack ===
+// // ===============
+//
+// /// Remove the last element of the list and return it and the new list.
+// #[allow(missing_docs)]
+// pub trait PopBack: KnownLast + KnownInit {
+//     fn pop_back(self) -> (Self::Last, Self::Init);
+// }
+//
+// impl<H> PopBack for Cons<H, Nil> {
+//     fn pop_back(self) -> (Self::Last, Self::Init) {
+//         (self.0, Nil)
+//     }
+// }
+//
+// impl<H, T> PopBack for Cons<H, T>
+// where T: PopBack
 // {
-//     type Output = Cons<H, <T as PushBack<X>>::Output>;
 //     #[inline(always)]
-//     fn push_back(self, x: X) -> Self::Output {
-//         let Cons(head, tail) = self;
-//         Cons(head, tail.push_back(x))
+//     fn pop_back(self) -> (Self::Last, Self::Init) {
+//         let (last, tail) = self.1.pop_back();
+//         (last, Cons(self.0, tail))
 //     }
 // }
-
-
-
-// ===============
-// === PopBack ===
-// ===============
-
-/// Remove the last element of the list and return it and the new list.
-#[allow(missing_docs)]
-pub trait PopBack: KnownLast + KnownInit {
-    fn pop_back(self) -> (Self::Last, Self::Init);
-}
-
-impl<H> PopBack for Cons<H, Nil> {
-    fn pop_back(self) -> (Self::Last, Self::Init) {
-        (self.0, Nil)
-    }
-}
-
-impl<H, T> PopBack for Cons<H, T>
-where T: PopBack
-{
-    #[inline(always)]
-    fn pop_back(self) -> (Self::Last, Self::Init) {
-        let (last, tail) = self.1.pop_back();
-        (last, Cons(self.0, tail))
-    }
-}

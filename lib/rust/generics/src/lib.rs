@@ -35,3 +35,7 @@ pub mod tuple;
 pub use generic::*;
 pub use hlist::*;
 pub use tuple::*;
+
+pub mod traits {
+    pub use super::generic::traits::*;
+}

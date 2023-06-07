@@ -49,93 +49,26 @@ macro_rules! dec {
 /// Common traits.
 pub mod traits {
     pub use super::get_field_at_x_traits::*;
+    pub use super::hlist::traits::*;
 
     pub use super::FieldAt as _TRAIT_FieldAt;
     pub use super::GetFieldAt as _TRAIT_GetFieldAt;
     pub use super::HasFieldAt as _TRAIT_HasFieldAt;
     pub use super::HasFieldCount as _TRAIT_HasFieldsCount;
-    pub use super::HasHListRepr as _TRAIT_HasRepr;
     pub use super::PushBack as _TRAIT_PushBack;
     pub use super::_GetFieldAt as _TRAIT__GetFieldAt;
     pub use super::_IntoFieldAt as _TRAIT__IntoFieldAt;
 }
 
-
-
-// ====================
-// === HasHListRepr ===
-// ====================
-
-/// A generic representation of the given type. This is a [`HList`] representation of all struct
-/// fields.
-pub trait HasHListRepr {
-    type HListRepr: hlist::HList;
-}
-
-impl<'t, 's, T> HasHListRepr for &'t &'s T
-where &'s T: HasHListRepr
-{
-    type HListRepr = <&'s T as HasHListRepr>::HListRepr;
-}
-
-/// A generic representation of the given type. This is a [`HList`] representation of all struct
-/// fields.
-pub type HListRepr<T> = <T as HasHListRepr>::HListRepr;
-
-
-
-// =================
-// === IntoHList ===
-// =================
-
-/// Converts the struct into its generic representation. Please note that this trait is implemented
-/// automatically for every type which implements `Into<HListRepr<Self>>`.
-pub trait IntoHList: HasHListRepr + Into<HListRepr<Self>> {
-    #[inline(always)]
-    fn into_hlist(self) -> HListRepr<Self> {
-        self.into()
-    }
-}
-impl<T: HasHListRepr + Into<HListRepr<T>>> IntoHList for T {}
-
-
-
-// ===============
-// === AsHList ===
-// ===============
-
-pub trait AsHList
-where for<'t> &'t Self: HasHListRepr + Into<HListRepr<&'t Self>> {
-    #[inline(always)]
-    fn as_hlist(&self) -> HListRepr<&Self> {
-        self.into()
-    }
-}
-impl<T> AsHList for T where for<'t> &'t T: HasHListRepr + Into<HListRepr<&'t T>> {}
-
-
-
-// ==================
-// === AsHListMut ===
-// ==================
-
-pub trait AsHListMut
-where for<'t> &'t mut Self: HasHListRepr + Into<HListRepr<&'t mut Self>> {
-    #[inline(always)]
-    fn as_hlist_mut(&mut self) -> HListRepr<&mut Self> {
-        self.into()
-    }
-}
-impl<T> AsHListMut for T where for<'t> &'t mut T: HasHListRepr + Into<HListRepr<&'t mut T>> {}
-
+use hlist::*;
 
 
 // =====================
 // === HasFieldCount ===
 // =====================
 
-/// Information of field count of any structure implementing [`HasHListRepr`]. This trait is
-/// implemented automatically.
+/// Compile-time known length value.
+#[allow(missing_docs)]
 pub trait HasFieldCount {
     const FIELD_COUNT: usize;
     #[inline(always)]
@@ -144,8 +77,17 @@ pub trait HasFieldCount {
     }
 }
 
-impl<T: HasHListRepr> HasFieldCount for T {
-    const FIELD_COUNT: usize = <HListRepr<T> as hlist::HasConstLength>::LEN;
+#[inline(always)]
+pub const fn field_count<T: HasFieldCount>() -> usize {
+    <T as HasFieldCount>::FIELD_COUNT
+}
+
+impl HasFieldCount for Nil {
+    const FIELD_COUNT: usize = 0;
+}
+
+impl<H, T: HasFieldCount> HasFieldCount for Cons<H, T> {
+    const FIELD_COUNT: usize = 1 + field_count::<T>();
 }
 
 
@@ -171,14 +113,14 @@ pub trait HasFieldAt<const I: usize> {
     type Type;
 }
 
+impl<H, T> HasFieldAt<0> for Cons<H, T> {
+    type Type = H;
+}
+
 impl<T: HasHListRepr, const N: usize> HasFieldAt<N> for T
 where HListRepr<T>: HasFieldAt<N>
 {
     type Type = <HListRepr<T> as HasFieldAt<N>>::Type;
-}
-
-impl<H, T> HasFieldAt<0> for Cons<H, T> {
-    type Type = H;
 }
 
 macro_rules! impl_field_index_for_hlist {
@@ -224,6 +166,13 @@ pub trait _IntoFieldAt {
     }
 }
 
+impl<H, T> IntoFieldAt<0> for Cons<H, T> {
+    #[inline(always)]
+    fn _into_field_at(self) -> FieldAt<0, Self> {
+        self.0
+    }
+}
+
 /// Default implementation for every struct that implements [`IntoHList`].
 impl<T, const N: usize> IntoFieldAt<N> for T
 where
@@ -233,13 +182,6 @@ where
     #[inline(always)]
     fn _into_field_at(self) -> FieldAt<N, Self> {
         self.into_hlist().into_field_at::<N>()
-    }
-}
-
-impl<H, T> IntoFieldAt<0> for Cons<H, T> {
-    #[inline(always)]
-    fn _into_field_at(self) -> FieldAt<0, Self> {
-        self.0
     }
 }
 
@@ -283,31 +225,26 @@ pub trait _GetFieldAt {
     }
 }
 
-/// Needed because Rust is stupid.
-trait GetFieldAtHelper<'t, T, const N: usize> = where
-    Self: HasHListRepr,
-    T: HasFieldAt<N>,
-    <T as HasFieldAt<N>>::Type: 't,
-    HListRepr<Self>: HasFieldAt<N, Type = &'t FieldAt<N, T>>;
-
-/// Default implementation for every struct that implements [`IntoHList`].
-impl<T, const N: usize> GetFieldAt<N> for T
-where
-    T: HasFieldAt<N>,
-    for<'t> &'t T: IntoHList,
-    for<'t> HListRepr<&'t T>: IntoFieldAt<N>,
-    for<'t> &'t T: GetFieldAtHelper<'t, T, N>,
-{
-    #[inline(always)]
-    fn _field_at(&self) -> &FieldAt<N, Self> {
-        self.into_hlist().into_field_at::<N>()
-    }
-}
-
 impl<H, T> GetFieldAt<0> for Cons<H, T> {
     #[inline(always)]
     fn _field_at(&self) -> &FieldAt<0, Self> {
         &self.0
+    }
+}
+
+/// Needed because Rust is stupid.
+trait GetFieldAtHelper<'t, const N: usize> = where
+    Self: 't + HasFieldAt<N>,
+    &'t Self: IntoHList,
+    HListRepr<&'t Self>: IntoFieldAt<N, Type = &'t FieldAt<N, Self>>;
+
+/// Default implementation for every struct that implements [`IntoHList`].
+impl<T, const N: usize> GetFieldAt<N> for T
+where for<'t> Self: GetFieldAtHelper<'t, N>
+{
+    #[inline(always)]
+    fn _field_at(&self) -> &FieldAt<N, Self> {
+        self.into_hlist().into_field_at::<N>()
     }
 }
 
@@ -355,19 +292,14 @@ pub trait _GetFieldAtMut {
 }
 
 /// Needed because Rust is stupid.
-trait GetFieldAtMutHelper<'t, T, const N: usize> = where
-    Self: HasHListRepr,
-    T: HasFieldAt<N>,
-    <T as HasFieldAt<N>>::Type: 't,
-    HListRepr<Self>: HasFieldAt<N, Type = &'t mut FieldAt<N, T>>;
+trait GetFieldAtMutHelper<'t, const N: usize> = where
+    Self: 't + HasFieldAt<N>,
+    &'t mut Self: IntoHList,
+    HListRepr<&'t mut Self>: IntoFieldAt<N, Type = &'t mut FieldAt<N, Self>>;
 
 /// Default implementation for every struct that implements [`IntoHList`].
 impl<T, const N: usize> GetFieldAtMut<N> for T
-where
-    T: HasFieldAt<N>,
-    for<'t> &'t mut T: IntoHList,
-    for<'t> HListRepr<&'t mut T>: IntoFieldAt<N>,
-    for<'t> &'t mut T: GetFieldAtMutHelper<'t, T, N>,
+where for<'t> Self: GetFieldAtMutHelper<'t, N>
 {
     #[inline(always)]
     fn _field_at_mut(&mut self) -> &mut FieldAt<N, Self> {
@@ -500,6 +432,22 @@ impl<T1, T2> HasAbstractType for (T1, T2) {
     type AbstractType = Tuple;
 }
 
+impl<T1, T2, T3> HasAbstractType for (T1, T2, T3) {
+    type AbstractType = Tuple;
+}
+
+impl<T1, T2, T3, T4> HasAbstractType for (T1, T2, T3, T4) {
+    type AbstractType = Tuple;
+}
+
+impl<T1, T2> FromHList<Tuple> for crate::ty![T1, T2] {
+    type Output = (T1, T2);
+    fn from_hlist(self, _: PhantomData<Tuple>) -> Self::Output {
+        let crate::pat![t1, t2] = self;
+        (t1, t2)
+    }
+}
+
 impl<T1, T2, T3> FromHList<Tuple> for crate::ty![T1, T2, T3] {
     type Output = (T1, T2, T3);
     fn from_hlist(self, _: PhantomData<Tuple>) -> Self::Output {
@@ -508,11 +456,24 @@ impl<T1, T2, T3> FromHList<Tuple> for crate::ty![T1, T2, T3] {
     }
 }
 
+impl<T1, T2, T3, T4> FromHList<Tuple> for crate::ty![T1, T2, T3, T4] {
+    type Output = (T1, T2, T3, T4);
+    fn from_hlist(self, _: PhantomData<Tuple>) -> Self::Output {
+        let crate::pat![t1, t2, t3, t4] = self;
+        (t1, t2, t3, t4)
+    }
+}
+
+
+
+// ================
+// === PushBack ===
+// ================
 
 /// Add a new element to the back of the list.
 #[allow(missing_docs)]
 pub trait PushBack<T>: Sized {
-    type Output; //: KnownLast<Last = T> + KnownInit<Init = Self>;
+    type Output;
     fn push_back(self, t: T) -> Self::Output;
 }
 
@@ -547,6 +508,231 @@ where
     fn push_back(self, x: X) -> Self::Output {
         self.into_hlist().push_back(x).from_hlist(PhantomData::<AbstractType<Self>>)
     }
+}
+
+
+
+// ===============
+// === PopLastField ===
+// ===============
+
+/// Add a new element to the back of the list.
+#[allow(missing_docs)]
+pub trait PopLastField: Sized + HasLastField + HasInitFields {
+    fn pop_last_field(self) -> (Self::LastField, Self::InitFields);
+}
+
+impl<H> PopLastField for Cons<H, Nil> {
+    #[inline(always)]
+    fn pop_last_field(self) -> (Self::LastField, Self::InitFields) {
+        (self.0, Nil)
+    }
+}
+
+impl<H, T> PopLastField for Cons<H, T>
+where T: PopLastField
+{
+    #[inline(always)]
+    fn pop_last_field(self) -> (Self::LastField, Self::InitFields) {
+        let (last, init) = self.1.pop_last_field();
+        (last, Cons(self.0, init))
+    }
+}
+
+impl<T> PopLastField for T
+where
+    T: IntoHList + HasLastField + HasInitFields + HasAbstractType,
+    HListRepr<T>: PopLastField + HasLastField<LastField = Self::LastField>,
+    InitFields<HListRepr<T>>: FromHList<AbstractType<Self>, Output = Self::InitFields>,
+{
+    #[inline(always)]
+    fn pop_last_field(self) -> (Self::LastField, Self::InitFields) {
+        let (last, init) = self.into_hlist().pop_last_field();
+        let init = init.from_hlist(PhantomData::<AbstractType<Self>>);
+        (last, init)
+    }
+}
+
+
+
+// ====================
+// === HasLastField ===
+// ====================
+
+/// LastField element type accessor.
+pub type LastField<T> = <T as HasLastField>::LastField;
+
+/// Last element accessor.
+#[allow(missing_docs)]
+pub trait HasLastField {
+    type LastField;
+}
+
+impl<H> HasLastField for Cons<H, Nil> {
+    type LastField = H;
+}
+
+impl<H, T: HasLastField> HasLastField for Cons<H, T> {
+    type LastField = LastField<T>;
+}
+
+impl<T> HasLastField for T
+where
+    T: HasHListRepr,
+    HListRepr<T>: HasLastField,
+{
+    type LastField = LastField<HListRepr<T>>;
+}
+
+
+
+// =====================
+// === IntoLastField ===
+// =====================
+
+pub trait IntoLastField: Sized + HasLastField {
+    fn into_last_field(self) -> Self::LastField;
+}
+
+impl<H> IntoLastField for Cons<H, Nil> {
+    #[inline(always)]
+    fn into_last_field(self) -> Self::LastField {
+        self.0
+    }
+}
+
+impl<H, T> IntoLastField for Cons<H, T>
+where T: IntoLastField
+{
+    #[inline(always)]
+    fn into_last_field(self) -> Self::LastField {
+        self.1.into_last_field()
+    }
+}
+
+impl<T> IntoLastField for T
+where
+    T: IntoHList,
+    HListRepr<T>: IntoLastField,
+{
+    #[inline(always)]
+    fn into_last_field(self) -> Self::LastField {
+        self.into_hlist().into_last_field()
+    }
+}
+
+
+
+// ====================
+// === GetLastField ===
+// ====================
+
+/// LastField element accessor.
+#[allow(missing_docs)]
+pub trait GetLastField: HasLastField {
+    fn last_field(&self) -> &Self::LastField;
+}
+
+impl<H> GetLastField for Cons<H, Nil> {
+    #[inline(always)]
+    fn last_field(&self) -> &Self::LastField {
+        &self.0
+    }
+}
+
+impl<H, T> GetLastField for Cons<H, T>
+where T: GetLastField
+{
+    #[inline(always)]
+    fn last_field(&self) -> &Self::LastField {
+        self.1.last_field()
+    }
+}
+
+trait GetLastFieldHelper<'t> = where
+    Self: 't + HasLastField,
+    &'t Self: IntoHList,
+    HListRepr<&'t Self>: IntoLastField<LastField = &'t LastField<Self>>;
+
+impl<T> GetLastField for T
+where for<'t> Self: GetLastFieldHelper<'t>
+{
+    #[inline(always)]
+    fn last_field(&self) -> &LastField<Self> {
+        self.into_hlist().into_last_field()
+    }
+}
+
+
+
+// ======================
+// === GetLastFieldMut===
+// ======================
+
+/// LastField element accessor.
+#[allow(missing_docs)]
+pub trait GetLastFieldMut: HasLastField {
+    fn last_field_mut(&mut self) -> &mut Self::LastField;
+}
+
+impl<H> GetLastFieldMut for Cons<H, Nil> {
+    #[inline(always)]
+    fn last_field_mut(&mut self) -> &mut Self::LastField {
+        &mut self.0
+    }
+}
+
+impl<H, T> GetLastFieldMut for Cons<H, T>
+where T: GetLastFieldMut
+{
+    #[inline(always)]
+    fn last_field_mut(&mut self) -> &mut Self::LastField {
+        self.1.last_field_mut()
+    }
+}
+
+trait GetLastFieldMutHelper<'t> = where
+    Self: 't + HasLastField,
+    &'t mut Self: IntoHList,
+    HListRepr<&'t mut Self>: IntoLastField<LastField = &'t mut LastField<Self>>;
+
+impl<T> GetLastFieldMut for T
+where for<'t> Self: GetLastFieldMutHelper<'t>
+{
+    #[inline(always)]
+    fn last_field_mut(&mut self) -> &mut LastField<Self> {
+        self.into_hlist().into_last_field()
+    }
+}
+
+
+// =====================
+// === HasInitFields ===
+// =====================
+
+/// LastField element type accessor.
+pub type InitFields<T> = <T as HasInitFields>::InitFields;
+
+/// Last element accessor.
+#[allow(missing_docs)]
+pub trait HasInitFields {
+    type InitFields;
+}
+
+impl<H> HasInitFields for Cons<H, Nil> {
+    type InitFields = Nil;
+}
+impl<H, T: HasInitFields> HasInitFields for Cons<H, T> {
+    type InitFields = Cons<H, InitFields<T>>;
+}
+
+impl<T> HasInitFields for T
+where
+    T: HasHListRepr + HasAbstractType,
+    HListRepr<T>: HasInitFields,
+    InitFields<HListRepr<T>>: FromHList<AbstractType<Self>>,
+{
+    type InitFields = <InitFields<HListRepr<T>> as FromHList<AbstractType<Self>>>::Output;
 }
 
 
