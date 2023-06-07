@@ -1,6 +1,5 @@
 /* Custom CSS rules used by the documentation panel. */
 
-
 /* Common parts. */
 
 :root {
@@ -92,9 +91,7 @@ ul li.method-item:before {
   padding-left: 1.25rem;
 }
 
-
 /* Headers. */
-
 
 .header-top {
   font-size: 17px;
@@ -107,7 +104,7 @@ ul li.method-item:before {
   pointer-events: none;
   width: 0.85em;
   height: 0.85em;
-  margin: .1em .05em 0 .05em;
+  margin: 0.1em 0.05em 0 0.05em;
   fill: none;
   align-self: flex-start;
   padding-top: 0.25em;
@@ -140,8 +137,6 @@ ul li.method-item:before {
   color: var(--examples-header-color);
 }
 
-
-
 /* Marked sections. */
 
 .background-info {
@@ -168,11 +163,10 @@ ul li.method-item:before {
   pointer-events: none;
   width: 1em;
   height: 1em;
-  margin: 0 .05em 0 0;
+  margin: 0 0.05em 0 0;
   vertical-align: -0.1em;
   fill: none;
 }
-
 
 /* Examples. */
 
@@ -186,9 +180,8 @@ ul li.method-item:before {
 .example {
   white-space: pre;
   overflow-x: auto;
-  margin: .05rem .1rem;
+  margin: 0.05rem 0.1rem;
 }
-
 
 /* Tags */
 
@@ -205,7 +198,6 @@ ul li.method-item:before {
   margin-bottom: 0.25rem;
   margin-right: 0.5rem;
 }
-
 
 /* "Hover item preview" caption. */
 
