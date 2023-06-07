@@ -430,7 +430,8 @@ type Date
        Add the specified amount of time to this instant to get another date.
 
        Arguments:
-       - amount: The time duration to add to this instant.
+       - amount: The amount of time to add to this instant. It can be a
+         `Period` or `Date_Period`.
 
        > Example
          Add 6 months to a local date.
@@ -438,15 +439,20 @@ type Date
              import Standard.Base.Data.Time.Duration
 
              example_add = Date.new 2020 + (Period.new months=6)
-    + : Period -> Date ! (Time_Error | Illegal_Argument)
-    + self period =
-        case period of
-            _ : Period ->
+
+       > Example
+         Add a month to a local date.
+
+             import Standard.Base.Data.Time.Date_Period
+
+             example_add = Date.new 2020 + Date_Period.Month
+    + : Period | Date_Period -> Date ! (Time_Error | Illegal_Argument)
+    + self amount:(Period|Date_Period) =
+        case amount of
+            period : Period ->
                 Time_Utils.date_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
-            _ : Duration ->
-                Error.throw (Time_Error.Error "Date does not support adding/subtracting Duration. Use Period instead.")
-            _ ->
-                Error.throw (Illegal_Argument.Error "Illegal period argument")
+            date_period : Date_Period ->
+                self + date_period.to_period
 
     ## ALIAS Date Range
        Creates an increasing range of dates from `self` to `end`.
@@ -623,7 +629,8 @@ type Date
        date.
 
        Arguments:
-       - amount: The time duration to subtract from this date.
+       - amount: The amount of time to add to this instant. It can be a
+         `Period` or `Date_Period`.
 
        > Example
          Subtract 7 days from a local date.
@@ -632,16 +639,21 @@ type Date
              import Standard.Base.Data.Time.Duration
 
              example_subtract = Date.new 2020 - (Period.new days=7)
-    - : Period -> Date ! (Time_Error | Illegal_Argument)
-    - self period =
-        case period of
-            _ : Period ->
+
+       > Example
+         Subtract a month from a local date.
+
+             import Standard.Base.Data.Time.Date_Period
+
+             example_add = Date.new 2020 - Date_Period.Month
+    - : Period | Date_Period -> Date ! (Time_Error | Illegal_Argument)
+    - self amount:(Period|Date_Period) =
+        case amount of
+            period : Period ->
                 new_java_date = Time_Utils.date_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
                 Date.new new_java_date.year new_java_date.month new_java_date.day
-            _ : Duration ->
-                Error.throw (Time_Error.Error "Date does not support adding/subtracting Duration. Use Period instead.")
-            _ ->
-                Error.throw (Illegal_Argument.Error "Illegal period argument")
+            date_period : Date_Period ->
+                self - date_period.to_period
 
     ## PRIVATE
        Convert to a display representation of this Date.

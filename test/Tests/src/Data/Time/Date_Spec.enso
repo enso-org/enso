@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Time_Error.Time_Error
+import Standard.Base.Meta
 
 from Standard.Test import Problems, Test, Test_Suite
 import Standard.Test.Extensions
@@ -139,18 +140,33 @@ spec_with name create_new_date parse_date =
             date . day . should_equal 1
 
         Test.specify "should throw error when adding time-based Duration" <|
-            case (create_new_date 1970 + (Duration.new hours=1)) . catch of
-                Time_Error.Error message ->
-                    message . should_equal "Date does not support adding/subtracting Duration. Use Period instead."
-                result ->
-                    Test.fail ("Unexpected result: " + result.to_text)
+            Test.expect_panic_with matcher=Type_Error <|
+                 create_new_date 1970 + (Duration.new hours=1)
 
         Test.specify "should throw error when subtracting time-based Duration" <|
-            case (create_new_date 1970 - (Duration.new minutes=1)) . catch of
-                Time_Error.Error message ->
-                    message . should_equal "Date does not support adding/subtracting Duration. Use Period instead."
-                result ->
-                    Test.fail ("Unexpected result: " + result.to_text)
+            Test.expect_panic_with matcher=Type_Error <|
+                 create_new_date 1970 - (Duration.new minutes=1)
+
+        Test.specify "should support addition of Date_Period" <|
+            time = create_new_date 1970
+            time+Date_Period.Year . should_equal <| create_new_date 1971
+            time+Date_Period.Quarter . should_equal <| create_new_date 1970 4
+            time+Date_Period.Month . should_equal <| create_new_date 1970 2
+            time+Date_Period.Week . should_equal <| create_new_date 1970 1 8
+            time+Date_Period.Day . should_equal <| create_new_date 1970 1 2
+
+        Test.specify "should support subtraction of Date_Period" <|
+            time = create_new_date 1970
+            time-Date_Period.Year . should_equal <| create_new_date 1969
+            time-Date_Period.Quarter . should_equal <| create_new_date 1969 10
+            time-Date_Period.Month . should_equal <| create_new_date 1969 12
+            time-Date_Period.Week . should_equal <| create_new_date 1969 12 25
+            time-Date_Period.Day . should_equal <| create_new_date 1969 12 31
+
+        Test.specify "should support mixed addition and subtraction of Date_Period" <|
+            time = create_new_date 1970
+            time+Date_Period.Quarter-Date_Period.Month . should_equal <| create_new_date 1970 3 1
+            time-Date_Period.Month+Date_Period.Year . should_equal <| create_new_date 1970 12 1
 
         Test.specify "should be comparable" <|
             date_1 = parse_date "2021-01-02"

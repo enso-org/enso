@@ -258,26 +258,36 @@ type Time_Of_Day
        Add the specified amount of time to this instant to get a new instant.
 
        Arguments:
-       - amount: The amount of time to add to this instant. Can be only
-         `Duration`.
+       - amount: The amount of time to add to this instant. It can be a
+         `Duration` or `Time_Period`.
 
        > Example
+         Add a `Duration` to a `Time_Of_Day`.
 
              from Standard.Base import Time_Of_Day, Duration
 
              example_plus = Time_Of_Day.new + (Duration.new seconds=3)
-    + : Duration -> Time_Of_Day ! Time_Error
-    + self amount =
+
+       > Example
+         Add a `Time_Period` to a `Time_Of_Day`.
+
+             from Standard.Base import Time_Of_Day, Time_Period
+
+             example_plus = Time_Of_Day.new + Time_Period.Hour
+    + : Duration | Time_Period -> Time_Of_Day ! Time_Error
+    + self amount:(Duration|Time_Period) =
         case amount of
             duration : Duration -> self.plus_builtin duration
-            _ : Period -> Error.throw (Time_Error.Error "Time_Of_Day does not support date intervals (periods)")
+            time_period : Time_Period ->
+                self + time_period.to_duration
 
     ## ALIAS Subtract Duration
        Subtract the  specified amount of time from this instant to get a new
        instant.
 
        Arguments:
-       - amount: The amount of time to subtract from this instant.
+       - amount: The amount of time to add to this instant. It can be a
+         `Duration` or `Time_Period`.
 
        > Example
          Subtract 12 hours from a local time.
@@ -285,11 +295,19 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day, Duration
 
              example_minus = Time_Of_Day.now - (Duration.new hours=12)
-    - : Duration -> Time_Of_Day ! Time_Error
-    - self amount =
+
+       > Example
+         Subtract a `Time_Period` from a `Time_Of_Day`.
+
+             from Standard.Base import Time_Of_Day, Time_Period
+
+             example_plus = Time_Of_Day.new - Time_Period.Hour
+    - : Duration | Time_Period -> Time_Of_Day ! Time_Error
+    - self amount:(Duration|Time_Period) =
         case amount of
             duration : Duration -> self.minus_builtin duration
-            _ : Period -> Error.throw (Time_Error.Error "Time_Of_Day does not support date intervals (periods)")
+            time_period : Time_Period ->
+                self - time_period.to_duration
 
     ## PRIVATE
        Convert to a JavaScript Object representing this Time_Of_Day.

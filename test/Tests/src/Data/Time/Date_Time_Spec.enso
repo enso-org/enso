@@ -254,7 +254,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . month . should_equal 1
             time . day . should_equal 1
 
-        Test.specify "should add time interval" <|
+        Test.specify "should add Duration" <|
             time = create_new_datetime 1970 (zone = Time_Zone.utc) + (Duration.new nanoseconds=1)
             time . year . should_equal 1970
             time . month . should_equal 1
@@ -265,7 +265,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . nanosecond . should_equal 1
             time . zone . should_equal Time_Zone.utc
 
-        Test.specify "should add date interval" <|
+        Test.specify "should add Period" <|
             time = (create_new_datetime 1970 (zone = Time_Zone.utc)) + (Period.new months=1)
             time . year . should_equal 1970
             time . month . should_equal 2
@@ -276,7 +276,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
-        Test.specify "should add mixed date time interval" <|
+        Test.specify "should add mixed Period and Duration" <|
             time = create_new_datetime 1970 (zone = Time_Zone.utc) + (Period.new months=1) + (Duration.new hours=3)
             time . year . should_equal 1970
             time . month . should_equal 2
@@ -287,7 +287,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
-        Test.specify "should subtract time interval" <|
+        Test.specify "should subtract Duration" <|
             time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Duration.new hours=1)
             time . year . should_equal 1969
             time . month . should_equal 12
@@ -298,7 +298,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
-        Test.specify "should subtract date interval" <|
+        Test.specify "should subtract Period" <|
             time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.new months=1)
             time . year . should_equal 1969
             time . month . should_equal 12
@@ -309,7 +309,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
-        Test.specify "should subtract mixed date time interval" <|
+        Test.specify "should subtract mixed Period and Duration" <|
             time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.new months=1) - (Duration.new hours=3)
             time . year . should_equal 1969
             time . month . should_equal 11
@@ -330,6 +330,58 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . second . should_equal 0
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
+
+        Test.specify "should support addition of Date_Period" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc)
+            time+Date_Period.Year . should_equal <| create_new_datetime 1971 (zone = Time_Zone.utc)
+            time+Date_Period.Quarter . should_equal <| create_new_datetime 1970 4 (zone = Time_Zone.utc)
+            time+Date_Period.Month . should_equal <| create_new_datetime 1970 2 (zone = Time_Zone.utc)
+            time+Date_Period.Week . should_equal <| create_new_datetime 1970 1 8 (zone = Time_Zone.utc)
+            time+Date_Period.Day . should_equal <| create_new_datetime 1970 1 2 (zone = Time_Zone.utc)
+
+        Test.specify "should support subtraction of Date_Period" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc)
+            time-Date_Period.Year . should_equal <| create_new_datetime 1969 (zone = Time_Zone.utc)
+            time-Date_Period.Quarter . should_equal <| create_new_datetime 1969 10 (zone = Time_Zone.utc)
+            time-Date_Period.Month . should_equal <| create_new_datetime 1969 12 (zone = Time_Zone.utc)
+            time-Date_Period.Week . should_equal <| create_new_datetime 1969 12 25 (zone = Time_Zone.utc)
+            time-Date_Period.Day . should_equal <| create_new_datetime 1969 12 31 (zone = Time_Zone.utc)
+
+        Test.specify "should support addition of Time_Period" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc)
+            time+Time_Period.Day . should_equal <| create_new_datetime 1970 1 2 (zone = Time_Zone.utc)
+            time+Time_Period.Hour . should_equal <| create_new_datetime 1970 1 1 1 (zone = Time_Zone.utc)
+            time+Time_Period.Minute . should_equal <| create_new_datetime 1970 1 1 0 1 (zone = Time_Zone.utc)
+            time+Time_Period.Second . should_equal <| create_new_datetime 1970 1 1 0 0 1 (zone = Time_Zone.utc)
+
+        Test.specify "should support subtraction of Time_Period" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc)
+            time-Time_Period.Day . should_equal <| create_new_datetime 1969 12 31 (zone = Time_Zone.utc)
+            time-Time_Period.Hour . should_equal <| create_new_datetime 1969 12 31 23 (zone = Time_Zone.utc)
+            time-Time_Period.Minute . should_equal <| create_new_datetime 1969 12 31 23 59 (zone = Time_Zone.utc)
+            time-Time_Period.Second . should_equal <| create_new_datetime 1969 12 31 23 59 59 (zone = Time_Zone.utc)
+
+        Test.specify "should support mixed addition and subtraction of Date_Period and Time_Period" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc)
+            time+Date_Period.Quarter+Time_Period.Hour . should_equal <| create_new_datetime 1970 4 1 1 (zone = Time_Zone.utc)
+            time+Time_Period.Hour+Date_Period.Quarter . should_equal <| create_new_datetime 1970 4 1 1 (zone = Time_Zone.utc)
+            time+Date_Period.Year-Time_Period.Minute . should_equal <| create_new_datetime 1970 12 31 23 59 (zone = Time_Zone.utc)
+            time+Time_Period.Minute+Time_Period.Minute-Time_Period.Minute . should_equal <| create_new_datetime 1970 1 1 0 1 (zone = Time_Zone.utc)
+            time+Date_Period.Quarter-Date_Period.Month . should_equal <| create_new_datetime 1970 3 1 (zone = Time_Zone.utc)
+            time+Date_Period.Day-Time_Period.Day . should_equal <| create_new_datetime 1970 (zone = Time_Zone.utc)
+
+        Test.specify "will reflect that Time_Period.Day does not reflect daylight saving" <|
+            tz = Time_Zone.parse "Europe/Warsaw"
+            dt = Date_Time.new 2023 03 26 01 20 zone=tz
+            
+            dt1 = dt + Time_Period.Day
+            dt2 = dt + Date_Period.Day
+
+            # Time Period adds 24 hours which will be 1 hour later due to the DST hole.
+            dt1 . should_equal (Date_Time.new 2023 03 27 02 20 zone=tz)
+
+            # Date Period shifts by 1 calendar day.
+            dt2 . should_equal (Date_Time.new 2023 03 27 01 20 zone=tz)
 
         Test.specify "should get the default comparator for datetimes" <|
             Comparable.from (create_new_datetime 2023 2 3 23 59) . should_equal Default_Comparator
