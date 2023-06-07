@@ -140,7 +140,7 @@ type Table_Not_Found
 
     ## PRIVATE
        Creates a copy of this error with a changed `extra_message`.
-    with_changed_extra_message : Table_Not_Found
+    with_changed_extra_message : Text -> Table_Not_Found
     with_changed_extra_message self new_extra_message =
         Table_Not_Found.Error self.name self.related_query_error self.treated_as_query new_extra_message
 
