@@ -420,7 +420,7 @@ spec make_new_connection prefix persistent_connector=True =
             r1.column_names . should_equal ["X", "Y"]
             expected_rows = [[1, 'a'], [2, 'D'], [3, 'c'], [100, 'E']]
             rows1 = r1.rows.to_vector.map .to_vector
-            rows1.should_contain_the_same_elements_as expected_rows
+            rows1.sort expected_rows
 
             # The original table is updated too.
             rows2 = dest.rows.to_vector.map .to_vector
@@ -510,15 +510,41 @@ spec make_new_connection prefix persistent_connector=True =
             r1.should_fail_with Unmatched_Columns
             r1.catch.column_names . should_equal ["Y"]
 
-        # TODO default values
         Test.specify "by default should keep columns missing from source as-is and use defaults when inserting" <|
-            Nothing
+            dest_name = Name_Generator.random_name "table-defaults"
+            connection.execute_update "CREATE TEMPORARY TABLE " + dest_name + " (Y INTEGER DEFAULT 42, X INTEGER)" . should_succeed
+            src = source_table_builder [["X", [1, 2, 3]]]
+            r1 = src.update_database_table connection dest_name
+            Problems.assume_no_problems r1
+            r1.column_names . should_equal ["Y", "X"]
+            expected_rows = [[42, 1], [42, 2], [42, 3]]
+            rows1 = r1.rows.to_vector.map .to_vector
+            rows1.should_contain_the_same_elements_as expected_rows
+            connection.drop_table dest_name
 
         Test.specify "should use defaults for missing input columns for newly inserted rows when Aligning the tables, but keep existing values for existing rows" <|
-            Nothing
+            dest_name = Name_Generator.random_name "table-defaults-align"
+            connection.execute_update "CREATE TEMPORARY TABLE " + dest_name + " (X INTEGER, Y INTEGER DEFAULT 42, Z INTEGER)" . should_succeed
+            connection.execute_update "INSERT INTO " + dest_name + " (X, Y, Z) VALUES (10, 100, 1000)" . should_succeed
+            connection.execute_update "INSERT INTO " + dest_name + " (X, Y, Z) VALUES (20, 200, 2000)" . should_succeed
+            src = source_table_builder [["X", [10, 2, 3]], ["Z", [-1, -2, -3]]]
+            r1 = src.update_database_table connection dest_name update_action=Update_Action.Align_Records
+            Problems.assume_no_problems r1
+            r1.column_names . should_equal ["X", "Y", "Z"]
+            # The X=10 stays with Y=100, but the X=2 is inserted with the default Y=42
+            expected_rows = [[10, 100, -1], [2, 42, -2], [3, 42, -3]]
+            rows1 = r1.rows.to_vector.map .to_vector
+            rows1.should_contain_the_same_elements_as expected_rows
+            connection.drop_table dest_name
 
         Test.specify "should fail if the source table is missing some columns and the column in the target has no default value" <|
-            Nothing
+            dest_name = Name_Generator.random_name "table-notnull"
+            connection.execute_update "CREATE TEMPORARY TABLE " + dest_name + " (Y INTEGER NOT NULL 42, X INTEGER)" . should_succeed
+            src = source_table_builder [["X", [1, 2, 3]]]
+            r1 = src.update_database_table connection dest_name
+            # We may want a more specific error for missing columns without defaults, but for now it's just a SQL error.
+            r1.should_fail_with SQL_Error
+            connection.drop_table dest_name
 
         Test.specify "should fail if the source table is missing some columns, if asked to" <|
             dest = target_table_builder [["X", [0, 10, 100]], ["Y", ['a', 'b', 'c']]]

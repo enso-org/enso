@@ -82,6 +82,7 @@ Table.select_into_database_table self connection table_name=Nothing primary_key=
        widened to the corresponding column in the target table, a
        `Column_Type_Mismatch` error is raised. If the types do not match but can
        be widened, an `Inexact_Type_Coercion` is reported.
+     - If another database error occurs, an `SQL_Error` is raised.
 
      If any error was raised, the data in the target table is not modified.
 Table.update_database_table : Connection -> Text -> Update_Action -> Vector Text-> Boolean -> Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
