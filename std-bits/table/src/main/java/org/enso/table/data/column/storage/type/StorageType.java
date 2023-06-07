@@ -1,5 +1,7 @@
 package org.enso.table.data.column.storage.type;
 
+import org.enso.base.polyglot.NumericConverter;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -36,14 +38,16 @@ public sealed interface StorageType permits AnyObjectType, BooleanType, DateType
    * @return the StorageType that represents a given boxed item.
    */
   static StorageType forBoxedItem(Object item) {
+    if (NumericConverter.isCoercibleToLong(item)) {
+      return IntegerType.INT_64;
+    }
+
+    if (NumericConverter.isDecimalLike(item)) {
+      return FloatType.FLOAT_64;
+    }
+
     return switch (item) {
       case Boolean b -> BooleanType.INSTANCE;
-      case Byte b -> IntegerType.INT_64;
-      case Short s -> IntegerType.INT_64;
-      case Integer i -> IntegerType.INT_64;
-      case Long l -> IntegerType.INT_64;
-      case Float f -> FloatType.FLOAT_64;
-      case Double d -> FloatType.FLOAT_64;
       case LocalDate d -> DateType.INSTANCE;
       case LocalTime t -> TimeOfDayType.INSTANCE;
       case LocalDateTime d -> DateTimeType.INSTANCE;
