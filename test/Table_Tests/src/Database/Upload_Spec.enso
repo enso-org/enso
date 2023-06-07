@@ -375,7 +375,7 @@ spec make_new_connection prefix persistent_connector=True =
 
     sqlite_temporary_primary_key_pending = if prefix.contains "SQLite" then "Fix get_primary_key on SQLite temporary tables"
     test_table_append source_table_builder target_table_builder =
-        Test.specify "should be able to append new rows to a table" <|
+        Test.specify "should be able to append new rows to a table" pending="TODO: Upsert" <|
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
             src = source_table_builder [["X", [4, 5, 6]], ["Y", ['d', 'e', 'f']]]
             result = src.update_database_table connection dest.name key_columns=["X"]
@@ -390,7 +390,8 @@ spec make_new_connection prefix persistent_connector=True =
             r1 = src.update_database_table connection dest.name update_action=Update_Action.Insert key_columns=["X"]
             r1.should_fail_with Rows_Already_Present
 
-        Test.specify "should use the target table primary key for the key by default" pending=sqlite_temporary_primary_key_pending <|
+        # pending=sqlite_temporary_primary_key_pending
+        Test.specify "should use the target table primary key for the key by default" pending="TODO: Upsert" <|
             dest1 = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [4, 5, 6]]] primary_key=["Y", "Z"]
             default_key_columns connection dest1.name . should_equal ["Y", "Z"]
 
@@ -406,7 +407,7 @@ spec make_new_connection prefix persistent_connector=True =
                 dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["Y"]
                 default_key_columns connection dest.name . should_fail_with Illegal_Argument
 
-        Test.specify "should be able to Update existing rows in a table" <|
+        Test.specify "should be able to Update existing rows in a table" pending="TODO: Update" <|
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
             src = source_table_builder [["X", [2]], ["Y", ['ZZZ']]]
 
@@ -416,7 +417,7 @@ spec make_new_connection prefix persistent_connector=True =
             rows = dest.rows.to_vector.map .to_vector
             rows.should_contain_the_same_elements_as [[1, 'a'], [2, 'ZZZ'], [3, 'c']]
 
-        Test.specify "should fail on unmatched rows in Update mode" <|
+        Test.specify "should fail on unmatched rows in Update mode" pending="TODO: Update" <|
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
             src = source_table_builder [["X", [2, 100]], ["Y", ['d', 'e']]]
             r1 = src.update_database_table connection dest.name update_action=Update_Action.Update key_columns=["X"]
@@ -426,10 +427,10 @@ spec make_new_connection prefix persistent_connector=True =
             rows = dest.rows.to_vector.map .to_vector
             rows.should_contain_the_same_elements_as [[1, 'a'], [2, 'b'], [3, 'c']]
 
-        Test.specify "should upsert by default (update existing rows, insert new rows)" <|
+        Test.specify "should upsert by default (update existing rows, insert new rows)" pending="TODO: Upsert" <|
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
             src = source_table_builder [["X", [2, 100]], ["Y", ['D', 'E']]]
-            r1 = src.update_database_table connection dest.name update_action=Update_Action.Update key_columns=["X"]
+            r1 = src.update_database_table connection dest.name key_columns=["X"]
             Problems.assume_no_problems r1
             r1.column_names . should_equal ["X", "Y"]
             expected_rows = [[1, 'a'], [2, 'D'], [3, 'c'], [100, 'E']]
@@ -440,7 +441,7 @@ spec make_new_connection prefix persistent_connector=True =
             rows2 = dest.rows.to_vector.map .to_vector
             rows2.should_contain_the_same_elements_as expected_rows
 
-        Test.specify "should allow to align an existing table with a source (upsert + delete rows missing from source)" <|
+        Test.specify "should allow to align an existing table with a source (upsert + delete rows missing from source)" pending="TODO: Align_Records" <|
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
             src = source_table_builder [["X", [2, 100]], ["Y", ['D', 'E']]]
             r1 = src.update_database_table connection dest.name update_action=Update_Action.Align_Records key_columns=["X"]
@@ -452,17 +453,47 @@ spec make_new_connection prefix persistent_connector=True =
             rows2 = dest.rows.to_vector.map .to_vector
             rows2.should_contain_the_same_elements_as expected_rows
 
-        Test.specify "should match columns by name, reordering to destination order if needed" <|
+        Test.specify "should match columns by name, reordering to destination order if needed (Insert)" <|
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
             src = source_table_builder [["Y", ['d', 'e', 'f']], ["X", [4, 5, 6]]]
-            result = src.update_database_table connection dest.name key_columns=["X"]
+            result = src.update_database_table connection dest.name update_action=Update_Action.Insert key_columns=["X"]
             result.column_names . should_equal ["X", "Y"]
             src.column_names . should_equal ["Y", "X"]
             expected_rows = [[1, 'a'], [2, 'b'], [3, 'c'], [4, 'd'], [5, 'e'], [6, 'f']]
             rows1 = result.rows.to_vector.map .to_vector
             rows1.should_contain_the_same_elements_as expected_rows
 
-        Test.specify "should allow to use a transformed table, with computed fields, as a source" <|
+        Test.specify "should match columns by name, reordering to destination order if needed (Upsert)" pending="TODO: Upsert" <|
+            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
+            src = source_table_builder [["Y", ['d', 'e', 'f']], ["X", [1, 5, 6]]]
+            result = src.update_database_table connection dest.name key_columns=["X"]
+            result.column_names . should_equal ["X", "Y"]
+            src.column_names . should_equal ["Y", "X"]
+            expected_rows = [[1, 'd'], [2, 'b'], [3, 'c'], [5, 'e'], [6, 'f']]
+            rows1 = result.rows.to_vector.map .to_vector
+            rows1.should_contain_the_same_elements_as expected_rows
+
+        Test.specify "should match columns by name, reordering to destination order if needed (Update)" pending="TODO: Update" <|
+            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
+            src = source_table_builder [["Y", ['d', 'e', 'f']], ["X", [3, 2, 1]]]
+            result = src.update_database_table connection dest.name update_action=Update_Action.Update key_columns=["X"]
+            result.column_names . should_equal ["X", "Y"]
+            src.column_names . should_equal ["Y", "X"]
+            expected_rows = [[1, 'f'], [2, 'e'], [3, 'd']]
+            rows1 = result.rows.to_vector.map .to_vector
+            rows1.should_contain_the_same_elements_as expected_rows
+
+        Test.specify "should match columns by name, reordering to destination order if needed (Align)" pending="TODO: Align_Records" <|
+            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
+            src = source_table_builder [["Y", ['d', 'e', 'f']], ["X", [2, 1, 6]]]
+            result = src.update_database_table connection dest.name update_action=Update_Action.Align_Records key_columns=["X"]
+            result.column_names . should_equal ["X", "Y"]
+            src.column_names . should_equal ["Y", "X"]
+            expected_rows = [[1, 'e'], [2, 'd'], [6, 'f']]
+            rows1 = result.rows.to_vector.map .to_vector
+            rows1.should_contain_the_same_elements_as expected_rows
+
+        Test.specify "should allow to use a transformed table, with computed fields, as a source" pending="TODO: Upsert" <|
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
             t1 = source_table_builder [["Z", [10, 20]], ["Y", ['D', 'E']]]
             t2 = source_table_builder [["Z", [20, 10]], ["X", [-99, 10]]]
@@ -484,7 +515,7 @@ spec make_new_connection prefix persistent_connector=True =
             result.column_names . should_equal ["X"]
             result.at "X" . to_vector . should_contain_the_same_elements_as [1, 10, 100, 1, 2, 3]
 
-        Test.specify "should fail if no key is specified in other modes" <|
+        Test.specify "should fail if no key is specified in other modes" pending="TODO: other modes" <|
             dest = target_table_builder [["X", [1, 10, 100]]]
             src = source_table_builder [["X", [1, 2, 3]]]
 
@@ -513,13 +544,13 @@ spec make_new_connection prefix persistent_connector=True =
 
             if sqlite_temporary_primary_key_pending.is_nothing then
                 # Relying on the default key based on primary key.
-                r1 = src.update_database_table connection d1.name
+                r1 = src.update_database_table connection d1.name update_action=Update_Action.Insert
                 r1.should_fail_with Non_Unique_Primary_Key
 
-            r2 = src.update_database_table connection d2.name key_columns=["X"]
+            r2 = src.update_database_table connection d2.name key_columns=["X"] update_action=Update_Action.Insert
             r2.should_fail_with Non_Unique_Primary_Key
 
-        Test.specify "should fail if the key causes update of multiple values (it's not unique in the target table)" <|
+        Test.specify "should fail if the key causes update of multiple values (it's not unique in the target table)" pending="TODO: Upsert" <|
             dest = target_table_builder [["X", [1, 1, 2]], ["Y", ['a', 'b', 'c']]]
             src = source_table_builder [["X", [1, 2, 3]], ["Y", ['d', 'e', 'f']]]
             r1 = src.update_database_table connection dest.name key_columns=["X"]
@@ -544,7 +575,7 @@ spec make_new_connection prefix persistent_connector=True =
             rows1.should_contain_the_same_elements_as expected_rows
             connection.drop_table dest_name
 
-        Test.specify "should use defaults for missing input columns for newly inserted rows when Aligning the tables, but keep existing values for existing rows" <|
+        Test.specify "should use defaults for missing input columns for newly inserted rows when Aligning the tables, but keep existing values for existing rows" pending="TODO: Align_Records" <|
             dest_name = Name_Generator.random_name "table-defaults-align"
             connection.execute_update "CREATE TEMPORARY TABLE " + dest_name + " (X INTEGER, Y INTEGER DEFAULT 42, Z INTEGER)" . should_succeed
             connection.execute_update "INSERT INTO " + dest_name + " (X, Y, Z) VALUES (10, 100, 1000)" . should_succeed

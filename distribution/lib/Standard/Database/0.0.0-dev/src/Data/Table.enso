@@ -1992,6 +1992,15 @@ type Table
            widened to the corresponding column in the target table, a
            `Column_Type_Mismatch` error is raised. If the types do not match but can
            be widened, an `Inexact_Type_Coercion` is reported.
+         - If `update_action` is `Insert` and a row with the same key already exists
+           in the target table, a `Rows_Already_Present` error is raised.
+         - If the `update_action` is `Update` and some rows in the source have no
+           corresponding rows in the target table, a `Unmatched_Rows` error is
+           raised.
+         - If the source table contains multiple rows for the same key, a
+           `Non_Unique_Primary_Key` error is raised.
+         - If a row in the source table matches multiple rows in the target table, a
+           `Multiple_Target_Rows_Matched_For_Update` error is raised.
          - If another database error occurs, an `SQL_Error` is raised.
 
          If any error was raised, the data in the target table is not modified.

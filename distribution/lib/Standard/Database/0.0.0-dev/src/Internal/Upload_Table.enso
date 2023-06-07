@@ -4,8 +4,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.Data.Table.Table as In_Memory_Table
-import Standard.Table.Data.Type.Value_Type.Value_Type
-from Standard.Table import Aggregate_Column
+from Standard.Table import Aggregate_Column, Join_Kind, Value_Type
 from Standard.Table.Errors import all
 
 import project.Connection.Connection.Connection
@@ -239,17 +238,23 @@ common_update_table source_table connection table_name update_action key_columns
 append_to_existing_table source_table target_table update_action key_columns error_on_missing_columns on_problems = In_Transaction.ensure_in_transaction <|
     effective_key_columns = if key_columns.is_nothing then [] else key_columns
     check_update_arguments source_table target_table effective_key_columns update_action error_on_missing_columns on_problems <|
+        throw_not_implemented =
+            Error.throw (Illegal_State.Error "Not implemented yet. Only `Insert` is implemented.")
         upload_status = case update_action of
             Update_Action.Insert ->
-                existing_rows_check = "TODO"
+                existing_rows_check = if effective_key_columns.is_empty then True else
+                    joined = source_table.join target_table on=key_columns join_kind=Join_Kind.Inner
+                    count = joined.row_count
+                    if count == 0 then True else
+                        Error.throw (Rows_Already_Present.Error count)
                 existing_rows_check.if_not_error <|
                     connection = target_table.connection
                     insert_statement = connection.dialect.generate_sql <|
                         Query.Insert_From_Select target_table.name source_table.to_select_query
                     Panic.rethrow <| connection.execute_update insert_statement
-            Update_Action.Update -> Error.throw "TODO"
-            Update_Action.Update_Or_Insert -> Error.throw "TODO"
-            Update_Action.Align_Records -> Error.throw "TODO"
+            Update_Action.Update -> throw_not_implemented
+            Update_Action.Update_Or_Insert -> throw_not_implemented
+            Update_Action.Align_Records -> throw_not_implemented
         upload_status.if_not_error target_table
 
 ## PRIVATE
