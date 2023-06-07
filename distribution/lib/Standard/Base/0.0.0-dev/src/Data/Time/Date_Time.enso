@@ -506,9 +506,8 @@ type Date_Time
        Add the specified amount of time to this instant to produce a new instant.
 
        Arguments:
-       - amount: The amount of time to add to this instant, either `Duration` for
-         adding time (hours, minutes, etc.), or `Period` for adding date (days,
-         months, years).
+       - amount: The amount of time to add to this instant, It can be a
+         `Duration`, `Period`, `Time_Period`, or `Date_Period`.
 
        > Example
          Add 15 years and 3 hours to a zoned date time.
@@ -517,13 +516,24 @@ type Date_Time
              from Standard.Base.Data.Time import Duration
 
              example_plus = Date_Time.new 2020 + (Period.new years=15) + (Duration.new hours=3)
-    + : (Duration | Period) -> Date_Time ! Time_Error
-    + self amount =
+
+       > Example
+         Add one quarter to a zoned date time.
+
+             from Standard.Base import Date_Time, Date_Period
+
+             example_plus = Date_Time.new 2020 + Date_Period.Quarter
+    + : (Duration | Period | Time_Period | Date_Period) -> Date_Time ! Time_Error
+    + self amount:(Duration|Period|Time_Period|Date_Period) =
         case amount of
             duration : Duration ->
                 Panic.catch ArithmeticException (self.plus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))
             period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
+            time_period : Time_Period ->
+                self + time_period.to_duration
+            date_period : Date_Period ->
+                self + date_period.to_period
 
     ## Shift the date by the specified amount of business days.
 
@@ -573,9 +583,8 @@ type Date_Time
        Produces a warning if the resulting date time is before an Enso epoch.
 
        Arguments:
-       - amount: The amount of time to subtract from this instant. Can be either
-         `Duration` for subtracting time (hours, minutes, etc.), or `Period`
-         for subtracting days, months and years.
+       - amount: The amount of time to add to this instant, It can be a
+         `Duration`, `Period`, `Time_Period`, or `Date_Period`.
 
        > Example
          Subtract 1 year, 9 months and 12 hours from a zoned date time.
@@ -584,13 +593,24 @@ type Date_Time
              import Standard.Base.Data.Time.Duration
 
              example_minus = Date_Time.new 2020 - (Period.new years=1) - (Period.new months=9) - (Duration.new hours=5)
-    - : (Duration | Period) -> Date_Time ! Time_Error
-    - self amount =
+
+       > Example
+         Subtract one quarter from a zoned date time.
+
+             from Standard.Base import Date_Time, Date_Period
+
+             example_plus = Date_Time.new 2020 - Date_Period.Quarter
+    - : (Duration | Period | Time_Period | Date_Period) -> Date_Time ! Time_Error
+    - self amount:(Duration|Period|Time_Period|Date_Period) =
         result = case amount of
             duration : Duration ->
                 Panic.catch ArithmeticException (self.minus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))
             period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
+            time_period : Time_Period ->
+                self - time_period.to_duration
+            date_period : Date_Period ->
+                self - date_period.to_period
         ensure_in_epoch result result
 
     ## PRIVATE
