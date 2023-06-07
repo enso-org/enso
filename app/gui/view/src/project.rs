@@ -49,11 +49,6 @@ pub mod project_view_top_bar;
 /// Browser when user is quickly typing in the expression input.
 const INPUT_CHANGE_DELAY_MS: i32 = 200;
 
-/// The name of the command used to undo the last action.
-///
-/// It is used to discern undo command in `current_shortcut` output, allowing other components to
-/// handle it in a special way.
-const UNDO_COMMAND_NAME: &str = "undo";
 
 
 // ===========
@@ -741,7 +736,7 @@ impl application::View for View {
             (Press, "", "cmd alt p", "toggle_component_browser_private_entries_visibility"),
             (Press, "", "cmd s", "save_project_snapshot"),
             (Press, "", "cmd shift r", "restore_project_snapshot"),
-            (Press, "", "cmd z", UNDO_COMMAND_NAME),
+            (Press, "", "cmd z", "undo"),
             (Press, "", "cmd y", "redo"),
             (Press, "", "cmd shift z", "redo"),
             (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),
