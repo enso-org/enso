@@ -666,6 +666,7 @@ lazy val graph = (project in file("lib/scala/graph/"))
 lazy val pkg = (project in file("lib/scala/pkg"))
   .settings(
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
+    frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "org.scalatest" %% "scalatest"  % scalatestVersion % Test,

@@ -22,7 +22,7 @@ import EditableSpan from './editableSpan'
 
 /** Props for a {@link SecretCreateForm}. */
 export interface SecretCreateFormProps extends createForm.CreateFormPassthroughProps {
-    directoryId: backendModule.DirectoryId
+    directoryId: backendModule.DirectoryId | null
     onSuccess: () => void
 }
 
@@ -105,7 +105,7 @@ function SecretCreateForm(props: SecretCreateFormProps) {
 
 /** Props for a {@link SecretNameHeading}. */
 export interface SecretNameHeadingProps {
-    directoryId: backendModule.DirectoryId
+    directoryId: backendModule.DirectoryId | null
     onCreate: () => void
 }
 
@@ -207,7 +207,7 @@ function SecretName(props: SecretNameProps) {
 
 /** Props for a {@link SecretsTable}. */
 export interface SecretsTableProps {
-    directoryId: backendModule.DirectoryId
+    directoryId: backendModule.DirectoryId | null
     items: backendModule.SecretAsset[]
     isLoading: boolean
     columnDisplayMode: columnModule.ColumnDisplayMode
@@ -289,7 +289,7 @@ function SecretsTable(props: SecretsTableProps) {
                         ))
                     }
                     setModal(() => (
-                        <ContextMenu event={event}>
+                        <ContextMenu key={secret.id} event={event}>
                             <ContextMenuEntry onClick={doDelete}>
                                 <span className="text-red-700">Delete</span>
                             </ContextMenuEntry>

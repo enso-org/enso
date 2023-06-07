@@ -23,7 +23,7 @@ import EditableSpan from './editableSpan'
 
 /** Props for a {@link FileCreateForm}. */
 export interface FileCreateFormProps extends createForm.CreateFormPassthroughProps {
-    directoryId: backendModule.DirectoryId
+    directoryId: backendModule.DirectoryId | null
     onSuccess: () => void
 }
 
@@ -49,8 +49,9 @@ function FileCreateForm(props: FileCreateFormProps) {
                     .promise(
                         backend.uploadFile(
                             {
-                                parentDirectoryId: directoryId,
+                                fileId: null,
                                 fileName: name ?? file.name,
+                                parentDirectoryId: directoryId,
                             },
                             file
                         ),
@@ -113,7 +114,7 @@ function FileCreateForm(props: FileCreateFormProps) {
 
 /** Props for a {@link FileNameHeading}. */
 export interface FileNameHeadingProps {
-    directoryId: backendModule.DirectoryId
+    directoryId: backendModule.DirectoryId | null
     onCreate: () => void
 }
 
@@ -215,7 +216,7 @@ function FileName(props: FileNameProps) {
 
 /** Props for a {@link FilesTable}. */
 export interface FilesTableProps {
-    directoryId: backendModule.DirectoryId
+    directoryId: backendModule.DirectoryId | null
     items: backendModule.FileAsset[]
     isLoading: boolean
     columnDisplayMode: columnModule.ColumnDisplayMode
@@ -303,7 +304,7 @@ function FilesTable(props: FilesTableProps) {
                         /** TODO: Wait for backend endpoint. */
                     }
                     setModal(() => (
-                        <ContextMenu event={event}>
+                        <ContextMenu key={file.id} event={event}>
                             <ContextMenuEntry disabled onClick={doCopy}>
                                 Copy
                             </ContextMenuEntry>

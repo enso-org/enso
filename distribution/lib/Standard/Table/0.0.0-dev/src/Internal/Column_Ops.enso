@@ -1,0 +1,51 @@
+from Standard.Base import all
+
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Data.Column.Column
+import project.Internal.Problem_Builder.Problem_Builder
+
+## PRIVATE
+   Map a text-returning function over the column values, using Storage directly.
+   The output column has the same name as the input.
+map_over_storage : Column -> (Any -> Text) -> (Integer -> Any) -> Boolean -> Problem_Behavior -> Column
+map_over_storage input_column function builder skip_nothing=True on_problems=Report_Warning =
+    problem_builder = Problem_Builder.new
+    input_storage = input_column.java_column.getStorage
+    num_input_rows = input_storage.size
+    output_storage_builder = builder num_input_rows
+    0.up_to num_input_rows . each i->
+        input_value = input_storage.getItemBoxed i
+        if skip_nothing && input_value.is_nothing then output_storage_builder.append Nothing else
+            output_value = function input_value . catch Any err->
+                problem_builder.report_other_warning err
+                Nothing
+            output_storage_builder.append output_value
+    output_storage = output_storage_builder.seal
+    new_column = Column.from_storage input_column.name output_storage
+    problem_builder.attach_problems_after on_problems new_column
+
+## PRIVATE
+   Map a text-returning function over the values of two columns, using Storage
+   directly. The output column has the same name as the first input column.
+   `skip_nothing` applies to the first input to the function, not both inputs.
+map_2_over_storage : Column -> Column -> (Any -> Any -> Text) -> (Integer -> Any) -> Boolean -> Column
+map_2_over_storage input_column_0 input_column_1 function builder skip_nothing=True =
+    input_storage_0 = input_column_0.java_column.getStorage
+    input_storage_1 = input_column_1.java_column.getStorage
+    case input_storage_0.size != input_storage_1.size of
+        True ->
+            msg = "Column lengths differ: " + input_storage_0.size.to_text + " != " + input_storage_1.size.to_text
+            Error.throw (Illegal_Argument.Error msg)
+        False ->
+            num_input_rows = input_storage_0.size
+            output_storage_builder = builder num_input_rows
+            ok = 0.up_to num_input_rows . each_propagate i->
+                input_value_0 = input_storage_0.getItemBoxed i
+                input_value_1 = input_storage_1.getItemBoxed i
+                if skip_nothing && input_value_0.is_nothing then output_storage_builder.append Nothing else
+                    output_value = function input_value_0 input_value_1
+                    output_storage_builder.append output_value
+            ok.if_not_error <|
+                output_storage = output_storage_builder.seal
+                Column.from_storage input_column_0.name output_storage

@@ -20,7 +20,7 @@ import EditableSpan from './editableSpan'
 
 /** Props for a {@link DirectoryCreateForm}. */
 export interface DirectoryCreateFormProps extends createForm.CreateFormPassthroughProps {
-    directoryId: backendModule.DirectoryId
+    directoryId: backendModule.DirectoryId | null
     onSuccess: () => void
 }
 
@@ -83,7 +83,7 @@ function DirectoryCreateForm(props: DirectoryCreateFormProps) {
 
 /** Props for a {@link DirectoryNameHeading}. */
 export interface ProjectNameHeadingProps {
-    directoryId: backendModule.DirectoryId
+    directoryId: backendModule.DirectoryId | null
     onCreate: () => void
 }
 
@@ -188,7 +188,7 @@ function DirectoryName(props: DirectoryNameProps) {
 
 /** Props for a {@link DirectoriesTable}. */
 export interface DirectoriesTableProps {
-    directoryId: backendModule.DirectoryId
+    directoryId: backendModule.DirectoryId | null
     items: backendModule.DirectoryAsset[]
     isLoading: boolean
     columnDisplayMode: columnModule.ColumnDisplayMode
@@ -254,10 +254,10 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                           }
                 )}
                 onClick={onAssetClick}
-                onContextMenu={(_directory, event) => {
+                onContextMenu={(directory, event) => {
                     event.preventDefault()
                     event.stopPropagation()
-                    setModal(() => <ContextMenu event={event}></ContextMenu>)
+                    setModal(() => <ContextMenu key={directory.id} event={event}></ContextMenu>)
                 }}
             />
         )

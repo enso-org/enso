@@ -134,7 +134,9 @@ export const COLUMN_RENDERER: Record<
             event.preventDefault()
             event.stopPropagation()
             setModal(() => (
-                <ContextMenu event={event}>
+                // This is a placeholder key. It should be replaced with label ID when labels
+                // are implemented.
+                <ContextMenu key={'label'} event={event}>
                     <ContextMenuEntry
                         disabled
                         onClick={() => {

@@ -1295,6 +1295,8 @@ impl Scene {
     pub fn update_layout(&self, time: animation::TimeInfo) -> UpdateStatus {
         if self.context.borrow().is_some() {
             debug_span!("Early update.").in_scope(|| {
+                world::with_context(|t| t.theme_manager.update());
+
                 let mut scene_was_dirty = false;
                 self.frp.frame_time_source.emit(time.since_animation_loop_started.unchecked_raw());
                 // Please note that `update_camera` is called first as it may trigger FRP events

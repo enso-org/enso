@@ -9,39 +9,6 @@ use ensogl::display;
 use ensogl::display::scene::Scene;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
-use ensogl_hardcoded_theme as theme;
-
-
-
-// ==============
-// === Shapes ===
-// ==============
-
-/// Container background shape definition.
-///
-/// Provides a backdrop and outline for visualisations. Can indicate the selection status of the
-/// container.
-/// TODO : We do not use backgrounds because otherwise they would overlap JS
-///        visualizations. Instead we added a HTML background to the `View`.
-///        This should be further investigated while fixing rust visualization displaying. (#526)
-pub mod background {
-    use super::*;
-
-    ensogl::shape! {
-        alignment = center;
-        (style:Style,selected:f32,radius:f32,roundness:f32) {
-            let width  : Var<Pixels> = "input_size.x".into();
-            let height : Var<Pixels> = "input_size.y".into();
-            let radius        = 1.px() * &radius;
-            let color_path    = theme::graph_editor::visualization::background;
-            let color_bg      = style.get_color(color_path);
-            let corner_radius = &radius * &roundness;
-            let background    = Rect((&width,&height)).corners_radius(corner_radius);
-            let background    = background.fill(color_bg);
-            background.into()
-        }
-    }
-}
 
 
 
@@ -54,9 +21,9 @@ pub mod background {
 #[allow(missing_docs)]
 pub struct Panel {
     display_object:     display::object::Instance,
+    // Note: We use a HTML background, because a EnsoGL background would be
+    // overlapping the JS visualization.
     pub background_dom: DomSymbol,
-    // TODO: See TODO above.
-    // background     : background::View,
 }
 
 impl Panel {
@@ -76,9 +43,6 @@ impl Panel {
 
         let div = web::document.create_div_or_panic();
         let background_dom = DomSymbol::new(&div);
-        // TODO : We added a HTML background to the `View`, because "shape" background was
-        // overlapping        the JS visualization. This should be further investigated
-        // while fixing rust        visualization displaying. (#796)
         background_dom.dom().set_style_or_warn("width", "0");
         background_dom.dom().set_style_or_warn("height", "0");
         background_dom.dom().set_style_or_warn("z-index", "1");

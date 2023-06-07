@@ -21,6 +21,7 @@ const HTTP_STATUS_OK = 200
 // However, the path should still be non-empty in order for `esbuild.serve` to work properly.
 const ARGS: bundler.Arguments = { outputPath: '/', devMode: true }
 const OPTS = bundler.bundlerOptions(ARGS)
+OPTS.define.REDIRECT_OVERRIDE = JSON.stringify(`http://localhost:${PORT}`)
 OPTS.entryPoints.push(
     path.resolve(THIS_PATH, 'src', 'index.html'),
     path.resolve(THIS_PATH, 'src', 'index.tsx'),

@@ -116,6 +116,7 @@ export function bundlerOptions(args: Arguments) {
             pathModule.resolve(THIS_PATH, 'src', 'run.js'),
             pathModule.resolve(THIS_PATH, 'src', 'style.css'),
             pathModule.resolve(THIS_PATH, 'src', 'docsStyle.css'),
+            pathModule.resolve(THIS_PATH, 'src', 'serviceWorker.ts'),
             ...wasmArtifacts.split(pathModule.delimiter),
             ...fsSync
                 .readdirSync(assetsPath)

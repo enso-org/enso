@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
+import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 
 // =================
@@ -26,7 +27,7 @@ function ConfirmRegistration() {
     const logger = loggerProvider.useLogger()
     const { confirmSignUp } = auth.useAuth()
     const { search } = router.useLocation()
-    const navigate = router.useNavigate()
+    const navigate = hooks.useNavigate()
 
     const { verificationCode, email } = parseUrlSearchParams(search)
 

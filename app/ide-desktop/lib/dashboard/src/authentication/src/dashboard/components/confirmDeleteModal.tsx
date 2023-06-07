@@ -25,14 +25,23 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
     const { assetType, name, doDelete, onSuccess } = props
     const { unsetModal } = modalProvider.useSetModal()
 
+    const [isSubmitting, setIsSubmitting] = React.useState(false)
+
     const onSubmit = async () => {
-        unsetModal()
-        await toast.promise(doDelete(), {
-            loading: `Deleting ${assetType}...`,
-            success: `Deleted ${assetType}.`,
-            error: `Could not delete ${assetType}.`,
-        })
-        onSuccess()
+        if (!isSubmitting) {
+            try {
+                setIsSubmitting(true)
+                await toast.promise(doDelete(), {
+                    loading: `Deleting ${assetType}...`,
+                    success: `Deleted ${assetType}.`,
+                    error: `Could not delete ${assetType}.`,
+                })
+                unsetModal()
+                onSuccess()
+            } finally {
+                setIsSubmitting(false)
+            }
+        }
     }
 
     return (
@@ -54,18 +63,25 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                 </button>
                 Are you sure you want to delete the {assetType} &apos;{name}&apos;?
                 <div className="m-1">
-                    <div
-                        className="hover:cursor-pointer inline-block text-white bg-red-500 rounded-full px-4 py-1 m-1"
-                        onClick={onSubmit}
+                    <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className={`hover:cursor-pointer inline-block text-white bg-red-500 rounded-full px-4 py-1 m-1 ${
+                            isSubmitting ? 'opacity-50' : ''
+                        }`}
                     >
                         Delete
-                    </div>
-                    <div
-                        className="hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1"
+                    </button>
+                    <button
+                        type="button"
+                        disabled={isSubmitting}
+                        className={`hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1 ${
+                            isSubmitting ? 'opacity-50' : ''
+                        }`}
                         onClick={unsetModal}
                     >
                         Cancel
-                    </div>
+                    </button>
                 </div>
             </form>
         </Modal>

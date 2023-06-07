@@ -1,4 +1,5 @@
 /** @file Type definitions common between all backends. */
+
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
 
@@ -347,14 +348,14 @@ export interface CreateTagRequestBody {
 
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
-    parentId?: string
+    parentId: string | null
 }
 
 /** URL query string parameters for the "upload file" endpoint. */
 export interface UploadFileRequestParams {
-    fileId?: string
-    fileName?: string
-    parentDirectoryId?: DirectoryId
+    fileId: string | null
+    fileName: string | null
+    parentDirectoryId: DirectoryId | null
 }
 
 /** URL query string parameters for the "list tags" endpoint. */

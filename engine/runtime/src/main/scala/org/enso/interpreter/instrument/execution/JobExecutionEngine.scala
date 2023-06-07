@@ -116,6 +116,9 @@ final class JobExecutionEngine(
         case NonFatal(ex) =>
           logger.log(Level.SEVERE, s"Error executing $job", ex)
           promise.failure(ex)
+        case err: Throwable =>
+          logger.log(Level.SEVERE, s"Error executing $job", err)
+          throw err
       } finally {
         runningJobsRef.updateAndGet(_.filterNot(_.id == jobId))
       }

@@ -16,7 +16,7 @@ import Modal from './modal'
 
 /** Props for an {@link UploadFileModal}. */
 export interface UploadFileModalProps {
-    directoryId: backendModule.DirectoryId
+    directoryId: backendModule.DirectoryId | null
     onSuccess: () => void
 }
 
@@ -40,8 +40,9 @@ function UploadFileModal(props: UploadFileModalProps) {
                 const toastId = toast.loading('Uploading file...')
                 await backend.uploadFile(
                     {
-                        parentDirectoryId: directoryId,
+                        fileId: null,
                         fileName: name ?? file.name,
+                        parentDirectoryId: directoryId,
                     },
                     file
                 )

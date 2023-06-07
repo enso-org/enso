@@ -37,6 +37,7 @@ export interface CreateFormProps {
     left: number
     top: number
     directoryId: backendModule.DirectoryId
+    getNewProjectName: (templateId: string | null) => string
     onSuccess: () => void
 }
 
@@ -61,6 +62,7 @@ const IDE_ELEMENT_ID = 'root'
 export interface DashboardProps {
     supportsLocalBackend: boolean
     appRunner: AppRunner
+    initialProjectName: string | null
 }
 
 // TODO[sb]: Implement rename when clicking name of a selected row.
@@ -68,10 +70,10 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 function Dashboard(props: DashboardProps) {
-    const { supportsLocalBackend, appRunner } = props
+    const { supportsLocalBackend, appRunner, initialProjectName } = props
 
     const logger = loggerProvider.useLogger()
-    const { accessToken, organization } = authProvider.useFullUserSession()
+    const session = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setBackend } = backendProvider.useSetBackend()
     const { modal } = modalProvider.useModal()
@@ -80,19 +82,26 @@ function Dashboard(props: DashboardProps) {
     const [refresh, doRefresh] = hooks.useRefresh()
 
     const [directoryId, setDirectoryId] = React.useState(
-        backendModule.rootDirectoryId(organization.id)
+        session.organization != null ? backendModule.rootDirectoryId(session.organization.id) : null
     )
     const [query, setQuery] = React.useState('')
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
     const [tab, setTab] = React.useState(Tab.dashboard)
     const [project, setProject] = React.useState<backendModule.Project | null>(null)
+    // FIXME[sb]: Why is this not an object?
     const [selectedAssets, setSelectedAssets] = React.useState<backendModule.Asset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
+    const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
+        React.useState(initialProjectName)
 
-    const listingLocalDirectoryAndWillFail =
+    const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
-    const listingRemoteDirectoryAndWillFail =
-        backend.type === backendModule.BackendType.remote && !organization.isEnabled
+    const isListingRemoteDirectoryAndWillFail =
+        backend.type === backendModule.BackendType.remote &&
+        session.organization?.isEnabled !== true
+    const isListingRemoteDirectoryWhileOffline =
+        session.type === authProvider.UserSessionType.offline &&
+        backend.type === backendModule.BackendType.remote
 
     const switchToIdeTab = React.useCallback(() => {
         setTab(Tab.ide)
@@ -102,7 +111,7 @@ function Dashboard(props: DashboardProps) {
             ideElement.style.top = ''
             ideElement.style.display = 'absolute'
         }
-    }, [doRefresh])
+    }, [/* should never change */ doRefresh])
 
     const switchToDashboardTab = React.useCallback(() => {
         setTab(Tab.dashboard)
@@ -112,15 +121,25 @@ function Dashboard(props: DashboardProps) {
             ideElement.style.top = '-100vh'
             ideElement.style.display = 'fixed'
         }
-    }, [doRefresh])
+    }, [/* should never change */ doRefresh])
 
     const toggleTab = () => {
-        if (project && tab === Tab.dashboard) {
+        if (project != null && tab === Tab.dashboard) {
             switchToIdeTab()
         } else {
             switchToDashboardTab()
         }
     }
+
+    React.useEffect(() => {
+        if (
+            supportsLocalBackend &&
+            localStorage.getItem(backendProvider.BACKEND_TYPE_KEY) !==
+                backendModule.BackendType.remote
+        ) {
+            setBackend(new localBackend.LocalBackend())
+        }
+    }, [/* should never change */ setBackend, /* should never change */ supportsLocalBackend])
 
     React.useEffect(() => {
         document.addEventListener('show-dashboard', switchToDashboardTab)
@@ -138,12 +157,6 @@ function Dashboard(props: DashboardProps) {
             window.removeEventListener('blur', onBlur)
         }
     }, [])
-
-    React.useEffect(() => {
-        if (supportsLocalBackend) {
-            setBackend(new localBackend.LocalBackend())
-        }
-    }, [setBackend, supportsLocalBackend])
 
     React.useEffect(() => {
         const onProjectManagerLoadingFailed = () => {
@@ -169,7 +182,7 @@ function Dashboard(props: DashboardProps) {
             !event.altKey &&
             !event.metaKey
         ) {
-            if (modal) {
+            if (modal != null) {
                 event.preventDefault()
                 unsetModal()
             }
@@ -190,7 +203,7 @@ function Dashboard(props: DashboardProps) {
                     break
                 case backendModule.BackendType.remote: {
                     const headers = new Headers()
-                    headers.append('Authorization', `Bearer ${accessToken}`)
+                    headers.append('Authorization', `Bearer ${session.accessToken ?? ''}`)
                     const client = new http.Client(headers)
                     setBackend(new remoteBackendModule.RemoteBackend(client, logger))
                     break
@@ -202,15 +215,12 @@ function Dashboard(props: DashboardProps) {
     const getNewProjectName = async (templateId?: string | null) => {
         const prefix = `${templateId ?? 'New_Project'}_`
         const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
-        let highestProjectIndex = 0
-        const projects = await backend.listProjects()
-        for (const listedProject of projects) {
-            const projectIndex = projectNameTemplate.exec(listedProject.name)?.groups?.projectIndex
-            if (projectIndex) {
-                highestProjectIndex = Math.max(highestProjectIndex, parseInt(projectIndex, 10))
-            }
-        }
-        return `${prefix}${highestProjectIndex + 1}`
+        const projectIndices = (await backend.listProjects())
+            .map(
+                listedProject => projectNameTemplate.exec(listedProject.name)?.groups?.projectIndex
+            )
+            .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
+        return `${prefix}${Math.max(...projectIndices) + 1}`
     }
 
     const handleCreateProject = async (templateId?: string | null) => {
@@ -221,6 +231,10 @@ function Dashboard(props: DashboardProps) {
             parentDirectoryId: directoryId,
         }
         await backend.createProject(body)
+        // `newProject.projectId` cannot be used directly in a `ProjectEvent` as the project
+        // does not yet exist in the project list. Opening the project would work, but the project
+        // would display as closed as it would be created after the event is sent.
+        setNameOfProjectToImmediatelyOpen(projectName)
         doRefresh()
     }
 
@@ -229,15 +243,10 @@ function Dashboard(props: DashboardProps) {
         setSelectedAssets(event.shiftKey ? [...selectedAssets, asset] : [asset])
     }
 
-    const openIde = async (projectAsset: backendModule.ProjectAsset) => {
-        setTab(Tab.ide)
-        if (project?.projectId !== projectAsset.id) {
-            setProject(await backend.getProjectDetails(projectAsset.id))
-        }
-        const ideElement = document.getElementById(IDE_ELEMENT_ID)
-        if (ideElement) {
-            ideElement.style.top = ''
-            ideElement.style.display = 'absolute'
+    const openIde = async (newProject: backendModule.ProjectAsset) => {
+        switchToIdeTab()
+        if (project?.projectId !== newProject.id) {
+            setProject(await backend.getProjectDetails(newProject.id))
         }
     }
 
@@ -270,14 +279,21 @@ function Dashboard(props: DashboardProps) {
                 query={query}
                 setQuery={setQuery}
             />
-            {listingLocalDirectoryAndWillFail ? (
+            {isListingRemoteDirectoryWhileOffline ? (
+                <div className="grow grid place-items-center">
+                    <div className="text-base text-center">
+                        You are offline. Please connect to the internet and refresh to access the
+                        cloud backend.
+                    </div>
+                </div>
+            ) : isListingLocalDirectoryAndWillFail ? (
                 <div className="grow grid place-items-center">
                     <div className="text-base text-center">
                         Could not connect to the Project Manager. Please try restarting{' '}
                         {common.PRODUCT_NAME}, or manually launching the Project Manager.
                     </div>
                 </div>
-            ) : listingRemoteDirectoryAndWillFail ? (
+            ) : isListingRemoteDirectoryAndWillFail ? (
                 <div className="grow grid place-items-center">
                     <div className="text-base text-center">
                         We will review your user details and enable the cloud experience for you
@@ -288,23 +304,32 @@ function Dashboard(props: DashboardProps) {
                 <>
                     <Templates onTemplateClick={handleCreateProject} />
                     <DirectoryView
+                        initialProjectName={initialProjectName}
+                        nameOfProjectToImmediatelyOpen={nameOfProjectToImmediatelyOpen}
+                        setNameOfProjectToImmediatelyOpen={setNameOfProjectToImmediatelyOpen}
                         directoryId={directoryId}
                         setDirectoryId={setDirectoryId}
                         query={query}
                         refresh={refresh}
                         doRefresh={doRefresh}
+                        doCreateBlankProject={handleCreateProject}
                         onAssetClick={onAssetClick}
                         onOpenIde={openIde}
                         onCloseIde={closeIde}
                         appRunner={appRunner}
                         loadingProjectManagerDidFail={loadingProjectManagerDidFail}
+                        isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
+                        isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
+                        isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
                         experimentalShowColumnDisplayModeSwitcher={
                             EXPERIMENTAL.columnDisplayModeSwitcher
                         }
                     />
                 </>
             )}
-            {isFileBeingDragged && backend.type === backendModule.BackendType.remote ? (
+            {isFileBeingDragged &&
+            directoryId != null &&
+            backend.type === backendModule.BackendType.remote ? (
                 <div
                     className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary grid place-items-center"
                     onDragLeave={() => {

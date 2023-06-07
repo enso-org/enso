@@ -345,10 +345,7 @@ public class ExecutionService {
     if (module.isEmpty()) {
       module = context.createModuleForFile(path);
     }
-    module.ifPresent(
-        mod -> {
-          mod.setLiteralSource(contents);
-        });
+    module.ifPresent(mod -> mod.setLiteralSource(contents));
   }
 
   /**
@@ -377,16 +374,18 @@ public class ExecutionService {
       throw new SourceNotFoundException(module.getName(), e);
     }
 
-    JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits)
-        .fold(
-            failure -> {
-              throw new FailedToApplyEditsException(
-                  module.getName(), edits, failure, module.getLiteralSource());
-            },
-            rope -> {
-              module.setLiteralSource(rope, simpleUpdate);
-              return new Object();
-            });
+    if (edits.nonEmpty() || simpleUpdate != null) {
+      JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits)
+          .fold(
+              failure -> {
+                throw new FailedToApplyEditsException(
+                    module.getName(), edits, failure, module.getLiteralSource());
+              },
+              rope -> {
+                module.setLiteralSource(rope, simpleUpdate);
+                return new Object();
+              });
+    }
   }
 
   /**

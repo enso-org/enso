@@ -30,17 +30,24 @@ export interface TopBarProps {
 function TopBar(props: TopBarProps) {
     const { supportsLocalBackend, projectName, tab, toggleTab, setBackendType, query, setQuery } =
         props
-    const [userMenuVisible, setUserMenuVisible] = React.useState(false)
+    const [isUserMenuVisible, setIsUserMenuVisible] = React.useState(false)
+    const { modal } = modalProvider.useModal()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
 
     React.useEffect(() => {
-        if (userMenuVisible) {
+        if (!modal) {
+            setIsUserMenuVisible(false)
+        }
+    }, [modal])
+
+    React.useEffect(() => {
+        if (isUserMenuVisible) {
             setModal(() => <UserMenu />)
         } else {
             unsetModal()
         }
-    }, [userMenuVisible, setModal, unsetModal])
+    }, [isUserMenuVisible])
 
     return (
         <div className="flex mb-2 h-8">
@@ -97,6 +104,7 @@ function TopBar(props: TopBarProps) {
                 <div>{svg.MAGNIFYING_GLASS_ICON}</div>
                 <input
                     type="text"
+                    size={1}
                     placeholder="Click here or start typing to search for projects, data connectors, users, and more ..."
                     value={query}
                     onChange={event => {
@@ -119,7 +127,7 @@ function TopBar(props: TopBarProps) {
                 <div
                     onClick={event => {
                         event.stopPropagation()
-                        setUserMenuVisible(!userMenuVisible)
+                        setIsUserMenuVisible(!isUserMenuVisible)
                     }}
                     className="rounded-full w-8 h-8 bg-cover cursor-pointer"
                 >

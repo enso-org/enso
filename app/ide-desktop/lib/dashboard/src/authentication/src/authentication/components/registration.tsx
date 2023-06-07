@@ -81,6 +81,7 @@ function Registration() {
                             <SvgIcon svg={svg.LOCK} />
 
                             <Input
+                                required
                                 id="password"
                                 type="password"
                                 name="password"
@@ -103,6 +104,7 @@ function Registration() {
                             <SvgIcon svg={svg.LOCK} />
 
                             <Input
+                                required
                                 id="password_confirmation"
                                 type="password"
                                 name="password_confirmation"

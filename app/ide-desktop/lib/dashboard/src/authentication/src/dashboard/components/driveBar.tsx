@@ -13,7 +13,7 @@ import UploadFileModal from './uploadFileModal'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
-    directoryId: backendModule.DirectoryId
+    directoryId: backendModule.DirectoryId | null
     directory: backendModule.DirectoryAsset | null
     parentDirectory: backendModule.DirectoryAsset | null
     columnDisplayMode: column.ColumnDisplayMode
