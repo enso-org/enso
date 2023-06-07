@@ -52,4 +52,13 @@ type Query
     ## PRIVATE
        An INSERT INTO ... SELECT query that allows to insert results of a query
        into an existing table.
-    Insert_From_Select (table_name:Text) (select:Query)
+
+       Arguments:
+       - table_name: the name of the table to insert to.
+       - column_names: a vector of names of target table columns. If not all
+         columns of the target table are provided, the remaining ones will be
+         initialized with their default values.
+       - select: the query whose results will be inserted into the target table.
+         The columns in that query should correspond to the columns in specified
+         in `column_names`, matching by position.
+    Insert_From_Select (table_name:Text) (column_names : Vector Text) (select:Query)

@@ -95,7 +95,7 @@ internal_upload_database_table source_table connection table_name primary_key te
                        table. But we create both from the same source table, so
                        that is guaranteed.
                     copy_into_statement = connection.dialect.generate_sql <|
-                        Query.Insert_From_Select created_table_name source_table.to_select_query
+                        Query.Insert_From_Select created_table_name source_table.column_names source_table.to_select_query
                     Panic.rethrow <| connection.execute_update copy_into_statement
 
             upload_status.if_not_error <|
@@ -250,7 +250,7 @@ append_to_existing_table source_table target_table update_action key_columns err
                 existing_rows_check.if_not_error <|
                     connection = target_table.connection
                     insert_statement = connection.dialect.generate_sql <|
-                        Query.Insert_From_Select target_table.name source_table.to_select_query
+                        Query.Insert_From_Select target_table.name source_table.column_names source_table.to_select_query
                     Panic.rethrow <| connection.execute_update insert_statement
             Update_Action.Update -> throw_not_implemented
             Update_Action.Update_Or_Insert -> throw_not_implemented
