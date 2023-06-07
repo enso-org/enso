@@ -217,7 +217,7 @@ make_batched_insert_template connection table_name column_names =
     template
 
 ## PRIVATE
-common_update_table source_table connection table_name update_action key_columns error_on_missing_columns =
+common_update_table source_table connection table_name update_action key_columns error_on_missing_columns on_problems =
     Panic.recover SQL_Error <| handle_upload_errors <|
         connection.jdbc_connection.run_within_transaction <|
             target_table = connection.query (SQL_Query.Table_Name table_name)
@@ -231,18 +231,41 @@ common_update_table source_table connection table_name update_action key_columns
                 tmp_table_name = "temporary-source-table-"+random_uuid
                 tmp_table = internal_upload_table source_table connection tmp_table_name key_columns temporary=True structure_only=False on_problems=Problem_Behavior.Report_Error
                 tmp_table.if_not_error <|
-                    resulting_table = append_to_existing_table tmp_table target_table update_action key_columns error_on_missing_columns
+                    resulting_table = append_to_existing_table tmp_table target_table update_action key_columns error_on_missing_columns on_problems
                     connection.drop_table tmp_table.name
                     resulting_table
 
 ## PRIVATE
-append_to_existing_table source_table target_table update_action key_columns error_on_missing_columns =
+append_to_existing_table source_table target_table update_action key_columns error_on_missing_columns on_problems = In_Transaction.ensure_in_transaction <|
+    check_update_compatibility source_table target_table key_columns error_on_missing_columns on_problems <|
+        case update_action of
+            Update_Action.Insert -> Error.throw "TODO"
+            Update_Action.Update -> Error.throw "TODO"
+            Update_Action.Update_Or_Insert -> Error.throw "TODO"
+            Update_Action.Align_Records -> Error.throw "TODO"
+
+## PRIVATE
+check_update_compatibility source_table target_table key_columns error_on_missing_columns on_problems ~action =
     source_columns = Set.from_vector source_table.column_names
     target_columns = Set.from_vector target_table.column_names
     extra_columns = source_columns.difference target_columns
     if extra_columns.not_empty then Error.throw (Unmatched_Columns.Error extra_columns) else
         missing_columns = target_columns.difference source_columns
         if missing_columns.not_empty && error_on_missing_columns then Error.throw (Missing_Input_Columns.Error missing_columns "the source table") else
-            # TODO [RW] to be finished in follow up PR
-            _ = [update_action, key_columns]
-            Error.throw (Illegal_State.Error "TODO: Not implemented yet.")
+            key_set = Set.from_vector key_columns
+            missing_source_key_columns = key_set.difference source_columns
+            missing_target_key_columns = key_set.difference target_columns
+            # TODO Shall we add some 'location' to `Missing_Input_Columns` to distinguish when a missing column comes from table structure VS `key_columns`?
+            if missing_source_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_source_key_columns "the source table") else
+                if missing_target_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_target_key_columns "the target table") else
+                    # Verify type matching
+                    problems = source_table.columns.flat_map source_column->
+                        # The column must exist because it was verified earlier.
+                        target_column = target_table.get source_column.name
+                        source_type = source_column.value_type
+                        target_type = target_column.value_type
+                        if source_type == target_type then [] else
+                            if source_type.can_be_widened_to target_type then [Inexact_Type_Coercion.Warning source_type target_type] else
+                                Error.throw (Column_Type_Mismatch.Error source_column.name target_type source_type)
+                    problems.if_not_error <|
+                        on_problems.attach_problems_before problems action
