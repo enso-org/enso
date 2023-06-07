@@ -180,7 +180,7 @@ impl Model {
 
     /// Notification from shortcut manager that the handled shortcut has changed.
     /// It is either the name of the command that was triggered or `None` when handling of the
-    /// command was completed.
+    /// last command was completed.
     fn handled_shortcut_changed(&self, handled_shortcut: &Option<ImString>) {
         debug!("Handled shortcut changed: {handled_shortcut:?}.");
         let transaction = handled_shortcut
