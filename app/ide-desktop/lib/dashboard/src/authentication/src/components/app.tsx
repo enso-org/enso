@@ -38,8 +38,9 @@ import * as React from 'react'
 import * as router from 'react-router-dom'
 import * as toast from 'react-hot-toast'
 
+import * as detect from 'enso-common/src/detect'
+
 import * as authService from '../authentication/service'
-import * as detect from '../detect'
 import * as hooks from '../hooks'
 
 import * as authProvider from '../authentication/providers/auth'
@@ -128,8 +129,6 @@ function App(props: AppProps) {
 function AppRouter(props: AppProps) {
     const { logger, showDashboard, onAuthenticated } = props
     const navigate = hooks.useNavigate()
-    // FIXME[sb]: After platform detection for Electron is merged in, `IS_DEV_MODE` should be
-    // set to true on `ide watch`.
     if (IS_DEV_MODE) {
         // @ts-expect-error This is used exclusively for debugging.
         window.navigate = navigate

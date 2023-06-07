@@ -12,7 +12,7 @@
 import * as React from 'react'
 import * as reactDOM from 'react-dom/client'
 
-import * as detect from './detect'
+import * as detect from 'enso-common/src/detect'
 import App, * as app from './components/app'
 
 // =================
