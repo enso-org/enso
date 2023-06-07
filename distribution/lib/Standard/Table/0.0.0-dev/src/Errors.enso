@@ -477,6 +477,7 @@ type Unmatched_Columns
        merged tables.
     Error (column_names : Vector Text)
 
+    # TODO [RW] the message is wrong for update_database_table_case, needs updating
     ## PRIVATE
 
        Create a human-readable version of the error.
