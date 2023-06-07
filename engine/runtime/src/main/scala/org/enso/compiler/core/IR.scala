@@ -8849,15 +8849,14 @@ object IR {
           s"No such constructor ${constructorName} in type $typeName"
       }
 
-      /**
-       * Represents an ambiguous import resolution error, where the same symbol is imported more than once refereing
-       * to different objects. The objects are represented by their physical path in the project.
-       * @param originalImport the original import statement.
-       * @param originalSymbolPath the original symbol path.
-       * @param symbolName the symbol name that is ambiguous.
-       * @param symbolPath the symbol path that is different than [[originalSymbolPath]].
-       * @param source Location of the original import.
-       */
+      /** Represents an ambiguous import resolution error, where the same symbol is imported more than once refereing
+        * to different objects. The objects are represented by their physical path in the project.
+        * @param originalImport the original import statement.
+        * @param originalSymbolPath the original symbol path.
+        * @param symbolName the symbol name that is ambiguous.
+        * @param symbolPath the symbol path that is different than [[originalSymbolPath]].
+        * @param source Location of the original import.
+        */
       case class AmbiguousImport(
         originalImport: IR.Module.Scope.Import,
         originalSymbolPath: String,

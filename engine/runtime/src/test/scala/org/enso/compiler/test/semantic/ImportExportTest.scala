@@ -572,7 +572,9 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main_Module"))
           .getIr
       mainIr.imports.size shouldEqual 2
-      mainIr.imports.foreach(_.isInstanceOf[IR.Error.ImportExport] shouldEqual false)
+      mainIr.imports.foreach(
+        _.isInstanceOf[IR.Error.ImportExport] shouldEqual false
+      )
     }
 
     "result in error when importing same type twice with two one-symbol import and renamed import" in {

@@ -9,15 +9,15 @@ import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 
-import scala.annotation.unused
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-/** A pass that checks for ambiguous and duplicated symbols from imports. For every encountered
+/** A pass that checks for ambiguous and duplicated symbols from imports.
   * A duplicated import is an import of a symbol that has already been imported and refers to the
-  * same object. On the other hand, an ambiguous import is an import of a symbol that has already
+  * same object (entity). On the other hand, an ambiguous import is an import of a symbol that has already
   * been imported but refers to a different object. For every duplicated import, a warning is attached
   * to the IR, and for every ambiguous import, the IR is replaced with an error.
+  * To identify an object, this pass uses physical path of the object instead of the object itself.
   *
   * One import IR can be replaced with multiple error IRs. This is the case for `from ... import ...`
   * import statements.
@@ -27,7 +27,7 @@ import scala.collection.mutable.ListBuffer
   *
   * Also iterates polyglot imports.
   *
-  * All synthetic imports and synthetic modules are ignored by this pass.
+  * All synthetic imports and exports, as well as synthetic modules are ignored by this pass.
   *
   * Thi pass does not alter any metadata.
   */
@@ -71,9 +71,12 @@ case object AmbiguousImportsAnalysis extends IRPass {
       )
       val encounteredSymbols = new EncounteredSymbols()
       ir.copy(
-        imports = ir.imports.flatMap( imp => {
+        imports = ir.imports.flatMap(imp => {
           analyseAmbiguousSymbols(
-            imp, module, bindingMap, encounteredSymbols
+            imp,
+            module,
+            bindingMap,
+            encounteredSymbols
           ) match {
             case Left(errors) =>
               errors
@@ -84,14 +87,13 @@ case object AmbiguousImportsAnalysis extends IRPass {
     }
   }
 
-  /**
-   * Analyses ambiguous symbols in the given import.
-   * @param imp current import
-   * @param module current module
-   * @param bindingMap binding map of the current module
-   * @return A list of errors, if any encountered, or an import IR, potentially with some
-   *         warnings attached.
-   */
+  /** Analyses ambiguous symbols in the given import.
+    * @param imp current import
+    * @param module current module
+    * @param bindingMap binding map of the current module
+    * @return A list of errors, if any encountered, or an import IR, potentially with some
+    *         warnings attached.
+    */
   private def analyseAmbiguousSymbols(
     imp: IR.Module.Scope.Import,
     module: Module,
@@ -113,30 +115,32 @@ case object AmbiguousImportsAnalysis extends IRPass {
           ) =>
         getImportTarget(moduleImport, bindingMap) match {
           case Some(importTarget) =>
-            val encounteredErrors: ListBuffer[IR.Error.ImportExport] = ListBuffer()
+            val encounteredErrors: ListBuffer[IR.Error.ImportExport] =
+              ListBuffer()
             val imp =
-              onlyNames.foldLeft(moduleImport: IR.Module.Scope.Import) { case (imp, symbol) =>
-                val symbolName = symbol.name
-                importTarget.resolveExportedSymbol(symbolName) match {
-                  case Right(resolvedName) =>
-                    val symbolPath = resolvedName.qualifiedName.toString
-                    tryAddEncounteredSymbol(
-                      module,
-                      encounteredSymbols,
-                      imp,
-                      symbolName,
-                      symbolPath
-                    ) match {
-                      case Left(error) =>
-                        encounteredErrors += error
-                        imp
-                      case Right(imp)   => imp
-                    }
-                  case Left(resolutionError) =>
-                    throw new CompilerError(
-                      s"Unreachable: (should have been resolved in previous passes) $resolutionError"
-                    )
-                }
+              onlyNames.foldLeft(moduleImport: IR.Module.Scope.Import) {
+                case (imp, symbol) =>
+                  val symbolName = symbol.name
+                  importTarget.resolveExportedSymbol(symbolName) match {
+                    case Right(resolvedName) =>
+                      val symbolPath = resolvedName.qualifiedName.toString
+                      tryAddEncounteredSymbol(
+                        module,
+                        encounteredSymbols,
+                        imp,
+                        symbolName,
+                        symbolPath
+                      ) match {
+                        case Left(error) =>
+                          encounteredErrors += error
+                          imp
+                        case Right(imp) => imp
+                      }
+                    case Left(resolutionError) =>
+                      throw new CompilerError(
+                        s"Unreachable: (should have been resolved in previous passes) $resolutionError"
+                      )
+                  }
               }
             if (encounteredErrors.nonEmpty) {
               Left(encounteredErrors.toList)
@@ -173,27 +177,29 @@ case object AmbiguousImportsAnalysis extends IRPass {
             }
             val encounteredErrors: ListBuffer[IR.Error.ImportExport] =
               ListBuffer()
-            val imp = symbolsToIterate.foldLeft(moduleImport: IR.Module.Scope.Import) { case (imp, symbolName) =>
-              importTarget.resolveExportedSymbol(symbolName) match {
-                case Left(resolutionError) =>
-                  throw new CompilerError(
-                    s"Unreachable: (should have been resolved in previous passes) $resolutionError"
-                  )
-                case Right(resolvedName) =>
-                  tryAddEncounteredSymbol(
-                    module,
-                    encounteredSymbols,
-                    imp,
-                    symbolName,
-                    resolvedName.qualifiedName.toString
-                  ) match {
-                    case Left(error) =>
-                      encounteredErrors += error
-                      imp
-                    case Right(imp) => imp
+            val imp =
+              symbolsToIterate.foldLeft(moduleImport: IR.Module.Scope.Import) {
+                case (imp, symbolName) =>
+                  importTarget.resolveExportedSymbol(symbolName) match {
+                    case Left(resolutionError) =>
+                      throw new CompilerError(
+                        s"Unreachable: (should have been resolved in previous passes) $resolutionError"
+                      )
+                    case Right(resolvedName) =>
+                      tryAddEncounteredSymbol(
+                        module,
+                        encounteredSymbols,
+                        imp,
+                        symbolName,
+                        resolvedName.qualifiedName.toString
+                      ) match {
+                        case Left(error) =>
+                          encounteredErrors += error
+                          imp
+                        case Right(imp) => imp
+                      }
                   }
               }
-            }
             if (encounteredErrors.nonEmpty) {
               Left(encounteredErrors.toList)
             } else {
@@ -247,7 +253,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
           importPath.parts.last.name,
           importPath.name
         ) match {
-          case Left(err) => Left(List(err))
+          case Left(err)  => Left(List(err))
           case Right(imp) => Right(imp)
         }
 
@@ -268,7 +274,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
           symbolName,
           symbolPath
         ) match {
-          case Left(err) => Left(List(err))
+          case Left(err)  => Left(List(err))
           case Right(imp) => Right(imp)
         }
 
@@ -289,15 +295,14 @@ case object AmbiguousImportsAnalysis extends IRPass {
   }
 
   /** Tries to add the encountered symbol to the encountered symbols map. If it is already contained
-    * in the map, checks whether the underlying resolved name is the same as the original resolved name.
-    * Based on that, either attaches a warning for a duplicated import, or returns an IR.
-    *
-    * Does not handle polyglot imports.
+    * in the map, checks whether the underlying entity path is the same as the original entity path.
+    * Based on that, either attaches a warning for a duplicated import, or returns an [[IR.Error.ImportExport]].
     *
     * @param module Current module
     * @param encounteredSymbols Encountered symbols in the current module
     * @param currentImport Currently iterated import
     * @param symbolName Name of the symbol that is about to be processed
+    * @param symbolPath physical path of the symbol that is about to be processed
     * @return
     */
   private def tryAddEncounteredSymbol(
@@ -309,11 +314,10 @@ case object AmbiguousImportsAnalysis extends IRPass {
   ): Either[IR.Error.ImportExport, IR.Module.Scope.Import] = {
     if (encounteredSymbols.containsSymbol(symbolName)) {
       val encounteredFullName =
-        encounteredSymbols.getFullNameForSymbol(symbolName)
+        encounteredSymbols.getPathForSymbol(symbolName)
       val originalImport =
         encounteredSymbols.getOriginalImportForSymbol(symbolName).get
       if (symbolPath == encounteredFullName) {
-        // Duplicate warning
         val warn =
           createWarningForDuplicatedImport(
             module,
@@ -323,15 +327,16 @@ case object AmbiguousImportsAnalysis extends IRPass {
           )
         Right(currentImport.addDiagnostic(warn))
       } else {
-        // Ambiguous error
-        Left(createErrorForAmbiguousImport(
-          module,
-          originalImport,
-          encounteredFullName,
-          currentImport,
-          symbolName,
-          symbolPath
-        ))
+        Left(
+          createErrorForAmbiguousImport(
+            module,
+            originalImport,
+            encounteredFullName,
+            currentImport,
+            symbolName,
+            symbolPath
+          )
+        )
       }
     } else {
       encounteredSymbols.addSymbol(currentImport, symbolName, symbolPath)
@@ -374,11 +379,11 @@ case object AmbiguousImportsAnalysis extends IRPass {
   }
 
   /** For every encountered symbol name, we keep track of the original import from which it was imported,
-    * along with the resolved name (if any). For example, for symbols imported via `polyglot java import`,
-    * there is no resolved name.
+    * along with the entity path. The entity path is vital to decide whether an imported symbol is duplicated
+    * or ambiguous.
     */
   private class EncounteredSymbols(
-    val encounteredSymbols: mutable.Map[
+    private val encounteredSymbols: mutable.Map[
       String,
       (IR.Module.Scope.Import, String)
     ] = mutable.HashMap.empty
@@ -393,12 +398,14 @@ case object AmbiguousImportsAnalysis extends IRPass {
     def addSymbol(
       imp: IR.Module.Scope.Import,
       symbol: String,
-      fullName: String
+      symbolPath: String
     ): Unit = {
-      encounteredSymbols.put(symbol, (imp, fullName))
+      encounteredSymbols.put(symbol, (imp, symbolPath))
     }
 
-    def getFullNameForSymbol(
+    /** Returns the entity path for the symbol.
+      */
+    def getPathForSymbol(
       symbol: String
     ): String = {
       encounteredSymbols.get(symbol) match {
@@ -417,14 +424,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
       encounteredSymbols.get(symbol) match {
         case Some((originalImport, _)) => Some(originalImport)
         case None                      => None
-      }
-    }
-
-    @unused
-    def debugPrint(title: String): Unit = {
-      println(s"Encountered symbols ($title):")
-      encounteredSymbols.foreach { case (symbol, (imp, fullName)) =>
-        println(s"  $symbol -> (import=`${imp.showCode()}`, path='$fullName')")
       }
     }
   }
