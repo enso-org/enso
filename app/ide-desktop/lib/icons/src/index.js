@@ -212,11 +212,11 @@ async function genIcons(outputDir) {
 /** Main entry function. */
 async function main() {
     const outputDir = process.env.ENSO_BUILD_ICONS ?? process.argv[2]
-    if (!outputDir) {
+    if (outputDir == null) {
         const script = process.env.npm_package_name ?? url.fileURLToPath(import.meta.url)
         throw Error(
-            `The script '${script}' needs to be given an output path either through a \
-command line argument or the 'ENSO_BUILD_ICONS' environment variable.`
+            `The script '${script}' needs to be given an output path through either a ` +
+                `command line argument or the 'ENSO_BUILD_ICONS' environment variable.`
         )
     } else {
         await genIcons(outputDir)

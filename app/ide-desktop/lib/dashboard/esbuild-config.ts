@@ -133,7 +133,7 @@ export function bundlerOptions(args: Arguments) {
         },
         pure: ['assert'],
         sourcemap: trueBoolean,
-        minify: trueBoolean,
+        minify: !devMode,
         metafile: trueBoolean,
         format: 'esm',
         platform: 'browser',

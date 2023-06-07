@@ -3,6 +3,10 @@ import * as React from 'react'
 
 import * as svg from '../../components/svg'
 
+// ================
+// === Dropdown ===
+// ================
+
 /** Props for a {@link Dropdown}. */
 export interface DropdownProps {
     items: [string, ...string[]]

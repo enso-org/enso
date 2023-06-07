@@ -32,6 +32,12 @@ function Ide(props: IdeProps) {
     const { backend } = backendProvider.useBackend()
 
     React.useEffect(() => {
+        return () => {
+            appRunner.stopApp()
+        }
+    }, [appRunner])
+
+    React.useEffect(() => {
         void (async () => {
             const ideVersion =
                 project.ideVersion?.value ??

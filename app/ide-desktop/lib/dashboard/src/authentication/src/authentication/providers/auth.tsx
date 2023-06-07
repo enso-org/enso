@@ -225,8 +225,16 @@ export function AuthProvider(props: AuthProviderProps) {
                 const backend = new remoteBackend.RemoteBackend(client, logger)
                 // The backend MUST be the remote backend before login is finished.
                 // This is because the "set username" flow requires the remote backend.
-                if (!initialized || userSession == null) {
-                    setBackendWithoutSavingType(backend)
+                if (!initialized) {
+                    // This is an ugly back but `userSession` MUST NOT be a dependency
+                    // as this effect always does a `setUserSession`, which would cause
+                    // an infinite loop.
+                    setUserSession(oldUserSession => {
+                        if (oldUserSession == null) {
+                            setBackendWithoutSavingType(backend)
+                        }
+                        return oldUserSession
+                    })
                 }
                 let organization: backendModule.UserOrOrganization | null
                 for (;;) {
@@ -289,7 +297,6 @@ export function AuthProvider(props: AuthProviderProps) {
         logger,
         onAuthenticated,
         session,
-        userSession,
         /* should never change */ goOfflineInternal,
         /* should never change */ setBackendWithoutSavingType,
     ])

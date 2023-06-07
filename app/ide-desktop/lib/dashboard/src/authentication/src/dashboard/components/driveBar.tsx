@@ -11,6 +11,10 @@ import * as svg from '../../components/svg'
 import ColumnDisplayModeSwitcher from './columnDisplayModeSwitcher'
 import UploadFileModal from './uploadFileModal'
 
+// ================
+// === DriveBar ===
+// ================
+
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
     directoryId: backendModule.DirectoryId | null
