@@ -5,9 +5,7 @@
 use crate::prelude::*;
 use ast::crumbs::*;
 
-use crate::generate::Context;
 use crate::node;
-use crate::SpanTree;
 
 use ast::opr::match_named_argument;
 use ast::opr::ArgWithOffset;
@@ -66,14 +64,14 @@ pub trait Actions {
     /// Erase element pointed by this node from operator or prefix chain.
     ///
     /// It returns new ast root with performed action.
-    fn erase(&self, root: &Ast, context: &impl Context) -> FallibleResult<Ast>;
+    fn erase(&self, root: &Ast) -> FallibleResult<Ast>;
 }
 
 impl<T: Implementation> Actions for T {
     fn is_action_available(&self, action: Action) -> bool {
         match action {
             Action::Set => self.set_impl().is_some(),
-            Action::Erase => self.erase_impl::<crate::generate::context::Empty>().is_some(),
+            Action::Erase => self.erase_impl().is_some(),
         }
     }
 
@@ -83,10 +81,10 @@ impl<T: Implementation> Actions for T {
         action(root, to)
     }
 
-    fn erase(&self, root: &Ast, context: &impl Context) -> FallibleResult<Ast> {
+    fn erase(&self, root: &Ast) -> FallibleResult<Ast> {
         let operation = Action::Erase;
         let action = self.erase_impl().ok_or(ActionNotAvailable { operation })?;
-        action(root, context)
+        action(root)
     }
 }
 
@@ -104,14 +102,14 @@ pub type SetOperation<'a> = Box<dyn FnOnce(&Ast, Ast) -> FallibleResult<Ast> + '
 
 /// A concrete function for "set" operations on specific SpanTree node. It takes root ast
 /// as argument and returns new root with action performed.
-pub type EraseOperation<'a, C> = Box<dyn FnOnce(&Ast, &C) -> FallibleResult<Ast> + 'a>;
+pub type EraseOperation<'a> = Box<dyn FnOnce(&Ast) -> FallibleResult<Ast> + 'a>;
 
 /// Implementation of actions - this is for keeping in one place checking of actions availability
 /// and the performing the action.
 #[allow(missing_docs)]
 pub trait Implementation {
     fn set_impl(&self) -> Option<SetOperation>;
-    fn erase_impl<C: Context>(&self) -> Option<EraseOperation<C>>;
+    fn erase_impl(&self) -> Option<EraseOperation>;
 }
 
 impl<'a> Implementation for node::Ref<'a> {
@@ -263,9 +261,9 @@ impl<'a> Implementation for node::Ref<'a> {
         }
     }
 
-    fn erase_impl<C: Context>(&self) -> Option<EraseOperation<C>> {
+    fn erase_impl(&self) -> Option<EraseOperation> {
         if self.node.kind.removable() {
-            Some(Box::new(move |root, context| {
+            Some(Box::new(move |root| {
                 let (mut last_crumb, mut parent_crumbs) =
                     self.ast_crumbs.split_last().expect("Erase target must have parent AST node");
                 let mut ast = root.get_traversing(parent_crumbs)?;
@@ -465,7 +463,7 @@ mod test {
                 let case = format!("{self:?}");
                 let result = match &self.action {
                     Set => node.set(&ast, arg),
-                    Erase => node.erase(&ast, &context).map(|(ast, _)| ast),
+                    Erase => node.erase(&ast).map(|(ast, _)| ast),
                 }
                 .expect(&case);
                 let result_repr = result.repr();

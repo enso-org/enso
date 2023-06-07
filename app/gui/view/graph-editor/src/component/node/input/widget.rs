@@ -57,6 +57,7 @@ use ensogl::display::shape::StyleWatch;
 use ensogl::gui::cursor;
 use ensogl_component::drop_down::DropdownValue;
 use span_tree::node::Ref as SpanRef;
+use span_tree::PortId;
 use span_tree::TagValue;
 use text::index::Byte;
 
@@ -592,7 +593,7 @@ impl Tree {
 
     /// Set all currently active connections. The connected nodes will be highlighted with a
     /// different color, and the widgets might change behavior depending on the connection status.
-    pub fn set_connections(&self, map: &HashMap<ast::Id, color::Lcha>) {
+    pub fn set_connections(&self, map: &HashMap<PortId, color::Lcha>) {
         self.notify_dirty(self.model.set_connections(map));
     }
 
@@ -761,7 +762,7 @@ struct TreeModel {
     hierarchy:      RefCell<Vec<NodeHierarchy>>,
     ports_map:      RefCell<HashMap<StableSpanIdentity, usize>>,
     override_map:   Rc<RefCell<HashMap<OverrideKey, Configuration>>>,
-    connected_map:  Rc<RefCell<HashMap<ast::Id, color::Lcha>>>,
+    connected_map:  Rc<RefCell<HashMap<PortId, color::Lcha>>>,
     usage_type_map: Rc<RefCell<HashMap<ast::Id, crate::Type>>>,
     node_disabled:  Cell<bool>,
     tree_dirty:     Cell<bool>,
@@ -811,7 +812,7 @@ impl TreeModel {
     }
 
     /// Set the connection status under given widget. It may cause the tree to be marked as dirty.
-    fn set_connections(&self, map: &HashMap<ast::Id, color::Lcha>) -> bool {
+    fn set_connections(&self, map: &HashMap<PortId, color::Lcha>) -> bool {
         let mut prev_map = self.connected_map.borrow_mut();
         let modified = &*prev_map != map;
         if modified {
@@ -1317,7 +1318,7 @@ struct TreeBuilder<'a> {
     /// selected. This is a temporary map that is cleared and created from scratch for
     /// each tree building process.
     local_overrides: HashMap<OverrideKey, Configuration>,
-    connected_map:   &'a HashMap<span_tree::Crumbs, color::Lcha>,
+    connected_map:   &'a HashMap<PortId, color::Lcha>,
     usage_type_map:  &'a HashMap<ast::Id, crate::Type>,
     old_nodes:       HashMap<WidgetIdentity, TreeEntry>,
     new_nodes:       HashMap<WidgetIdentity, TreeEntry>,
@@ -1406,7 +1407,7 @@ impl<'a> TreeBuilder<'a> {
         let usage_type = span_node.ast_id.and_then(|id| self.usage_type_map.get(&id)).cloned();
 
         // Prepare the widget node info and build context.
-        let connection_color = self.connected_map.get(&span_node.crumbs);
+        let connection_color = span_node.port_id.as_ref().and_then(|p| self.connected_map.get(p));
         let connection = connection_color.map(|&color| EdgeData { color, depth });
         let parent_connection = self.parent_info.as_ref().and_then(|info| info.connection);
         let subtree_connection = connection.or(parent_connection);

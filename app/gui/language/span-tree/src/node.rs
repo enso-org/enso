@@ -37,6 +37,7 @@ pub struct Node {
     pub size:            ByteDiff,
     pub children:        Vec<Child>,
     pub ast_id:          Option<ast::Id>,
+    pub port_id:         Option<PortId>,
     /// When this `Node` is a part of an AST extension (a virtual span that only exists in
     /// span-tree, but not in AST), this field will contain the AST ID of the expression it extends
     /// (e.g. the AST of a function call with missing arguments, extended with expected arguments).
@@ -126,6 +127,11 @@ impl Node {
     }
     pub fn with_ast_id(mut self, id: ast::Id) -> Self {
         self.ast_id = Some(id);
+        self.port_id = Some(PortId::Ast(id));
+        self
+    }
+    pub fn with_port_id(mut self, id: Option<PortId>) -> Self {
+        self.port_id = id;
         self
     }
     pub fn with_application(mut self, application: ApplicationData) -> Self {
@@ -153,6 +159,9 @@ impl Node {
     }
     pub fn set_definition_index(&mut self, definition_index: usize) {
         self.kind.set_definition_index(definition_index);
+    }
+    pub fn set_port_id(&mut self, id: Option<PortId>) {
+        self.port_id = id;
     }
 }
 
@@ -187,6 +196,35 @@ impl Deref for Child {
 impl DerefMut for Child {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.node
+    }
+}
+
+
+
+// ==============
+// === PortId ===
+// ==============
+
+/// Identification for a port that can be hovered and connected to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PortId {
+    /// An unique existing AST within the expression.
+    Ast(ast::Id),
+    /// An argument that doesn't exist yet, but will be created when the connection is made.
+    ArgPlaceholder {
+        /// ID of method application containing this argument.
+        application: ast::Id,
+        /// The positional index of the argument within the method application that this
+        /// placeholder represents.
+        index:       usize,
+    },
+    /// A position within an array expression where a connection variable will be inserted.
+    ArrayInsert { array: ast::Id, insert_at: usize },
+}
+
+impl Default for PortId {
+    fn default() -> Self {
+        Self::Ast(default())
     }
 }
 

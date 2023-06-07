@@ -40,6 +40,7 @@ pub mod node;
 pub use node::Crumb;
 pub use node::Crumbs;
 pub use node::Node;
+pub use node::PortId;
 
 
 

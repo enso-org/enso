@@ -8,7 +8,6 @@ use crate::component::node::input;
 use crate::component::node::output::port;
 use crate::tooltip;
 use crate::view;
-use crate::PortId;
 use crate::Type;
 
 use enso_config::ARGS;
@@ -22,8 +21,6 @@ use ensogl::display::shape::StyleWatch;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
-use span_tree;
-
 
 
 // =================
@@ -42,6 +39,7 @@ const SHOW_DELAY_DURATION_MS: f32 = 150.0;
 use span_tree::node::Ref as PortRef;
 use span_tree::Crumbs;
 use span_tree::SpanTree;
+use span_tree::PortId;
 
 
 
@@ -448,11 +446,26 @@ impl Area {
             PortId::Ast(id) => {
                 let index = *self.model.id_ports_map.borrow().get(&id)?;
                 self.model.port_models.borrow().get(index)?.frp.as_ref()?.tp.value()
-            },
-            _ => None
+            }
+            _ => None,
         }
     }
 
+    /// Get the expression code for the specified port.
+    pub fn port_expression(&self, port: PortId) -> Option<String> {
+        match port {
+            PortId::Ast(id) => {
+                let index = *self.model.id_ports_map.borrow().get(&id)?;
+                let port_model = self.model.port_models.borrow().get(index)?;
+                let span = enso_text::Range::new(
+                    port_model.index,
+                    port_model.index + port_model.length
+                );
+                Some(self.model.expression.borrow().code.as_ref()?[span].to_owned())
+            }
+            _ => None,
+        }
+    }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn whole_expr_id(&self) -> Option<ast::Id> {

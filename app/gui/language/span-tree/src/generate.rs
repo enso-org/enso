@@ -6,6 +6,7 @@ use enso_text::unit::*;
 use crate::generate::context::CalledMethodInfo;
 use crate::node;
 use crate::node::InsertionPointType;
+use crate::node::PortId;
 use crate::ArgumentInfo;
 use crate::Node;
 use crate::SpanTree;
@@ -800,8 +801,10 @@ fn generate_expected_argument(
     let mut gen = ChildGenerator::default();
     let extended_ast_id = node.ast_id.or(node.extended_ast_id);
     gen.add_node(ast::Crumbs::new(), node);
+    let port_id = argument_info.call_id.map(|id| PortId::ArgPlaceholder { application: id, index });
     let arg_node = gen.generate_empty_node(InsertionPointType::ExpectedArgument { index, named });
     arg_node.node.set_argument_info(argument_info);
+    arg_node.node.set_port_id(port_id);
     let kind = node::Kind::chained().into();
     Node { kind, size: gen.current_offset, children: gen.children, extended_ast_id, ..default() }
 }
@@ -842,6 +845,10 @@ fn tree_generate_node(
         let first_token_or_child =
             tree.span_info.iter().find(|span| !matches!(span, SpanSeed::Space(_)));
         let is_array = matches!(first_token_or_child, Some(SpanSeed::Token(ast::SpanSeedToken { token })) if token == "[");
+        let array_id = ast_id.filter(|_| is_array);
+        let mut insert_port_iter = (0..)
+            .map_while(|insert_at| array_id.map(|array| PortId::ArrayInsert { array, insert_at }));
+
         let last_token_index =
             tree.span_info.iter().rposition(|span| matches!(span, SpanSeed::Token(_)));
         for (index, raw_span_info) in tree.span_info.iter().enumerate() {
@@ -852,9 +859,10 @@ fn tree_generate_node(
                 }
                 SpanSeed::Token(ast::SpanSeedToken { token }) => {
                     if is_array && Some(index) == last_token_index {
-                        let kind = InsertionPointType::Append;
                         children.push(node::Child {
-                            node: Node::new().with_kind(kind),
+                            node: Node::new()
+                                .with_kind(InsertionPointType::Append)
+                                .with_port_id(insert_port_iter.next()),
                             parent_offset,
                             sibling_offset,
                             ast_crumbs: vec![],
@@ -871,9 +879,10 @@ fn tree_generate_node(
                 }
                 SpanSeed::Child(ast::SpanSeedChild { node }) => {
                     if is_array {
-                        let kind = InsertionPointType::BeforeArgument(index);
                         children.push(node::Child {
-                            node: Node::new().with_kind(kind),
+                            node: Node::new()
+                                .with_kind(InsertionPointType::BeforeArgument(index))
+                                .with_port_id(insert_port_iter.next()),
                             parent_offset,
                             sibling_offset,
                             ast_crumbs: vec![],

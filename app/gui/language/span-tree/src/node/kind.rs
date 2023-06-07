@@ -113,7 +113,7 @@ impl Kind {
             Self::InsertionPoint(InsertionPoint {
                 kind: InsertionPointType::ExpectedArgument { index, .. },
                 ..
-            }) => Some(index),
+            }) => Some(*index),
             _ => None,
         }
     }

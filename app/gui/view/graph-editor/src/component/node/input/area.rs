@@ -12,7 +12,6 @@ use crate::node::input::widget::OverrideKey;
 use crate::node::profiling;
 use crate::view;
 use crate::CallWidgetsConfig;
-use crate::PortId;
 use crate::Type;
 
 use enso_frp as frp;
@@ -51,6 +50,7 @@ pub const TEXT_SIZE: f32 = 12.0;
 
 pub use span_tree::Crumb;
 pub use span_tree::Crumbs;
+pub use span_tree::PortId;
 pub use span_tree::SpanTree;
 
 
@@ -66,17 +66,10 @@ pub struct Expression {
     pub code:       ImString,
     pub span_tree:  SpanTree,
     /// The map containing either first or "this" argument for each unique `call_id` in the tree.
-    pub target_map: HashMap<ast::Id, CallInfo>,
-    /// Map from each port node's Port ID to its definition type.
-    pub type_map:   HashMap<PortId, Type>,
+    pub target_map: HashMap<ast::Id, ast::Id>,
+    /// Map from Port ID to its span-tree node crumbs.
+    pub ports_map:  HashMap<PortId, Crumbs>,
 }
-
-#[derive(Debug, Deref)]
-struct CallInfoMap {
-    /// The map from node's call_id to call information.
-    call_info: HashMap<ast::Id, CallInfo>,
-}
-
 
 impl Deref for Expression {
     type Target = SpanTree;
@@ -94,6 +87,13 @@ impl DerefMut for Expression {
 impl Debug for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Expression({})", self.code)
+    }
+}
+
+impl Expression {
+    fn port_node(&self, port: PortId) -> Option<span_tree::node::Ref> {
+        let crumbs = self.ports_map.get(&port)?;
+        self.span_tree.get_node(crumbs).ok()
     }
 }
 
@@ -134,7 +134,7 @@ impl From<node::Expression> for Expression {
     fn from(t: node::Expression) -> Self {
         let span_tree = t.input_span_tree;
         let mut target_map: HashMap<ast::Id, ast::Id> = HashMap::new();
-        let mut type_map: HashMap<ast::Id, Type> = HashMap::new();
+        let mut ports_map: HashMap<PortId, Crumbs> = HashMap::new();
         span_tree.root_ref().dfs(|node| {
             if let Some(ast_id) = node.ast_id {
                 if let Some(call_id) = node.kind.call_id() {
@@ -148,23 +148,11 @@ impl From<node::Expression> for Expression {
                         .or_insert(ast_id);
                 }
             }
-
-            if let Some(tp) = node.kind.tp() {
-                let port_id =
-                    if let Some(ast_id) = node.ast_id { Some(PortId::Ast(id)) }
-                    else if let Some(index) = node.kind.expected_argument_index()
-                        && let Some(application) = node.kind.call_id() {
-                        Some(PortId::ArgPlaceholder { application, index })
-                    } else {
-                        None
-                    };
-
-                if let Some(port_id) = port_id {
-                    type_map.insert(port_id, Type::from(tp));
-                }
+            if let Some(port_id) = node.port_id {
+                ports_map.insert(port_id, node.crumbs.clone());
             }
         });
-        Self { code: t.code, span_tree, target_map, type_map }
+        Self { code: t.code, span_tree, target_map, ports_map }
     }
 }
 
@@ -257,7 +245,7 @@ impl Model {
         self.edit_mode_label.add_to_scene_layer(layer);
     }
 
-    fn set_connections(&self, map: &HashMap<ast::Id, color::Lcha>) {
+    fn set_connections(&self, map: &HashMap<PortId, color::Lcha>) {
         self.widget_tree.set_connections(map);
     }
 
@@ -311,7 +299,7 @@ impl Model {
     #[profile(Debug)]
     fn request_widget_config_overrides(&self, expression: &Expression, area_frp: &FrpEndpoints) {
         for (call_id, target_id) in expression.target_map.iter() {
-            area_frp.source.requested_widgets.emit((*call_id, target_id));
+            area_frp.source.requested_widgets.emit((*call_id, *target_id));
         }
     }
 
@@ -376,7 +364,7 @@ ensogl::define_endpoints! {
 
         /// Set the connection status of the port indicated by the breadcrumbs. For connected ports,
         /// contains the color of connected edge.
-        set_connections (HashMap<ast::Id, color::Lcha>),
+        set_connections (HashMap<PortId, color::Lcha>),
 
         /// Update widget configuration for widgets already present in this input area.
         update_widgets   (CallWidgetsConfig),
@@ -578,11 +566,10 @@ impl Area {
     }
 
     /// An offset from node position to a specific port.
-    pub fn port_offset(&self, crumbs: &[Crumb]) -> Vector2<f32> {
+    pub fn port_offset(&self, port: PortId) -> Vector2<f32> {
         let expr = self.model.expression.borrow();
         let port = expr
-            .get_node(crumbs)
-            .ok()
+            .port_node(port)
             .and_then(|node| self.model.widget_tree.get_port_display_object(&node));
         let initial_position = Vector2(TEXT_OFFSET, NODE_HEIGHT / 2.0);
         port.map_or(initial_position, |port| {
@@ -595,41 +582,17 @@ impl Area {
 
     /// A type of the specified port.
     pub fn port_type(&self, port: PortId) -> Option<Type> {
-        self.model.expression.borrow().type_map.get(&port).cloned()
+        let tp = self.model.expression.borrow().port_node(port)?.kind.tp()?;
+        Some(Type::from(tp))
+    }
+
+    /// Get the span-tree crumbs for the specified port.
+    pub fn port_crumbs(&self, port: PortId) -> Option<Crumbs> {
+        self.model.expression.borrow().ports_map.get(&port).cloned()
     }
 
     /// Set a scene layer for text rendering.
     pub fn set_label_layer(&self, layer: &display::scene::Layer) {
         self.model.set_label_layer(layer);
-    }
-}
-
-
-
-// ===================
-// === CallInfoMap ===
-// ===================
-
-
-/// Information about the call expression, which are derived from the span tree.
-#[derive(Debug, Default)]
-struct CallInfo {
-    /// The AST ID associated with `self` argument span of the call expression.
-    target_id: Option<ast::Id>,
-}
-
-impl CallInfoMap {
-    fn scan_expression(expression: &SpanTree) -> Self {
-        let mut call_info: HashMap<ast::Id, CallInfo> = HashMap::new();
-        expression.root_ref().dfs(|node| {
-            if let Some(call_id) = node.kind.call_id() {
-                let mut entry = call_info.entry(call_id).or_default();
-                if entry.target_id.is_none() || node.kind.is_this() {
-                    entry.target_id = node.ast_id;
-                }
-            }
-        });
-
-        Self { call_info }
     }
 }

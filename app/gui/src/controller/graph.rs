@@ -350,12 +350,9 @@ impl EndpointInfo {
         self.ast.set_traversing(&self.full_ast_crumbs()?, ast_to_set)
     }
 
-    /// Erases given port. Returns new root Ast and crumbs pointing to the nearest insertion point.
-    pub fn erase(
-        &self,
-        context: &impl SpanTreeContext,
-    ) -> FallibleResult<(Ast, span_tree::Crumbs)> {
-        self.port()?.erase(&self.ast, context)
+    /// Erases given port. Returns new root Ast.
+    pub fn erase(&self) -> FallibleResult<Ast> {
+        self.port()?.erase(&self.ast)
     }
 }
 
@@ -668,7 +665,7 @@ impl Handle {
         let updated_expression = if connection.destination.var_crumbs.is_empty() {
             let port = info.port()?;
             if port.is_action_available(Action::Erase) {
-                info.erase(context)
+                info.erase()
             } else {
                 info.set(Ast::blank())
             }
@@ -818,8 +815,7 @@ impl Handle {
         let port = node_span_tree.get_node(crumbs)?;
         let new_node_ast = if expression_text.as_ref().is_empty() {
             if port.is_action_available(Action::Erase) {
-                let (ast, _) = port.erase(&node_ast, context)?;
-                ast
+                port.erase(&node_ast)?
             } else {
                 port.set(&node_ast, Ast::blank())?
             }
