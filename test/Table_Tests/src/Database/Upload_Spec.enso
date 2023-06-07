@@ -565,7 +565,7 @@ spec make_new_connection prefix persistent_connector=True =
 
         Test.specify "by default should keep columns missing from source as-is and use defaults when inserting" <|
             dest_name = Name_Generator.random_name "table-defaults"
-            connection.execute_update 'CREATE TEMPORARY TABLE "' + dest_name + '" (Y INTEGER DEFAULT 42, X INTEGER)' . should_succeed
+            connection.execute_update ('CREATE TEMPORARY TABLE "' + dest_name + '" (Y INTEGER DEFAULT 42, X INTEGER)') . should_succeed
             src = source_table_builder [["X", [1, 2, 3]]]
             r1 = src.update_database_table connection dest_name key_columns=[] update_action=Update_Action.Insert
             Problems.assume_no_problems r1
@@ -577,9 +577,9 @@ spec make_new_connection prefix persistent_connector=True =
 
         Test.specify "should use defaults for missing input columns for newly inserted rows when Aligning the tables, but keep existing values for existing rows" pending="TODO: Align_Records" <|
             dest_name = Name_Generator.random_name "table-defaults-align"
-            connection.execute_update 'CREATE TEMPORARY TABLE "' + dest_name + '" (X INTEGER, Y INTEGER DEFAULT 42, Z INTEGER)' . should_succeed
-            connection.execute_update 'INSERT INTO "' + dest_name + '" (X, Y, Z) VALUES (10, 100, 1000)' . should_succeed
-            connection.execute_update 'INSERT INTO "' + dest_name + '" (X, Y, Z) VALUES (20, 200, 2000)' . should_succeed
+            connection.execute_update ('CREATE TEMPORARY TABLE "' + dest_name + '" (X INTEGER, Y INTEGER DEFAULT 42, Z INTEGER)') . should_succeed
+            connection.execute_update ('INSERT INTO "' + dest_name + '" (X, Y, Z) VALUES (10, 100, 1000)') . should_succeed
+            connection.execute_update ('INSERT INTO "' + dest_name + '" (X, Y, Z) VALUES (20, 200, 2000)') . should_succeed
             src = source_table_builder [["X", [10, 2, 3]], ["Z", [-1, -2, -3]]]
             r1 = src.update_database_table connection dest_name update_action=Update_Action.Align_Records key_columns=["X"]
             Problems.assume_no_problems r1
@@ -592,7 +592,7 @@ spec make_new_connection prefix persistent_connector=True =
 
         Test.specify "should fail if the source table is missing some columns and the column in the target has no default value" <|
             dest_name = Name_Generator.random_name "table-notnull"
-            connection.execute_update 'CREATE TEMPORARY TABLE "' + dest_name + '" (Y INTEGER NOT NULL 42, X INTEGER)' . should_succeed
+            connection.execute_update ('CREATE TEMPORARY TABLE "' + dest_name + '" (Y INTEGER NOT NULL, X INTEGER)') . should_succeed
             src = source_table_builder [["X", [1, 2, 3]]]
             r1 = src.update_database_table connection dest_name key_columns=[] update_action=Update_Action.Insert
             # We may want a more specific error for missing columns without defaults, but for now it's just a SQL error.
