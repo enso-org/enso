@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import all
-from Standard.Table.Errors import Missing_Input_Columns, Inexact_Type_Coercion
+from Standard.Table.Errors import all
 
 from Standard.Database import all
 from Standard.Database.Errors import all
@@ -386,26 +386,26 @@ spec make_new_connection prefix persistent_connector=True =
             r1.should_fail_with Rows_Already_Present
 
         Test.specify "should use the target table primary key for the key by default" <|
-            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], [["Z", [4, 5, 6]]] primary_key=["Y", "Z"]
-            default_key_columns dest . should_equal ["Y", "Z"]
+            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [4, 5, 6]]] primary_key=["Y", "Z"]
+            default_key_columns connection dest.name . should_equal ["Y", "Z"]
 
         Test.specify "should report a meaningful error when the primary key could not be determined" pending="TODO: needed?" <|
             Nothing
 
         Test.specify "should be able to Update existing rows in a table" <|
-            dest = target_table_builder [["X", [1, 2, 3]], ["Y", 'a', 'b', 'c']]]
+            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
             src = source_table_builder [["X", [2]], ["Y", ['ZZZ']]]
 
-            r1 = src.update_database_table connection dest.name update_action=Update_Action.Update
+            r1 = src.update_database_table connection dest.name update_action=Update_Action.Update key_columns=["X"]
             r1.column_names . should_equal ["X", "Y"]
 
             rows = dest.rows.to_vector.map .to_vector
             rows.should_contain_the_same_elements_as [[1, 'a'], [2, 'ZZZ'], [3, 'c']]
 
         Test.specify "should fail on unmatched rows in Update mode" <|
-            dest = target_table_builder [["X", [1, 2, 3]], ["Y", 'a', 'b', 'c']]]
+            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
             src = source_table_builder [["X", [2, 100]], ["Y", ['d', 'e']]]
-            r1 = src.update_database_table connection dest.name update_action=Update_Action.Update
+            r1 = src.update_database_table connection dest.name update_action=Update_Action.Update key_columns=["X"]
             r1.should_fail_with Unmatched_Rows
 
             # The table should remain unchanged.
@@ -413,7 +413,7 @@ spec make_new_connection prefix persistent_connector=True =
             rows.should_contain_the_same_elements_as [[1, 'a'], [2, 'b'], [3, 'c']]
 
         Test.specify "should upsert by default (update existing rows, insert new rows)" <|
-            dest = target_table_builder [["X", [1, 2, 3]], ["Y", 'a', 'b', 'c']]]
+            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
             src = source_table_builder [["X", [2, 100]], ["Y", ['D', 'E']]]
             r1 = src.update_database_table connection dest.name update_action=Update_Action.Update
             Problems.assume_no_problems r1
@@ -427,9 +427,9 @@ spec make_new_connection prefix persistent_connector=True =
             rows2.should_contain_the_same_elements_as expected_rows
 
         Test.specify "should allow to align an existing table with a source (upsert + delete rows missing from source)" <|
-            dest = target_table_builder [["X", [1, 2, 3]], ["Y", 'a', 'b', 'c']]]
+            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
             src = source_table_builder [["X", [2, 100]], ["Y", ['D', 'E']]]
-            r1 = src.update_database_table connection dest.name update_action=Update_Action.Update
+            r1 = src.update_database_table connection dest.name update_action=Update_Action.Align_Records
             Problems.assume_no_problems r1
             r1.column_names . should_equal ["X", "Y"]
             expected_rows = [[2, 'D'], [100, 'E']]
@@ -439,7 +439,7 @@ spec make_new_connection prefix persistent_connector=True =
             rows2.should_contain_the_same_elements_as expected_rows
 
         Test.specify "should match columns by name, reordering to destination order if needed" <|
-            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
+            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
             src = source_table_builder [["Y", ['d', 'e', 'f']], ["X", [4, 5, 6]]]
             result = src.update_database_table connection dest.name
             result.column_names . should_equal ["X", "Y"]
@@ -449,7 +449,7 @@ spec make_new_connection prefix persistent_connector=True =
             rows1.should_contain_the_same_elements_as expected_rows
 
         Test.specify "should allow to use a transformed table, with computed fields, as a source" <|
-            dest = target_table_builder [["X", [1, 2, 3]], ["Y", 'a', 'b', 'c']]]
+            dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
             t1 = source_table_builder [["Z", [10, 20]], ["Y", ['D', 'E']]]
             t2 = source_table_builder [["Z", [20, 10]], ["X", [-99, 10]]]
             src = t1.join t2 on=["Z"] . remove_columns "Z" . set "[X] + 100" "X"
@@ -477,14 +477,19 @@ spec make_new_connection prefix persistent_connector=True =
             r1 = src.update_database_table connection dest.name update_action=Update_Action.Update key_columns=[]
             r1.should_fail_with Illegal_Argument
 
-            r2 = src.update_database_table connection dest.name update_action=Update_Action.Update_Or_Insert key_columns=[]
+            # The default will also fail because no primary key is detected in the DB.
+            default_key_columns connection dest.name . should_equal []
+            r2 = src.update_database_table connection dest.name update_action=Update_Action.Update
             r2.should_fail_with Illegal_Argument
 
-            r3 = src.update_database_table connection dest.name key_columns=[]
+            r3 = src.update_database_table connection dest.name update_action=Update_Action.Update_Or_Insert key_columns=[]
             r3.should_fail_with Illegal_Argument
 
-            r4 = src.update_database_table connection dest.name update_action=Update_Action.Align_Records key_columns=[]
+            r4 = src.update_database_table connection dest.name key_columns=[]
             r4.should_fail_with Illegal_Argument
+
+            r5 = src.update_database_table connection dest.name update_action=Update_Action.Align_Records key_columns=[]
+            r5.should_fail_with Illegal_Argument
 
         Test.specify "should fail if the key is not unique in the input table" <|
             d1 = target_table_builder [["X", [0, 10, 100]]] primary_key=["X"]
@@ -504,7 +509,7 @@ spec make_new_connection prefix persistent_connector=True =
             r1.should_fail_with Multiple_Target_Rows_Matched_For_Update
 
         Test.specify "should fail if the source table contains columns not present in the target (data loss)" <|
-            dest = target_table_builder [["X", [0, 10, 100]]]
+            dest = target_table_builder [["X", [0, 10, 100]]] primary_key=["X"]
             src = source_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
             r1 = src.update_database_table connection dest.name
             r1.should_fail_with Unmatched_Columns
@@ -557,7 +562,7 @@ spec make_new_connection prefix persistent_connector=True =
             d1 = target_table_builder [["X", [0, 10, 100]]]
             d2 = target_table_builder [["X", [0, 10, 100]], ["Y", ['a', 'b', 'c']]]
             s1 = source_table_builder [["X", [1, 3]]]
-            s2 = source_table_builder [["X", [1, 3]], ["Y", ['e', 'f']]
+            s2 = source_table_builder [["X", [1, 3]], ["Y", ['e', 'f']]]
 
             r1 = s1.update_database_table connection d1.name key_columns=["Y"]
             r1.should_fail_with Missing_Input_Columns
