@@ -419,11 +419,13 @@ impl Default for Keyboard {
 }
 
 
+// =======================
+// === BrowserShortcut ===
+// =======================
 
-// ===================
-// === DomBindings ===
-// ===================
-
+/// A handy structure used for defining shortcuts used by the browser in some special way
+/// (for example reload page or add bookmark). We want to prevent default actions on such shortcuts.
+/// See also [`BROWSER_SHORTCUTS`].
 struct BrowserShortcut {
     code:  &'static str,
     ctrl:  bool,
@@ -450,12 +452,19 @@ impl BrowserShortcut {
     }
 }
 
+/// A list of shortcuts with special browser action, on which we want to call `prevent_default`.
 const BROWSER_SHORTCUTS: &[BrowserShortcut] =
     &[BrowserShortcut::new("Tab"), BrowserShortcut::ctrl("R"), BrowserShortcut::ctrl_shift("D")];
 
 fn is_browser_shortcut(event: &KeyboardEvent) -> bool {
     BROWSER_SHORTCUTS.iter().any(|shortcut| shortcut.matches(event))
 }
+
+
+
+// ===================
+// === DomBindings ===
+// ===================
 
 /// A handle of listener emitting events on bound FRP graph.
 ///
