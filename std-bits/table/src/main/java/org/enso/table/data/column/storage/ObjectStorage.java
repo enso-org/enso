@@ -39,8 +39,21 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
   @Override
   public StorageType getValuesType() {
     if (resolvedType == null) {
-      resolvedType = Storage.computeStorageTypeForValues(this);
+        StorageType currentType = null;
+        for (int i = 0; i < size(); i++) {
+          var item = getItemBoxed(i);
+          if (item != null) {
+            var itemType = StorageType.forBoxedItem(item);
+            currentType = StorageType.findGeneralType(currentType, itemType);
+            if (currentType instanceof AnyObjectType) {
+              return currentType;
+            }
+          }
+        }
+
+        resolvedType = currentType;
     }
+
     return resolvedType;
   }
 
