@@ -304,35 +304,35 @@ impl<H: Clone, T: GetInitClone> GetInitClone for Cons<H, T> {
 
 
 
-// ================
-// === PushBack ===
-// ================
-
-/// Add a new element to the back of the list.
-#[allow(missing_docs)]
-pub trait PushBack<T>: Sized {
-    type Output: KnownLast<Last = T> + KnownInit<Init = Self>;
-    fn push_back(self, t: T) -> Self::Output;
-}
-
-impl<X> PushBack<X> for Nil {
-    type Output = Cons<X, Nil>;
-    #[inline(always)]
-    fn push_back(self, x: X) -> Self::Output {
-        Cons(x, Nil)
-    }
-}
-
-impl<X, H, T> PushBack<X> for Cons<H, T>
-where T: PushBack<X>
-{
-    type Output = Cons<H, <T as PushBack<X>>::Output>;
-    #[inline(always)]
-    fn push_back(self, x: X) -> Self::Output {
-        let Cons(head, tail) = self;
-        Cons(head, tail.push_back(x))
-    }
-}
+// // ================
+// // === PushBack ===
+// // ================
+//
+// /// Add a new element to the back of the list.
+// #[allow(missing_docs)]
+// pub trait PushBack<T>: Sized {
+//     type Output: KnownLast<Last = T> + KnownInit<Init = Self>;
+//     fn push_back(self, t: T) -> Self::Output;
+// }
+//
+// impl<X> PushBack<X> for Nil {
+//     type Output = Cons<X, Nil>;
+//     #[inline(always)]
+//     fn push_back(self, x: X) -> Self::Output {
+//         Cons(x, Nil)
+//     }
+// }
+//
+// impl<X, H, T> PushBack<X> for Cons<H, T>
+// where T: PushBack<X>
+// {
+//     type Output = Cons<H, <T as PushBack<X>>::Output>;
+//     #[inline(always)]
+//     fn push_back(self, x: X) -> Self::Output {
+//         let Cons(head, tail) = self;
+//         Cons(head, tail.push_back(x))
+//     }
+// }
 
 
 

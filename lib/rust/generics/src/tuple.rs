@@ -161,12 +161,19 @@ impl_has_tuple_repr_for_hlist![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::generic::FromHList;
+    use crate::generic::IntoHList;
+    use crate::generic::Tuple;
     use crate::traits::*;
+    use std::marker::PhantomData;
+
     #[test]
     fn test_field_at() {
         let tuple = (1, "hello", 1);
-        // assert_eq!(tuple.field_at::<0>(), 1);
-        // assert_eq!(tuple.field_at::<1>(), "hello");
-        // assert_eq!(tuple.field_at::<2>(), 1);
+        println!("{:?}", (1, 2).push_back(3));
+
+        assert_eq!(tuple.field_at::<0>(), &1);
+        assert_eq!(tuple.field_at::<1>(), &"hello");
+        assert_eq!(tuple.field_at::<2>(), &1);
     }
 }
