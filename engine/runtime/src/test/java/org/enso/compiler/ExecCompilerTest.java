@@ -84,6 +84,21 @@ public class ExecCompilerTest {
   }
 
   @Test
+  public void testRecursiveDefinition() throws Exception {
+    var module = ctx.eval("enso", """
+    from Standard.Base import all
+
+    run prefix =
+        op = if False then 42 else prefix+op
+        op
+    """);
+    var run = module.invokeMember("eval_expression", "run");
+    var error = run.execute("Nope: ");
+    assertTrue("We get an error value back", error.isException());
+    assertEquals("(Error: (Uninitialized_State.Error Nothing))", error.toString());
+  }
+
+  @Test
   public void testInvalidEnsoProjectRef() throws Exception {
     var module =
         ctx.eval(
