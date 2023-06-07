@@ -401,8 +401,10 @@ spec make_new_connection prefix persistent_connector=True =
             rows = r1.rows.to_vector.map .to_vector
             rows.should_contain_the_same_elements_as [[1, 'a'], [4, 'b'], [3, 'c'], [5, 'e']]
 
-        Test.specify "should report a meaningful error when the primary key could not be determined" pending="TODO: needed?" <|
-            Nothing
+        if sqlite_temporary_primary_key_pending.is_nothing.not then
+            Test.specify "should report a meaningful error when the primary key could not be determined" <|
+                dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["Y"]
+                default_key_columns connection dest.name . should_fail_with Illegal_Argument
 
         Test.specify "should be able to Update existing rows in a table" <|
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
