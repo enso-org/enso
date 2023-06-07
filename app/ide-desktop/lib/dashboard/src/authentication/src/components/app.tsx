@@ -138,7 +138,11 @@ function AppRouter(props: AppProps) {
         const authConfig = { navigate, ...props }
         return authService.initAuthService(authConfig)
     }, [navigate, props])
-    const userSession = memoizedAuthService.cognito.userSession.bind(memoizedAuthService.cognito)
+    // This MUST be memoized, otherwise auth will loop infinitely.
+    const userSession = React.useCallback(
+        () => memoizedAuthService.cognito.userSession(),
+        [memoizedAuthService.cognito]
+    )
     const registerAuthEventListener = memoizedAuthService.registerAuthEventListener
     const routes = (
         <router.Routes>

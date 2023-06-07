@@ -2,8 +2,6 @@
  * currently authenticated user's session. */
 import * as React from 'react'
 
-import * as results from 'ts-results'
-
 import * as cognito from '../cognito'
 import * as error from '../../error'
 import * as hooks from '../../hooks'
@@ -15,7 +13,7 @@ import * as listen from '../listen'
 
 /** State contained in a {@link SessionContext}. */
 interface SessionContextType {
-    session: results.Option<cognito.UserSession>
+    session: cognito.UserSession | null
     /** Set `initialized` to false. Must be called when logging out. */
     deinitializeSession: () => void
 }
@@ -45,7 +43,7 @@ export interface SessionProviderProps {
      * is initially served. */
     mainPageUrl: URL
     registerAuthEventListener: listen.ListenFunction
-    userSession: () => Promise<results.Option<cognito.UserSession>>
+    userSession: () => Promise<cognito.UserSession | null>
     children: React.ReactNode
 }
 
@@ -63,7 +61,7 @@ export function SessionProvider(props: SessionProviderProps) {
      * set. This is useful when a user has just logged in (as their cached credentials are
      * out of date, so this will update them). */
     const session = hooks.useAsyncEffect(
-        results.None,
+        null,
         async () => {
             const innerSession = await userSession()
             setInitialized(true)

@@ -36,12 +36,12 @@ export function useRefresh() {
  * Also see: https://stackoverflow.com/questions/61751728/asynchronous-calls-with-react-usememo.
  *
  * @param initialValue - The initial value of the state controlled by this hook.
- * @param fetch - The asynchronous function used to load the state controlled by this hook.
+ * @param asyncEffect - The asynchronous function used to load the state controlled by this hook.
  * @param deps - The list of dependencies that, when updated, trigger the asynchronous fetch.
  * @returns The current value of the state controlled by this hook. */
 export function useAsyncEffect<T>(
     initialValue: T,
-    fetch: (signal: AbortSignal) => Promise<T>,
+    asyncEffect: (signal: AbortSignal) => Promise<T>,
     deps?: React.DependencyList
 ): T {
     const logger = loggerProvider.useLogger()
@@ -49,34 +49,25 @@ export function useAsyncEffect<T>(
 
     React.useEffect(() => {
         const controller = new AbortController()
-        const { signal } = controller
-
-        /** Declare the async data fetching function. */
-        const load = async () => {
-            const result = await fetch(signal)
-
-            /** Set state with the result only if this effect has not been aborted. This prevents race
-             * conditions by making it so that only the latest async fetch will update the state on
-             * completion. */
-            if (!signal.aborted) {
-                setValue(result)
+        void asyncEffect(controller.signal).then(
+            result => {
+                if (!controller.signal.aborted) {
+                    setValue(result)
+                }
+            },
+            error => {
+                logger.error('Error while fetching data:', error)
             }
-        }
-
-        load().catch(error => {
-            logger.error('Error while fetching data', error)
-        })
+        )
         /** Cancel any future `setValue` calls. */
         return () => {
             controller.abort()
         }
-    }, [
-        fetch,
-        logger,
         // This is a wrapper function around `useEffect`, so it has its own `deps` array.
+        // `fetch` is omitted as it always changes - this is intentional.
+        // `logger` is omitted as it should not trigger a re-fetch.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        ...(deps ?? []),
-    ])
+    }, deps ?? [])
 
     return value
 }

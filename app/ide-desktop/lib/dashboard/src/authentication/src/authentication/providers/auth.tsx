@@ -187,14 +187,14 @@ export function AuthProvider(props: AuthProviderProps) {
         setInitialized(true)
         setUserSession(OFFLINE_USER_SESSION)
         setBackendWithoutSavingType(new localBackend.LocalBackend())
-    }, [setBackendWithoutSavingType])
+    }, [/* should never change */ setBackendWithoutSavingType])
 
     const goOffline = React.useCallback(() => {
         toast.error('You are offline, switching to offline mode.')
         goOfflineInternal()
         navigate(app.DASHBOARD_PATH)
         return Promise.resolve(true)
-    }, [goOfflineInternal, navigate])
+    }, [/* should never change */ goOfflineInternal, /* should never change */ navigate])
 
     // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
     // circular dependency.
@@ -215,13 +215,12 @@ export function AuthProvider(props: AuthProviderProps) {
         const fetchSession = async () => {
             if (!navigator.onLine) {
                 goOfflineInternal()
-            } else if (session.none) {
+            } else if (session == null) {
                 setInitialized(true)
                 setUserSession(null)
             } else {
-                const { accessToken, email } = session.val
                 const headers = new Headers()
-                headers.append('Authorization', `Bearer ${accessToken}`)
+                headers.append('Authorization', `Bearer ${session.accessToken}`)
                 const client = new http.Client(headers)
                 const backend = new remoteBackend.RemoteBackend(client, logger)
                 // The backend MUST be the remote backend before login is finished.
@@ -229,11 +228,11 @@ export function AuthProvider(props: AuthProviderProps) {
                 if (!initialized || userSession == null) {
                     setBackendWithoutSavingType(backend)
                 }
-                let organization
-                // eslint-disable-next-line no-restricted-syntax
-                while (organization === undefined) {
+                let organization: backendModule.UserOrOrganization | null
+                for (;;) {
                     try {
                         organization = await backend.usersMe()
+                        break
                     } catch {
                         // The value may have changed after the `await`.
                         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -249,21 +248,22 @@ export function AuthProvider(props: AuthProviderProps) {
                     }
                 }
                 let newUserSession: UserSession
-                const sharedSessionData = { email, accessToken }
-                if (!organization) {
+                // Not sure why the `strict-boolean-expressions` lint does not detect
+                // `!organization` as invalid.
+                if (organization == null) {
                     newUserSession = {
                         type: UserSessionType.partial,
-                        ...sharedSessionData,
+                        ...session,
                     }
                 } else {
                     newUserSession = {
                         type: UserSessionType.full,
-                        ...sharedSessionData,
+                        ...session,
                         organization,
                     }
 
                     /** Save access token so can be reused by Enso backend. */
-                    cognito.saveAccessToken(accessToken)
+                    cognito.saveAccessToken(session.accessToken)
 
                     /** Execute the callback that should inform the Electron app that the user has logged in.
                      * This is done to transition the app from the authentication/dashboard view to the IDE. */
@@ -278,13 +278,21 @@ export function AuthProvider(props: AuthProviderProps) {
         fetchSession().catch(error => {
             if (isUserFacingError(error)) {
                 toast.error(error.message)
+                logger.error(error.message)
             } else {
                 logger.error(error)
             }
         })
-        // `setBackend` changing must not trigger a re-render.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [cognito, logger, onAuthenticated, session])
+    }, [
+        cognito,
+        initialized,
+        logger,
+        onAuthenticated,
+        session,
+        userSession,
+        /* should never change */ goOfflineInternal,
+        /* should never change */ setBackendWithoutSavingType,
+    ])
 
     /** Wrap a function returning a {@link Promise} to displays a loading toast notification
      * until the returned {@link Promise} finishes loading. */
@@ -490,7 +498,7 @@ export function ProtectedLayout() {
     const { session } = useAuth()
     const shouldPreventNavigation = getShouldPreventNavigation()
 
-    if (!shouldPreventNavigation && !session) {
+    if (!shouldPreventNavigation && session == null) {
         return <router.Navigate to={app.LOGIN_PATH} />
     } else if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
         return <router.Navigate to={app.SET_USERNAME_PATH} />

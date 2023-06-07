@@ -289,7 +289,7 @@ export interface UserSession {
 /** Return the current `CognitoUserSession`, if one exists. */
 async function userSession() {
     const amplifySession = await getAmplifyCurrentSession()
-    return amplifySession.map(parseUserSession).toOption()
+    return amplifySession.map(parseUserSession).unwrapOr(null)
 }
 
 /** Return the current `CognitoUserSession` if the user is logged in, or `CurrentSessionErrorKind`
