@@ -3,6 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Column_Selector
 
+import project.Data.SQL_Query.SQL_Query
 from project.Internal.Result_Set import result_set_to_table
 
 ## PRIVATE
@@ -28,10 +29,11 @@ default_key_columns connection table_name =
 
      TODO [RW] fix keys for SQLite temporary tables and test it
 get_primary_key connection table_name =
-    connection.jdbc_connection.with_connection java_connection->
-        rs = java_connection.getMetaData.getPrimaryKeys Nothing Nothing table_name
-        keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
-        # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
-        selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True
-        key_column_names = selected.order_by 1 . at 0 . to_vector
-        if key_column_names.is_empty then Nothing else key_column_names
+    connection.query (SQL_Query.Table_Name table_name) . if_not_error <|
+        connection.jdbc_connection.with_connection java_connection->
+            rs = java_connection.getMetaData.getPrimaryKeys Nothing Nothing table_name
+            keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
+            # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
+            selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True
+            key_column_names = selected.order_by 1 . at 0 . to_vector
+            if key_column_names.is_empty then Nothing else key_column_names
