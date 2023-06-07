@@ -241,11 +241,12 @@ append_to_existing_table source_table target_table update_action key_columns err
     check_update_arguments source_table target_table effective_key_columns update_action error_on_missing_columns on_problems <|
         upload_status = case update_action of
             Update_Action.Insert ->
-                # TODO check for Rows_Already_Present
-                connection = target_table.connection
-                insert_statement = connection.dialect.generate_sql <|
-                    Query.Insert_From_Select target_table.name source_table.to_select_query
-                Panic.rethrow <| connection.execute_update insert_statement
+                existing_rows_check = "TODO"
+                existing_rows_check.if_not_error <|
+                    connection = target_table.connection
+                    insert_statement = connection.dialect.generate_sql <|
+                        Query.Insert_From_Select target_table.name source_table.to_select_query
+                    Panic.rethrow <| connection.execute_update insert_statement
             Update_Action.Update -> Error.throw "TODO"
             Update_Action.Update_Or_Insert -> Error.throw "TODO"
             Update_Action.Align_Records -> Error.throw "TODO"
