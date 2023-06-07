@@ -237,7 +237,8 @@ common_update_table source_table connection table_name update_action key_columns
 
 ## PRIVATE
 append_to_existing_table source_table target_table update_action key_columns error_on_missing_columns on_problems = In_Transaction.ensure_in_transaction <|
-    check_update_compatibility source_table target_table key_columns error_on_missing_columns on_problems <|
+    effective_key_columns = if key_columns.is_nothing then [] else key_columns
+    check_update_arguments source_table target_table effective_key_columns update_action error_on_missing_columns on_problems <|
         _ = case update_action of
             Update_Action.Insert -> Error.throw "TODO"
             Update_Action.Update -> Error.throw "TODO"
@@ -247,7 +248,7 @@ append_to_existing_table source_table target_table update_action key_columns err
         target_table
 
 ## PRIVATE
-check_update_compatibility source_table target_table key_columns error_on_missing_columns on_problems ~action =
+check_update_arguments source_table target_table key_columns update_action error_on_missing_columns on_problems ~action =
     source_columns = Set.from_vector source_table.column_names
     target_columns = Set.from_vector target_table.column_names
     extra_columns = source_columns.difference target_columns
@@ -260,14 +261,15 @@ check_update_compatibility source_table target_table key_columns error_on_missin
             # TODO Shall we add some 'location' to `Missing_Input_Columns` to distinguish when a missing column comes from table structure VS `key_columns`?
             if missing_source_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_source_key_columns.to_vector "the source table") else
                 if missing_target_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_target_key_columns.to_vector "the target table") else
-                    # Verify type matching
-                    problems = source_table.columns.flat_map source_column->
-                        # The column must exist because it was verified earlier.
-                        target_column = target_table.get source_column.name
-                        source_type = source_column.value_type
-                        target_type = target_column.value_type
-                        if source_type == target_type then [] else
-                            if source_type.can_be_widened_to target_type then [Inexact_Type_Coercion.Warning source_type target_type] else
-                                Error.throw (Column_Type_Mismatch.Error source_column.name target_type source_type)
-                    problems.if_not_error <|
-                        on_problems.attach_problems_before problems action
+                    if (update_action != Update_Action.Insert) && key_columns.is_empty then Error.throw (Illegal_Argument.Error "For the `update_action = "+update_action.to_text+"`, the `key_columns` must be specified to define how to match the records.") else
+                        # Verify type matching
+                        problems = source_table.columns.flat_map source_column->
+                            # The column must exist because it was verified earlier.
+                            target_column = target_table.get source_column.name
+                            source_type = source_column.value_type
+                            target_type = target_column.value_type
+                            if source_type == target_type then [] else
+                                if source_type.can_be_widened_to target_type then [Inexact_Type_Coercion.Warning source_type target_type] else
+                                    Error.throw (Column_Type_Mismatch.Error source_column.name target_type source_type)
+                        problems.if_not_error <|
+                            on_problems.attach_problems_before problems action
