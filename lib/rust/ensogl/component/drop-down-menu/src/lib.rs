@@ -293,7 +293,7 @@ impl DropDownMenu {
                 model.selection_menu.set_y(-menu_size.y/2.0-icon_size.y/2.0-menu_offset_y);
                 // Align the right of the menu to the right of the icon.
                 let x_offset = match alignment {
-                    Alignment::Left => -menu_size.x/2.0+icon_size.x/2.0-list_view::SHADOW_PX/2.0,
+                    Alignment::Left => -menu_size.x/2.0+icon_size.x/2.0,
                     Alignment::Right => 0.0,
                 };
                 model.selection_menu.set_x(x_offset);

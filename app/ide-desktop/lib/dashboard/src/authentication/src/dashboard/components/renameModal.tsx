@@ -27,22 +27,28 @@ function RenameModal(props: RenameModalProps) {
     const { assetType, name, namePattern, title, doRename, onSuccess } = props
     const { unsetModal } = modalProvider.useSetModal()
 
+    const [isSubmitting, setIsSubmitting] = react.useState(false)
     const [newName, setNewName] = react.useState<string | null>(null)
 
     const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
         if (newName == null) {
             toast.error('Please provide a new name.')
-        } else {
-            unsetModal()
-            await toast.promise(doRename(newName), {
-                loading: `Renaming ${assetType}...`,
-                success: `Renamed ${assetType}.`,
-                // This is UNSAFE, as the original function's parameter is of type `any`.
-                error: (promiseError: Error) =>
-                    `Error renaming ${assetType}: ${promiseError.message}`,
-            })
-            onSuccess()
+        } else if (!isSubmitting) {
+            try {
+                setIsSubmitting(true)
+                await toast.promise(doRename(newName), {
+                    loading: `Renaming ${assetType}...`,
+                    success: `Renamed ${assetType}.`,
+                    // This is UNSAFE, as the original function's parameter is of type `any`.
+                    error: (promiseError: Error) =>
+                        `Error renaming ${assetType}: ${promiseError.message}`,
+                })
+                unsetModal()
+                onSuccess()
+            } finally {
+                setIsSubmitting(false)
+            }
         }
     }
 
@@ -65,9 +71,10 @@ function RenameModal(props: RenameModalProps) {
                     </label>
                     <Input
                         autoFocus
+                        required
+                        // Never disabled, as disabling unfocuses the input.
                         id="renamed_file_name"
                         type="text"
-                        required
                         pattern={namePattern}
                         title={title}
                         className="border-primary bg-gray-200 rounded-full w-2/3 px-2 mx-2"
@@ -78,16 +85,23 @@ function RenameModal(props: RenameModalProps) {
                 <div className="m-1">
                     <button
                         type="submit"
-                        className="hover:cursor-pointer inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-1"
+                        disabled={isSubmitting}
+                        className={`hover:cursor-pointer inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-1 ${
+                            isSubmitting ? 'opacity-50' : ''
+                        }`}
                     >
                         Rename
                     </button>
-                    <div
-                        className="hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1"
+                    <button
+                        type="button"
+                        disabled={isSubmitting}
+                        className={`hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1 ${
+                            isSubmitting ? 'opacity-50' : ''
+                        }`}
                         onClick={unsetModal}
                     >
                         Cancel
-                    </div>
+                    </button>
                 </div>
             </form>
         </Modal>

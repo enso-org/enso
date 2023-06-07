@@ -128,6 +128,10 @@ spec setup =
             c3.value_type . should_equal (Value_Type.Integer Bits.Bits_32)
             c3.to_vector . should_equal [1, 2, 3]
 
+            c4 = c.cast Value_Type.Byte
+            c4.value_type . should_equal Value_Type.Byte
+            c4.to_vector . should_equal [1, 2, 3]
+
         Test.specify "should allow to cast a floating point column to integer" <|
             t = table_builder [["X", [1.0001, 2.25, 4.0]]]
             c = t.at "X" . cast Value_Type.Integer
@@ -370,6 +374,21 @@ spec setup =
                 c7.to_vector . should_equal ((nulls 6) + [Date_Time.new 2020, Date_Time.new 2023 12 15 19 25, Nothing] + (nulls 4))
                 w7 = Problems.expect_warning Conversion_Failure c7
                 w7.affected_rows_count . should_equal 6+3+1
+
+        if setup.is_database.not then
+            Test.specify "should fail if there is no conversion available for a given type" <|
+                t = table_builder [["X", [1, 2, 3]]]
+
+                # currently unsupported
+                r1 = t.cast "X" Value_Type.Decimal
+                r1.should_fail_with Illegal_Argument
+
+                r2 = t.cast "X" Value_Type.Binary
+                r2.should_fail_with Illegal_Argument
+
+                # this is not supposed to be supported, but still needs a friendly message
+                r3 = t.cast "X" (Value_Type.Unsupported_Data_Type "foobar" "foobar")
+                r3.should_fail_with Illegal_Argument
 
     Test.group prefix+"Simple variant of Table/Column.parse in all backends" <|
         Test.specify "should be able to parse simple integers" <|

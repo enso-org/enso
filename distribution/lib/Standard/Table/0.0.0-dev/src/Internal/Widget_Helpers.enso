@@ -6,49 +6,60 @@ from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 from Standard.Base.Metadata.Choice import Option
 import Standard.Base.Metadata.Display
 
-import project.Data.Table.Table
 import project.Data.Aggregate_Column.Aggregate_Column
-import project.Internal.Parse_Values_Helper
+import project.Data.Join_Condition.Join_Condition
+import project.Data.Table.Table
+import project.Data.Type.Value_Type.Auto
+import project.Data.Type.Value_Type.Value_Type
 import project.Data.Table_Conversions
+import project.Internal.Parse_Values_Helper
 
 ## PRIVATE
    Make an aggregate column selector.
 make_aggregate_column_selector : Table -> Display -> Boolean -> Widget
 make_aggregate_column_selector table display=Display.Always include_group_by=True =
     col_names_selector = make_column_name_selector table display=Display.Always
-    column_widget = Pair.new "column" col_names_selector
+    column_widget = ["column", col_names_selector]
 
     col_list_selector = make_column_name_vector_selector table display=Display.Always
 
-    group_by = if include_group_by then [Option "Group By" "(Aggregate_Column.Group_By)" [column_widget]] else []
-    count = Option "Count" "Aggregate_Column.Count"
-    count_distinct = Option "Count Distinct" "(Aggregate_Column.Count_Distinct)" [Pair.new "columns" (col_list_selector)]
-    first = Option "First" "(Aggregate_Column.First)" [column_widget, Pair.new "order_by" (col_list_selector)]
-    last = Option "Last" "(Aggregate_Column.Last)" [column_widget, Pair.new "order_by" (col_list_selector)]
+    fqn = Meta.get_qualified_type_name Aggregate_Column
+    group_by = if include_group_by then [Option "Group By" fqn+".Group_By" [column_widget]] else []
+    count = Option "Count" fqn+".Count"
+    count_distinct = Option "Count Distinct" fqn+".Count_Distinct" [["columns", col_list_selector]]
+    first = Option "First" fqn+".First" [column_widget, ["order_by" , col_list_selector]]
+    last = Option "Last" fqn+".Last" [column_widget, ["order_by" , col_list_selector]]
 
-    count_not_nothing = Option "Count Not Nothing" "(Aggregate_Column.Count_Not_Nothing)" [column_widget]
-    count_nothing = Option "Count Nothing" "(Aggregate_Column.Count_Nothing)" [column_widget]
+    count_not_nothing = Option "Count Not Nothing" fqn+".Count_Not_Nothing" [column_widget]
+    count_nothing = Option "Count Nothing" fqn+".Count_Nothing" [column_widget]
 
     ## Should be a list of Text columns only
-    count_not_empty = Option "Count Not Empty" "(Aggregate_Column.Count_Not_Empty)" [column_widget]
-    count_empty = Option "Count Empty" "(Aggregate_Column.Count_Empty)" [column_widget]
-    concatenate = Option "Concatenate" "(Aggregate_Column.Concatenate)" [column_widget]
-    shortest = Option "Shortest" "(Aggregate_Column.Shortest)" [column_widget]
-    longest = Option "Longest" "(Aggregate_Column.Longest)" [column_widget]
+    count_not_empty = Option "Count Not Empty" fqn+".Count_Not_Empty" [column_widget]
+    count_empty = Option "Count Empty" fqn+".Count_Empty" [column_widget]
+    concatenate = Option "Concatenate" fqn+".Concatenate" [column_widget]
+    shortest = Option "Shortest" fqn+".Shortest" [column_widget]
+    longest = Option "Longest" fqn+".Longest" [column_widget]
 
     ## Should be a list of Numeric columns only
-    sum = Option "Sum" "(Aggregate_Column.Sum)" [column_widget]
-    average = Option "Average" "(Aggregate_Column.Average)" [column_widget]
-    median = Option "Median" "(Aggregate_Column.Median)" [column_widget]
-    percentile = Option "Percentile" "(Aggregate_Column.Percentile)" [column_widget]
-    mode = Option "Mode" "(Aggregate_Column.Mode)" [column_widget]
-    standard_deviation = Option "Standard Deviation" "(Aggregate_Column.Standard_Deviation)" [column_widget]
+    sum = Option "Sum" fqn+".Sum" [column_widget]
+    average = Option "Average" fqn+".Average" [column_widget]
+    median = Option "Median" fqn+".Median" [column_widget]
+    percentile = Option "Percentile" fqn+".Percentile" [column_widget]
+    mode = Option "Mode" fqn+".Mode" [column_widget]
+    standard_deviation = Option "Standard Deviation" fqn+".Standard_Deviation" [column_widget]
 
     # Should be a list of comparable columns only
-    maximum = Option "Maximum" "(Aggregate_Column.Maximum)" [column_widget]
-    minimum = Option "Minimum" "(Aggregate_Column.Minimum)" [column_widget]
+    maximum = Option "Maximum" fqn+".Maximum" [column_widget]
+    minimum = Option "Minimum" fqn+".Minimum" [column_widget]
 
     Single_Choice display=display values=(group_by+[count, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, sum, average, median, percentile, mode, standard_deviation, maximum, minimum])
+
+## PRIVATE
+   Make an Aggregate_Column list editor
+make_aggregate_column_vector_selector : Table -> Display -> Widget
+make_aggregate_column_vector_selector table display=Display.Always =
+    item_editor = make_aggregate_column_selector table display=Display.Always
+    Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=display
 
 ## PRIVATE
    Make a column name selector.
@@ -64,6 +75,21 @@ make_column_name_vector_selector : Table -> Display -> Widget
 make_column_name_vector_selector table display=Display.Always =
     item_editor = make_column_name_selector table display=Display.Always
     Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=display
+
+## PRIVATE
+   Make a join condition selector.
+make_join_condition_selector : Table -> Display -> Widget
+make_join_condition_selector table display=Display.Always =
+    col_names_selector = make_column_name_selector table display=Display.Always
+
+    fqn = "Join_Condition"
+    equals = Option "Equals" fqn+".Equals" [["left", col_names_selector]]
+    equals_ci = Option "Equals (Ignore Case)" fqn+".Equals_Ignore_Case" [["left", col_names_selector]]
+    between = Option "Between" fqn+".Between" [["left", col_names_selector]]
+    names=[equals, equals_ci, between]
+
+    item_editor = Single_Choice display=display values=names
+    Vector_Editor item_editor=item_editor item_default="("+item_editor.values.first.value+")" display=display
 
 ## PRIVATE
    Make a column name selector.
@@ -91,8 +117,11 @@ parse_type_selector include_auto=True =
     valid_parse_targets = Parse_Values_Helper.valid_parse_targets
 
     prefix = if include_auto then ['Auto'] else []
-    choice = prefix + (valid_parse_targets.map t-> 'Value_Type.'+t)
     names = prefix + valid_parse_targets
+
+    fqn = Meta.get_qualified_type_name Value_Type
+    choice = names.map n-> if n=='Auto' then (Meta.get_qualified_type_name Auto) else fqn+'.'+n
+
     options = names.zip choice . map pair-> Option pair.first pair.second
     Single_Choice display=Display.Always values=options
 

@@ -1,4 +1,5 @@
 from Standard.Base import all
+import project.Errors.Common.Dry_Run_Operation
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.File_Error.File_Error
@@ -67,7 +68,10 @@ type File
             if self.exists && copy_original then
                 Context.Output.with_enabled <|
                     self.copy_to temp replace_existing=True
-            temp
+
+            ## Attach a warning to the file that it is a dry run
+            warning = Dry_Run_Operation.Warning "Only a dry run has occurred, with data written to a temporary file."
+            Warning.attach warning temp
 
     ## ALIAS Current Directory
 

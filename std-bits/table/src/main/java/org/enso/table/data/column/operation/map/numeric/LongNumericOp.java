@@ -2,17 +2,20 @@ package org.enso.table.data.column.operation.map.numeric;
 
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
-import org.enso.table.data.column.storage.DoubleStorage;
-import org.enso.table.data.column.storage.LongStorage;
-import org.enso.table.data.column.storage.NumericStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
+import org.enso.table.data.column.storage.numeric.DoubleStorage;
+import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.numeric.NumericStorage;
 import org.enso.table.error.UnexpectedTypeException;
 import org.enso.table.util.BitSets;
 
 import java.util.BitSet;
 
-/** An operation expecting a numeric argument and returning a boolean. */
-public abstract class LongNumericOp extends MapOperation<Long, LongStorage> {
+/**
+ * An operation expecting a numeric argument and returning a boolean.
+ */
+public abstract class LongNumericOp extends MapOperation<Long, AbstractLongStorage> {
   private final boolean alwaysCastToDouble;
 
   public LongNumericOp(String name, boolean alwaysCastToDouble) {
@@ -29,7 +32,7 @@ public abstract class LongNumericOp extends MapOperation<Long, LongStorage> {
   public abstract Long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder);
 
   @Override
-  public NumericStorage<?> runMap(LongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public NumericStorage<?> runMap(AbstractLongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     if (arg == null) {
       if (alwaysCastToDouble) {
         return DoubleStorage.makeEmpty(storage.size());
@@ -64,8 +67,8 @@ public abstract class LongNumericOp extends MapOperation<Long, LongStorage> {
   }
 
   @Override
-  public NumericStorage<?> runZip(LongStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
-    if (arg instanceof LongStorage v) {
+  public NumericStorage<?> runZip(AbstractLongStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+    if (arg instanceof AbstractLongStorage v) {
       long[] out = new long[storage.size()];
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
@@ -84,9 +87,7 @@ public abstract class LongNumericOp extends MapOperation<Long, LongStorage> {
           newMissing.set(i);
         }
       }
-      return alwaysCastToDouble
-          ? new DoubleStorage(out, storage.size(), newMissing)
-          : new LongStorage(out, storage.size(), newMissing);
+      return alwaysCastToDouble ? new DoubleStorage(out, storage.size(), newMissing) : new LongStorage(out, storage.size(), newMissing);
     } else if (arg instanceof DoubleStorage v) {
       long[] out = new long[storage.size()];
       BitSet newMissing = new BitSet();

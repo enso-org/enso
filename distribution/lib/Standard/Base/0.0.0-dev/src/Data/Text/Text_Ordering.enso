@@ -38,6 +38,7 @@ type Text_Ordering
        Arguments:
        - sort_digits_as_numbers: Sort digits in the text as numbers. Setting
          this to `True` results in a "Natural" ordering.
+    @locale Locale.default_widget
     Case_Insensitive (locale:Locale=Locale.default) (sort_digits_as_numbers:Boolean=False)
 
     ## PRIVATE

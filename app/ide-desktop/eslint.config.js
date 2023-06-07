@@ -274,6 +274,14 @@ export default [
                 },
             ],
             'sort-imports': ['error', { allowSeparatedGroups: true }],
+            'no-restricted-properties': [
+                'error',
+                {
+                    object: 'router',
+                    property: 'useNavigate',
+                    message: 'Use `hooks.useNavigate` instead.',
+                },
+            ],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
             'prefer-arrow-callback': 'error',
             // Prefer `interface` over `type`.
@@ -423,6 +431,30 @@ export default [
             ],
             // This rule does not work with TypeScript, and TypeScript already does this.
             'no-undef': 'off',
+        },
+    },
+    {
+        files: [
+            'lib/dashboard/src/**/*.ts',
+            'lib/dashboard/src/**/*.mts',
+            'lib/dashboard/src/**/*.cts',
+            'lib/dashboard/src/**/*.tsx',
+            'lib/dashboard/src/**/*.mtsx',
+            'lib/dashboard/src/**/*.ctsx',
+        ],
+        rules: {
+            'no-restricted-properties': [
+                'error',
+                {
+                    object: 'console',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+                {
+                    object: 'hooks',
+                    property: 'useDebugState',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+            ],
         },
     },
     {

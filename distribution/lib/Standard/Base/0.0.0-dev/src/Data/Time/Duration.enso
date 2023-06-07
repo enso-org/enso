@@ -128,7 +128,8 @@ type Duration
         duration = Duration.new nanoseconds=(end - start)
         Pair.new duration result
 
-    ## Add the specified amount of time to this duration.
+    ## ALIAS Add Duration
+       Add the specified amount of time to this duration.
 
        Arguments:
        - that: The duration to add to `self`.
@@ -152,7 +153,8 @@ type Duration
             Panic.catch ArithmeticException (self.plus_builtin that) err->
                 Error.throw (Time_Error.Error err.payload.getMessage)
 
-    ## Subtract the specified amount of time from this duration.
+    ## ALIAS Subtract Duration
+       Subtract the specified amount of time from this duration.
 
        Arguments:
        - that: The duration to subtract from `self`.

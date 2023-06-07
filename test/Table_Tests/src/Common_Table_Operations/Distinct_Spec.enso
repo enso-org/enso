@@ -104,8 +104,8 @@ spec setup =
                 t3.catch . should_equal (Missing_Input_Columns.Error ["Y"])
 
                 t4 = t1.distinct [0, 42] on_problems=pb
-                t4.should_fail_with Column_Indexes_Out_Of_Range
-                t4.catch . should_equal (Column_Indexes_Out_Of_Range.Error [42])
+                t4.should_fail_with Missing_Input_Columns
+                t4.catch . should_equal (Missing_Input_Columns.Error [42])
 
                 t5 = t1.distinct [] on_problems=pb
                 t5.should_fail_with No_Input_Columns_Selected
@@ -126,5 +126,5 @@ spec setup =
             action3 = t1.distinct [0, 42] error_on_missing_columns=False on_problems=_
             tester3 table =
                 table.at "X" . to_vector . should_equal [1, 2, 3]
-            problems3 = [Column_Indexes_Out_Of_Range.Error [42]]
+            problems3 = [Missing_Input_Columns.Error [42]]
             Problems.test_problem_handling action3 problems3 tester3

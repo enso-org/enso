@@ -224,8 +224,8 @@ public abstract class InvokeCallableNode extends BaseNode {
           callerFrame, state, conversion, selfArgument, thatArgument, arguments);
     } else {
       CompilerDirectives.transferToInterpreter();
-      throw new RuntimeException(
-          "Conversion currying without `this` or `that` argument is not supported.");
+      var ctx = EnsoContext.get(this);
+      throw new PanicException(ctx.getBuiltins().error().makeNoConversionCurrying(canApplyThis, canApplyThat, conversion), this);
     }
   }
 

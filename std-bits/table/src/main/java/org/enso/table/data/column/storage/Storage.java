@@ -7,6 +7,7 @@ import org.enso.table.data.column.builder.object.ObjectBuilder;
 import org.enso.table.data.column.operation.cast.CastProblemBuilder;
 import org.enso.table.data.column.operation.cast.StorageConverter;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -58,6 +59,9 @@ public abstract class Storage<T> {
     public static final String DIV = "/";
     public static final String MOD = "%";
     public static final String POWER = "^";
+    public static final String TRUNCATE = "truncate";
+    public static final String CEIL = "ceil";
+    public static final String FLOOR = "floor";
     public static final String NOT = "not";
     public static final String AND = "&&";
     public static final String OR = "||";

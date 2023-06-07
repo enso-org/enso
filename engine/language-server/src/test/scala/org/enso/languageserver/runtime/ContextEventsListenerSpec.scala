@@ -55,13 +55,14 @@ class ContextEventsListenerSpec
           Suggestions.method.selfType,
           Suggestions.method.name
         )
+        val methodCall = Api.MethodCall(methodPointer)
         listener ! Api.ExpressionUpdates(
           contextId,
           Set(
             Api.ExpressionUpdate(
               Suggestions.method.externalId.get,
               Some(Suggestions.method.returnType),
-              Some(methodPointer),
+              Some(methodCall),
               Vector(),
               false,
               true,
@@ -79,7 +80,7 @@ class ContextEventsListenerSpec
                 ContextRegistryProtocol.ExpressionUpdate(
                   Suggestions.method.externalId.get,
                   Some(Suggestions.method.returnType),
-                  Some(toProtocolMethodPointer(methodPointer)),
+                  Some(toProtocolMethodCall(methodCall)),
                   Vector(),
                   false,
                   ContextRegistryProtocol.ExpressionUpdate.Payload.Value(None)
@@ -476,6 +477,12 @@ class ContextEventsListenerSpec
       system.stop(listener)
     }
   }
+
+  def toProtocolMethodCall(methodCall: Api.MethodCall): MethodCall =
+    MethodCall(
+      toProtocolMethodPointer(methodCall.methodPointer),
+      methodCall.notAppliedArguments
+    )
 
   def toProtocolMethodPointer(methodPointer: Api.MethodPointer): MethodPointer =
     MethodPointer(

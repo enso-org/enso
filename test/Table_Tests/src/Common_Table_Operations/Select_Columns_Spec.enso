@@ -70,11 +70,11 @@ spec setup =
             selector = [1, 0, 100, -200, 300]
             action = table.select_columns selector error_on_missing_columns=False on_problems=_
             tester = expect_column_names ["foo", "bar"]
-            problems = [Column_Indexes_Out_Of_Range.Error [100, -200, 300]]
+            problems = [Missing_Input_Columns.Error [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
             err = table.select_columns selector
-            err.should_fail_with Column_Indexes_Out_Of_Range
+            err.should_fail_with Missing_Input_Columns
 
         Test.specify "should correctly handle edge-cases: duplicate indices" <|
             selector = [0, 0, 0]
@@ -126,11 +126,7 @@ spec setup =
         Test.specify "should correctly handle problems in mixed case" <|
             err = table.select_columns ["foo", "hmm", 99] on_problems=Problem_Behavior.Ignore
             err.should_fail_with Missing_Input_Columns
-            err.catch.criteria . should_equal ["hmm"]
-
-            err_2 = table.select_columns [99, "foo", "hmm"] on_problems=Problem_Behavior.Ignore
-            err_2.should_fail_with Missing_Input_Columns
-            err_2.catch.criteria . should_equal ["hmm"]
+            err.catch.criteria . should_equal ["hmm", 99]
 
         Test.specify "should correctly handle problems: no columns in the output" <|
             [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
@@ -174,11 +170,11 @@ spec setup =
             selector = [1, 0, 100, -200, 300]
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
-            problems = [Column_Indexes_Out_Of_Range.Error [100, -200, 300]]
+            problems = [Missing_Input_Columns.Error [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
             err = table.remove_columns selector error_on_missing_columns=True
-            err.should_fail_with Column_Indexes_Out_Of_Range
+            err.should_fail_with Missing_Input_Columns
 
         Test.specify "should correctly handle edge-cases: duplicate indices" <|
             selector = [0, 0, 0]
@@ -256,11 +252,11 @@ spec setup =
             selector = [1, 0, 100, -200, 300]
             action = table.reorder_columns selector on_problems=_
             tester = expect_column_names ["bar", "foo", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
-            problems = [Column_Indexes_Out_Of_Range.Error [100, -200, 300]]
+            problems = [Missing_Input_Columns.Error [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
             err = table.reorder_columns selector error_on_missing_columns=True
-            err.should_fail_with Column_Indexes_Out_Of_Range
+            err.should_fail_with Missing_Input_Columns
 
         Test.specify "should correctly handle edge-cases: duplicate indices" <|
             selector = [0, 0, 0]
@@ -393,12 +389,12 @@ spec setup =
             action = table.rename_columns map error_on_missing_columns=False on_problems=_
             tester = expect_column_names ["FirstColumn", "beta", "gamma", "Another"]
             err_checker err =
-                err.catch.should_be_a Column_Indexes_Out_Of_Range.Error
-                err.catch.indexes.should_contain_the_same_elements_as [-200, 100, 300]
+                err.catch.should_be_a Missing_Input_Columns.Error
+                err.catch.criteria.should_contain_the_same_elements_as [-200, 100, 300]
             Problems.test_advanced_problem_handling action err_checker (x-> x) tester
 
             err = table.rename_columns map
-            err.should_fail_with Column_Indexes_Out_Of_Range
+            err.should_fail_with Missing_Input_Columns
 
         Test.specify "should correctly handle edge-cases: aliased indices" <|
             map1 = Map.from_vector [[1, "FirstColumn"], [-3, "FirstColumn"]]

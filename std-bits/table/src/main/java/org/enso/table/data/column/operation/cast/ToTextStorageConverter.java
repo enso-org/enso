@@ -4,6 +4,11 @@ import org.enso.base.Text_Utils;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.datetime.DateStorage;
+import org.enso.table.data.column.storage.datetime.DateTimeStorage;
+import org.enso.table.data.column.storage.datetime.TimeOfDayStorage;
+import org.enso.table.data.column.storage.numeric.DoubleStorage;
+import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.TextType;
 

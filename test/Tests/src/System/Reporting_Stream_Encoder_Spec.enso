@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.Illegal_State.Illegal_State
-import Standard.Base.Runtime.Context
 
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.nio.CharBuffer

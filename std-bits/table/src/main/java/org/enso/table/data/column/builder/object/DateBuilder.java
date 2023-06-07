@@ -1,6 +1,6 @@
 package org.enso.table.data.column.builder.object;
 
-import org.enso.table.data.column.storage.DateStorage;
+import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -26,6 +26,10 @@ public class DateBuilder extends TypedBuilderImpl<LocalDate> {
   @Override
   public void appendNoGrow(Object o) {
     data[currentSize++] = (LocalDate) o;
+  }
+
+  public void appendDate(LocalDate date) {
+    append(date);
   }
 
   @Override

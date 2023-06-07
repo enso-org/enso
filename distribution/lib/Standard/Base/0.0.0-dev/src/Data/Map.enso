@@ -58,11 +58,11 @@ type Map key value
 
        Arguments:
        - vec: A vector of key-value pairs (2 element vectors).
-       - allow_duplicates: A flag which specifies if duplicate keys on the input
-         vector are allowed. By default, set to `False`, meaning that if two
-         entries in the vector share the same key, an `Illegal_Argument.Error`
-         will be thrown. If set to `True`, the last entry with a given key will
-         be kept.
+       - error_on_duplicates: A flag which specifies if duplicate keys on the
+         input vector should result in an error. By default, set to `True`,
+         meaning that if two entries in the vector share the same key, an
+         `Illegal_Argument` error is raised. If set to `False`, the last entry
+         with a given key will be kept.
 
        > Example
          Building a map containing two key-value pairs.
@@ -70,12 +70,12 @@ type Map key value
              import Standard.Base.Data.Map.Map
 
              example_from_vector = Map.from_vector [["A", 1], ["B", 2]]
-    from_vector : Vector Any -> Boolean -> Map
-    from_vector vec allow_duplicates=False =
+    from_vector : Vector Any -> Boolean -> Map ! Illegal_Argument
+    from_vector vec error_on_duplicates=True =
         vec.fold Map.empty m-> el-> if el.length != 2 then Error.throw (Illegal_Argument.Error "`Map.from_vector` encountered an invalid value. Each value in the vector has to be a key-value pair - it must have exactly 2 elements.") else
             key = el.at 0
             value = el.at 1
-            if allow_duplicates || (m.contains_key key . not) then m.insert key value else
+            if error_on_duplicates.not || (m.contains_key key . not) then m.insert key value else
                 Error.throw (Illegal_Argument.Error "`Map.from_vector` encountered duplicate key: "+key.to_display_text)
 
     ## Returns True iff the Map is empty, i.e., does not have any entries.
@@ -264,7 +264,7 @@ type Map key value
     transform self function =
         func_pairs = p -> function (p.at 0) (p.at 1)
         vec_transformed = self.to_vector.map func_pairs
-        new_map = Map.from_vector vec_transformed allow_duplicates=False
+        new_map = Map.from_vector vec_transformed error_on_duplicates=True
         new_map.catch Illegal_Argument error->
             case error.message.starts_with "`Map.from_vector` encountered duplicate key" of
                 True ->

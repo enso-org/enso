@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Runtime.Context
 
 from Standard.Table import Table, Column, Delimited
 import Standard.Table.Main as Table_Module
