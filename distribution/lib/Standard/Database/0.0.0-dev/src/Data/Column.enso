@@ -572,7 +572,7 @@ type Column
     truncate : Column ! Invalid_Value_Type
     truncate self =
         Value_Type.expect_numeric self <|
-            new_name = "trunc " + self.naming_helpers.to_expression_text self
+            new_name = self.naming_helpers.function_name "truncate" [self]
             self.make_unary_op "TRUNCATE" new_name
 
     ## Taking the ceiling of values is not supported in database columns.
