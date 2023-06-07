@@ -1,3 +1,5 @@
+import project.Data.Time.Date.Date
+
 import project.Metadata.Widget
 from project.Metadata import make_single_choice
 
@@ -5,4 +7,17 @@ from project.Metadata import make_single_choice
    Creates a Single_Choice Widget for delimiters.
 make_delimiter_selector : Widget
 make_delimiter_selector =
-    make_single_choice [',', ';', '|', ['{tab}', "'\t'"], ['{space}', "' '"], ['{newline}', "['\n', '\r\n', '\r']"], ['Custom', ""]]
+    make_single_choice [',', ';', '|', ['{tab}', "'\t'"], ['{space}', "' '"], ['{newline}', "['\n', '\r\n', '\r']"], ['{underscore}', '"_"'], ['{bar}', '"|"'], ['Custom', "'?'"]]
+
+## PRIVATE
+   Creates a Single_Choice Widget for parsing dates.
+make_date_format_selector : Widget
+make_date_format_selector =
+    ## Same Example Date as Excel
+    date = Date.new 2012 3 14
+
+    iso_format = ['ISO-Format (e.g. ' + date.to_text + ')', '""']
+    formats = ['d/M/yyyy', 'dd/MM/yyyy', 'd-MMM-yy', 'd MMMM yyyy', 'M/d/yyyy', 'MM/dd/yyyy', 'MMMM d, yyyy'].map f-> [f + " (e.g. " + date.format f + ")", f.pretty]
+    custom_format = ['Custom', "'dd MMM yyyy'"]
+
+    make_single_choice ([iso_format] + formats + [custom_format])

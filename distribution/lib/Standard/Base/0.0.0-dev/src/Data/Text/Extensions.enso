@@ -39,7 +39,7 @@ from project.Data.Boolean import Boolean, True, False
 from project.Data.Json import Json, Invalid_JSON, JS_Object
 from project.Data.Numbers import Decimal, Integer, Number, Number_Parse_Error
 
-from project.Widget_Helpers import make_delimiter_selector
+from project.Widget_Helpers import make_delimiter_selector, make_date_format_selector
 
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 
@@ -1486,8 +1486,9 @@ Text.parse_json self = Json.parse self
          example_parse_err =
              date = "1999-1-1".parse_date "yyyy-MM-dd"
              date.catch Time_Error (_->Date.new 2000 1 1)
-Text.parse_date : (Text | Nothing) -> Date ! Time_Error
-Text.parse_date self format=Nothing = Date.parse self format
+@format make_date_format_selector
+Text.parse_date : Text -> Date ! Time_Error
+Text.parse_date self format:Text="" = Date.parse self format
 
 ## ALIAS Date_Time from Text
 

@@ -27,6 +27,8 @@ import project.Panic.Panic
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Time.Date_Time import ensure_in_epoch
 
+from project.Widget_Helpers import make_date_format_selector
+
 polyglot java import java.lang.Exception as JException
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
@@ -201,12 +203,12 @@ type Date
              example_parse_err =
                  date = Date.parse "1999-1-1" "yyyy-MM-dd"
                  date.catch Time_Error (_->Date.new 2000 1 1)
-    parse : Text -> (Text | Nothing) -> Date ! Time_Error
-    parse text pattern=Nothing =
-        result = Panic.recover Any <| case pattern of
-            Nothing -> parse_builtin text 0
-            _ : Text -> parse_builtin text pattern
-            _ -> Panic.throw (Time_Error.Error "An invalid pattern was provided.")
+    @pattern make_date_format_selector
+    parse : Text -> Text -> Date ! Time_Error
+    parse text pattern:Text="" =
+        result = Panic.recover Any <|
+            builtin_format = if pattern.is_empty then 0 else pattern
+            parse_builtin text builtin_format
         result . map_error <| case _ of
             err : JException -> Time_Error.Error err.getMessage
             ex -> ex
