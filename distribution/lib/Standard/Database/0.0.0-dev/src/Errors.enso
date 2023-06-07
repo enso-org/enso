@@ -1,4 +1,4 @@
- Standard.Base import all
+from Standard.Base import all
 
 polyglot java import java.sql.SQLException
 
