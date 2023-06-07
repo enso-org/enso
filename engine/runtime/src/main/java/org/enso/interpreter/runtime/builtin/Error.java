@@ -1,9 +1,31 @@
 package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import org.enso.interpreter.node.expression.builtin.error.*;
+import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
+import org.enso.interpreter.node.expression.builtin.error.ArithmeticError;
+import org.enso.interpreter.node.expression.builtin.error.ArityError;
+import org.enso.interpreter.node.expression.builtin.error.CaughtPanic;
+import org.enso.interpreter.node.expression.builtin.error.CompileError;
+import org.enso.interpreter.node.expression.builtin.error.ForbiddenOperation;
+import org.enso.interpreter.node.expression.builtin.error.IncomparableValues;
+import org.enso.interpreter.node.expression.builtin.error.IndexOutOfBounds;
+import org.enso.interpreter.node.expression.builtin.error.InexhaustivePatternMatch;
+import org.enso.interpreter.node.expression.builtin.error.InvalidArrayIndex;
+import org.enso.interpreter.node.expression.builtin.error.InvalidConversionTarget;
+import org.enso.interpreter.node.expression.builtin.error.ModuleDoesNotExist;
+import org.enso.interpreter.node.expression.builtin.error.ModuleNotInPackageError;
+import org.enso.interpreter.node.expression.builtin.error.NoConversionCurrying;
+import org.enso.interpreter.node.expression.builtin.error.NoSuchConversion;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchField;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchMethod;
+import org.enso.interpreter.node.expression.builtin.error.NotInvokable;
+import org.enso.interpreter.node.expression.builtin.error.NumberParseError;
+import org.enso.interpreter.node.expression.builtin.error.Panic;
+import org.enso.interpreter.node.expression.builtin.error.SyntaxError;
+import org.enso.interpreter.node.expression.builtin.error.TypeError;
+import org.enso.interpreter.node.expression.builtin.error.Unimplemented;
+import org.enso.interpreter.node.expression.builtin.error.UninitializedState;
+import org.enso.interpreter.node.expression.builtin.error.UnsupportedArgumentTypes;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -11,11 +33,10 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
-
-import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
+import org.enso.interpreter.runtime.error.DataflowError;
 
 /** Container for builtin Error types */
-public class Error {
+public final class Error {
   private final EnsoContext context;
   private final SyntaxError syntaxError;
   private final TypeError typeError;
@@ -42,6 +63,7 @@ public class Error {
   private final ForbiddenOperation forbiddenOperation;
 
   private final Unimplemented unimplemented;
+  private final DataflowError dataFlowErrorUninitializedValue;
 
   @CompilerDirectives.CompilationFinal private Atom arithmeticErrorShiftTooBig;
 
@@ -51,7 +73,7 @@ public class Error {
   private static final Text divideByZeroMessage = Text.create("Cannot divide by zero.");
 
   /** Creates builders for error Atom Constructors. */
-  public Error(Builtins builtins, EnsoContext context) {
+  Error(Builtins builtins, EnsoContext context) {
     this.context = context;
     syntaxError = builtins.getBuiltinType(SyntaxError.class);
     typeError = builtins.getBuiltinType(TypeError.class);
@@ -77,6 +99,8 @@ public class Error {
     caughtPanic = builtins.getBuiltinType(CaughtPanic.class);
     forbiddenOperation = builtins.getBuiltinType(ForbiddenOperation.class);
     unimplemented = builtins.getBuiltinType(Unimplemented.class);
+    dataFlowErrorUninitializedValue =
+        DataflowError.withoutTrace(makeUninitializedStateError(builtins.nothing()), null);
   }
 
   public Atom makeSyntaxError(Object message) {
@@ -99,7 +123,7 @@ public class Error {
     return inexhaustivePatternMatch.newInstance(message);
   }
 
-  public Atom makeUninitializedStateError(Object key) {
+  public final Atom makeUninitializedStateError(Object key) {
     return uninitializedState.newInstance(key);
   }
 
@@ -242,5 +266,9 @@ public class Error {
 
   public Atom makeNumberParseError(String message) {
     return numberParseError.newInstance(Text.create(message));
+  }
+
+  public DataflowError dataFlowErrorUninitializedValue() {
+    return dataFlowErrorUninitializedValue;
   }
 }

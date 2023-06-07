@@ -8,6 +8,7 @@ import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{
   Scope => AliasScope
 }
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis}
+import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.scope.LocalScope.{
   internalSlots,
   monadicStateSlotName
@@ -162,6 +163,18 @@ class LocalScope(
         )
       assert(localFrameSlotIdxs(definition.id) == returnedFrameIdx)
     }
+    val ctx =
+      try {
+        EnsoContext.get(null)
+      } catch {
+        case _: RuntimeException => null
+      }
+    val defValue = if (ctx != null) {
+      ctx.getBuiltins().error().dataFlowErrorUninitializedValue()
+    } else {
+      0L;
+    }
+    descriptorBuilder.defaultValue(defValue)
     val frameDescriptor = descriptorBuilder.build()
     assert(
       internalSlots.length + localFrameSlotIdxs.size == frameDescriptor.getNumberOfSlots
