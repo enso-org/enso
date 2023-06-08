@@ -1,4 +1,3 @@
--- works in sl
 with args as (select
   123.235 as n,
   2 as dp,
