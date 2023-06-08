@@ -1026,13 +1026,18 @@ class Compiler(
       sourceSection match {
         case Some(section) =>
           val isOneLine = section.getStartLine == section.getEndLine
+          val srcPath = if (source.getPath == null) {
+            "<Unknown source>"
+          } else {
+            source.getPath
+          }
           if (isOneLine) {
             val lineNumber  = section.getStartLine
             val startColumn = section.getStartColumn
             val endColumn   = section.getEndColumn
             var str         = fansi.Str()
             str ++= fansi
-              .Str(source.getPath + ":" + lineNumber + ":" + startColumn + ": ")
+              .Str(srcPath + ":" + lineNumber + ":" + startColumn + ": ")
               .overlay(fansi.Bold.On)
             str ++= fansi.Str(subject).overlay(textAttrs)
             str ++= diagnostic.formattedMessage
@@ -1046,7 +1051,7 @@ class Compiler(
             var str = fansi.Str()
             str ++= fansi
               .Str(
-                source.getPath + ":[" + section.getStartLine + ":" + section.getStartColumn + "-" + section.getEndLine + ":" + section.getEndColumn + "]: "
+                srcPath + ":[" + section.getStartLine + ":" + section.getStartColumn + "-" + section.getEndLine + ":" + section.getEndColumn + "]: "
               )
               .overlay(fansi.Bold.On)
             str ++= fansi.Str(subject).overlay(textAttrs)
