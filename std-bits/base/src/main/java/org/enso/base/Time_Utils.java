@@ -180,7 +180,7 @@ public class Time_Utils {
    * @param formatter the formatter to use.
    * @return parsed ZonedDateTime instance.
    */
-  public static ZonedDateTime parse_datetime(String text, DateTimeFormatter formatter) {
+  public static ZonedDateTime parse_date_time(String text, DateTimeFormatter formatter) {
     return Core_Date_Utils.parseZonedDateTime(text, formatter);
   }
 
@@ -196,16 +196,14 @@ public class Time_Utils {
   }
 
   /**
-   * Obtains an instance of LocalTime from a text string using a custom string.
+   * Obtains an instance of LocalTime from a text string using the formatter.
    *
    * @param text the string to parse.
-   * @param pattern the format string.
-   * @param locale localization config to be uses in the formatter.
+   * @param formatter the formatter to use.
    * @return parsed LocalTime instance.
    */
-  public static LocalTime parse_time(String text, String pattern, Locale locale) {
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
-    return (LocalTime.parse(text, formatter.withLocale(locale)));
+  public static LocalTime parse_time_of_day(String text,DateTimeFormatter formatter) {
+    return LocalTime.parse(text, formatter);
   }
 
   /**

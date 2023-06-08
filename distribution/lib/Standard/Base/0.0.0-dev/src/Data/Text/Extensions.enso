@@ -1487,8 +1487,9 @@ Text.parse_json self = Json.parse self
              date = "1999-1-1".parse_date "yyyy-MM-dd"
              date.catch Time_Error (_->Date.new 2000 1 1)
 @format make_date_format_selector
-Text.parse_date : Text -> Date ! Time_Error
-Text.parse_date self format:Text="" = Date.parse self format
+@locale Locale.default_widget
+Text.parse_date : Text -> Locale -> Date ! Time_Error
+Text.parse_date self format:Text="" locale:Locale=Locale.default = Date.parse self format locale
 
 ## ALIAS Date_Time from Text
 
@@ -1573,8 +1574,8 @@ Text.parse_date self format:Text="" = Date.parse self format
          example_parse =
             "06 of May 2020 at 04:30AM".parse_date_time "dd 'of' MMMM yyyy 'at' hh:mma"
 @locale Locale.default_widget
-Text.parse_date_time : Text | Nothing -> Locale -> Date_Time ! Time_Error
-Text.parse_date_time self format=Nothing locale=Locale.default = Date_Time.parse self format locale
+Text.parse_date_time : Text -> Locale -> Date_Time ! Time_Error
+Text.parse_date_time self format:Text="" locale:Locale=Locale.default = Date_Time.parse self format locale
 
 ## ALIAS Time_Of_Day from Text, to_time_of_day
 
@@ -1642,8 +1643,8 @@ Text.parse_date_time self format=Nothing locale=Locale.default = Date_Time.parse
 
          example_parse = "4:30AM".parse_time_of_day "h:mma"
 @locale Locale.default_widget
-Text.parse_time_of_day : Text | Nothing -> Locale -> Time_Of_Day ! Time_Error
-Text.parse_time_of_day self format=Nothing locale=Locale.default = Time_Of_Day.parse self format locale
+Text.parse_time_of_day : Text -> Locale -> Time_Of_Day ! Time_Error
+Text.parse_time_of_day self format:Text="" locale:Locale=Locale.default = Time_Of_Day.parse self format locale
 
 ## ALIAS Time_Zone from Text, to_time_zone
 

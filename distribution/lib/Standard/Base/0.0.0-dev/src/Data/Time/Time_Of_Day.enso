@@ -41,18 +41,6 @@ new_builtin hour minute second nanosecond = @Builtin_Method "Time_Of_Day.new_bui
 
 ## PRIVATE
 
-   Obtains an instance of `Time_Of_Day` from a text such as "10:15".
-
-   Arguments:
-   - text: The text to parse as a time of day.
-
-   Recommended to use `Time_Of_Day.parse_builtin` instead which handles potential
-   exceptions and different time formats.
-parse_builtin : Text -> Time_Of_Day
-parse_builtin text = @Builtin_Method "Time_Of_Day.parse_builtin"
-
-## PRIVATE
-
    This type is a date-time object that represents a time, often viewed
    as hour-minute-second.
 
@@ -168,12 +156,15 @@ type Time_Of_Day
 
              example_parse = Time_Of_Day.parse "4:30AM" "h:mma"
     @locale Locale.default_widget
-    parse : Text -> Text | Nothing -> Locale -> Time_Of_Day ! Time_Error
-    parse text pattern=Nothing locale=Locale.default =
-        Panic.catch JException handler=(cause -> Error.throw (Time_Error.Error cause.payload.getMessage)) <|
-            case pattern of
-                Nothing -> parse_builtin text
-                _ : Text    -> Time_Utils.parse_time text pattern locale.java_locale
+    parse : Text -> Text -> Locale -> Time_Of_Day ! Time_Error
+    parse text:Text pattern:Text="" locale:Locale=Locale.default =
+        result = Panic.recover Any <|
+            formatter = if pattern.is_empty then Time_Utils.default_time_of_day_formatter else
+                Time_Utils.make_formatter pattern locale.java_locale
+            Time_Utils.parse_time_of_day text formatter
+        result . map_error <| case _ of
+            err : JException -> Time_Error.Error err.getMessage
+            ex -> ex
 
     ## Get the hour portion of the time of day.
 
