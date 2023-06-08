@@ -20,6 +20,7 @@ import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Locale;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -42,13 +43,11 @@ public final class EnsoDate implements TruffleObject {
   @Builtin.WrapException(from = DateTimeParseException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDate parse(Text text, Object noneOrPattern) {
-    var str = text.toString();
-    if (noneOrPattern instanceof Text pattern) {
-      var formatter = DateTimeFormatter.ofPattern(pattern.toString());
-      return new EnsoDate(LocalDate.parse(str, formatter));
-    } else {
-      return new EnsoDate(LocalDate.parse(str));
-    }
+    var formatter = (noneOrPattern instanceof Text pattern)
+        ? Core_Date_Utils.make_formatter(pattern.toString(), Locale.ROOT)
+        : Core_Date_Utils.defaultLocalDateFormatter();
+
+    return new EnsoDate(Core_Date_Utils.parseLocalDate(text.toString(), formatter));
   }
 
   @Builtin.Method(name = "new_builtin", description = "Constructs a new Date from a year, month, and day", autoRegister = false)
