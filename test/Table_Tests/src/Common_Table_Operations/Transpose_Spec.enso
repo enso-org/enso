@@ -24,7 +24,7 @@ spec setup =
 
         Test.specify "should allow custom names" <|
             t = table_builder [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
-            t1 = t.transpose name_field="Key" value_field="Object"
+            t1 = t.transpose attribute_column_name="Key" value_column_name="Object"
             t1.row_count . should_equal 12
             t1.column_count . should_equal 2
             t1.at "Key" . to_vector . should_equal ["Key", "Value", "Another", "Yet Another", "Key", "Value", "Another", "Yet Another", "Key", "Value", "Another", "Yet Another"]
@@ -96,19 +96,19 @@ spec setup =
         Test.specify "should warn on column name clashes" <|
             t1 = table_builder [["X", ["x", "y", "z"]], ["Y", [1, 2, 3]], ["Z", [10, Nothing, 20]]]
 
-            action1 = t1.transpose ["X", "Y", "Z"] name_field="Y" value_field="Z" on_problems=_
+            action1 = t1.transpose ["X", "Y", "Z"] attribute_column_name="Y" value_column_name="Z" on_problems=_
             tester1 table =
                 table.column_names . should_equal ["X", "Y", "Z", "Y 1", "Z 1"]
             problems1 = [Duplicate_Output_Column_Names.Error ["Y", "Z"]]
             Problems.test_problem_handling action1 problems1 tester1
 
-            action2 = t1.transpose ["X"] name_field="F" value_field="F" on_problems=_
+            action2 = t1.transpose ["X"] attribute_column_name="F" value_column_name="F" on_problems=_
             tester2 table =
                 table.column_names . should_equal ["X", "F", "F 1"]
             problems2 = [Duplicate_Output_Column_Names.Error ["F"]]
             Problems.test_problem_handling action2 problems2 tester2
 
             # No clash with the columns that are removed by transpose.
-            t2 = t1.transpose ["X"] name_field="Y" value_field="Z" on_problems=Problem_Behavior.Report_Error
+            t2 = t1.transpose ["X"] attribute_column_name="Y" value_column_name="Z" on_problems=Problem_Behavior.Report_Error
             Problems.assume_no_problems t2
             t2.column_names . should_equal ["X", "Y", "Z"]

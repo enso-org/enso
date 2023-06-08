@@ -47,6 +47,7 @@ mod smallvec;
 mod std_reexports;
 mod string;
 mod switch;
+pub mod sync;
 mod test;
 mod tp;
 mod vec;

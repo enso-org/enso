@@ -30,7 +30,7 @@ enum ShadowClass {
 // =================
 
 /** Template metadata. */
-interface Template {
+export interface Template {
     title: string
     description: string
     id: string
@@ -38,7 +38,7 @@ interface Template {
 }
 
 /** The full list of templates. */
-const TEMPLATES: Template[] = [
+export const TEMPLATES: [Template, ...Template[]] = [
     {
         title: 'Colorado COVID',
         id: 'Colorado_COVID',
@@ -98,7 +98,7 @@ function TemplatesRender(props: TemplatesRenderProps) {
             onClick={() => {
                 onTemplateClick(null)
             }}
-            className="h-40 cursor-pointer"
+            className="h-40 w-60 cursor-pointer"
         >
             <div className="flex h-full w-full border-dashed-custom rounded-2xl text-primary">
                 <div className="m-auto text-center">
@@ -115,7 +115,7 @@ function TemplatesRender(props: TemplatesRenderProps) {
             {templates.map(template => (
                 <button
                     key={template.title}
-                    className="h-40 cursor-pointer"
+                    className="h-40 w-60 cursor-pointer"
                     onClick={() => {
                         onTemplateClick(template.id)
                     }}
@@ -196,8 +196,8 @@ function Templates(props: TemplatesProps) {
     }, [isOpen])
 
     return (
-        <div className="bg-white my-2">
-            <div className="flex items-center mx-2">
+        <div className="my-2 p-2">
+            <div className="flex items-center m-2">
                 <div className="w-4">
                     <div
                         className={`cursor-pointer transition-all ease-in-out ${
@@ -211,14 +211,12 @@ function Templates(props: TemplatesProps) {
                 <h1 className="text-xl font-bold self-center">Templates</h1>
             </div>
             <div
-                className={`my-2 overflow-y-scroll scroll-hidden transition-all duration-300 ease-in-out ${
+                className={`grid gap-2 grid-cols-fill-60 justify-center overflow-y-scroll scroll-hidden transition-all duration-300 ease-in-out ${
                     isOpen ? `h-80 ${shadowClass}` : 'h-0'
                 }`}
                 onScroll={updateShadowClass}
             >
-                <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 mx-4">
-                    <TemplatesRender templates={TEMPLATES} onTemplateClick={onTemplateClick} />
-                </div>
+                <TemplatesRender templates={TEMPLATES} onTemplateClick={onTemplateClick} />
             </div>
         </div>
     )

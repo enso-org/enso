@@ -233,6 +233,7 @@ type Column
 
        Returns a column with results of comparing this column's elements against
        `other`.
+    @locale Locale.default_widget
     equals_ignore_case : Column | Any -> Locale -> Column
     equals_ignore_case self other locale=Locale.default =
         Value_Type.expect_text self <|
@@ -691,7 +692,8 @@ type Column
             False -> is_blank
         result.rename new_name
 
-    ## Returns a new column where missing values have been replaced with the
+    ## ALIAS if_nothing
+       Returns a new column where missing values have been replaced with the
        provided default.
     fill_nothing : Column | Any -> Column
     fill_nothing self default =
@@ -701,7 +703,8 @@ type Column
             op_result = self.make_binary_op "FILL_NULL" default new_name
             adapt_unified_column op_result common_type
 
-    ## Returns a new column where empty Text values have been replaced with the
+    ## ALIAS if_empty
+       Returns a new column where empty Text values have been replaced with the
        provided default.
 
        Arguments:
@@ -732,8 +735,7 @@ type Column
     rename self name = self.naming_helpers.ensure_name_is_valid name <|
         Column.Value name self.connection self.sql_type_reference self.expression self.context
 
-    ## UNSTABLE
-
+    ## ALIAS order_by
        Sorts the column according to the specified rules.
 
        Arguments:
@@ -752,7 +754,7 @@ type Column
              column.sort Sort_Direction.Descending
     sort : Sort_Direction -> Column
     sort self order=Sort_Direction.Ascending =
-        self.to_table.order_by (Sort_Column.Index 0 order) . at 0
+        self.to_table.order_by [Sort_Column.Index 0 order] . at 0
 
     ## UNSTABLE
        Creates a new Column with the specified range of rows from the input
@@ -1050,6 +1052,7 @@ type Column
                 self.internal_do_cast type on_problems
 
     ## Formatting values is not supported in database columns.
+    @locale Locale.default_widget
     format : Text | Column -> Locale -> Column ! Illegal_Argument
     format self format=Nothing locale=Locale.default =
         _ = [format, locale]

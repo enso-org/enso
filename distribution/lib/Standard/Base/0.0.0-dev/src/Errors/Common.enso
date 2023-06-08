@@ -324,6 +324,31 @@ type No_Such_Conversion
     to_display_text self = "Could not find a conversion from `"+self.that.to_display_text+"` to `"+self.target.to_display_text+"`."
 
 @Builtin_Type
+type No_Conversion_Currying
+    ## PRIVATE
+       An error that occurs when an attempt is made to curry a conversion function.
+
+       Arguments:
+       - has_this: true, when `this` argument is present
+       - has_that: true, when `that` argument is present
+       - conversion: the conversion that was attempted.
+    Error has_this has_that conversion
+
+    ## PRIVATE
+       Convert the No_Conversion_Currying error to a human-readable format.
+    to_display_text : Text
+    to_display_text self =
+      case self.has_this of
+          True ->
+              case self.has_that of
+                    True -> "Conversion currying is not supported."
+                    False -> "Conversion currying without `that` argument is not supported."
+          False ->
+              case self.has_that of
+                  True -> "Conversion currying without `this` argument is not supported."
+                  False -> "Conversion currying without `this` and `that` arguments is not supported."
+
+@Builtin_Type
 type Forbidden_Operation
     ## PRIVATE
        An error that occurs when the action is not allowed to perform the operation in the given context.

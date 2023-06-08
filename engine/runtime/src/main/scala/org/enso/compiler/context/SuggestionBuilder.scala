@@ -94,6 +94,10 @@ final class SuggestionBuilder[A: IndexedSource](
             }
             val getters = members
               .flatMap(_.arguments)
+              .filterNot { argument =>
+                argument.name.name.startsWith(InternalPrefix) ||
+                argument.name.name.endsWith(InternalSuffix)
+              }
               .distinctBy(_.name.name)
               .map(buildGetter(module, tpName.name, _))
 
@@ -812,5 +816,8 @@ object SuggestionBuilder {
   }
 
   val Any: String = "Standard.Base.Any.Any"
+
+  private val InternalSuffix = "_internal"
+  private val InternalPrefix = "internal_"
 
 }

@@ -213,6 +213,7 @@ struct SchedulerData {
 }
 
 impl SchedulerData {
+    #[profile(Task)]
     fn schedule_task(&self) {
         if !self.is_scheduled.replace(true) {
             // Result left unused on purpose. We only care about `closure` being run in the next
@@ -227,6 +228,7 @@ impl SchedulerData {
         }
     }
 
+    #[profile(Task)]
     fn run_all(&self) {
         let current_count = self.schedule_depth.get();
         let task_limit_reached = current_count >= MAX_RECURSIVE_MICROTASKS;

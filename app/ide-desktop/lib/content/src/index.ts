@@ -219,13 +219,13 @@ class Main implements AppRunner {
             const isOpeningMainEntryPoint =
                 contentConfig.OPTIONS.groups.startup.options.entry.value ===
                 contentConfig.OPTIONS.groups.startup.options.entry.default
-            const isNotOpeningProject =
-                contentConfig.OPTIONS.groups.startup.options.project.value === ''
-            if (
-                (isUsingAuthentication || isUsingNewDashboard) &&
-                isOpeningMainEntryPoint &&
-                isNotOpeningProject
-            ) {
+            // This MUST be removed as it would otherwise override the `startup.project` passed
+            // explicitly in `ide.tsx`.
+            if (isOpeningMainEntryPoint && url.searchParams.has('startup.project')) {
+                url.searchParams.delete('startup.project')
+                history.replaceState(null, '', url.toString())
+            }
+            if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningMainEntryPoint) {
                 this.runAuthentication(isInAuthenticationFlow, inputConfig)
             } else {
                 void this.runApp(inputConfig)
@@ -235,6 +235,8 @@ class Main implements AppRunner {
 
     /** Begins the authentication UI flow. */
     runAuthentication(isInAuthenticationFlow: boolean, inputConfig?: StringConfig) {
+        const initialProjectName =
+            contentConfig.OPTIONS.groups.startup.options.project.value || null
         /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
          * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
          * should only have one entry point. Right now, we have two. One for the cloud
@@ -250,6 +252,7 @@ class Main implements AppRunner {
             supportsLocalBackend: SUPPORTS_LOCAL_BACKEND,
             supportsDeepLinks: SUPPORTS_DEEP_LINKS,
             showDashboard: contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
+            initialProjectName,
             onAuthenticated: () => {
                 if (isInAuthenticationFlow) {
                     const initialUrl = localStorage.getItem(INITIAL_URL_KEY)

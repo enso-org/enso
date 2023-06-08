@@ -104,7 +104,7 @@ spec setup =
             t1.at "z Count" . to_vector . should_equal [2]
             t1.at "z Sum" . to_vector . should_equal [17]
 
-        Test.specify "should fail if name_field is not found" <|
+        Test.specify "should fail if name_column is not found" <|
             err1 = table.cross_tab [] "Name"
             err1.should_fail_with Missing_Input_Columns
             err1.catch.criteria . should_equal ["Name"]

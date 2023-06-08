@@ -2484,6 +2484,86 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       )
     }
 
+    "build type with constructor with internal field" in {
+
+      val code =
+        """import Standard.Base.Data.Numbers
+          |
+          |type T
+          |    A a_internal internal_a x
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "T",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.T",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "A",
+              arguments = Seq(
+                Suggestion.Argument(
+                  "a_internal",
+                  SuggestionBuilder.Any,
+                  false,
+                  false,
+                  None
+                ),
+                Suggestion.Argument(
+                  "internal_a",
+                  SuggestionBuilder.Any,
+                  false,
+                  false,
+                  None
+                ),
+                Suggestion.Argument(
+                  "x",
+                  SuggestionBuilder.Any,
+                  false,
+                  false,
+                  None
+                )
+              ),
+              returnType    = "Unnamed.Test.T",
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "x",
+              arguments = Seq(
+                Suggestion
+                  .Argument("self", "Unnamed.Test.T", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.T",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
     "build Integer type" in {
 
       val code = "type Integer"
