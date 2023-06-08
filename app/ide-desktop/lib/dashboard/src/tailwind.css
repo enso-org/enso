@@ -74,5 +74,13 @@ body {
     .border-dashed-custom {
       background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%233e515f' stroke-width='4' stroke-dasharray='15%2c 15' stroke-dashoffset='0' stroke-linecap='butt'/%3e%3c/svg%3e");
     }
+
+    .scroll-hidden {
+      -ms-overflow-style: none; /* Internet Explorer 10+ */
+      scrollbar-width: none; /* Firefox */
+    }
+    .scroll-hidden::-webkit-scrollbar {
+      display: none; /* Safari and Chrome */
+    }
   }
 }

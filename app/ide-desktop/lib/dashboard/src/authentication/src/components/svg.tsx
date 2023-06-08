@@ -264,6 +264,13 @@ export const DEFAULT_USER_ICON = (
     </svg>
 )
 
+/** An arrow icon pointing to the right, representing an element that can expand and collapse. */
+export const ROTATING_ARROW_ICON = (
+    <svg height={16} width={16} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+        <path d="M5 4.93L5 11.07A.5.5 0 0 0 5.77 11.5L10.4 8.4A.5.5 0 0 0 10.4 7.6L5.77 4.5A.5.5 0 0 0 5 4.93" fill="currentColor" />
+    </svg>
+)
+
 /** Props for a {@link Spinner}. */
 export interface SpinnerProps {
     size: number

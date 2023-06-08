@@ -11,7 +11,19 @@ import * as svg from '../../components/svg'
 
 /** The `localStorage` key used to store whether the {@link Templates} element should be
  * not collapsed by default. */
-const OPEN_KEY = `${common.PRODUCT_NAME.toLowerCase()}-is-templates-collapsed`
+const IS_TEMPLATES_OPEN_KEY = `${common.PRODUCT_NAME.toLowerCase()}-is-templates-expanded`
+
+// =============
+// === Types ===
+// =============
+
+/** The CSS class to apply inset shadows on the specified side(s). */
+enum ShadowClass {
+    none = '',
+    top = 'shadow-inset-t-lg',
+    bottom = 'shadow-inset-b-lg',
+    both = 'shadow-inset-v-lg',
+}
 
 // =================
 // === Templates ===
@@ -139,11 +151,12 @@ export interface TemplatesProps {
 /** A container for a {@link TemplatesRender} which passes it a list of templates. */
 function Templates(props: TemplatesProps) {
     const { onTemplateClick } = props
+    const [shadowClass, setShadowClass] = react.useState(ShadowClass.bottom)
     const [isOpen, setIsOpen] = react.useState(() => {
         /** This must not be in a `useEffect` as it would flash open for one frame.
          * It can be in a `useLayoutEffect` but as that needs to be checked every re-render,
          * this is slightly more performant. */
-        const savedIsOpen = localStorage.getItem(OPEN_KEY)
+        const savedIsOpen = localStorage.getItem(IS_TEMPLATES_OPEN_KEY)
         let result = true
         if (savedIsOpen != null) {
             try {
@@ -156,33 +169,57 @@ function Templates(props: TemplatesProps) {
         return result
     })
 
+    const toggleIsOpen = () => {
+        setIsOpen(!isOpen)
+    }
+
+    const updateShadowClass = (event: react.UIEvent) => {
+        const element = event.currentTarget
+        const boundingBox = element.getBoundingClientRect()
+        let newShadowClass: ShadowClass
+        const shouldShowTopShadow = element.scrollTop !== 0
+        const shouldShowBottomShadow = element.scrollTop + boundingBox.height < element.scrollHeight
+        if (shouldShowTopShadow && shouldShowBottomShadow) {
+            newShadowClass = ShadowClass.both
+        } else if (shouldShowTopShadow) {
+            newShadowClass = ShadowClass.top
+        } else if (shouldShowBottomShadow) {
+            newShadowClass = ShadowClass.bottom
+        } else {
+            newShadowClass = ShadowClass.none
+        }
+        setShadowClass(newShadowClass)
+    }
+
     react.useEffect(() => {
-        localStorage.setItem(OPEN_KEY, JSON.stringify(isOpen))
+        localStorage.setItem(IS_TEMPLATES_OPEN_KEY, JSON.stringify(isOpen))
     }, [isOpen])
 
     return (
         <div className="bg-white my-2">
-            <div className="flex items-center">
-                <span
-                    className="cursor-pointer"
-                    onClick={() => {
-                        setIsOpen(!isOpen)
-                    }}
-                >
-                    {isOpen ? 'v' : '>'}
-                </span>
-                <h1 className="text-xl font-bold mx-4 self-center">Templates</h1>
+            <div className="flex items-center mx-2">
+                <div className="w-4">
+                    <div
+                        className={`cursor-pointer transition-all ease-in-out ${
+                            isOpen ? 'rotate-90' : ''
+                        }`}
+                        onClick={toggleIsOpen}
+                    >
+                        {svg.ROTATING_ARROW_ICON}
+                    </div>
+                </div>
+                <h1 className="text-xl font-bold self-center">Templates</h1>
             </div>
             <div
-                className={`mx-auto my-2 mx-4 sm:my-4 sm:mx-6 lg:mx-8 overflow-y-scroll transition-all duration-300 ease-in-out ${
-                    isOpen ? 'h-80' : 'h-0 after:shadow-top-covered-lg after:h-screen'
+                className={`my-2 overflow-y-scroll scroll-hidden transition-all duration-300 ease-in-out ${
+                    isOpen ? `h-80 ${shadowClass}` : 'h-0'
                 }`}
+                onScroll={updateShadowClass}
             >
-                <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 mx-4">
                     <TemplatesRender templates={TEMPLATES} onTemplateClick={onTemplateClick} />
                 </div>
             </div>
-            {/* <div className="shadow-top-covered-lg" /> */}
         </div>
     )
 }
