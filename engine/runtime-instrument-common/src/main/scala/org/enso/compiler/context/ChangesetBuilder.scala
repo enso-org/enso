@@ -14,18 +14,6 @@ import org.enso.text.editing.{IndexedSource, TextEditor}
 import scala.collection.mutable
 import scala.util.Using
 
-/** Simple editing change description.
-  *
-  * @param ir the current literal
-  * @param edit the editor change
-  * @param newIr the new literal
-  */
-case class SimpleUpdate(
-  ir: IR.Literal,
-  edit: TextEdit,
-  newIr: IR.Literal
-)
-
 /** The changeset of a module containing the computed list of invalidated
   * expressions.
   *
@@ -111,9 +99,9 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
 
         oldIr match {
           case node: IR.Literal.Number =>
-            newIR(pending).map(ir => SimpleUpdate(node, pending.edit, ir))
+            newIR(pending).map(ir => new SimpleUpdate(node, pending.edit, ir))
           case node: IR.Literal.Text =>
-            newIR(pending).map(ir => SimpleUpdate(node, pending.edit, ir))
+            newIR(pending).map(ir => new SimpleUpdate(node, pending.edit, ir))
           case _ => None
         }
       }

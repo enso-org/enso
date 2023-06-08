@@ -1,4 +1,4 @@
-package org.enso.interpreter.instrument.execution
+package org.enso.interpreter.instrument
 
 /** A very simple timer. */
 trait Timer {

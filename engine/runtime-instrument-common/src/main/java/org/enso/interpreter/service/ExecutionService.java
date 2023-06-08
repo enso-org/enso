@@ -21,7 +21,7 @@ import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
-import org.enso.interpreter.instrument.execution.Timer;
+import org.enso.interpreter.instrument.Timer;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -118,7 +118,7 @@ public class ExecutionService {
   }
 
   public void initializeLanguageServerConnection(Endpoint endpoint) {
-    var notificationHandler = new NotificationHandler.InteractiveMode(endpoint);
+    var notificationHandler = new InteractiveMode(endpoint);
     notificationForwarder.addListener(notificationHandler);
 
     if (connectedLockManager != null) {
