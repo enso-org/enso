@@ -1427,7 +1427,7 @@ lazy val `runtime-instrument-common` =
       Test / fork := true,
       Test / envVars ++= distributionEnvironmentOverrides ++ Map(
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
-      ),
+      )
     )
     .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
 

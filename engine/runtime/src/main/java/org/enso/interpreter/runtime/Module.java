@@ -373,9 +373,12 @@ public final class Module implements TruffleObject {
       return null;
     }
     allSources.put(src, this);
-    var startDelta = patchedValues == null ? 0 : /*patchedValues.findDelta(sourceStartIndex, false)*/ 0;
+    var startDelta =
+        patchedValues == null ? 0 : /*patchedValues.findDelta(sourceStartIndex, false)*/ 0;
     var endDelta =
-        patchedValues == null ? 0 : /*patchedValues.findDelta(sourceStartIndex + sourceLength, true)*/ 0;
+        patchedValues == null
+            ? 0
+            : /*patchedValues.findDelta(sourceStartIndex + sourceLength, true)*/ 0;
     var start = sourceStartIndex + startDelta;
     var length = sourceLength + endDelta - startDelta;
     if (start + length == src.getLength() + 1) {
