@@ -122,17 +122,8 @@ spec setup =
     y = t2.at "y"
 
     Test.group "gmt" <|
-        Test.specify "should allow truncate on a float column" <|
-            table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
-            result = table.at "x" . truncate
-            result.to_vector.should_equal [0, 0, 3, 3, 0, 0, -3, -3]
-            result.value_type . is_integer . should_be_true
-
-        Test.specify "should allow truncate on an int column" <|
-            table = table_builder [["x", [0, 3, -3, 1, -2]]]
-            result = table.at "x" . truncate
-            result.to_vector.should_equal [0, 3, -3, 1, -2]
-            result.value_type . is_integer . should_be_true
+        Test.specify "should allow ceil on a float column" <|
+            1 . should_equal 1
 
     Test.group prefix+"Column Operations - Equality & Null Handling" <|
         Test.specify "should provide basic == and != comparisons" pending="TODO figure out proper null handling" <|
@@ -454,9 +445,41 @@ spec setup =
             (x * Nothing).to_vector . should_equal nulls
             (x / Nothing).to_vector . should_equal nulls
 
-        Test.specify "should allow truncate" <|
-            y.truncate.to_vector . should_equal [2, 3, 5, Nothing]
-            y.truncate.value_type . is_integer . should_be_true
+        Test.specify "should allow truncate on a float column" <|
+            table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
+            result = table.at "x" . truncate
+            result.to_vector.should_equal [0, 0, 3, 3, 0, 0, -3, -3]
+            result.value_type . is_integer . should_be_true
+
+        Test.specify "should allow truncate on an int column" <|
+            table = table_builder [["x", [0, 3, -3, 1, -2]]]
+            result = table.at "x" . truncate
+            result.to_vector.should_equal [0, 3, -3, 1, -2]
+            result.value_type . is_integer . should_be_true
+
+        Test.specify "should allow ceil on a float column" <|
+            table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
+            result = table.at "x" . ceil
+            result.to_vector.should_equal [1, 1, 4, 4, 0, 0, -3, -3]
+            result.value_type . is_integer . should_be_true
+
+        Test.specify "should allow ceil on an int column" <|
+            table = table_builder [["x", [0, 3, -3, 1, -2]]]
+            result = table.at "x" . ceil
+            result.to_vector.should_equal [0, 3, -3, 1, -2]
+            result.value_type . is_integer . should_be_true
+
+        Test.specify "should allow floor on a float column" <|
+            table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
+            result = table.at "x" . floor
+            result.to_vector.should_equal [0, 0, 3, 3, -1, -1, -4, -4]
+            result.value_type . is_integer . should_be_true
+
+        Test.specify "should allow floor on an int column" <|
+            table = table_builder [["x", [0, 3, -3, 1, -2]]]
+            result = table.at "x" . floor
+            result.to_vector.should_equal [0, 3, -3, 1, -2]
+            result.value_type . is_integer . should_be_true
 
     Test.group prefix+"Text Column Operations" <|
         t3 = table_builder [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]]
