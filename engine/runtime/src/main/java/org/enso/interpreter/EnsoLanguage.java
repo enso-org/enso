@@ -27,6 +27,7 @@ import org.enso.distribution.Environment;
 import org.enso.distribution.locking.LockManager;
 import org.enso.distribution.locking.ThreadSafeFileLockManager;
 import org.enso.interpreter.epb.EpbLanguage;
+import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
 import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
 import org.enso.interpreter.instrument.Timer;
@@ -68,7 +69,9 @@ import org.graalvm.options.OptionType;
     characterMimeTypes = {LanguageInfo.MIME_TYPE},
     contextPolicy = TruffleLanguage.ContextPolicy.SHARED,
     dependentLanguages = {EpbLanguage.ID},
-    fileTypeDetectors = FileDetector.class)
+    fileTypeDetectors = FileDetector.class,
+    services= { Timer.class, NotificationHandler.Forwarder.class, ConnectedLockManager.class }
+)
 @ProvidedTags({
   DebuggerTags.AlwaysHalt.class,
   StandardTags.CallTag.class,
@@ -108,6 +111,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
     if (isTextMode) {
       notificationHandler.addListener(TextMode$.MODULE$);
     }
+    env.registerService(notificationHandler);
 
     TruffleLogger logger = env.getLogger(EnsoLanguage.class);
 
@@ -122,28 +126,21 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           "Detected interactive mode, will try to connect to a lock manager managed by it.");
       connectedLockManager = new ConnectedLockManager();
       lockManager = connectedLockManager;
+      env.registerService(connectedLockManager);
     } else {
       logger.finest("Detected text mode, using a standalone lock manager.");
       lockManager = new ThreadSafeFileLockManager(distributionManager.paths().locks());
     }
 
+
     boolean isExecutionTimerEnabled =
         env.getOptions().get(RuntimeOptions.ENABLE_EXECUTION_TIMER_KEY);
     Timer timer = isExecutionTimerEnabled ? new Timer.Nanosecond() : new Timer.Disabled();
+    env.registerService(timer);
 
     EnsoContext context =
         new EnsoContext(
             this, getLanguageHome(), env, notificationHandler, lockManager, distributionManager);
-    /*
-    idExecutionInstrument =
-        Optional.ofNullable(env.getInstruments().get(IdExecutionService.INSTRUMENT_ID))
-            .map(
-                idValueListenerInstrument ->
-                    env.lookup(idValueListenerInstrument, IdExecutionService.class));
-    env.registerService(
-        new ExecutionService(
-            context, idExecutionInstrument, notificationHandler, connectedLockManager, timer));
-    */
 
     return context;
   }

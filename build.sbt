@@ -1433,7 +1433,9 @@ lazy val `runtime-instrument-common` =
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
       )
     )
-    .dependsOn(runtime % "compile->compile;test->test;runtime->runtime;bench->bench")
+    .dependsOn(
+      runtime % "compile->compile;test->test;runtime->runtime;bench->bench"
+    )
 
 lazy val `runtime-instrument-id-execution` =
   (project in file("engine/runtime-instrument-id-execution"))
