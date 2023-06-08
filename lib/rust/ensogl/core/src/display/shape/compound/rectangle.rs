@@ -37,6 +37,7 @@ pub mod shape {
             border: f32,
             border_color: Vector4,
             clip: Vector2,
+            rotate: f32,
         ) {
             // === Canvas ===
             let canvas_width = Var::<Pixels>::from("input_size.x");
@@ -65,6 +66,13 @@ pub mod shape {
 
             // === Shape ===
             let shape = border.union_exclusive(&body);
+
+            // === Rotation ===
+            // Rotate about one corner.
+            let shape = shape
+                .translate((&canvas_width/2.0, &canvas_height/2.0))
+                .rotate(rotate)
+                .translate((-&canvas_width/2.0, -&canvas_height/2.0));
 
             // === Clip Adjustment ===
             let shape = shape.translate((-canvas_clip_width_diff/2.0, -canvas_clip_height_diff/2.0));
@@ -272,4 +280,114 @@ pub fn Circle() -> Rectangle {
     let shape = Rectangle();
     shape.set_corner_radius_max();
     shape
+}
+
+/// Right triangle constructor. It is a wrapper around [`Rectangle`] that constructs a right
+/// triangle, pointing up. Its size can be determined by `set_size_xy`; the `x` and `y` factors
+/// should be equal. The triangle drawn will extend from the bottom of the bounding box to the point
+/// in the center.
+#[allow(non_snake_case)]
+pub fn RightTriangle() -> Rectangle {
+    let shape = Rectangle();
+    shape.view.rotate.set(std::f32::consts::FRAC_PI_4);
+    // We will produce a right triangle by rotating a square 45°, and then rectilinearly clipping.
+    //
+    // The part of the shape we keep is based on the point where the edge of the rotated square
+    // intersects with the edges of the unrotated square.
+    //     +------+
+    //     |      |
+    //     |      |
+    //     |   /\ |
+    //     |  /  \|
+    //     | /    x <--- here
+    //     |/     |\
+    //     +------+ \
+    //      \       /
+    //       \     /
+    //        \   /
+    //         \ /
+    //
+    // When we have that value, we can rectilinearly clip the rotated square to produce a right
+    // triangle:
+    //     . -----+
+    //     | |    |
+    //     | |    |
+    //     | | /\ | <-- keep this part
+    //     | |/  \|
+    //     | +----+
+    //     |
+    //     +------.  <---- bounds of the unclipped unrotated shape (rotated square not shown)
+    //
+    // The critical intersection point is at (√2-1, √2-1) [this is found by intersecting the rotated
+    // top line, `y = √2 - x`, and the original right line, `x = 1`].
+    // Let's call this point `(x1, x1)`.
+    let x1 = std::f32::consts::SQRT_2 - 1.0;
+    // We will provide a clip value that keeps the part beyond this point. First we'll find the
+    // formula for `clip`:
+    // `unclipped_height = (1 + 2 * clip) * canvas_height` [From shape definition.]
+    // `clip = ((unclipped_height / canvas_height) - 1) / 2` [Solve for clip.]
+    //
+    // Now, let's express x1 as a relationship between the size of shape to draw, and the size of
+    // the bounding box to keep:
+    // `canvas_height / unclipped_height = (1 - x1)`.
+    //
+    // Substituting into the `clip` formula:
+    // `clip = ((1 / (1 - x1)) - 1) / 2`
+    let clip = (((1.0 - x1).recip()) - 1.0) / 2.0;
+    shape.view.clip.set(Vector2(clip, clip));
+    shape
+}
+
+
+
+// ========================
+// === Simple triangles ===
+// ========================
+
+/// An isosceles triangle of any apex angle, drawn using a single `Rectangle`. Note that borders are
+/// not not supported by this triangle implementation, and if rounding is used it will be
+/// elliptical. This is a result of this implementation being based on scaling a right triangle.
+///
+/// (There is an alternative approach based on keeping the opposite corner of the shape when
+/// clipping to produce of wedge with a border on one side, and drawing two wedges together to
+/// achieve any angle with correct borders and rounding. However, this approach requires two
+/// `Rectangle`s to draw each triangle, and as of this writing we have no need for triangles with
+/// borders.)
+#[derive(Debug, Clone)]
+pub struct SimpleTriangle {
+    shape: Rectangle,
+}
+
+impl SimpleTriangle {
+    /// Return an upward-pointing isosceles rectangle with the given base width and altitude.
+    pub fn from_base_and_altitude(base: f32, altitude: f32) -> Self {
+        let shape = RightTriangle();
+        shape.set_size(Vector2(base, base));
+        shape.set_scale_y(altitude / (base / 2.0));
+        shape.set_border_color(color::Rgba::transparent());
+        Self { shape }
+    }
+
+    /// Return an upward-pointing isosceles rectangle sized to fit a bounding box of the given size.
+    pub fn from_size(size: Vector2) -> Self {
+        let (base, altitude) = (size.x(), size.y());
+        Self::from_base_and_altitude(base, altitude)
+    }
+
+    /// Set whether the shape receives pointer events.
+    pub fn set_pointer_events(&self, value: bool) {
+        self.shape.set_pointer_events(value);
+    }
+}
+
+impl display::Object for SimpleTriangle {
+    fn display_object(&self) -> &display::object::Instance {
+        self.shape.display_object()
+    }
+}
+
+impl From<SimpleTriangle> for Rectangle {
+    fn from(value: SimpleTriangle) -> Self {
+        value.shape
+    }
 }

@@ -373,9 +373,9 @@ fn test_execution_context() {
     let create_execution_context_response =
         response::CreateExecutionContext { context_id, can_modify, receives_updates };
     test_request(
-        |client| client.create_execution_context(),
+        |client| client.create_execution_context(&context_id),
         "executionContext/create",
-        json!({}),
+        json!({"contextId":"00000000-0000-0000-0000-000000000000"}),
         json!({
             "contextId" : "00000000-0000-0000-0000-000000000000",
             "canModify" : {

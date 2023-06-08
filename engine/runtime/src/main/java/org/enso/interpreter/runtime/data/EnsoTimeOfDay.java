@@ -112,14 +112,6 @@ public final class EnsoTimeOfDay implements TruffleObject {
     return localTime.toSecondOfDay();
   }
 
-  @Builtin.Method(
-      name = "to_date_time_builtin",
-      description = "Combine this time of day with a date to create a point in time.")
-  @CompilerDirectives.TruffleBoundary
-  public EnsoDateTime toTime(EnsoDate date, EnsoTimeZone zone) {
-    return new EnsoDateTime(localTime.atDate(date.asDate()).atZone(zone.asTimeZone()));
-  }
-
   @Builtin.Method(description = "Return this datetime to the datetime in the provided time zone.")
   @CompilerDirectives.TruffleBoundary
   public Text toText() {
