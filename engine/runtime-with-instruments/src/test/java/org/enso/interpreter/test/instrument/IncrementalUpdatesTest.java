@@ -110,7 +110,7 @@ public class IncrementalUpdatesTest {
     var result = sendUpdatesWhenFunctionBodyIsChangedBySettingValue("4", ConstantsGen.INTEGER, "4", "x", null, LiteralNode.class);
     assertTrue("Execution succeeds: " + result, result.head().payload() instanceof Runtime$Api$ExecutionComplete);
     assertEquals("Error is printed as a result",
-      List.newBuilder().addOne("(Error: (Uninitialized_State.Error Nothing))"), context.consumeOut()
+      List.newBuilder().addOne("(Error: Uninitialized value)"), context.consumeOut()
     );
   }
 
