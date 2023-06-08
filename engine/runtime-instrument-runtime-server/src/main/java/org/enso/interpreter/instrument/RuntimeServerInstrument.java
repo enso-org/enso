@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Optional;
+import org.enso.distribution.locking.LockManager;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.service.ExecutionService;
 import org.enso.lockmanager.client.ConnectedLockManager;
@@ -76,7 +77,7 @@ public class RuntimeServerInstrument extends TruffleInstrument {
           var timer = instrument.env.lookup(language, Timer.class);
           var notificationHandler =
               instrument.env.lookup(language, NotificationHandler.Forwarder.class);
-          var connectedLockManager = instrument.env.lookup(language, ConnectedLockManager.class);
+          var connectedLockManager = instrument.env.lookup(language, LockManager.class) instanceof ConnectedLockManager connected ? connected : null;
           service =
               new ExecutionService(
                   ctx, idExecutionInstrument, notificationHandler, connectedLockManager, timer);

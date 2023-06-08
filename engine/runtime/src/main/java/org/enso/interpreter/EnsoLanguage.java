@@ -70,7 +70,7 @@ import org.graalvm.options.OptionType;
     contextPolicy = TruffleLanguage.ContextPolicy.SHARED,
     dependentLanguages = {EpbLanguage.ID},
     fileTypeDetectors = FileDetector.class,
-    services= { Timer.class, NotificationHandler.Forwarder.class, ConnectedLockManager.class }
+    services= { Timer.class, NotificationHandler.Forwarder.class, LockManager.class }
 )
 @ProvidedTags({
   DebuggerTags.AlwaysHalt.class,
@@ -130,6 +130,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
     } else {
       logger.finest("Detected text mode, using a standalone lock manager.");
       lockManager = new ThreadSafeFileLockManager(distributionManager.paths().locks());
+      env.registerService(lockManager);
     }
 
 
