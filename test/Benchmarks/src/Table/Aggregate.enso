@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Table import Table
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 
 from Standard.Test import Bench, Faker
 
