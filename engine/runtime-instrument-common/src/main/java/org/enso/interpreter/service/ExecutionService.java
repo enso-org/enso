@@ -118,7 +118,7 @@ public class ExecutionService {
   }
 
   public void initializeLanguageServerConnection(Endpoint endpoint) {
-    var notificationHandler = new NotificationHandler.InteractiveMode(endpoint);
+    var notificationHandler = new InteractiveMode(endpoint);
     notificationForwarder.addListener(notificationHandler);
 
     if (connectedLockManager != null) {
