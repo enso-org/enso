@@ -1340,7 +1340,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "junit"               % "junit"                 % junitVersion      % Test,
       "com.novocode"        % "junit-interface"       % junitIfVersion    % Test exclude ("junit", "junit-dep"),
-      "com.lihaoyi"        %% "fansi"                 % fansiVersion,
+      "com.lihaoyi"        %% "fansi"                 % fansiVersion      % "provided",
     ),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(CopyTruffleJAR.preCompileTask)
