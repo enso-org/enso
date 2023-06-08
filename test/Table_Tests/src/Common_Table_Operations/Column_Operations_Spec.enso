@@ -123,6 +123,9 @@ spec setup =
 
     Test.group "gmt" <|
         Test.specify "should allow ceil on a float column" <|
+            t = table_builder [["a", [1, 2, 3]], ["b", ['x', 'y', 'z']], ["c", [1.0, 2.0, 3.0]], ["d", [True, False, True]]]
+            IO.println "HEY"
+            IO.println <| ((t.at "a") ^ (t.at "c")).to_vector
             1 . should_equal 1
 
     Test.group prefix+"Column Operations - Equality & Null Handling" <|
