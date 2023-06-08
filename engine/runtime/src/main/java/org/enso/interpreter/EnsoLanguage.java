@@ -15,7 +15,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
@@ -30,6 +29,7 @@ import org.enso.distribution.locking.ThreadSafeFileLockManager;
 import org.enso.interpreter.epb.EpbLanguage;
 import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
 import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
+import org.enso.interpreter.instrument.Timer;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.ProgramRootNode;
@@ -82,7 +82,6 @@ import org.graalvm.options.OptionType;
   Patchable.Tag.class
 })
 public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
-  //private Optional<IdExecutionService> idExecutionInstrument = Optional.empty();
   private static final LanguageReference<EnsoLanguage> REFERENCE =
       LanguageReference.create(EnsoLanguage.class);
 
@@ -130,13 +129,12 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
     boolean isExecutionTimerEnabled =
         env.getOptions().get(RuntimeOptions.ENABLE_EXECUTION_TIMER_KEY);
-        /*
     Timer timer = isExecutionTimerEnabled ? new Timer.Nanosecond() : new Timer.Disabled();
-*/
+
     EnsoContext context =
         new EnsoContext(
             this, getLanguageHome(), env, notificationHandler, lockManager, distributionManager);
-/*
+    /*
     idExecutionInstrument =
         Optional.ofNullable(env.getInstruments().get(IdExecutionService.INSTRUMENT_ID))
             .map(
@@ -145,7 +143,8 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
     env.registerService(
         new ExecutionService(
             context, idExecutionInstrument, notificationHandler, connectedLockManager, timer));
-*/
+    */
+
     return context;
   }
 
@@ -346,13 +345,6 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   protected Object getScope(EnsoContext context) {
     return context.getTopScope();
   }
-
-  /** @return a reference to the execution instrument
-   *
-  public Optional<IdExecutionService> getIdExecutionService() {
-    return idExecutionInstrument;
-  }
-  */
 
   /** Conversions of primitive values */
   protected Object getLanguageView(EnsoContext context, Object value) {
