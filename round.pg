@@ -1,3 +1,25 @@
+-- works in sl
+with args as (select
+  123.235 as n,
+  2 as dp,
+  false as use_bankers) select * from (
+with v0 as (select
+  power(10, args.dp) as scale from args) select * from (
+with v1 as (select
+  args.n * v0.scale as scaled from args, v0) select * from (
+with v2 as (
+  select floor(v1.scaled) as round_base from v1) select * from (
+with v3 as (select
+  (v2.round_base + 0.5) / v0.scale as round_midpoint from v2, v0)
+select * from args, v0, v1, v2, v3
+) q3
+) q2
+) q1
+) q0
+
+;
+\q
+
 with n as (select 123.235 as n) select * from (
 with dp as (select 2 as dp) select * from (
 with use_bankers as (select false as use_bankers) select * from (
