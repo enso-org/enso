@@ -13,6 +13,7 @@ pub use enso_prelude as prelude;
 use enso_data_structures::unrolled_linked_list::UnrolledLinkedList;
 use enso_data_structures::unrolled_slot_map::UnrolledSlotMap;
 use enso_data_structures::unrolled_slot_map::VersionedIndex;
+use enso_generics::traits::*;
 use enso_prelude::*;
 use slotmap::SlotMap;
 use smallvec::SmallVec;
@@ -422,20 +423,6 @@ pub trait Node: Copy {
 
 pub trait NodeWithDefaultOutput = Node where <Self as Node>::Output: Default;
 
-// pub trait N2: Copy {
-// }
-//
-//
-// #[derive(Derivative)]
-// #[derivative(Copy(bound = ""))]
-// #[derivative(Clone(bound = ""))]
-// #[derivative(Debug(bound = ""))]
-// pub struct NodeTemplate<Output> {
-//     _output: PhantomData<Output>,
-//     id:      NodeId,
-// }
-//
-
 
 // ================================
 // === Node Definition Generics ===
@@ -532,13 +519,6 @@ impl<T: Node> From<Sample<T>> for InputType {
 
 
 
-// #[derive(Debug, Clone, Copy, Deref, DerefMut)]
-// struct Listen<T>(T);
-//
-// #[derive(Debug, Clone, Copy, Deref, DerefMut)]
-// struct Sample<T>(T);
-
-
 // ====================
 // === EventContext ===
 // ====================
@@ -568,81 +548,6 @@ impl<'a, Output: Data> EventContext<'a, Output> {
     }
 }
 
-
-
-// InputType<NodeId>
-
-trait TupleMapIntoOps: Sized {
-    fn map_into<T>(self) -> Self::Output
-    where Self: TupleMapInto<T> {
-        TupleMapInto::map_into_impl(self)
-    }
-}
-
-impl<T> TupleMapIntoOps for T {}
-
-trait TupleMapInto<T> {
-    type Output;
-    fn map_into_impl(self) -> Self::Output;
-}
-
-impl<T> TupleMapInto<T> for () {
-    type Output = ();
-    #[inline(always)]
-    fn map_into_impl(self) -> Self::Output {
-        ()
-    }
-}
-
-macro_rules! impl_tuple_into {
-    ($t:tt $(,$ts:tt)* $(,)?) => {
-        impl_tuple_into_internal!{[$t] [$($ts)*]}
-    };
-}
-
-macro_rules! impl_tuple_into_internal {
-    ([$($ts:tt)*] [$r:tt $($rs:tt)*]) => {
-        impl_tuple_into_single! { $($ts),* }
-        impl_tuple_into_internal!{[$($ts)* $r] [$($rs)*]}
-    };
-    ([$($ts:tt)*] []) => {
-        impl_tuple_into_single! { $($ts),* }
-    };
-}
-
-macro_rules! impl_tuple_into_single {
-    ($($t:tt),*) => {
-        paste! {
-            impl<T, $([<T $t>]),*> TupleMapInto<T> for ($([<T $t>]),*,)
-            where $([<T $t>]: Into<T>),*
-            {
-                type Output = ($(shapely::replace!{$t, T}),*,);
-                #[inline(always)]
-                fn map_into_impl(self) -> Self::Output {
-                    ($(self.$t.into()),*,)
-                }
-            }
-        }
-    };
-}
-
-impl_tuple_into![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
-
-
-trait TupleSplit<const N: usize> {
-    type Left;
-    type Right;
-    fn split(self) -> (Self::Left, Self::Right);
-}
-
-impl<T0, T1, T2> TupleSplit<1> for (T0, T1, T2) {
-    type Left = (T0,);
-    type Right = (T1, T2);
-    #[inline(always)]
-    fn split(self) -> (Self::Left, Self::Right) {
-        ((self.0,), (self.1, self.2))
-    }
-}
 
 
 // ======================
@@ -682,12 +587,12 @@ where
 {
     #[inline(always)]
     fn def_node<Kind>(net: &Network, inputs: Self, f: F) -> NodeTemplate<Kind, Output> {
-        let inputs = inputs.map_into::<InputType>();
+        let inputs = inputs.map_fields_into::<InputType>();
         let node = net.new_node(move |rt: &Runtime, node: &NodeData, data: &dyn Data| {
             let data = unsafe { &*(data as *const dyn Data as *const N0::Output) };
             f(EventContext::unchecked_new(rt, node), data);
         });
-        with_runtime(|rt| rt.connect(inputs.0, node.id));
+        with_runtime(|rt| inputs.field_iter(|input| rt.connect(*input, node.id)));
         node
     }
 }
@@ -700,17 +605,14 @@ where
 {
     #[inline(always)]
     fn def_node<Kind>(net: &Network, inputs: Self, f: F) -> NodeTemplate<Kind, Output> {
-        let inputs = inputs.map_into::<InputType>();
+        let inputs = inputs.map_fields_into::<InputType>();
         let node = net.new_node(move |rt: &Runtime, node: &NodeData, data: &dyn Data| unsafe {
             let t0 = &*(data as *const dyn Data as *const N0::Output);
             rt.with_borrowed_node_output_cache_coerced(inputs.1.node_id(), |t1| {
                 f(EventContext::unchecked_new(rt, node), t0, t1)
             });
         });
-        with_runtime(|rt| {
-            rt.connect(inputs.0, node.id);
-            rt.connect(inputs.1, node.id);
-        });
+        with_runtime(|rt| inputs.field_iter(|input| rt.connect(*input, node.id)));
         node
     }
 }
@@ -724,7 +626,7 @@ where
 {
     #[inline(always)]
     fn def_node<Kind>(net: &Network, inputs: Self, f: F) -> NodeTemplate<Kind, Output> {
-        let inputs = inputs.map_into::<InputType>();
+        let inputs = inputs.map_fields_into::<InputType>();
         let node = net.new_node(move |rt: &Runtime, node: &NodeData, data: &dyn Data| unsafe {
             let t0 = &*(data as *const dyn Data as *const N0::Output);
             rt.with_borrowed_node_output_cache_coerced(inputs.1.node_id(), |t1| {
@@ -733,11 +635,7 @@ where
                 })
             });
         });
-        with_runtime(|rt| {
-            rt.connect(inputs.0, node.id);
-            rt.connect(inputs.1, node.id);
-            rt.connect(inputs.2, node.id);
-        });
+        with_runtime(|rt| inputs.field_iter(|input| rt.connect(*input, node.id)));
         node
     }
 }

@@ -41,6 +41,8 @@ pub mod traits {
     pub use super::AsMutFields as _TRAIT_AsMutFields;
     pub use super::AsRefFields as _TRAIT_AsRefFields;
     pub use super::BelongsToFamily as _TRAIT_BelongsToFamily;
+    pub use super::FieldIter as _TRAIT_FieldIter;
+    pub use super::FieldIterMut as _TRAIT_FieldIterMut;
     pub use super::GetFieldAt as _TRAIT_GetFieldAt;
     pub use super::GetFieldAtMut as _TRAIT_GetFieldAtMut;
     pub use super::GetFirstField as _TRAIT_GetFirstField;
@@ -55,6 +57,7 @@ pub mod traits {
     pub use super::HasTailFields as _TRAIT_HasTailFields;
     pub use super::IntoFamily as _TRAIT_IntoFamily;
     pub use super::IntoFieldAt as _TRAIT_IntoFieldAt;
+    pub use super::IntoFieldIter as _TRAIT_IntoFieldIter;
     pub use super::IntoFirstField as _TRAIT_IntoFirstField;
     pub use super::IntoLastField as _TRAIT_IntoLastField;
     pub use super::MapFields as _TRAIT_MapFields;
@@ -1154,3 +1157,133 @@ pub trait _MapFieldsInto {
     }
 }
 impl<T> _MapFieldsInto for T {}
+
+
+
+// =====================
+// === IntoFieldIter ===
+// =====================
+
+/// Take ownership of the structure and evaluate the provided function for every field. Please note
+/// that all fields have to be of the same type. If you want to iterate over fields with different
+/// types, use the [`MapFields`] interface with a custom defined mapper.
+#[allow(missing_docs)]
+pub trait IntoFieldIter<F> {
+    fn into_field_iter(self, f: impl FnMut(F));
+}
+
+impl<F> IntoFieldIter<F> for Nil {
+    #[inline(always)]
+    fn into_field_iter(self, _f: impl FnMut(F)) {}
+}
+
+impl<H, T> IntoFieldIter<H> for Cons<H, T>
+where T: IntoFieldIter<H>
+{
+    #[inline(always)]
+    fn into_field_iter(self, mut f: impl FnMut(H)) {
+        f(self.0);
+        self.1.into_field_iter(f);
+    }
+}
+
+impl<H, T> IntoFieldIter<H> for T
+where
+    T: IntoHList,
+    HListRepr<T>: IntoFieldIter<H>,
+{
+    #[inline(always)]
+    fn into_field_iter(self, f: impl FnMut(H)) {
+        self.into_hlist().into_field_iter(f);
+    }
+}
+
+
+
+// =================
+// === FieldIter ===
+// =================
+
+/// Evaluate the provided function for every field reference. Please note that all fields have to be
+/// of the same type. If you want to iterate over fields with different types, use the [`MapFields`]
+/// interface with a custom defined mapper.
+pub trait FieldIter<F> {
+    fn field_iter(&self, f: impl FnMut(&F));
+}
+
+impl<F> FieldIter<F> for Nil {
+    #[inline(always)]
+    fn field_iter(&self, _f: impl FnMut(&F)) {}
+}
+
+impl<H, T> FieldIter<H> for Cons<H, T>
+where T: FieldIter<H>
+{
+    #[inline(always)]
+    fn field_iter(&self, mut f: impl FnMut(&H)) {
+        f(&self.0);
+        self.1.field_iter(f);
+    }
+}
+
+trait FieldIterHelper<'t, F> = where
+    Self: 't,
+    F: 't,
+    &'t Self: IntoHList,
+    HListRepr<&'t Self>: IntoFieldIter<&'t F>;
+
+impl<F, T> FieldIter<F> for T
+where
+    for<'t> &'t T: HasHListRepr,
+    for<'t> T: FieldIterHelper<'t, F>,
+{
+    #[inline(always)]
+    fn field_iter(&self, f: impl FnMut(&F)) {
+        self.into_hlist().into_field_iter(f)
+    }
+}
+
+
+
+// ====================
+// === FieldIterMut ===
+// ====================
+
+/// Evaluate the provided function for every field mutable reference. Please note that all fields
+/// have to be of the same type. If you want to iterate over fields with different types, use the
+/// [`MapFields`] interface with a custom defined mapper.
+pub trait FieldIterMut<F> {
+    fn field_iter_mut(&mut self, f: impl FnMut(&mut F));
+}
+
+impl<F> FieldIterMut<F> for Nil {
+    #[inline(always)]
+    fn field_iter_mut(&mut self, _f: impl FnMut(&mut F)) {}
+}
+
+impl<H, T> FieldIterMut<H> for Cons<H, T>
+where T: FieldIterMut<H>
+{
+    #[inline(always)]
+    fn field_iter_mut(&mut self, mut f: impl FnMut(&mut H)) {
+        f(&mut self.0);
+        self.1.field_iter_mut(f);
+    }
+}
+
+trait FieldIterMutHelper<'t, F> = where
+    Self: 't,
+    F: 't,
+    &'t mut Self: IntoHList,
+    HListRepr<&'t mut Self>: IntoFieldIter<&'t mut F>;
+
+impl<F, T> FieldIterMut<F> for T
+where
+    for<'t> &'t mut T: HasHListRepr,
+    for<'t> T: FieldIterMutHelper<'t, F>,
+{
+    #[inline(always)]
+    fn field_iter_mut(&mut self, f: impl FnMut(&mut F)) {
+        self.into_hlist().into_field_iter(f)
+    }
+}

@@ -264,4 +264,35 @@ mod tests {
         let tuple = (1_u16, 2_u16, 3_u16);
         assert_eq!(tuple.map_fields_into::<f32>(), (1.0, 2.0, 3.0));
     }
+
+    #[test]
+    fn test_field_iter() {
+        let hlist = new![1, 2, 3];
+        let mut sum = 0;
+        hlist.into_field_iter(|t| sum += t);
+        assert_eq!(sum, 6);
+
+        let hlist = new![1, 2, 3];
+        let mut sum = 0;
+        hlist.field_iter(|t| sum += t);
+        assert_eq!(sum, 6);
+
+        let mut hlist = new![1, 2, 3];
+        hlist.field_iter_mut(|t| *t += 1);
+        assert_eq!(hlist, new![2, 3, 4]);
+
+        let tuple = (1, 2, 3);
+        let mut sum = 0;
+        tuple.into_field_iter(|t| sum += t);
+        assert_eq!(sum, 6);
+
+        let tuple = (1, 2, 3);
+        let mut sum = 0;
+        tuple.field_iter(|t| sum += t);
+        assert_eq!(sum, 6);
+
+        let mut tuple = (1, 2, 3);
+        tuple.field_iter_mut(|t| *t += 1);
+        assert_eq!(tuple, (2, 3, 4));
+    }
 }
