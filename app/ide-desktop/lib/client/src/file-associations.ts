@@ -14,11 +14,13 @@ import * as electron from 'electron'
 import electronIsDev from 'electron-is-dev'
 
 import * as common from 'enso-common'
-import * as config from 'enso-content-config'
+import * as contentConfig from 'enso-content-config'
+
+import * as clientConfig from './config'
 import * as fileAssociations from '../file-associations'
 import * as project from './project-management'
 
-const logger = config.logger
+const logger = contentConfig.logger
 
 // =================
 // === Reexports ===
@@ -33,16 +35,14 @@ export const SOURCE_FILE_SUFFIX = fileAssociations.SOURCE_FILE_SUFFIX
 // === Arguments Handling ===
 // ==========================
 
-/**
- * Check if the given list of application startup arguments denotes an attempt to open a file.
+/** Check if the given list of application startup arguments denotes an attempt to open a file.
  *
  * For example, this happens when the user double-clicks on a file in the file explorer and the
  * application is launched with the file path as an argument.
  *
  * @param clientArgs - A list of arguments passed to the application, stripped from the initial
  * executable name and any electron dev mode arguments.
- * @returns The path to the file to open, or `null` if no file was specified.
- */
+ * @returns The path to the file to open, or `null` if no file was specified. */
 export function argsDenoteFileOpenAttempt(clientArgs: string[]): string | null {
     const arg = clientArgs[0]
     let result: string | null = null
@@ -87,35 +87,38 @@ function getClientArguments(): string[] {
 // === File Associations ===
 // =========================
 
-/* Check if the given path looks like a file that we can open. */
+/** Check if the given path looks like a file that we can open. */
 export function isFileOpenable(path: string): boolean {
     const extension = pathModule.extname(path).toLowerCase()
     return (
-        extension === fileAssociations.BUNDLED_PROJECT_EXTENSION ||
-        extension === fileAssociations.SOURCE_FILE_EXTENSION
+        extension === fileAssociations.BUNDLED_PROJECT_SUFFIX ||
+        extension === fileAssociations.SOURCE_FILE_SUFFIX
     )
 }
 
-/* On macOS when Enso-associated file is opened, the application is first started and then it
+/** On macOS when an Enso-associated file is opened, the application is first started and then it
  * receives the `open-file` event. However, if there is already an instance of Enso running,
  * it receives the `open-file` event (and no new instance is created for us). In this case,
  * we manually start a new instance of the application and pass the file path to it (using the
- * Windows-style command).
- */
-export function onFileOpened(event: Event, path: string) {
+ * Windows-style command). */
+export function onFileOpened(event: Event, path: string): string | null {
+    logger.log(`Received 'open-file' event for path '${path}'.`)
     if (isFileOpenable(path)) {
+        logger.log(`The file '${path}' is openable.`)
         // If we are not ready, we can still decide to open a project rather than enter the welcome
         // screen. However, we still check for the presence of arguments, to prevent hijacking the
         // user-spawned IDE instance (OS-spawned will not have arguments set).
         if (!electron.app.isReady() && CLIENT_ARGUMENTS.length === 0) {
             event.preventDefault()
             logger.log(`Opening file '${path}'.`)
-            // eslint-disable-next-line no-restricted-syntax
             return handleOpenFile(path)
         } else {
-            // We need to start another copy of the application, as the first one is already running.
+            // Another copy of the application needs to be started, as the first one is
+            // already running.
             logger.log(
-                `The application is already initialized. Starting a new instance to open file '${path}'.`
+                "The application is already initialized. Starting a new instance to open file '" +
+                    path +
+                    "'."
             )
             const args = [path]
             const child = childProcess.spawn(process.execPath, args, {
@@ -124,28 +127,69 @@ export function onFileOpened(event: Event, path: string) {
             })
             // Prevent parent (this) process from waiting for the child to exit.
             child.unref()
+            return null
         }
+    } else {
+        logger.log(`The file '${path}' is not openable, ignoring the 'open-file' event.`)
+        return null
     }
+}
+
+/** Set up the `open-file` event handler that might import a project and invoke the given callback,
+ * if this IDE instance should load the project. See {@link onFileOpened} for more details.
+ *
+ * @param setProjectToOpen - A function that will be called with the ID of the project to open. */
+export function setOpenFileEventHandler(setProjectToOpen: (id: string) => void) {
+    electron.app.on('open-file', (event, path) => {
+        const projectId = onFileOpened(event, path)
+        if (typeof projectId === 'string') {
+            setProjectToOpen(projectId)
+        }
+    })
 }
 
 /** Handle the case where IDE is invoked with a file to open.
  *
- * Imports project if necessary. Returns the ID of the project to open. In case of an error, displays an error message and rethrows the error.
+ * Imports project if necessary. Returns the ID of the project to open. In case of an error,
+ * the error message is displayed and the error is re-thrown.
  *
- * @throws An `Error`, if the project from the file cannot be opened or imported. */
+ * @param openedFile - The path to the file to open.
+ * @returns The ID of the project to open.
+ * @throws {Error} if the project from the file cannot be opened or imported. */
 export function handleOpenFile(openedFile: string): string {
     try {
         return project.importProjectFromPath(openedFile)
-    } catch (e: unknown) {
+    } catch (error) {
         // Since the user has explicitly asked us to open a file, in case of an error, we should
         // display a message box with the error details.
         let message = `Cannot open file '${openedFile}'.`
-        message += `\n\nReason:\n${e?.toString() ?? 'Unknown error'}`
-        if (e instanceof Error && typeof e.stack !== 'undefined') {
-            message += `\n\nDetails:\n${e.stack}`
+        message += `\n\nReason:\n${error?.toString() ?? 'Unknown error'}`
+        if (error instanceof Error && typeof error.stack !== 'undefined') {
+            message += `\n\nDetails:\n${error.stack}`
         }
-        logger.error(e)
+        logger.error(error)
         electron.dialog.showErrorBox(common.PRODUCT_NAME, message)
-        throw e
+        throw error
+    }
+}
+
+/** Handle the file to open, if any. See {@link handleOpenFile} for details.
+ *
+ * If no file to open is provided, does nothing.
+ *
+ * Handles all errors internally.
+ * @param openedFile - The file to open (null if none).
+ * @param args - The parsed application arguments. */
+export function handleFileArguments(openedFile: string | null, args: clientConfig.Args): void {
+    if (openedFile != null) {
+        try {
+            // This makes the IDE open the relevant project. Also, this prevents us from using this
+            // method after IDE has been fully set up, as the initializing code would have already
+            // read the value of this argument.
+            args.groups.startup.options.project.value = handleOpenFile(openedFile)
+        } catch (e) {
+            // If we failed to open the file, we should enter the usual welcome screen.
+            // The `handleOpenFile` function will have already displayed an error message.
+        }
     }
 }

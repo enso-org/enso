@@ -22,7 +22,7 @@
     "lib/dashboard",
     "lib/dashboard/src/authentication",
     "lib/content-config",
-    "lib/copy-plugin",
+    "lib/esbuild-plugin-copy-directories",
     "lib/icons"
   ],
   "devDependencies": {
@@ -35,6 +35,7 @@
   "scripts": {
     "watch": "npm run watch --workspace enso-content",
     "watch-dashboard": "npm run watch --workspace enso-dashboard",
-    "build-dashboard": "npm run build --workspace enso-dashboard"
+    "build-dashboard": "npm run build --workspace enso-dashboard",
+    "typecheck": "npx tsc -p lib/types/tsconfig.json && npm run typecheck --workspace enso && npm run typecheck --workspace enso-content && npm run typecheck --workspace enso-dashboard && npm run typecheck --workspace enso-authentication"
   }
 }

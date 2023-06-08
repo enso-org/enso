@@ -45,7 +45,7 @@ import org.enso.lockmanager.server.LockManagerService
 import org.enso.logger.masking.{MaskedPath, Masking}
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.{HostAccessFactory, RuntimeOptions, RuntimeServerInfo}
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
+import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
@@ -131,8 +131,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val sqlDatabase = SqlDatabase.inmem("memdb")
 
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
-  val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
-  log.trace("Created SQL repos: [{}. {}].", suggestionsRepo, versionsRepo)
+  log.trace("Created SQL suggestions repo: [{}].", suggestionsRepo)
 
   val idlenessMonitor =
     system.actorOf(IdlenessMonitor.props(utcClock))
@@ -249,7 +248,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
           languageServerConfig,
           contentRootManagerWrapper,
           suggestionsRepo,
-          versionsRepo,
           sessionRouter,
           runtimeConnector
         ),
@@ -407,7 +405,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       jsonRpcProtocolFactory,
       sqlDatabase,
       suggestionsRepo,
-      versionsRepo,
       context,
       zioRuntime
     )(system.dispatcher)
@@ -465,7 +462,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   /** Close the main module releasing all resources. */
   def close(): Unit = {
     suggestionsRepo.close()
-    versionsRepo.close()
     context.close()
     log.info("Closed Language Server main module.")
   }

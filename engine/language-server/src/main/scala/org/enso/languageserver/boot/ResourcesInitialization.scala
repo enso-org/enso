@@ -3,6 +3,7 @@ package org.enso.languageserver.boot
 import akka.event.EventStream
 import org.enso.jsonrpc.ProtocolFactory
 import org.enso.languageserver.boot.resource.{
+  AsyncResourcesInitialization,
   DirectoriesInitialization,
   InitializationComponent,
   JsonRpcInitializationComponent,
@@ -13,7 +14,7 @@ import org.enso.languageserver.boot.resource.{
 }
 import org.enso.languageserver.data.ProjectDirectoriesConfig
 import org.enso.languageserver.effect
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
+import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.graalvm.polyglot.Context
 
 import scala.concurrent.ExecutionContext
@@ -30,7 +31,6 @@ object ResourcesInitialization {
     * @param protocolFactory the JSON-RPC protocol factory
     * @param suggestionsRepo the suggestions repo
     * @param sqlDatabase the sql database
-    * @param versionsRepo the file versions repo
     * @param truffleContext the runtime context
     * @param runtime the runtime to run effects
     * @return the initialization component
@@ -41,23 +41,22 @@ object ResourcesInitialization {
     protocolFactory: ProtocolFactory,
     sqlDatabase: SqlDatabase,
     suggestionsRepo: SqlSuggestionsRepo,
-    versionsRepo: SqlVersionsRepo,
     truffleContext: Context,
     runtime: effect.Runtime
   )(implicit ec: ExecutionContext): InitializationComponent = {
-    val resources = Seq(
+    SequentialResourcesInitialization(
       new DirectoriesInitialization(directoriesConfig),
-      new JsonRpcInitializationComponent(protocolFactory),
-      new ZioRuntimeInitialization(runtime),
-      new RepoInitialization(
-        directoriesConfig,
-        eventStream,
-        sqlDatabase,
-        suggestionsRepo,
-        versionsRepo
-      ),
-      new TruffleContextInitialization(eventStream, truffleContext)
+      AsyncResourcesInitialization(
+        new JsonRpcInitializationComponent(protocolFactory),
+        new ZioRuntimeInitialization(runtime),
+        new RepoInitialization(
+          directoriesConfig,
+          eventStream,
+          sqlDatabase,
+          suggestionsRepo
+        ),
+        new TruffleContextInitialization(eventStream, truffleContext)
+      )
     )
-    new SequentialResourcesInitialization(resources)
   }
 }

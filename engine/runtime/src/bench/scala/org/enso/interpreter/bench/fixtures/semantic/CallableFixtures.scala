@@ -8,7 +8,6 @@ class CallableFixtures extends DefaultInterpreterRunner {
   val sumTCOfromCallCode =
     """
       |from Standard.Base.Data.Numbers import all
-      |import Standard.Base.Any.Any
       |
       |type Foo
       |
@@ -23,8 +22,7 @@ class CallableFixtures extends DefaultInterpreterRunner {
 
 
   val sumTCOmethodCallCode =
-    """import Standard.Base.Any.Any
-      |
+    """
       |summator = acc -> current ->
       |    if current == 0 then acc else @Tail_Call summator (acc + current) (current - 1)
       |
@@ -35,8 +33,7 @@ class CallableFixtures extends DefaultInterpreterRunner {
   val sumTCOmethodCall = getMain(sumTCOmethodCallCode)
 
   val sumTCOmethodCallWithNamedArgumentsCode =
-    """import Standard.Base.Any.Any
-      |
+    """
       |summator = acc -> current ->
       |    if current == 0 then acc else @Tail_Call summator (current = current - 1) (acc = acc + current)
       |
@@ -48,8 +45,7 @@ class CallableFixtures extends DefaultInterpreterRunner {
     getMain(sumTCOmethodCallWithNamedArgumentsCode)
 
   val sumTCOmethodCallWithDefaultedArgumentsCode =
-    """import Standard.Base.Any.Any
-      |
+    """
       |summator = (acc = 0) -> current ->
       |    if current == 0 then acc else @Tail_Call summator (current = current - 1) (acc = acc + current)
       |

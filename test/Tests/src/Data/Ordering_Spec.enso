@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Type_Error
 
-from Standard.Test import Test, Test_Suite
+from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
 # === Test Resources ===
@@ -16,7 +16,18 @@ type Ord_Comparator
 
 Comparable.from (_:Ord) = Ord_Comparator
 
-## Unordered pair
+
+type My_Type
+    Value val
+
+type My_Type_Comparator
+    compare x y = (Comparable.from x.val).compare x.val y.val
+    hash x = (Comparable.from x.val).hash x.val
+
+Comparable.from (_:My_Type) = My_Type_Comparator
+
+
+## Unordered pair - its `compare` method returns either `Nothing` or `Ordering.Equal`.
 type UPair
     Value x y
 
@@ -36,9 +47,33 @@ Comparable.from (_ : UPair) = UPair_Comparator
 type Parent
     Value child
 
-# === The Tests ===
+# Just a type without custom comparator
+type No_Comp_Type
+    Value val
 
+
+## Expects that `result` contains incomparable values warning.
+   The values within the warning message can be switched - the order
+   does not matter. Iterates through all the warnings of result.
+expect_incomparable_warn : Any -> Any -> Any -> Nothing
+expect_incomparable_warn left_val right_val result =
+    # Incomparable values warning wraps Text values in simple quotes
+    left_val_text = left_val.pretty
+    right_val_text = right_val.pretty
+    expected_warn_msg_left = "Values " + left_val_text + " and " + right_val_text + " are incomparable"
+    expected_warn_msg_right = "Values " + right_val_text + " and " + left_val_text + " are incomparable"
+    has_expected_warning = Warning.get_all result . map (_.value) . any (it-> it == expected_warn_msg_left || it == expected_warn_msg_right)
+    has_expected_warning . should_be_true
+
+expect_no_warns : Any -> Nothing
+expect_no_warns result =
+    Warning.get_all result . length . should_equal 0
+
+
+# === The Tests ===
 spec =
+    topo_sort_pending = "Waiting for implementation of topological sort (https://github.com/enso-org/enso/issues/5834)"
+
     Test.group "Default comparator" <|
         Test.specify "should support custom comparator" <|
             Ordering.compare (Ord.Value 1) (Ord.Value 2) . should_equal Ordering.Less
@@ -50,9 +85,9 @@ spec =
             ((Parent.Value (Ord.Value 1)) == (Parent.Value (Ord.Value 1))) . should_be_true
             ((Parent.Value (Ord.Value 1)) == (Parent.Value (Ord.Value 22))) . should_be_false
 
-        Test.specify "should throw Type_Error when comparing different types" <|
-            Ordering.compare (UPair.Value 1 2) (Ord.Value 2) . should_fail_with Type_Error
-            Ordering.compare 1 Nothing . should_fail_with Type_Error
+        Test.specify "should throw Incomparable_Values when comparing different types" <|
+            Ordering.compare (UPair.Value 1 2) (Ord.Value 2) . should_fail_with Incomparable_Values
+            Ordering.compare 1 Nothing . should_fail_with Incomparable_Values
 
     Test.group "Ordering" <|
         Test.specify "should allow conversion to sign representation" <|
@@ -93,10 +128,106 @@ spec =
             Ordering.compare 42.5 67.9 . should_equal Ordering.Less
             Meta.is_same_object (Comparable.from Number.nan) (Comparable.from 42.0) . should_be_true
 
-        Test.specify "should fail with Type_Error for wrong type of that" <|
-            Ordering.compare Ordering.Less 1 . should_fail_with Type_Error
-            Ordering.compare Ordering.Less Nothing . should_fail_with Type_Error
-            Ordering.compare Ordering.Less "Hello" . should_fail_with Type_Error
+        Test.specify "should fail with Incomparable_Values for wrong type of that" <|
+            Ordering.compare Ordering.Less 1 . should_fail_with Incomparable_Values
+            Ordering.compare Ordering.Less Nothing . should_fail_with Incomparable_Values
+            Ordering.compare Ordering.Less "Hello" . should_fail_with Incomparable_Values
+
+    Test.group "Sorting with the default comparator" <|
+
+        Test.specify "should be able to sort primitive types" <|
+            [3, 2, 1, Nothing].sort . should_equal [1, 2, 3, Nothing]
+            [Nothing, Number.nan].sort . at 0 . is_nan . should_be_true
+            [Nothing, Number.nan].sort . at 1 . is_nothing . should_be_true
+            [3, 2.5].sort . should_equal [2.5, 3]
+            ["hello", 3].sort . should_equal [3, "hello"]
+            ["hello", "ahoj", 3].sort . should_equal [3, "ahoj", "hello"]
+            ["hello", "ahoj", 3, 2].sort . should_equal [2, 3, "ahoj", "hello"]
+            ["hello", "ahoj", Number.nan, 3].sort . take 3 . should_equal [3, "ahoj", "hello"]
+            ["hello", "ahoj", Number.nan, 3].sort . at 3 . is_nan . should_be_true
+            [100, Date.new 2020, 50].sort . should_equal [50, 100, Date.new 2020]
+            [100, Nothing, Date.new 2020, 50].sort . should_equal [50, 100, Date.new 2020, Nothing]
+            [3, 2, True, False].sort . should_equal [2, 3, False, True]
+            [3, True, 2, False].sort . should_equal [2, 3, False, True]
+            [Nothing, False].sort . should_equal [False, Nothing]
+
+        Test.specify "should be able to sort any single-element vector without any warnings" <|
+            [Nothing].sort . should_equal [Nothing]
+            expect_no_warns [Nothing].sort
+            [[Nothing]].sort . should_equal [[Nothing]]
+            expect_no_warns [[Nothing]].sort
+            [[1]].sort . should_equal [[1]]
+            expect_no_warns [[1]].sort
+
+        Test.specify "should produce warnings when sorting nested vectors" <|
+            [[1], [2]].sort . should_equal [[1], [2]]
+            [[2], [1]].sort . should_equal [[2], [1]]
+
+        Test.specify "should be able to sort primitive values in atoms" pending=topo_sort_pending <|
+            [Ord.Value Nothing, Ord.Value 20, Ord.Value 10].sort . should_equal [Ord.Value 10, Ord.Value 20, Ord.Value Nothing]
+
+        Test.specify "should produce warnings when sorting primitive values in atoms" pending=topo_sort_pending <|
+            expect_incomparable_warn (Ord.Value 1) (Ord.Value Nothing) [Ord.Value 1, Ord.Value Nothing].sort
+
+        Test.specify "should fail to sort custom incomparable values until topological sorting is implemented" <|
+            [(UPair.Value 1 2), (UPair.Value 3 4)].sort . should_fail_with Incomparable_Values
+
+        Test.specify "should attach warning when trying to sort incomparable values" <|
+            expect_incomparable_warn Nothing Number.nan <| [Nothing, Number.nan].sort on_incomparable=Problem_Behavior.Report_Warning
+            expect_incomparable_warn 1 "hello" <| [1, "hello"].sort on_incomparable=Problem_Behavior.Report_Warning
+
+        Test.specify "should respect previous warnings on a vector" <|
+            Problems.expect_warning "my_warn" <| (Warning.attach "my_warn" [3, 2]) . sort
+            Problems.expect_warning "my_warn" <| (Warning.attach "my_warn" [3, Number.nan]) . sort
+            expect_incomparable_warn 3 Number.nan <| (Warning.attach "my_warn" [3, Number.nan]) . sort on_incomparable=Problem_Behavior.Report_Warning
+
+        Test.specify "should respect previous warnings on vectors" pending="https://github.com/enso-org/enso/issues/6070" <|
+            Problems.expect_warning "my_warn" <| [3, Warning.attach "my_warn" 2].sort
+            expect_incomparable_warn 1 Number.nan [1, Warning.attach "my_warn" Number.nan].sort
+            Problems.expect_warning "my_warn" <| [1, Warning.attach "my_warn" Number.nan].sort
+
+        Test.specify "should not fail when sorting incomparable types without custom comparator" <|
+            # Parent, and No_Comp_Type do not have custom comparators
+            [No_Comp_Type.Value 42, "hello"].sort . should_equal ["hello", No_Comp_Type.Value 42]
+            [Parent.Value 42, No_Comp_Type.Value 42].sort . should_equal [No_Comp_Type.Value 42, Parent.Value 42]
+            [No_Comp_Type.Value 42, Parent.Value 42].sort . should_equal [No_Comp_Type.Value 42, Parent.Value 42]
+
+    Test.group "Sorting with multiple comparators" <|
+        Test.specify "should sort primitive values with the default comparator as the first group" <|
+            [Ord.Value 4, Ord.Value 3, 20, 10].sort . should_equal [10, 20, Ord.Value 3, Ord.Value 4]
+            [Ord.Value 4, 20, Ord.Value 3, 10].sort . should_equal [10, 20, Ord.Value 3, Ord.Value 4]
+            [20, Ord.Value 4, Ord.Value 3, 10].sort . should_equal [10, 20, Ord.Value 3, Ord.Value 4]
+            [Ord.Value 4, 20, Ord.Value 3, 10].sort . should_equal [10, 20, Ord.Value 3, Ord.Value 4]
+            [Nothing, Ord.Value 4, 20, Ord.Value 3, 10].sort . should_equal [10, 20, Nothing, Ord.Value 3, Ord.Value 4]
+            [Ord.Value 4, 20, Ord.Value 3, Nothing, 10].sort . should_equal [10, 20, Nothing, Ord.Value 3, Ord.Value 4]
+
+        Test.specify "should produce warning when sorting types with different comparators" <|
+            [Ord.Value 1, 1].sort . should_equal [1, Ord.Value 1]
+            sorted = [Ord.Value 1, 1].sort on_incomparable=Problem_Behavior.Report_Warning
+            Warning.get_all sorted . at 0 . value . starts_with "Different comparators" . should_be_true
+
+        Test.specify "should merge groups of values with custom comparators based on the comparators FQN" <|
+            [Ord.Value 1, My_Type.Value 1].sort . should_equal [My_Type.Value 1, Ord.Value 1]
+            [My_Type.Value 1, Ord.Value 1].sort . should_equal [My_Type.Value 1, Ord.Value 1]
+            sorted = [Ord.Value 1, My_Type.Value 1].sort on_incomparable=Problem_Behavior.Report_Warning
+            Warning.get_all sorted . at 0 . value . starts_with "Different comparators" . should_be_true
+
+        Test.specify "should be stable when sorting values with different comparators" <|
+            [Ord.Value 1, 20, My_Type.Value 1, 10].sort . should_equal [10, 20, My_Type.Value 1, Ord.Value 1]
+            [20, Ord.Value 1, My_Type.Value 1, 10].sort . should_equal [10, 20, My_Type.Value 1, Ord.Value 1]
+            [20, My_Type.Value 1, Ord.Value 1, 10].sort . should_equal [10, 20, My_Type.Value 1, Ord.Value 1]
+            [20, 10, My_Type.Value 1, Ord.Value 1].sort . should_equal [10, 20, My_Type.Value 1, Ord.Value 1]
+            [My_Type.Value 1, Ord.Value 1, 20, 10].sort . should_equal [10, 20, My_Type.Value 1, Ord.Value 1]
+            [Ord.Value 1, 20, 10, My_Type.Value 1].sort . should_equal [10, 20, My_Type.Value 1, Ord.Value 1]
+
+        Test.specify "should be able to sort even unordered values" pending=topo_sort_pending  <|
+            [Ord.Value 2, UPair.Value "a" "b", Ord.Value 1, UPair.Value "c" "d"].sort . should_equal [Ord.Value 2, Ord.Value 1, UPair.Value "a" "b", UPair.Value "c" "d"]
+            [Ord.Value 2, UPair.Value "X" "Y", Ord.Value 1, UPair.Value "c" "d"].sort . should_equal [Ord.Value 2, Ord.Value 1, UPair.Value "X" "Y", UPair.Value "c" "d"]
+
+        Test.specify "should produce warning when sorting unordered values" pending=topo_sort_pending  <|
+            expect_incomparable_warn (UPair.Value 1 2) (UPair.Value 3 4) [UPair.Value 1 2, UPair.Value 3 4].sort
+
+
 
 
 main = Test_Suite.run_main spec

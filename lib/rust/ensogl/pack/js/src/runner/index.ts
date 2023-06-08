@@ -22,6 +22,10 @@ export type { LogLevel } from 'runner/log/logger'
 export { logger, Logger, Consumer } from 'runner/log'
 export { Option } from 'runner/config'
 
+export { HelpScreen } from 'runner/debug/help-screen'
+
+export const urlParams: () => config.StringConfig = host.urlParams
+
 // ==============================
 // === Files to be downloaded ===
 // ==============================
@@ -189,6 +193,10 @@ export class App {
     mainEntryPoints = new Map<string, wasm.EntryPoint>()
     progressIndicator: wasm.ProgressIndicator | null = null
     initialized = false
+    /** Field indicating that application was stopped and any long running process
+     * (like wasm compilation) should be aborted. Currently, we initialize application fully
+     * before using stop, but in future we need to support interruption feature. */
+    stopped = false
 
     constructor(opts?: {
         configOptions?: config.Options
@@ -197,18 +205,19 @@ export class App {
     }) {
         this.packageInfo = new debug.PackageInfo(opts?.packageInfo ?? {})
         this.config = config.options
-        const unrecognized = log.Task.runCollapsed('Resolving application configuration.', () => {
+        const parseOk = log.Task.runCollapsed('Resolving application configuration.', () => {
             const inputConfig = opts?.configOptions
             if (inputConfig != null) {
                 this.config = inputConfig
             }
+            const parseOk = this.config.loadAllAndDisplayHelpIfUnsuccessful([
+                opts?.config,
+                host.urlParams(),
+            ])
             logger.log(this.config.prettyPrint())
-            return this.config.loadAll([opts?.config, host.urlParams()])
+            return parseOk
         })
-        if (unrecognized.length > 0) {
-            logger.error(`Unrecognized configuration parameters: ${unrecognized.join(', ')}.`)
-            this.showConfigOptions(unrecognized)
-        } else {
+        if (parseOk) {
             this.initBrowser()
             this.initialized = true
         }
@@ -267,8 +276,16 @@ export class App {
             logger.log("App wasn't initialized properly. Skipping run.")
         } else {
             await this.loadAndInitWasm()
-            await this.runEntryPoints()
+            if (!this.stopped) {
+                await this.runEntryPoints()
+            }
         }
+    }
+    /** Sets application stop to true and calls drop method which removes all rust memory references
+     *  and calls all destructors. */
+    stop() {
+        this.stopped = true
+        this.wasm?.drop()
     }
 
     /** Compiles and runs the downloaded WASM file. */
@@ -348,8 +365,8 @@ export class App {
             assetsResponses.map(response => response.blob().then(blob => blob.arrayBuffer()))
         )
         const assets = assetsInfo.map(info => {
-            // The non-null assertion on the following line is safe since we are mapping `assetsBlobs` from
-            // success assets response.
+            // The non-null assertion on the following line is safe since we are mapping
+            // `assetsBlobs` from success assets response.
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const data = new Map(Array.from(info.data, ([k, i]) => [k, assetsBlobs[i]!]))
             return new Asset(info.type, info.key, data)
@@ -411,10 +428,9 @@ export class App {
 
     /** Show a spinner. The displayed progress is constant. */
     showProgressIndicator(progress: number) {
-        if (this.progressIndicator) {
-            this.hideProgressIndicator()
+        if (this.progressIndicator == null) {
+            this.progressIndicator = new wasm.ProgressIndicator(this.config)
         }
-        this.progressIndicator = new wasm.ProgressIndicator(this.config)
         this.progressIndicator.set(progress)
     }
 
@@ -472,74 +488,19 @@ export class App {
                     description = rustDocs
                 }
             }
-            const href = '?startup.entry=' + entryPoint.strippedName
-            return new debug.HelpScreenEntry(entryPoint.strippedName, [description], href)
+            // This is required to preserve all other search parameters.
+            const searchParams = new URLSearchParams(new URL(location.href).searchParams)
+            searchParams.set('startup.entry', entryPoint.strippedName)
+            return new debug.HelpScreenEntry(
+                entryPoint.strippedName,
+                [description],
+                '?' + searchParams.toString()
+            )
         })
         const name = 'Entry points'
         const sections = [new debug.HelpScreenSection({ name, entries })]
 
         const headers = ['Name', 'Description']
-        new debug.HelpScreen().display({ title, headers, sections })
-    }
-
-    showConfigOptions(unknownOptions?: string[]) {
-        logger.log('Showing config options help screen.')
-        let msg = ''
-        if (unknownOptions) {
-            const optionLabel = unknownOptions.length > 1 ? 'options' : 'option'
-            msg = `Unknown config ${optionLabel}: ${unknownOptions.map(t => `'${t}'`).join(', ')}. `
-        }
-        const sectionsData: [string, string, debug.HelpScreenEntry[]][] = Object.entries(
-            this.config.groups
-        ).map(([groupName, group]) => {
-            const groupOptions = group.optionsRecursive()
-            const entriesData: [string, string, string][] = groupOptions.map(opt => [
-                opt.qualifiedName(),
-                opt.description,
-                String(opt.default),
-            ])
-            entriesData.sort()
-            const entries = entriesData.map(([name, description, def]) => {
-                return new debug.HelpScreenEntry(name, [description, def])
-            })
-            const option = this.config.options[groupName]
-            if (option != null) {
-                const entry = new debug.HelpScreenEntry(groupName, [
-                    option.description,
-                    String(option.default),
-                ])
-                entries.unshift(entry)
-            }
-            const name =
-                groupName.charAt(0).toUpperCase() +
-                groupName.slice(1).replace(/([A-Z])/g, ' $1') +
-                ' Options'
-            const description = group.description
-            return [name, description, entries]
-        })
-        sectionsData.sort()
-        const sections = sectionsData.map(
-            ([name, description, entries]) =>
-                new debug.HelpScreenSection({ name, description, entries })
-        )
-
-        const rootEntries = Object.entries(this.config.options).flatMap(([optionName, option]) => {
-            if (optionName in this.config.groups) {
-                return []
-            }
-            const entry = new debug.HelpScreenEntry(optionName, [
-                option.description,
-                String(option.default),
-            ])
-            return [entry]
-        })
-        if (rootEntries.length > 0) {
-            const name = 'Other Options'
-            sections.push(new debug.HelpScreenSection({ name, entries: rootEntries }))
-        }
-
-        const title = msg + 'Available options:'
-        const headers = ['Name', 'Description', 'Default']
         new debug.HelpScreen().display({ title, headers, sections })
     }
 

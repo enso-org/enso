@@ -15,7 +15,7 @@
     "@types/node": "^16.18.11",
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
-    "esbuild": "^0.17.0",
+    "esbuild": "^0.17.15",
     "esbuild-plugin-time": "^1.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -34,8 +34,8 @@
     "typescript": "^4.9.4"
   },
   "optionalDependencies": {
-    "@esbuild/darwin-x64": "^0.17.0",
-    "@esbuild/linux-x64": "^0.17.0",
-    "@esbuild/windows-x64": "^0.17.0"
+    "@esbuild/darwin-x64": "^0.17.15",
+    "@esbuild/linux-x64": "^0.17.15",
+    "@esbuild/windows-x64": "^0.17.15"
   }
 }

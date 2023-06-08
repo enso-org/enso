@@ -108,6 +108,10 @@ spec =
     type_spec "Pair - from Pair.new" Pair.new
     type_spec "Pair - from Pair.Value" Pair.Value
     type_spec "Pair - from 2-Item Vector" a->b->[a,b]
+    type_spec "Pair - from 2-Item JavaScript Array" js_pair
     type_spec "Pair - from 2-Item List" a->b->(List.Cons a (List.Cons b List.Nil))
+
+foreign js js_pair a b = """
+    return [a, b]
 
 main = Test_Suite.run_main spec

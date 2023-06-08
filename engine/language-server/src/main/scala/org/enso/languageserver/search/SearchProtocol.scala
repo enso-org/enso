@@ -135,6 +135,7 @@ object SearchProtocol {
       conversion.returnType,
       isStatic = false,
       conversion.documentation,
+      Seq(),
       conversion.reexport
     )
   }

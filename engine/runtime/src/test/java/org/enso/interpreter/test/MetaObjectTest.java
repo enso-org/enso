@@ -6,7 +6,9 @@ import java.net.URI;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
+
 import org.enso.interpreter.runtime.type.ConstantsGen;
+import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -16,21 +18,38 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class MetaObjectTest extends TestBase {
-  private Context ctx;
+  private static Context ctx;
+  private static ValuesGenerator generator;
 
-  @Before
-  public void prepareCtx() {
+  @BeforeClass
+  public static void prepareCtx() {
     ctx = createDefaultContext();
   }
 
-  @After
-  public void disposeCtx() {
+  @AfterClass
+  public static void disposeCtx() {
     ctx.close();
+  }
+
+  /** Override to create different values generator.
+  *
+  * @param context the context to allocate values in
+  * @return an instance of values generator
+  */
+  ValuesGenerator createGenerator(Context context) {
+    return ValuesGenerator.create(context, Language.ENSO, Language.JAVA);
+  }
+
+  private ValuesGenerator generator() {
+    if (generator == null) {
+      generator = createGenerator(ctx);
+    }
+    return generator;
   }
 
   @Test
@@ -68,7 +87,7 @@ public class MetaObjectTest extends TestBase {
 
   @Test
   public void checkAllConstantGenValuesArePresent() throws Exception {
-    var g = ValuesGenerator.create(ctx);
+    var g = generator();
     var expecting = new HashSet<String>();
     for (var f : ConstantsGen.class.getFields()) {
       if (!f.getName().endsWith("_BUILTIN")) {
@@ -135,7 +154,7 @@ public class MetaObjectTest extends TestBase {
   }
 
   private void checkAllTypesSatisfy(Check check) throws Exception {
-    var g = ValuesGenerator.create(ctx);
+    var g = generator();
     var expecting = new LinkedHashSet<Value>();
     for (var t : g.allTypes()) {
       if (t.isNull()) {

@@ -8,13 +8,11 @@
  * included in the final bundle. */
 // It is safe to disable `no-restricted-syntax` because the `PascalCase` naming is required
 // as per the above comment.
-// @ts-expect-error See above comment for why this import is needed.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-restricted-syntax
 import * as React from 'react'
 import * as reactDOM from 'react-dom/client'
 
-import * as loggerProvider from './providers/logger'
-import * as platformModule from './platform'
+import * as detect from './detect'
 import App, * as app from './components/app'
 
 // =================
@@ -22,7 +20,7 @@ import App, * as app from './components/app'
 // =================
 
 /** The `id` attribute of the root element that the app will be rendered into. */
-const ROOT_ELEMENT_ID = 'dashboard'
+const ROOT_ELEMENT_ID = 'enso-dashboard'
 /** The `id` attribute of the element that the IDE will be rendered into. */
 const IDE_ELEMENT_ID = 'root'
 
@@ -35,32 +33,30 @@ const IDE_ELEMENT_ID = 'root'
  * Running this function finds a `div` element with the ID `dashboard`, and renders the
  * authentication/dashboard UI using React. It also handles routing and other interactions (e.g.,
  * for redirecting the user to/from the login page). */
+export // This export declaration must be broken up to satisfy the `require-jsdoc` rule.
 // This is not a React component even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax
-export function run(
-    /** Logger to use for logging. */
-    logger: loggerProvider.Logger,
-    platform: platformModule.Platform,
-    onAuthenticated: () => void
-) {
+function run(props: app.AppProps) {
+    const { logger, supportsDeepLinks } = props
     logger.log('Starting authentication/dashboard UI.')
     /** The root element that the authentication/dashboard app will be rendered into. */
     const root = document.getElementById(ROOT_ELEMENT_ID)
+    const ideElement = document.getElementById(IDE_ELEMENT_ID)
     if (root == null) {
         logger.error(`Could not find root element with ID '${ROOT_ELEMENT_ID}'.`)
+    } else if (ideElement == null) {
+        logger.error(`Could not find IDE element with ID '${IDE_ELEMENT_ID}'.`)
     } else {
-        // FIXME[sb]: This is a temporary workaround and will be fixed
-        // when IDE support is properly integrated into the dashboard.
-        const ide = document.getElementById(IDE_ELEMENT_ID)
-        if (ide != null) {
-            ide.style.display = 'none'
-        }
-        const props = { logger, platform, onAuthenticated }
-        reactDOM.createRoot(root).render(<App {...props} />)
+        ideElement.style.top = '-100vh'
+        ideElement.style.display = 'fixed'
+        // `supportsDeepLinks` will be incorrect when accessing the installed Electron app's pages
+        // via the browser.
+        const actuallySupportsDeepLinks = supportsDeepLinks && detect.isRunningInElectron()
+        reactDOM
+            .createRoot(root)
+            .render(<App {...props} supportsDeepLinks={actuallySupportsDeepLinks} />)
     }
 }
 
+/** Global configuration for the {@link App} component. */
 export type AppProps = app.AppProps
-// This export should be `PascalCase` because it is a re-export.
-// eslint-disable-next-line no-restricted-syntax
-export const Platform = platformModule.Platform

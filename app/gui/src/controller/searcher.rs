@@ -10,7 +10,6 @@ use crate::model::module::NodeMetadata;
 use crate::model::suggestion_database;
 
 use breadcrumbs::Breadcrumbs;
-use const_format::concatcp;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
 use double_representation::import;
@@ -51,12 +50,6 @@ pub use action::Action;
 /// needed. Currently enabled to trigger engine's caching of user-added nodes.
 /// See: https://github.com/enso-org/ide/issues/1067
 pub const ASSIGN_NAMES_FOR_NODES: bool = true;
-
-/// The special module used for mock `Enso_Project.data` entry.
-/// See also [`Searcher::add_enso_project_entries`].
-const ENSO_PROJECT_SPECIAL_MODULE: &str =
-    concatcp!(project::STANDARD_BASE_LIBRARY_PATH, ".Enso_Project");
-
 
 
 // ==============
@@ -408,12 +401,18 @@ impl ComponentsProvider {
 }
 
 /// An information used for filtering entries.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Eq, PartialEq)]
 pub struct Filter {
     /// The part of the input used for filtering.
     pub pattern: ImString,
     /// Additional context. A string representation of the edited accessor chain.
     pub context: Option<ImString>,
+    /// The name of the currently active module. This is necessary since the module influences what
+    /// code to generate. At the time of writing, this is only the case when importing a module
+    /// method of a main module: the module is referred to as `Main` from within the same module
+    /// or by the project name when referenced elsewhere. See
+    /// `enso_suggestion_database::Entry::code_with_static_this` for its usage.
+    module_name: Rc<QualifiedName>,
 }
 
 /// Searcher Controller.
@@ -497,7 +496,12 @@ impl Searcher {
 
     /// Return true if user is currently filtering entries (the input has non-empty _pattern_ part).
     pub fn is_filtering(&self) -> bool {
-        !self.data.borrow().input.filter().pattern.is_empty()
+        !self.filter().pattern.is_empty()
+    }
+
+    /// Return true if the current searcher input is empty.
+    pub fn is_input_empty(&self) -> bool {
+        self.data.borrow().input.is_empty()
     }
 
     /// Subscribe to controller's notifications.
@@ -632,6 +636,7 @@ impl Searcher {
         let parsed_input = input::Input::parse(self.ide.parser(), new_input, cursor_position);
         let new_context = parsed_input.context().map(|ctx| ctx.into_ast().repr());
         let new_literal = parsed_input.edited_literal().cloned();
+        let old_filter = self.filter();
         let old_input = mem::replace(&mut self.data.borrow_mut().input, parsed_input);
         let old_context = old_input.context().map(|ctx| ctx.into_ast().repr());
         let old_literal = old_input.edited_literal();
@@ -643,13 +648,15 @@ impl Searcher {
             debug!("Reloading list.");
             self.reload_list();
         } else {
-            let data = self.data.borrow();
-            let filter = data.input.filter();
-            data.components.update_filtering(filter.clone_ref());
-            if let Actions::Loaded { list } = &data.actions {
-                debug!("Update filtering.");
-                list.update_filtering(filter.pattern);
-                executor::global::spawn(self.notifier.publish(Notification::NewActionList));
+            let filter = self.filter();
+            if filter != old_filter {
+                let data = self.data.borrow();
+                data.components.update_filtering(filter.clone_ref());
+                if let Actions::Loaded { list } = &data.actions {
+                    debug!("Update filtering.");
+                    list.update_filtering(filter.pattern);
+                    executor::global::spawn(self.notifier.publish(Notification::NewActionList));
+                }
             }
         }
         Ok(())
@@ -673,7 +680,12 @@ impl Searcher {
         let change = {
             let mut data = self.data.borrow_mut();
             let has_this = self.this_var().is_some();
-            let inserted = data.input.after_inserting_suggestion(&picked_suggestion, has_this)?;
+            let module_name = self.module_qualified_name();
+            let inserted = data.input.after_inserting_suggestion(
+                &picked_suggestion,
+                has_this,
+                module_name.as_ref(),
+            )?;
             let new_cursor_position = inserted.inserted_text.end;
             let inserted_code = inserted.new_input[inserted.inserted_code].to_owned();
             let import = inserted.import.clone();
@@ -715,34 +727,57 @@ impl Searcher {
             list.get_cloned(index).ok_or_else(error)?.action
         };
         if let Action::Suggestion(picked_suggestion) = suggestion {
-            self.preview_suggestion(picked_suggestion)?;
+            self.preview(Some(picked_suggestion))?;
         };
 
         Ok(())
     }
 
-    /// Use action at given index as a suggestion. The exact outcome depends on the action's type.
-    pub fn preview_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult {
+    /// Preview the current suggestion input.
+    pub fn preview_input(&self) -> FallibleResult {
+        self.preview(None)
+    }
+
+    /// Update the edited node's code with the current preview.
+    ///
+    /// If `suggestion` is specified, the preview will contains code after applying it.
+    /// Otherwise it will be just the current searcher input.
+    pub fn preview(&self, suggestion: Option<action::Suggestion>) -> FallibleResult {
         let transaction_name = "Previewing Component Browser suggestion.";
         let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
 
-        debug!("Previewing suggestion: \"{picked_suggestion:?}\".");
+        debug!("Updating node preview. Previewed suggestion: \"{suggestion:?}\".");
         self.clear_temporary_imports();
-
         let has_this = self.this_var().is_some();
-        let preview_change =
-            self.data.borrow().input.after_inserting_suggestion(&picked_suggestion, has_this)?;
-        let preview_ast = self.ide.parser().parse_line_ast(preview_change.new_input).ok();
-        let expression = self.get_expression(preview_ast.as_ref());
+        let preview_change_result = suggestion.map(|suggestion| {
+            let module_name = self.module_qualified_name();
+            self.data.borrow().input.after_inserting_suggestion(
+                &suggestion,
+                has_this,
+                module_name.as_ref(),
+            )
+        });
+
+        let suggestion_change = preview_change_result.transpose()?;
+        let empty_node_ast = || Ast::cons(ast::constants::keywords::NOTHING).with_new_id();
+        let preview_ast = match &suggestion_change {
+            Some(change) if change.new_input.trim().is_empty() => empty_node_ast(),
+            Some(change) => self.ide.parser().parse_line_ast(&change.new_input)?,
+            None => self.data.borrow().input.ast().cloned().unwrap_or_else(empty_node_ast),
+        };
+        let expression = self.get_expression(preview_ast);
 
         {
             // This block serves to limit the borrow of `self.data`.
             let data = self.data.borrow();
-            let requirements = data.picked_suggestions.iter().filter_map(|ps| ps.import.clone());
-            let all_requirements = requirements.chain(preview_change.import.iter().cloned());
+            let current_input_requirements =
+                data.picked_suggestions.iter().filter_map(|ps| ps.import.clone());
+            let picked_suggestion_requirement = suggestion_change.and_then(|change| change.import);
+            let all_requirements =
+                current_input_requirements.chain(picked_suggestion_requirement.iter().cloned());
             self.add_required_imports(all_requirements, false)?;
         }
-        self.graph.graph().set_expression(self.mode.node_id(), expression)?;
+        self.graph.graph().set_expression_ast(self.mode.node_id(), expression)?;
 
         Ok(())
     }
@@ -762,33 +797,6 @@ impl Searcher {
                 Mode::NewNode { .. } => self.add_example(&example).map(Some),
                 _ => Err(CannotExecuteWhenEditingNode.into()),
             },
-            Action::ProjectManagement(action) => {
-                match self.ide.manage_projects() {
-                    Ok(_) => {
-                        let ide = self.ide.clone_ref();
-                        executor::global::spawn(async move {
-                            // We checked that manage_projects returns Some just a moment ago, so
-                            // unwrapping is safe.
-                            let manage_projects = ide.manage_projects().unwrap();
-                            let result = match action {
-                                action::ProjectManagement::CreateNewProject =>
-                                    manage_projects.create_new_project(None),
-                                action::ProjectManagement::OpenProject { id, .. } =>
-                                    manage_projects.open_project(*id),
-                            };
-                            if let Err(err) = result.await {
-                                error!("Error when creating new project: {err}");
-                            }
-                        });
-                        Ok(None)
-                    }
-                    Err(err) => Err(NotSupported {
-                        action_label: Action::ProjectManagement(action).to_string(),
-                        reason:       err,
-                    }
-                    .into()),
-                }
-            }
         }
     }
 
@@ -827,6 +835,11 @@ impl Searcher {
         let _transaction_guard = self.graph.get_or_open_transaction("Commit node");
         self.clear_temporary_imports();
 
+        let expression = match &self.data.borrow().input.ast {
+            input::InputAst::Line(ast) => ast.clone(),
+            input::InputAst::Invalid(input) => self.ide.parser().parse_line(input)?,
+        };
+
         // We add the required imports before we edit its content. This way, we avoid an
         // intermediate state where imports would already be in use but not yet available.
         {
@@ -836,9 +849,8 @@ impl Searcher {
         }
 
         let node_id = self.mode.node_id();
-        let expression = self.get_expression(self.data.borrow().input.ast());
         let graph = self.graph.graph();
-        graph.set_expression(node_id, expression)?;
+        graph.set_expression_ast(node_id, self.get_expression(expression.elem))?;
         if let Mode::NewNode { .. } = *self.mode {
             graph.introduce_name_on(node_id)?;
         }
@@ -853,13 +865,11 @@ impl Searcher {
         Ok(node_id)
     }
 
-    fn get_expression(&self, input: Option<&Ast>) -> String {
-        let expression = match (self.this_var(), input) {
-            (Some(this_var), Some(input)) => apply_this_argument(this_var, input).repr(),
-            (None, Some(input)) => input.repr(),
-            (_, None) => "".to_owned(),
-        };
-        expression
+    fn get_expression(&self, input: Ast) -> Ast {
+        match self.this_var() {
+            Some(this_var) => apply_this_argument(this_var, &input),
+            None => input,
+        }
     }
 
     /// Adds an example to the graph.
@@ -938,13 +948,7 @@ impl Searcher {
             })
             .flatten();
         let mut module = self.module();
-        // TODO[ao] this is a temporary workaround. See [`Searcher::add_enso_project_entries`]
-        //     documentation.
-        let enso_project_special_import = suggestion_database::entry::Import::Qualified {
-            module: ENSO_PROJECT_SPECIAL_MODULE.try_into().unwrap(),
-        };
-        let without_enso_project = imports.filter(|i| *i != enso_project_special_import);
-        for entry_import in without_enso_project {
+        for entry_import in imports {
             let already_imported =
                 module.iter_imports().any(|existing| entry_import.covered_by(&existing));
             let import: import::Info = entry_import.into();
@@ -1058,8 +1062,8 @@ impl Searcher {
                 Ok(response) => {
                     info!("Received suggestions from Language Server.");
                     let list = this.make_action_list(&response);
+                    let filter = this.filter();
                     let mut data = this.data.borrow_mut();
-                    let filter = data.input.filter();
                     list.update_filtering(filter.pattern.clone_ref());
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     let completions = response.results;
@@ -1069,10 +1073,11 @@ impl Searcher {
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
                     error!("{msg}: {err}");
+                    let filter = this.filter();
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
                     data.components = this.make_component_list(this.database.keys(), &this_type);
-                    data.components.update_filtering(data.input.filter());
+                    data.components.update_filtering(filter);
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;
@@ -1090,12 +1095,6 @@ impl Searcher {
         let mut actions = action::ListWithSearchResultBuilder::new();
         let (libraries_icon, default_icon) =
             action::hardcoded::ICONS.with(|i| (i.libraries.clone_ref(), i.default.clone_ref()));
-        if should_add_additional_entries && self.ide.manage_projects().is_ok() {
-            let mut root_cat = actions.add_root_category("Projects", default_icon.clone_ref());
-            let category = root_cat.add_category("Projects", default_icon.clone_ref());
-            let create_project = action::ProjectManagement::CreateNewProject;
-            category.add_action(Action::ProjectManagement(create_project));
-        }
         let mut libraries_root_cat =
             actions.add_root_category("Libraries", libraries_icon.clone_ref());
         if should_add_additional_entries {
@@ -1105,9 +1104,6 @@ impl Searcher {
         }
         let libraries_cat =
             libraries_root_cat.add_category("Libraries", libraries_icon.clone_ref());
-        if should_add_additional_entries {
-            Self::add_enso_project_entries(&libraries_cat);
-        }
         let entries = completion_response.results.iter().filter_map(|id| {
             self.database
                 .lookup(*id)
@@ -1170,32 +1166,8 @@ impl Searcher {
         self.graph.module_qualified_name(&*self.project)
     }
 
-    /// Add to the action list the special mocked entry of `Enso_Project.data`.
-    ///
-    /// This is a workaround for Engine bug https://github.com/enso-org/enso/issues/1605.
-    //TODO[ao] this is a temporary workaround.
-    fn add_enso_project_entries(libraries_cat_builder: &action::CategoryBuilder) {
-        // We may unwrap here, because the constant is tested to be convertible to
-        // [`QualifiedName`].
-        let module = QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE).unwrap();
-        let self_type = module.clone();
-        for method in &["data", "root"] {
-            let entry = model::suggestion_database::Entry {
-                name:          (*method).to_owned(),
-                kind:          model::suggestion_database::entry::Kind::Method,
-                defined_in:    module.clone(),
-                arguments:     vec![],
-                return_type:   "Standard.Base.System.File.File".try_into().unwrap(),
-                documentation: vec![],
-                self_type:     Some(self_type.clone()),
-                is_static:     true,
-                scope:         model::suggestion_database::entry::Scope::Everywhere,
-                icon_name:     None,
-                reexported_in: None,
-            };
-            let action = Action::Suggestion(action::Suggestion::FromDatabase(Rc::new(entry)));
-            libraries_cat_builder.add_action(action);
-        }
+    fn filter(&self) -> Filter {
+        self.data.borrow().input.filter(self.module_qualified_name())
     }
 }
 
@@ -1420,13 +1392,6 @@ pub mod test {
     use json_rpc::expect_call;
     use parser::Parser;
     use std::assert_matches::assert_matches;
-
-
-    #[test]
-    fn enso_project_special_module_is_convertible_to_qualified_names() {
-        QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE)
-            .expect("ENSO_PROJECT_SPECIAL_MODULE should be convertible to QualifiedName.");
-    }
 
     pub fn completion_response(results: &[SuggestionId]) -> language_server::response::Completion {
         language_server::response::Completion {
@@ -1757,11 +1722,11 @@ pub mod test {
         assert!(searcher.actions().is_loading());
         fixture.test.run_until_stalled();
         let list = searcher.actions().list().unwrap().to_action_vec();
-        // There are 8 entries, because: 2 were returned from `completion` method, two are mocked,
-        // and all of these are repeated in "All Search Result" category.
-        assert_eq!(list.len(), 8);
-        assert_eq!(list[2], Action::Suggestion(action::Suggestion::FromDatabase(test_function_1)));
-        assert_eq!(list[3], Action::Suggestion(action::Suggestion::FromDatabase(test_function_2)));
+        // There are 4 entries, because: 2 were returned from `completion` method, and two are
+        // mocked.
+        assert_eq!(list.len(), 4);
+        assert_eq!(list[0], Action::Suggestion(action::Suggestion::FromDatabase(test_function_1)));
+        assert_eq!(list[1], Action::Suggestion(action::Suggestion::FromDatabase(test_function_2)));
         let notification = subscriber.next().boxed_local().expect_ready();
         assert_eq!(notification, Some(Notification::NewActionList));
     }
@@ -2323,7 +2288,7 @@ pub mod test {
 
             searcher.set_input(case.input.clone(), Byte(case.input.len())).unwrap();
             let suggestion = action::Suggestion::FromDatabase(entry.clone_ref());
-            searcher.preview_suggestion(suggestion.clone()).unwrap();
+            searcher.preview(Some(suggestion.clone())).unwrap();
             searcher.use_suggestion(suggestion.clone()).unwrap();
             searcher.commit_node().unwrap();
             let updated_def = searcher.graph.graph().definition().unwrap().item;

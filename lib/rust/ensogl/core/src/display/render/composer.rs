@@ -51,12 +51,20 @@ impl {
         self.init_passes();
     }
 
-    /// Resize the composer and reinitialize all of its layers.
+    /// Resize the composer and reinitialize all of its screen-size-dependent layers.
     pub fn resize(&mut self, width: i32, height: i32, pixel_ratio: f32) {
+        if width == self.width && height == self.height && pixel_ratio == self.pixel_ratio {
+            // Some resize events are spurious; it is not necessary to reinitialize the passes if
+            // the size hasn't actually changed.
+            return;
+        }
         self.width = width;
         self.height = height;
         self.pixel_ratio = pixel_ratio;
-        self.init_passes();
+        let defs = self.pipeline.passes_clone();
+        for (pass, def) in self.passes.iter_mut().zip(defs) {
+            pass.resize(def, width, height, pixel_ratio);
+        }
     }
 
     /// Initialize all pass definitions from the [`Pipeline`].
@@ -128,5 +136,25 @@ impl ComposerPass {
     /// Run the pass.
     pub fn run(&mut self, update_status: UpdateStatus) {
         self.pass.run(&self.instance, update_status);
+    }
+
+    /// Update the pass for a change in screen size. Depending on the pass, this may require
+    /// reinitialization.
+    pub fn resize(
+        &mut self,
+        def: Box<dyn pass::Definition>,
+        width: i32,
+        height: i32,
+        pixel_ratio: f32,
+    ) {
+        if def.is_screen_size_independent() {
+            self.instance.width = width;
+            self.instance.height = height;
+            self.instance.pixel_ratio = pixel_ratio;
+        } else {
+            let ctx = self.context.clone();
+            let vars = mem::take(&mut self.variables);
+            *self = ComposerPass::new(&ctx, &vars, def, width, height, pixel_ratio);
+        }
     }
 }

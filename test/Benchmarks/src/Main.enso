@@ -1,4 +1,5 @@
 import project.Collections
+import project.Column_Numeric
 import project.Equality
 import project.Json_Bench
 import project.Natural_Order_Sort
@@ -16,6 +17,7 @@ import project.Vector
    not breaking them.
 main =
     Collections.bench
+    Column_Numeric.bench
     Equality.bench
     Json_Bench.bench
     Natural_Order_Sort.bench

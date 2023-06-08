@@ -145,7 +145,7 @@ always trust the results you get.
     <b>Watch Tutorials</b><br/>
     <ul>
         <li><a href="https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md">Enso keyboard shortcuts</a></li>
-        <li><a href="https://youtu.be/3f6FE1dgMNw?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0">Enso 101</a></li>
+        <li><a href="https://youtu.be/_Twh45PI_vU&list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0">Enso 101</a></li>
         <li><a href="https://youtu.be/hFxugfGbvGI?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0">Analyze trams data</a></li>
         <li><a href="https://youtu.be/gXnojGR6wOI?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0">Analyze GitHub Stargazers data</a></li>
         <li><a href="https://www.youtube.com/playlist?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0">... other tutorials</a></li>
@@ -187,9 +187,8 @@ always trust the results you get.
 
 If you want to start _using_ Enso, please see the download links in the
 [getting started](#getting-started) section above. Alternatively, you can get
-the IDE [here](https://github.com/enso-org/ide/releases) and the language itself
-[here](https://github.com/enso-org/enso/releases). This section is intended for
-people interested in contributing to the development of Enso.
+the IDE [here](https://github.com/enso-org/enso/releases). This section is
+intended for people interested in contributing to the development of Enso.
 
 Enso is a community-driven open source project which is, and will always be,
 open and free to use. Join us, help us to build it, and spread the word!

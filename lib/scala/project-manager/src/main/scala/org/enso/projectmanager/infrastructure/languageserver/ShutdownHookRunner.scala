@@ -1,7 +1,5 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
-import java.util.UUID
-
 import akka.actor.{Actor, Props, Status}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
@@ -11,6 +9,8 @@ import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookRunner.Run
 import org.enso.projectmanager.infrastructure.shutdown.ShutdownHook
 import org.enso.projectmanager.util.UnhandledLogging
+
+import java.util.UUID
 
 /** An actor that invokes a shutdown hook.
   *
@@ -42,10 +42,12 @@ class ShutdownHookRunner[F[+_, +_]: Exec: CovariantFlatMap](
         s"An error occurred during running shutdown hooks for project [$projectId].",
         th
       )
+      context.parent ! ShutdownHookActivator.ShutdownHooksFired(projectId)
       context.stop(self)
 
     case Right(_) =>
       logger.info("All shutdown hooks fired for project [{}].", projectId)
+      context.parent ! ShutdownHookActivator.ShutdownHooksFired(projectId)
       context.stop(self)
   }
 

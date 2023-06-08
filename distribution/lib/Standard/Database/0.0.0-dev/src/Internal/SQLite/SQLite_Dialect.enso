@@ -1,13 +1,16 @@
 from Standard.Base import all hiding First, Last
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
+from Standard.Table import Value_Type
 
 import project.Connection.Connection.Connection
+import project.Data.Dialect
 import project.Data.SQL.Builder
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
@@ -16,6 +19,7 @@ import project.Internal.Base_Generator
 import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.IR.Context.Context
+import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
@@ -27,6 +31,7 @@ import project.Internal.Common.Database_Join_Helper
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Type_Mapping.SQLite_Type_Mapping
+import project.Internal.SQLite.SQLite_Error_Mapper.SQLite_Error_Mapper
 import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import Unsupported_Database_Operation
 
@@ -139,28 +144,49 @@ type SQLite_Dialect
 
     ## PRIVATE
     make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
-    make_cast self column target_type infer_result_type_from_database_callback =
-        _ = infer_result_type_from_database_callback
+    make_cast self column target_type _ =
         mapping = self.get_type_mapping
-        sql_type_text = mapping.sql_type_to_text target_type
-        new_expression = SQL_Expression.Operation "CAST" [column.expression, SQL_Expression.Literal sql_type_text]
-        # We override the type here, because SQLite gets it wrong if the column starts with NULL values.
+        target_value_type = mapping.sql_type_to_value_type target_type
+        custom_cast = make_custom_cast column target_value_type mapping
+        new_expression = custom_cast.if_nothing <|
+            self.make_cast_expression column target_type
         new_sql_type_reference = SQL_Type_Reference.from_constant target_type
         Internal_Column.Value column.name new_sql_type_reference new_expression
+
+    ## PRIVATE
+    make_cast_expression self column target_type =
+        mapping = self.get_type_mapping
+        sql_type_text = mapping.sql_type_to_text target_type
+        SQL_Expression.Operation "CAST" [column.expression, SQL_Expression.Literal sql_type_text]
 
     ## PRIVATE
     needs_execute_query_for_type_inference : Boolean
     needs_execute_query_for_type_inference self = True
 
     ## PRIVATE
-    cast_after_union : Boolean
-    cast_after_union self = True
+    supports_separate_nan : Boolean
+    supports_separate_nan self = False
+
+    ## PRIVATE
+       SQLite allows mixed type columns, but we want our columns to be uniform.
+       So after unifying columns with mixed types, we add a cast to ensure that.
+    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
+    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
+        _ = infer_result_type_from_database_callback
+        # TODO [RW] This may be revisited with #6281.
+        case approximate_result_type of
+            Nothing -> column
+            _ ->
+                sql_type = self.get_type_mapping.value_type_to_sql approximate_result_type Problem_Behavior.Ignore
+                new_expression = self.make_cast_expression column sql_type
+                new_sql_type_reference = SQL_Type_Reference.from_constant sql_type
+                Internal_Column.Value column.name new_sql_type_reference new_expression
 
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
     prepare_fetch_types_query self expression context =
-        minimized_context = context.set_limit 1
-        self.generate_sql (Query.Select [["typed_column", expression]] minimized_context)
+        _ = [expression, context]
+        Panic.throw (Illegal_State.Error "Type inference by asking the Database for the expected types is not supported in SQLite since it tended to give wrong results. This should have never been called - if it was - that is a bug in the Database library.")
 
     ## PRIVATE
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
@@ -188,9 +214,25 @@ type SQLite_Dialect
         Average _ _ -> True
         Median _ _ -> unsupported "Median"
 
+    ## PRIVATE
+       Checks if an operation is supported by the dialect.
+    is_supported : Text -> Boolean
+    is_supported self operation =
+        self.internal_generator_dialect.is_supported operation
+
+    ## PRIVATE
+       The default table types to use when listing tables.
+    default_table_types : Vector Text
+    default_table_types self =
+        ["TABLE", "VIEW", "GLOBAL TEMPORARY"]
+
+    ## PRIVATE
+    get_error_mapper : Error_Mapper
+    get_error_mapper self = SQLite_Error_Mapper
+
 ## PRIVATE
 make_internal_generator_dialect =
-    text = [starts_with, contains, ends_with, make_case_sensitive]+concat_ops
+    text = [starts_with, contains, ends_with, make_case_sensitive]+concat_ops+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
     arith_extensions = [decimal_div, mod_op]
@@ -261,6 +303,20 @@ concat_ops =
     concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
+## PRIVATE
+trim_ops =
+    whitespace = "' ' || CHAR(9) || CHAR(10) || CHAR(13)"
+    make_fn fn_name = Base_Generator.lift_binary_op fn_name input-> chars-> case chars of
+            Nothing -> Builder.code fn_name+"(" ++ input ++ ", " ++ whitespace ++ ")"
+            _ ->
+                case chars.is_constant of
+                    True ->
+                        const = chars.fragments.vec.first.object
+                        if const.is_nothing || const.is_empty then Builder.code fn_name+"(" ++ input ++ ", " ++ whitespace ++ ")" else
+                            Builder.code fn_name+"(" ++ input ++ ", " ++ chars ++ ")"
+                    False ->
+                        Builder.code "CASE WHEN " ++ chars ++ " IS NULL OR " ++ chars ++ " == '' THEN " ++ fn_name ++ "(" ++ input ++ ") ELSE " ++ fn_name ++ "(" ++ input ++ ", " ++ chars ++ ") END"
+    [make_fn "TRIM", make_fn "LTRIM", make_fn "RTRIM"]
 
 ## PRIVATE
 agg_count_distinct args = case args.length == 1 of
@@ -308,3 +364,22 @@ decimal_div = Base_Generator.lift_binary_op "/" x-> y->
 ## PRIVATE
 mod_op = Base_Generator.lift_binary_op "mod" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)) * " ++ y
+
+## PRIVATE
+   It will return `Nothing` if the type does not require custom logic.
+make_custom_cast column target_value_type type_mapping =
+    result = Ref.new Nothing
+    column_type =
+        type_mapping.sql_type_to_value_type column.sql_type_reference.get
+    if target_value_type.is_text && (column_type == Value_Type.Boolean) then
+        expr = SQL_Expression.Operation "IIF" [column.expression, SQL_Expression.Literal "'true'", SQL_Expression.Literal "'false'"]
+        result.put expr
+
+    if (target_value_type == Value_Type.Boolean) && column_type.is_text then
+        lower = SQL_Expression.Operation "FOLD_CASE" [column.expression]
+        is_true = SQL_Expression.Operation "==" [lower, SQL_Expression.Literal "'true'"]
+        is_false = SQL_Expression.Operation "==" [lower, SQL_Expression.Literal "'false'"]
+        expr = SQL_Expression.Operation "CASE" [is_true, SQL_Expression.Literal "TRUE", is_false, SQL_Expression.Literal "FALSE", SQL_Expression.Literal "NULL"]
+        result.put expr
+
+    result.get

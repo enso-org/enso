@@ -1,5 +1,19 @@
 package org.enso.interpreter.test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.nio.file.Paths;
+import java.util.Map;
+import java.util.concurrent.Callable;
+
+import org.enso.interpreter.EnsoLanguage;
+import org.enso.polyglot.MethodNames.Module;
+import org.enso.polyglot.RuntimeOptions;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Language;
+import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.proxy.ProxyExecutable;
 import static org.junit.Assert.assertNotNull;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -9,34 +23,32 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import java.io.ByteArrayOutputStream;
-import java.nio.file.Paths;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import org.enso.interpreter.EnsoLanguage;
-import org.enso.polyglot.MethodNames.Module;
-import org.enso.polyglot.RuntimeOptions;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Language;
-import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.proxy.ProxyExecutable;
 
 public abstract class TestBase {
   protected static Context createDefaultContext() {
-    var context =
-        Context.newBuilder()
-            .allowExperimentalOptions(true)
-            .allowIO(true)
-            .allowAllAccess(true)
-            .logHandler(new ByteArrayOutputStream())
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .build();
+    var context = defaultContextBuilder().build();
     final Map<String, Language> langs = context.getEngine().getLanguages();
     assertNotNull("Enso found: " + langs, langs.get("enso"));
     return context;
+  }
+
+  protected static Context createDefaultContext(OutputStream out) {
+    var context = defaultContextBuilder().out(out).build();
+    final Map<String, Language> langs = context.getEngine().getLanguages();
+    assertNotNull("Enso found: " + langs, langs.get("enso"));
+    return context;
+  }
+
+  private static Context.Builder defaultContextBuilder() {
+    return Context.newBuilder()
+        .allowExperimentalOptions(true)
+        .allowIO(true)
+        .allowAllAccess(true)
+        .logHandler(new ByteArrayOutputStream())
+        .option(RuntimeOptions.STRICT_ERRORS, "true")
+        .option(
+            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+            Paths.get("../../distribution/component").toFile().getAbsolutePath());
   }
 
   /**
@@ -114,6 +126,17 @@ public abstract class TestBase {
     Value assocType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
     Value mainMethod = module.invokeMember(Module.GET_METHOD, assocType, "main");
     return mainMethod.execute();
+  }
+
+  /**
+   * Parses the given module and returns a method by the given name from the module.
+   *
+   * @param moduleSrc Source of the whole module
+   * @return Reference to the method.
+   */
+  protected static Value getMethodFromModule(Context ctx, String moduleSrc, String methodName) {
+    Value module = ctx.eval(Source.create("enso", moduleSrc));
+    return module.invokeMember(Module.EVAL_EXPRESSION, methodName);
   }
 
   /**

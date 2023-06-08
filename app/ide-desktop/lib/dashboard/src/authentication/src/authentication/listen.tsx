@@ -31,7 +31,7 @@ export enum AuthEvent {
     signOut = 'signOut',
 }
 
-/** Returns `true` if the given `string` is an {@link AuthEvent}. */
+/** Return `true` if the given `string` is an {@link AuthEvent}. */
 function isAuthEvent(value: string): value is AuthEvent {
     return Object.values<string>(AuthEvent).includes(value)
 }
@@ -45,7 +45,7 @@ function isAuthEvent(value: string): value is AuthEvent {
  * @see {@link Api["listen"]} */
 export type ListenerCallback = (event: AuthEvent, data?: unknown) => void
 
-/** Unsubscribes the {@link ListenerCallback} from authentication state changes.
+/** Unsubscribe the {@link ListenerCallback} from authentication state changes.
  *
  * @see {@link Api["listen"]} */
 type UnsubscribeFunction = () => void
@@ -56,11 +56,11 @@ type UnsubscribeFunction = () => void
  * to avoid memory leaks or duplicate event handlers. */
 export type ListenFunction = (listener: ListenerCallback) => UnsubscribeFunction
 
+/** Listen to authentication state changes. */
 export function registerAuthEventListener(listener: ListenerCallback) {
-    const callback: amplify.HubCallback = data => {
+    return amplify.Hub.listen(AUTHENTICATION_HUB, data => {
         if (isAuthEvent(data.payload.event)) {
             listener(data.payload.event, data.payload.data)
         }
-    }
-    return amplify.Hub.listen(AUTHENTICATION_HUB, callback)
+    })
 }

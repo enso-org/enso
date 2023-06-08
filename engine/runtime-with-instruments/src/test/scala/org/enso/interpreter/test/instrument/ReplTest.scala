@@ -290,6 +290,27 @@ class ReplTest
       }
       eval(code)
       val errorMsg =
+        "Compile_Error.Error"
+      evalResult.left.value.getMessage shouldEqual errorMsg
+    }
+
+    "handle errors gracefully (pretty print)" in {
+      val code =
+        """
+          |import Standard.Base.Runtime.Debug
+          |from Standard.Base.Errors.Common import all
+          |
+          |main =
+          |    Debug.breakpoint
+          |""".stripMargin
+      var evalResult: Either[Exception, ObjectRepresentation] =
+        null
+      setSessionManager { executor =>
+        evalResult = executor.evaluate("1 + undefined")
+        executor.exit()
+      }
+      eval(code)
+      val errorMsg =
         "Compile error: The name `undefined` could not be found."
       evalResult.left.value.getMessage shouldEqual errorMsg
     }

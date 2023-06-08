@@ -12,20 +12,8 @@ import org.enso.interpreter.runtime.data.text.Text;
     name = "get_constructor_name",
     description = "Gets the name of a constructor.",
     autoRegister = false)
-public abstract class GetConstructorNameNode extends Node {
-  static GetConstructorNameNode build() {
-    return GetConstructorNameNodeGen.create();
-  }
-
-  abstract Text execute(Object atom_constructor);
-
-  @Specialization
-  Text doConstructor(AtomConstructor cons) {
+public class GetConstructorNameNode extends Node {
+  Text execute(AtomConstructor cons) {
     return Text.create(cons.getName());
-  }
-
-  @Specialization
-  Text doType(Type type) {
-    return Text.create(type.getName());
   }
 }

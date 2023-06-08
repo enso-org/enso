@@ -51,7 +51,7 @@ import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
   TestableThreadSafeFileLockManager
 }
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
+import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.testkit.{EitherValue, WithTemporaryDirectory}
 import org.enso.text.Sha3_224VersionCalculator
 import org.scalatest.OptionValues
@@ -136,7 +136,6 @@ class BaseServerTest
   val zioExec         = ZioExec(new TestRuntime)
   val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
-  val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
 
   val initializationComponent = SequentialResourcesInitialization(
     new DirectoriesInitialization(config.directories),
@@ -144,8 +143,7 @@ class BaseServerTest
       config.directories,
       system.eventStream,
       sqlDatabase,
-      suggestionsRepo,
-      versionsRepo
+      suggestionsRepo
     )
   )
 
@@ -231,7 +229,6 @@ class BaseServerTest
           config,
           contentRootManagerWrapper,
           suggestionsRepo,
-          versionsRepo,
           sessionRouter,
           runtimeConnectorProbe.ref
         ),
@@ -364,6 +361,14 @@ class BaseServerTest
     val client = new WsTestClient(address, debugMessages = debug)
     initSession(client)
     client
+  }
+
+  def getInitialisedWsClientAndId(
+    debug: Boolean = false
+  ): (WsTestClient, ClientId) = {
+    val client = new WsTestClient(address, debugMessages = debug)
+    val uuid   = initSession(client)
+    (client, uuid)
   }
 
   private def initSession(client: WsTestClient): UUID = {

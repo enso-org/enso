@@ -22,7 +22,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |""".stripMargin
       eval(
         code
-      ) shouldEqual "Oopsie, it's a syntax error: Parentheses can't be empty."
+      ) shouldEqual "Oopsie, it's a syntax error: Parentheses can't be empty"
     }
 
     "surface parsing errors in the language" in {
@@ -34,7 +34,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |    x = Panic.catch_primitive ` caught_panic-> caught_panic.payload
           |    x.to_text
           |""".stripMargin
-      eval(code) shouldEqual "(Syntax_Error.Error 'Unexpected expression.')"
+      eval(code) shouldEqual "(Syntax_Error.Error 'Unexpected expression')"
     }
 
     "surface redefinition errors in the language" in {
@@ -68,7 +68,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |""".stripMargin
       eval(
         code
-      ) shouldEqual "(Compile_Error.Error 'The name `my_vra` could not be found.')"
+      ) shouldEqual "(Compile_Error.Error 'The name `my_vra` could not be found')"
     }
   }
 }

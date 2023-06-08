@@ -202,12 +202,16 @@ impl CachedTransformation {
 // === Getters ===
 
 impl CachedTransformation {
+    pub fn local_matrix(&self) -> Matrix4<f32> {
+        self.transform_matrix
+    }
+
     pub fn matrix(&self) -> Matrix4<f32> {
         self.matrix
     }
 
     pub fn global_position(&self) -> Vector3<f32> {
-        (self.matrix * Vector4::new(0.0, 0.0, 0.0, 1.0)).xyz()
+        self.matrix.column(3).xyz()
     }
 }
 

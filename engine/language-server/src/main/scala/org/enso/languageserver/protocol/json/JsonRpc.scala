@@ -69,6 +69,7 @@ object JsonRpc {
     .registerRequest(ExecutionContextPush)
     .registerRequest(ExecutionContextPop)
     .registerRequest(ExecutionContextRecompute)
+    .registerRequest(ExecutionContextSetExecutionEnvironment)
     .registerRequest(ExecutionContextInterrupt)
     .registerRequest(ExecutionContextGetComponentGroups)
     .registerRequest(ExecuteExpression)

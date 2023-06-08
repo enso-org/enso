@@ -1,4 +1,5 @@
 import project.Data.Numbers.Integer
+import project.Data.Text.Text
 
 ## The exit codes that the process can return.
 type Exit_Code
@@ -39,3 +40,10 @@ type Exit_Code
     to_number self = case self of
         Exit_Code.Success -> 0
         Exit_Code.Failure code -> code
+
+    ## PRIVATE
+       Convert to a display representation of this Exit_Code.
+    to_display_text : Text
+    to_display_text self = case self of
+        Exit_Code.Success -> "Success"
+        Exit_Code.Failure code -> "Failure " + code.to_display_text

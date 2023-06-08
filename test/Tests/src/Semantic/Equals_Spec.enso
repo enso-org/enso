@@ -33,6 +33,16 @@ type Child_Comparator
 
 Comparable.from (_:Child) = Child_Comparator
 
+## Type that violates reflexivity
+type My_Nan
+    Value val
+
+type My_Nan_Comparator
+    compare _ _ = Nothing
+    hash _ = 0
+
+Comparable.from (_:My_Nan) = My_Nan_Comparator
+
 type Parent
     Value child
 
@@ -158,6 +168,14 @@ spec =
             rect = Rect.Value (Point.Value 1 2) (Point.Value 3 4)
             four_field = FourFieldType.Value 1 2 3 4
             (rect == four_field).should_be_false
+
+        Test.specify "Any.== should check for Meta.is_same_object" <|
+            obj_1 = My_Nan.Value 42
+            obj_2 = My_Nan.Value 42
+            (obj_1 == obj_2).should_be_false
+            Meta.is_same_object obj_1 obj_2 . should_be_false
+            (obj_1 == obj_1).should_be_true
+            Meta.is_same_object obj_1 obj_1 . should_be_true
 
         Test.specify "should handle `==` on types" <|
             (Child == Child).should_be_true

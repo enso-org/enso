@@ -30,7 +30,7 @@ import java.util.UUID;
 @ImportStatic({CallArgumentInfo.ArgumentMappingBuilder.class, Constants.CacheSizes.class})
 public abstract class InvokeFunctionNode extends BaseNode {
 
-  private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
+  private final CallArgumentInfo[] schema;
   private final InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode;
   private final InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode;
   private @Child CaptureCallerInfoNode captureCallerInfoNode = CaptureCallerInfoNode.build();
@@ -82,7 +82,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
               "build(argumentMapping, getDefaultsExecutionMode(), getArgumentsExecutionMode(), getTailStatus())")
           CurryNode curryNode) {
     ArgumentSorterNode.MappedArguments mappedArguments =
-        mappingNode.execute(function, state, arguments);
+        mappingNode.execute(callerFrame, function, state, arguments);
     CallerInfo callerInfo = null;
     if (cachedSchema.getCallerFrameAccess().shouldFrameBePassed()) {
       callerInfo = captureCallerInfoNode.execute(callerFrame.materialize());
@@ -121,6 +121,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
 
     ArgumentSorterNode.MappedArguments mappedArguments =
         mappingNode.execute(
+            callerFrame,
             function.getSchema(),
             argumentMapping,
             getArgumentsExecutionMode(),

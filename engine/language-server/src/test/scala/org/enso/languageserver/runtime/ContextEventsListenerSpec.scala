@@ -55,15 +55,17 @@ class ContextEventsListenerSpec
           Suggestions.method.selfType,
           Suggestions.method.name
         )
+        val methodCall = Api.MethodCall(methodPointer)
         listener ! Api.ExpressionUpdates(
           contextId,
           Set(
             Api.ExpressionUpdate(
               Suggestions.method.externalId.get,
               Some(Suggestions.method.returnType),
-              Some(methodPointer),
+              Some(methodCall),
               Vector(),
               false,
+              true,
               Api.ExpressionUpdate.Payload.Value()
             )
           )
@@ -78,7 +80,7 @@ class ContextEventsListenerSpec
                 ContextRegistryProtocol.ExpressionUpdate(
                   Suggestions.method.externalId.get,
                   Some(Suggestions.method.returnType),
-                  Some(toProtocolMethodPointer(methodPointer)),
+                  Some(toProtocolMethodCall(methodCall)),
                   Vector(),
                   false,
                   ContextRegistryProtocol.ExpressionUpdate.Payload.Value(None)
@@ -100,6 +102,7 @@ class ContextEventsListenerSpec
               None,
               Vector(),
               false,
+              true,
               Api.ExpressionUpdate.Payload.DataflowError(
                 Seq(Suggestions.function.externalId.get)
               )
@@ -139,6 +142,7 @@ class ContextEventsListenerSpec
               None,
               Vector(),
               false,
+              false,
               Api.ExpressionUpdate.Payload.Panic("Method failure", Seq())
             )
           )
@@ -177,6 +181,7 @@ class ContextEventsListenerSpec
             None,
             Vector(),
             false,
+            false,
             Api.ExpressionUpdate.Payload.Value()
           )
         )
@@ -190,6 +195,7 @@ class ContextEventsListenerSpec
             None,
             None,
             Vector(),
+            false,
             false,
             Api.ExpressionUpdate.Payload.Value()
           )
@@ -472,6 +478,12 @@ class ContextEventsListenerSpec
       system.stop(listener)
     }
   }
+
+  def toProtocolMethodCall(methodCall: Api.MethodCall): MethodCall =
+    MethodCall(
+      toProtocolMethodPointer(methodCall.methodPointer),
+      methodCall.notAppliedArguments
+    )
 
   def toProtocolMethodPointer(methodPointer: Api.MethodPointer): MethodPointer =
     MethodPointer(

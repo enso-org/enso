@@ -444,7 +444,7 @@ class GitSpec
         .setAllowEmpty(true)
         .setAll(true)
         .setMessage("Initial commit")
-        .setAuthor("Enso VCS", "vcs@enso.io")
+        .setAuthor("Enso VCS", "vcs@enso.org")
         .call()
     }
   }

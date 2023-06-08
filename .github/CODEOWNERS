@@ -15,7 +15,7 @@ Cargo.toml
 /lib/rust/ensogl/ @MichaelMauderer @wdanilo @farmaazon @kazcw
 /lib/rust/parser/ @kazcw @wdanilo @jaroslavtulach
 /integration-test/ @MichaelMauderer @wdanilo @farmaazon @kazcw
-/tools/build-performance/ @kazcw @mwu-tow @wdanilo
+/tools/build-performance/ @kazcw @mwu-tow @wdanilo @Akirathan
 
 # Scala Libraries
 /lib/scala/ @4e6 @jaroslavtulach @hubertp
@@ -24,18 +24,30 @@ Cargo.toml
 /app/gui/ @MichaelMauderer @wdanilo @farmaazon @mwu-tow @kazcw
 /app/gui/view/ @MichaelMauderer @wdanilo @farmaazon @kazcw
 /app/gui/view/graph-editor/src/builtin/visualization/java_script/ @MichaelMauderer @wdanilo @farmaazon @kazcw @jdunkerley
-/app/ide-desktop/ @MichaelMauderer @wdanilo @kazcw
+/app/ide-desktop/ @MichaelMauderer @wdanilo
 
 # Engine (old)
 # This section should be removed once the engine moves to /app/engine
-/build.sbt @4e6 @jaroslavtulach @hubertp
-/distribution/ @4e6 @jdunkerley @radeusgd
-/engine/ @4e6 @jaroslavtulach @hubertp
+/build.sbt @4e6 @jaroslavtulach @hubertp @Akirathan
+/distribution/ @4e6 @jdunkerley @radeusgd @GregoryTravis
+/engine/ @4e6 @jaroslavtulach @hubertp @Akirathan
 /project/ @4e6 @jaroslavtulach @hubertp
-/test/ @jdunkerley @radeusgd
+/test/ @jdunkerley @radeusgd @GregoryTravis
 /tools/ @4e6 @jaroslavtulach @radeusgd
 
 # Enso Libraries
 # This section should be amended once the engine moves to /app/engine
-/distribution/lib/ @jdunkerley @radeusgd
-/std-bits/ @jdunkerley @radeusgd
+/distribution/lib/ @jdunkerley @radeusgd @GregoryTravis
+/std-bits/ @jdunkerley @radeusgd @GregoryTravis
+
+# Cloud Dashboard & Authentication
+/app/ide-desktop/lib/dashboard @PabloBuchu @indiv0 @somebody1234
+/app/ide-desktop/lib/content @PabloBuchu @indiv0 @somebody1234
+/app/ide-desktop/lib/client @PabloBuchu @indiv0 @somebody1234
+/app/ide-desktop/lib/types @PabloBuchu @indiv0 @somebody1234
+/app/ide-desktop/lib/common @PabloBuchu @indiv0 @somebody1234
+
+# Eslint & Esbuild Configuration
+/app/ide-desktop/lib/esbuild-plugin-copy-directories @somebody1234
+/app/ide-desktop/eslint.config.js @somebody1234
+/app/ide-desktop/utils.ts @somebody1234

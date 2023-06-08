@@ -13,6 +13,7 @@ derivative = { workspace = true }
 enso-build-base = { path = "../base" }
 enso-build = { path = "../build" }
 enso-formatter = { path = "../enso-formatter" }
+ensogl-pack = { path = "../../lib/rust/ensogl/pack" }
 futures = { workspace = true }
 futures-util = "0.3.17"
 glob = "0.3.0"

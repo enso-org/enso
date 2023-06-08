@@ -15,8 +15,6 @@ use crate::graph_editor::component::node::input::area::TEXT_SIZE;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::camera::Camera2d;
-use ensogl::display::style;
-use ensogl_component::shadow;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
 use std::future::Future;
@@ -33,8 +31,6 @@ const HEIGHT: f32 = 28.0;
 pub const PADDING: f32 = 12.0;
 /// Margin between status bar and edge of the screen
 const MARGIN: f32 = 12.0;
-/// This should be as large as the shadow around the background.
-const MAGIC_SHADOW_MARGIN: f32 = 40.0;
 
 
 
@@ -85,40 +81,6 @@ pub mod process {
 
 
 
-// ==================
-// === Background ===
-// ==================
-
-mod background {
-    use super::*;
-
-    ensogl::shape! {
-        alignment = center;
-        (style:Style) {
-            let theme             = ensogl_hardcoded_theme::application::status_bar::background;
-            let theme             = style::Path::from(theme);
-            let width             = Var::<Pixels>::from("input_size.x");
-            let height            = Var::<Pixels>::from("input_size.y");
-
-            let corner_radius     = style.get_number(theme.sub("corner_radius"));
-            let shape_width       = width  - MAGIC_SHADOW_MARGIN.px() * 2.0;
-            let shape_height      = height - MAGIC_SHADOW_MARGIN.px() * 2.0;
-            let shape             = Rect((&shape_width,&shape_height));
-            let shape             = shape.corners_radius(corner_radius.px());
-
-            let bg_color          = style.get_color(&theme);
-            let bg                = shape.fill(bg_color);
-            let shadow_parameters = shadow::parameters_from_style_path(style,theme.sub("shadow"));
-            let shadow            = shadow::from_shape_with_parameters
-                (shape.into(),shadow_parameters);
-
-            (shadow + bg).into()
-        }
-    }
-}
-
-
-
 // ===========
 // === FRP ===
 // ===========
@@ -149,7 +111,7 @@ ensogl::define_endpoints! {
 struct Model {
     display_object:  display::object::Instance,
     root:            display::object::Instance,
-    background:      background::View,
+    background:      Rectangle,
     label:           text::Text,
     events:          Rc<RefCell<Vec<event::Label>>>,
     processes:       Rc<RefCell<HashMap<process::Id, process::Label>>>,
@@ -162,7 +124,7 @@ impl Model {
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
         let root = display::object::Instance::new();
-        let background = background::View::new();
+        let background: Rectangle = default();
         let label = text::Text::new(app);
         let events = default();
         let processes = default();
@@ -173,11 +135,14 @@ impl Model {
         scene.layers.main.remove(&label);
         label.add_to_scene_layer(&scene.layers.panel_text);
 
-        let text_color_path = theme::application::status_bar::text;
+        use theme::application::status_bar;
+        let text_color_path = status_bar::text;
         let style = StyleWatch::new(&app.display.default_scene.style_sheet);
         let text_color = style.get_color(text_color_path);
         label.frp.set_property(.., text_color);
         label.frp.set_property_default(text_color);
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        background.set_style(status_bar::background::HERE, &style);
 
         Self { display_object, root, background, label, events, processes, next_process_id, camera }
             .init()
@@ -205,14 +170,11 @@ impl Model {
         self.label.set_x(-label_width / 2.0);
         self.label.set_y(-HEIGHT / 2.0 + TEXT_SIZE / 2.0);
 
-        let bg_width = if label_width > 0.0 {
-            label_width + 2.0 * PADDING + 2.0 * MAGIC_SHADOW_MARGIN
-        } else {
-            0.0
-        };
-        let bg_height = HEIGHT + 2.0 * MAGIC_SHADOW_MARGIN;
+        let bg_width = if label_width > 0.0 { label_width + 2.0 * PADDING } else { 0.0 };
+        let bg_height = HEIGHT;
         self.background.set_size(Vector2(bg_width, bg_height));
-        self.background.set_y(-HEIGHT / 2.0);
+        self.background.set_x(-bg_width / 2.0);
+        self.background.set_y(-HEIGHT / 2.0 - bg_height / 2.0);
     }
 
     fn add_event(&self, label: &event::Label) -> event::Id {

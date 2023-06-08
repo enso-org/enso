@@ -20,7 +20,10 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.type.TypesGen;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
+
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A runtime representation of an Atom in Enso.
@@ -132,10 +135,15 @@ public abstract class Atom implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   public Array getMembers(boolean includeInternal) {
     Map<String, Function> members = constructor.getDefinitionScope().getMethods().get(constructor.getType());
-    if (members == null) {
-      return Array.allocate(0);
+    Set<String> allMembers = new HashSet<>();
+    if (members != null) {
+      allMembers.addAll(members.keySet());
     }
-    Object[] mems = members.keySet().toArray();
+    members = constructor.getType().getDefinitionScope().getMethods().get(constructor.getType());
+    if (members != null) {
+      allMembers.addAll(members.keySet());
+    }
+    Object[] mems = allMembers.toArray();
     return new Array(mems);
   }
 
@@ -143,6 +151,10 @@ public abstract class Atom implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   public boolean isMemberInvocable(String member) {
     Map<String, ?> members = constructor.getDefinitionScope().getMethods().get(constructor.getType());
+    if (members != null && members.containsKey(member)) {
+      return true;
+    }
+    members = constructor.getType().getDefinitionScope().getMethods().get(constructor.getType());
     return members != null && members.containsKey(member);
   }
 

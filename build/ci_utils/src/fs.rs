@@ -85,8 +85,13 @@ pub async fn mirror_directory(source: impl AsRef<Path>, destination: impl AsRef<
 
 /// Get the size of a file after gzip compression.
 pub async fn compressed_size(path: impl AsRef<Path>) -> Result<byte_unit::Byte> {
-    let file = ::tokio::io::BufReader::new(crate::fs::tokio::open(&path).await?);
-    let encoded_stream = GzipEncoder::with_quality(file, Level::Best);
+    // Read the file in chunks of 4MB. Our wasm files are usually way bigger than that, so this
+    // buffer gives very significant speedup over the default 8KB chunks.
+    const READER_CAPACITY: usize = 4096 * 1024;
+
+    let file = crate::fs::tokio::open(&path).await?;
+    let buf_file = ::tokio::io::BufReader::with_capacity(READER_CAPACITY, file);
+    let encoded_stream = GzipEncoder::with_quality(buf_file, Level::Best);
     crate::io::read_length(encoded_stream).await.map(into)
 }
 
@@ -123,7 +128,7 @@ pub fn symlink_auto(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result {
     symlink::symlink_auto(&src, &dst).anyhow_err()
 }
 
-/// Remove a symlink if it exists.
+/// Remove a symlink to a directory if it exists.
 #[context("Failed to remove symlink {}", path.as_ref().display())]
 pub fn remove_symlink_dir_if_exists(path: impl AsRef<Path>) -> Result {
     let result = symlink::remove_symlink_dir(&path);
@@ -131,6 +136,12 @@ pub fn remove_symlink_dir_if_exists(path: impl AsRef<Path>) -> Result {
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
         ret => ret.anyhow_err(),
     }
+}
+
+/// Create a symlink to a directory, or remove and recreate it if it already exists.
+pub fn create_or_update_symlink_dir(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result {
+    remove_symlink_dir_if_exists(&dst)?;
+    symlink_auto(&src, &dst)
 }
 
 /// `fs_extra`'s error type is not friendly to `anyhow`, so we need to convert it manually.

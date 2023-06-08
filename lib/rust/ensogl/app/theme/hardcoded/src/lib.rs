@@ -110,6 +110,7 @@ macro_rules! _define_theme_wrapper_and_literals {
         pub mod $name {
             use super::*;
             use ensogl_core::application::Application;
+            use ensogl_core::data::color::Lch;
             use ensogl_core::data::color::Lcha;
             use ensogl_core::data::color::Rgb;
             use ensogl_core::data::color::Rgba;
@@ -404,12 +405,6 @@ define_themes! { [light:0, dark:1]
         window_control_buttons {
             radius  = 6.5, 6.5;
             spacing = application::window_control_buttons::radius, application::window_control_buttons::radius;
-            padding {
-                left   = 13.0, 13.0;
-                top    = 13.0, 13.0;
-                right  = 13.0, 13.0;
-                bottom = 13.0, 13.0;
-            }
 
             close {
                 normal {
@@ -442,19 +437,11 @@ define_themes! { [light:0, dark:1]
             }
         }
         status_bar {
+            offset_y = -30.0, -30.0;
             text = text, text;
-            background = graph_editor::node::background , graph_editor::node::background;
             background {
+                color = graph_editor::node::background , graph_editor::node::background;
                 corner_radius = 14.0 , 14.0;
-                shadow = shadow , shadow;
-                shadow {
-                    size     = shadow::size     , shadow::size;
-                    spread   = shadow::spread   , shadow::spread;
-                    fading   = shadow::fading   , shadow::fading;
-                    exponent = shadow::exponent , shadow::exponent;
-                    offset_x = shadow::offset_x , shadow::offset_x;
-                    offset_y = shadow::offset_y , shadow::offset_y;
-                }
             }
         }
     }
@@ -533,10 +520,8 @@ define_themes! { [light:0, dark:1]
                 selection      = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
             }
             actions {
-                button {
-                    non_toggled = Lcha(0.0,0.0,0.0,0.3)  , Lcha(0.4,0.0,0.0,1.0);
-                    toggled     = Lcha(0.0,0.0,0.0,0.7)  , Lcha(1.0,0.0,0.0,0.7);
-                    hovered     = Lcha(0.0,0.0,0.0,0.45) , Lcha(1.0,0.0,0.0,0.7);
+                context_switch {
+                    toggled     = Lcha(0.58, 0.67, 0.0825, 1.0), Lcha(0.58, 0.67, 0.0825, 1.0);
                 }
             }
             vcs {
@@ -610,18 +595,9 @@ define_themes! { [light:0, dark:1]
                     right = Lcha(0.0,0.0,0.0,0.6) , Lcha(1.0,0.0,0.0,0.6);
                 }
             }
-            background = application::background , application::background;
             background {
+                color = application::background , application::background;
                 corner_radius = 8.0 , 8.0;
-                shadow = shadow , shadow;
-                shadow {
-                    size     = shadow::size     , shadow::size;
-                    spread   = shadow::spread   , shadow::spread;
-                    fading   = shadow::fading   , shadow::fading;
-                    exponent = shadow::exponent , shadow::exponent;
-                    offset_x = shadow::offset_x , shadow::offset_x;
-                    offset_y = shadow::offset_y , shadow::offset_y;
-                }
             }
         }
         edge {
@@ -631,11 +607,7 @@ define_themes! { [light:0, dark:1]
             }
         }
         profiling_button {
-            non_toggled     = graph_editor::node::actions::button::non_toggled
-                ,graph_editor::node::actions::button::non_toggled;
             toggled         = Lcha(0.7,0.5,0.12,1.0) , Lcha(0.7,0.5,0.12,1.0);
-            hovered         = graph_editor::node::actions::button::hovered
-                ,graph_editor::node::actions::button::hovered;
             toggled_hovered = Lcha(0.55,0.5,0.12,1.0) , Lcha(0.85,0.5,0.12,1.0);
         }
         add_node_button {
@@ -653,8 +625,32 @@ define_themes! { [light:0, dark:1]
                 color = Rgba(0.0, 0.451, 0.859, 1.0), Rgba(0.0, 0.451, 0.859, 1.0);
             }
         }
+        execution_environment_selector {
+            background = Rgb::from_base_255(100.0, 181.0, 38.0), Rgb::from_base_255(100.0, 181.0, 38.0);
+            divider = Rgba::black_with_alpha(0.12), Rgba::black_with_alpha(0.12);
+            divider_offset = 32.5, 32.5;
+            divider_padding = 10.0, 10.0;
+            dropdown_width = 75.0, 75.0;
+            height = 24.0, 24.0;
+            menu_offset = 20.0, 20.0;
+            play_button {
+                color = Rgba::white_with_alpha(0.75), Rgba::white_with_alpha(0.75);
+                triangle_size = 10.0, 10.0;
+                offset = 15.0, 15.0;
+                padding_x = 5.0, 5.0;
+                padding_y = 7.0, 7.0;
+                spinner {
+                    color = Lch(0.8, 0.0, 0.0), Lch(0.8, 0.0, 0.0);
+                    speed = 0.003, 0.003; // Radians/ms
+                }
+            }
+        }
     }
     widget {
+        activation_shape {
+            base      = Lcha(0.56708, 0.23249, 0.71372, 1.0), Lcha(0.56708, 0.23249, 0.71372, 1.0);
+            connected = graph_editor::node::background , graph_editor::node::background;
+        }
         list_view {
             background = graph_editor::node::background , graph_editor::node::background;
             highlight  = Rgba(0.906,0.914,0.922,1.0) , Lcha(1.0,0.0,0.0,0.15); // rgb(231,233,235)
@@ -712,6 +708,11 @@ define_themes! { [light:0, dark:1]
                 color = Lcha(0.0,0.0,0.0,1.0), Lcha(1.0,0.0,0.0,1.0);
                 scale = 1.0, 1.0;
             }
+        }
+        toggle_button {
+            non_toggled = Lcha(0.0,0.0,0.0,0.3), Lcha(0.4,0.0,0.0,1.0);
+            toggled = Lcha(0.0,0.0,0.0,0.7), Lcha(1.0,0.0,0.0,0.7);
+            hovered = Lcha(0.0,0.0,0.0,0.45), Lcha(1.0,0.0,0.0,0.7);
         }
     }
 

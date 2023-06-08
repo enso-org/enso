@@ -4,6 +4,7 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownKeyException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -21,7 +22,8 @@ import org.enso.interpreter.runtime.state.State;
     description = """
         Gets a value from the map on the specified key, or the given default.
         """,
-    autoRegister = false
+    autoRegister = false,
+    inlineable = true
 )
 @GenerateUncached
 public abstract class HashMapGetNode extends Node {
@@ -30,10 +32,12 @@ public abstract class HashMapGetNode extends Node {
     return HashMapGetNodeGen.create();
   }
 
-  public abstract Object execute(State state, Object self, Object key, @Suspend Object defaultValue);
+  public abstract Object execute(VirtualFrame frame, State state, Object self, Object key, @Suspend Object defaultValue);
 
   @Specialization(guards = "interop.hasHashEntries(self)", limit = "3")
-  Object hashMapGet(State state, Object self, Object key, Object defaultValue,
+  Object hashMapGet(
+      VirtualFrame frame,
+      State state, Object self, Object key, Object defaultValue,
       @CachedLibrary("self") InteropLibrary interop,
       @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
     if (interop.isHashEntryReadable(self, key)) {
@@ -43,13 +47,13 @@ public abstract class HashMapGetNode extends Node {
         throw new IllegalStateException(e);
       }
     } else {
-      return thunkExecutorNode.executeThunk(defaultValue, state, TailStatus.NOT_TAIL);
+      return thunkExecutorNode.executeThunk(frame, defaultValue, state, TailStatus.NOT_TAIL);
     }
   }
 
   @Fallback
-  Object fallback(State state, Object self, Object key, Object defaultValue,
+  Object fallback(VirtualFrame frame, State state, Object self, Object key, Object defaultValue,
       @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
-    return thunkExecutorNode.executeThunk(defaultValue, state, TailStatus.NOT_TAIL);
+    return thunkExecutorNode.executeThunk(frame, defaultValue, state, TailStatus.NOT_TAIL);
   }
 }

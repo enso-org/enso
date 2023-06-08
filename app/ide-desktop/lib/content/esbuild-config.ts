@@ -1,37 +1,53 @@
-/**
- * @file Configuration for the esbuild bundler and build/watch commands.
+/** @file Configuration for the esbuild bundler and build/watch commands.
  *
  * The bundler processes each entry point into a single file, each with no external dependencies and
  * minified. This primarily involves resolving all imports, along with some other transformations
  * (like TypeScript compilation).
  *
  * See the bundlers documentation for more information:
- * https://esbuild.github.io/getting-started/#bundling-for-node.
- */
+ * https://esbuild.github.io/getting-started/#bundling-for-node. */
 
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs/promises'
-import * as path from 'node:path'
+import * as fsSync from 'node:fs'
+import * as pathModule from 'node:path'
 import * as url from 'node:url'
 
 import * as esbuild from 'esbuild'
-import * as esbuildPluginCopy from 'enso-copy-plugin'
 import * as esbuildPluginNodeGlobals from '@esbuild-plugins/node-globals-polyfill'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
 import esbuildPluginAlias from 'esbuild-plugin-alias'
+import esbuildPluginCopyDirectories from 'esbuild-plugin-copy-directories'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
-import * as utils from '../../utils.js'
+import * as utils from '../../utils'
 import BUILD_INFO from '../../build.json' assert { type: 'json' }
 
-export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
+// =================
+// === Constants ===
+// =================
+
+const THIS_PATH = pathModule.resolve(pathModule.dirname(url.fileURLToPath(import.meta.url)))
 
 // =============================
 // === Environment variables ===
 // =============================
 
-export interface Arguments {
+/** Arguments that must always be supplied, because they are not defined as
+ * environment variables. */
+export interface PassthroughArguments {
+    /** `true` if in development mode (live-reload), `false` if in production mode. */
+    devMode: boolean
+    /** Whether the application may have the local backend running. */
+    supportsLocalBackend: boolean
+    /** Whether the application supports deep links. This is only true when using
+     * the installed app on macOS and Windows. */
+    supportsDeepLinks: boolean
+}
+
+/** Mandatory build options. */
+export interface Arguments extends PassthroughArguments {
     /** List of files to be copied from WASM artifacts. */
     wasmArtifacts: string
     /** Directory with assets. Its contents are to be copied. */
@@ -42,91 +58,107 @@ export interface Arguments {
     ensoglAppPath: string
 }
 
-/**
- * Get arguments from the environment.
- */
-export function argumentsFromEnv(): Arguments {
+/** Get arguments from the environment. */
+export function argumentsFromEnv(passthroughArguments: PassthroughArguments): Arguments {
     const wasmArtifacts = utils.requireEnv('ENSO_BUILD_GUI_WASM_ARTIFACTS')
     const assetsPath = utils.requireEnv('ENSO_BUILD_GUI_ASSETS')
-    const outputPath = path.resolve(utils.requireEnv('ENSO_BUILD_GUI'), 'assets')
+    const outputPath = pathModule.resolve(utils.requireEnv('ENSO_BUILD_GUI'), 'assets')
     const ensoglAppPath = utils.requireEnv('ENSO_BUILD_GUI_ENSOGL_APP')
-    return { wasmArtifacts, assetsPath, outputPath, ensoglAppPath }
+    return { ...passthroughArguments, wasmArtifacts, assetsPath, outputPath, ensoglAppPath }
 }
 
 // ===================
 // === Git process ===
 // ===================
 
-/**
- * Get output of a git command.
+/** Get output of a git command.
  * @param command - Command line following the `git` program.
- * @returns Output of the command.
- */
+ * @returns Output of the command. */
 function git(command: string): string {
-    // TODO [mwu] Eventually this should be removed, data should be provided by the build script through `BUILD_INFO`.
-    //            The bundler configuration should not invoke git, it is not its responsibility.
+    // TODO [mwu] Eventually this should be removed, data should be provided by the build script
+    //            through `BUILD_INFO`. The bundler configuration should not invoke git,
+    //            it is not its responsibility.
     return childProcess.execSync(`git ${command}`, { encoding: 'utf8' }).trim()
-}
-
-// ==============================
-// === Files to manually copy ===
-// ==============================
-
-/**
- * Static set of files that are always copied to the output directory.
- */
-export function alwaysCopiedFiles(wasmArtifacts: string) {
-    return [
-        path.resolve(THIS_PATH, 'src', 'index.html'),
-        path.resolve(THIS_PATH, 'src', 'run.js'),
-        path.resolve(THIS_PATH, 'src', 'style.css'),
-        path.resolve(THIS_PATH, 'src', 'docsStyle.css'),
-        ...wasmArtifacts.split(path.delimiter),
-    ]
-}
-
-/**
- * Generator that yields all files that should be copied to the output directory.
- * @yields {string} The file path of the next file to be copied.
- */
-export async function* filesToCopyProvider(wasmArtifacts: string, assetsPath: string) {
-    console.log('Preparing a new generator for files to copy.')
-    yield* alwaysCopiedFiles(wasmArtifacts)
-    for (const file of await fs.readdir(assetsPath)) {
-        yield path.resolve(assetsPath, file)
-    }
-    console.log('Generator for files to copy finished.')
 }
 
 // ================
 // === Bundling ===
 // ================
 
-/**
- * Generate the builder options.
- */
+/** Generate the builder options. */
 export function bundlerOptions(args: Arguments) {
-    const { outputPath, ensoglAppPath, wasmArtifacts, assetsPath } = args
+    const {
+        outputPath,
+        ensoglAppPath,
+        wasmArtifacts,
+        assetsPath,
+        devMode,
+        supportsLocalBackend,
+        supportsDeepLinks,
+    } = args
     const buildOptions = {
         // Disabling naming convention because these are third-party options.
         /* eslint-disable @typescript-eslint/naming-convention */
         absWorkingDir: THIS_PATH,
         bundle: true,
-        entryPoints: [path.resolve(THIS_PATH, 'src', 'index.ts')],
+        loader: {
+            '.html': 'copy',
+            '.css': 'copy',
+            '.map': 'copy',
+            '.wasm': 'copy',
+            '.svg': 'copy',
+            '.png': 'copy',
+            '.ttf': 'copy',
+        },
+        entryPoints: [
+            pathModule.resolve(THIS_PATH, 'src', 'index.ts'),
+            pathModule.resolve(THIS_PATH, 'src', 'index.html'),
+            pathModule.resolve(THIS_PATH, 'src', 'run.js'),
+            pathModule.resolve(THIS_PATH, 'src', 'style.css'),
+            pathModule.resolve(THIS_PATH, 'src', 'docsStyle.css'),
+            pathModule.resolve(THIS_PATH, 'src', 'serviceWorker.ts'),
+            ...wasmArtifacts.split(pathModule.delimiter),
+            ...fsSync
+                .readdirSync(assetsPath)
+                .map(fileName => pathModule.resolve(assetsPath, fileName)),
+        ].map(path => ({ in: path, out: pathModule.basename(path, pathModule.extname(path)) })),
         outdir: outputPath,
         outbase: 'src',
         plugins: [
+            {
+                // This file MUST be in CommonJS format because it is loaded using `Function()`
+                // in `ensogl/pack/js/src/runner/index.ts`.
+                // All other files are ESM because of `"type": "module"` in `package.json`.
+                name: 'pkg-js-is-cjs',
+                setup: build => {
+                    build.onLoad({ filter: /[/\\]pkg.js$/ }, async info => {
+                        const { path } = info
+                        return {
+                            contents: await fs.readFile(path),
+                            loader: 'copy',
+                        }
+                    })
+                },
+            },
+            esbuildPluginCopyDirectories(),
             esbuildPluginYaml.yamlPlugin({}),
             esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),
             esbuildPluginNodeGlobals.NodeGlobalsPolyfillPlugin({ buffer: true, process: true }),
             esbuildPluginAlias({ ensogl_app: ensoglAppPath }),
             esbuildPluginTime(),
-            esbuildPluginCopy.create(() => filesToCopyProvider(wasmArtifacts, assetsPath)),
         ],
         define: {
             GIT_HASH: JSON.stringify(git('rev-parse HEAD')),
             GIT_STATUS: JSON.stringify(git('status --short --porcelain')),
             BUILD_INFO: JSON.stringify(BUILD_INFO),
+            /** Whether the application is being run locally. This enables a service worker that
+             * properly serves `/index.html` to client-side routes like `/login`. */
+            IS_DEV_MODE: JSON.stringify(devMode),
+            /** Overrides the redirect URL for OAuth logins in the production environment.
+             * This is needed for logins to work correctly under `./run gui watch`. */
+            REDIRECT_OVERRIDE: 'undefined',
+            SUPPORTS_LOCAL_BACKEND: JSON.stringify(supportsLocalBackend),
+            SUPPORTS_DEEP_LINKS: JSON.stringify(supportsDeepLinks),
         },
         sourcemap: true,
         minify: true,
@@ -152,16 +184,15 @@ export function bundlerOptions(args: Arguments) {
 
 /** The basic, common settings for the bundler, based on the environment variables.
  *
- * Note that they should be further customized as per the needs of the specific workflow (e.g. watch vs. build).
- */
-export function bundlerOptionsFromEnv() {
-    return bundlerOptions(argumentsFromEnv())
+ * Note that they should be further customized as per the needs of the specific workflow
+ * (e.g. watch vs. build). */
+export function bundlerOptionsFromEnv(passthroughArguments: PassthroughArguments) {
+    return bundlerOptions(argumentsFromEnv(passthroughArguments))
 }
 
-/** ESBuild options for bundling (one-off build) the package.
+/** esbuild options for bundling the package for a one-off build.
  *
- * Relies on the environment variables to be set.
- */
-export function bundleOptions() {
-    return bundlerOptionsFromEnv()
+ * Relies on the environment variables to be set. */
+export function bundleOptions(passthroughArguments: PassthroughArguments) {
+    return bundlerOptionsFromEnv(passthroughArguments)
 }

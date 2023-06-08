@@ -19,6 +19,7 @@ import org.enso.polyglot.runtime.Runtime$Api$EditFileNotification;
 import org.enso.polyglot.runtime.Runtime$Api$ExecutionFailed;
 import org.enso.polyglot.runtime.Runtime$Api$ExpressionUpdates;
 import org.enso.polyglot.runtime.Runtime$Api$InitializedNotification;
+import org.enso.polyglot.runtime.Runtime$Api$MethodCall;
 import org.enso.polyglot.runtime.Runtime$Api$MethodPointer;
 import org.enso.polyglot.runtime.Runtime$Api$PushContextRequest;
 import org.enso.polyglot.runtime.Runtime$Api$PushContextResponse;
@@ -39,6 +40,7 @@ import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
 import scala.collection.immutable.Set;
 import scala.collection.immutable.Set$;
+import scala.collection.immutable.Vector$;
 import scala.collection.immutable.Vector1;
 
 public class IncrementalUpdatesTest {
@@ -217,14 +219,14 @@ public class IncrementalUpdatesTest {
 
     assertSameElements(context.receiveNIgnorePendingExpressionUpdates(5, 10, emptySet()),
       Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
-      TestMessages.update(contextId, mainFoo, exprType, new Runtime$Api$MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")),
+      TestMessages.update(contextId, mainFoo, exprType, new Runtime$Api$MethodCall(new Runtime$Api$MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo"), Vector$.MODULE$.empty())),
       TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
       context.executionComplete(contextId),
       Response(new Runtime$Api$BackgroundJobsStartedNotification())
     );
     assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
 
-    nodeCountingInstrument.assertNewNodes("Execution creates some nodes", 20, 35);
+    var allNodesAfterException = nodeCountingInstrument.assertNewNodes("Execution creates some nodes", 20, 35);
 
     // push foo call
     context.send(
@@ -241,7 +243,7 @@ public class IncrementalUpdatesTest {
     );
     assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
 
-    var allNodesAfterException = nodeCountingInstrument.assertNewNodes("There shall be more nodes after execution", 23, Integer.MAX_VALUE);
+    nodeCountingInstrument.assertNewNodes("No new nodes created", 0, 0);
     var literalNode = findLiteralNode(truffleNodeType, allNodesAfterException);
     assertEquals("Check Literal node text in the source", originalText, literalNode.getSourceSection().getCharacters().toString());
 

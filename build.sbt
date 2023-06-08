@@ -21,7 +21,7 @@ import java.io.File
 
 val scalacVersion         = "2.13.8"
 val graalVersion          = "22.3.1"
-val javaVersion           = "11"
+val javaVersion           = "17"
 val defaultDevEnsoVersion = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
   "ENSO_VERSION",
@@ -131,7 +131,8 @@ GatherLicenses.distributions := Seq(
   ),
   makeStdLibDistribution("Table", Distribution.sbtProjects(`std-table`)),
   makeStdLibDistribution("Database", Distribution.sbtProjects(`std-database`)),
-  makeStdLibDistribution("Image", Distribution.sbtProjects(`std-image`))
+  makeStdLibDistribution("Image", Distribution.sbtProjects(`std-image`)),
+  makeStdLibDistribution("AWS", Distribution.sbtProjects(`std-aws`))
 )
 
 GatherLicenses.licenseConfigurations := Set("compile")
@@ -247,6 +248,7 @@ lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
     `interpreter-dsl`,
+    `interpreter-dsl-test`,
     `json-rpc-server-test`,
     `json-rpc-server`,
     `language-server`,
@@ -294,6 +296,7 @@ lazy val enso = (project in file("."))
     `std-google-api`,
     `std-image`,
     `std-table`,
+    `std-aws`,
     `simple-httpbin`,
     `enso-test-java-helpers`
   )
@@ -479,6 +482,7 @@ val sqliteVersion           = "3.41.2.1"
 val tikaVersion             = "2.4.1"
 val typesafeConfigVersion   = "1.4.2"
 val junitVersion            = "4.13.2"
+val junitIfVersion          = "0.11"
 val netbeansApiVersion      = "RELEASE140"
 
 // ============================================================================
@@ -662,6 +666,7 @@ lazy val graph = (project in file("lib/scala/graph/"))
 lazy val pkg = (project in file("lib/scala/pkg"))
   .settings(
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
+    frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "org.scalatest" %% "scalatest"  % scalatestVersion % Test,
@@ -733,7 +738,7 @@ lazy val `logging-service` = project
       "io.circe"               %% "circe-core"      % circeVersion,
       "io.circe"               %% "circe-parser"    % circeVersion,
       "junit"                   % "junit"           % junitVersion     % Test,
-      "com.novocode"            % "junit-interface" % "0.11"           % Test exclude ("junit", "junit-dep"),
+      "com.novocode"            % "junit-interface" % junitIfVersion   % Test exclude ("junit", "junit-dep"),
       "org.scalatest"          %% "scalatest"       % scalatestVersion % Test,
       "org.graalvm.nativeimage" % "svm"             % graalVersion     % "provided"
     )
@@ -989,6 +994,28 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
     )
   )
 
+lazy val `interpreter-dsl-test` =
+  (project in file("engine/interpreter-dsl-test"))
+    .configs(Test)
+    .settings(
+      version := "0.1",
+      frgaalJavaCompilerSetting,
+      Test / fork := true,
+      Test / javaOptions ++= Seq(
+        "-Dgraalvm.locatorDisabled=true",
+        s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
+      ),
+      commands += WithDebugCommand.withDebug,
+      libraryDependencies ++= Seq(
+        "org.graalvm.truffle" % "truffle-api"           % graalVersion   % "provided",
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion   % "provided",
+        "junit"               % "junit"                 % junitVersion   % Test,
+        "com.novocode"        % "junit-interface"       % junitIfVersion % Test exclude ("junit", "junit-dep")
+      )
+    )
+    .dependsOn(`interpreter-dsl`)
+    .dependsOn(`runtime`)
+
 // ============================================================================
 // === Sub-Projects ===========================================================
 // ============================================================================
@@ -1051,6 +1078,7 @@ lazy val `polyglot-api` = project
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
+    commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
     libraryDependencies ++= akka ++ circe ++ Seq(
       "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,
@@ -1310,7 +1338,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "junit"               % "junit"                 % junitVersion      % Test,
-      "com.novocode"        % "junit-interface"       % "0.11"            % Test exclude ("junit", "junit-dep")
+      "com.novocode"        % "junit-interface"       % junitIfVersion    % Test exclude ("junit", "junit-dep")
     ),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(CopyTruffleJAR.preCompileTask)
@@ -1351,6 +1379,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-database` / Compile / packageBin)
       .dependsOn(`std-google-api` / Compile / packageBin)
       .dependsOn(`std-table` / Compile / packageBin)
+      .dependsOn(`std-aws` / Compile / packageBin)
       .value
   )
   .settings(
@@ -1880,6 +1909,8 @@ val `google-api-polyglot-root` =
   stdLibComponentRoot("Google_Api") / "polyglot" / "java"
 val `database-polyglot-root` =
   stdLibComponentRoot("Database") / "polyglot" / "java"
+val `std-aws-polyglot-root` =
+  stdLibComponentRoot("AWS") / "polyglot" / "java"
 
 lazy val `std-base` = project
   .in(file("std-bits") / "base")
@@ -1943,6 +1974,8 @@ lazy val `enso-test-java-helpers` = project
       result
     }.value
   )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
 
 lazy val `std-table` = project
   .in(file("std-bits") / "table")
@@ -2038,13 +2071,9 @@ lazy val `std-database` = project
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
-      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "org.xerial"          % "sqlite-jdbc"             % sqliteVersion,
-      "org.postgresql"      % "postgresql"              % "42.4.0",
-      "com.amazon.redshift" % "redshift-jdbc42"         % "2.1.0.9",
-      "com.amazonaws"       % "aws-java-sdk-core"       % "1.12.273",
-      "com.amazonaws"       % "aws-java-sdk-redshift"   % "1.12.273",
-      "com.amazonaws"       % "aws-java-sdk-sts"        % "1.12.273"
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "org.xerial"       % "sqlite-jdbc"             % sqliteVersion,
+      "org.postgresql"   % "postgresql"              % "42.4.0"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -2059,6 +2088,37 @@ lazy val `std-database` = project
     }.value
   )
   .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+
+lazy val `std-aws` = project
+  .in(file("std-bits") / "aws")
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      `std-aws-polyglot-root` / "std-aws.jar",
+    libraryDependencies ++= Seq(
+      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "com.amazon.redshift" % "redshift-jdbc42"         % "2.1.0.9",
+      "com.amazonaws"       % "aws-java-sdk-core"       % "1.12.273",
+      "com.amazonaws"       % "aws-java-sdk-redshift"   % "1.12.273",
+      "com.amazonaws"       % "aws-java-sdk-sts"        % "1.12.273"
+    ),
+    Compile / packageBin := Def.task {
+      val result = (Compile / packageBin).value
+      val _ = StdBits
+        .copyDependencies(
+          `std-aws-polyglot-root`,
+          Seq("std-aws.jar"),
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+  .dependsOn(`std-database` % "provided")
 
 /* Note [Native Image Workaround for GraalVM 20.2]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2164,7 +2224,14 @@ runEngineDistribution := {
 
 val allStdBitsSuffix = List("All", "AllWithIndex")
 val stdBitsProjects =
-  List("Base", "Database", "Google_Api", "Image", "Table") ++ allStdBitsSuffix
+  List(
+    "AWS",
+    "Base",
+    "Database",
+    "Google_Api",
+    "Image",
+    "Table"
+  ) ++ allStdBitsSuffix
 val allStdBits: Parser[String] =
   stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
 
@@ -2213,6 +2280,8 @@ pkgStdLibInternal := Def.inputTask {
       (`std-table` / Compile / packageBin).value
     case "TestHelpers" =>
       (`enso-test-java-helpers` / Compile / packageBin).value
+    case "AWS" =>
+      (`std-aws` / Compile / packageBin).value
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
@@ -2220,6 +2289,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-database` / Compile / packageBin).value
       (`std-image` / Compile / packageBin).value
       (`std-google-api` / Compile / packageBin).value
+      (`std-aws` / Compile / packageBin).value
     case _ =>
   }
   val libs =

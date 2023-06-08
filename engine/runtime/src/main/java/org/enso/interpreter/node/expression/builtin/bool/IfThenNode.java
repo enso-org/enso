@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.bool;
 
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -13,7 +14,8 @@ import org.enso.interpreter.runtime.state.State;
 @BuiltinMethod(
     type = "Boolean",
     name = "if_then",
-    description = "Performs the standard if-then control flow operation.")
+    description = "Performs the standard if-then control flow operation.",
+    inlineable = true)
 public abstract class IfThenNode extends Node {
   private @Child ThunkExecutorNode leftThunkExecutorNode = ThunkExecutorNode.build();
   private final ConditionProfile condProfile = ConditionProfile.createCountingProfile();
@@ -22,12 +24,13 @@ public abstract class IfThenNode extends Node {
     return IfThenNodeGen.create();
   }
 
-  abstract Object execute(State state, boolean self, @Suspend Object if_true);
+  abstract Object execute(VirtualFrame frame, State state, boolean self, @Suspend Object if_true);
 
   @Specialization
-  Object doExecute(State state, boolean self, Object if_true) {
+  Object doExecute(VirtualFrame frame, State state, boolean self, Object if_true) {
     if (condProfile.profile(self)) {
-      return leftThunkExecutorNode.executeThunk(if_true, state, BaseNode.TailStatus.TAIL_DIRECT);
+      return leftThunkExecutorNode.executeThunk(
+          frame, if_true, state, BaseNode.TailStatus.TAIL_DIRECT);
     } else {
       return EnsoContext.get(this).getNothing();
     }

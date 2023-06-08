@@ -1019,7 +1019,7 @@ class Compiler(
     fileLocationFromSection(
       diagnostic.location,
       source
-    ) + ": " + diagnostic.message
+    ) + ": " + diagnostic.formattedMessage
   }
 
   private def fileLocationFromSection(

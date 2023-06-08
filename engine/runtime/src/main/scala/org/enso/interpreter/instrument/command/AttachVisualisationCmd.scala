@@ -58,7 +58,7 @@ class AttachVisualisationCmd(
 
     maybeFutureExecutable.flatMap {
       case None             => Future.successful(())
-      case Some(executable) => ctx.jobProcessor.run(new ExecuteJob(executable))
+      case Some(executable) => ctx.jobProcessor.run(ExecuteJob(executable))
     }
   }
 

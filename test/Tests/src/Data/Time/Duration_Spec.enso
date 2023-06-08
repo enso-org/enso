@@ -34,6 +34,15 @@ spec =
             duration = (Duration.new hours=13) - (Duration.new hours=1)
             duration.hours . should_equal 12
 
+        Test.specify "should render a friendly to display text" <|
+            Duration.new . to_display_text . should_equal "0s"
+            Duration.new seconds=30 . to_display_text . should_equal "30s"
+            Duration.new seconds=30 milliseconds=500 . to_display_text . should_equal "30.5s"
+            Duration.new hours=1 . to_display_text . should_equal "1h"
+            Duration.new hours=1 minutes=30 . to_display_text . should_equal "1h 30m"
+            Duration.new hours=1 seconds=30 . to_display_text . should_equal "1h 0m 30s"
+            Duration.new hours=1 minutes=30 seconds=30 . to_display_text . should_equal "1h 30m 30s"
+
         Test.specify "should convert to Json" <|
             interval = (Duration.new nanoseconds=120) + (Duration.new seconds=30) + (Duration.new hours=14)
             interval.to_json.should_equal <|

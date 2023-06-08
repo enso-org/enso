@@ -45,7 +45,7 @@ import tempfile
 import zipfile
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from csv import DictWriter
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from os import path
 from typing import List, Dict, Optional, Any, Union
 from dataclasses import dataclass
@@ -588,16 +588,28 @@ def compare_runs(bench_run_id_1: str, bench_run_id_2: str, cache: Cache, tmp_dir
     bench_run_2 = _parse_bench_run_from_json(res_2)
     bench_report_1 = get_bench_report(bench_run_1, cache, tmp_dir)
     bench_report_2 = get_bench_report(bench_run_2, cache, tmp_dir)
-    bench_labels: List[str] = list(bench_report_1.label_score_dict.keys())
+    # Check that the runs have the same labels, and get their intersection
+    bench_labels_1 = set(bench_report_1.label_score_dict.keys())
+    bench_labels_2 = set(bench_report_2.label_score_dict.keys())
+    if bench_labels_1 != bench_labels_2:
+        logging.warning(
+            f"Benchmark labels are not the same in both runs. This means that "
+            f"there will be some missing numbers in one of the runs. "
+            f"The set difference is {bench_labels_1.difference(bench_labels_2)}")
+    all_labels: List[str] = sorted(
+        list(bench_labels_1.intersection(bench_labels_2)))
+    bench_report_2.label_score_dict.keys()
+
     df = pd.DataFrame(columns=["bench_label", "score-run-1", "score-run-2"])
-    for bench_label in bench_labels:
+    for bench_label in all_labels:
         df = pd.concat([df, pd.DataFrame([{
             "bench_label": bench_label,
             "score-run-1": bench_report_1.label_score_dict[bench_label],
             "score-run-2": bench_report_2.label_score_dict[bench_label],
         }])], ignore_index=True)
     df["score-diff"] = np.diff(df[["score-run-1", "score-run-2"]], axis=1)
-    df["score-diff-perc"] = df.apply(lambda row: perc_str(percent_change(row["score-run-1"], row["score-run-2"])),
+    df["score-diff-perc"] = df.apply(lambda row: perc_str(
+        percent_change(row["score-run-1"], row["score-run-2"])),
                                      axis=1)
     print("================================")
     print(df.to_string(index=False, header=True, justify="center", float_format="%.5f"))
@@ -609,8 +621,8 @@ def compare_runs(bench_run_id_1: str, bench_run_id_2: str, cache: Cache, tmp_dir
 
 
 if __name__ == '__main__':
-    default_since = datetime.now() - timedelta(days=14)
-    default_until = datetime.now()
+    default_since: date = (datetime.now() - timedelta(days=14)).date()
+    default_until: date = datetime.now().date()
     default_cache_dir = path.expanduser("~/.cache/enso_bench_download")
     date_format_help = DATE_FORMAT.replace("%", "%%")
 
@@ -619,14 +631,14 @@ if __name__ == '__main__':
     arg_parser.add_argument("-s", "--since", action="store",
                             default=default_since,
                             metavar="SINCE_DATE",
-                            type=lambda s: datetime.strptime(s, DATE_FORMAT),
+                            type=lambda s: datetime.strptime(s, DATE_FORMAT).date(),
                             help=f"The date from which the benchmark results will be gathered. "
                                  f"Format is {date_format_help}. "
                                  f"The default is 14 days before")
     arg_parser.add_argument("-u", "--until", action="store",
                             default=default_until,
                             metavar="UNTIL_DATE",
-                            type=lambda s: datetime.strptime(s, DATE_FORMAT),
+                            type=lambda s: datetime.strptime(s, DATE_FORMAT).date(),
                             help=f"The date until which the benchmark results will be gathered. "
                                  f"Format is {date_format_help}. "
                                  f"The default is today")
@@ -694,7 +706,8 @@ if __name__ == '__main__':
     else:
         bench_runs = get_bench_runs(since, until)
         if len(bench_runs) == 0:
-            print(f"No successful benchmarks found within period since {since} until {until}")
+            print(
+                f"No successful benchmarks found within period since {since} until {until}")
             exit(1)
         job_reports: List[JobReport] = []
         for bench_run in bench_runs:
@@ -702,6 +715,11 @@ if __name__ == '__main__':
             if job_report:
                 job_reports.append(job_report)
         logging.debug(f"Got {len(job_reports)} job reports")
+        if len(job_reports) == 0:
+            print("There were 0 job_reports in the specified time interval, so "
+                  "there is nothing to visualize or compare.")
+            exit(1)
+
         if create_csv:
             write_bench_reports_to_csv(job_reports, csv_fname)
             logging.info(f"Benchmarks written to {csv_fname}")

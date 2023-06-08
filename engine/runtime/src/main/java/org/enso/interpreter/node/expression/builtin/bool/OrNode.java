@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.bool;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -13,7 +14,8 @@ import org.enso.interpreter.runtime.state.State;
 @BuiltinMethod(
     type = "Boolean",
     name = "||",
-    description = "Computes the logical disjunction of two booleans")
+    description = "Computes the logical disjunction of two booleans",
+    inlineable = true)
 public abstract class OrNode extends Node {
 
   private final ConditionProfile conditionProfile = ConditionProfile.createCountingProfile();
@@ -22,10 +24,11 @@ public abstract class OrNode extends Node {
     return OrNodeGen.create();
   }
 
-  abstract Object execute(State state, boolean self, @Suspend Object that);
+  abstract Object execute(VirtualFrame frame, State state, boolean self, @Suspend Object that);
 
   @Specialization
   Object executeBool(
+      VirtualFrame frame,
       State state,
       boolean self,
       Object that,
@@ -33,6 +36,6 @@ public abstract class OrNode extends Node {
     if (conditionProfile.profile(self)) {
       return true;
     }
-    return rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT);
+    return rhsThunkExecutorNode.executeThunk(frame, that, state, BaseNode.TailStatus.TAIL_DIRECT);
   }
 }

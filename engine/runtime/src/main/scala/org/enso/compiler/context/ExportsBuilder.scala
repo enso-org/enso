@@ -19,8 +19,10 @@ final class ExportsBuilder {
       .collect {
         case BindingsMap.ResolvedMethod(module, method) =>
           ExportedSymbol.Method(module.getName.toString, method.name)
+        case BindingsMap.ResolvedType(module, tp) =>
+          ExportedSymbol.Type(module.getName.toString, tp.name)
         case BindingsMap.ResolvedConstructor(tp, cons) =>
-          ExportedSymbol.Atom(tp.module.getName.toString, cons.name)
+          ExportedSymbol.Constructor(tp.module.getName.toString, cons.name)
         case BindingsMap.ResolvedModule(module) =>
           ExportedSymbol.Module(module.getName.toString)
       }

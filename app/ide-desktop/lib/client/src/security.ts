@@ -8,7 +8,16 @@ import * as electron from 'electron'
 // =================
 
 /** The list of hosts that the app can access. They are required for user authentication to work. */
-const TRUSTED_HOSTS = ['accounts.google.com', 'accounts.youtube.com', 'github.com']
+const TRUSTED_HOSTS = [
+    'accounts.google.com',
+    'accounts.youtube.com',
+    'github.com',
+    'production-enso-domain.auth.eu-west-1.amazoncognito.com',
+    'pb-enso-domain.auth.eu-west-1.amazoncognito.com',
+]
+
+/** The list of hosts that the app can open external links to. */
+const TRUSTED_EXTERNAL_HOSTS = ['discord.gg']
 
 /** The list of URLs a new WebView can be pointed to. */
 const WEBVIEW_URL_WHITELIST: string[] = []
@@ -79,7 +88,12 @@ function preventNavigation() {
     electron.app.on('web-contents-created', (_event, contents) => {
         contents.on('will-navigate', (event, navigationUrl) => {
             const parsedUrl = new URL(navigationUrl)
-            if (parsedUrl.origin !== origin && !TRUSTED_HOSTS.includes(parsedUrl.host)) {
+            const currentWindowUrl = electron.BrowserWindow.getFocusedWindow()?.webContents.getURL()
+            const parsedCurrentWindowUrl = currentWindowUrl ? new URL(currentWindowUrl) : null
+            if (
+                parsedUrl.origin !== parsedCurrentWindowUrl?.origin &&
+                !TRUSTED_HOSTS.includes(parsedUrl.host)
+            ) {
                 event.preventDefault()
                 console.error(`Prevented navigation to '${navigationUrl}'.`)
             }
@@ -94,9 +108,16 @@ function preventNavigation() {
  * https://www.electronjs.org/docs/tutorial/security#13-disable-or-limit-creation-of-new-windows. */
 function disableNewWindowsCreation() {
     electron.app.on('web-contents-created', (_event, contents) => {
-        contents.setWindowOpenHandler(({ url }) => {
-            console.error(`Blocking new window creation request to '${url}'.`)
-            return { action: 'deny' }
+        contents.setWindowOpenHandler(details => {
+            const { url } = details
+            const parsedUrl = new URL(url)
+            if (TRUSTED_EXTERNAL_HOSTS.includes(parsedUrl.host)) {
+                void electron.shell.openExternal(url)
+                return { action: 'deny' }
+            } else {
+                console.error(`Blocking new window creation request to '${url}'.`)
+                return { action: 'deny' }
+            }
         })
     })
 }

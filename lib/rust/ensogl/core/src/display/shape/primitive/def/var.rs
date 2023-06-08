@@ -5,6 +5,7 @@ use crate::system::gpu::types::*;
 use std::ops::*;
 
 use crate::data::color;
+use crate::data::mix::mix;
 use crate::display::shape::primitive::def::unit::PixelDistance;
 use crate::system::gpu::shader::glsl::Glsl;
 
@@ -738,6 +739,24 @@ impl Var<color::Rgba> {
                 let t = t.glsl();
                 let alpha = alpha.glsl();
                 let var = format!("srgba({t}.raw.x,{t}.raw.y,{t}.raw.z,{t}.raw.w*{alpha})");
+                Var::Dynamic(var.into())
+            }
+        }
+    }
+
+    /// Mix two values based on the given factor, according to the formula:
+    /// `first_value * (1 - factor) + second_value * factor`.
+    pub fn mix(self, other: &Var<color::Rgba>, amount: &Var<f32>) -> Self {
+        match (self, other, amount) {
+            (Var::Static(this), Var::Static(that), Var::Static(amount)) => {
+                let var = mix(this, *that, *amount);
+                Var::Static(var)
+            }
+            (this, that, amount) => {
+                let this = this.glsl();
+                let that = that.glsl();
+                let amount = amount.glsl();
+                let var = format!("mix({this}, {that}, {amount})");
                 Var::Dynamic(var.into())
             }
         }

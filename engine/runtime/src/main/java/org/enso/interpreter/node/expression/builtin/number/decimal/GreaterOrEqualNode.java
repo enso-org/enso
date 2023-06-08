@@ -6,6 +6,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
@@ -19,24 +20,40 @@ public abstract class GreaterOrEqualNode extends Node {
   }
 
   @Specialization
-  boolean doDouble(double self, double that) {
-    return self >= that;
+  Object doDouble(double self, double that) {
+    if (Double.isNaN(self) || Double.isNaN(that)) {
+      return incomparableError(self, that);
+    } else {
+      return self >= that;
+    }
   }
 
   @Specialization
-  boolean doLong(double self, long that) {
-    return self >= (double) that;
+  Object doLong(double self, long that) {
+    if (Double.isNaN(self)) {
+      return incomparableError(self, that);
+    } else {
+      return self >= (double) that;
+    }
   }
 
   @Specialization
-  boolean doBigInteger(double self, EnsoBigInteger that) {
-    return self >= BigIntegerOps.toDouble(that.getValue());
+  Object doBigInteger(double self, EnsoBigInteger that) {
+    if (Double.isNaN(self)) {
+      return incomparableError(self, that);
+    } else {
+      return self >= BigIntegerOps.toDouble(that.getValue());
+    }
   }
 
   @Fallback
-  DataflowError doOther(double self, Object that) {
+  Object doOther(double self, Object that) {
+    return incomparableError(self, that);
+  }
+
+  private DataflowError incomparableError(Object self, Object that) {
     var builtins = EnsoContext.get(this).getBuiltins();
-    var typeError = builtins.error().makeTypeError(builtins.number().getNumber(), that, "that");
-    return DataflowError.withoutTrace(typeError, this);
+    var incomparableErr = builtins.error().makeIncomparableValues(self, that);
+    return DataflowError.withoutTrace(incomparableErr, this);
   }
 }

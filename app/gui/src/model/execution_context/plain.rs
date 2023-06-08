@@ -11,9 +11,11 @@ use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 
+use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::VisualisationConfiguration;
 use futures::future::LocalBoxFuture;
+use std::cmp::Ordering;
 
 
 
@@ -21,10 +23,21 @@ use futures::future::LocalBoxFuture;
 // === Errors ===
 // ==============
 
-/// Error then trying to pop stack item on ExecutionContext when there only root call remains.
+/// Error when trying to pop stack item on ExecutionContext when there only root call remains.
 #[derive(Clone, Copy, Debug, Fail)]
 #[fail(display = "Tried to pop an entry point.")]
 pub struct PopOnEmptyStack();
+
+/// Error when trying to refer too much frames back.
+#[derive(Clone, Copy, Debug, Fail)]
+#[fail(
+    display = "Tried to get information from {} frames back, but stack has only {} frames.",
+    requested, actual
+)]
+pub struct TooManyFrames {
+    requested: usize,
+    actual:    usize,
+}
 
 /// Error when using an Id that does not correspond to any known visualization.
 #[derive(Clone, Copy, Debug, Fail)]
@@ -50,7 +63,7 @@ pub struct InvalidVisualizationId(VisualizationId);
 #[derive(Debug)]
 pub struct ExecutionContext {
     /// A name of definition which is a root call of this context.
-    pub entry_point: MethodPointer,
+    pub entry_point: RefCell<MethodPointer>,
     /// Local call stack.
     stack: RefCell<Vec<LocalCall>>,
     /// Set of active visualizations.
@@ -61,16 +74,20 @@ pub struct ExecutionContext {
     pub is_ready: crate::sync::Synchronized<bool>,
     /// Component groups defined in libraries imported into the execution context.
     pub component_groups: RefCell<Rc<Vec<ComponentGroup>>>,
+    /// Execution environment of the context.
+    pub execution_environment: Cell<ExecutionEnvironment>,
 }
 
 impl ExecutionContext {
     /// Create new execution context
-    pub fn new(entry_point: MethodPointer) -> Self {
+    pub fn new(method_pointer: MethodPointer) -> Self {
+        let entry_point = RefCell::new(method_pointer);
         let stack = default();
         let visualizations = default();
         let computed_value_info_registry = default();
         let is_ready = default();
         let component_groups = default();
+        let execution_environment = default();
         Self {
             entry_point,
             stack,
@@ -78,6 +95,7 @@ impl ExecutionContext {
             computed_value_info_registry,
             is_ready,
             component_groups,
+            execution_environment,
         }
     }
 
@@ -166,7 +184,20 @@ impl model::execution_context::API for ExecutionContext {
         if let Some(top_frame) = self.stack.borrow().last() {
             top_frame.definition.clone()
         } else {
-            self.entry_point.clone()
+            self.entry_point.borrow().clone()
+        }
+    }
+
+    fn method_at_frame_back(&self, count: usize) -> FallibleResult<MethodPointer> {
+        let stack = self.stack.borrow();
+        match count.cmp(&stack.len()) {
+            Ordering::Less => {
+                let index = stack.len() - count - 1;
+                Ok(stack[index].definition.clone())
+            }
+            Ordering::Equal => Ok(self.entry_point.borrow().clone()),
+            Ordering::Greater =>
+                Err(TooManyFrames { requested: count, actual: stack.len() }.into()),
         }
     }
 
@@ -264,6 +295,37 @@ impl model::execution_context::API for ExecutionContext {
     }
 
     fn restart(&self) -> BoxFuture<FallibleResult> {
+        futures::future::ready(Ok(())).boxed_local()
+    }
+
+    fn rename_method_pointers(&self, old_project_name: String, new_project_name: String) {
+        let update_method_pointer = |method_pointer: &mut MethodPointer| {
+            let module = method_pointer.module.replacen(&old_project_name, &new_project_name, 1);
+            let defined_on_type =
+                method_pointer.defined_on_type.replacen(&old_project_name, &new_project_name, 1);
+            let name = method_pointer.name.clone();
+            MethodPointer { module, defined_on_type, name }
+        };
+        self.entry_point.replace_with(update_method_pointer);
+        self.stack.borrow_mut().iter_mut().for_each(|local_call| {
+            local_call.definition = update_method_pointer(&mut local_call.definition)
+        });
+    }
+
+    fn set_execution_environment(
+        &self,
+        environment: ExecutionEnvironment,
+    ) -> BoxFuture<FallibleResult> {
+        info!("Setting execution environment to {environment:?}.");
+        self.execution_environment.set(environment);
+        futures::future::ready(Ok(())).boxed_local()
+    }
+
+    fn execution_environment(&self) -> ExecutionEnvironment {
+        self.execution_environment.get()
+    }
+
+    fn trigger_clean_live_execution(&self) -> LocalBoxFuture<FallibleResult> {
         futures::future::ready(Ok(())).boxed_local()
     }
 }

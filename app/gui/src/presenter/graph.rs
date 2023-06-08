@@ -12,14 +12,14 @@ use crate::presenter::graph::state::State;
 use double_representation::context_switch::Context;
 use double_representation::context_switch::ContextSwitch;
 use double_representation::context_switch::ContextSwitchExpression;
-use engine_protocol::language_server::SuggestionId;
 use enso_frp as frp;
 use futures::future::LocalBoxFuture;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
-use view::graph_editor::WidgetUpdates;
+use span_tree::generate::Context as _;
+use view::graph_editor::CallWidgetsConfig;
 
 
 // ==============
@@ -166,16 +166,6 @@ impl Model {
         );
     }
 
-    /// TODO(#5930): Provide the state of the output context in the current environment.
-    fn output_context_enabled(&self) -> bool {
-        true
-    }
-
-    /// TODO(#5930): Provide the current execution environment of the project.
-    fn execution_environment(&self) -> &str {
-        "design"
-    }
-
     /// Sets or clears a context switch expression for the specified node.
     ///
     /// A context switch expression allows enabling or disabling the execution of a particular node
@@ -185,22 +175,21 @@ impl Model {
     ///
     /// The behavior of this function can be summarized in the following table:
     /// ```ignore
-    /// | Context Enabled | Active      | Action       |
-    /// |-----------------|-------------|--------------|
-    /// | Yes             | Yes         | Add Disable  |
-    /// | Yes             | No          | Clear        |
-    /// | No              | Yes         | Add Enable   |
-    /// | No              | No          | Clear        |
+    /// | Global Context Permission | Active      | Action       |
+    /// |---------------------------|-------------|--------------|
+    /// | Enabled                   | Yes         | Add Disable  |
+    /// | Enabled                   | No          | Clear        |
+    /// | Disabled                  | Yes         | Add Enable   |
+    /// | Disabled                  | No          | Clear        |
     /// ```
-    /// TODO(#5929): Connect this function with buttons on nodes.
-    #[allow(dead_code)]
     fn node_action_context_switch(&self, id: ViewNodeId, active: bool) {
         let context = Context::Output;
-        let current_state = self.output_context_enabled();
-        let environment = self.execution_environment().into();
+        let environment = self.controller.execution_environment();
+        let current_state = environment.output_context_enabled();
         let switch = if current_state { ContextSwitch::Disable } else { ContextSwitch::Enable };
         let expr = if active {
-            Some(ContextSwitchExpression { switch, context, environment })
+            let environment_name = environment.to_string().into();
+            Some(ContextSwitchExpression { switch, context, environment: environment_name })
         } else {
             None
         };
@@ -260,24 +249,18 @@ impl Model {
             .state
             .update_from_view()
             .set_call_expression_target_id(call_expression, Some(target_expression))?;
-        let method_id = self.expression_method_suggestion(call_expression)?;
-
-        Some(WidgetRequest {
-            node_id,
-            call_expression,
-            target_expression,
-            call_suggestion: method_id,
-        })
+        let call_suggestion = self.controller.call_info(call_expression)?.suggestion_id?;
+        Some(WidgetRequest { node_id, call_expression, target_expression, call_suggestion })
     }
 
     /// Map widget controller update data to the node views.
-    fn map_widget_update_data(
+    fn map_widget_configuration(
         &self,
         node_id: AstNodeId,
-        updates: WidgetUpdates,
-    ) -> Option<(ViewNodeId, WidgetUpdates)> {
+        config: CallWidgetsConfig,
+    ) -> Option<(ViewNodeId, CallWidgetsConfig)> {
         let node_id = self.state.view_id_of_ast_node(node_id)?;
-        Some((node_id, updates))
+        Some((node_id, config))
     }
 
     /// Node was removed in view.
@@ -311,18 +294,15 @@ impl Model {
                 let update = self.state.update_from_view();
                 let ast_to_remove = update.remove_connection(id)?;
                 Some(self.controller.disconnect(&ast_to_remove).map(|target_crumbs| {
-                    target_crumbs.and_then(|crumbs| {
+                    if let Some(crumbs) = target_crumbs {
                         trace!(
                             "Updating edge target after disconnecting it. New crumbs: {crumbs:?}"
                         );
                         // If we are still using this edge (e.g. when dragging it), we need to
                         // update its target endpoint. Otherwise it will not reflect expression
                         // update performed on the target node.
-                        let edge = self.view.model.edges.get_cloned_ref(&id)?;
-                        let outdated_target = edge.target()?;
-                        edge.set_target(EdgeEndpoint::new(outdated_target.node_id, crumbs));
-                        Some(())
-                    });
+                        self.view.replace_detached_edge_target((id, crumbs));
+                    };
                 }))
             },
             "delete connection",
@@ -389,11 +369,9 @@ impl Model {
     ///
     /// If the view update is required, the widget query data is returned.
     fn refresh_expression_widgets(&self, expr_id: ast::Id) -> Option<(ast::Id, ast::Id)> {
-        let method_pointer = self.expression_method_pointer(expr_id);
-        let (_, method_target_id) = self
-            .state
-            .update_from_controller()
-            .set_expression_method_pointer(expr_id, method_pointer)?;
+        let suggestion = self.controller.call_info(expr_id).and_then(|i| i.suggestion_id);
+        let (_, method_target_id) =
+            self.state.update_from_controller().set_expression_suggestion(expr_id, suggestion)?;
         Some((expr_id, method_target_id?))
     }
 
@@ -429,23 +407,6 @@ impl Model {
         Some(view::graph_editor::Type(info.typename.as_ref()?.clone_ref()))
     }
 
-    /// Extract the expression's current suggestion entry from controllers.
-    fn expression_method_suggestion(&self, id: ast::Id) -> Option<SuggestionId> {
-        let registry = self.controller.computed_value_info_registry();
-        let computed_value = registry.get(&id)?;
-        let method_pointer = computed_value.method_call.as_ref()?;
-        let suggestion_db = self.controller.suggestion_db();
-        suggestion_db.get_method_suggestion(method_pointer)
-    }
-
-    /// Extract the expression's current method pointer from controllers.
-    fn expression_method_pointer(&self, id: ast::Id) -> Option<view::graph_editor::MethodPointer> {
-        let registry = self.controller.computed_value_info_registry();
-        let computed_value = registry.get(&id)?;
-        let method_pointer = computed_value.method_call.as_ref()?;
-        Some(view::graph_editor::MethodPointer(Rc::new(method_pointer.clone())))
-    }
-
     fn file_dropped(&self, file: ensogl_drop_manager::File, position: Vector2<f32>) {
         let project = self.project.clone_ref();
         let graph = self.controller.graph();
@@ -462,6 +423,7 @@ impl Model {
     }
 
     /// Look through all graph's nodes in AST and set position where it is missing.
+    #[profile(Debug)]
     fn initialize_nodes_positions(&self, default_gap_between_nodes: f32) {
         match self.controller.graph().nodes() {
             Ok(nodes) => {
@@ -499,6 +461,15 @@ impl Model {
                 warn!("Failed to initialize nodes positions: {err}");
             }
         }
+    }
+
+    fn reopen_file_in_ls(&self) {
+        let module = self.controller.graph().module.clone_ref();
+        executor::global::spawn(async move {
+            if let Err(error) = module.reopen_file_in_language_server().await {
+                error!("Error while reopening file in Language Server: {error}");
+            }
+        });
     }
 }
 
@@ -538,18 +509,14 @@ impl ExpressionUpdate {
         self.freeze_updated.map(|freeze| (self.id, freeze))
     }
 
-    /// An updated status of output context switch (`true` if output context is explicitly enabled
-    /// for the node, `false` otherwise). `None` if the status was not updated.
-    fn output_context(&self) -> Option<(ViewNodeId, bool)> {
+    /// An updated status of output context switch: `true` (or `false`) if the output context was
+    /// explicitly enabled (or disabled) for the node, `None` otherwise. The outer `Option` is
+    /// `None` if the status was not updated.
+    fn output_context(&self) -> Option<(ViewNodeId, Option<bool>)> {
         self.context_switch_updated.as_ref().map(|context_switch_expr| {
-            use Context::*;
-            use ContextSwitch::*;
-            let enabled = match context_switch_expr {
-                Some(ContextSwitchExpression { switch: Enable, context: Output, .. }) => true,
-                Some(ContextSwitchExpression { switch: Disable, context: Output, .. }) => false,
-                None => false,
-            };
-            (self.id, enabled)
+            let switch =
+                context_switch_expr.as_ref().map(|expr| expr.switch == ContextSwitch::Enable);
+            (self.id, switch)
         })
     }
 }
@@ -571,6 +538,7 @@ struct ViewUpdate {
 
 impl ViewUpdate {
     /// Create ViewUpdate information from Graph Presenter's model.
+    #[profile(Debug)]
     fn new(model: &Model) -> FallibleResult<Self> {
         let state = model.state.clone_ref();
         let nodes = model.controller.graph().nodes()?;
@@ -581,11 +549,13 @@ impl ViewUpdate {
     }
 
     /// Remove nodes from the state and return node views to be removed.
+    #[profile(Debug)]
     fn remove_nodes(&self) -> Vec<ViewNodeId> {
         self.state.update_from_controller().retain_nodes(&self.node_ids().collect())
     }
 
     /// Returns number of nodes view should create.
+    #[profile(Debug)]
     fn count_nodes_to_add(&self) -> usize {
         self.node_ids().filter(|n| self.state.view_id_of_ast_node(*n).is_none()).count()
     }
@@ -625,6 +595,7 @@ impl ViewUpdate {
     /// input for nodes where position changed.
     ///
     /// The nodes not having views are also updated in the state.
+    #[profile(Debug)]
     fn set_node_positions(&self) -> Vec<(ViewNodeId, Vector2)> {
         self.nodes
             .iter()
@@ -638,6 +609,7 @@ impl ViewUpdate {
             .collect()
     }
 
+    #[profile(Debug)]
     fn set_node_visualizations(&self) -> Vec<(ViewNodeId, Option<visualization_view::Path>)> {
         self.nodes
             .iter()
@@ -649,11 +621,13 @@ impl ViewUpdate {
     }
 
     /// Remove connections from the state and return views to be removed.
+    #[profile(Debug)]
     fn remove_connections(&self) -> Vec<ViewConnection> {
         self.state.update_from_controller().retain_connections(&self.connections)
     }
 
     /// Add connections to the state and return endpoints of connections to be created in views.
+    #[profile(Debug)]
     fn add_connections(&self) -> Vec<(EdgeEndpoint, EdgeEndpoint)> {
         let ast_conns = self.connections.iter();
         ast_conns
@@ -663,6 +637,7 @@ impl ViewUpdate {
             .collect()
     }
 
+    #[profile(Debug)]
     fn node_ids(&self) -> impl Iterator<Item = AstNodeId> + '_ {
         self.nodes.iter().map(controller::graph::Node::id)
     }
@@ -708,17 +683,17 @@ impl Graph {
 
         frp::extend! { network
             update_view <- source::<()>();
+            update_view_once <- update_view.debounce();
             // Position initialization should go before emitting `update_data` event.
-            update_with_gap <- view.default_y_gap_between_nodes.sample(&update_view);
+            update_with_gap <- view.default_y_gap_between_nodes.sample(&update_view_once);
             eval update_with_gap ((gap) model.initialize_nodes_positions(*gap));
-            update_data <- update_view.map(f_!([model] match ViewUpdate::new(&model) {
+            update_data <- update_view_once.map(f_!([model] match ViewUpdate::new(&model) {
                 Ok(update) => Rc::new(update),
                 Err(err) => {
                     error!("Failed to update view: {err:?}");
                     Rc::new(default())
                 }
             }));
-
 
             // === Refreshing Nodes ===
 
@@ -727,12 +702,7 @@ impl Graph {
             update_node_expression <- expression_update.map(ExpressionUpdate::expression);
             set_node_skip <- expression_update.filter_map(ExpressionUpdate::skip);
             set_node_freeze <- expression_update.filter_map(ExpressionUpdate::freeze);
-            // TODO(#5930): Use project model to retrieve a current state of the output context.
-            output_context_enabled <- update_view.constant(true);
-            output_context_updated <- expression_update.filter_map(ExpressionUpdate::output_context);
-            _context_switch_highlighted <- output_context_updated.map2(&output_context_enabled,
-                |(node_id, enabled_for_node), enabled_globally| (*node_id, enabled_for_node != enabled_globally)
-            );
+            set_node_context_switch <- expression_update.filter_map(ExpressionUpdate::output_context);
             set_node_position <= update_data.map(|update| update.set_node_positions());
             set_node_visualization <= update_data.map(|update| update.set_node_visualizations());
             enable_vis <- set_node_visualization.filter_map(|(id,path)| path.is_some().as_some(*id));
@@ -741,8 +711,7 @@ impl Graph {
             view.set_node_expression <+ update_node_expression;
             view.set_node_skip <+ set_node_skip;
             view.set_node_freeze <+ set_node_freeze;
-            // TODO (#5929): Connect to the view when the API is ready.
-            // view.highlight_output_context_switch <+ context_switch_highlighted;
+            view.set_node_context_switch <+ set_node_context_switch;
             view.set_node_position <+ set_node_position;
             view.set_visualization <+ set_node_visualization;
             view.enable_visualization <+ enable_vis;
@@ -789,9 +758,11 @@ impl Graph {
             eval view.nodes_collapsed(((nodes, _)) model.nodes_collapsed(nodes));
             eval view.enabled_visualization_path(((node_id, path)) model.node_visualization_changed(*node_id, path.clone()));
             eval view.node_expression_span_set(((node_id, crumbs, expression)) model.node_expression_span_set(*node_id, crumbs, expression.clone_ref()));
+            eval view.node_action_context_switch(((node_id, active)) model.node_action_context_switch(*node_id, *active));
             eval view.node_action_skip(((node_id, enabled)) model.node_action_skip(*node_id, *enabled));
             eval view.node_action_freeze(((node_id, enabled)) model.node_action_freeze(*node_id, *enabled));
             eval view.request_import((import_path) model.add_import_if_missing(import_path));
+            eval_ view.reopen_file_in_language_server (model.reopen_file_in_ls());
 
 
             // === Dropping Files ===
@@ -834,7 +805,7 @@ impl Graph {
             widget.request_widgets <+ widget_request;
             widget.retain_node_expressions <+ widget_refresh._0().unwrap();
             view.update_node_widgets <+ widget.widget_data.filter_map(
-                f!(((id, updates)) model.map_widget_update_data(*id, updates.clone()))
+                f!(((id, data)) model.map_widget_configuration(*id, data.clone()))
             );
         }
     }
@@ -857,8 +828,8 @@ impl Graph {
                 },
                 executed::Notification::ComputedValueInfo(expressions) =>
                     update_expressions.emit(expressions),
-                executed::Notification::EnteredNode(_) => update_view.emit(()),
-                executed::Notification::SteppedOutOfNode(_) => update_view.emit(()),
+                executed::Notification::EnteredStack(_)
+                | executed::Notification::ExitedStack(_) => update_view.emit(()),
             }
             std::future::ready(())
         })

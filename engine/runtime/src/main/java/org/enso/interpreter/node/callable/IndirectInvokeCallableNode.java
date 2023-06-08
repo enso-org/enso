@@ -87,7 +87,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
               isTail);
 
       Warning[] extracted = warnings.getWarnings(warning, null);
-      return new WithWarnings(result, extracted);
+      return WithWarnings.wrap(EnsoContext.get(this), result, extracted);
     } catch (UnsupportedMessageException e) {
       throw CompilerDirectives.shouldNotReachHere(e);
     }
@@ -182,7 +182,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
     if (canApplyThis) {
       Object self = arguments[thisArgumentPosition];
       if (argumentsExecutionMode.shouldExecute()) {
-        self = thisExecutor.executeThunk(self, state, BaseNode.TailStatus.NOT_TAIL);
+        self = thisExecutor.executeThunk(callerFrame, self, state, BaseNode.TailStatus.NOT_TAIL);
         arguments[thisArgumentPosition] = self;
       }
       return invokeMethodNode.execute(

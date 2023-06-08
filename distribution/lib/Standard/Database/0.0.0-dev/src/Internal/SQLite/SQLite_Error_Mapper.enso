@@ -1,0 +1,16 @@
+from Standard.Base import all
+
+from project.Errors import SQL_Error
+
+polyglot java import org.sqlite.SQLiteErrorCode
+polyglot java import org.sqlite.SQLiteException
+
+## PRIVATE
+type SQLite_Error_Mapper
+
+    ## PRIVATE
+    is_primary_key_violation : SQL_Error -> Boolean
+    is_primary_key_violation error =
+        case error.java_exception of
+            sqlite_exception : SQLiteException ->
+                sqlite_exception.getResultCode == SQLiteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY

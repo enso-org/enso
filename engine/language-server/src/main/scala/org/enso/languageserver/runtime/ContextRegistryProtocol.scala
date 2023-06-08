@@ -98,11 +98,13 @@ object ContextRegistryProtocol {
     * @param rpcSession reference to the client
     * @param contextId execution context identifier
     * @param invalidatedExpressions the expressions that should be invalidated
+    * @param executionEnvironment the environment that should be used for execution
     */
   case class RecomputeContextRequest(
     rpcSession: JsonSession,
     contextId: ContextId,
-    invalidatedExpressions: Option[InvalidatedExpressions]
+    invalidatedExpressions: Option[InvalidatedExpressions],
+    executionEnvironment: Option[ExecutionEnvironment]
   )
 
   /** A response about recomputing the context.
@@ -142,6 +144,24 @@ object ContextRegistryProtocol {
     componentGroups: Seq[LibraryComponentGroup]
   )
 
+  /** A request to the context registry set the execution context environment.
+    *
+    * @param rpcSession reference to the client
+    * @param contextId execution context identifier
+    * @param executionEnvironment the environment that should be used for execution
+    */
+  case class SetExecutionEnvironmentRequest(
+    rpcSession: JsonSession,
+    contextId: ContextId,
+    executionEnvironment: ExecutionEnvironment
+  )
+
+  /** A response to the set execution environment request.
+    *
+    * @param contextId execution context identifier
+    */
+  case class SetExecutionEnvironmentResponse(contextId: ContextId)
+
   /** A notification about updated expressions of execution context.
     *
     * @param contextId execution context identifier
@@ -156,7 +176,7 @@ object ContextRegistryProtocol {
     *
     * @param expressionId the id of updated expression
     * @param `type` the updated type of expression
-    * @param methodPointer the updated method pointer
+    * @param methodCall the updated method call
     * @param profilingInfo profiling information about the expression
     * @param fromCache whether or not the expression's value came from the cache
     * @param payload an extra information about the computed value
@@ -164,7 +184,7 @@ object ContextRegistryProtocol {
   case class ExpressionUpdate(
     expressionId: UUID,
     `type`: Option[String],
-    methodPointer: Option[MethodPointer],
+    methodCall: Option[MethodCall],
     profilingInfo: Vector[ProfilingInfo],
     fromCache: Boolean,
     payload: ExpressionUpdate.Payload
@@ -185,8 +205,13 @@ object ContextRegistryProtocol {
           *
           * @param count the number of attached warnings
           * @param value textual representation of the attached warning
+          * @param reachedMaxCount indicated whether maximal number of warnings has been reached
           */
-        case class Warnings(count: Int, value: Option[String])
+        case class Warnings(
+          count: Int,
+          value: Option[String],
+          reachedMaxCount: Boolean
+        )
       }
 
       case class Pending(message: Option[String], progress: Option[Double])

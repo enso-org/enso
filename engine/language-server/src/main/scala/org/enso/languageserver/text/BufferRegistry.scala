@@ -10,7 +10,6 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
   ReleaseCapability
 }
 import org.enso.languageserver.data.{CanEdit, CapabilityRegistration, ClientId}
-import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.session.JsonSession
@@ -99,23 +98,7 @@ class BufferRegistry(
 
   import context.dispatcher
 
-  override def preStart(): Unit = {
-    logger.info("Starting initialization.")
-    context.system.eventStream
-      .subscribe(self, InitializedEvent.VersionsRepoInitialized.getClass)
-  }
-
-  override def receive: Receive = initializing
-
-  private def initializing: Receive = {
-    case InitializedEvent.VersionsRepoInitialized =>
-      logger.info("Initiaized.")
-      context.become(running(Map.empty))
-      unstashAll()
-
-    case _ =>
-      stash()
-  }
+  override def receive: Receive = running(Map.empty)
 
   private def running(registry: Map[Path, ActorRef]): Receive = {
     case Ping =>

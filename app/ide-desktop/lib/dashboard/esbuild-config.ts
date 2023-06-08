@@ -1,13 +1,11 @@
-/**
- * @file Configuration for the esbuild bundler and build/watch commands.
+/** @file Configuration for the esbuild bundler and build/watch commands.
  *
  * The bundler processes each entry point into a single file, each with no external dependencies and
  * minified. This primarily involves resolving all imports, along with some other transformations
  * (like TypeScript compilation).
  *
  * See the bundlers documentation for more information:
- * https://esbuild.github.io/getting-started/#bundling-for-node.
- */
+ * https://esbuild.github.io/getting-started/#bundling-for-node. */
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as url from 'node:url'
@@ -15,6 +13,7 @@ import * as url from 'node:url'
 import * as esbuild from 'esbuild'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
 import esbuildPluginTime from 'esbuild-plugin-time'
+import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
 import postcss from 'postcss'
 import tailwindcss from 'tailwindcss'
@@ -33,6 +32,7 @@ const TAILWIND_CONFIG_PATH = path.resolve(THIS_PATH, 'tailwind.config.ts')
 // === Environment variables ===
 // =============================
 
+/** Mandatory build options. */
 export interface Arguments {
     /** Path where bundled files are output. */
     outputPath: string
@@ -40,22 +40,22 @@ export interface Arguments {
     devMode: boolean
 }
 
-/**
- * Get arguments from the environment.
- */
+/** Get arguments from the environment. */
 export function argumentsFromEnv(): Arguments {
     const outputPath = path.resolve(utils.requireEnv('ENSO_BUILD_GUI'), 'assets')
     return { outputPath, devMode: false }
 }
 
-// ======================
-// === Inline plugins ===
-// ======================
+// =======================
+// === Esbuild plugins ===
+// =======================
 
+/** A plugin to process all CSS files with Tailwind CSS. */
 function esbuildPluginGenerateTailwind(): esbuild.Plugin {
     return {
         name: 'enso-generate-tailwind',
         setup: build => {
+            /** An entry in the cache of already processed CSS files. */
             interface CacheEntry {
                 contents: string
                 lastModified: number
@@ -80,10 +80,8 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
                 let output = cachedOutput[loadArgs.path]
                 if (!output || output.lastModified !== lastModified || tailwindConfigWasModified) {
                     console.log(`Processing CSS file '${loadArgs.path}'.`)
-                    const result = await cssProcessor.process(
-                        await fs.readFile(loadArgs.path, 'utf8'),
-                        { from: loadArgs.path }
-                    )
+                    const content = await fs.readFile(loadArgs.path, 'utf8')
+                    const result = await cssProcessor.process(content, { from: loadArgs.path })
                     console.log(`Processed CSS file '${loadArgs.path}'.`)
                     output = { contents: result.css, lastModified }
                     cachedOutput[loadArgs.path] = output
@@ -104,24 +102,31 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
 
 /** Generate the bundler options. */
 export function bundlerOptions(args: Arguments) {
-    const { outputPath } = args
+    const { outputPath, devMode } = args
     const buildOptions = {
         absWorkingDir: THIS_PATH,
         bundle: true,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        loader: { '.html': 'copy' },
         entryPoints: [path.resolve(THIS_PATH, 'src', 'tailwind.css')],
         outdir: outputPath,
         outbase: 'src',
         plugins: [
             esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),
             esbuildPluginTime(),
+            // This is not strictly needed because the cloud frontend does not use
+            // the Project Manager, however it is very difficult to conditionally exclude a module.
+            esbuildPluginYaml.yamlPlugin({}),
             esbuildPluginGenerateTailwind(),
         ],
         define: {
-            // We are defining a constant, so it should be `CONSTANT_CASE`.
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            IS_DEV_MODE: JSON.stringify(args.devMode),
+            // We are defining constants, so it should be `CONSTANT_CASE`.
+            /* eslint-disable @typescript-eslint/naming-convention */
+            /** Whether the application is being run locally. This enables a service worker that
+             * properly serves `/index.html` to client-side routes like `/login`. */
+            IS_DEV_MODE: JSON.stringify(devMode),
+            /** Overrides the redirect URL for OAuth logins in the production environment.
+             * This is needed for logins to work correctly under `./run gui watch`. */
+            REDIRECT_OVERRIDE: 'undefined',
+            /* eslint-enable @typescript-eslint/naming-convention */
         },
         sourcemap: true,
         minify: true,
@@ -131,12 +136,12 @@ export function bundlerOptions(args: Arguments) {
         color: true,
     } satisfies esbuild.BuildOptions
     // The narrower type is required to avoid non-null assertions elsewhere.
-    // The intersection with `esbuild.BuildOptions` is required to allow mutation.
+    // The intersection with `esbuild.BuildOptions` is required to allow adding extra properties.
     const correctlyTypedBuildOptions: esbuild.BuildOptions & typeof buildOptions = buildOptions
     return correctlyTypedBuildOptions
 }
 
-/** ESBuild options for bundling (one-off build) the package.
+/** esbuild options for bundling (one-off build) the package.
  *
  * Relies on the environment variables to be set. */
 export function bundleOptions() {

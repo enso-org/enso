@@ -673,6 +673,14 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
     if token.ends_with("->") && !token.starts_with("<-") {
         operator = operator.as_right_associative();
     }
+    if token.ends_with('=') && !token.bytes().all(|c| c == b'=') {
+        match token {
+            // Inclusive comparison operators are not modifiers.
+            ">=" | "<=" => (),
+            // Any other operator ending with "=" is a modifier.
+            _ => operator = operator.as_modifier(),
+        }
+    }
     match token {
         // Operators that can be unary.
         "\\" =>

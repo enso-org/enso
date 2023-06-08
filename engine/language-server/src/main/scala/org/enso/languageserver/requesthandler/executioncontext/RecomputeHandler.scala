@@ -42,7 +42,8 @@ class RecomputeHandler(
       contextRegistry ! RecomputeContextRequest(
         session,
         params.contextId,
-        params.invalidatedExpressions
+        params.invalidatedExpressions,
+        params.executionEnvironment
       )
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)

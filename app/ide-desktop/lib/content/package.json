@@ -38,9 +38,9 @@
     "@typescript-eslint/eslint-plugin": "^5.55.0",
     "@typescript-eslint/parser": "^5.55.0",
     "enso-authentication": "^1.0.0",
-    "enso-copy-plugin": "^1.0.0",
-    "esbuild": "^0.17.0",
+    "esbuild": "^0.17.15",
     "esbuild-plugin-alias": "^0.2.1",
+    "esbuild-plugin-copy-directories": "^1.0.0",
     "esbuild-plugin-time": "^1.0.0",
     "esbuild-plugin-yaml": "^0.0.1",
     "eslint": "^8.36.0",
@@ -51,8 +51,8 @@
     "typescript": "^4.9.3"
   },
   "optionalDependencies": {
-    "@esbuild/darwin-x64": "^0.17.0",
-    "@esbuild/linux-x64": "^0.17.0",
-    "@esbuild/windows-x64": "^0.17.0"
+    "@esbuild/darwin-x64": "^0.17.15",
+    "@esbuild/linux-x64": "^0.17.15",
+    "@esbuild/windows-x64": "^0.17.15"
   }
 }

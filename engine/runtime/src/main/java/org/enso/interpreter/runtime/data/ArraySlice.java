@@ -11,6 +11,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
@@ -22,7 +23,7 @@ public final class ArraySlice implements TruffleObject {
   private final long start;
   private final long end;
 
-  ArraySlice(Object storage, long start, long end) {
+  private ArraySlice(Object storage, long start, long end) {
     if (storage instanceof ArraySlice slice) {
       this.storage = slice.storage;
       this.start = slice.start + start;
@@ -38,6 +39,20 @@ public final class ArraySlice implements TruffleObject {
       this.start = start;
       this.end = end;
     }
+  }
+
+  static Vector createOrNull(Object storage, long start, long this_length, long end) {
+    long slice_start = Math.max(0, start);
+    long slice_end = Math.min(this_length, end);
+    Object slice;
+    if (slice_start >= slice_end) {
+      slice = Array.allocate(0);
+    } else if ((slice_start == 0) && (slice_end == this_length)) {
+      return null;
+    } else {
+      slice = new ArraySlice(storage, slice_start, slice_end);
+    }
+    return Vector.fromArray(slice);
   }
 
   /**
@@ -81,7 +96,7 @@ public final class ArraySlice implements TruffleObject {
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
-      return new WithWarnings(toEnso.execute(v), extracted);
+      return WithWarnings.wrap(EnsoContext.get(warnings), toEnso.execute(v), extracted);
     }
     return toEnso.execute(v);
   }
@@ -141,6 +156,11 @@ public final class ArraySlice implements TruffleObject {
   Object removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
     Object newStorage = warnings.removeWarnings(this.storage);
     return new ArraySlice(newStorage, start, end);
+  }
+
+  @ExportMessage
+  boolean isLimitReached(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    return warnings.isLimitReached(this.storage);
   }
 
 }

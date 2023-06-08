@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Text.Text
 
 from project.Data.Boolean import Boolean, True, False
 
@@ -54,5 +55,13 @@ type Maybe
         Maybe.None -> False
         Maybe.Some _ -> True
 
+    ## Check if the maybe value is `None`.
     is_none : Boolean
     is_none self = self.is_some.not
+
+    ## PRIVATE
+       Convert Maybe to a friendly string.
+    to_display_text : Text
+    to_display_text self = case self of
+        Maybe.None -> "None"
+        Maybe.Some val -> "Some(" + val.to_display_text + ")"

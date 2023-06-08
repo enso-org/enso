@@ -22,11 +22,13 @@ import * as debug from 'debug'
 // eslint-disable-next-line no-restricted-syntax
 import * as fileAssociations from 'file-associations'
 import * as ipc from 'ipc'
+import * as log from 'log'
 import * as naming from 'naming'
 import * as paths from 'paths'
 import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
+import * as urlAssociations from 'url-associations'
 import * as utils from '../../../utils'
 
 const logger = contentConfig.logger
@@ -43,23 +45,17 @@ class App {
     args: config.Args = config.CONFIG
     isQuitting = false
 
+    /** Initialize and run the Electron application. */
     async run() {
+        log.addFileLog()
+        urlAssociations.registerAssociations()
         // Register file associations for macOS.
-        electron.app.on('open-file', fileAssociations.onFileOpened)
+        fileAssociations.setOpenFileEventHandler(id => {
+            this.setProjectToOpenOnStartup(id)
+        })
 
-        const { windowSize, chromeOptions, fileToOpen } = this.processArguments()
-        if (fileToOpen != null) {
-            try {
-                // This makes the IDE open the relevant project. Also, this prevents us from using this
-                // method after IDE has been fully set up, as the initializing code would have already
-                // read the value of this argument.
-                this.args.groups.startup.options.project.value =
-                    fileAssociations.handleOpenFile(fileToOpen)
-            } catch (e) {
-                // If we failed to open the file, we should enter the usual welcome screen.
-                // The `handleOpenFile` function will have already displayed an error message.
-            }
-        }
+        const { windowSize, chromeOptions, fileToOpen, urlToOpen } = this.processArguments()
+        this.handleItemOpening(fileToOpen, urlToOpen)
         if (this.args.options.version.value) {
             await this.printVersion()
             electron.app.quit()
@@ -79,23 +75,72 @@ class App {
              * freezes. This freeze should be diagnosed and fixed. Then, the `whenReady()` listener
              * should be used here instead. */
             electron.app.on('ready', () => {
+                logger.log('Electron application is ready.')
                 void this.main(windowSize)
             })
             this.registerShortcuts()
         }
     }
 
+    /** Process the command line arguments. */
     processArguments() {
         // We parse only "client arguments", so we don't have to worry about the Electron-Dev vs
         // Electron-Proper distinction.
         const fileToOpen = fileAssociations.argsDenoteFileOpenAttempt(
             fileAssociations.CLIENT_ARGUMENTS
         )
+        const urlToOpen = urlAssociations.argsDenoteUrlOpenAttempt(
+            fileAssociations.CLIENT_ARGUMENTS
+        )
         // If we are opening a file (i.e. we were spawned with just a path of the file to open as
-        // the argument), it means that effectively we don't have any non-standard arguments.
+        // the argument) or URL, it means that effectively we don't have any non-standard arguments.
         // We just need to let caller know that we are opening a file.
-        const argsToParse = fileToOpen ? [] : fileAssociations.CLIENT_ARGUMENTS
-        return { ...configParser.parseArgs(argsToParse), fileToOpen }
+        const argsToParse = fileToOpen || urlToOpen ? [] : fileAssociations.CLIENT_ARGUMENTS
+        return { ...configParser.parseArgs(argsToParse), fileToOpen, urlToOpen }
+    }
+
+    /** Set the project to be opened on application startup.
+     *
+     * This method should be called before the application is ready, as it only
+     * modifies the startup options. If the application is already initialized,
+     * an error will be logged, and the method will have no effect.
+     *
+     * @param projectId - The ID of the project to be opened on startup. */
+    setProjectToOpenOnStartup(projectId: string) {
+        // Make sure that we are not initialized yet, as this method should be called before the
+        // application is ready.
+        if (!electron.app.isReady()) {
+            logger.log(`Setting the project to open on startup to '${projectId}'.`)
+            this.args.groups.startup.options.project.value = projectId
+        } else {
+            logger.error(
+                "Cannot set the project to open on startup to '" +
+                    projectId +
+                    "', as the application is already initialized."
+            )
+        }
+    }
+
+    /** This method is invoked when the application was spawned due to being a default application
+     * for a URL protocol or file extension. */
+    handleItemOpening(fileToOpen: string | null, urlToOpen: URL | null) {
+        logger.log('Opening file or URL.', { fileToOpen, urlToOpen })
+        try {
+            if (fileToOpen != null) {
+                // This makes the IDE open the relevant project. Also, this prevents us from using
+                // this method after the IDE has been fully set up, as the initializing code
+                // would have already read the value of this argument.
+                const projectId = fileAssociations.handleOpenFile(fileToOpen)
+                this.setProjectToOpenOnStartup(projectId)
+            }
+
+            if (urlToOpen != null) {
+                urlAssociations.handleOpenUrl(urlToOpen)
+            }
+        } catch (e) {
+            // If we failed to open the file, we should enter the usual welcome screen.
+            // The `handleOpenFile` function will have already displayed an error message.
+        }
     }
 
     /** Set Chrome options based on the app configuration. For comprehensive list of available
@@ -114,8 +159,9 @@ class App {
                 chromeOptions.push(chromeOption)
             }
         }
-        const add = (option: string, value?: string) =>
+        const add = (option: string, value?: string) => {
             chromeOptions.push(new configParser.ChromeOption(option, value))
+        }
         logger.groupMeasured('Setting Chrome options', () => {
             const perfOpts = this.args.groups.performance.options
             addIf(perfOpts.disableGpuSandbox, 'disable-gpu-sandbox')
@@ -206,7 +252,6 @@ class App {
                     preload: pathModule.join(paths.APP_PATH, 'preload.cjs'),
                     sandbox: true,
                     backgroundThrottling: argGroups.performance.options.backgroundThrottling.value,
-                    devTools: argGroups.debug.options.devTools.value,
                     enableBlinkFeatures: argGroups.chrome.options.enableBlinkFeatures.value,
                     disableBlinkFeatures: argGroups.chrome.options.disableBlinkFeatures.value,
                     spellcheck: false,
@@ -282,9 +327,9 @@ class App {
                 fsSync.writeFileSync(profileOutPath, data)
             })
         }
-        electron.ipcMain.on(ipc.Channel.openGpuDebugInfo, _event => {
+        electron.ipcMain.on(ipc.Channel.openGpuDebugInfo, () => {
             if (this.window != null) {
-                this.window.loadURL('chrome://gpu')
+                void this.window.loadURL('chrome://gpu')
             }
         })
         electron.ipcMain.on(ipc.Channel.quit, () => {
@@ -302,20 +347,22 @@ class App {
     /** Redirect the web view to `localhost:<port>` to see the served website. */
     loadWindowContent() {
         if (this.window != null) {
-            const urlCfg: Record<string, string> = {}
+            const searchParams: Record<string, string> = {}
             for (const option of this.args.optionsRecursive()) {
                 if (option.value !== option.default && option.passToWebApplication) {
-                    urlCfg[option.qualifiedName()] = String(option.value)
+                    searchParams[option.qualifiedName()] = option.value.toString()
                 }
             }
-            const params = server.urlParamsFromObject(urlCfg)
-            const address = `http://localhost:${this.serverPort()}${params}`
-            logger.log(`Loading the window address '${address}'.`)
-            void this.window.loadURL(address)
+            const address = new URL('http://localhost')
+            address.port = this.serverPort().toString()
+            address.search = new URLSearchParams(searchParams).toString()
+            logger.log(`Loading the window address '${address.toString()}'.`)
+            void this.window.loadURL(address.toString())
         }
     }
 
-    printVersion(): Promise<void> {
+    /** Print the version of the frontend and the backend. */
+    async printVersion(): Promise<void> {
         const indent = ' '.repeat(utils.INDENT_SIZE)
         let maxNameLen = 0
         for (const name in debug.VERSION_INFO) {
@@ -327,22 +374,20 @@ class App {
             const spacing = ' '.repeat(maxNameLen - name.length)
             console.log(`${indent}${label}:${spacing} ${value}`)
         }
-
         console.log('')
-
         console.log('Backend:')
-        return projectManager.version(this.args).then(backend => {
-            if (!backend) {
-                console.log(`${indent}No backend available.`)
-            } else {
-                const lines = backend.split(/\r?\n/).filter(line => line.length > 0)
-                for (const line of lines) {
-                    console.log(`${indent}${line}`)
-                }
+        const backend = await projectManager.version(this.args)
+        if (!backend) {
+            console.log(`${indent}No backend available.`)
+        } else {
+            const lines = backend.split(/\r?\n/).filter(line => line.length > 0)
+            for (const line of lines) {
+                console.log(`${indent}${line}`)
             }
-        })
+        }
     }
 
+    /** Register keyboard shortcuts. */
     registerShortcuts() {
         electron.app.on('web-contents-created', (_webContentsCreatedEvent, webContents) => {
             webContents.on('before-input-event', (_beforeInputEvent, input) => {
@@ -380,7 +425,7 @@ class App {
 // ===================
 
 process.on('uncaughtException', (err, origin) => {
-    console.error(`Uncaught exception: ${String(err)}\nException origin: ${origin}`)
+    console.error(`Uncaught exception: ${err.toString()}\nException origin: ${origin}`)
     electron.dialog.showErrorBox(common.PRODUCT_NAME, err.stack ?? err.toString())
     electron.app.exit(1)
 })

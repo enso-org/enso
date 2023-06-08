@@ -670,6 +670,9 @@ pub trait API: Debug + model::undo_redo::Aware {
     /// have their original expressions restored.
     /// In both cases, the metadata marking as temporary will be removed.
     fn restore_temporary_changes(&self) -> FallibleResult;
+
+    /// Reopen file in language server.
+    fn reopen_file_in_language_server(&self) -> BoxFuture<FallibleResult>;
 }
 
 /// Trait for methods that cannot be defined in `API` because it is a trait object.
@@ -744,7 +747,9 @@ pub mod test {
             repository: Rc<model::undo_redo::Repository>,
         ) -> Module {
             let ast = parser.parse_module(&self.code, self.id_map.clone()).unwrap();
-            let module = Plain::new(self.path.clone(), ast, self.metadata.clone(), repository);
+            let path = self.path.clone();
+            let metadata = self.metadata.clone();
+            let module = Plain::new(path, ast, metadata, repository, default());
             Rc::new(module)
         }
     }

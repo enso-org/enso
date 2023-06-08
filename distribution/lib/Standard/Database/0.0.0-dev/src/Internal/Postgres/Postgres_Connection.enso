@@ -6,6 +6,7 @@ from Standard.Base.Metadata.Choice import Option
 import Standard.Base.Metadata.Display
 
 import Standard.Table.Data.Table.Table as Materialized_Table
+import Standard.Table.Data.Type.Value_Type.Value_Type
 
 import project.Connection.Connection.Connection
 import project.Data.Dialect
@@ -13,12 +14,13 @@ import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table as Database_Table
+import project.Internal.IR.Query.Query
 import project.Internal.JDBC_Connection
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
+from project.Connection.Connection import make_table_types_selector, make_schema_selector, make_table_name_selector, first_column_in_structure
+from project.Errors import SQL_Error, Table_Not_Found, Table_Already_Exists
 from project.Internal.Result_Set import read_column
-
-from project.Errors import SQL_Error
 
 type Postgres_Connection
 
@@ -71,7 +73,7 @@ type Postgres_Connection
 
        Arguments:
         - schema: The name of the schema to connect to.
-    @schema (self-> Single_Choice display=Display.Always values=(self.schemas . map s-> Option s s.pretty))
+    @schema make_schema_selector
     set_schema : Text -> Connection ! SQL_Error
     set_schema self schema =
         if schema == self.schema then self else
@@ -81,27 +83,47 @@ type Postgres_Connection
     table_types : Vector Text
     table_types self = self.connection.table_types
 
-    ## Returns a materialised Table of all the matching views and tables.
+    ## Returns a materialized Table of all the matching views and tables.
+
+       ? Temporary Tables
+
+         Note that the temporary tables may be created in a different schema
+         than the current one, so take this into account when filtering by schema.
 
        Arguments:
-       - name_like: The table name pattern to search for. Support SQL wildcards (`%`, `_`).
+       - name_like: The table name pattern to search for. Supports SQL wildcards (`%`, `_`). Defaults to `Nothing` which
+         means all tables are selected.
        - database: The database name to search in (default is current database).
-       - schema: The schema name to search in (defaults to current schema).
-       - types: The table types to search for. The list of values can be obtained using the `table_types` method.
+       - schema: The schema name to search in (defaults to `Nothing`, meaning all
+         schemas are searched).
+       - types: The table types to search for. The list of possible values can
+         be obtained using the `table_types` method. Defaults to a set of most
+         commonly used table types, ignoring internal system tables or indices.
        - all_fields: Return all the fields in the metadata table.
-    @types (self-> Single_Choice values=(self.table_types.map t-> Option t t.pretty))
+    @types make_table_types_selector
+    @schema make_schema_selector
     tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
-    tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
+    tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
         self.connection.tables name_like database schema types all_fields
 
-    ## Set up a query returning a Table object, which can be used to work with data within the database or load it into memory.
+    ## Set up a query returning a Table object, which can be used to work with
+       data within the database or load it into memory.
 
        Arguments:
        - query: name of the table or sql statement to query.
-         If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
+         If supplied as `Text`, the name is checked against the `tables` list to
+         determine if it is a table or a query.
        - alias: optionally specify a friendly alias for the query.
-    @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
-    query : Text | SQL_Query -> Text -> Database_Table
+
+       ! Error Conditions
+
+         - If provided with a `Raw_SQL` query or `Text` that looks like a query, if
+           any SQL error occurs when executing the query, a `SQL_Error` error is
+           raised.
+         - If provided with a `Table_Name` or a text short-hand and the table is
+           not found, a `Table_Not_Found` error is raised.
+    @query make_table_name_selector
+    query : Text | SQL_Query -> Text -> Database_Table ! Table_Not_Found
     query self query alias="" = self.connection.query query alias
 
     ## Execute the query and load the results into memory as a Table.
@@ -110,9 +132,50 @@ type Postgres_Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - limit: the maximum number of rows to return.
-    @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
-    read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table
+    @query make_table_name_selector
+    read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table ! Table_Not_Found
     read self query limit=Nothing = self.connection.read query limit
+
+    ## Creates a new empty table in the database and returns a query referencing
+       the new table.
+
+       Arguments:
+       - table_name: the name of the table to create. If not provided, a random
+         name will be generated for temporary tables. If `temporary=False`, then
+         a name must be provided.
+       - structure: the structure of the table. This can be provided as a vector
+         of pairs of column names and types or an existing `Table` to copy the
+         structure from it. Note that if a `Table` is provided, only its column
+         structure is inherited - no table content is copied.
+       - primary_key: the names of the columns to use as the primary key. The
+         first column from the table is used by default. If it is set to
+         `Nothing` or an empty vector, no primary key will be created.
+       - temporary: if set to `True`, the table will be temporary, meaning that
+         it will be dropped once the `connection` is closed. Defaults to
+         `False`.
+       - allow_existing: Defaults to `False`, meaning that if the table with the
+         provided name already exists, an error will be raised. If set to `True`,
+         the existing table will be returned instead. Note that the existing
+         table is not guaranteed to have the same structure as the one provided.
+       - on_problems: the behavior to use when encountering non-fatal problems.
+         Defaults to reporting them as warning.
+
+       ! Error Conditions
+
+         - If a table with the given name already exists, then a
+           `Table_Already_Exists` error is raised.
+         - If a column type is not supported and is coerced to a similar
+           supported type, an `Inexact_Type_Coercion` problem is reported
+           according to the `on_problems` setting.
+         - If a column type is not supported and there is no replacement (e.g.
+           native Enso types), an `Unsupported_Type` error is raised.
+         - If the provided primary key columns are not present in table
+           structure provided, `Missing_Input_Columns` error is raised.
+         - An `SQL_Error` may be reported if there is a failure on the database
+           side.
+    create_table : Text|Nothing -> Vector (Pair Text Value_Type) | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
+    create_table self (table_name : Text | Nothing = Nothing) (structure : Vector | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+        self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
 
     ## ADVANCED
 
@@ -128,31 +191,17 @@ type Postgres_Connection
         self.connection.execute_update query
 
     ## PRIVATE
-       UNSTABLE
-       This is a prototype function used in our test suites. It may change.
+       Access the dialect.
+    dialect self = self.connection.dialect
 
-       It creates a new table in the database with the given name (will fail if
-       the table already existed), inserts the contents of the provided
-       in-memory table and returns a handle to the newly created table.
+    ## PRIVATE
+       Access the underlying JDBC connection.
+    jdbc_connection self = self.connection.jdbc_connection
 
-       ! Temporary Tables
-
-         Note that temporary tables may not be visible in the table catalog, so
-         some features which rely on it like the `Table.query` shorthand mode
-         may not work correctly with temporary tables.
-
-       Arguments:
-       - name: The name of the table to create.
-       - table: An In-Memory table specifying the contents to upload. Schema of
-         the created database table is based on the column types of this table.
-       - temporary: Specifies whether the table should be marked as temporary. A
-         temporary table will be dropped after the connection closes and will
-         usually not be visible to other connections.
-       - batch_size: Specifies how many rows should be uploaded in a single
-         batch.
-    upload_table : Text -> Materialized_Table -> Boolean -> Integer -> Database_Table
-    upload_table self name table temporary=True batch_size=1000 = Panic.recover Illegal_State <|
-        self.connection.upload_table name table temporary batch_size
+    ## PRIVATE
+    drop_table : Text -> Nothing
+    drop_table self table_name =
+        self.connection.drop_table table_name
 
 ## PRIVATE
 
@@ -161,7 +210,7 @@ type Postgres_Connection
    Arguments:
    - url: The URL to connect to.
    - properties: A vector of properties for the connection.
-       - make_new: a function that returns a new connection.
+   - make_new: a function that returns a new connection.
 create : Text -> Vector -> (Text -> Text -> Postgres_Connection) -> Postgres_Connection
 create url properties make_new =
     jdbc_connection = JDBC_Connection.create url properties

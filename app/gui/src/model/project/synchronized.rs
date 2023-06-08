@@ -102,6 +102,14 @@ impl ExecutionContextsRegistry {
     pub fn insert(&self, context: Rc<execution_context::Synchronized>) {
         self.0.borrow_mut().insert(context.id(), context);
     }
+
+    /// Adjust execution contexts after renaming the project.
+    pub fn rename_project(&self, old_name: impl Str, new_name: impl Str) {
+        self.0.borrow().iter().for_each(|(_, execution_context)| {
+            execution_context
+                .rename_method_pointers(old_name.as_ref().to_owned(), new_name.as_ref().to_owned());
+        });
+    }
 }
 
 
@@ -190,14 +198,13 @@ async fn check_vcs_status_and_notify(
 #[profile(Detail)]
 async fn update_modules_on_file_change(
     changes: FileEditList,
-    parser: Parser,
     module_registry: Rc<model::registry::Registry<module::Path, module::Synchronized>>,
 ) -> FallibleResult {
     for file_edit in changes.edits {
         let file_path = file_edit.path.clone();
         let module_path = module::Path::from_file_path(file_path).unwrap();
         if let Some(module) = module_registry.get(&module_path).await? {
-            module.apply_text_change_from_ls(file_edit.edits, &parser).await?;
+            module.apply_text_change_from_ls(file_edit.edits).await?;
         }
     }
     Ok(())
@@ -216,12 +223,25 @@ async fn update_modules_on_file_change(
 #[fail(display = "Project Manager is unavailable.")]
 pub struct ProjectManagerUnavailable;
 
+/// An error signalling the project name was invalid.
+#[derive(Clone, Debug, Fail)]
+#[fail(display = "The project name is not allowed: {}", cause)]
+pub struct ProjectNameInvalid {
+    cause: String,
+}
+
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, Fail)]
+#[fail(display = "Project renaming is not available in read-only mode.")]
+pub struct RenameInReadOnly;
+
 /// A wrapper for an error with information that user tried to open project with unsupported
 /// engine's version (which is likely the cause of the problems).
 #[derive(Debug, Fail)]
 pub struct UnsupportedEngineVersion {
-    project_name: String,
-    root_cause:   failure::Error,
+    project_name:     String,
+    version_mismatch: enso_config::UnsupportedEngineVersion,
+    root_cause:       failure::Error,
 }
 
 impl UnsupportedEngineVersion {
@@ -229,10 +249,13 @@ impl UnsupportedEngineVersion {
         let engine_version = properties.engine_version.clone();
         let project_name = properties.name.project.as_str().to_owned();
         move |root_cause| {
-            let requirement = enso_config::engine_version_requirement();
-            if !requirement.matches(&engine_version) {
-                let project_name = project_name.clone();
-                UnsupportedEngineVersion { project_name, root_cause }.into()
+            if let Err(version_mismatch) = enso_config::check_engine_version(&engine_version) {
+                UnsupportedEngineVersion {
+                    project_name: project_name.clone(),
+                    version_mismatch,
+                    root_cause,
+                }
+                .into()
             } else {
                 root_cause
             }
@@ -287,6 +310,7 @@ pub struct Project {
     pub parser:              Parser,
     pub notifications:       notification::Publisher<model::project::Notification>,
     pub urm:                 Rc<model::undo_redo::Manager>,
+    pub read_only:           Rc<Cell<bool>>,
 }
 
 impl Project {
@@ -331,6 +355,7 @@ impl Project {
             parser,
             notifications,
             urm,
+            read_only: default(),
         };
 
         let binary_handler = ret.binary_event_handler();
@@ -476,7 +501,6 @@ impl Project {
         let publisher = self.notifications.clone_ref();
         let project_root_id = self.project_content_root_id();
         let language_server = self.json_rpc().clone_ref();
-        let parser = self.parser().clone_ref();
         let weak_suggestion_db = Rc::downgrade(&self.suggestion_db);
         let weak_content_roots = Rc::downgrade(&self.content_roots);
         let weak_module_registry = Rc::downgrade(&self.module_registry);
@@ -510,11 +534,9 @@ impl Project {
                     });
                 }
                 Event::Notification(Notification::TextDidChange(changes)) => {
-                    let parser = parser.clone();
                     if let Some(module_registry) = weak_module_registry.upgrade() {
                         executor::global::spawn(async move {
-                            let status =
-                                update_modules_on_file_change(changes, parser, module_registry);
+                            let status = update_modules_on_file_change(changes, module_registry);
                             if let Err(err) = status.await {
                                 error!("Error while applying file changes to modules: {err}");
                             }
@@ -529,6 +551,7 @@ impl Project {
                 Event::Notification(Notification::ExecutionStatus(_)) => {}
                 Event::Notification(Notification::ExecutionComplete { context_id }) => {
                     execution_update_handler(context_id, ExecutionUpdate::Completed);
+                    publisher.notify(model::project::Notification::ExecutionFinished);
                 }
                 Event::Notification(Notification::ExpressionValuesComputed(_)) => {
                     // the notification is superseded by `ExpressionUpdates`.
@@ -612,13 +635,13 @@ impl Project {
         &self,
         path: module::Path,
     ) -> impl Future<Output = FallibleResult<Rc<module::Synchronized>>> {
-        let language_server = self.language_server_rpc.clone_ref();
+        let ls = self.language_server_rpc.clone_ref();
         let parser = self.parser.clone_ref();
         let urm = self.urm();
-        let repository = urm.repository.clone_ref();
+        let repo = urm.repository.clone_ref();
+        let read_only = self.read_only.clone_ref();
         async move {
-            let module =
-                module::Synchronized::open(path, language_server, parser, repository).await?;
+            let module = module::Synchronized::open(path, ls, parser, repo, read_only).await?;
             urm.module_opened(module.clone());
             Ok(module)
         }
@@ -681,10 +704,12 @@ impl model::project::API for Project {
     fn create_execution_context(
         &self,
         root_definition: MethodPointer,
+        context_id: execution_context::Id,
     ) -> BoxFuture<FallibleResult<model::ExecutionContext>> {
         async move {
             let ls_rpc = self.language_server_rpc.clone_ref();
-            let context = execution_context::Synchronized::create(ls_rpc, root_definition);
+            let context =
+                execution_context::Synchronized::create(ls_rpc, root_definition, context_id);
             let context = Rc::new(context.await?);
             self.execution_contexts.insert(context.clone_ref());
             let context: model::ExecutionContext = context;
@@ -694,16 +719,30 @@ impl model::project::API for Project {
     }
 
     fn rename_project(&self, name: String) -> BoxFuture<FallibleResult> {
-        async move {
-            let referent_name = name.as_str().try_into()?;
-            let project_manager = self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
-            let project_id = self.properties.borrow().id;
-            let project_name = ProjectName::new_unchecked(name);
-            project_manager.rename_project(&project_id, &project_name).await?;
-            self.properties.borrow_mut().name.project = referent_name;
-            Ok(())
+        if self.read_only() {
+            std::future::ready(Err(RenameInReadOnly.into())).boxed_local()
+        } else {
+            async move {
+                let old_name = self.properties.borrow_mut().name.project.clone_ref();
+                let referent_name = name.to_im_string();
+                let project_manager =
+                    self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
+                let project_id = self.properties.borrow().id;
+                let project_name = ProjectName::new_unchecked(name);
+                project_manager.rename_project(&project_id, &project_name).await.map_err(
+                    |error| match error {
+                        RpcError::RemoteError(cause)
+                            if cause.code == code::PROJECT_NAME_INVALID =>
+                            failure::Error::from(ProjectNameInvalid { cause: cause.message }),
+                        error => error.into(),
+                    },
+                )?;
+                self.properties.borrow_mut().name.project = referent_name.clone_ref();
+                self.execution_contexts.rename_project(old_name, referent_name);
+                Ok(())
+            }
+            .boxed_local()
         }
-        .boxed_local()
     }
 
     fn project_content_root_id(&self) -> Uuid {
@@ -716,6 +755,14 @@ impl model::project::API for Project {
 
     fn urm(&self) -> Rc<model::undo_redo::Manager> {
         self.urm.clone_ref()
+    }
+
+    fn read_only(&self) -> bool {
+        self.read_only.get()
+    }
+
+    fn set_read_only(&self, read_only: bool) {
+        self.read_only.set(read_only);
     }
 }
 
@@ -854,7 +901,7 @@ mod test {
         let write_capability = Some(write_capability);
         let open_response = response::OpenTextFile { content, current_version, write_capability };
         expect_call!(client.open_text_file(path=path.clone()) => Ok(open_response));
-        client.expect.apply_text_file_edit(|_| Ok(()));
+        client.expect.apply_text_file_edit(|_, _| Ok(()));
         expect_call!(client.close_text_file(path) => Ok(()));
     }
 
@@ -883,7 +930,8 @@ mod test {
         assert!(result1.is_err());
 
         // Create execution context.
-        let execution = project.create_execution_context(context_data.main_method_pointer());
+        let execution = project
+            .create_execution_context(context_data.main_method_pointer(), context_data.context_id);
         let execution = test.expect_completion(execution).unwrap();
 
         // Now context is in registry.
@@ -905,7 +953,10 @@ mod test {
         // Context now has the information about type.
         let value_info = value_registry.get(&expression_id).unwrap();
         assert_eq!(value_info.typename, value_update.typename.clone().map(ImString::new));
-        assert_eq!(value_info.method_call, value_update.method_pointer);
+        assert_eq!(
+            value_info.method_call,
+            value_update.method_call.clone().map(|mc| mc.method_pointer)
+        );
     }
 
 

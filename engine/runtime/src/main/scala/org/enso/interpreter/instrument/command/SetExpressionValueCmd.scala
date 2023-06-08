@@ -50,7 +50,7 @@ class SetExpressionValueCmd(request: Api.SetExpressionValueNotification)
     ctx.contextManager.getAllContexts
       .collect {
         case (contextId, stack) if stack.nonEmpty =>
-          new ExecuteJob(contextId, stack.toList)
+          ExecuteJob(contextId, stack.toList)
       }
   }
 

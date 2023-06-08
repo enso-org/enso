@@ -22,6 +22,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`ExpressionId`](#expressionid)
   - [`ContextId`](#contextid)
   - [`StackItem`](#stackitem)
+  - [`MethodCall`](#methodcall)
   - [`MethodPointer`](#methodpointer)
   - [`ProfilingInfo`](#profilinginfo)
   - [`ExpressionUpdate`](#expressionupdate)
@@ -134,6 +135,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/pop`](#executioncontextpop)
   - [`executionContext/recompute`](#executioncontextrecompute)
   - [`executionContext/interrupt`](#executioncontextinterrupt)
+  - [`executionContext/setExecutionEnvironment`](#executioncontextsetexecutionenvironment)
   - [`executionContext/getComponentGroups`](#executioncontextgetcomponentgroups)
   - [`executionContext/expressionUpdates`](#executioncontextexpressionupdates)
   - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
@@ -270,6 +272,20 @@ interface LocalCall {
 }
 ```
 
+### `MethodCall`
+
+A representation of a method call.
+
+```typescript
+interface MethodCall {
+  /** The method pointer of a call. */
+  methodPointer: MethodPointer;
+
+  /** Indexes of arguments that have not been applied to this method. */
+  notAppliedArguments: number[];
+}
+```
+
 ### `MethodPointer`
 
 Points to a method definition.
@@ -305,6 +321,14 @@ interface ExecutionTime {
 }
 ```
 
+### `ExecutionEnvironment`
+
+The execution environment of Enso runtime.
+
+```typescript
+type ExecutionEnvironment = Design | Live;
+```
+
 ### `ExpressionUpdate`
 
 An update about the computed expression.
@@ -322,9 +346,9 @@ interface ExpressionUpdate {
   type?: String;
 
   /**
-   * The updated pointer to the method call.
+   * The updated method call info.
    */
-  methodPointer?: MethodPointer;
+  methodCall?: MethodCall;
 
   /**
    * Profiling information about the expression.
@@ -551,6 +575,9 @@ interface Constructor {
 
   /** The documentation string. */
   documentation?: string;
+
+  /** The list of annotations. */
+  annotations: string[];
 }
 
 interface Method {
@@ -580,6 +607,9 @@ interface Method {
 
   /** The documentation string. */
   documentation?: string;
+
+  /** The list of annotations. */
+  annotations: string[];
 }
 
 interface Function {
@@ -3618,8 +3648,14 @@ May include a list of expressions for which caches should be invalidated.
 
 ```typescript
 {
+  /** The execution context identifier. */
   contextId: ContextId;
+
+  /** The expressions that will be invalidated before the execution. */
   invalidatedExpressions?: "all" | [ExpressionId]
+
+  /** The execution environment that will be used in the execution. */
+  executionEnvironment?: ExecutionEnvironment
 }
 ```
 
@@ -3651,6 +3687,37 @@ provided execution context.
 ```typescript
 {
   contextId: ContextId;
+}
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
+  `executionContext/canModify` capability for this context.
+
+### `executionContext/setExecutionEnvironment`
+
+Sent from the client to the server to set the execution context environment.
+After setting the environment, the runtime interrupts the current execution,
+clears the caches, and schedules execution of the context.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  contextId: ContextId;
+  executionEnvironment: ExecutionEnvironment;
 }
 ```
 

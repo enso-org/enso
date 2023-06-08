@@ -6,6 +6,7 @@ import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
 import project.Data.Text.Text
 import project.Data.Time.Date_Period.Date_Period
+import project.Data.Time.Date_Range.Date_Range
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Day_Of_Week_From
@@ -59,6 +60,8 @@ new_builtin year month day = @Builtin_Method "Date.new_builtin"
    ? Pattern Syntax
      Patterns are based on a simple sequence of letters and symbols. For
      example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
+     See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
+     for a complete format specification.
 
    ? Default Date Formatting
      Unless you provide a custom format, the text must represent a valid date
@@ -146,8 +149,10 @@ type Date
        provided `pattern`.
 
        ? Pattern Syntax
-         Patterns are based on a simple sequence of letters and symbols. For
-         example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
+         A custom pattern string consists of one or more custom date and time
+         format specifiers. For example, "d MMM yyyy" will format "2011-12-03"
+         as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
+         for a complete format specification.
 
        ? Default Date Formatting
          Unless you provide a custom format, the text must represent a valid date
@@ -310,6 +315,54 @@ type Date
     end_of : Date_Period -> Date
     end_of self period=Date_Period.Month = period.adjust_end self
 
+    ## Returns the next date adding the `Date_Period` to self.
+
+       Produces a warning for a Date that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+
+       Arguments:
+       - period: the period to add to self.
+    next : Date_Period -> Date
+    next self period=Date_Period.Day = self + period.to_period
+
+    ## Returns the previous date subtracting the `Date_Period` from self.
+
+       Produces a warning for a Date that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+
+       Arguments:
+       - period: the period to add to self.
+    previous : Date_Period -> Date
+    previous self period=Date_Period.Day = self - period.to_period
+
+    ## Creates a `Period` between self and the provided end date.
+
+       Produces a warning for a Date that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+
+       Arguments:
+       - end: the end date of the interval to count workdays in.
+    until : Date -> Period
+    until self end =
+        ensure_in_epoch self <| ensure_in_epoch end <|
+            Period.between self end
+
+    ## Counts the days between self (inclusive) and the provided end date
+       (exclusive, or inclusive if include_end_date=True).
+
+       Produces a warning for a Date that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+
+       Arguments:
+       - end: the end date of the interval to count workdays in.
+       - include_end_date: whether to include the end date in the count.
+         By default the end date is not included in the interval.
+    days_until : Date -> Boolean -> Integer
+    days_until self end include_end_date=False =
+        if end < self then -(end.days_until self include_end_date) else
+            ensure_in_epoch self <| ensure_in_epoch end <|
+                (Time_Utils.days_between self end) + if include_end_date then 1 else 0
+
     ## Counts workdays between self (inclusive) and the provided end date
        (exclusive).
 
@@ -327,7 +380,7 @@ type Date
          end-exclusive manner), by default the end date is not included in the
          count. This has the nice property that for example to count the work
          days within the next week you can do
-         `date.work_days_until (date + (Period.new days=7)` and it will look at
+         `date.work_days_until (date + (Period.new days=7))` and it will look at
          the 7 days starting from the current `date` and not 8 days. This also
          gives us a property that
          `date.work_days_until (date.add_work_days N) == N` for any non-negative
@@ -370,12 +423,15 @@ type Date
 
              example_to_time = Date.new 2020 2 3 . to_date_time Time_Of_Day.new Time_Zone.utc
     to_date_time : Time_Of_Day -> Time_Zone -> Date_Time
-    to_date_time self (time_of_day=Time_Of_Day.new) (zone=Time_Zone.system) = self.to_time_builtin time_of_day zone
+    to_date_time self (time_of_day=Time_Of_Day.new) (zone=Time_Zone.system) =
+        Time_Utils.make_zoned_date_time self time_of_day zone
 
-    ## Add the specified amount of time to this instant to get another date.
+    ## ALIAS Add Period
+       Add the specified amount of time to this instant to get another date.
 
        Arguments:
-       - amount: The time duration to add to this instant.
+       - amount: The amount of time to add to this instant. It can be a
+         `Period` or `Date_Period`.
 
        > Example
          Add 6 months to a local date.
@@ -383,15 +439,68 @@ type Date
              import Standard.Base.Data.Time.Duration
 
              example_add = Date.new 2020 + (Period.new months=6)
-    + : Period -> Date ! (Time_Error | Illegal_Argument)
-    + self period =
-        case period of
-            _ : Period ->
+
+       > Example
+         Add a month to a local date.
+
+             import Standard.Base.Data.Time.Date_Period
+
+             example_add = Date.new 2020 + Date_Period.Month
+    + : Period | Date_Period -> Date ! (Time_Error | Illegal_Argument)
+    + self amount:(Period|Date_Period) =
+        case amount of
+            period : Period ->
                 Time_Utils.date_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
-            _ : Duration ->
-                Error.throw (Time_Error.Error "Date does not support adding/subtracting Duration. Use Period instead.")
-            _ ->
-                Error.throw (Illegal_Argument.Error "Illegal period argument")
+            date_period : Date_Period ->
+                self + date_period.to_period
+
+    ## ALIAS Date Range
+       Creates an increasing range of dates from `self` to `end`.
+
+       Arguments:
+       - end: The end of the range.
+       - include_end: Specifies if the right end of the range should be included. By
+         default, the range is right-exclusive.
+
+       > Example
+         Create a range of dates.
+
+             (Date.new 2021 12 05).up_to (Date.new 2021 12 10)
+
+       > Example
+         Create a range containing dates [2021-12-05, 2021-12-06].
+
+             (Date.new 2021 12 05).up_to (Date.new 2021 12 06) include_end=True
+    up_to : Date -> Boolean -> Date_Range
+    up_to self end include_end=False = case end of
+        _ : Date ->
+            effective_end = if include_end then end.next else end
+            Date_Range.new_internal self effective_end increasing=True step=(Period.new days=1)
+        _ -> Error.throw (Type_Error.Error Date end "end")
+
+    ## ALIAS Date Range
+       Creates a decreasing range of dates from `self` to `end`.
+
+       Arguments:
+       - end: The end of the range.
+       - include_end: Specifies if the right end of the range should be included. By
+         default, the range is right-exclusive.
+
+       > Example
+         Create a reverse range of dates.
+
+             (Date.new 2021 12 10).down_to (Date.new 2021 12 05)
+
+       > Example
+         Create a range containing dates [2021-12-06, 2021-12-05].
+
+             (Date.new 2021 12 06).down_to (Date.new 2021 12 05) include_end=True
+    down_to : Date -> Boolean -> Date_Range
+    down_to self end include_end=False = case end of
+        _ : Date ->
+            effective_end = if include_end then end.previous else end
+            Date_Range.new_internal self effective_end increasing=False step=(Period.new days=1)
+        _ -> Error.throw (Type_Error.Error Date end "end")
 
     ## Shift the date by the specified amount of business days.
 
@@ -515,11 +624,13 @@ type Date
                         if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date - (Period.new days=1)) else end_date
                     go end
 
-    ## Subtract the specified amount of time from this instant to get another
+    ## ALIAS Subtract Period
+       Subtract the specified amount of time from this instant to get another
        date.
 
        Arguments:
-       - amount: The time duration to subtract from this date.
+       - amount: The amount of time to add to this instant. It can be a
+         `Period` or `Date_Period`.
 
        > Example
          Subtract 7 days from a local date.
@@ -528,16 +639,27 @@ type Date
              import Standard.Base.Data.Time.Duration
 
              example_subtract = Date.new 2020 - (Period.new days=7)
-    - : Period -> Date ! (Time_Error | Illegal_Argument)
-    - self period =
-        case period of
-            _ : Period ->
+
+       > Example
+         Subtract a month from a local date.
+
+             import Standard.Base.Data.Time.Date_Period
+
+             example_add = Date.new 2020 - Date_Period.Month
+    - : Period | Date_Period -> Date ! (Time_Error | Illegal_Argument)
+    - self amount:(Period|Date_Period) =
+        case amount of
+            period : Period ->
                 new_java_date = Time_Utils.date_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
                 Date.new new_java_date.year new_java_date.month new_java_date.day
-            _ : Duration ->
-                Error.throw (Time_Error.Error "Date does not support adding/subtracting Duration. Use Period instead.")
-            _ ->
-                Error.throw (Illegal_Argument.Error "Illegal period argument")
+            date_period : Date_Period ->
+                self - date_period.to_period
+
+    ## PRIVATE
+       Convert to a display representation of this Date.
+    to_display_text : Text
+    to_display_text self =
+        self.format "yyyy-MM-dd"
 
     ## PRIVATE
        Convert to a JS_Object representing this Date.
@@ -556,25 +678,29 @@ type Date
 
        Arguments:
        - pattern: The text specifying the format for formatting the date.
+       - locale: The locale in which the format should be interpreted.
+         (Defaults to Locale.default.)
 
        ? Pattern Syntax
-         Patterns are based on a simple sequence of letters and symbols. For
-         example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
+         A custom pattern string consists of one or more custom date and time
+         format specifiers. For example, "d MMM yyyy" will format "2011-12-03"
+         as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
+         for a complete format specification.
 
        > Example
-         Format "2020-06-02" as "2 June 2020"
+         Format "2020-06-02" as "2 Jun 2020"
 
              from Standard.Base import Date
 
              example_format = Date.new 2020 6 2 . format "d MMMM yyyy"
 
        > Example
-         Format "2020-06-02" as "2 June 20"
+         Format "2020-06-02" as "2 Jun 20"
 
              example_format = Date.new 2020 6 2 . format "d MMMM yy"
 
        > Example
-         Format "2020-06-02" as "Tuesday, 02 June 2020"
+         Format "2020-06-02" as "Tuesday, 02 Jun 2020"
 
              example_format = Date.new 2020 6 2 . format "EEEE, dd MMMM yyyy"
 
@@ -587,9 +713,16 @@ type Date
          Format "2020-06-02" as "2020AD"
 
              example_format = Date.new 2020 6 2 . format "yyyyGG"
-    format : Text -> Text
-    format self pattern = Time_Utils.local_date_format self pattern
 
+       > Example
+         Format "2020-06-21" with French locale as "21. juin 2020"
+
+             example_format = Date.new 2020 6 21 . format "d. MMMM yyyy" (Locale.new "fr")
+    @locale Locale.default_widget
+    format : Text -> Locale -> Text
+    format self pattern locale=Locale.default = case locale of
+        Nothing -> Time_Utils.local_date_format self pattern
+        _ -> Time_Utils.local_date_format_with_locale self pattern locale.java_locale
 
 ## PRIVATE
 week_days_between start end =

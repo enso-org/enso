@@ -265,13 +265,18 @@ impl Example {
         let mut sampler2 = Sampler::new("blue", &left_canvas, &right_canvas, ease_out);
         let mut sampler3 = Sampler::new("red", &left_canvas, &right_canvas, ease_in_out);
 
-        let _animator = animation::Loop::new(Box::new(move |time_info: animation::TimeInfo| {
-            left_canvas.clear();
-            right_canvas.clear();
-            sampler1.render(time_info.previous_frame.unchecked_raw());
-            sampler2.render(time_info.previous_frame.unchecked_raw());
-            sampler3.render(time_info.previous_frame.unchecked_raw());
-        }) as Box<dyn FnMut(animation::TimeInfo)>);
+        let _animator = animation::Loop::new_animation(Box::new(
+            move |time_info: animation::FixedFrameRateStep<animation::TimeInfo>| {
+                if let animation::FixedFrameRateStep::Normal(time_info) = time_info {
+                    left_canvas.clear();
+                    right_canvas.clear();
+                    sampler1.render(time_info.previous_frame.unchecked_raw());
+                    sampler2.render(time_info.previous_frame.unchecked_raw());
+                    sampler3.render(time_info.previous_frame.unchecked_raw());
+                }
+            },
+        )
+            as Box<dyn FnMut(animation::FixedFrameRateStep<animation::TimeInfo>)>);
         Self { _animator }
     }
 }

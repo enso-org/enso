@@ -73,7 +73,7 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
     for {
       binding <- bindServer(mainModule)
       _       <- logServerStartup()
-      _       <- readLine
+      _       <- tryReadLine
       _       <- ZIO.succeed { logger.info("Stopping server...") }
       _       <- ZIO.succeed { binding.unbind() }
       _       <- killAllLanguageServer(mainModule)
@@ -81,6 +81,13 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       _       <- ZIO.succeed { mainModule.system.terminate() }
     } yield ()
   }
+
+  private def tryReadLine: ZIO[ZAny, Nothing, String] =
+    readLine.catchAll { err =>
+      ZIO
+        .succeed { logger.warn("Failed to read line.", err) }
+        .as("")
+    }
 
   private def killAllLanguageServer(mainModule: MainModule[ZIO[ZAny, +*, +*]]) =
     mainModule.languageServerGateway

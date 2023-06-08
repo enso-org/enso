@@ -231,7 +231,7 @@ impl View {
 
             eval height.value ((h)  model.set_height(*h));
             eval frp.show     ((()) height.set_target_value(SEARCHER_HEIGHT));
-            eval frp.hide     ((()) height.set_target_value(-list_view::SHADOW_PX));
+            eval frp.hide     ((()) height.set_target_value(0.0));
 
             is_selected               <- selected_entry.map(|e| e.is_some());
             is_enabled                <- bool(&frp.hide,&frp.show);

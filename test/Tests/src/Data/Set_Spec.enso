@@ -1,0 +1,55 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Test import Test, Test_Suite, Problems
+import Standard.Test.Extensions
+
+spec =
+    Test.group "Enso Set" <|
+        Test.specify "should allow checking for emptiness" <|
+            empty_map = Set.empty
+            non_empty = Set.empty . insert "foo"
+            empty_map.is_empty . should_be_true
+            non_empty.is_empty . should_be_false
+
+            empty_map.not_empty . should_be_false
+            non_empty.not_empty . should_be_true
+
+        Test.specify "should be constructed from a vector" <|
+            s1 = Set.from_vector [1, 2, 3, 2]
+            s1.size . should_equal 3
+            s1.to_vector.sort . should_equal [1, 2, 3]
+
+            r2 = Set.from_vector [1, 2, 2] error_on_duplicates=True
+            r2.should_fail_with Illegal_Argument
+
+        Test.specify "should allow checking contains" <|
+            s1 = Set.from_vector [1, 2, 3, 2]
+            s1.contains 1 . should_be_true
+            s1.contains 2 . should_be_true
+            s1.contains 3 . should_be_true
+            s1.contains 4 . should_be_false
+
+        Test.specify "should allow to compute a union, intersection and difference" <|
+            s1 = Set.from_vector [1, 2]
+            s2 = Set.from_vector [2, 3]
+            s3 = Set.from_vector [3, 4]
+
+            (s1.union s2).to_vector.sort . should_equal [1, 2, 3]
+            (s1.union s3).to_vector.sort . should_equal [1, 2, 3, 4]
+            (s1.intersection s2).to_vector.sort . should_equal [2]
+            (s1.intersection s3).to_vector . should_equal []
+            (s1.difference s2).to_vector.sort . should_equal [1]
+            (s1.difference s3).to_vector.sort . should_equal [1, 2]
+            (s1.difference s1).to_vector . should_equal []
+
+        Test.specify "should allow to check for equality of two sets" <|
+            s1 = Set.from_vector [1, 2]
+            s2 = Set.from_vector [2, 1, 1]
+            s3 = Set.from_vector [1, 2, 3]
+
+            (s1 == s2) . should_be_true
+            (s1 == s1) . should_be_true
+            (s1 == s3) . should_be_false
+
+main = Test_Suite.run_main spec

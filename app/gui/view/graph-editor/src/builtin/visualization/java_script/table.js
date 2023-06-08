@@ -23,15 +23,31 @@ class TableVisualization extends Visualization {
     // type names do not go out of sync. Should be removed once
     // https://github.com/enso-org/enso/issues/5195 is implemented.
     static inputType =
-        'Standard.Table.Data.Table.Table | Standard.Table.Data.Column.Column | Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any '
+        'Standard.Table.Data.Table.Table | Standard.Table.Data.Column.Column | Standard.Table.Data.Row.Row |Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any '
     static label = 'Table'
 
     constructor(data) {
         super(data)
-        this.setPreprocessor('Standard.Visualization.Table.Visualization', 'prepare_visualization')
+        this.setRowLimitAndPage(1000, 0)
+    }
+
+    setRowLimitAndPage(row_limit, page) {
+        if (this.row_limit !== row_limit || this.page !== page) {
+            this.row_limit = row_limit
+            this.page = page
+            this.setPreprocessor(
+                'Standard.Visualization.Table.Visualization',
+                'prepare_visualization',
+                this.row_limit.toString()
+            )
+        }
     }
 
     onDataReceived(data) {
+        function addRowIndex(data) {
+            return data.map((row, i) => ({ ['#']: i, ...row }))
+        }
+
         function hasExactlyKeys(keys, obj) {
             return Object.keys(obj).length === keys.length && keys.every(k => obj.hasOwnProperty(k))
         }
@@ -65,44 +81,8 @@ class TableVisualization extends Visualization {
 
             if (content instanceof Object) {
                 const type = content.type
-                if (type === 'BigInt') {
-                    return BigInt(content.value)
-                } else if (content['_display_text_']) {
+                if (content['_display_text_']) {
                     return content['_display_text_']
-                } else if (type === 'Date') {
-                    return new Date(content.year, content.month - 1, content.day)
-                        .toISOString()
-                        .substring(0, 10)
-                } else if (type === 'Time_Of_Day') {
-                    const js_date = new Date(
-                        0,
-                        0,
-                        1,
-                        content.hour,
-                        content.minute,
-                        content.second,
-                        content.nanosecond / 1000000
-                    )
-                    return (
-                        js_date.toTimeString().substring(0, 8) +
-                        (js_date.getMilliseconds() === 0 ? '' : '.' + js_date.getMilliseconds())
-                    )
-                } else if (type === 'Date_Time') {
-                    const js_date = new Date(
-                        content.year,
-                        content.month - 1,
-                        content.day,
-                        content.hour,
-                        content.minute,
-                        content.second,
-                        content.nanosecond / 1000000
-                    )
-                    return (
-                        js_date.toISOString().substring(0, 10) +
-                        ' ' +
-                        js_date.toTimeString().substring(0, 8) +
-                        (js_date.getMilliseconds() === 0 ? '' : '.' + js_date.getMilliseconds())
-                    )
                 } else {
                     return `{ ${type} Object }`
                 }
@@ -111,21 +91,51 @@ class TableVisualization extends Visualization {
             return content
         }
 
+        function escapeHTML(str) {
+            const mapping = { '&': '&amp;', '<': '&lt;', '"': '&quot;', "'": '&#39;', '>': '&gt;' }
+            return str.replace(/[&<>"']/g, m => mapping[m])
+        }
+
+        function cellRenderer(params) {
+            if (params.value === null) {
+                return '<span style="color:grey; font-style: italic;">Nothing</span>'
+            } else if (params.value === undefined) {
+                return ''
+            } else if (params.value === '') {
+                return '<span style="color:grey; font-style: italic;">Empty</span>'
+            }
+            return escapeHTML(params.value.toString())
+        }
+
         if (!this.tabElem) {
             while (this.dom.firstChild) {
                 this.dom.removeChild(this.dom.lastChild)
             }
 
             const style =
-                '.ag-theme-alpine { --ag-grid-size: 3px; --ag-list-item-height: 20px; display: inline; }'
+                '.ag-theme-alpine { --ag-grid-size: 3px; --ag-list-item-height: 20px; display: inline; }\n' +
+                '.vis-status-bar { height: 20px; background-color: white; font-size:14px; white-space:nowrap; padding: 0 5px; overflow:hidden; border-radius: 16px 16px 0 0 }\n' +
+                '.vis-status-bar > button { width: 12px; margin: 0 2px; display: none }\n' +
+                '.vis-tbl-grid { height: calc(100% - 20px); width: 100%; }\n'
             const styleElem = document.createElement('style')
             styleElem.innerHTML = style
             this.dom.appendChild(styleElem)
 
+            const statusElem = document.createElement('div')
+            statusElem.setAttributeNS(null, 'id', 'vis-tbl-status')
+            statusElem.setAttributeNS(null, 'class', 'vis-status-bar')
+            this.dom.appendChild(statusElem)
+            this.statusElem = statusElem
+
+            const gridElem = document.createElement('div')
+            gridElem.setAttributeNS(null, 'id', 'vis-tbl-grid')
+            gridElem.className = 'vis-tbl-grid'
+            this.dom.appendChild(gridElem)
+
             const tabElem = document.createElement('div')
             tabElem.setAttributeNS(null, 'id', 'vis-tbl-view')
             tabElem.setAttributeNS(null, 'class', 'scrollable ag-theme-alpine')
-            this.dom.appendChild(tabElem)
+            gridElem.appendChild(tabElem)
             this.tabElem = tabElem
 
             this.agGridOptions = {
@@ -136,10 +146,12 @@ class TableVisualization extends Visualization {
                     sortable: true,
                     filter: true,
                     resizable: true,
-                    minWidth: 50,
+                    minWidth: 25,
                     headerValueGetter: params => params.colDef.field,
+                    cellRenderer: cellRenderer,
                 },
                 onColumnResized: e => this.lockColumnSize(e),
+                suppressFieldDotNotation: true,
             }
             this.agGrid = new agGrid.Grid(tabElem, this.agGridOptions)
         }
@@ -158,22 +170,49 @@ class TableVisualization extends Visualization {
                 },
             ])
             this.agGridOptions.api.setRowData([{ Error: parsedData.error }])
-        } else if (parsedData.json != null && isMatrix(parsedData.json)) {
-            columnDefs = parsedData.json[0].map((_, i) => ({ field: i.toString() }))
-            rowData = parsedData.json
+        } else if (parsedData.type === 'Matrix') {
+            let defs = [{ field: '#' }]
+            for (let i = 0; i < parsedData.column_count; i++) {
+                defs.push({ field: i.toString() })
+            }
+            columnDefs = defs
+            rowData = addRowIndex(parsedData.json)
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
-        } else if (parsedData.json != null && isObjectMatrix(parsedData.json)) {
-            let firstKeys = Object.keys(parsedData.json[0])
+        } else if (parsedData.type === 'Object_Matrix') {
+            let defs = [{ field: '#' }]
+            let keys = {}
+            parsedData.json.forEach(val => {
+                if (val) {
+                    Object.keys(val).forEach(k => {
+                        if (!keys[k]) {
+                            keys[k] = true
+                            defs.push({ field: k })
+                        }
+                    })
+                }
+            })
+            columnDefs = defs
+            rowData = addRowIndex(parsedData.json)
+            dataTruncated = parsedData.all_rows_count !== parsedData.json.length
+        } else if (isMatrix(parsedData.json)) {
+            // Kept to allow visualization from older versions of the backend.
+            columnDefs = [
+                { field: '#' },
+                ...parsedData.json[0].map((_, i) => ({ field: i.toString() })),
+            ]
+            rowData = addRowIndex(parsedData.json)
+            dataTruncated = parsedData.all_rows_count !== parsedData.json.length
+        } else if (isObjectMatrix(parsedData.json)) {
+            // Kept to allow visualization from older versions of the backend.
+            let firstKeys = [{ field: '#' }, ...Object.keys(parsedData.json[0])]
             columnDefs = firstKeys.map(field => ({ field }))
-            rowData = parsedData.json.map(obj =>
-                firstKeys.reduce((acc, key) => ({ ...acc, [key]: toRender(obj[key]) }), {})
-            )
+            rowData = addRowIndex(parsedData.json)
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
-        } else if (parsedData.json != null && Array.isArray(parsedData.json)) {
+        } else if (Array.isArray(parsedData.json)) {
             columnDefs = [{ field: '#' }, { field: 'Value' }]
             rowData = parsedData.json.map((row, i) => ({ ['#']: i, Value: toRender(row) }))
             dataTruncated = parsedData.all_rows_count !== parsedData.json.length
-        } else if (parsedData.json != null) {
+        } else if (parsedData.json !== undefined) {
             columnDefs = [{ field: 'Value' }]
             rowData = [{ Value: toRender(parsedData.json) }]
         } else {
@@ -203,26 +242,101 @@ class TableVisualization extends Visualization {
             dataTruncated = parsedData.all_rows_count !== rowData.length
         }
 
-        // If the table contains more rows than an upper limit, the engine will send only some of all rows.
+        // Update Status Bar
+        this.updateStatusBarControls(
+            parsedData.all_rows_count === undefined ? 1 : parsedData.all_rows_count,
+            dataTruncated
+        )
+
         // If data is truncated, we cannot rely on sorting/filtering so will disable.
-        // A pinned row is added to tell the user the row count and that filter/sort is disabled.
-        const col_span = '__COL_SPAN__'
-        if (dataTruncated) {
-            columnDefs[0].colSpan = p => p.data[col_span] || 1
-        }
         this.agGridOptions.defaultColDef.filter = !dataTruncated
         this.agGridOptions.defaultColDef.sortable = !dataTruncated
         this.agGridOptions.api.setColumnDefs(columnDefs)
-        if (dataTruncated) {
-            const field = columnDefs[0].field
-            const extraRow = {
-                [field]: `Showing ${rowData.length} of ${parsedData.all_rows_count} rows. Sorting and filtering disabled.`,
-                [col_span]: columnDefs.length,
-            }
-            this.agGridOptions.api.setPinnedTopRowData([extraRow])
-        }
         this.agGridOptions.api.setRowData(rowData)
         this.updateTableSize(this.dom.getAttributeNS(null, 'width'))
+    }
+
+    makeOption(value, label) {
+        const optionElem = document.createElement('option')
+        optionElem.value = value
+        optionElem.appendChild(document.createTextNode(label))
+        return optionElem
+    }
+
+    makeButton(label, onclick) {
+        const buttonElem = document.createElement('button')
+        buttonElem.name = label
+        buttonElem.appendChild(document.createTextNode(label))
+        buttonElem.addEventListener('click', onclick)
+        return buttonElem
+    }
+
+    // Updates the status bar to reflect the current row limit and page, shown at top of the visualization.
+    // - Creates the row dropdown and page buttons.
+    // - Updated the row counts and filter available options.
+    updateStatusBarControls(all_rows_count, dataTruncated) {
+        const pageLimit = Math.ceil(all_rows_count / this.row_limit)
+        if (this.page > pageLimit) {
+            this.page = pageLimit
+        }
+
+        if (this.statusElem.childElementCount === 0) {
+            this.statusElem.appendChild(
+                this.makeButton('«', () => this.setRowLimitAndPage(this.row_limit, 0))
+            )
+            this.statusElem.appendChild(
+                this.makeButton('‹', () => this.setRowLimitAndPage(this.row_limit, this.page - 1))
+            )
+
+            const selectElem = document.createElement('select')
+            selectElem.name = 'row-limit'
+            selectElem.addEventListener('change', e => {
+                this.setRowLimitAndPage(e.target.value, this.page)
+            })
+            this.statusElem.appendChild(selectElem)
+
+            const rowCountSpanElem = document.createElement('span')
+            this.statusElem.appendChild(rowCountSpanElem)
+
+            this.statusElem.appendChild(
+                this.makeButton('›', () => this.setRowLimitAndPage(this.row_limit, this.page + 1))
+            )
+            this.statusElem.appendChild(
+                this.makeButton('»', () => this.setRowLimitAndPage(this.row_limit, pageLimit - 1))
+            )
+        }
+
+        // Enable/Disable Page buttons
+        this.statusElem.children.namedItem('«').disabled = this.page === 0
+        this.statusElem.children.namedItem('‹').disabled = this.page === 0
+        this.statusElem.children.namedItem('›').disabled = this.page === pageLimit - 1
+        this.statusElem.children.namedItem('»').disabled = this.page === pageLimit - 1
+
+        // Update row limit dropdown and row count
+        const rowCountElem = this.statusElem.getElementsByTagName('span')[0]
+        const rowLimitElem = this.statusElem.children.namedItem('row-limit')
+        if (all_rows_count > 1000) {
+            rowLimitElem.style.display = 'inline-block'
+            const rowCounts = [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter(
+                r => r <= all_rows_count
+            )
+            if (all_rows_count < 100000 && rowCounts.indexOf(all_rows_count) === -1) {
+                rowCounts.push(all_rows_count)
+            }
+            rowLimitElem.innerHTML = ''
+            rowCounts.forEach(r => {
+                const option = this.makeOption(r, r.toString())
+                rowLimitElem.appendChild(option)
+            })
+            rowLimitElem.value = this.row_limit
+
+            rowCountElem.innerHTML = dataTruncated
+                ? ` of ${all_rows_count} rows (Sorting/Filtering disabled).`
+                : ` rows.`
+        } else {
+            rowLimitElem.style.display = 'none'
+            rowCountElem.innerHTML = all_rows_count === 1 ? '1 row.' : `${all_rows_count} rows.`
+        }
     }
 
     updateTableSize(clientWidth) {

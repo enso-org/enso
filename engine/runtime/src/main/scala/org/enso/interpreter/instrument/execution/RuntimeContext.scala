@@ -3,7 +3,6 @@ package org.enso.interpreter.instrument.execution
 import com.oracle.truffle.api.TruffleContext
 import org.enso.interpreter.instrument.{Endpoint, ExecutionContextManager}
 import org.enso.interpreter.service.ExecutionService
-import org.enso.text.ContentBasedVersioning
 
 /** Contains suppliers of services that provide application specific
   * functionality.
@@ -17,7 +16,6 @@ import org.enso.text.ContentBasedVersioning
   * @param jobControlPlane a job control plane
   * @param locking a locking service
   * @param state a state of the runtime
-  * @param versioning a version calculator
   */
 case class RuntimeContext(
   executionService: ExecutionService,
@@ -27,6 +25,5 @@ case class RuntimeContext(
   jobProcessor: JobProcessor,
   jobControlPlane: JobControlPlane,
   locking: Locking,
-  state: ExecutionState,
-  versioning: ContentBasedVersioning
+  state: ExecutionState
 )

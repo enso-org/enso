@@ -126,12 +126,77 @@
   shortened labels for entries with long module paths. When an option is
   selected from the dropdown, the necessary module imports are inserted,
   eliminating the need for fully qualified names.
+- [The IDE now has a new UI element for selecting the execution mode of the
+  project][6130].
 - [Added tooltips to icon buttons][6035] for improved usability. Users can now
   quickly understand each button's function.
 - [File associations are created on Windows and macOS][6077]. This allows
   opening Enso files by double-clicking them in the file explorer.
 - [AI-powered code completions][5910]. It is now possible to get AI-powered
   completions when using node searcher with Tables.
+- [Added capability to create node widgets with complex UI][6347]. Node widgets
+  such as dropdown can now be placed in the node and affect the code text flow.
+- [The IDE UI element for selecting the execution mode of the project is now
+  sending messages to the backend.][6341].
+- [Feedback when renaming a project][6366]. When the user tries to rename the
+  project to an invalid name, a helpful error message is shown and the text
+  field stays the same as to give the user the opportunity to fix the mistake.
+- [Area selectionof nodes no longer takes into account the visualisation that
+  belongs to the node.][6487].
+- [List Editor Widget][6470]. Now you can edit lists by clicking buttons on
+  nodes or by dragging the elements.
+- [Visualisations now show a loading spinner while waiting on data.][6512].
+- [Fixed text visualisations which were being cut off at the last line.][6421]
+- [Fixed a bug where, when scrolling or dragging on a full-screen visualization,
+  the view of the graph changed as well.][6530]
+- [Changed the shortcut for restoring to the last saved version of a project
+  from <kbd>cmd</kbd>+<kbd>r</kbd> to
+  <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>r</kbd>][6620] to make it less likely
+  that it would be triggered by accident. As a consequence, the program
+  execution shortcuts changed from
+  <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>t</kbd>/<kbd>r</kbd> to
+  <kbd>cmd</kbd>+<kbd>alt</kbd>+<kbd>t</kbd>/<kbd>r</kbd>.
+- [Fixed a bug where selecting a nested breadcrumb would cause the order of
+  breadcrumbs to change incorrectly.][6617]
+- [Changed the shortcut to show the full-screen visualization for a node from
+  <kbd>space</kbd> <kbd>space</kbd> to <kbd>shift</kbd>+<kbd>space</kbd>.][6663]
+  so that it doesn't interfere with the shortcut for toggling the small
+  visualization.
+- [Cloud dashboard, which supersedes the startup screen][6279]. Features also
+  added in various other PRs. The new dashboard includes tables for projects,
+  folders, files and secrets, a list of templates from which new projects can be
+  created, a user menu, and a search bar.
+- [The Application will try to reload file in backend on synchronization
+  failure][6752]. It should make it more resilient to connectivity issues and
+  occasional bugs. The reload may be forced by the user with
+  <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>x</kbd> shortcut.
+- [When selecting a function from the main module through the component browser,
+  it is now referenced via the `Main` namespace instead of the project
+  namespace,][6719] e.g. `Main.func1` instead of `MyProject.func1`. This makes
+  it robust against project name changes.
+- [Added a button to return from an opened project back to the project
+  dashboard.][6474]
+- [Keyboard shortcuts for graph editing are now disabled when the full-screen
+  visualization is active.][6844]
+- [A loading animation is now shown when opening and creating projects][6827],
+  as the previous behaviour of showing a blank screen while the project was
+  being loaded was potentially confusing to users.
+- [Performance and readability of documentation panel was improved][6893]. The
+  documentation is now split into separate pages, which are much smaller.
+
+[5910]: https://github.com/enso-org/enso/pull/5910
+[6279]: https://github.com/enso-org/enso/pull/6279
+[6421]: https://github.com/enso-org/enso/pull/6421
+[6530]: https://github.com/enso-org/enso/pull/6530
+[6617]: https://github.com/enso-org/enso/pull/6617
+[6620]: https://github.com/enso-org/enso/pull/6620
+[6663]: https://github.com/enso-org/enso/pull/6663
+[6752]: https://github.com/enso-org/enso/pull/6752
+[6719]: https://github.com/enso-org/enso/pull/6719
+[6474]: https://github.com/enso-org/enso/pull/6474
+[6844]: https://github.com/enso-org/enso/pull/6844
+[6827]: https://github.com/enso-org/enso/pull/6827
+[6893]: https://github.com/enso-org/enso/pull/6893
 
 #### EnsoGL (rendering engine)
 
@@ -185,14 +250,23 @@
 - [ToggleButtons can now have tooltips][6035].
 - [Rendering of tooltips was improved.][6097] Their text is now more vertically
   centered and the delay before showing them was extended.
+- [Accurate GPU performance measurements have been implemented][6595]. It is
+  possible now to track both the time spent on both the CPU and the GPU sides.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
-[4047]: https://github.com/enso-org/enso/pull/4047
 [4003]: https://github.com/enso-org/enso/pull/4003
+[4047]: https://github.com/enso-org/enso/pull/4047
 [5895]: https://github.com/enso-org/enso/pull/5895
 [6035]: https://github.com/enso-org/enso/pull/6035
 [6097]: https://github.com/enso-org/enso/pull/6097
+[6130]: https://github.com/enso-org/enso/pull/6130
+[6366]: https://github.com/enso-org/enso/pull/6366
+[6341]: https://github.com/enso-org/enso/pull/6341
+[6470]: https://github.com/enso-org/enso/pull/6470
+[6595]: https://github.com/enso-org/enso/pull/6595
+[6487]: https://github.com/enso-org/enso/pull/6487
+[6512]: https://github.com/enso-org/enso/pull/6512
 
 #### Enso Standard Library
 
@@ -379,7 +453,38 @@
 - [Added support for Date/Time columns in the Postgres backend and added
   `year`/`month`/`day` operations to Table columns.][6153]
 - [`Text.split` can now take a vector of delimiters.][6156]
+- [Add `has_warnings`, `remove_warnings` and `throw_on_warning` extension
+  methods.][6176]
 - [Implemented `Table.union` for the Database backend.][6204]
+- [Array & Vector have the same methods & behavior][6218]
+- [Implemented `Table.split` and `Table.tokenize` for in-memory tables.][6233]
+- [Added `trim` and `replace` to `Column`. Enhanced number parsing with support
+  for thousands and decimal point automatic detection.][6253]
+- [Implemented `Table.parse_text_to_table`.][6294]
+- [Added `Table.parse_to_columns`.][6383]
+- [Added parsing methods for `Integer`, `Decimal`, `Json`, `Date`, `Date_Time`,
+  `Time_Of_Day`, `Time_Zone`, and `URI` to `Text`.][6404]
+- [Implemented `create_database_table` allowing upload of in-memory
+  tables.][6429]
+- [Added execution context control to writing files and dry run capabilities to
+  `Text.write`.][6459]
+- [Implemented `create_database_table` allowing saving queries as database
+  tables.][6467]
+- [Implemented `Column.format` for in-memory `Column`s.][6538]
+- [Added `at_least_one` flag to `Table.tokenize_to_rows`.][6539]
+- [Moved `Redshift` connector into a separate `AWS` library.][6550]
+- [Added `Date_Range`.][6621]
+- [Implemented the `cast` operation for `Table` and `Column`.][6711]
+- [Added `.round` and `.int` to `Integer` and `Decimal`.][6743]
+- [Added `.round`, `.truncate`, `.ceil`, and `.floor` to `Column`.][6817]
+- [Added execution control to `Table.write` and various bug fixes.][6835]
+- [Implemented `Table.add_row_number`.][6890]
+- [Handling edge cases in rounding.][6922]
+- [Split `Table.create_database_table` into `Connection.create_table` and
+  `Table.select_into_database_table`.][6925]
+- [Speed improvements to `Column` `.truncate`, `.ceil`, and `.floor`.][6941]
+- [Implemented addition and subtraction for `Date_Period` and
+  `Time_Period`.][6956]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -573,9 +678,32 @@
 [6150]: https://github.com/enso-org/enso/pull/6150
 [6153]: https://github.com/enso-org/enso/pull/6153
 [6156]: https://github.com/enso-org/enso/pull/6156
+[6176]: https://github.com/enso-org/enso/pull/6176
 [6204]: https://github.com/enso-org/enso/pull/6204
 [6077]: https://github.com/enso-org/enso/pull/6077
-[5910]: https://github.com/enso-org/enso/pull/5910
+[6218]: https://github.com/enso-org/enso/pull/6218
+[6233]: https://github.com/enso-org/enso/pull/6233
+[6253]: https://github.com/enso-org/enso/pull/6253
+[6294]: https://github.com/enso-org/enso/pull/6294
+[6383]: https://github.com/enso-org/enso/pull/6383
+[6404]: https://github.com/enso-org/enso/pull/6404
+[6347]: https://github.com/enso-org/enso/pull/6347
+[6429]: https://github.com/enso-org/enso/pull/6429
+[6459]: https://github.com/enso-org/enso/pull/6459
+[6467]: https://github.com/enso-org/enso/pull/6467
+[6538]: https://github.com/enso-org/enso/pull/6538
+[6539]: https://github.com/enso-org/enso/pull/6539
+[6550]: https://github.com/enso-org/enso/pull/6550
+[6621]: https://github.com/enso-org/enso/pull/6621
+[6711]: https://github.com/enso-org/enso/pull/6711
+[6743]: https://github.com/enso-org/enso/pull/6743
+[6817]: https://github.com/enso-org/enso/pull/6817
+[6835]: https://github.com/enso-org/enso/pull/6835
+[6890]: https://github.com/enso-org/enso/pull/6890
+[6922]: https://github.com/enso-org/enso/pull/6922
+[6925]: https://github.com/enso-org/enso/pull/6925
+[6941]: https://github.com/enso-org/enso/pull/6941
+[6956]: https://github.com/enso-org/enso/pull/6956
 
 #### Enso Compiler
 
@@ -665,7 +793,7 @@
 - [Optimize Atom storage layouts][3862]
 - [Make instance methods callable like statics for builtin types][4077]
 - [Convert large longs to doubles, safely, for host calls][4099]
-- [Consistent ordering with comparators](4067)
+- [Consistent ordering with comparators][4067]
 - [Profile engine startup][4110]
 - [Report type of polyglot values][4111]
 - [Engine can now recover from serialization failures][5591]
@@ -680,6 +808,16 @@
 - [Ensure calls involving warnings remain instrumented][6067]
 - [One can define lazy atom fields][6151]
 - [Replace IOContexts with Execution Environment and generic Context][6171]
+- [Vector.sort handles incomparable types][5998]
+- [Removing need for asynchronous thread to execute ResourceManager
+  finalizers][6335]
+- [Warning.get_all returns only unique warnings][6372]
+- [Reimplement `enso_project` as a proper builtin][6352]
+- [Limit number of reported warnings per value][6577]
+- [Suggestions are updated only when the type of the expression changes][6755]
+- [Add project creation time to project metadata][6780]
+- [Upgrade GraalVM to 22.3.1 JDK17][6750]
+- [Ascribed types are checked during runtime][6790]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -768,9 +906,9 @@
 [4048]: https://github.com/enso-org/enso/pull/4048
 [4049]: https://github.com/enso-org/enso/pull/4049
 [4056]: https://github.com/enso-org/enso/pull/4056
+[4067]: https://github.com/enso-org/enso/pull/4067
 [4077]: https://github.com/enso-org/enso/pull/4077
 [4099]: https://github.com/enso-org/enso/pull/4099
-[4067]: https://github.com/enso-org/enso/pull/4067
 [4110]: https://github.com/enso-org/enso/pull/4110
 [4111]: https://github.com/enso-org/enso/pull/4111
 [5591]: https://github.com/enso-org/enso/pull/5591
@@ -782,9 +920,18 @@
 [5791]: https://github.com/enso-org/enso/pull/5791
 [5900]: https://github.com/enso-org/enso/pull/5900
 [5966]: https://github.com/enso-org/enso/pull/5966
+[5998]: https://github.com/enso-org/enso/pull/5998
 [6067]: https://github.com/enso-org/enso/pull/6067
 [6151]: https://github.com/enso-org/enso/pull/6151
 [6171]: https://github.com/enso-org/enso/pull/6171
+[6335]: https://github.com/enso-org/enso/pull/6335
+[6372]: https://github.com/enso-org/enso/pull/6372
+[6352]: https://github.com/enso-org/enso/pull/6352
+[6577]: https://github.com/enso-org/enso/pull/6577
+[6750]: https://github.com/enso-org/enso/pull/6750
+[6755]: https://github.com/enso-org/enso/pull/6755
+[6780]: https://github.com/enso-org/enso/pull/6780
+[6790]: https://github.com/enso-org/enso/pull/6790
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

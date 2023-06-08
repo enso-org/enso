@@ -1,0 +1,17 @@
+from Standard.Base import all
+import Standard.Base.Errors.Unimplemented.Unimplemented
+
+from project.Errors import SQL_Error
+
+## PRIVATE
+   A helper class that helps map backend-specific errors to our common format,
+   when applicable.
+type Error_Mapper
+
+    ## PRIVATE
+       Checks if the given error is related to a violation of PRIMARY KEY
+       uniqueness constraint.
+    is_primary_key_violation : SQL_Error -> Boolean
+    is_primary_key_violation error =
+        _ = error
+        Unimplemented.throw "This is an interface only."

@@ -19,7 +19,7 @@
             frame-src   'self' data: https://accounts.google.com https://enso-org.firebaseapp.com;
             script-src  'self' 'unsafe-eval' data: https://*;
             style-src   'self' 'unsafe-inline' data: https://*;
-            connect-src 'self' data: ws://localhost:* ws://127.0.0.1:* http://localhost:* https://*;
+            connect-src 'self' data: ws://localhost:* ws://127.0.0.1:* http://localhost:* https://* wss://*;
             worker-src  'self' blob:;
             img-src     'self' blob: data: https://*;
             font-src    'self' data: https://*"
@@ -33,14 +33,14 @@
             user-scalable = no"
     />
     <title>Enso</title>
+    <link rel="stylesheet" href="/tailwind.css" />
     <link rel="stylesheet" href="/style.css" />
     <link rel="stylesheet" href="/docsStyle.css" />
-    <link rel="stylesheet" href="/tailwind.css" />
     <script type="module" src="/index.js" defer></script>
     <script type="module" src="/run.js" defer></script>
   </head>
   <body>
-    <div id="dashboard"></div>
+    <div id="enso-dashboard" class="enso-dashboard"></div>
     <div id="root"></div>
     <noscript>
       This page requires JavaScript to run. Please enable it in your browser.

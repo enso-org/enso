@@ -12,7 +12,6 @@ import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
 import org.enso.pkg.{ComponentGroups, QualifiedName}
 import org.enso.polyglot.{ModuleExports, Suggestion}
 import org.enso.polyglot.data.{Tree, TypeGraph}
-import org.enso.text.ContentVersion
 import org.enso.text.editing.model
 import org.enso.text.editing.model.{Range, TextEdit}
 
@@ -280,6 +279,14 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.SerializeModule],
         name  = "serializeModule"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.SetExecutionEnvironmentRequest],
+        name  = "setExecutionEnvironmentRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.SetExecutionEnvironmentResponse],
+        name  = "setExecutionEnvironmentResponse"
       )
     )
   )
@@ -300,13 +307,33 @@ object Runtime {
       */
     sealed trait Error extends ApiResponse
 
-    /** A representation of a pointer to a method definition.
-      */
+    /** A representation of a pointer to a method definition. */
     case class MethodPointer(
       module: String,
       definedOnType: String,
       name: String
     )
+
+    /** A representation of a method call.
+      *
+      * @param methodPointer the method pointer of a call
+      * @param notAppliedArguments indexes of arguments that have not been applied
+      * to this method
+      */
+    case class MethodCall(
+      methodPointer: MethodPointer,
+      notAppliedArguments: Vector[Int]
+    )
+    object MethodCall {
+
+      /** Create a method call with all the arguments applied.
+        *
+        * @param methodPointer the method pointer of a call
+        * @return a new [[MethodCall]].
+        */
+      def apply(methodPointer: MethodPointer): MethodCall =
+        MethodCall(methodPointer, Vector())
+    }
 
     /** A representation of an executable position in code.
       */
@@ -355,19 +382,22 @@ object Runtime {
       *
       * @param expressionId the expression id
       * @param expressionType the type of expression
-      * @param methodCall the pointer to a method definition
+      * @param methodCall the underlying method call of this expression
       * @param profilingInfo profiling information about the execution of this
       * expression
       * @param fromCache whether or not the value for this expression came
       * from the cache
+      * @param typeChanged whether or not the type of the value or method definition
+      * has changed from the one that was cached, if any
       * @param payload an extra information about the computed value
       */
     case class ExpressionUpdate(
       expressionId: ExpressionId,
       expressionType: Option[String],
-      methodCall: Option[MethodPointer],
+      methodCall: Option[MethodCall],
       profilingInfo: Vector[ProfilingInfo],
       fromCache: Boolean,
+      typeChanged: Boolean,
       payload: ExpressionUpdate.Payload
     )
     object ExpressionUpdate {
@@ -410,8 +440,13 @@ object Runtime {
             *
             * @param count the number of attached warnings.
             * @param warning textual representation of the attached warning.
+            * @param reachedMaxCount true when reported a maximal number of allowed warnings, false otherwise.
             */
-          case class Warnings(count: Int, warning: Option[String])
+          case class Warnings(
+            count: Int,
+            warning: Option[String],
+            reachedMaxCount: Boolean
+          )
         }
 
         /** TBD
@@ -1001,6 +1036,40 @@ object Runtime {
       case class Unqualified(module: String) extends Export
     }
 
+    /** Base trait for runtime execution environment. */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[ExecutionEnvironment.Live],
+          name  = "executionEnvironmentLive"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[ExecutionEnvironment.Design],
+          name  = "executionEnvironmentDesign"
+        )
+      )
+    )
+    sealed trait ExecutionEnvironment {
+
+      /** The environment name. */
+      def name: String
+    }
+    object ExecutionEnvironment {
+
+      final case class Live() extends ExecutionEnvironment {
+
+        /** @inheritdoc */
+        override val name: String = "live"
+      }
+
+      final case class Design() extends ExecutionEnvironment {
+
+        /** @inheritdoc */
+        override val name: String = "design"
+      }
+    }
+
     /** The notification about the execution status.
       *
       * @param contextId the context's id
@@ -1185,10 +1254,12 @@ object Runtime {
       * @param contextId the context's id.
       * @param expressions the selector specifying which expressions should be
       * recomputed.
+      * @param executionEnvironment the environment used for execution
       */
     final case class RecomputeContextRequest(
       contextId: ContextId,
-      expressions: Option[InvalidatedExpressions]
+      expressions: Option[InvalidatedExpressions],
+      executionEnvironment: Option[ExecutionEnvironment]
     ) extends ApiRequest
 
     /** A response sent from the server upon handling the
@@ -1501,14 +1572,12 @@ object Runtime {
     /** A notification about the changes in the suggestions database.
       *
       * @param module the module name
-      * @param version the version of the module
       * @param actions the list of actions to apply to the suggestions database
       * @param exports the list of re-exported symbols
       * @param updates the list of suggestions extracted from module
       */
     final case class SuggestionsDatabaseModuleUpdateNotification(
       module: String,
-      version: ContentVersion,
       actions: Vector[SuggestionsDatabaseAction],
       exports: Vector[ExportsUpdate],
       updates: Tree[SuggestionUpdate]
@@ -1519,7 +1588,6 @@ object Runtime {
       override def toLogString(shouldMask: Boolean): String =
         "SuggestionsDatabaseModuleUpdateNotification(" +
         s"module=$module," +
-        s"version=$version," +
         s"actions=$actions," +
         s"exports=$exports" +
         s"updates=${updates.map(_.toLogString(shouldMask))}" +
@@ -1688,6 +1756,16 @@ object Runtime {
       * @param module qualified module name
       */
     final case class SerializeModule(module: QualifiedName) extends ApiRequest
+
+    /** A request to set the execution environment. */
+    final case class SetExecutionEnvironmentRequest(
+      contextId: ContextId,
+      executionEnvironment: ExecutionEnvironment
+    ) extends ApiRequest
+
+    /** A response to the set execution environment request. */
+    final case class SetExecutionEnvironmentResponse(contextId: ContextId)
+        extends ApiResponse
 
     private lazy val mapper = {
       val factory = new CBORFactory()

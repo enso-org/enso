@@ -44,6 +44,11 @@ impl GroupId {
     pub fn local_scope_group() -> Self {
         GroupId { section: SectionId::LocalScope, index: default() }
     }
+
+    /// Return id of the group's first element.
+    pub fn first_element(self) -> GroupEntryId {
+        GroupEntryId { group: self, entry: 0 }
+    }
 }
 
 
@@ -151,9 +156,16 @@ pub struct Group {
 #[derive(Clone, Debug, Default)]
 pub struct Info {
     /// List of groups to be arranged in columns. Does not contain Local Scope Group.
-    pub groups:                  Vec<Group>,
+    pub groups:                    Vec<Group>,
     /// A number of entries in Local Scope section.
-    pub local_scope_entry_count: usize,
+    pub local_scope_entry_count:   usize,
     /// The number of namespace sections that are available.
-    pub namespace_section_count: usize,
+    pub namespace_section_count:   usize,
+    /// The entry with best filter matching score.
+    ///
+    /// [`None`] if the entries are not currently filtered.
+    pub best_match:                Option<GroupEntryId>,
+    /// `true` if this is a particular module's content (in opposite to default view displaying
+    /// many modules and Virtual Groups).
+    pub displaying_module_content: bool,
 }

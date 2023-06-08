@@ -26,6 +26,12 @@ spec =
         Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax" <|
             Regex.compile "ab(c(((((((" . should_fail_with Regex_Syntax_Error
 
+        Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax (space in capture group name)" <|
+            Regex.compile "(?<dot s>..)" . should_fail_with Regex_Syntax_Error
+
+        Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax (duplicate name)" <|
+            Regex.compile "(?<foo>.)(?<foo>.)" . should_fail_with Regex_Syntax_Error
+
         Test.specify "should disallow empty patterns in `compile`" <|
             Regex.compile "" . should_fail_with Illegal_Argument
 
@@ -134,6 +140,15 @@ spec =
             input = "abcdefghij"
             match = pattern.find_all input
             match . should_equal []
+
+        Test.specify "should handle matching empty matches" <|
+            pattern = Regex.compile ".*"
+            pattern.find_all "Hello World" . should_equal ["Hello World", ""]
+            pattern.find_all "" . should_equal [""]
+
+            pattern_2 = Regex.compile ".*(?=.)"
+            pattern_2.find_all "Hello World" . should_equal ["Hello Worl", ""]
+            pattern_2.find_all "" . should_equal []
 
         Test.specify "should correctly handle edge cases where one-letter matches happen at the end of the word" <|
             Regex.compile "(a+|1+)" . find_all "a1a1" . should_equal ["a", "1", "a", "1"]
@@ -359,6 +374,10 @@ spec =
         input = "aa ab abc a bc bcd"
         match = pattern.match input
         match . should_be_a Match.Value
+
+        Test.specify "should provide access to info about group names" <|
+            pattern.named_groups.sort . should_equal ["empty", "letters"]
+            pattern.group_nums_to_names . should_equal <| Map.from_vector [[2, "letters"],[4, "empty"]]
 
         Test.specify "should return the results of all named groups" <|
             groups = match.named_groups

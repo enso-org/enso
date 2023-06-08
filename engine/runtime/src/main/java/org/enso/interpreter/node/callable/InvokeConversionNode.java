@@ -163,7 +163,7 @@ public abstract class InvokeConversionNode extends BaseNode {
                       invokeFunctionNode.getDefaultsExecutionMode(),
                       invokeFunctionNode.getArgumentsExecutionMode(),
                       thatArgumentPosition));
-          childDispatch.setTailStatus(getTailStatus());
+          childDispatch.setTailStatus(TailStatus.NOT_TAIL);
           childDispatch.setId(invokeFunctionNode.getId());
           notifyInserted(childDispatch);
         }
@@ -172,10 +172,10 @@ public abstract class InvokeConversionNode extends BaseNode {
       }
     }
     arguments[thatArgumentPosition] = that.getValue();
-    ArrayRope<Warning> warnings = that.getReassignedWarnings(this);
+    ArrayRope<Warning> warnings = that.getReassignedWarningsAsRope(this);
     Object result =
         childDispatch.execute(frame, state, conversion, self, that.getValue(), arguments);
-    return WithWarnings.prependTo(result, warnings);
+    return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
   }
 
   @Specialization(guards = "interop.isString(that)")

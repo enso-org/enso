@@ -13,8 +13,6 @@ use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::camera::Camera2d;
 use ensogl::display::object::ObjectOps;
-use ensogl::display::style;
-use ensogl::display::Scene;
 use ensogl::gui::cursor;
 use std::cmp::Ordering;
 
@@ -50,52 +48,8 @@ pub const HEIGHT: f32 = VERTICAL_MARGIN
     + breadcrumb::VERTICAL_MARGIN
     + VERTICAL_MARGIN;
 
-// This should be as large as the shadow around the background.
-const MAGIC_SHADOW_MARGIN: f32 = 40.0;
-
-
-
-// ========================
-// === RelativePosition ===
-// ========================
-
-#[derive(Debug, Clone, Copy)]
-enum RelativePosition {
-    Left,
-    Right,
-}
-
-
-
-// ==================
-// === Background ===
-// ==================
-
-/// A background shape.
-pub mod background {
-    use super::*;
-
-    ensogl::shape! {
-        alignment = center;
-        (style:Style) {
-            let theme             = ensogl_hardcoded_theme::graph_editor::breadcrumbs::background;
-            let theme             = style::Path::from(&theme);
-            let width             = Var::<Pixels>::from("input_size.x");
-            let height            = Var::<Pixels>::from("input_size.y");
-
-            let corner_radius     = style.get_number(theme.sub("corner_radius"));
-            let shape_width       = width  - MAGIC_SHADOW_MARGIN.px() * 2.0;
-            let shape_height      = height - MAGIC_SHADOW_MARGIN.px() * 2.0;
-            let shape             = Rect((&shape_width,&shape_height));
-            let shape             = shape.corners_radius(corner_radius.px());
-
-            let bg_color          = style.get_color(&theme);
-            let bg                = shape.fill(bg_color);
-
-            bg.into()
-        }
-    }
-}
+/// Text offset to make the text appear more centered.
+const TEXT_Y_OFFSET: f32 = 2.0;
 
 
 
@@ -105,22 +59,16 @@ pub mod background {
 
 ensogl::define_endpoints! {
     Input {
-        /// Pushes a new breadcrumb after the selected breadcrumb. If the pushed breadcrumb already
-        /// exists as the next one of the stack, it's just selected. If the next breadcrumb isn't
-        /// the breadcrumb being pushed, any existing breadcrumb following the currently selected
-        /// breadcrumb is removed from the panel.
-        push_breadcrumb             (Option<LocalCall>),
-        /// Pops the selected breadcrumb.
-        pop_breadcrumb              (),
+        /// Pushes new breadcrumbs after the selected breadcrumb. Any breadcrumbs that are already
+        /// part of the stack are ignored. If the next breadcrumb isn't part of the breadcrumbs
+        /// being pushed, any existing breadcrumb following the currently selected breadcrumb is
+        /// removed from the panel.
+        push_breadcrumbs            (Vec<LocalCall>),
+        /// Pops the given number of breadcrumbs.
+        pop_breadcrumbs             (usize),
         /// Signalizes a mouse press happened outside the breadcrumb panel. It's used to finish
         /// project renaming, committing the name in text field.
         outside_press               (),
-        /// Signalizes we want to cancel project name renaming, bringing back the project name
-        /// before editing.
-        cancel_project_name_editing (),
-        /// Signalizes we want to start editing the project name. Adds a cursor to the text edit
-        /// field at the mouse position.
-        start_project_name_editing (),
         /// Sets the project name.
         project_name                (String),
         /// Select the breadcrumb by its index.
@@ -139,18 +87,20 @@ ensogl::define_endpoints! {
         gap_width                   (f32),
         /// Set whether the project was changed since the last snapshot save.
         set_project_changed(bool),
+        /// Set read-only mode for this component.
+        set_read_only(bool),
     }
     Output {
-        /// Signalizes when a new breadcrumb is pushed.
-        breadcrumb_push   (Option<LocalCall>),
-        /// Signalizes when a breadcrumb is popped.
-        breadcrumb_pop    (),
+        /// Signalizes new breadcrumbs to be pushed.
+        breadcrumb_push (Vec<LocalCall>),
+        /// Signalizes how many breadcrumbs to pop.
+        breadcrumb_pop (usize),
         /// Signalizes when project name is changed.
         project_name      (String),
         /// Signalizes when a breadcrumb is selected, returning a tuple with the amount of
         /// breadcrumbs to be popped, in case the selection happens on the left of the currently
         /// selected breadcrumb, or else a vector of existing breadcrumbs to be pushed.
-        breadcrumb_select ((usize,Vec<Option<LocalCall>>)),
+        breadcrumb_select ((usize, Vec<LocalCall>)),
         /// Indicates the pointer style that should be shown based on the interactions with the
         /// breadcrumb.
         pointer_style      (cursor::Style),
@@ -158,6 +108,10 @@ ensogl::define_endpoints! {
         project_name_hovered (bool),
         /// Indicates whether the project name was clicked.
         project_mouse_down (),
+        /// Signalizes an error if the user tried to rename the project to an invalid name.
+        project_name_error (String),
+        /// Indicates if the read-only mode is enabled.
+        read_only(bool),
     }
 }
 
@@ -172,7 +126,7 @@ ensogl::define_endpoints! {
 pub struct BreadcrumbsModel {
     /// The breadcrumbs panel display object.
     display_object:        display::object::Instance,
-    background:            background::View,
+    background:            Rectangle,
     project_name:          ProjectName,
     root:                  display::object::Instance,
     /// A container for all the breadcrumbs after project name. This contained and all its
@@ -196,7 +150,7 @@ impl BreadcrumbsModel {
     pub fn new(app: Application, frp: &Frp) -> Self {
         let scene = &app.display.default_scene;
         let project_name = app.new_view();
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("Breadcrumbs");
         let root = display::object::Instance::new();
         let breadcrumbs_container = display::object::Instance::new();
         let scene = scene.clone_ref();
@@ -204,10 +158,14 @@ impl BreadcrumbsModel {
         let frp_inputs = frp.input.clone_ref();
         let current_index = default();
         let camera = scene.camera().clone_ref();
-        let background = background::View::new();
+        let background: Rectangle = default();
         let gap_width = default();
 
-        scene.layers.panel.add(&background);
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        use ensogl_hardcoded_theme::graph_editor::breadcrumbs;
+        background.set_style(breadcrumbs::background::HERE, &style);
+
+        scene.layers.panel_background_rect_level_0.add(&background);
 
         Self {
             display_object,
@@ -222,21 +180,14 @@ impl BreadcrumbsModel {
             camera,
             gap_width,
         }
-        .init(&scene)
+        .init()
     }
 
-    fn init(self, scene: &Scene) -> Self {
+    fn init(self) -> Self {
         self.add_child(&self.root);
         self.root.add_child(&self.project_name);
         self.root.add_child(&self.breadcrumbs_container);
         self.root.add_child(&self.background);
-
-        ensogl::shapes_order_dependencies! {
-            scene => {
-                background -> breadcrumb::background;
-                background -> project_name::background;
-            }
-        }
 
         self.update_layout();
 
@@ -267,16 +218,16 @@ impl BreadcrumbsModel {
 
         self.project_name.set_x(gap_width);
         self.breadcrumbs_container.set_x(gap_width + project_name_width);
+        self.project_name.set_y(TEXT_Y_OFFSET);
+        self.breadcrumbs_container.set_y(TEXT_Y_OFFSET);
 
         let width = gap_width + project_name_width + self.breadcrumbs_container_width();
         let background_width = width + 2.0 * BACKGROUND_PADDING;
         let background_height =
             crate::MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT + BACKGROUND_PADDING * 2.0;
-        let width_with_shadow = background_width + MAGIC_SHADOW_MARGIN * 2.0;
-        let height_with_shadow = background_height + MAGIC_SHADOW_MARGIN * 2.0;
-        self.background.set_size(Vector2(width_with_shadow, height_with_shadow));
-        self.background.set_x(width / 2.0);
-        self.background.set_y(-HEIGHT / 2.0);
+        self.background.set_size(Vector2(background_width, background_height));
+        self.background.set_x(-BACKGROUND_PADDING);
+        self.background.set_y(-HEIGHT / 2.0 - background_height / 2.0);
     }
 
     fn get_breadcrumb(&self, index: usize) -> Option<Breadcrumb> {
@@ -288,7 +239,7 @@ impl BreadcrumbsModel {
     /// Selects the breadcrumb identified by its `index` and returns `(popped_count,local_calls)`,
     /// where `popped_count` is the number of breadcrumbs in the right side of `index` that needs to
     /// be popped or a list of `LocalCall`s identifying the breadcrumbs we need to push.
-    fn select_breadcrumb(&self, index: usize) -> (usize, Vec<Option<LocalCall>>) {
+    fn select_breadcrumb(&self, index: usize) -> (usize, Vec<LocalCall>) {
         debug!("Selecting breadcrumb #{index}.");
         let current_index = self.current_index.get();
         match index.cmp(&current_index) {
@@ -308,8 +259,8 @@ impl BreadcrumbsModel {
                         })
                         .as_ref()
                         .cloned();
-                    if info.is_some() {
-                        local_calls.push(info);
+                    if let Some(local_call) = info {
+                        local_calls.push(local_call);
                     } else {
                         error!("LocalCall info is not present.");
                         self.remove_breadcrumbs_history_beginning_from(index);
@@ -321,34 +272,34 @@ impl BreadcrumbsModel {
         }
     }
 
-    /// Pushes a breadcrumb and returns the index of the previously selected breadcrumb and the
-    /// index of the newly selected one in the form of (old,new).
-    fn push_breadcrumb(&self, local_call: &Option<LocalCall>) -> Option<(usize, usize)> {
-        local_call.as_ref().map(|local_call| {
+    /// Pushes breadcrumbs and returns the index of the previously selected breadcrumb and the
+    /// index of the newly selected one in the form of (old, new).
+    fn push_breadcrumbs(&self, stack: &[LocalCall]) -> (usize, usize) {
+        let old_index = self.current_index.get();
+        for (substack_index, local_call) in stack.iter().enumerate() {
             let method_pointer = &local_call.definition;
             let expression_id = &local_call.call;
-            let old_index = self.current_index.get();
-            let new_index = old_index + 1;
+            let breadcrumb_index = old_index + substack_index;
 
             let breadcrumb_exists = self
                 .breadcrumbs
-                .borrow_mut()
-                .get(old_index)
+                .borrow()
+                .get(breadcrumb_index)
                 .contains_if(|breadcrumb| breadcrumb.info.expression_id == *expression_id);
 
             if breadcrumb_exists {
                 debug!("Entering an existing {} breadcrumb.", method_pointer.name);
             } else {
                 debug!("Creating a new {} breadcrumb.", method_pointer.name);
-                self.remove_breadcrumbs_history_beginning_from(self.current_index.get());
+                self.remove_breadcrumbs_history_beginning_from(breadcrumb_index);
+                let new_index = breadcrumb_index + 1;
                 let breadcrumb = Breadcrumb::new(&self.app, method_pointer, expression_id);
                 let network = &breadcrumb.frp.network;
-                let breadcrumb_index = new_index;
                 let frp_inputs = &self.frp_inputs;
 
                 frp::extend! { network
                     eval_ breadcrumb.frp.outputs.clicked(
-                        frp_inputs.select_breadcrumb.emit(breadcrumb_index);
+                        frp_inputs.select_breadcrumb.emit(new_index);
                     );
                 }
 
@@ -357,10 +308,11 @@ impl BreadcrumbsModel {
                 self.breadcrumbs_container.add_child(&breadcrumb);
                 self.breadcrumbs.borrow_mut().push(breadcrumb);
             }
-            self.current_index.set(new_index);
-            self.update_layout();
-            (old_index, new_index)
-        })
+        }
+        let new_index = old_index + stack.len();
+        self.current_index.set(new_index);
+        self.update_layout();
+        (old_index, new_index)
     }
 
     /// Selects the breadcrumb, without signalizing the controller, identified by its `index` and
@@ -368,57 +320,54 @@ impl BreadcrumbsModel {
     /// the right side of `index` that needs to be popped, or a list of `LocalCall`s identifying the
     /// breadcrumbs we need to push.
     fn debug_select_breadcrumb(&self, index: usize) -> (usize, Vec<Option<LocalCall>>) {
-        self.select_breadcrumb(index)
+        let (pop_count, stack_to_push) = self.select_breadcrumb(index);
+        let stack_to_push = stack_to_push.into_iter().map(Some).collect();
+        (pop_count, stack_to_push)
     }
 
     /// Pushes a breadcrumb, without signalizing the controller, and returns the index of the
     /// previously selected breadcrumb, and the index of the newly selected one in the form of
     /// `(old,new)`.
-    fn debug_push_breadcrumb(&self, local_call: &Option<LocalCall>) -> Option<(usize, usize)> {
+    fn debug_push_breadcrumb(&self, local_call: &Option<LocalCall>) -> (usize, usize) {
         let is_new_breadcrumb = local_call.is_none();
-        let local_call = local_call.clone().or_else(|| {
+        let local_call = local_call.clone().unwrap_or_else(|| {
             let defined_on_type = default();
             let module = default();
             let name = "Hardcoded".to_string();
             let method_pointer = MethodPointer { module, defined_on_type, name };
             let definition = method_pointer.into();
             let call = uuid::Uuid::new_v4();
-            Some(LocalCall { call, definition })
+            LocalCall { call, definition }
         });
-        let result = self.push_breadcrumb(&local_call);
-
+        let (old_index, new_index) = self.push_breadcrumbs(&[local_call]);
         if is_new_breadcrumb {
-            result.as_ref().map(|(_, new_index)| {
-                self.get_breadcrumb(*new_index).map(|breadcrumb| {
-                    let new_index = *new_index;
-                    let network = &breadcrumb.frp.network;
-                    let frp_inputs = &self.frp_inputs;
-                    frp::extend! { network
-                        eval_ breadcrumb.frp.outputs.clicked(
-                            frp_inputs.debug_select_breadcrumb.emit(new_index);
-                        );
-                    }
-                })
-            });
+            if let Some(breadcrumb) = self.get_breadcrumb(new_index) {
+                let network = &breadcrumb.frp.network;
+                let frp_inputs = &self.frp_inputs;
+                frp::extend! { network
+                    eval_ breadcrumb.frp.outputs.clicked(
+                        frp_inputs.debug_select_breadcrumb.emit(new_index);
+                    );
+                }
+            }
         }
-        result
+        (old_index, new_index)
     }
 
     /// Pops a breadcrumb, without signalizing the controller, and returns the index of the
     /// previously selected breadcrumb, and the index of the newly selected one in the form of
     /// `(old,new)`.
     fn debug_pop_breadcrumb(&self) -> Option<(usize, usize)> {
-        self.pop_breadcrumb()
+        self.pop_breadcrumbs(1)
     }
 
-    /// Pops a breadcrumb and returns the index of the previously selected breadcrumb, and the
-    /// index of the newly selected one in the form of (old,new).
-    fn pop_breadcrumb(&self) -> Option<(usize, usize)> {
-        debug!("Popping {}", self.current_index.get());
+    /// Pops the given number of breadcrumbs and returns the index of the previously selected
+    /// breadcrumb, and the index of the newly selected one in the form of (old, new).
+    fn pop_breadcrumbs(&self, count: usize) -> Option<(usize, usize)> {
         (self.current_index.get() > 0).as_option().map(|_| {
-            debug!("Popping breadcrumb view.");
             let old_index = self.current_index.get();
-            let new_index = old_index - 1;
+            let new_index = old_index - count;
+            debug!("Popping {count} breadcrumbs, from {old_index} to {new_index} (excl.).");
             self.current_index.set(new_index);
             self.update_layout();
             (old_index, new_index)
@@ -431,6 +380,26 @@ impl BreadcrumbsModel {
             breadcrumb.unset_parent();
         }
         self.update_layout();
+    }
+
+    fn update_selection(&self, old_index: usize, new_index: usize) {
+        // Deselect breadcrumbs between the old index (incl.) and the new index (excl.)
+        let indices_to_deselect =
+            if new_index > old_index { old_index..new_index } else { new_index + 1..old_index + 1 };
+        for index_to_deselect in indices_to_deselect {
+            if let Some(breadcrumb) = self.get_breadcrumb(index_to_deselect) {
+                breadcrumb.frp.deselect.emit((index_to_deselect, new_index));
+            } else {
+                self.project_name.frp.deselect.emit(());
+            }
+        }
+        // Select new breadcrumb
+        if let Some(breadcrumb) = self.get_breadcrumb(new_index) {
+            breadcrumb.frp.select.emit(());
+            breadcrumb.frp.fade_in.emit(());
+        } else {
+            self.project_name.frp.select.emit(());
+        }
     }
 }
 
@@ -450,7 +419,7 @@ impl display::Object for BreadcrumbsModel {
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)]
 pub struct Breadcrumbs {
-    model: Rc<BreadcrumbsModel>,
+    model: BreadcrumbsModel,
     frp:   Frp,
 }
 
@@ -459,7 +428,7 @@ impl Breadcrumbs {
     pub fn new(app: Application) -> Self {
         let scene = app.display.default_scene.clone_ref();
         let frp = Frp::new();
-        let model = Rc::new(BreadcrumbsModel::new(app, &frp));
+        let model = BreadcrumbsModel::new(app, &frp);
         let network = &frp.network;
 
         // === Breadcrumb selection ===
@@ -468,43 +437,21 @@ impl Breadcrumbs {
 
             // === Selecting ===
 
-            _breadcrumb_selection <- frp.select_breadcrumb.map(f!([model,frp](index)
-                frp.source.breadcrumb_select.emit(model.select_breadcrumb(*index));
-            ));
+            frp.source.breadcrumb_select <+
+                frp.select_breadcrumb.map(f!((index) model.select_breadcrumb(*index)));
 
 
             // === Stack Operations ===
 
-            push_indices <= frp.push_breadcrumb.map(f!((local_call)
-                model.push_breadcrumb(local_call))
-            );
-            pop_indices <= frp.pop_breadcrumb.map(f_!(model.pop_breadcrumb()));
-            debug_push_indices <= frp.input.debug_push_breadcrumb.map(f!((local_call)
+            push_indices <- frp.push_breadcrumbs.map(f!((stack) model.push_breadcrumbs(stack)));
+            pop_indices <= frp.pop_breadcrumbs.map(f!((count) model.pop_breadcrumbs(*count)));
+            debug_push_indices <- frp.input.debug_push_breadcrumb.map(f!((local_call)
                 model.debug_push_breadcrumb(local_call)
             ));
             debug_pop_indices <= frp.input.debug_pop_breadcrumb.map
                 (f_!(model.debug_pop_breadcrumb()));
-
             indices <- any4(&push_indices,&pop_indices,&debug_push_indices,&debug_pop_indices);
-            old_breadcrumb <- indices.map(f!([model] (indices) {
-                (Some(*indices),model.get_breadcrumb(indices.0))
-            }));
-            new_breadcrumb <- indices.map(f!((indices) model.get_breadcrumb(indices.1)));
-            eval old_breadcrumb([model] ((indices,breadcrumb)) {
-                if let Some(breadcrumb) = breadcrumb.as_ref() {
-                    indices.map(|indices| breadcrumb.frp.deselect.emit((indices.0,indices.1)));
-                } else {
-                    model.project_name.frp.deselect.emit(());
-                }
-            });
-            eval new_breadcrumb([model] (breadcrumb) {
-                if let Some(breadcrumb) = breadcrumb.as_ref() {
-                    breadcrumb.frp.select.emit(());
-                    breadcrumb.frp.fade_in.emit(());
-                } else {
-                    model.project_name.frp.select.emit(());
-                }
-            });
+            eval indices (((old_index, new_index)) model.update_selection(*old_index, *new_index));
 
 
             // === Project Name ===
@@ -512,7 +459,6 @@ impl Breadcrumbs {
             eval frp.input.project_name((name) model.project_name.set_name.emit(name));
             frp.source.project_name <+ model.project_name.output.name;
 
-            eval_ frp.input.start_project_name_editing( model.project_name.start_editing.emit(()) );
             eval frp.ide_text_edit_mode((value) model.project_name.ide_text_edit_mode.emit(value) );
 
             frp.source.project_name_hovered <+ model.project_name.is_hovered;
@@ -520,32 +466,33 @@ impl Breadcrumbs {
 
             eval frp.input.set_project_changed((v) model.project_name.set_project_changed(v));
 
+            frp.source.project_name_error <+ model.project_name.error;
+
+
             // === User Interaction ===
 
-            eval_ model.project_name.frp.output.mouse_down(frp.select_breadcrumb.emit(0));
-            eval_ frp.cancel_project_name_editing(model.project_name.frp.cancel_editing.emit(()));
-            eval_ frp.outside_press(model.project_name.frp.outside_press.emit(()));
+            frp.select_breadcrumb <+ model.project_name.frp.output.mouse_down.constant(0);
+            model.project_name.frp.outside_press <+ frp.outside_press;
 
-            popped_count <= frp.output.breadcrumb_select.map(|selected| (0..selected.0).collect_vec());
-            local_calls  <= frp.output.breadcrumb_select.map(|selected| selected.1.clone());
-            eval_ popped_count(frp.source.breadcrumb_pop.emit(()));
-            eval local_calls((local_call) frp.source.breadcrumb_push.emit(local_call));
-
-
-            // === Select ===
-
-            selected_project_name <- model.project_name.frp.output.mouse_down.map(f_!([model]
-                model.debug_select_breadcrumb(0))
+            breadcrumbs_to_pop_count <- frp.output.breadcrumb_select.filter_map(|(pop_count, _)|
+                (*pop_count > 0).then_some(*pop_count)
             );
-            selected_breadcrumb   <- frp.input.debug_select_breadcrumb.map(f!((index)
+            breadcrumbs_to_push <- frp.output.breadcrumb_select.filter_map(|(_, breadcrumbs_to_push)|
+                (!breadcrumbs_to_push.is_empty()).as_some_from(|| breadcrumbs_to_push.clone())
+            );
+            frp.source.breadcrumb_pop <+ breadcrumbs_to_pop_count;
+            frp.source.breadcrumb_push <+ breadcrumbs_to_push;
+
+
+            // === Debug Select ===
+
+            debug_selected_breadcrumb <- frp.input.debug_select_breadcrumb.map(f!((index)
                 model.debug_select_breadcrumb(*index))
             );
-            selected <- any(&selected_project_name,&selected_breadcrumb);
-
-            popped_count <= selected.map(|selected| (0..selected.0).collect_vec());
-            local_calls  <= selected.map(|selected| selected.1.clone());
-            eval_ popped_count(frp.input.debug_pop_breadcrumb.emit(()));
-            eval local_calls((local_call) frp.input.debug_push_breadcrumb.emit(local_call));
+            popped_count <= debug_selected_breadcrumb.map(|selected| (0..selected.0).collect_vec());
+            local_calls <= debug_selected_breadcrumb.map(|selected| selected.1.clone());
+            frp.input.debug_pop_breadcrumb <+ popped_count.constant(());
+            frp.input.debug_push_breadcrumb <+ local_calls;
 
 
             // === Relayout ===
@@ -558,6 +505,11 @@ impl Breadcrumbs {
 
             frp.source.pointer_style <+ model.project_name.frp.output.pointer_style;
 
+
+            // === Read-only mode ===
+
+            frp.source.read_only <+ frp.input.set_read_only;
+            model.project_name.set_read_only <+ frp.input.set_read_only;
         }
 
         Self { model, frp }

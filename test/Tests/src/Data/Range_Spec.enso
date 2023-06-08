@@ -29,6 +29,13 @@ spec = Test.group "Range" <|
         range_3.end . should_equal 0
         range_3.step  . should_equal -1
 
+    Test.specify "should allow to include the end" <|
+        1.up_to 3 include_end=True . to_vector . should_equal [1, 2, 3]
+        3.down_to 1 include_end=True . to_vector . should_equal [3, 2, 1]
+
+        1.up_to 1 include_end=True . to_vector . should_equal [1]
+        1.down_to 1 include_end=True . to_vector . should_equal [1]
+
     Test.specify "should allow creation with Range.new" <|
         Range.new . should_equal (Range.Between 0 100 1)
         Range.new 5 20 . should_equal (Range.Between 5 20 1)
@@ -157,6 +164,13 @@ spec = Test.group "Range" <|
         vec_mut = Vector.new_builder
         1.up_to 6 . each (i -> vec_mut.append i)
         vec_mut.to_vector . should_equal [1, 2, 3, 4, 5]
+    Test.specify "should allow iteration, with error propagation and early exit" <|
+        vec_mut = Vector.new_builder
+        result = 1.up_to 6 . each_propagate i->
+            if i >= 3 then Error.throw (Illegal_Argument.Error "dummy") else
+              vec_mut.append i
+        result . should_fail_with Illegal_Argument
+        vec_mut.to_vector . should_equal [1, 2]
     Test.specify "should allow efficient iteration" <|
         cell = Ref.new 0
         n = 100000000

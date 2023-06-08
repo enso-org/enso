@@ -30,17 +30,14 @@ spec =
 
         Test.specify "should use correct in-memory logic to reconcile pairs of types for operations like union/iif" <|
             Value_Type_Helpers.reconcile_types Value_Type.Boolean Value_Type.Boolean . should_equal Value_Type.Boolean
-            Value_Type_Helpers.reconcile_types Value_Type.Boolean Value_Type.Integer . should_equal Value_Type.Integer
 
             Value_Type_Helpers.reconcile_types (Value_Type.Integer Bits.Bits_16) (Value_Type.Integer Bits.Bits_32) . should_equal (Value_Type.Integer Bits.Bits_32)
             Value_Type_Helpers.reconcile_types (Value_Type.Float Bits.Bits_32) (Value_Type.Float Bits.Bits_32) . should_equal (Value_Type.Float Bits.Bits_32)
             Value_Type_Helpers.reconcile_types (Value_Type.Float Bits.Bits_32) (Value_Type.Float Bits.Bits_64) . should_equal (Value_Type.Float Bits.Bits_64)
 
-            Value_Type_Helpers.reconcile_types Value_Type.Boolean Value_Type.Byte . should_equal Value_Type.Byte
             Value_Type_Helpers.reconcile_types (Value_Type.Integer Bits.Bits_16) Value_Type.Byte . should_equal (Value_Type.Integer Bits.Bits_16)
             # 64-bit floats are always used when unifying with integers
             Value_Type_Helpers.reconcile_types (Value_Type.Float Bits.Bits_32) Value_Type.Byte . should_equal Value_Type.Float
-            Value_Type_Helpers.reconcile_types (Value_Type.Float Bits.Bits_32) Value_Type.Boolean . should_equal Value_Type.Float
 
             Value_Type_Helpers.reconcile_types (Value_Type.Char 10 False) (Value_Type.Char 10 False) . should_equal (Value_Type.Char 10 False)
             Value_Type_Helpers.reconcile_types (Value_Type.Char 10 False) (Value_Type.Char 10 True) . should_equal (Value_Type.Char 10 True)
@@ -61,5 +58,8 @@ spec =
             Value_Type_Helpers.reconcile_types Value_Type.Float Value_Type.Binary . should_equal Value_Type.Mixed
             Value_Type_Helpers.reconcile_types Value_Type.Char Value_Type.Binary . should_equal Value_Type.Mixed
             Value_Type_Helpers.reconcile_types Value_Type.Char Value_Type.Boolean . should_equal Value_Type.Mixed
+            Value_Type_Helpers.reconcile_types Value_Type.Boolean Value_Type.Integer . should_equal Value_Type.Mixed
+            Value_Type_Helpers.reconcile_types Value_Type.Boolean Value_Type.Byte . should_equal Value_Type.Mixed
+            Value_Type_Helpers.reconcile_types (Value_Type.Float Bits.Bits_32) Value_Type.Boolean . should_equal Value_Type.Mixed
 
 main = Test_Suite.run_main spec

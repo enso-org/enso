@@ -734,17 +734,23 @@ impl TextModel {
         let app = app.clone_ref();
         let scene = &app.display.default_scene;
         let selection_map = default();
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("Text");
         let glyph_system = font::glyph::System::new(scene, font::DEFAULT_FONT_MONO);
         frp.private.output.glyph_system.emit(Some(glyph_system.clone()));
         let glyph_system = RefCell::new(glyph_system);
         let buffer = buffer::Buffer::new(buffer::BufferModel::new());
         let layer = CloneRefCell::new(scene.layers.main.clone_ref());
-        let lines = Lines::new(Self::new_line_helper(
+
+        let default_size = buffer.formatting.font_size().default.value;
+        let first_line = Self::new_line_helper(
             &app.display.default_scene.frp.frame_time,
             &display_object,
-            buffer.formatting.font_size().default.value,
-        ));
+            default_size,
+        );
+        first_line.set_baseline((-default_size).round());
+        first_line.skip_baseline_animation();
+
+        let lines = Lines::new(first_line);
         let width_dirty = default();
         let height_dirty = default();
         let shaped_lines = default();

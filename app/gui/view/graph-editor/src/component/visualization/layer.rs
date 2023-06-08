@@ -16,6 +16,8 @@ pub enum Layer {
     Default,
     /// Display the visualisation over the scene.
     Front,
+    /// Display the visualisation in fullscreen mode.
+    Fullscreen,
 }
 
 impl Layer {
@@ -24,6 +26,7 @@ impl Layer {
         match self {
             Layer::Default => scene.dom.layers.back.manage(dom),
             Layer::Front => scene.dom.layers.front.manage(dom),
+            Layer::Fullscreen => scene.dom.layers.fullscreen_vis.manage(dom),
         }
     }
 }

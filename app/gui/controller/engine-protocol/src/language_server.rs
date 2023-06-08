@@ -113,12 +113,12 @@ trait API {
     /// have permission to edit the resources for which edits are sent. This failure may be partial,
     /// in that some edits are applied and others are not.
     #[MethodInput=ApplyTextFileEditInput, rpc_name="text/applyEdit"]
-    fn apply_text_file_edit(&self, edit: FileEdit) -> ();
+    fn apply_text_file_edit(&self, edit: FileEdit, execute: bool) -> ();
 
     /// Create a new execution context. Return capabilities executionContext/canModify and
     /// executionContext/receivesUpdates containing freshly created ContextId
     #[MethodInput=CreateExecutionContextInput, rpc_name="executionContext/create"]
-    fn create_execution_context(&self) -> response::CreateExecutionContext;
+    fn create_execution_context(&self, context_id: ContextId) -> response::CreateExecutionContext;
 
     /// Destroy an execution context and free its resources.
     #[MethodInput=DestroyExecutionContextInput, rpc_name="executionContext/destroy"]
@@ -157,7 +157,7 @@ trait API {
 
     /// Restart the program execution.
     #[MethodInput=RecomputeInput, rpc_name="executionContext/recompute"]
-    fn recompute(&self, context_id: ContextId, invalidated_expressions: InvalidatedExpressions) -> ();
+    fn recompute(&self, context_id: ContextId, invalidated_expressions: InvalidatedExpressions, execution_environment: Option<ExecutionEnvironment>) -> ();
 
     /// Obtain the full suggestions database.
     #[MethodInput=GetSuggestionsDatabaseInput, rpc_name="search/getSuggestionsDatabase"]
@@ -209,6 +209,11 @@ trait API {
     /// An OpenAI-powered completion to the given prompt, with the given stop sequence.
     #[MethodInput=AiCompletionInput, rpc_name="ai/completion"]
     fn ai_completion(&self, prompt: String, stop_sequence: String) -> response::AiCompletion;
+
+    /// Set the execution environment of the context for future evaluations.
+    #[MethodInput=SetModeInput, rpc_name="executionContext/setExecutionEnvironment"]
+    fn set_execution_environment(&self, context_id: ContextId, execution_environment: ExecutionEnvironment) -> ();
+
 }}
 
 

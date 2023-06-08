@@ -1,5 +1,15 @@
 package org.enso.interpreter.runtime.data;
 
+import java.util.Arrays;
+
+import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.graalvm.collections.EconomicSet;
+
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -19,6 +29,8 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.util.Arrays;
 import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.polyglot.RuntimeOptions;
+import org.graalvm.collections.EconomicSet;
 
 /** A primitive boxed array type for use in the runtime. */
 @ExportLibrary(InteropLibrary.class)
@@ -28,6 +40,7 @@ import org.enso.interpreter.runtime.error.WithWarnings;
 public final class Array implements TruffleObject {
   private final Object[] items;
   private Boolean withWarnings;
+  private Warning[] cachedWarnings;
 
   /**
    * Creates a new array
@@ -112,7 +125,7 @@ public final class Array implements TruffleObject {
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
-      return new WithWarnings(v, extracted);
+      return WithWarnings.wrap(EnsoContext.get(warnings), v, extracted);
     }
     return v;
   }
@@ -127,10 +140,18 @@ public final class Array implements TruffleObject {
     return allocate(0);
   }
 
-  /** @return an identity array */
-  @Builtin.Method(description = "Identity on arrays, implemented for protocol completeness.")
-  public Object toArray() {
-    return this;
+  /**
+   * Takes a slice from an array like object.
+   *
+   * @param self array like object
+   * @param start start of the slice
+   * @param end end of the slice
+   * @param len the length of the array
+   * @return an array-like object representing the slice
+   */
+  public static Object slice(Object self, long start, long end, long len) {
+    var slice = ArraySlice.createOrNull(self, start, len, end);
+    return slice == null ? self : slice;
   }
 
   /**
@@ -200,13 +221,22 @@ public final class Array implements TruffleObject {
   @ExportMessage
   Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
-    ArrayRope<Warning> ropeOfWarnings = new ArrayRope<>();
+    if (cachedWarnings == null) {
+      cachedWarnings = Warning.fromSetToArray(collectAllWarnings(warnings, location));
+    }
+    return cachedWarnings;
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private EconomicSet<Warning> collectAllWarnings(WarningsLibrary warnings, Node location)
+      throws UnsupportedMessageException {
+    EconomicSet<Warning> setOfWarnings = EconomicSet.create(new WithWarnings.WarningEquivalence());
     for (int i = 0; i < items.length; i++) {
       if (warnings.hasWarnings(items[i])) {
-        ropeOfWarnings = ropeOfWarnings.prepend(warnings.getWarnings(items[i], location));
+        setOfWarnings.addAll(Arrays.asList(warnings.getWarnings(items[i], location)));
       }
     }
-    return ropeOfWarnings.toArray(Warning[]::new);
+    return setOfWarnings;
   }
 
   @ExportMessage
@@ -221,6 +251,16 @@ public final class Array implements TruffleObject {
       }
     }
     return new Array(items);
+  }
+
+  @ExportMessage
+  boolean isLimitReached(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    try {
+      int limit = EnsoContext.get(warnings).getWarningsLimit();
+      return getWarnings(null, warnings).length >= limit;
+    } catch (UnsupportedMessageException e) {
+      return false;
+    }
   }
 
   @ExportMessage

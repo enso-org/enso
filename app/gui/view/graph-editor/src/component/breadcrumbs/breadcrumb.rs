@@ -7,7 +7,6 @@ use crate::component::breadcrumbs;
 use crate::component::breadcrumbs::project_name::LINE_HEIGHT;
 use crate::MethodPointer;
 
-use super::RelativePosition;
 use super::GLYPH_WIDTH;
 use super::HORIZONTAL_MARGIN;
 use super::TEXT_SIZE;
@@ -112,6 +111,20 @@ mod separator {
             triangle.fill(color).into()
         }
     }
+}
+
+
+
+// ========================
+// === RelativePosition ===
+// ========================
+
+/// The position of this breadcrumb relative to the selected breadcrumb. We use this to determine
+/// the color.
+#[derive(Debug, Clone, Copy)]
+enum RelativePosition {
+    Left,
+    Right,
 }
 
 

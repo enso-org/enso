@@ -664,10 +664,8 @@ ops! { HtmlElementOps for HtmlElement
         fn set_style_or_warn(&self, name: impl AsRef<str>, value: impl AsRef<str>) {
             let name = name.as_ref();
             let value = value.as_ref();
-            let values = format!("\"{name}\" = \"{value}\" on \"{self:?}\"");
-            let warn_msg: &str = &format!("Failed to set style {values}");
             if self.style().set_property(name, value).is_err() {
-                warn!("{warn_msg}");
+                warn!("Failed to set style \"{name}\" = \"{value}\" on \"{self:?}\"");
             }
         }
     }
@@ -937,23 +935,6 @@ pub async fn sleep(duration: Duration) {
 #[cfg(not(target_arch = "wasm32"))]
 pub use async_std::task::sleep;
 
-
-
-// ====================
-// === TimeProvider ===
-// ====================
-
-/// Trait for an entity that can retrieve current time.
-pub trait TimeProvider {
-    /// Returns current time, measured in milliseconds.
-    fn now(&self) -> f64;
-}
-
-impl TimeProvider for Performance {
-    fn now(&self) -> f64 {
-        self.now()
-    }
-}
 
 
 // ====================
