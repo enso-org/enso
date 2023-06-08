@@ -246,6 +246,8 @@ function FilesTable(props: FilesTableProps) {
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
 
+    const state: FileNamePropsState = React.useMemo(() => ({ onRename }), [onRename])
+
     if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
@@ -253,7 +255,7 @@ function FilesTable(props: FilesTableProps) {
             <Table<backendModule.FileAsset, FileNamePropsState>
                 items={items}
                 isLoading={isLoading}
-                state={{ onRename }}
+                state={state}
                 getKey={backendModule.getAssetId}
                 placeholder={
                     <span className="opacity-75">

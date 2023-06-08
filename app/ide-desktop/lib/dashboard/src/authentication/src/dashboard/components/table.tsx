@@ -55,19 +55,6 @@ function Table<T, State = never>(props: TableProps<T, State>) {
     const [spinnerClasses, setSpinnerClasses] = React.useState(SPINNER_INITIAL_CLASSES)
     const [selectedItems, setSelectedItems] = React.useState(() => new Set<T>())
 
-    const headerRow = (
-        <tr>
-            {columns.map(column => (
-                <th
-                    key={column.id}
-                    className="text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-semibold text-left"
-                >
-                    {column.heading}
-                </th>
-            ))}
-        </tr>
-    )
-
     React.useEffect(() => {
         const onDocumentClick = (event: MouseEvent) => {
             if (!event.ctrlKey) {
@@ -107,6 +94,21 @@ function Table<T, State = never>(props: TableProps<T, State>) {
             setSelectedItems(new Set([item]))
         }
     }
+
+    const headerRow = (
+        <tr>
+            {columns.map(column => (
+                <th
+                    key={column.id}
+                    className={`text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-semibold text-left ${
+                        column.className ?? ''
+                    }`}
+                >
+                    {column.heading}
+                </th>
+            ))}
+        </tr>
+    )
 
     const itemRows = isLoading ? (
         <tr className="h-10">
@@ -156,11 +158,9 @@ function Table<T, State = never>(props: TableProps<T, State>) {
         ))
     )
     return (
-        <table className="table-fixed items-center border-collapse mt-2">
-            <tbody>
-                {headerRow}
-                {itemRows}
-            </tbody>
+        <table className="table-fixed items-center border-collapse w-0 mt-2">
+            <thead>{headerRow}</thead>
+            <tbody>{itemRows}</tbody>
         </table>
     )
 }

@@ -9,7 +9,7 @@ import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
 // Warning: This is a circular import.
 import * as projectsTable from './projectsTable'
-import * as reactiveEvents from '../reactiveEvents'
+import * as reactiveEvents from '../events/projectEvent'
 
 // =============
 // === Types ===

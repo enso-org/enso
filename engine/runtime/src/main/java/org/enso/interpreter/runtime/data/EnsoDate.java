@@ -73,12 +73,6 @@ public final class EnsoDate implements TruffleObject {
     return date.getDayOfMonth();
   }
 
-  @Builtin.Method(name = "to_time_builtin", description = "Combine this day with time to create a point in time.")
-  @CompilerDirectives.TruffleBoundary
-  public EnsoDateTime toTime(EnsoTimeOfDay timeOfDay, EnsoTimeZone zone) {
-    return new EnsoDateTime(date.atTime(timeOfDay.asTime()).atZone(zone.asTimeZone()));
-  }
-
   @ExportMessage
   boolean isDate() {
     return true;

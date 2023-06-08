@@ -112,7 +112,8 @@ impl Handle {
     #[profile(Task)]
     pub async fn new(project: model::Project, method: MethodPointer) -> FallibleResult<Self> {
         let graph = controller::Graph::new_method(&project, &method).await?;
-        let execution = project.create_execution_context(method.clone()).await?;
+        let context_id = Uuid::new_v4();
+        let execution = project.create_execution_context(method.clone(), context_id).await?;
         Ok(Self::new_internal(graph, project, execution))
     }
 

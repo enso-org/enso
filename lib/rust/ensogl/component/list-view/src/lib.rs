@@ -48,7 +48,6 @@ use ensogl_core::display::shape::*;
 use ensogl_core::display::style;
 use ensogl_core::Animation;
 use ensogl_hardcoded_theme as theme;
-use ensogl_shadow as shadow;
 
 pub use entry::Entry;
 
@@ -60,103 +59,36 @@ pub use entry::Entry;
 
 const DEFAULT_STYLE_PATH: &str = theme::widget::list_view::HERE.str;
 
-
-
-// ==========================
-// === Shapes Definitions ===
-// ==========================
-
-// === Constants ===
-
-/// The size of shadow under element. It is not counted in the component width and height.
-pub const SHADOW_PX: f32 = 10.0;
 /// The additional padding inside list view background and selection, added for better antialiasing
 pub const SHAPE_MARGIN: f32 = 5.0;
 
+/// The corner radius in pixels of the background and the selection.
+pub const CORNER_RADIUS_PX: f32 = 12.0;
 
-// === Helpers ===
 
-/// Calculate background shape size by subtracting [`SHADOW_PX`] and `SHAPE_MARGIN`.
-fn background_size(
-    sprite_width: Var<Pixels>,
-    sprite_height: Var<Pixels>,
-) -> (Var<Pixels>, Var<Pixels>) {
-    let width = sprite_width - SHADOW_PX.px() * 2.0 - SHAPE_MARGIN.px() * 2.0;
-    let height = sprite_height - SHADOW_PX.px() * 2.0 - SHAPE_MARGIN.px() * 2.0;
-    (width, height)
+
+// ==============
+// === Shapes ===
+// ==============
+
+#[derive(Clone, Debug, Default, CloneRef)]
+struct Selection {
+    shape: Rectangle,
 }
 
-
-// === Selection ===
-
-/// The selection rectangle shape.
-pub mod selection {
-    use super::*;
-
-    /// The corner radius in pixels.
-    pub const CORNER_RADIUS_PX: f32 = 12.0;
-
-    ensogl_core::shape! {
-        pointer_events = false;
-        alignment = center;
-        (style: Style, color: Vector4, corner_radius: f32) {
-            let sprite_width  : Var<Pixels> = "input_size.x".into();
-            let sprite_height : Var<Pixels> = "input_size.y".into();
-            let width         = sprite_width  - 2.0.px() * SHAPE_MARGIN;
-            let height        = sprite_height - 2.0.px() * SHAPE_MARGIN;
-            let color         = Var::<color::Rgba>::from(color);
-            let rect          = Rect((&width,&height)).corners_radius(corner_radius);
-            let shape         = rect.fill(color);
-            shape.into()
-        }
+impl Selection {
+    /// Set the size, and the y-position of the center of the object. These are set together because
+    /// the object's implementation uses corner-origin coordinates, but the parent object uses
+    /// center-origin coordinates, so the size is an input to the calculation of the y-position.
+    fn set_size_and_center_y(&self, size: Vector2<f32>, center_y: f32) {
+        self.shape.set_size(size);
+        self.shape.set_xy(Vector2(0.0, center_y) - size / 2.0);
     }
 }
 
-
-// === Background ===
-
-/// The default list view background.
-pub mod background {
-    use super::*;
-
-    /// The corner radius in pixels.
-    pub const CORNER_RADIUS_PX: f32 = selection::CORNER_RADIUS_PX;
-
-    ensogl_core::shape! {
-        below = [selection];
-        alignment = center;
-        (style: Style, shadow_alpha: f32, corners_radius_px: f32, color: Vector4) {
-            let sprite_width  : Var<Pixels> = "input_size.x".into();
-            let sprite_height : Var<Pixels> = "input_size.y".into();
-            let (width, height) = background_size(sprite_width, sprite_height);
-            let color         = Var::<color::Rgba>::from(color);
-            let rect          = Rect((&width,&height)).corners_radius(corners_radius_px);
-            let shape         = rect.fill(color);
-
-            let shadow = shadow::from_shape_with_alpha(rect.into(), &shadow_alpha, style);
-
-            (shadow + shape).into()
-        }
-    }
-}
-
-
-// === Overlay ===
-
-/// A list view overlay used to catch mouse events.
-pub mod overlay {
-    use super::*;
-
-    ensogl_core::shape! {
-        above = [background];
-        below = [selection];
-        alignment = center;
-        (style: Style, corners_radius_px: f32) {
-            let sprite_width  : Var<Pixels> = "input_size.x".into();
-            let sprite_height : Var<Pixels> = "input_size.y".into();
-            let (width, height) = background_size(sprite_width, sprite_height);
-            Rect((&width,&height)).corners_radius(corners_radius_px).fill(INVISIBLE_HOVER_COLOR).into()
-        }
+impl display::Object for Selection {
+    fn display_object(&self) -> &display::object::Instance {
+        self.shape.display_object()
     }
 }
 
@@ -194,9 +126,8 @@ impl Default for JumpTarget {
 struct Model<E: Entry> {
     app:            Application,
     entries:        entry::List<E>,
-    selection:      selection::View,
-    background:     background::View,
-    overlay:        overlay::View,
+    selection:      Selection,
+    background:     Rectangle,
     scrolled_area:  display::object::Instance,
     display_object: display::object::Instance,
 }
@@ -207,20 +138,15 @@ impl<E: Entry> Model<E> {
         let display_object = display::object::Instance::new();
         let scrolled_area = display::object::Instance::new();
         let entries = entry::List::new(&app);
-        let background = background::View::new();
-        let overlay = overlay::View::new();
-        let selection = selection::View::new();
+        let background = Rectangle();
+        background.set_border_color(color::Rgba::transparent());
+        let selection = Selection::default();
+        selection.shape.set_pointer_events(false);
         display_object.add_child(&background);
-        display_object.add_child(&overlay);
         display_object.add_child(&scrolled_area);
         scrolled_area.add_child(&entries);
         scrolled_area.add_child(&selection);
-        Model { app, entries, selection, background, overlay, scrolled_area, display_object }
-    }
-
-    fn show_background_shadow(&self, value: bool) {
-        let alpha = if value { 1.0 } else { 0.0 };
-        self.background.shadow_alpha.set(alpha);
+        Model { app, entries, selection, background, scrolled_area, display_object }
     }
 
     /// Update the displayed entries list when _view_ has changed - the list was scrolled or
@@ -234,12 +160,11 @@ impl<E: Entry> Model<E> {
     ) {
         let visible_entries = Self::visible_entries(view, self.entries.entry_count());
         let padding = Vector2(2.0 * padding, 2.0 * padding);
-        let margin = Vector2(2.0 * SHAPE_MARGIN, 2.0 * SHAPE_MARGIN);
-        let shadow = Vector2(2.0 * SHADOW_PX, 2.0 * SHADOW_PX);
         let entry_width = view.size.x - 2.0 * entry_padding;
         self.entries.set_x(-view.size.x / 2.0 + entry_padding);
-        self.background.set_size(view.size + padding + shadow + margin);
-        self.overlay.set_size(view.size + padding + shadow + margin);
+        let background_size = view.size + padding;
+        self.background.set_size(background_size);
+        self.background.set_xy(-background_size / 2.0);
         self.scrolled_area.set_y(view.size.y / 2.0 - view.position_y + SHAPE_MARGIN / 2.0);
         self.entries.update_entries(visible_entries, entry_width, style_prefix);
     }
@@ -342,7 +267,6 @@ ensogl_core::define_endpoints! {
         select_entry(Option<entry::Id>),
         chose_entry(entry::Id),
         set_style_prefix(String),
-        show_background_shadow(bool),
         set_background_corners_radius(f32),
         set_background_color(color::Rgba),
     }
@@ -487,22 +411,18 @@ where E::Model: Default
             // === Background ===
 
             init <- source_();
-            default_show_background_shadow <- init.constant(true);
-            show_background_shadow <- any(
-                &default_show_background_shadow,&frp.show_background_shadow);
-            eval show_background_shadow ((t) model.show_background_shadow(*t));
-            default_background_corners_radius <- init.constant(background::CORNER_RADIUS_PX);
+            default_background_corners_radius <- init.constant(CORNER_RADIUS_PX);
             background_corners_radius <- any(
                 &default_background_corners_radius,&frp.set_background_corners_radius);
-            eval background_corners_radius ((px) model.background.corners_radius_px.set(*px));
+            eval background_corners_radius ((px) model.background.set_corner_radius(*px););
             background_color <- any(&style.background_color, &frp.set_background_color);
             eval background_color ((color) model.background.color.set(color.into()));
 
 
             // === Mouse Position ===
 
-            let overlay_events = &model.overlay.events_deprecated;
-            mouse_in <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
+            let mouse_events = &model.background.events_deprecated;
+            mouse_in <- bool(&mouse_events.mouse_out, &mouse_events.mouse_over);
             frp.source.is_mouse_over <+ mouse_in;
             mouse_moved <- mouse.distance.map(|dist| *dist > MOUSE_MOVE_THRESHOLD ).on_true();
             mouse_moved_in <- mouse_in.on_true();
@@ -596,14 +516,13 @@ where E::Model: Default
             selection_sprite_y <- all_with3(&selection_y.value, &selection_height.value, &style.selection_height,
                 |y, h, max_h| y + (max_h - h) / 2.0
             );
-            eval selection_sprite_y ((y) model.selection.set_y(*y));
             frp.source.selection_size <+ all_with3(&frp.size, &style.padding, &selection_height.value, f!([](size, padding, height) {
                 let width = size.x - 2.0 * padding;
                 Vector2(width,*height)
             }));
-            eval frp.selection_size ([model](size) {
-                let margin = Vector2(SHAPE_MARGIN, SHAPE_MARGIN);
-                model.selection.set_size(*size + 2.0 * margin);
+            selection_size_and_y <- all_with(&frp.selection_size, &selection_sprite_y, |size, y| (*size, *y));
+            eval selection_size_and_y ([model]((size, y)) {
+                model.selection.set_size_and_center_y(*size, *y);
             });
             eval_ frp.hide_selection (model.selection.unset_parent());
 
@@ -674,8 +593,8 @@ where E::Model: Default
                 &style.padding,
                 |sel_y, view_y, size, padding| Vector2(0.0, (size.y / 2.0 - padding) - view_y + sel_y)
             );
-            eval style.selection_color ((color) model.selection.color.set(color.into()));
-            eval style.selection_corner_radius ((radius) model.selection.corner_radius.set(*radius));
+            eval style.selection_color ((color) model.selection.shape.color.set(color.into()));
+            eval style.selection_corner_radius ((radius) model.selection.shape.corner_radius.set(*radius));
         }
 
         init.emit(());

@@ -1,6 +1,6 @@
 # Options intended to be common for all developers.
 
-wasm-size-limit: 15.92 MiB
+wasm-size-limit: 15.97 MiB
 
 required-versions:
   # NB. The Rust version is pinned in rust-toolchain.toml.

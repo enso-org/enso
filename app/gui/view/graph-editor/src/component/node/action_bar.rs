@@ -44,20 +44,11 @@ const SKIP_TOOLTIP_LABEL: &str = "Skip";
 // ===============
 
 /// Invisible rectangular area that can be hovered.
-mod hover_area {
-    use super::*;
-
-    ensogl::shape! {
-        alignment = center;
-        (style: Style, corner_radius: f32) {
-            let width  : Var<Pixels> = "input_size.x".into();
-            let height : Var<Pixels> = "input_size.y".into();
-            let rect                 = Rect((&width,&height));
-            let rect_rounded         = rect.corners_radius(corner_radius);
-            let rect_filled          = rect_rounded.fill(INVISIBLE_HOVER_COLOR);
-            rect_filled.into()
-        }
-    }
+fn hover_area() -> Rectangle {
+    let area = Rectangle();
+    area.set_color(INVISIBLE_HOVER_COLOR);
+    area.set_border_color(INVISIBLE_HOVER_COLOR);
+    area
 }
 
 
@@ -237,7 +228,7 @@ impl display::Object for ContextSwitchButton {
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
     display_object: display::object::Instance,
-    hover_area:     hover_area::View,
+    hover_area:     Rectangle,
     icons:          Icons,
     size:           Rc<Cell<Vector2>>,
     shapes:         compound::events::MouseEvents,
@@ -248,7 +239,7 @@ impl Model {
     fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
-        let hover_area = hover_area::View::new();
+        let hover_area = hover_area();
         let icons = Icons::new(app);
         let shapes = compound::events::MouseEvents::default();
         let size = default();
@@ -261,13 +252,14 @@ impl Model {
         shapes.add_sub_shape(&icons.freeze.view());
         shapes.add_sub_shape(&icons.skip.view());
 
+        use display::shape::compound::rectangle;
         ensogl::shapes_order_dependencies! {
             scene => {
-                hover_area -> icon::visibility;
-                hover_area -> icon::disable_output_context;
-                hover_area -> icon::enable_output_context;
-                hover_area -> icon::freeze;
-                hover_area -> icon::skip;
+                rectangle -> icon::visibility;
+                rectangle -> icon::disable_output_context;
+                rectangle -> icon::enable_output_context;
+                rectangle -> icon::freeze;
+                rectangle -> icon::skip;
             }
         }
 
@@ -303,11 +295,12 @@ impl Model {
         let hover_width =
             button_width * (button_count + hover_padding + offset + padding) + HOVER_EXTENSION_X;
         let hover_height = button_width * 2.0;
-        let hover_ara_size = Vector2::new(hover_width, hover_height);
-        self.hover_area.set_size(hover_ara_size);
-        let center_offset = -size.x / 2.0 + hover_ara_size.x / 2.0;
+        let hover_area_size = Vector2::new(hover_width, hover_height);
+        self.hover_area.set_size(hover_area_size);
+        let center_offset = -size.x / 2.0;
         let padding_offset = -0.5 * hover_padding * button_width - HOVER_EXTENSION_X / 2.0;
-        self.hover_area.set_x(center_offset + padding_offset);
+        let hover_origin = Vector2(center_offset + padding_offset, -hover_height / 2.0);
+        self.hover_area.set_xy(hover_origin);
     }
 
     fn set_size(&self, size: Vector2) {

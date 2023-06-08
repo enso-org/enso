@@ -237,6 +237,8 @@ function SecretsTable(props: SecretsTableProps) {
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
 
+    const state: SecretNamePropsState = React.useMemo(() => ({ onRename }), [onRename])
+
     if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
@@ -244,7 +246,7 @@ function SecretsTable(props: SecretsTableProps) {
             <Table<backendModule.SecretAsset, SecretNamePropsState>
                 items={items}
                 isLoading={isLoading}
-                state={{ onRename }}
+                state={state}
                 getKey={backendModule.getAssetId}
                 placeholder={
                     <span className="opacity-75">

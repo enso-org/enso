@@ -1,5 +1,6 @@
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Duration.Duration
 from project.Data.Boolean import Boolean, True, False
 
 polyglot java import org.enso.base.Time_Utils
@@ -33,3 +34,11 @@ type Time_Period
     adjust_end : (Time_Of_Day | Date_Time) -> (Time_Of_Day | Date_Time)
     adjust_end self date =
         (Time_Utils.utils_for date).end_of_time_period date self.to_java_unit
+
+    ## PRIVATE
+    to_duration : Duration
+    to_duration self = case self of
+        Time_Period.Day -> Duration.new 24
+        Time_Period.Hour -> Duration.new 1
+        Time_Period.Minute -> Duration.new 0 1
+        Time_Period.Second -> Duration.new 0 0 1

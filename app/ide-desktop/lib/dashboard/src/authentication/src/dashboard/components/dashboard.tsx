@@ -5,6 +5,7 @@ import * as React from 'react'
 import * as common from 'enso-common'
 
 import * as backendModule from '../backend'
+import * as directoryEventModule from '../events/directoryEvent'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
 import * as localBackend from '../localBackend'
@@ -93,6 +94,8 @@ function Dashboard(props: DashboardProps) {
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
+    const [directoryEvent, setDirectoryEvent] =
+        hooks.useEvent<directoryEventModule.DirectoryEvent>()
 
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
@@ -174,85 +177,81 @@ function Dashboard(props: DashboardProps) {
         }
     }, [])
 
-    const handleEscapeKey = (event: React.KeyboardEvent<HTMLDivElement>) => {
-        if (
-            event.key === 'Escape' &&
-            !event.ctrlKey &&
-            !event.shiftKey &&
-            !event.altKey &&
-            !event.metaKey
-        ) {
-            if (modal != null) {
-                event.preventDefault()
-                unsetModal()
+    const handleEscapeKey = React.useCallback(
+        (event: React.KeyboardEvent<HTMLDivElement>) => {
+            if (
+                event.key === 'Escape' &&
+                !event.ctrlKey &&
+                !event.shiftKey &&
+                !event.altKey &&
+                !event.metaKey
+            ) {
+                if (modal != null) {
+                    event.preventDefault()
+                    unsetModal()
+                }
             }
-        }
-    }
+        },
+        [modal, unsetModal]
+    )
 
-    const openDropZone = (event: React.DragEvent<HTMLDivElement>) => {
+    const openDropZone = React.useCallback((event: React.DragEvent<HTMLDivElement>) => {
         if (event.dataTransfer.types.includes('Files')) {
             setIsFileBeingDragged(true)
         }
-    }
+    }, [])
 
-    const setBackendType = (newBackendType: backendModule.BackendType) => {
-        if (newBackendType !== backend.type) {
-            switch (newBackendType) {
-                case backendModule.BackendType.local:
-                    setBackend(new localBackend.LocalBackend())
-                    break
-                case backendModule.BackendType.remote: {
-                    const headers = new Headers()
-                    headers.append('Authorization', `Bearer ${session.accessToken ?? ''}`)
-                    const client = new http.Client(headers)
-                    setBackend(new remoteBackendModule.RemoteBackend(client, logger))
-                    break
+    const setBackendType = React.useCallback(
+        (newBackendType: backendModule.BackendType) => {
+            if (newBackendType !== backend.type) {
+                switch (newBackendType) {
+                    case backendModule.BackendType.local:
+                        setBackend(new localBackend.LocalBackend())
+                        break
+                    case backendModule.BackendType.remote: {
+                        const headers = new Headers()
+                        headers.append('Authorization', `Bearer ${session.accessToken ?? ''}`)
+                        const client = new http.Client(headers)
+                        setBackend(new remoteBackendModule.RemoteBackend(client, logger))
+                        break
+                    }
                 }
             }
-        }
-    }
+        },
+        [backend.type, logger, session.accessToken, setBackend]
+    )
 
-    const getNewProjectName = async (templateId?: string | null) => {
-        const prefix = `${templateId ?? 'New_Project'}_`
-        const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
-        const projectIndices = (await backend.listProjects())
-            .map(
-                listedProject => projectNameTemplate.exec(listedProject.name)?.groups?.projectIndex
-            )
-            .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
-        return `${prefix}${Math.max(...projectIndices) + 1}`
-    }
+    const doCreateProject = React.useCallback(
+        (templateId?: string | null) => {
+            setDirectoryEvent({
+                type: directoryEventModule.DirectoryEventType.createProject,
+                templateId: templateId ?? null,
+            })
+        },
+        [/* should never change */ setDirectoryEvent]
+    )
 
-    const handleCreateProject = async (templateId?: string | null) => {
-        const projectName = await getNewProjectName(templateId)
-        const body: backendModule.CreateProjectRequestBody = {
-            projectName,
-            projectTemplateName: templateId ?? null,
-            parentDirectoryId: directoryId,
-        }
-        await backend.createProject(body)
-        // `newProject.projectId` cannot be used directly in a `ProjectEvent` as the project
-        // does not yet exist in the project list. Opening the project would work, but the project
-        // would display as closed as it would be created after the event is sent.
-        setNameOfProjectToImmediatelyOpen(projectName)
-        doRefresh()
-    }
+    const onAssetClick = React.useCallback(
+        (asset: backendModule.Asset, event: React.MouseEvent) => {
+            event.stopPropagation()
+            setSelectedAssets(event.shiftKey ? [...selectedAssets, asset] : [asset])
+        },
+        [selectedAssets]
+    )
 
-    const onAssetClick = (asset: backendModule.Asset, event: React.MouseEvent) => {
-        event.stopPropagation()
-        setSelectedAssets(event.shiftKey ? [...selectedAssets, asset] : [asset])
-    }
+    const openIde = React.useCallback(
+        async (newProject: backendModule.ProjectAsset) => {
+            switchToIdeTab()
+            if (project?.projectId !== newProject.id) {
+                setProject(await backend.getProjectDetails(newProject.id))
+            }
+        },
+        [backend, project?.projectId, switchToIdeTab]
+    )
 
-    const openIde = async (newProject: backendModule.ProjectAsset) => {
-        switchToIdeTab()
-        if (project?.projectId !== newProject.id) {
-            setProject(await backend.getProjectDetails(newProject.id))
-        }
-    }
-
-    const closeIde = () => {
+    const closeIde = React.useCallback(() => {
         setProject(null)
-    }
+    }, [])
 
     return (
         <div
@@ -302,17 +301,18 @@ function Dashboard(props: DashboardProps) {
                 </div>
             ) : (
                 <>
-                    <Templates onTemplateClick={handleCreateProject} />
+                    <Templates onTemplateClick={doCreateProject} />
                     <DirectoryView
                         initialProjectName={initialProjectName}
                         nameOfProjectToImmediatelyOpen={nameOfProjectToImmediatelyOpen}
                         setNameOfProjectToImmediatelyOpen={setNameOfProjectToImmediatelyOpen}
                         directoryId={directoryId}
                         setDirectoryId={setDirectoryId}
+                        directoryEvent={directoryEvent}
+                        setDirectoryEvent={setDirectoryEvent}
                         query={query}
                         refresh={refresh}
                         doRefresh={doRefresh}
-                        doCreateBlankProject={handleCreateProject}
                         onAssetClick={onAssetClick}
                         onOpenIde={openIde}
                         onCloseIde={closeIde}

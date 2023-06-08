@@ -8,9 +8,12 @@ import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
+import * as dateTime from '../dateTime'
+import * as directoryEventModule from '../events/directoryEvent'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
-import * as reactiveEvents from '../reactiveEvents'
+import * as newtype from '../../newtype'
+import * as projectEventModule from '../events/projectEvent'
 
 import DirectoriesTable from './directoriesTable'
 import DriveBar from './driveBar'
@@ -24,6 +27,10 @@ import SecretsTable from './secretsTable'
 
 /** The `localStorage` key under which the ID of the current directory is stored. */
 const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-directory-stack`
+/** The {@link RegExp} matching a directory name following the default naming convention. */
+const DIRECTORY_NAME_REGEX = /^New_Directory_(?<directoryIndex>\d+)$/
+/** The default prefix of an automatically generated directory. */
+const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Directory_'
 
 // ========================
 // === Helper functions ===
@@ -51,10 +58,11 @@ export interface DirectoryViewProps {
     setNameOfProjectToImmediatelyOpen: (nameOfProjectToImmediatelyOpen: string | null) => void
     directoryId: backendModule.DirectoryId | null
     setDirectoryId: (directoryId: backendModule.DirectoryId | null) => void
+    directoryEvent: directoryEventModule.DirectoryEvent | null
+    setDirectoryEvent: (directoryEvent: directoryEventModule.DirectoryEvent | null) => void
     query: string
     refresh: hooks.RefreshState
     doRefresh: () => void
-    doCreateBlankProject: () => Promise<void>
     onOpenIde: (project: backendModule.ProjectAsset) => void
     onCloseIde: () => void
     onAssetClick: (asset: backendModule.Asset, event: React.MouseEvent<HTMLTableRowElement>) => void
@@ -76,8 +84,9 @@ function DirectoryView(props: DirectoryViewProps) {
         setDirectoryId,
         query,
         refresh,
+        directoryEvent,
+        setDirectoryEvent,
         doRefresh,
-        doCreateBlankProject,
         onOpenIde,
         onCloseIde,
         onAssetClick,
@@ -118,37 +127,40 @@ function DirectoryView(props: DirectoryViewProps) {
             : null
     )
 
-    const [{ projectAssets, directoryAssets, secretAssets, fileAssets }, setAssets] =
-        React.useReducer(
-            (_: unknown, assets: backendModule.Asset[]) => {
-                const assetIsType = backendModule.assetIsType
-                return {
-                    projectAssets: assets.filter(assetIsType(backendModule.AssetType.project)),
-                    directoryAssets: assets.filter(assetIsType(backendModule.AssetType.directory)),
-                    secretAssets: assets.filter(assetIsType(backendModule.AssetType.secret)),
-                    fileAssets: assets.filter(assetIsType(backendModule.AssetType.file)),
-                }
-            },
-            {
-                projectAssets: [],
-                directoryAssets: [],
-                secretAssets: [],
-                fileAssets: [],
-            }
-        )
-    const [visibleProjectAssets, setVisibleProjectAssets] = React.useState(projectAssets)
-    const [visibleDirectoryAssets, setVisibleDirectoryAssets] = React.useState(directoryAssets)
-    const [visibleSecretAssets, setVisibleSecretAssets] = React.useState(secretAssets)
-    const [visibleFileAssets, setVisibleFileAssets] = React.useState(fileAssets)
-    const [projectEvent, setProjectEvent] = React.useState<reactiveEvents.ProjectEvent | null>(null)
+    const [projectAssets, setProjectAssets] = React.useState<backendModule.ProjectAsset[]>([])
+    const [directoryAssets, setDirectoryAssets] = React.useState<backendModule.DirectoryAsset[]>([])
+    const [secretAssets, setSecretAssets] = React.useState<backendModule.SecretAsset[]>([])
+    const [fileAssets, setFileAssets] = React.useState<backendModule.FileAsset[]>([])
+    const [projectEvent, setProjectEvent] = hooks.useEvent<projectEventModule.ProjectEvent | null>()
+
+    const queryRegex = React.useMemo(() => new RegExp(regexEscape(query), 'i'), [query])
+    const visibleProjectAssets = React.useMemo(
+        () => projectAssets.filter(asset => queryRegex.test(asset.title)),
+        [queryRegex, projectAssets]
+    )
+    const visibleDirectoryAssets = React.useMemo(
+        () => directoryAssets.filter(asset => queryRegex.test(asset.title)),
+        [queryRegex, directoryAssets]
+    )
+    const visibleSecretAssets = React.useMemo(
+        () => secretAssets.filter(asset => queryRegex.test(asset.title)),
+        [queryRegex, secretAssets]
+    )
+    const visibleFileAssets = React.useMemo(
+        () => fileAssets.filter(asset => queryRegex.test(asset.title)),
+        [queryRegex, fileAssets]
+    )
 
     const directory = directoryStack[directoryStack.length - 1] ?? null
     const parentDirectory = directoryStack[directoryStack.length - 2] ?? null
 
     React.useEffect(() => {
         setIsLoadingAssets(true)
-        setAssets([])
-    }, [setAssets, backend, directoryId])
+        setProjectAssets([])
+        setDirectoryAssets([])
+        setSecretAssets([])
+        setFileAssets([])
+    }, [backend, directoryId])
 
     React.useEffect(() => {
         if (backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail) {
@@ -191,7 +203,6 @@ function DirectoryView(props: DirectoryViewProps) {
                         const newAssets = await backend.listDirectory()
                         if (!signal.aborted) {
                             setIsLoadingAssets(false)
-                            setAssets(newAssets)
                         }
                         return newAssets
                     } else {
@@ -220,14 +231,17 @@ function DirectoryView(props: DirectoryViewProps) {
     )
 
     React.useEffect(() => {
-        setAssets(assets)
+        setProjectAssets(assets.filter(backendModule.assetIsProject))
+        setDirectoryAssets(assets.filter(backendModule.assetIsDirectory))
+        setSecretAssets(assets.filter(backendModule.assetIsSecret))
+        setFileAssets(assets.filter(backendModule.assetIsFile))
         if (nameOfProjectToImmediatelyOpen != null) {
             const projectToLoad = assets
                 .filter(isProjectAsset)
                 .find(projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen)
             if (projectToLoad != null) {
                 setProjectEvent({
-                    type: reactiveEvents.ProjectEventType.open,
+                    type: projectEventModule.ProjectEventType.open,
                     projectId: projectToLoad.id,
                 })
             }
@@ -238,34 +252,148 @@ function DirectoryView(props: DirectoryViewProps) {
     }, [
         assets,
         nameOfProjectToImmediatelyOpen,
-        setNameOfProjectToImmediatelyOpen,
+        /* should never change */ setNameOfProjectToImmediatelyOpen,
         onDirectoryNextLoaded,
+        /* should never change */ setProjectEvent,
     ])
 
-    React.useEffect(() => {
-        const queryRegex = new RegExp(regexEscape(query), 'i')
-        setVisibleProjectAssets(projectAssets.filter(asset => queryRegex.test(asset.title)))
-    }, [query, projectAssets])
+    const getNewProjectName = React.useCallback(
+        (templateId?: string | null) => {
+            const prefix = `${templateId ?? 'New_Project'}_`
+            const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
+            const projectIndices = projectAssets
+                .map(project => projectNameTemplate.exec(project.title)?.groups?.projectIndex)
+                .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
+            return `${prefix}${Math.max(...projectIndices) + 1}`
+        },
+        [projectAssets]
+    )
 
     React.useEffect(() => {
-        const queryRegex = new RegExp(regexEscape(query), 'i')
-        setVisibleDirectoryAssets(directoryAssets.filter(asset => queryRegex.test(asset.title)))
-    }, [query, directoryAssets])
+        void (async () => {
+            if (directoryEvent != null) {
+                switch (directoryEvent.type) {
+                    case directoryEventModule.DirectoryEventType.createProject: {
+                        const projectName = getNewProjectName(directoryEvent.templateId)
+                        const placeholderNewProjectAsset: backendModule.ProjectAsset = {
+                            type: backendModule.AssetType.project,
+                            title: projectName,
+                            // Although this is a dummy value, it MUST be unique as it is used
+                            // as the React key for lists.
+                            id: newtype.asNewtype<backendModule.ProjectId>(
+                                Number(new Date()).toString()
+                            ),
+                            modifiedAt: dateTime.toRfc3339(new Date()),
+                            parentId:
+                                directoryId ?? newtype.asNewtype<backendModule.DirectoryId>(''),
+                            permissions: [],
+                            projectState: { type: backendModule.ProjectState.new },
+                        }
+                        setProjectAssets(oldProjectAssets => [
+                            placeholderNewProjectAsset,
+                            ...oldProjectAssets,
+                        ])
+                        const createProjectPromise = backend.createProject({
+                            projectName,
+                            projectTemplateName: directoryEvent.templateId ?? null,
+                            parentDirectoryId: directoryId,
+                        })
+                        await toast.promise(createProjectPromise, {
+                            loading: 'Creating new empty project...',
+                            success: 'Created new empty project.',
+                            // This is UNSAFE, as the original function's parameter is of type
+                            // `any`.
+                            error: (promiseError: Error) =>
+                                `Error creating new empty project: ${promiseError.message}`,
+                        })
+                        // `newProject.projectId` cannot be used directly in a `ProjectEvent`
+                        // as the project does not yet exist in the project list.
+                        // Opening the project would work, but the project would display as closed
+                        // as it would be created after the event is sent.
+                        setNameOfProjectToImmediatelyOpen(projectName)
+                        doRefresh()
+                        break
+                    }
+                    case directoryEventModule.DirectoryEventType.createDirectory: {
+                        if (backend.type !== backendModule.BackendType.remote) {
+                            toast.error('Folders cannot be created on the local backend.')
+                        } else {
+                            const directoryIndices = directoryAssets
+                                .map(directoryAsset =>
+                                    DIRECTORY_NAME_REGEX.exec(directoryAsset.title)
+                                )
+                                .map(match => match?.groups?.directoryIndex)
+                                .map(maybeIndex =>
+                                    maybeIndex != null ? parseInt(maybeIndex, 10) : 0
+                                )
+                            const title = `${DIRECTORY_NAME_DEFAULT_PREFIX}${
+                                Math.max(...directoryIndices) + 1
+                            }`
+                            const placeholderNewDirectoryAsset: backendModule.DirectoryAsset = {
+                                title,
+                                type: backendModule.AssetType.directory,
+                                id: newtype.asNewtype<backendModule.DirectoryId>(
+                                    Number(new Date()).toString()
+                                ),
+                                modifiedAt: dateTime.toRfc3339(new Date()),
+                                parentId:
+                                    directoryId ?? newtype.asNewtype<backendModule.DirectoryId>(''),
+                                permissions: [],
+                                projectState: null,
+                            }
+                            setDirectoryAssets(oldDirectoryAssets => [
+                                placeholderNewDirectoryAsset,
+                                ...oldDirectoryAssets,
+                            ])
+                            const createDirectoryPromise = backend.createDirectory({
+                                parentId: directoryId,
+                                title,
+                            })
+                            await toast.promise(createDirectoryPromise, {
+                                loading: 'Creating folder...',
+                                success: 'Sucessfully created folder.',
+                                // This is UNSAFE, as the original function's parameter is
+                                // of type `any`.
+                                error: (promiseError: Error) =>
+                                    `Error creating new folder: ${promiseError.message}`,
+                            })
+                            doRefresh()
+                        }
+                        break
+                    }
+                }
+            }
+        })()
+    }, [
+        backend,
+        directoryEvent,
+        directoryId,
+        directoryAssets,
+        getNewProjectName,
+        /* should never change */ doRefresh,
+        /* should never change */ setNameOfProjectToImmediatelyOpen,
+    ])
 
-    React.useEffect(() => {
-        const queryRegex = new RegExp(regexEscape(query), 'i')
-        setVisibleSecretAssets(secretAssets.filter(asset => queryRegex.test(asset.title)))
-    }, [query, secretAssets])
+    const doCreateProject = React.useCallback(() => {
+        setDirectoryEvent({
+            type: directoryEventModule.DirectoryEventType.createProject,
+            templateId: null,
+        })
+    }, [/* should never change */ setDirectoryEvent])
 
-    React.useEffect(() => {
-        const queryRegex = new RegExp(regexEscape(query), 'i')
-        setVisibleFileAssets(fileAssets.filter(asset => queryRegex.test(asset.title)))
-    }, [query, fileAssets])
+    const doCreateDirectory = React.useCallback(() => {
+        setDirectoryEvent({
+            type: directoryEventModule.DirectoryEventType.createDirectory,
+        })
+    }, [/* should never change */ setDirectoryEvent])
 
-    const enterDirectory = (directoryAsset: backendModule.DirectoryAsset) => {
-        setDirectoryId(directoryAsset.id)
-        setDirectoryStack([...directoryStack, directoryAsset])
-    }
+    const enterDirectory = React.useCallback(
+        (directoryAsset: backendModule.DirectoryAsset) => {
+            setDirectoryId(directoryAsset.id)
+            setDirectoryStack([...directoryStack, directoryAsset])
+        },
+        [directoryStack, setDirectoryId]
+    )
 
     const exitDirectory = () => {
         setDirectoryId(
@@ -300,8 +428,7 @@ function DirectoryView(props: DirectoryViewProps) {
                 columnDisplayMode={columnDisplayMode}
                 projectEvent={projectEvent}
                 setProjectEvent={setProjectEvent}
-                doCreateBlankProject={doCreateBlankProject}
-                onCreate={doRefresh}
+                doCreateProject={doCreateProject}
                 onRename={doRefresh}
                 onDelete={doRefresh}
                 doOpenIde={onOpenIde}
@@ -311,12 +438,11 @@ function DirectoryView(props: DirectoryViewProps) {
             />
             <div className="h-10" />
             <DirectoriesTable
-                directoryId={directoryId}
                 items={visibleDirectoryAssets}
                 isLoading={isLoadingAssets}
                 columnDisplayMode={columnDisplayMode}
                 query={query}
-                onCreate={doRefresh}
+                doCreateDirectory={doCreateDirectory}
                 onRename={doRefresh}
                 onAssetClick={onAssetClick}
                 enterDirectory={enterDirectory}

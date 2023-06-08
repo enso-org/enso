@@ -7,108 +7,17 @@ import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
-import * as reactiveEvents from '../reactiveEvents'
+import * as reactiveEvents from '../events/projectEvent'
 import * as svg from '../../components/svg'
-import * as templates from './templates'
 import * as validation from '../validation'
 
-import CreateForm, * as createForm from './createForm'
 import Table, * as table from './table'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
-import Dropdown from './dropdown'
 import EditableSpan from './editableSpan'
 import ProjectActionButton from './projectActionButton'
 import RenameModal from './renameModal'
-
-// =========================
-// === ProjectCreateForm ===
-// =========================
-
-/** Props for a {@link ProjectCreateForm}. */
-export interface ProjectCreateFormProps extends createForm.CreateFormPassthroughProps {
-    directoryId: backendModule.DirectoryId
-    getNewProjectName: (templateId: string | null) => string
-    onSuccess: () => void
-}
-
-/** A form to create a new project asset. */
-// While this is unused, it is being kept in case it will be needed in the future.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function ProjectCreateForm(props: ProjectCreateFormProps) {
-    const { directoryId, getNewProjectName, onSuccess, ...passThrough } = props
-    const { backend } = backendProvider.useBackend()
-
-    const [defaultName, setDefaultName] = React.useState(() => getNewProjectName(null))
-    const [name, setName] = React.useState<string | null>(null)
-    const [templateId, setTemplateId] = React.useState<string | null>(null)
-
-    if (backend.type === backendModule.BackendType.local) {
-        return <></>
-    } else {
-        const onSubmit = async (event: React.FormEvent) => {
-            event.preventDefault()
-            const finalName = name ?? defaultName
-            const templateText = templateId == null ? '' : `from template '${templateId}'`
-            await toast.promise(
-                backend.createProject({
-                    parentDirectoryId: directoryId,
-                    projectName: name ?? defaultName,
-                    projectTemplateName: templateId,
-                }),
-                {
-                    loading: `Creating project '${finalName}'${templateText}...`,
-                    success: `Sucessfully created project '${finalName}'${templateText}.`,
-                    // This is UNSAFE, as the original function's parameter is of type `any`.
-                    error: (promiseError: Error) =>
-                        `Error creating project '${finalName}'${templateText}: ${promiseError.message}`,
-                }
-            )
-            onSuccess()
-        }
-
-        return (
-            <CreateForm title="New Project" onSubmit={onSubmit} {...passThrough}>
-                <div className="flex flex-row flex-nowrap m-1">
-                    <label className="inline-block flex-1 grow m-1" htmlFor="project_name">
-                        Name
-                    </label>
-                    <input
-                        id="project_name"
-                        type="text"
-                        size={1}
-                        className="bg-gray-200 rounded-full flex-1 grow-2 px-2 m-1"
-                        value={name ?? defaultName}
-                        onChange={event => {
-                            setName(event.target.value)
-                        }}
-                    />
-                </div>
-                <div className="flex flex-row flex-nowrap m-1">
-                    <label className="inline-block flex-1 grow m-1" htmlFor="project_template_name">
-                        Template
-                    </label>
-                    <Dropdown
-                        className="flex-1 grow-2 px-2 m-1"
-                        optionsClassName="-mx-2"
-                        items={['None', ...templates.TEMPLATES.map(item => item.title)]}
-                        onChange={newTemplateTitle => {
-                            const newTemplateId =
-                                templates.TEMPLATES.find(
-                                    template => template.title === newTemplateTitle
-                                )?.id ?? null
-                            setTemplateId(newTemplateId)
-                            if (name == null) {
-                                setDefaultName(getNewProjectName(newTemplateId))
-                            }
-                        }}
-                    />
-                </div>
-            </CreateForm>
-        )
-    }
-}
 
 // ==========================
 // === ProjectNameHeading ===
@@ -116,13 +25,12 @@ function ProjectCreateForm(props: ProjectCreateFormProps) {
 
 /** Props for a {@link ProjectNameHeading}. */
 export interface ProjectNameHeadingProps {
-    doCreateProject: () => Promise<void>
-    onCreate: () => void
+    doCreateProject: () => void
 }
 
 /** The column header for the "name" column for the table of project assets. */
 function ProjectNameHeading(props: ProjectNameHeadingProps) {
-    const { doCreateProject, onCreate } = props
+    const { doCreateProject } = props
 
     return (
         <div className="inline-flex">
@@ -131,15 +39,7 @@ function ProjectNameHeading(props: ProjectNameHeadingProps) {
                 className="mx-1"
                 onClick={event => {
                     event.stopPropagation()
-                    void toast.promise(doCreateProject(), {
-                        loading: 'Creating new empty project...',
-                        success: 'Created new empty project.',
-                        // This is UNSAFE, as the original function's parameter is of type
-                        // `any`.
-                        error: (promiseError: Error) =>
-                            `Error creating new empty project: ${promiseError.message}`,
-                    })
-                    onCreate()
+                    doCreateProject()
                 }}
             >
                 {svg.ADD_ICON}
@@ -214,7 +114,7 @@ function ProjectName(props: ProjectNameProps) {
         <div
             className="flex text-left items-center align-middle whitespace-nowrap"
             onClick={event => {
-                if (event.detail === 2 && event.target === event.currentTarget) {
+                if (event.detail === 2) {
                     // It is a double click; open the project.
                     setProjectEvent({
                         type: reactiveEvents.ProjectEventType.open,
@@ -292,8 +192,7 @@ export interface ProjectsTableProps {
     columnDisplayMode: columnModule.ColumnDisplayMode
     projectEvent: reactiveEvents.ProjectEvent | null
     setProjectEvent: (projectEvent: reactiveEvents.ProjectEvent | null) => void
-    doCreateBlankProject: () => Promise<void>
-    onCreate: () => void
+    doCreateProject: () => void
     onRename: () => void
     onDelete: () => void
     doOpenIde: (project: backendModule.ProjectAsset) => void
@@ -314,8 +213,7 @@ function ProjectsTable(props: ProjectsTableProps) {
         columnDisplayMode,
         projectEvent,
         setProjectEvent,
-        doCreateBlankProject,
-        onCreate,
+        doCreateProject,
         onRename,
         onDelete,
         doOpenIde,
@@ -326,17 +224,21 @@ function ProjectsTable(props: ProjectsTableProps) {
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
 
-    // const extraDatas = useMap<backendModule.ProjectId, ProjectExtraData>()
     const [extraDatas, setExtraDatas] = React.useState<
         Record<backendModule.ProjectId, ProjectExtraData>
     >({})
 
-    const getExtraData = (projectId: backendModule.ProjectId) =>
-        extraDatas[projectId] ?? DEFAULT_PROJECT_EXTRA_DATA
+    const getExtraData = React.useCallback(
+        (projectId: backendModule.ProjectId) => extraDatas[projectId] ?? DEFAULT_PROJECT_EXTRA_DATA,
+        [extraDatas]
+    )
 
-    const setExtraData = (projectId: backendModule.ProjectId, extraData: ProjectExtraData) => {
-        setExtraDatas(oldExtraDatas => ({ ...oldExtraDatas, [projectId]: extraData }))
-    }
+    const setExtraData = React.useCallback(
+        (projectId: backendModule.ProjectId, extraData: ProjectExtraData) => {
+            setExtraDatas(oldExtraDatas => ({ ...oldExtraDatas, [projectId]: extraData }))
+        },
+        []
+    )
 
     /** This must never change as it needs to be called exactly once when
      * the {@link ProjectActionButton} is being cleaned up. */
@@ -349,43 +251,57 @@ function ProjectsTable(props: ProjectsTableProps) {
         })
     }, [])
 
-    React.useEffect(() => {
-        if (projectEvent != null) {
-            setProjectEvent(null)
-        }
-    }, [projectEvent, setProjectEvent])
+    const doOpenManually = React.useCallback(
+        (projectId: backendModule.ProjectId) => {
+            setProjectEvent({
+                type: reactiveEvents.ProjectEventType.open,
+                projectId,
+            })
+        },
+        [setProjectEvent]
+    )
 
-    const doOpenManually = (projectId: backendModule.ProjectId) => {
-        setProjectEvent({
-            type: reactiveEvents.ProjectEventType.open,
-            projectId,
-        })
-    }
-
-    const doCloseIde = () => {
+    const doCloseIde = React.useCallback(() => {
         setProjectEvent({
             type: reactiveEvents.ProjectEventType.cancelOpeningAll,
         })
         rawDoCloseIde()
-    }
+    }, [rawDoCloseIde, setProjectEvent])
+
+    const state: ProjectNamePropsState = React.useMemo(
+        () => ({
+            appRunner,
+            projectEvent,
+            setProjectEvent,
+            doOpenManually,
+            onRename,
+            doOpenIde,
+            doCloseIde,
+            doRefresh,
+            getExtraData,
+            setExtraData,
+            deleteExtraData,
+        }),
+        [
+            appRunner,
+            projectEvent,
+            setProjectEvent,
+            doOpenManually,
+            onRename,
+            doOpenIde,
+            doCloseIde,
+            doRefresh,
+            getExtraData,
+            setExtraData,
+            deleteExtraData,
+        ]
+    )
 
     return (
         <Table<backendModule.ProjectAsset, ProjectNamePropsState>
             items={items}
             isLoading={isLoading}
-            state={{
-                appRunner,
-                projectEvent,
-                setProjectEvent,
-                doOpenManually,
-                onRename,
-                doOpenIde,
-                doCloseIde,
-                doRefresh,
-                getExtraData,
-                setExtraData,
-                deleteExtraData,
-            }}
+            state={state}
             getKey={backendModule.getAssetId}
             placeholder={
                 <span className="opacity-75">
@@ -397,12 +313,7 @@ function ProjectsTable(props: ProjectsTableProps) {
                     ? {
                           id: column,
                           className: columnModule.COLUMN_CSS_CLASS[column],
-                          heading: (
-                              <ProjectNameHeading
-                                  doCreateProject={doCreateBlankProject}
-                                  onCreate={onCreate}
-                              />
-                          ),
+                          heading: <ProjectNameHeading doCreateProject={doCreateProject} />,
                           render: ProjectName,
                       }
                     : {

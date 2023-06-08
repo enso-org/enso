@@ -378,6 +378,18 @@ export function assetIsType<Type extends AssetType>(type: Type) {
     return (asset: Asset): asset is Asset<Type> => asset.type === type
 }
 
+// These are functions, and so their names should be camelCase.
+/* eslint-disable no-restricted-syntax */
+/** A type guard that returns whether an {@link Asset} is a {@link ProjectAsset}. */
+export const assetIsProject = assetIsType(AssetType.project)
+/** A type guard that returns whether an {@link Asset} is a {@link DirectoryAsset}. */
+export const assetIsDirectory = assetIsType(AssetType.directory)
+/** A type guard that returns whether an {@link Asset} is a {@link SecretAsset}. */
+export const assetIsSecret = assetIsType(AssetType.secret)
+/** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
+export const assetIsFile = assetIsType(AssetType.file)
+/* eslint-disable no-restricted-syntax */
+
 /** Return the id of the root directory for a user or organization. */
 export function rootDirectoryId(userOrOrganizationId: UserOrOrganizationId) {
     return newtype.asNewtype<DirectoryId>(

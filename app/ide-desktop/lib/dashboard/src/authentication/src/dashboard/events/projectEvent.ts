@@ -1,6 +1,9 @@
-/** @file Discriminated unions used as event messages, sent through React states. */
+/** @file Events related to changes in project state. */
+import * as backendModule from '../backend'
 
-import * as backendModule from './backend'
+// Note: Events are currently sent from the parent. This causes a re-render of its entire subtree
+// and potentially degrades performance. Realistically, the performance degradation will not be
+// noticeable, but it is worth considering for improvements at some point in the future.
 
 // ====================
 // === ProjectEvent ===
@@ -9,7 +12,7 @@ import * as backendModule from './backend'
 /** Possible types of project state change. */
 export enum ProjectEventType {
     open = 'open',
-    cancelOpeningAll = 'cancelOpeningAll',
+    cancelOpeningAll = 'cancel-opening-all',
 }
 
 /** Properties common to all project state change events. */
@@ -17,15 +20,12 @@ interface ProjectBaseEvent<Type extends ProjectEventType> {
     type: Type
 }
 
-/** Requests the specified project to be opened. */
+/** A signal to open the specified project. */
 export interface ProjectOpenEvent extends ProjectBaseEvent<ProjectEventType.open> {
-    /** This must be a name because it may be specified by name on the command line.
-     * Note that this will not work properly with the cloud backend if there are multiple projects
-     * with the same name. */
     projectId: backendModule.ProjectId
 }
 
-/** Requests the specified project to be opened. */
+/** A signal to stop automatically opening any project that is currently opening. */
 export interface ProjectCancelOpeningAllEvent
     extends ProjectBaseEvent<ProjectEventType.cancelOpeningAll> {}
 

@@ -731,13 +731,12 @@ type Column
     truncate self =
         case self.value_type.is_numeric of
             True ->
-                fun = _.truncate
-                Column_Ops.map_over_storage self fun make_long_builder skip_nothing=True
+                simple_unary_op self "truncate"
             False -> case self.value_type == Value_Type.Date_Time of
                 True ->
                     fun = _.date
                     Column_Ops.map_over_storage self fun make_date_builder_adapter skip_nothing=True
-                False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" self.value_type
+                False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" self.value_type self.name
 
     ## Computes the nearest integer above this number for values in a numeric
        column.
@@ -750,8 +749,7 @@ type Column
              Column.from_vector "foo" [1.25, 2.33, 3.57] . ceil == (Column.from_vector "foo" [2, 3, 4])
     ceil : Column ! Invalid_Value_Type
     ceil self = Value_Type.expect_numeric self <|
-        fun = _.ceil
-        Column_Ops.map_over_storage self fun make_long_builder skip_nothing=True
+        simple_unary_op self "ceil"
 
     ## Computes the nearest integer below this number for values in a numeric
        column.
@@ -764,8 +762,7 @@ type Column
              Column.from_vector "foo" [1.25, 2.33, 3.57] . floor == (Column.from_vector "foo" [1, 2, 3])
     floor : Column ! Invalid_Value_Type
     floor self = Value_Type.expect_numeric self <|
-        fun = _.floor
-        Column_Ops.map_over_storage self fun make_long_builder skip_nothing=True
+        simple_unary_op self "floor"
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
