@@ -12,13 +12,13 @@ import scala.concurrent.{ExecutionContext, Future}
   * @param request a request for the update
   */
 class SetExpressionValueCmd(request: Api.SetExpressionValueNotification)
-    extends Command(None) {
+    extends AsynchronousCommand(None) {
 
   /** Executes a request.
     *
     * @param ctx contains suppliers of services to perform a request
     */
-  override def execute(implicit
+  override def executeAsynchronously(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {

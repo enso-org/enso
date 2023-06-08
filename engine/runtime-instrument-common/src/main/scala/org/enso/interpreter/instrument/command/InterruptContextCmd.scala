@@ -14,10 +14,10 @@ import scala.concurrent.{ExecutionContext, Future}
 class InterruptContextCmd(
   maybeRequestId: Option[RequestId],
   request: Api.InterruptContextRequest
-) extends Command(maybeRequestId) {
+) extends AsynchronousCommand(maybeRequestId) {
 
   /** @inheritdoc */
-  override def execute(implicit
+  override def executeAsynchronously(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] =
