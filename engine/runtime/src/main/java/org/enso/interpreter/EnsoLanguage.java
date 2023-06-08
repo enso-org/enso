@@ -28,10 +28,8 @@ import org.enso.distribution.Environment;
 import org.enso.distribution.locking.LockManager;
 import org.enso.distribution.locking.ThreadSafeFileLockManager;
 import org.enso.interpreter.epb.EpbLanguage;
-import org.enso.interpreter.instrument.IdExecutionService;
 import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
 import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
-import org.enso.interpreter.instrument.execution.Timer;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.ProgramRootNode;
@@ -40,7 +38,6 @@ import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.tag.Patchable;
-import org.enso.interpreter.service.ExecutionService;
 import org.enso.interpreter.util.FileDetector;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.logger.masking.MaskingFactory;
@@ -71,8 +68,7 @@ import org.graalvm.options.OptionType;
     characterMimeTypes = {LanguageInfo.MIME_TYPE},
     contextPolicy = TruffleLanguage.ContextPolicy.SHARED,
     dependentLanguages = {EpbLanguage.ID},
-    fileTypeDetectors = FileDetector.class,
-    services = ExecutionService.class)
+    fileTypeDetectors = FileDetector.class)
 @ProvidedTags({
   DebuggerTags.AlwaysHalt.class,
   StandardTags.CallTag.class,
@@ -86,7 +82,7 @@ import org.graalvm.options.OptionType;
   Patchable.Tag.class
 })
 public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
-  private Optional<IdExecutionService> idExecutionInstrument = Optional.empty();
+  //private Optional<IdExecutionService> idExecutionInstrument = Optional.empty();
   private static final LanguageReference<EnsoLanguage> REFERENCE =
       LanguageReference.create(EnsoLanguage.class);
 
@@ -134,11 +130,13 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
     boolean isExecutionTimerEnabled =
         env.getOptions().get(RuntimeOptions.ENABLE_EXECUTION_TIMER_KEY);
+        /*
     Timer timer = isExecutionTimerEnabled ? new Timer.Nanosecond() : new Timer.Disabled();
-
+*/
     EnsoContext context =
         new EnsoContext(
             this, getLanguageHome(), env, notificationHandler, lockManager, distributionManager);
+/*
     idExecutionInstrument =
         Optional.ofNullable(env.getInstruments().get(IdExecutionService.INSTRUMENT_ID))
             .map(
@@ -147,7 +145,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
     env.registerService(
         new ExecutionService(
             context, idExecutionInstrument, notificationHandler, connectedLockManager, timer));
-
+*/
     return context;
   }
 
@@ -349,10 +347,12 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
     return context.getTopScope();
   }
 
-  /** @return a reference to the execution instrument */
+  /** @return a reference to the execution instrument
+   *
   public Optional<IdExecutionService> getIdExecutionService() {
     return idExecutionInstrument;
   }
+  */
 
   /** Conversions of primitive values */
   protected Object getLanguageView(EnsoContext context, Object value) {

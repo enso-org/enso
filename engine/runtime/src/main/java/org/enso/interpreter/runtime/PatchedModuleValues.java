@@ -104,12 +104,14 @@ final class PatchedModuleValues {
       throw new IllegalStateException(ex);
     }
     var edit = update.edit();
+    /* TBD
     int offset =
         src.getLineStartOffset(edit.range().start().line() + 1) + edit.range().start().character();
     int removed = edit.range().end().character() - edit.range().start().character();
     int delta = edit.text().length() - removed;
 
     performUpdates(collect, offset, delta);
+    */
     return true;
   }
 
@@ -135,6 +137,7 @@ final class PatchedModuleValues {
           nodeValues.put(patchableNode, patchableNode);
         }
       } else {
+            /*
         var edit = update.edit();
         SourceSection at = n.getSourceSection();
         if (at != null) {
@@ -158,10 +161,13 @@ final class PatchedModuleValues {
             }
           }
         }
+            */
       }
+      /*
       for (var ch : n.getChildren()) {
         queue.add(ch);
       }
+      */
     }
   }
 
@@ -172,9 +178,9 @@ final class PatchedModuleValues {
    * @param inclusive are modifications at the same location going to count or not
    *   - they count for section ends, but do not count for section starts
    * @return positive or negative delta to apply at given offset
-   */
   int findDelta(int offset, boolean inclusive) {
     Map.Entry<Integer, int[]> previous = inclusive ? deltas.floorEntry(offset) : deltas.lowerEntry(offset);
     return previous == null ? 0 : previous.getValue()[0];
   }
+   */
 }
