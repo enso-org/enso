@@ -509,7 +509,7 @@ function Dashboard(props: DashboardProps) {
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
-                    if (event.detail === 2 && event.target === event.currentTarget) {
+                    if (event.detail === 2) {
                         // It is a double click; open the project.
                         setProjectEvent({
                             type: projectActionButton.ProjectEventType.open,
