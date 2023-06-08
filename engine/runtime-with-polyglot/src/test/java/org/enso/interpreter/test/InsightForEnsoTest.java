@@ -85,5 +85,10 @@ public class InsightForEnsoTest {
       assertNotEquals("Step two: " + msgs, -1, msgs.indexOf("n=4 v=5 acc=function"));
       assertNotEquals("3rd step: " + msgs, -1, msgs.indexOf("n=3 v=20 acc=function"));
       assertNotEquals("4th step: " + msgs, -1, msgs.indexOf("n=2 v=60 acc=function"));
+
+      assertNotEquals(
+        "Uninitialized variables are seen as JavaScript null: " + msgs,
+        -1, msgs.indexOf("n=null v=null acc=function")
+      );
     }
 }
