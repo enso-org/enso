@@ -369,6 +369,7 @@ type Time_Of_Day
              example_format = Time_Of_Day.new 16 21 10 . format "'hour:'h"
     @locale Locale.default_widget
     format : Text -> Locale -> Text
-    format self pattern locale=Locale.default = case locale of
-        Nothing -> Time_Utils.time_of_day_format self pattern
-        _ -> Time_Utils.time_of_day_format_with_locale self pattern locale.java_locale
+    format self pattern:Text locale:Locale=Locale.default =
+        formatter = if pattern.is_empty then Time_Utils.default_time_of_day_formatter else
+            Time_Utils.make_formatter pattern locale.java_locale
+        Time_Utils.time_of_day_format self formatter

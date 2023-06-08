@@ -108,24 +108,37 @@ public class Time_Utils {
     return Core_Date_Utils.normaliseISODateTime(dateString);
   }
 
-  public static String local_date_format(LocalDate date, Object format) {
-    return make_output_formatter(format.toString(), Locale.US).format(date);
+  /**
+   * Format a LocalDate instance using a formatter.
+   *
+   * @param date the LocalDate instance to format.
+   * @param formatter the formatter to use.
+   * @return formatted LocalDate instance.
+   */
+  public static String date_format(LocalDate date, DateTimeFormatter formatter) {
+    return formatter.format(date);
   }
 
-  public static String local_date_format_with_locale(LocalDate date, Object format, Locale locale) {
-    return make_output_formatter(format.toString(), locale).format(date);
+  /**
+   * Format a ZonedDateTime instance using a formatter.
+   *
+   * @param dateTime the ZonedDateTime instance to format.
+   * @param formatter the formatter to use.
+   * @return formatted ZonedDateTime instance.
+   */
+  public static String date_time_format(ZonedDateTime dateTime, DateTimeFormatter formatter) {
+    return formatter.format(dateTime);
   }
 
-  public static String date_time_format(ZonedDateTime dateTime, Object format) {
-    return make_output_formatter(format.toString(), Locale.US).format(dateTime);
-  }
-
-  public static String date_time_format_with_locale(ZonedDateTime dateTime, Object format, Locale locale) {
-    return make_output_formatter(format.toString(), locale).format(dateTime);
-  }
-
-  public static String time_of_day_format(LocalTime localTime, Object format) {
-    return make_output_formatter(format.toString(), Locale.US).format(localTime);
+  /**
+   * Format a LocalTime instance using a formatter.
+   *
+   * @param localTime the LocalTime instance to format.
+   * @param formatter the formatter to use.
+   * @return formatted LocalTime instance.
+   */
+  public static String time_of_day_format(LocalTime localTime, DateTimeFormatter formatter) {
+    return formatter.format(localTime);
   }
 
   public static String time_of_day_format_with_locale(LocalTime localTime, Object format, Locale locale) {

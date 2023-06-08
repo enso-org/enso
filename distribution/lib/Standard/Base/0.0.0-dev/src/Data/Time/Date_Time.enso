@@ -25,6 +25,8 @@ import project.Warning.Warning
 
 from project.Data.Boolean import Boolean, True, False
 
+from project.Widget_Helpers import make_date_time_format_selector
+
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.Exception as JException
 polyglot java import java.time.ZonedDateTime
@@ -231,6 +233,7 @@ type Date_Time
 
              example_parse =
                 Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
+    @pattern make_date_time_format_selector
     @locale Locale.default_widget
     parse : Text -> Text -> Locale -> Date_Time ! Time_Error
     parse text:Text pattern:Text="" locale:Locale=Locale.default =
@@ -672,8 +675,10 @@ type Date_Time
 
              example_format =
                  Date_Time.parse "2020-06-21T16:41:13+03:00" . format "d. MMMM yyyy" (Locale.new "fr")
+    @pattern make_date_time_format_selector
     @locale Locale.default_widget
     format : Text -> Locale -> Text
-    format self pattern locale=Locale.default = case locale of
-        Nothing -> Time_Utils.date_time_format self pattern
-        _ -> Time_Utils.date_time_format_with_locale self pattern locale.java_locale
+    format self pattern:Text locale:Locale=Locale.default =
+        formatter = if pattern.is_empty then Time_Utils.default_output_date_time_formatter else
+            Time_Utils.make_formatter pattern locale.java_locale
+        Time_Utils.date_time_format self formatter
