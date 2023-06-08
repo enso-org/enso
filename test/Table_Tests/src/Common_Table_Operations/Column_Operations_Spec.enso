@@ -122,13 +122,17 @@ spec setup =
     y = t2.at "y"
 
     Test.group "gmt" <|
-        Test.specify "should allow truncate" <|
-            y.truncate.to_vector . should_equal [2, 3, 5, Nothing]
-            IO.println "YYY"
-            IO.println y
-            IO.println y.truncate
-            IO.println y.truncate.value_type
-            y.truncate.value_type . is_integer . should_be_true
+        Test.specify "should allow truncate on a float column" <|
+            table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
+            result = table.at "x" . truncate
+            result.to_vector.should_equal [0, 0, 3, 3, 0, 0, -3, -3]
+            result.value_type . is_integer . should_be_true
+
+        Test.specify "should allow truncate on an int column" <|
+            table = table_builder [["x", [0, 3, -3, 1, -2]]]
+            result = table.at "x" . truncate
+            result.to_vector.should_equal [0, 3, -3, 1, -2]
+            result.value_type . is_integer . should_be_true
 
     Test.group prefix+"Column Operations - Equality & Null Handling" <|
         Test.specify "should provide basic == and != comparisons" pending="TODO figure out proper null handling" <|
