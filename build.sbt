@@ -485,6 +485,7 @@ val typesafeConfigVersion   = "1.4.2"
 val junitVersion            = "4.13.2"
 val junitIfVersion          = "0.11"
 val netbeansApiVersion      = "RELEASE140"
+val fansiVersion            = "0.4.0"
 
 // ============================================================================
 // === Internal Libraries =====================================================
@@ -1339,7 +1340,8 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "junit"               % "junit"                 % junitVersion      % Test,
-      "com.novocode"        % "junit-interface"       % junitIfVersion    % Test exclude ("junit", "junit-dep")
+      "com.novocode"        % "junit-interface"       % junitIfVersion    % Test exclude ("junit", "junit-dep"),
+      "com.lihaoyi"        %% "fansi"                 % fansiVersion      % "provided"
     ),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(CopyTruffleJAR.preCompileTask)

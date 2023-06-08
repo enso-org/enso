@@ -815,6 +815,7 @@
 - [Add project creation time to project metadata][6780]
 - [Upgrade GraalVM to 22.3.1 JDK17][6750]
 - [Ascribed types are checked during runtime][6790]
+- [Improve and colorize compiler's diagnostic messages][6931]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -929,6 +930,7 @@
 [6755]: https://github.com/enso-org/enso/pull/6755
 [6780]: https://github.com/enso-org/enso/pull/6780
 [6790]: https://github.com/enso-org/enso/pull/6790
+[6931]: https://github.com/enso-org/enso/pull/6931
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

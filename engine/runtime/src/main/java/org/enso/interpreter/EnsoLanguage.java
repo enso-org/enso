@@ -16,7 +16,6 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.data.CompilerConfig;
@@ -265,10 +264,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
         throw new InlineParsingException("Unhandled entity: " + e.entity(), e);
       } catch (CompilationAbortedException e) {
         assert outputRedirect.toString().lines().count() > 1 : "Expected a header line from the compiler";
-        String compilerErrOutput = outputRedirect.toString()
-            .lines()
-            .skip(1)
-            .collect(Collectors.joining(";"));
+        String compilerErrOutput = outputRedirect.toString();
         throw new InlineParsingException(compilerErrOutput, e);
       } finally {
         silentCompiler.shutdown(false);
