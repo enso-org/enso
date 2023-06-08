@@ -1002,7 +1002,7 @@ class Compiler(
   ) {
     private val maxLineNum                     = 99999
     private val blankLinePrefix                = "      | "
-    private val maxSourceLinesToPrint = 3
+    private val maxSourceLinesToPrint          = 3
     private val linePrefixSize                 = blankLinePrefix.length
     private val outSupportsAnsiColors: Boolean = outSupportsColors
     private val (textAttrs: fansi.Attrs, subject: String) = diagnostic match {
@@ -1026,13 +1026,14 @@ class Compiler(
       sourceSection match {
         case Some(section) =>
           val isOneLine = section.getStartLine == section.getEndLine
-          val srcPath: String = if (source.getPath == null && source.getName == null) {
-            "<Unknown source>"
-          } else if (source.getPath != null) {
-            source.getPath
-          } else {
-            source.getName
-          }
+          val srcPath: String =
+            if (source.getPath == null && source.getName == null) {
+              "<Unknown source>"
+            } else if (source.getPath != null) {
+              source.getPath
+            } else {
+              source.getName
+            }
           if (isOneLine) {
             val lineNumber  = section.getStartLine
             val startColumn = section.getStartColumn
@@ -1062,13 +1063,18 @@ class Compiler(
             str ++= fansi.Str(subject).overlay(textAttrs)
             str ++= diagnostic.formattedMessage
             str ++= "\n"
-            val printAllSourceLines = section.getEndLine - section.getStartLine <= maxSourceLinesToPrint
-            for (lineNum <- section.getStartLine to (if (printAllSourceLines) section.getEndLine else section.getStartLine + maxSourceLinesToPrint)) {
+            val printAllSourceLines =
+              section.getEndLine - section.getStartLine <= maxSourceLinesToPrint
+            val endLine =
+              if (printAllSourceLines) section.getEndLine
+              else section.getStartLine + maxSourceLinesToPrint
+            for (lineNum <- section.getStartLine to endLine) {
               str ++= oneLineFromSource(lineNum)
               str ++= "\n"
             }
             if (!printAllSourceLines) {
-              val restLineCount = section.getEndLine - section.getStartLine - maxSourceLinesToPrint
+              val restLineCount =
+                section.getEndLine - section.getStartLine - maxSourceLinesToPrint
               str ++= blankLinePrefix + "... and " + restLineCount + " more lines ..."
               str ++= "\n"
             }
@@ -1095,11 +1101,10 @@ class Compiler(
       }
     }
 
-    /**
-     * @see https://github.com/termstandard/colors/
-     * @see https://no-color.org/
-     * @return
-     */
+    /** @see https://github.com/termstandard/colors/
+      * @see https://no-color.org/
+      * @return
+      */
     private def outSupportsColors: Boolean = {
       if (System.console() == null) {
         // Non-interactive output is always without color support
@@ -1116,7 +1121,9 @@ class Compiler(
       }
       if (System.getenv("TERM") != null) {
         val termEnv = System.getenv("TERM").toLowerCase
-        return termEnv.split("-").contains("color") || termEnv.split("-").contains("256color")
+        return termEnv.split("-").contains("color") || termEnv
+          .split("-")
+          .contains("256color")
       }
       return false
     }
