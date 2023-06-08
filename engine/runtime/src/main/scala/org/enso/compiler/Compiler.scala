@@ -991,7 +991,7 @@ class Compiler(
 
   /** Formatter of IR diagnostics. Heavily inspired by GCC. Can format one-line as well as multiline
     * diagnostics. The output is colorized if the output stream supports ANSI colors.
-    * Also prints the affending lines from the source along with line number - the same way as
+    * Also prints the offending lines from the source along with line number - the same way as
     * GCC does.
     * @param diagnostic the diagnostic to pretty print
     * @param source     the original source code
@@ -1002,6 +1002,7 @@ class Compiler(
   ) {
     private val maxLineNum                     = 99999
     private val blankLinePrefix                = "      | "
+    private val maxSourceLinesToPrint = 3
     private val linePrefixSize                 = blankLinePrefix.length
     private val outSupportsAnsiColors: Boolean = System.console() != null
     private val (textAttrs: fansi.Attrs, subject: String) = diagnostic match {
@@ -1045,14 +1046,20 @@ class Compiler(
             var str = fansi.Str()
             str ++= fansi
               .Str(
-                source.getPath + ":" + section.getStartLine + ":" + section.getStartColumn + ": "
+                source.getPath + ":[" + section.getStartLine + ":" + section.getStartColumn + "-" + section.getEndLine + ":" + section.getEndColumn + "]: "
               )
               .overlay(fansi.Bold.On)
             str ++= fansi.Str(subject).overlay(textAttrs)
             str ++= diagnostic.formattedMessage
             str ++= "\n"
-            for (lineNum <- section.getStartLine to section.getEndLine) {
+            val printAllSourceLines = section.getEndLine - section.getStartLine <= maxSourceLinesToPrint
+            for (lineNum <- section.getStartLine to (if (printAllSourceLines) section.getEndLine else section.getStartLine + maxSourceLinesToPrint)) {
               str ++= oneLineFromSource(lineNum)
+              str ++= "\n"
+            }
+            if (!printAllSourceLines) {
+              val restLineCount = section.getEndLine - section.getStartLine - maxSourceLinesToPrint
+              str ++= blankLinePrefix + "... and " + restLineCount + " more lines ..."
               str ++= "\n"
             }
             if (outSupportsAnsiColors) str.render else str.plainText
