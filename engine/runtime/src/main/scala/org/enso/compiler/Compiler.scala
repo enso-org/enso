@@ -1004,7 +1004,7 @@ class Compiler(
     private val blankLinePrefix                = "      | "
     private val maxSourceLinesToPrint = 3
     private val linePrefixSize                 = blankLinePrefix.length
-    private val outSupportsAnsiColors: Boolean = System.console() != null
+    private val outSupportsAnsiColors: Boolean = outSupportsColors
     private val (textAttrs: fansi.Attrs, subject: String) = diagnostic match {
       case _: IR.Error   => (fansi.Color.Red ++ fansi.Bold.On, "error: ")
       case _: IR.Warning => (fansi.Color.Yellow ++ fansi.Bold.On, "warning: ")
@@ -1046,7 +1046,7 @@ class Compiler(
             str ++= "\n"
             str ++= underline(startColumn, endColumn)
             str ++= "\n"
-            str.render
+            if (outSupportsAnsiColors) str.render else str.plainText
           } else {
             var str = fansi.Str()
             str ++= fansi
@@ -1080,6 +1080,29 @@ class Compiler(
           str ++= diagnostic.formattedMessage
           if (outSupportsAnsiColors) str.render else str.plainText
       }
+    }
+
+    /**
+     * @see https://github.com/termstandard/colors/
+     * @see https://no-color.org/
+     * @return
+     */
+    private def outSupportsColors: Boolean = {
+      if (System.console() == null) {
+        // Non-interactive output is always without color support
+        return false
+      }
+      if (System.getenv("NO_COLOR") != null) {
+        return false
+      }
+      if (System.getenv("COLORTERM") != null) {
+        return true
+      }
+      if (System.getenv("TERM") != null) {
+        val termEnv = System.getenv("TERM").toLowerCase
+        return termEnv.split("-").contains("color") || termEnv.split("-").contains("256color")
+      }
+      return false
     }
 
     private def oneLineFromSource(lineNum: Int): String = {
