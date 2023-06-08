@@ -1026,10 +1026,12 @@ class Compiler(
       sourceSection match {
         case Some(section) =>
           val isOneLine = section.getStartLine == section.getEndLine
-          val srcPath = if (source.getPath == null) {
+          val srcPath: String = if (source.getPath == null && source.getName == null) {
             "<Unknown source>"
-          } else {
+          } else if (source.getPath != null) {
             source.getPath
+          } else {
+            source.getName
           }
           if (isOneLine) {
             val lineNumber  = section.getStartLine
