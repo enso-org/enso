@@ -4,7 +4,7 @@ import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Range_Extensions
 import project.Data.Range.Range
-import project.Data.Text.Extensions
+import project.Data.Text.Text_Extensions
 import project.Data.Text.Helpers
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
