@@ -149,9 +149,10 @@ list_directory directory name_filter=Nothing recursive=False =
    - uri: The URI to fetch.
    - method: The HTTP method to use. Defaults to `GET`.
    - headers: The headers to send with the request. Defaults to an empty vector.
-   - parse:  If successful should the body be parsed to an Enso native object.
+   - try_auto_parse:  If successful should the body be attempted to be parsed to
+     an Enso native object.
 fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-fetch uri method=HTTP_Method.Get headers=[] parse=True =
+fetch uri method=HTTP_Method.Get headers=[] try_auto_parse=True =
     parsed_headers = headers . map h-> case h of
         _ : Vector -> Header.new (h.at 0) (h.at 1)
         _ : Pair -> Header.new (h.at 0) (h.at 1)
@@ -162,7 +163,8 @@ fetch uri method=HTTP_Method.Get headers=[] parse=True =
     response = HTTP.new.request request
 
     if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
-        if parse then response.decode if_unsupported=response else response
+        if try_auto_parse.not then response else
+            response.decode if_unsupported=response . catch handler=(_->response)
 
 ## ALIAS Download, HTTP Get
    Fetches from the URI and returns the response, parsing the body if the
@@ -172,7 +174,8 @@ fetch uri method=HTTP_Method.Get headers=[] parse=True =
    Arguments:
    - method: The HTTP method to use. Defaults to `GET`.
    - headers: The headers to send with the request. Defaults to an empty vector.
-   - parse:  If successful should the body be parsed to an Enso native object.
+   - try_auto_parse:  If successful should the body be attempted to be parsed to
+     an Enso native object.
 URI.fetch : HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-URI.fetch self method=HTTP_Method.Get headers=[] parse=True =
-    Data.fetch self method headers parse
+URI.fetch self method=HTTP_Method.Get headers=[] try_auto_parse=True =
+    Data.fetch self method headers try_auto_parse

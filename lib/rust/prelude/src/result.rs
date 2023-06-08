@@ -41,7 +41,7 @@ impl<T, E> ResultOps for Result<T, E> {
     fn log_err_fmt(&self, fmt: fmt::Arguments)
     where Self::Error: Display {
         if let Err(err) = self {
-            crate::error!("{}: {}", fmt, err)
+            crate::error!("{} {}", fmt, err)
         }
     }
 }

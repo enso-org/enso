@@ -15,6 +15,7 @@ use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::VisualisationConfiguration;
 use futures::future::LocalBoxFuture;
+use std::cmp::Ordering;
 
 
 
@@ -22,10 +23,21 @@ use futures::future::LocalBoxFuture;
 // === Errors ===
 // ==============
 
-/// Error then trying to pop stack item on ExecutionContext when there only root call remains.
+/// Error when trying to pop stack item on ExecutionContext when there only root call remains.
 #[derive(Clone, Copy, Debug, Fail)]
 #[fail(display = "Tried to pop an entry point.")]
 pub struct PopOnEmptyStack();
+
+/// Error when trying to refer too much frames back.
+#[derive(Clone, Copy, Debug, Fail)]
+#[fail(
+    display = "Tried to get information from {} frames back, but stack has only {} frames.",
+    requested, actual
+)]
+pub struct TooManyFrames {
+    requested: usize,
+    actual:    usize,
+}
 
 /// Error when using an Id that does not correspond to any known visualization.
 #[derive(Clone, Copy, Debug, Fail)]
@@ -173,6 +185,19 @@ impl model::execution_context::API for ExecutionContext {
             top_frame.definition.clone()
         } else {
             self.entry_point.borrow().clone()
+        }
+    }
+
+    fn method_at_frame_back(&self, count: usize) -> FallibleResult<MethodPointer> {
+        let stack = self.stack.borrow();
+        match count.cmp(&stack.len()) {
+            Ordering::Less => {
+                let index = stack.len() - count - 1;
+                Ok(stack[index].definition.clone())
+            }
+            Ordering::Equal => Ok(self.entry_point.borrow().clone()),
+            Ordering::Greater =>
+                Err(TooManyFrames { requested: count, actual: stack.len() }.into()),
         }
     }
 

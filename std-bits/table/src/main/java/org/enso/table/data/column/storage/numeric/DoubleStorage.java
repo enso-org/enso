@@ -1,4 +1,4 @@
-package org.enso.table.data.column.storage;
+package org.enso.table.data.column.storage.numeric;
 
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
@@ -8,6 +8,9 @@ import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
+import org.enso.table.data.column.operation.map.UnaryDoubleToLongOp;
+import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
@@ -240,6 +243,27 @@ public final class DoubleStorage extends NumericStorage<Double> {
               protected double doDouble(
                   double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
                 return Math.pow(a, b);
+              }
+            })
+        .add(
+            new UnaryDoubleToLongOp(Maps.TRUNCATE) {
+              @Override
+              protected long doOperation(double a) {
+                return (long) a;
+              }
+            })
+        .add(
+            new UnaryDoubleToLongOp(Maps.CEIL) {
+              @Override
+              protected long doOperation(double a) {
+                return (long) Math.ceil(a);
+              }
+            })
+        .add(
+            new UnaryDoubleToLongOp(Maps.FLOOR) {
+              @Override
+              protected long doOperation(double a) {
+                return (long) Math.floor(a);
               }
             })
         .add(

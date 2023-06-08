@@ -292,23 +292,19 @@ spec setup =
             r1 = t1.join t2
             r1.should_fail_with Missing_Input_Columns
             r1.catch.criteria.should_equal ["X"]
-            r1.catch.to_display_text.should_equal "The criteria [X] did not match any columns in the right table."
+            r1.catch.to_display_text.should_equal "The criteria 'X' did not match any columns in the right table."
 
-            conditions = [Join_Condition.Equals "foo" 42, Join_Condition.Equals "X" -3, Join_Condition.Equals -1 "baz"]
-
-            r2 = t1.join t2 on=conditions on_problems=Problem_Behavior.Ignore
-            ## We have both
-               - Column_Indexes_Out_Of_Range.Error [42, -3]
-               - Missing_Input_Columns.Error ["foo", "baz"]
-               here, but we can throw only one error. I think column names error
-               will be more useful, so I'd prioritize it.
+            conditions2 = [Join_Condition.Equals "foo" 42, Join_Condition.Equals "X" -3, Join_Condition.Equals -1 "baz"]
+            r2 = t1.join t2 on=conditions2 on_problems=Problem_Behavior.Ignore
             r2.should_fail_with Missing_Input_Columns
             r2.catch.criteria.should_equal ["foo"]
-            r2.catch.to_display_text.should_equal "The criteria [foo] did not match any columns in the left table."
+            r2.catch.to_display_text.should_equal "The criteria 'foo' did not match any columns in the left table."
 
-            r3 = t1.join t2 on=[Join_Condition.Equals 42 0] on_problems=Problem_Behavior.Ignore
-            r3.should_fail_with Column_Indexes_Out_Of_Range
-            r3.catch.indexes.should_equal [42]
+            conditions3 = [Join_Condition.Equals "Y" 42, Join_Condition.Equals "X" -3, Join_Condition.Equals -1 "baz"]
+            r3 = t1.join t2 on=conditions3 on_problems=Problem_Behavior.Ignore
+            r3.should_fail_with Missing_Input_Columns
+            r3.catch.criteria.should_equal ["baz", 42, -3]
+            r3.catch.to_display_text.should_equal "The criteria 'baz', 42 (index), -3 (index) did not match any columns in the right table."
 
         Test.specify "should report Invalid_Value_Type if non-text columns are provided to Equals_Ignore_Case" <|
             t1 = table_builder [["X", ["1", "2", "c"]], ["Y", [1, 2, 3]]]

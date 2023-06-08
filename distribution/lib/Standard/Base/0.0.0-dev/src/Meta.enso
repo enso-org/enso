@@ -36,7 +36,26 @@ type Type
 
     ## ADVANCED
 
-       Returns a vector of `Meta.Constructor` for this type
+       Returns a vector of method names that can be invoked
+       on instances of this type.
+       ? Static Methods
+
+         To obtain list of _static methods_ on a given type
+         use `Meta.type_of`.
+
+       > Example
+         All instance methods to invoke on `Integer` as
+         `(v:Integer) v.method_name...`:
+
+             Meta.meta Integer . methods
+
+       > Example
+         All static methods to invoke on `Integer` as
+         `Integer.method_name...`:
+
+            Meta.meta (Meta.type_of Integer) . methods
+
+
     methods : Vector
     methods self =
         Vector.from_polyglot_array (get_type_methods self.value)
