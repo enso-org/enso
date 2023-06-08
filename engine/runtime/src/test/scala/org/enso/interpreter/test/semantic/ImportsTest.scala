@@ -164,7 +164,9 @@ class ImportsTest extends PackageTest {
     ) should have message "Compilation aborted due to errors."
     val outLines = consumeOut.filterNot(isDiagnosticLine)
     outLines should have length 1
-    outLines.head should include("Main.enso:5:16: error: The name `Long` could not be found.")
+    outLines.head should include(
+      "Main.enso:5:16: error: The name `Long` could not be found."
+    )
   }
 
   "Constructors" should "be importable" in {
@@ -182,7 +184,9 @@ class ImportsTest extends PackageTest {
 
     val outLines = consumeOut.filterNot(isDiagnosticLine)
     outLines should have length 1
-    outLines.head should include("Main.enso:2:14: error: Fully qualified name references a library Standard.Base but an import statement for it is missing.")
+    outLines.head should include(
+      "Main.enso:2:14: error: Fully qualified name references a library Standard.Base but an import statement for it is missing."
+    )
   }
 
   "Fully qualified names" should "be resolved when library has already been loaded" in {
@@ -199,7 +203,9 @@ class ImportsTest extends PackageTest {
       "Test_Fully_Qualified_Name_Conflict"
     ) should have message "Method `Foo` of type Atom.type could not be found."
     val outLines = consumeOut.filterNot(isDiagnosticLine)
-    outLines.head should include("Main.enso:2:1: warning: The exported type `Atom` in `local.Test_Fully_Qualified_Name_Conflict.Atom` module will cause name conflict when attempting to use a fully qualified name of the `local.Test_Fully_Qualified_Name_Conflict.Atom.Foo` module.")
+    outLines.head should include(
+      "Main.enso:2:1: warning: The exported type `Atom` in `local.Test_Fully_Qualified_Name_Conflict.Atom` module will cause name conflict when attempting to use a fully qualified name of the `local.Test_Fully_Qualified_Name_Conflict.Atom.Foo` module."
+    )
   }
 
   "Deeply nested modules" should "infer correct synthetic modules" in {
