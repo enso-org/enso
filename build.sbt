@@ -1416,20 +1416,24 @@ lazy val runtime = (project in file("engine/runtime"))
 
 lazy val `runtime-instrument-common` =
   (project in file("engine/runtime-instrument-common"))
+    .configs(Benchmark)
     .settings(
       frgaalJavaCompilerSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
+      inConfig(Benchmark)(Defaults.testSettings),
       instrumentationSettings,
       Test / javaOptions ++= Seq(
         "-Dgraalvm.locatorDisabled=true",
         s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
       ),
+      bench := (Benchmark / test).tag(Exclusive).value,
+      Benchmark / parallelExecution := false,
       Test / fork := true,
       Test / envVars ++= distributionEnvironmentOverrides ++ Map(
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
       )
     )
-    .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
+    .dependsOn(runtime % "compile->compile;test->test;runtime->runtime;bench->bench")
 
 lazy val `runtime-instrument-id-execution` =
   (project in file("engine/runtime-instrument-id-execution"))
