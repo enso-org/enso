@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as backend from './backend'
+import * as dateTime from './dateTime'
 import * as modalProvider from '../providers/modal'
 import * as svg from '../components/svg'
 import * as table from './components/table'
@@ -111,7 +112,9 @@ export const COLUMN_RENDERER: Record<
     Exclude<Column, Column.name>,
     (props: table.ColumnProps<backend.Asset, unknown>) => JSX.Element
 > = {
-    [Column.lastModified]: () => <></>,
+    [Column.lastModified]: props => (
+        <>{props.item.modifiedAt && dateTime.formatDateTime(new Date(props.item.modifiedAt))}</>
+    ),
     [Column.sharedWith]: props => (
         <>
             {(props.item.permissions ?? []).map(user => (
