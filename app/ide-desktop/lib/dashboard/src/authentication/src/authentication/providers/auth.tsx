@@ -308,6 +308,7 @@ export function AuthProvider(props: AuthProviderProps) {
         const result = await cognito.signUp(username, password)
         if (result.ok) {
             toast.success(MESSAGES.signUpSuccess)
+            navigate(app.LOGIN_PATH)
         } else {
             toast.error(result.val.message)
         }
