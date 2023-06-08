@@ -14,7 +14,7 @@ use serde::Serialize;
 // ===============
 
 /// All JSON-RPC messages bear `jsonrpc` version number.
-#[derive(Serialize, Clone, Debug, PartialEq, Eq, Deref)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Deref)]
 pub struct Message<T> {
     /// JSON-RPC Protocol version, should be 2.0.
     pub jsonrpc: Version,
@@ -108,7 +108,7 @@ pub enum Version {
 ///
 /// `Call` must be a type, that upon JSON serialization provides `method` and
 /// `params` fields, like `MethodCall`.
-#[derive(Serialize, Debug, PartialEq, Eq, Deref)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Deref)]
 pub struct Request<Call> {
     /// An identifier for this request that will allow matching the response.
     pub id:   Id,
@@ -129,12 +129,12 @@ impl<M> Request<M> {
 ///
 /// `Call` must be a type, that upon JSON serialization provides `method` and
 /// `params` fields, like `MethodCall`.
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Notification<Call>(pub Call);
 
 /// A response to a `Request`. Depending on `result` value it might be
 /// successful or not.
-#[derive(Serialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Response<Res> {
     /// Identifier, matching the value given in `Request` when call was made.
     pub id:     Id,
@@ -144,13 +144,13 @@ pub struct Response<Res> {
 }
 
 /// Result of the remote call — either a returned value or en error.
-#[derive(Serialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 #[serde(untagged)]
+#[allow(missing_docs)]
 pub enum Result<Res> {
     /// Returned value of a successful call.
     Success(Success<Res>),
     /// Error value from a called that failed on the remote side.
-    #[allow(missing_docs)]
     Error { error: Error },
 }
 
@@ -206,6 +206,10 @@ pub enum IncomingMessage {
 #[profile(Debug)]
 pub fn decode_incoming_message(message: &str) -> serde_json::Result<IncomingMessage> {
     type Payload = serde_json::value::RawValue;
+    // We can't use the derived deserialization for `Message` because it is currently incompatible
+    // with `serde_json::value::RawValue`[1], which is the most performant way to partially-decode
+    // JSON.
+    // [1]: (https://github.com/serde-rs/serde/issues/1183)
     #[derive(Deserialize, Debug)]
     struct RawMessage {
         #[allow(dead_code)] // Checked for during deserialization.
@@ -218,9 +222,9 @@ pub fn decode_incoming_message(message: &str) -> serde_json::Result<IncomingMess
         error:   Option<Error>,
     }
     fn deserialize_some<'de, T, D>(deserializer: D) -> std::result::Result<Option<T>, D::Error>
-    where T: Deserialize<'de>,
-          D: serde::de::Deserializer<'de>
-    {
+    where
+        T: Deserialize<'de>,
+        D: serde::de::Deserializer<'de>, {
         Deserialize::deserialize(deserializer).map(Some)
     }
     let raw: RawMessage = serde_json::from_str(message)?;
@@ -234,7 +238,7 @@ pub fn decode_incoming_message(message: &str) -> serde_json::Result<IncomingMess
         _ => {
             let payload: Box<serde_json::value::RawValue> = serde_json::from_str(message)?;
             IncomingMessage::Notification(Notification(payload))
-        },
+        }
     })
 }
 

@@ -1819,6 +1819,7 @@ pub struct GraphEditorModel {
     profiling_statuses: profiling::Statuses,
     profiling_button: component::profiling::Button,
     styles_frp: StyleWatchFrp,
+    #[deprecated = "StyleWatch was designed as an internal tool for shape system (#795)"]
     styles: StyleWatch,
     selection_controller: selection::Controller,
     execution_environment_selector: ExecutionEnvironmentSelector,
@@ -1852,8 +1853,6 @@ impl GraphEditorModel {
         let drop_manager =
             ensogl_drop_manager::Manager::new(&scene.dom.root.clone_ref().into(), scene);
         let styles_frp = StyleWatchFrp::new(&scene.style_sheet);
-        // FIXME: StyleWatch is unsuitable here, as it was designed as an internal tool for shape
-        //  system (#795)
         let styles = StyleWatch::new(&scene.style_sheet);
         let selection_controller = selection::Controller::new(
             frp,
@@ -1864,6 +1863,7 @@ impl GraphEditorModel {
         );
         let sources_of_detached_target_edges = default();
 
+        #[allow(deprecated)] // `styles`
         Self {
             display_object,
             app,
@@ -2565,6 +2565,8 @@ impl GraphEditorModel {
                     .edge_hover_type()
                     .or_else(|| self.edge_target_type(edge_id))
                     .or_else(|| self.edge_source_type(edge_id));
+                // FIXME: `type_coloring::compute` should be ported to `StyleWatchFrp`.
+                #[allow(deprecated)]
                 let opt_color = edge_type.map(|t| type_coloring::compute(&t, &self.styles));
                 opt_color.unwrap_or(neutral_color)
             }

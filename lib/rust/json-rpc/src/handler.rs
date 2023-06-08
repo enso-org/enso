@@ -285,6 +285,7 @@ impl<Notification> Handler<Notification> {
     ///
     /// Helper common \code for `open_request` and `open_request_with_json`. See
     /// `open_request_with_json` docstring for more information.
+    #[profile(Debug)]
     fn open_request_with_message<Returned: DeserializeOwned>(
         &self,
         id: Id,

@@ -146,7 +146,6 @@ impl Fixture {
     }
 }
 
-/*
 #[test]
 fn test_success_call() {
     let mut fixture = Fixture::new();
@@ -176,9 +175,7 @@ fn test_success_call() {
     let result = fut.expect_ok();
     assert_eq!(result, 8 * 8);
 }
- */
 
-/*
 #[test]
 fn test_error_call() {
     let mut fixture = Fixture::new();
@@ -206,7 +203,6 @@ fn test_error_call() {
         panic!("Expected an error to be RemoteError");
     }
 }
- */
 
 #[test]
 fn test_garbage_reply_error() {
