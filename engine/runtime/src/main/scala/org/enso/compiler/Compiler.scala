@@ -1047,8 +1047,11 @@ class Compiler(
             str ++= oneLineFromSourceColored(lineNumber, startColumn, endColumn)
             str ++= "\n"
             str ++= underline(startColumn, endColumn)
-            str ++= "\n"
-            if (outSupportsAnsiColors) str.render else str.plainText
+            if (outSupportsAnsiColors) {
+              str.render.stripLineEnd
+            } else {
+              str.plainText.stripLineEnd
+            }
           } else {
             var str = fansi.Str()
             str ++= fansi
@@ -1069,7 +1072,11 @@ class Compiler(
               str ++= blankLinePrefix + "... and " + restLineCount + " more lines ..."
               str ++= "\n"
             }
-            if (outSupportsAnsiColors) str.render else str.plainText
+            if (outSupportsAnsiColors) {
+              str.render.stripLineEnd
+            } else {
+              str.plainText.stripLineEnd
+            }
           }
         case None =>
           // We dont have location information, so we just print the message
@@ -1080,7 +1087,11 @@ class Compiler(
           str ++= ": "
           str ++= fansi.Str(subject).overlay(textAttrs)
           str ++= diagnostic.formattedMessage
-          if (outSupportsAnsiColors) str.render else str.plainText
+          if (outSupportsAnsiColors) {
+            str.render.stripLineEnd
+          } else {
+            str.plainText.stripLineEnd
+          }
       }
     }
 
