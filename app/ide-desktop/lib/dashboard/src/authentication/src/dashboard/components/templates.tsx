@@ -196,7 +196,7 @@ function Templates(props: TemplatesProps) {
     }, [isOpen])
 
     return (
-        <div className="my-2 p-2">
+        <div className="mx-2">
             <div className="flex items-center m-2">
                 <div className="w-4">
                     <div

@@ -50,7 +50,7 @@ function TopBar(props: TopBarProps) {
     }, [isUserMenuVisible])
 
     return (
-        <div className="flex m-2 h-8">
+        <div className="flex mx-2 h-8">
             {supportsLocalBackend && (
                 <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
                     <button
