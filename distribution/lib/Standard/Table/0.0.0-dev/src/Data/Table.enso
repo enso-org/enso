@@ -1671,8 +1671,7 @@ type Table
                 problem_builder.attach_problems_before on_problems <|
                     Table.new good_columns
 
-    ## ALIAS dropna
-       ALIAS drop_missing_rows
+    ## ALIAS dropna, drop_missing_rows
        Remove rows which are all blank or containing blank values.
 
        Arguments:
