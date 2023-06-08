@@ -188,7 +188,7 @@ function AppRouter(props: AppProps) {
             >
                 <backendProvider.BackendProvider initialBackend={initialBackend}>
                     <authProvider.AuthProvider
-                        enabled={!isAuthenticationDisabled}
+                        shouldStartInOfflineMode={isAuthenticationDisabled}
                         authService={authService}
                         onAuthenticated={onAuthenticated}
                     >

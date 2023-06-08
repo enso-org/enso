@@ -252,8 +252,6 @@ function regexEscape(string: string) {
 export interface DashboardProps {
     /** Whether the application may have the local backend running. */
     supportsLocalBackend: boolean
-    /** If true, the app can only be used in offline mode. */
-    isAuthenticationDisabled: boolean
     appRunner: AppRunner
     initialProjectName: string | null
 }
@@ -263,7 +261,7 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 function Dashboard(props: DashboardProps) {
-    const { supportsLocalBackend, isAuthenticationDisabled, appRunner, initialProjectName } = props
+    const { supportsLocalBackend, appRunner, initialProjectName } = props
 
     const logger = loggerProvider.useLogger()
     const session = authProvider.useNonPartialUserSession()
@@ -984,7 +982,7 @@ function Dashboard(props: DashboardProps) {
                 .map(directoryAsset => DIRECTORY_NAME_REGEX.exec(directoryAsset.title))
                 .map(match => match?.groups?.directoryIndex)
                 .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
-            const title = `${DIRECTORY_NAME_DEFAULT_PREFIX}${Math.max(...directoryIndices) + 1}`
+            const title = `${DIRECTORY_NAME_DEFAULT_PREFIX}${Math.max(0, ...directoryIndices) + 1}`
             setDirectoryAssets([
                 {
                     title,
@@ -1024,7 +1022,6 @@ function Dashboard(props: DashboardProps) {
         >
             <TopBar
                 supportsLocalBackend={supportsLocalBackend}
-                isAuthenticationDisabled={isAuthenticationDisabled}
                 projectName={project?.name ?? null}
                 tab={tab}
                 toggleTab={() => {

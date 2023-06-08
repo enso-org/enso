@@ -45,7 +45,7 @@ export const theme = {
             '140': '35rem',
         },
         gridTemplateColumns: {
-            'fill-60': 'repeat(auto-fill, 15rem)',
+            'fill-60-minmax': 'repeat(auto-fill, minmax(15rem, 1fr))',
         },
         boxShadow: {
             soft: `0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b, \

@@ -18,8 +18,6 @@ import UserMenu from './userMenu'
 export interface TopBarProps {
     /** Whether the application may have the local backend running. */
     supportsLocalBackend: boolean
-    /** If true, the app can only be used in offline mode. */
-    isAuthenticationDisabled: boolean
     projectName: string | null
     tab: dashboard.Tab
     toggleTab: () => void
@@ -31,22 +29,12 @@ export interface TopBarProps {
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,
  * because `searchVal` may change parent component's project list. */
 function TopBar(props: TopBarProps) {
-    const {
-        supportsLocalBackend,
-        isAuthenticationDisabled,
-        projectName,
-        tab,
-        toggleTab,
-        setBackendType,
-        query,
-        setQuery,
-    } = props
+    const { supportsLocalBackend, projectName, tab, toggleTab, setBackendType, query, setQuery } =
+        props
     const [isUserMenuVisible, setIsUserMenuVisible] = react.useState(false)
     const { modal } = modalProvider.useModal()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
-
-    const shouldShowBackendSwitcher = supportsLocalBackend && !isAuthenticationDisabled
 
     react.useEffect(() => {
         if (!modal) {
@@ -64,7 +52,7 @@ function TopBar(props: TopBarProps) {
 
     return (
         <div className="flex mb-2 h-8">
-            {shouldShowBackendSwitcher && (
+            {supportsLocalBackend && (
                 <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
                     <button
                         onClick={() => {
@@ -135,19 +123,17 @@ function TopBar(props: TopBarProps) {
                 <div className="ml-2">{svg.SPEECH_BUBBLE_ICON}</div>
             </a>
             {/* User profile and menu. */}
-            {!isAuthenticationDisabled && (
-                <div className="transform w-8">
-                    <div
-                        onClick={event => {
-                            event.stopPropagation()
-                            setIsUserMenuVisible(!isUserMenuVisible)
-                        }}
-                        className="rounded-full w-8 h-8 bg-cover cursor-pointer"
-                    >
-                        <svg.DefaultUserIcon size={32} />
-                    </div>
+            <div className="transform w-8">
+                <div
+                    onClick={event => {
+                        event.stopPropagation()
+                        setIsUserMenuVisible(!isUserMenuVisible)
+                    }}
+                    className="rounded-full w-8 h-8 bg-cover cursor-pointer"
+                >
+                    <svg.DefaultUserIcon size={32} />
                 </div>
-            )}
+            </div>
         </div>
     )
 }
