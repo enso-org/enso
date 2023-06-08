@@ -3,33 +3,33 @@
 use crate as hlist;
 use paste::paste;
 
+use crate::generic::*;
 use crate::hlist::*;
 use crate::HasHListRepr;
 
 
-// ====================
-// === HasTupleRepr ===
-// ====================
 
-/// All types which have a tuple representation.
-#[allow(missing_docs)]
-pub trait HasTupleRepr {
-    type TupleRepr;
+// ========================
+// === Family of tuples ===
+// ========================
+
+/// The tuple family.
+#[derive(Clone, Copy, Debug)]
+pub struct Tuple;
+
+macro_rules! impl_belongs_to_family_for_tuple {
+    ($t:tt $(,$ts:tt)*) => {
+        paste! {
+            impl<$([<T $ts>]),*> BelongsToFamily for ($([<T $ts>],)*) {
+                type Family = Tuple;
+            }
+        }
+        impl_belongs_to_family_for_tuple! {$($ts),*}
+    };
+    () => {}
 }
 
-/// Tuple representation of a type.
-pub type TupleRepr<T> = <T as HasTupleRepr>::TupleRepr;
-
-/// Conversion of the given type to its tuple representation.
-#[allow(missing_docs)]
-pub trait IntoTuple: HasTupleRepr + Into<TupleRepr<Self>> {
-    #[inline(always)]
-    fn into_tuple(self) -> TupleRepr<Self> {
-        self.into()
-    }
-}
-
-impl<T> IntoTuple for T where T: HasTupleRepr + Into<TupleRepr<T>> {}
+impl_belongs_to_family_for_tuple![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 
 
 
@@ -38,26 +38,25 @@ impl<T> IntoTuple for T where T: HasTupleRepr + Into<TupleRepr<T>> {}
 // =====================================
 
 macro_rules! gen_has_hlist_repr_for_tuples {
-    ($r:literal $(,$rs:literal)*) => {
-        gen_has_hlist_repr_for_tuples! {[$r] $($rs)* X}
-    };
-    ([$($t:tt)*] $r:tt $($rs:tt)*) => {
-        paste! {
-            impl <$([<T $t>]),*> HasHListRepr for ($([<T $t>]),*,) {
-                type HListRepr = hlist::ty! { $([<T $t>]),* };
-            }
+    ($($ts:literal),*) => { paste! {
+        gen_has_hlist_repr_for_tuples! {@ $([<T $ts>])* }
+    }};
 
-            impl <'a, $([<T $t>]),*> HasHListRepr for &'a ($([<T $t>]),*,) {
-                type HListRepr = hlist::ty! { $(&'a [<T $t>]),* };
-            }
-
-            impl <'a, $([<T $t>]),*> HasHListRepr for &'a mut ($([<T $t>]),*,) {
-                type HListRepr = hlist::ty! { $(&'a mut [<T $t>]),* };
-            }
+    (@) => {};
+    (@ $t:tt $($ts:tt)*) => {
+        impl <$($ts,)*> HasHListRepr for ($($ts,)*) {
+            type HListRepr = hlist::ty! { $($ts,)* };
         }
-        gen_has_hlist_repr_for_tuples! {[$($t)* $r] $($rs)*}
+
+        impl <'a, $($ts,)*> HasHListRepr for &'a ($($ts,)*) {
+            type HListRepr = hlist::ty! { $(&'a $ts),* };
+        }
+
+        impl <'a, $($ts,)*> HasHListRepr for &'a mut ($($ts,)*) {
+            type HListRepr = hlist::ty! { $(&'a mut $ts,)* };
+        }
+        gen_has_hlist_repr_for_tuples! {@ $($ts)*}
     };
-    ([$($t:tt)*]) => {}
 }
 
 gen_has_hlist_repr_for_tuples![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
@@ -68,32 +67,40 @@ gen_has_hlist_repr_for_tuples![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
 // === Conversion Tuple -> HList ===
 // =================================
 
-macro_rules! gen_from_tuple_to_hlist {
-    ($($rs:literal),*) => {
-        gen_from_tuple_to_hlist! {[] $($rs)* X}
-    };
-    ([$($t:tt)*] $r:tt $($rs:tt)*) => {
+macro_rules! impl_from_tuple_for_hlist {
+    ($($ts:literal),*) => {
         paste! {
-            impl<$([<T $t>]),*> From<($([<T $t>],)*)> for hlist::ty![$([<T $t>]),*] {
-                #[inline(always)]
-                fn from(t: ($([<T $t>],)*)) -> Self {
-                    hlist::new![$(t.$t),*]
-                }
-            }
-
-            impl<'a, $([<T $t>]),*> From<&'a ($([<T $t>],)*)> for hlist::ty![$(&'a [<T $t>]),*] {
-                #[inline(always)]
-                fn from(t: &'a ($([<T $t>],)*)) -> Self {
-                    hlist::new![$(&t.$t),*]
-                }
+            impl_from_tuple_for_hlist! {[] $( [[<T $ts>] $ts] )*}
+       }
+    };
+    ([$( [$t:tt $tn:tt] )*] $r:tt $($rs:tt)*) => {
+        impl<$($t),*> From<($($t,)*)> for hlist::ty![$($t),*] {
+            #[inline(always)]
+            fn from(t: ($($t,)*)) -> Self {
+                hlist::new![$(t.$tn),*]
             }
         }
-        gen_from_tuple_to_hlist! {[$($t)* $r] $($rs)*}
+
+        impl<'a, $($t),*> From<&'a ($($t,)*)> for hlist::ty![$(&'a $t),*] {
+            #[inline(always)]
+            fn from(t: &'a ($($t,)*)) -> Self {
+                hlist::new![$(&t.$tn),*]
+            }
+        }
+
+        impl<'a, $($t),*> From<&'a mut ($($t,)*)> for hlist::ty![$(&'a mut $t),*] {
+            #[inline(always)]
+            fn from(t: &'a mut ($($t,)*)) -> Self {
+                hlist::new![$(&mut t.$tn),*]
+            }
+        }
+
+        impl_from_tuple_for_hlist! {[$([$t $tn])* $r] $($rs)*}
     };
-    ([$($ts:tt)*]) => {}
+    ($ts:tt) => {}
 }
 
-gen_from_tuple_to_hlist![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+impl_from_tuple_for_hlist![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 
 
 
@@ -101,69 +108,53 @@ gen_from_tuple_to_hlist![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1
 // === Conversion HList -> Tuple ===
 // =================================
 
-macro_rules! gen_from_hlist_to_tuple {
-    ($($rs:literal),*) => {
-        gen_from_hlist_to_tuple! {[] $($rs)* X}
-    };
-    ([$($t:tt)*] $r:tt $($rs:tt)*) => {
-        paste! {
-            impl<$([<T $t>]),*> From<hlist::ty![$([<T $t>]),*]> for ($([<T $t>],)*) {
-                #[inline(always)]
-                fn from(value: hlist::ty![$([<T $t>]),*]) -> Self {
-                    let hlist::pat![$([<t $t>]),*] = value;
-                    ($([<t $t>],)*)
-                }
-            }
-
-            impl<'a, $([<T $t>]),*> From<&'a hlist::ty![$([<T $t>]),*]> for ($(&'a [<T $t>],)*) {
-                #[inline(always)]
-                fn from(value: &'a hlist::ty![$([<T $t>]),*]) -> Self {
-                    let hlist::pat![$([<t $t>]),*] = value;
-                    ($([<t $t>],)*)
-                }
+macro_rules! impl_from_hlist_for_tuple {
+    () => {};
+    ($($ts:literal),*) => { paste! {
+        impl_from_hlist_for_tuple! {$([<T $ts>])*}
+    }};
+    ($t:tt $($ts:tt)*) => {
+        impl<$($ts),*> IntoFamily<Tuple> for crate::ty![$($ts),*] {
+            type Output = ($($ts,)*);
+            fn _into_family(self) -> Self::Output {
+                let crate::pat![$($ts),*] = self;
+                ($($ts,)*)
             }
         }
-        gen_from_hlist_to_tuple! {[$($t)* $r] $($rs)*}
-    };
-    ([$($ts:tt)*]) => {}
-}
 
-gen_from_hlist_to_tuple![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
-
-
-
-// ==============================
-// === HasTupleRepr for HList ===
-// ==============================
-
-macro_rules! impl_has_tuple_repr_for_hlist {
-    ($($rs:literal),*) => {
-        impl_has_tuple_repr_for_hlist! {[] $($rs)* X}
-    };
-    ([$($t:tt)*] $r:tt $($rs:tt)*) => {
-        paste! {
-            impl<$([<T $t>]),*> HasTupleRepr for hlist::ty![$([<T $t>]),*] {
-                type TupleRepr = ($([<T $t>],)*);
-            }
-
-            impl<'a, $([<T $t>]),*> HasTupleRepr for &'a hlist::ty![$([<T $t>]),*] {
-                type TupleRepr = ($(&'a [<T $t>],)*);
+        impl<'t, $($ts),*> IntoFamily<Tuple> for &'t crate::ty![$($ts),*] {
+            type Output = ($(&'t $ts,)*);
+            fn _into_family(self) -> Self::Output {
+                let crate::pat![$($ts),*] = self;
+                ($($ts,)*)
             }
         }
-        impl_has_tuple_repr_for_hlist! {[$($t)* $r] $($rs)*}
+
+        impl<'t, $($ts),*> IntoFamily<Tuple> for &'t mut crate::ty![$($ts),*] {
+            type Output = ($(&'t mut $ts,)*);
+            fn _into_family(self) -> Self::Output {
+                let crate::pat![$($ts),*] = self;
+                ($($ts,)*)
+            }
+        }
+
+        impl_from_hlist_for_tuple! { $($ts)* }
     };
-    ([$($ts:tt)*]) => {}
 }
 
-impl_has_tuple_repr_for_hlist![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+impl_from_hlist_for_tuple![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 
+
+
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::generic::traits::*;
-    use crate::generic::FromHList;
-    use crate::generic::Tuple;
+    use crate::generic::IntoFamily;
     use crate::PopLastField;
     use std::marker::PhantomData;
 

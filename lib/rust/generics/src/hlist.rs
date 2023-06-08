@@ -47,8 +47,8 @@ pub struct Cons<Head, Tail>(pub Head, pub Tail);
 #[macro_export]
 macro_rules! new {
     ($(,)*) => { $crate::Nil };
-    ($t:expr $(,$($ts:expr),*)?) => {
-        $crate::Cons($t,$crate::new!{$($($ts),*)?})
+    ($t:expr $(,$ts:expr)* $(,)?) => {
+        $crate::Cons($t, $crate::new!{ $($ts),* })
     }
 }
 
@@ -56,8 +56,8 @@ macro_rules! new {
 #[macro_export]
 macro_rules! pat {
     ($(,)*) => { $crate::Nil };
-    ($t:pat $(,$($ts:pat),*)?) => {
-        $crate::Cons($t,$crate::pat!{$($($ts),*)?})
+    ($t:pat $(,$ts:pat)* $(,)?) => {
+        $crate::Cons($t, $crate::pat!{ $($ts),* })
     }
 }
 
@@ -65,8 +65,8 @@ macro_rules! pat {
 #[macro_export]
 macro_rules! ty {
     ($(,)*) => { $crate::Nil };
-    ($t:ty $(,$($ts:ty),*)?) => {
-        $crate::Cons<$t,$crate::ty!{$($($ts),*)?}>
+    ($t:ty $(,$ts:ty)* $(,)?) => {
+        $crate::Cons<$t, $crate::ty!{ $($ts),* }>
     }
 }
 
