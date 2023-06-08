@@ -69,12 +69,12 @@ impl<T: HasInitFields> HasInitFields for Components<T> {
     type InitFields = Components<InitFields<T>>;
 }
 
-impl<T, X> PushBack<X> for Components<T>
-where T: PushBack<X>
+impl<T, X> PushLastField<X> for Components<T>
+where T: PushLastField<X>
 {
-    type Output = Components<<T as PushBack<X>>::Output>;
-    fn push_back(self, t: X) -> Self::Output {
-        Components(self.tuple.push_back(t))
+    type Output = Components<<T as PushLastField<X>>::Output>;
+    fn push_last_field(self, t: X) -> Self::Output {
+        Components(self.tuple.push_last_field(t))
     }
 }
 

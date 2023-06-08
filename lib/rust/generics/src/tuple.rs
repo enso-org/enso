@@ -4,7 +4,6 @@ use crate as hlist;
 use paste::paste;
 
 use crate::generic::*;
-use crate::hlist::*;
 use crate::HasHListRepr;
 
 
@@ -76,22 +75,22 @@ macro_rules! impl_from_tuple_for_hlist {
     ([$( [$t:tt $tn:tt] )*] $r:tt $($rs:tt)*) => {
         impl<$($t),*> From<($($t,)*)> for hlist::ty![$($t),*] {
             #[inline(always)]
-            fn from(t: ($($t,)*)) -> Self {
-                hlist::new![$(t.$tn),*]
+            fn from(_t: ($($t,)*)) -> Self {
+                hlist::new![$(_t.$tn),*]
             }
         }
 
         impl<'a, $($t),*> From<&'a ($($t,)*)> for hlist::ty![$(&'a $t),*] {
             #[inline(always)]
-            fn from(t: &'a ($($t,)*)) -> Self {
-                hlist::new![$(&t.$tn),*]
+            fn from(_t: &'a ($($t,)*)) -> Self {
+                hlist::new![$(&_t.$tn),*]
             }
         }
 
         impl<'a, $($t),*> From<&'a mut ($($t,)*)> for hlist::ty![$(&'a mut $t),*] {
             #[inline(always)]
-            fn from(t: &'a mut ($($t,)*)) -> Self {
-                hlist::new![$(&mut t.$tn),*]
+            fn from(_t: &'a mut ($($t,)*)) -> Self {
+                hlist::new![$(&mut _t.$tn),*]
             }
         }
 
@@ -117,6 +116,7 @@ macro_rules! impl_from_hlist_for_tuple {
         impl<$($ts),*> IntoFamily<Tuple> for crate::ty![$($ts),*] {
             type Output = ($($ts,)*);
             fn _into_family(self) -> Self::Output {
+                #[allow(non_snake_case)]
                 let crate::pat![$($ts),*] = self;
                 ($($ts,)*)
             }
@@ -125,6 +125,7 @@ macro_rules! impl_from_hlist_for_tuple {
         impl<'t, $($ts),*> IntoFamily<Tuple> for &'t crate::ty![$($ts),*] {
             type Output = ($(&'t $ts,)*);
             fn _into_family(self) -> Self::Output {
+                #[allow(non_snake_case)]
                 let crate::pat![$($ts),*] = self;
                 ($($ts,)*)
             }
@@ -133,6 +134,7 @@ macro_rules! impl_from_hlist_for_tuple {
         impl<'t, $($ts),*> IntoFamily<Tuple> for &'t mut crate::ty![$($ts),*] {
             type Output = ($(&'t mut $ts,)*);
             fn _into_family(self) -> Self::Output {
+                #[allow(non_snake_case)]
                 let crate::pat![$($ts),*] = self;
                 ($($ts,)*)
             }
@@ -143,28 +145,3 @@ macro_rules! impl_from_hlist_for_tuple {
 }
 
 impl_from_hlist_for_tuple![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
-
-
-
-// =============
-// === Tests ===
-// =============
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::generic::traits::*;
-    use crate::generic::IntoFamily;
-    use crate::PopLastField;
-    use std::marker::PhantomData;
-
-    #[test]
-    fn test_field_at() {
-        let tuple = (1, "hello", 1);
-        println!("{:?}", (1, 2, 3).pop_last_field());
-
-        assert_eq!(tuple.field_at::<0>(), &1);
-        assert_eq!(tuple.field_at::<1>(), &"hello");
-        assert_eq!(tuple.field_at::<2>(), &1);
-    }
-}

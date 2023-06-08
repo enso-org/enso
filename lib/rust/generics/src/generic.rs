@@ -1,14 +1,9 @@
 //! Generic representation of data types. Refer to the crate documentation to learn more.
 
-// This crate defines many helper traits and uses this flag on purpose.
-
-// === Non-Standard Linter Configuration ===
-#![allow(missing_docs)]
-
 use super::hlist;
 use std::marker::PhantomData;
-use std::ops::Not;
 
+use derivative::Derivative;
 use hlist::Cons;
 use hlist::Nil;
 use paste::paste;
@@ -33,14 +28,6 @@ macro_rules! dec {
     (16) => { 15 };
 }
 
-//
-// struct PhantomConstUsize<const N: usize>;
-//
-// auto trait NotZeroCheck {}
-// impl !NotZeroCheck for PhantomConstUsize<0> {}
-//
-// trait NotZero<const N: usize> = where PhantomConstUsize<N>: NotZeroCheck;
-
 
 // ==============
 // === Traits ===
@@ -51,13 +38,40 @@ pub mod traits {
     pub use super::get_field_at_x_traits::*;
     pub use super::hlist::traits::*;
 
-    pub use super::FieldAt as _TRAIT_FieldAt;
+    pub use super::AsMutFields as _TRAIT_AsMutFields;
+    pub use super::AsRefFields as _TRAIT_AsRefFields;
+    pub use super::BelongsToFamily as _TRAIT_BelongsToFamily;
     pub use super::GetFieldAt as _TRAIT_GetFieldAt;
+    pub use super::GetFieldAtMut as _TRAIT_GetFieldAtMut;
+    pub use super::GetFirstField as _TRAIT_GetFirstField;
+    pub use super::GetFirstFieldMut as _TRAIT_GetFirstFieldMut;
+    pub use super::GetLastField as _TRAIT_GetLastField;
+    pub use super::GetLastFieldMut as _TRAIT_GetLastFieldMut;
     pub use super::HasFieldAt as _TRAIT_HasFieldAt;
     pub use super::HasFieldCount as _TRAIT_HasFieldsCount;
+    pub use super::HasFirstField as _TRAIT_HasFirstField;
+    pub use super::HasInitFields as _TRAIT_HasInitFields;
+    pub use super::HasLastField as _TRAIT_HasLastField;
+    pub use super::HasTailFields as _TRAIT_HasTailFields;
+    pub use super::IntoFamily as _TRAIT_IntoFamily;
+    pub use super::IntoFieldAt as _TRAIT_IntoFieldAt;
+    pub use super::IntoFirstField as _TRAIT_IntoFirstField;
+    pub use super::IntoLastField as _TRAIT_IntoLastField;
+    pub use super::MapFields as _TRAIT_MapFields;
+    pub use super::MapFieldsInto as _TRAIT_MapFieldsInto;
+    pub use super::PopFirstField as _TRAIT_PopFirstField;
+    pub use super::PopLastField as _TRAIT_PopLastField;
+    pub use super::PushFirstField as _TRAIT_PushFirstField;
     pub use super::PushLastField as _TRAIT_PushBack;
+    pub use super::PushLastField as _TRAIT_PushLastField;
+    pub use super::_AsMutFields as _TRAIT__AsMutFields;
+    pub use super::_AsRefFields as _TRAIT__AsRefFields;
     pub use super::_GetFieldAt as _TRAIT__GetFieldAt;
+    pub use super::_GetFieldAtMut as _TRAIT__GetFieldAtMut;
+    pub use super::_IntoFamily as _TRAIT__IntoFamily;
     pub use super::_IntoFieldAt as _TRAIT__IntoFieldAt;
+    pub use super::_MapFields as _TRAIT__MapFields;
+    pub use super::_MapFieldsInto as _TRAIT__MapFieldsInto;
 }
 
 use hlist::*;
@@ -124,14 +138,9 @@ impl<T> _IntoFamily for T {}
 pub trait HasFieldCount {
     const FIELD_COUNT: usize;
     #[inline(always)]
-    fn field_count() -> usize {
+    fn field_count(&self) -> usize {
         Self::FIELD_COUNT
     }
-}
-
-#[inline(always)]
-pub const fn field_count<T: HasFieldCount>() -> usize {
-    <T as HasFieldCount>::FIELD_COUNT
 }
 
 impl HasFieldCount for Nil {
@@ -139,7 +148,131 @@ impl HasFieldCount for Nil {
 }
 
 impl<H, T: HasFieldCount> HasFieldCount for Cons<H, T> {
-    const FIELD_COUNT: usize = 1 + field_count::<T>();
+    const FIELD_COUNT: usize = 1 + T::FIELD_COUNT;
+}
+
+impl<T: HasHListRepr> HasFieldCount for T {
+    const FIELD_COUNT: usize = <T as HasHListRepr>::HListRepr::FIELD_COUNT;
+}
+
+
+
+// ===================
+// === AsRefFields ===
+// ===================
+
+/// Return the structure containing references to all of its fields. Please note that this works
+/// only for structs that have all parameters generic, such as [`HList`] or tuples. In case you want
+/// to get references to all fields of other structs, you can use [`AsHList`] instead.
+#[allow(missing_docs)]
+pub trait AsRefFields {
+    type RefFields;
+    fn _as_ref_fields(self) -> Self::RefFields;
+}
+
+/// Struct with all fields transformed to references. See docs of [`AsRefFields`] for more info.
+pub type RefFields<T> = <T as AsRefFields>::RefFields;
+
+/// Wrapper for [`AsRefFields`] enabling the syntax `t.as_ref_fields()`. This trait is automatically
+/// implemented for all structs.
+pub trait _AsRefFields {
+    #[inline(always)]
+    fn as_ref_fields<'t>(&'t self) -> RefFields<&'t Self>
+    where &'t Self: AsRefFields {
+        self._as_ref_fields()
+    }
+}
+impl<T> _AsRefFields for T {}
+
+impl<'t> AsRefFields for &'t Nil {
+    type RefFields = Nil;
+    #[inline(always)]
+    fn _as_ref_fields(self) -> Self::RefFields {
+        Nil
+    }
+}
+
+impl<'t, H, T> AsRefFields for &'t Cons<H, T>
+where &'t T: AsRefFields
+{
+    type RefFields = Cons<&'t H, RefFields<&'t T>>;
+    #[inline(always)]
+    fn _as_ref_fields(self) -> Self::RefFields {
+        Cons(&self.0, (&self.1)._as_ref_fields())
+    }
+}
+
+impl<'t, T> AsRefFields for &'t T
+where
+    T: BelongsToFamily,
+    &'t T: IntoHList,
+    HListRepr<&'t T>: IntoFamily<Family<T>>,
+{
+    type RefFields = <HListRepr<&'t T> as IntoFamily<Family<T>>>::Output;
+    #[inline(always)]
+    fn _as_ref_fields(self) -> Self::RefFields {
+        self.into_hlist().into_family_of::<T>()
+    }
+}
+
+
+
+// ===================
+// === AsMutFields ===
+// ===================
+
+/// Return the structure containing mutable references to all of its fields. Please note that this
+/// works only for structs that have all parameters generic, such as [`HList`] or tuples. In case
+/// you want to get references to all fields of other structs, you can use [`AsHListMut`] instead.
+#[allow(missing_docs)]
+pub trait AsMutFields {
+    type MutFields;
+    fn _as_mut_fields(self) -> Self::MutFields;
+}
+
+/// Struct with all fields transformed to references. See docs of [`AsMutFields`] for more info.
+pub type MutFields<T> = <T as AsMutFields>::MutFields;
+
+/// Wrapper for [`AsMutFields`] enabling the syntax `t.as_mut_fields()`. This trait is automatically
+/// implemented for all structs.
+pub trait _AsMutFields {
+    #[inline(always)]
+    fn as_mut_fields<'t>(&'t mut self) -> MutFields<&'t mut Self>
+    where &'t mut Self: AsMutFields {
+        self._as_mut_fields()
+    }
+}
+impl<T> _AsMutFields for T {}
+
+impl<'t> AsMutFields for &'t mut Nil {
+    type MutFields = Nil;
+    #[inline(always)]
+    fn _as_mut_fields(self) -> Self::MutFields {
+        Nil
+    }
+}
+
+impl<'t, H, T> AsMutFields for &'t mut Cons<H, T>
+where &'t mut T: AsMutFields
+{
+    type MutFields = Cons<&'t mut H, MutFields<&'t mut T>>;
+    #[inline(always)]
+    fn _as_mut_fields(self) -> Self::MutFields {
+        Cons(&mut self.0, (&mut self.1)._as_mut_fields())
+    }
+}
+
+impl<'t, T> AsMutFields for &'t mut T
+where
+    T: BelongsToFamily,
+    &'t mut T: IntoHList,
+    HListRepr<&'t mut T>: IntoFamily<Family<T>>,
+{
+    type MutFields = <HListRepr<&'t mut T> as IntoFamily<Family<T>>>::Output;
+    #[inline(always)]
+    fn _as_mut_fields(self) -> Self::MutFields {
+        self.into_hlist().into_family_of::<T>()
+    }
 }
 
 
@@ -182,9 +315,7 @@ pub trait IntoFirstField: Sized + HasFirstField {
     fn into_first_field(self) -> Self::FirstField;
 }
 
-impl<H, T> IntoFirstField for Cons<H, T>
-where T: IntoFirstField
-{
+impl<H, T> IntoFirstField for Cons<H, T> {
     #[inline(always)]
     fn into_first_field(self) -> Self::FirstField {
         self.0
@@ -411,6 +542,65 @@ where for<'t> Self: GetLastFieldMutHelper<'t>
     fn last_field_mut(&mut self) -> &mut LastField<Self> {
         self.into_hlist().into_last_field()
     }
+}
+
+
+
+// ==================
+// === TailFields ===
+// ==================
+
+/// All but first field of a struct.
+pub type TailFields<T> = <T as HasTailFields>::TailFields;
+
+/// All but first field of a struct.
+#[allow(missing_docs)]
+pub trait HasTailFields {
+    type TailFields;
+}
+
+impl<H, T> HasTailFields for Cons<H, T> {
+    type TailFields = T;
+}
+
+impl<T> HasTailFields for T
+where
+    T: HasHListRepr + BelongsToFamily,
+    HListRepr<T>: HasTailFields,
+    TailFields<HListRepr<T>>: IntoFamily<Family<Self>>,
+{
+    type TailFields = <TailFields<HListRepr<T>> as IntoFamily<Family<Self>>>::Output;
+}
+
+
+
+// ==================
+// === InitFields ===
+// ==================
+
+/// LastField element type accessor.
+pub type InitFields<T> = <T as HasInitFields>::InitFields;
+
+/// Last element accessor.
+#[allow(missing_docs)]
+pub trait HasInitFields {
+    type InitFields;
+}
+
+impl<H> HasInitFields for Cons<H, Nil> {
+    type InitFields = Nil;
+}
+impl<H, T: HasInitFields> HasInitFields for Cons<H, T> {
+    type InitFields = Cons<H, InitFields<T>>;
+}
+
+impl<T> HasInitFields for T
+where
+    T: HasHListRepr + BelongsToFamily,
+    HListRepr<T>: HasInitFields,
+    InitFields<HListRepr<T>>: IntoFamily<Family<Self>>,
+{
+    type InitFields = <InitFields<HListRepr<T>> as IntoFamily<Family<Self>>>::Output;
 }
 
 
@@ -666,19 +856,19 @@ macro_rules! impl_get_field_at_x_trait {
                     }
                 }
 
-                // impl<T: GetFieldAtMut<$t>> [<GetFieldAtMut $t>] for T {}
-                // pub trait [<GetFieldAtMut $t>]: GetFieldAtMut<$t> {
-                //     #[inline(always)]
-                //     fn [<_ $t>](&self) -> &FieldAt<$t, Self> {
-                //         GetFieldAt::<$t>::_field_at(self)
-                //     }
-                // }
+                impl<T: GetFieldAtMut<$t>> [<GetFieldAtMut $t>] for T {}
+                pub trait [<GetFieldAtMut $t>]: GetFieldAtMut<$t> {
+                    #[inline(always)]
+                    fn [<_ $t>](&mut self) -> &mut FieldAt<$t, Self> {
+                        GetFieldAtMut::<$t>::_field_at_mut(self)
+                    }
+                }
             )*
 
             mod get_field_at_x_traits {
                 $(
                     pub use super::[<GetFieldAt $t>] as [<_TRAIT_GetFieldAt $t>];
-                    // pub use super::[<GetFieldAtMut $t>] as [<_TRAIT_GetFieldAtMut $t>];
+                    pub use super::[<GetFieldAtMut $t>] as [<_TRAIT_GetFieldAtMut $t>];
                 )*
             }
         }
@@ -688,6 +878,48 @@ macro_rules! impl_get_field_at_x_trait {
 // Rust does not allow for a generic implementation yet, see:
 // https://github.com/rust-lang/rust/issues/112341
 impl_get_field_at_x_trait![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+
+
+
+// ======================
+// === PushFirstField ===
+// ======================
+
+/// Add a new element to the front of the list.
+#[allow(missing_docs)]
+pub trait PushFirstField<T>: Sized {
+    type Output;
+    fn push_first_field(self, t: T) -> Self::Output;
+}
+
+impl<X> PushFirstField<X> for Nil {
+    type Output = Cons<X, Nil>;
+    #[inline(always)]
+    fn push_first_field(self, x: X) -> Self::Output {
+        Cons(x, Nil)
+    }
+}
+
+impl<X, H, T> PushFirstField<X> for Cons<H, T> {
+    type Output = Cons<X, Cons<H, T>>;
+    #[inline(always)]
+    fn push_first_field(self, x: X) -> Self::Output {
+        Cons(x, self)
+    }
+}
+
+impl<T, X> PushFirstField<X> for T
+where
+    T: BelongsToFamily + IntoHList,
+    HListRepr<T>: PushFirstField<X>,
+    <HListRepr<T> as PushFirstField<X>>::Output: IntoFamily<Family<Self>>,
+{
+    type Output = <<HListRepr<T> as PushFirstField<X>>::Output as IntoFamily<Family<Self>>>::Output;
+    #[inline(always)]
+    fn push_first_field(self, x: X) -> Self::Output {
+        self.into_hlist().push_first_field(x).into_family_of::<Self>()
+    }
+}
 
 
 
@@ -721,7 +953,6 @@ where T: PushLastField<X>
     }
 }
 
-
 impl<T, X> PushLastField<X> for T
 where
     T: BelongsToFamily + IntoHList,
@@ -737,9 +968,42 @@ where
 
 
 
-// ===============
+// =====================
+// === PopFirstField ===
+// =====================
+
+/// Add a new element to the back of the list.
+#[allow(missing_docs)]
+pub trait PopFirstField: Sized + HasFirstField + HasTailFields {
+    fn pop_first_field(self) -> (Self::FirstField, Self::TailFields);
+}
+
+impl<H, T> PopFirstField for Cons<H, T> {
+    #[inline(always)]
+    fn pop_first_field(self) -> (Self::FirstField, Self::TailFields) {
+        (self.0, self.1)
+    }
+}
+
+impl<T> PopFirstField for T
+where
+    T: IntoHList + HasFirstField + HasTailFields + BelongsToFamily,
+    HListRepr<T>: PopFirstField + HasFirstField<FirstField = Self::FirstField>,
+    TailFields<HListRepr<T>>: IntoFamily<Family<Self>, Output = Self::TailFields>,
+{
+    #[inline(always)]
+    fn pop_first_field(self) -> (Self::FirstField, Self::TailFields) {
+        let (first, init) = self.into_hlist().pop_first_field();
+        let init = init.into_family_of::<Self>();
+        (first, init)
+    }
+}
+
+
+
+// ====================
 // === PopLastField ===
-// ===============
+// ====================
 
 /// Add a new element to the back of the list.
 #[allow(missing_docs)]
@@ -780,54 +1044,113 @@ where
 
 
 
-// =====================
-// === HasInitFields ===
-// =====================
+// =================
+// === MapFields ===
+// =================
 
-/// LastField element type accessor.
-pub type InitFields<T> = <T as HasInitFields>::InitFields;
-
-/// Last element accessor.
+/// Map all fields with the provided mapper [`M`]. There are multiple mappers defined out of the
+/// box, such as [`MapperInto`], which maps all fields with [`Into`]. Alternatively, you can define
+/// your own mapper.
 #[allow(missing_docs)]
-pub trait HasInitFields {
-    type InitFields;
+pub trait MapFields<M>: Sized {
+    type MappedFields;
+    fn _map_fields(self, mapper: &M) -> Self::MappedFields;
 }
 
-impl<H> HasInitFields for Cons<H, Nil> {
-    type InitFields = Nil;
-}
-impl<H, T: HasInitFields> HasInitFields for Cons<H, T> {
-    type InitFields = Cons<H, InitFields<T>>;
-}
+/// The type `T` with all fields mapped with the mapper `M`.
+pub type MappedFields<T, M> = <T as MapFields<M>>::MappedFields;
 
-impl<T> HasInitFields for T
-where
-    T: HasHListRepr + BelongsToFamily,
-    HListRepr<T>: HasInitFields,
-    InitFields<HListRepr<T>>: IntoFamily<Family<Self>>,
-{
-    type InitFields = <InitFields<HListRepr<T>> as IntoFamily<Family<Self>>>::Output;
+/// Map a single field with the provided mapper [`M`]. To learn more, see the docs of [`MapFields`].
+#[allow(missing_docs)]
+pub trait MapField<M> {
+    type MappedField;
+    fn map_field(self, mapper: &M) -> Self::MappedField;
 }
 
+/// The field `T` mapped with the mapper `M`.
+pub type MappedField<T, M> = <T as MapField<M>>::MappedField;
 
-// =============
-// === Tests ===
-// =============
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn test_field_at() {
-        let mut list = crate::new![1, 1.0, vec![2, 3]];
-        assert_eq!(list.field_at::<0>(), &1);
-        assert_eq!(list.field_at::<1>(), &1.0);
-        assert_eq!(list.field_at::<2>(), &vec![2, 3]);
-        *list.field_at_mut::<0>() += 1;
-        *list.field_at_mut::<1>() += 1.0;
-        list.field_at_mut::<2>().push(4);
-        assert_eq!(list.field_at::<0>(), &2);
-        assert_eq!(list.field_at::<1>(), &2.0);
-        assert_eq!(list.field_at::<2>(), &vec![2, 3, 4]);
+/// Wrapper for [`MapFields`] enabling the syntax `t.map_fields::<Mapper>()`. This trait is
+/// automatically implemented for all structs.
+pub trait _MapFields: Sized {
+    #[inline(always)]
+    fn map_fields<M>(self, mapper: &M) -> MappedFields<Self, M>
+    where Self: MapFields<M> {
+        MapFields::<M>::_map_fields(self, mapper)
     }
 }
+impl<T> _MapFields for T {}
+
+impl<M> MapFields<M> for Nil {
+    type MappedFields = Nil;
+    #[inline(always)]
+    fn _map_fields(self, _mapper: &M) -> Self::MappedFields {
+        Nil
+    }
+}
+
+impl<M, H, T> MapFields<M> for Cons<H, T>
+where
+    H: MapField<M>,
+    T: MapFields<M>,
+{
+    type MappedFields = Cons<MappedField<H, M>, MappedFields<T, M>>;
+    #[inline(always)]
+    fn _map_fields(self, mapper: &M) -> Self::MappedFields {
+        Cons(MapField::<M>::map_field(self.0, mapper), MapFields::<M>::_map_fields(self.1, mapper))
+    }
+}
+
+impl<M, T> MapFields<M> for T
+where
+    T: BelongsToFamily,
+    T: IntoHList,
+    HListRepr<T>: MapFields<M>,
+    MappedFields<HListRepr<T>, M>: IntoFamily<Family<T>>,
+{
+    type MappedFields = <MappedFields<HListRepr<T>, M> as IntoFamily<Family<T>>>::Output;
+    #[inline(always)]
+    fn _map_fields(self, mapper: &M) -> Self::MappedFields {
+        self.into_hlist()._map_fields(mapper).into_family_of::<T>()
+    }
+}
+
+
+// === MapperInto ===
+
+/// Mapper which maps every field with [`Into`].
+#[derive(Derivative)]
+#[derivative(Clone(bound = ""))]
+#[derivative(Copy(bound = ""))]
+#[derivative(Debug(bound = ""))]
+#[derivative(Default(bound = ""))]
+pub struct MapperInto<S>(PhantomData<S>);
+
+impl<T: Into<S>, S> MapField<MapperInto<S>> for T {
+    type MappedField = S;
+    #[inline(always)]
+    fn map_field(self, _mapper: &MapperInto<S>) -> Self::MappedField {
+        self.into()
+    }
+}
+
+/// Alias for [`MapFields<MapperInto<S>>`]. This trait is automatically implemented for every
+/// struct.
+pub trait MapFieldsInto<S>: MapFields<MapperInto<S>> {
+    #[inline(always)]
+    fn _map_fields_into(self) -> MappedFields<Self, MapperInto<S>> {
+        self.map_fields(&MapperInto::<S>::default())
+    }
+}
+impl<T, S> MapFieldsInto<S> for T where T: MapFields<MapperInto<S>> {}
+
+/// Wrapper for [`MapFieldsInto`] enabling syntax `t.map_fields_into::<S>()`. This trait is
+/// automatically implemented for every struct.
+pub trait _MapFieldsInto {
+    #[inline(always)]
+    fn map_fields_into<S>(self) -> MappedFields<Self, MapperInto<S>>
+    where Self: MapFields<MapperInto<S>> {
+        self.map_fields(&MapperInto::<S>::default())
+    }
+}
+impl<T> _MapFieldsInto for T {}

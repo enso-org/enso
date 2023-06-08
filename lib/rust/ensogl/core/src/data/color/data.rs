@@ -273,26 +273,26 @@ pub struct Alpha<C> {
 impl<C> HasComponentsRepr for Alpha<C>
 where
     C: HasComponentsRepr,
-    ComponentsReprOf<C>: PushBack<f32>,
+    ComponentsReprOf<C>: PushLastField<f32>,
 {
-    type ComponentsRepr = <ComponentsReprOf<C> as PushBack<f32>>::Output;
+    type ComponentsRepr = <ComponentsReprOf<C> as PushLastField<f32>>::Output;
 }
 
 impl<C> From<Alpha<C>> for ComponentsOf<Alpha<C>>
 where
     C: HasComponents,
-    ComponentsReprOf<C>: PushBack<f32>,
+    ComponentsReprOf<C>: PushLastField<f32>,
 {
     fn from(t: Alpha<C>) -> Self {
-        t.opaque.data.into().push_back(t.alpha)
+        t.opaque.data.into().push_last_field(t.alpha)
     }
 }
 
 impl<C> From<ComponentsOf<Alpha<C>>> for Alpha<C>
 where
     C: HasComponents,
-    ComponentsReprOf<C>: PushBack<f32>,
-    <ComponentsReprOf<C> as PushBack<f32>>::Output:
+    ComponentsReprOf<C>: PushLastField<f32>,
+    <ComponentsReprOf<C> as PushLastField<f32>>::Output:
         PopLastField<LastField = f32, InitFields = ComponentsReprOf<C>>,
 {
     fn from(components: ComponentsOf<Self>) -> Self {
