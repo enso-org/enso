@@ -12,15 +12,12 @@ import java.time.LocalTime;
 
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.util.Locale;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -36,18 +33,6 @@ public final class EnsoDate implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   public static EnsoDate now() {
     return new EnsoDate(LocalDate.now());
-  }
-
-  @Builtin.Method(name = "parse_builtin", description = "Constructs a new Date from text with optional pattern", autoRegister = false)
-  @Builtin.Specialize
-  @Builtin.WrapException(from = DateTimeParseException.class)
-  @CompilerDirectives.TruffleBoundary
-  public static EnsoDate parse(Text text, Object noneOrPattern) {
-    var formatter = (noneOrPattern instanceof Text pattern)
-        ? Core_Date_Utils.make_formatter(pattern.toString(), Locale.ROOT)
-        : Core_Date_Utils.defaultLocalDateFormatter();
-
-    return new EnsoDate(Core_Date_Utils.parseLocalDate(text.toString(), formatter));
   }
 
   @Builtin.Method(name = "new_builtin", description = "Constructs a new Date from a year, month, and day", autoRegister = false)

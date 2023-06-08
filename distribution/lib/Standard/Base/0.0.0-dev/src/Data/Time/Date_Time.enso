@@ -71,19 +71,6 @@ new_builtin year month day hour minute second nanosecond zone = @Builtin_Method 
 
 ## PRIVATE
 
-   Obtains an instance of `Time` from a text such as
-   "2007-12-03T10:15:30+01:00 Europe/Paris".
-
-   Arguments:
-   - text: The text representing the time to be parsed.
-
-   Recommended to use `Date_Time.parse_builtin` instead which handles potential exceptions
-   and date time formats.
-parse_builtin : Text -> Date_Time
-parse_builtin text = @Builtin_Method "Date_Time.parse_builtin"
-
-## PRIVATE
-
    A date-time with a timezone in the ISO-8601 calendar system, such as
    "2007-12-03T10:15:30+01:00 Europe/Paris".
 
@@ -245,13 +232,18 @@ type Date_Time
              example_parse =
                 Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
     @locale Locale.default_widget
-    parse : Text -> Text | Nothing -> Locale -> Date_Time ! Time_Error
-    parse text pattern=Nothing locale=Locale.default =
-        Panic.catch JException handler=(cause -> Error.throw (Time_Error.Error cause.payload.getMessage)) <|
-            case pattern of
-                Nothing -> parse_builtin text
-                _ : Text -> Time_Utils.parse_datetime text pattern locale.java_locale
+    parse : Text -> Text -> Locale -> Date_Time ! Time_Error
+    parse text:Text pattern:Text="" locale:Locale=Locale.default =
+        result = Panic.recover Any <|
+            formatter = if pattern.is_empty then Time_Utils.default_date_time_formatter else
+                Time_Utils.make_formatter pattern locale.java_locale
 
+            needs_normalised = if pattern.is_empty then True else Time_Utils.is_iso_datetime_based pattern
+            normalised = if needs_normalised then Time_Utils.normalise_iso_datetime text else text
+            Time_Utils.parse_datetime normalised formatter
+        result . map_error <| case _ of
+            err : JException -> Time_Error.Error err.getMessage
+            ex -> ex
 
     ## Get the year portion of the time.
 

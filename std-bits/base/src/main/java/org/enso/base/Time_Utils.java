@@ -31,6 +31,17 @@ public class Time_Utils {
 
   /**
    * Creates a DateTimeFormatter from a format string, supporting building standard formats.
+   *
+   * @param format format string
+   * @param locale locale needed for custom formats
+   * @return DateTimeFormatter
+   */
+  public static DateTimeFormatter make_formatter(String format, Locale locale) {
+    return Core_Date_Utils.make_formatter(format, locale);
+  }
+
+  /**
+   * Creates a DateTimeFormatter from a format string, supporting building standard formats.
    * For Enso format, return the default output formatter.
    *
    * @param format format string
@@ -57,10 +68,24 @@ public class Time_Utils {
   }
 
   /**
-   * @return default Date Time formatter for parsing a Date_Time.
+   * @return default DateTimeFormatter for parsing a Date_Time.
    */
-  public static DateTimeFormatter default_zoned_date_time_formatter() {
+  public static DateTimeFormatter default_date_time_formatter() {
     return Core_Date_Utils.defaultZonedDateTimeFormatter();
+  }
+
+  /**
+   * @return default DateTimeFormatter for parsing a Date.
+   */
+  public static DateTimeFormatter default_date_formatter() {
+    return Core_Date_Utils.defaultLocalDateFormatter();
+  }
+
+  /**
+   * @return default DateTimeFormatter for parsing a Time_Of_Day.
+   */
+  public static DateTimeFormatter default_time_of_day_formatter() {
+    return Core_Date_Utils.defaultLocalTimeFormatter();
   }
 
   /**
@@ -79,7 +104,7 @@ public class Time_Utils {
    * @param dateString Raw date time string with either space or T as separator
    * @return ISO format date time string
    */
-  public static String normaliseISODateTime(String dateString) {
+  public static String normalise_iso_datetime(String dateString) {
     return Core_Date_Utils.normaliseISODateTime(dateString);
   }
 
@@ -152,13 +177,22 @@ public class Time_Utils {
    * system default timezone.
    *
    * @param text the string to parse.
-   * @param pattern the format string.
-   * @param locale localization config to be uses in the formatter.
+   * @param formatter the formatter to use.
    * @return parsed ZonedDateTime instance.
    */
-  public static ZonedDateTime parse_datetime(String text, String pattern, Locale locale) {
-    var formatter = DateTimeFormatter.ofPattern(pattern).withLocale(locale);
+  public static ZonedDateTime parse_datetime(String text, DateTimeFormatter formatter) {
     return Core_Date_Utils.parseZonedDateTime(text, formatter);
+  }
+
+  /**
+   * Obtains an instance of LocalDate from text using the formatter.
+   *
+   * @param text the string to parse.
+   * @param formatter the formatter to use.
+   * @return parsed LocalDate instance.
+   */
+  public static LocalDate parse_date(String text, DateTimeFormatter formatter) {
+    return Core_Date_Utils.parseLocalDate(text, formatter);
   }
 
   /**
