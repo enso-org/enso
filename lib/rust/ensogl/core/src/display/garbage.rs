@@ -18,6 +18,14 @@ struct Garbage {
     before_mouse_events: Vec<Box<dyn Any>>,
 }
 
+impl Garbage {
+    fn collected_items_count(&self) -> usize {
+        self.before_pixel_sync.len()
+            + self.before_pixel_update.len()
+            + self.before_mouse_events.len()
+    }
+}
+
 
 /// The Garbage Collector
 ///
@@ -89,6 +97,13 @@ impl Collector {
             std::mem::take(&mut garbage.before_mouse_events)
         };
         drop(before_mouse_events);
+    }
+
+    /// Immediately drop all collected garbage.
+    pub fn force_garbage_drop(&self) {
+        while self.garbage.borrow().collected_items_count() > 0 {
+            self.garbage.take();
+        }
     }
 }
 
