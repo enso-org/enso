@@ -177,7 +177,7 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                 onContextMenu={(directory, event) => {
                     event.preventDefault()
                     event.stopPropagation()
-                    setModal(() => <ContextMenu key={directory.id} event={event}></ContextMenu>)
+                    setModal(<ContextMenu key={directory.id} event={event}></ContextMenu>)
                 }}
             />
         )

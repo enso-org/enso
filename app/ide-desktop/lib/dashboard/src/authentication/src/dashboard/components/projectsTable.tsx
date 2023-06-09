@@ -353,7 +353,7 @@ function ProjectsTable(props: ProjectsTableProps) {
                             projectName: newName,
                         })
                     }
-                    setModal(() => (
+                    setModal(
                         <RenameModal
                             name={projectAsset.title}
                             assetType={projectAsset.type}
@@ -366,21 +366,21 @@ function ProjectsTable(props: ProjectsTableProps) {
                                   }
                                 : {})}
                         />
-                    ))
+                    )
                 }
                 // This is not a React component even though it contains JSX.
                 // eslint-disable-next-line no-restricted-syntax
                 const doDelete = () => {
-                    setModal(() => (
+                    setModal(
                         <ConfirmDeleteModal
                             name={projectAsset.title}
                             assetType={projectAsset.type}
                             doDelete={() => backend.deleteProject(projectAsset.id)}
                             onSuccess={onDelete}
                         />
-                    ))
+                    )
                 }
-                setModal(() => (
+                setModal(
                     <ContextMenu key={projectAsset.id} event={event}>
                         <ContextMenuEntry onClick={doOpenForEditing}>
                             Open for editing
@@ -403,7 +403,7 @@ function ProjectsTable(props: ProjectsTableProps) {
                             <span className="text-red-700">Delete</span>
                         </ContextMenuEntry>
                     </ContextMenu>
-                ))
+                )
             }}
         />
     )

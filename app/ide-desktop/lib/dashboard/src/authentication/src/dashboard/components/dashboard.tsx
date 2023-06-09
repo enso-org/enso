@@ -352,9 +352,8 @@ function Dashboard(props: DashboardProps) {
                     Drop to upload files.
                 </div>
             ) : null}
+            {modal}
             {project && <Ide project={project} appRunner={appRunner} />}
-            {/* This should be just `{modal}`, however TypeScript incorrectly throws an error. */}
-            {modal && <>{modal}</>}
         </div>
     )
 }

@@ -131,14 +131,14 @@ function FileNameHeading(props: FileNameHeadingProps) {
                 onClick={event => {
                     event.stopPropagation()
                     const buttonPosition = event.currentTarget.getBoundingClientRect()
-                    setModal(() => (
+                    setModal(
                         <FileCreateForm
                             left={buttonPosition.left + window.scrollX}
                             top={buttonPosition.top + window.scrollY}
                             directoryId={directoryId}
                             onSuccess={onCreate}
                         />
-                    ))
+                    )
                 }}
             >
                 {svg.ADD_ICON}
@@ -293,19 +293,19 @@ function FilesTable(props: FilesTableProps) {
                     // This is not a React component even though it contains JSX.
                     // eslint-disable-next-line no-restricted-syntax
                     const doDelete = () => {
-                        setModal(() => (
+                        setModal(
                             <ConfirmDeleteModal
                                 name={file.title}
                                 assetType={file.type}
                                 doDelete={() => backend.deleteFile(file.id)}
                                 onSuccess={onDelete}
                             />
-                        ))
+                        )
                     }
                     const doDownload = () => {
                         /** TODO: Wait for backend endpoint. */
                     }
-                    setModal(() => (
+                    setModal(
                         <ContextMenu key={file.id} event={event}>
                             <ContextMenuEntry disabled onClick={doCopy}>
                                 Copy
@@ -320,7 +320,7 @@ function FilesTable(props: FilesTableProps) {
                                 Download
                             </ContextMenuEntry>
                         </ContextMenu>
-                    ))
+                    )
                 }}
             />
         )

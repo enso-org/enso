@@ -70,9 +70,9 @@ function DriveBar(props: DriveBarProps) {
                         disabled={backend.type === backendModule.BackendType.local}
                         onClick={event => {
                             event.stopPropagation()
-                            setModal(() => (
+                            setModal(
                                 <UploadFileModal directoryId={directoryId} onSuccess={onUpload} />
-                            ))
+                            )
                         }}
                     >
                         {svg.UPLOAD_ICON}

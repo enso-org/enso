@@ -122,14 +122,14 @@ function SecretNameHeading(props: SecretNameHeadingProps) {
                 onClick={event => {
                     event.stopPropagation()
                     const buttonPosition = event.currentTarget.getBoundingClientRect()
-                    setModal(() => (
+                    setModal(
                         <SecretCreateForm
                             left={buttonPosition.left + window.scrollX}
                             top={buttonPosition.top + window.scrollY}
                             directoryId={directoryId}
                             onSuccess={onCreate}
                         />
-                    ))
+                    )
                 }}
             >
                 {svg.ADD_ICON}
@@ -281,22 +281,22 @@ function SecretsTable(props: SecretsTableProps) {
                     // This is not a React component even though it contains JSX.
                     // eslint-disable-next-line no-restricted-syntax
                     const doDelete = () => {
-                        setModal(() => (
+                        setModal(
                             <ConfirmDeleteModal
                                 name={secret.title}
                                 assetType={secret.type}
                                 doDelete={() => backend.deleteSecret(secret.id)}
                                 onSuccess={onDelete}
                             />
-                        ))
+                        )
                     }
-                    setModal(() => (
+                    setModal(
                         <ContextMenu key={secret.id} event={event}>
                             <ContextMenuEntry onClick={doDelete}>
                                 <span className="text-red-700">Delete</span>
                             </ContextMenuEntry>
                         </ContextMenu>
-                    ))
+                    )
                 }}
             />
         )

@@ -76,7 +76,7 @@ function UserMenu() {
                     {canChangePassword && (
                         <UserMenuItem
                             onClick={() => {
-                                setModal(() => <ChangePasswordModal />)
+                                setModal(<ChangePasswordModal />)
                             }}
                         >
                             Change your password

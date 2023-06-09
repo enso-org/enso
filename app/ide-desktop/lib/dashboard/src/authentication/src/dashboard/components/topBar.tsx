@@ -43,7 +43,7 @@ function TopBar(props: TopBarProps) {
 
     React.useEffect(() => {
         if (isUserMenuVisible) {
-            setModal(() => <UserMenu />)
+            setModal(<UserMenu />)
         } else {
             unsetModal()
         }

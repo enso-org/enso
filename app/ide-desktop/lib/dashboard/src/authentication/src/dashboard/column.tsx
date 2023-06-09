@@ -136,7 +136,7 @@ export const COLUMN_RENDERER: Record<
         const onContextMenu = (event: React.MouseEvent) => {
             event.preventDefault()
             event.stopPropagation()
-            setModal(() => (
+            setModal(
                 // This is a placeholder key. It should be replaced with label ID when labels
                 // are implemented.
                 <ContextMenu key={'label'} event={event}>
@@ -149,7 +149,7 @@ export const COLUMN_RENDERER: Record<
                         Rename label
                     </ContextMenuEntry>
                 </ContextMenu>
-            ))
+            )
         }
         return <></>
     },

@@ -7,7 +7,7 @@ import * as React from 'react'
 // =============
 
 /** The type of a modal. */
-export type Modal = () => JSX.Element
+export type Modal = JSX.Element
 
 /** State contained in a `ModalContext`. */
 interface ModalContextType {
@@ -44,6 +44,6 @@ export function useSetModal() {
     const { setModal } = React.useContext(ModalContext)
     const unsetModal = React.useCallback(() => {
         setModal(null)
-    }, [setModal])
+    }, [/* should never change */ setModal])
     return { setModal, unsetModal }
 }
