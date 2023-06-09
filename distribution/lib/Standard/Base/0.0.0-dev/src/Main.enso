@@ -184,3 +184,6 @@ from project.System.File_Format.Plain_Text_Format export Plain_Text
 
 import project.Widget_Helpers
 export project.Widget_Helpers
+
+import project.Metadata
+export project.Metadata
