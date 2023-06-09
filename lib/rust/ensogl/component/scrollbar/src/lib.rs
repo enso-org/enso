@@ -363,10 +363,10 @@ pub struct Scrollbar {
 impl Scrollbar {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let model = Rc::new(Model::new(&app));
+        let model = Rc::new(Model::new(app));
         let frp = Frp::default();
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        frp.init(&app, &model, &style);
+        frp.init(app, &model, &style);
         let frp = Rc::new(frp);
         Self { frp, model }
     }

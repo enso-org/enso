@@ -135,7 +135,7 @@ impl<E: Entry> Model<E> {
     fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
         let scrolled_area = display::object::Instance::new();
-        let entries = entry::List::new(&app);
+        let entries = entry::List::new(app);
         let background = Rectangle();
         background.set_border_color(color::Rgba::transparent());
         let selection = Selection::default();

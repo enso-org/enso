@@ -658,6 +658,8 @@ ensogl::define_endpoints_2! {
         set_error_visualization_data ((NodeId, visualization::Data)),
         enable_visualization         (NodeId),
         disable_visualization        (NodeId),
+        /// Inform Graph Editor that attaching or updating visualization has resulted in error.
+        visualization_update_failed  ((NodeId, String)),
 
         /// Remove from visualization registry all non-default visualizations.
         reset_visualization_registry (),
@@ -760,6 +762,7 @@ ensogl::define_endpoints_2! {
         is_fs_visualization_displayed           (bool),
         visualization_preprocessor_changed      ((NodeId,PreprocessorConfiguration)),
         visualization_registry_reload_requested (),
+        visualization_update_error              ((NodeId, String)),
 
         widgets_requested                       (NodeId, ast::Id, ast::Id),
         request_import                          (ImString),
@@ -3517,7 +3520,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     viz_enable_by_press <= viz_tgt_nodes.gate_not(&viz_tgt_nodes_all_on);
     viz_enable <- any(viz_enable_by_press,inputs.enable_visualization);
     viz_disable_by_press <= viz_tgt_nodes.gate(&viz_tgt_nodes_all_on);
-    viz_disable <- any(viz_disable_by_press,inputs.disable_visualization);
+    viz_update_failed <- inputs.visualization_update_failed._0();
+    viz_disable <- any(viz_disable_by_press, inputs.disable_visualization, viz_update_failed);
     viz_preview_disable <= viz_tgt_nodes_off.sample(&viz_preview_mode_end);
     viz_fullscreen_on <= viz_open_fs_ev.map(f_!(model.nodes.last_selected()));
 
@@ -3540,6 +3544,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     out.visualization_fullscreen <+ inputs.close_fullscreen_visualization.constant(None);
 
     out.is_fs_visualization_displayed <+ out.visualization_fullscreen.map(Option::is_some);
+
+    out.visualization_update_error <+ inputs.visualization_update_failed;
 
 
     // === Register Visualization ===

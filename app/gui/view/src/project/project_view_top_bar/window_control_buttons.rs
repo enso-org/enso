@@ -61,10 +61,10 @@ impl Model {
                 shape -> fullscreen::shape;
             }
         };
-        let close = close::View::new(&app);
+        let close = close::View::new(app);
         display_object.add_child(&close);
 
-        let fullscreen = fullscreen::View::new(&app);
+        let fullscreen = fullscreen::View::new(app);
         display_object.add_child(&fullscreen);
 
         let shape = shape::View::new();

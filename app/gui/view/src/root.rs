@@ -85,12 +85,12 @@ impl Model {
 
     fn init_project_view(&self) {
         if self.project_view.get().is_none() {
-            let network = &self.frp.network;
             let view = self.app.new_view::<crate::project::View>();
+            let network = &view.network;
             let project_list_frp = &view.project_list().frp;
             let status_bar = &self.status_bar;
             let display_object = &self.display_object;
-            frp::new_bridge_network! { [network, view.network] project_bridge
+            frp::extend! { network
                 fs_vis_shown <- view.fullscreen_visualization_shown.on_true();
                 fs_vis_hidden <- view.fullscreen_visualization_shown.on_false();
                 eval fs_vis_shown ((_) status_bar.unset_parent());

@@ -105,7 +105,7 @@ pub struct FloatLabel {
 impl FloatLabel {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let model = Rc::new(Model::new(&app));
+        let model = Rc::new(Model::new(app));
         let frp = Frp::default();
         frp.init(&model);
         let frp = Rc::new(frp);

@@ -405,6 +405,7 @@ impl View {
             graph.set_navigator_disabled <+ disable_navigation;
 
             model.popup.set_label <+ graph.model.breadcrumbs.project_name_error;
+            model.popup.set_label <+ graph.visualization_update_error._1();
             graph.set_read_only <+ frp.set_read_only;
             graph.set_debug_mode <+ frp.source.debug_mode;
 

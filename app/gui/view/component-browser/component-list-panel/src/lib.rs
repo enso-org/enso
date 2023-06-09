@@ -255,7 +255,7 @@ impl Model {
         let grid = app.new_view::<grid::View>();
         display_object.add_child(&grid);
 
-        let section_navigator = SectionNavigator::new(&app);
+        let section_navigator = SectionNavigator::new(app);
         display_object.add_child(&section_navigator);
 
         let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();

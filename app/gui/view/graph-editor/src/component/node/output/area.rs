@@ -179,7 +179,7 @@ impl Model {
             styles_frp,
             frp,
         }
-        .init(&app)
+        .init(app)
     }
 
     #[profile(Debug)]

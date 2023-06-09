@@ -263,7 +263,8 @@ pub struct World {
 impl World {
     /// Constructor.
     pub fn new() -> Self {
-        Self::default()
+        // Self::default()
+        World { rc: default() }
     }
 
     /// Constructor modifier. Displays the default scene in the provided path.
