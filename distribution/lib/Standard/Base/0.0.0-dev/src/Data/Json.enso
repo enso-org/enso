@@ -1,13 +1,13 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
-import project.Data.Json.Json_Extensions
+import project.Data.Json.Extensions
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Pair.Pair
-import project.Data.Range.Range_Extensions
-import project.Data.Text.Text_Extensions
+import project.Data.Range.Extensions
+import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Type_Error

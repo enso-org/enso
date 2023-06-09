@@ -68,10 +68,7 @@ type File
             if self.exists && copy_original then
                 Context.Output.with_enabled <|
                     self.copy_to temp replace_existing=True
-
-            ## Attach a warning to the file that it is a dry run
-            warning = Dry_Run_Operation.Warning "Only a dry run has occurred, with data written to a temporary file."
-            Warning.attach warning temp
+            temp
 
     ## ALIAS Current Directory
 

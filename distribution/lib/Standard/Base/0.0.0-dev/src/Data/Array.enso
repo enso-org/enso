@@ -5,7 +5,7 @@ import project.Data.List.List
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Sort_Direction.Sort_Direction
 import project.Data.Pair.Pair
-import project.Data.Range.Range_Extensions
+import project.Data.Range.Extensions
 import project.Data.Range.Range
 import project.Data.Text.Text
 import project.Data.Vector.Vector
