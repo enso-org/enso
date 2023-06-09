@@ -84,7 +84,7 @@ import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
 import project.Data.Ordering.Default_Comparator
-import project.Data.Ordering.Sort_Direction.Sort_Direction
+import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Pair.Pair
 import project.Data.Range.Range
 from project.Data.Range.Extensions import all

@@ -1,4 +1,4 @@
-from Standard.Base import all hiding Sort_Direction
+from Standard.Base import all
 
 from Standard.Base.Data.Ordering import all
 
