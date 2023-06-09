@@ -12,7 +12,7 @@ abstract class SynchronousCommand(maybeRequestId: Option[RequestId])
     extends Command(maybeRequestId) {
   type Result[T] = T
 
-  override def execute(implicit
+  final override def execute(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Result[Completion] = {

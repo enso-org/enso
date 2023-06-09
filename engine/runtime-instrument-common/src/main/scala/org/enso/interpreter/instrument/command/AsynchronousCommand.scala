@@ -15,7 +15,7 @@ abstract class AsynchronousCommand(maybeRequestId: Option[RequestId])
     extends Command(maybeRequestId) {
   type Result[T] = Future[T]
 
-  override def execute(implicit
+  final override def execute(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Result[Completion] = {
