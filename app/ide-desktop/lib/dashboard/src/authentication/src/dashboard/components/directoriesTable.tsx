@@ -173,8 +173,18 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                               render: columnModule.COLUMN_RENDERER[column],
                           }
                 )}
-                onClick={onAssetClick}
-                onContextMenu={(directory, event) => {
+                onContextMenu={(_directories, event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    setModal(
+                        <ContextMenu
+                            key={backendModule.AssetType.directory}
+                            event={event}
+                        ></ContextMenu>
+                    )
+                }}
+                onRowClick={onAssetClick}
+                onRowContextMenu={(directory, event) => {
                     event.preventDefault()
                     event.stopPropagation()
                     setModal(<ContextMenu key={directory.id} event={event}></ContextMenu>)

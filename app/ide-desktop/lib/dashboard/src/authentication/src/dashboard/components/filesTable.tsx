@@ -9,6 +9,7 @@ import * as error from '../../error'
 import * as fileInfo from '../../fileInfo'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
+import * as toastPromiseMultiple from '../../toastPromiseMultiple'
 
 import CreateForm, * as createForm from './createForm'
 import Table, * as table from './table'
@@ -16,6 +17,22 @@ import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import EditableSpan from './editableSpan'
+
+// =================
+// === Constants ===
+// =================
+
+/** Messages to be passed to {@link toastPromiseMultiple.toastPromiseMultiple}. */
+const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultipleMessages<backendModule.FileAsset> =
+    {
+        begin: expectedCount =>
+            `Deleting ${expectedCount} ${expectedCount === 1 ? 'file' : 'files'}...`,
+        inProgress: (successCount, expectedCount) =>
+            `Deleted ${successCount}/${expectedCount} ${expectedCount === 1 ? 'file' : 'files'}.`,
+        end: (successCount, expectedCount) =>
+            `Deleted ${successCount}/${expectedCount} ${expectedCount === 1 ? 'file' : 'files'}.`,
+        error: file => `Could not delete file '${file.title}'.`,
+    }
 
 // ======================
 // === FileCreateForm ===
@@ -170,7 +187,7 @@ function FileName(props: FileNameProps) {
     const [isNameEditable, setIsNameEditable] = React.useState(false)
 
     // TODO: Wait for backend implementation.
-    const doRename = async (_newName: string) => {
+    const doRename = async () => {
         onRename()
         return await Promise.resolve(null)
     }
@@ -196,7 +213,7 @@ function FileName(props: FileNameProps) {
                     if (event.target.value === item.title) {
                         toast.success('The file name is unchanged.')
                     } else {
-                        await doRename(event.target.value)
+                        await doRename(/* event.target.value */)
                     }
                 }}
                 onCancel={() => {
@@ -280,8 +297,49 @@ function FilesTable(props: FilesTableProps) {
                               render: columnModule.COLUMN_RENDERER[column],
                           }
                 )}
-                onClick={onAssetClick}
-                onContextMenu={(file, event) => {
+                onContextMenu={(files, event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    const doCopyAll = () => {
+                        /** TODO: Wait for backend endpoint. */
+                    }
+                    const doCutAll = () => {
+                        /** TODO: Wait for backend endpoint. */
+                    }
+                    // This is not a React component even though it contains JSX.
+                    // eslint-disable-next-line no-restricted-syntax
+                    const doDeleteAll = () => {
+                        setModal(
+                            <ConfirmDeleteModal
+                                description={`${files.size} selected files`}
+                                assetType="files"
+                                doDelete={async () => {
+                                    await toastPromiseMultiple.toastPromiseMultiple(
+                                        [...files],
+                                        file => backend.deleteFile(file.id),
+                                        TOAST_PROMISE_MULTIPLE_MESSAGES
+                                    )
+                                }}
+                                onSuccess={onDelete}
+                            />
+                        )
+                    }
+                    setModal(
+                        <ContextMenu key={backendModule.AssetType.directory} event={event}>
+                            <ContextMenuEntry disabled onClick={doCopyAll}>
+                                Copy {files.size} files
+                            </ContextMenuEntry>
+                            <ContextMenuEntry disabled onClick={doCutAll}>
+                                Cut {files.size} files
+                            </ContextMenuEntry>
+                            <ContextMenuEntry onClick={doDeleteAll}>
+                                <span className="text-red-700">Delete {files.size} files</span>
+                            </ContextMenuEntry>
+                        </ContextMenu>
+                    )
+                }}
+                onRowClick={onAssetClick}
+                onRowContextMenu={(file, event) => {
                     event.preventDefault()
                     event.stopPropagation()
                     const doCopy = () => {
@@ -295,7 +353,7 @@ function FilesTable(props: FilesTableProps) {
                     const doDelete = () => {
                         setModal(
                             <ConfirmDeleteModal
-                                name={file.title}
+                                description={`'${file.title}'`}
                                 assetType={file.type}
                                 doDelete={() => backend.deleteFile(file.id)}
                                 onSuccess={onDelete}

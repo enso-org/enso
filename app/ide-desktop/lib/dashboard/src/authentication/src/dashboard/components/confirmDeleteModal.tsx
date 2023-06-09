@@ -15,14 +15,15 @@ import Modal from './modal'
 /** Props for a {@link ConfirmDeleteModal}. */
 export interface ConfirmDeleteModalProps {
     assetType: string
-    name: string
+    /** Must fit in the sentence "Are you sure you want to delete <description>"? */
+    description: string
     doDelete: () => Promise<void>
     onSuccess: () => void
 }
 
 /** A modal for confirming the deletion of an asset. */
 function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
-    const { assetType, name, doDelete, onSuccess } = props
+    const { assetType, description, doDelete, onSuccess } = props
     const { unsetModal } = modalProvider.useSetModal()
 
     const [isSubmitting, setIsSubmitting] = React.useState(false)
@@ -61,7 +62,7 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                 <button type="button" className="absolute right-0 top-0 m-2" onClick={unsetModal}>
                     {svg.CLOSE_ICON}
                 </button>
-                Are you sure you want to delete the {assetType} &apos;{name}&apos;?
+                Are you sure you want to delete {description}?
                 <div className="m-1">
                     <button
                         type="submit"

@@ -9,6 +9,7 @@ import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
 import * as reactiveEvents from '../events/projectEvent'
 import * as svg from '../../components/svg'
+import * as toastPromiseMultiple from '../../toastPromiseMultiple'
 import * as validation from '../validation'
 
 import Table, * as table from './table'
@@ -18,6 +19,26 @@ import ContextMenuEntry from './contextMenuEntry'
 import EditableSpan from './editableSpan'
 import ProjectActionButton from './projectActionButton'
 import RenameModal from './renameModal'
+
+// =================
+// === Constants ===
+// =================
+
+/** Messages to be passed to {@link toastPromiseMultiple.toastPromiseMultiple}. */
+const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultipleMessages<backendModule.ProjectAsset> =
+    {
+        begin: expectedCount =>
+            `Deleting ${expectedCount} ${expectedCount === 1 ? 'project' : 'projects'}...`,
+        inProgress: (successCount, expectedCount) =>
+            `Deleted ${successCount}/${expectedCount} ${
+                expectedCount === 1 ? 'project' : 'projects'
+            }.`,
+        end: (successCount, expectedCount) =>
+            `Deleted ${successCount}/${expectedCount} ${
+                expectedCount === 1 ? 'project' : 'projects'
+            }.`,
+        error: project => `Could not delete project '${project.title}'.`,
+    }
 
 // ==========================
 // === ProjectNameHeading ===
@@ -323,8 +344,37 @@ function ProjectsTable(props: ProjectsTableProps) {
                           render: columnModule.COLUMN_RENDERER[column],
                       }
             )}
-            onClick={onAssetClick}
-            onContextMenu={(projectAsset, event) => {
+            onContextMenu={(projects, event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                // This is not a React component even though it contains JSX.
+                // eslint-disable-next-line no-restricted-syntax
+                const doDeleteAll = () => {
+                    setModal(
+                        <ConfirmDeleteModal
+                            description={`${projects.size} selected projects`}
+                            assetType="projects"
+                            doDelete={async () => {
+                                await toastPromiseMultiple.toastPromiseMultiple(
+                                    [...projects],
+                                    project => backend.deleteProject(project.id),
+                                    TOAST_PROMISE_MULTIPLE_MESSAGES
+                                )
+                            }}
+                            onSuccess={onDelete}
+                        />
+                    )
+                }
+                setModal(
+                    <ContextMenu key={backendModule.AssetType.directory} event={event}>
+                        <ContextMenuEntry onClick={doDeleteAll}>
+                            <span className="text-red-700">Delete {projects.size} files</span>
+                        </ContextMenuEntry>
+                    </ContextMenu>
+                )
+            }}
+            onRowClick={onAssetClick}
+            onRowContextMenu={(projectAsset, event) => {
                 event.preventDefault()
                 event.stopPropagation()
                 const isDeleteDisabled =
@@ -373,7 +423,7 @@ function ProjectsTable(props: ProjectsTableProps) {
                 const doDelete = () => {
                     setModal(
                         <ConfirmDeleteModal
-                            name={projectAsset.title}
+                            description={projectAsset.title}
                             assetType={projectAsset.type}
                             doDelete={() => backend.deleteProject(projectAsset.id)}
                             onSuccess={onDelete}

@@ -8,6 +8,7 @@ import * as columnModule from '../column'
 import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
+import * as toastPromiseMultiple from '../../toastPromiseMultiple'
 
 import CreateForm, * as createForm from './createForm'
 import Table, * as table from './table'
@@ -15,6 +16,26 @@ import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import EditableSpan from './editableSpan'
+
+// =================
+// === Constants ===
+// =================
+
+/** Messages to be passed to {@link toastPromiseMultiple.toastPromiseMultiple}. */
+const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultipleMessages<backendModule.SecretAsset> =
+    {
+        begin: expectedCount =>
+            `Deleting ${expectedCount} ${expectedCount === 1 ? 'secret' : 'secrets'}...`,
+        inProgress: (successCount, expectedCount) =>
+            `Deleted ${successCount}/${expectedCount} ${
+                expectedCount === 1 ? 'secret' : 'secrets'
+            }.`,
+        end: (successCount, expectedCount) =>
+            `Deleted ${successCount}/${expectedCount} ${
+                expectedCount === 1 ? 'secret' : 'secrets'
+            }.`,
+        error: secret => `Could not delete secret '${secret.title}'.`,
+    }
 
 // ========================
 // === SecretCreateForm ===
@@ -161,7 +182,7 @@ function SecretName(props: SecretNameProps) {
     const [isNameEditable, setIsNameEditable] = React.useState(false)
 
     // TODO: Wait for backend implementation.
-    const doRename = async (_newName: string) => {
+    const doRename = async (/* _newName: string */) => {
         onRename()
         await Promise.resolve(null)
     }
@@ -187,7 +208,7 @@ function SecretName(props: SecretNameProps) {
                     if (event.target.value === item.title) {
                         toast.success('The secret name is unchanged.')
                     } else {
-                        await doRename(event.target.value)
+                        await doRename(/* event.target.value */)
                     }
                 }}
                 onCancel={() => {
@@ -274,8 +295,37 @@ function SecretsTable(props: SecretsTableProps) {
                               render: columnModule.COLUMN_RENDERER[column],
                           }
                 )}
-                onClick={onAssetClick}
-                onContextMenu={(secret, event) => {
+                onContextMenu={(secrets, event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    // This is not a React component even though it contains JSX.
+                    // eslint-disable-next-line no-restricted-syntax
+                    const doDeleteAll = () => {
+                        setModal(
+                            <ConfirmDeleteModal
+                                description={`${secrets.size} selected secrets`}
+                                assetType="secrets"
+                                doDelete={async () => {
+                                    await toastPromiseMultiple.toastPromiseMultiple(
+                                        [...secrets],
+                                        secret => backend.deleteSecret(secret.id),
+                                        TOAST_PROMISE_MULTIPLE_MESSAGES
+                                    )
+                                }}
+                                onSuccess={onDelete}
+                            />
+                        )
+                    }
+                    setModal(
+                        <ContextMenu key={backendModule.AssetType.directory} event={event}>
+                            <ContextMenuEntry onClick={doDeleteAll}>
+                                <span className="text-red-700">Delete {secrets.size} files</span>
+                            </ContextMenuEntry>
+                        </ContextMenu>
+                    )
+                }}
+                onRowClick={onAssetClick}
+                onRowContextMenu={(secret, event) => {
                     event.preventDefault()
                     event.stopPropagation()
                     // This is not a React component even though it contains JSX.
@@ -283,7 +333,7 @@ function SecretsTable(props: SecretsTableProps) {
                     const doDelete = () => {
                         setModal(
                             <ConfirmDeleteModal
-                                name={secret.title}
+                                description={secret.title}
                                 assetType={secret.type}
                                 doDelete={() => backend.deleteSecret(secret.id)}
                                 onSuccess={onDelete}

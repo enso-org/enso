@@ -11,7 +11,7 @@ import * as http from '../../http'
 import * as localBackend from '../localBackend'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
-import * as uploadMultipleFiles from '../../uploadMultipleFiles'
+import * as toastPromiseMultiple from '../../toastPromiseMultiple'
 
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
@@ -22,6 +22,31 @@ import DirectoryView from './directoryView'
 import Ide from './ide'
 import Templates from './templates'
 import TopBar from './topBar'
+
+// =================
+// === Constants ===
+// =================
+
+/** The `id` attribute of the element into which the IDE will be rendered. */
+const IDE_ELEMENT_ID = 'root'
+
+/** Feature flags to enable or disable experimental features. */
+const EXPERIMENTAL = {
+    /** A selector that lets the user choose between pre-defined sets of visible columns. */
+    columnDisplayModeSwitcher: false,
+}
+
+/** Messages to be passed to {@link toastPromiseMultiple.toastPromiseMultiple}. */
+const UPLOAD_MULTIPLE_FILES_TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultipleMessages<File> =
+    {
+        begin: expectedCount =>
+            `Uploading ${expectedCount} ${expectedCount === 1 ? 'file' : 'files'}...`,
+        inProgress: (successCount, expectedCount) =>
+            `Uploaded ${successCount}/${expectedCount} ${expectedCount === 1 ? 'file' : 'files'}.`,
+        end: (successCount, expectedCount) =>
+            `Uploaded ${successCount}/${expectedCount} ${expectedCount === 1 ? 'file' : 'files'}.`,
+        error: file => `Could not delete file '${file.name}'.`,
+    }
 
 // =============
 // === Types ===
@@ -41,19 +66,6 @@ export interface CreateFormProps {
     getNewProjectName: (templateId: string | null) => string
     onSuccess: () => void
 }
-
-// =================
-// === Constants ===
-// =================
-
-/** Feature flags to enable or disable experimental features. */
-const EXPERIMENTAL = {
-    /** A selector that lets the user choose between pre-defined sets of visible columns. */
-    columnDisplayModeSwitcher: false,
-}
-
-/** The `id` attribute of the element into which the IDE will be rendered. */
-const IDE_ELEMENT_ID = 'root'
 
 // =================
 // === Dashboard ===
@@ -341,10 +353,19 @@ function Dashboard(props: DashboardProps) {
                     onDrop={async event => {
                         event.preventDefault()
                         setIsFileBeingDragged(false)
-                        await uploadMultipleFiles.uploadMultipleFiles(
-                            backend,
-                            directoryId,
-                            Array.from(event.dataTransfer.files)
+                        await toastPromiseMultiple.toastPromiseMultiple(
+                            Array.from(event.dataTransfer.files),
+                            async file => {
+                                await backend.uploadFile(
+                                    {
+                                        fileId: null,
+                                        fileName: file.name,
+                                        parentDirectoryId: directoryId,
+                                    },
+                                    file
+                                )
+                            },
+                            UPLOAD_MULTIPLE_FILES_TOAST_PROMISE_MULTIPLE_MESSAGES
                         )
                         doRefresh()
                     }}

@@ -45,13 +45,24 @@ export interface TableProps<T, State = never> {
     columns: Column<T, State>[]
     isLoading: boolean
     placeholder: JSX.Element
-    onClick: (item: T, event: React.MouseEvent<HTMLTableRowElement>) => void
-    onContextMenu: (item: T, event: React.MouseEvent<HTMLTableRowElement>) => void
+    onContextMenu: (selectedItems: Set<T>, event: React.MouseEvent<HTMLTableElement>) => void
+    onRowClick: (item: T, event: React.MouseEvent<HTMLTableRowElement>) => void
+    onRowContextMenu: (item: T, event: React.MouseEvent<HTMLTableRowElement>) => void
 }
 
 /** Table that projects an object into each column. */
 function Table<T, State = never>(props: TableProps<T, State>) {
-    const { items, state, getKey, columns, isLoading, placeholder, onClick, onContextMenu } = props
+    const {
+        items,
+        state,
+        getKey,
+        columns,
+        isLoading,
+        placeholder,
+        onContextMenu,
+        onRowClick,
+        onRowContextMenu,
+    } = props
     const [spinnerClasses, setSpinnerClasses] = React.useState(SPINNER_INITIAL_CLASSES)
     const [selectedItems, setSelectedItems] = React.useState(() => new Set<T>())
     const [previouslySelectedItem, setPreviouslySelectedItem] = React.useState<T | null>(null)
@@ -84,17 +95,21 @@ function Table<T, State = never>(props: TableProps<T, State>) {
             event.stopPropagation()
             // The Shift key should select a range of items, however the current architecture
             // is not designed to handle this.
-            if (event.shiftKey && previouslySelectedItem != null) {
-                const index1 = items.indexOf(previouslySelectedItem)
-                const index2 = items.indexOf(item)
-                const newlySelectedItems =
-                    index1 <= index2
-                        ? items.slice(index1, index2 + 1)
-                        : items.slice(index2, index1 + 1)
-                if (event.ctrlKey) {
-                    setSelectedItems(new Set([...selectedItems, ...newlySelectedItems]))
+            if (event.shiftKey) {
+                if (previouslySelectedItem == null) {
+                    setSelectedItems(new Set([item]))
                 } else {
-                    setSelectedItems(new Set(newlySelectedItems))
+                    const index1 = items.indexOf(previouslySelectedItem)
+                    const index2 = items.indexOf(item)
+                    const newlySelectedItems =
+                        index1 <= index2
+                            ? items.slice(index1, index2 + 1)
+                            : items.slice(index2, index1 + 1)
+                    if (event.ctrlKey) {
+                        setSelectedItems(new Set([...selectedItems, ...newlySelectedItems]))
+                    } else {
+                        setSelectedItems(new Set(newlySelectedItems))
+                    }
                 }
             } else if (event.ctrlKey) {
                 const newItems = new Set(selectedItems)
@@ -146,10 +161,12 @@ function Table<T, State = never>(props: TableProps<T, State>) {
                 tabIndex={-1}
                 onClick={event => {
                     onItemClicked(item, event)
-                    onClick(item, event)
+                    onRowClick(item, event)
                 }}
                 onContextMenu={event => {
-                    onContextMenu(item, event)
+                    if (selectedItems.size <= 1) {
+                        onRowContextMenu(item, event)
+                    }
                 }}
                 className={`h-10 transition duration-300 ease-in-out hover:bg-gray-100 ${
                     selectedItems.has(item) ? 'bg-gray-200' : ''
@@ -175,7 +192,12 @@ function Table<T, State = never>(props: TableProps<T, State>) {
         ))
     )
     return (
-        <table className="table-fixed items-center border-collapse w-0 mt-2">
+        <table
+            className="table-fixed items-center border-collapse w-0 mt-2"
+            onContextMenu={event => {
+                onContextMenu(selectedItems, event)
+            }}
+        >
             <thead>{headerRow}</thead>
             <tbody>{itemRows}</tbody>
         </table>
