@@ -30,7 +30,7 @@ pub const BACKEND_DISCONNECTED_MESSAGE: &str =
     "Connection to the backend has been lost. Please try restarting IDE.";
 /// Text that shows up in the statusbar when backend reports a failed execution.
 pub const EXECUTION_FAILED_MESSAGE: &str =
-    "Execution failed. Please try restarting IDE and report this problem at support@enso.org.";
+    "Execution failed. Please try restarting project or IDE and report this problem at support@enso.org.";
 
 const ALIVE_LOG_INTERVAL_SEC: u64 = 60;
 
