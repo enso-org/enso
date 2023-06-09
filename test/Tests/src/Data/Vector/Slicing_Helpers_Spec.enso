@@ -1,5 +1,5 @@
-from Standard.Base import all hiding Index_Sub_Range
-import Standard.Base.Data.Index_Sub_Range
+from Standard.Base import all
+from Standard.Base.Data.Index_Sub_Range import sort_and_merge_ranges
 
 from Standard.Test import Test, Test_Suite
 from Standard.Test.Extensions import all
