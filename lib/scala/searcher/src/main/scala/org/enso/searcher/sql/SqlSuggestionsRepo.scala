@@ -1051,7 +1051,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
           module        = suggestion.module,
           arguments     = Seq(),
-          selfType    = suggestion.selfType,
+          selfType      = suggestion.selfType,
           returnType    = suggestion.returnType,
           documentation = suggestion.documentation,
           reexport      = suggestion.reexport

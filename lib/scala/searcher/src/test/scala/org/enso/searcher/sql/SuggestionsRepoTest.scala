@@ -141,7 +141,7 @@ class SuggestionsRepoTest
     "remove suggestions by empty module names" taggedAs Retry in withRepo {
       repo =>
         val action = for {
-          (v1, _) <- repo.insertAll(suggestion.all)
+          (v1, _)       <- repo.insertAll(suggestion.all)
           (v2, removed) <- repo.removeModules(Seq())
         } yield (v1, v2, removed)
 
