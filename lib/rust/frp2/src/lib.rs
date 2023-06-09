@@ -134,6 +134,7 @@ pub struct NodeData {
 }
 
 impl ImClearable for NodeData {
+    #[inline(always)]
     fn clear_im(&self) {
         self.inputs.borrow_mut().clear();
         self.outputs.borrow_mut().clear();
@@ -145,6 +146,7 @@ impl ImClearable for NodeData {
 
 impl Reusable for NodeData {
     type Args = (ZeroableOption<Box<dyn EventConsumer>>, NetworkId, DefInfo);
+    #[inline(always)]
     fn reuse(&mut self, args: Self::Args) {
         self.tp = args.0;
         self.network_id = args.1;
@@ -171,8 +173,9 @@ impl NodeData {
     //     }
     // }
 
-    #[inline(always)]
+    // Either `inline(always)` or `inline(never)` flags makes this code slower.
     fn on_event(&self, runtime: &Runtime, event: &dyn Data) {
+        // runtime.unchecked_emit_internal(self, event);
         // println!("on_event: {:?}", event);
         match &self.tp {
             ZeroableOption::Some(f) => f(runtime, self, event),
@@ -274,9 +277,9 @@ impl Runtime {
         if let Some(network) = networks.get_mut(net_id) {
             let id = self.nodes.reserve();
             if let Some(node) = self.nodes.get(id) {
-                let node = node.borrow_mut();
+                let mut node = node.borrow_mut();
                 node.reuse((ZeroableOption::Some(Box::new(tp)), net_id, def));
-                init(node);
+                init(&mut *node);
             }
             network.nodes.push(id);
             id
@@ -1029,8 +1032,8 @@ mod benches {
         });
     }
 
-    // 10:   6297170
-    // 50:  62830175
+    // 10:   5047258
+    // 50:  47114087
     #[bench]
     fn bench_emit_frp_chain_pod(bencher: &mut Bencher) {
         let net = Network::new();
@@ -1155,6 +1158,27 @@ mod benches {
         });
     }
 
+
+    #[bench]
+    fn b1(bencher: &mut Bencher) {
+        let mut vec = Vec::<Box<dyn Fn(usize) -> usize>>::new();
+        bencher.iter(move || {
+            for i in 0..100_000 {
+                vec.push(Box::new(move |x| x + i));
+            }
+        });
+    }
+
+    #[bench]
+    fn b2(bencher: &mut Bencher) {
+        let mut vec = Vec::<Box<dyn FF2>>::new();
+        bencher.iter(move || {
+            for i in 0..100_000 {
+                vec.push(Box::new(S(i)));
+            }
+        });
+    }
+
     // 93085
     // 42930
     // 57315
@@ -1174,3 +1198,17 @@ mod benches {
 // 1941622
 
 pub type NodeId = VersionedIndex<NodesMap>;
+
+type FF = dyn Fn(usize) -> usize;
+
+pub struct S(usize);
+
+trait FF2 {
+    fn ff(&self, x: usize) -> usize;
+}
+
+impl FF2 for S {
+    fn ff(&self, x: usize) -> usize {
+        self.0 + x
+    }
+}
