@@ -107,6 +107,7 @@ impl Default for Data {
 
 impl Data {
     /// Deserialize JSON visualization data from the given bytes.
+    #[profile(Debug)]
     pub fn json(data: &[u8]) -> FallibleResult<Self> {
         let rc: Rc<serde_json::value::RawValue> = serde_json::from_slice(data)?;
         let content = Json { rc };

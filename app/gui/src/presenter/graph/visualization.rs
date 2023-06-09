@@ -102,7 +102,7 @@ impl Model {
         data: VisualizationUpdateData,
     ) {
         if let Some(view_id) = self.state.view_id_of_ast_node(target) {
-            match deserialize_visualization_data(data) {
+            match visualization_view::Data::json(&data) {
                 Ok(data) => update_endpoint.emit((view_id, data)),
                 Err(err) => {
                     // TODO [mwu]: We should consider having the visualization also accept error
@@ -305,17 +305,4 @@ impl Visualization {
         });
         self
     }
-}
-
-
-
-// ========================
-// === Helper Functions ===
-// ========================
-
-#[profile(Debug)]
-fn deserialize_visualization_data(
-    data: VisualizationUpdateData,
-) -> FallibleResult<visualization_view::Data> {
-    visualization_view::Data::json(data.as_ref())
 }

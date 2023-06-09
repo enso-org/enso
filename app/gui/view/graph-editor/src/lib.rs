@@ -2566,7 +2566,7 @@ impl GraphEditorModel {
                     .or_else(|| self.edge_target_type(edge_id))
                     .or_else(|| self.edge_source_type(edge_id));
                 // FIXME: `type_coloring::compute` should be ported to `StyleWatchFrp`.
-                #[allow(deprecated)]
+                #[allow(deprecated)] // `self.styles`
                 let opt_color = edge_type.map(|t| type_coloring::compute(&t, &self.styles));
                 opt_color.unwrap_or(neutral_color)
             }
