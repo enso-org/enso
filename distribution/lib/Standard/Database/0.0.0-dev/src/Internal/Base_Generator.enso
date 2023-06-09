@@ -136,6 +136,26 @@ make_function name =
     arguments ->
         (Builder.code name) ++ (Builder.join ", " arguments . paren)
 
+make_konst : Vector Builder -> Builder
+make_konst =
+    arguments ->
+        #IO.println "make_konst"
+        #IO.println arguments
+        #IO.println <| arguments.at 1
+        #(Builder.interpolation (arguments.at 1)) # . paren
+        arguments.at 1 . paren
+
+## PRIVATE
+   Create a binary function that swaps its two arguments.
+   This is used (for example) to implement 10^n as POW_FLIP(n, 10), which is
+   necessary because 10 is not a Column.
+make_binary_function_flipped : Text -> Vector Builder -> Builder
+make_binary_function_flipped name arguments = case arguments.length of
+    2 ->
+        make_function name [arguments.at 1, arguments.at 0]
+    _ ->
+        Error.throw <| Illegal_State.Error ("Invalid amount of arguments for binary operation " + name)
+
 ## PRIVATE
 
    A helper function to create an operation that takes no arguments.
@@ -174,14 +194,14 @@ base_dialect =
     unary = name -> [name, make_unary_op name]
     fun = name -> [name, make_function name]
 
-    arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["mod", make_function "MOD"], ["^", make_function "POWER"]]
+    arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["mod", make_function "MOD"], ["^", make_function "POWER"], ["POW_FLIP", make_binary_function_flipped "POW"]]
     logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif], ["CASE", case_when]]
     eq = lift_binary_op "==" make_equals
     neq = lift_binary_op "!=" make_not_equals
     compare = [eq, neq, bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
     functions = [["COALESCE", make_function "COALESCE"], ["ROW_MIN", make_function "MIN"], ["ROW_MAX", make_function "MAX"]]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
-    counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
+    counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"], ["KONST", make_konst]]
     text = [is_empty, bin "LIKE", simple_equals_ignore_case, fold_case, make_case_sensitive]
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]

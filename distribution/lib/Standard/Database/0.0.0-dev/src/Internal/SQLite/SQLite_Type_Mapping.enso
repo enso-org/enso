@@ -159,6 +159,20 @@ operations_map =
             Panic.throw (Illegal_State.Error "Impossible: IIF must have 3 arguments. This is a bug in the Database library.")
         find_a_common_type (arguments.drop 1)
 
+    handle_konst arguments =
+        #IO.println 'handle_konst'
+        #IO.println arguments
+        v = arguments.at 1
+        q =
+            if v.is_a Decimal then SQLite_Types.real else
+                if v.is_a Integer then SQLite_Types.integer else
+                    if v.is_a Text then SQLite_Types.text else
+                        if v.is_a Boolean then SQLite_Types.boolean else
+                            Error.throw <| Illegal_Argument.Error <| "An unsupported SQL constant type: " + v.to_text
+        #IO.println "qqq"
+        #IO.println q
+        q
+
     handle_case arguments =
         fallback = arguments.last
         cases = arguments.drop (Last 1)
@@ -177,9 +191,9 @@ operations_map =
     always_floating_ops = ["/", "mod", "AVG", "STDDEV_POP", "STDDEV_SAMP"]
     always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED", "MAKE_CASE_SENSITIVE", "FOLD_CASE", "TRIM", "LTRIM", "RTRIM"]
     always_integer_ops = ["COUNT", "COUNT_IS_NULL", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT_ROWS", "TRUNCATE", "CEIL", "FLOOR"]
-    arithmetic_ops = ["ADD_NUMBER", "-", "*", "^", "%", "SUM"]
+    arithmetic_ops = ["ADD_NUMBER", "-", "*", "^", "%", "SUM", "POW_FLIP"]
     merge_input_types_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FILL_NULL", "COALESCE"]
-    others = [["IIF", handle_iif], ["CAST", handle_cast], ["CASE", handle_case]]
+    others = [["IIF", handle_iif], ["CAST", handle_cast], ["CASE", handle_case], ["KONST", handle_konst]]
     Map.from_vector <|
         v1 = always_boolean_ops.map [_, const SQLite_Types.boolean]
         v2 = always_floating_ops.map [_, const SQLite_Types.real]

@@ -122,6 +122,7 @@ type Column
        - operands: A vector of additional operation arguments (the column itself
          is always passed as the first argument).
        - new_name: The name of the resulting column.
+    make_op : Text -> Vector Text -> (Text | Nothing) -> Column
     make_op self op_kind operands new_name =
         checked_support = if self.connection.dialect.is_supported op_kind then True else
             Error.throw (Unsupported_Database_Operation.Error "The operation "+op_kind+" is not supported by this backend.")
@@ -550,11 +551,61 @@ type Column
                 op_result = self.make_op "IIF" [when_true, when_false] new_name
                 adapt_unified_column op_result common_type
 
-    ## Rounding values is not supported in database columns.
-    round : Integer -> Boolean -> Problem_Behavior -> Column | Illegal_Argument | Invalid_Value_Type
-    round self decimal_places=0 use_bankers=False on_problems=Report_Warning =
-        _ = [decimal_places, use_bankers, on_problems]
-        Error.throw <| Unsupported_Database_Operation.Error "`Column.round` is not implemented yet for the Database backends."
+    ## Round to a specified number of decimal places.
+
+       By default, rounding uses "symmetric round-half-up", also known as
+       "round towards 0." If use_bankers=True, then it uses "round-half-even",
+       also known as "banker's rounding".
+
+       If `decimal_places` > 0, `round` returns a column of the same type as the
+       input. Otherwise, it returns an `Integer` column.
+
+       Arguments:
+       - decimal_places: The number of decimal places to round to. Can be
+         negative, which results in rounding to positive integer powers of 10.
+         Must be between -15 and 15 (inclusive).
+       - use_bankers: Rounds mid-point to nearest even number.
+
+       ! Error Conditions
+
+         If `decimal_places` is outside the range -15..15 (inclusive), an
+         `Illegal_Argument` error is thrown.
+
+       ? Negative decimal place counts
+         Rounding to `n` digits can be thought of as "rounding to the nearest
+         multiple of 10^(-n)". For negative decimal counts, this results in
+         rounding to the nearest positive integer power of 10.
+    round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
+    round self decimal_places=0 use_bankers=False =
+        _ = [use_bankers]
+        check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
+            new_name = self.naming_helpers.function_name "round" [self]
+            # works
+            #self.make_binary_op "KONST" 37 new_name
+            #self.make_binary_op "KONST" True new_name
+            #self * 2
+
+            #self * 2
+            scale = 10 ^ decimal_places
+            #scale = self.make_binary_op "POW_FLIP" 10 new_name
+            scaled = self * scale
+            round_base = scaled.floor
+            round_midpoint = (round_base + 0.5) / scale
+            even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
+            half_goes_up = if use_bankers then even_is_up else (self.make_binary_op "KONST" True)
+            do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
+            result = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
+            result
+
+    ##
+                        scale = 10 ^ decimal_places
+                        scaled = self * scale
+                        round_base = scaled.floor
+                        round_midpoint = (round_base + 0.5) / scale
+                        even_is_up = if self >= 0 then (scaled.truncate % 2) != 0 else (scaled.truncate % 2) == 0
+                        half_goes_up = if use_bankers then even_is_up else True
+                        do_round_up = if half_goes_up then self >= round_midpoint else self > round_midpoint
+                        if do_round_up then ((round_base + 1.0) / scale) else (round_base / scale)
 
     ## ALIAS int
        UNSTABLE
@@ -1274,3 +1325,21 @@ adapt_unified_column column expected_type =
         SQL_Type_Reference.new column.connection column.context expression
     adapted = dialect.adapt_unified_column column.as_internal expected_type infer_return_type
     Column.Value name=column.name connection=column.connection sql_type_reference=adapted.sql_type_reference expression=adapted.expression context=column.context
+
+## PRIVATE
+   The smallest allowed value for the `decimal_places` argument to `round`
+round_min_decimal_places : Integer
+round_min_decimal_places = -15
+
+## PRIVATE
+   The largest allowed value for the `decimal_places` argument to `round`
+round_max_decimal_places : Integer
+round_max_decimal_places = 15
+
+## PRIVATE
+   Restrict rounding decimal_places parameter.
+check_decimal_places : Integer -> Any -> Any ! Illegal_Argument
+check_decimal_places decimal_places ~action =
+    if decimal_places >= round_min_decimal_places && decimal_places <= round_max_decimal_places then action else
+        msg = "round: decimal_places must be between " + round_min_decimal_places.to_text + " and " + round_max_decimal_places.to_text + " (inclusive), but was " + decimal_places.to_text
+        Error.throw (Illegal_Argument.Error msg)
