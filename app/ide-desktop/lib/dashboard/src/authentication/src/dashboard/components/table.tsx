@@ -54,6 +54,7 @@ function Table<T, State = never>(props: TableProps<T, State>) {
     const { items, state, getKey, columns, isLoading, placeholder, onClick, onContextMenu } = props
     const [spinnerClasses, setSpinnerClasses] = React.useState(SPINNER_INITIAL_CLASSES)
     const [selectedItems, setSelectedItems] = React.useState(() => new Set<T>())
+    const [previouslySelectedItem, setPreviouslySelectedItem] = React.useState<T | null>(null)
 
     React.useEffect(() => {
         const onDocumentClick = (event: MouseEvent) => {
@@ -78,22 +79,38 @@ function Table<T, State = never>(props: TableProps<T, State>) {
         }
     }, [isLoading])
 
-    const onItemClicked = (item: T, event: React.MouseEvent) => {
-        event.stopPropagation()
-        // The Shift key should select a range of item, however the current architecture
-        // is not designed to handle this.
-        if (event.ctrlKey) {
-            const newItems = new Set(selectedItems)
-            if (selectedItems.has(item)) {
-                newItems.delete(item)
+    const onItemClicked = React.useCallback(
+        (item: T, event: React.MouseEvent) => {
+            event.stopPropagation()
+            // The Shift key should select a range of items, however the current architecture
+            // is not designed to handle this.
+            if (event.shiftKey && previouslySelectedItem != null) {
+                const index1 = items.indexOf(previouslySelectedItem)
+                const index2 = items.indexOf(item)
+                const newlySelectedItems =
+                    index1 <= index2
+                        ? items.slice(index1, index2 + 1)
+                        : items.slice(index2, index1 + 1)
+                if (event.ctrlKey) {
+                    setSelectedItems(new Set([...selectedItems, ...newlySelectedItems]))
+                } else {
+                    setSelectedItems(new Set(newlySelectedItems))
+                }
+            } else if (event.ctrlKey) {
+                const newItems = new Set(selectedItems)
+                if (selectedItems.has(item)) {
+                    newItems.delete(item)
+                } else {
+                    newItems.add(item)
+                }
+                setSelectedItems(newItems)
             } else {
-                newItems.add(item)
+                setSelectedItems(new Set([item]))
             }
-            setSelectedItems(newItems)
-        } else {
-            setSelectedItems(new Set([item]))
-        }
-    }
+            setPreviouslySelectedItem(item)
+        },
+        [items, previouslySelectedItem, selectedItems]
+    )
 
     const headerRow = (
         <tr>
