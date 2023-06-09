@@ -8,6 +8,7 @@ import project.Data.Pair.Pair
 import project.Data.Range.Range
 from project.Data.Range.Extensions import all
 import project.Data.Text.Text
+import project.Data.Sort_Direction.Sort_Direction
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.No_Such_Method
@@ -939,8 +940,8 @@ type Vector a
          because it has the default comparator.
 
              [My_Type.Value 'hello', 1].sort == [1, My_Type.Value 'hello']
-    sort : Sort_Direction.Sort_Direction -> (Any -> Any)|Nothing -> (Any -> Any -> (Ordering|Nothing))|Nothing -> Problem_Behavior -> Vector Any ! Incomparable_Values
-    sort self (order = Sort_Direction.Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
+    sort : Sort_Direction -> (Any -> Any)|Nothing -> (Any -> Any -> (Ordering|Nothing))|Nothing -> Problem_Behavior -> Vector Any ! Incomparable_Values
+    sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
         comps = case on == Nothing of
             True -> self.map it-> Comparable.from it
             False -> self.map it-> Comparable.from (on it)
