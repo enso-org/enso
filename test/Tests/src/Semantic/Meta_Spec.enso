@@ -408,18 +408,18 @@ spec =
             it.describe . should_equal 6
             it.describe "second" . should_equal 7
             Panic.catch Any (it.describe_better) (_->"Not executed") . should_equal "Not executed"
-            Meta_Define_Usage.call_describe_better it . should_equal 42
+            Meta_Define_Usage.call_describe_better it "mul" . should_equal 42
 
         Test.specify "verify calling everything works" <|
-            describe_anno = Meta.get_annotation it "describe" "which"
+            describe_anno = Meta.get_annotation it.describe... Nothing "which"
             describe_anno it . should_equal 13
 
-            describe_better_no_anno = Meta.get_annotation it "describe_better" "which"
-            # cannot see describe_better method from here
-            describe_better_no_anno.is_nothing . should_be_true
 
-            describe_better_anno = Meta_Define_Usage.annotate_describe_better it
-            # Meta_Define_Usage can see the describe_better method
+            # Meta_Define_Usage can resolve the describe_better method
+            fn = (Meta_Define_Usage.obtain_describe_better it)...
+            fn.is_nothing . should_be_false
+            # we can query annotations for the resolved function
+            describe_better_anno = Meta.get_annotation fn... Nothing "which"
             describe_better_anno it . should_equal 13
 
 main = Test_Suite.run_main spec
