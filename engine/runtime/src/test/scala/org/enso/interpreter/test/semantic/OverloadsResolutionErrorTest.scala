@@ -14,6 +14,10 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
   override def contextModifiers: Option[Context#Builder => Context#Builder] =
     Some(_.option(RuntimeOptions.STRICT_ERRORS, "true"))
 
+  private def isDiagnosticLine(line: String): Boolean = {
+    line.contains(" | ")
+  }
+
   override def specify(implicit
     interpreterContext: InterpreterContext
   ): Unit = {
@@ -31,10 +35,9 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
 
       val diagnostics = consumeOut
       diagnostics
-        .filterNot(_.contains("Compiler encountered"))
-        .filterNot(_.contains("In module"))
+        .filterNot(isDiagnosticLine)
         .toSet shouldEqual Set(
-        "Test[4:1-4:16]: Method overloads are not supported: Nothing.foo is defined multiple times in this module."
+        "Test:4:1: error: Method overloads are not supported: Nothing.foo is defined multiple times in this module."
       )
     }
 
@@ -50,10 +53,9 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
 
       val diagnostics = consumeOut
       diagnostics
-        .filterNot(_.contains("Compiler encountered"))
-        .filterNot(_.contains("In module"))
+        .filterNot(isDiagnosticLine)
         .toSet shouldEqual Set(
-        "Test[3:1-3:11]: Redefining atoms is not supported: MyAtom is defined multiple times in this module."
+        "Test:3:1: error: Redefining atoms is not supported: MyAtom is defined multiple times in this module."
       )
     }
 

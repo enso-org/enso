@@ -423,12 +423,15 @@ type Date
 
              example_to_time = Date.new 2020 2 3 . to_date_time Time_Of_Day.new Time_Zone.utc
     to_date_time : Time_Of_Day -> Time_Zone -> Date_Time
-    to_date_time self (time_of_day=Time_Of_Day.new) (zone=Time_Zone.system) = self.to_time_builtin time_of_day zone
+    to_date_time self (time_of_day=Time_Of_Day.new) (zone=Time_Zone.system) =
+        Time_Utils.make_zoned_date_time self time_of_day zone
 
-    ## Add the specified amount of time to this instant to get another date.
+    ## ALIAS Add Period
+       Add the specified amount of time to this instant to get another date.
 
        Arguments:
-       - amount: The time duration to add to this instant.
+       - amount: The amount of time to add to this instant. It can be a
+         `Period` or `Date_Period`.
 
        > Example
          Add 6 months to a local date.
@@ -436,18 +439,22 @@ type Date
              import Standard.Base.Data.Time.Duration
 
              example_add = Date.new 2020 + (Period.new months=6)
-    + : Period -> Date ! (Time_Error | Illegal_Argument)
-    + self period =
-        case period of
-            _ : Period ->
+
+       > Example
+         Add a month to a local date.
+
+             import Standard.Base.Data.Time.Date_Period
+
+             example_add = Date.new 2020 + Date_Period.Month
+    + : Period | Date_Period -> Date ! (Time_Error | Illegal_Argument)
+    + self amount:(Period|Date_Period) =
+        case amount of
+            period : Period ->
                 Time_Utils.date_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
-            _ : Duration ->
-                Error.throw (Time_Error.Error "Date does not support adding/subtracting Duration. Use Period instead.")
-            _ ->
-                Error.throw (Illegal_Argument.Error "Illegal period argument")
+            date_period : Date_Period ->
+                self + date_period.to_period
 
     ## ALIAS Date Range
-
        Creates an increasing range of dates from `self` to `end`.
 
        Arguments:
@@ -472,7 +479,6 @@ type Date
         _ -> Error.throw (Type_Error.Error Date end "end")
 
     ## ALIAS Date Range
-
        Creates a decreasing range of dates from `self` to `end`.
 
        Arguments:
@@ -618,11 +624,13 @@ type Date
                         if holidays.contains end_date || is_weekend end_date then @Tail_Call go (end_date - (Period.new days=1)) else end_date
                     go end
 
-    ## Subtract the specified amount of time from this instant to get another
+    ## ALIAS Subtract Period
+       Subtract the specified amount of time from this instant to get another
        date.
 
        Arguments:
-       - amount: The time duration to subtract from this date.
+       - amount: The amount of time to add to this instant. It can be a
+         `Period` or `Date_Period`.
 
        > Example
          Subtract 7 days from a local date.
@@ -631,16 +639,21 @@ type Date
              import Standard.Base.Data.Time.Duration
 
              example_subtract = Date.new 2020 - (Period.new days=7)
-    - : Period -> Date ! (Time_Error | Illegal_Argument)
-    - self period =
-        case period of
-            _ : Period ->
+
+       > Example
+         Subtract a month from a local date.
+
+             import Standard.Base.Data.Time.Date_Period
+
+             example_add = Date.new 2020 - Date_Period.Month
+    - : Period | Date_Period -> Date ! (Time_Error | Illegal_Argument)
+    - self amount:(Period|Date_Period) =
+        case amount of
+            period : Period ->
                 new_java_date = Time_Utils.date_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
                 Date.new new_java_date.year new_java_date.month new_java_date.day
-            _ : Duration ->
-                Error.throw (Time_Error.Error "Date does not support adding/subtracting Duration. Use Period instead.")
-            _ ->
-                Error.throw (Illegal_Argument.Error "Illegal period argument")
+            date_period : Date_Period ->
+                self - date_period.to_period
 
     ## PRIVATE
        Convert to a display representation of this Date.
@@ -705,6 +718,7 @@ type Date
          Format "2020-06-21" with French locale as "21. juin 2020"
 
              example_format = Date.new 2020 6 21 . format "d. MMMM yyyy" (Locale.new "fr")
+    @locale Locale.default_widget
     format : Text -> Locale -> Text
     format self pattern locale=Locale.default = case locale of
         Nothing -> Time_Utils.local_date_format self pattern

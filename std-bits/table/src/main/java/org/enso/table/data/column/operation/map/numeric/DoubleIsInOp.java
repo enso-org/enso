@@ -2,8 +2,7 @@ package org.enso.table.data.column.operation.map.numeric;
 
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.SpecializedIsInOp;
-import org.enso.table.data.column.storage.DoubleStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.numeric.DoubleStorage;
 
 import java.util.HashSet;
 import java.util.List;
