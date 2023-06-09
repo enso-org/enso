@@ -29,7 +29,7 @@ import scala.collection.mutable.ListBuffer
   *
   * All synthetic imports and exports, as well as synthetic modules are ignored by this pass.
   *
-  * Thi pass does not alter any metadata.
+  * This pass does not alter any metadata.
   */
 case object AmbiguousImportsAnalysis extends IRPass {
 
