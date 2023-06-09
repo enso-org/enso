@@ -267,13 +267,16 @@ impl Runtime {
         tp: impl EventConsumer + 'static,
         net_id: NetworkId,
         def: DefInfo,
+        init: impl FnOnce(&mut NodeData),
     ) -> NodeId {
         self.metrics.inc_nodes();
         let mut networks = self.networks.borrow_mut();
         if let Some(network) = networks.get_mut(net_id) {
             let id = self.nodes.reserve();
             if let Some(node) = self.nodes.get(id) {
-                node.borrow_mut().reuse((ZeroableOption::Some(Box::new(tp)), net_id, def))
+                let node = node.borrow_mut();
+                node.reuse((ZeroableOption::Some(Box::new(tp)), net_id, def));
+                init(node);
             }
             network.nodes.push(id);
             id
@@ -558,14 +561,32 @@ impl<'a, Output: Data> EventContext<'a, Output> {
 /// types. The [`Inputs`] is a tuple containing any supported combination of [`Listen`], [`Sample`],
 /// and [`ListenAndSample`]. Refer to their docs to learn more about their meaning.
 trait NodeDefinition<Output, F> {
-    fn def_node<Kind>(net: &Network, inputs: Self, f: F) -> NodeTemplate<Kind, Output>;
+    fn def_node<Kind>(
+        net: &Network,
+        inputs: Self,
+        f: F,
+        init: impl FnOnce(&mut NodeData),
+    ) -> NodeTemplate<Kind, Output>;
 }
 
 impl Network {
     #[inline(always)]
-    fn def_node<Kind, Inputs, Output, F>(&self, inps: Inputs, f: F) -> NodeTemplate<Kind, Output>
+    fn def_node<Kind, Inputs, Output, F>(
+        &self,
+        inps: Inputs,
+        f: F,
+        init: impl FnOnce(&mut NodeData),
+    ) -> NodeTemplate<Kind, Output>
+    where
+        Inputs: NodeDefinition<Output, F>,
+    {
+        Inputs::def_node(self, inps, f, init)
+    }
+
+    #[inline(always)]
+    fn def_node_<Kind, Inputs, Output, F>(&self, inps: Inputs, f: F) -> NodeTemplate<Kind, Output>
     where Inputs: NodeDefinition<Output, F> {
-        Inputs::def_node(self, inps, f)
+        self.def_node(inps, f, |_| {})
     }
 }
 
@@ -573,10 +594,18 @@ impl<Output, F> NodeDefinition<Output, F> for ()
 where F: Fn(EventContext<Output>) + 'static
 {
     #[inline(always)]
-    fn def_node<Kind>(net: &Network, _inputs: Self, f: F) -> NodeTemplate<Kind, Output> {
-        net.new_node(move |rt: &Runtime, node: &NodeData, _: &dyn Data| {
-            f(EventContext::unchecked_new(rt, node))
-        })
+    fn def_node<Kind>(
+        net: &Network,
+        _inputs: Self,
+        f: F,
+        init: impl FnOnce(&mut NodeData),
+    ) -> NodeTemplate<Kind, Output> {
+        net.new_node(
+            move |rt: &Runtime, node: &NodeData, _: &dyn Data| {
+                f(EventContext::unchecked_new(rt, node))
+            },
+            init,
+        )
     }
 }
 
@@ -586,12 +615,20 @@ where
     F: Fn(EventContext<Output>, &N0::Output) + 'static,
 {
     #[inline(always)]
-    fn def_node<Kind>(net: &Network, inputs: Self, f: F) -> NodeTemplate<Kind, Output> {
+    fn def_node<Kind>(
+        net: &Network,
+        inputs: Self,
+        f: F,
+        init: impl FnOnce(&mut NodeData),
+    ) -> NodeTemplate<Kind, Output> {
         let inputs = inputs.map_fields_into::<InputType>();
-        let node = net.new_node(move |rt: &Runtime, node: &NodeData, data: &dyn Data| {
-            let data = unsafe { &*(data as *const dyn Data as *const N0::Output) };
-            f(EventContext::unchecked_new(rt, node), data);
-        });
+        let node = net.new_node(
+            move |rt: &Runtime, node: &NodeData, data: &dyn Data| {
+                let data = unsafe { &*(data as *const dyn Data as *const N0::Output) };
+                f(EventContext::unchecked_new(rt, node), data);
+            },
+            init,
+        );
         with_runtime(|rt| inputs.field_iter(|input| rt.connect(*input, node.id)));
         node
     }
@@ -604,14 +641,22 @@ where
     F: Fn(EventContext<Output>, &N0::Output, &N1::Output) + 'static,
 {
     #[inline(always)]
-    fn def_node<Kind>(net: &Network, inputs: Self, f: F) -> NodeTemplate<Kind, Output> {
+    fn def_node<Kind>(
+        net: &Network,
+        inputs: Self,
+        f: F,
+        init: impl FnOnce(&mut NodeData),
+    ) -> NodeTemplate<Kind, Output> {
         let inputs = inputs.map_fields_into::<InputType>();
-        let node = net.new_node(move |rt: &Runtime, node: &NodeData, data: &dyn Data| unsafe {
-            let t0 = &*(data as *const dyn Data as *const N0::Output);
-            rt.with_borrowed_node_output_cache_coerced(inputs.1.node_id(), |t1| {
-                f(EventContext::unchecked_new(rt, node), t0, t1)
-            });
-        });
+        let node = net.new_node(
+            move |rt: &Runtime, node: &NodeData, data: &dyn Data| unsafe {
+                let t0 = &*(data as *const dyn Data as *const N0::Output);
+                rt.with_borrowed_node_output_cache_coerced(inputs.1.node_id(), |t1| {
+                    f(EventContext::unchecked_new(rt, node), t0, t1)
+                });
+            },
+            init,
+        );
         with_runtime(|rt| inputs.field_iter(|input| rt.connect(*input, node.id)));
         node
     }
@@ -625,16 +670,24 @@ where
     F: Fn(EventContext<Output>, &N0::Output, &N1::Output, &N2::Output) + 'static,
 {
     #[inline(always)]
-    fn def_node<Kind>(net: &Network, inputs: Self, f: F) -> NodeTemplate<Kind, Output> {
+    fn def_node<Kind>(
+        net: &Network,
+        inputs: Self,
+        f: F,
+        init: impl FnOnce(&mut NodeData),
+    ) -> NodeTemplate<Kind, Output> {
         let inputs = inputs.map_fields_into::<InputType>();
-        let node = net.new_node(move |rt: &Runtime, node: &NodeData, data: &dyn Data| unsafe {
-            let t0 = &*(data as *const dyn Data as *const N0::Output);
-            rt.with_borrowed_node_output_cache_coerced(inputs.1.node_id(), |t1| {
-                rt.with_borrowed_node_output_cache_coerced(inputs.2.node_id(), |t2| {
-                    f(EventContext::unchecked_new(rt, node), t0, t1, t2)
-                })
-            });
-        });
+        let node = net.new_node(
+            move |rt: &Runtime, node: &NodeData, data: &dyn Data| unsafe {
+                let t0 = &*(data as *const dyn Data as *const N0::Output);
+                rt.with_borrowed_node_output_cache_coerced(inputs.1.node_id(), |t1| {
+                    rt.with_borrowed_node_output_cache_coerced(inputs.2.node_id(), |t2| {
+                        f(EventContext::unchecked_new(rt, node), t0, t1, t2)
+                    })
+                });
+            },
+            init,
+        );
         with_runtime(|rt| inputs.field_iter(|input| rt.connect(*input, node.id)));
         node
     }
@@ -681,9 +734,10 @@ impl Network {
     fn new_node<Kind, Output>(
         &self,
         tp: impl EventConsumer + 'static,
+        init: impl FnOnce(&mut NodeData),
     ) -> NodeTemplate<Kind, Output> {
         let _marker = PhantomData;
-        let id = with_runtime(|rt| rt.new_node(tp, self.id, DefInfo::unlabelled()));
+        let id = with_runtime(|rt| rt.new_node(tp, self.id, DefInfo::unlabelled(), init));
         NodeTemplate { _marker, id }
     }
 }
@@ -693,19 +747,23 @@ impl Network {
 
 pub struct StreamType;
 
-pub type Stream<Output> = NodeTemplate<StreamType, Output>;
+pub type Stream<Output = ()> = NodeTemplate<StreamType, Output>;
 
 
 // === Source ===
 
 #[derive(Clone, Copy, Default)]
 pub struct SourceType;
-pub type Source<Output> = NodeTemplate<SourceType, Output>;
+pub type Source<Output = ()> = NodeTemplate<SourceType, Output>;
 
 impl Network {
     #[inline(always)]
     pub fn source<T>(&self) -> Source<T> {
-        self.def_node((), |_| {})
+        self.def_node_((), |_| {})
+    }
+
+    pub fn source_(&self) -> Source {
+        self.def_node_((), |_| {})
     }
 }
 
@@ -714,7 +772,7 @@ impl Network {
 
 impl Network {
     pub fn trace<T0: Data>(&self, source: impl Node<Output = T0>) -> Stream<T0> {
-        self.def_node((Listen(source),), move |event, t0| {
+        self.def_node_((Listen(source),), move |event, t0| {
             println!("TRACE: {:?}", t0);
             event.emit(t0);
         })
@@ -745,7 +803,7 @@ impl Network {
     ) -> (Stream<Vec<T0>>, DebugCollectData<T0>) {
         let data: DebugCollectData<T0> = default();
         let out = data.clone();
-        let node = self.def_node((Listen(source),), move |event, t0| {
+        let node = self.def_node_((Listen(source),), move |event, t0| {
             data.cell.borrow_mut().push(t0.clone());
             event.emit(&*data.cell.borrow());
         });
@@ -759,31 +817,47 @@ impl Network {
 
 impl Network {
     #[inline(never)]
-    pub fn map<T0, Output: Data>(
-        &self,
-        n0: impl Node<Output = T0>,
-        f: impl Fn(&T0) -> Output + 'static,
-    ) -> Stream<Output> {
-        self.def_node((Listen(n0),), move |event, t0| event.emit(&f(t0)))
+    pub fn map<N0, F, Output: Data>(&self, n0: N0, f: F) -> Stream<Output>
+    where
+        N0: Node,
+        F: 'static + Fn(&N0::Output) -> Output, {
+        self.def_node_((Listen(n0),), move |event, t0| event.emit(&f(t0)))
     }
 
     #[inline(never)]
-    pub fn map2<T0, T1: Default, Output: Data>(
-        &self,
-        n0: impl Node<Output = T0>,
-        n1: impl Node<Output = T1>,
-        f: impl Fn(&T0, &T1) -> Output + 'static,
-    ) -> Stream<Output> {
-        self.def_node((Listen(n0), Sample(n1)), move |event, t0, t1| event.emit(&f(t0, t1)))
+    pub fn map2<N0, N1, F, Output: Data>(&self, n0: N0, n1: N1, f: F) -> Stream<Output>
+    where
+        N0: Node,
+        N1: NodeWithDefaultOutput,
+        F: 'static + Fn(&N0::Output, &N1::Output) -> Output, {
+        self.def_node_((Listen(n0), Sample(n1)), move |event, t0, t1| event.emit(&f(t0, t1)))
     }
 }
 
 
-// struct EventData<'a> {
-//     pub runtime:     &'a Runtime,
-//     pub data:        &'a NodeData,
-//     pub source_id:   NodeId,
-//     pub source_edge: Edge,
+// macro_rules! def {
+//     (
+//         $name:ident ($($arg:ident: $arg_ty:ty),*  $(,)?) $({ $($ctx:tt)* })?
+//         ($event:ident, $($inp_ty:ident($inp:ident)),* $(,)?) { $($body:tt)* }
+//     ) => {
+//         impl Network {
+//             #[inline(never)]
+//             pub fn $name<$($inp,)* Output: Data>(&self, $($inp: $inp,)* $($arg: $arg_ty,)*) ->
+// Stream<Output>             where
+//                 $($inp: NodeWithDefaultOutput,)* {
+//                 $($($ctx)*)?
+//                 self.def_node( ($($inp_ty($inp)),*), move |$event, $($inp,)*| { $($body)* } )
+//             }
+//        }
+//     };
+// }
+//
+//
+//
+// def! { map2y (f: impl Fn(&n0::Output, &n1::Output) -> Output + 'static) {}
+//     (event, Listen(n0), Sample(n1)) {
+//         event.emit(&f(n0, n1))
+//     }
 // }
 
 trait EventConsumer = Fn(&Runtime, &NodeData, &dyn Data);
