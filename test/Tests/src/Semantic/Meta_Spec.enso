@@ -393,18 +393,33 @@ spec =
             case atom.bar of
                 n : Number -> Test.fail "Not changed to number: "+n
                 _ -> Nothing
-    Test.group "Unresolved symbol"
+
+    Test.group "Unresolved symbol" <|
         Test.specify "should be treated as a Function" <|
             (_.is_nothing) . is_a Function . should_equal True
             (.is_nothing) . is_a Function . should_equal True
             Meta.type_of (_.is_nothing) . should_equal Function
             Meta.type_of (.is_nothing) . should_equal Function
 
-    Test.group "Extension methods and get_annotation"
+    Test.group "Extension methods and get_annotation" <|
+        it = Meta_Spec_Type.Value 6 7
+
         Test.specify "verify calling everything works" <|
-            v = Meta_Spec_Type.Value 6 7
-            v.describe . should_equal 6
-            Panic.catch Any (v.describe_better) (_->"Not executed") . should_equal "Not executed"
-            Meta_Define_Usage.call_describe_better v . should_equal 42
+            it.describe . should_equal 6
+            it.describe "second" . should_equal 7
+            Panic.catch Any (it.describe_better) (_->"Not executed") . should_equal "Not executed"
+            Meta_Define_Usage.call_describe_better it . should_equal 42
+
+        Test.specify "verify calling everything works" <|
+            describe_anno = Meta.get_annotation it "describe" "which"
+            describe_anno it . should_equal 13
+
+            describe_better_no_anno = Meta.get_annotation it "describe_better" "which"
+            # cannot see describe_better method from here
+            describe_better_no_anno.is_nothing . should_be_true
+
+            describe_better_anno = Meta_Define_Usage.annotate_describe_better it
+            # Meta_Define_Usage can see the describe_better method
+            describe_better_anno it . should_equal 13
 
 main = Test_Suite.run_main spec

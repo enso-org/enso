@@ -1,3 +1,7 @@
 import project.Semantic.Meta_Define_Type.Meta_Spec_Type
 
-Meta_Spec_Type.describe_better self = self.a * self.b
+
+@which (self -> self.b + self.a)
+Meta_Spec_Type.describe_better self which="mul" = case which of
+    "mul" -> self.a * self.b
+    _ -> self.a / self.b

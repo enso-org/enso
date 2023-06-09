@@ -1,4 +1,6 @@
+from Standard.Base import Meta
 import project.Semantic.Meta_Define_Type.Meta_Spec_Type
 import project.Semantic.Meta_Define_Extensions
 
 call_describe_better it = it.describe_better
+annotate_describe_better it = Meta.get_annotation it "describe_better" "which"

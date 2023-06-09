@@ -1,4 +1,8 @@
 type Meta_Spec_Type
     Value a b
 
-    describe self = self.a
+    @which (self -> self.a+self.b)
+    describe self which="first" = case which of
+        "first" -> self.a
+        _ -> self.b
+
