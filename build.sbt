@@ -275,6 +275,7 @@ lazy val enso = (project in file("."))
     launcher,
     downloader,
     `runtime-language-epb`,
+    `runtime-instrument-common`,
     `runtime-instrument-id-execution`,
     `runtime-instrument-repl-debugger`,
     `runtime-instrument-runtime-server`,
@@ -484,6 +485,7 @@ val typesafeConfigVersion   = "1.4.2"
 val junitVersion            = "4.13.2"
 val junitIfVersion          = "0.11"
 val netbeansApiVersion      = "RELEASE140"
+val fansiVersion            = "0.4.0"
 
 // ============================================================================
 // === Internal Libraries =====================================================
@@ -666,6 +668,7 @@ lazy val graph = (project in file("lib/scala/graph/"))
 lazy val pkg = (project in file("lib/scala/pkg"))
   .settings(
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
+    frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "org.scalatest" %% "scalatest"  % scalatestVersion % Test,
@@ -1337,7 +1340,8 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "junit"               % "junit"                 % junitVersion      % Test,
-      "com.novocode"        % "junit-interface"       % junitIfVersion    % Test exclude ("junit", "junit-dep")
+      "com.novocode"        % "junit-interface"       % junitIfVersion    % Test exclude ("junit", "junit-dep"),
+      "com.lihaoyi"        %% "fansi"                 % fansiVersion      % "provided"
     ),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(CopyTruffleJAR.preCompileTask)
@@ -1412,6 +1416,29 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`syntax-rust-definition`)
   .dependsOn(testkit % Test)
 
+lazy val `runtime-instrument-common` =
+  (project in file("engine/runtime-instrument-common"))
+    .configs(Benchmark)
+    .settings(
+      frgaalJavaCompilerSetting,
+      inConfig(Compile)(truffleRunOptionsSettings),
+      inConfig(Benchmark)(Defaults.testSettings),
+      instrumentationSettings,
+      Test / javaOptions ++= Seq(
+        "-Dgraalvm.locatorDisabled=true",
+        s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
+      ),
+      bench := (Benchmark / test).tag(Exclusive).value,
+      Benchmark / parallelExecution := false,
+      Test / fork := true,
+      Test / envVars ++= distributionEnvironmentOverrides ++ Map(
+        "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
+      )
+    )
+    .dependsOn(
+      runtime % "compile->compile;test->test;runtime->runtime;bench->bench"
+    )
+
 lazy val `runtime-instrument-id-execution` =
   (project in file("engine/runtime-instrument-id-execution"))
     .settings(
@@ -1419,6 +1446,7 @@ lazy val `runtime-instrument-id-execution` =
       instrumentationSettings
     )
     .dependsOn(runtime)
+    .dependsOn(`runtime-instrument-common`)
 
 lazy val `runtime-instrument-repl-debugger` =
   (project in file("engine/runtime-instrument-repl-debugger"))
@@ -1427,6 +1455,7 @@ lazy val `runtime-instrument-repl-debugger` =
       instrumentationSettings
     )
     .dependsOn(runtime)
+    .dependsOn(`runtime-instrument-common`)
 
 lazy val `runtime-instrument-runtime-server` =
   (project in file("engine/runtime-instrument-runtime-server"))
@@ -1435,6 +1464,7 @@ lazy val `runtime-instrument-runtime-server` =
       instrumentationSettings
     )
     .dependsOn(runtime)
+    .dependsOn(`runtime-instrument-common`)
 
 lazy val `runtime-with-instruments` =
   (project in file("engine/runtime-with-instruments"))
@@ -1480,6 +1510,7 @@ lazy val `runtime-with-instruments` =
       }
     )
     .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
+    .dependsOn(`runtime-instrument-common`)
     .dependsOn(`runtime-instrument-id-execution`)
     .dependsOn(`runtime-instrument-repl-debugger`)
     .dependsOn(`runtime-instrument-runtime-server`)

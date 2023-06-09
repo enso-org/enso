@@ -264,6 +264,13 @@ export const DEFAULT_USER_ICON = (
     </svg>
 )
 
+/** An icon representing a menu that can be expanded downwards. */
+export const DOWN_CARET_ICON = (
+    <svg height={16} width={16} viewBox="-1-1 12 12" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1 3l4 4 4-4" fill="transparent" stroke="currentColor" strokeLinecap="round" />
+    </svg>
+)
+
 /** Props for a {@link Spinner}. */
 export interface SpinnerProps {
     size: number

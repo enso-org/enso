@@ -156,7 +156,8 @@ type Array
     # For compatibility with Vector
     #
 
-    ## Sort the array.
+    ## ALIAS order_by
+       Sort the array.
 
        Arguments:
        - order: The order in which the array elements are sorted.
@@ -784,7 +785,8 @@ type Array
     each_with_index : (Integer -> Any -> Any) -> Nothing
     each_with_index self f = Vector.each_with_index self f
 
-    ## Concatenates two arrays, resulting in a new `Vector`, containing all the
+    ## ALIAS Concatenate
+       Concatenates two arrays, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
 
        Arguments:

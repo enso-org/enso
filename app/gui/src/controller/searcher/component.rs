@@ -176,36 +176,32 @@ impl Component {
     pub fn update_matching_info(&self, filter: Filter) {
         // Match the input pattern to the component label.
         let label = self.to_string();
-        let label_matches = fuzzly::matches(&label, filter.pattern.clone_ref());
+        let label_matches = fuzzly::matches(&label, filter.pattern.as_str());
         let label_subsequence = label_matches.and_option_from(|| {
             let metric = fuzzly::metric::default();
-            fuzzly::find_best_subsequence(label, filter.pattern.clone_ref(), metric)
+            fuzzly::find_best_subsequence(label, filter.pattern.as_str(), metric)
         });
         let label_match_info = label_subsequence
             .map(|subsequence| MatchInfo::Matches { subsequence, kind: MatchKind::Label });
 
-        // Match the input pattern to the code to be inserted.
-        let in_module = QualifiedName::as_ref(&filter.module_name);
-        let code = match &self.data {
-            Data::FromDatabase { entry, .. } => entry.code_to_insert(true, in_module).to_string(),
-            Data::Virtual { snippet } => snippet.code.to_string(),
-        };
-        let code_matches = fuzzly::matches(&code, filter.pattern.clone_ref());
-        let code_subsequence = code_matches.and_option_from(|| {
+        // Match the input pattern to the component name.
+        let name = self.name();
+        let name_matches = fuzzly::matches(name, filter.pattern.as_str());
+        let name_subsequence = name_matches.and_option_from(|| {
             let metric = fuzzly::metric::default();
-            fuzzly::find_best_subsequence(code, filter.pattern.clone_ref(), metric)
+            fuzzly::find_best_subsequence(name, filter.pattern.as_str(), metric)
         });
-        let code_match_info = code_subsequence.map(|subsequence| {
+        let name_match_info = name_subsequence.map(|subsequence| {
             let subsequence = fuzzly::Subsequence { indices: Vec::new(), ..subsequence };
-            MatchInfo::Matches { subsequence, kind: MatchKind::Code }
+            MatchInfo::Matches { subsequence, kind: MatchKind::Name }
         });
 
         // Match the input pattern to an entry's aliases and select the best alias match.
         let alias_matches = self.aliases().filter_map(|alias| {
-            if fuzzly::matches(alias, filter.pattern.clone_ref()) {
+            if fuzzly::matches(alias, filter.pattern.as_str()) {
                 let metric = fuzzly::metric::default();
                 let subsequence =
-                    fuzzly::find_best_subsequence(alias, filter.pattern.clone_ref(), metric);
+                    fuzzly::find_best_subsequence(alias, filter.pattern.as_str(), metric);
                 subsequence.map(|subsequence| (subsequence, alias))
             } else {
                 None
@@ -221,7 +217,7 @@ impl Component {
         });
 
         // Select the best match of the available label-, code- and alias matches.
-        let match_info_iter = [alias_match_info, code_match_info, label_match_info].into_iter();
+        let match_info_iter = [alias_match_info, name_match_info, label_match_info].into_iter();
         let best_match_info = match_info_iter.flatten().max_by(|lhs, rhs| lhs.cmp(rhs));
         *self.match_info.borrow_mut() = best_match_info.unwrap_or(MatchInfo::DoesNotMatch);
 

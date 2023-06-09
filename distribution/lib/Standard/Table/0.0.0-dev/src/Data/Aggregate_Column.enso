@@ -149,7 +149,7 @@ type Aggregate_Column
          not missing value returned.
        - order_by: required for database tables. Specifies how to order the
          results within the group.
-    First (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:(Text | Sort_Column | Vector (Text | Sort_Column) | Nothing)=Nothing) # Column needed because of 6866
+    First (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:(Text | Vector (Text | Sort_Column) | Nothing)=Nothing) # Column needed because of 6866
 
     ## Creates a new column with the last value in each group. If no rows,
        evaluates to `Nothing`.
@@ -162,7 +162,7 @@ type Aggregate_Column
          not missing value returned.
        - order_by: required for database tables. Specifies how to order the
          results within the group.
-    Last (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:(Text | Sort_Column | Vector (Text | Sort_Column) | Nothing)=Nothing) # Column needed because of 6866
+    Last (column:Text|Integer|Column|Any=0) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:(Text | Vector (Text | Sort_Column) | Nothing)=Nothing) # Column needed because of 6866
 
     ## Creates a new column with the maximum value in each group. If no rows,
        evaluates to `Nothing`.

@@ -42,9 +42,12 @@ crate::define_endpoints_2! {
         show_system_cursor(),
         /// Hide the system mouse cursor.
         hide_system_cursor(),
+        /// Show a notification.
+        show_notification(String),
     }
     Output {
-        tooltip(tooltip::Style)
+        tooltip(tooltip::Style),
+        notification(String),
     }
 }
 
@@ -106,7 +109,8 @@ impl Application {
         let data = &self.inner;
         let network = self.frp.network();
         enso_frp::extend! { network
-            eval self.display.default_scene.frp.focused ((t) data.show_system_cursor(!t));
+            app_focused <- self.display.default_scene.frp.focused.on_change();
+            eval app_focused((t) data.show_system_cursor(!t));
             frp.private.output.tooltip <+ frp.private.input.set_tooltip;
             eval_ frp.private.input.show_system_cursor(data.show_system_cursor(true));
             eval_ frp.private.input.hide_system_cursor(data.show_system_cursor(false));

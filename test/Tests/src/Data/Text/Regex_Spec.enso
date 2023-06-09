@@ -141,6 +141,15 @@ spec =
             match = pattern.find_all input
             match . should_equal []
 
+        Test.specify "should handle matching empty matches" <|
+            pattern = Regex.compile ".*"
+            pattern.find_all "Hello World" . should_equal ["Hello World", ""]
+            pattern.find_all "" . should_equal [""]
+
+            pattern_2 = Regex.compile ".*(?=.)"
+            pattern_2.find_all "Hello World" . should_equal ["Hello Worl", ""]
+            pattern_2.find_all "" . should_equal []
+
         Test.specify "should correctly handle edge cases where one-letter matches happen at the end of the word" <|
             Regex.compile "(a+|1+)" . find_all "a1a1" . should_equal ["a", "1", "a", "1"]
             Regex.compile "([a]+|[1]+)" . find_all "a1a1" . should_equal ["a", "1", "a", "1"]

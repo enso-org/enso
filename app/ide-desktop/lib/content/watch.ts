@@ -39,10 +39,12 @@ async function watch() {
         })
     )
     opts.define.REDIRECT_OVERRIDE = JSON.stringify('http://localhost:8080')
-    opts.entryPoints.push({
-        in: path.resolve(THIS_PATH, 'src', 'serviceWorker.ts'),
-        out: 'serviceWorker',
-    })
+    // This is safe as this entry point is statically known.
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const serviceWorkerEntryPoint = opts.entryPoints.find(
+        entryPoint => entryPoint.out === 'serviceWorker'
+    )!
+    serviceWorkerEntryPoint.in = path.resolve(THIS_PATH, 'src', 'devServiceWorker.ts')
     const builder = await esbuild.context(opts)
     await builder.watch()
     await builder.serve({

@@ -14,7 +14,7 @@ use crate::display::shape::primitive::system::Shape;
 use crate::display::shape::primitive::system::ShapeInstance;
 use crate::display::symbol;
 use crate::display::world;
-use crate::display::Sprite;
+use crate::display::RawSprite;
 use crate::frp;
 
 
@@ -42,7 +42,7 @@ pub trait AnyShapeView: display::Object {
     fn definition_path(&self) -> &'static str;
 
     /// Get the sprite of given shape.
-    fn sprite(&self) -> Sprite;
+    fn sprite(&self) -> RawSprite;
 }
 
 impl<S: Shape> AnyShapeView for ShapeView<S> {
@@ -50,7 +50,7 @@ impl<S: Shape> AnyShapeView for ShapeView<S> {
         S::definition_path()
     }
 
-    fn sprite(&self) -> Sprite {
+    fn sprite(&self) -> RawSprite {
         self.sprite.borrow().clone_ref()
     }
 }
@@ -86,14 +86,14 @@ impl<S: Shape> ShapeView<S> {
     }
 
     fn init(self) -> Self {
-        self.init_on_scene_layer_changed();
+        self.init_display_object_events();
         self
     }
 
-    fn init_on_scene_layer_changed(&self) {
-        let weak_model = Rc::downgrade(&self.model);
+    fn init_display_object_events(&self) {
         let display_object = self.display_object();
         let network = &display_object.network;
+        let weak_model = Rc::downgrade(&self.model);
         frp::extend! { network
             eval display_object.on_layer_change([] ((scene, old_layer, new_layer, symbol_partition)) {
                 let scene = scene.as_ref().unwrap();
@@ -101,6 +101,31 @@ impl<S: Shape> ShapeView<S> {
                     let old_layer = old_layer.as_ref();
                     let new_layer = new_layer.as_ref();
                     model.on_scene_layer_changed(scene, old_layer, new_layer, *symbol_partition);
+                }
+            });
+        }
+        let weak_model = Rc::downgrade(&self.model);
+        frp::extend! { network
+            eval_ display_object.on_transformed ([] {
+                if let Some(model) = weak_model.upgrade() {
+                    model.shape.set_transform(model.display_object.transformation_matrix());
+                    model.shape.set_size(model.display_object.computed_size());
+                }
+            });
+        }
+        let weak_model = Rc::downgrade(&self.model);
+        frp::extend! { network
+            eval_ display_object.on_show([] {
+                if let Some(model) = weak_model.upgrade() {
+                    model.shape.show()
+                }
+            });
+        }
+        let weak_model = Rc::downgrade(&self.model);
+        frp::extend! { network
+            eval_ display_object.on_hide([] {
+                if let Some(model) = weak_model.upgrade() {
+                    model.shape.hide()
                 }
             });
         }
@@ -141,6 +166,7 @@ pub struct ShapeViewModel<S: Shape> {
     /// function.
     pub events_deprecated: PointerTarget_DEPRECATED,
     pub pointer_targets:   RefCell<Vec<symbol::GlobalInstanceId>>,
+    display_object:        display::object::Instance,
 }
 
 impl<S: Shape> Drop for ShapeViewModel<S> {
@@ -157,7 +183,10 @@ impl<S: Shape> ShapeViewModel<S> {
         let events_deprecated = PointerTarget_DEPRECATED::new();
         let pointer_targets = default();
         let data = RefCell::new(data);
-        ShapeViewModel { shape, data, events_deprecated, pointer_targets }
+        let debug = S::enable_dom_debug();
+        let display_object =
+            display::object::Instance::new_named_with_debug(type_name::<S>(), debug);
+        ShapeViewModel { shape, data, events_deprecated, pointer_targets, display_object }
     }
 
     #[profile(Debug)]
@@ -209,6 +238,11 @@ impl<S: Shape> ShapeViewModel<S> {
         );
         self.pointer_targets.borrow_mut().push(instance.global_instance_id);
         self.shape.swap(&shape);
+        self.shape.set_transform(self.display_object.transformation_matrix());
+        self.shape.set_size(self.display_object.computed_size());
+        if self.display_object.is_visible() {
+            self.shape.show();
+        }
     }
 
     fn unregister_existing_mouse_targets(&self) {
@@ -220,13 +254,13 @@ impl<S: Shape> ShapeViewModel<S> {
 
 impl<S: Shape> display::Object for ShapeViewModel<S> {
     fn display_object(&self) -> &display::object::Instance {
-        self.shape.display_object()
+        &self.display_object
     }
 }
 
 impl<S: Shape> display::Object for ShapeView<S> {
     fn display_object(&self) -> &display::object::Instance {
-        self.shape.display_object()
+        &self.display_object
     }
 }
 

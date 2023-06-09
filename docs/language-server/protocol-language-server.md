@@ -22,6 +22,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`ExpressionId`](#expressionid)
   - [`ContextId`](#contextid)
   - [`StackItem`](#stackitem)
+  - [`MethodCall`](#methodcall)
   - [`MethodPointer`](#methodpointer)
   - [`ProfilingInfo`](#profilinginfo)
   - [`ExpressionUpdate`](#expressionupdate)
@@ -271,6 +272,20 @@ interface LocalCall {
 }
 ```
 
+### `MethodCall`
+
+A representation of a method call.
+
+```typescript
+interface MethodCall {
+  /** The method pointer of a call. */
+  methodPointer: MethodPointer;
+
+  /** Indexes of arguments that have not been applied to this method. */
+  notAppliedArguments: number[];
+}
+```
+
 ### `MethodPointer`
 
 Points to a method definition.
@@ -331,9 +346,9 @@ interface ExpressionUpdate {
   type?: String;
 
   /**
-   * The updated pointer to the method call.
+   * The updated method call info.
    */
-  methodPointer?: MethodPointer;
+  methodCall?: MethodCall;
 
   /**
    * Profiling information about the expression.
@@ -560,6 +575,9 @@ interface Constructor {
 
   /** The documentation string. */
   documentation?: string;
+
+  /** The list of annotations. */
+  annotations: string[];
 }
 
 interface Method {
@@ -589,6 +607,9 @@ interface Method {
 
   /** The documentation string. */
   documentation?: string;
+
+  /** The list of annotations. */
+  annotations: string[];
 }
 
 interface Function {

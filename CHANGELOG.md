@@ -179,6 +179,8 @@
 - [A loading animation is now shown when opening and creating projects][6827],
   as the previous behaviour of showing a blank screen while the project was
   being loaded was potentially confusing to users.
+- [Performance and readability of documentation panel was improved][6893]. The
+  documentation is now split into separate pages, which are much smaller.
 
 [6279]: https://github.com/enso-org/enso/pull/6279
 [6421]: https://github.com/enso-org/enso/pull/6421
@@ -191,6 +193,7 @@
 [6474]: https://github.com/enso-org/enso/pull/6474
 [6844]: https://github.com/enso-org/enso/pull/6844
 [6827]: https://github.com/enso-org/enso/pull/6827
+[6893]: https://github.com/enso-org/enso/pull/6893
 
 #### EnsoGL (rendering engine)
 
@@ -470,6 +473,15 @@
 - [Added `Date_Range`.][6621]
 - [Implemented the `cast` operation for `Table` and `Column`.][6711]
 - [Added `.round` and `.int` to `Integer` and `Decimal`.][6743]
+- [Added `.round`, `.truncate`, `.ceil`, and `.floor` to `Column`.][6817]
+- [Added execution control to `Table.write` and various bug fixes.][6835]
+- [Implemented `Table.add_row_number`.][6890]
+- [Handling edge cases in rounding.][6922]
+- [Split `Table.create_database_table` into `Connection.create_table` and
+  `Table.select_into_database_table`.][6925]
+- [Speed improvements to `Column` `.truncate`, `.ceil`, and `.floor`.][6941]
+- [Implemented addition and subtraction for `Date_Period` and
+  `Time_Period`.][6956]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -682,6 +694,13 @@
 [6621]: https://github.com/enso-org/enso/pull/6621
 [6711]: https://github.com/enso-org/enso/pull/6711
 [6743]: https://github.com/enso-org/enso/pull/6743
+[6817]: https://github.com/enso-org/enso/pull/6817
+[6835]: https://github.com/enso-org/enso/pull/6835
+[6890]: https://github.com/enso-org/enso/pull/6890
+[6922]: https://github.com/enso-org/enso/pull/6922
+[6925]: https://github.com/enso-org/enso/pull/6925
+[6941]: https://github.com/enso-org/enso/pull/6941
+[6956]: https://github.com/enso-org/enso/pull/6956
 
 #### Enso Compiler
 
@@ -796,6 +815,7 @@
 - [Add project creation time to project metadata][6780]
 - [Upgrade GraalVM to 22.3.1 JDK17][6750]
 - [Ascribed types are checked during runtime][6790]
+- [Improve and colorize compiler's diagnostic messages][6931]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -910,6 +930,7 @@
 [6755]: https://github.com/enso-org/enso/pull/6755
 [6780]: https://github.com/enso-org/enso/pull/6780
 [6790]: https://github.com/enso-org/enso/pull/6790
+[6931]: https://github.com/enso-org/enso/pull/6931
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

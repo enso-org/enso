@@ -1,8 +1,14 @@
 package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
-
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,8 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-
+import java.util.stream.Collectors;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.exception.CompilerError;
@@ -19,16 +24,20 @@ import org.enso.compiler.phase.BuiltinsIrBuilder;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.dsl.TypeProcessor;
 import org.enso.interpreter.dsl.model.MethodDefinition;
+import org.enso.interpreter.node.expression.builtin.Any;
 import org.enso.interpreter.node.expression.builtin.Boolean;
-import org.enso.interpreter.node.expression.builtin.*;
+import org.enso.interpreter.node.expression.builtin.Builtin;
+import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
+import org.enso.interpreter.node.expression.builtin.Nothing;
+import org.enso.interpreter.node.expression.builtin.Polyglot;
 import org.enso.interpreter.node.expression.builtin.debug.Debug;
 import org.enso.interpreter.node.expression.builtin.error.CaughtPanic;
 import org.enso.interpreter.node.expression.builtin.error.Warning;
+import org.enso.interpreter.node.expression.builtin.immutable.Vector;
 import org.enso.interpreter.node.expression.builtin.io.File;
 import org.enso.interpreter.node.expression.builtin.meta.ProjectDescription;
 import org.enso.interpreter.node.expression.builtin.mutable.Array;
 import org.enso.interpreter.node.expression.builtin.mutable.Ref;
-import org.enso.interpreter.node.expression.builtin.immutable.Vector;
 import org.enso.interpreter.node.expression.builtin.ordering.Comparable;
 import org.enso.interpreter.node.expression.builtin.ordering.DefaultComparator;
 import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
@@ -37,24 +46,18 @@ import org.enso.interpreter.node.expression.builtin.runtime.Context;
 import org.enso.interpreter.node.expression.builtin.text.Text;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.builtin.Error;
+import org.enso.interpreter.runtime.builtin.Number;
+import org.enso.interpreter.runtime.builtin.System;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.TypesFromProxy;
 import org.enso.pkg.QualifiedName;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
-import java.util.stream.Collectors;
-
 /** Container class for static predefined atoms, methods, and their containing scope. */
-public class Builtins {
+public final class Builtins {
 
   private static final List<Constructor<? extends Builtin>> loadedBuiltinConstructors;
   private static final Map<String, LoadedBuiltinMethod> loadedBuiltinMethods;
@@ -133,12 +136,9 @@ public class Builtins {
     builtinMethodNodes = readBuiltinMethodsMetadata(loadedBuiltinMethods, scope);
     registerBuiltinMethods(scope, language);
 
-    error = new Error(this, context);
     ordering = getBuiltinType(Ordering.class);
     comparable = getBuiltinType(Comparable.class);
     defaultComparator = getBuiltinType(DefaultComparator.class);
-    system = new System(this);
-    number = new Number(this);
     bool = this.getBuiltinType(Boolean.class);
     contexts = this.getBuiltinType(Context.class);
 
@@ -161,8 +161,12 @@ public class Builtins {
     duration = builtins.get(org.enso.interpreter.node.expression.builtin.date.Duration.class);
     timeOfDay = builtins.get(org.enso.interpreter.node.expression.builtin.date.TimeOfDay.class);
     timeZone = builtins.get(org.enso.interpreter.node.expression.builtin.date.TimeZone.class);
-    special = new Special(language);
     warning = builtins.get(Warning.class);
+
+    error = new Error(this, context);
+    system = new System(this);
+    number = new Number(this);
+    special = new Special(language);
   }
 
   /**
