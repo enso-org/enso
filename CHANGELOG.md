@@ -179,6 +179,8 @@
 - [A loading animation is now shown when opening and creating projects][6827],
   as the previous behaviour of showing a blank screen while the project was
   being loaded was potentially confusing to users.
+- [Error message is displayed in the status bar when the backend reports
+  execution failed][6918].
 - [Performance and readability of documentation panel was improved][6893]. The
   documentation is now split into separate pages, which are much smaller.
 
@@ -193,6 +195,7 @@
 [6474]: https://github.com/enso-org/enso/pull/6474
 [6844]: https://github.com/enso-org/enso/pull/6844
 [6827]: https://github.com/enso-org/enso/pull/6827
+[6918]: https://github.com/enso-org/enso/pull/6918
 [6893]: https://github.com/enso-org/enso/pull/6893
 
 #### EnsoGL (rendering engine)
