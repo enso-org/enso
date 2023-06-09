@@ -97,9 +97,9 @@ struct View {
 
 impl View {
     /// Constructor.
-    pub fn new(app: &Application) -> Self {
+    pub fn new() -> Self {
         let frp = Frp::new();
-        let model = Model::new(app);
+        let model = Model::new();
         let network = &frp.network;
         frp::extend! { network
             trace model.shape.events_deprecated.mouse_up;
@@ -138,8 +138,8 @@ impl application::View for View {
         "Circul"
     }
 
-    fn new(app: &Application) -> Self {
-        View::new(app)
+    fn new(_app: &Application) -> Self {
+        View::new()
     }
 }
 
