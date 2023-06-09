@@ -101,6 +101,7 @@ impl Collector {
 
     /// Immediately drop all collected garbage.
     pub fn force_garbage_drop(&self) {
+        // Elements may add new objects on drop, thus we need to clear garbage in loop.
         while self.garbage.borrow().collected_items_count() > 0 {
             self.garbage.take();
         }
