@@ -363,7 +363,6 @@ class BuiltinTypesTest
 
     val code =
       """from Standard.Base import all
-        |import Standard.Base.Data.Array.Array
         |
         |main =
         |    Vector.from_array Array.empty
