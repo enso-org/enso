@@ -10,6 +10,7 @@ import * as modalProvider from '../../providers/modal'
 import * as reactiveEvents from '../events/projectEvent'
 import * as svg from '../../components/svg'
 import * as toastPromiseMultiple from '../../toastPromiseMultiple'
+import * as uniqueString from '../../uniqueString'
 import * as validation from '../validation'
 
 import Table, * as table from './table'
@@ -365,10 +366,13 @@ function ProjectsTable(props: ProjectsTableProps) {
                         />
                     )
                 }
+                const projectsText = projects.size === 1 ? 'project' : 'projects'
                 setModal(
-                    <ContextMenu key={backendModule.AssetType.directory} event={event}>
+                    <ContextMenu key={uniqueString.uniqueString()} event={event}>
                         <ContextMenuEntry onClick={doDeleteAll}>
-                            <span className="text-red-700">Delete {projects.size} files</span>
+                            <span className="text-red-700">
+                                Delete {projects.size} {projectsText}
+                            </span>
                         </ContextMenuEntry>
                     </ContextMenu>
                 )

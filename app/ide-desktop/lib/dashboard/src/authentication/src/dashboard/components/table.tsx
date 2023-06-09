@@ -1,6 +1,7 @@
 /** @file Table that projects an object into each column. */
 import * as React from 'react'
 
+import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
 
 // =================
@@ -63,6 +64,8 @@ function Table<T, State = never>(props: TableProps<T, State>) {
         onRowClick,
         onRowContextMenu,
     } = props
+    const { unsetModal } = modalProvider.useSetModal()
+
     const [spinnerClasses, setSpinnerClasses] = React.useState(SPINNER_INITIAL_CLASSES)
     const [selectedItems, setSelectedItems] = React.useState(() => new Set<T>())
     const [previouslySelectedItem, setPreviouslySelectedItem] = React.useState<T | null>(null)
@@ -160,11 +163,12 @@ function Table<T, State = never>(props: TableProps<T, State>) {
                 key={getKey(item)}
                 tabIndex={-1}
                 onClick={event => {
+                    unsetModal()
                     onItemClicked(item, event)
                     onRowClick(item, event)
                 }}
                 onContextMenu={event => {
-                    if (selectedItems.size <= 1) {
+                    if (selectedItems.size === 0) {
                         onRowContextMenu(item, event)
                     }
                 }}

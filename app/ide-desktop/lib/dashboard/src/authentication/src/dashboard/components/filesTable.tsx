@@ -10,6 +10,7 @@ import * as fileInfo from '../../fileInfo'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
 import * as toastPromiseMultiple from '../../toastPromiseMultiple'
+import * as uniqueString from '../../uniqueString'
 
 import CreateForm, * as createForm from './createForm'
 import Table, * as table from './table'
@@ -324,8 +325,9 @@ function FilesTable(props: FilesTableProps) {
                             />
                         )
                     }
+                    const filesText = files.size === 1 ? 'file' : 'files'
                     setModal(
-                        <ContextMenu key={backendModule.AssetType.directory} event={event}>
+                        <ContextMenu key={uniqueString.uniqueString()} event={event}>
                             <ContextMenuEntry disabled onClick={doCopyAll}>
                                 Copy {files.size} files
                             </ContextMenuEntry>
@@ -333,7 +335,9 @@ function FilesTable(props: FilesTableProps) {
                                 Cut {files.size} files
                             </ContextMenuEntry>
                             <ContextMenuEntry onClick={doDeleteAll}>
-                                <span className="text-red-700">Delete {files.size} files</span>
+                                <span className="text-red-700">
+                                    Delete {files.size} {filesText}
+                                </span>
                             </ContextMenuEntry>
                         </ContextMenu>
                     )

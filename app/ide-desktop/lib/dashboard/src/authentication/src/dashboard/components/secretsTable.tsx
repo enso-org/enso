@@ -9,6 +9,7 @@ import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
 import * as toastPromiseMultiple from '../../toastPromiseMultiple'
+import * as uniqueString from '../../uniqueString'
 
 import CreateForm, * as createForm from './createForm'
 import Table, * as table from './table'
@@ -316,10 +317,13 @@ function SecretsTable(props: SecretsTableProps) {
                             />
                         )
                     }
+                    const secretsText = secrets.size === 1 ? 'secret' : 'secrets'
                     setModal(
-                        <ContextMenu key={backendModule.AssetType.directory} event={event}>
+                        <ContextMenu key={uniqueString.uniqueString()} event={event}>
                             <ContextMenuEntry onClick={doDeleteAll}>
-                                <span className="text-red-700">Delete {secrets.size} files</span>
+                                <span className="text-red-700">
+                                    Delete {secrets.size} {secretsText}
+                                </span>
                             </ContextMenuEntry>
                         </ContextMenu>
                     )

@@ -10,6 +10,7 @@ import * as svg from '../../components/svg'
 
 import Table, * as table from './table'
 import ContextMenu from './contextMenu'
+import ContextMenuEntry from './contextMenuEntry'
 import EditableSpan from './editableSpan'
 
 // ============================
@@ -65,7 +66,7 @@ function DirectoryName(props: DirectoryNameProps) {
     const [isNameEditable, setIsNameEditable] = React.useState(false)
 
     // TODO: Wait for backend implementation.
-    const doRename = async (_newName: string) => {
+    const doRename = async (/* _newName: string */) => {
         onRename()
         return await Promise.resolve(null)
     }
@@ -93,7 +94,7 @@ function DirectoryName(props: DirectoryNameProps) {
                     if (event.target.value === item.title) {
                         toast.success('The folder name is unchanged.')
                     } else {
-                        await doRename(event.target.value)
+                        await doRename(/* event.target.value */)
                     }
                 }}
                 onCancel={() => {
@@ -177,17 +178,34 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                     event.preventDefault()
                     event.stopPropagation()
                     setModal(
-                        <ContextMenu
-                            key={backendModule.AssetType.directory}
-                            event={event}
-                        ></ContextMenu>
+                        <ContextMenu key={backendModule.AssetType.directory} event={event}>
+                            <ContextMenuEntry
+                                disabled
+                                onClick={() => {
+                                    // Ignored.
+                                }}
+                            >
+                                No actions available
+                            </ContextMenuEntry>
+                        </ContextMenu>
                     )
                 }}
                 onRowClick={onAssetClick}
                 onRowContextMenu={(directory, event) => {
                     event.preventDefault()
                     event.stopPropagation()
-                    setModal(<ContextMenu key={directory.id} event={event}></ContextMenu>)
+                    setModal(
+                        <ContextMenu key={directory.id} event={event}>
+                            <ContextMenuEntry
+                                disabled
+                                onClick={() => {
+                                    // Ignored.
+                                }}
+                            >
+                                No actions available
+                            </ContextMenuEntry>
+                        </ContextMenu>
+                    )
                 }}
             />
         )
