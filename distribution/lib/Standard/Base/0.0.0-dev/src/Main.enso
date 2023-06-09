@@ -93,7 +93,7 @@ import project.Data.Statistics
 import project.Data.Text.Case.Case
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Encoding.Encoding
-import project.Data.Text.Extensions
+from project.Data.Text.Extensions import all
 import project.Data.Text.Line_Ending_Style.Line_Ending_Style
 import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
