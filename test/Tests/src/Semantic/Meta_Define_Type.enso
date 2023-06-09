@@ -1,0 +1,4 @@
+type Meta_Spec_Type
+    Value a b
+
+    describe self = self.a

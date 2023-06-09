@@ -16,6 +16,9 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 import Standard.Test.Test_Result.Test_Result
 
+import project.Semantic.Meta_Define_Type.Meta_Spec_Type
+import project.Semantic.Meta_Define_Usage
+
 type My_Type
     @foo (test_method)
     @baz (My_Type.Value 1 2 3)
@@ -396,5 +399,12 @@ spec =
             (.is_nothing) . is_a Function . should_equal True
             Meta.type_of (_.is_nothing) . should_equal Function
             Meta.type_of (.is_nothing) . should_equal Function
+
+    Test.group "Extension methods and get_annotation"
+        Test.specify "verify calling everything works" <|
+            v = Meta_Spec_Type.Value 6 7
+            v.describe . should_equal 6
+            Panic.catch Any (v.describe_better) (_->"Not executed") . should_equal "Not executed"
+            Meta_Define_Usage.call_describe_better v . should_equal 42
 
 main = Test_Suite.run_main spec

@@ -1,0 +1,3 @@
+import project.Semantic.Meta_Define_Type.Meta_Spec_Type
+
+Meta_Spec_Type.describe_better self = self.a * self.b
