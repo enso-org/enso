@@ -105,7 +105,7 @@ export function useNavigate() {
 // ================
 
 /** A wrapper around `useState` that sets its value to `null` after the current render. */
-export function useEvent<T>(): [state: T | null, setState: (value: T | null) => void] {
+export function useEvent<T>(): [event: T | null, dispatchEvent: (value: T | null) => void] {
     const [event, setEvent] = React.useState<T | null>(null)
 
     React.useEffect(() => {

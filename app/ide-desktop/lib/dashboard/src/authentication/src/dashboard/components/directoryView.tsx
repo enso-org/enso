@@ -36,12 +36,6 @@ const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Directory_'
 // === Helper functions ===
 // ========================
 
-/** A type guard that returns `true` if a given {@link backendModule.Asset} is a
- * {@link backendModule.ProjectAsset}. */
-// This is a function, so its name should be camelCase.
-// eslint-disable-next-line no-restricted-syntax
-const isProjectAsset = backendModule.assetIsType(backendModule.AssetType.project)
-
 /** Sanitizes a string for use as a regex. */
 function regexEscape(string: string) {
     return string.replace(/[\\^$.|?*+()[{]/g, '\\$&')
@@ -59,7 +53,7 @@ export interface DirectoryViewProps {
     directoryId: backendModule.DirectoryId | null
     setDirectoryId: (directoryId: backendModule.DirectoryId | null) => void
     directoryEvent: directoryEventModule.DirectoryEvent | null
-    setDirectoryEvent: (directoryEvent: directoryEventModule.DirectoryEvent | null) => void
+    dispatchDirectoryEvent: (directoryEvent: directoryEventModule.DirectoryEvent | null) => void
     query: string
     refresh: hooks.RefreshState
     doRefresh: () => void
@@ -85,7 +79,7 @@ function DirectoryView(props: DirectoryViewProps) {
         query,
         refresh,
         directoryEvent,
-        setDirectoryEvent,
+        dispatchDirectoryEvent,
         doRefresh,
         onOpenIde,
         onCloseIde,
@@ -101,37 +95,20 @@ function DirectoryView(props: DirectoryViewProps) {
     const { organization, accessToken } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
 
+    const [initialized, setInitialized] = React.useState(false)
     const [isLoadingAssets, setIsLoadingAssets] = React.useState(true)
     const [directoryStack, setDirectoryStack] = React.useState<backendModule.DirectoryAsset[]>([])
     // Defined by the spec as `compact` by default, however it is not ready yet.
     const [columnDisplayMode, setColumnDisplayMode] = React.useState(
         columnModule.ColumnDisplayMode.release
     )
-    const [onDirectoryNextLoaded, setOnDirectoryNextLoaded] = React.useState<
-        ((assets: backendModule.Asset[]) => void) | null
-    >(() =>
-        initialProjectName != null
-            ? (assets: backendModule.Asset[]) => {
-                  if (
-                      !assets.some(
-                          asset =>
-                              asset.type === backendModule.AssetType.project &&
-                              asset.title === initialProjectName
-                      )
-                  ) {
-                      const errorMessage = `No project named '${initialProjectName}' was found.`
-                      toast.error(errorMessage)
-                      logger.error(`Error opening project on startup: ${errorMessage}`)
-                  }
-              }
-            : null
-    )
 
     const [projectAssets, setProjectAssets] = React.useState<backendModule.ProjectAsset[]>([])
     const [directoryAssets, setDirectoryAssets] = React.useState<backendModule.DirectoryAsset[]>([])
     const [secretAssets, setSecretAssets] = React.useState<backendModule.SecretAsset[]>([])
     const [fileAssets, setFileAssets] = React.useState<backendModule.FileAsset[]>([])
-    const [projectEvent, setProjectEvent] = hooks.useEvent<projectEventModule.ProjectEvent | null>()
+    const [projectEvent, dispatchProjectEvent] =
+        hooks.useEvent<projectEventModule.ProjectEvent | null>()
 
     const queryRegex = React.useMemo(() => new RegExp(regexEscape(query), 'i'), [query])
     const visibleProjectAssets = React.useMemo(
@@ -166,7 +143,7 @@ function DirectoryView(props: DirectoryViewProps) {
         if (backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail) {
             setIsLoadingAssets(false)
         }
-    }, [isLoadingAssets, loadingProjectManagerDidFail, backend.type])
+    }, [loadingProjectManagerDidFail, backend.type])
 
     React.useEffect(() => {
         const cachedDirectoryStackJson = localStorage.getItem(DIRECTORY_STACK_KEY)
@@ -231,30 +208,39 @@ function DirectoryView(props: DirectoryViewProps) {
     )
 
     React.useEffect(() => {
-        setProjectAssets(assets.filter(backendModule.assetIsProject))
+        const newProjectAssets = assets.filter(backendModule.assetIsProject)
+        setProjectAssets(newProjectAssets)
         setDirectoryAssets(assets.filter(backendModule.assetIsDirectory))
         setSecretAssets(assets.filter(backendModule.assetIsSecret))
         setFileAssets(assets.filter(backendModule.assetIsFile))
         if (nameOfProjectToImmediatelyOpen != null) {
-            const projectToLoad = assets
-                .filter(isProjectAsset)
-                .find(projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen)
+            const projectToLoad = newProjectAssets.find(
+                projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen
+            )
             if (projectToLoad != null) {
-                setProjectEvent({
+                dispatchProjectEvent({
                     type: projectEventModule.ProjectEventType.open,
                     projectId: projectToLoad.id,
                 })
             }
             setNameOfProjectToImmediatelyOpen(null)
         }
-        onDirectoryNextLoaded?.(assets)
-        setOnDirectoryNextLoaded(null)
+        if (!initialized && initialProjectName != null) {
+            setInitialized(true)
+            if (!newProjectAssets.some(asset => asset.title === initialProjectName)) {
+                const errorMessage = `No project named '${initialProjectName}' was found.`
+                toast.error(errorMessage)
+                logger.error(`Error opening project on startup: ${errorMessage}`)
+            }
+        }
     }, [
         assets,
         nameOfProjectToImmediatelyOpen,
+        initialized,
+        initialProjectName,
+        logger,
         /* should never change */ setNameOfProjectToImmediatelyOpen,
-        onDirectoryNextLoaded,
-        /* should never change */ setProjectEvent,
+        /* should never change */ dispatchProjectEvent,
     ])
 
     const getNewProjectName = React.useCallback(
@@ -375,17 +361,17 @@ function DirectoryView(props: DirectoryViewProps) {
     ])
 
     const doCreateProject = React.useCallback(() => {
-        setDirectoryEvent({
+        dispatchDirectoryEvent({
             type: directoryEventModule.DirectoryEventType.createProject,
             templateId: null,
         })
-    }, [/* should never change */ setDirectoryEvent])
+    }, [/* should never change */ dispatchDirectoryEvent])
 
     const doCreateDirectory = React.useCallback(() => {
-        setDirectoryEvent({
+        dispatchDirectoryEvent({
             type: directoryEventModule.DirectoryEventType.createDirectory,
         })
-    }, [/* should never change */ setDirectoryEvent])
+    }, [/* should never change */ dispatchDirectoryEvent])
 
     const enterDirectory = React.useCallback(
         (directoryAsset: backendModule.DirectoryAsset) => {
@@ -427,7 +413,7 @@ function DirectoryView(props: DirectoryViewProps) {
                 isLoading={isLoadingAssets}
                 columnDisplayMode={columnDisplayMode}
                 projectEvent={projectEvent}
-                setProjectEvent={setProjectEvent}
+                setProjectEvent={dispatchProjectEvent}
                 doCreateProject={doCreateProject}
                 onRename={doRefresh}
                 onDelete={doRefresh}

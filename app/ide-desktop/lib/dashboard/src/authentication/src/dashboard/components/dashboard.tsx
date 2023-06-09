@@ -94,7 +94,7 @@ function Dashboard(props: DashboardProps) {
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
-    const [directoryEvent, setDirectoryEvent] =
+    const [directoryEvent, dispatchDirectoryEvent] =
         hooks.useEvent<directoryEventModule.DirectoryEvent>()
 
     const isListingLocalDirectoryAndWillFail =
@@ -223,12 +223,12 @@ function Dashboard(props: DashboardProps) {
 
     const doCreateProject = React.useCallback(
         (templateId?: string | null) => {
-            setDirectoryEvent({
+            dispatchDirectoryEvent({
                 type: directoryEventModule.DirectoryEventType.createProject,
                 templateId: templateId ?? null,
             })
         },
-        [/* should never change */ setDirectoryEvent]
+        [/* should never change */ dispatchDirectoryEvent]
     )
 
     const onAssetClick = React.useCallback(
@@ -309,7 +309,7 @@ function Dashboard(props: DashboardProps) {
                         directoryId={directoryId}
                         setDirectoryId={setDirectoryId}
                         directoryEvent={directoryEvent}
-                        setDirectoryEvent={setDirectoryEvent}
+                        dispatchDirectoryEvent={dispatchDirectoryEvent}
                         query={query}
                         refresh={refresh}
                         doRefresh={doRefresh}
@@ -352,8 +352,8 @@ function Dashboard(props: DashboardProps) {
                     Drop to upload files.
                 </div>
             ) : null}
-            {/* This should be just `{modal}`, however TypeScript incorrectly throws an error. */}
             {project && <Ide project={project} appRunner={appRunner} />}
+            {/* This should be just `{modal}`, however TypeScript incorrectly throws an error. */}
             {modal && <>{modal}</>}
         </div>
     )

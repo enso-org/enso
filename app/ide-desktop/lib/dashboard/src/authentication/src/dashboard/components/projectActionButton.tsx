@@ -111,21 +111,15 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                     setToastId(toast.loading(LOADING_MESSAGE))
                     await backend.openProject(project.id)
                     setExtraData(project.id, { ...getExtraData(project.id), isRunning: true })
-                    doRefresh()
                     setCheckState(CheckState.checkingStatus)
+                    doRefresh()
                     break
                 case backendModule.BackendType.local:
                     await backend.openProject(project.id)
                     setExtraData(project.id, { ...getExtraData(project.id), isRunning: true })
                     setCheckState(CheckState.done)
-                    setState(oldState => {
-                        if (oldState === backendModule.ProjectState.openInProgress) {
-                            doRefresh()
-                            return backendModule.ProjectState.opened
-                        } else {
-                            return oldState
-                        }
-                    })
+                    setState(backendModule.ProjectState.opened)
+                    doRefresh()
                     break
             }
         } catch {
