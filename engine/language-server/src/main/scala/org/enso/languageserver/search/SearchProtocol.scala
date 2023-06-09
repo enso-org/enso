@@ -86,7 +86,7 @@ object SearchProtocol {
           .dropNullValues
 
       case conversion: Suggestion.Conversion =>
-        Encoder[Suggestion.Method]
+        Encoder[Suggestion.DefinedMethod]
           .apply(conversionToMethod(conversion))
           .deepMerge(
             Json.obj(CodecField.Type -> SuggestionType.Method.asJson)
@@ -94,7 +94,7 @@ object SearchProtocol {
           .dropNullValues
 
       case getter: Suggestion.Getter =>
-        Encoder[Suggestion.Method]
+        Encoder[Suggestion.DefinedMethod]
           .apply(getterToMethod(getter))
           .deepMerge(
             Json.obj(CodecField.Type -> SuggestionType.Method.asJson)
@@ -126,7 +126,7 @@ object SearchProtocol {
 
   private def conversionToMethod(
     conversion: Suggestion.Conversion
-  ): Suggestion.Method = {
+  ): Suggestion.DefinedMethod = {
     val arg = Suggestion.Argument(
       Suggestion.Kind.Conversion.From,
       conversion.selfType,
@@ -148,7 +148,9 @@ object SearchProtocol {
     )
   }
 
-  private def getterToMethod(getter: Suggestion.Getter): Suggestion.Method =
+  private def getterToMethod(
+    getter: Suggestion.Getter
+  ): Suggestion.DefinedMethod =
     Suggestion.DefinedMethod(
       getter.externalId,
       getter.module,
