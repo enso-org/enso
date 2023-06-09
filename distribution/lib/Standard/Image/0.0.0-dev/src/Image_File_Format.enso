@@ -14,10 +14,15 @@ type Image_File_Format
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file : File -> Image_File_Format | Nothing
-    for_file file =
+    for_file_read : File -> Image_File_Format | Nothing
+    for_file_read file =
         extension = file.extension
         if supported.contains extension then Image_File_Format.For_File else Nothing
+
+    ## PRIVATE
+       If this File_Format should be used for writing to that file, return a configured instance.
+    for_file_write : File -> Image_File_Format | Nothing
+    for_file_write file = Image_File_Format.for_file_read file
 
     ## PRIVATE
        If the File_Format supports reading from the web response, return a configured instance.

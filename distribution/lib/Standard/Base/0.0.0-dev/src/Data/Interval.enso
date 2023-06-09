@@ -87,7 +87,7 @@ type Interval
        Arguments:
        - start: The start of the interval.
        - end: The end of the interval.
-    Between (start : Bound.Bound) (end : Bound.Bound)
+    Between (start : Bound) (end : Bound)
 
     ## Checks if the interval contains `that`.
 

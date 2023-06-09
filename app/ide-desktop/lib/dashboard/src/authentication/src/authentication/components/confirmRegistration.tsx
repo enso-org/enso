@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
+import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 
 // =================
@@ -21,11 +22,12 @@ const REGISTRATION_QUERY_PARAMS = {
 // === Confirm Registration ===
 // ============================
 
+/** An empty component redirecting users based on the backend response to user registration. */
 function ConfirmRegistration() {
     const logger = loggerProvider.useLogger()
     const { confirmSignUp } = auth.useAuth()
     const { search } = router.useLocation()
-    const navigate = router.useNavigate()
+    const navigate = hooks.useNavigate()
 
     const { verificationCode, email } = parseUrlSearchParams(search)
 
@@ -50,6 +52,7 @@ function ConfirmRegistration() {
     return <></>
 }
 
+/** Return an object containing the query parameters, with keys renamed to `camelCase`. */
 function parseUrlSearchParams(search: string) {
     const query = new URLSearchParams(search)
     const verificationCode = query.get(REGISTRATION_QUERY_PARAMS.verificationCode)

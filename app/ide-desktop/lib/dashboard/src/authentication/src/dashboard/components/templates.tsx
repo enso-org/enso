@@ -6,7 +6,7 @@ import * as svg from '../../components/svg'
 // =================
 
 /** Template metadata. */
-interface Template {
+export interface Template {
     title: string
     description: string
     id: string
@@ -14,7 +14,7 @@ interface Template {
 }
 
 /** The full list of templates. */
-const TEMPLATES: Template[] = [
+export const TEMPLATES: [Template, ...Template[]] = [
     {
         title: 'Colorado COVID',
         id: 'Colorado_COVID',
@@ -57,13 +57,14 @@ const TEMPLATES: Template[] = [
 // === TemplatesRender ===
 // =======================
 
-/** Render all templates, and a button to create an empty project. */
-interface TemplatesRenderProps {
+/** Props for a {@link TemplatesRender}. */
+export interface TemplatesRenderProps {
     // Later this data may be requested and therefore needs to be passed dynamically.
     templates: Template[]
     onTemplateClick: (name: string | null) => void
 }
 
+/** Render all templates, and a button to create an empty project. */
 function TemplatesRender(props: TemplatesRenderProps) {
     const { templates, onTemplateClick } = props
 
@@ -73,7 +74,7 @@ function TemplatesRender(props: TemplatesRenderProps) {
             onClick={() => {
                 onTemplateClick(null)
             }}
-            className="h-40 cursor-pointer"
+            className="h-40 w-60 cursor-pointer"
         >
             <div className="flex h-full w-full border-dashed-custom rounded-2xl text-primary">
                 <div className="m-auto text-center">
@@ -90,7 +91,7 @@ function TemplatesRender(props: TemplatesRenderProps) {
             {templates.map(template => (
                 <button
                     key={template.title}
-                    className="h-40 cursor-pointer"
+                    className="h-40 w-60 cursor-pointer"
                     onClick={() => {
                         onTemplateClick(template.id)
                     }}
@@ -118,20 +119,19 @@ function TemplatesRender(props: TemplatesRenderProps) {
 // === Templates ===
 // =================
 
-/** The `TemplatesRender`'s container. */
-interface TemplatesProps {
+/** Props for a {@link Templates}. */
+export interface TemplatesProps {
     onTemplateClick: (name?: string | null) => void
 }
 
+/** A container for a {@link TemplatesRender} which passes it a list of templates. */
 function Templates(props: TemplatesProps) {
     const { onTemplateClick } = props
 
     return (
-        <div className="bg-white my-2">
-            <div className="mx-auto py-2 px-4 sm:py-4 sm:px-6 lg:px-8">
-                <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                    <TemplatesRender templates={TEMPLATES} onTemplateClick={onTemplateClick} />
-                </div>
+        <div className="my-2 p-2">
+            <div className="grid gap-2 grid-cols-fill-60 justify-center">
+                <TemplatesRender templates={TEMPLATES} onTemplateClick={onTemplateClick} />
             </div>
         </div>
     )

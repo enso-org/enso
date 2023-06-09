@@ -198,14 +198,13 @@ async fn check_vcs_status_and_notify(
 #[profile(Detail)]
 async fn update_modules_on_file_change(
     changes: FileEditList,
-    parser: Parser,
     module_registry: Rc<model::registry::Registry<module::Path, module::Synchronized>>,
 ) -> FallibleResult {
     for file_edit in changes.edits {
         let file_path = file_edit.path.clone();
         let module_path = module::Path::from_file_path(file_path).unwrap();
         if let Some(module) = module_registry.get(&module_path).await? {
-            module.apply_text_change_from_ls(file_edit.edits, &parser).await?;
+            module.apply_text_change_from_ls(file_edit.edits).await?;
         }
     }
     Ok(())
@@ -224,6 +223,13 @@ async fn update_modules_on_file_change(
 #[fail(display = "Project Manager is unavailable.")]
 pub struct ProjectManagerUnavailable;
 
+/// An error signalling the project name was invalid.
+#[derive(Clone, Debug, Fail)]
+#[fail(display = "The project name is not allowed: {}", cause)]
+pub struct ProjectNameInvalid {
+    cause: String,
+}
+
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Fail)]
 #[fail(display = "Project renaming is not available in read-only mode.")]
@@ -233,8 +239,9 @@ pub struct RenameInReadOnly;
 /// engine's version (which is likely the cause of the problems).
 #[derive(Debug, Fail)]
 pub struct UnsupportedEngineVersion {
-    project_name: String,
-    root_cause:   failure::Error,
+    project_name:     String,
+    version_mismatch: enso_config::UnsupportedEngineVersion,
+    root_cause:       failure::Error,
 }
 
 impl UnsupportedEngineVersion {
@@ -242,10 +249,13 @@ impl UnsupportedEngineVersion {
         let engine_version = properties.engine_version.clone();
         let project_name = properties.name.project.as_str().to_owned();
         move |root_cause| {
-            let requirement = enso_config::engine_version_requirement();
-            if !requirement.matches(&engine_version) {
-                let project_name = project_name.clone();
-                UnsupportedEngineVersion { project_name, root_cause }.into()
+            if let Err(version_mismatch) = enso_config::check_engine_version(&engine_version) {
+                UnsupportedEngineVersion {
+                    project_name: project_name.clone(),
+                    version_mismatch,
+                    root_cause,
+                }
+                .into()
             } else {
                 root_cause
             }
@@ -491,7 +501,6 @@ impl Project {
         let publisher = self.notifications.clone_ref();
         let project_root_id = self.project_content_root_id();
         let language_server = self.json_rpc().clone_ref();
-        let parser = self.parser().clone_ref();
         let weak_suggestion_db = Rc::downgrade(&self.suggestion_db);
         let weak_content_roots = Rc::downgrade(&self.content_roots);
         let weak_module_registry = Rc::downgrade(&self.module_registry);
@@ -525,11 +534,9 @@ impl Project {
                     });
                 }
                 Event::Notification(Notification::TextDidChange(changes)) => {
-                    let parser = parser.clone();
                     if let Some(module_registry) = weak_module_registry.upgrade() {
                         executor::global::spawn(async move {
-                            let status =
-                                update_modules_on_file_change(changes, parser, module_registry);
+                            let status = update_modules_on_file_change(changes, module_registry);
                             if let Err(err) = status.await {
                                 error!("Error while applying file changes to modules: {err}");
                             }
@@ -697,10 +704,12 @@ impl model::project::API for Project {
     fn create_execution_context(
         &self,
         root_definition: MethodPointer,
+        context_id: execution_context::Id,
     ) -> BoxFuture<FallibleResult<model::ExecutionContext>> {
         async move {
             let ls_rpc = self.language_server_rpc.clone_ref();
-            let context = execution_context::Synchronized::create(ls_rpc, root_definition);
+            let context =
+                execution_context::Synchronized::create(ls_rpc, root_definition, context_id);
             let context = Rc::new(context.await?);
             self.execution_contexts.insert(context.clone_ref());
             let context: model::ExecutionContext = context;
@@ -720,7 +729,14 @@ impl model::project::API for Project {
                     self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
                 let project_id = self.properties.borrow().id;
                 let project_name = ProjectName::new_unchecked(name);
-                project_manager.rename_project(&project_id, &project_name).await?;
+                project_manager.rename_project(&project_id, &project_name).await.map_err(
+                    |error| match error {
+                        RpcError::RemoteError(cause)
+                            if cause.code == code::PROJECT_NAME_INVALID =>
+                            failure::Error::from(ProjectNameInvalid { cause: cause.message }),
+                        error => error.into(),
+                    },
+                )?;
                 self.properties.borrow_mut().name.project = referent_name.clone_ref();
                 self.execution_contexts.rename_project(old_name, referent_name);
                 Ok(())
@@ -914,7 +930,8 @@ mod test {
         assert!(result1.is_err());
 
         // Create execution context.
-        let execution = project.create_execution_context(context_data.main_method_pointer());
+        let execution = project
+            .create_execution_context(context_data.main_method_pointer(), context_data.context_id);
         let execution = test.expect_completion(execution).unwrap();
 
         // Now context is in registry.
@@ -936,7 +953,10 @@ mod test {
         // Context now has the information about type.
         let value_info = value_registry.get(&expression_id).unwrap();
         assert_eq!(value_info.typename, value_update.typename.clone().map(ImString::new));
-        assert_eq!(value_info.method_call, value_update.method_pointer);
+        assert_eq!(
+            value_info.method_call,
+            value_update.method_call.clone().map(|mc| mc.method_pointer)
+        );
     }
 
 

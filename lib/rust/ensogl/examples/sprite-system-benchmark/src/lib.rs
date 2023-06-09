@@ -25,8 +25,9 @@ use ensogl_core::prelude::*;
 use ensogl_core::animation;
 use ensogl_core::display::camera::Camera2d;
 use ensogl_core::display::navigation::navigator::Navigator;
-use ensogl_core::display::symbol::geometry::Sprite;
+use ensogl_core::display::symbol::geometry::compound::sprite::Sprite;
 use ensogl_core::display::symbol::geometry::SpriteSystem;
+use ensogl_core::display::Scene;
 use nalgebra::Vector2;
 use nalgebra::Vector3;
 
@@ -40,23 +41,27 @@ pub fn main() {
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
     let sprite_system = SpriteSystem::new("test_sprite_system", alignment::Dim2::center());
+    scene.add_child(&sprite_system.symbol);
 
     let sprite1 = sprite_system.new_instance();
+    let sprite1 = Sprite::new(sprite1);
     sprite1.set_size(Vector2::new(10.0, 10.0));
     sprite1.set_position(Vector3::new(5.0, 5.0, 0.0));
-
-    scene.add_child(&sprite_system);
+    scene.add_child(&sprite1);
 
     let mut sprites: Vec<Sprite> = default();
     let count = 100;
     for _ in 0..count {
         let sprite = sprite_system.new_instance();
+        let sprite = Sprite::new(sprite);
         sprite.set_size(Vector2::new(1.0, 1.0));
+        scene.add_child(&sprite);
         sprites.push(sprite);
     }
 
     world.keep_alive_forever();
 
+    let scene = scene.clone_ref();
     let mut iter: i32 = 0;
     let mut i = 0;
     world
@@ -73,13 +78,13 @@ pub fn main() {
             let _keep_alive = &sprites;
             let _keep_alive = &sprite_system;
             let _keep_alive = &navigator;
-            // FIXME: these logs crash gui after some time!
 
+            // FIXME: these logs crash gui after some time!
             // println!("sprite count: {:?}",sprites.len());
-            // println!("sprite_system is visible? {:?}",sprite_system.is_visible());
+            // println!("sprite_system is visible? {:?}",sprite_system.symbol.is_visible());
             // println!("sprite[5] is visible? {:?}",sprites[5].is_visible());
 
-            on_frame(&camera, time, &mut iter, &sprite1, &mut sprites, &sprite_system)
+            on_frame(&scene, &camera, time, &mut iter, &sprite1, &mut sprites, &sprite_system)
         })
         .forget();
 }
@@ -87,6 +92,7 @@ pub fn main() {
 #[allow(clippy::too_many_arguments)]
 #[allow(clippy::many_single_char_names)]
 pub fn on_frame(
+    scene: &Scene,
     camera: &Camera2d,
     time: animation::TimeInfo,
     iter: &mut i32,
@@ -105,7 +111,9 @@ pub fn on_frame(
     if *iter < cycle_duration {
         for _ in 0..sprite_diff_per_cycle {
             let sprite = sprite_system.new_instance();
+            let sprite = Sprite::new(sprite);
             sprite.set_size(Vector2::new(1.0, 1.0));
+            scene.add_child(&sprite);
             sprites.push(sprite);
         }
     } else if *iter < pause_duration + cycle_duration {

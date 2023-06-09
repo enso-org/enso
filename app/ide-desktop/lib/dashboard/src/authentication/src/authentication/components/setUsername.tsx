@@ -3,7 +3,9 @@
 import * as react from 'react'
 
 import * as auth from '../providers/auth'
+import * as backendProvider from '../../providers/backend'
 import * as svg from '../../components/svg'
+
 import Input from './input'
 import SvgIcon from './svgIcon'
 
@@ -11,9 +13,11 @@ import SvgIcon from './svgIcon'
 // === SetUsername ===
 // ===================
 
+/** A form for users to set their username upon registration. */
 function SetUsername() {
     const { setUsername: authSetUsername } = auth.useAuth()
     const { email } = auth.usePartialUserSession()
+    const { backend } = backendProvider.useBackend()
 
     const [username, setUsername] = react.useState('')
 
@@ -32,7 +36,7 @@ function SetUsername() {
                     <form
                         onSubmit={async event => {
                             event.preventDefault()
-                            await authSetUsername(username, email)
+                            await authSetUsername(backend, username, email)
                         }}
                     >
                         <div className="flex flex-col mb-6">

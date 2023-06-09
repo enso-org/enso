@@ -28,41 +28,43 @@ object SuggestionRandom {
 
   def nextSuggestionModule(): Suggestion.Module =
     Suggestion.Module(
-      module            = nextString(),
-      documentation     = optional(nextString())
+      module        = nextString(),
+      documentation = optional(nextString())
     )
 
   def nextSuggestionType(): Suggestion.Type =
     Suggestion.Type(
-      externalId        = optional(UUID.randomUUID()),
-      module            = "Test.Main",
-      name              = nextString(),
-      params            = Seq(),
-      returnType        = nextString(),
-      parentType        = optional(nextString()),
-      documentation     = optional(nextString())
+      externalId    = optional(UUID.randomUUID()),
+      module        = "Test.Main",
+      name          = nextString(),
+      params        = Seq(),
+      returnType    = nextString(),
+      parentType    = optional(nextString()),
+      documentation = optional(nextString())
     )
 
   def nextSuggestionConstructor(): Suggestion.Constructor =
     Suggestion.Constructor(
-      externalId        = optional(UUID.randomUUID()),
-      module            = "Test.Main",
-      name              = nextString(),
-      arguments         = Seq(),
-      returnType        = nextString(),
-      documentation     = optional(nextString())
+      externalId    = optional(UUID.randomUUID()),
+      module        = "Test.Main",
+      name          = nextString(),
+      arguments     = Seq(),
+      returnType    = nextString(),
+      documentation = optional(nextString()),
+      annotations   = Seq()
     )
 
   def nextSuggestionMethod(): Suggestion.Method =
     Suggestion.Method(
-      externalId        = optional(UUID.randomUUID()),
-      module            = "Test.Main",
-      name              = nextString(),
-      arguments         = Seq(),
-      selfType          = nextString(),
-      returnType        = nextString(),
-      isStatic          = Random.nextBoolean(),
-      documentation     = optional(nextString())
+      externalId    = optional(UUID.randomUUID()),
+      module        = "Test.Main",
+      name          = nextString(),
+      arguments     = Seq(),
+      selfType      = nextString(),
+      returnType    = nextString(),
+      isStatic      = Random.nextBoolean(),
+      documentation = optional(nextString()),
+      annotations   = Seq()
     )
 
   def nextSuggestionFunction(): Suggestion.Function =

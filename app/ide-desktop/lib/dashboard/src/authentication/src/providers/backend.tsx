@@ -2,29 +2,41 @@
  * provider via the shared React context. */
 import * as react from 'react'
 
+import * as common from 'enso-common'
+
 import * as localBackend from '../dashboard/localBackend'
 import * as remoteBackend from '../dashboard/remoteBackend'
+
+// =================
+// === Constants ===
+// =================
+
+/** The `localStorage` key under which the type of the current backend is stored. */
+export const BACKEND_TYPE_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-backend-type`
 
 // =============
 // === Types ===
 // =============
 
 /** A type representing a backend API that may be of any type. */
-type AnyBackendAPI = localBackend.LocalBackend | remoteBackend.RemoteBackend
+export type AnyBackendAPI = localBackend.LocalBackend | remoteBackend.RemoteBackend
 
 // ======================
 // === BackendContext ===
 // ======================
 
+/** State contained in a `BackendContext`. */
 export interface BackendContextType {
     backend: AnyBackendAPI
     setBackend: (backend: AnyBackendAPI) => void
+    setBackendWithoutSavingType: (backend: AnyBackendAPI) => void
 }
 
 // @ts-expect-error The default value will never be exposed
 // as `backend` will always be accessed using `useBackend`.
 const BackendContext = react.createContext<BackendContextType>(null)
 
+/** Props for a {@link BackendProvider}. */
 export interface BackendProviderProps extends React.PropsWithChildren<object> {
     initialBackend: AnyBackendAPI
 }
@@ -35,12 +47,17 @@ export interface BackendProviderProps extends React.PropsWithChildren<object> {
 
 /** A React Provider that lets components get and set the current backend. */
 export function BackendProvider(props: BackendProviderProps) {
-    const { initialBackend, children } = props
-    const [backend, setBackend] = react.useState<
+    const { children } = props
+    const [backend, setBackendWithoutSavingType] = react.useState<
         localBackend.LocalBackend | remoteBackend.RemoteBackend
-    >(initialBackend)
+    >(() => new localBackend.LocalBackend())
+    const setBackend = react.useCallback((newBackend: AnyBackendAPI) => {
+        setBackendWithoutSavingType(newBackend)
+        localStorage.setItem(BACKEND_TYPE_KEY, newBackend.type)
+    }, [])
+
     return (
-        <BackendContext.Provider value={{ backend, setBackend }}>
+        <BackendContext.Provider value={{ backend, setBackend, setBackendWithoutSavingType }}>
             {children}
         </BackendContext.Provider>
     )
@@ -54,6 +71,6 @@ export function useBackend() {
 
 /** Exposes a property to set the current backend. */
 export function useSetBackend() {
-    const { setBackend } = react.useContext(BackendContext)
-    return { setBackend }
+    const { setBackend, setBackendWithoutSavingType } = react.useContext(BackendContext)
+    return { setBackend, setBackendWithoutSavingType }
 }

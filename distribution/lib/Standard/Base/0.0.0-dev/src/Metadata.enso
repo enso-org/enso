@@ -77,3 +77,11 @@ type Widget
 
     ## Describes a file chooser.
     File_Browse label:(Nothing | Text)=Nothing display:Display=Display.When_Modified action:File_Action=File_Action.Open file_types:(Vector Pair)=[Pair.new "All Files" "*.*"]
+
+## PRIVATE
+make_single_choice : Vector -> Display -> Widget
+make_single_choice values display=Display.Always =
+    make_option value = case value of
+        _ : Vector -> Choice.Option value.first value.second
+        _ : Text -> Choice.Option value value.pretty
+    Widget.Single_Choice (values.map make_option) Nothing display

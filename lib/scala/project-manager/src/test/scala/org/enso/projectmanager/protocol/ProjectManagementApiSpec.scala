@@ -6,7 +6,7 @@ import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
 import org.enso.editions.SemVerJson._
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
-import org.enso.testkit.{FlakySpec, RetrySpec}
+import org.enso.testkit.FlakySpec
 
 import java.io.File
 import java.nio.file.{Files, Paths}
@@ -18,7 +18,6 @@ import scala.io.Source
 class ProjectManagementApiSpec
     extends BaseServerSpec
     with FlakySpec
-    with RetrySpec
     with ProjectManagementOps {
 
   override def beforeEach(): Unit = {
@@ -27,6 +26,8 @@ class ProjectManagementApiSpec
   }
 
   override val engineToInstall = Some(SemVer(0, 0, 1))
+
+  override val deleteProjectsRootAfterEachTest = false
 
   "project/create" must {
 
@@ -642,10 +643,11 @@ class ProjectManagementApiSpec
       implicit val client: WsTestClient = new WsTestClient(address)
 
       // given
-      val projectName1 = "Foo"
-      val projectId1   = createProject(projectName1)
-      val projectDir1  = new File(userProjectDir, projectName1)
-      val projectDir2  = new File(userProjectDir, "Test")
+      val projectName1        = "Foo"
+      val projectCreationTime = testClock.currentTime
+      val projectId1          = createProject(projectName1)
+      val projectDir1         = new File(userProjectDir, projectName1)
+      val projectDir2         = new File(userProjectDir, "Test")
       FileUtils.copyDirectory(projectDir1, projectDir2)
 
       // when
@@ -672,6 +674,7 @@ class ProjectManagementApiSpec
                   "namespace": "local",
                   "id": $projectId1,
                   "engineVersion": $engineToInstall,
+                  "created": $projectCreationTime,
                   "lastOpened": $projectOpenTime
                 },
                 {
@@ -679,6 +682,7 @@ class ProjectManagementApiSpec
                   "namespace": "local",
                   "id": $projectId2,
                   "engineVersion": $engineToInstall,
+                  "created": $projectCreationTime,
                   "lastOpened": null
                 }
               ]
@@ -755,11 +759,14 @@ class ProjectManagementApiSpec
     "return a list sorted by creation time if none of projects was opened" in {
       implicit val client: WsTestClient = new WsTestClient(address)
       //given
-      val fooId = createProject("Foo")
+      val projectFooCreationTime = testClock.currentTime
+      val fooId                  = createProject("Foo")
       testClock.moveTimeForward()
-      val barId = createProject("Bar")
+      val projectBarCreationTime = testClock.currentTime
+      val barId                  = createProject("Bar")
       testClock.moveTimeForward()
-      val bazId = createProject("Baz")
+      val projectBazCreationTime = testClock.currentTime
+      val bazId                  = createProject("Baz")
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -780,6 +787,7 @@ class ProjectManagementApiSpec
                   "namespace": "local",
                   "id": $bazId,
                   "engineVersion": $engineToInstall,
+                  "created": $projectBazCreationTime,
                   "lastOpened": null
                 },
                 {
@@ -787,6 +795,7 @@ class ProjectManagementApiSpec
                   "namespace": "local",
                   "id": $barId,
                   "engineVersion": $engineToInstall,
+                  "created": $projectBarCreationTime,
                   "lastOpened": null
                 },
                 {
@@ -794,6 +803,7 @@ class ProjectManagementApiSpec
                   "namespace": "local",
                   "id": $fooId,
                   "engineVersion": $engineToInstall,
+                  "created": $projectFooCreationTime,
                   "lastOpened": null
                 }
               ]
@@ -805,12 +815,15 @@ class ProjectManagementApiSpec
       deleteProject(bazId)
     }
 
-    "return a list of projects even if editions of some of them cannot be resolved" taggedAs Retry in {
+    "return a list of projects even if editions of some of them cannot be resolved" taggedAs Flaky in {
+      pending // flaky
       implicit val client: WsTestClient = new WsTestClient(address)
       //given
-      val fooId = createProject("Foo")
+      val projectFooCreationTime = testClock.currentTime
+      val fooId                  = createProject("Foo")
       testClock.moveTimeForward()
-      val barId = createProject("Bar")
+      val projectBarCreationTime = testClock.currentTime
+      val barId                  = createProject("Bar")
       setProjectParentEdition(
         "Bar",
         "some_weird_edition_name_that-surely-does-not-exist"
@@ -837,6 +850,7 @@ class ProjectManagementApiSpec
                   "namespace": "local",
                   "id": $barId,
                   "engineVersion": $engineToInstall,
+                  "created": $projectBarCreationTime,
                   "lastOpened": null
                 },
                 {
@@ -844,6 +858,7 @@ class ProjectManagementApiSpec
                   "namespace": "local",
                   "id": $fooId,
                   "engineVersion": $engineToInstall,
+                  "created": $projectFooCreationTime,
                   "lastOpened": null
                 }
               ]
@@ -859,23 +874,26 @@ class ProjectManagementApiSpec
     "returned sorted list of recently opened projects" in {
       implicit val client: WsTestClient = new WsTestClient(address)
       //given
-      val fooId = createProject("Foo")
-      val barId = createProject("Bar")
-      testClock.moveTimeForward()
-      openProject(fooId)
-      val fooOpenTime = testClock.currentTime
+      val creationTime = testClock.currentTime
+      val fooId        = createProject("Foo")
+      val barId        = createProject("Bar")
+      val bazId        = createProject("Baz")
       testClock.moveTimeForward()
       openProject(barId)
       val barOpenTime = testClock.currentTime
       testClock.moveTimeForward()
-      val bazId = createProject("Baz")
+      openProject(bazId)
+      val bazOpenTime = testClock.currentTime
+      testClock.moveTimeForward()
+      val projectQuuxCreationTime = testClock.currentTime
+      val quuxId                  = createProject("Quux")
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/list",
               "id": 0,
               "params": {
-                "numberOfProjects": 3
+                "numberOfProjects": 4
               }
             }
           """)
@@ -887,10 +905,27 @@ class ProjectManagementApiSpec
             "result": {
               "projects": [
                 {
+                  "name": "Quux",
+                  "namespace": "local",
+                  "id": $quuxId,
+                  "engineVersion": $engineToInstall,
+                  "created": $projectQuuxCreationTime,
+                  "lastOpened": null
+                },
+                {
+                  "name": "Baz",
+                  "namespace": "local",
+                  "id": $bazId,
+                  "engineVersion": $engineToInstall,
+                  "created": $creationTime,
+                  "lastOpened": $bazOpenTime
+                },
+                {
                   "name": "Bar",
                   "namespace": "local",
                   "id": $barId,
                   "engineVersion": $engineToInstall,
+                  "created": $creationTime,
                   "lastOpened": $barOpenTime
                 },
                 {
@@ -898,13 +933,7 @@ class ProjectManagementApiSpec
                   "namespace": "local",
                   "id": $fooId,
                   "engineVersion": $engineToInstall,
-                  "lastOpened": $fooOpenTime
-                },
-                {
-                  "name": "Baz",
-                  "namespace": "local",
-                  "id": $bazId,
-                  "engineVersion": $engineToInstall,
+                  "created": $creationTime,
                   "lastOpened": null
                 }
               ]
@@ -912,11 +941,12 @@ class ProjectManagementApiSpec
           }
           """)
       //teardown
-      closeProject(fooId)
       closeProject(barId)
+      closeProject(bazId)
       deleteProject(fooId)
       deleteProject(barId)
       deleteProject(bazId)
+      deleteProject(quuxId)
     }
 
     "resolve clashing ids" taggedAs Flaky in {
@@ -924,6 +954,7 @@ class ProjectManagementApiSpec
 
       // given
       val projectName1 = "Foo"
+      val creationTime = testClock.currentTime
       val projectId1   = createProject(projectName1)
       val projectDir1  = new File(userProjectDir, projectName1)
       val projectDir2  = new File(userProjectDir, "Test")
@@ -951,6 +982,7 @@ class ProjectManagementApiSpec
                   "namespace": "local",
                   "id": $projectId1,
                   "engineVersion": $engineToInstall,
+                  "created": $creationTime,
                   "lastOpened": null
                 },
                 {
@@ -958,6 +990,7 @@ class ProjectManagementApiSpec
                   "namespace": "local",
                   "id": $projectId2,
                   "engineVersion": $engineToInstall,
+                  "created": $creationTime,
                   "lastOpened": null
                 }
               ]

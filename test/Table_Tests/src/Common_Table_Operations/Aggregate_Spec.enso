@@ -111,9 +111,9 @@ spec setup =
             materialized.columns.at 0 . at 0 . should_equal 56.708660 epsilon=0.000001
             materialized.columns.at 1 . name . should_equal "Standard Deviation ValueWithNothing"
             materialized.columns.at 1 . at 0 . should_equal 58.588610 epsilon=0.000001
-            materialized.columns.at 2 . name . should_equal "Standard Deviation Value_1"
+            materialized.columns.at 2 . name . should_equal "Standard Deviation Value 1"
             materialized.columns.at 2 . at 0 . should_equal 56.697317 epsilon=0.000001
-            materialized.columns.at 3 . name . should_equal "Standard Deviation ValueWithNothing_1"
+            materialized.columns.at 3 . name . should_equal "Standard Deviation ValueWithNothing 1"
             materialized.columns.at 3 . at 0 . should_equal 58.575554 epsilon=0.000001
 
         Test.specify "should be able to create median, mode and percentile values" (pending = resolve_pending test_selection.advanced_stats) <|
@@ -153,7 +153,7 @@ spec setup =
             materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "First TextWithNothing"
             materialized.columns.at 0 . at 0 . should_equal "riwaiqq1io"
-            materialized.columns.at 1 . name . should_equal "First TextWithNothing_1"
+            materialized.columns.at 1 . name . should_equal "First TextWithNothing 1"
             materialized.columns.at 1 . at 0 . should_equal "j4i2ua7uft"
             materialized.columns.at 2 . name . should_equal "Last ValueWithNothing"
             materialized.columns.at 2 . at 0 . should_equal -38.56 epsilon=0.000001
@@ -236,7 +236,7 @@ spec setup =
             materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Count Distinct Code"
             materialized.columns.at 0 . at 0 . should_equal 0
-            materialized.columns.at 1 . name . should_equal "Count Distinct Code_1"
+            materialized.columns.at 1 . name . should_equal "Count Distinct Code 1"
             materialized.columns.at 1 . at 0 . should_equal 0
 
         Test.specify "should be able to compute sum and average of values" <|
@@ -527,9 +527,9 @@ spec setup =
             materialized.columns.at 1 . at idx . should_equal 60.272158 epsilon=0.000001
             materialized.columns.at 2 . name . should_equal "Standard Deviation ValueWithNothing"
             materialized.columns.at 2 . at idx . should_equal 56.798691 epsilon=0.000001
-            materialized.columns.at 3 . name . should_equal "Standard Deviation Value_1"
+            materialized.columns.at 3 . name . should_equal "Standard Deviation Value 1"
             materialized.columns.at 3 . at idx . should_equal 60.156583 epsilon=0.000001
-            materialized.columns.at 4 . name . should_equal "Standard Deviation ValueWithNothing_1"
+            materialized.columns.at 4 . name . should_equal "Standard Deviation ValueWithNothing 1"
             materialized.columns.at 4 . at idx . should_equal 56.677714 epsilon=0.000001
 
         Test.specify "should be able to create median values" (pending = resolve_pending test_selection.advanced_stats) <|
@@ -735,9 +735,9 @@ spec setup =
             materialized.columns.at 2 . at idx . should_equal 58.979275 epsilon=0.000001
             materialized.columns.at 3 . name . should_equal "Standard Deviation ValueWithNothing"
             materialized.columns.at 3 . at idx . should_equal 57.561756 epsilon=0.000001
-            materialized.columns.at 4 . name . should_equal "Standard Deviation Value_1"
+            materialized.columns.at 4 . name . should_equal "Standard Deviation Value 1"
             materialized.columns.at 4 . at idx . should_equal 58.746614 epsilon=0.000001
-            materialized.columns.at 5 . name . should_equal "Standard Deviation ValueWithNothing_1"
+            materialized.columns.at 5 . name . should_equal "Standard Deviation ValueWithNothing 1"
             materialized.columns.at 5 . at idx . should_equal 57.306492 epsilon=0.000001
 
         Test.specify "should be able to create median values" (pending = resolve_pending test_selection.advanced_stats) <|
@@ -1321,8 +1321,8 @@ spec setup =
             t2.catch.name.should_equal "MISSING"
 
             t3 = table.aggregate [Sum 42]
-            t3 . should_fail_with Column_Indexes_Out_Of_Range
-            t3.catch.indexes.should_equal [42]
+            t3 . should_fail_with Missing_Input_Columns
+            t3.catch.criteria.should_equal [42]
 
         Test.specify "should raise a warning when can't find a column by name, but a hard error if the missing column is in a Group_By" <|
             err1 = table.aggregate [Group_By "Missing", Group_By "Index", Group_By "Other_Missing"] on_problems=Problem_Behavior.Ignore
@@ -1347,44 +1347,44 @@ spec setup =
             err3.catch.name.should_equal "Missing"
 
             err4 = table.aggregate [Group_By 100, Group_By "Index", Group_By -42] on_problems=Problem_Behavior.Ignore
-            err4.should_fail_with Column_Indexes_Out_Of_Range
-            err4.catch.indexes.should_equal [100, -42]
+            err4.should_fail_with Missing_Input_Columns
+            err4.catch.criteria.should_equal [100, -42]
 
             action2 = table.aggregate [Group_By "Index", Sum "Value", Sum 42] on_problems=_
-            problems2 = [Column_Indexes_Out_Of_Range.Error [42]]
+            problems2 = [Missing_Input_Columns.Error [42]]
             tester2 = expect_column_names ["Index", "Sum Value"]
             Problems.test_problem_handling action2 problems2 tester2
 
             # As above, missing errors from group-by take precedence over aggregates.
             err5 = table.aggregate [Group_By "Index", Group_By 55, Sum "Value", Sum 144, Group_By -33] on_problems=Problem_Behavior.Report_Error
-            err5.should_fail_with Column_Indexes_Out_Of_Range
-            err5.catch.indexes.should_equal [55, -33]
+            err5.should_fail_with Missing_Input_Columns
+            err5.catch.criteria.should_equal [55, -33]
 
             err6 = table.aggregate [Group_By "Index", Sum "Value", Sum 42] on_problems=Problem_Behavior.Ignore error_on_missing_columns=True
-            err6.catch . should_equal (Column_Indexes_Out_Of_Range.Error [42])
+            err6.catch . should_equal (Missing_Input_Columns.Error [42])
 
         Test.specify "should raise a warning when an invalid output name" <|
             action = table.aggregate [Group_By "Index" ""] on_problems=_
             problems = [Invalid_Output_Column_Names.Error [""]]
-            tester = expect_column_names ["Column_1"]
+            tester = expect_column_names ["Column 1"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should raise a warning when a duplicate column name" <|
             action = table.aggregate [Group_By "Index", Group_By 0] on_problems=_
             problems = [Duplicate_Output_Column_Names.Error ["Index"]]
-            tester = expect_column_names ["Index", "Index_1"]
+            tester = expect_column_names ["Index", "Index 1"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should raise a warning when a duplicate column name and rename default names first" <|
             action = table.aggregate [Group_By "Value", Group_By "Index" "Value"] on_problems=_
             problems = [Duplicate_Output_Column_Names.Error ["Value"]]
-            tester = expect_column_names ["Value_1", "Value"]
+            tester = expect_column_names ["Value 1", "Value"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should raise a warning when duplicate column names" <|
             action = table.aggregate [Sum "Value" new_name="AGG1", Count new_name="AGG1"] on_problems=_
             problems = [Duplicate_Output_Column_Names.Error ["AGG1"]]
-            tester = expect_column_names ["AGG1", "AGG1_1"]
+            tester = expect_column_names ["AGG1", "AGG1 1"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should allow partial matches on Count_Distinct" <|
@@ -1395,7 +1395,7 @@ spec setup =
 
         Test.specify "should ignore Count_Distinct if no columns matched" <|
             action = table.aggregate [Count_Distinct [-100], Count] on_problems=_
-            problems = [Column_Indexes_Out_Of_Range.Error [-100]]
+            problems = [Missing_Input_Columns.Error [-100]]
             tester = expect_column_names ["Count"]
             Problems.test_problem_handling action problems tester
 

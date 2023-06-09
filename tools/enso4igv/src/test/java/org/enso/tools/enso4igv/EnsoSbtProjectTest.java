@@ -55,7 +55,7 @@ public class EnsoSbtProjectTest extends NbTestCase {
     var ensoSources = root.createData(".enso-sources");
     try (var os = root.createAndOpen(".enso-sources-classes")) {
       var txt = """
-      java.home=/graalvm-ce-java11-22.3.0
+      java.home=/graalvm-ce-java17-22.3.1
       target=11
       output=./target/scala-2.13/classes
       input=./src/main/java

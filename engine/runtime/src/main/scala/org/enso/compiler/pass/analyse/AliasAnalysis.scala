@@ -324,7 +324,7 @@ case object AliasAnalysis extends IRPass {
     *                         instead of creating a new scope
     * @return `expression`, potentially with aliasing information attached
     */
-  def analyseExpression(
+  private def analyseExpression(
     expression: IR.Expression,
     graph: Graph,
     parentScope: Scope,
@@ -467,7 +467,7 @@ case object AliasAnalysis extends IRPass {
     *              defined
     * @return `args`, potentially
     */
-  def analyseArgumentDefs(
+  private def analyseArgumentDefs(
     args: List[IR.DefinitionArgument],
     graph: Graph,
     scope: Scope
@@ -492,9 +492,13 @@ case object AliasAnalysis extends IRPass {
           arg.getExternalId
         )
         scope.addDefinition(definition)
-        arg.updateMetadata(
-          this -->> Info.Occurrence(graph, occurrenceId)
-        )
+        arg
+          .updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
+          .copy(
+            ascribedType =
+              arg.ascribedType.map(analyseExpression(_, graph, scope))
+          )
+
       case arg @ IR.DefinitionArgument.Specified(
             name,
             _,
@@ -523,7 +527,11 @@ case object AliasAnalysis extends IRPass {
           scope.addDefinition(definition)
 
           arg
-            .copy(defaultValue = newDefault)
+            .copy(
+              defaultValue = newDefault,
+              ascribedType =
+                arg.ascribedType.map(analyseExpression(_, graph, scope))
+            )
             .updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
         } else {
           throw new CompilerError(

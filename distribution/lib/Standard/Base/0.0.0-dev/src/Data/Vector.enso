@@ -566,7 +566,9 @@ type Vector a
     map_with_index : (Integer -> Any -> Any) -> Vector Any
     map_with_index self function = Vector.new self.length i-> function i (self.at i)
 
-    ## Applies a function to each element of the vector.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each element of the vector.
 
        Unlike `map`, this method does not return the individual results,
        therefore it is only useful for side-effecting computations.
@@ -583,7 +585,9 @@ type Vector a
         0.up_to self.length . each ix->
             f (self.at ix)
 
-    ## Applies a function to each element of the vector.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each element of the vector.
 
        Arguments:
        - function: A function to apply that takes an index and an item.
@@ -619,6 +623,10 @@ type Vector a
     to_text self = self.map .to_text . join ", " "[" "]"
 
     ## PRIVATE
+    to_display_text : Text
+    to_display_text self = self.short_display_text max_entries=40
+
+    ## PRIVATE
        ADVANCED
 
        Generates a human-readable text representation of the vector, keeping its
@@ -643,7 +651,8 @@ type Vector a
                     "and " + remaining_count.to_text + " more elements"
                 prefix.map .to_text . join ", " "[" " "+remaining_text+"]"
 
-    ## Concatenates two vectors, resulting in a new `Vector`, containing all the
+    ## ALIAS Concatenate
+       Concatenates two vectors, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
 
        Arguments:
@@ -750,6 +759,7 @@ type Vector a
          If an `Index_Sub_Range`, then the selection is interpreted following
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
+    @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
     take self range=(Index_Sub_Range.First 1) = case range of
         ## We are using a specialized implementation for `take Sample`, because
@@ -769,6 +779,7 @@ type Vector a
          If an `Index_Sub_Range`, then the selection is interpreted following
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
+    @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Vector Any
     drop self range=(Index_Sub_Range.First 1) =
         drop_helper self.length (self.at _) self.slice (slice_ranges self) range
@@ -855,7 +866,8 @@ type Vector a
     second : Any ! Index_Out_Of_Bounds
     second self = self.at 1
 
-    ## Sort the vector.
+    ## ALIAS order_by
+       Sort the vector.
 
        Arguments:
        - order: The order in which the vector elements are sorted.

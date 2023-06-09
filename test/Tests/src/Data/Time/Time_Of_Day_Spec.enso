@@ -34,6 +34,13 @@ specWith name create_new_time parse_time =
             text = create_new_time 12 20 44 . format "HHmmss"
             text . should_equal "122044"
 
+        Test.specify "should format using provided pattern and locale" <|
+            d = create_new_time 12 20 44
+            # Note that the results are all the same.
+            d.format "HH:mm" . should_equal "12:20"
+            d.format "HH:mm" (Locale.new "gb") . should_equal "12:20"
+            d.format "HH:mm" (Locale.new "fr") . should_equal "12:20"
+
         Test.specify "should format local time using default pattern" <|
             text = create_new_time 12 20 44 . to_text
             text . should_equal "12:20:44"
@@ -83,6 +90,13 @@ specWith name create_new_time parse_time =
             datetime . nanosecond . should_equal 0
             datetime . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
+        Test.specify "date-time conversion should work with interop values" <|
+            date = Date.new 2000 12 21
+            time = create_new_time 12 30 45
+            datetime = date.to_date_time time
+            datetime.date . should_equal date
+            datetime.time_of_day . should_equal time
+
         Test.specify "should add time-based interval" <|
             time = create_new_time 0 + (Duration.new minutes=1)
             time . to_seconds . should_equal 60
@@ -96,18 +110,31 @@ specWith name create_new_time parse_time =
             time . to_seconds . should_equal 3599
 
         Test.specify "should throw error when adding date-based interval" <|
-            case (create_new_time 0 + (Period.new days=1)) . catch of
-                Time_Error.Error message ->
-                    message . should_equal "Time_Of_Day does not support date intervals (periods)"
-                result ->
-                    Test.fail ("Unexpected result: " + result.to_text)
+            Test.expect_panic_with matcher=Type_Error <|
+                create_new_time 0 + (Period.new days=1)
 
         Test.specify "should throw error when subtracting date-based interval" <|
-            case (create_new_time 0 - (Period.new days=1)) . catch of
-                Time_Error.Error message ->
-                    message . should_equal "Time_Of_Day does not support date intervals (periods)"
-                result ->
-                    Test.fail ("Unexpected result: " + result.to_text)
+            Test.expect_panic_with matcher=Type_Error <|
+                create_new_time 0 - (Period.new days=1)
+
+        Test.specify "should support addition of Time_Period" <|
+            time = create_new_time 0
+            time+Time_Period.Day . should_equal <| create_new_time 0
+            time+Time_Period.Hour . should_equal <| create_new_time 1
+            time+Time_Period.Minute . should_equal <| create_new_time 0 1
+            time+Time_Period.Second . should_equal <| create_new_time 0 0 1
+
+        Test.specify "should support subtraction of Time_Period" <|
+            time = create_new_time 12
+            time-Time_Period.Day . should_equal <| create_new_time 12
+            time-Time_Period.Hour . should_equal <| create_new_time 11
+            time-Time_Period.Minute . should_equal <| create_new_time 11 59
+            time-Time_Period.Second . should_equal <| create_new_time 11 59 59
+
+        Test.specify "should support mixed addition and subtraction of Date_Period and Time_Period" <|
+            time = create_new_time 0
+            time+Time_Period.Hour-Time_Period.Minute . should_equal <| create_new_time 0 59
+            time+Time_Period.Minute+Time_Period.Minute-Time_Period.Minute . should_equal <| create_new_time 0 1
 
         Test.specify "should be comparable" <|
             time_1 = parse_time "12:30:12.7102"

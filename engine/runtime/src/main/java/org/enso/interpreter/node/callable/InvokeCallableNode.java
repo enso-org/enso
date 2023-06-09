@@ -1,7 +1,6 @@
 package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -225,8 +224,8 @@ public abstract class InvokeCallableNode extends BaseNode {
           callerFrame, state, conversion, selfArgument, thatArgument, arguments);
     } else {
       CompilerDirectives.transferToInterpreter();
-      throw new RuntimeException(
-          "Conversion currying without `this` or `that` argument is not supported.");
+      var ctx = EnsoContext.get(this);
+      throw new PanicException(ctx.getBuiltins().error().makeNoConversionCurrying(canApplyThis, canApplyThat, conversion), this);
     }
   }
 
@@ -278,7 +277,7 @@ public abstract class InvokeCallableNode extends BaseNode {
                                     invokeFunctionNode.getSchema(),
                                     invokeFunctionNode.getDefaultsExecutionMode(),
                                     invokeFunctionNode.getArgumentsExecutionMode()));
-            childDispatch.setTailStatus(getTailStatus());
+            childDispatch.setTailStatus(TailStatus.NOT_TAIL);
             childDispatch.setId(invokeFunctionNode.getId());
             notifyInserted(childDispatch);
           }
@@ -297,9 +296,9 @@ public abstract class InvokeCallableNode extends BaseNode {
       if (result instanceof DataflowError) {
         return result;
       } else if (result instanceof WithWarnings withWarnings) {
-        return withWarnings.append(extracted);
+        return withWarnings.append(EnsoContext.get(this), extracted);
       } else {
-        return WithWarnings.wrap(result, extracted);
+        return WithWarnings.wrap(EnsoContext.get(this), result, extracted);
       }
     } catch (UnsupportedMessageException e) {
       throw CompilerDirectives.shouldNotReachHere(e);

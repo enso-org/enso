@@ -156,7 +156,8 @@ type Array
     # For compatibility with Vector
     #
 
-    ## Sort the array.
+    ## ALIAS order_by
+       Sort the array.
 
        Arguments:
        - order: The order in which the array elements are sorted.
@@ -241,6 +242,7 @@ type Array
          If an `Index_Sub_Range`, then the selection is interpreted following
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
+    @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
     take self range=(Index_Sub_Range.First 1) = Vector.take self range
 
@@ -251,6 +253,7 @@ type Array
          If an `Index_Sub_Range`, then the selection is interpreted following
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
+    @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Vector Any
     drop self range=(Index_Sub_Range.First 1) = Vector.drop self range
 
@@ -438,6 +441,8 @@ type Array
     flatten : Vector Any
     flatten self = Vector.flatten self
 
+    ## PRIVATE
+       ADVANCED
     short_display_text : Integer -> Text
     short_display_text self max_entries=10 = Vector.short_display_text self max_entries
 
@@ -572,7 +577,7 @@ type Array
     map_with_index self function = Vector.map_with_index self function
 
     slice : Integer -> Integer -> Vector Any
-    slice self start end = @Builtin_Method "Array.slice"
+    slice self start end = Vector.slice self start end
 
     ## Returns the first element of the array that satisfies the predicate or
        `if_missing` if no elements of the array satisfy it.
@@ -641,8 +646,14 @@ type Array
     join : Text -> Text -> Text -> Text
     join self separator="" prefix="" suffix="" = Vector.join self separator prefix suffix
 
+    ## PRIVATE
+       Generates a human-readable text representation of the array.
     to_text : Text
     to_text self = self.map .to_text . join ", " "[" "]"
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = self.short_display_text max_entries=40
 
     ## Combines all the elements of a non-empty array using a binary operation.
        If the array is empty, it returns `if_empty`.
@@ -737,7 +748,9 @@ type Array
     reverse : Vector Any
     reverse self = Vector.reverse self
 
-    ## Applies a function to each element of the array.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each element of the array.
 
        Unlike `map`, this method does not return the individual results,
        therefore it is only useful for side-effecting computations.
@@ -752,7 +765,9 @@ type Array
     each : (Any -> Any) -> Nothing
     each self f = Vector.each self f
 
-    ## Applies a function to each element of the array.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each element of the array.
 
        Arguments:
        - function: A function to apply that takes an index and an item.
@@ -770,7 +785,8 @@ type Array
     each_with_index : (Integer -> Any -> Any) -> Nothing
     each_with_index self f = Vector.each_with_index self f
 
-    ## Concatenates two arrays, resulting in a new `Vector`, containing all the
+    ## ALIAS Concatenate
+       Concatenates two arrays, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
 
        Arguments:

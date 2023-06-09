@@ -14,12 +14,17 @@ use crate::model::execution_context::QualifiedMethodPointer;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
+use crate::retry::retry_operation_errors_cap;
 
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::MethodPointer;
+use futures::stream;
+use futures::TryStreamExt;
 use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::context::Context;
+use std::assert_matches::debug_assert_matches;
+use std::time::Duration;
 
 
 // ==============
@@ -47,8 +52,13 @@ pub struct NoResolvedMethod(double_representation::node::Id);
 
 #[allow(missing_docs)]
 #[derive(Debug, Fail, Clone, Copy)]
-#[fail(display = "Operation is not permitted in read only mode")]
+#[fail(display = "Operation is not permitted in read only mode.")]
 pub struct ReadOnly;
+
+#[allow(missing_docs)]
+#[derive(Debug, Fail, Clone, Copy)]
+#[fail(display = "Previous operation modifying call stack is still in progress.")]
+pub struct SyncingStack;
 
 
 // ====================
@@ -65,10 +75,10 @@ pub enum Notification {
     /// The notification from the execution context about the computed value information
     /// being updated.
     ComputedValueInfo(model::execution_context::ComputedValueExpressions),
-    /// Notification emitted when the node has been entered.
-    EnteredNode(LocalCall),
-    /// Notification emitted when the node was step out.
-    SteppedOutOfNode(double_representation::node::Id),
+    /// Notification emitted when a call stack has been entered.
+    EnteredStack(Vec<LocalCall>),
+    /// Notification emitted when a number of frames of the call stack have been exited.
+    ExitedStack(usize),
 }
 
 
@@ -90,6 +100,11 @@ pub struct Handle {
     /// The publisher allowing sending notification to subscribed entities. Note that its outputs
     /// is merged with publishers from the stored graph and execution controllers.
     notifier:      notification::Publisher<Notification>,
+    /// A mutex guarding a process syncing Execution Context stack with the current graph. As
+    /// the syncing requires multiple async calls to the engine, and the stack updates depend on
+    /// each other, we should not mix various operations (e.g. entering node while still in
+    /// process of entering another node).
+    syncing_stack: Rc<sync::SingleThreadMutex<()>>,
 }
 
 impl Handle {
@@ -97,7 +112,8 @@ impl Handle {
     #[profile(Task)]
     pub async fn new(project: model::Project, method: MethodPointer) -> FallibleResult<Self> {
         let graph = controller::Graph::new_method(&project, &method).await?;
-        let execution = project.create_execution_context(method.clone()).await?;
+        let context_id = Uuid::new_v4();
+        let execution = project.create_execution_context(method.clone(), context_id).await?;
         Ok(Self::new_internal(graph, project, execution))
     }
 
@@ -120,9 +136,13 @@ impl Handle {
         project: model::Project,
         execution_ctx: model::ExecutionContext,
     ) -> Self {
-        let graph = Rc::new(RefCell::new(graph));
-        let notifier = default();
-        Handle { graph, execution_ctx, project, notifier }
+        Handle {
+            graph: Rc::new(RefCell::new(graph)),
+            execution_ctx,
+            project,
+            notifier: default(),
+            syncing_stack: default(),
+        }
     }
 
     /// See [`model::ExecutionContext::when_ready`].
@@ -196,7 +216,7 @@ impl Handle {
             .boxed_local();
 
         let streams = vec![value_stream, graph_stream, self_stream, db_stream, update_stream];
-        futures::stream::select_all(streams)
+        stream::select_all(streams)
     }
 
     // Note [Argument Names-related invalidations]
@@ -216,28 +236,59 @@ impl Handle {
         registry.clone_ref().get_type(id)
     }
 
-    /// Enter node by given node ID and method pointer.
+    /// Enter the given stack of nodes by node ID and method pointer.
     ///
-    /// This will cause pushing a new stack frame to the execution context and changing the graph
-    /// controller to point to a new definition.
+    /// This will push new stack frames to the execution context and change the graph controller to
+    /// point to a new definition.
     ///
     /// ### Errors
     /// - Fails if method graph cannot be created (see `graph_for_method` documentation).
     /// - Fails if the project is in read-only mode.
-    pub async fn enter_method_pointer(&self, local_call: &LocalCall) -> FallibleResult {
+    pub async fn enter_stack(&self, stack: Vec<LocalCall>) -> FallibleResult {
         if self.project.read_only() {
             Err(ReadOnly.into())
-        } else {
-            debug!("Entering node {}.", local_call.call);
-            let method_ptr = &local_call.definition;
-            let graph = controller::Graph::new_method(&self.project, method_ptr);
-            let graph = graph.await?;
-            self.execution_ctx.push(local_call.clone()).await?;
-            debug!("Replacing graph with {graph:?}.");
-            self.graph.replace(graph);
-            debug!("Sending graph invalidation signal.");
-            self.notifier.publish(Notification::EnteredNode(local_call.clone())).await;
+        } else if let Some(last_call) = stack.last() {
+            let _syncing = self.syncing_stack.try_lock().map_err(|_| SyncingStack)?;
+            // Before adding new items to stack, first make sure we're actually able to construct
+            // the graph controller.
+            let graph = controller::Graph::new_method(&self.project, &last_call.definition).await?;
+            let mut successful_calls = 0;
+            let result = stream::iter(stack.iter())
+                .then(|local_call| async {
+                    info!("Entering node {}.", local_call.call);
+                    self.execution_ctx.push(local_call.clone()).await?;
+                    Ok(())
+                })
+                .map_ok(|()| successful_calls += 1)
+                .try_collect::<()>()
+                .await;
+            match &result {
+                Ok(()) => {
+                    info!("Replacing graph with {graph:?}.");
+                    self.graph.replace(graph);
+                    info!("Sending graph invalidation signal.");
+                    self.notifier.publish(Notification::EnteredStack(stack)).await;
+                }
+                Err(_) => {
+                    let successful_calls_to_revert = iter::repeat(()).take(successful_calls);
+                    for () in successful_calls_to_revert {
+                        let error_msg = "Error while restoring execution context stack after \
+                                    unsuccessful entering node";
+                        let retry_result = retry_operation_errors_cap(
+                            || self.execution_ctx.pop(),
+                            self.retry_times_for_restoring_stack_operations(),
+                            error_msg,
+                            0,
+                        )
+                        .await;
+                        debug_assert_matches!(FallibleResult::from(retry_result), Ok(_));
+                    }
+                }
+            }
 
+            result
+        } else {
+            // The stack passed as argument is empty; nothing to do.
             Ok(())
         }
     }
@@ -255,23 +306,54 @@ impl Handle {
         Ok(node_info)
     }
 
-    /// Leave the current node. Reverse of `enter_node`.
+    /// Leave the given number of stack frames. Reverse of `enter_stack`.
     ///
     /// ### Errors
     /// - Fails if this execution context is already at the stack's root or if the parent graph
     /// cannot be retrieved.
     /// - Fails if the project is in read-only mode.
-    pub async fn exit_node(&self) -> FallibleResult {
+    pub async fn exit_stack(&self, frame_count: usize) -> FallibleResult {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else {
-            let frame = self.execution_ctx.pop().await?;
-            let method = self.execution_ctx.current_method();
+            let method = self.execution_ctx.method_at_frame_back(frame_count)?;
+            let _syncing = self.syncing_stack.try_lock().map_err(|_| SyncingStack)?;
             let graph = controller::Graph::new_method(&self.project, &method).await?;
-            self.graph.replace(graph);
-            self.notifier.publish(Notification::SteppedOutOfNode(frame.call)).await;
-            Ok(())
+
+            let mut successful_pops = Vec::new();
+            let result = stream::iter(iter::repeat(()).take(frame_count))
+                .then(|()| self.execution_ctx.pop())
+                .map_ok(|local_call| successful_pops.push(local_call))
+                .try_collect::<()>()
+                .await;
+            match &result {
+                Ok(()) => {
+                    self.graph.replace(graph);
+                    self.notifier.publish(Notification::ExitedStack(frame_count)).await;
+                }
+                Err(_) =>
+                    for frame in successful_pops.into_iter().rev() {
+                        let error_msg = "Error while restoring execution context stack after \
+                                    unsuccessful leaving node";
+                        let retry_result = retry_operation_errors_cap(
+                            || self.execution_ctx.push(frame.clone()),
+                            self.retry_times_for_restoring_stack_operations(),
+                            error_msg,
+                            0,
+                        )
+                        .await;
+                        debug_assert_matches!(FallibleResult::from(retry_result), Ok(_));
+                    },
+            }
+            result
         }
+    }
+
+    fn retry_times_for_restoring_stack_operations(&self) -> impl Iterator<Item = Duration> {
+        iter::repeat(()).scan(Duration::from_secs(1), |delay, ()| {
+            *delay = min(*delay * 2, Duration::from_secs(30));
+            Some(*delay)
+        })
     }
 
     /// Interrupt the program execution.
@@ -385,13 +467,13 @@ impl Handle {
 /// Span Tree generation context for a graph that does not know about execution.
 /// Provides information based on computed value registry, using metadata as a fallback.
 impl Context for Handle {
-    fn call_info(&self, id: ast::Id, _name: Option<&str>) -> Option<CalledMethodInfo> {
+    fn call_info(&self, id: ast::Id) -> Option<CalledMethodInfo> {
         let info = self.computed_value_info_registry().get(&id)?;
         let method_call = info.method_call.as_ref()?;
         let suggestion_db = self.project.suggestion_db();
-        let maybe_entry = suggestion_db.lookup_by_method_pointer(method_call).map(|e| {
-            let invocation_info = e.invocation_info(&suggestion_db, &self.parser());
-            invocation_info.with_called_on_type(false)
+        let maybe_entry = suggestion_db.lookup_by_method_pointer(method_call).map(|(id, entry)| {
+            let invocation_info = entry.invocation_info(&suggestion_db, &self.parser());
+            invocation_info.with_suggestion_id(id).with_called_on_type(false)
         });
 
         // When the entry was not resolved but the `defined_on_type` has a `.type` suffix,
@@ -401,9 +483,9 @@ impl Context for Handle {
         maybe_entry.or_else(|| {
             let defined_on_type = method_call.defined_on_type.strip_suffix(".type")?.to_owned();
             let method_call = MethodPointer { defined_on_type, ..method_call.clone() };
-            let entry = suggestion_db.lookup_by_method_pointer(&method_call)?;
+            let (id, entry) = suggestion_db.lookup_by_method_pointer(&method_call)?;
             let invocation_info = entry.invocation_info(&suggestion_db, &self.parser());
-            Some(invocation_info.with_called_on_type(true))
+            Some(invocation_info.with_suggestion_id(id).with_called_on_type(true))
         })
     }
 }
@@ -430,7 +512,6 @@ pub mod tests {
     use crate::test::mock::Fixture;
     use controller::graph::SpanTree;
     use engine_protocol::language_server::types::test::value_update_with_type;
-    use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
     wasm_bindgen_test_configure!(run_in_browser);
@@ -469,7 +550,7 @@ pub mod tests {
     }
 
     // Test that checks that value computed notification is properly relayed by the executed graph.
-    #[wasm_bindgen_test]
+    #[test]
     fn dispatching_value_computed_notification() {
         use crate::test::mock::Fixture;
         // Setup the controller.
@@ -516,8 +597,9 @@ pub mod tests {
         notifications.expect_pending();
     }
 
+
     // Test that moving nodes is possible in read-only mode.
-    #[wasm_bindgen_test]
+    #[test]
     fn read_only_mode_does_not_restrict_moving_nodes() {
         use model::module::Position;
 
@@ -537,7 +619,7 @@ pub mod tests {
     }
 
     // Test that certain actions are forbidden in read-only mode.
-    #[wasm_bindgen_test]
+    #[test]
     fn read_only_mode() {
         fn run(code: &str, f: impl FnOnce(&Handle)) {
             let mut data = crate::test::mock::Unified::new();
@@ -595,7 +677,7 @@ main =
             assert_eq!(product_node.expression().to_string(), "5 * 5");
 
             let context = &span_tree::generate::context::Empty;
-            let sum_tree = SpanTree::<()>::new(&sum_node.expression(), context).unwrap();
+            let sum_tree = SpanTree::new(&sum_node.expression(), context).unwrap();
             let sum_input =
                 sum_tree.root_ref().leaf_iter().find(|n| n.is_argument()).unwrap().crumbs;
             let connection = Connection {

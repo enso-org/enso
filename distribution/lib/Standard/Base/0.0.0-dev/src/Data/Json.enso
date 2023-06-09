@@ -19,9 +19,11 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
 
+import project.Metadata.Widget
 from project.Metadata.Widget import Single_Choice
 from project.Metadata.Choice import Option
 import project.Metadata.Display
+
 # We need to import conversion methods from Ordering, therefore, we import all
 from project.Data.Ordering import all
 from project.Data.Boolean import Boolean, True, False
@@ -279,7 +281,7 @@ make_javascript enso_object =
 
 ## PRIVATE
    Make a field name selector
-make_field_name_selector : JS_Object -> Display -> Single_Choice
+make_field_name_selector : JS_Object -> Display -> Widget
 make_field_name_selector js_object display=Display.Always =
     Single_Choice display=display values=(js_object.field_names.map n->(Option n n.pretty))
 

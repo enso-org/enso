@@ -4,6 +4,7 @@
 // === Globally accessible interfaces ===
 // ======================================
 
+/** A configuration in which values may be strings or nested configurations. */
 interface StringConfig {
     [key: string]: StringConfig | string
 }

@@ -104,14 +104,14 @@ spec setup =
             t1.at "z Count" . to_vector . should_equal [2]
             t1.at "z Sum" . to_vector . should_equal [17]
 
-        Test.specify "should fail if name_field is not found" <|
+        Test.specify "should fail if name_column is not found" <|
             err1 = table.cross_tab [] "Name"
             err1.should_fail_with Missing_Input_Columns
             err1.catch.criteria . should_equal ["Name"]
 
             err2 = table.cross_tab [] 42
-            err2.should_fail_with Column_Indexes_Out_Of_Range
-            err2.catch.indexes . should_equal [42]
+            err2.should_fail_with Missing_Input_Columns
+            err2.catch.criteria . should_equal [42]
 
         Test.specify "should fail if group-by contains missing columns" <|
             err1 = table2.cross_tab ["Group", "Nonexistent Group", "OTHER"] "Key"
@@ -119,8 +119,8 @@ spec setup =
             err1.catch.criteria . should_equal ["Nonexistent Group", "OTHER"]
 
             err2 = table2.cross_tab [0, 42] "Key"
-            err2.should_fail_with Column_Indexes_Out_Of_Range
-            err2.catch.indexes . should_equal [42]
+            err2.should_fail_with Missing_Input_Columns
+            err2.catch.criteria . should_equal [42]
 
         Test.specify "should fail if aggregate values contain missing columns" <|
             err1 = table.cross_tab values=[Count, Sum "Nonexistent Value", Sum "Value", Sum "OTHER"]
@@ -128,8 +128,8 @@ spec setup =
             err1.catch.name . should_equal "Nonexistent Value"
 
             err2 = table.cross_tab values=[Count, Sum "Nonexistent Value", Sum "Value", Sum 42]
-            err2.should_fail_with Column_Indexes_Out_Of_Range
-            err2.catch.indexes . should_equal [42]
+            err2.should_fail_with Missing_Input_Columns
+            err2.catch.criteria . should_equal [42]
 
         Test.specify "should fail if aggregate values contain invalid expressions" <|
             err1 = table.cross_tab values=[Sum "[MISSING]*10"]
@@ -149,14 +149,14 @@ spec setup =
         Test.specify "should gracefully handle duplicate aggregate names" <|
             action = table.cross_tab [] "Key" values=[Count new_name="Agg1", Sum "Value" new_name="Agg1"] on_problems=_
             tester table =
-                table.column_names . should_equal ["x Agg1", "x Agg1_1", "y Agg1", "y Agg1_1", "z Agg1", "z Agg1_1"]
+                table.column_names . should_equal ["x Agg1", "x Agg1 1", "y Agg1", "y Agg1 1", "z Agg1", "z Agg1 1"]
             problems = [Duplicate_Output_Column_Names.Error ["x Agg1", "y Agg1", "z Agg1"]]
             Problems.test_problem_handling action problems tester
 
             table3 = table2.rename_columns (Map.from_vector [["Group", "x"]])
             action3 = table3.cross_tab ["x"] "Key" on_problems=_
             tester3 table =
-                table.column_names . should_equal ["x", "x_1", "y", "z"]
+                table.column_names . should_equal ["x", "x 1", "y", "z"]
             problems3 = [Duplicate_Output_Column_Names.Error ["x"]]
             Problems.test_problem_handling action3 problems3 tester3
 

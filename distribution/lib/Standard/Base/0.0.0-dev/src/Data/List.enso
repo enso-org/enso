@@ -286,7 +286,9 @@ type List
             go t res.fill
             res.value
 
-    ## Applies a function to each element of the list.
+    ## PRIVATE
+       ADVANCED
+       Applies a function to each element of the list.
 
        Arguments:
        - f: The function to apply to each element of the list.

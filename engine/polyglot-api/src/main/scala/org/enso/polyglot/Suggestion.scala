@@ -46,6 +46,9 @@ sealed trait Suggestion extends ToLogString {
   def name:          String
   def returnType:    String
   def documentation: Option[String]
+
+  /** Set the reexport field of the suggestion. */
+  def withReexport(reexport: Option[String]): Suggestion
 }
 
 object Suggestion {
@@ -131,6 +134,21 @@ object Suggestion {
         case conversion: Conversion   => Some(conversion.sourceType)
         case _: Function              => None
         case _: Local                 => None
+      }
+  }
+
+  /** Annotations extractor. */
+  object Annotations {
+
+    def apply(suggestion: Suggestion): Seq[String] =
+      suggestion match {
+        case _: Module                => Seq()
+        case _: Type                  => Seq()
+        case constructor: Constructor => constructor.annotations
+        case method: Method           => method.annotations
+        case _: Conversion            => Seq()
+        case _: Function              => Seq()
+        case _: Local                 => Seq()
       }
   }
 
@@ -221,6 +239,10 @@ object Suggestion {
       module
 
     /** @inheritdoc */
+    override def withReexport(reexport: Option[String]): Module =
+      copy(reexport = reexport)
+
+    /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
       s"Module(module=$module,name=$name,documentation=" +
       (if (shouldMask) documentation.map(_ => STUB) else documentation) +
@@ -251,6 +273,10 @@ object Suggestion {
       with ToLogString {
 
     /** @inheritdoc */
+    override def withReexport(reexport: Option[String]): Type =
+      copy(reexport = reexport)
+
+    /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
       "Type(" +
       s"externalId=$externalId," +
@@ -272,6 +298,7 @@ object Suggestion {
     * @param arguments the list of arguments
     * @param returnType the type of an atom
     * @param documentation the documentation string
+    * @param annotations the list of annotations
     * @param reexport the module re-exporting this atom
     */
   case class Constructor(
@@ -281,9 +308,14 @@ object Suggestion {
     arguments: Seq[Argument],
     returnType: String,
     documentation: Option[String],
+    annotations: Seq[String],
     reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
+
+    /** @inheritdoc */
+    override def withReexport(reexport: Option[String]): Constructor =
+      copy(reexport = reexport)
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
@@ -308,6 +340,7 @@ object Suggestion {
     * @param returnType the return type of a method
     * @param isStatic the flag indicating whether a method is static or instance
     * @param documentation the documentation string
+    * @param annotations the list of annotations
     * @param reexport the module re-exporting this method
     */
   case class Method(
@@ -319,9 +352,14 @@ object Suggestion {
     returnType: String,
     isStatic: Boolean,
     documentation: Option[String],
+    annotations: Seq[String],
     reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
+
+    /** @inheritdoc */
+    override def withReexport(reexport: Option[String]): Method =
+      copy(reexport = reexport)
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
@@ -356,6 +394,10 @@ object Suggestion {
     documentation: Option[String],
     reexport: Option[String] = None
   ) extends Suggestion {
+
+    /** @inheritdoc */
+    override def withReexport(reexport: Option[String]): Conversion =
+      copy(reexport = reexport)
 
     /** @inheritdoc */
     override def name: String =
@@ -395,6 +437,10 @@ object Suggestion {
       with ToLogString {
 
     /** @inheritdoc */
+    override def withReexport(reexport: Option[String]): Function =
+      this
+
+    /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
       "Function(" +
       s"externalId=$externalId," +
@@ -424,6 +470,10 @@ object Suggestion {
     scope: Scope,
     documentation: Option[String]
   ) extends Suggestion {
+
+    /** @inheritdoc */
+    override def withReexport(reexport: Option[String]): Local =
+      this
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =

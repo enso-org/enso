@@ -48,7 +48,6 @@ use crate::component::node::input::area::NODE_HEIGHT;
 use crate::component::node::input::area::TEXT_OFFSET;
 use crate::component::node::input::port::Port;
 
-use enso_config::ARGS;
 use enso_frp as frp;
 use enso_text as text;
 use ensogl::application::Application;
@@ -58,9 +57,26 @@ use ensogl::display::shape::StyleWatch;
 use ensogl::gui::cursor;
 use ensogl_component::drop_down::DropdownValue;
 use span_tree::node::Ref as SpanRef;
+use span_tree::TagValue;
 use text::index::Byte;
 
 
+
+pub(super) mod prelude {
+    pub use super::Choice;
+    pub use super::ConfigContext;
+    pub use super::Configuration;
+    pub use super::IdentityBase;
+    pub use super::NodeInfo;
+    pub use super::OverrideKey;
+    pub use super::Score;
+    pub use super::SpanWidget;
+    pub use super::TransferRequest;
+    pub use super::TreeNode;
+    pub use super::WidgetIdentity;
+    pub use super::WidgetsFrp;
+    pub use span_tree::node::Ref as SpanRef;
+}
 
 // =================
 // === Constants ===
@@ -85,6 +101,7 @@ pub const PRIMARY_PORT_MAX_NESTING_LEVEL: usize = 0;
 ensogl::define_endpoints_2! {
     Input {
         set_ports_visible    (bool),
+        set_edit_ready_mode  (bool),
         set_read_only        (bool),
         set_view_mode        (crate::view::Mode),
         set_profiling_status (crate::node::profiling::Status),
@@ -128,6 +145,16 @@ pub struct OverrideKey {
 pub trait SpanWidget {
     /// Configuration associated with specific widget variant.
     type Config: Debug + Clone + PartialEq;
+    /// Score how well a widget kind matches current [`ConfigContext`], e.g. checking if the span
+    /// node or declaration type match specific patterns. When this method returns
+    /// [`Score::Mismatch`], this widget kind will not be used, even if it was requested by an
+    /// override. The override will be ignored and another best scoring widget with default
+    /// configuration will be used.
+    fn match_node(ctx: &ConfigContext) -> Score;
+    /// After a widget has been matched to a node, this method is used to determine its
+    /// automatically derived configuration. It is not called for widgets that have a configuration
+    /// provided externally or by a parent widget.
+    fn default_config(ctx: &ConfigContext) -> Configuration<Self::Config>;
     /// Root display object of a widget. It is returned to the parent widget for positioning.
     fn root_object(&self) -> &display::object::Instance;
     /// Create a new widget with given configuration.
@@ -145,6 +172,25 @@ pub trait SpanWidget {
     }
 }
 
+/// Description of how well a widget matches given node. Used to determine which widget should be
+/// used, or whether the applied widget override is valid in given context.
+#[derive(Debug, Default, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
+pub enum Score {
+    /// This widget kind cannot accept the node. It will never be used, even if it was explicitly
+    /// requested using an override.
+    Mismatch,
+    /// A bad, but syntactically valid match. Matching widget kind will only be used if it was
+    /// explicitly requested using an override. Should be the default choice for cases where
+    /// the node is syntactically valid in this widget's context, but no sensible defaults can
+    /// be inferred from context.
+    #[default]
+    OnlyOverride,
+    /// A good match, but there might be a better one. one. This widget will be used if there is no
+    /// better option.
+    Good,
+    /// Widget matches perfectly and can be used outright, without checking other kinds.
+    Perfect,
+}
 
 /// Generate implementation for [`DynWidget`] enum and its associated [`Config`] enum. Those enums
 /// are used to represent any possible widget kind and its configuration.
@@ -179,23 +225,63 @@ macro_rules! define_widget_modules(
             ),*
         }
 
+        bitflags::bitflags!{
+            /// A set of flags that determine the widget kind.
+            #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+            pub struct DynKindFlags: u32 {
+                $(
+                    #[allow(missing_docs, non_upper_case_globals)]
+                    const $name = 1 << ${index()};
+                )*
+            }
+        }
+
+        impl DynKindFlags {
+            /// Check whether the widget kind matching this flag is able to receive given span node.
+            /// When more than one flag is set, [`Score::Mismatch`] will be returned.
+            fn match_node(&self, ctx: &ConfigContext) -> Score {
+                match self {
+                    $(&DynKindFlags::$name => $module::Widget::match_node(ctx),)*
+                    _ => Score::Mismatch,
+                }
+            }
+
+            /// Create default configuration of the widget kind contained within this flag.
+            fn default_config(&self, ctx: &ConfigContext) -> Configuration {
+                match self {
+                    $(&DynKindFlags::$name => {
+                        let config = $module::Widget::default_config(ctx);
+                        Configuration {
+                            display: config.display,
+                            has_port: config.has_port,
+                            kind: config.kind.into(),
+                        }
+                    },)*
+                    _ => panic!("No widget kind specified.")
+                }
+            }
+        }
+
+        impl DynConfig {
+            /// Return a single flag that determines the used widget kind.
+            fn flag(&self) -> DynKindFlags {
+                match self {
+                    $(DynConfig::$name(_) => DynKindFlags::$name,)*
+                }
+            }
+        }
+
         $(
             impl const From<<$module::Widget as SpanWidget>::Config> for DynConfig {
                 fn from(config: <$module::Widget as SpanWidget>::Config) -> Self {
                     Self::$name(config)
                 }
             }
-
-            impl const From<$module::Widget> for DynWidget {
-                fn from(config: $module::Widget) -> Self {
-                    Self::$name(config)
-                }
-            }
         )*
 
-        impl SpanWidget for DynWidget {
-            type Config = DynConfig;
-            fn root_object(&self) -> &display::object::Instance {
+        impl DynWidget {
+            #[allow(missing_docs)]
+            pub fn root_object(&self) -> &display::object::Instance {
                 match self {
                     $(DynWidget::$name(inner) => inner.root_object(),)*
                 }
@@ -207,13 +293,13 @@ macro_rules! define_widget_modules(
                 }
             }
 
-            fn configure(&mut self, config: &DynConfig, ctx: ConfigContext) {
+            pub(super) fn configure(&mut self, config: &DynConfig, ctx: ConfigContext) {
                 match (self, config) {
                     $((DynWidget::$name(model), DynConfig::$name(config)) => {
                         SpanWidget::configure(model, config, ctx);
                     },)*
                     (this, _) => {
-                        *this = SpanWidget::new(config, &ctx);
+                        *this = Self::new(config, &ctx);
                         this.configure(config, ctx)
                     },
                 }
@@ -232,16 +318,16 @@ macro_rules! define_widget_modules(
 );
 
 define_widget_modules! {
-    /// Default widget that only displays text.
-    Label label,
-    /// Empty widget that does not display anything, used for empty insertion points.
-    InsertionPoint insertion_point,
     /// A widget for selecting a single value from a list of available options.
     SingleChoice single_choice,
     /// A widget for managing a list of values - adding, removing or reordering them.
     ListEditor list_editor,
+    /// Empty widget that does not display anything, used for empty insertion points.
+    InsertionPoint insertion_point,
     /// Default span tree traversal widget.
     Hierarchy hierarchy,
+    /// Default widget that only displays text.
+    Label label,
 }
 
 // =====================
@@ -253,8 +339,7 @@ define_widget_modules! {
 /// that declare themselves as having a port will be able to handle edge connections and visually
 /// indicate that they are connected.
 #[derive(Debug, Clone, PartialEq)]
-#[allow(missing_docs)]
-pub struct Configuration {
+pub struct Configuration<KindConfig = DynConfig> {
     /// Display mode of the widget: determines whether or not the widget should be displayed
     /// depending on current tree display mode.
     pub display:  Display,
@@ -263,85 +348,55 @@ pub struct Configuration {
     /// declare themselves as wanting a port, only one of them will actually have one.
     pub has_port: bool,
     /// Configuration specific to given widget kind.
-    pub kind:     DynConfig,
+    pub kind:     KindConfig,
 }
 
 impl Configuration {
-    /// Derive widget configuration from Enso expression, node data in span tree and inferred value
-    /// type. When no configuration is provided with an override, this function will be used to
-    /// create a default configuration.
-    fn from_node(
-        span_node: &SpanRef,
-        usage_type: Option<crate::Type>,
-        expression: &str,
-        is_directly_connected: bool,
-    ) -> Self {
-        use span_tree::node::Kind;
-
-        let kind = &span_node.kind;
-        let has_children = !span_node.children.is_empty();
-
-        const VECTOR_TYPE: &str = "Standard.Base.Data.Vector.Vector";
-        let is_list_editor_enabled = ARGS.groups.feature_preview.options.vector_editor.value;
-        let node_expr = &expression[span_node.span()];
-        let looks_like_vector = node_expr.starts_with('[') && node_expr.ends_with(']');
-        let type_is_vector = |tp: &Option<String>| {
-            usage_type
-                .as_ref()
-                .map(|t| t.as_str())
-                .or(tp.as_deref())
-                .map_or(false, |tp| tp.contains(VECTOR_TYPE))
-        };
-
-        match kind {
-            Kind::Argument(arg) if !arg.tag_values.is_empty() =>
-                Self::static_dropdown(arg.name.as_ref().map(Into::into), &arg.tag_values),
-            Kind::Argument(_) if is_list_editor_enabled && looks_like_vector => Self::list_editor(),
-            Kind::Root if is_list_editor_enabled && looks_like_vector => Self::list_editor(),
-            Kind::InsertionPoint(arg) if arg.kind.is_expected_argument() =>
-                if is_list_editor_enabled && (type_is_vector(&arg.tp) || looks_like_vector) {
-                    Self::list_editor()
-                } else if !arg.tag_values.is_empty() {
-                    Self::static_dropdown(arg.name.as_ref().map(Into::into), &arg.tag_values)
-                } else {
-                    Self::always(label::Config::default())
-                },
-            Kind::Token | Kind::Operation if !has_children => Self::inert(label::Config::default()),
-            Kind::NamedArgument => Self::inert(hierarchy::Config),
-            Kind::InsertionPoint(_) =>
-                Self::maybe_with_port(insertion_point::Config, is_directly_connected),
-            _ if has_children => Self::always(hierarchy::Config),
-            _ => Self::always(label::Config::default()),
+    /// Derive widget configuration from Enso expression, node data in span tree and inferred node
+    /// info, like value type. When no configuration is provided with an override, this function
+    /// will be used to create a default configuration.
+    ///
+    /// Will never return any configuration kind specified in `disallow` parameter, except for
+    /// [`DynConfig::Label`] as an option of last resort.
+    fn infer_from_context(ctx: &ConfigContext, disallowed: DynKindFlags) -> Self {
+        let allowed = !disallowed;
+        let mut best_match = None;
+        for kind in allowed {
+            let score = kind.match_node(ctx);
+            let current_score = best_match.map(|(_, score)| score).unwrap_or(Score::Mismatch);
+            if score > current_score {
+                best_match = Some((kind, score));
+                if score == Score::Perfect {
+                    break;
+                }
+            }
         }
+
+        let matched_kind = best_match.map_or(DynKindFlags::Label, |(kind, _)| kind);
+        let mut config = matched_kind.default_config(ctx);
+
+        config.has_port = config.has_port || ctx.info.connection.is_some();
+        config
     }
 
-    const fn maybe_with_port<C>(kind: C, has_port: bool) -> Self
-    where C: ~const Into<DynConfig> {
-        Self { display: Display::Always, kind: kind.into(), has_port }
+    /// An insertion point that always has a port.
+    pub fn active_insertion_point() -> Self {
+        Self::always(insertion_point::Config.into())
+    }
+}
+
+
+impl<KindConfig> Configuration<KindConfig> {
+    fn maybe_with_port(kind: KindConfig, has_port: bool) -> Self {
+        Self { display: Display::Always, kind, has_port }
     }
 
-    const fn always<C>(kind: C) -> Self
-    where C: ~const Into<DynConfig> {
+    fn always(kind: KindConfig) -> Self {
         Self::maybe_with_port(kind, true)
     }
 
-    const fn inert<C>(kind: C) -> Self
-    where C: ~const Into<DynConfig> {
+    fn inert(kind: KindConfig) -> Self {
         Self::maybe_with_port(kind, false)
-    }
-
-    /// Widget configuration for static dropdown, based on the tag values provided by suggestion
-    /// database.
-    fn static_dropdown(
-        label: Option<ImString>,
-        tag_values: &[span_tree::TagValue],
-    ) -> Configuration {
-        let entries = Rc::new(tag_values.iter().map(Entry::from).collect());
-        Self::always(single_choice::Config { label, entries })
-    }
-
-    fn list_editor() -> Configuration {
-        Self::always(list_editor::Config { item_widget: None, item_default: "_".into() })
     }
 }
 
@@ -360,47 +415,47 @@ pub enum Display {
     ExpandedOnly,
 }
 
-/// Widget entry. Represents a possible value choice on the widget, as proposed by the language
-/// server.
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub struct Entry {
+/// A possible value to choose in the widget (e.g. a single- or multi-choice widget). Can either be
+/// derived from a `TagValue`, or from a widget configuration received from the language server.
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct Choice {
     /// The expression that should be inserted by the widget. Note that  this expression can still
     /// be preprocessed by the widget before being inserted into the node.
     pub value:           ImString,
-    /// The import that must be present in the module when the widget entry is selected.
+    /// The import that must be present in the module or added when the widget entry is selected.
     pub required_import: Option<ImString>,
     /// The text that should be displayed by the widget to represent this option. The exact
     /// appearance of the label is up to the widget implementation.
     pub label:           ImString,
 }
 
-impl From<&span_tree::TagValue> for Entry {
-    fn from(tag_value: &span_tree::TagValue) -> Self {
+impl From<&TagValue> for Choice {
+    fn from(tag_value: &TagValue) -> Self {
         let value: ImString = (&tag_value.expression).into();
         let label: ImString = tag_value.label.as_ref().map_or_else(|| value.clone(), Into::into);
         let required_import = tag_value.required_import.clone().map(Into::into);
-        Entry { value, required_import, label }
+        Choice { value, required_import, label }
     }
 }
 
-impl Entry {
-    /// Create an entry with the same value and label.
+impl Choice {
+    /// Create a choice with the same value and label.
     pub fn from_value(value: ImString) -> Self {
         Self { label: value.clone(), required_import: None, value }
     }
 
-    /// Cloning entry value getter.
+    /// Cloning choice value getter.
     pub fn value(&self) -> ImString {
         self.value.clone()
     }
 
-    /// Cloning entry getter of import that must be present for value insertion to be valid.
+    /// Cloning choice getter of import that must be present for value insertion to be valid.
     pub fn required_import(&self) -> Option<ImString> {
         self.required_import.clone()
     }
 }
 
-impl DropdownValue for Entry {
+impl DropdownValue for Choice {
     fn label(&self) -> ImString {
         self.label.clone()
     }
@@ -416,6 +471,7 @@ impl DropdownValue for Entry {
 #[derive(Debug, Clone, CloneRef)]
 pub struct WidgetsFrp {
     pub(super) set_ports_visible:      frp::Sampler<bool>,
+    pub(super) set_edit_ready_mode:    frp::Sampler<bool>,
     pub(super) set_read_only:          frp::Sampler<bool>,
     pub(super) set_view_mode:          frp::Sampler<crate::view::Mode>,
     pub(super) set_profiling_status:   frp::Sampler<crate::node::profiling::Status>,
@@ -487,6 +543,7 @@ impl Tree {
             eval transfer_ownership((request) model.transfer_ownership(*request));
 
             set_ports_visible <- frp.set_ports_visible.sampler();
+            set_edit_ready_mode <- frp.set_edit_ready_mode.sampler();
             set_read_only <- frp.set_read_only.sampler();
             set_view_mode <- frp.set_view_mode.sampler();
             set_profiling_status <- frp.set_profiling_status.sampler();
@@ -503,6 +560,7 @@ impl Tree {
         let connected_port_updated = frp.private.output.connected_port_updated.clone_ref();
         let widgets_frp = WidgetsFrp {
             set_ports_visible,
+            set_edit_ready_mode,
             set_read_only,
             set_view_mode,
             set_profiling_status,
@@ -681,7 +739,7 @@ struct TreeEntry {
 /// port, its widget and all its descendants through `connection` and `subtree_connection` fields
 /// of  [`NodeState`].
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(super) struct EdgeData {
+pub struct EdgeData {
     /// Color of an edge connected to the port.
     pub color: color::Lcha,
     /// Span tree depth at which the connection is made.
@@ -878,11 +936,13 @@ impl TreeModel {
             usage_type_map: &usage_type_map,
             old_nodes,
             hierarchy,
+            local_overrides: default(),
             pointer_usage: default(),
             new_nodes: default(),
             parent_info: default(),
             last_ast_depth: default(),
             extensions: default(),
+            node_settings: default(),
         };
 
         let child = builder.child_widget(tree.root_ref(), default());
@@ -902,34 +962,7 @@ impl TreeModel {
     /// is more stable across changes in the span tree than [`span_tree::Crumbs`]. The pointer is
     /// used to identify the widgets or ports in the widget tree.
     pub fn get_node_widget_pointer(&self, span_node: &SpanRef) -> StableSpanIdentity {
-        if let Some(id) = span_node.ast_id {
-            // This span represents an AST node, return a pointer directly to it.
-            StableSpanIdentity::new(Some(id), &[])
-        } else {
-            let root = span_node.span_tree.root_ref();
-            let root_ast_data = root.ast_id.map(|id| (id, 0));
-
-            // When the node does not represent an AST node, its widget will be identified by the
-            // closest parent AST node, if it exists. We have to find the closest parent node with
-            // AST ID, and then calculate the relative crumbs from it to the current node.
-            let (_, ast_parent_data) = span_node.crumbs.into_iter().enumerate().fold(
-                (root, root_ast_data),
-                |(node, last_seen), (index, crumb)| {
-                    let ast_data = node.node.ast_id.map(|id| (id, index)).or(last_seen);
-                    (node.child(*crumb).expect("Node ref must be valid"), ast_data)
-                },
-            );
-
-            match ast_parent_data {
-                // Parent AST node found, return a pointer relative to it.
-                Some((ast_id, ast_parent_index)) => {
-                    let crumb_slice = &span_node.crumbs[ast_parent_index..];
-                    StableSpanIdentity::new(Some(ast_id), crumb_slice)
-                }
-                // No parent AST node found. Return a pointer from root.
-                None => StableSpanIdentity::new(None, &span_node.crumbs),
-            }
-        }
+        StableSpanIdentity::from_node(span_node)
     }
 
     /// Perform an operation on a shared reference to a tree port under given pointer. When there is
@@ -949,7 +982,7 @@ impl TreeModel {
 /// State of a node in the widget tree. Provides additional information about the node's current
 /// state, such as its depth in the widget tree, if it's connected, disabled, etc.
 #[derive(Debug, Clone, PartialEq)]
-pub(super) struct NodeInfo {
+pub struct NodeInfo {
     /// Unique identifier of this node within this widget tree.
     pub identity:           WidgetIdentity,
     /// Index of node in the widget tree, in insertion order.
@@ -972,6 +1005,18 @@ pub(super) struct NodeInfo {
     pub usage_type:         Option<crate::Type>,
 }
 
+/// Settings that can be manipulated by the widget during its own configuration, and will impact
+/// how the builder will treat the widget's children.
+#[derive(Debug, Clone, Default)]
+struct NodeSettings {
+    /// Whether the widget is manipulating the child margins itself. Will prevent the builder from
+    /// automatically adding margins calculated from span tree offsets.
+    manage_margins:            bool,
+    /// Override the padding of port hover area, which is used during edge dragging to determine
+    /// which port is being hovered.
+    custom_port_hover_padding: Option<f32>,
+}
+
 /// A collection of common data used by all widgets and ports in the widget tree during
 /// configuration. Provides the main widget's interface to the tree builder, allowing for creating
 /// child widgets.
@@ -979,7 +1024,7 @@ pub(super) struct NodeInfo {
 pub struct ConfigContext<'a, 'b> {
     builder:               &'a mut TreeBuilder<'b>,
     /// The span tree node corresponding to the widget being configured.
-    pub(super) span_node:  span_tree::node::Ref<'a>,
+    pub(super) span_node:  SpanRef<'a>,
     /// Additional state associated with configured widget tree node, such as its depth, connection
     /// status or parent node information.
     pub(super) info:       NodeInfo,
@@ -999,8 +1044,12 @@ impl<'a, 'b> ConfigContext<'a, 'b> {
         &self.builder.frp
     }
 
-    /// Get the code expression fragment represented by the given byte range. Can be combined with
-    /// [`span_tree::node::Ref`]'s `span` method to get the expression of a given span tree node.
+    /// Get the code expression fragment represented by current span node.
+    pub fn span_expression(&self) -> &str {
+        self.expression_at(self.span_node.span())
+    }
+
+    /// Get the code expression fragment represented by the given byte range.
     pub fn expression_at(&self, range: text::Range<Byte>) -> &str {
         &self.builder.node_expression[range]
     }
@@ -1122,26 +1171,70 @@ impl NestingLevel {
 /// rebuilding the tree.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct StableSpanIdentity {
-    /// AST ID of either the node itself, or the closest ancestor node which has one. Is [`None`]
-    /// when there is no such parent with assigned AST id.
-    ast_id:        Option<ast::Id>,
+    /// Identity base of either the node itself, or the closest ancestor node which has one.
+    pub base:          IdentityBase,
     /// A hash of remaining data used to distinguish between tree nodes. We store a hash instead of
     /// the data directly, so the type can be trivially copied. The collision is extremely unlikely
     /// due to u64 being extremely large hash space, compared to the size of the used data. Many
     /// nodes are also already fully distinguished by the AST ID alone.
     ///
     /// Currently we are hashing a portion of span-tree crumbs, starting from the closest node with
-    /// assigned AST id up to this node. The widgets should not rely on the exact kind of data
-    /// used, as it may be extended to include more information in the future.
-    identity_hash: u64,
+    /// assigned identity base up to this node. The widgets should not rely on the exact kind of
+    /// data used, as it may be extended to include more information in the future.
+    pub identity_hash: u64,
+}
+
+/// Data that uniquely identifies some span nodes. Not all nodes have unique identity base. To
+/// disambiguate nodes that don't have their own stable base, use [`StableSpanIdentity`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum IdentityBase {
+    /// There isn't any parent with assigned AST id.
+    #[default]
+    FromRoot,
+    /// AST ID of either the node itself, or the closest ancestor node which has one.
+    AstNode(ast::Id),
+    /// AST ID of the node that this span is an extension of. Only present if this span doesn't
+    /// have an unique AST ID assigned.
+    ExtNode(ast::Id),
 }
 
 impl StableSpanIdentity {
-    fn new(ast_id: Option<ast::Id>, crumbs_since_ast: &[span_tree::Crumb]) -> Self {
+    fn from_node(node: &SpanRef) -> Self {
+        let (base, base_idx) = if let Some(ast_id) = node.ast_id {
+            (IdentityBase::AstNode(ast_id), node.crumbs.len())
+        } else if let Some(ext_id) = node.extended_ast_id {
+            let base_idx = node
+                .span_tree
+                .find_map_in_chain(&node.crumbs, |idx, node| {
+                    (node.extended_ast_id == Some(ext_id)).then_some(idx)
+                })
+                .unwrap_or(node.crumbs.len());
+            (IdentityBase::ExtNode(ext_id), base_idx)
+        } else {
+            let mut found_base = (IdentityBase::FromRoot, node.crumbs.len());
+            let mut current_ext = None;
+            node.span_tree.find_map_in_chain(&node.crumbs, |idx, node| {
+                if let Some(ast) = node.ast_id {
+                    found_base = (IdentityBase::AstNode(ast), idx);
+                } else if let Some(ext) = node.extended_ast_id {
+                    if current_ext != Some(ext) {
+                        found_base = (IdentityBase::ExtNode(ext), idx);
+                    }
+                }
+                current_ext = node.extended_ast_id;
+                None::<()>
+            });
+            found_base
+        };
+        let identity_hash = Self::hash_crumbs_from_base(&node.crumbs[..], base_idx);
+        Self { base, identity_hash }
+    }
+
+    fn hash_crumbs_from_base(crumbs: &[usize], base_idx: usize) -> u64 {
+        let remaining_crumbs = &crumbs[base_idx..];
         let mut hasher = DefaultHasher::new();
-        crumbs_since_ast.hash(&mut hasher);
-        let identity_hash = hasher.finish();
-        Self { ast_id, identity_hash }
+        remaining_crumbs.hash(&mut hasher);
+        hasher.finish()
     }
 
     /// Convert this pointer to a stable identity of a widget, making it unique among all widgets.
@@ -1178,9 +1271,12 @@ impl WidgetIdentity {
 #[derive(Debug, Default)]
 struct PointerUsage {
     /// Next sequence index that will be assigned to a widget created for the same span tree node.
-    next_index: usize,
+    next_index:   usize,
     /// The pointer index of a widget on this span tree that received a port, if any exist already.
-    port_index: Option<usize>,
+    port_index:   Option<usize>,
+    /// The widget configuration kinds that were already used for this span tree node. Those will
+    /// be excluded from config possibilities of the next widget created for this node.
+    used_configs: DynKindFlags,
 }
 
 impl PointerUsage {
@@ -1213,7 +1309,14 @@ struct TreeBuilder<'a> {
     node_disabled:   bool,
     node_expression: &'a str,
     styles:          &'a StyleWatch,
+    /// A list of widget overrides configured on the widget tree. It is persistent between tree
+    /// builds, and cannot be modified during the tree building process.
     override_map:    &'a HashMap<OverrideKey, Configuration>,
+    /// A list of additional overrides specified by the widgets during the tree building process.
+    /// Useful for applying overrides conditionally, e.g. only when a specific dropdown choice is
+    /// selected. This is a temporary map that is cleared and created from scratch for
+    /// each tree building process.
+    local_overrides: HashMap<OverrideKey, Configuration>,
     connected_map:   &'a HashMap<span_tree::Crumbs, color::Lcha>,
     usage_type_map:  &'a HashMap<ast::Id, crate::Type>,
     old_nodes:       HashMap<WidgetIdentity, TreeEntry>,
@@ -1221,11 +1324,33 @@ struct TreeBuilder<'a> {
     hierarchy:       Vec<NodeHierarchy>,
     pointer_usage:   HashMap<StableSpanIdentity, PointerUsage>,
     parent_info:     Option<NodeInfo>,
+    node_settings:   NodeSettings,
     last_ast_depth:  usize,
     extensions:      Vec<Box<dyn Any>>,
 }
 
 impl<'a> TreeBuilder<'a> {
+    /// Signal to the builder that this widget manages child margins on its own. This will prevent
+    /// the builder from automatically adding margins to the widget's children based on the offset
+    /// from previous span.
+    pub fn manage_child_margins(&mut self) {
+        self.node_settings.manage_margins = true;
+    }
+
+    /// Set an additional config override for widgets that might be built in the future within the
+    /// same tree build process. Takes precedence over overrides specified externally. This is
+    /// useful for applying overrides conditionally, e.g. only when a specific dropdown choice is
+    /// selected.
+    pub fn set_local_override(&mut self, key: OverrideKey, config: Configuration) {
+        self.local_overrides.insert(key, config);
+    }
+
+    /// Override horizontal port hover area margin for ports of this children. The margin is used
+    /// during edge dragging to determine which port is being hovered.
+    pub fn override_port_hover_padding(&mut self, padding: Option<f32>) {
+        self.node_settings.custom_port_hover_padding = padding;
+    }
+
     /// Create a new child widget, along with its whole subtree. The widget type will be
     /// automatically inferred, either based on the node kind, or on the configuration provided
     /// from the language server. If possible, an existing widget will be reused under the same
@@ -1241,11 +1366,7 @@ impl<'a> TreeBuilder<'a> {
     /// [`display::object::InstanceDef`], which will only perform hierarchy updates if the children
     /// list has been actually modified.
     #[must_use]
-    pub fn child_widget(
-        &mut self,
-        span_node: span_tree::node::Ref<'_>,
-        nesting_level: NestingLevel,
-    ) -> Child {
+    pub fn child_widget(&mut self, span_node: SpanRef<'_>, nesting_level: NestingLevel) -> Child {
         self.child_widget_of_type(span_node, nesting_level, None)
     }
 
@@ -1262,7 +1383,7 @@ impl<'a> TreeBuilder<'a> {
     /// list has been actually modified.
     pub fn child_widget_of_type(
         &mut self,
-        span_node: span_tree::node::Ref<'_>,
+        span_node: SpanRef<'_>,
         nesting_level: NestingLevel,
         configuration: Option<&Configuration>,
     ) -> Child {
@@ -1270,64 +1391,25 @@ impl<'a> TreeBuilder<'a> {
         // the current layer's state, so it can be restored later after visiting the child node.
         let parent_last_ast_depth = self.last_ast_depth;
         let depth = span_node.crumbs.len();
+        let is_extended_ast = span_node.ast_id.is_none() && span_node.extended_ast_id.is_some();
 
         // Figure out the widget tree pointer for the current node. That pointer determines the
         // widget identity, allowing it to maintain internal state. If the previous tree already
         // contained a widget for this pointer, we have to reuse it.
-        let main_ptr = match span_node.ast_id {
-            Some(ast_id) => {
-                self.last_ast_depth = depth;
-                StableSpanIdentity::new(Some(ast_id), &[])
-            }
-            None => {
-                let ast_id = self.parent_info.as_ref().and_then(|st| st.identity.main.ast_id);
-                let this_crumbs = &span_node.crumbs;
-                let crumbs_since_id = &this_crumbs[parent_last_ast_depth..];
-                StableSpanIdentity::new(ast_id, crumbs_since_id)
-            }
-        };
+        let main_ptr = StableSpanIdentity::from_node(&span_node);
 
         let ptr_usage = self.pointer_usage.entry(main_ptr).or_default();
         let widget_id = main_ptr.to_identity(ptr_usage);
 
         let is_placeholder = span_node.is_expected_argument();
         let sibling_offset = span_node.sibling_offset.as_usize();
-        let usage_type = main_ptr.ast_id.and_then(|id| self.usage_type_map.get(&id)).cloned();
+        let usage_type = span_node.ast_id.and_then(|id| self.usage_type_map.get(&id)).cloned();
 
         // Prepare the widget node info and build context.
         let connection_color = self.connected_map.get(&span_node.crumbs);
         let connection = connection_color.map(|&color| EdgeData { color, depth });
         let parent_connection = self.parent_info.as_ref().and_then(|info| info.connection);
         let subtree_connection = connection.or(parent_connection);
-
-        // Get widget configuration. There are three potential sources for configuration, that are
-        // used in order, whichever is available first:
-        // 1. The `config_override` argument, which can be set by the parent widget if it wants to
-        //    override the configuration for its child.
-        // 2. The override stored in the span tree node, located using `OverrideKey`. This can be
-        //    set by an external source, e.g. based on language server.
-        // 3. The default configuration for the widget, which is determined based on the node kind,
-        // usage type and whether it has children.
-        let kind = &span_node.kind;
-        let config_override = || {
-            self.override_map.get(&OverrideKey {
-                call_id:       kind.call_id()?,
-                argument_name: kind.argument_name()?.into(),
-            })
-        };
-        let inferred_config;
-        let configuration = match configuration.or_else(config_override) {
-            Some(config) => config,
-            None => {
-                let ty = usage_type.clone();
-                let expr = &self.node_expression;
-                let connected = connection.is_some();
-                inferred_config = Configuration::from_node(&span_node, ty, expr, connected);
-                &inferred_config
-            }
-        };
-
-        let widget_has_port = ptr_usage.request_port(&widget_id, configuration.has_port);
 
         let insertion_index = self.hierarchy.len();
         self.hierarchy.push(NodeHierarchy {
@@ -1336,8 +1418,6 @@ impl<'a> TreeBuilder<'a> {
             // This will be updated later, after the child widgets are created.
             total_descendants: 0,
         });
-
-        let old_node = self.old_nodes.remove(&widget_id).map(|e| e.node);
 
         let disabled = self.node_disabled;
         let info = NodeInfo {
@@ -1350,12 +1430,60 @@ impl<'a> TreeBuilder<'a> {
             usage_type,
         };
 
-        let parent_info = std::mem::replace(&mut self.parent_info, Some(info.clone()));
+        // Get widget configuration. There are three potential sources for configuration, that are
+        // used in order, whichever is available and allowed first:
+        // 1. The `configuration` argument, which can be set by the parent widget if it wants to
+        //    override the configuration for its child.
+        // 2. The override associated with a the span tree node, located using `OverrideKey`. This
+        // can be    set by an external source, e.g. based on language server.
+        // 3. The default configuration for the widget, which is determined based on the node kind,
+        // usage type and whether it has children.
+        let disallowed_configs = ptr_usage.used_configs;
         let parent_extensions_len = self.extensions.len();
 
-        let ctx = ConfigContext { builder: &mut *self, span_node, info, parent_extensions_len };
-        let app = ctx.app();
-        let frp = ctx.frp();
+        let ctx = ConfigContext {
+            builder: &mut *self,
+            span_node,
+            info: info.clone(),
+            parent_extensions_len,
+        };
+
+        let config_override = || {
+            let kind = &ctx.span_node.kind;
+            let key = OverrideKey {
+                call_id:       kind.call_id()?,
+                argument_name: kind.argument_name()?.into(),
+            };
+            let local_override = ctx.builder.local_overrides.remove(&key);
+            let override_map = &ctx.builder.override_map;
+
+            let is_applicable = |cfg: &&Configuration| {
+                let flag = cfg.kind.flag();
+                !disallowed_configs.contains(flag)
+                    && !matches!(flag.match_node(&ctx), Score::Mismatch)
+            };
+
+            let local = local_override.filter(|c| is_applicable(&c)).map(Cow::Owned);
+            local.or_else(|| override_map.get(&key).filter(is_applicable).map(Cow::Borrowed))
+        };
+
+        let configuration = match configuration.map(Cow::Borrowed).or_else(config_override) {
+            Some(config) => config,
+            None => Cow::Owned(Configuration::infer_from_context(&ctx, disallowed_configs)),
+        };
+        let configuration = configuration.as_ref();
+
+        let this = &mut *ctx.builder;
+        let ptr_usage = this.pointer_usage.entry(main_ptr).or_default();
+        ptr_usage.used_configs |= configuration.kind.flag();
+        let widget_has_port =
+            ptr_usage.request_port(&widget_id, configuration.has_port && !is_extended_ast);
+
+        let port_pad = this.node_settings.custom_port_hover_padding;
+        let old_node = this.old_nodes.remove(&widget_id).map(|e| e.node);
+        let parent_info = std::mem::replace(&mut this.parent_info, Some(info.clone()));
+        let saved_node_settings = std::mem::take(&mut this.node_settings);
+
 
         // Widget creation/update can recurse into the builder. All borrows must be dropped
         // at this point. The `configure` calls on the widgets are allowed to call back into the
@@ -1364,12 +1492,14 @@ impl<'a> TreeBuilder<'a> {
         // `configure` call has been done, so that the next sibling node will receive correct parent
         // data.
         let child_node = if widget_has_port {
+            let app = ctx.app();
+            let frp = ctx.frp();
             let mut port = match old_node {
                 Some(TreeNode::Port(port)) => port,
                 Some(TreeNode::Widget(widget)) => Port::new(widget, app, frp),
                 None => Port::new(DynWidget::new(&configuration.kind, &ctx), app, frp),
             };
-            port.configure(&configuration.kind, ctx);
+            port.configure(&configuration.kind, ctx, port_pad);
             TreeNode::Port(port)
         } else {
             let mut widget = match old_node {
@@ -1390,23 +1520,28 @@ impl<'a> TreeBuilder<'a> {
         self.parent_info = parent_info;
         self.last_ast_depth = parent_last_ast_depth;
         self.extensions.truncate(parent_extensions_len);
+        self.node_settings = saved_node_settings;
 
-        // Apply left margin to the widget, based on its offset relative to the previous sibling.
         let child_root = child_node.display_object().clone();
-        let offset = match () {
-            _ if !widget_id.is_first_widget_of_span() => 0,
-            _ if is_placeholder => 1,
-            _ => sibling_offset,
-        };
 
-        let left_margin = offset as f32 * WIDGET_SPACING_PER_OFFSET;
-        if child_root.margin().x.start.as_pixels().map_or(true, |px| px != left_margin) {
-            child_root.set_margin_left(left_margin);
+        if !self.node_settings.manage_margins {
+            // Apply left margin to the widget, based on its offset relative to the previous
+            // sibling.
+            let offset = match () {
+                _ if !widget_id.is_first_widget_of_span() => 0,
+                _ if is_placeholder => 1,
+                _ => sibling_offset,
+            };
+
+            let left_margin = offset as f32 * WIDGET_SPACING_PER_OFFSET;
+            if child_root.margin().x.start.as_pixels().map_or(true, |px| px != left_margin) {
+                child_root.set_margin_left(left_margin);
+            }
         }
 
         let entry = TreeEntry { node: child_node, index: insertion_index };
         self.new_nodes.insert(widget_id, entry);
-        Child { id: widget_id, root_object: child_root }
+        Child { info, root_object: child_root }
     }
 }
 
@@ -1421,11 +1556,10 @@ impl<'a> TreeBuilder<'a> {
 /// hierarchy.
 #[derive(Debug, Clone, Deref)]
 struct Child {
-    /// The widget identity that is stable across rebuilds. The parent might use it to associate
-    /// internal state with any particular child. When a new child is inserted between two existing
-    /// children, their identities will be maintained.
-    #[allow(dead_code)]
-    pub id:          WidgetIdentity,
+    /// The node info used during building of the child widget. The parent might use it to
+    /// associate internal state with any particular child. When a new child is inserted between
+    /// two existing children, their identities will be maintained.
+    pub info:        NodeInfo,
     /// The root object of the widget. In order to make the widget visible, it must be added to the
     /// parent's view hierarchy. Every time a widget is [`configure`d], its root object may change.
     /// The parent must not assume ownership over a root object of a removed child. The widget

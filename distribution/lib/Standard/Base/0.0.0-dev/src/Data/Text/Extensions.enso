@@ -40,6 +40,8 @@ from project.Data.Json import Json, Invalid_JSON, JS_Object
 from project.Data.Numbers import Decimal, Integer, Number, Number_Parse_Error
 from project.Data.Text.Text_Sub_Range import Codepoint_Ranges, Text_Sub_Range
 
+from project.Widget_Helpers import make_delimiter_selector
+
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 
 polyglot java import com.ibm.icu.lang.UCharacter
@@ -71,7 +73,9 @@ Text.reverse self =
       @Tail_Call iterate next iterator.previous
     iterate iterator.last iterator.previous
 
-## Applies the provided `function` to each character in `self`.
+## PRIVATE
+   ADVANCED
+   Applies the provided `function` to each character in `self`.
 
    Arguments:
    - function: The operation to apply to each character in the text.
@@ -331,7 +335,8 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
      Split with a vector of strings.
 
          'azbzczdzezfzg'.split ['b', 'zez'] == ['az', 'zczd', 'fzg']
-Text.split : Text | Vector Text  -> Case_Sensitivity -> Boolean -> Vector Text | Illegal_Argument
+@delimiter make_delimiter_selector
+Text.split : Text | Vector Text -> Case_Sensitivity -> Boolean -> Vector Text | Illegal_Argument
 Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_regex=False =
     delimiter_is_empty = case delimiter of
         _ : Text -> delimiter.is_empty
@@ -900,7 +905,7 @@ Text.repeat : Integer -> Text
 Text.repeat self count=1 =
     0.up_to count . fold "" acc-> _-> acc + self
 
-## ALIAS first, last, left, right, mid, substring
+## ALIAS first, last, left, right, mid, substring, slice
    Creates a new Text by selecting the specified range of the input.
 
    This can select a section of text from the beginning, end, or middle of the
@@ -937,6 +942,7 @@ Text.repeat self count=1 =
          "Hello World!".take (By_Index [1, 0, 0, 6, 0]) == "eHHWH"
          "Hello World!".take (By_Index [Range 0 3, 6, Range 6 12 2]) == "HelWWrd"
          "Hello World!".take (Sample 3 seed=42) == "l d"
+@range Text_Sub_Range.default_widget
 Text.take : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index_Out_Of_Bounds
 Text.take self range=(Index_Sub_Range.First 1) =
     ranges = Codepoint_Ranges.resolve self range
@@ -983,6 +989,7 @@ Text.take self range=(Index_Sub_Range.First 1) =
          "Hello World!".drop (By_Index [1, 0, 0, 6, 0]) == "llo orld!"
          "Hello World!".drop (By_Index [Range 0 3, 6, Range 6 12 2]) == "lo ol!"
          "Hello World!".drop (Sample 3 seed=42) == "HeloWorl!"
+@range Text_Sub_Range.default_widget
 Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds
 Text.drop self range=(Index_Sub_Range.First 1) =
     ranges = Codepoint_Ranges.resolve self range
@@ -1028,6 +1035,7 @@ Text.drop self range=(Index_Sub_Range.First 1) =
          from Standard.Base import all
 
          example_case_with_locale = "i".to_case Upper (Locale.new "tr") == "İ"
+@locale Locale.default_widget
 Text.to_case : Case -> Locale -> Text
 Text.to_case self case_option=Case.Lower locale=Locale.default = case case_option of
     Case.Lower -> UCharacter.toLowerCase locale.java_locale self
@@ -1384,6 +1392,7 @@ Text.last_index_of self term="" start=-1 case_sensitivity=Case_Sensitivity.Sensi
      Parse the text "7.6" into a decimal number.
 
          "7.6".parse_decimal
+@locale Locale.default_widget
 Text.parse_decimal : Locale | Nothing -> Decimal ! Number_Parse_Error
 Text.parse_decimal self locale=Nothing = Decimal.parse self locale
 
@@ -1563,6 +1572,7 @@ Text.parse_date self format=Nothing = Date.parse self format
 
          example_parse =
             "06 of May 2020 at 04:30AM".parse_date_time "dd 'of' MMMM yyyy 'at' hh:mma"
+@locale Locale.default_widget
 Text.parse_date_time : Text | Nothing -> Locale -> Date_Time ! Time_Error
 Text.parse_date_time self format=Nothing locale=Locale.default = Date_Time.parse self format locale
 
@@ -1631,6 +1641,7 @@ Text.parse_date_time self format=Nothing locale=Locale.default = Date_Time.parse
          import Standard.Base.Data.Text.Extensions
 
          example_parse = "4:30AM".parse_time_of_day "h:mma"
+@locale Locale.default_widget
 Text.parse_time_of_day : Text | Nothing -> Locale -> Time_Of_Day ! Time_Error
 Text.parse_time_of_day self format=Nothing locale=Locale.default = Time_Of_Day.parse self format locale
 

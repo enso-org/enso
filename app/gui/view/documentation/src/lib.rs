@@ -17,40 +17,30 @@
 //!
 //! [`Tailwind CSS`]: https://tailwindcss.com/
 
+#![recursion_limit = "1024"]
 // === Features ===
-#![feature(associated_type_bounds)]
-#![feature(associated_type_defaults)]
 #![feature(drain_filter)]
-#![feature(fn_traits)]
 #![feature(option_result_contains)]
-#![feature(specialization)]
-#![feature(trait_alias)]
-#![feature(type_alias_impl_trait)]
-#![feature(unboxed_closures)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
-#![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "1024"]
 
 use ensogl::prelude::*;
 use ensogl::system::web::traits::*;
 
-use graph_editor::component::visualization;
-use ide_view_graph_editor as graph_editor;
-
 use enso_frp as frp;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
+use enso_suggestion_database::documentation_ir::LinkedDocPage;
 use ensogl::animation::physics::inertia::Spring;
 use ensogl::application::Application;
 use ensogl::data::color;
@@ -64,17 +54,15 @@ use ensogl::Animation;
 use ensogl_component::shadow;
 use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::documentation as theme;
-use web::Closure;
-use web::HtmlElement;
-use web::JsCast;
-use web::MouseEvent;
-
-pub mod html;
+use graph_editor::component::visualization;
+use ide_view_graph_editor as graph_editor;
 
 
 // ==============
 // === Export ===
 // ==============
+
+pub mod html;
 
 pub use visualization::container::overlay;
 
@@ -88,6 +76,7 @@ pub use visualization::container::overlay;
 const MIN_CAPTION_HEIGHT: f32 = 1.0;
 /// Delay before updating the displayed documentation.
 const DISPLAY_DELAY_MS: i32 = 0;
+
 
 // === Style ===
 
@@ -108,23 +97,20 @@ pub struct Style {
 // === Model ===
 // =============
 
-type CodeCopyClosure = Closure<dyn FnMut(MouseEvent)>;
-
 /// Model of Native visualization that generates documentation for given Enso code and embeds
 /// it in a HTML container.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Model {
-    outer_dom:          DomSymbol,
-    caption_dom:        DomSymbol,
-    inner_dom:          DomSymbol,
+    outer_dom:      DomSymbol,
+    caption_dom:    DomSymbol,
+    inner_dom:      DomSymbol,
     /// The purpose of this overlay is stop propagating mouse events under the documentation panel
     /// to EnsoGL shapes, and pass them to the DOM instead.
-    overlay:            overlay::View,
-    display_object:     display::object::Instance,
-    code_copy_closures: Rc<CloneCell<Vec<CodeCopyClosure>>>,
+    overlay:        overlay::View,
+    display_object: display::object::Instance,
+    event_handlers: Rc<RefCell<Vec<web::EventListenerHandle>>>,
 }
-
 
 impl Model {
     /// Constructor.
@@ -164,9 +150,15 @@ impl Model {
         scene.dom.layers.node_searcher.manage(&inner_dom);
         scene.dom.layers.node_searcher.manage(&caption_dom);
 
-        let code_copy_closures = default();
-        Model { outer_dom, inner_dom, caption_dom, overlay, display_object, code_copy_closures }
-            .init()
+        Model {
+            outer_dom,
+            inner_dom,
+            caption_dom,
+            overlay,
+            display_object,
+            event_handlers: default(),
+        }
+        .init()
     }
 
     fn init(self) -> Self {
@@ -189,22 +181,38 @@ impl Model {
     }
 
     /// Display the documentation and scroll to the qualified name if needed.
-    fn display_doc(&self, docs: EntryDocumentation) {
-        let anchor = docs.function_name().map(html::anchor_name);
-        let html = html::render(docs);
+    fn display_doc(&self, docs: EntryDocumentation, display_doc: &frp::Source<EntryDocumentation>) {
+        let linked_pages = docs.linked_doc_pages();
+        let html = html::render(&docs);
         self.inner_dom.dom().set_inner_html(&html);
-        if let Some(anchor) = anchor {
+        self.set_link_handlers(linked_pages, display_doc);
+        // Scroll to the top of the page.
+        self.inner_dom.dom().set_scroll_top(0);
+    }
+
+    /// Setup event handlers for links on the documentation page.
+    fn set_link_handlers(
+        &self,
+        linked_pages: Vec<LinkedDocPage>,
+        display_doc: &frp::Source<EntryDocumentation>,
+    ) {
+        let new_handlers = linked_pages.into_iter().filter_map(|page| {
+            let content = page.page.clone_ref();
+            let anchor = html::anchor_name(&page.name);
             if let Some(element) = web::document.get_element_by_id(&anchor) {
-                let offset = element.dyn_ref::<HtmlElement>().map(|e| e.offset_top()).unwrap_or(0);
-                self.inner_dom.dom().set_scroll_top(offset);
+                let closure: web::JsEventHandler = web::Closure::new(f_!([display_doc, content] {
+                    display_doc.emit(content.clone_ref());
+                }));
+                Some(web::add_event_listener(&element, "click", closure))
+            } else {
+                None
             }
-        } else {
-            self.inner_dom.dom().set_scroll_top(0);
-        }
+        });
+        let _ = self.event_handlers.replace(new_handlers.collect());
     }
 
     /// Load an HTML file into the documentation view when user is waiting for data to be received.
-    /// TODO(#184315201): This should be replaced with a EnsoGL spinner.
+    /// TODO(#5214): This should be replaced with a EnsoGL spinner.
     fn load_waiting_screen(&self) {
         let spinner = include_str!("../assets/spinner.html");
         self.inner_dom.dom().set_inner_html(spinner)
@@ -316,7 +324,11 @@ impl View {
             docs <+ frp.display_documentation;
             display_delay.restart <+ frp.display_documentation.constant(DISPLAY_DELAY_MS);
             display_docs <- display_delay.on_expired.map2(&docs,|_,docs| docs.clone_ref());
-            eval display_docs((docs) model.display_doc(docs.clone_ref()));
+            display_docs_callback <- source();
+            display_docs <- any(&display_docs, &display_docs_callback);
+            eval display_docs([model, display_docs_callback]
+                (docs) model.display_doc(docs.clone_ref(), &display_docs_callback)
+            );
 
 
             // === Hovered item preview caption ===

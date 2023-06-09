@@ -1,6 +1,7 @@
 from Standard.Base import all
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, Sample, Every
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table.Errors import all
@@ -151,8 +152,30 @@ spec setup =
             rnd.at "alpha" . to_vector . should_equal alpha_sample
             rnd.at "beta" . to_vector . should_equal beta_sample
 
-        Test.specify "should allow selecting rows as long as they satisfy a predicate" pending="While is not implemented for Table until the Row type is implemented." <|
-            Nothing
+        Test.specify "should allow selecting rows as long as they satisfy a predicate" <|
+            t = table_builder [["a", [1, 2, 3, 4]], ["b", [5, 6, 7, 8]]]
+
+            t2 = t.take (While (row -> row.at "a" < 3))
+            t2.row_count . should_equal 2
+            t2.at "a" . to_vector . should_equal [1, 2]
+            t2.at "b" . to_vector . should_equal [5, 6]
+
+        Test.specify "should gracefully handle missing constructor arguments" <|
+            t = table_builder [["X", [1, 2, 3]]]
+            t.take "FOO" . should_fail_with Type_Error
+            t.drop "FOO" . should_fail_with Type_Error
+
+            r1 = t.take (Index_Sub_Range.While)
+            r1.should_fail_with Illegal_Argument
+            r1.catch.to_display_text . should_contain "The constructor While is missing some arguments"
+
+            r2 = t.drop (Index_Sub_Range.Every ...)
+            r2.should_fail_with Illegal_Argument
+            r2.catch.to_display_text . should_contain "The constructor Every is missing some arguments"
+
+            r3 = t.take (Index_Sub_Range.First _)
+            r3.should_fail_with Illegal_Argument
+            r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"
 
     Test.group prefix+"Column.take/drop" pending=take_drop_by_pending <|
         table =
@@ -310,3 +333,20 @@ spec setup =
 
             three.drop (While (_ > 10)) . should_equal three
             three.drop (While (_ < 10)) . should_equal empty
+
+        Test.specify "should gracefully handle missing constructor arguments" <|
+            c = table_builder [["X", [1, 2, 3]]] . at "X"
+            c.take "FOO" . should_fail_with Type_Error
+            c.drop "FOO" . should_fail_with Type_Error
+
+            r1 = c.take (Index_Sub_Range.While)
+            r1.should_fail_with Illegal_Argument
+            r1.catch.to_display_text . should_contain "The constructor While is missing some arguments"
+
+            r2 = c.drop (Index_Sub_Range.Every ...)
+            r2.should_fail_with Illegal_Argument
+            r2.catch.to_display_text . should_contain "The constructor Every is missing some arguments"
+
+            r3 = c.take (Index_Sub_Range.First _)
+            r3.should_fail_with Illegal_Argument
+            r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"

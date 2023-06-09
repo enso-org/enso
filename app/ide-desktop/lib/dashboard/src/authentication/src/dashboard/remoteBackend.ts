@@ -1,25 +1,40 @@
 /** @file Module containing the API client for the Cloud backend API.
  *
- * Each exported function in the {@link RemoteBackend} in this module corresponds to an API endpoint. The
- * functions are asynchronous and return a `Promise` that resolves to the response from the API. */
+ * Each exported function in the {@link RemoteBackend} in this module corresponds to
+ * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
+ * the response from the API. */
 import * as backend from './backend'
 import * as config from '../config'
 import * as http from '../http'
 import * as loggerProvider from '../providers/logger'
 import * as newtype from '../newtype'
-import * as platformModule from '../platform'
 
 // =================
 // === Constants ===
 // =================
 
 /** HTTP status indicating that the request was successful. */
-const STATUS_OK = 200
+const STATUS_SUCCESS_FIRST = 200
+/** HTTP status indicating that the request was successful. */
+const STATUS_SUCCESS_LAST = 299
 
 /** Default HTTP body for an "open project" request. */
 const DEFAULT_OPEN_PROJECT_BODY: backend.OpenProjectRequestBody = {
     forceCreate: false,
 }
+
+// ========================
+// === Helper functions ===
+// ========================
+
+/** Returns true if and only if a response has a success HTTP status code (200-299). */
+function responseIsSuccessful(response: Response) {
+    return response.status >= STATUS_SUCCESS_FIRST && response.status <= STATUS_SUCCESS_LAST
+}
+
+// =============
+// === Paths ===
+// =============
 
 /** Relative HTTP path to the "set username" endpoint of the Cloud backend API. */
 const CREATE_USER_PATH = 'users'
@@ -128,9 +143,9 @@ interface ListVersionsResponseBody {
 
 /** Class for sending requests to the Cloud backend API endpoints. */
 export class RemoteBackend implements backend.Backend {
-    readonly platform = platformModule.Platform.cloud
+    readonly type = backend.BackendType.remote
 
-    /** Creates a new instance of the {@link RemoteBackend} API client.
+    /** Create a new instance of the {@link RemoteBackend} API client.
      *
      * @throws An error if the `Authorization` header is not set on the given `client`. */
     constructor(
@@ -139,40 +154,41 @@ export class RemoteBackend implements backend.Backend {
     ) {
         // All of our API endpoints are authenticated, so we expect the `Authorization` header to be
         // set.
-        if (!this.client.defaultHeaders?.has('Authorization')) {
+        if (!this.client.defaultHeaders.has('Authorization')) {
             return this.throw('Authorization header not set.')
         } else {
             return
         }
     }
 
+    /** Log an error message and throws an {@link Error} with the specified message.
+     * @throws {Error} Always. */
     throw(message: string): never {
         this.logger.error(message)
         throw new Error(message)
     }
 
-    /** Sets the username of the current user, on the Cloud backend API. */
+    /** Set the username of the current user. */
     async createUser(body: backend.CreateUserRequestBody): Promise<backend.UserOrOrganization> {
         const response = await this.post<backend.UserOrOrganization>(CREATE_USER_PATH, body)
         return await response.json()
     }
 
-    /** Returns organization info for the current user, from the Cloud backend API.
+    /** Return organization info for the current user.
      *
-     * @returns `null` if status code 401 or 404 was received. */
+     * @returns `null` if any status code other than 200 OK was received. */
     async usersMe(): Promise<backend.UserOrOrganization | null> {
         const response = await this.get<backend.UserOrOrganization>(USERS_ME_PATH)
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return null
         } else {
             return await response.json()
         }
     }
 
-    /** Returns a list of assets in a directory, from the Cloud backend API.
+    /** Return a list of assets in a directory.
      *
-     * @throws An error if status code 401 or 404 was received.
-     */
+     * @throws An error if any status code other than 200 OK was received. */
     async listDirectory(query: backend.ListDirectoryRequestParams): Promise<backend.Asset[]> {
         const response = await this.get<ListDirectoryResponseBody>(
             LIST_DIRECTORY_PATH +
@@ -182,7 +198,7 @@ export class RemoteBackend implements backend.Backend {
                     ...(query.parentId ? { parent_id: query.parentId } : {}),
                 }).toString()
         )
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             if (query.parentId) {
                 return this.throw(`Unable to list directory with ID '${query.parentId}'.`)
             } else {
@@ -197,25 +213,24 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Creates a directory, on the Cloud backend API.
+    /** Create a directory.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async createDirectory(body: backend.CreateDirectoryRequestBody): Promise<backend.Directory> {
         const response = await this.post<backend.Directory>(CREATE_DIRECTORY_PATH, body)
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to create directory with name '${body.title}'.`)
         } else {
             return await response.json()
         }
     }
 
-    /** Returns a list of projects belonging to the current user, from the Cloud backend API.
+    /** Return a list of projects belonging to the current user.
      *
-     * @throws An error if status code 401 or 404 was received.
-     */
+     * @throws An error if any status code other than 200 OK was received. */
     async listProjects(): Promise<backend.ListedProject[]> {
         const response = await this.get<ListProjectsResponseBody>(LIST_PROJECTS_PATH)
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw('Unable to list projects.')
         } else {
             return (await response.json()).projects.map(project => ({
@@ -232,36 +247,36 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Creates a project for the current user, on the Cloud backend API.
+    /** Create a project.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async createProject(body: backend.CreateProjectRequestBody): Promise<backend.CreatedProject> {
         const response = await this.post<backend.CreatedProject>(CREATE_PROJECT_PATH, body)
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to create project with name '${body.projectName}'.`)
         } else {
             return await response.json()
         }
     }
 
-    /** Closes the project identified by the given project ID, on the Cloud backend API.
+    /** Close a project.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async closeProject(projectId: backend.ProjectId): Promise<void> {
         const response = await this.post(closeProjectPath(projectId), {})
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to close project with ID '${projectId}'.`)
         } else {
             return
         }
     }
 
-    /** Returns project details for the specified project ID, from the Cloud backend API.
+    /** Return details for a project.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
         const response = await this.get<backend.ProjectRaw>(getProjectDetailsPath(projectId))
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to get details of project with ID '${projectId}'.`)
         } else {
             const project = await response.json()
@@ -279,72 +294,75 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Sets project to an open state, on the Cloud backend API.
+    /** Prepare a project for execution.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async openProject(
         projectId: backend.ProjectId,
         body: backend.OpenProjectRequestBody = DEFAULT_OPEN_PROJECT_BODY
     ): Promise<void> {
         const response = await this.post(openProjectPath(projectId), body)
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to open project with ID '${projectId}'.`)
         } else {
             return
         }
     }
 
+    /** Update the name or AMI of a project.
+     *
+     * @throws An error if any status code other than 200 OK was received. */
     async projectUpdate(
         projectId: backend.ProjectId,
         body: backend.ProjectUpdateRequestBody
     ): Promise<backend.UpdatedProject> {
         const response = await this.put<backend.UpdatedProject>(projectUpdatePath(projectId), body)
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to update project with ID '${projectId}'.`)
         } else {
             return await response.json()
         }
     }
 
-    /** Deletes project, on the Cloud backend API.
+    /** Delete a project.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async deleteProject(projectId: backend.ProjectId): Promise<void> {
         const response = await this.delete(deleteProjectPath(projectId))
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to delete project with ID '${projectId}'.`)
         } else {
             return
         }
     }
 
-    /** Returns project memory, processor and storage usage, from the Cloud backend API.
+    /** Return the resource usage of a project.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async checkResources(projectId: backend.ProjectId): Promise<backend.ResourceUsage> {
         const response = await this.get<backend.ResourceUsage>(checkResourcesPath(projectId))
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to get resource usage for project with ID '${projectId}'.`)
         } else {
             return await response.json()
         }
     }
 
-    /** Returns a list of files accessible by the current user, from the Cloud backend API.
+    /** Return a list of files accessible by the current user.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async listFiles(): Promise<backend.File[]> {
         const response = await this.get<ListFilesResponseBody>(LIST_FILES_PATH)
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw('Unable to list files.')
         } else {
             return (await response.json()).files
         }
     }
 
-    /** Uploads a file, to the Cloud backend API.
+    /** Upload a file.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async uploadFile(
         params: backend.UploadFileRequestParams,
         body: Blob
@@ -363,7 +381,7 @@ export class RemoteBackend implements backend.Backend {
                 }).toString(),
             body
         )
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             if (params.fileName) {
                 return this.throw(`Unable to upload file with name '${params.fileName}'.`)
             } else if (params.fileId) {
@@ -376,69 +394,69 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Deletes a file, on the Cloud backend API.
+    /** Delete a file.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async deleteFile(fileId: backend.FileId): Promise<void> {
         const response = await this.delete(deleteFilePath(fileId))
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to delete file with ID '${fileId}'.`)
         } else {
             return
         }
     }
 
-    /** Creates a secret environment variable, on the Cloud backend API.
+    /** Create a secret environment variable.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async createSecret(body: backend.CreateSecretRequestBody): Promise<backend.SecretAndInfo> {
         const response = await this.post<backend.SecretAndInfo>(CREATE_SECRET_PATH, body)
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to create secret with name '${body.secretName}'.`)
         } else {
             return await response.json()
         }
     }
 
-    /** Returns a secret environment variable, from the Cloud backend API.
+    /** Return a secret environment variable.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async getSecret(secretId: backend.SecretId): Promise<backend.Secret> {
         const response = await this.get<backend.Secret>(getSecretPath(secretId))
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to get secret with ID '${secretId}'.`)
         } else {
             return await response.json()
         }
     }
 
-    /** Returns the secret environment variables accessible by the user, from the Cloud backend API.
+    /** Return the secret environment variables accessible by the user.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async listSecrets(): Promise<backend.SecretInfo[]> {
         const response = await this.get<ListSecretsResponseBody>(LIST_SECRETS_PATH)
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw('Unable to list secrets.')
         } else {
             return (await response.json()).secrets
         }
     }
 
-    /** Deletes a secret environment variable, on the Cloud backend API.
+    /** Delete a secret environment variable.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async deleteSecret(secretId: backend.SecretId): Promise<void> {
         const response = await this.delete(deleteSecretPath(secretId))
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to delete secret with ID '${secretId}'.`)
         } else {
             return
         }
     }
 
-    /** Creates a file tag or project tag, on the Cloud backend API.
+    /** Create a file tag or project tag.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async createTag(body: backend.CreateTagRequestBody): Promise<backend.TagInfo> {
         const response = await this.post<backend.TagInfo>(CREATE_TAG_PATH, {
             /* eslint-disable @typescript-eslint/naming-convention */
@@ -448,16 +466,16 @@ export class RemoteBackend implements backend.Backend {
             object_id: body.objectId,
             /* eslint-enable @typescript-eslint/naming-convention */
         })
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to create create tag with name '${body.name}'.`)
         } else {
             return await response.json()
         }
     }
 
-    /** Returns file tags or project tags accessible by the user, from the Cloud backend API.
+    /** Return file tags or project tags accessible by the user.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async listTags(params: backend.ListTagsRequestParams): Promise<backend.Tag[]> {
         const response = await this.get<ListTagsResponseBody>(
             LIST_TAGS_PATH +
@@ -467,28 +485,28 @@ export class RemoteBackend implements backend.Backend {
                     tag_type: params.tagType,
                 }).toString()
         )
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to list tags of type '${params.tagType}'.`)
         } else {
             return (await response.json()).tags
         }
     }
 
-    /** Deletes a secret environment variable, on the Cloud backend API.
+    /** Delete a secret environment variable.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async deleteTag(tagId: backend.TagId): Promise<void> {
         const response = await this.delete(deleteTagPath(tagId))
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to delete tag with ID '${tagId}'.`)
         } else {
             return
         }
     }
 
-    /** Returns list of backend or IDE versions, from the Cloud backend API.
+    /** Return list of backend or IDE versions.
      *
-     * @throws An error if a 401 or 404 status code was received. */
+     * @throws An error if any status code other than 200 OK was received. */
     async listVersions(
         params: backend.ListVersionsRequestParams
     ): Promise<[backend.Version, ...backend.Version[]]> {
@@ -501,34 +519,34 @@ export class RemoteBackend implements backend.Backend {
                     default: String(params.default),
                 }).toString()
         )
-        if (response.status !== STATUS_OK) {
+        if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to list versions of type '${params.versionType}'.`)
         } else {
             return (await response.json()).versions
         }
     }
 
-    /** Sends an HTTP GET request to the given path. */
+    /** Send an HTTP GET request to the given path. */
     private get<T = void>(path: string) {
         return this.client.get<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`)
     }
 
-    /** Sends a JSON HTTP POST request to the given path. */
+    /** Send a JSON HTTP POST request to the given path. */
     private post<T = void>(path: string, payload: object) {
         return this.client.post<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
     }
 
-    /** Sends a binary HTTP POST request to the given path. */
+    /** Send a binary HTTP POST request to the given path. */
     private postBase64<T = void>(path: string, payload: Blob) {
         return this.client.postBase64<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
     }
 
-    /** Sends a JSON HTTP PUT request to the given path. */
+    /** Send a JSON HTTP PUT request to the given path. */
     private put<T = void>(path: string, payload: object) {
         return this.client.put<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
     }
 
-    /** Sends an HTTP DELETE request to the given path. */
+    /** Send an HTTP DELETE request to the given path. */
     private delete<T = void>(path: string) {
         return this.client.delete<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`)
     }

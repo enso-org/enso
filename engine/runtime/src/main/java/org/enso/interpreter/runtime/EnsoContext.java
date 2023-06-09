@@ -1,10 +1,16 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -82,6 +88,8 @@ public class EnsoContext {
   private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
   private ExecutionEnvironment executionEnvironment;
 
+  private final int warningsLimit;
+
   /**
    * Creates a new Enso context.
    *
@@ -127,6 +135,7 @@ public class EnsoContext {
     this.notificationHandler = notificationHandler;
     this.lockManager = lockManager;
     this.distributionManager = distributionManager;
+    this.warningsLimit = getOption(RuntimeOptions.WARNINGS_LIMIT_KEY);
   }
 
   /** Perform expensive initialization logic for the context. */
@@ -343,6 +352,36 @@ public class EnsoContext {
   }
 
   /**
+   * Tries to lookup a Java class (host symbol in Truffle terminology) by its fully qualified name.
+   * This method also tries to lookup inner classes. More specifically, if the provided name
+   * resolves to an inner class, then the import of the outer class is resolved, and the inner class
+   * is looked up by iterating the members of the outer class via Truffle's interop protocol.
+   *
+   * @param className Fully qualified class name, can also be nested static inner class.
+   * @return If the java class is found, return it, otherwise return null.
+   */
+  @TruffleBoundary
+  public Object lookupJavaClass(String className) {
+    List<String> items = Arrays.asList(className.split("\\."));
+    for (int i = items.size() - 1; i >= 0; i--) {
+      String pkgName = String.join(".", items.subList(0, i));
+      String curClassName = items.get(i);
+      List<String> nestedClassPart =
+          i < items.size() - 1 ? items.subList(i + 1, items.size()) : List.of();
+      try {
+        Object hostSymbol = environment.lookupHostSymbol(pkgName + "." + curClassName);
+        if (nestedClassPart.isEmpty()) {
+          return hostSymbol;
+        } else {
+          return getNestedClass(hostSymbol, nestedClassPart);
+        }
+      } catch (RuntimeException ignored) {
+      }
+    }
+    return null;
+  }
+
+  /**
    * Finds the package the provided module belongs to.
    *
    * @param file the module to find the package of
@@ -517,6 +556,11 @@ public class EnsoContext {
     this.executionEnvironment = executionEnvironment;
   }
 
+  /** Returns a maximal number of warnings that can be attached to a value */
+  public int getWarningsLimit() {
+    return this.warningsLimit;
+  }
+
   public Shape getRootStateShape() {
     return rootStateShape;
   }
@@ -532,6 +576,30 @@ public class EnsoContext {
   /** @return the notification handler. */
   public NotificationHandler getNotificationHandler() {
     return notificationHandler;
+  }
+
+  private Object getNestedClass(Object hostClass, List<String> nestedClassName) {
+    Object nestedClass = hostClass;
+    var interop = InteropLibrary.getUncached();
+    for (String name : nestedClassName) {
+      if (interop.isMemberReadable(nestedClass, name)) {
+        Object member;
+        try {
+          member = interop.readMember(nestedClass, name);
+        } catch (UnsupportedMessageException | UnknownIdentifierException e) {
+          throw new IllegalStateException(e);
+        }
+        assert member != null;
+        if (interop.isMetaObject(member)) {
+          nestedClass = member;
+        } else {
+          return null;
+        }
+      } else {
+        return null;
+      }
+    }
+    return nestedClass;
   }
 
   private <T> T getOption(OptionKey<T> key) {

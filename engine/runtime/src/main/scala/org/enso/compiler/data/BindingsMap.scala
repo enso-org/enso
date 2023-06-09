@@ -16,14 +16,12 @@ import scala.annotation.unused
 
 /** A utility structure for resolving symbols in a given module.
   *
-  * @param constructors the types defined in the current module
-  * @param polyglotSymbols the polyglot symbols imported into the scope
-  * @param moduleMethods the methods defined with current module as `this`
+  * @param definedEntities the list of entities defined in the current module
   * @param currentModule the module holding these bindings
   */
 
 @SerialVersionUID(
-  5568L // stable serialization of bindings
+  6584L // verify ascribed types
 )
 case class BindingsMap(
   definedEntities: List[DefinedEntity],
@@ -665,7 +663,7 @@ object BindingsMap {
     *
     * @param importDef the definition of the import
     * @param exports the exports associated with the import
-    * @param target the module this import resolves to
+    * @param target the module or type this import resolves to
     */
   case class ResolvedImport(
     importDef: IR.Module.Scope.Import.Module,

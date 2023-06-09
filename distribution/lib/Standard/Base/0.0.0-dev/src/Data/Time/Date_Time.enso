@@ -244,6 +244,7 @@ type Date_Time
 
              example_parse =
                 Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
+    @locale Locale.default_widget
     parse : Text -> Text | Nothing -> Locale -> Date_Time ! Time_Error
     parse text pattern=Nothing locale=Locale.default =
         Panic.catch JException handler=(cause -> Error.throw (Time_Error.Error cause.payload.getMessage)) <|
@@ -457,18 +458,18 @@ type Date_Time
     start_of : (Date_Period|Time_Period) -> Date_Time
     start_of self period=Date_Period.Month =
         adjusted = period.adjust_start self
-        case period.is_date_period of
-            True -> Time_Period.Day.adjust_start adjusted
-            False -> adjusted
+        case period of
+            _ : Date_Period -> Time_Period.Day.adjust_start adjusted
+            _ : Time_Period -> adjusted
 
     ## Returns the last date within the `Time_Period` or `Date_Period`
        containing self.
     end_of : (Date_Period|Time_Period) -> Date_Time
     end_of self period=Date_Period.Month =
         adjusted = period.adjust_end self
-        case period.is_date_period of
-            True -> Time_Period.Day.adjust_end adjusted
-            False -> adjusted
+        case period of
+            _ : Date_Period -> Time_Period.Day.adjust_end adjusted
+            _ : Time_Period -> adjusted
 
     ## ALIAS Time to Date
 
@@ -498,14 +499,15 @@ type Date_Time
 
              example_at_zone = Date_Time.new 2020 . at_zone (Time_Zone.new -4)
     at_zone : Time_Zone -> Date_Time
-    at_zone self zone = @Builtin_Method "Date_Time.at_zone"
+    at_zone self zone =
+        Time_Utils.with_zone_same_instant self zone
 
-    ## Add the specified amount of time to this instant to produce a new instant.
+    ## ALIAS Add Period, Add Duration
+       Add the specified amount of time to this instant to produce a new instant.
 
        Arguments:
-       - amount: The amount of time to add to this instant, either `Duration` for
-         adding time (hours, minutes, etc.), or `Period` for adding date (days,
-         months, years).
+       - amount: The amount of time to add to this instant, It can be a
+         `Duration`, `Period`, `Time_Period`, or `Date_Period`.
 
        > Example
          Add 15 years and 3 hours to a zoned date time.
@@ -514,13 +516,24 @@ type Date_Time
              from Standard.Base.Data.Time import Duration
 
              example_plus = Date_Time.new 2020 + (Period.new years=15) + (Duration.new hours=3)
-    + : (Duration | Period) -> Date_Time ! Time_Error
-    + self amount =
+
+       > Example
+         Add one quarter to a zoned date time.
+
+             from Standard.Base import Date_Time, Date_Period
+
+             example_plus = Date_Time.new 2020 + Date_Period.Quarter
+    + : (Duration | Period | Time_Period | Date_Period) -> Date_Time ! Time_Error
+    + self amount:(Duration|Period|Time_Period|Date_Period) =
         case amount of
             duration : Duration ->
                 Panic.catch ArithmeticException (self.plus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))
             period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
+            time_period : Time_Period ->
+                self + time_period.to_duration
+            date_period : Date_Period ->
+                self + date_period.to_period
 
     ## Shift the date by the specified amount of business days.
 
@@ -563,15 +576,15 @@ type Date_Time
         ensure_in_epoch self <|
             self.date.add_work_days days holidays . to_date_time self.time_of_day self.zone
 
-    ## Subtract the specified amount of time from this instant to get a new
+    ## ALIAS Subtract Duration, Subtract Period
+       Subtract the specified amount of time from this instant to get a new
        instant.
 
        Produces a warning if the resulting date time is before an Enso epoch.
 
        Arguments:
-       - amount: The amount of time to subtract from this instant. Can be either
-         `Duration` for subtracting time (hours, minutes, etc.), or `Period`
-         for subtracting days, months and years.
+       - amount: The amount of time to add to this instant, It can be a
+         `Duration`, `Period`, `Time_Period`, or `Date_Period`.
 
        > Example
          Subtract 1 year, 9 months and 12 hours from a zoned date time.
@@ -580,13 +593,24 @@ type Date_Time
              import Standard.Base.Data.Time.Duration
 
              example_minus = Date_Time.new 2020 - (Period.new years=1) - (Period.new months=9) - (Duration.new hours=5)
-    - : (Duration | Period) -> Date_Time ! Time_Error
-    - self amount =
+
+       > Example
+         Subtract one quarter from a zoned date time.
+
+             from Standard.Base import Date_Time, Date_Period
+
+             example_plus = Date_Time.new 2020 - Date_Period.Quarter
+    - : (Duration | Period | Time_Period | Date_Period) -> Date_Time ! Time_Error
+    - self amount:(Duration|Period|Time_Period|Date_Period) =
         result = case amount of
             duration : Duration ->
                 Panic.catch ArithmeticException (self.minus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))
             period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
+            time_period : Time_Period ->
+                self - time_period.to_duration
+            date_period : Date_Period ->
+                self - date_period.to_period
         ensure_in_epoch result result
 
     ## PRIVATE
@@ -613,6 +637,8 @@ type Date_Time
 
        Arguments:
        - pattern: The pattern that specifies how to format the time.
+       - locale: The locale in which the format should be interpreted.
+         (Defaults to Locale.default.)
 
        ? Pattern Syntax
          A custom pattern string consists of one or more custom date and time
@@ -645,6 +671,17 @@ type Date_Time
 
              example_format =
                 Date_Time.parse "2020-10-08T16:41:13+03:00[Europe/Moscow]" . format "EEE MMM d (HH:mm)"
-    format : Text -> Text
-    format self pattern = @Builtin_Method "Date_Time.format"
 
+       > Example
+         Format "2020-06-21T16:41:13+03:00" with French locale as "21. juin 2020"
+
+             from Standard.Base import Date_Time
+             import Standard.Base.Data.Locale.Locale
+
+             example_format =
+                 Date_Time.parse "2020-06-21T16:41:13+03:00" . format "d. MMMM yyyy" (Locale.new "fr")
+    @locale Locale.default_widget
+    format : Text -> Locale -> Text
+    format self pattern locale=Locale.default = case locale of
+        Nothing -> Time_Utils.date_time_format self pattern
+        _ -> Time_Utils.date_time_format_with_locale self pattern locale.java_locale

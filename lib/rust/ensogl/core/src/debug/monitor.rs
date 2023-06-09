@@ -8,6 +8,7 @@ use crate::system::web;
 use crate::system::web::dom::Shape;
 use crate::system::web::JsValue;
 
+use enso_data_structures::size_capped_vec_deque::SizeCappedVecDeque;
 use std::f64;
 
 
@@ -58,12 +59,14 @@ pub struct ConfigTemplate<Str> {
     pub label_color_ok:          Str,
     pub label_color_warn:        Str,
     pub label_color_err:         Str,
+    pub label_color_missing:     Str,
     pub label_color_ok_selected: Str,
     pub plot_color_ok:           Str,
     pub plot_color_warn:         Str,
     pub plot_color_err:          Str,
+    pub plot_color_missing:      Str,
     pub plot_background_color:   Str,
-    pub plot_bar_size:           Option<f64>,
+    pub plot_bar_size:           f64,
     pub plot_step_size:          f64,
     pub plot_selection_border:   f64,
     pub plot_selection_width:    f64,
@@ -104,12 +107,14 @@ fn light_theme() -> Config {
         label_color_ok:          "#202124".into(),
         label_color_warn:        "#f58025".into(),
         label_color_err:         "#eb3941".into(),
+        label_color_missing:     "#CCCCCC".into(),
         label_color_ok_selected: "#008cff".into(),
         plot_color_ok:           "#202124".into(),
         plot_color_warn:         "#f58025".into(),
         plot_color_err:          "#eb3941".into(),
+        plot_color_missing:      "#CCCCCC".into(),
         plot_background_color:   "#f1f1f0".into(),
-        plot_bar_size:           Some(2.0),
+        plot_bar_size:           2.0,
         plot_step_size:          1.0,
         plot_selection_border:   1.0,
         plot_selection_width:    1.0,
@@ -141,12 +146,14 @@ impl Config {
             label_color_ok:          (&self.label_color_ok).into(),
             label_color_warn:        (&self.label_color_warn).into(),
             label_color_err:         (&self.label_color_err).into(),
+            label_color_missing:     (&self.label_color_missing).into(),
             label_color_ok_selected: (&self.label_color_ok_selected).into(),
             plot_color_ok:           (&self.plot_color_ok).into(),
             plot_color_warn:         (&self.plot_color_warn).into(),
             plot_color_err:          (&self.plot_color_err).into(),
+            plot_color_missing:      (&self.plot_color_missing).into(),
             plot_background_color:   (&self.plot_background_color).into(),
-            plot_bar_size:           self.plot_bar_size.map(|t| t * ratio),
+            plot_bar_size:           self.plot_bar_size * ratio,
             plot_step_size:          self.plot_step_size * ratio,
             plot_selection_border:   self.plot_selection_border * ratio,
             plot_selection_width:    self.plot_selection_width * ratio,
@@ -224,6 +231,7 @@ impl DomData {
         root.set_style_or_warn("z-index", "100");
         root.set_style_or_warn("left", format!("{PADDING_LEFT}px"));
         root.set_style_or_warn("top", format!("{PADDING_TOP}px"));
+        root.set_style_or_warn("pointer-events", "none");
 
         root.set_style_or_warn("display", "flex");
         root.set_style_or_warn("align-items", "stretch");
@@ -244,6 +252,7 @@ impl DomData {
         details.set_style_or_warn("border-radius", "6px");
         details.set_style_or_warn("border", "2px solid #000000c4");
         details.set_style_or_warn("background", &config.background_color);
+        details.set_style_or_warn("pointer-events", "all");
         root.append_child(&details).unwrap();
 
         let control_button = ControlButton::default();
@@ -332,6 +341,7 @@ impl MainArea {
         root.set_style_or_warn("border", "2px solid #000000c4");
         root.set_style_or_warn("box-sizing", "content-box");
         root.set_style_or_warn("position", "relative");
+        root.set_style_or_warn("pointer-events", "all");
 
         let plots = web::document.create_canvas_or_panic();
         plots.set_style_or_warn("display", "block");
@@ -449,8 +459,10 @@ impl Default for Monitor {
     fn default() -> Self {
         let frp = Frp::new();
         let mut renderer = Renderer::new(&frp.public);
-        renderer.add(sampler::FRAME_TIME);
         renderer.add(sampler::FPS);
+        renderer.add(sampler::FRAME_TIME);
+        renderer.add(sampler::CPU_AND_IDLE_TIME);
+        renderer.add(sampler::GPU_TIME);
         renderer.add(sampler::WASM_MEMORY_USAGE);
         renderer.add(sampler::GPU_MEMORY_USAGE);
         renderer.add(sampler::DRAW_CALL_COUNT);
@@ -477,6 +489,13 @@ impl Monitor {
     /// Does nothing if the monitor is not visible (see: [`toggle()`]).
     pub fn sample_and_draw(&self, stats: &StatsData) {
         self.renderer.borrow_mut().sample_and_draw(stats);
+    }
+
+    /// Redraw the historical data of the monitor. This can be used to update the monitor if the
+    /// render stats were updated with a few-frames latency. Only the monitor panels marked as
+    /// `can_be_reported_late` will be redrawn.
+    pub fn redraw_historical_data(&self, offset: usize) {
+        self.renderer.borrow_mut().redraw_historical_data(offset);
     }
 
     /// Toggle the visibility of the monitor.
@@ -509,6 +528,11 @@ impl Monitor {
         }
         self.renderer.borrow_mut().toggle();
     }
+
+    /// Run the provided function with last `n`-th recorded performance sample.
+    pub fn with_last_nth_sample(&self, n: usize, f: impl FnOnce(&mut StatsData)) {
+        self.renderer.borrow_mut().samples.with_last_nth_elem(n, f);
+    }
 }
 
 
@@ -519,19 +543,18 @@ impl Monitor {
 /// Code responsible for drawing [`Monitor`]'s data.
 #[derive(Debug)]
 struct Renderer {
-    frp:               api::Public,
-    user_config:       Config,
-    config:            SamplerConfig,
-    screen_shape:      Shape,
-    width:             f64,
-    height:            f64,
-    dom:               Option<Dom>,
-    panels:            Vec<Panel>,
-    selected_panel:    Option<usize>,
-    first_draw:        bool,
-    paused:            bool,
-    samples:           Vec<StatsData>,
-    next_sample_index: usize,
+    frp:            api::Public,
+    user_config:    Config,
+    config:         SamplerConfig,
+    screen_shape:   Shape,
+    width:          f64,
+    height:         f64,
+    dom:            Option<Dom>,
+    panels:         Vec<Panel>,
+    selected_panel: Option<usize>,
+    first_draw:     bool,
+    paused:         bool,
+    samples:        SizeCappedVecDeque<StatsData>,
 }
 
 impl Renderer {
@@ -547,8 +570,7 @@ impl Renderer {
         let dom = default();
         let selected_panel = default();
         let paused = default();
-        let samples = default();
-        let next_sample_index = default();
+        let samples = SizeCappedVecDeque::new(config.sample_count);
         let mut out = Self {
             frp,
             user_config,
@@ -562,7 +584,6 @@ impl Renderer {
             first_draw,
             paused,
             samples,
-            next_sample_index,
         };
         out.update_config();
         out
@@ -644,9 +665,7 @@ impl Renderer {
     }
 
     fn set_focus_sample(&mut self, index: usize) {
-        let local_index = index + self.next_sample_index;
-        let local_index = local_index % self.config.sample_count;
-        let sample = self.samples.get(local_index).or_else(|| self.samples.last());
+        let sample = self.samples.get(index).or_else(|| self.samples.last());
         if let Some(sample) = sample {
             for panel in &self.panels {
                 panel.sample_and_postprocess(sample);
@@ -659,12 +678,7 @@ impl Renderer {
 
     fn sample_and_draw(&mut self, stats: &StatsData) {
         if !self.paused {
-            if self.samples.len() < self.config.sample_count {
-                self.samples.push(stats.clone());
-            } else {
-                self.samples[self.next_sample_index] = stats.clone();
-                self.next_sample_index = (self.next_sample_index + 1) % self.config.sample_count;
-            }
+            self.samples.push_back(stats.clone());
             if self.visible() {
                 for panel in &self.panels {
                     panel.sample_and_postprocess(stats);
@@ -673,6 +687,23 @@ impl Renderer {
             }
         } else if self.visible() {
             self.draw_paused(stats);
+        }
+    }
+
+    fn redraw_historical_data(&mut self, n: usize) {
+        if self.visible() && !self.paused {
+            if let Some(index) = self.samples.len().checked_sub(n + 1) {
+                if let Some(stats) = self.samples.get(index) {
+                    if let Some(dom) = self.dom.clone() {
+                        self.with_all_panels(&dom, |_selected, panel| {
+                            if panel.can_be_reported_late() {
+                                panel.sample_and_postprocess(stats);
+                                panel.draw_historical_data(&dom, n);
+                            }
+                        });
+                    }
+                }
+            }
         }
     }
 
@@ -820,6 +851,12 @@ impl Panel {
         self.rc.borrow_mut().draw(selected, dom, stats)
     }
 
+    /// Redraw the historical data of the panel. This can be used to update the panel if the render
+    /// stats were updated with a few-frames latency.
+    pub fn draw_historical_data(&self, dom: &Dom, n: usize) {
+        self.rc.borrow_mut().draw_plot_update(dom, n)
+    }
+
     /// Display results in the paused state. In this state, the user might dragged the selection
     /// area, so we need to update the results, but we do not need to update the plots.
     pub fn draw_paused(&self, selected: bool, dom: &Dom, stats: &StatsData) {
@@ -834,6 +871,10 @@ impl Panel {
 
     fn first_draw(&self, dom: &Dom) {
         self.rc.borrow_mut().first_draw(dom)
+    }
+
+    fn can_be_reported_late(&self) -> bool {
+        self.rc.borrow().sampler.can_be_reported_late
     }
 }
 
@@ -850,7 +891,7 @@ pub struct PanelData {
     config:      SamplerConfig,
     min_value:   f64,
     max_value:   f64,
-    value:       f64,
+    value:       Option<f64>,
     norm_value:  f64,
     value_check: sampler::ValueCheck,
     precision:   usize,
@@ -900,33 +941,37 @@ impl PanelData {
 
     /// Clamp the measured values to the `max_value` and `min_value`.
     fn clamp_value(&mut self) {
-        if let Some(max_value) = self.sampler.max_value {
-            if self.value > max_value {
-                self.value = max_value;
+        if let Some(value) = self.value {
+            if let Some(max_value) = self.sampler.max_value {
+                if value > max_value {
+                    self.value = Some(max_value);
+                }
             }
-        }
-        if let Some(min_value) = self.sampler.min_value {
-            if self.value > min_value {
-                self.value = min_value;
+            if let Some(min_value) = self.sampler.min_value {
+                if value > min_value {
+                    self.value = Some(min_value);
+                }
             }
-        }
-        if self.value > self.max_value {
-            self.max_value = self.value;
-        }
-        if self.value < self.min_value {
-            self.min_value = self.value;
+            if value > self.max_value {
+                self.max_value = value;
+            }
+            if value < self.min_value {
+                self.min_value = value;
+            }
         }
     }
 
     /// Normalize the value to the monitor's plot size.
     fn normalize_value(&mut self) {
-        let mut size = self.max_value - self.min_value;
-        if let Some(min_size) = self.sampler.min_size() {
-            if size < min_size {
-                size = min_size;
+        if let Some(value) = self.value {
+            let mut size = self.max_value - self.min_value;
+            if let Some(min_size) = self.sampler.min_size() {
+                if size < min_size {
+                    size = min_size;
+                }
             }
+            self.norm_value = (value - self.min_value) / size;
         }
-        self.norm_value = (self.value - self.min_value) / size;
     }
 }
 
@@ -938,7 +983,7 @@ impl PanelData {
     pub fn draw(&mut self, selected: bool, dom: &Dom, stats: &StatsData) {
         self.draw_label(dom, selected);
         self.draw_value(dom);
-        self.draw_plot_update(dom);
+        self.draw_plot_update(dom, 0);
         self.draw_details(dom, selected, stats);
     }
 
@@ -984,9 +1029,22 @@ impl PanelData {
         })
     }
 
-    fn with_pen_at_new_plot_part<T>(&mut self, dom: &Dom, f: impl FnOnce(&mut Self) -> T) -> T {
+    /// Move the pen to the new plot part, this is the `right_of_plot - (1 + offset) *
+    /// plot_step_size`. The `offset` parameter can be used to chose the sample number. For example,
+    /// if `offset` is `0`, the pen will be moved before the last sample of the plot.
+    fn with_pen_at_new_plot_part<T>(
+        &mut self,
+        dom: &Dom,
+        offset: usize,
+        f: impl FnOnce(&mut Self) -> T,
+    ) -> T {
+        let offset = 1.0 + offset as f64;
         self.with_pen_at_plot(dom, |this| {
-            this.with_moved_pen(dom, this.config.plot_width() - this.config.plot_step_size, f)
+            this.with_moved_pen(
+                dom,
+                this.config.plot_width() - this.config.plot_step_size * offset,
+                f,
+            )
         })
     }
 
@@ -1018,12 +1076,16 @@ impl PanelData {
     /// Draw the plot text value.
     fn draw_value(&mut self, dom: &Dom) {
         self.with_pen_at_value(dom, |this| {
-            let display_value = format!("{1:.0$}", this.precision, this.value);
+            let display_value = match this.value {
+                None => "N/A".to_string(),
+                Some(value) => format!("{1:.0$}", this.precision, value),
+            };
             let y_pos = this.config.panel_height - this.config.font_vertical_offset;
             let color = match this.value_check {
                 sampler::ValueCheck::Correct => &this.config.label_color_ok,
                 sampler::ValueCheck::Warning => &this.config.label_color_warn,
                 sampler::ValueCheck::Error => &this.config.label_color_err,
+                sampler::ValueCheck::Missing => &this.config.label_color_missing,
             };
             dom.plot_area.plots_context.set_fill_style(color);
             dom.plot_area
@@ -1035,29 +1097,30 @@ impl PanelData {
 
     /// Draw a single plot point. As the plots shift left on every frame, this function only updates
     /// the most recent plot value.
-    fn draw_plot_update(&mut self, dom: &Dom) {
-        self.with_pen_at_new_plot_part(dom, |this| {
-            dom.plot_area.plots_context.set_fill_style(&this.config.plot_background_color);
+    fn draw_plot_update(&mut self, dom: &Dom, offset: usize) {
+        self.with_pen_at_new_plot_part(dom, offset, |this| {
+            dom.plot_area.plots_context.set_fill_style(&this.config.background_color);
             dom.plot_area.plots_context.fill_rect(
                 0.0,
                 0.0,
                 this.config.plot_step_size,
                 this.config.panel_height,
             );
-            let value_height = this.norm_value * this.config.panel_height;
-            let y_pos = this.config.panel_height - value_height;
-            let bar_height = this.config.plot_bar_size.unwrap_or(value_height);
+            let panel_space = this.config.panel_height - this.config.plot_bar_size;
+            let value_height = this.norm_value * panel_space;
+            let y_pos = panel_space - value_height;
             let color = match this.value_check {
                 sampler::ValueCheck::Correct => &this.config.plot_color_ok,
                 sampler::ValueCheck::Warning => &this.config.plot_color_warn,
                 sampler::ValueCheck::Error => &this.config.plot_color_err,
+                sampler::ValueCheck::Missing => &this.config.plot_color_missing,
             };
             dom.plot_area.plots_context.set_fill_style(color);
             dom.plot_area.plots_context.fill_rect(
                 0.0,
                 y_pos,
                 this.config.plot_step_size,
-                bar_height,
+                this.config.plot_bar_size,
             );
         })
     }

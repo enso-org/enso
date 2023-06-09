@@ -41,7 +41,7 @@
 //! ```
 //!
 //! # Shape system life cycle
-//! The shape's view is a [`Sprite`] with associated attributes and helper functions. Sprites are
+//! The shape's view is a [`RawSprite`] with associated attributes and helper functions. Sprites are
 //! associated with sprite systems, which are always associated with a given scene, because they
 //! contain references to GPU buffers. Thus, creating a new view (e.g. by writing
 //! `shape::View::new()`) has to create a new sprite in the correct sprite system instance. Every
@@ -64,11 +64,10 @@ use crate::prelude::*;
 use crate::system::gpu::types::*;
 
 use crate::display;
-use crate::display::object::instance::GenericLayoutApi;
 use crate::display::shape::primitive::shader;
 use crate::display::shape::Var;
 use crate::display::symbol;
-use crate::display::symbol::geometry::Sprite;
+use crate::display::symbol::geometry::RawSprite;
 use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::symbol::material;
 use crate::display::symbol::material::Material;
@@ -76,6 +75,17 @@ use crate::system::gpu::data::buffer::item::Storable;
 use crate::system::gpu::data::InstanceId;
 
 use super::def;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// Attempt to use the precompiled shaders. If the precompiled shader are not available, a warning
+/// mentioning affected shape will be logged.
+const ENABLE_PRECOMPILED_SHADERS: bool = true;
+
 
 
 // ==============
@@ -219,9 +229,8 @@ impl ShapeSystemFlavor {
 #[allow(missing_docs)]
 pub struct ShapeInstance<S> {
     #[deref]
-    shape:          S,
-    pub sprite:     RefCell<Sprite>,
-    display_object: display::object::Instance,
+    shape:      S,
+    pub sprite: RefCell<RawSprite>,
 }
 
 impl<S> ShapeInstance<S> {
@@ -236,26 +245,22 @@ impl<S: Shape> ShapeInstance<S> {
     pub(crate) fn swap(&self, other: &Self) {
         self.shape.as_ref().swap(other.shape.as_ref());
         self.sprite.swap(&other.sprite);
-        // After we swap the sprites between shape instances, we need to update their parents to
-        // the corresponding display object of each instance. It is important to not swap all other
-        // children, as they might have been added externally directly to the instance's display
-        // object (by calling `add_child` on the shape).
-        self.display_object.add_child(&*self.sprite.borrow());
-        other.display_object.add_child(&*other.sprite.borrow());
-        // This function is called during display object hierarchy update, before updating children
-        // of this display object, but after updating its layout. Thus, we need to update the layout
-        // of the new sprite. Please note, that changing layout in the middle of the display object
-        // refresh could lead to wrong results if the new child layout is different than the
-        // old one (for example, if the parent display object resizing mode wa set to "hug"
-        // and the new child has bigger size, the parent would also need to be updated).
-        // However, we control the layout of the sprite, so we know it did not change.
-        self.display_object.refresh_layout();
     }
-}
 
-impl<S> display::Object for ShapeInstance<S> {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
+    pub(crate) fn show(&self) {
+        self.sprite.borrow().show();
+    }
+
+    pub(crate) fn hide(&self) {
+        self.sprite.borrow().hide();
+    }
+
+    pub(crate) fn set_transform(&self, transform: Matrix4<f32>) {
+        self.sprite.borrow().set_transform(transform);
+    }
+
+    pub(crate) fn set_size(&self, size: Vector2<f32>) {
+        self.sprite.borrow().set_size(size);
     }
 }
 
@@ -330,18 +335,11 @@ impl<S: Shape> ShapeSystem<S> {
         buffer_partition: attribute::BufferPartitionId,
     ) -> (ShapeInstance<S>, symbol::GlobalInstanceId) {
         let sprite = self.model.sprite_system.new_instance_at(buffer_partition);
-        sprite.allow_grow();
         let instance_id = sprite.instance_id;
         let global_id = sprite.global_instance_id;
         let shape = S::new_instance_params(&self.gpu_params, instance_id);
-        let debug = S::enable_dom_debug();
-        let display_object =
-            display::object::Instance::new_named_with_debug(type_name::<S>(), debug);
-        display_object.add_child(&sprite);
-        // FIXME: workaround:
-        // display_object.use_auto_layout();
         let sprite = RefCell::new(sprite);
-        let shape = ShapeInstance { sprite, shape, display_object };
+        let shape = ShapeInstance { sprite, shape };
         (shape, global_id)
     }
 
@@ -489,15 +487,20 @@ impl ShapeSystemModel {
 
     /// Generates the shape again. It is called on shape definition change, e.g. after theme update.
     fn reload_shape(&self) {
-        if let Some(shader) = crate::display::world::PRECOMPILED_SHADERS
-            .with_borrow(|map| map.get(*self.definition_path).cloned())
-        {
+        let precompiled_shader = ENABLE_PRECOMPILED_SHADERS.and_option_from(|| {
+            crate::display::world::PRECOMPILED_SHADERS
+                .with_borrow(|map| map.get(*self.definition_path).cloned())
+        });
+
+        if let Some(shader) = precompiled_shader {
             let code = crate::display::shader::builder::CodeTemplate::from_main(&shader.fragment);
             self.material.borrow_mut().set_code(code);
             let code = crate::display::shader::builder::CodeTemplate::from_main(&shader.vertex);
             self.geometry_material.borrow_mut().set_code(code);
         } else {
-            if !display::world::with_context(|t| t.run_mode.get().is_shader_extraction()) {
+            if ENABLE_PRECOMPILED_SHADERS
+                && !display::world::with_context(|t| t.run_mode.get().is_shader_extraction())
+            {
                 let path = *self.definition_path;
                 warn!("No precompiled shader found for '{path}'. This will affect performance.");
             }
@@ -534,12 +537,6 @@ impl ShapeSystemModel {
     fn reload_material(&self) {
         self.sprite_system.set_material(&*self.material.borrow());
         self.sprite_system.set_geometry_material(&*self.geometry_material.borrow());
-    }
-}
-
-impl display::Object for ShapeSystemModel {
-    fn display_object(&self) -> &display::object::Instance {
-        self.sprite_system.display_object()
     }
 }
 
@@ -637,6 +634,7 @@ macro_rules! shape {
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
+        $(pointer_events_instanced = $inst_ptr:tt;)?
         $(alignment = $alignment:tt;)?
         ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
     ) => {
@@ -648,57 +646,11 @@ macro_rules! shape {
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
             $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
             $(pointer_events = $pointer_events;)?
-            [$style] ($($gpu_param : $gpu_param_type),*){$($body)*}
-        }
-    };
-    // Recognize `pointer_events_instanced = true`; in addition to passing it to `_shape!`, insert
-    // a suitable instance attribute into the list of GPU parameters.
-    (
-        $(type SystemData = $system_data:ident;)?
-        $(type ShapeData = $shape_data:ident;)?
-        $(flavor = $flavor:path;)?
-        $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
-        $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
-        $(pointer_events = $pointer_events:tt;)?
-        pointer_events_instanced = true,
-        $(alignment = $alignment:tt;)?
-        ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
-    ) => {
-        $crate::_shape! {
-            $(SystemData($system_data))?
-            $(ShapeData($shape_data))?
-            $(flavor = [$flavor];)?
-            $(alignment = $alignment;)?
-            $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
-            $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
-            $(pointer_events = $pointer_events;)?
-            pointer_events_instanced = true;
-            [$style] (disable_pointer_events : f32$(,$gpu_param : $gpu_param_type)*){$($body)*}
-        }
-    };
-    // Recognize `pointer_events_instanced = false`. Only `true` and `false` are allowed, because
-    // if it were a computed value, we wouldn't know during macro expansion whether to create an
-    // instance parameter for it.
-    (
-        $(type SystemData = $system_data:ident;)?
-        $(type ShapeData = $shape_data:ident;)?
-        $(flavor = $flavor:path;)?
-        $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
-        $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
-        $(pointer_events = $pointer_events:tt;)?
-        pointer_events_instanced = false,
-        $(alignment = $alignment:tt;)?
-        ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
-    ) => {
-        $crate::_shape! {
-            $(SystemData($system_data))?
-            $(ShapeData($shape_data))?
-            $(flavor = [$flavor];)?
-            $(alignment = $alignment;)?
-            $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
-            $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
-            $(pointer_events = $pointer_events;)?
-            [$style] ($($gpu_param : $gpu_param_type),*){$($body)*}
+            $(pointer_events_instanced = $inst_ptr;)?
+            [$style] (
+                $([$inst_ptr] disable_pointer_events : f32,)?
+                $([true] $gpu_param : $gpu_param_type,)*
+            ){$($body)*}
         }
     };
 }
@@ -755,7 +707,7 @@ macro_rules! _shape_old {
             use super::*;
             use $crate::prelude::*;
             use $crate::display;
-            use $crate::display::symbol::geometry::Sprite;
+            use $crate::display::symbol::geometry::RawSprite;
             use $crate::system::gpu;
             use $crate::system::gpu::data::Attribute;
             use $crate::display::shape::ShapeSystemId;
@@ -907,7 +859,10 @@ macro_rules! _shape {
         $(pointer_events = $pointer_events:tt;)?
         $(pointer_events_instanced = $pointer_events_instanced:tt;)?
         [$style:ident]
-        ($($gpu_param : ident : $gpu_param_type : ty),* $(,)?)
+        ($(
+            $([true] $gpu_param:ident : $gpu_param_type:ty)?
+            $([false] $__gpu_param:ident : $__gpu_param_type:ty)?,
+        )*)
         {$($body:tt)*}
     ) => {
 
@@ -921,7 +876,7 @@ macro_rules! _shape {
             use super::*;
             use $crate::prelude::*;
             use $crate::display;
-            use $crate::display::symbol::geometry::Sprite;
+            use $crate::display::symbol::geometry::RawSprite;
             use $crate::system::gpu;
             use $crate::system::gpu::data::Attribute;
             use $crate::display::shape::ShapeSystemId;
@@ -988,20 +943,23 @@ macro_rules! _shape {
                     gpu_params: &Self::GpuParams,
                     id: InstanceId
                 ) -> Shape {
-                    $(let $gpu_param = ProxyParam::new(gpu_params.$gpu_param.at(id));)*
-                    let params = Self::InstanceParams { $($gpu_param),* };
+                    let params = Self::InstanceParams {
+                        $($(
+                            $gpu_param: ProxyParam::new(gpu_params.$gpu_param.at(id)),
+                        )?)*
+                    };
                     Shape { params }
                 }
 
                 fn new_gpu_params(
                     shape_system: &display::shape::ShapeSystemModel
                 ) -> Self::GpuParams {
-                    $(
+                    $($(
                         let name = stringify!($gpu_param);
                         let val  = gpu::data::default::gpu_default::<<$gpu_param_type as Parameter>::GpuType>();
                         let $gpu_param = shape_system.add_input(name,val);
-                    )*
-                    Self::GpuParams {$($gpu_param),*}
+                    )?)*
+                    Self::GpuParams {$($($gpu_param,)?)*}
                 }
 
                 fn shape_def(__style_watch__: &display::shape::StyleWatch)
@@ -1015,11 +973,12 @@ macro_rules! _shape {
                     let $style  = __style_watch__;
                     // Silencing warnings about not used style.
                     let _unused = &$style;
-                    $(
-                        let $gpu_param = <$gpu_param_type as Parameter>::create_var(concat!("input_",stringify!($gpu_param)));
+                    $($(
+                        let name = concat!("input_",stringify!($gpu_param));
+                        let $gpu_param = <$gpu_param_type as Parameter>::create_var(name);
                         // Silencing warnings about not used shader input variables.
                         let _unused = &$gpu_param;
-                    )*
+                    )?)*
                     $($body)*
                 }
 
@@ -1050,19 +1009,25 @@ macro_rules! _shape {
             #[derive(Debug)]
             #[allow(missing_docs)]
             pub struct InstanceParams {
-                $(pub $gpu_param : ProxyParam<Attribute<<$gpu_param_type as Parameter>::GpuType>>),*
+                $($(
+                    pub $gpu_param : ProxyParam<Attribute<<$gpu_param_type as Parameter>::GpuType>>,
+                )?)*
             }
 
             impl InstanceParamsTrait for InstanceParams {
                 fn swap(&self, other: &Self) {
-                    $(self.$gpu_param.swap(&other.$gpu_param);)*
+                    $($(
+                        self.$gpu_param.swap(&other.$gpu_param);
+                    )?)*
                 }
             }
 
             #[derive(Clone, CloneRef, Debug)]
             #[allow(missing_docs)]
             pub struct GpuParams {
-                $(pub $gpu_param: gpu::data::Buffer<<$gpu_param_type as Parameter>::GpuType>),*
+                $($(
+                    pub $gpu_param: gpu::data::Buffer<<$gpu_param_type as Parameter>::GpuType>,
+                )?)*
             }
 
 

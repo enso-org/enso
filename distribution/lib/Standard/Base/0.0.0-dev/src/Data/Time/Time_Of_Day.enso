@@ -167,6 +167,7 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_parse = Time_Of_Day.parse "4:30AM" "h:mma"
+    @locale Locale.default_widget
     parse : Text -> Text | Nothing -> Locale -> Time_Of_Day ! Time_Error
     parse text pattern=Nothing locale=Locale.default =
         Panic.catch JException handler=(cause -> Error.throw (Time_Error.Error cause.payload.getMessage)) <|
@@ -250,30 +251,43 @@ type Time_Of_Day
 
              example_to_time = Time_Of_Day.new 12 30 . to_time (Date.new 2020)
     to_date_time : Date -> Time_Zone -> Date_Time
-    to_date_time self date (zone=Time_Zone.system) = self.to_date_time_builtin date zone
+    to_date_time self date (zone=Time_Zone.system) =
+        Time_Utils.make_zoned_date_time date self zone
 
-    ## Add the specified amount of time to this instant to get a new instant.
+    ## ALIAS Add Duration
+       Add the specified amount of time to this instant to get a new instant.
 
        Arguments:
-       - amount: The amount of time to add to this instant. Can be only
-         `Duration`.
+       - amount: The amount of time to add to this instant. It can be a
+         `Duration` or `Time_Period`.
 
        > Example
+         Add a `Duration` to a `Time_Of_Day`.
 
              from Standard.Base import Time_Of_Day, Duration
 
              example_plus = Time_Of_Day.new + (Duration.new seconds=3)
-    + : Duration -> Time_Of_Day ! Time_Error
-    + self amount =
+
+       > Example
+         Add a `Time_Period` to a `Time_Of_Day`.
+
+             from Standard.Base import Time_Of_Day, Time_Period
+
+             example_plus = Time_Of_Day.new + Time_Period.Hour
+    + : Duration | Time_Period -> Time_Of_Day ! Time_Error
+    + self amount:(Duration|Time_Period) =
         case amount of
             duration : Duration -> self.plus_builtin duration
-            _ : Period -> Error.throw (Time_Error.Error "Time_Of_Day does not support date intervals (periods)")
+            time_period : Time_Period ->
+                self + time_period.to_duration
 
-    ## Subtract the  specified amount of time from this instant to get a new
+    ## ALIAS Subtract Duration
+       Subtract the  specified amount of time from this instant to get a new
        instant.
 
        Arguments:
-       - amount: The amount of time to subtract from this instant.
+       - amount: The amount of time to add to this instant. It can be a
+         `Duration` or `Time_Period`.
 
        > Example
          Subtract 12 hours from a local time.
@@ -281,11 +295,19 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day, Duration
 
              example_minus = Time_Of_Day.now - (Duration.new hours=12)
-    - : Duration -> Time_Of_Day ! Time_Error
-    - self amount =
+
+       > Example
+         Subtract a `Time_Period` from a `Time_Of_Day`.
+
+             from Standard.Base import Time_Of_Day, Time_Period
+
+             example_plus = Time_Of_Day.new - Time_Period.Hour
+    - : Duration | Time_Period -> Time_Of_Day ! Time_Error
+    - self amount:(Duration|Time_Period) =
         case amount of
             duration : Duration -> self.minus_builtin duration
-            _ : Period -> Error.throw (Time_Error.Error "Time_Of_Day does not support date intervals (periods)")
+            time_period : Time_Period ->
+                self - time_period.to_duration
 
     ## PRIVATE
        Convert to a JavaScript Object representing this Time_Of_Day.
@@ -311,6 +333,8 @@ type Time_Of_Day
 
        Arguments:
        - pattern: The pattern specifying how to format the time of day.
+       - locale: The locale in which the format should be interpreted.
+         (Defaults to Locale.default.)
 
        ? Pattern Syntax
          A custom pattern string consists of one or more custom date and time
@@ -352,5 +376,8 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "'hour:'h"
-    format : Text -> Text
-    format self pattern = @Builtin_Method "Time_Of_Day.format"
+    @locale Locale.default_widget
+    format : Text -> Locale -> Text
+    format self pattern locale=Locale.default = case locale of
+        Nothing -> Time_Utils.time_of_day_format self pattern
+        _ -> Time_Utils.time_of_day_format_with_locale self pattern locale.java_locale
