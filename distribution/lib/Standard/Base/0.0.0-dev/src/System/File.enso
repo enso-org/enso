@@ -23,6 +23,7 @@ import project.Runtime.Context
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.File_Access.File_Access
 import project.System.File.File_Permissions.File_Permissions
+import project.Warning.Warning
 
 from project.Data.Boolean import Boolean, True, False
 from project.System.File_Format import Auto_Detect, File_Format
@@ -88,7 +89,10 @@ type File
             if self.exists && copy_original then
                 Context.Output.with_enabled <|
                     self.copy_to temp replace_existing=True
-            temp
+
+            ## Attach a warning to the file that it is a dry run
+            warning = Dry_Run_Operation.Warning "Only a dry run has occurred, with data written to a temporary file."
+            Warning.attach warning temp
 
     ## ALIAS Current Directory
 
