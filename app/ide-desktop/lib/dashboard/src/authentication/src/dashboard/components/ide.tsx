@@ -26,18 +26,23 @@ export interface IdeProps {
     appRunner: AppRunner
 }
 
-/** The ontainer that launches the IDE. */
+/** The container that launches the IDE. */
 function Ide(props: IdeProps) {
     const { project, appRunner } = props
     const { backend } = backendProvider.useBackend()
 
-    React.useEffect(() => {
-        return () => {
-            appRunner.stopApp()
-        }
-    }, [appRunner])
+    let hasEffectRun = false
 
     React.useEffect(() => {
+        // This is a hack to work around the IDE WASM not playing nicely with React Strict mode.
+        // This is unavoidable as the WASM must fully set up to be able to properly drop its assets,
+        // but React re-executes this side-effect faster tha the WASM can do so.
+        if (hasEffectRun) {
+            // eslint-disable-next-line no-restricted-syntax
+            return
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        hasEffectRun = true
         void (async () => {
             const ideVersion =
                 project.ideVersion?.value ??
@@ -133,7 +138,7 @@ function Ide(props: IdeProps) {
         })()
         // The project may have a different backend to the current backend.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [project, appRunner])
+    }, [project, /* should never change */ appRunner])
 
     return <></>
 }
