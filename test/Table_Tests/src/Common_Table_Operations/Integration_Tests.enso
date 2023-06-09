@@ -5,7 +5,7 @@ from Standard.Table import all hiding Table
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Group_By, Count, Sum
 
 from Standard.Test import Test, Problems
-import Standard.Test.Test_Extensions
+from Standard.Test.Extensions import all
 
 from project.Common_Table_Operations.Util import run_default_backend
 from project.Common_Table_Operations.Core_Spec import weird_names

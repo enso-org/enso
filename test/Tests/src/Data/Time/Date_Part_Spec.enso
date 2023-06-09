@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Test import Test
-import Standard.Test.Test_Extensions
+from Standard.Test.Extensions import all
 
 spec name create_new_date =
     Test.group (name + "date part tests")  <|

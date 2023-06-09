@@ -4,7 +4,7 @@ from Standard.Table import Sort_Column
 from Standard.Table.Errors import all
 
 from Standard.Test import Test, Problems
-import Standard.Test.Test_Extensions
+from Standard.Test.Extensions import all
 
 from project.Common_Table_Operations.Util import run_default_backend
 

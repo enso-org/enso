@@ -6,7 +6,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Data.Numbers import Number_Parse_Error
 
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Test_Extensions
+from Standard.Test.Extensions import all
 
 Integer.is_even self = self % 2 == 0
 

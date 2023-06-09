@@ -8,7 +8,7 @@ import Standard.Base.Metadata.Display
 import Standard.Visualization.Widgets
 
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Test_Extensions
+from Standard.Test.Extensions import all
 
 spec =
     Test.group "Widgets for the Text type" <|

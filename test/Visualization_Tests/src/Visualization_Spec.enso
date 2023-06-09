@@ -5,7 +5,7 @@ import Standard.Examples
 import Standard.Visualization
 
 from Standard.Test import Test
-import Standard.Test.Test_Extensions
+from Standard.Test.Extensions import all
 
 import Standard.Visualization.File_Upload.File_Being_Uploaded
 

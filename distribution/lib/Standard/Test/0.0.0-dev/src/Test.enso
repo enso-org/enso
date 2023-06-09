@@ -162,7 +162,7 @@ type Test
        > Example
          Add a clue to a test
             from Standard.Test import Test, Test_Suite
-            import Standard.Test.Test_Extensions
+            from Standard.Test.Extensions import all
             main = Test_Suite.run_main <|
                 Test.group "Tests" <|
                     Test.specify "some property" <|

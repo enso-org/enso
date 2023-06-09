@@ -6,7 +6,7 @@ polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.nio.CharBuffer
 
 from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Test_Extensions
+from Standard.Test.Extensions import all
 
 spec =
     Test.group "ReportingStreamEncoder" <|

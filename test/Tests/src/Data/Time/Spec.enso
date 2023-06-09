@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Test import Test_Suite
-import Standard.Test.Test_Extensions
+from Standard.Test.Extensions import all
 
 import project.Data.Time.Duration_Spec
 import project.Data.Time.Period_Spec

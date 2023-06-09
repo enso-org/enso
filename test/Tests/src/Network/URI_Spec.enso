@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Syntax_Error
 
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Test_Extensions
+from Standard.Test.Extensions import all
 
 spec =
     Test.group "URI" <|

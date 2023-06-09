@@ -5,7 +5,7 @@ import Standard.Base.Errors.No_Such_Key.No_Such_Key
 from Standard.Base.Data.Json import Invalid_JSON
 
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Test_Extensions
+from Standard.Test.Extensions import all
 import Standard.Test.Test_Result.Test_Result
 
 type Author

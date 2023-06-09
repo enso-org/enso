@@ -10,7 +10,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Test_Extensions
+from Standard.Test.Extensions import all
 
 spec = Test.group "Range" <|
     Test.specify "should be created with a start, an end and a step" <|

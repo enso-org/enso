@@ -5,7 +5,7 @@ import Standard.Table.Data.Table_Conversions
 import Standard.Table.Data.Type.Value_Type.Value_Type
 
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Test_Extensions
+from Standard.Test.Extensions import all
 from project.Util import all
 
 spec =

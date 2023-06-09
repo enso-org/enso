@@ -9,7 +9,7 @@ from Standard.Database import Database, SQL_Query
 from Standard.AWS import Redshift, AWS_Credential
 
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Test_Extensions
+from Standard.Test.Extensions import all
 
 import project.Database.Common_Spec
 import project.Database.Helpers.Name_Generator

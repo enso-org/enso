@@ -11,7 +11,7 @@ import Standard.Visualization.Helpers
 import Standard.Visualization.Id.Id
 
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Test_Extensions
+from Standard.Test.Extensions import all
 import Standard.Base.Errors.Common.Type_Error
 
 polyglot java import java.util.UUID

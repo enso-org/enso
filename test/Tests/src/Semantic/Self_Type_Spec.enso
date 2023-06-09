@@ -1,6 +1,6 @@
 from Standard.Base import all
 from Standard.Test import Test
-import Standard.Test.Test_Extensions
+from Standard.Test.Extensions import all
 
 type My_Type
     Cons_A x

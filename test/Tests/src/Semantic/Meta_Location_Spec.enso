@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base
 
 from Standard.Test import Test, Test_Suite
-import Standard.Test.Test_Extensions
+from Standard.Test.Extensions import all
 
 type My_Type
     Value foo bar baz
