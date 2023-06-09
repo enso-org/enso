@@ -816,6 +816,7 @@
 - [Upgrade GraalVM to 22.3.1 JDK17][6750]
 - [Ascribed types are checked during runtime][6790]
 - [Improve and colorize compiler's diagnostic messages][6931]
+- [Execute some runtime commands synchronously to avoid race conditions][6998]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -931,6 +932,7 @@
 [6780]: https://github.com/enso-org/enso/pull/6780
 [6790]: https://github.com/enso-org/enso/pull/6790
 [6931]: https://github.com/enso-org/enso/pull/6931
+[6998]: https://github.com/enso-org/enso/pull/6998
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

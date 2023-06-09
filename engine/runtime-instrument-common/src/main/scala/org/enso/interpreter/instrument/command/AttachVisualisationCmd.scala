@@ -15,10 +15,10 @@ import scala.concurrent.{ExecutionContext, Future}
 class AttachVisualisationCmd(
   maybeRequestId: Option[RequestId],
   request: Api.AttachVisualisation
-) extends Command(maybeRequestId) {
+) extends AsynchronousCommand(maybeRequestId) {
 
   /** @inheritdoc */
-  override def execute(implicit
+  override def executeAsynchronously(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {

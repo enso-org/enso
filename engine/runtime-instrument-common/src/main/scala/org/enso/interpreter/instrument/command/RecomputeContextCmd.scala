@@ -17,10 +17,10 @@ import scala.jdk.CollectionConverters._
 class RecomputeContextCmd(
   maybeRequestId: Option[RequestId],
   request: Api.RecomputeContextRequest
-) extends Command(maybeRequestId) {
+) extends AsynchronousCommand(maybeRequestId) {
 
   /** @inheritdoc */
-  override def execute(implicit
+  override def executeAsynchronously(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] =
