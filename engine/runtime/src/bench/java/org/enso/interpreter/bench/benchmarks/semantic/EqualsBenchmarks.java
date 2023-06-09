@@ -70,7 +70,7 @@ public class EqualsBenchmarks {
 
     var benchmarkName = SrcUtil.findName(params);
     var codeBuilder = new StringBuilder("""
-        import Standard.Base.Data.Range.Range_Extensions
+        import Standard.Base.Data.Range.Extensions
         
         type Node
             C1 f1
