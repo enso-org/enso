@@ -1457,14 +1457,14 @@ Text.parse_json self = Json.parse self
    > Example
      Parse the date of 23rd December 2020.
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
 
          example_parse = "2020-12-23".parse_date
 
    > Example
      Recover from an error due to a wrong format.
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
          from Standard.Base.Errors.Common import Time_Error
 
          example_parse_err = "my birthday".parse_date . catch Time_Error _->
@@ -1473,14 +1473,14 @@ Text.parse_json self = Json.parse self
    > Example
      Parse "1999-1-1" as Date using a custom format.
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
 
          example_parse = "1999-1-1".parse_date "yyyy-M-d"
 
    > Example
      Recover from the parse error.
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
          from Standard.Base.Errors.Common import Time_Error
 
          example_parse_err =
@@ -1525,49 +1525,49 @@ Text.parse_date self format=Nothing = Date.parse self format
    > Example
      Parse UTC time.
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
 
          example_parse = "2020-10-01T04:11:12Z".parse_date_time
 
    > Example
      Parse UTC-04:00 time.
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
 
          example_parse = "2020-10-01T04:11:12-04:00".parse_date_time
 
    > Example
      Parse UTC-04:00 time specifying New York timezone.
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
 
          example_parse = "2020-10-01T04:11:12-04:00[America/New_York]".parse_date_time
 
    > Example
      Parse UTC-04:00 time with nanoseconds.
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
 
          example_parse = "2020-10-01T04:11:12.177528-04:00".parse_date_time
 
    > Example
      Recover from the parse error.
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
 
          example_parse = "2020-10-01".parse_date_time . catch Time_Error (_->Date_Time.now)
 
    > Example
      Parse "2020-05-06 04:30:20" as Date_Time
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
 
          example_parse = "2020-05-06 04:30:20".parse_date_time "yyyy-MM-dd HH:mm:ss"
 
    > Example
      Parse "06 of May 2020 at 04:30AM" as Date_Tme
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
 
          example_parse =
             "06 of May 2020 at 04:30AM".parse_date_time "dd 'of' MMMM yyyy 'at' hh:mma"
@@ -1614,14 +1614,14 @@ Text.parse_date_time self format=Nothing locale=Locale.default = Date_Time.parse
    > Example
      Get the time 15:05:30.
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
 
          example_parse = "15:05:30".parse_time_of_day
 
    > Example
      Recover from the parse error.
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
          from Standard.Base.Errors.Common import Time_Error
 
          example_parse = "half twelve".parse_time_of_day . catch Time_Error _->
@@ -1630,14 +1630,14 @@ Text.parse_date_time self format=Nothing locale=Locale.default = Date_Time.parse
    > Example
      Parse "04:30:20" as Time_Of_Day.
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
 
          example_parse = "04:30:20".parse_time_of_day "HH:mm:ss"
 
    > Example
      Parse "4:30AM" as Time_Of_Day
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
 
          example_parse = "4:30AM".parse_time_of_day "h:mma"
 @locale Locale.default_widget
@@ -1651,28 +1651,28 @@ Text.parse_time_of_day self format=Nothing locale=Locale.default = Time_Of_Day.p
    > Example
      Get Central European Time.
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
 
          example_parse = "CET".parse_time_zone
 
    > Example
      Get Moscow time.
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
 
          example_parse = "Europe/Moscow".parse_time_zone
 
    > Example
      Get time zone -06:00.
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
 
          example_parse = "-06:00".parse_time_zone
 
    > Example
      Get custom offset +03:02:01 of 3 hours 2 minutes an 1 second.
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
 
          example_parse = "+03:02:01".parse_time_zone
 Text.parse_time_zone : Time_Zone ! Time_Error
@@ -1687,7 +1687,7 @@ Text.parse_time_zone self = Time_Zone.parse self
    > Example
      Parse URI text.
 
-         from Standard.Base.Data.Text.Extensions import all
+         import Standard.Base.Data.Text.Extensions
 
          example_parse = "http://example.com".parse_uri
 Text.parse_uri : URI ! Syntax_Error
