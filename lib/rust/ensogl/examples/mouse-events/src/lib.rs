@@ -50,7 +50,7 @@ struct Model {
 }
 
 impl Model {
-    fn new(_app: &Application) -> Self {
+    fn new() -> Self {
         let display_object = display::object::Instance::new();
         let shape: Rectangle = default();
         shape.set_size(Vector2(300.0, 300.0));
