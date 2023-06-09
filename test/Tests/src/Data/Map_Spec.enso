@@ -3,7 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.No_Such_Key.No_Such_Key
 
 from Standard.Test import Test, Test_Suite, Problems
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 polyglot java import java.nio.file.Path as JavaPath
 polyglot java import java.util.Map as JavaMap

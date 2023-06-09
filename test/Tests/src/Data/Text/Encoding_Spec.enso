@@ -3,7 +3,7 @@ import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import Test, Test_Suite, Problems
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 polyglot java import java.lang.String as Java_String
 

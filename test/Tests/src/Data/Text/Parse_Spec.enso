@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.Time_Error.Time_Error
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 import Standard.Base.Data.Json.Invalid_JSON
 
 import Standard.Base.Data.Numbers.Number_Parse_Error

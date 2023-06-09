@@ -5,7 +5,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import Test, Test_Suite
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 type Proxy_Object
     Value length

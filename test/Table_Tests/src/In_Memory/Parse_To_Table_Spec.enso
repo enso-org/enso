@@ -3,7 +3,7 @@ from Standard.Base import all
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Table.Data.Table_Conversions
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 from Standard.Table import Table
 from Standard.Table.Data.Type.Value_Type import Bits, Value_Type

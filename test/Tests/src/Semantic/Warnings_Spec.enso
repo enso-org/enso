@@ -7,7 +7,7 @@ polyglot java import java.util.function.Function as Java_Function
 polyglot java import org.enso.base_test_helpers.CallbackHelper
 
 from Standard.Test import Test, Test_Suite, Problems
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 type My_Warning
     Value reason

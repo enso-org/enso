@@ -11,7 +11,7 @@ from Standard.AWS import all
 import Standard.Visualization.Widgets
 
 from Standard.Test import Test, Test_Suite
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 spec =
     connection = Database.connect (SQLite In_Memory)

@@ -10,7 +10,7 @@ from Standard.Database.Internal.Result_Set import result_set_to_table
 from Standard.Database.Extensions.Upload_Default_Helpers import get_primary_key
 
 from Standard.Test import Test, Test_Suite, Problems
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 import project.Database.Helpers.Name_Generator
 

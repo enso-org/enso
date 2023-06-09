@@ -12,7 +12,7 @@ from Standard.Database import all
 from Standard.Database.Errors import SQL_Error
 
 from Standard.Test import Test, Test_Suite
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 import Standard.Test.Test_Environment
 
 import project.Database.Common_Spec

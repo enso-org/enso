@@ -6,7 +6,7 @@ import Standard.Base.Panic.Panic
 from Standard.Base.Runtime.Context import Input, Output
 
 from Standard.Test import Test, Test_Suite
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 in_fn : Integer -> Integer
 in_fn a = Input.if_enabled (a * 2)

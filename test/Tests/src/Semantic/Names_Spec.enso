@@ -4,7 +4,7 @@ from project.Semantic.Definitions.Names import another_method, another_constant,
 import project.Semantic.Definitions.Names
 
 from Standard.Test import Test
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 Names.Foo.my_method self = case self of
     Names.Foo.Value x y z -> x * y * z

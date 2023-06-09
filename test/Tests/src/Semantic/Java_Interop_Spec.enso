@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.No_Such_Method
 
 from Standard.Test import Test, Test_Suite
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 polyglot java import java.lang.Float
 polyglot java import java.lang.Integer as Java_Integer

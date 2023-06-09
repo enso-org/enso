@@ -2,7 +2,7 @@ from Standard.Base import Nothing, Vector, Number, Decimal, True, False, Regress
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import Test, Test_Suite
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 spec =
     ## Regression test data produced using an Excel spreadsheet.

@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Test import Test, Test_Suite, Problems
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 main = Test_Suite.run_main spec
 

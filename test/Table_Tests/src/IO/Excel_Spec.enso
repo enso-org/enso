@@ -7,7 +7,7 @@ from Standard.Table import Table, Match_Columns, Excel, Excel_Range, Data_Format
 from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch, Empty_Sheet_Error
 
 from Standard.Test import Test, Test_Suite, Problems
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 import Standard.Examples
 

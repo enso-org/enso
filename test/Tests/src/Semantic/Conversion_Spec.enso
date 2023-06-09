@@ -4,7 +4,7 @@ import project.Semantic.Conversion.Methods
 import project.Semantic.Conversion.Types
 
 from Standard.Test import Test, Test_Suite
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 polyglot java import java.lang.Object
 

@@ -12,7 +12,7 @@ polyglot java import java.util.Random as Java_Random
 polyglot java import java.util.Locale as JavaLocale
 
 from Standard.Test import Test, Test_Suite
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 import Standard.Test.Test_Result.Test_Result
 
 type My_Type

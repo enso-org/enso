@@ -3,7 +3,7 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Not_Found
 
 from Standard.Test import Test, Test_Suite
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 type_spec name ctor = Test.group name <|
     Test.specify "should allow mapping" <|

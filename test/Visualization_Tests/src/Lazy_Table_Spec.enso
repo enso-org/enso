@@ -7,7 +7,7 @@ import Standard.Visualization.Table as Table_Visualisation
 import Standard.Visualization.Preprocessor as Preprocessor
 
 from Standard.Test import Test
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 t1 = """
     12
     23

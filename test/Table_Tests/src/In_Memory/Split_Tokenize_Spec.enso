@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 from Standard.Table import Table
 from Standard.Table.Errors import Invalid_Value_Type, Column_Count_Exceeded, Duplicate_Output_Column_Names, No_Such_Column

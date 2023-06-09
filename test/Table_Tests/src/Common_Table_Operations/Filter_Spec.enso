@@ -11,7 +11,7 @@ from Standard.Table.Errors import all
 from Standard.Database.Errors import SQL_Error
 
 from Standard.Test import Test, Problems
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 from project.Common_Table_Operations.Util import run_default_backend
 

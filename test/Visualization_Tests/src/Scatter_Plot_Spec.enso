@@ -5,7 +5,7 @@ from Standard.Table import Table, Column
 import Standard.Visualization.Scatter_Plot
 
 from Standard.Test import Test, Test_Suite
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 import project
 

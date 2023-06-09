@@ -9,7 +9,7 @@ import Standard.Table.Main as Table_Module
 from Standard.Table.Errors import all
 
 from Standard.Test import Test, Test_Suite, Problems
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 import project.Util
 

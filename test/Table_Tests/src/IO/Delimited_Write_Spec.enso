@@ -7,7 +7,7 @@ from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Match_Col
 from Standard.Table.Errors import all
 
 from Standard.Test import Test, Test_Suite, Problems
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 from project.Util import all
 

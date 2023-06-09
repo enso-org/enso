@@ -11,7 +11,7 @@ polyglot java import java.util.ArrayList
 polyglot java import java.util.List as Java_List
 
 from Standard.Test import Test, Test_Suite
-from Standard.Test.Extensions import all
+import Standard.Test.Extensions
 
 spec = Test.group "Pattern Matches" <|
     Test.specify "should be able to match on the Boolean type" <|
