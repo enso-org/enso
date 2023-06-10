@@ -1,7 +1,7 @@
 addSbtPlugin("com.eed3si9n"      % "sbt-assembly"       % "1.1.0")
 addSbtPlugin("ch.epfl.scala"     % "sbt-bloop"          % "1.5.3")
 addSbtPlugin("com.github.sbt"    % "sbt-license-report" % "1.3.0")
-addSbtPlugin("com.lightbend.sbt" % "sbt-java-formatter" % "0.7.0")
+addSbtPlugin("com.lightbend.sbt" % "sbt-java-formatter" % "0.8.0")
 addSbtPlugin("org.scalameta"     % "sbt-scalafmt"       % "2.4.6")
 addSbtPlugin("com.simplytyped"   % "sbt-antlr4"         % "0.8.3")
 

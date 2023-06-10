@@ -1,12 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.number.EnsoBigInteger;
-import org.enso.interpreter.runtime.type.TypesGen;
-
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -17,6 +10,12 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 /** An implementation of the payload check against the expected panic type. */
 @NodeInfo(shortName = "IsValueOfTypeNode")

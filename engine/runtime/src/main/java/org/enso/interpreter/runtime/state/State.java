@@ -2,7 +2,6 @@ package org.enso.interpreter.runtime.state;
 
 import com.oracle.truffle.api.object.DynamicObject;
 import com.oracle.truffle.api.object.Shape;
-import org.enso.interpreter.node.expression.builtin.runtime.Context;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 

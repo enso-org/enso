@@ -5,12 +5,11 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import java.lang.ref.PhantomReference;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-
-import java.lang.ref.PhantomReference;
 
 /** A runtime representation of a managed resource. */
 @ExportLibrary(InteropLibrary.class)

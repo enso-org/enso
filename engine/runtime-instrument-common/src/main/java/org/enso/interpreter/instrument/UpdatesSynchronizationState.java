@@ -1,7 +1,6 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.CompilerDirectives;
-
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;

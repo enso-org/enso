@@ -3,7 +3,6 @@ package org.enso.interpreter.epb.runtime;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.TruffleLanguage;
-
 import com.oracle.truffle.api.nodes.Node;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
