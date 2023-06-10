@@ -36,7 +36,7 @@ public class LiteralNode extends ExpressionNode implements Patchable {
    * @param value the value for the node to represent
    * @return a node representing the literal given by {@code value}
    */
-  public static LiteralNode build(long value) {
+  public static LiteralNode build(Object value) {
     return new LiteralNode(value);
   }
 

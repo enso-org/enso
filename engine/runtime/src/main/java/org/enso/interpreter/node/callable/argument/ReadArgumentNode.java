@@ -8,9 +8,16 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.callable.ApplicationNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
+import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
+import org.enso.interpreter.node.expression.literal.LiteralNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.UnresolvedConversion;
+import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.DataflowError;
@@ -95,6 +102,29 @@ public class ReadArgumentNode extends ExpressionNode {
       if (!(v instanceof DataflowError) && !(v instanceof Function fn && fn.isThunk())) {
         CompilerDirectives.transferToInterpreter();
         var ctx = EnsoContext.get(this);
+
+        if (getRootNode() instanceof EnsoRootNode root) {
+          var convert = UnresolvedConversion.build(root.getModuleScope());
+          if (TypeOfNode.getUncached().execute(v) instanceof Type from) {
+            for (Type into : expectedTypes) {
+              var conv = convert.resolveFor(ctx, into, from);
+              if (conv != null) {
+                // XXX: absolutely ineffective:
+                var convNode = LiteralNode.build(conv);
+                var intoNode = LiteralNode.build(into);
+                var valueNode = LiteralNode.build(v);
+                var args = new CallArgument[] {
+                  new CallArgument(null, intoNode),
+                  new CallArgument(null, valueNode),
+                };
+                var app = ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
+                var r = app.executeGeneric(frame);
+                return r;
+              }
+            }
+          }
+        }
+
         var expecting =
             expectedTypes.length == 1 ? expectedTypes[0] : Arrays.stream(expectedTypes).map(Type::toString).collect(Collectors.joining(" | "));
         var argName = name != null ? name : "Argument #" + (index + 1);
