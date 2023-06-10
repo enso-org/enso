@@ -386,7 +386,7 @@ impl Runtime {
 // === Network ===
 // ===============
 
-#[derive(Debug, Deref, Default)]
+#[derive(Clone, CloneRef, Debug, Deref, Default)]
 pub struct Network {
     rc: Rc<NetworkGuard>,
 }
@@ -564,7 +564,7 @@ impl<'a, Output: Data> EventContext<'a, Output> {
 /// types. The [`Inputs`] is a tuple containing any supported combination of [`Listen`], [`Sample`],
 /// and [`ListenAndSample`]. Refer to their docs to learn more about their meaning.
 trait NodeDefinition<Output, F> {
-    fn def_node<Kind>(
+    fn new_node_with_init<Kind>(
         net: &Network,
         inputs: Self,
         f: F,
@@ -574,22 +574,31 @@ trait NodeDefinition<Output, F> {
 
 impl Network {
     #[inline(always)]
-    fn def_node<Kind, Inputs, Output, F>(
+    fn new_node_with_init<Kind, Inputs, Output, F, _Out>(
         &self,
         inps: Inputs,
         f: F,
-        init: impl FnOnce(&mut NodeData),
-    ) -> NodeTemplate<Kind, Output>
+        init: impl FnOnce(&mut NodeData) -> _Out,
+    ) -> Bound<NodeTemplate<Kind, Output>>
     where
         Inputs: NodeDefinition<Output, F>,
     {
-        Inputs::def_node(self, inps, f, init)
+        let node = Inputs::new_node_with_init(self, inps, f, |n| {
+            init(n);
+        });
+        Bound::new(self, node)
     }
 
     #[inline(always)]
-    fn def_node_<Kind, Inputs, Output, F>(&self, inps: Inputs, f: F) -> NodeTemplate<Kind, Output>
-    where Inputs: NodeDefinition<Output, F> {
-        self.def_node(inps, f, |_| {})
+    fn new_node<Kind, Inputs, Output, F>(
+        &self,
+        inps: Inputs,
+        f: F,
+    ) -> Bound<NodeTemplate<Kind, Output>>
+    where
+        Inputs: NodeDefinition<Output, F>,
+    {
+        self.new_node_with_init(inps, f, |_| {})
     }
 }
 
@@ -597,13 +606,13 @@ impl<Output, F> NodeDefinition<Output, F> for ()
 where F: Fn(EventContext<Output>) + 'static
 {
     #[inline(always)]
-    fn def_node<Kind>(
+    fn new_node_with_init<Kind>(
         net: &Network,
         _inputs: Self,
         f: F,
         init: impl FnOnce(&mut NodeData),
     ) -> NodeTemplate<Kind, Output> {
-        net.new_node(
+        net.new_node_with_init_unchecked(
             move |rt: &Runtime, node: &NodeData, _: &dyn Data| {
                 f(EventContext::unchecked_new(rt, node))
             },
@@ -618,14 +627,14 @@ where
     F: Fn(EventContext<Output>, &N0::Output) + 'static,
 {
     #[inline(always)]
-    fn def_node<Kind>(
+    fn new_node_with_init<Kind>(
         net: &Network,
         inputs: Self,
         f: F,
         init: impl FnOnce(&mut NodeData),
     ) -> NodeTemplate<Kind, Output> {
         let inputs = inputs.map_fields_into::<InputType>();
-        let node = net.new_node(
+        let node = net.new_node_with_init_unchecked(
             move |rt: &Runtime, node: &NodeData, data: &dyn Data| {
                 let data = unsafe { &*(data as *const dyn Data as *const N0::Output) };
                 f(EventContext::unchecked_new(rt, node), data);
@@ -644,14 +653,14 @@ where
     F: Fn(EventContext<Output>, &N0::Output, &N1::Output) + 'static,
 {
     #[inline(always)]
-    fn def_node<Kind>(
+    fn new_node_with_init<Kind>(
         net: &Network,
         inputs: Self,
         f: F,
         init: impl FnOnce(&mut NodeData),
     ) -> NodeTemplate<Kind, Output> {
         let inputs = inputs.map_fields_into::<InputType>();
-        let node = net.new_node(
+        let node = net.new_node_with_init_unchecked(
             move |rt: &Runtime, node: &NodeData, data: &dyn Data| unsafe {
                 let t0 = &*(data as *const dyn Data as *const N0::Output);
                 rt.with_borrowed_node_output_cache_coerced(inputs.1.node_id(), |t1| {
@@ -673,14 +682,14 @@ where
     F: Fn(EventContext<Output>, &N0::Output, &N1::Output, &N2::Output) + 'static,
 {
     #[inline(always)]
-    fn def_node<Kind>(
+    fn new_node_with_init<Kind>(
         net: &Network,
         inputs: Self,
         f: F,
         init: impl FnOnce(&mut NodeData),
     ) -> NodeTemplate<Kind, Output> {
         let inputs = inputs.map_fields_into::<InputType>();
-        let node = net.new_node(
+        let node = net.new_node_with_init_unchecked(
             move |rt: &Runtime, node: &NodeData, data: &dyn Data| unsafe {
                 let t0 = &*(data as *const dyn Data as *const N0::Output);
                 rt.with_borrowed_node_output_cache_coerced(inputs.1.node_id(), |t1| {
@@ -717,6 +726,15 @@ impl<Kind, Output> Node for NodeTemplate<Kind, Output> {
     }
 }
 
+impl<'a, T: Node> Node for Bound<'a, T> {
+    type Output = T::Output;
+
+    #[inline(always)]
+    fn id(self) -> NodeId {
+        self.elem.id()
+    }
+}
+
 impl<Kind, Output> NodeTemplate<Kind, Output> {
     // #[inline(always)]
     // fn new_template(tp: impl EventConsumer + 'static, network_id: NetworkId) -> Self {
@@ -734,7 +752,7 @@ impl<Kind, Output> NodeTemplate<Kind, Output> {
 
 impl Network {
     #[inline(always)]
-    fn new_node<Kind, Output>(
+    fn new_node_with_init_unchecked<Kind, Output>(
         &self,
         tp: impl EventConsumer + 'static,
         init: impl FnOnce(&mut NodeData),
@@ -745,6 +763,20 @@ impl Network {
     }
 }
 
+
+#[derive(Clone, Copy, Deref, DerefMut)]
+pub struct Bound<'t, T> {
+    #[deref]
+    #[deref_mut]
+    elem:    T,
+    network: &'t Network,
+}
+
+impl<'t, T> Bound<'t, T> {
+    fn new(network: &'t Network, elem: T) -> Self {
+        Self { network, elem }
+    }
+}
 
 // === Stream ===
 
@@ -761,23 +793,51 @@ pub type Source<Output = ()> = NodeTemplate<SourceType, Output>;
 
 impl Network {
     #[inline(always)]
-    pub fn source<T>(&self) -> Source<T> {
-        self.def_node_((), |_| {})
+    pub fn source<T>(&self) -> Bound<Source<T>> {
+        self.new_node((), |_| {})
     }
 
-    pub fn source_(&self) -> Source {
-        self.def_node_((), |_| {})
+    pub fn source_(&self) -> Bound<Source> {
+        self.new_node((), |_| {})
     }
 }
 
 
+// === Sampler ===
+
+#[derive(Clone, Copy, Default)]
+pub struct SamplerType;
+pub type Sampler<Output = ()> = NodeTemplate<SamplerType, Output>;
+
+impl Network {
+    #[inline(always)]
+    pub fn sampler<T>(&self) -> Bound<Sampler<T>> {
+        self.new_node_with_init((), |_| {}, |node| node.sampler_count.update(|t| t + 1))
+    }
+}
+
 // === Trace ===
 
 impl Network {
-    pub fn trace<T0: Data>(&self, source: impl Node<Output = T0>) -> Stream<T0> {
-        self.def_node_((Listen(source),), move |event, t0| {
+    /// Pass all incoming events to the output. Print them to console.
+    pub fn trace<T0: Data>(&self, source: impl Node<Output = T0>) -> Bound<Stream<T0>> {
+        self.new_node((Listen(source),), move |event, t0| {
             println!("TRACE: {:?}", t0);
             event.emit(t0);
+        })
+    }
+
+    /// Pass all incoming events to the output. Print them to console if [`cond`] is true.
+    pub fn trace_if<T0: Data>(
+        &self,
+        src: impl Node<Output = T0>,
+        cond: impl Node<Output = bool>,
+    ) -> Bound<Stream<T0>> {
+        self.new_node((Listen(src), Sample(cond)), move |event, src, cond| {
+            if *cond {
+                println!("TRACE: {:?}", src);
+            }
+            event.emit(src);
         })
     }
 }
@@ -803,10 +863,10 @@ impl Network {
     pub fn debug_collect<T0: Data + Clone + 'static>(
         &self,
         source: impl Node<Output = T0>,
-    ) -> (Stream<Vec<T0>>, DebugCollectData<T0>) {
+    ) -> (Bound<Stream<Vec<T0>>>, DebugCollectData<T0>) {
         let data: DebugCollectData<T0> = default();
         let out = data.clone();
-        let node = self.def_node_((Listen(source),), move |event, t0| {
+        let node = self.new_node((Listen(source),), move |event, t0| {
             data.cell.borrow_mut().push(t0.clone());
             event.emit(&*data.cell.borrow());
         });
@@ -818,22 +878,23 @@ impl Network {
 
 // === Map2 ===
 
-impl Network {
+impl<'a, N0> Bound<'a, N0> {
     #[inline(never)]
-    pub fn map<N0, F, Output: Data>(&self, n0: N0, f: F) -> Stream<Output>
+    pub fn map<F, Output: Data>(self, f: F) -> Bound<'a, Stream<Output>>
     where
         N0: Node,
         F: 'static + Fn(&N0::Output) -> Output, {
-        self.def_node_((Listen(n0),), move |event, t0| event.emit(&f(t0)))
+        self.network.new_node((Listen(self),), move |event, t0| event.emit(&f(t0)))
     }
 
     #[inline(never)]
-    pub fn map2<N0, N1, F, Output: Data>(&self, n0: N0, n1: N1, f: F) -> Stream<Output>
+    pub fn map2<N1, F, Output: Data>(self, n1: N1, f: F) -> Bound<'a, Stream<Output>>
     where
         N0: Node,
         N1: NodeWithDefaultOutput,
         F: 'static + Fn(&N0::Output, &N1::Output) -> Output, {
-        self.def_node_((Listen(n0), Sample(n1)), move |event, t0, t1| event.emit(&f(t0, t1)))
+        self.network
+            .new_node((Listen(self), Sample(n1)), move |event, t0, t1| event.emit(&f(t0, t1)))
     }
 }
 
@@ -881,7 +942,7 @@ mod tests {
         let net = Network::new();
         let src1 = net.source::<usize>();
         let src2 = net.source::<usize>();
-        let m1 = net.map2(src1, src2, |a, b| 10 * a + b);
+        let m1 = src1.map2(src2, |a, b| 10 * a + b);
         let (_, results) = net.debug_collect(m1);
         results.assert_eq(&[]);
         src1.emit(&1);
@@ -896,11 +957,11 @@ mod tests {
     fn test_network_drop() {
         let net1 = Network::new();
         let net1_src = net1.source::<usize>();
-        let net1_tgt = net1.map(net1_src, |t| t + 1);
+        let net1_tgt = net1_src.map(|t| t + 1);
         let (_, net1_results) = net1.debug_collect(net1_tgt);
 
         let net2 = Network::new();
-        let net2_tgt = net2.map(net1_src, |t| t * 3);
+        let net2_tgt = net1_src.map(|t| t * 3);
         let (_, net2_results) = net2.debug_collect(net2_tgt);
 
         net1_results.assert_eq(&[]);
@@ -930,10 +991,10 @@ mod tests {
 pub fn pub_bench() {
     let net = Network::new();
     let n1 = net.source::<usize>();
-    let n2 = net.map(n1, |t| t + 1);
+    let n2 = n1.map(|t| t + 1);
     let mut prev = n2;
     for _ in 0..100_0 {
-        let next = net.map(prev, |t| t + 1);
+        let next = prev.map(|t| t + 1);
         prev = next;
     }
 
@@ -1002,11 +1063,10 @@ mod benches {
         let net = Network::new();
         let src1 = net.source::<usize>();
         let src2 = net.source::<usize>();
-        let m1 = net.map2(src1, src2, map_fn);
+        let m1 = src1.map2(src2, map_fn);
         src2.emit(&2);
 
         bencher.iter(move || {
-            let _keep = &net;
             for i in 0..REPS {
                 src1.emit(&i);
             }
@@ -1038,15 +1098,14 @@ mod benches {
     fn bench_emit_frp_chain_pod(bencher: &mut Bencher) {
         let net = Network::new();
         let n1 = net.source::<usize>();
-        let n2 = net.map(n1, |t| t + 1);
+        let n2 = n1.map(|t| t + 1);
         let mut prev = n2;
         for _ in 0..8 {
-            let next = net.map(prev, |t| t + 1);
+            let next = prev.map(|t| t + 1);
             prev = next;
         }
 
         bencher.iter(move || {
-            let _keep = &net;
             for i in 0..REPS {
                 n1.emit(&i);
             }
@@ -1085,12 +1144,11 @@ mod benches {
         let net = Network::new();
         let src1 = net.source::<String>();
         let src2 = net.source::<usize>();
-        let m1 = net.map2(src1, src2, |s, i| s.len() + i);
+        let m1 = src1.map2(src2, |s, i| s.len() + i);
         src2.emit(&2);
 
         bencher.iter(move || {
             let str = "test".to_owned();
-            let _keep = &net;
             for i in 0..REPS {
                 src1.emit(&str);
             }
