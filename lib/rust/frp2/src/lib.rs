@@ -1009,50 +1009,87 @@ impl<Model> Network<Model> {
 
 // === Map2 ===
 
-impl<'a, Model: 'static, N0> Bound<'a, Model, N0> {
+impl<'a, Model, N1> Bound<'a, Model, N1>
+where
+    Model: 'static,
+    N1: Node,
+{
     #[inline(never)]
     pub fn map<F, Output>(self, f: F) -> Bound<'a, Model, Stream<Output>>
     where
-        N0: Node,
         Output: Data,
-        F: 'static + Fn(&mut Model, &N0::Output) -> Output, {
-        self.network.new_node_with_model((Listen(self),), move |event, m, t0| event.emit(&f(m, t0)))
+        F: 'static + Fn(&mut Model, &N1::Output) -> Output, {
+        self.network.new_node_with_model((Listen(self),), move |event, m, t1| event.emit(&f(m, t1)))
     }
 
-    #[inline(never)]
-    pub fn map2<N1, F, Output>(self, n1: N1, f: F) -> Bound<'a, Model, Stream<Output>>
-    where
-        N0: Node,
-        N1: NodeWithDefaultOutput,
-        Output: Data,
-        F: 'static + Fn(&mut Model, &N0::Output, &N1::Output) -> Output, {
-        self.network.new_node_with_model((Listen(self), Sample(n1)), move |event, m, t0, t1| {
-            event.emit(&f(m, t0, t1))
-        })
-    }
+    // #[inline(never)]
+    // pub fn map2<N2, F, Output>(self, n2: N2, f: F) -> Bound<'a, Model, Stream<Output>>
+    // where
+    //     N2: NodeWithDefaultOutput,
+    //     Output: Data,
+    //     F: 'static + Fn(&mut Model, &N1::Output, &N2::Output) -> Output, {
+    //     self.network.new_node_with_model((Listen(self), Sample(n2)), move |event, m, t1, t2| {
+    //         event.emit(&f(m, t1, t2))
+    //     })
+    // }
 
     #[inline(never)]
     pub fn map_<F, Output>(self, f: F) -> Bound<'a, Model, Stream<Output>>
     where
-        N0: Node,
         Output: Data,
-        F: 'static + Fn(&N0::Output) -> Output, {
-        self.network.new_node((Listen(self),), move |event, _, t0| event.emit(&f(t0)))
+        F: 'static + Fn(&N1::Output) -> Output, {
+        self.network.new_node((Listen(self),), move |event, _, t1| event.emit(&f(t1)))
     }
 
     #[inline(never)]
-    pub fn map2_<N1, F, Output>(self, n1: N1, f: F) -> Bound<'a, Model, Stream<Output>>
+    pub fn map2_<N2, F, Output>(self, n2: N2, f: F) -> Bound<'a, Model, Stream<Output>>
     where
-        N0: Node,
-        N1: NodeWithDefaultOutput,
+        N2: NodeWithDefaultOutput,
         Output: Data,
-        F: 'static + Fn(&N0::Output, &N1::Output) -> Output, {
+        F: 'static + Fn(&N1::Output, &N2::Output) -> Output, {
         self.network
-            .new_node((Listen(self), Sample(n1)), move |event, _, t0, t1| event.emit(&f(t0, t1)))
+            .new_node((Listen(self), Sample(n2)), move |event, _, t1, t2| event.emit(&f(t1, t2)))
     }
 }
+//
+macro_rules! def_map_nodes {
+    ($($is:literal),*) => {
+        def_map_nodes! { @ [[1 []]] $($is)* }
+    };
 
+    (@ [ [$i:tt [$($is:tt)*]] $($iss:tt)* ] $n:tt $($ns:tt)*) => {
+        def_map_nodes! { @ [ [$n [$($is)* $n]] [$i [$($is)*]] $($iss)* ] $($ns)* }
+    };
 
+    (@ [ [$i:tt [$($is:tt)*]] $($iss:tt)* ]) => {
+        def_map_nodes! { @ [ $($iss)* ] }
+        paste! { def_map_nodes! { # $i [$([<N $is>])*] } }
+    };
+
+    (@ []) => {};
+
+    (# $i:tt [$($ns:tt)*]) => { paste! {
+        #[inline(never)]
+        pub fn [<map $i>] < $($ns,)* F, Output>
+        (self, $($ns:$ns,)* f: F) -> Bound<'a, Model, Stream<Output>>
+        where
+            $($ns: NodeWithDefaultOutput,)*
+            Output: Data,
+            F: 'static + Fn(&mut Model, &N1::Output, $(&$ns::Output,)*) -> Output, {
+            self.network.new_node_with_model((Listen(self), $(Sample($ns),)*),
+                move |event, m, t1, $($ns,)*| { event.emit(&f(m, t1, $($ns,)*)) }
+            )
+        }
+    }};
+}
+
+impl<'a, Model, N1> Bound<'a, Model, N1>
+where
+    Model: 'static,
+    N1: Node,
+{
+    def_map_nodes![2, 3];
+}
 
 trait EventConsumer = Fn(&Runtime, &NodeData, &dyn Data);
 
