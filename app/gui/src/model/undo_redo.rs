@@ -156,21 +156,21 @@ pub struct Frame {
 
 impl Display for Frame {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Name: {}; ", self.name)?;
+        writeln!(f, "Name: {}; ", self.name)?;
         if !self.secondary_names.is_empty() {
-            write!(f, "Secondary names:")?;
+            writeln!(f, "Secondary names:")?;
             for name in &self.secondary_names {
-                write!(f, "\t{name}")?;
+                writeln!(f, "\t{name}")?;
             }
         }
         if let Some(m) = &self.module {
-            write!(f, "Module: {m}; ")?;
+            writeln!(f, "Module: {m}; ")?;
         }
         if let Some(g) = &self.graph {
-            write!(f, "Graph: {g}; ")?;
+            writeln!(f, "Graph: {g}; ")?;
         }
         for (id, code) in &self.snapshots {
-            write!(f, "Code for {id}: {code}; ")?;
+            writeln!(f, "Code for {id}: {code}; ")?;
         }
         Ok(())
     }
@@ -253,7 +253,12 @@ impl Repository {
             // This is useful when we want to understand what actions were covered by given frame.
             // Apart from the debugging purposes, this deos not affect the undo-redo mechanism in
             // any way.
-            ongoing_transaction.frame.borrow_mut().secondary_names.push(name.into());
+            let name = name.into();
+            debug!(
+                "Adding secondary name to transaction {}: `{name}`",
+                ongoing_transaction.frame.borrow().name
+            );
+            ongoing_transaction.frame.borrow_mut().secondary_names.push(name);
             Err(ongoing_transaction)
         } else {
             let name = name.into();
@@ -264,7 +269,7 @@ impl Repository {
         }
     }
 
-    /// Open an ignored transaction
+    /// Open an ignored transaction.
     ///
     /// This function should be used when we want to do some changes in module which should not be
     /// tracked in undo redo (when they are not a result of user activity). If the transaction is
@@ -280,6 +285,23 @@ impl Repository {
             new.ignore();
         }
         transaction
+    }
+
+    /// Open an ignored transaction.
+    ///
+    /// If there is already an ongoing transaction, it will be marked as ignored, unlike the
+    /// behavior of [`Repository::open_ignored_transaction`].
+    pub fn open_ignored_transaction_or_ignore_current(
+        self: &Rc<Self>,
+        name: impl Into<String>,
+    ) -> Rc<Transaction> {
+        match self.open_ignored_transaction(name) {
+            Ok(transaction) => transaction,
+            Err(transaction) => {
+                transaction.ignore();
+                transaction
+            }
+        }
     }
 
     fn new_undo_frame(&self, frame: Frame) {

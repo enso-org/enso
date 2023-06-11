@@ -275,7 +275,9 @@ impl NodeFromDroppedFileHandler {
 
     fn update_metadata(&self, node: ast::Id, f: impl FnOnce(&mut UploadingFile)) {
         //TODO[ao] see the TODO comment in update_expression.
-        let _tr = self.undo_redo_repository().open_ignored_transaction("Upload Metadata Update");
+        let _tr = self
+            .undo_redo_repository()
+            .open_ignored_transaction_or_ignore_current("Upload Metadata Update");
         let update_md = Box::new(|md: &mut NodeMetadata| {
             if let Some(uploading_md) = &mut md.uploading_file {
                 f(uploading_md)
