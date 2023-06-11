@@ -393,37 +393,44 @@ impl Runtime {
 // === Network ===
 // ===============
 
-#[derive(Clone, CloneRef, Debug, Deref, Default)]
-pub struct Network {
-    rc: Rc<NetworkGuard>,
+/// Alias for [`Network`] with the default parametrization;
+pub type Network_ = Network;
+
+#[derive(CloneRef, Debug, Default, Deref)]
+#[derive(Derivative)]
+#[derivative(Clone(bound = ""))]
+pub struct Network<Model = ()> {
+    rc: Rc<NetworkModel<Model>>,
 }
 
-impl Network {
+impl<Model: Default> Network<Model> {
     pub fn new() -> Self {
         default()
     }
 }
 
 #[derive(Debug)]
-pub struct NetworkGuard {
-    pub(crate) id: NetworkId,
+pub struct NetworkModel<Model> {
+    pub(crate) id:    NetworkId,
+    pub(crate) model: Rc<OptRefCell<Model>>,
 }
 
-impl NetworkGuard {
+impl<Model: Default> NetworkModel<Model> {
     #[inline(never)]
     pub fn new() -> Self {
         let id = with_runtime(|rt| rt.new_network());
-        NetworkGuard { id }
+        let model = default();
+        NetworkModel { id, model }
     }
 }
 
-impl Default for NetworkGuard {
+impl<Model: Default> Default for NetworkModel<Model> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Drop for NetworkGuard {
+impl<Model> Drop for NetworkModel<Model> {
     fn drop(&mut self) {
         with_runtime(|rt| rt.drop_network(self.id));
     }
@@ -567,32 +574,39 @@ impl<'a, Output: Data> EventContext<'a, Output> {
 // === NodeDefinition ===
 // ======================
 
+
+
 /// Abstraction allowing easy FRP node definition. It generates appropriate logic based on the input
 /// types. The [`Inputs`] is a tuple containing any supported combination of [`Listen`], [`Sample`],
 /// and [`ListenAndSample`]. Refer to their docs to learn more about their meaning.
-trait NodeDefinition<Output, F> {
+trait NodeDefinition<ModelIncl, Model, Output, F> {
     fn new_node_with_init<Kind>(
-        net: &Network,
+        net: &Network<Model>,
         inputs: Self,
         f: F,
         init: impl FnOnce(&mut NodeData),
     ) -> NodeTemplate<Kind, Output>;
 }
 
-impl Network {
+impl<Model> Network<Model> {
     #[inline(always)]
     fn new_node_with_init<Kind, Inputs, Output, F, _Out>(
         &self,
         inps: Inputs,
         f: F,
         init: impl FnOnce(&mut NodeData) -> _Out,
-    ) -> Bound<NodeTemplate<Kind, Output>>
+    ) -> Bound<Model, NodeTemplate<Kind, Output>>
     where
-        Inputs: NodeDefinition<Output, F>,
+        Inputs: NodeDefinition<NotIncluded, Model, Output, F>,
     {
-        let node = Inputs::new_node_with_init(self, inps, f, |n| {
-            init(n);
-        });
+        let node = <Inputs as NodeDefinition<NotIncluded, _, _, _>>::new_node_with_init(
+            self,
+            inps,
+            f,
+            |n| {
+                init(n);
+            },
+        );
         Bound::new(self, node)
     }
 
@@ -601,41 +615,96 @@ impl Network {
         &self,
         inps: Inputs,
         f: F,
-    ) -> Bound<NodeTemplate<Kind, Output>>
+    ) -> Bound<Model, NodeTemplate<Kind, Output>>
     where
-        Inputs: NodeDefinition<Output, F>,
+        Inputs: NodeDefinition<NotIncluded, Model, Output, F>,
     {
         self.new_node_with_init(inps, f, |_| {})
     }
 }
 
-impl<Output, F> NodeDefinition<Output, F> for ()
-where F: Fn(EventContext<Output>) + 'static
+
+struct Included;
+struct NotIncluded;
+
+struct ModelSkipped;
+
+trait ModelInclusion<Model> {
+    type IncludedModel;
+    type ClonedModel: 'static;
+    fn clone_model(model: &Rc<OptRefCell<Model>>) -> Self::ClonedModel;
+    fn with_model_borrow_mut<Out>(
+        model: &Self::ClonedModel,
+        f: impl FnOnce(&mut Self::IncludedModel) -> Out,
+    ) -> Out;
+}
+
+impl<Model> ModelInclusion<Model> for NotIncluded {
+    type IncludedModel = ModelSkipped;
+    type ClonedModel = ModelSkipped;
+    #[inline(always)]
+    fn clone_model(_model: &Rc<OptRefCell<Model>>) -> Self::ClonedModel {
+        ModelSkipped
+    }
+    #[inline(always)]
+    fn with_model_borrow_mut<Out>(
+        _model: &Self::ClonedModel,
+        f: impl FnOnce(&mut Self::IncludedModel) -> Out,
+    ) -> Out {
+        f(&mut ModelSkipped)
+    }
+}
+
+impl<Model: Clone + 'static> ModelInclusion<Model> for Included {
+    type IncludedModel = Model;
+    type ClonedModel = Rc<OptRefCell<Model>>;
+    #[inline(always)]
+    fn clone_model(model: &Rc<OptRefCell<Model>>) -> Self::ClonedModel {
+        model.clone()
+    }
+    #[inline(always)]
+    fn with_model_borrow_mut<Out>(
+        model: &Self::ClonedModel,
+        f: impl FnOnce(&mut Self::IncludedModel) -> Out,
+    ) -> Out {
+        f(&mut *model.borrow_mut())
+    }
+}
+
+type IncludedModel<ModelIncl, Model> = <ModelIncl as ModelInclusion<Model>>::IncludedModel;
+
+impl<ModelIncl, Model, Output, F> NodeDefinition<ModelIncl, Model, Output, F> for ()
+where
+    F: Fn(EventContext<Output>, &mut IncludedModel<ModelIncl, Model>) + 'static,
+    ModelIncl: ModelInclusion<Model>,
 {
     #[inline(always)]
     fn new_node_with_init<Kind>(
-        net: &Network,
+        net: &Network<Model>,
         _inputs: Self,
         f: F,
         init: impl FnOnce(&mut NodeData),
     ) -> NodeTemplate<Kind, Output> {
+        let model = <ModelIncl as ModelInclusion<Model>>::clone_model(&net.model);
         net.new_node_with_init_unchecked(
             move |rt: &Runtime, node: &NodeData, _: &dyn Data| {
-                f(EventContext::unchecked_new(rt, node))
+                <ModelIncl as ModelInclusion<Model>>::with_model_borrow_mut(&model, |model| {
+                    f(EventContext::unchecked_new(rt, node), model)
+                })
             },
             init,
         )
     }
 }
 
-impl<N0, Output, F> NodeDefinition<Output, F> for (Listen<N0>,)
+impl<ModelIncl, Model, N0, Output, F> NodeDefinition<ModelIncl, Model, Output, F> for (Listen<N0>,)
 where
     N0: Node,
     F: Fn(EventContext<Output>, &N0::Output) + 'static,
 {
     #[inline(always)]
     fn new_node_with_init<Kind>(
-        net: &Network,
+        net: &Network<Model>,
         inputs: Self,
         f: F,
         init: impl FnOnce(&mut NodeData),
@@ -653,7 +722,8 @@ where
     }
 }
 
-impl<N0, N1, Output, F> NodeDefinition<Output, F> for (Listen<N0>, Sample<N1>)
+impl<ModelIncl, Model, N0, N1, Output, F> NodeDefinition<ModelIncl, Model, Output, F>
+    for (Listen<N0>, Sample<N1>)
 where
     N0: Node,
     N1: NodeWithDefaultOutput,
@@ -661,7 +731,7 @@ where
 {
     #[inline(always)]
     fn new_node_with_init<Kind>(
-        net: &Network,
+        net: &Network<Model>,
         inputs: Self,
         f: F,
         init: impl FnOnce(&mut NodeData),
@@ -681,7 +751,8 @@ where
     }
 }
 
-impl<N0, N1, N2, Output, F> NodeDefinition<Output, F> for (Listen<N0>, Sample<N1>, Sample<N2>)
+impl<ModelIncl, Model, N0, N1, N2, Output, F> NodeDefinition<ModelIncl, Model, Output, F>
+    for (Listen<N0>, Sample<N1>, Sample<N2>)
 where
     N0: Node,
     N1: NodeWithDefaultOutput,
@@ -690,7 +761,7 @@ where
 {
     #[inline(always)]
     fn new_node_with_init<Kind>(
-        net: &Network,
+        net: &Network<Model>,
         inputs: Self,
         f: F,
         init: impl FnOnce(&mut NodeData),
@@ -733,7 +804,7 @@ impl<Kind, Output> Node for NodeTemplate<Kind, Output> {
     }
 }
 
-impl<'a, T: Node> Node for Bound<'a, T> {
+impl<'a, Model, T: Node> Node for Bound<'a, Model, T> {
     type Output = T::Output;
 
     #[inline(always)]
@@ -757,7 +828,7 @@ impl<Kind, Output> NodeTemplate<Kind, Output> {
     }
 }
 
-impl Network {
+impl<Model> Network<Model> {
     #[inline(always)]
     fn new_node_with_init_unchecked<Kind, Output>(
         &self,
@@ -771,16 +842,23 @@ impl Network {
 }
 
 
-#[derive(Clone, Copy, Deref, DerefMut)]
-pub struct Bound<'t, T> {
+#[derive(Deref, DerefMut)]
+pub struct Bound<'t, Model, T> {
     #[deref]
     #[deref_mut]
     elem:    T,
-    network: &'t Network,
+    network: &'t Network<Model>,
 }
 
-impl<'t, T> Bound<'t, T> {
-    fn new(network: &'t Network, elem: T) -> Self {
+impl<'t, Model, T: Copy> Copy for Bound<'t, Model, T> {}
+impl<'t, Model, T: Clone> Clone for Bound<'t, Model, T> {
+    fn clone(&self) -> Self {
+        Self { elem: self.elem.clone(), network: self.network }
+    }
+}
+
+impl<'t, Model, T> Bound<'t, Model, T> {
+    fn new(network: &'t Network<Model>, elem: T) -> Self {
         Self { network, elem }
     }
 }
@@ -798,14 +876,14 @@ pub type Stream<Output = ()> = NodeTemplate<StreamType, Output>;
 pub struct SourceType;
 pub type Source<Output = ()> = NodeTemplate<SourceType, Output>;
 
-impl Network {
+impl<Model> Network<Model> {
     #[inline(always)]
-    pub fn source<T>(&self) -> Bound<Source<T>> {
-        self.new_node((), |_| {})
+    pub fn source<T>(&self) -> Bound<Model, Source<T>> {
+        self.new_node((), |_, _| {})
     }
 
-    pub fn source_(&self) -> Bound<Source> {
-        self.new_node((), |_| {})
+    pub fn source_(&self) -> Bound<Model, Source> {
+        self.new_node((), |_, _| {})
     }
 }
 
@@ -816,18 +894,18 @@ impl Network {
 pub struct SamplerType;
 pub type Sampler<Output = ()> = NodeTemplate<SamplerType, Output>;
 
-impl Network {
+impl<Model> Network<Model> {
     #[inline(always)]
-    pub fn sampler<T>(&self) -> Bound<Sampler<T>> {
-        self.new_node_with_init((), |_| {}, |node| node.sampler_count.update(|t| t + 1))
+    pub fn sampler<T>(&self) -> Bound<Model, Sampler<T>> {
+        self.new_node_with_init((), |_, _| {}, |node| node.sampler_count.update(|t| t + 1))
     }
 }
 
 // === Trace ===
 
-impl Network {
+impl<Model> Network<Model> {
     /// Pass all incoming events to the output. Print them to console.
-    pub fn trace<T0: Data>(&self, source: impl Node<Output = T0>) -> Bound<Stream<T0>> {
+    pub fn trace<T0: Data>(&self, source: impl Node<Output = T0>) -> Bound<Model, Stream<T0>> {
         self.new_node((Listen(source),), move |event, t0| {
             println!("TRACE: {:?}", t0);
             event.emit(t0);
@@ -839,7 +917,7 @@ impl Network {
         &self,
         src: impl Node<Output = T0>,
         cond: impl Node<Output = bool>,
-    ) -> Bound<Stream<T0>> {
+    ) -> Bound<Model, Stream<T0>> {
         self.new_node((Listen(src), Sample(cond)), move |event, src, cond| {
             if *cond {
                 println!("TRACE: {:?}", src);
@@ -866,11 +944,11 @@ impl<T> DebugCollectData<T> {
     }
 }
 
-impl Network {
+impl<Model> Network<Model> {
     pub fn debug_collect<T0: Data + Clone + 'static>(
         &self,
         source: impl Node<Output = T0>,
-    ) -> (Bound<Stream<Vec<T0>>>, DebugCollectData<T0>) {
+    ) -> (Bound<Model, Stream<Vec<T0>>>, DebugCollectData<T0>) {
         let data: DebugCollectData<T0> = default();
         let out = data.clone();
         let node = self.new_node((Listen(source),), move |event, t0| {
@@ -885,9 +963,9 @@ impl Network {
 
 // === Map2 ===
 
-impl<'a, N0> Bound<'a, N0> {
+impl<'a, Model, N0> Bound<'a, Model, N0> {
     #[inline(never)]
-    pub fn map<F, Output: Data>(self, f: F) -> Bound<'a, Stream<Output>>
+    pub fn map<F, Output: Data>(self, f: F) -> Bound<'a, Model, Stream<Output>>
     where
         N0: Node,
         F: 'static + Fn(&N0::Output) -> Output, {
@@ -895,7 +973,15 @@ impl<'a, N0> Bound<'a, N0> {
     }
 
     #[inline(never)]
-    pub fn map2<N1, F, Output: Data>(self, n1: N1, f: F) -> Bound<'a, Stream<Output>>
+    pub fn map_<F, Output: Data>(self, f: F) -> Bound<'a, Model, Stream<Output>>
+    where
+        N0: Node,
+        F: 'static + Fn(&N0::Output) -> Output, {
+        self.network.new_node((Listen(self),), move |event, t0| event.emit(&f(t0)))
+    }
+
+    #[inline(never)]
+    pub fn map2_<N1, F, Output: Data>(self, n1: N1, f: F) -> Bound<'a, Model, Stream<Output>>
     where
         N0: Node,
         N1: NodeWithDefaultOutput,
@@ -922,10 +1008,10 @@ mod tests {
 
     #[test]
     fn test() {
-        let net = Network::new();
+        let net = Network_::new();
         let src1 = net.source::<usize>();
         let src2 = net.source::<usize>();
-        let m1 = src1.map2(src2, |a, b| 10 * a + b);
+        let m1 = src1.map2_(src2, |a, b| 10 * a + b);
         let (_, results) = net.debug_collect(m1);
         results.assert_eq(&[]);
         src1.emit(&1);
@@ -938,13 +1024,13 @@ mod tests {
 
     #[test]
     fn test_network_drop() {
-        let net1 = Network::new();
+        let net1 = Network_::new();
         let net1_src = net1.source::<usize>();
-        let net1_tgt = net1_src.map(|t| t + 1);
+        let net1_tgt = net1_src.map_(|t| t + 1);
         let (_, net1_results) = net1.debug_collect(net1_tgt);
 
-        let net2 = Network::new();
-        let net2_tgt = net1_src.map(|t| t * 3);
+        let net2 = Network_::new();
+        let net2_tgt = net1_src.map_(|t| t * 3);
         let (_, net2_results) = net2.debug_collect(net2_tgt);
 
         net1_results.assert_eq(&[]);
@@ -962,7 +1048,7 @@ mod tests {
     #[test]
     fn test2() {
         for i in 0..10 {
-            let net = Network::new();
+            let net = Network_::new();
             let src1 = net.source::<usize>();
             // let src2 = net.source::<usize>();
             // let m1 = net.map2(src1, src2, map_fn);
@@ -972,12 +1058,12 @@ mod tests {
 
 
 pub fn pub_bench() {
-    let net = Network::new();
+    let net = Network_::new();
     let n1 = net.source::<usize>();
-    let n2 = n1.map(|t| t + 1);
+    let n2 = n1.map_(|t| t + 1);
     let mut prev = n2;
     for _ in 0..100_0 {
-        let next = prev.map(|t| t + 1);
+        let next = prev.map_(|t| t + 1);
         prev = next;
     }
 
@@ -1043,10 +1129,10 @@ mod benches {
     // 1454128
     #[bench]
     fn bench_emit_frp_pod(bencher: &mut Bencher) {
-        let net = Network::new();
+        let net = Network_::new();
         let src1 = net.source::<usize>();
         let src2 = net.source::<usize>();
-        let m1 = src1.map2(src2, map_fn);
+        let m1 = src1.map2_(src2, map_fn);
         src2.emit(&2);
 
         bencher.iter(move || {
@@ -1079,12 +1165,12 @@ mod benches {
     // 50:  47114087
     #[bench]
     fn bench_emit_frp_chain_pod(bencher: &mut Bencher) {
-        let net = Network::new();
+        let net = Network_::new();
         let n1 = net.source::<usize>();
-        let n2 = n1.map(|t| t + 1);
+        let n2 = n1.map_(|t| t + 1);
         let mut prev = n2;
         for _ in 0..8 {
-            let next = prev.map(|t| t + 1);
+            let next = prev.map_(|t| t + 1);
             prev = next;
         }
 
@@ -1124,10 +1210,10 @@ mod benches {
     // 1488912
     #[bench]
     fn bench_emit_non_pod_frp(bencher: &mut Bencher) {
-        let net = Network::new();
+        let net = Network_::new();
         let src1 = net.source::<String>();
         let src2 = net.source::<usize>();
-        let m1 = src1.map2(src2, |s, i| s.len() + i);
+        let m1 = src1.map2_(src2, |s, i| s.len() + i);
         src2.emit(&2);
 
         bencher.iter(move || {
@@ -1163,7 +1249,7 @@ mod benches {
     fn bench_create_frp(bencher: &mut Bencher) {
         bencher.iter(move || {
             // with_runtime(|rt| rt.unsafe_clear());
-            let net = Network::new();
+            let net = Network_::new();
             for i in 0..100_000 {
                 let src1 = net.source::<usize>();
                 // let src2 = net.source::<usize>();
