@@ -579,7 +579,7 @@ impl<'a, Output: Data> EventContext<'a, Output> {
 /// Abstraction allowing easy FRP node definition. It generates appropriate logic based on the input
 /// types. The [`Inputs`] is a tuple containing any supported combination of [`Listen`], [`Sample`],
 /// and [`ListenAndSample`]. Refer to their docs to learn more about their meaning.
-trait NodeDefinition<ModelIncl, Model, Output, F> {
+trait NodeDefinition<Incl, Model, Output, F> {
     fn new_node_with_init<Kind>(
         net: &Network<Model>,
         inputs: Self,
@@ -590,6 +590,22 @@ trait NodeDefinition<ModelIncl, Model, Output, F> {
 
 impl<Model> Network<Model> {
     #[inline(always)]
+    fn _new_node_with_init<Incl, Kind, Inputs, Output, F, _Out>(
+        &self,
+        inps: Inputs,
+        f: F,
+        init: impl FnOnce(&mut NodeData) -> _Out,
+    ) -> Bound<Model, NodeTemplate<Kind, Output>>
+    where
+        Inputs: NodeDefinition<Incl, Model, Output, F>,
+    {
+        let node = Inputs::new_node_with_init(self, inps, f, |n| {
+            init(n);
+        });
+        Bound::new(self, node)
+    }
+
+    #[inline(always)]
     fn new_node_with_init<Kind, Inputs, Output, F, _Out>(
         &self,
         inps: Inputs,
@@ -597,17 +613,22 @@ impl<Model> Network<Model> {
         init: impl FnOnce(&mut NodeData) -> _Out,
     ) -> Bound<Model, NodeTemplate<Kind, Output>>
     where
-        Inputs: NodeDefinition<NotIncluded, Model, Output, F>,
+        Inputs: NodeDefinition<ModelNotIncluded, Model, Output, F>,
     {
-        let node = <Inputs as NodeDefinition<NotIncluded, _, _, _>>::new_node_with_init(
-            self,
-            inps,
-            f,
-            |n| {
-                init(n);
-            },
-        );
-        Bound::new(self, node)
+        self._new_node_with_init::<ModelNotIncluded, Kind, Inputs, Output, F, _Out>(inps, f, init)
+    }
+
+    #[inline(always)]
+    fn new_node_with_model_with_init<Kind, Inputs, Output, F, _Out>(
+        &self,
+        inps: Inputs,
+        f: F,
+        init: impl FnOnce(&mut NodeData) -> _Out,
+    ) -> Bound<Model, NodeTemplate<Kind, Output>>
+    where
+        Inputs: NodeDefinition<ModelIncluded, Model, Output, F>,
+    {
+        self._new_node_with_init::<ModelIncluded, Kind, Inputs, Output, F, _Out>(inps, f, init)
     }
 
     #[inline(always)]
@@ -617,66 +638,78 @@ impl<Model> Network<Model> {
         f: F,
     ) -> Bound<Model, NodeTemplate<Kind, Output>>
     where
-        Inputs: NodeDefinition<NotIncluded, Model, Output, F>,
+        Inputs: NodeDefinition<ModelNotIncluded, Model, Output, F>,
     {
         self.new_node_with_init(inps, f, |_| {})
+    }
+
+    #[inline(always)]
+    fn new_node_with_model<Kind, Inputs, Output, F>(
+        &self,
+        inps: Inputs,
+        f: F,
+    ) -> Bound<Model, NodeTemplate<Kind, Output>>
+    where
+        Inputs: NodeDefinition<ModelIncluded, Model, Output, F>,
+    {
+        self.new_node_with_model_with_init(inps, f, |_| {})
     }
 }
 
 
-struct Included;
-struct NotIncluded;
+struct ModelIncluded;
+struct ModelNotIncluded;
 
 struct ModelSkipped;
 
-trait ModelInclusion<Model> {
-    type IncludedModel;
-    type ClonedModel: 'static;
-    fn clone_model(model: &Rc<OptRefCell<Model>>) -> Self::ClonedModel;
+trait Includable<Model> {
+    type Included;
+    type Cloned: 'static;
+    fn clone_model(model: &Rc<OptRefCell<Model>>) -> Self::Cloned;
     fn with_model_borrow_mut<Out>(
-        model: &Self::ClonedModel,
-        f: impl FnOnce(&mut Self::IncludedModel) -> Out,
+        model: &Self::Cloned,
+        f: impl FnOnce(&mut Self::Included) -> Out,
     ) -> Out;
 }
 
-impl<Model> ModelInclusion<Model> for NotIncluded {
-    type IncludedModel = ModelSkipped;
-    type ClonedModel = ModelSkipped;
+impl<Model> Includable<Model> for ModelNotIncluded {
+    type Included = ModelSkipped;
+    type Cloned = ModelSkipped;
     #[inline(always)]
-    fn clone_model(_model: &Rc<OptRefCell<Model>>) -> Self::ClonedModel {
+    fn clone_model(_model: &Rc<OptRefCell<Model>>) -> Self::Cloned {
         ModelSkipped
     }
     #[inline(always)]
     fn with_model_borrow_mut<Out>(
-        _model: &Self::ClonedModel,
-        f: impl FnOnce(&mut Self::IncludedModel) -> Out,
+        _model: &Self::Cloned,
+        f: impl FnOnce(&mut Self::Included) -> Out,
     ) -> Out {
         f(&mut ModelSkipped)
     }
 }
 
-impl<Model: Clone + 'static> ModelInclusion<Model> for Included {
-    type IncludedModel = Model;
-    type ClonedModel = Rc<OptRefCell<Model>>;
+impl<Model: 'static> Includable<Model> for ModelIncluded {
+    type Included = Model;
+    type Cloned = Rc<OptRefCell<Model>>;
     #[inline(always)]
-    fn clone_model(model: &Rc<OptRefCell<Model>>) -> Self::ClonedModel {
+    fn clone_model(model: &Rc<OptRefCell<Model>>) -> Self::Cloned {
         model.clone()
     }
     #[inline(always)]
     fn with_model_borrow_mut<Out>(
-        model: &Self::ClonedModel,
-        f: impl FnOnce(&mut Self::IncludedModel) -> Out,
+        model: &Self::Cloned,
+        f: impl FnOnce(&mut Self::Included) -> Out,
     ) -> Out {
         f(&mut *model.borrow_mut())
     }
 }
 
-type IncludedModel<ModelIncl, Model> = <ModelIncl as ModelInclusion<Model>>::IncludedModel;
+type Included<Incl, Model> = <Incl as Includable<Model>>::Included;
 
-impl<ModelIncl, Model, Output, F> NodeDefinition<ModelIncl, Model, Output, F> for ()
+impl<Incl, Model, Output, F> NodeDefinition<Incl, Model, Output, F> for ()
 where
-    F: Fn(EventContext<Output>, &mut IncludedModel<ModelIncl, Model>) + 'static,
-    ModelIncl: ModelInclusion<Model>,
+    Incl: Includable<Model>,
+    F: Fn(EventContext<Output>, &mut Included<Incl, Model>) + 'static,
 {
     #[inline(always)]
     fn new_node_with_init<Kind>(
@@ -685,10 +718,10 @@ where
         f: F,
         init: impl FnOnce(&mut NodeData),
     ) -> NodeTemplate<Kind, Output> {
-        let model = <ModelIncl as ModelInclusion<Model>>::clone_model(&net.model);
+        let model = Incl::clone_model(&net.model);
         net.new_node_with_init_unchecked(
             move |rt: &Runtime, node: &NodeData, _: &dyn Data| {
-                <ModelIncl as ModelInclusion<Model>>::with_model_borrow_mut(&model, |model| {
+                Incl::with_model_borrow_mut(&model, |model| {
                     f(EventContext::unchecked_new(rt, node), model)
                 })
             },
@@ -697,10 +730,11 @@ where
     }
 }
 
-impl<ModelIncl, Model, N0, Output, F> NodeDefinition<ModelIncl, Model, Output, F> for (Listen<N0>,)
+impl<Incl, Model, N0, Output, F> NodeDefinition<Incl, Model, Output, F> for (Listen<N0>,)
 where
+    Incl: Includable<Model>,
     N0: Node,
-    F: Fn(EventContext<Output>, &N0::Output) + 'static,
+    F: 'static + Fn(EventContext<Output>, &mut Included<Incl, Model>, &N0::Output),
 {
     #[inline(always)]
     fn new_node_with_init<Kind>(
@@ -709,11 +743,14 @@ where
         f: F,
         init: impl FnOnce(&mut NodeData),
     ) -> NodeTemplate<Kind, Output> {
+        let model = Incl::clone_model(&net.model);
         let inputs = inputs.map_fields_into::<InputType>();
         let node = net.new_node_with_init_unchecked(
             move |rt: &Runtime, node: &NodeData, data: &dyn Data| {
                 let data = unsafe { &*(data as *const dyn Data as *const N0::Output) };
-                f(EventContext::unchecked_new(rt, node), data);
+                Incl::with_model_borrow_mut(&model, |model| {
+                    f(EventContext::unchecked_new(rt, node), model, data);
+                })
             },
             init,
         );
@@ -722,12 +759,13 @@ where
     }
 }
 
-impl<ModelIncl, Model, N0, N1, Output, F> NodeDefinition<ModelIncl, Model, Output, F>
+impl<Incl, Model, N0, N1, Output, F> NodeDefinition<Incl, Model, Output, F>
     for (Listen<N0>, Sample<N1>)
 where
+    Incl: Includable<Model>,
     N0: Node,
     N1: NodeWithDefaultOutput,
-    F: Fn(EventContext<Output>, &N0::Output, &N1::Output) + 'static,
+    F: 'static + Fn(EventContext<Output>, &mut Included<Incl, Model>, &N0::Output, &N1::Output),
 {
     #[inline(always)]
     fn new_node_with_init<Kind>(
@@ -736,12 +774,15 @@ where
         f: F,
         init: impl FnOnce(&mut NodeData),
     ) -> NodeTemplate<Kind, Output> {
+        let model = Incl::clone_model(&net.model);
         let inputs = inputs.map_fields_into::<InputType>();
         let node = net.new_node_with_init_unchecked(
             move |rt: &Runtime, node: &NodeData, data: &dyn Data| unsafe {
                 let t0 = &*(data as *const dyn Data as *const N0::Output);
                 rt.with_borrowed_node_output_cache_coerced(inputs.1.node_id(), |t1| {
-                    f(EventContext::unchecked_new(rt, node), t0, t1)
+                    Incl::with_model_borrow_mut(&model, |model| {
+                        f(EventContext::unchecked_new(rt, node), model, t0, t1)
+                    })
                 });
             },
             init,
@@ -751,13 +792,15 @@ where
     }
 }
 
-impl<ModelIncl, Model, N0, N1, N2, Output, F> NodeDefinition<ModelIncl, Model, Output, F>
+impl<Incl, Model, N0, N1, N2, Output, F> NodeDefinition<Incl, Model, Output, F>
     for (Listen<N0>, Sample<N1>, Sample<N2>)
 where
+    Incl: Includable<Model>,
     N0: Node,
     N1: NodeWithDefaultOutput,
     N2: NodeWithDefaultOutput,
-    F: Fn(EventContext<Output>, &N0::Output, &N1::Output, &N2::Output) + 'static,
+    F: 'static
+        + Fn(EventContext<Output>, &mut Included<Incl, Model>, &N0::Output, &N1::Output, &N2::Output),
 {
     #[inline(always)]
     fn new_node_with_init<Kind>(
@@ -766,13 +809,16 @@ where
         f: F,
         init: impl FnOnce(&mut NodeData),
     ) -> NodeTemplate<Kind, Output> {
+        let model = Incl::clone_model(&net.model);
         let inputs = inputs.map_fields_into::<InputType>();
         let node = net.new_node_with_init_unchecked(
             move |rt: &Runtime, node: &NodeData, data: &dyn Data| unsafe {
                 let t0 = &*(data as *const dyn Data as *const N0::Output);
                 rt.with_borrowed_node_output_cache_coerced(inputs.1.node_id(), |t1| {
                     rt.with_borrowed_node_output_cache_coerced(inputs.2.node_id(), |t2| {
-                        f(EventContext::unchecked_new(rt, node), t0, t1, t2)
+                        Incl::with_model_borrow_mut(&model, |model| {
+                            f(EventContext::unchecked_new(rt, node), model, t0, t1, t2)
+                        })
                     })
                 });
             },
@@ -906,7 +952,7 @@ impl<Model> Network<Model> {
 impl<Model> Network<Model> {
     /// Pass all incoming events to the output. Print them to console.
     pub fn trace<T0: Data>(&self, source: impl Node<Output = T0>) -> Bound<Model, Stream<T0>> {
-        self.new_node((Listen(source),), move |event, t0| {
+        self.new_node((Listen(source),), move |event, _, t0| {
             println!("TRACE: {:?}", t0);
             event.emit(t0);
         })
@@ -918,7 +964,7 @@ impl<Model> Network<Model> {
         src: impl Node<Output = T0>,
         cond: impl Node<Output = bool>,
     ) -> Bound<Model, Stream<T0>> {
-        self.new_node((Listen(src), Sample(cond)), move |event, src, cond| {
+        self.new_node((Listen(src), Sample(cond)), move |event, _, src, cond| {
             if *cond {
                 println!("TRACE: {:?}", src);
             }
@@ -951,7 +997,7 @@ impl<Model> Network<Model> {
     ) -> (Bound<Model, Stream<Vec<T0>>>, DebugCollectData<T0>) {
         let data: DebugCollectData<T0> = default();
         let out = data.clone();
-        let node = self.new_node((Listen(source),), move |event, t0| {
+        let node = self.new_node((Listen(source),), move |event, _, t0| {
             data.cell.borrow_mut().push(t0.clone());
             event.emit(&*data.cell.borrow());
         });
@@ -963,31 +1009,46 @@ impl<Model> Network<Model> {
 
 // === Map2 ===
 
-impl<'a, Model, N0> Bound<'a, Model, N0> {
+impl<'a, Model: 'static, N0> Bound<'a, Model, N0> {
     #[inline(never)]
-    pub fn map<F, Output: Data>(self, f: F) -> Bound<'a, Model, Stream<Output>>
+    pub fn map<F, Output>(self, f: F) -> Bound<'a, Model, Stream<Output>>
     where
         N0: Node,
-        F: 'static + Fn(&N0::Output) -> Output, {
-        self.network.new_node((Listen(self),), move |event, t0| event.emit(&f(t0)))
+        Output: Data,
+        F: 'static + Fn(&mut Model, &N0::Output) -> Output, {
+        self.network.new_node_with_model((Listen(self),), move |event, m, t0| event.emit(&f(m, t0)))
     }
 
     #[inline(never)]
-    pub fn map_<F, Output: Data>(self, f: F) -> Bound<'a, Model, Stream<Output>>
-    where
-        N0: Node,
-        F: 'static + Fn(&N0::Output) -> Output, {
-        self.network.new_node((Listen(self),), move |event, t0| event.emit(&f(t0)))
-    }
-
-    #[inline(never)]
-    pub fn map2_<N1, F, Output: Data>(self, n1: N1, f: F) -> Bound<'a, Model, Stream<Output>>
+    pub fn map2<N1, F, Output>(self, n1: N1, f: F) -> Bound<'a, Model, Stream<Output>>
     where
         N0: Node,
         N1: NodeWithDefaultOutput,
+        Output: Data,
+        F: 'static + Fn(&mut Model, &N0::Output, &N1::Output) -> Output, {
+        self.network.new_node_with_model((Listen(self), Sample(n1)), move |event, m, t0, t1| {
+            event.emit(&f(m, t0, t1))
+        })
+    }
+
+    #[inline(never)]
+    pub fn map_<F, Output>(self, f: F) -> Bound<'a, Model, Stream<Output>>
+    where
+        N0: Node,
+        Output: Data,
+        F: 'static + Fn(&N0::Output) -> Output, {
+        self.network.new_node((Listen(self),), move |event, _, t0| event.emit(&f(t0)))
+    }
+
+    #[inline(never)]
+    pub fn map2_<N1, F, Output>(self, n1: N1, f: F) -> Bound<'a, Model, Stream<Output>>
+    where
+        N0: Node,
+        N1: NodeWithDefaultOutput,
+        Output: Data,
         F: 'static + Fn(&N0::Output, &N1::Output) -> Output, {
         self.network
-            .new_node((Listen(self), Sample(n1)), move |event, t0, t1| event.emit(&f(t0, t1)))
+            .new_node((Listen(self), Sample(n1)), move |event, _, t0, t1| event.emit(&f(t0, t1)))
     }
 }
 
@@ -1244,7 +1305,7 @@ mod benches {
         });
     }
 
-    // 694589
+    // 1450107 // Including removal of frp network taking 60% of time.
     #[bench]
     fn bench_create_frp(bencher: &mut Bencher) {
         bencher.iter(move || {
@@ -1253,7 +1314,7 @@ mod benches {
             for i in 0..100_000 {
                 let src1 = net.source::<usize>();
                 // let src2 = net.source::<usize>();
-                // let m1 = net.map2(src1, src2, map_fn);
+                // let m1 = src1.map2_(src2, map_fn);
             }
         });
     }
