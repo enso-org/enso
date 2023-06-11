@@ -15,8 +15,8 @@ use enso_data_structures::unrolled_slot_map::UnrolledSlotMap;
 use enso_data_structures::unrolled_slot_map::VersionedIndex;
 use enso_generics::traits::*;
 use enso_prelude::*;
-use slotmap::SlotMap;
 use smallvec::SmallVec;
+
 
 use crate::callstack::CallStack;
 use crate::callstack::DefInfo;
@@ -97,10 +97,16 @@ impl Metrics {
 }
 
 
-
+#[derive(Debug, Default)]
 struct NetworkData {
     nodes: Vec<NodeId>,
-    refs:  usize, // FIXME: remove
+}
+
+impl Clearable for NetworkData {
+    #[inline(always)]
+    fn clear(&mut self) {
+        self.nodes.clear();
+    }
 }
 
 
@@ -183,10 +189,10 @@ impl NodeData {
         }
     }
 }
-slotmap::new_key_type! { pub struct NetworkId; }
-
-// FIXME: this is wrong!
-unsafe impl Zeroable for NetworkId {}
+// slotmap::new_key_type! { pub struct NetworkId; }
+//
+// // FIXME: this is wrong!
+// unsafe impl Zeroable for NetworkId {}
 
 // slotmap::new_key_type! { pub struct NodeId; }
 
@@ -211,12 +217,13 @@ pub fn with_runtime<T>(f: impl FnOnce(&Runtime) -> T) -> T {
 //     RUNTIME.with(|runtime| runtime.clone())
 // }
 
-pub struct NodesMap;
+pub struct NetworkMap;
+pub struct NodeMap;
 
 #[derive(Default)]
 pub struct Runtime {
-    networks: OptRefCell<SlotMap<NetworkId, NetworkData>>,
-    nodes:    UnrolledSlotMap<OptRefCell<NodeData>, 131072, NodesMap, prealloc::Zeroed>,
+    networks: UnrolledSlotMap<OptRefCell<NetworkData>, 1024, NetworkMap, prealloc::Default>,
+    nodes:    UnrolledSlotMap<OptRefCell<NodeData>, 131072, NodeMap, prealloc::Zeroed>,
     // consumers:         RefCell<SecondaryMap<NodeId, BumpRc<dyn RawEventConsumer>>>,
     /// Map for each node to its behavior, if any. For nodes that are natively behaviors, points to
     /// itself. For non-behavior streams, may point to a sampler node that listens to it.
@@ -244,16 +251,17 @@ impl Runtime {
     fn new_network(&self) -> NetworkId {
         self.metrics.inc_networks();
         self.metrics.inc_network_refs();
-        let mut networks = self.networks.borrow_mut();
-        networks.insert(NetworkData { nodes: Vec::new(), refs: 1 })
+        self.networks.reserve()
     }
 
     fn drop_network(&self, id: NetworkId) {
-        let net_data = self.networks.borrow_mut().remove(id);
-        if let Some(net_data) = net_data {
-            for node_id in net_data.nodes {
-                self.drop_node(node_id);
+        if let Some(network) = self.networks.get(id) {
+            let mut network_data = network.borrow_mut();
+            for node_id in &network_data.nodes {
+                self.drop_node(*node_id);
             }
+            network_data.clear();
+            self.networks.invalidate(id);
         }
     }
 
@@ -273,15 +281,14 @@ impl Runtime {
         init: impl FnOnce(&mut NodeData),
     ) -> NodeId {
         self.metrics.inc_nodes();
-        let mut networks = self.networks.borrow_mut();
-        if let Some(network) = networks.get_mut(net_id) {
+        if let Some(network) = self.networks.get(net_id) {
             let id = self.nodes.reserve();
             if let Some(node) = self.nodes.get(id) {
                 let mut node = node.borrow_mut();
                 node.reuse((ZeroableOption::Some(Box::new(tp)), net_id, def));
                 init(&mut *node);
             }
-            network.nodes.push(id);
+            network.borrow_mut().nodes.push(id);
             id
         } else {
             panic!()
@@ -899,30 +906,6 @@ impl<'a, N0> Bound<'a, N0> {
 }
 
 
-// macro_rules! def {
-//     (
-//         $name:ident ($($arg:ident: $arg_ty:ty),*  $(,)?) $({ $($ctx:tt)* })?
-//         ($event:ident, $($inp_ty:ident($inp:ident)),* $(,)?) { $($body:tt)* }
-//     ) => {
-//         impl Network {
-//             #[inline(never)]
-//             pub fn $name<$($inp,)* Output: Data>(&self, $($inp: $inp,)* $($arg: $arg_ty,)*) ->
-// Stream<Output>             where
-//                 $($inp: NodeWithDefaultOutput,)* {
-//                 $($($ctx)*)?
-//                 self.def_node( ($($inp_ty($inp)),*), move |$event, $($inp,)*| { $($body)* } )
-//             }
-//        }
-//     };
-// }
-//
-//
-//
-// def! { map2y (f: impl Fn(&n0::Output, &n1::Output) -> Output + 'static) {}
-//     (event, Listen(n0), Sample(n1)) {
-//         event.emit(&f(n0, n1))
-//     }
-// }
 
 trait EventConsumer = Fn(&Runtime, &NodeData, &dyn Data);
 
@@ -1255,7 +1238,8 @@ mod benches {
 // 3411847
 // 1941622
 
-pub type NodeId = VersionedIndex<NodesMap>;
+pub type NetworkId = VersionedIndex<NetworkMap>;
+pub type NodeId = VersionedIndex<NodeMap>;
 
 type FF = dyn Fn(usize) -> usize;
 

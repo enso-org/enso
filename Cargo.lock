@@ -2133,7 +2133,6 @@ dependencies = [
  "enso-frp",
  "enso-generics",
  "enso-prelude",
- "slotmap",
  "smallvec 1.10.0",
 ]
 

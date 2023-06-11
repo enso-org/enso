@@ -8,7 +8,6 @@ edition = "2021"
 enso-frp = { path = "../frp" }
 enso-prelude = { path = "../prelude" }
 smallvec = "1.10.0"
-slotmap = "1.0.6"
 bytemuck = { workspace = true }
 enso-data-structures = { path = "../data-structures" }
 enso-generics = { path = "../generics" }
