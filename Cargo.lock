@@ -2137,18 +2137,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-frp3"
-version = "0.1.0"
-dependencies = [
- "bumpalo",
- "derivative",
- "enso-prelude",
- "frp-macros",
- "slotmap",
- "smallvec 1.10.0",
-]
-
-[[package]]
 name = "enso-generics"
 version = "0.2.0"
 dependencies = [
@@ -3530,10 +3518,6 @@ name = "fragile"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c2141d6d6c8512188a7891b4b01590a45f6dac67afb4f255c4124dbb86d4eaa"
-
-[[package]]
-name = "frp-macros"
-version = "0.1.0"
 
 [[package]]
 name = "fs-err"
@@ -6366,15 +6350,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4614a76b2a8be0058caa9dbbaf66d988527d86d003c11a94fbd335d7661edcef"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "slotmap"
-version = "1.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1e08e261d0e8f5c43123b7adf3e4ca1690d655377ac93a03b2c9d3e98de1342"
-dependencies = [
- "version_check",
 ]
 
 [[package]]
