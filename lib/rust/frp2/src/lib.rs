@@ -265,6 +265,8 @@ macro_rules! def_node {
     };
 }
 
+type NodeOutputs = OptRefCell<UnrolledLinkedList<Edge, 8, usize, prealloc::Zeroed>>;
+
 def_node! {
     /// An FRP node.
     #[derive(Default, Zeroable)]
@@ -278,10 +280,10 @@ def_node! {
             inputs: OptRefCell<UnrolledLinkedList<NodeId, 8, usize, prealloc::Zeroed>>,
             /// Outputs to which an event should be emitted. This includes both [`Listener`] and
             /// [`ListenerAndSampler`] connections.
-            outputs: OptRefCell<UnrolledLinkedList<Edge, 8, usize, prealloc::Zeroed>>,
+            outputs: NodeOutputs,
             /// Outputs to which an event should NOT be emitted. This includes only [`Sampler`]
             /// connections.
-            sampler_outputs: OptRefCell<UnrolledLinkedList<Edge, 8, usize, prealloc::Zeroed>>,
+            sampler_outputs: NodeOutputs,
             output_cache: OptRefCell<ZeroableOption<Box<dyn Data>>>,
             /// Number of samplers connected to this nodes. This includes both the count of
             /// [`ListenerAndSampler`] connections in [`Self::outputs`] and the count of all
@@ -360,6 +362,7 @@ impl Runtime {
         self.networks.reserve()
     }
 
+    #[inline(always)]
     fn drop_network(&self, id: NetworkId) {
         if let Some(network) = self.networks.get(id) {
             let mut network_data = network.borrow_mut();
@@ -371,10 +374,22 @@ impl Runtime {
         }
     }
 
+    #[inline(always)]
     fn drop_node(&self, id: NodeId) {
         if let Some(node) = self.nodes.get(id) {
             node.borrow().clear_im();
             self.nodes.invalidate(id);
+        }
+    }
+
+    #[inline(always)]
+    fn with_borrowed_node(&self, node_id: NodeId, f: impl FnOnce(&NodeData)) {
+        if let Some(node) = self.nodes.get(node_id) {
+            f(&*node.borrow());
+        } else {
+            // If enabled, it slows down event emitting by 20%.
+            #[cfg(debug_assertions)]
+            error!("Trying to access a non-existent FRP node {:?}.", node_id);
         }
     }
 
@@ -396,7 +411,8 @@ impl Runtime {
             network.borrow_mut().nodes.push(id);
             id
         } else {
-            panic!("Trying to create a node in a non-existent FRP network.")
+            error!("Trying to create a node in a non-existent FRP network.");
+            NodeId::new_not_occupied()
         }
     }
 
@@ -405,88 +421,86 @@ impl Runtime {
         let src_id = src_tp.node_id();
         let is_sampler = src_tp.is_sampler();
         let output_connection = Edge { target: tgt_id, is_sampler };
-        if let Some(src) = self.nodes.get(src_id) {
-            let src = src.borrow();
+        self.with_borrowed_node(src_id, |src| {
             if is_sampler {
                 src.sampler_count.modify(|t| *t += 1);
             }
             let outputs = if src_tp.is_listener() { &src.outputs } else { &src.sampler_outputs };
             outputs.borrow().push(output_connection);
-        }
-        if let Some(tgt) = self.nodes.get(tgt_id) {
-            tgt.borrow().inputs.borrow().push(src_id);
-        }
+        });
+        self.with_borrowed_node(tgt_id, |tgt| {
+            tgt.inputs.borrow().push(src_id);
+        });
     }
 
+    /// Emit the event to all listeners of the given node. The event type is not checked, so you
+    /// have to guarantee that the type is correct.
     #[inline(always)]
-    fn unchecked_emit(&self, src_node_id: NodeId, event: &dyn Data) {
-        if let Some(src_node) = self.nodes.get(src_node_id) {
-            self.unchecked_emit_internal(&*src_node.borrow(), event);
-        }
+    fn unchecked_emit_borrow(&self, src_node_id: NodeId, event: &dyn Data) {
+        self.with_borrowed_node(src_node_id, |src_node| {
+            self.unchecked_emit(src_node, event);
+        })
     }
 
+    /// Emit the event to all listeners of the given node. The event type is not checked, so you
+    /// have to guarantee that the type is correct.
     #[inline(always)]
-    fn unchecked_emit_internal(&self, src_node: &NodeData, event: &dyn Data) {
+    fn unchecked_emit(&self, src_node: &NodeData, event: &dyn Data) {
+        // Clone the incoming data if there are any sampler outputs.
         if src_node.sampler_count.get() > 0 {
-            *src_node.output_cache.borrow_mut() = ZeroableOption::Some(event.boxed_clone());
+            src_node.output_cache.replace(ZeroableOption::Some(event.boxed_clone()));
         }
 
         self.stack.with(src_node.def, || {
             let mut cleanup_outputs = false;
+            let mut cleanup_sampler_outputs = false;
             for &output in &*src_node.outputs.borrow() {
-                let done = self.nodes.get(output.target).map(|tgt_node| {
-                    tgt_node.borrow().on_event(self, event);
-                });
-                if done.is_none() {
+                let target = self.nodes.get(output.target);
+                if target.map(|tgt_node| tgt_node.borrow().on_event(self, event)).is_none() {
                     cleanup_outputs = true;
                 }
             }
-
-            if cleanup_outputs {
-                src_node.outputs.borrow_mut().retain(|output| {
-                    let retain = self.nodes.exists(output.target);
-                    if !retain && output.is_sampler {
-                        src_node.sampler_count.update(|t| t - 1);
-                    }
-                    retain
-                });
-            }
-
-            let mut cleanup_sampler_outputs = false;
             for &output in &*src_node.sampler_outputs.borrow() {
                 if self.nodes.get(output.target).is_none() {
                     cleanup_sampler_outputs = true;
                 }
             }
 
-            if cleanup_sampler_outputs {
-                src_node.sampler_outputs.borrow_mut().retain(|output| {
-                    let retain = self.nodes.exists(output.target);
-                    if !retain && output.is_sampler {
-                        src_node.sampler_count.update(|t| t - 1);
-                    }
-                    retain
-                });
-            }
+            let cleanup = |do_cleanup: bool, outputs: &NodeOutputs| {
+                if do_cleanup {
+                    outputs.borrow_mut().retain(|output| {
+                        let retain = self.nodes.exists(output.target);
+                        if !retain && output.is_sampler {
+                            src_node.sampler_count.update(|t| t - 1);
+                        }
+                        retain
+                    });
+                }
+            };
+
+            cleanup(cleanup_outputs, &src_node.outputs);
+            cleanup(cleanup_sampler_outputs, &src_node.sampler_outputs);
         });
     }
 
+    /// Perform the provided function with the borrowed output cache of the given node. If the node
+    /// did not store its cache, a default value will be used and an error will be emitted.
+    ///
+    /// # Safety
+    /// The cache will be casted to the provided type without checking it, so you need to guarantee
+    /// type safety when using this function.
     #[inline(always)]
-    unsafe fn with_borrowed_node_output_cache_coerced<T: Default>(
-        &self,
-        node_id: NodeId,
-        f: impl FnOnce(&T),
-    ) {
-        if let Some(node) = self.nodes.get(node_id) {
-            let borrowed_node = node.borrow();
-            let output = borrowed_node.output_cache.borrow();
+    unsafe fn with_borrowed_node_output_coerced<T>(&self, node_id: NodeId, f: impl FnOnce(&T))
+    where T: Default {
+        self.with_borrowed_node(node_id, |node| {
+            let output = node.output_cache.borrow();
             if let Some(output) = output.as_ref().map(|t| &**t) {
                 let output_coerced = unsafe { &*(output as *const dyn Data as *const T) };
                 f(output_coerced)
             } else {
                 f(&default())
             };
-        }
+        })
     }
 }
 
@@ -667,7 +681,7 @@ impl<'a, Output: Data> EventContext<'a, Output> {
     /// Emit the output event.
     #[inline(always)]
     fn emit(self, value: &Output) {
-        self.runtime.unchecked_emit_internal(self.node, value);
+        self.runtime.unchecked_emit(self.node, value);
     }
 }
 
@@ -882,7 +896,7 @@ where
         let node = net.new_node_with_init_unchecked(
             move |rt: &Runtime, node: &NodeData, data: &dyn Data| unsafe {
                 let t0 = &*(data as *const dyn Data as *const N0::Output);
-                rt.with_borrowed_node_output_cache_coerced(inputs.1.node_id(), |t1| {
+                rt.with_borrowed_node_output_coerced(inputs.1.node_id(), |t1| {
                     Incl::with_model_borrow_mut(&model, |model| {
                         f(EventContext::unchecked_new(rt, node), model, t0, t1)
                     })
@@ -917,8 +931,8 @@ where
         let node = net.new_node_with_init_unchecked(
             move |rt: &Runtime, node: &NodeData, data: &dyn Data| unsafe {
                 let t0 = &*(data as *const dyn Data as *const N0::Output);
-                rt.with_borrowed_node_output_cache_coerced(inputs.1.node_id(), |t1| {
-                    rt.with_borrowed_node_output_cache_coerced(inputs.2.node_id(), |t2| {
+                rt.with_borrowed_node_output_coerced(inputs.1.node_id(), |t1| {
+                    rt.with_borrowed_node_output_coerced(inputs.2.node_id(), |t2| {
                         Incl::with_model_borrow_mut(&model, |model| {
                             f(EventContext::unchecked_new(rt, node), model, t0, t1, t2)
                         })
@@ -973,7 +987,7 @@ impl<Kind, Output> NodeTemplate<Kind, Output> {
     #[inline(never)]
     pub fn emit(&self, value: &Output)
     where Output: Data {
-        with_runtime(|rt| rt.unchecked_emit(self.id, value));
+        with_runtime(|rt| rt.unchecked_emit_borrow(self.id, value));
     }
 }
 

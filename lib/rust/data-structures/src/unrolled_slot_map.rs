@@ -8,6 +8,35 @@ use unrolled_linked_list::UnrolledLinkedList;
 
 
 
+// ===============
+// === Version ===
+// ===============
+
+/// Version of the slot. An even version (0, 2, 4, ...) means that the slot is occupied. An odd
+/// version (1, 3, 5, ...) means that the slot is free.
+#[derive(Clone, Copy, Debug, Display, Default, Deref, PartialEq, Eq, Zeroable)]
+#[repr(transparent)]
+struct Version(usize);
+
+impl Version {
+    #[inline(always)]
+    fn new_not_occupied() -> Self {
+        Self(1)
+    }
+
+    #[inline(always)]
+    fn inc(self) -> Self {
+        Self(*self + 1)
+    }
+
+    #[inline(always)]
+    fn is_occupied(self) -> bool {
+        *self % 2 == 0
+    }
+}
+
+
+
 // ======================
 // === VersionedIndex ===
 // ======================
@@ -29,7 +58,7 @@ use unrolled_linked_list::UnrolledLinkedList;
 )]
 pub struct VersionedIndex<Kind = ()> {
     index:   usize,
-    version: usize,
+    version: Version,
     _kind:   PhantomData<Kind>,
 }
 
@@ -37,8 +66,16 @@ pub struct VersionedIndex<Kind = ()> {
 unsafe impl<Kind> Zeroable for VersionedIndex<Kind> {}
 
 impl<Kind> VersionedIndex<Kind> {
-    fn new(index: usize, version: usize) -> Self {
+    #[inline(always)]
+    fn new(index: usize, version: Version) -> Self {
         Self { index, version, _kind: PhantomData }
+    }
+
+    /// Create a new index that is not occupied. you will not be able to use this index. It can be
+    /// used to create an index in case of an error if you need to return an index.
+    #[inline(always)]
+    pub fn new_not_occupied() -> Self {
+        Self::new(0, Version::new_not_occupied())
     }
 }
 
@@ -52,18 +89,18 @@ impl<Kind> VersionedIndex<Kind> {
 #[derive(Debug, Default, Zeroable)]
 pub struct Slot<Item> {
     value:   Item,
-    /// Version of the slot. An even version (0, 2, 4, ...) means that the slot is occupied. An odd
-    /// version (1, 3, 5, ...) means that the slot is free.
-    version: Cell<usize>,
+    version: Cell<Version>,
 }
 
 impl<Item> Slot<Item> {
-    fn version(&self) -> usize {
+    #[inline(always)]
+    fn version(&self) -> Version {
         self.version.get()
     }
 
+    #[inline(always)]
     fn is_occupied(&self) -> bool {
-        self.version.get() % 2 == 0
+        self.version.get().is_occupied()
     }
 }
 
@@ -141,7 +178,7 @@ where B: AllocationBehavior<Slot<Item>>
     /// index to access the value anymore. The index will be re-used in the future.
     #[inline(always)]
     pub fn invalidate(&self, id: VersionedIndex<Kind>) -> bool {
-        let ok = self.slot(id).map(|slot| slot.version.update(|v| v + 1)).is_some();
+        let ok = self.slot(id).map(|slot| slot.version.update(|v| v.inc())).is_some();
         if ok {
             self.free_indexes.borrow_mut().push(id.index);
         }
@@ -156,12 +193,12 @@ where B: AllocationBehavior<Slot<Item>>
     pub fn reserve(&self) -> VersionedIndex<Kind> {
         let mut free_indexes = self.free_indexes.borrow_mut();
         if let Some(index) = free_indexes.pop() {
-            let version = self.slots[index].version.update(|v| v + 1);
+            let version = self.slots[index].version.update(|v| v.inc());
             VersionedIndex::new(index, version)
         } else {
             let index = self.slots.len();
             self.slots.push_new();
-            VersionedIndex::new(index, 0)
+            VersionedIndex::new(index, Version::default())
         }
     }
 
@@ -286,7 +323,7 @@ where B: AllocationBehavior<Slot<Item>>
     pub fn invalidate_all_keys(&self) {
         for slot in &*self.slots {
             if slot.is_occupied() {
-                slot.version.update(|v| v + 1);
+                slot.version.update(|v| v.inc());
             }
         }
         let mut free_indexes = self.free_indexes.borrow_mut();
