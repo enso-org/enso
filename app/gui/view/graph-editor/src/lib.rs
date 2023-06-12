@@ -1805,7 +1805,7 @@ impl GraphEditorModelWithNetwork {
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct GraphEditorModel {
     pub display_object: display::object::Instance,
-    // Required for dynamically creating nodes and edges
+    // Required for dynamically creating nodes and edges.
     pub app: Application,
     pub breadcrumbs: component::Breadcrumbs,
     pub cursor: cursor::Cursor,

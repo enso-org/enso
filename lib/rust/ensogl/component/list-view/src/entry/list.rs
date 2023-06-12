@@ -66,7 +66,7 @@ pub type List<E> = ListData<E, <E as Entry>::Params>;
 #[derivative(Clone(bound = ""))]
 #[clone_ref(bound = "E:CloneRef")]
 pub struct ListData<E, P> {
-    // Required for dynamically creating new entries
+    // Required for dynamically creating new entries.
     app:            Application,
     display_object: display::object::Instance,
     entries:        Rc<RefCell<Vec<DisplayedEntry<E>>>>,

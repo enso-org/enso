@@ -114,7 +114,7 @@ pub struct FlameGraph {
     blocks:         Vec<Block>,
     marks:          Vec<Mark>,
     origin_x:       f64,
-    // Required for dynamically adding blocks
+    // Required for dynamically adding blocks.
     app:            Application,
 }
 
