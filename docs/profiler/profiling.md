@@ -146,7 +146,7 @@ procedure to collect data is:
   - Open Enso in Chrome.
   - Perform any activity the profiler should record (the profiler is always
     running).
-  - Press Ctrl+Alt+P to end profile recording.
+  - Press Ctrl+Alt+O to end profile recording.
   - Open the Browser Console by pressing Ctrl+Alt+J (do not do this before
     profiling;
     [having the console open can degrade performance](https://developer.chrome.com/blog/wasm-debugging-2020/#profiling)
