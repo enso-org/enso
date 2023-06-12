@@ -587,7 +587,12 @@ type Column
             even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
             half_goes_up = if use_bankers then even_is_up else (self.make_binary_op "KONST" True)
             do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
-            result = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
+            result_float = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
+
+            should_cast_to_integer = decimal_places <= 0
+            result = if should_cast_to_integer.not then result_float else
+                result_float.cast Value_Type.Integer
+
             result.rename new_name
 
     ## ALIAS int
