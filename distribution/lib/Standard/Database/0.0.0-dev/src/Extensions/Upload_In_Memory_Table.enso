@@ -95,6 +95,13 @@ Table.select_into_database_table self connection table_name=Nothing primary_key=
      - If another database error occurs, an `SQL_Error` is raised.
 
      If any error was raised, the data in the target table is not modified.
+
+   ? Type Widening
+
+     Smaller types can be widened to a larger type, for example 32-bit integer
+     column can be widened to a 64-bit integer column, but not vice versa
+     (because larger numbers could not fit the smaller type and the type of the
+     column in the target table cannot be changed).
 Table.update_database_table : Connection -> Text -> Update_Action -> Vector Text | Nothing -> Boolean -> Problem_Behavior -> Database_Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
 Table.update_database_table self connection (table_name : Text) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector | Nothing = default_key_columns connection table_name) (error_on_missing_columns : Boolean = False) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
     common_update_table self connection table_name update_action key_columns error_on_missing_columns on_problems
