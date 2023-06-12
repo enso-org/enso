@@ -2,7 +2,12 @@
 
 import * as utils from '../../utils'
 
-/** Path to the Project Manager bundle within the electron distribution (relative to the electron's resources directory). */
+// ==========================
+// === Paths to resources ===
+// ==========================
+
+/** Path to the Project Manager bundle within the electron distribution
+ * (relative to electron's resources directory). */
 export const PROJECT_MANAGER_BUNDLE = 'enso'
 
 /** Distribution directory for IDE. */

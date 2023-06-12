@@ -40,6 +40,7 @@ use ensogl::system::web::traits::*;
 
 use enso_frp as frp;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
+use enso_suggestion_database::documentation_ir::LinkedDocPage;
 use ensogl::animation::physics::inertia::Spring;
 use ensogl::application::Application;
 use ensogl::data::color;
@@ -55,8 +56,6 @@ use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::documentation as theme;
 use graph_editor::component::visualization;
 use ide_view_graph_editor as graph_editor;
-use web::HtmlElement;
-use web::JsCast;
 
 
 // ==============
@@ -110,6 +109,7 @@ pub struct Model {
     /// to EnsoGL shapes, and pass them to the DOM instead.
     overlay:        overlay::View,
     display_object: display::object::Instance,
+    event_handlers: Rc<RefCell<Vec<web::EventListenerHandle>>>,
 }
 
 impl Model {
@@ -150,7 +150,15 @@ impl Model {
         scene.dom.layers.node_searcher.manage(&inner_dom);
         scene.dom.layers.node_searcher.manage(&caption_dom);
 
-        Model { outer_dom, inner_dom, caption_dom, overlay, display_object }.init()
+        Model {
+            outer_dom,
+            inner_dom,
+            caption_dom,
+            overlay,
+            display_object,
+            event_handlers: default(),
+        }
+        .init()
     }
 
     fn init(self) -> Self {
@@ -173,18 +181,34 @@ impl Model {
     }
 
     /// Display the documentation and scroll to the qualified name if needed.
-    fn display_doc(&self, docs: EntryDocumentation) {
-        let anchor = docs.function_name().map(html::anchor_name);
-        let html = html::render(docs);
+    fn display_doc(&self, docs: EntryDocumentation, display_doc: &frp::Source<EntryDocumentation>) {
+        let linked_pages = docs.linked_doc_pages();
+        let html = html::render(&docs);
         self.inner_dom.dom().set_inner_html(&html);
-        if let Some(anchor) = anchor {
+        self.set_link_handlers(linked_pages, display_doc);
+        // Scroll to the top of the page.
+        self.inner_dom.dom().set_scroll_top(0);
+    }
+
+    /// Setup event handlers for links on the documentation page.
+    fn set_link_handlers(
+        &self,
+        linked_pages: Vec<LinkedDocPage>,
+        display_doc: &frp::Source<EntryDocumentation>,
+    ) {
+        let new_handlers = linked_pages.into_iter().filter_map(|page| {
+            let content = page.page.clone_ref();
+            let anchor = html::anchor_name(&page.name);
             if let Some(element) = web::document.get_element_by_id(&anchor) {
-                let offset = element.dyn_ref::<HtmlElement>().map(|e| e.offset_top()).unwrap_or(0);
-                self.inner_dom.dom().set_scroll_top(offset);
+                let closure: web::JsEventHandler = web::Closure::new(f_!([display_doc, content] {
+                    display_doc.emit(content.clone_ref());
+                }));
+                Some(web::add_event_listener(&element, "click", closure))
+            } else {
+                None
             }
-        } else {
-            self.inner_dom.dom().set_scroll_top(0);
-        }
+        });
+        let _ = self.event_handlers.replace(new_handlers.collect());
     }
 
     /// Load an HTML file into the documentation view when user is waiting for data to be received.
@@ -300,7 +324,11 @@ impl View {
             docs <+ frp.display_documentation;
             display_delay.restart <+ frp.display_documentation.constant(DISPLAY_DELAY_MS);
             display_docs <- display_delay.on_expired.map2(&docs,|_,docs| docs.clone_ref());
-            eval display_docs((docs) model.display_doc(docs.clone_ref()));
+            display_docs_callback <- source();
+            display_docs <- any(&display_docs, &display_docs_callback);
+            eval display_docs([model, display_docs_callback]
+                (docs) model.display_doc(docs.clone_ref(), &display_docs_callback)
+            );
 
 
             // === Hovered item preview caption ===

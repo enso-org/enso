@@ -26,8 +26,8 @@ public abstract class GetTypeMethodsNode extends Node {
   @Specialization
   @CompilerDirectives.TruffleBoundary
   Array allMethods(Type type) {
-    var methodNames = type.getDefinitionScope().getMethods().get(type).keySet();
-    return new Array(methodNames.toArray());
+    var methods = type.getDefinitionScope().getMethods().get(type);
+    return methods == null ? Array.empty() : new Array(methods.keySet().toArray());
   }
 
   @Fallback

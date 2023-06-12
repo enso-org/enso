@@ -1,15 +1,6 @@
 package org.enso.interpreter.dsl.builtins;
 
 import com.google.common.base.CaseFormat;
-import org.apache.commons.lang3.StringUtils;
-import org.enso.interpreter.dsl.AcceptsWarning;
-import org.enso.interpreter.dsl.Builtin;
-
-import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Modifier;
-import javax.lang.model.element.VariableElement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +8,14 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
+import javax.lang.model.element.VariableElement;
+import org.apache.commons.lang3.StringUtils;
+import org.enso.interpreter.dsl.AcceptsWarning;
+import org.enso.interpreter.dsl.Builtin;
 
 /** A method generator for an abstract `execute` and at least a single specialization. */
 public final class SpecializedMethodsGenerator extends MethodGenerator {

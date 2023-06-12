@@ -3,29 +3,31 @@ import * as react from 'react'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
-import * as platformModule from '../../platform'
+
+import GLOBAL_CONFIG from '../../../../../../../../gui/config.yaml' assert { type: 'yaml' }
 
 // =================
 // === Constants ===
 // =================
 
 const IDE_CDN_URL = 'https://ensocdn.s3.us-west-1.amazonaws.com/ide'
-const JS_EXTENSION: Record<platformModule.Platform, string> = {
-    [platformModule.Platform.cloud]: '.js.gz',
-    [platformModule.Platform.desktop]: '.js',
+const JS_EXTENSION: Record<backendModule.BackendType, string> = {
+    [backendModule.BackendType.remote]: '.js.gz',
+    [backendModule.BackendType.local]: '.js',
 } as const
 
 // =================
 // === Component ===
 // =================
 
-interface Props {
+/** Props for an {@link Ide}. */
+export interface IdeProps {
     project: backendModule.Project
-    appRunner: AppRunner | null
+    appRunner: AppRunner
 }
 
-/** Container that launches the IDE. */
-function Ide(props: Props) {
+/** The ontainer that launches the IDE. */
+function Ide(props: IdeProps) {
     const { project, appRunner } = props
     const { backend } = backendProvider.useBackend()
 
@@ -59,23 +61,31 @@ function Ide(props: Props) {
                 throw new Error("Could not get the address of the project's binary endpoint.")
             } else {
                 const assetsRoot = (() => {
-                    switch (backend.platform) {
-                        case platformModule.Platform.cloud:
+                    switch (backend.type) {
+                        case backendModule.BackendType.remote:
                             return `${IDE_CDN_URL}/${ideVersion}/`
-                        case platformModule.Platform.desktop:
+                        case backendModule.BackendType.local:
                             return ''
                     }
                 })()
                 const runNewProject = async () => {
-                    await appRunner?.runApp({
+                    const engineConfig =
+                        backend.type === backendModule.BackendType.remote
+                            ? {
+                                  rpcUrl: jsonAddress,
+                                  dataUrl: binaryAddress,
+                              }
+                            : {
+                                  projectManagerUrl: GLOBAL_CONFIG.projectManagerEndpoint,
+                              }
+                    await appRunner.runApp({
                         loader: {
                             assetsUrl: `${assetsRoot}dynamic-assets`,
                             wasmUrl: `${assetsRoot}pkg-opt.wasm`,
-                            jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backend.platform]}`,
+                            jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backend.type]}`,
                         },
                         engine: {
-                            rpcUrl: jsonAddress,
-                            dataUrl: binaryAddress,
+                            ...engineConfig,
                             preferredVersion: engineVersion,
                         },
                         startup: {
@@ -83,11 +93,12 @@ function Ide(props: Props) {
                         },
                     })
                 }
-                if (backend.platform === platformModule.Platform.desktop) {
+                if (backend.type === backendModule.BackendType.local) {
                     await runNewProject()
                     return
                 } else {
                     const script = document.createElement('script')
+                    script.crossOrigin = 'anonymous'
                     script.src = `${IDE_CDN_URL}/${engineVersion}/index.js.gz`
                     script.onload = async () => {
                         document.body.removeChild(script)
@@ -101,6 +112,7 @@ function Ide(props: Props) {
                     }
                     document.body.appendChild(script)
                     const style = document.createElement('link')
+                    style.crossOrigin = 'anonymous'
                     style.rel = 'stylesheet'
                     style.href = `${IDE_CDN_URL}/${engineVersion}/style.css`
                     document.body.appendChild(style)

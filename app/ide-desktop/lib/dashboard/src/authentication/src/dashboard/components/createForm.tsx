@@ -9,6 +9,10 @@ import * as svg from '../../components/svg'
 
 import Modal from './modal'
 
+// ==================
+// === CreateForm ===
+// ==================
+
 /** The props that should also be in the wrapper component. */
 export interface CreateFormPassthroughProps {
     left: number
@@ -21,20 +25,21 @@ export interface CreateFormProps extends CreateFormPassthroughProps, react.Props
     onSubmit: (event: react.FormEvent) => Promise<void>
 }
 
+/** A form to create an element. */
 function CreateForm(props: CreateFormProps) {
-    const { title, left, top, children, onSubmit: wrapperOnSubmit } = props
+    const { title, left, top, children, onSubmit: innerOnSubmit } = props
     const { unsetModal } = modalProvider.useSetModal()
 
-    async function onSubmit(event: react.FormEvent) {
+    const onSubmit = async (event: react.FormEvent) => {
         event.preventDefault()
-        await wrapperOnSubmit(event)
+        await innerOnSubmit(event)
     }
 
     return (
         <Modal className="absolute overflow-hidden bg-opacity-25 w-full h-full top-0 left-0">
             <form
                 style={{ left, top }}
-                className="sticky bg-white shadow-soft rounded-lg w-60"
+                className="sticky bg-white shadow-soft rounded-lg w-64"
                 onSubmit={onSubmit}
                 onClick={event => {
                     event.stopPropagation()

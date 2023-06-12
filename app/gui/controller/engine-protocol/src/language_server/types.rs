@@ -216,7 +216,7 @@ pub struct ExpressionUpdate {
     pub expression_id:  ExpressionId,
     #[serde(rename = "type")] // To avoid collision with the `type` keyword.
     pub typename: Option<String>,
-    pub method_pointer: Option<MethodPointer>,
+    pub method_call:    Option<MethodCall>,
     pub profiling_info: Vec<ProfilingInfo>,
     pub from_cache:     bool,
     pub payload:        ExpressionUpdatePayload,
@@ -740,6 +740,16 @@ pub struct MethodPointer {
     pub name:            String,
 }
 
+/// A representation of a method call.
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MethodCall {
+    /// The method pointer of a call.
+    pub method_pointer:        MethodPointer,
+    /// Indexes of arguments that have not been applied to this method.
+    pub not_applied_arguments: Vec<usize>,
+}
+
 /// Used for entering a method. The first item on the execution context stack should always be
 /// an `ExplicitCall`.
 #[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1226,7 +1236,7 @@ pub mod test {
         ExpressionUpdate {
             expression_id:  id,
             typename:       Some(typename.into()),
-            method_pointer: None,
+            method_call:    None,
             profiling_info: default(),
             from_cache:     false,
             payload:        ExpressionUpdatePayload::Value { warnings: None },
@@ -1242,7 +1252,7 @@ pub mod test {
         ExpressionUpdate {
             expression_id:  id,
             typename:       None,
-            method_pointer: Some(method_pointer),
+            method_call:    Some(MethodCall { method_pointer, not_applied_arguments: vec![] }),
             profiling_info: default(),
             from_cache:     false,
             payload:        ExpressionUpdatePayload::Value { warnings: None },
@@ -1256,7 +1266,7 @@ pub mod test {
         ExpressionUpdate {
             expression_id:  id,
             typename:       None,
-            method_pointer: None,
+            method_call:    None,
             profiling_info: default(),
             from_cache:     false,
             payload:        ExpressionUpdatePayload::DataflowError { trace },
@@ -1274,7 +1284,7 @@ pub mod test {
         ExpressionUpdate {
             expression_id:  id,
             typename:       None,
-            method_pointer: None,
+            method_call:    None,
             profiling_info: default(),
             from_cache:     false,
             payload:        ExpressionUpdatePayload::Panic { trace, message },

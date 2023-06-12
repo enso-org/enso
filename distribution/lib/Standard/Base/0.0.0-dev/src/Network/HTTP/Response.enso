@@ -1,8 +1,25 @@
+import project.Any.Any
+import project.Data.Boolean.Boolean
 import project.Data.Json.JS_Object
+import project.Data.Numbers.Number
+import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Extensions
+import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Meta
+import project.Nothing.Nothing
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
 import project.Network.HTTP.Response_Body.Response_Body
+
+from project.System.File_Format import Auto_Detect, File_Format, format_types
+
+import project.Metadata.Widget
+from project.Metadata.Widget import Single_Choice
+from project.Metadata.Choice import Option
+import project.Metadata.Display
 
 polyglot java import org.enso.base.Http_Utils
 
@@ -30,6 +47,12 @@ type Response
         header_entries = Vector.from_polyglot_array (Http_Utils.get_headers self.internal_http_response.headers)
         header_entries.map e-> Header.new e.getKey e.getValue
 
+    ## Get the response content type.
+    content_type : Text | Nothing
+    content_type self =
+        content_type_optional = self.internal_http_response.headers.firstValue "Content-Type"
+        if content_type_optional.isPresent then content_type_optional.get else Nothing
+
     ## Get the response body.
 
        > Example
@@ -54,6 +77,46 @@ type Response
     code : HTTP_Status_Code
     code self = HTTP_Status_Code.Value self.internal_http_response.statusCode
 
+    ## ALIAS Parse
+       Uses the format to decode the body.
+       If using `Auto_Detect`, the content-type will be used to determine the
+       format.
+    @format decode_format_selector
+    decode : File_Format -> Any -> Any
+    decode self format=Auto_Detect ~if_unsupported=(Error.throw (Unsupported_Content_Type.Error self.content_type)) =
+        case format of
+            Auto_Detect ->
+                content_type = self.content_type
+                format = if content_type.is_nothing then Nothing else
+                    Auto_Detect.get_web_parser content_type (self.internal_http_response.uri.toString)
+                if format.is_nothing then if_unsupported else
+                    format.read_web self
+            _ ->
+                type_obj = Meta.type_of format
+                if can_decode type_obj then format.read_web self else
+                    Error.throw (Illegal_Argument.Error type_obj.to_text+" cannot be used to decode from the web.")
+
+    ## ALIAS Parse as Text
+       Decodes the body to a Text value.
+    @encoding Encoding.default_widget
+    decode_as_text : Encoding -> Text
+    decode_as_text self encoding=Encoding.utf_8 =
+        self.body.decode_as_text encoding
+
+    ## ALIAS Parse as JSON, Parse JSON
+       Decodes the body as JSON.
+
+       > Example
+         Convert a response from JSON.
+
+             import Standard.Examples
+
+             example_to_text = Examples.get_geo_data.decode_as_json
+    @encoding Encoding.default_widget
+    decode_as_json : Encoding -> JS_Object | Boolean | Number | Nothing | Text | Vector
+    decode_as_json self encoding=Encoding.utf_8 =
+        self.decode_as_text encoding . parse_json
+
     ## PRIVATE
        Convert to a JavaScript Object representing this Response.
 
@@ -69,3 +132,31 @@ type Response
         type_pair = ["type", "Response"]
         cons_pair = ["constructor", "Value"]
         JS_Object.from_pairs [type_pair, cons_pair, ["headers", self.headers], ["body", self.body], ["code", self.code]]
+
+## PRIVATE
+type Unsupported_Content_Type
+    ## PRIVATE
+       A type representing an unsupported content type.
+
+       Arguments:
+       - content_type: The content type that is unsupported.
+    Error (content_type : Text | Nothing)
+
+    ## PRIVATE
+       Convert the error to a human readable string.
+    to_display_text : Text
+    to_display_text self = case self.content_type of
+        Nothing -> "The response did not contain a content type."
+        _ : Text -> "The content type '" + self.content_type +"' cannot be automatically decoded."
+
+## PRIVATE
+can_decode : File_Format -> Boolean
+can_decode type = Meta.meta type . methods . contains "read_web"
+
+## PRIVATE
+   Selector for decoding from the web.
+decode_format_selector : Widget
+decode_format_selector =
+    all_types = [Auto_Detect] + (format_types.filter can_decode)
+    make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
+    Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (File_Format.constructor_code n)))

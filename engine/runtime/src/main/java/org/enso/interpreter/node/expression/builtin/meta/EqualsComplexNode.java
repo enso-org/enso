@@ -316,6 +316,7 @@ public abstract class EqualsComplexNode extends Node {
       @CachedLibrary("otherHashMap") InteropLibrary otherInterop,
       @CachedLibrary(limit = "5") InteropLibrary entriesInterop,
       @Cached EqualsNode equalsNode,
+      @Cached HostValueToEnsoNode keyToEnsoNode,
       @Cached HostValueToEnsoNode valueToEnsoNode) {
     try {
       int selfHashSize = (int) selfInterop.getHashSize(selfHashMap);
@@ -326,7 +327,7 @@ public abstract class EqualsComplexNode extends Node {
       Object selfEntriesIter = selfInterop.getHashEntriesIterator(selfHashMap);
       while (entriesInterop.hasIteratorNextElement(selfEntriesIter)) {
         Object selfKeyValue = entriesInterop.getIteratorNextElement(selfEntriesIter);
-        Object key = entriesInterop.readArrayElement(selfKeyValue, 0);
+        Object key = keyToEnsoNode.execute(entriesInterop.readArrayElement(selfKeyValue, 0));
         Object selfValue =
             valueToEnsoNode.execute(entriesInterop.readArrayElement(selfKeyValue, 1));
         if (otherInterop.isHashEntryExisting(otherHashMap, key)

@@ -1,21 +1,17 @@
 package org.enso.searcher.sql
 
-import java.util.UUID
+import org.enso.polyglot.runtime.Runtime.Api._
 import org.enso.polyglot.{ExportedSymbol, Suggestion}
-import org.enso.polyglot.runtime.Runtime.Api.{
-  ExportsAction,
-  ExportsUpdate,
-  SuggestionAction,
-  SuggestionUpdate,
-  SuggestionsDatabaseAction
-}
 import org.enso.searcher.data.QueryResult
 import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
 import slick.jdbc.SQLiteProfile.api._
 import slick.jdbc.meta.MTable
 import slick.relational.RelationalProfile
 
-import scala.collection.immutable.{HashMap, ListMap}
+import java.util.UUID
+
+import scala.collection.immutable.HashMap
+import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -682,15 +678,28 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
   private def insertAllQuery(
     suggestions: Iterable[Suggestion]
   ): DBIO[Seq[Long]] = {
-    val suggestionsMap =
-      suggestions.map(s => SuggestionRowUniqueIndex(s) -> s).to(ListMap)
-    val rows = suggestions.map(toSuggestionRow)
-    for {
-      _    <- Suggestions ++= rows
-      rows <- Suggestions.result
-    } yield {
-      val rowsMap = rows.map(r => SuggestionRowUniqueIndex(r) -> r.id.get).toMap
-      suggestionsMap.keys.map(rowsMap(_)).toSeq
+    val duplicatesBuilder = Vector.newBuilder[(Suggestion, Suggestion)]
+    val suggestionsMap: mutable.Map[SuggestionRowUniqueIndex, Suggestion] =
+      mutable.LinkedHashMap()
+    suggestions.foreach { suggestion =>
+      val idx = SuggestionRowUniqueIndex(suggestion)
+      suggestionsMap.put(idx, suggestion).foreach { duplicate =>
+        duplicatesBuilder.addOne((duplicate, suggestion))
+      }
+    }
+    val duplicates = duplicatesBuilder.result()
+    if (duplicates.isEmpty) {
+      val rows = suggestions.map(toSuggestionRow)
+      for {
+        _    <- Suggestions ++= rows
+        rows <- Suggestions.result
+      } yield {
+        val rowsMap =
+          rows.map(r => SuggestionRowUniqueIndex(r) -> r.id.get).toMap
+        suggestionsMap.keys.map(rowsMap(_)).toSeq
+      }
+    } else {
+      DBIO.failed(SqlSuggestionsRepo.UniqueConstraintViolatedError(duplicates))
     }
   }
 
@@ -735,8 +744,12 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
       .filterOpt(module) { case (row, value) =>
         row.scopeStartLine === ScopeColumn.EMPTY || row.module === value
       }
+      .filterIf(selfTypes.isEmpty) { row =>
+        row.kind =!= SuggestionKind.GETTER
+      }
       .filterIf(selfTypes.nonEmpty) { row =>
-        row.selfType.inSet(selfTypes)
+        row.selfType.inSet(selfTypes) &&
+        (row.kind =!= SuggestionKind.CONSTRUCTOR)
       }
       .filterOpt(returnType) { case (row, value) =>
         row.returnType === value
@@ -813,6 +826,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             _,
             returnType,
             doc,
+            _,
             reexport
           ) =>
         SuggestionRow(
@@ -833,7 +847,36 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           scopeEndOffset   = ScopeColumn.EMPTY,
           reexport         = reexport
         )
-      case Suggestion.Method(
+      case Suggestion.Getter(
+            expr,
+            module,
+            name,
+            _,
+            selfType,
+            returnType,
+            doc,
+            _,
+            reexport
+          ) =>
+        SuggestionRow(
+          id               = None,
+          externalIdLeast  = expr.map(_.getLeastSignificantBits),
+          externalIdMost   = expr.map(_.getMostSignificantBits),
+          kind             = SuggestionKind.GETTER,
+          module           = module,
+          name             = name,
+          selfType         = selfType,
+          returnType       = returnType,
+          parentType       = None,
+          isStatic         = false,
+          documentation    = doc,
+          scopeStartLine   = ScopeColumn.EMPTY,
+          scopeStartOffset = ScopeColumn.EMPTY,
+          scopeEndLine     = ScopeColumn.EMPTY,
+          scopeEndOffset   = ScopeColumn.EMPTY,
+          reexport         = reexport
+        )
+      case Suggestion.DefinedMethod(
             expr,
             module,
             name,
@@ -842,6 +885,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             returnType,
             isStatic,
             doc,
+            _,
             reexport
           ) =>
         SuggestionRow(
@@ -971,10 +1015,24 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           arguments     = Seq(),
           returnType    = suggestion.returnType,
           documentation = suggestion.documentation,
+          annotations   = Seq(),
+          reexport      = suggestion.reexport
+        )
+      case SuggestionKind.GETTER =>
+        Suggestion.Getter(
+          externalId =
+            toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
+          module        = suggestion.module,
+          name          = suggestion.name,
+          arguments     = Seq(),
+          selfType      = suggestion.selfType,
+          returnType    = suggestion.returnType,
+          documentation = suggestion.documentation,
+          annotations   = Seq(),
           reexport      = suggestion.reexport
         )
       case SuggestionKind.METHOD =>
-        Suggestion.Method(
+        Suggestion.DefinedMethod(
           externalId =
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
           module        = suggestion.module,
@@ -984,6 +1042,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           returnType    = suggestion.returnType,
           isStatic      = suggestion.isStatic,
           documentation = suggestion.documentation,
+          annotations   = Seq(),
           reexport      = suggestion.reexport
         )
       case SuggestionKind.CONVERSION =>
@@ -992,7 +1051,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
           module        = suggestion.module,
           arguments     = Seq(),
-          sourceType    = suggestion.selfType,
+          selfType      = suggestion.selfType,
           returnType    = suggestion.returnType,
           documentation = suggestion.documentation,
           reexport      = suggestion.reexport
@@ -1052,4 +1111,15 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
       m <- most
     } yield new UUID(m, l)
 
+}
+
+object SqlSuggestionsRepo {
+
+  /** An error indicating that the database unique constraint was violated.
+    *
+    * @param duplicates the entries that violate the unique constraint
+    */
+  final case class UniqueConstraintViolatedError(
+    duplicates: Seq[(Suggestion, Suggestion)]
+  ) extends Exception(s"Database unique constraint is violated [$duplicates].")
 }

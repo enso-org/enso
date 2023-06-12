@@ -9,7 +9,8 @@ import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table import Sort_Column, Data_Formatter, Value_Type, Auto
-from Standard.Table.Errors import Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type, Lossy_Conversion
+from Standard.Table.Errors import Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type, Conversion_Failure
+from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 
 import project.Connection.Connection.Connection
 import project.Data.SQL_Statement.SQL_Statement
@@ -45,7 +46,7 @@ type Column
        which they come. Combined expressions must come from the same context -
        they must both have the same filtering, grouping etc. rules applied to be
        able to be combined.
-    Value name:Text connection:Connection sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
+    Value name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
 
     ## PRIVATE
        ADVANCED
@@ -189,7 +190,8 @@ type Column
     count self =
         self.to_table.filter 0 Filter_Condition.Not_Nothing . row_count
 
-    ## Element-wise equality comparison.
+    ## ALIAS Equals
+       Element-wise equality comparison.
 
        Arguments:
        - other: The value to compare `self` against. If `other` is a column, the
@@ -231,6 +233,7 @@ type Column
 
        Returns a column with results of comparing this column's elements against
        `other`.
+    @locale Locale.default_widget
     equals_ignore_case : Column | Any -> Locale -> Column
     equals_ignore_case self other locale=Locale.default =
         Value_Type.expect_text self <|
@@ -239,7 +242,8 @@ type Column
                     new_name = self.naming_helpers.function_name "equals_ignore_case" [self, other]
                     self.make_binary_op "equals_ignore_case" other new_name
 
-    ## Element-wise non-equality comparison.
+    ## ALIAS Not Equals
+       Element-wise non-equality comparison.
 
        Arguments:
        - other: The value to compare `self` against. If `other` is a column, the
@@ -272,8 +276,7 @@ type Column
     != self other =
         make_equality_check_with_floating_point_handling self other "!="
 
-    ## UNSTABLE
-
+    ## ALIAS Greater Than Or Equal
        Element-wise order comparison.
 
        Arguments:
@@ -286,8 +289,7 @@ type Column
     >= self other = Value_Type.expect_comparable self other <|
         self.make_binary_op ">=" other
 
-    ## UNSTABLE
-
+    ## ALIAS Less Than Or Equal
        Element-wise order comparison.
 
        Arguments:
@@ -300,8 +302,7 @@ type Column
     <= self other = Value_Type.expect_comparable self other <|
         self.make_binary_op "<=" other
 
-    ## UNSTABLE
-
+    ## ALIAS Greater Than
        Element-wise order comparison.
 
        Arguments:
@@ -314,8 +315,7 @@ type Column
     > self other = Value_Type.expect_comparable self other <|
         self.make_binary_op ">" other
 
-    ## UNSTABLE
-
+    ## ALIAS Less Than
        Element-wise order comparison.
 
        Arguments:
@@ -347,8 +347,7 @@ type Column
                 new_name = self.naming_helpers.to_expression_text self + " between " + self.naming_helpers.to_expression_text lower + " and " + self.naming_helpers.to_expression_text upper
                 self.make_op "BETWEEN" [lower, upper] new_name
 
-    ## UNSTABLE
-
+    ## ALIAS Add, Plus, Concatenate
        Element-wise addition.
 
        Arguments:
@@ -364,8 +363,7 @@ type Column
             new_name = self.naming_helpers.binary_operation_name "+" self other
             self.make_binary_op op other new_name
 
-    ## UNSTABLE
-
+    ## ALIAS Subtract, Minus
        Element-wise subtraction.
 
        Arguments:
@@ -379,8 +377,7 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op "-" other
 
-    ## UNSTABLE
-
+    ## ALIAS Multiply, Times, Product
        Element-wise multiplication.
 
        Arguments:
@@ -394,8 +391,7 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op "*" other
 
-    ## ALIAS Divide Columns
-
+    ## ALIAS Divide
        Element-wise division.
 
        Arguments:
@@ -429,7 +425,8 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op "/" other
 
-    ## Element-wise modulus.
+    ## ALIAS Modulus, Modulo
+       Element-wise modulus.
 
        Arguments:
        - other: The value to modulo `self` against. If `other` is a column, the
@@ -467,7 +464,6 @@ type Column
             self.make_binary_op op other new_name
 
     ## ALIAS Power
-
        Element-wise raising to the power.
 
        Arguments:
@@ -496,8 +492,7 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op '^' other
 
-    ## UNSTABLE
-
+    ## ALIAS And
        Element-wise boolean conjunction.
 
        Arguments:
@@ -513,8 +508,7 @@ type Column
             new_name = self.naming_helpers.binary_operation_name "&&" self other
             self.make_binary_op "AND" other new_name
 
-    ## UNSTABLE
-
+    ## ALIAS Or
        Element-wise boolean disjunction.
 
        Arguments:
@@ -555,6 +549,27 @@ type Column
                 new_name = "if " + self.naming_helpers.to_expression_text self + " then " + self.naming_helpers.to_expression_text when_true + " else " + self.naming_helpers.to_expression_text when_false
                 op_result = self.make_op "IIF" [when_true, when_false] new_name
                 adapt_unified_column op_result common_type
+
+    ## Rounding values is not supported in database columns.
+    round : Integer -> Boolean -> Problem_Behavior -> Column | Illegal_Argument | Invalid_Value_Type
+    round self decimal_places=0 use_bankers=False on_problems=Report_Warning =
+        _ = [decimal_places, use_bankers, on_problems]
+        Error.throw <| Unsupported_Database_Operation.Error "`Column.round` is not implemented yet for the Database backends."
+
+    ## Truncating values is not supported in database columns.
+    truncate : Column ! Invalid_Value_Type
+    truncate self =
+        Error.throw <| Unsupported_Database_Operation.Error "`Column.truncate` is not implemented yet for the Database backends."
+
+    ## Taking the ceiling of values is not supported in database columns.
+    ceil : Column ! Invalid_Value_Type
+    ceil self =
+        Error.throw <| Unsupported_Database_Operation.Error "`Column.ceil` is not implemented yet for the Database backends."
+
+    ## Taking the floor of values is not supported in database columns.
+    floor : Column ! Invalid_Value_Type
+    floor self =
+        Error.throw <| Unsupported_Database_Operation.Error "`Column.floor` is not implemented yet for the Database backends."
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
@@ -677,8 +692,7 @@ type Column
             False -> is_blank
         result.rename new_name
 
-    ## UNSTABLE
-
+    ## ALIAS if_nothing
        Returns a new column where missing values have been replaced with the
        provided default.
     fill_nothing : Column | Any -> Column
@@ -689,8 +703,7 @@ type Column
             op_result = self.make_binary_op "FILL_NULL" default new_name
             adapt_unified_column op_result common_type
 
-    ## ALIAS Fill Empty
-
+    ## ALIAS if_empty
        Returns a new column where empty Text values have been replaced with the
        provided default.
 
@@ -722,8 +735,7 @@ type Column
     rename self name = self.naming_helpers.ensure_name_is_valid name <|
         Column.Value name self.connection self.sql_type_reference self.expression self.context
 
-    ## UNSTABLE
-
+    ## ALIAS order_by
        Sorts the column according to the specified rules.
 
        Arguments:
@@ -742,7 +754,7 @@ type Column
              column.sort Sort_Direction.Descending
     sort : Sort_Direction -> Column
     sort self order=Sort_Direction.Ascending =
-        self.to_table.order_by (Sort_Column.Index 0 order) . at 0
+        self.to_table.order_by [Sort_Column.Index 0 order] . at 0
 
     ## UNSTABLE
        Creates a new Column with the specified range of rows from the input
@@ -989,30 +1001,69 @@ type Column
                     Error.throw (Illegal_State.Error "The dialect "+self.connection.dialect.name+" does not support a boolean type. The implementation of `is_in` should be revised to account for this. This is an internal issue with the Database library.")
                 Column.Value new_name self.connection new_type_ref new_expr self.context
 
-    ## Parsing values is not supported in database columns.
-    @type Widget_Helpers.parse_type_selector
-    parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
-    parse self type=Auto format=Data_Formatter.Value on_problems=Report_Warning =
-        _ = [type, format, on_problems]
-        Error.throw <| Unsupported_Database_Operation.Error "`Column.parse` is not implemented yet for the Database backends."
+    ## Parses a text column into values.
+
+       In the Database backends, the default formatting settings of the
+       particular database are used.
+
+       In the in-memory backend, the default parser options only parse values
+       where the process is reversible (e.g., 0123 would not be converted to an
+       integer as there is a leading 0). However, settings in the
+       `Data_Formatter` can control this.
+
+       Arguments:
+       - type: The type to parse the column to. Defaults to `Auto` meaning that
+         the type will be inferred from the data. In the Database backends,
+         `Auto` is not supported, so a specific type must be selected.
+       - format: The formatting settings to use when parsing the column.
+         For `Date`, `Time_Of_Day` and `Date_Time`, a Java date time style
+         can be used. For `Boolean`, it should be two values that represent true
+         and false, separated by a `|`. Alternatively, a `Data_Formatter` can be
+         passed to provide complete customisation of the formatting. If
+         `Nothing` is provided, the default formatting settings of the backend
+         will be used. `Nothing` is currently the only setting accepted by the
+         Database backends.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
+
+       ! Error Conditions
+
+         - If the column is not a text column, an `Invalid_Value_Type` error is
+           raised.
+         - If some values in the column did not match the expected datatype
+           format, an `Invalid_Format` problem is reported. The problematic
+           cells are replaced with `Nothing`.
+         - If custom formatting settings were provided, but the database backend
+           does not support customization, an `Unsupported_Database_Operation`
+           error is reported.
+    @type (Widget_Helpers.parse_type_selector include_auto=False)
+    parse : Value_Type | Auto -> Text | Data_Formatter | Nothing -> Problem_Behavior -> Column
+    parse self type format=Nothing on_problems=Report_Warning =
+        check_parameters =
+            if type == Auto then Error.throw (Unsupported_Database_Operation.Error "The `Auto` parse type is not supported by the Database backend. Either pick a specific type or materialize the table to memory using `.read`.") else
+                case format of
+                    Nothing -> Nothing
+                    _ -> Error.throw (Unsupported_Database_Operation.Error "Custom formatting is not supported by the Database backend. Please set the format to `Nothing` to indicate that the default Database settings can be used, or if custom formatting is needed, materialize the table to memory using `.read` first.")
+        check_parameters.if_not_error <|
+            Value_Type.expect_text self <|
+                ## In the future we may have some specific logic, for example
+                   allowing to support formatting settings. For now, the
+                   Database parse just boils down to a simple CAST.
+                self.internal_do_cast type on_problems
 
     ## Formatting values is not supported in database columns.
+    @locale Locale.default_widget
     format : Text | Column -> Locale -> Column ! Illegal_Argument
     format self format=Nothing locale=Locale.default =
         _ = [format, locale]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.format` is not implemented yet for the Database backends."
 
-    ## PRIVATE
-       UNSTABLE
-       Cast the column to a specific type.
+    ## Cast the column to a specific type.
 
        Arguments:
        - value_type: The `Value_Type` to cast the column to.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
-
-       TODO [RW] this is a prototype needed for debugging, proper implementation
-       and testing will come with #6112.
 
        In the Database backend, this will boil down to a CAST operation.
        In the in-memory backend, a conversion will be performed according to
@@ -1024,6 +1075,9 @@ type Column
          length.
        - Conversion between numeric types will replace values exceeding the
          range of the target type with `Nothing`.
+       - Converting decimal numbers into integers will truncate or round them,
+         depending on the backend. If more control is needed, use the various
+         rounding functions (such as `round` or `floor`).
        - Booleans may also be converted to numbers, with `True` being converted
          to `1` and `False` to `0`. The reverse is not supported - use `iif`
          instead.
@@ -1031,25 +1085,34 @@ type Column
          resulting value will be truncated to the desired type.
        - If a `Date` is to be converted to `Date_Time`, it will be set at
          midnight of the default system timezone.
+       - For a `Mixed` column being converted into a specific type, each row is
+         converted individually.
 
-       ? Conversion Precision
-
-         In the in-memory backend, if the conversion is lossy, a
-         `Lossy_Conversion` warning will be reported. The only exception is when
-         truncating a column which is already a text column - as then the
-         truncation seems like an intended behaviour, so it is not reported. If
-         truncating needs to occur when converting a non-text column, a warning
-         will still be reported.
-
-         Currently, the warning is not reported for Database backends.
+        If the target type cannot fit some of the values (for example due to too
+        small range), a `Conversion_Failure` may be reported according to the
+        `on_problems` rules. The Database backends may fail with `SQL_Error`
+        instead.
 
        ? Inexact Target Type
 
          If the backend does not support the requested target type, the closest
          supported type is chosen and a `Inexact_Type_Coercion` problem is
          reported.
-    cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument | Inexact_Type_Coercion | Lossy_Conversion
-    cast self value_type=self.value_type on_problems=Problem_Behavior.Report_Warning =
+
+       ! Casting Text values
+
+         The `parse` method should be used to convert text values into other
+         types. Due to this, a Mixed column containing values `[2, "3"]` will
+         actually be converted into `[2, Nothing]` when casting to Integer type.
+    cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
+    cast self value_type on_problems=Problem_Behavior.Report_Warning =
+        check_cast_compatibility self.value_type value_type <|
+            self.internal_do_cast value_type on_problems
+
+    ## PRIVATE
+       Shares the core CAST logic between `cast` and `parse`.
+    internal_do_cast : Value_Type -> Problem_Behavior -> Column
+    internal_do_cast self value_type on_problems =
         dialect = self.connection.dialect
         type_mapping = dialect.get_type_mapping
         target_sql_type = type_mapping.value_type_to_sql value_type on_problems

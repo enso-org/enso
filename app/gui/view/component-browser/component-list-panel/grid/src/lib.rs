@@ -141,23 +141,28 @@ pub struct EntryModel {
 ensogl_core::define_endpoints_2! {
     Input {
         reset(content::Info),
+        select_first_entry(),
         model_for_header(GroupId, HeaderModel),
         model_for_entry(GroupEntryId, EntryModel),
         switch_section(SectionId),
         switch_section_no_animation(SectionId),
+        /// Accept suggestion and continue editing.
         accept_suggestion(),
+        /// Accept current input as expression, ignoring any active suggestion.
+        accept_current_input_expression(),
         jump_group_up(),
         jump_group_down(),
         unhover_element(),
     }
     Output {
         active(Option<ElementId>),
+        is_active(bool),
         active_section(Option<SectionId>),
         hovered(Option<ElementId>),
         model_for_header_needed(GroupId),
         model_for_entry_needed(GroupEntryId),
         suggestion_accepted(GroupEntryId),
-        expression_accepted(GroupEntryId),
+        expression_accepted(Option<GroupEntryId>),
         module_entered(ElementId),
     }
 }
@@ -473,13 +478,26 @@ impl Model {
         }
     }
 
-    fn entry_to_select_after_reset(&self, info: &content::Info) -> Option<(Row, Col)> {
-        let top_module_sections = (0..info.namespace_section_count).map(SectionId::Namespace);
-        let sections = iter::once(SectionId::Popular)
-            .chain(top_module_sections)
-            .chain(iter::once(SectionId::LocalScope));
-        let pick_location = |s: SectionId| self.entry_to_select_when_switching_to_section(s);
-        sections.filter_map(pick_location).next()
+    fn first_entry_to_select(&self, info: &content::Info) -> Option<(Row, Col)> {
+        match info.best_match {
+            Some(id) => self.layout.borrow().location_of_element(id.into()),
+            None => {
+                let top_module_sections =
+                    (0..info.namespace_section_count).map(SectionId::Namespace);
+                let sections = if info.displaying_module_content {
+                    iter::once(SectionId::LocalScope)
+                        .chain(top_module_sections)
+                        .chain(iter::once(SectionId::Popular))
+                } else {
+                    iter::once(SectionId::Popular)
+                        .chain(top_module_sections)
+                        .chain(iter::once(SectionId::LocalScope))
+                };
+                let pick_location =
+                    |s: SectionId| self.entry_to_select_when_switching_to_section(s);
+                sections.filter_map(pick_location).next()
+            }
+        }
     }
 
     fn selection_after_jump_group_up(
@@ -610,6 +628,7 @@ impl component::Frp<Model> for Frp {
             out.active <+ grid.entry_selected.map(f!((loc)
                 model.location_to_element_id(loc.as_ref()?)
             ));
+            out.is_active <+ out.active.is_some();
             out.active_section <+ out.active.map(|&e| Some(e?.group.section)).on_change();
             out.hovered <+ grid.entry_hovered.map(f!((loc)
                 model.location_to_element_id(loc.as_ref()?)
@@ -621,7 +640,8 @@ impl component::Frp<Model> for Frp {
 
             action <- grid.entry_accepted.filter_map(f!((loc) model.action_after_accepting_entry(loc)));
             out.module_entered <+ action.filter_map(|m| m.enter_module());
-            out.expression_accepted <+ action.filter_map(|e| e.accept());
+            out.expression_accepted <+ action.filter_map(|e| e.accept()).some();
+            out.expression_accepted <+ input.accept_current_input_expression.constant(None);
             element_on_suggestion_accept <- out.active.sample(&input.accept_suggestion);
             out.suggestion_accepted <+ element_on_suggestion_accept.filter_map(|&e| e?.as_entry_id());
 
@@ -687,6 +707,17 @@ impl component::Frp<Model> for Frp {
                 grid.model_for_entry_needed.filter_map(f!((loc) model.location_to_entry_id(loc)));
 
 
+            // === Initial Selection ===
+
+            grid.select_entry <+ input.reset.constant(None);
+            first_entry_to_select <- input.reset.map(
+                f!((info) model.first_entry_to_select(info))
+            );
+            grid_extra_scroll_frp.jump_to_entry <+ first_entry_to_select.filter_map(|e| *e);
+            grid.select_entry <+ first_entry_to_select.sample(&input.select_first_entry);
+            grid_selection_frp.skip_animations <+ input.reset.constant(());
+
+
             // === Scrolling and Jumping to Section ===
 
             grid_extra_scroll_frp.set_preferred_margins_around_entry <+ all_with(
@@ -694,12 +725,7 @@ impl component::Frp<Model> for Frp {
                 &style.update,
                 f!((section, style) model.navigation_scroll_margins(*section, style))
             );
-            select_after_reset <- input.reset.map(
-                f!((info) model.entry_to_select_after_reset(info))
-            );
-            grid_extra_scroll_frp.select_and_jump_to_entry <+ select_after_reset.filter_map(|e| *e);
-            grid.select_entry <+ select_after_reset.filter(|e| e.is_none()).constant(None);
-            grid_selection_frp.skip_animations <+ input.reset.constant(());
+
             grid_extra_scroll_frp.select_and_scroll_to_entry <+ input.switch_section.filter_map(
                 f!((section) model.entry_to_select_when_switching_to_section(*section))
             );
@@ -727,9 +753,8 @@ impl component::Frp<Model> for Frp {
 
             // === Focus propagation ===
 
-            grid.deprecated_focus <+ input.deprecated_focus;
-            grid.deprecated_defocus <+ input.deprecated_defocus;
-            grid.deprecated_set_focus <+ input.deprecated_set_focus;
+            // The underlying grid should handle keyboard events only when any element is active.
+            grid.deprecated_set_focus <+ out.focused && out.is_active;
         }
 
         // Set the proper number of columns so we can set column widths.
@@ -743,12 +768,17 @@ impl component::Frp<Model> for Frp {
     fn default_shortcuts() -> Vec<Shortcut> {
         use ensogl_core::application::shortcut::ActionType::*;
         [
-            (Press, "tab", "accept_suggestion"),
-            (Press, "cmd up", "jump_group_up"),
-            (Press, "cmd down", "jump_group_down"),
+            (Press, "is_active", "tab", "accept_suggestion"),
+            // The shortcut for accepting expression with active suggestion is handled by
+            // underlying Grid View.
+            (Press, "!is_active", "enter", "accept_current_input_expression"),
+            (Press, "", "cmd enter", "accept_current_input_expression"),
+            (Press, "", "cmd up", "jump_group_up"),
+            (Press, "", "cmd down", "jump_group_down"),
+            (Press, "!is_active", "up", "select_first_entry"),
         ]
         .iter()
-        .map(|(a, b, c)| View::self_shortcut(*a, *b, *c))
+        .map(|(a, b, c, d)| View::self_shortcut_when(*a, *c, *d, *b))
         .collect()
     }
 }

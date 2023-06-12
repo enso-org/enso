@@ -419,21 +419,30 @@ impl Entry {
     }
 
     /// Returns the code which is inserted by picking this entry as suggestion.
-    pub fn code_to_insert(&self, generate_this: bool) -> Cow<str> {
+    pub fn code_to_insert(&self, generate_this: bool, in_module: QualifiedNameRef) -> Cow<str> {
         match self.kind {
-            Kind::Method if generate_this && self.is_static => self.code_with_static_this().into(),
+            Kind::Method if generate_this && self.is_static =>
+                self.code_with_static_this(in_module).into(),
             Kind::Method if generate_this =>
                 format!("_{}{}", opr::predefined::ACCESS, self.name).into(),
-            Kind::Constructor => self.code_with_static_this().into(),
+            Kind::Constructor => self.code_with_static_this(in_module).into(),
             Kind::Module => self.defined_in.alias_name().as_str().into(),
-            _ => Cow::from(&self.name),
+            Kind::Method | Kind::Type | Kind::Local | Kind::Function => Cow::from(&self.name),
         }
     }
 
-    fn code_with_static_this(&self) -> String {
+    fn code_with_static_this(&self, in_module: QualifiedNameRef) -> String {
         if let Some(self_type) = &self.self_type {
-            format!("{}{}{}", self_type.alias_name(), opr::predefined::ACCESS, self.name)
+            // If we're referencing a static method from the same main module, use `Main` instead
+            // of the project name to be a bit more robust against project name changes.
+            let self_name = if in_module.is_main_module() && *self_type == in_module {
+                self_type.name()
+            } else {
+                self_type.alias_name()
+            };
+            format!("{}{}{}", self_name, opr::predefined::ACCESS, self.name)
         } else {
+            error!("Static method or constructor didn't have a self type defined.");
             format!("_{}{}", opr::predefined::ACCESS, self.name)
         }
     }
@@ -460,9 +469,17 @@ impl Entry {
                         }
                     })
                 });
-                let self_type_import = self
-                    .is_static
-                    .and_option_from(|| self_type_entry.map(|e| e.required_imports(db, in_module)));
+                let self_type_import = self.is_static.and_option_from(|| {
+                    self_type_entry.map(|self_type_entry| {
+                        if self_type_entry.qualified_name() == in_module
+                            && in_module.is_main_module()
+                        {
+                            default()
+                        } else {
+                            self_type_entry.required_imports(db, in_module)
+                        }
+                    })
+                });
                 extension_method_import
                     .into_iter()
                     .chain(self_type_import.into_iter())
@@ -475,7 +492,6 @@ impl Entry {
                 .into_iter()
                 .flatten()
                 .collect(),
-            Kind::Type if defined_in_same_module => default(),
             Kind::Module => {
                 let import = if let Some(reexport) = &self.reexported_in {
                     Import::Unqualified {
@@ -487,6 +503,7 @@ impl Entry {
                 };
                 iter::once(import).collect()
             }
+            Kind::Type if defined_in_same_module => default(),
             Kind::Type => {
                 let imported_from = self.reexported_in.as_ref().unwrap_or(&self.defined_in);
                 iter::once(Import::Unqualified {
@@ -555,11 +572,10 @@ impl Entry {
             .iter()
             .map(|arg| to_span_tree_param(arg, suggestion_db, parser))
             .collect();
-        let is_static = self.is_static;
-        let is_constructor = matches!(self.kind, Kind::Constructor);
         span_tree::generate::context::CalledMethodInfo {
-            is_static,
-            is_constructor,
+            is_static: self.is_static,
+            is_constructor: matches!(self.kind, Kind::Constructor),
+            icon_name: self.icon_name.as_ref().map(|n| n.to_pascal_case()),
             parameters,
             ..default()
         }
@@ -850,7 +866,8 @@ pub fn to_span_tree_param(
     db: &SuggestionDatabase,
     parser: &parser::Parser,
 ) -> span_tree::ArgumentInfo {
-    let tag_values = argument_tag_values(&param_info.tag_values, db, parser);
+    let tag_values =
+        argument_tag_values(param_info.tag_values.iter().map(|s| s.as_str()), db, parser);
     span_tree::ArgumentInfo {
         // TODO [mwu] Check if database actually do must always have both of these filled.
         name: Some(param_info.name.clone()),
@@ -871,19 +888,15 @@ fn resolve_tag_value<'a>(
     db: &SuggestionDatabase,
     parser: &parser::Parser,
 ) -> TagValueResolution<'a> {
-    let qualified_name = QualifiedName::from_text(raw_expression).ok();
-    if let Some(mut qualified_name) = qualified_name {
-        let entry = db.lookup_by_qualified_name(&qualified_name).or_else(move || {
-            // Second try at lookup. Enum values usually have the module and type name deduplicated,
-            // but the resolution database does not take that into account. So we need to manually
-            // expand the name and try again.
-            let last_segment = qualified_name.pop_segment()?;
-            let segment_to_duplicate = qualified_name.pop_segment()?;
-            qualified_name.push_segment(segment_to_duplicate.clone());
-            qualified_name.push_segment(segment_to_duplicate);
-            qualified_name.push_segment(last_segment);
-            db.lookup_by_qualified_name(&qualified_name)
-        });
+    let stripped_expr = raw_expression.trim_start_matches(['(', ' ']).trim_end_matches([')', ' ']);
+    let qualified_name = QualifiedName::from_text(stripped_expr).ok();
+    if let Some(qualified_name) = qualified_name {
+        let entry = db.lookup_by_qualified_name(&qualified_name);
+
+        // If a lookup of a fully qualified name have failed, the name is likely not actually fully
+        // qualified. Try to resolve it as partially qualified, ignoring potential ambiguity. Only
+        // first match in the database is considered.
+        let entry = entry.or_else(|| db.find_public_entry_by_partial_name(stripped_expr));
 
         let resolved = entry.and_then(|(_, entry)| {
             let qualified_name: String = entry.qualified_name().to_string();
@@ -898,7 +911,7 @@ fn resolve_tag_value<'a>(
     }
 
     let chain =
-        parser.parse_line_ast(raw_expression).ok().and_then(|ast| ast::opr::as_access_chain(&ast));
+        parser.parse_line_ast(stripped_expr).ok().and_then(|ast| ast::opr::as_access_chain(&ast));
     if let Some(chain) = chain {
         return TagValueResolution::Parsed(chain);
     }
@@ -907,56 +920,19 @@ fn resolve_tag_value<'a>(
 }
 
 /// Generate tag value suggestion list from argument entry data, shortening labels as appropriate.
-pub fn argument_tag_values(
-    raw_expressions: &[String],
+pub fn argument_tag_values<'a, E>(
+    raw_expressions: E,
     db: &SuggestionDatabase,
     parser: &parser::Parser,
-) -> Vec<span_tree::TagValue> {
-    let resolved = raw_expressions.iter().map(|e| resolve_tag_value(e, db, parser)).collect_vec();
-    let mut only_access_chains_iter = resolved.iter().filter_map(|r| match r {
-        TagValueResolution::Resolved(_, chain) => Some(chain),
-        TagValueResolution::Parsed(chain) => Some(chain),
-        _ => None,
-    });
-
-    // Gather a list of expression reprs from first access chain. Includes each infix element
-    // that can be considered for removal.
-    let operands: Option<Vec<String>> = only_access_chains_iter.next().map(|chain| {
-        let mut operands = chain
-            .enumerate_operands()
-            .map(|operand| operand.map_or_default(|op| op.arg.repr()))
-            .collect_vec();
-        // Pop last chain element, as we never want to strip it from the label.
-        let last = operands.pop();
-
-        // If the last chain element is a "Value" literal, we want to preserve one extra chain
-        // element before it.
-        if last.map_or(false, |last| last == "Value") {
-            operands.pop();
-        }
-        operands
-    });
-
-    // Find the number of operands that are common for all access chains.
-    let common_operands_count: usize = operands.map_or(0, |common_operands| {
-        only_access_chains_iter.fold(common_operands.len(), |common_so_far, chain| {
-            let operand_reprs =
-                chain.enumerate_operands().map(|op| op.map_or_default(|op| op.arg.repr()));
-            operand_reprs
-                .zip(&common_operands[0..common_so_far])
-                .take_while(|(repr, common_repr)| repr == *common_repr)
-                .count()
-        })
-    });
+) -> Vec<span_tree::TagValue>
+where
+    E: IntoIterator<Item = &'a str>,
+{
+    let resolved =
+        raw_expressions.into_iter().map(|e| resolve_tag_value(e, db, parser)).collect_vec();
 
     let chain_to_label = move |chain: &ast::opr::Chain| {
-        if common_operands_count > 0 {
-            let mut chain = chain.clone();
-            chain.erase_leading_operands(common_operands_count);
-            Some(chain.into_ast().repr())
-        } else {
-            None
-        }
+        chain.last_operand().map_or_default(|op| op.arg.repr()).replace('_', " ")
     };
 
     resolved
@@ -978,13 +954,12 @@ pub fn argument_tag_values(
                 let expression =
                     if entry.arguments.is_empty() { expression } else { format!("({expression})") };
 
-                span_tree::TagValue { required_import, expression, label }
+                span_tree::TagValue { required_import, expression, label: Some(label) }
             }
             TagValueResolution::Parsed(chain) => {
                 let label = chain_to_label(&chain);
                 let expression = chain.into_ast().repr();
-
-                span_tree::TagValue { required_import: None, expression, label }
+                span_tree::TagValue { required_import: None, expression, label: Some(label) }
             }
             TagValueResolution::Unresolved(expression) => span_tree::TagValue {
                 required_import: None,
@@ -1038,9 +1013,11 @@ mod test {
     use enso_text::Utf16CodeUnit;
 
     #[test]
-    fn code_from_entry() {
+    fn code_to_insert() {
         let module_name: QualifiedName = "local.Project.Module".try_into().unwrap();
         let main_module_name: QualifiedName = "local.Project.Main".try_into().unwrap();
+        let other_project_module_name: QualifiedName =
+            "local.OtherProject.Module".try_into().unwrap();
         let tp_name: QualifiedName = "local.Project.Test_Type".try_into().unwrap();
         let return_type: QualifiedName = "Standard.Base.Number".try_into().unwrap();
         let scope = Location { line: Line(3), offset: Utf16CodeUnit(0) }..=Location {
@@ -1067,34 +1044,62 @@ mod test {
             scope.clone(),
         );
         let local = Entry::new_local(module_name.clone(), "local", return_type, scope);
-        let module = Entry::new_module(module_name);
-        let main_module = Entry::new_module(main_module_name);
+        let module = Entry::new_module(module_name.clone());
+        let main_module = Entry::new_module(main_module_name.clone());
 
-        for generate_this in [true, false] {
-            assert_eq!(tp.code_to_insert(generate_this), "Type");
-            assert_eq!(function.code_to_insert(generate_this), "function");
-            assert_eq!(local.code_to_insert(generate_this), "local");
-            assert_eq!(module.code_to_insert(generate_this), "Module");
-            assert_eq!(main_module.code_to_insert(generate_this), "Project");
-            assert_eq!(constructor.code_to_insert(generate_this), "Test_Type.Constructor");
+        for in_module in [&module_name, &main_module_name, &other_project_module_name] {
+            for generate_this in [true, false] {
+                assert_eq!(tp.code_to_insert(generate_this, in_module.as_ref()), "Type");
+                assert_eq!(function.code_to_insert(generate_this, in_module.as_ref()), "function");
+                assert_eq!(local.code_to_insert(generate_this, in_module.as_ref()), "local");
+                assert_eq!(module.code_to_insert(generate_this, in_module.as_ref()), "Module");
+                assert_eq!(
+                    main_module.code_to_insert(generate_this, in_module.as_ref()),
+                    "Project"
+                );
+                assert_eq!(
+                    constructor.code_to_insert(generate_this, in_module.as_ref()),
+                    "Test_Type.Constructor"
+                );
+            }
+            assert_eq!(method.code_to_insert(false, in_module.as_ref()), "method");
+            assert_eq!(method.code_to_insert(true, in_module.as_ref()), "_.method");
+            assert_eq!(static_method.code_to_insert(false, in_module.as_ref()), "static_method");
+            assert_eq!(
+                static_method.code_to_insert(true, in_module.as_ref()),
+                "Test_Type.static_method"
+            );
+            assert_eq!(module_method.code_to_insert(false, in_module.as_ref()), "module_method");
+            assert_eq!(
+                module_method.code_to_insert(true, in_module.as_ref()),
+                "Module.module_method"
+            );
+            assert_eq!(
+                main_module_method.code_to_insert(false, in_module.as_ref()),
+                "module_method"
+            );
         }
-        assert_eq!(method.code_to_insert(false), "method");
-        assert_eq!(method.code_to_insert(true), "_.method");
-        assert_eq!(static_method.code_to_insert(false), "static_method");
-        assert_eq!(static_method.code_to_insert(true), "Test_Type.static_method");
-        assert_eq!(module_method.code_to_insert(false), "module_method");
-        assert_eq!(module_method.code_to_insert(true), "Module.module_method");
-        assert_eq!(main_module_method.code_to_insert(false), "module_method");
-        assert_eq!(main_module_method.code_to_insert(true), "Project.module_method");
+        assert_eq!(
+            main_module_method.code_to_insert(true, module_name.as_ref()),
+            "Project.module_method"
+        );
+        assert_eq!(
+            main_module_method.code_to_insert(true, main_module_name.as_ref()),
+            "Main.module_method"
+        );
+        assert_eq!(
+            main_module_method.code_to_insert(true, other_project_module_name.as_ref()),
+            "Project.module_method"
+        );
     }
 
     #[test]
     fn required_imports_of_entry() {
         let db = mock::standard_db_mock();
-        const CURRENT_MODULE_VARIANTS: [&str; 2] =
-            ["local.Project.Submodule", "local.Another_Project"];
-        let current_modules =
-            CURRENT_MODULE_VARIANTS.map(|txt| QualifiedName::try_from(txt).unwrap());
+
+        let in_submodule = QualifiedName::try_from("local.Project.Submodule").unwrap();
+        let in_other_project = QualifiedName::try_from("local.Another_Project").unwrap();
+        let in_main_module = QualifiedName::try_from("local.Project.Main").unwrap();
 
         let expect_imports = |entry: &Entry, current_module: &QualifiedName, expected: &[&str]| {
             let entry_imports = entry.required_imports(&db, current_module.as_ref()).into_iter();
@@ -1117,6 +1122,8 @@ mod test {
         let module_method =
             db.lookup_by_qualified_name_str("local.Project.Submodule.module_method").unwrap();
         let submodule = db.lookup_by_qualified_name_str("local.Project.Submodule").unwrap();
+        let main_module_method =
+            db.lookup_by_qualified_name_str("local.Project.main_module_method").unwrap();
 
         let defined_in = "local.Project.Submodule".try_into().unwrap();
         let on_type = "Standard.Base.Number".try_into().unwrap();
@@ -1124,29 +1131,40 @@ mod test {
         let extension_method =
             Rc::new(Entry::new_method(defined_in, on_type, "extension_method", return_type, true));
 
-        for cm in &current_modules {
-            expect_imports(&number, cm, &["from Standard.Base import Number"]);
-            expect_imports(&some, cm, &["from Standard.Base import Maybe"]);
-            expect_no_import(&method, cm);
+        for in_module in [&in_submodule, &in_other_project, &in_main_module] {
+            expect_imports(&number, in_module, &["from Standard.Base import Number"]);
+            expect_imports(&some, in_module, &["from Standard.Base import Maybe"]);
+            expect_no_import(&method, in_module);
         }
 
-        expect_imports(&static_method, &current_modules[0], &[]);
+        expect_imports(&static_method, &in_submodule, &[]);
         // The following asserts are disabled, because we actually add import for the module even if
         // we're inside it. It is necessary, because otherwise `Project.foo` expressions
         // currently do not work without importing `local.Project` into the scope.
         // See https://github.com/enso-org/enso/issues/5616.
-        // expect_imports(&module_method, &current_modules[0], &[]);
-        // expect_imports(&submodule, &current_modules[0], &[]);
-        expect_imports(&extension_method, &current_modules[0], &[
+        // expect_imports(&module_method, &in_submodule, &[]);
+        // expect_imports(&submodule, &in_submodule, &[]);
+        expect_imports(&main_module_method, &in_submodule, &["import local.Project"]);
+        expect_imports(&extension_method, &in_submodule, &["from Standard.Base import Number"]);
+
+        expect_imports(&static_method, &in_other_project, &[
+            "from local.Project.Submodule import TestType",
+        ]);
+        expect_imports(&module_method, &in_other_project, &["import local.Project.Submodule"]);
+        expect_imports(&submodule, &in_other_project, &["import local.Project.Submodule"]);
+        expect_imports(&main_module_method, &in_other_project, &["import local.Project"]);
+        expect_imports(&extension_method, &in_other_project, &[
+            "import local.Project.Submodule",
             "from Standard.Base import Number",
         ]);
 
-        expect_imports(&static_method, &current_modules[1], &[
+        expect_imports(&static_method, &in_main_module, &[
             "from local.Project.Submodule import TestType",
         ]);
-        expect_imports(&module_method, &current_modules[1], &["import local.Project.Submodule"]);
-        expect_imports(&submodule, &current_modules[1], &["import local.Project.Submodule"]);
-        expect_imports(&extension_method, &current_modules[1], &[
+        expect_imports(&module_method, &in_main_module, &["import local.Project.Submodule"]);
+        expect_imports(&submodule, &in_main_module, &["import local.Project.Submodule"]);
+        expect_imports(&main_module_method, &in_main_module, &[]);
+        expect_imports(&extension_method, &in_main_module, &[
             "import local.Project.Submodule",
             "from Standard.Base import Number",
         ]);
@@ -1417,9 +1435,8 @@ mod test {
     fn run_tag_value_test_case(expression_and_expected_label: &[(&str, Option<&str>)]) {
         let parser = Parser::new();
         let db = SuggestionDatabase::new_empty();
-        let expressions =
-            expression_and_expected_label.iter().map(|(expr, _)| expr.to_string()).collect_vec();
-        let tag_values = argument_tag_values(&expressions, &db, &parser);
+        let expressions = expression_and_expected_label.iter().map(|(expr, _)| *expr);
+        let tag_values = argument_tag_values(expressions, &db, &parser);
         let expected_values = expression_and_expected_label
             .iter()
             .map(|(expression, label)| span_tree::TagValue {
@@ -1438,11 +1455,6 @@ mod test {
     }
 
     #[test]
-    fn tag_value_shortening_single_entry_with_value() {
-        run_tag_value_test_case(&[("Foo.Bar.Value", Some("Bar.Value"))]);
-    }
-
-    #[test]
     fn tag_value_shortening_common_prefix() {
         run_tag_value_test_case(&[
             ("Location.Start", Some("Start")),
@@ -1454,15 +1466,19 @@ mod test {
     #[test]
     fn tag_value_shortening_multiple_elements() {
         run_tag_value_test_case(&[
-            ("A.B.C.D", Some("C.D")),
-            ("A.B.C.E", Some("C.E")),
-            ("A.B.F.G.H", Some("F.G.H")),
+            ("A.B.C.D", Some("D")),
+            ("A.B.C.E", Some("E")),
+            ("A.B.F.G.H", Some("H")),
         ]);
     }
 
     #[test]
-    fn tag_value_shortening_no_prefix() {
-        run_tag_value_test_case(&[("Foo.Bar", None), ("Foo.Baz", None), ("Baz.Qux", None)]);
+    fn tag_value_shortening_replacement() {
+        run_tag_value_test_case(&[
+            ("Foo.Bar_Baz", Some("Bar Baz")),
+            ("Foo.A_B_C", Some("A B C")),
+            ("Baz.Qux", Some("Qux")),
+        ]);
     }
 
     #[test]

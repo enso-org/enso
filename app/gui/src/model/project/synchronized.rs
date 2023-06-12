@@ -198,14 +198,13 @@ async fn check_vcs_status_and_notify(
 #[profile(Detail)]
 async fn update_modules_on_file_change(
     changes: FileEditList,
-    parser: Parser,
     module_registry: Rc<model::registry::Registry<module::Path, module::Synchronized>>,
 ) -> FallibleResult {
     for file_edit in changes.edits {
         let file_path = file_edit.path.clone();
         let module_path = module::Path::from_file_path(file_path).unwrap();
         if let Some(module) = module_registry.get(&module_path).await? {
-            module.apply_text_change_from_ls(file_edit.edits, &parser).await?;
+            module.apply_text_change_from_ls(file_edit.edits).await?;
         }
     }
     Ok(())
@@ -502,7 +501,6 @@ impl Project {
         let publisher = self.notifications.clone_ref();
         let project_root_id = self.project_content_root_id();
         let language_server = self.json_rpc().clone_ref();
-        let parser = self.parser().clone_ref();
         let weak_suggestion_db = Rc::downgrade(&self.suggestion_db);
         let weak_content_roots = Rc::downgrade(&self.content_roots);
         let weak_module_registry = Rc::downgrade(&self.module_registry);
@@ -536,11 +534,9 @@ impl Project {
                     });
                 }
                 Event::Notification(Notification::TextDidChange(changes)) => {
-                    let parser = parser.clone();
                     if let Some(module_registry) = weak_module_registry.upgrade() {
                         executor::global::spawn(async move {
-                            let status =
-                                update_modules_on_file_change(changes, parser, module_registry);
+                            let status = update_modules_on_file_change(changes, module_registry);
                             if let Err(err) = status.await {
                                 error!("Error while applying file changes to modules: {err}");
                             }
@@ -565,6 +561,7 @@ impl Project {
                         "Execution failed in context {}. Error: {}.",
                         update.context_id, update.message
                     );
+                    publisher.notify(model::project::Notification::ExecutionFailed);
                 }
                 Event::Notification(Notification::SuggestionDatabaseUpdates(update)) =>
                     if let Some(suggestion_db) = weak_suggestion_db.upgrade() {
@@ -708,10 +705,12 @@ impl model::project::API for Project {
     fn create_execution_context(
         &self,
         root_definition: MethodPointer,
+        context_id: execution_context::Id,
     ) -> BoxFuture<FallibleResult<model::ExecutionContext>> {
         async move {
             let ls_rpc = self.language_server_rpc.clone_ref();
-            let context = execution_context::Synchronized::create(ls_rpc, root_definition);
+            let context =
+                execution_context::Synchronized::create(ls_rpc, root_definition, context_id);
             let context = Rc::new(context.await?);
             self.execution_contexts.insert(context.clone_ref());
             let context: model::ExecutionContext = context;
@@ -932,7 +931,8 @@ mod test {
         assert!(result1.is_err());
 
         // Create execution context.
-        let execution = project.create_execution_context(context_data.main_method_pointer());
+        let execution = project
+            .create_execution_context(context_data.main_method_pointer(), context_data.context_id);
         let execution = test.expect_completion(execution).unwrap();
 
         // Now context is in registry.
@@ -954,7 +954,10 @@ mod test {
         // Context now has the information about type.
         let value_info = value_registry.get(&expression_id).unwrap();
         assert_eq!(value_info.typename, value_update.typename.clone().map(ImString::new));
-        assert_eq!(value_info.method_call, value_update.method_pointer);
+        assert_eq!(
+            value_info.method_call,
+            value_update.method_call.clone().map(|mc| mc.method_pointer)
+        );
     }
 
 

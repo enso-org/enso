@@ -6,6 +6,8 @@ import toast from 'react-hot-toast'
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
 import * as svg from '../../components/svg'
+import * as validation from '../../dashboard/validation'
+
 import Input from './input'
 import SvgIcon from './svgIcon'
 
@@ -13,6 +15,7 @@ import SvgIcon from './svgIcon'
 // === Registration ===
 // ====================
 
+/** A form for users to register an account. */
 function Registration() {
     const { signUp } = auth.useAuth()
     const [email, setEmail] = react.useState('')
@@ -78,10 +81,13 @@ function Registration() {
                             <SvgIcon svg={svg.LOCK} />
 
                             <Input
+                                required
                                 id="password"
                                 type="password"
                                 name="password"
                                 placeholder="Password"
+                                pattern={validation.PASSWORD_PATTERN}
+                                title={validation.PASSWORD_TITLE}
                                 value={password}
                                 setValue={setPassword}
                             />
@@ -98,6 +104,7 @@ function Registration() {
                             <SvgIcon svg={svg.LOCK} />
 
                             <Input
+                                required
                                 id="password_confirmation"
                                 type="password"
                                 name="password_confirmation"

@@ -265,6 +265,7 @@ final class SuggestionsHandler(
         updates.map(u => (u.expressionId, u.expressionType))
       )
       val types = updates.toSeq
+        .filter(_.typeChanged)
         .flatMap(update => update.expressionType.map(update.expressionId -> _))
       suggestionsRepo
         .updateAll(types)

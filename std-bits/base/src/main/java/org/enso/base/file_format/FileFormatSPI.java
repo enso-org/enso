@@ -1,9 +1,8 @@
 package org.enso.base.file_format;
 
+import java.util.ServiceLoader;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-
-import java.util.ServiceLoader;
 
 public abstract class FileFormatSPI {
   private static final ServiceLoader<FileFormatSPI> loader =
