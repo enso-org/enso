@@ -77,11 +77,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
             module,
             bindingMap,
             encounteredSymbols
-          ) match {
-            case Left(errors) =>
-              errors
-            case Right(imp) => List(imp)
-          }
+          ).fold(identity, imp => List(imp))
         })
       )
     }
@@ -259,10 +255,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
 
       // Polyglot import
       case polyImport @ Import.Polyglot(entity, rename, _, _, _) =>
-        val symbolName = rename match {
-          case Some(rename) => rename
-          case None         => entity.getVisibleName
-        }
+        val symbolName = rename.getOrElse(entity.getVisibleName)
         val symbolPath = entity match {
           case Polyglot.Java(packageName, className) =>
             packageName + "." + className
@@ -421,10 +414,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
     def getOriginalImportForSymbol(
       symbol: String
     ): Option[IR.Module.Scope.Import] = {
-      encounteredSymbols.get(symbol) match {
-        case Some((originalImport, _)) => Some(originalImport)
-        case None                      => None
-      }
+      encounteredSymbols.get(symbol).map(_._1)
     }
   }
 }
