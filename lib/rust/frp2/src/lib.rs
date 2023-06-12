@@ -128,6 +128,8 @@
 #![feature(downcast_unchecked)]
 #![feature(type_alias_impl_trait)]
 #![feature(core_intrinsics)]
+#![feature(auto_traits)]
+#![feature(negative_impls)]
 
 mod callstack;
 mod metrics;
@@ -440,7 +442,7 @@ impl Runtime {
     /// Emit the event to all listeners of the given node. The event type is not checked, so you
     /// have to guarantee that the type is correct.
     #[inline(always)]
-    fn unchecked_emit_borrow(&self, src_node_id: NodeId, event: &dyn Data) {
+    unsafe fn unchecked_emit_borrow(&self, src_node_id: NodeId, event: &dyn Data) {
         self.with_borrowed_node(src_node_id, |src_node| {
             self.unchecked_emit(src_node, event);
         })
@@ -975,7 +977,7 @@ pub trait NodeWithDefaultOutput = Node where <Self as Node>::Output: Default;
 #[derivative(Debug(bound = ""))]
 #[repr(transparent)]
 pub struct NodeTemplate<Kind, Output> {
-    _marker: PhantomData<(Kind, Output)>,
+    _marker: PhantomData<*const (Kind, Output)>,
     id:      NodeId,
 }
 
@@ -991,13 +993,19 @@ impl<Kind, Output> NodeTemplate<Kind, Output> {
     #[inline(never)]
     pub fn emit(&self, value: &Output)
     where Output: Data {
-        with_runtime(|rt| rt.unchecked_emit_borrow(self.id, value));
+        with_runtime(|rt|
+            // # Safety
+            // The value is checked to have the correct [`Output`] type.
+            unsafe { rt.unchecked_emit_borrow(self.id, value) });
     }
 }
 
 impl<Model> Network<Model> {
-    /// Constructor of the node. The type safety is not guaranteed. You have to ensure that the
-    /// [`f`] function arguments and output type are correct.
+    /// Constructor of the node. The [`init`] function will be called on the newly created node.
+    ///
+    /// # Safety
+    /// The type safety is not guaranteed. You have to ensure that the [`f`] function arguments and
+    /// output type are correct.
     #[inline(always)]
     fn new_node_with_init_unchecked<Kind, Output>(
         &self,
@@ -1016,47 +1024,84 @@ impl<Model> Network<Model> {
 // === NodeInNetwork ===
 // =====================
 
+/// A [`Node`] associated with a [`Network`]. This is used to provide a nice API for creation of new
+/// nodes without the need for the user to specify in which network to create the node.
 #[derive(Deref, DerefMut)]
-pub struct NodeInNetwork<'t, Model, T> {
+pub struct NodeInNetwork<'t, Model, N> {
     #[deref]
     #[deref_mut]
-    elem:    T,
+    node:    N,
     network: &'t Network<Model>,
 }
 
-impl<'a, Model, T: Node> Node for NodeInNetwork<'a, Model, T> {
-    type Output = T::Output;
+impl<'a, Model, N: Node> Node for NodeInNetwork<'a, Model, N> {
+    type Output = N::Output;
     #[inline(always)]
     fn id(self) -> NodeId {
-        self.elem.id()
+        self.node.id()
     }
 }
 
-impl<'t, Model, T: Copy> Copy for NodeInNetwork<'t, Model, T> {}
-impl<'t, Model, T: Clone> Clone for NodeInNetwork<'t, Model, T> {
+impl<'t, Model, N: Node> Copy for NodeInNetwork<'t, Model, N> {}
+impl<'t, Model, N: Node> Clone for NodeInNetwork<'t, Model, N> {
     fn clone(&self) -> Self {
-        Self { elem: self.elem.clone(), network: self.network }
+        Self { node: self.node, network: self.network }
     }
 }
 
-impl<'t, Model, T> NodeInNetwork<'t, Model, T> {
-    fn new(network: &'t Network<Model>, elem: T) -> Self {
-        Self { network, elem }
+impl<'t, Model, N> NodeInNetwork<'t, Model, N> {
+    fn new(network: &'t Network<Model>, node: N) -> Self {
+        Self { network, node }
     }
 }
 
+
+// =============
+// === Nodes ===
+// =============
+// =============
+// =============
+// =============
+
+// ==============
 // === Stream ===
+// ==============
 
-pub struct StreamType;
+/// Marker type for the [`Stream`] node.
+pub struct STREAM;
 
-pub type Stream<Output = ()> = NodeTemplate<StreamType, Output>;
+auto trait NotStream {}
+impl !NotStream for STREAM {}
+
+/// The most generic type of a node. Every node can be converted to this type while losing some
+/// abilities. For example, a [`Sampler`] node provides the ability to sample the last node output.
+/// However, if you need to store different node types in an array, you can convert them to samplers
+/// with zero-overhead.
+pub type Stream<Output = ()> = NodeTemplate<STREAM, Output>;
+
+impl<Kind: NotStream, Output> Deref for NodeTemplate<Kind, Output> {
+    type Target = Stream<Output>;
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(self as *const Self as *const Self::Target) }
+    }
+}
+
+impl<Kind: NotStream, Output> From<NodeTemplate<Kind, Output>> for Stream<Output> {
+    #[inline(always)]
+    fn from(node: NodeTemplate<Kind, Output>) -> Self {
+        NodeTemplate { _marker: PhantomData, id: node.id }
+    }
+}
 
 
+// ==============
 // === Source ===
+// ==============
 
 #[derive(Clone, Copy, Default)]
-pub struct SourceType;
-pub type Source<Output = ()> = NodeTemplate<SourceType, Output>;
+pub struct SOURCE;
+pub type Source<Output = ()> = NodeTemplate<SOURCE, Output>;
 
 impl<Model> Network<Model> {
     #[inline(always)]
@@ -1064,6 +1109,7 @@ impl<Model> Network<Model> {
         self.new_node((), |_, _| {})
     }
 
+    #[inline(always)]
     pub fn source_(&self) -> NodeInNetwork<Model, Source> {
         self.new_node((), |_, _| {})
     }
@@ -1073,8 +1119,8 @@ impl<Model> Network<Model> {
 // === Sampler ===
 
 #[derive(Clone, Copy, Default)]
-pub struct SamplerType;
-pub type Sampler<Output = ()> = NodeTemplate<SamplerType, Output>;
+pub struct SAMPLER;
+pub type Sampler<Output = ()> = NodeTemplate<SAMPLER, Output>;
 
 impl<Model> Network<Model> {
     #[inline(always)]
