@@ -580,14 +580,7 @@ type Column
         _ = [use_bankers]
         check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
             new_name = self.naming_helpers.function_name "round" [self]
-            # works
-            #self.make_binary_op "KONST" 37 new_name
-            #self.make_binary_op "KONST" True new_name
-            #self * 2
-
-            #self * 2
             scale = 10 ^ decimal_places
-            #scale = self.make_binary_op "POW_FLIP" 10 new_name
             scaled = self * scale
             round_base = scaled.floor
             round_midpoint = (round_base + 0.5) / scale
@@ -595,17 +588,7 @@ type Column
             half_goes_up = if use_bankers then even_is_up else (self.make_binary_op "KONST" True)
             do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
             result = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
-            result
-
-    ##
-                        scale = 10 ^ decimal_places
-                        scaled = self * scale
-                        round_base = scaled.floor
-                        round_midpoint = (round_base + 0.5) / scale
-                        even_is_up = if self >= 0 then (scaled.truncate % 2) != 0 else (scaled.truncate % 2) == 0
-                        half_goes_up = if use_bankers then even_is_up else True
-                        do_round_up = if half_goes_up then self >= round_midpoint else self > round_midpoint
-                        if do_round_up then ((round_base + 1.0) / scale) else (round_base / scale)
+            result.rename new_name
 
     ## ALIAS int
        UNSTABLE
