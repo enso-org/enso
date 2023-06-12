@@ -210,6 +210,12 @@ impl Model {
         self.view.graph().frp.execution_finished.emit(());
     }
 
+    fn execution_failed(&self) {
+        let message = crate::EXECUTION_FAILED_MESSAGE;
+        let message = view::status_bar::event::Label::from(message);
+        self.status_bar.add_event(message);
+    }
+
     fn execution_context_interrupt(&self) {
         let controller = self.graph_controller.clone_ref();
         executor::global::spawn(async move {
@@ -418,6 +424,9 @@ impl Project {
                 }
                 Notification::ExecutionFinished => {
                     model.execution_finished();
+                }
+                Notification::ExecutionFailed => {
+                    model.execution_failed();
                 }
             };
             std::future::ready(())

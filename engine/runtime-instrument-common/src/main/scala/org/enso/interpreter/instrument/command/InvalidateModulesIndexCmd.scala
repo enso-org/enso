@@ -13,13 +13,13 @@ import scala.concurrent.{ExecutionContext, Future}
 class InvalidateModulesIndexCmd(
   maybeRequestId: Option[Api.RequestId],
   val request: Api.InvalidateModulesIndexRequest
-) extends Command(maybeRequestId) {
+) extends AsynchronousCommand(maybeRequestId) {
 
   /** Executes a request.
     *
     * @param ctx contains suppliers of services to perform a request
     */
-  override def execute(implicit
+  override def executeAsynchronously(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
