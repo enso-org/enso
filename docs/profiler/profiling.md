@@ -139,6 +139,7 @@ procedure to collect data is:
     ```shell
     ./distribution/bin/enso --profile.save=your_profile.json
     ```
+    If this option is not provided, the path `profile.json` will be used.
   - Perform any activity the profiler should record (the profiler is always
     running).
   - Press Ctrl+Alt+Q to save profile (to the path specified earlier) and quit.
