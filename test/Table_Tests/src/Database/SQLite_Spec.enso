@@ -18,7 +18,7 @@ import project.Database.Types.SQLite_Type_Mapping_Spec
 import project.Database.Helpers.Name_Generator
 import project.Common_Table_Operations
 
-sqlite_specific_spec prefix connection =
+sqlite_specific_spec prefix connection setup =
     Test.group prefix+"Schemas and Databases" <|
         Test.specify "should be able to get current database and list databases" <|
             connection.database . should_equal Nothing
@@ -118,6 +118,18 @@ sqlite_specific_spec prefix connection =
             expected_code = code_template.replace "{Tinfo}" tinfo
             t.distinct ["strs"] . to_sql . prepare . should_equal [expected_code, []]
 
+    Test.group prefix+"Math" <|
+        table_builder = setup.table_builder
+        do_round n dp=0 use_bankers=False =
+            table = table_builder [["x", [n]]]
+            result = table.at "x" . round dp use_bankers
+            result.to_vector.at 0
+
+        Test.specify "NaN/Inf" <|
+            do_round Number.nan . should_equal Nothing
+            do_round Number.positive_infinity . should_equal 9223372036854775807
+            do_round Number.negative_infinity . should_equal -9223372036854775808
+
 sqlite_spec connection prefix =
     name_counter = Ref.new 0
     table_builder columns =
@@ -130,7 +142,6 @@ sqlite_spec connection prefix =
     materialize = .read
 
     Common_Spec.spec prefix connection
-    sqlite_specific_spec prefix connection
 
     common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True take_drop=False is_nan_and_nothing_distinct=False date_time=False
 
@@ -148,6 +159,7 @@ sqlite_spec connection prefix =
     empty_agg_table = (agg_in_memory_table.take (First 0)).select_into_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
 
     setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection
+    sqlite_specific_spec prefix connection setup
     Common_Table_Operations.Main.spec setup
 
     connection.close
