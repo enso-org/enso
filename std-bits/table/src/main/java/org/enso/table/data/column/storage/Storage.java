@@ -1,5 +1,10 @@
 package org.enso.table.data.column.storage;
 
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
@@ -12,12 +17,6 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Value;
-
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 /** An abstract representation of a data column. */
 public abstract class Storage<T> {
@@ -59,6 +58,9 @@ public abstract class Storage<T> {
     public static final String DIV = "/";
     public static final String MOD = "%";
     public static final String POWER = "^";
+    public static final String TRUNCATE = "truncate";
+    public static final String CEIL = "ceil";
+    public static final String FLOOR = "floor";
     public static final String NOT = "not";
     public static final String AND = "&&";
     public static final String OR = "||";

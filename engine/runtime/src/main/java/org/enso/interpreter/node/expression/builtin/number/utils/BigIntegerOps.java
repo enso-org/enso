@@ -1,7 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.number.utils;
 
 import com.oracle.truffle.api.CompilerDirectives;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 

@@ -29,7 +29,6 @@ use ensogl_hardcoded_theme as theme;
 use ensogl_hardcoded_theme;
 
 
-
 // ==============
 // === Export ===
 // ==============

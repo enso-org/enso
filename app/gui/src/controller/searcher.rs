@@ -668,7 +668,10 @@ impl Searcher {
     /// Otherwise it will be just the current searcher input.
     pub fn preview(&self, suggestion: Option<action::Suggestion>) -> FallibleResult {
         let transaction_name = "Previewing Component Browser suggestion.";
-        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
+        let _skip = self
+            .graph
+            .undo_redo_repository()
+            .open_ignored_transaction_or_ignore_current(transaction_name);
 
         debug!("Updating node preview. Previewed suggestion: \"{suggestion:?}\".");
         self.clear_temporary_imports();
@@ -898,7 +901,10 @@ impl Searcher {
 
     fn clear_temporary_imports(&self) {
         let transaction_name = "Clearing temporary imports after closing searcher.";
-        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
+        let _skip = self
+            .graph
+            .undo_redo_repository()
+            .open_ignored_transaction_or_ignore_current(transaction_name);
         let mut module = self.module();
         let import_metadata = self.graph.graph().module.all_import_metadata();
         let metadata_to_remove = import_metadata
@@ -1163,7 +1169,10 @@ impl EditGuard {
     /// be restored.
     fn save_node_expression_to_metadata(&self, mode: &Mode) -> FallibleResult {
         let transaction_name = "Storing edited node original expression.";
-        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
+        let _skip = self
+            .graph
+            .undo_redo_repository()
+            .open_ignored_transaction_or_ignore_current(transaction_name);
         let module = &self.graph.graph().module;
         match mode {
             Mode::NewNode { .. } => module.with_node_metadata(
@@ -1188,7 +1197,10 @@ impl EditGuard {
     /// Mark the node as no longer edited and discard the edit metadata.
     fn clear_node_edit_metadata(&self) -> FallibleResult {
         let transaction_name = "Storing edited node original expression.";
-        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
+        let _skip = self
+            .graph
+            .undo_redo_repository()
+            .open_ignored_transaction_or_ignore_current(transaction_name);
         let module = &self.graph.graph().module;
         module.with_node_metadata(
             self.node_id,
@@ -1205,7 +1217,10 @@ impl EditGuard {
 
     fn revert_node_expression_edit(&self) -> FallibleResult {
         let transaction_name = "Reverting node expression to original.";
-        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
+        let _skip = self
+            .graph
+            .undo_redo_repository()
+            .open_ignored_transaction_or_ignore_current(transaction_name);
         let edit_status = self.get_saved_expression()?;
         match edit_status {
             None => {

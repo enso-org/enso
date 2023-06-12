@@ -1,6 +1,6 @@
 package org.enso.polyglot
 
-import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
+import com.fasterxml.jackson.annotation.{JsonIgnore, JsonSubTypes, JsonTypeInfo}
 import org.enso.logger.masking.ToLogString
 
 import java.util.UUID
@@ -22,8 +22,12 @@ import java.util.UUID
       name  = "suggestionConstructor"
     ),
     new JsonSubTypes.Type(
-      value = classOf[Suggestion.Method],
-      name  = "suggestionMethod"
+      value = classOf[Suggestion.Getter],
+      name  = "suggestionGetter"
+    ),
+    new JsonSubTypes.Type(
+      value = classOf[Suggestion.DefinedMethod],
+      name  = "suggestionDefinedMethod"
     ),
     new JsonSubTypes.Type(
       value = classOf[Suggestion.Conversion],
@@ -63,7 +67,6 @@ object Suggestion {
       case _: Suggestion.Type        => true
       case _: Suggestion.Constructor => true
       case _: Suggestion.Method      => true
-      case _: Suggestion.Conversion  => true
       case _: Suggestion.Function    => false
       case _: Suggestion.Local       => false
     }
@@ -74,13 +77,14 @@ object Suggestion {
 
     def apply(suggestion: Suggestion): Kind =
       suggestion match {
-        case _: Module      => Module
-        case _: Type        => Type
-        case _: Constructor => Constructor
-        case _: Method      => Method
-        case _: Conversion  => Conversion
-        case _: Function    => Function
-        case _: Local       => Local
+        case _: Module        => Module
+        case _: Type          => Type
+        case _: Constructor   => Constructor
+        case _: Conversion    => Conversion
+        case _: Getter        => Getter
+        case _: DefinedMethod => Method
+        case _: Function      => Function
+        case _: Local         => Local
       }
 
     /** The module suggestion. */
@@ -91,6 +95,9 @@ object Suggestion {
 
     /** The constructor suggestion. */
     case object Constructor extends Kind
+
+    /** The constructor field accessor suggestion. */
+    case object Getter extends Kind
 
     /** The method suggestion. */
     case object Method extends Kind
@@ -116,7 +123,6 @@ object Suggestion {
         case tpe: Type                => tpe.params
         case constructor: Constructor => constructor.arguments
         case method: Method           => method.arguments
-        case conversion: Conversion   => conversion.arguments
         case function: Function       => function.arguments
         case _: Local                 => Seq()
       }
@@ -131,7 +137,6 @@ object Suggestion {
         case _: Type                  => None
         case constructor: Constructor => Some(constructor.returnType)
         case method: Method           => Some(method.selfType)
-        case conversion: Conversion   => Some(conversion.sourceType)
         case _: Function              => None
         case _: Local                 => None
       }
@@ -146,7 +151,6 @@ object Suggestion {
         case _: Type                  => Seq()
         case constructor: Constructor => constructor.annotations
         case method: Method           => method.annotations
-        case _: Conversion            => Seq()
         case _: Function              => Seq()
         case _: Local                 => Seq()
       }
@@ -210,7 +214,6 @@ object Suggestion {
         case _: Type            => None
         case _: Constructor     => None
         case _: Method          => None
-        case _: Conversion      => None
         case function: Function => Some(function.scope)
         case local: Local       => Some(local.scope)
       }
@@ -330,6 +333,78 @@ object Suggestion {
       s",reexport=$reexport)"
   }
 
+  /** Base trait for method suggestions. */
+  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+  @JsonSubTypes(
+    Array(
+      new JsonSubTypes.Type(
+        value = classOf[Suggestion.Getter],
+        name  = "suggestionMethodGetter"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Suggestion.DefinedMethod],
+        name  = "suggestionMethodDefinedMethod"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Suggestion.Conversion],
+        name  = "suggestionMethodConversion"
+      )
+    )
+  )
+  sealed trait Method extends Suggestion {
+    def arguments:   Seq[Argument]
+    def selfType:    String
+    def isStatic:    Boolean
+    def annotations: Seq[String]
+    def reexport:    Option[String]
+  }
+
+  /** A method generated to access constructor field.
+    *
+    * @param externalId the external id
+    * @param module the module name
+    * @param name the method name
+    * @param arguments the list of arguments
+    * @param selfType the self type of a method
+    * @param returnType the return type of a method
+    * @param documentation the documentation string
+    * @param annotations the list of annotations
+    * @param reexport the module re-exporting this method
+    */
+  case class Getter(
+    externalId: Option[ExternalId],
+    module: String,
+    name: String,
+    arguments: Seq[Argument],
+    selfType: String,
+    returnType: String,
+    documentation: Option[String],
+    annotations: Seq[String],
+    reexport: Option[String] = None
+  ) extends Method
+      with ToLogString {
+
+    /** @inheritdoc */
+    @JsonIgnore
+    override def isStatic: Boolean = false
+
+    /** @inheritdoc */
+    override def withReexport(reexport: Option[String]): Method =
+      copy(reexport = reexport)
+
+    /** @inheritdoc */
+    override def toLogString(shouldMask: Boolean): String =
+      "Getter(" +
+      s"module=$module," +
+      s"name=$name," +
+      s"arguments=${arguments.map(_.toLogString(shouldMask))}," +
+      s"selfType=$selfType," +
+      s"returnType=$returnType," +
+      s"documentation=" + (if (shouldMask) documentation.map(_ => STUB)
+                           else documentation) +
+      s",reexport=$reexport)"
+  }
+
   /** A function defined on a type or a module.
     *
     * @param externalId the external id
@@ -343,7 +418,7 @@ object Suggestion {
     * @param annotations the list of annotations
     * @param reexport the module re-exporting this method
     */
-  case class Method(
+  case class DefinedMethod(
     externalId: Option[ExternalId],
     module: String,
     name: String,
@@ -354,7 +429,7 @@ object Suggestion {
     documentation: Option[String],
     annotations: Seq[String],
     reexport: Option[String] = None
-  ) extends Suggestion
+  ) extends Method
       with ToLogString {
 
     /** @inheritdoc */
@@ -380,7 +455,7 @@ object Suggestion {
     * @param externalId the external id
     * @param module the module name
     * @param arguments the list of arguments
-    * @param sourceType the source type of a conversion
+    * @param selfType the source type of a conversion
     * @param returnType the return type of a conversion
     * @param documentation the documentation string
     * @param reexport the module re-exporting this conversion
@@ -389,17 +464,26 @@ object Suggestion {
     externalId: Option[ExternalId],
     module: String,
     arguments: Seq[Argument],
-    sourceType: String,
+    selfType: String,
     returnType: String,
     documentation: Option[String],
     reexport: Option[String] = None
-  ) extends Suggestion {
+  ) extends Method {
+
+    /** @inheritdoc */
+    @JsonIgnore
+    override def isStatic: Boolean = false
+
+    /** @inheritdoc */
+    @JsonIgnore
+    override def annotations: Seq[String] = Seq()
 
     /** @inheritdoc */
     override def withReexport(reexport: Option[String]): Conversion =
       copy(reexport = reexport)
 
     /** @inheritdoc */
+    @JsonIgnore
     override def name: String =
       Kind.Conversion.From
 
@@ -408,7 +492,7 @@ object Suggestion {
       "Conversion(" +
       s"module=$module," +
       s"arguments=${arguments.map(_.toLogString(shouldMask))}," +
-      s"sourceType=$sourceType," +
+      s"selfType=$selfType," +
       s"returnType=$returnType," +
       s"documentation=" + (if (shouldMask) documentation.map(_ => STUB)
                            else documentation) +

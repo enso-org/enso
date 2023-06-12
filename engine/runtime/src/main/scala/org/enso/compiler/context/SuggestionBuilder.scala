@@ -94,6 +94,10 @@ final class SuggestionBuilder[A: IndexedSource](
             }
             val getters = members
               .flatMap(_.arguments)
+              .filterNot { argument =>
+                argument.name.name.startsWith(InternalPrefix) ||
+                argument.name.name.endsWith(InternalSuffix)
+              }
               .distinctBy(_.name.name)
               .map(buildGetter(module, tpName.name, _))
 
@@ -130,7 +134,8 @@ final class SuggestionBuilder[A: IndexedSource](
                 args,
                 doc,
                 typeSignature,
-                annotations
+                annotations,
+                MethodType.Defined
               )
             }
             val subforest = go(
@@ -229,24 +234,39 @@ final class SuggestionBuilder[A: IndexedSource](
     args: Seq[IR.DefinitionArgument],
     doc: Option[String],
     typeSignature: Option[TypeSignatures.Metadata],
-    genericAnnotations: Option[GenericAnnotations.Metadata]
+    genericAnnotations: Option[GenericAnnotations.Metadata],
+    methodType: MethodType
   ): Suggestion.Method = {
     val typeSig = buildTypeSignatureFromMetadata(typeSignature)
     val (methodArgs, returnTypeDef) =
       buildMethodArguments(args, typeSig, selfType)
     val annotations =
       genericAnnotations.map(buildAnnotationsFromMetadata).getOrElse(Seq())
-    Suggestion.Method(
-      externalId    = externalId,
-      module        = module.toString,
-      name          = name,
-      arguments     = methodArgs,
-      selfType      = selfType.toString,
-      returnType    = buildReturnType(returnTypeDef),
-      isStatic      = isStatic,
-      documentation = doc,
-      annotations   = annotations
-    )
+    methodType match {
+      case MethodType.Getter =>
+        Suggestion.Getter(
+          externalId    = externalId,
+          module        = module.toString,
+          name          = name,
+          arguments     = methodArgs,
+          selfType      = selfType.toString,
+          returnType    = buildReturnType(returnTypeDef),
+          documentation = doc,
+          annotations   = annotations
+        )
+      case MethodType.Defined =>
+        Suggestion.DefinedMethod(
+          externalId    = externalId,
+          module        = module.toString,
+          name          = name,
+          arguments     = methodArgs,
+          selfType      = selfType.toString,
+          returnType    = buildReturnType(returnTypeDef),
+          isStatic      = isStatic,
+          documentation = doc,
+          annotations   = annotations
+        )
+    }
   }
 
   /** Build a conversion suggestion. */
@@ -265,7 +285,7 @@ final class SuggestionBuilder[A: IndexedSource](
       externalId    = externalId,
       module        = module.toString,
       arguments     = methodArgs,
-      sourceType    = sourceTypeName,
+      selfType      = sourceTypeName,
       returnType    = buildReturnType(returnTypeDef),
       documentation = doc
     )
@@ -389,7 +409,8 @@ final class SuggestionBuilder[A: IndexedSource](
       args               = Seq(thisArg),
       doc                = None,
       typeSignature      = argument.name.getMetadata(TypeSignatures),
-      genericAnnotations = None
+      genericAnnotations = None,
+      methodType         = MethodType.Getter
     )
   }
 
@@ -808,9 +829,18 @@ object SuggestionBuilder {
       function: TypeArg,
       arguments: Vector[TypeArg]
     ) extends TypeArg
+  }
 
+  /** Base trait for method types. */
+  sealed private trait MethodType
+  private object MethodType {
+    case object Getter  extends MethodType
+    case object Defined extends MethodType
   }
 
   val Any: String = "Standard.Base.Any.Any"
+
+  private val InternalSuffix = "_internal"
+  private val InternalPrefix = "internal_"
 
 }
