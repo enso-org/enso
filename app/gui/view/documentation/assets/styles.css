@@ -30,77 +30,82 @@
 
 /* It's better to use `.unordered-list` class here instead of `ul`, but it will break the keyed lists that a provided by the engine.
  * We need a separate way to represent keyed lists without embedded HTML tags. */
-ul {
+.enso-docs ul {
   margin: 0;
   padding: 0;
   list-style-type: none;
   list-style-position: inside;
 }
 
-ul li:before {
+.enso-docs ul li:before {
   content: "•";
   font-size: 13px;
   font-weight: 700;
   margin-right: 3px;
 }
 
-ul li.type-item:before {
+.enso-docs ul li.type-item:before {
   color: var(--type-name-color);
 }
 
-ul li.method-item:before {
+.enso-docs ul li.method-item:before {
   color: var(--method-name-color);
 }
 
-.paragraph {
+.enso-docs .paragraph {
   margin: 0;
 }
 
-.link {
+.enso-docs .link {
   cursor: pointer;
 }
 
-.link:hover {
+.enso-docs .link:hover {
   text-decoration: underline;
 }
 
-.method {
+.enso-docs .method {
   color: var(--method-name-color);
   font-weight: 600;
 }
 
-.constructor {
+.enso-docs .constructor {
   color: var(--type-name-color);
   font-weight: 600;
 }
 
-.type {
+.enso-docs .type {
   color: var(--type-name-color);
   font-weight: 600;
 }
 
-.entry-name {
+.enso-docs .entry-name {
   opacity: 0.85;
 }
 
-.arguments {
+.enso-docs .arguments {
   opacity: 0.34;
 }
 
-.section-content {
+.enso-docs .section-content {
   padding-left: 1.25rem;
 }
 
 /* Headers. */
 
-.header-top {
+.enso-docs .header-top {
   font-size: 17px;
   font-weight: 700;
   color: var(--type-name-color);
   margin: 0.5rem 0;
 }
 
-.header-icon {
+div.enso-docs .header-icon {
+  align-self: start;
+  display: flex;
+}
+
+.enso-docs .header-icon svg {
   pointer-events: none;
   width: 0.85em;
   height: 0.85em;
@@ -110,74 +115,87 @@ ul li.method-item:before {
   padding-top: 0.25em;
 }
 
-.header-container {
+.enso-docs .header-container {
   display: flex;
   align-items: center;
 }
 
-.header-text {
+.enso-docs .header-text {
   padding-left: 0.25em;
 }
 
-.section-header {
+.enso-docs .section-header {
   font-size: 15px;
   font-weight: 600;
   margin: 1rem 0 0.25rem 0;
 }
 
-.methods-header {
+.enso-docs .methods-header {
   color: var(--methods-header-color);
 }
 
-.types-header {
+.enso-docs .types-header {
   color: var(--types-header-color);
 }
 
-.examples-header {
+.enso-docs .examples-header {
   color: var(--examples-header-color);
 }
 
-/* Marked sections. */
+/* Marked sections, such as `Info` and `Important` sections. */
 
-.background-info {
+.enso-docs .background-info {
   background-color: var(--info-background-color);
 }
 
-.background-important {
+.enso-docs .background-important {
   background-color: var(--important-background-color);
 }
 
-.marked-container {
+.enso-docs .marked-container {
   border-radius: 0.5rem;
   padding: 0.5rem;
   margin: 0.5rem 0;
 }
 
-.marked-header {
+.enso-docs .marked-header {
   font-weight: 700;
   font-size: 13px;
   margin: 0;
+  display: flex;
 }
 
-.marked-icon {
+div.enso-docs .marked-icon {
+  align-self: start;
+}
+
+div.enso-docs .marked-icon-important {
+  margin: 0 0 0 0;
+}
+
+div.enso-docs .marked-icon-info {
+  margin: 0 0.25em 0 0;
+}
+
+.enso-docs .marked-icon svg {
   pointer-events: none;
   width: 1em;
   height: 1em;
-  margin: 0 0.05em 0 0;
+  margin: 0 0.05em 0 0.05em;
   vertical-align: -0.1em;
   fill: none;
 }
 
 /* Examples. */
 
-.example-container {
+.enso-docs .example-container {
   background-color: var(--example-background-color);
   border-radius: 0.25rem;
   padding: 0.5rem;
   margin-bottom: 0.5rem;
 }
 
-.example {
+.enso-docs .example {
   white-space: pre;
   overflow-x: auto;
   margin: 0.05rem 0.1rem;
@@ -185,13 +203,13 @@ ul li.method-item:before {
 
 /* Tags */
 
-.tags-container {
+.enso-docs .tags-container {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
 }
 
-.tag {
+.enso-docs .tag {
   background-color: var(--tag-background-color);
   border-radius: 0.5rem;
   padding: 0.15rem 0.5rem;
@@ -201,7 +219,7 @@ ul li.method-item:before {
 
 /* "Hover item preview" caption. */
 
-.caption-container {
+.enso-docs .caption-container {
   background-color: var(--caption-background-color);
   border-top-left-radius: 14px;
   border-top-right-radius: 14px;
@@ -212,7 +230,7 @@ ul li.method-item:before {
   justify-content: center;
 }
 
-.caption {
+.enso-docs .caption {
   color: white;
   font-size: 11.5px;
 }

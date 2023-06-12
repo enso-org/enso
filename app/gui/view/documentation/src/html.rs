@@ -38,30 +38,16 @@ const ICON_METHODS: &str = include_str!("../assets/icon-methods.svg");
 const ICON_EXAMPLES: &str = include_str!("../assets/icon-examples.svg");
 const ICON_INFO: &str = include_str!("../assets/icon-info.svg");
 const ICON_IMPORTANT: &str = include_str!("../assets/icon-important.svg");
-/// A value for `viewBox` attribute of the SVG icon. Depends on the size of the icon exported from
-/// Figma.
-const ICON_VIEWBOX: &str = "0 0 32 32";
-const ICON_VIEWBOX_TWEMOJI: &str = "0 0 36 36";
-const ICON_SVG_XMLNS: &str = "http://www.w3.org/2000/svg";
 
-/// A single icon used in headers. `content` is an SVG code of the icon's content _without_ the
-/// surrounding `<svg>` tags.
+/// A single icon used in headers. `content` is an SVG code of the icon.
 fn svg_icon(content: &'static str, class: &'static str) -> impl Render {
     owned_html! {
-        svg(class=class, viewBox=ICON_VIEWBOX, xmlns=ICON_SVG_XMLNS) {
+        div(class=class) {
             :Raw(content)
         }
     }
 }
 
-/// As [`svg_icon`], but for icons from Twemoji, they have a slightly different size.
-fn twemoji_icon(content: &'static str, class: &'static str) -> impl Render {
-    owned_html! {
-        svg(class=class, viewBox=ICON_VIEWBOX_TWEMOJI, xmlns=ICON_SVG_XMLNS) {
-            :Raw(content)
-        }
-    }
-}
 
 
 // ==============
@@ -549,13 +535,14 @@ fn paragraph<'a>(doc_section: &'a DocSection) -> Box<dyn Render + 'a> {
                 _ => "",
             };
             let mark: Box<dyn Render> = match mark {
-                Mark::Important => Box::new(twemoji_icon(ICON_IMPORTANT, "marked-icon")),
-                Mark::Info => Box::new(twemoji_icon(ICON_INFO, "marked-icon")),
+                Mark::Important =>
+                    Box::new(svg_icon(ICON_IMPORTANT, "marked-icon marked-icon-important")),
+                Mark::Info => Box::new(svg_icon(ICON_INFO, "marked-icon marked-icon-info")),
                 _ => Box::new(String::from("Unexpected mark.")),
             };
             box_html! {
                 div(class=labels!(background_color, "marked-container")) {
-                    p(class="marked-header") {
+                    div(class="marked-header") {
                         : &mark;
                         : " "; : header;
                     }
