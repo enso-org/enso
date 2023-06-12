@@ -6,9 +6,12 @@ import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.AfterClass;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 public class ExecCompilerTest {
   private static Context ctx;
@@ -64,6 +67,37 @@ public class ExecCompilerTest {
     } catch (PolyglotException ex) {
         assertEquals("Syntax error: Unexpected expression.", ex.getMessage());
     }
+  }
+
+  @Test
+  public void testSelfAssignment() throws Exception {
+    var module = ctx.eval("enso", """
+    from Standard.Base.Errors.Common import all
+    run value =
+        meta1 = meta1
+        meta1
+    """);
+    var run = module.invokeMember("eval_expression", "run");
+    var error = run.execute(-1);
+    assertTrue("We get an error value back", error.isException());
+    assertTrue("The error value also represents null", error.isNull());
+    assertEquals("(Error: Uninitialized value)", error.toString());
+  }
+
+  @Test
+  public void testRecursiveDefinition() throws Exception {
+    var module = ctx.eval("enso", """
+    from Standard.Base import all
+
+    run prefix =
+        op = if False then 42 else prefix+op
+        op
+    """);
+    var run = module.invokeMember("eval_expression", "run");
+    var error = run.execute("Nope: ");
+    assertTrue("We get an error value back", error.isException());
+    assertTrue("The error value also represents null", error.isNull());
+    assertEquals("(Error: Uninitialized value)", error.toString());
   }
 
   @Test
