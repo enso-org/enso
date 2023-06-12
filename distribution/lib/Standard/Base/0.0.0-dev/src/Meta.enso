@@ -380,15 +380,16 @@ atom_with_hole factory = @Builtin_Method "Meta.atom_with_hole_builtin"
 
    Arguments:
    - value: The runtime entity to get the meta representation of.
-meta : Any -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error
-meta value = if is_function value... then Function.Value value... else
-    if is_atom value then Atom.Value value else
-        if is_atom_constructor value then Constructor.Value value else
-            if is_polyglot value then Polyglot.Value value else
-                if is_unresolved_symbol value then Unresolved_Symbol.Value value else
-                    if is_error value then Error.Value value.catch else
-                        if is_type value then Type.Value value.catch else
-                           Primitive.Value value
+meta : Any -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error | Function
+meta value =
+    fac_vec = [ Function.Value, Atom.Value, Constructor.Value, Polyglot.Value, Unresolved_Symbol.Value, Error.Value, Type.Value, Primitive.Value ]
+    factories = fac_vec.to_array
+    case meta_builtin -1 value... factories of
+      index : Integer -> meta_builtin index value.catch factories
+      ret -> ret
+
+## PRIVATE
+meta_builtin index value factories = @Builtin_Method "Meta.meta_builtin"
 
 ## PRIVATE
    ADVANCED
@@ -455,68 +456,6 @@ type Language
        An unknown language.
     Unknown
 
-## PRIVATE
-
-   Checks if the provided value is an atom constructor.
-
-   Arguments:
-   - value: The value to check.
-is_atom_constructor : Any -> Boolean
-is_atom_constructor value = @Builtin_Method "Meta.is_atom_constructor"
-
-## PRIVATE
-
-   Checks if the provided value is an atom.
-
-   Arguments:
-   - value: The value to check.
-is_atom : Any -> Boolean
-is_atom value = @Builtin_Method "Meta.is_atom"
-
-## PRIVATE
-
-   Checks if the provided value is a function.
-
-   Arguments:
-   - value: The value to check.
-is_function : Any -> Boolean
-is_function value = @Builtin_Method "Meta.is_function"
-
-## PRIVATE
-
-   Checks if the provided value is a runtime error.
-
-   Arguments:
-   - value: The value to check.
-is_error : Any -> Boolean
-is_error value = @Builtin_Method "Meta.is_error"
-
-## PRIVATE
-
-   Checks if the provided value is a type.
-
-   Arguments:
-   - value: The value to check.
-is_type : Any -> Boolean
-is_type value = @Builtin_Method "Meta.is_type"
-
-## PRIVATE
-
-   Checks if the provided value is a polyglot value.
-
-   Arguments:
-   - value: The value to check.
-is_polyglot : Any -> Boolean
-is_polyglot value = @Builtin_Method "Meta.is_polyglot"
-
-## PRIVATE
-
-   Checks if the provided value is an unresolved symbol.
-
-   Arguments:
-   - value: The value to check.
-is_unresolved_symbol : Any -> Boolean
-is_unresolved_symbol value = @Builtin_Method "Meta.is_unresolved_symbol"
 
 ## PRIVATE
 

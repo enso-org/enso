@@ -212,7 +212,6 @@ spec =
         Test.specify "constructors of Boolean" <|
             typ = Boolean
 
-            Meta.is_atom typ . should_be_false
             meta_typ = Meta.meta typ
             meta_typ . should_be_a Meta.Type
             meta_typ.name . should_equal "Boolean"
@@ -228,7 +227,6 @@ spec =
         Test.specify "constructors of MyType" <|
             typ = My_Type
 
-            Meta.is_atom typ . should_be_false
             meta_typ = Meta.meta typ
             meta_typ . should_be_a Meta.Type
             meta_typ.name . should_equal "My_Type"
@@ -245,7 +243,6 @@ spec =
         Test.specify "methods of MyType" <|
             typ = My_Type
 
-            Meta.is_atom typ . should_be_false
             meta_typ = Meta.meta typ
             meta_typ . should_be_a Meta.Type
             methods = case meta_typ of
@@ -329,7 +326,7 @@ spec =
             atom = pair.value
             fill = pair.fill
 
-            Meta.is_atom atom . should_be_true
+            Meta.meta atom . is_a Meta.Atom . should_be_true
 
             atom.foo . should_equal 1
             atom.baz . should_equal 3
@@ -369,7 +366,7 @@ spec =
             atom = pair.value
             fill = pair.fill
 
-            Meta.is_atom atom . should_be_true
+            Meta.meta atom . is_a Meta.Atom . should_be_true
 
             case atom.foo of
                 n : Number -> Test.fail "Shouldn't be number yet: "+n
