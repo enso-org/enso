@@ -65,7 +65,7 @@ type SQLite_Type_Mapping
                    report invalid type or coerce the values to Text. Both seem
                    bad when Mixed type is explicitly requested. Instead, we
                    should rely on explicit casting to text.
-                Error.throw (Illegal_Argument.Error "Mixed type columns are not supported in the SQLite backend.")
+                Error.throw (Unsupported_Database_Operation.Error "SQLite tables do not support Mixed types.")
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
                 underlying_type.if_nothing <|
                     Error.throw <|
