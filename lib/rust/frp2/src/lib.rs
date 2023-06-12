@@ -1,3 +1,122 @@
+//! # Introduction
+//! This module implements a sophisticated event handling framework, known as Functional Reactive
+//! Programming system. It allows creating data flow diagrams from predefined nodes. Over years many
+//! different FRP implementations appeared, especially in the Haskell community. The implementations
+//! differ both in concepts they use, as well as the provided functionality. The following
+//! implementation focuses on providing high performance and maintainability (ability to reason
+//! about correctness of complex data flow graphs).
+//!
+//! In order to grasp some of the main ideas we strongly encourage you to read the following FRP
+//! introduction. Although this implementation differs in few details, understanding these concepts
+//! would be helpful: https://github.com/hansroland/reflex-dom-inbits/blob/master/tutorial.md
+//!
+//!
+//! # FRP Network, Nodes, and Ports ([`Listen`], [`Sample`], [`ListenAndSample`])
+//! FRP logic is encoded by a [`Network`] of connected FRP [`Node`]s. Each node has zero or more
+//! inputs and a single output. You can think of nodes like functions that are processing incoming
+//! data. There are three types of inputs.
+//!
+//!
+//! # Events and Behaviors
+//! Every FRP implementation has its own evaluation logic. Some FRP implementations provide the user
+//! with an explicit distinction between "events" and "behaviors". "Events" are simple values passed
+//! trough the network, while "behaviors" are values that can be accessed at any time (like the
+//! current mouse position). Such a distinction requires the user to explicitly specify where a
+//! behavior should be created, for example by creating a "hold" node, which on every incoming event
+//! clones its value and stores it in case someone would like to sample it. Such a distinction has
+//! two major drawbacks:
+//!
+//! 1. It increases the verbosity of the FRP network, as users need to explicitly specify where a
+//!    behavior should be created.
+//! 2. It does not allow for some network optimizations. For example, if a node that requires the
+//!    output to be sampled is removed, the hold node is no longer needed and the value does not
+//!    need to ble cloned anymore.
+//!
+//! That's why this implementation makes this distinction implicit. The FRP network passes events
+//! and some output ports are considered "behaviors" if at least one "sample" input port is
+//! connected to the output port. There are three types of input ports:
+//!
+//! - [`Listen`]: A node can have only one listen port. If a node has this port it can also have
+//!   zero or more [`Sample`] ports (but no [`ListenAndSample`] ports). In case an event is emitted
+//!   to this port, the node will sample all of its [`Sample`] ports, evaluate its expression, and
+//!   emit the output value.
+//!
+//! - [`Sample`]: In contrast to listen ports, if an event is emitted to a sample port, the node
+//!   will not evaluate its expression. Sample ports are used only to sample the last emitted value
+//!   in case a listen port is triggered.
+//!
+//! - [`ListenAndSample`]: This port is a combination of [`Listen`] and [`Sample`] ports. Unlike the
+//!   [`Listen`] port, a node can have multiple [`ListenAndSample`] ports. In case an event is
+//!   emitted on this port, the node will sample all of its [`ListenAndSample`] and [`Sample`]
+//!   ports, evaluate its expression, and emit the output value.
+//!
+//!
+//! # Imperative FRP evaluation order
+//! This library implements so called "imperative FRP evaluation order". This means that a node
+//! evaluates as soon as it receives an event on one of its listen ports. After evaluating, the node
+//! emits the output value which triggers evaluation of all nodes connected to its output ports. For
+//! example, given the following FRP network:
+//!
+//! ```text
+//! ╭───────╮                 [L] - Listen port.
+//! │ Node1 │
+//! ╰───┬───╯
+//!     ├──────────╮
+//!     ▼ [L]      ▼ [L]
+//! ╭───────╮  ╭───────╮
+//! │ Node2 │  │ Node3 │
+//! ╰───┬───╯  ╰───┬───╯
+//! ```
+//!
+//! If an event is emitted to the listen port of `Node1`:
+//! - The event from `Node1` is emitted to `Node2`.
+//! - `Node2` evaluates and emits the event to all of its children nodes, which will evaluate and
+//!   emit their events to subsequent nodes.
+//! - The event from `Node1` is emitted to `Node3`.
+//! - `Node3` evaluates and emits the event to all of its children nodes, which will evaluate and
+//!   emit their events to subsequent nodes.
+//!
+//!
+//! # The "diamond problem"
+//! ...
+//!
+//!
+//! # The "initialization problem"
+//! ...
+//!
+//!
+//! # The "unused sub-network performance problem"
+//! ...
+//!
+//!
+//! # Reactive FRP evaluation order
+//! An alternative way to imperative FRP evaluation order is a reactive one. This library does NOT
+//! implement such a mode, but it is important to understand this difference, as we plan to
+//! introduce this mode in the future. In this mode, the evaluation of some nodes is triggered
+//! automatically to make the FRP network contain the most up-to-date values. This mode eliminates
+//! the above described problems:
+//!
+//! - It eliminates the "diamond problem" as a node will evaluate only after all of its inputs will
+//!   be computed.
+//! - It eliminates the "initialization problem", as the network will propagate initial values
+//!   automatically after creation.
+//! - It eliminates the "unused sub-network performance problem" as it can leave some nodes not
+//!   evaluated it the system discovers that the output values will not be used by subsequent nodes.
+//!
+//! However, this mode has its own drawbacks:
+//!
+//! - It is impossible for the user to determine the order of FRP nodes evaluation.
+//! - The FRP runtime has significantly more work at runtime, which will cause more computations to
+//!   be performed, making passing values between nodes slower. However, this can be probably
+//!   mitigated by the benefits described above.
+//!
+//!
+//! # Passing data between nodes as references and clones
+//! By default, the data is passed between nodes by reference. In case a node output is connected to
+//! at least one sample port, the data will be cloned before it is emitted, so the sample ports will
+//! be able to sample it on demand. If no sample ports are connected to the node output, the data
+//! will not be cloned.
+
 #![feature(allocator_api)]
 #![feature(test)]
 #![feature(let_chains)]
@@ -26,19 +145,33 @@ use enso_frp as frp_old;
 
 
 
-pub trait Data: Debug {
+// ============
+// === Data ===
+// ============
+
+/// Trait for types that can be used as event data in the FRP system. The inherited bounds are as
+/// follow:
+/// - [`Debug`]: For debug purposes in order to be able to trace the data flow when needed.
+/// - [`Clone + 'static`]: Needed in case the data needs to be cloned if it is passed to a sample
+///   port.
+pub trait Data: DataBounds {
     fn boxed_clone(&self) -> Box<dyn Data>;
 }
 
+/// Alias for bounds required on [`Data`] types.
+pub trait DataBounds = where Self: Debug + 'static;
 
-impl<T> Data for T
-where T: Debug + Clone + 'static
-{
+impl<T: DataBounds + Clone> Data for T {
     fn boxed_clone(&self) -> Box<dyn Data> {
         Box::new(self.clone())
     }
 }
 
+
+
+// ===============
+// === Network ===
+// ===============
 
 
 #[derive(Debug, Default)]
