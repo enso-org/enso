@@ -181,6 +181,7 @@
   being loaded was potentially confusing to users.
 - [Performance and readability of documentation panel was improved][6893]. The
   documentation is now split into separate pages, which are much smaller.
+- [Fixed cursor position when ctrl-clicking the node][7014].
 
 [6279]: https://github.com/enso-org/enso/pull/6279
 [6421]: https://github.com/enso-org/enso/pull/6421
@@ -194,6 +195,7 @@
 [6844]: https://github.com/enso-org/enso/pull/6844
 [6827]: https://github.com/enso-org/enso/pull/6827
 [6893]: https://github.com/enso-org/enso/pull/6893
+[7014]: https://github.com/enso-org/enso/pull/7014
 
 #### EnsoGL (rendering engine)
 
