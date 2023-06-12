@@ -11,10 +11,14 @@
 //! would be helpful: https://github.com/hansroland/reflex-dom-inbits/blob/master/tutorial.md
 //!
 //!
-//! # FRP Network, Nodes, and Ports ([`Listen`], [`Sample`], [`ListenAndSample`])
+//! # FRP Network and FRP nodes
 //! FRP logic is encoded by a [`Network`] of connected FRP [`Node`]s. Each node has zero or more
 //! inputs and a single output. You can think of nodes like functions that are processing incoming
-//! data. There are three types of inputs.
+//! data. FRP nodes are grouped into [`Network`]s and they are dropped when the network is dropped.
+//!
+//! The [`Network`] is parametrized with a model, a data structure that can be modified by some of
+//! FPR nodes, such as `map`.
+//!
 //!
 //!
 //! # Events and Behaviors
@@ -513,6 +517,12 @@ impl Runtime {
 /// Alias for [`Network`] with the default parametrization;
 pub type Network_ = Network;
 
+/// An FRP network, a group of FRP nodes.
+///
+/// # WARNING: Be careful when cloning the network.
+/// As long as the network lives, all nodes in the network will live as well. Cloning the network
+/// and passing it to FRP node closure will cause memory leaks. The ability to clone the network is
+/// provided for backward compatibility only and will be removed in the future.
 #[derive(CloneRef, Debug, Default, Deref)]
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""))]
@@ -521,11 +531,13 @@ pub struct Network<Model = ()> {
 }
 
 impl<Model: Default> Network<Model> {
+    /// Constructor.
     pub fn new() -> Self {
         default()
     }
 }
 
+/// Internal representation of [`Network`].
 #[derive(Debug)]
 pub struct NetworkModel<Model> {
     pub(crate) id:    NetworkId,
@@ -534,7 +546,7 @@ pub struct NetworkModel<Model> {
 
 impl<Model: Default> NetworkModel<Model> {
     #[inline(never)]
-    pub fn new() -> Self {
+    fn new() -> Self {
         let id = with_runtime(|rt| rt.new_network());
         let model = default();
         NetworkModel { id, model }
@@ -553,12 +565,6 @@ impl<Model> Drop for NetworkModel<Model> {
     }
 }
 
-pub trait Node: Copy {
-    type Output;
-    fn id(self) -> NodeId;
-}
-
-pub trait NodeWithDefaultOutput = Node where <Self as Node>::Output: Default;
 
 
 // ================================
@@ -712,14 +718,14 @@ impl<Model> Network<Model> {
         inps: Inputs,
         f: F,
         init: impl FnOnce(&mut NodeData) -> _Out,
-    ) -> Bound<Model, NodeTemplate<Kind, Output>>
+    ) -> NodeInNetwork<Model, NodeTemplate<Kind, Output>>
     where
         Inputs: NodeDefinition<Incl, Model, Output, F>,
     {
         let node = Inputs::new_node_with_init(self, inps, f, |n| {
             init(n);
         });
-        Bound::new(self, node)
+        NodeInNetwork::new(self, node)
     }
 
     #[inline(always)]
@@ -728,7 +734,7 @@ impl<Model> Network<Model> {
         inps: Inputs,
         f: F,
         init: impl FnOnce(&mut NodeData) -> _Out,
-    ) -> Bound<Model, NodeTemplate<Kind, Output>>
+    ) -> NodeInNetwork<Model, NodeTemplate<Kind, Output>>
     where
         Inputs: NodeDefinition<ModelNotIncluded, Model, Output, F>,
     {
@@ -741,7 +747,7 @@ impl<Model> Network<Model> {
         inps: Inputs,
         f: F,
         init: impl FnOnce(&mut NodeData) -> _Out,
-    ) -> Bound<Model, NodeTemplate<Kind, Output>>
+    ) -> NodeInNetwork<Model, NodeTemplate<Kind, Output>>
     where
         Inputs: NodeDefinition<ModelIncluded, Model, Output, F>,
     {
@@ -753,7 +759,7 @@ impl<Model> Network<Model> {
         &self,
         inps: Inputs,
         f: F,
-    ) -> Bound<Model, NodeTemplate<Kind, Output>>
+    ) -> NodeInNetwork<Model, NodeTemplate<Kind, Output>>
     where
         Inputs: NodeDefinition<ModelNotIncluded, Model, Output, F>,
     {
@@ -765,7 +771,7 @@ impl<Model> Network<Model> {
         &self,
         inps: Inputs,
         f: F,
-    ) -> Bound<Model, NodeTemplate<Kind, Output>>
+    ) -> NodeInNetwork<Model, NodeTemplate<Kind, Output>>
     where
         Inputs: NodeDefinition<ModelIncluded, Model, Output, F>,
     {
@@ -946,8 +952,23 @@ where
     }
 }
 
-// === NodeTemplate ===
 
+
+// ============
+// === Node ===
+// ============
+
+/// Any FRP node. This is a generalization for [`NodeTemplate`] with hidden `Kind` type.
+pub trait Node: Copy {
+    type Output;
+    fn id(self) -> NodeId;
+}
+
+/// An alias for [`Node`] with default output type bounds.
+pub trait NodeWithDefaultOutput = Node where <Self as Node>::Output: Default;
+
+/// A generic node representation that is parametrized with the node kind and node output. All FRP
+/// nodes use this struct under the hood.
 #[derive(Derivative)]
 #[derivative(Copy(bound = ""))]
 #[derivative(Clone(bound = ""))]
@@ -960,30 +981,13 @@ pub struct NodeTemplate<Kind, Output> {
 
 impl<Kind, Output> Node for NodeTemplate<Kind, Output> {
     type Output = Output;
-
     #[inline(always)]
     fn id(self) -> NodeId {
         self.id
     }
 }
 
-impl<'a, Model, T: Node> Node for Bound<'a, Model, T> {
-    type Output = T::Output;
-
-    #[inline(always)]
-    fn id(self) -> NodeId {
-        self.elem.id()
-    }
-}
-
 impl<Kind, Output> NodeTemplate<Kind, Output> {
-    // #[inline(always)]
-    // fn new_template(tp: impl EventConsumer + 'static, network_id: NetworkId) -> Self {
-    //     let _marker = PhantomData;
-    //     let id = with_runtime(|rt| rt.new_node(tp, network_id, DefInfo::unlabelled()));
-    //     Self { _marker, id }
-    // }
-
     #[inline(never)]
     pub fn emit(&self, value: &Output)
     where Output: Data {
@@ -992,6 +996,8 @@ impl<Kind, Output> NodeTemplate<Kind, Output> {
 }
 
 impl<Model> Network<Model> {
+    /// Constructor of the node. The type safety is not guaranteed. You have to ensure that the
+    /// [`f`] function arguments and output type are correct.
     #[inline(always)]
     fn new_node_with_init_unchecked<Kind, Output>(
         &self,
@@ -1005,22 +1011,35 @@ impl<Model> Network<Model> {
 }
 
 
+
+// =====================
+// === NodeInNetwork ===
+// =====================
+
 #[derive(Deref, DerefMut)]
-pub struct Bound<'t, Model, T> {
+pub struct NodeInNetwork<'t, Model, T> {
     #[deref]
     #[deref_mut]
     elem:    T,
     network: &'t Network<Model>,
 }
 
-impl<'t, Model, T: Copy> Copy for Bound<'t, Model, T> {}
-impl<'t, Model, T: Clone> Clone for Bound<'t, Model, T> {
+impl<'a, Model, T: Node> Node for NodeInNetwork<'a, Model, T> {
+    type Output = T::Output;
+    #[inline(always)]
+    fn id(self) -> NodeId {
+        self.elem.id()
+    }
+}
+
+impl<'t, Model, T: Copy> Copy for NodeInNetwork<'t, Model, T> {}
+impl<'t, Model, T: Clone> Clone for NodeInNetwork<'t, Model, T> {
     fn clone(&self) -> Self {
         Self { elem: self.elem.clone(), network: self.network }
     }
 }
 
-impl<'t, Model, T> Bound<'t, Model, T> {
+impl<'t, Model, T> NodeInNetwork<'t, Model, T> {
     fn new(network: &'t Network<Model>, elem: T) -> Self {
         Self { network, elem }
     }
@@ -1041,11 +1060,11 @@ pub type Source<Output = ()> = NodeTemplate<SourceType, Output>;
 
 impl<Model> Network<Model> {
     #[inline(always)]
-    pub fn source<T>(&self) -> Bound<Model, Source<T>> {
+    pub fn source<T>(&self) -> NodeInNetwork<Model, Source<T>> {
         self.new_node((), |_, _| {})
     }
 
-    pub fn source_(&self) -> Bound<Model, Source> {
+    pub fn source_(&self) -> NodeInNetwork<Model, Source> {
         self.new_node((), |_, _| {})
     }
 }
@@ -1059,7 +1078,7 @@ pub type Sampler<Output = ()> = NodeTemplate<SamplerType, Output>;
 
 impl<Model> Network<Model> {
     #[inline(always)]
-    pub fn sampler<T>(&self) -> Bound<Model, Sampler<T>> {
+    pub fn sampler<T>(&self) -> NodeInNetwork<Model, Sampler<T>> {
         self.new_node_with_init((), |_, _| {}, |node| node.sampler_count.update(|t| t + 1))
     }
 }
@@ -1068,7 +1087,10 @@ impl<Model> Network<Model> {
 
 impl<Model> Network<Model> {
     /// Pass all incoming events to the output. Print them to console.
-    pub fn trace<T0: Data>(&self, source: impl Node<Output = T0>) -> Bound<Model, Stream<T0>> {
+    pub fn trace<T0: Data>(
+        &self,
+        source: impl Node<Output = T0>,
+    ) -> NodeInNetwork<Model, Stream<T0>> {
         self.new_node((Listen(source),), move |event, _, t0| {
             println!("TRACE: {:?}", t0);
             event.emit(t0);
@@ -1080,7 +1102,7 @@ impl<Model> Network<Model> {
         &self,
         src: impl Node<Output = T0>,
         cond: impl Node<Output = bool>,
-    ) -> Bound<Model, Stream<T0>> {
+    ) -> NodeInNetwork<Model, Stream<T0>> {
         self.new_node((Listen(src), Sample(cond)), move |event, _, src, cond| {
             if *cond {
                 println!("TRACE: {:?}", src);
@@ -1111,7 +1133,7 @@ impl<Model> Network<Model> {
     pub fn debug_collect<T0: Data + Clone + 'static>(
         &self,
         source: impl Node<Output = T0>,
-    ) -> (Bound<Model, Stream<Vec<T0>>>, DebugCollectData<T0>) {
+    ) -> (NodeInNetwork<Model, Stream<Vec<T0>>>, DebugCollectData<T0>) {
         let data: DebugCollectData<T0> = default();
         let out = data.clone();
         let node = self.new_node((Listen(source),), move |event, _, t0| {
@@ -1126,13 +1148,13 @@ impl<Model> Network<Model> {
 
 // === Map2 ===
 
-impl<'a, Model, N1> Bound<'a, Model, N1>
+impl<'a, Model, N1> NodeInNetwork<'a, Model, N1>
 where
     Model: 'static,
     N1: Node,
 {
     #[inline(never)]
-    pub fn map<F, Output>(self, f: F) -> Bound<'a, Model, Stream<Output>>
+    pub fn map<F, Output>(self, f: F) -> NodeInNetwork<'a, Model, Stream<Output>>
     where
         Output: Data,
         F: 'static + Fn(&mut Model, &N1::Output) -> Output, {
@@ -1140,7 +1162,7 @@ where
     }
 
     // #[inline(never)]
-    // pub fn map2<N2, F, Output>(self, n2: N2, f: F) -> Bound<'a, Model, Stream<Output>>
+    // pub fn map2<N2, F, Output>(self, n2: N2, f: F) -> NodeInNetwork<'a, Model, Stream<Output>>
     // where
     //     N2: NodeWithDefaultOutput,
     //     Output: Data,
@@ -1151,7 +1173,7 @@ where
     // }
 
     #[inline(never)]
-    pub fn map_<F, Output>(self, f: F) -> Bound<'a, Model, Stream<Output>>
+    pub fn map_<F, Output>(self, f: F) -> NodeInNetwork<'a, Model, Stream<Output>>
     where
         Output: Data,
         F: 'static + Fn(&N1::Output) -> Output, {
@@ -1159,7 +1181,7 @@ where
     }
 
     #[inline(never)]
-    pub fn map2_<N2, F, Output>(self, n2: N2, f: F) -> Bound<'a, Model, Stream<Output>>
+    pub fn map2_<N2, F, Output>(self, n2: N2, f: F) -> NodeInNetwork<'a, Model, Stream<Output>>
     where
         N2: NodeWithDefaultOutput,
         Output: Data,
@@ -1188,7 +1210,7 @@ macro_rules! def_map_nodes {
     (# $i:tt [$($ns:tt)*]) => { paste! {
         #[inline(never)]
         pub fn [<map $i>] < $($ns,)* F, Output>
-        (self, $($ns:$ns,)* f: F) -> Bound<'a, Model, Stream<Output>>
+        (self, $($ns:$ns,)* f: F) -> NodeInNetwork<'a, Model, Stream<Output>>
         where
             $($ns: NodeWithDefaultOutput,)*
             Output: Data,
@@ -1200,7 +1222,7 @@ macro_rules! def_map_nodes {
     }};
 }
 
-impl<'a, Model, N1> Bound<'a, Model, N1>
+impl<'a, Model, N1> NodeInNetwork<'a, Model, N1>
 where
     Model: 'static,
     N1: Node,
