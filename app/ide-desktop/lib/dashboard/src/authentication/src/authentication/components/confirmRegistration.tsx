@@ -5,7 +5,7 @@ import * as router from 'react-router-dom'
 import toast from 'react-hot-toast'
 
 import * as app from '../../components/app'
-import * as auth from '../providers/auth'
+import * as authModule from '../providers/auth'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 
@@ -25,27 +25,28 @@ const REGISTRATION_QUERY_PARAMS = {
 /** An empty component redirecting users based on the backend response to user registration. */
 function ConfirmRegistration() {
     const logger = loggerProvider.useLogger()
-    const { confirmSignUp } = auth.useAuth()
-    const { search } = router.useLocation()
+    const auth = authModule.useAuth()
+    const location = router.useLocation()
     const navigate = hooks.useNavigate()
 
-    const { verificationCode, email } = parseUrlSearchParams(search)
+    const { verificationCode, email } = parseUrlSearchParams(location.search)
 
     react.useEffect(() => {
         if (!email || !verificationCode) {
             navigate(app.LOGIN_PATH)
         } else {
-            confirmSignUp(email, verificationCode)
-                .then(() => {
-                    navigate(app.LOGIN_PATH + search.toString())
-                })
-                .catch(error => {
+            void (async () => {
+                try {
+                    await auth.confirmSignUp(email, verificationCode)
+                    navigate(app.LOGIN_PATH + location.search.toString())
+                } catch (error) {
                     logger.error('Error while confirming sign-up', error)
                     toast.error(
                         'Something went wrong! Please try again or contact the administrators.'
                     )
                     navigate(app.LOGIN_PATH)
-                })
+                }
+            })()
         }
     }, [])
 

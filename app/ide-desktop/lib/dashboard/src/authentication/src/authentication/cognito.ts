@@ -172,8 +172,8 @@ export class Cognito {
     /** Sign up with username and password.
      *
      * Does not rely on federated identity providers (e.g., Google or GitHub). */
-    signUp(username: string, password: string) {
-        return signUp(this.supportsDeepLinks, username, password)
+    signUp(username: string, password: string, organizationId: string | null) {
+        return signUp(this.supportsDeepLinks, username, password, organizationId)
     }
 
     /** Send the email address verification code.
@@ -339,9 +339,14 @@ function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
 
 /** A wrapper around the Amplify "sign up" endpoint that converts known errors
  * to {@link SignUpError}s. */
-async function signUp(supportsDeepLinks: boolean, username: string, password: string) {
+async function signUp(
+    supportsDeepLinks: boolean,
+    username: string,
+    password: string,
+    organizationId: string | null
+) {
     const result = await results.Result.wrapAsync(async () => {
-        const params = intoSignUpParams(supportsDeepLinks, username, password)
+        const params = intoSignUpParams(supportsDeepLinks, username, password, organizationId)
         await amplify.Auth.signUp(params)
     })
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignUpErrorOrThrow)
@@ -351,7 +356,8 @@ async function signUp(supportsDeepLinks: boolean, username: string, password: st
 function intoSignUpParams(
     supportsDeepLinks: boolean,
     username: string,
-    password: string
+    password: string,
+    organizationId: string | null
 ): amplify.SignUpParams {
     return {
         username,
@@ -369,6 +375,8 @@ function intoSignUpParams(
              * expected to appear exactly as-is in Cognito, so we must match it. */
             // eslint-disable-next-line @typescript-eslint/naming-convention
             ...(supportsDeepLinks ? { 'custom:fromDesktop': JSON.stringify(true) } : {}),
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            ...(organizationId != null ? { 'custom:organizationId': organizationId } : {}),
         },
     }
 }

@@ -296,8 +296,8 @@ export function AuthProvider(props: AuthProviderProps) {
         return Promise.resolve(true)
     }
 
-    const signUp = async (username: string, password: string) => {
-        const result = await cognito.signUp(username, password)
+    const signUp = async (username: string, password: string, organizationId: string | null) => {
+        const result = await cognito.signUp(username, password, organizationId)
         if (result.ok) {
             toast.success(MESSAGES.signUpSuccess)
         } else {
