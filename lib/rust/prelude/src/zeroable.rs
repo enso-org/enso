@@ -1,6 +1,7 @@
 pub use bytemuck;
 pub use bytemuck::Zeroable;
 
+use crate::Clearable;
 use crate::Deref;
 use crate::DerefMut;
 use core::fmt::Debug;
@@ -87,6 +88,13 @@ impl<T> From<T> for ZeroableOption<T> {
     #[inline(always)]
     fn from(v: T) -> Self {
         ZeroableOption::Some(v)
+    }
+}
+
+impl<T> Clearable for ZeroableOption<T> {
+    #[inline(always)]
+    fn clear(&mut self) {
+        *self = ZeroableOption::None;
     }
 }
 

@@ -188,52 +188,106 @@ impl Clearable for NetworkData {
 
 
 
+// ============
+// === Edge ===
+// ============
+
+/// A connection between FRP nodes.
 #[derive(Clone, Copy, Debug, Default, Zeroable)]
 pub struct Edge {
     pub target:     NodeId,
+    /// Determines whether the edge is connected to a sample port.
     pub is_sampler: bool,
 }
 
-#[derive(Default, Zeroable)]
-pub struct NodeData {
-    tp:              ZeroableOption<Box<dyn EventConsumer>>,
-    network_id:      NetworkId,
-    def:             DefInfo,
-    inputs:          OptRefCell<UnrolledLinkedList<NodeId, 8, usize, prealloc::Zeroed>>,
-    /// Outputs to which an event should be emitted. This includes both [`Listener`] and
-    /// [`ListenerAndSampler`] connections.
-    outputs:         OptRefCell<UnrolledLinkedList<Edge, 8, usize, prealloc::Zeroed>>,
-    /// Outputs to which an event should NOT be emitted. This includes only [`Sampler`]
-    /// connections.
-    sampler_outputs: OptRefCell<UnrolledLinkedList<Edge, 8, usize, prealloc::Zeroed>>,
-    output_cache:    OptRefCell<ZeroableOption<Box<dyn Data>>>,
-    /// Number of samplers connected to this nodes. This includes both the count of
-    /// [`ListenerAndSampler`] connections in [`Self::outputs`] and the count of all connections in
-    /// [`Self::sampler_outputs`].
-    sampler_count:   Cell<usize>,
-    // WARNING!
-    // When adding new fields, be sure that they are correctly handled by the [`ImClearable`] and
-    // [`Reusable`] trait implementations.
+
+
+// ============
+// === Node ===
+// ============
+
+/// A helper macro to define node data. It is defined with a macro to guarantee that all fields are
+/// used either by the `ImClearable` or `Reusable` implementations.
+///
+/// For performance reasons, when a node is dropped, not all of its fields are cleared, as some of
+/// the fields will be set when the node is reused. See docs of [`ImClearable`] and [`Reusable`] to
+/// learn more.
+macro_rules! def_node {
+    (
+        $(#$meta:tt)*
+        pub struct $name:ident {
+            reusable {
+                $(
+                    $(#$reusable_field_meta:tt)*
+                    $reusable_field:ident: $reusable_field_ty:ty
+                ),* $(,)?
+            }
+
+            clearable {
+                $(
+                    $(#$clearable_field_meta:tt)*
+                    $clearable_field:ident: $clearable_field_ty:ty
+                ),* $(,)?
+            }
+
+        }
+    ) => {
+        $(#$meta)*
+        pub struct $name {
+            $(
+                $(#$reusable_field_meta)*
+                $reusable_field: $reusable_field_ty,
+            )*
+            $(
+                $(#$clearable_field_meta)*
+                $clearable_field: $clearable_field_ty,
+            )*
+        }
+
+        impl ImClearable for $name {
+            #[inline(always)]
+            fn clear_im(&self) {
+                $(self.$clearable_field.clear_im();)*
+            }
+        }
+
+        impl Reusable for NodeData {
+            type Args = ($($reusable_field_ty,)*);
+            #[inline(always)]
+            fn reuse(&mut self, args: Self::Args) {
+                $(
+                    let (arg, args) = args.pop_first_field();
+                    self.$reusable_field = arg;
+                )*
+            }
+        }
+
+    };
 }
 
-impl ImClearable for NodeData {
-    #[inline(always)]
-    fn clear_im(&self) {
-        self.inputs.borrow_mut().clear();
-        self.outputs.borrow_mut().clear();
-        self.sampler_outputs.borrow_mut().clear();
-        self.output_cache.replace(default());
-        self.sampler_count.set(0);
-    }
-}
-
-impl Reusable for NodeData {
-    type Args = (ZeroableOption<Box<dyn EventConsumer>>, NetworkId, DefInfo);
-    #[inline(always)]
-    fn reuse(&mut self, args: Self::Args) {
-        self.tp = args.0;
-        self.network_id = args.1;
-        self.def = args.2;
+def_node! {
+    /// An FRP node.
+    #[derive(Default, Zeroable)]
+    pub struct NodeData {
+        reusable {
+            tp: ZeroableOption<Box<dyn EventConsumer>>,
+            network_id: NetworkId,
+            def: DefInfo,
+        }
+        clearable {
+            inputs: OptRefCell<UnrolledLinkedList<NodeId, 8, usize, prealloc::Zeroed>>,
+            /// Outputs to which an event should be emitted. This includes both [`Listener`] and
+            /// [`ListenerAndSampler`] connections.
+            outputs: OptRefCell<UnrolledLinkedList<Edge, 8, usize, prealloc::Zeroed>>,
+            /// Outputs to which an event should NOT be emitted. This includes only [`Sampler`]
+            /// connections.
+            sampler_outputs: OptRefCell<UnrolledLinkedList<Edge, 8, usize, prealloc::Zeroed>>,
+            output_cache: OptRefCell<ZeroableOption<Box<dyn Data>>>,
+            /// Number of samplers connected to this nodes. This includes both the count of
+            /// [`ListenerAndSampler`] connections in [`Self::outputs`] and the count of all
+            /// connections in [`Self::sampler_outputs`].
+            sampler_count: Cell<usize>,
+        }
     }
 }
 
@@ -244,36 +298,11 @@ impl Debug for NodeData {
 }
 
 impl NodeData {
-    // fn new(tp: impl EventConsumer + 'static, network_id: NetworkId, def: DefInfo) -> Self {
-    //     Self {
-    //         tp: ZeroableOption::Some(Box::new(tp)),
-    //         network_id,
-    //         def,
-    //         inputs: default(),
-    //         outputs: default(),
-    //         output: default(),
-    //         sampler_count: default(),
-    //     }
-    // }
-
     // Either `inline(always)` or `inline(never)` flags makes this code slower.
     fn on_event(&self, runtime: &Runtime, event: &dyn Data) {
-        // runtime.unchecked_emit_internal(self, event);
-        // println!("on_event: {:?}", event);
-        match &self.tp {
-            ZeroableOption::Some(f) => f(runtime, self, event),
-            ZeroableOption::None => {}
-        }
+        self.tp.as_ref().map(|f| f(runtime, self, event));
     }
 }
-// slotmap::new_key_type! { pub struct NetworkId; }
-//
-// // FIXME: this is wrong!
-// unsafe impl Zeroable for NetworkId {}
-
-// slotmap::new_key_type! { pub struct NodeId; }
-
-type TargetsVec = SmallVec<[NodeId; 1]>;
 
 
 
@@ -281,22 +310,45 @@ type TargetsVec = SmallVec<[NodeId; 1]>;
 // === Runtime ===
 // ===============
 
+/// The size of a single array in the array-linked list of FRP networks.
+const NETWORK_LINKED_ARRAY_SIZE: usize = 1024;
+
+/// The size of a single array in the array-linked list of FRP nodes.
+const NODES_LINKED_ARRAY_SIZE: usize = 131072; // 2 ^ 17
+
 thread_local! {
     static RUNTIME: Runtime  = default();
 }
 
 #[inline(always)]
-pub fn with_runtime<T>(f: impl FnOnce(&Runtime) -> T) -> T {
+pub(crate) fn with_runtime<T>(f: impl FnOnce(&Runtime) -> T) -> T {
     RUNTIME.with(|runtime| f(runtime))
 }
 
-pub struct NetworkMap;
-pub struct NodeMap;
+/// Phantom type used to provide type-level hints for network-related structs.
+pub struct NETWORK;
 
+/// Phantom type used to provide type-level hints for node-related structs.
+pub struct NODE;
+
+/// A unique identifier of a network.
+pub type NetworkId = VersionedIndex<NETWORK>;
+
+/// A unique identifier of a node.
+pub type NodeId = VersionedIndex<NODE>;
+
+/// A global FRP network. Both networks and nodes are stored in a global slot-maps. This allows for
+/// both fast initialization of the slot-maps, as well as re-using already allocated memory in case
+/// a network or a node is dropped and created again.
 #[derive(Default)]
 pub struct Runtime {
-    networks: UnrolledSlotMap<OptRefCell<NetworkData>, 1024, NetworkMap, prealloc::Default>,
-    nodes:    UnrolledSlotMap<OptRefCell<NodeData>, 131072, NodeMap, prealloc::Zeroed>,
+    networks: UnrolledSlotMap<
+        OptRefCell<NetworkData>,
+        NETWORK_LINKED_ARRAY_SIZE,
+        NETWORK,
+        prealloc::Default,
+    >,
+    nodes: UnrolledSlotMap<OptRefCell<NodeData>, NODES_LINKED_ARRAY_SIZE, NODE, prealloc::Zeroed>,
     metrics:  metrics::Metrics,
     stack:    CallStack,
 }
@@ -329,43 +381,40 @@ impl Runtime {
     #[inline(always)]
     fn new_node(
         &self,
-        tp: impl EventConsumer + 'static,
         net_id: NetworkId,
         def: DefInfo,
+        f: impl EventConsumer,
         init: impl FnOnce(&mut NodeData),
     ) -> NodeId {
         self.metrics.inc_nodes();
         if let Some(network) = self.networks.get(net_id) {
-            let id = self.nodes.reserve();
-            if let Some(node) = self.nodes.get(id) {
+            let id = self.nodes.reserve_and_init_im_(|node| {
                 let mut node = node.borrow_mut();
-                node.reuse((ZeroableOption::Some(Box::new(tp)), net_id, def));
+                node.reuse((ZeroableOption::Some(Box::new(f)), net_id, def));
                 init(&mut *node);
-            }
+            });
             network.borrow_mut().nodes.push(id);
             id
         } else {
-            panic!()
-            // NodeId::null()
+            panic!("Trying to create a node in a non-existent FRP network.")
         }
     }
 
     #[inline(always)]
-    fn connect(&self, src_id: impl Into<InputType>, tgt_id: NodeId) {
-        let src_id = src_id.into();
-        let is_listener = src_id.is_listener();
-        let is_sampler = src_id.is_sampler();
+    fn connect(&self, src_tp: InputType, tgt_id: NodeId) {
+        let src_id = src_tp.node_id();
+        let is_sampler = src_tp.is_sampler();
         let output_connection = Edge { target: tgt_id, is_sampler };
-        if let Some(src) = self.nodes.get(src_id.node_id()) {
+        if let Some(src) = self.nodes.get(src_id) {
             let src = src.borrow();
             if is_sampler {
                 src.sampler_count.modify(|t| *t += 1);
             }
-            let outputs = if is_listener { &src.outputs } else { &src.sampler_outputs };
+            let outputs = if src_tp.is_listener() { &src.outputs } else { &src.sampler_outputs };
             outputs.borrow().push(output_connection);
         }
         if let Some(tgt) = self.nodes.get(tgt_id) {
-            tgt.borrow().inputs.borrow().push(src_id.node_id());
+            tgt.borrow().inputs.borrow().push(src_id);
         }
     }
 
@@ -932,11 +981,11 @@ impl<Model> Network<Model> {
     #[inline(always)]
     fn new_node_with_init_unchecked<Kind, Output>(
         &self,
-        tp: impl EventConsumer + 'static,
+        f: impl EventConsumer,
         init: impl FnOnce(&mut NodeData),
     ) -> NodeTemplate<Kind, Output> {
         let _marker = PhantomData;
-        let id = with_runtime(|rt| rt.new_node(tp, self.id, DefInfo::unlabelled(), init));
+        let id = with_runtime(|rt| rt.new_node(self.id, DefInfo::unlabelled(), f, init));
         NodeTemplate { _marker, id }
     }
 }
@@ -1145,7 +1194,7 @@ where
     def_map_nodes![2, 3];
 }
 
-trait EventConsumer = Fn(&Runtime, &NodeData, &dyn Data);
+trait EventConsumer = Fn(&Runtime, &NodeData, &dyn Data) + 'static;
 
 
 
@@ -1476,8 +1525,7 @@ mod benches {
 // 3411847
 // 1941622
 
-pub type NetworkId = VersionedIndex<NetworkMap>;
-pub type NodeId = VersionedIndex<NodeMap>;
+
 
 type FF = dyn Fn(usize) -> usize;
 

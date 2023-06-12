@@ -1,5 +1,7 @@
+use crate::Clearable;
 use crate::Deref;
 use crate::DerefMut;
+use crate::ImClearable;
 use crate::Zeroable;
 use core::fmt::Debug;
 use std::cell::RefCell;
@@ -136,5 +138,12 @@ impl<T> DerefMut for OptRefCell<T> {
 impl<T: Debug> Debug for OptRefCell<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Debug::fmt(&self.borrow(), f)
+    }
+}
+
+impl<T: Clearable> ImClearable for OptRefCell<T> {
+    #[inline(always)]
+    fn clear_im(&self) {
+        self.borrow_mut().clear()
     }
 }

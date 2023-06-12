@@ -1,6 +1,8 @@
 //! Definition of [`Clearable`] and [`Reusable`] traits, allowing perforant way of clearing and
 //! reusing data structures.
 
+use std::cell::Cell;
+
 
 
 // =================
@@ -54,6 +56,13 @@ pub trait Reusable {
 // =================
 // === Std Impls ===
 // =================
+
+impl<T: Default> ImClearable for Cell<T> {
+    #[inline(always)]
+    fn clear_im(&self) {
+        self.set(Default::default())
+    }
+}
 
 impl<T> Clearable for Vec<T> {
     #[inline(always)]

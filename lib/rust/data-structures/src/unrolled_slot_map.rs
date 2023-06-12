@@ -165,6 +165,39 @@ where B: AllocationBehavior<Slot<Item>>
         }
     }
 
+    /// Reserve a new index and execute the provided function on the mutable reference to the value.
+    /// See docs of [`Self::reserve`] to learn more.
+    #[inline(always)]
+    pub fn reserve_and_init<T>(
+        &mut self,
+        f: impl FnOnce(&mut Item) -> T,
+    ) -> (VersionedIndex<Kind>, T) {
+        let id = self.reserve();
+        let out = f(self.get_mut(id).unwrap());
+        (id, out)
+    }
+
+    /// Reserve a new index and execute the provided function on the reference to the value. See
+    /// docs of [`Self::reserve`] to learn more.
+    #[inline(always)]
+    pub fn reserve_and_init_im<T>(&self, f: impl FnOnce(&Item) -> T) -> (VersionedIndex<Kind>, T) {
+        let id = self.reserve();
+        let out = f(self.get(id).unwrap());
+        (id, out)
+    }
+
+    /// Wrapper for [`Self::reserve_and_init] that returns only the newly reserved index.
+    #[inline(always)]
+    pub fn reserve_and_init_<T>(&mut self, f: impl FnOnce(&mut Item) -> T) -> VersionedIndex<Kind> {
+        self.reserve_and_init(f).0
+    }
+
+    /// Wrapper for [`Self::reserve_and_init_im`] that returns only the newly reserved index.
+    #[inline(always)]
+    pub fn reserve_and_init_im_<T>(&self, f: impl FnOnce(&Item) -> T) -> VersionedIndex<Kind> {
+        self.reserve_and_init_im(f).0
+    }
+
     /// Insert a new value into the map.
     #[inline(always)]
     pub fn insert(&mut self, item: Item) -> VersionedIndex<Kind> {
