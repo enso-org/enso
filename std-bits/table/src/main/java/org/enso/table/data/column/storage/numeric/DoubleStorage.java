@@ -1,14 +1,16 @@
 package org.enso.table.data.column.storage.numeric;
 
+import java.util.BitSet;
+import java.util.List;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.UnaryDoubleToLongOp;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
-import org.enso.table.data.column.operation.map.UnaryDoubleToLongOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -17,9 +19,6 @@ import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Value;
-
-import java.util.BitSet;
-import java.util.List;
 
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends NumericStorage<Double> {

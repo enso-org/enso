@@ -1,18 +1,13 @@
 package org.enso.interpreter.test.instrument;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertNotNull;
+
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import java.io.OutputStream;
-import java.nio.file.Paths;
 import org.enso.interpreter.instrument.job.VisualizationResult;
-import org.enso.polyglot.RuntimeOptions;
-import org.graalvm.polyglot.Context;
-import org.junit.AfterClass;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertNotNull;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ConvertAsStringObjectTest {

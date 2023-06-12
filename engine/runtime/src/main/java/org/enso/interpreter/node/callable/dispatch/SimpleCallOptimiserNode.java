@@ -3,14 +3,13 @@ package org.enso.interpreter.node.callable.dispatch;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.State;
-
-import java.util.concurrent.locks.Lock;
 
 /**
  * Optimistic version of {@link CallOptimiserNode} for the non tail call recursive case. Tries to

@@ -1,7 +1,6 @@
 package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.source.Source;
-
 import java.util.Arrays;
 
 /** A class containing helpers for creating and parsing EPB code */
