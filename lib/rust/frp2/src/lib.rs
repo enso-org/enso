@@ -7,6 +7,7 @@
 #![feature(core_intrinsics)]
 
 mod callstack;
+mod metrics;
 
 pub use enso_prelude as prelude;
 
@@ -22,14 +23,9 @@ use crate::callstack::CallStack;
 use crate::callstack::DefInfo;
 
 use enso_frp as frp_old;
-// use std::any::Any as Data;
-
-// #[derive(Clone, Copy, Debug)]
-// pub struct Data(usize);
 
 
 
-// pub trait Data = Any;
 pub trait Data: Debug {
     fn boxed_clone(&self) -> Box<dyn Data>;
 }
@@ -43,58 +39,6 @@ where T: Debug + Clone + 'static
     }
 }
 
-// ===============
-// === Metrics ===
-// ===============
-
-#[derive(Default, Clone)]
-pub struct Metrics {
-    pub total_networks:      Cell<u64>,
-    pub total_network_refs:  Cell<u64>,
-    pub total_networks_ever: Cell<u64>,
-    pub total_nodes:         Cell<u64>,
-    pub total_nodes_ever:    Cell<u64>,
-}
-
-impl std::fmt::Debug for Metrics {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Metrics")
-            .field("total_networks", &self.total_networks.get())
-            .field("total_network_refs", &self.total_network_refs.get())
-            .field("total_networks_ever", &self.total_networks_ever.get())
-            .field("total_nodes", &self.total_nodes.get())
-            .field("total_nodes_ever", &self.total_nodes_ever.get())
-            .finish()
-    }
-}
-
-impl Metrics {
-    fn inc_networks(&self) {
-        self.total_networks.set(self.total_networks.get().wrapping_add(1));
-        self.total_networks_ever.set(self.total_networks_ever.get().wrapping_add(1));
-    }
-
-    fn dec_networks(&self) {
-        self.total_networks.set(self.total_networks.get().wrapping_sub(1));
-    }
-
-    fn inc_network_refs(&self) {
-        self.total_network_refs.set(self.total_network_refs.get().wrapping_add(1));
-    }
-
-    fn dec_network_refs(&self) {
-        self.total_network_refs.set(self.total_network_refs.get().wrapping_sub(1));
-    }
-
-    fn inc_nodes(&self) {
-        self.total_nodes.set(self.total_nodes.get().wrapping_add(1));
-        self.total_nodes_ever.set(self.total_nodes_ever.get().wrapping_add(1));
-    }
-
-    fn sub_nodes(&self, dec: u64) {
-        self.total_nodes.set(self.total_nodes.get().wrapping_sub(dec));
-    }
-}
 
 
 #[derive(Debug, Default)]
@@ -213,10 +157,6 @@ pub fn with_runtime<T>(f: impl FnOnce(&Runtime) -> T) -> T {
     RUNTIME.with(|runtime| f(runtime))
 }
 
-// fn rc_runtime() -> Rc<Runtime> {
-//     RUNTIME.with(|runtime| runtime.clone())
-// }
-
 pub struct NetworkMap;
 pub struct NodeMap;
 
@@ -224,33 +164,14 @@ pub struct NodeMap;
 pub struct Runtime {
     networks: UnrolledSlotMap<OptRefCell<NetworkData>, 1024, NetworkMap, prealloc::Default>,
     nodes:    UnrolledSlotMap<OptRefCell<NodeData>, 131072, NodeMap, prealloc::Zeroed>,
-    // consumers:         RefCell<SecondaryMap<NodeId, BumpRc<dyn RawEventConsumer>>>,
-    /// Map for each node to its behavior, if any. For nodes that are natively behaviors, points to
-    /// itself. For non-behavior streams, may point to a sampler node that listens to it.
-    // behaviors:         RefCell<SecondaryMap<NodeId, NodeId>>,
-    /// For each node that is a behavior, stores the current value of the behavior. A node can be
-    /// checked for being a behavior by checking if it is present in this map.
-    // behavior_values:   RefCell<SecondaryMap<NodeId, BumpRc<dyn Data>>>,
-    // targets: RefCell<SecondaryMap<NodeId, TargetsVec>>,
-    // target_store_pool: RefCell<Vec<TargetsVec>>,
-    metrics: Metrics,
+    metrics:  metrics::Metrics,
     stack:    CallStack,
-    // current_node: Cell<NodeId>,
 }
 
 impl Runtime {
-    // fn unsafe_clear(&self) {
-    //     self.networks.borrow_mut().clear();
-    //     self.nodes.clear();
-    //     // self.metrics = Metrics::default();
-    //     // self.stack.clear();
-    //     // self.current_node.set(default());
-    // }
-
     #[inline(always)]
     fn new_network(&self) -> NetworkId {
         self.metrics.inc_networks();
-        self.metrics.inc_network_refs();
         self.networks.reserve()
     }
 
