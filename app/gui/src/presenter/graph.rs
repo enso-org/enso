@@ -326,9 +326,15 @@ impl Model {
 
     fn log_action<F>(&self, f: F, action: &str)
     where F: FnOnce() -> Option<FallibleResult> {
-        if let Some(Err(err)) = f() {
-            error!("Failed to {action} in AST: {err}");
-        }
+        debug_span!(
+            "Will attempt to '{action}' in the graph for {}.",
+            self.controller.graph().module.path()
+        )
+        .in_scope(|| {
+            if let Some(Err(err)) = f() {
+                error!("Failed to {action} in AST: {err}");
+            }
+        });
     }
 
     /// Extract all types for subexpressions in node expressions, update the state,
@@ -427,25 +433,27 @@ impl Model {
     fn initialize_nodes_positions(&self, default_gap_between_nodes: f32) {
         match self.controller.graph().nodes() {
             Ok(nodes) => {
-                use model::module::Position;
+                // We try to avoid spurious updates for nodes that are already positioned.
+                if nodes.iter().any(|n| !n.has_position()) {
+                    use model::module::Position;
 
-                let base_default_position = default_node_position();
-                let node_positions =
-                    nodes.iter().filter_map(|node| node.metadata.as_ref()?.position);
-                let bottommost_pos = node_positions
-                    .min_by(Position::ord_by_y)
-                    .map(|p| p.vector)
-                    .unwrap_or(base_default_position);
+                    let base_default_position = default_node_position();
+                    let node_positions =
+                        nodes.iter().filter_map(|node| node.metadata.as_ref()?.position);
+                    let bottommost_pos = node_positions
+                        .min_by(Position::ord_by_y)
+                        .map(|p| p.vector)
+                        .unwrap_or(base_default_position);
 
-                let offset = default_gap_between_nodes + node_view::HEIGHT;
-                let mut next_default_position =
-                    Vector2::new(bottommost_pos.x, bottommost_pos.y - offset);
+                    let offset = default_gap_between_nodes + node_view::HEIGHT;
+                    let mut next_default_position =
+                        Vector2::new(bottommost_pos.x, bottommost_pos.y - offset);
 
-                let transaction =
-                    self.controller.get_or_open_transaction("Setting default positions.");
-                transaction.ignore();
-                for node in nodes {
-                    if !node.has_position() {
+                    // As this is not a user-initiated action, we ignore the transaction.
+                    let transaction =
+                        self.controller.get_or_open_transaction("Setting default positions.");
+                    transaction.ignore();
+                    for node in nodes.iter().filter(|n| !n.has_position()) {
                         if let Err(err) = self
                             .controller
                             .graph()

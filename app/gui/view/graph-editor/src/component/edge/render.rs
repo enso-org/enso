@@ -4,6 +4,7 @@
 //! will implement them.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use super::layout::Corner;
 use super::layout::EdgeSplit;
@@ -13,8 +14,6 @@ use super::layout::TargetAttachment;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Scene;
-use ensogl::display::shape::*;
-
 use std::f32::consts::FRAC_PI_2;
 use std::f32::consts::PI;
 use std::f32::consts::TAU;
