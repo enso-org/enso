@@ -6,6 +6,4 @@ call_describe_better it = it.describe_better
 annotate_describe_better it = Meta.get_annotation it "describe_better" "which"
 obtain_describe_better it =
     fn = it.describe_better...
-    anno = Meta.get_annotation fn... Nothing "which"
-    anno.is_nothing
-    fn...
+    Meta.meta fn

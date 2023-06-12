@@ -11,6 +11,7 @@ import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
+import project.Function.Function as Std_Function
 import project.Polyglot.Java
 
 import project.Error.Error as Base_Error
@@ -217,6 +218,20 @@ type Polyglot
         lang_str = get_polyglot_language self.value
         if lang_str == "java" then Language.Java else Language.Unknown
 
+type Function
+    ## PRIVATE
+    Value value
+
+    ## PRIVATE
+      ADVANCED
+
+      Given a type object, method name and a parameter name, return the associated annotation if it exists.
+
+      Arguments:
+      - parameter_name: The name of the parameter to get the attribute for.
+   get_annotation : Text -> Any
+   get_annotation self parameter_name = Meta.get_annotation self.value... Nothing parameter_name
+
 ## ADVANCED
 
    Checks whether `self` represents the same underlying reference as `value`.
@@ -366,13 +381,14 @@ atom_with_hole factory = @Builtin_Method "Meta.atom_with_hole_builtin"
    Arguments:
    - value: The runtime entity to get the meta representation of.
 meta : Any -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error
-meta value = if is_atom value then Atom.Value value else
-    if is_atom_constructor value then Constructor.Value value else
-        if is_polyglot value then Polyglot.Value value else
-            if is_unresolved_symbol value then Unresolved_Symbol.Value value else
-                if is_error value then Error.Value value.catch else
-                    if is_type value then Type.Value value.catch else
-                        Primitive.Value value
+meta value = if is_function value... then Function.Value value... else
+    if is_atom value then Atom.Value value else
+        if is_atom_constructor value then Constructor.Value value else
+            if is_polyglot value then Polyglot.Value value else
+                if is_unresolved_symbol value then Unresolved_Symbol.Value value else
+                    if is_error value then Error.Value value.catch else
+                        if is_type value then Type.Value value.catch else
+                           Primitive.Value value
 
 ## PRIVATE
    ADVANCED
@@ -456,6 +472,15 @@ is_atom_constructor value = @Builtin_Method "Meta.is_atom_constructor"
    - value: The value to check.
 is_atom : Any -> Boolean
 is_atom value = @Builtin_Method "Meta.is_atom"
+
+## PRIVATE
+
+   Checks if the provided value is a function.
+
+   Arguments:
+   - value: The value to check.
+is_function : Any -> Boolean
+is_function value = @Builtin_Method "Meta.is_function"
 
 ## PRIVATE
 

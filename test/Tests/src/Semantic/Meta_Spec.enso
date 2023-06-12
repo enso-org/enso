@@ -401,6 +401,13 @@ spec =
             Meta.type_of (_.is_nothing) . should_equal Function
             Meta.type_of (.is_nothing) . should_equal Function
 
+    Test.group "Meta for functions" <|
+        Test.specify "Meta for lambda" <|
+            fn_meta = Meta.meta (x-> 2 * x)
+            case fn_meta of
+                _ : Meta.Function -> Nothing
+                _ -> Test.fail "Expecting Meta.Function: " + (Meta.type_of fn_meta).to_text
+
     Test.group "Extension methods and get_annotation" <|
         it = Meta_Spec_Type.Value 6 7
 
@@ -411,15 +418,15 @@ spec =
             Meta_Define_Usage.call_describe_better it "mul" . should_equal 42
 
         Test.specify "verify calling everything works" <|
-            describe_anno = Meta.get_annotation it.describe... Nothing "which"
+            wrap = Meta.meta it.describe...
+            describe_anno = wrap.get_annotation "which"
             describe_anno it . should_equal 13
 
 
             # Meta_Define_Usage can resolve the describe_better method
-            fn = (Meta_Define_Usage.obtain_describe_better it)...
-            fn.is_nothing . should_be_false
+            meta_fn = Meta_Define_Usage.obtain_describe_better it
             # we can query annotations for the resolved function
-            describe_better_anno = Meta.get_annotation fn... Nothing "which"
+            describe_better_anno = meta_fn.get_annotation "which"
             describe_better_anno it . should_equal 13
 
 main = Test_Suite.run_main spec
