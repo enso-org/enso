@@ -23,6 +23,16 @@ import EditableSpan from './editableSpan'
 // === Constants ===
 // =================
 
+/** Placeholder row when the search query is not empty. */
+const PLACEHOLDER_WITH_QUERY = (
+    <span className="opacity-75">
+        This folder does not contain any secrets matching your query.
+    </span>
+)
+/** Placeholder row when the search query is empty. */
+const PLACEHOLDER_WITHOUT_QUERY = (
+    <span className="opacity-75">This folder does not contain any secrets.</span>
+)
 /** Messages to be passed to {@link toastPromiseMultiple.toastPromiseMultiple}. */
 const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultipleMessages<backendModule.SecretAsset> =
     {
@@ -270,12 +280,7 @@ function SecretsTable(props: SecretsTableProps) {
                 isLoading={isLoading}
                 state={state}
                 getKey={backendModule.getAssetId}
-                placeholder={
-                    <span className="opacity-75">
-                        This directory does not contain any secrets
-                        {query ? ' matching your query' : ''}.
-                    </span>
-                }
+                placeholder={query ? PLACEHOLDER_WITH_QUERY : PLACEHOLDER_WITHOUT_QUERY}
                 columns={columnModule.columnsFor(columnDisplayMode, backend.type).map(column =>
                     column === columnModule.Column.name
                         ? {

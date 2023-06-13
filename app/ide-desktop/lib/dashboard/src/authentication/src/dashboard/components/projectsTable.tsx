@@ -26,6 +26,12 @@ import RenameModal from './renameModal'
 // === Constants ===
 // =================
 
+/** Placeholder row. */
+const PLACEHOLDER = (
+    <span className="opacity-75">
+        You have no project yet. Go ahead and create one using the form above.
+    </span>
+)
 /** Messages to be passed to {@link toastPromiseMultiple.toastPromiseMultiple}. */
 const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultipleMessages<backendModule.ProjectAsset> =
     {
@@ -325,11 +331,7 @@ function ProjectsTable(props: ProjectsTableProps) {
             isLoading={isLoading}
             state={state}
             getKey={backendModule.getAssetId}
-            placeholder={
-                <span className="opacity-75">
-                    You have no project yet. Go ahead and create one using the form above.
-                </span>
-            }
+            placeholder={PLACEHOLDER}
             columns={columnModule.columnsFor(columnDisplayMode, backend.type).map(column =>
                 column === columnModule.Column.name
                     ? {
