@@ -143,11 +143,11 @@ impl<T: DropdownValue> Model<T> {
     #[profile(Debug)]
     pub fn get_ready_and_request_ranges(
         &self,
-        requested_indices: &Vec<usize>,
+        requested_indices: &[usize],
     ) -> (Vec<Range<usize>>, Vec<Range<usize>>) {
         let cache = self.cache.borrow();
         let sorted_indices = {
-            let mut indices = requested_indices.clone();
+            let mut indices = requested_indices.to_owned();
             indices.sort_unstable();
             indices
         };
