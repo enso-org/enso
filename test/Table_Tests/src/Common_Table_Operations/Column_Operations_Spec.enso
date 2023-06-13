@@ -127,12 +127,11 @@ spec setup =
             result = table.at "x" . round dp use_bankers
             result.to_vector.at 0
 
-        Test.specify "asdf" <|
-            table = table_builder [["x", [1.22222222225]]]
-            result = table.at "x" . round 10
-            IO.println 'AAAA'
-            IO.println result.to_vector
-            do_round 1.22222222225 10 . should_equal 1.2222222223
+        Test.specify "Returns the correct type" <|
+            do_round 231 1 . should_be_a Integer
+            do_round 231 0 . should_be_a Integer
+            do_round 231 . should_be_a Integer
+            do_round 231 -1 . should_be_a Integer
 
     Test.group prefix+"Column Operations - Equality & Null Handling" <|
         Test.specify "should provide basic == and != comparisons" pending="TODO figure out proper null handling" <|
