@@ -41,6 +41,11 @@ impl Sbt {
         }
         ret
     }
+
+    /// Format a string with a command that will execute all the given tasks sequentially.
+    pub fn sequential_tasks<'a>(tasks: impl IntoIterator<Item = &'a str>) -> String {
+        tasks.into_iter().collect::<Vec<_>>().join("; ")
+    }
 }
 
 #[derive(Clone, Debug)]
