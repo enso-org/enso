@@ -444,13 +444,13 @@ val scalaCompiler = Seq(
 
 // === std-lib ================================================================
 
-val antlrVersion = "4.13.0"
-val awsJavaSdkVersion = "1.12.480"
-val icuVersion = "73.1"
-val poiOoxmlVersion = "5.2.3"
-val redshiftVersion = "2.1.0.15"
+val antlrVersion            = "4.13.0"
+val awsJavaSdkVersion       = "1.12.480"
+val icuVersion              = "73.1"
+val poiOoxmlVersion         = "5.2.3"
+val redshiftVersion         = "2.1.0.15"
 val univocityParsersVersion = "2.9.1"
-val xmlbeansVersion = "5.1.1"
+val xmlbeansVersion         = "5.1.1"
 
 // === ZIO ====================================================================
 
