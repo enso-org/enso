@@ -47,12 +47,12 @@ const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultiple
 // ==========================
 
 /** Props for a {@link ProjectNameHeading}. */
-export interface ProjectNameHeadingProps {
+interface InternalProjectNameHeadingProps {
     doCreateProject: () => void
 }
 
 /** The column header for the "name" column for the table of project assets. */
-function ProjectNameHeading(props: ProjectNameHeadingProps) {
+function ProjectNameHeading(props: InternalProjectNameHeadingProps) {
     const { doCreateProject } = props
 
     return (
@@ -76,7 +76,7 @@ function ProjectNameHeading(props: ProjectNameHeadingProps) {
 // ===================
 
 /** State passed through from a {@link ProjectsTable} to every cell. */
-export interface ProjectNamePropsState {
+interface ProjectNamePropsState {
     appRunner: AppRunner | null
     projectEvent: reactiveEvents.ProjectEvent | null
     setProjectEvent: (projectEvent: reactiveEvents.ProjectEvent | null) => void
@@ -92,11 +92,11 @@ export interface ProjectNamePropsState {
 }
 
 /** Props for a {@link ProjectName}. */
-export interface ProjectNameProps
+interface InternalProjectNameProps
     extends table.ColumnProps<backendModule.ProjectAsset, ProjectNamePropsState> {}
 
 /** The icon and name of a specific project asset. */
-function ProjectName(props: ProjectNameProps) {
+function ProjectName(props: InternalProjectNameProps) {
     const {
         item,
         selected,

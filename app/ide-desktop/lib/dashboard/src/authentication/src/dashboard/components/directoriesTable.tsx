@@ -44,12 +44,12 @@ const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultiple
 // ============================
 
 /** Props for a {@link DirectoryNameHeading}. */
-export interface DirectoryNameHeadingProps {
+interface InternalDirectoryNameHeadingProps {
     doCreateDirectory: () => void
 }
 
 /** The column header for the "name" column for the table of directory assets. */
-function DirectoryNameHeading(props: DirectoryNameHeadingProps) {
+function DirectoryNameHeading(props: InternalDirectoryNameHeadingProps) {
     const { doCreateDirectory } = props
 
     return (
@@ -73,17 +73,17 @@ function DirectoryNameHeading(props: DirectoryNameHeadingProps) {
 // =====================
 
 /** State passed through from a {@link DirectoriesTable} to every cell. */
-export interface DirectoryNamePropsState {
+interface DirectoryNamePropsState {
     onRename: () => void
     enterDirectory: (directory: backendModule.DirectoryAsset) => void
 }
 
 /** Props for a {@link DirectoryName}. */
-export interface DirectoryNameProps
+interface InternalDirectoryNameProps
     extends table.ColumnProps<backendModule.DirectoryAsset, DirectoryNamePropsState> {}
 
 /** The icon and name of a specific directory asset. */
-function DirectoryName(props: DirectoryNameProps) {
+function DirectoryName(props: InternalDirectoryNameProps) {
     const {
         item,
         selected,

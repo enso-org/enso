@@ -44,13 +44,13 @@ const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultiple
 // ========================
 
 /** Props for a {@link SecretCreateForm}. */
-export interface SecretCreateFormProps extends createForm.CreateFormPassthroughProps {
+interface InternalSecretCreateFormProps extends createForm.CreateFormPassthroughProps {
     directoryId: backendModule.DirectoryId | null
     onSuccess: () => void
 }
 
 /** A form to create a new secret asset. */
-function SecretCreateForm(props: SecretCreateFormProps) {
+function SecretCreateForm(props: InternalSecretCreateFormProps) {
     const { directoryId, onSuccess, ...passThrough } = props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
@@ -127,13 +127,13 @@ function SecretCreateForm(props: SecretCreateFormProps) {
 // =========================
 
 /** Props for a {@link SecretNameHeading}. */
-export interface SecretNameHeadingProps {
+interface InternalSecretNameHeadingProps {
     directoryId: backendModule.DirectoryId | null
     onCreate: () => void
 }
 
 /** The column header for the "name" column for the table of secret assets. */
-function SecretNameHeading(props: SecretNameHeadingProps) {
+function SecretNameHeading(props: InternalSecretNameHeadingProps) {
     const { directoryId, onCreate } = props
     const { setModal } = modalProvider.useSetModal()
 
@@ -166,16 +166,16 @@ function SecretNameHeading(props: SecretNameHeadingProps) {
 // ==================
 
 /** State passed through from a {@link SecretsTable} to every cell. */
-export interface SecretNamePropsState {
+interface SecretNamePropsState {
     onRename: () => void
 }
 
 /** Props for a {@link SecretName}. */
-export interface SecretNameProps
+interface InternalSecretNameProps
     extends table.ColumnProps<backendModule.SecretAsset, SecretNamePropsState> {}
 
 /** The icon and name of a specific secret asset. */
-function SecretName(props: SecretNameProps) {
+function SecretName(props: InternalSecretNameProps) {
     const {
         item,
         selected,

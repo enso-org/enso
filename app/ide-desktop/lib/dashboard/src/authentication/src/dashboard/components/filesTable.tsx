@@ -41,13 +41,13 @@ const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultiple
 // ======================
 
 /** Props for a {@link FileCreateForm}. */
-export interface FileCreateFormProps extends createForm.CreateFormPassthroughProps {
+interface InternalFileCreateFormProps extends createForm.CreateFormPassthroughProps {
     directoryId: backendModule.DirectoryId | null
     onSuccess: () => void
 }
 
 /** A form to create a new file asset. */
-function FileCreateForm(props: FileCreateFormProps) {
+function FileCreateForm(props: InternalFileCreateFormProps) {
     const { directoryId, onSuccess, ...passThrough } = props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
@@ -132,13 +132,13 @@ function FileCreateForm(props: FileCreateFormProps) {
 // =======================
 
 /** Props for a {@link FileNameHeading}. */
-export interface FileNameHeadingProps {
+interface InternalFileNameHeadingProps {
     directoryId: backendModule.DirectoryId | null
     onCreate: () => void
 }
 
 /** The column header for the "name" column for the table of file assets. */
-function FileNameHeading(props: FileNameHeadingProps) {
+function FileNameHeading(props: InternalFileNameHeadingProps) {
     const { directoryId, onCreate } = props
     const { setModal } = modalProvider.useSetModal()
 
@@ -176,11 +176,11 @@ export interface FileNamePropsState {
 }
 
 /** Props for a {@link FileName}. */
-export interface FileNameProps
+interface InternalFileNameProps
     extends table.ColumnProps<backendModule.FileAsset, FileNamePropsState> {}
 
 /** The icon and name of a specific file asset. */
-function FileName(props: FileNameProps) {
+function FileName(props: InternalFileNameProps) {
     const {
         item,
         selected,
