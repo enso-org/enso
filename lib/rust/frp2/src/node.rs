@@ -1,19 +1,17 @@
 use crate::prelude::*;
 use enso_generics::traits::*;
 
+use crate::data::Data;
+use crate::input::InputType;
+use crate::input::Listen;
+use crate::input::Sample;
 use crate::network::with_runtime;
+use crate::network::EventConsumer;
 use crate::network::Network;
-use crate::network::NetworkId;
 use crate::network::NodeData;
 use crate::network::NodeId;
 use crate::network::Runtime;
-use crate::Data;
 use crate::DefInfo;
-use crate::EventConsumer;
-use crate::InputType;
-use crate::Listen;
-use crate::ListenAndSample;
-use crate::Sample;
 
 // ====================
 // === EventContext ===
@@ -61,7 +59,7 @@ pub(crate) trait NodeDefinition<Incl, Model, Output, F> {
         inputs: Self,
         f: F,
         init: impl FnOnce(&mut NodeData),
-    ) -> NodeTemplate<Kind, Output>;
+    ) -> TypedNode<Kind, Output>;
 }
 
 impl<Model> Network<Model> {
@@ -71,7 +69,7 @@ impl<Model> Network<Model> {
         inps: Inputs,
         f: F,
         init: impl FnOnce(&mut NodeData) -> _Out,
-    ) -> NodeInNetwork<Model, NodeTemplate<Kind, Output>>
+    ) -> NodeInNetwork<Model, TypedNode<Kind, Output>>
     where
         Inputs: NodeDefinition<Incl, Model, Output, F>,
     {
@@ -87,7 +85,7 @@ impl<Model> Network<Model> {
         inps: Inputs,
         f: F,
         init: impl FnOnce(&mut NodeData) -> _Out,
-    ) -> NodeInNetwork<Model, NodeTemplate<Kind, Output>>
+    ) -> NodeInNetwork<Model, TypedNode<Kind, Output>>
     where
         Inputs: NodeDefinition<ModelNotIncluded, Model, Output, F>,
     {
@@ -100,7 +98,7 @@ impl<Model> Network<Model> {
         inps: Inputs,
         f: F,
         init: impl FnOnce(&mut NodeData) -> _Out,
-    ) -> NodeInNetwork<Model, NodeTemplate<Kind, Output>>
+    ) -> NodeInNetwork<Model, TypedNode<Kind, Output>>
     where
         Inputs: NodeDefinition<ModelIncluded, Model, Output, F>,
     {
@@ -112,7 +110,7 @@ impl<Model> Network<Model> {
         &self,
         inps: Inputs,
         f: F,
-    ) -> NodeInNetwork<Model, NodeTemplate<Kind, Output>>
+    ) -> NodeInNetwork<Model, TypedNode<Kind, Output>>
     where
         Inputs: NodeDefinition<ModelNotIncluded, Model, Output, F>,
     {
@@ -124,7 +122,7 @@ impl<Model> Network<Model> {
         &self,
         inps: Inputs,
         f: F,
-    ) -> NodeInNetwork<Model, NodeTemplate<Kind, Output>>
+    ) -> NodeInNetwork<Model, TypedNode<Kind, Output>>
     where
         Inputs: NodeDefinition<ModelIncluded, Model, Output, F>,
     {
@@ -193,7 +191,7 @@ where
         _inputs: Self,
         f: F,
         init: impl FnOnce(&mut NodeData),
-    ) -> NodeTemplate<Kind, Output> {
+    ) -> TypedNode<Kind, Output> {
         let model = Incl::clone_model(&net.model);
         net.new_node_with_init_unchecked(
             move |rt: &Runtime, node: &NodeData, _: &dyn Data| {
@@ -218,7 +216,7 @@ where
         inputs: Self,
         f: F,
         init: impl FnOnce(&mut NodeData),
-    ) -> NodeTemplate<Kind, Output> {
+    ) -> TypedNode<Kind, Output> {
         let model = Incl::clone_model(&net.model);
         let inputs = inputs.map_fields_into::<InputType>();
         let node = net.new_node_with_init_unchecked(
@@ -249,7 +247,7 @@ where
         inputs: Self,
         f: F,
         init: impl FnOnce(&mut NodeData),
-    ) -> NodeTemplate<Kind, Output> {
+    ) -> TypedNode<Kind, Output> {
         let model = Incl::clone_model(&net.model);
         let inputs = inputs.map_fields_into::<InputType>();
         let node = net.new_node_with_init_unchecked(
@@ -284,7 +282,7 @@ where
         inputs: Self,
         f: F,
         init: impl FnOnce(&mut NodeData),
-    ) -> NodeTemplate<Kind, Output> {
+    ) -> TypedNode<Kind, Output> {
         let model = Incl::clone_model(&net.model);
         let inputs = inputs.map_fields_into::<InputType>();
         let node = net.new_node_with_init_unchecked(
@@ -311,7 +309,7 @@ where
 // === Node ===
 // ============
 
-/// Any FRP node. This is a generalization for [`NodeTemplate`] with hidden `Kind` type.
+/// Any FRP node. This is a generalization for [`TypedNode`] with hidden `Kind` type.
 pub trait Node: Copy {
     type Output;
     fn id(self) -> NodeId;
@@ -327,12 +325,12 @@ pub trait NodeWithDefaultOutput = Node where <Self as Node>::Output: Default;
 #[derivative(Clone(bound = ""))]
 #[derivative(Debug(bound = ""))]
 #[repr(transparent)]
-pub struct NodeTemplate<Kind, Output> {
+pub struct TypedNode<Kind, Output> {
     pub(crate) _marker: PhantomData<*const (Kind, Output)>,
     pub(crate) id:      NodeId,
 }
 
-impl<Kind, Output> Node for NodeTemplate<Kind, Output> {
+impl<Kind, Output> Node for TypedNode<Kind, Output> {
     type Output = Output;
     #[inline(always)]
     fn id(self) -> NodeId {
@@ -340,7 +338,7 @@ impl<Kind, Output> Node for NodeTemplate<Kind, Output> {
     }
 }
 
-impl<Kind, Output> NodeTemplate<Kind, Output> {
+impl<Kind, Output> TypedNode<Kind, Output> {
     #[inline(never)]
     pub fn emit(&self, value: &Output)
     where Output: Data {
@@ -362,10 +360,10 @@ impl<Model> Network<Model> {
         &self,
         f: impl EventConsumer,
         init: impl FnOnce(&mut NodeData),
-    ) -> NodeTemplate<Kind, Output> {
+    ) -> TypedNode<Kind, Output> {
         let _marker = PhantomData;
         let id = with_runtime(|rt| rt.new_node(self.id, DefInfo::unlabelled(), f, init));
-        NodeTemplate { _marker, id }
+        TypedNode { _marker, id }
     }
 }
 

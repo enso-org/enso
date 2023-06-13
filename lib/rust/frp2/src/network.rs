@@ -3,13 +3,16 @@ use enso_generics::traits::*;
 
 use crate::callstack::CallStack;
 use crate::callstack::DefInfo;
+use crate::data::Data;
+use crate::input::InputType;
 use crate::metrics;
-use crate::Data;
-use crate::EventConsumer;
-use crate::InputType;
 use enso_data_structures::unrolled_linked_list::UnrolledLinkedList;
 use enso_data_structures::unrolled_slot_map::UnrolledSlotMap;
 use enso_data_structures::unrolled_slot_map::VersionedIndex;
+
+
+pub(crate) trait EventConsumer = Fn(&Runtime, &NodeData, &dyn Data) + 'static;
+
 
 // ===============
 // === Network ===
