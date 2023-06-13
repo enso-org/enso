@@ -565,12 +565,13 @@ type Column
        > Example
          Create a column of the value 42
 
-         column.konst 42
-    konst : Any -> Column
-    konst self value =
+         column.const 42
+    const : Any -> Column
+    const self value =
         case value.is_a Number || value.is_a Boolean || value.is_a Text of
             True ->
-                self.make_binary_op "KONST" value
+                new_name = "Constant " + value.to_text
+                self.make_binary_op "CONST" value new_name
             False -> 
                 msg = "Cannot create a constant column of " + value.to_text
                 Error.throw (Illegal_Argument.Error msg)
@@ -609,7 +610,7 @@ type Column
             round_base = scaled.floor
             round_midpoint = (round_base + 0.5) / scale
             even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
-            half_goes_up = if use_bankers then even_is_up else (self.konst True)
+            half_goes_up = if use_bankers then even_is_up else (self.const True)
             do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
             result_float = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
 

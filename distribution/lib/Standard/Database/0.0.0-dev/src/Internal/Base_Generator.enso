@@ -136,13 +136,10 @@ make_function name =
     arguments ->
         (Builder.code name) ++ (Builder.join ", " arguments . paren)
 
-make_konst : Vector Builder -> Builder
-make_konst =
+make_const : Vector Builder -> Builder
+make_const =
     arguments ->
-        #IO.println "make_konst"
-        #IO.println arguments
-        #IO.println <| arguments.at 1
-        #(Builder.interpolation (arguments.at 1)) # . paren
+        # Ignores the contents of the `self` argument.
         arguments.at 1 . paren
 
 ## PRIVATE
@@ -161,9 +158,9 @@ make_binary_function_flipped name arguments = case arguments.length of
    A helper function to create an operation that takes no arguments.
 
    Arguments:
-   - sql_code: The SQL code for the constant.
-make_constant : Text -> (Vector Builder -> Builder)
-make_constant sql_code =
+   - sql_code: The SQL code for the literal.
+make_literal : Text -> (Vector Builder -> Builder)
+make_literal sql_code =
     arguments ->
         if arguments.not_empty then Error.throw <| Illegal_State.Error "No arguments were expected" else
             Builder.code sql_code
@@ -201,7 +198,7 @@ base_dialect =
     compare = [eq, neq, bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
     functions = [["COALESCE", make_function "COALESCE"], ["ROW_MIN", make_function "MIN"], ["ROW_MAX", make_function "MAX"]]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
-    counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"], ["KONST", make_konst]]
+    counts = [fun "COUNT", ["COUNT_ROWS", make_literal "COUNT(*)"], ["CONST", make_const]]
     text = [is_empty, bin "LIKE", simple_equals_ignore_case, fold_case, make_case_sensitive]
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
