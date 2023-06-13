@@ -2159,9 +2159,7 @@ impl GraphEditorModel {
     #[profile(Debug)]
     pub fn set_node_position(&self, node_id: NodeId, position: Vector2) {
         self.with_node(node_id, |node| node.set_xy((position.x, position.y)));
-        for edge_id in self.node_in_and_out_edges(node_id) {
-            self.refresh_edge_position(edge_id);
-        }
+        self.refresh_edge_positions(self.node_in_and_out_edges(node_id));
     }
 
     #[profile(Debug)]
@@ -2186,6 +2184,7 @@ impl GraphEditorModel {
             let entries = node.in_edges().into_iter().filter_map(|edge_id| {
                 self.with_edge(edge_id, |edge| Some((edge.target?.port, edge.color)))?
             });
+            console_log!("set_connections {node_id:?}: {:?}", entries);
             node.view.set_connections.emit(entries.collect::<HashMap<_, _>>());
         });
     }
@@ -2223,9 +2222,8 @@ impl GraphEditorModel {
     pub fn refresh_edge_colors(&self, edge_ids: impl IntoIterator<Item = EdgeId>) -> Vec<EdgeId> {
         let styles = StyleWatch::new(&self.scene().style_sheet);
         let mut edges = self.edges.borrow_mut();
-        let edge_ids = edge_ids.into_iter();
         let detached_id = edges.detached;
-        edge_ids
+        edge_ids.into_iter()
             .filter(|edge_id| {
                 let edge = edges.all.get_mut(edge_id);
                 edge.map_or(false, |edge| {
@@ -2245,9 +2243,13 @@ impl GraphEditorModel {
     /// Refresh the source and target position of the edge identified by `edge_id`. Only redraws the
     /// edge if a modification was made. Return `true` if either of the edge endpoint's position was
     /// modified.
-    pub fn refresh_edge_position(&self, edge_id: EdgeId) -> bool {
-        let mut redraw = false;
-        self.with_edge(edge_id, |edge| {
+    pub fn refresh_edge_positions(&self, edge_ids: impl IntoIterator<Item = EdgeId>) -> bool {
+        let mut updated = false;
+        let edges = self.edges.borrow();
+        for edge_id in edge_ids.into_iter() {
+            let mut redraw = false;
+            let Some(edge) = edges.all.get(&edge_id) else { continue };
+            
             if let Some(edge_source) = edge.source() {
                 self.with_node(edge_source.node_id, |node| {
                     let node_width = node.model().width();
@@ -2284,9 +2286,11 @@ impl GraphEditorModel {
             }
             if redraw {
                 edge.view.frp.redraw.emit(());
+                updated = true;
             }
-        });
-        redraw
+        }
+        updated
+
     }
 
     /// Refresh the positions of all outgoing edges connected to the given node. Returns `true` if
@@ -2294,9 +2298,7 @@ impl GraphEditorModel {
     pub fn refresh_outgoing_edge_positions(&self, node_ids: &[NodeId]) -> bool {
         let mut updated = false;
         for node_id in node_ids {
-            for edge_id in self.node_out_edges(node_id) {
-                updated |= self.refresh_edge_position(edge_id);
-            }
+            updated |= self.refresh_edge_positions(self.node_out_edges(node_id));
         }
         updated
     }
@@ -2307,9 +2309,7 @@ impl GraphEditorModel {
     pub fn refresh_incoming_edge_positions(&self, node_ids: &[NodeId]) -> bool {
         let mut updated = false;
         for node_id in node_ids {
-            for edge_id in self.node_in_edges(node_id) {
-                updated |= self.refresh_edge_position(edge_id);
-            }
+            updated |= self.refresh_edge_positions(self.node_in_edges(node_id));
         }
         updated
     }
@@ -2698,7 +2698,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     );
     detached_edge <- maintain_result._0();
     detached_edge_id <- detached_edge.map(|&d| d?.edge_id()).on_change();
-    dirty_edges <- maintain_result._1();
+    maintained_edges_dirty <- maintain_result._1();
     nodes_with_updated_inputs <-
         maintain_result.map(f!((_) model.nodes.take_nodes_with_updated_inputs()));
 
@@ -2801,13 +2801,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         create_node_from_detached_edge <- any_(drop_on_bg_up, clicked_to_drop_edge);
         edge_dropped_to_create_node <- detached_edge.sample(&create_node_from_detached_edge).unwrap();
 
-        incoming_batch <- out.node_incoming_edge_updates.batch();
-        outgoing_batch <- out.node_outgoing_edge_updates.batch();
-        incoming_dirty <- incoming_batch.map(f!((n) model.refresh_incoming_edge_positions(n)));
-        outgoing_dirty <- outgoing_batch.map(f!((n) model.refresh_outgoing_edge_positions(n)));
-        any_edges_dirty <- incoming_dirty || outgoing_dirty;
-        force_update_layout <- any_edges_dirty.on_true().debounce();
-        eval force_update_layout((_) model.force_update_layout());
     }
 
     // === Adding Node ===
@@ -3121,11 +3114,13 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     // === Update edge colors ===
 
-    edges_to_refresh <- any(...);
-    edges_to_refresh <+ node_with_new_expression_type.map(f!((id) model.node_in_and_out_edges(*id)));
-    edges_to_refresh <+ dirty_edges;
-    edges_to_refresh_batch <- edges_to_refresh.iter().batch_unique();
-    edge_with_updated_color <= edges_to_refresh_batch.map(
+    edges_to_refresh_color <- any(...);
+    edges_to_refresh_color <+ node_with_new_expression_type.map(
+        f!((id) model.node_in_and_out_edges(*id))
+    );
+    edges_to_refresh_color <+ maintained_edges_dirty;
+    edges_to_refresh_color_batch <- edges_to_refresh_color.iter().batch_unique();
+    edge_with_updated_color <= edges_to_refresh_color_batch.map(
         f!([model]((edge_ids)) model.refresh_edge_colors(edge_ids.iter().copied()))
     );
     node_with_updated_inputs <- any(...);
@@ -3136,6 +3131,20 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     eval nodes_to_update_connections(
         [model] (node_ids) node_ids.iter().for_each(|id| model.update_node_connections(*id))
     );
+
+    // === Update edge positions ===
+
+    incoming_batch <- out.node_incoming_edge_updates.batch();
+    outgoing_batch <- out.node_outgoing_edge_updates.batch();
+    incoming_dirty <- incoming_batch.map(f!((n) model.refresh_incoming_edge_positions(n)));
+    outgoing_dirty <- outgoing_batch.map(f!((n) model.refresh_outgoing_edge_positions(n)));
+    maintained_dirty <- maintained_edges_dirty.map(f!((e) model.refresh_edge_positions(e.iter().copied())));
+    any_edges_dirty <- incoming_dirty.all_with3(&outgoing_dirty, &maintained_dirty, 
+        |a, b, c| *a || *b || *c
+    );
+    force_update_layout <- any_edges_dirty.on_true().debounce();
+    eval force_update_layout((_) model.force_update_layout());
+
     }
 
 
@@ -3176,7 +3185,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
             edge.frp.redraw.emit(());
             edge.set_xy((position.x, position.y));
         })?;
-        model.refresh_edge_position(edge_id);
+        model.refresh_edge_positions([edge_id]);
         Some(())
     }));
 
@@ -3195,7 +3204,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
             edge.frp.redraw.emit(());
             edge.set_xy((node_pos.x + node_width/2.0, node_pos.y));
         })?;
-        model.refresh_edge_position(edge_id);
+        model.refresh_edge_positions([edge_id]);
         Some(())
     }));
 
@@ -3379,7 +3388,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     frp::extend! { network
 
-    detached_edge_color <- detached_edge_id.all_with(&edges_to_refresh_batch,
+    detached_edge_color <- detached_edge_id.all_with(&edges_to_refresh_color_batch,
         f!([model](&id, _) Some(model.edge_color(id?)))
     );
 

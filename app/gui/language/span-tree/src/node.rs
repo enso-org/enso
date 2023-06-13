@@ -125,9 +125,13 @@ impl Node {
         self.children = ts;
         self
     }
-    pub fn with_ast_id(mut self, id: ast::Id) -> Self {
-        self.ast_id = Some(id);
-        self.port_id = Some(PortId::Ast(id));
+    pub fn with_ast_id(mut self, id: Option<ast::Id>) -> Self {
+        self.ast_id = id;
+        self.port_id = id.map(PortId::Ast);
+        self
+    }
+    pub fn with_extended_ast_id(mut self, id: Option<ast::Id>) -> Self {
+        self.extended_ast_id = id;
         self
     }
     pub fn with_port_id(mut self, id: Option<PortId>) -> Self {

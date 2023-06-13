@@ -141,7 +141,7 @@ impl ChildGenerator {
         let kind = kind.into();
         let size = self.current_offset;
         let children = self.children;
-        Node { kind, size, children, ast_id, ..default() }
+        Node::new().with_kind(kind).with_size(size).with_children(children).with_ast_id(ast_id)
     }
 }
 
@@ -346,15 +346,18 @@ fn generate_node_for_ast(
             _ => {
                 let size = (ast.len().value as i32).byte_diff();
                 let ast_id = ast.id;
-                if let Some(info) = ast.id.and_then(|id| context.call_info(id)) {
-                    let node = { Node { kind: node::Kind::Operation, size, ast_id, ..default() } };
+                if let Some(info) = ast_id.and_then(|id| context.call_info(id)) {
+                    let node = Node::new()
+                        .with_kind(node::Kind::Operation)
+                        .with_size(size)
+                        .with_ast_id(ast_id);
                     // Note that in this place it is impossible that Ast is in form of
                     // `this.method` -- it is covered by the former if arm. As such, we don't
                     // need to use `ApplicationBase` here as we do elsewhere.
-                    let params = info.with_call_id(ast.id).parameters.into_iter();
+                    let params = info.with_call_id(ast_id).parameters.into_iter();
                     Ok(generate_trailing_expected_arguments(node, params).with_kind(kind))
                 } else {
-                    Ok(Node { kind, size, ast_id, ..default() })
+                    Ok(Node::new().with_kind(kind).with_size(size).with_ast_id(ast_id))
                 }
             }
         }
@@ -516,16 +519,8 @@ fn generate_node_for_opr_chain(
             gen.reverse_children();
         }
 
-        Ok((
-            Node {
-                kind: if is_last { kind.clone() } else { node::Kind::chained().into() },
-                size: gen.current_offset,
-                children: gen.children,
-                ast_id: elem.infix_id,
-                ..default()
-            },
-            elem.offset,
-        ))
+        let kind = if is_last { kind.clone() } else { node::Kind::chained().into() };
+        Ok((gen.into_node(kind, elem.infix_id), elem.offset))
     })?;
     Ok(node)
 }
@@ -805,8 +800,7 @@ fn generate_expected_argument(
     let arg_node = gen.generate_empty_node(InsertionPointType::ExpectedArgument { index, named });
     arg_node.node.set_argument_info(argument_info);
     arg_node.node.set_port_id(port_id);
-    let kind = node::Kind::chained().into();
-    Node { kind, size: gen.current_offset, children: gen.children, extended_ast_id, ..default() }
+    gen.into_node(node::Kind::chained(), None).with_extended_ast_id(extended_ast_id)
 }
 
 /// Build a prefix application-like span tree structure where no prefix argument has been provided
@@ -872,7 +866,7 @@ fn tree_generate_node(
                     let kind = node::Kind::Token;
                     let size = ByteDiff::from(token.len());
                     let ast_crumbs = vec![TreeCrumb { index }.into()];
-                    let node = Node { kind, size, ..default() };
+                    let node = Node::new().with_kind(kind).with_size(size);
                     children.push(node::Child { node, parent_offset, sibling_offset, ast_crumbs });
                     parent_offset += size;
                     sibling_offset = 0.byte_diff();
@@ -904,7 +898,7 @@ fn tree_generate_node(
     }
 
     let tree_type = Some(tree.type_info.clone());
-    Ok(Node { kind, tree_type, size, children, ast_id, ..default() })
+    Ok(Node { kind, tree_type, size, children, ..default() }.with_ast_id(ast_id))
 }
 
 

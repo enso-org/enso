@@ -325,8 +325,8 @@ impl SpanTree {
                 write!(buffer, " ext_id={ext_id:?}").unwrap();
             }
 
-            if let Some(tt) = node.tree_type.as_ref() {
-                write!(buffer, " tt={tt:?}").unwrap();
+            if let Some(port_id) = node.port_id {
+                write!(buffer, " port_id={port_id:?}").unwrap();
             }
 
             buffer.push('\n');

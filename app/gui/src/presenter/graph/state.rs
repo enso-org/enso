@@ -522,10 +522,8 @@ impl<'a> ControllerChange<'a> {
             .filter_map(|connection| {
                 let src_node = nodes.get(connection.source.node)?.view_id?;
                 let dst_node = nodes.get(connection.destination.node)?.view_id?;
-                let src_port = span_tree::PortId::Ast(*connection.source.port);
-                let dst_port = span_tree::PortId::Ast(*connection.destination.port);
-                let source = EdgeEndpoint::new(src_node, src_port);
-                let target = EdgeEndpoint::new(dst_node, dst_port);
+                let source = EdgeEndpoint::new(src_node, connection.source.port);
+                let target = EdgeEndpoint::new(dst_node, connection.destination.port);
                 Some(ViewConnection { source, target })
             })
             .collect()
@@ -823,23 +821,17 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn adding_and_removing_connections() {
-        use controller::graph::NewEndpoint;
+        use controller::graph::Endpoint;
         let Fixture { state, nodes } = Fixture::setup_nodes(&["node1 = 2", "node1 + node1"]);
-        let src = NewEndpoint {
-            node:       nodes[0].node.id(),
-            port:       default(),
-            var_crumbs: default(),
+        let src = Endpoint {
+            node: nodes[0].node.id(),
+            port: PortId::Ast(nodes[0].node.pattern().unwrap().id()),
         };
-        let dest1 = NewEndpoint {
-            node:       nodes[1].node.id(),
-            port:       span_tree::Crumbs::new(vec![0]),
-            var_crumbs: default(),
-        };
-        let dest2 = NewEndpoint {
-            node:       nodes[1].node.id(),
-            port:       span_tree::Crumbs::new(vec![2]),
-            var_crumbs: default(),
-        };
+        let id_map = nodes[1].node.expression().id_map();
+        let dest1 =
+            Endpoint { node: nodes[1].node.id(), port: PortId::Ast(id_map.get(0..5).unwrap()) };
+        let dest2 =
+            Endpoint { node: nodes[1].node.id(), port: PortId::Ast(id_map.get(8..13).unwrap()) };
         let ast_con1 = AstConnection { source: src.clone(), destination: dest1.clone() };
         let ast_con2 = AstConnection { source: src.clone(), destination: dest2.clone() };
         let view_con1 = ensogl::display::object::Id::from(1).into();
