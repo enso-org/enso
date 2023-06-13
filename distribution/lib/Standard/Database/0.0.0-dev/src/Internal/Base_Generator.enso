@@ -505,7 +505,7 @@ generate_create_table dialect name columns primary_key temporary =
    Generates a description of a single column for a CREATE TABLE query.
 generate_column_description dialect descriptor =
     modifiers = descriptor.constraints.map constraint-> case constraint of
-        Column_Constraint.Default raw_expression -> (Builder.code "DEFAULT ") ++ (Builder.code raw_expression . paren)
+        Column_Constraint.Default_Expression raw_expression -> (Builder.code "DEFAULT ") ++ (Builder.code raw_expression . paren)
         Column_Constraint.Not_Null -> Builder.code "NOT NULL"
     suffix = if modifiers.is_empty then Builder.empty else
         Builder.code " " ++ (Builder.join " " modifiers)

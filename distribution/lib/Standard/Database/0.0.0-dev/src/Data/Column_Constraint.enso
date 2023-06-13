@@ -17,7 +17,7 @@ type Column_Constraint
          Since `sql_expression` is a raw SQL expression, note that malicious
          data can cause execution of arbitrary SQL queries. Only use this
          parameter with trusted data.
-    Default (sql_expression : Text)
+    Default_Expression (sql_expression : Text)
 
     ## PRIVATE
        DEPRECATED This will be replaced by extending the `Value_Type` with the concept of non-nullable types. TODO in #5872
