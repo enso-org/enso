@@ -167,12 +167,12 @@ function ProjectName(props: ProjectNameProps) {
             />
             <EditableSpan
                 editable={isNameEditable}
-                onBlur={async event => {
+                onSubmit={async newTitle => {
                     setIsNameEditable(false)
-                    if (event.target.value === item.title) {
+                    if (newTitle === item.title) {
                         toast.success('The project name is unchanged.')
                     } else {
-                        await doRename(event.target.value)
+                        await doRename(newTitle)
                     }
                 }}
                 onCancel={() => {
@@ -184,7 +184,7 @@ function ProjectName(props: ProjectNameProps) {
                           inputTitle: validation.LOCAL_PROJECT_NAME_TITLE,
                       }
                     : {})}
-                className="px-2 bg-transparent"
+                className="px-2 bg-transparent grow"
             >
                 {item.title}
             </EditableSpan>

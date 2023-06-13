@@ -1,6 +1,8 @@
 /** @file A text `<span>` which turns into an `input` when desired. */
 import * as React from 'react'
 
+import * as svg from '../../components/svg'
+
 // ====================
 // === EditableSpan ===
 // ====================
@@ -9,9 +11,9 @@ import * as React from 'react'
 type EditableSpanPassthroughProps = JSX.IntrinsicElements['input'] & JSX.IntrinsicElements['span']
 
 /** Props for an {@link EditableSpan}. */
-export interface EditableSpanProps extends EditableSpanPassthroughProps {
+export interface EditableSpanProps extends Omit<EditableSpanPassthroughProps, 'onSubmit'> {
     editable?: boolean
-    onBlur: React.FocusEventHandler<HTMLInputElement>
+    onSubmit: (value: string) => void
     onCancel: () => void
     inputPattern?: string
     inputTitle?: string
@@ -23,37 +25,61 @@ function EditableSpan(props: EditableSpanProps) {
     const {
         editable = false,
         children,
-        onBlur,
+        onSubmit,
         onCancel,
         inputPattern,
         inputTitle,
         ...passthroughProps
     } = props
 
+    // This is safe, as the value is always set by the time it is used.
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const inputRef = React.useRef<HTMLInputElement>(null!)
+
     if (editable) {
         return (
-            <input
-                autoFocus
-                type="text"
-                defaultValue={children}
-                onBlur={event => {
-                    if (event.target.reportValidity()) {
-                        onBlur(event)
-                    }
+            <form
+                className="flex grow"
+                onSubmit={event => {
+                    event.preventDefault()
+                    onSubmit(inputRef.current.value)
                 }}
-                onKeyUp={event => {
-                    if (!event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey) {
-                        if (event.key === 'Enter') {
-                            event.currentTarget.blur()
-                        } else if (event.key === 'Escape') {
+            >
+                <input
+                    ref={inputRef}
+                    autoFocus
+                    type="text"
+                    size={1}
+                    defaultValue={children}
+                    onBlur={event => event.currentTarget.form?.requestSubmit()}
+                    onKeyUp={event => {
+                        if (
+                            event.key === 'Escape' &&
+                            !event.ctrlKey &&
+                            !event.shiftKey &&
+                            !event.altKey &&
+                            !event.metaKey
+                        ) {
                             onCancel()
                         }
-                    }
-                }}
-                {...(inputPattern != null ? { pattern: inputPattern } : {})}
-                {...(inputTitle != null ? { title: inputTitle } : {})}
-                {...passthroughProps}
-            />
+                    }}
+                    {...(inputPattern != null ? { pattern: inputPattern } : {})}
+                    {...(inputTitle != null ? { title: inputTitle } : {})}
+                    {...passthroughProps}
+                />
+                <button type="submit" className="mx-0.5">
+                    {svg.TICK_ICON}
+                </button>
+                <button
+                    className="mx-0.5"
+                    onClick={event => {
+                        event.stopPropagation()
+                        onCancel()
+                    }}
+                >
+                    {svg.CROSS_ICON}
+                </button>
+            </form>
         )
     } else {
         return <span {...passthroughProps}>{children}</span>

@@ -50,8 +50,10 @@ authentication.run({
     // every time a new project is opened.
     appRunner: {
         stopApp: () => {
-            window.enso.stopApp()
+            window.enso?.stopApp()
         },
-        runApp: config => window.enso.runApp(config),
+        runApp: async config => {
+            await window.enso?.runApp(config)
+        },
     },
 })

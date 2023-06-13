@@ -47,10 +47,10 @@ export interface BackendProviderProps extends React.PropsWithChildren<object> {
 
 /** A React Provider that lets components get and set the current backend. */
 export function BackendProvider(props: BackendProviderProps) {
-    const { children } = props
+    const { initialBackend, children } = props
     const [backend, setBackendWithoutSavingType] = React.useState<
         localBackend.LocalBackend | remoteBackend.RemoteBackend
-    >(() => new localBackend.LocalBackend())
+    >(initialBackend)
     const setBackend = React.useCallback((newBackend: AnyBackendAPI) => {
         setBackendWithoutSavingType(newBackend)
         localStorage.setItem(BACKEND_TYPE_KEY, newBackend.type)

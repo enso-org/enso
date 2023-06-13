@@ -272,6 +272,28 @@ export const DOWN_CARET_ICON = (
     </svg>
 )
 
+/** A checkmark, intended to be used with {@link CROSS_ICON} for input submission. */
+export const TICK_ICON = (
+    <svg height={16} width={16} viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+        <circle cx={8} cy={8} r={8} fill="currentColor" fillOpacity={0.1} />
+        <path
+            d="M3.4 9.2L5.7 11.5A1 1 0 0 0 7.3 11.5L12.6 6.2A.5.5 0 1 0 11.2 4.8L6.5 9.5 4.8 7.8A.5.5 0 1 0 3.4 9.2"
+            fill="currentColor"
+        />
+    </svg>
+)
+
+/** A cross, intended to be used with {@link TICK_ICON} for input submission. */
+export const CROSS_ICON = (
+    <svg height={16} width={16} viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+        <circle cx={8} cy={8} r={8} fill="currentColor" fillOpacity={0.1} />
+        <path
+            d="M4.8 6.2L6.6 8 4.8 9.8A.5.5 0 1 0 6.2 11.2L8 9.4 9.8 11.2A.5.5 0 1 0 11.2 9.8L9.4 8 11.2 6.2A.5.5 0 1 0 9.8 4.8L8 6.6 6.2 4.8A.5.5 0 1 0 4.8 6.2Z"
+            fill="currentColor"
+        />
+    </svg>
+)
+
 /** Props for a {@link Spinner}. */
 export interface SpinnerProps {
     size: number

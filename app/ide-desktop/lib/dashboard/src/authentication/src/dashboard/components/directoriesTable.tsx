@@ -89,18 +89,18 @@ function DirectoryName(props: DirectoryNameProps) {
             {svg.DIRECTORY_ICON}
             <EditableSpan
                 editable={isNameEditable}
-                onBlur={async event => {
+                onSubmit={async newTitle => {
                     setIsNameEditable(false)
-                    if (event.target.value === item.title) {
+                    if (newTitle === item.title) {
                         toast.success('The folder name is unchanged.')
                     } else {
-                        await doRename(/* event.target.value */)
+                        await doRename(/* newTitle */)
                     }
                 }}
                 onCancel={() => {
                     setIsNameEditable(false)
                 }}
-                className="px-2 bg-transparent"
+                className="px-2 bg-transparent grow"
             >
                 {item.title}
             </EditableSpan>
