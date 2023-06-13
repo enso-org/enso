@@ -6,6 +6,7 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as error from '../../error'
+import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
@@ -84,7 +85,6 @@ function DirectoryNameHeading(props: InternalDirectoryNameHeadingProps) {
 
 /** State passed through from a {@link DirectoriesTable} to every cell. */
 interface DirectoryNamePropsState {
-    onRename: () => void
     enterDirectory: (directory: backendModule.DirectoryAsset) => void
 }
 
@@ -97,9 +97,10 @@ function DirectoryName(props: InternalDirectoryNameProps) {
     const {
         item,
         selected,
-        state: { onRename, enterDirectory },
+        state: { enterDirectory },
     } = props
     const { backend } = backendProvider.useBackend()
+    const [, doRefresh] = hooks.useRefresh()
     const [isNameEditable, setIsNameEditable] = React.useState(false)
 
     // TODO: Wait for backend implementation.
@@ -111,7 +112,6 @@ function DirectoryName(props: InternalDirectoryNameProps) {
                 error: reason => `Error renaming folder: ${error.unsafeIntoErrorMessage(reason)}`,
             })
         }
-        onRename()
     }
 
     return (
@@ -135,12 +135,15 @@ function DirectoryName(props: InternalDirectoryNameProps) {
                 onSubmit={async newTitle => {
                     setIsNameEditable(false)
                     if (newTitle !== item.title) {
-                        // Mutation is UNSAFE as it does not cause a re-render.
-                        // However, `setIsNameEditable` causes a re-render, and
-                        // using a `useState` is not an option as it will not get overwritten by
-                        // the updated value from the server.
+                        const oldTitle = item.title
                         item.title = newTitle
-                        await doRename(newTitle)
+                        doRefresh()
+                        try {
+                            await doRename(newTitle)
+                        } catch {
+                            item.title = oldTitle
+                            doRefresh()
+                        }
                     }
                 }}
                 onCancel={() => {
@@ -186,6 +189,12 @@ function DirectoriesTable(props: DirectoriesTableProps) {
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
 
+    const state = React.useMemo(
+        // The type MUST be here to trigger excess property errors at typecheck time.
+        (): DirectoryNamePropsState => ({ enterDirectory }),
+        [enterDirectory]
+    )
+
     if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
@@ -193,7 +202,7 @@ function DirectoriesTable(props: DirectoriesTableProps) {
             <Table<backendModule.DirectoryAsset, DirectoryNamePropsState>
                 items={items}
                 isLoading={isLoading}
-                state={{ enterDirectory, onRename }}
+                state={state}
                 getKey={backendModule.getAssetId}
                 placeholder={query ? PLACEHOLDER_WITH_QUERY : PLACEHOLDER_WITHOUT_QUERY}
                 columns={columnModule.columnsFor(columnDisplayMode, backend.type).map(column =>
@@ -261,6 +270,8 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                                 name={directory.title}
                                 assetType={directory.type}
                                 doRename={innerDoRename}
+                                // This is incredibly inefficient as it refreshes
+                                // the entire directory when only one row has been changed.
                                 onSuccess={onRename}
                             />
                         )

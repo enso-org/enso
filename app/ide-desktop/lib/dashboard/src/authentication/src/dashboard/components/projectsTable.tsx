@@ -6,6 +6,7 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as error from '../../error'
+import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as reactiveEvents from '../events/projectEvent'
@@ -93,8 +94,6 @@ interface ProjectNamePropsState {
     doOpenManually: (projectId: backendModule.ProjectId) => void
     doOpenIde: (project: backendModule.ProjectAsset) => void
     doCloseIde: () => void
-    onRename: () => void
-    doRefresh: () => void
 }
 
 /** Props for a {@link ProjectName}. */
@@ -114,13 +113,12 @@ function ProjectName(props: InternalProjectNameProps) {
             projectEvent,
             setProjectEvent,
             doOpenManually,
-            onRename,
             doOpenIde,
             doCloseIde,
-            doRefresh,
         },
     } = props
     const { backend } = backendProvider.useBackend()
+    const [, doRefresh] = hooks.useRefresh()
     const [isNameEditable, setIsNameEditable] = React.useState(false)
 
     const doRename = async (newName: string) => {
@@ -136,7 +134,6 @@ function ProjectName(props: InternalProjectNameProps) {
                 error: reason => `Error renaming project: ${error.unsafeIntoErrorMessage(reason)}`,
             }
         )
-        onRename()
     }
 
     return (
@@ -177,12 +174,15 @@ function ProjectName(props: InternalProjectNameProps) {
                 onSubmit={async newTitle => {
                     setIsNameEditable(false)
                     if (newTitle !== item.title) {
-                        // Mutation is UNSAFE as it does not cause a re-render.
-                        // However, `setIsNameEditable` causes a re-render, and
-                        // using a `useState` is not an option as it will not get overwritten by
-                        // the updated value from the server.
+                        const oldTitle = item.title
                         item.title = newTitle
-                        await doRename(newTitle)
+                        doRefresh()
+                        try {
+                            await doRename(newTitle)
+                        } catch {
+                            item.title = oldTitle
+                            doRefresh()
+                        }
                     }
                 }}
                 onCancel={() => {
@@ -229,7 +229,6 @@ export interface ProjectsTableProps {
     onDelete: () => void
     doOpenIde: (project: backendModule.ProjectAsset) => void
     doCloseIde: () => void
-    doRefresh: () => void
 }
 
 /** The table of project assets. */
@@ -246,7 +245,6 @@ function ProjectsTable(props: ProjectsTableProps) {
         onDelete,
         doOpenIde,
         doCloseIde: rawDoCloseIde,
-        doRefresh,
     } = props
     const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
@@ -296,16 +294,15 @@ function ProjectsTable(props: ProjectsTableProps) {
         rawDoCloseIde()
     }, [rawDoCloseIde, setProjectEvent])
 
-    const state: ProjectNamePropsState = React.useMemo(
-        () => ({
+    const state = React.useMemo(
+        // The type MUST be here to trigger excess property errors at typecheck time.
+        (): ProjectNamePropsState => ({
             appRunner,
             projectEvent,
             setProjectEvent,
             doOpenManually,
-            onRename,
             doOpenIde,
             doCloseIde,
-            doRefresh,
             getExtraData,
             setExtraData,
             deleteExtraData,
@@ -315,10 +312,8 @@ function ProjectsTable(props: ProjectsTableProps) {
             projectEvent,
             setProjectEvent,
             doOpenManually,
-            onRename,
             doOpenIde,
             doCloseIde,
-            doRefresh,
             getExtraData,
             setExtraData,
             deleteExtraData,

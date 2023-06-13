@@ -178,27 +178,16 @@ function FileNameHeading(props: InternalFileNameHeadingProps) {
 // === FileName ===
 // ================
 
-/** State passed through from a {@link DirectoryRows} to every cell. */
-export interface FileNamePropsState {
-    onRename: () => void
-}
-
 /** Props for a {@link FileName}. */
-interface InternalFileNameProps
-    extends table.ColumnProps<backendModule.FileAsset, FileNamePropsState> {}
+interface InternalFileNameProps extends table.ColumnProps<backendModule.FileAsset> {}
 
 /** The icon and name of a specific file asset. */
 function FileName(props: InternalFileNameProps) {
-    const {
-        item,
-        selected,
-        state: { onRename },
-    } = props
+    const { item, selected } = props
     const [isNameEditable, setIsNameEditable] = React.useState(false)
 
     // TODO: Wait for backend implementation.
     const doRename = async () => {
-        onRename()
         return await Promise.resolve(null)
     }
 
@@ -252,36 +241,23 @@ export interface FilesTableProps {
     columnDisplayMode: columnModule.ColumnDisplayMode
     query: string
     onCreate: () => void
-    onRename: () => void
     onDelete: () => void
 }
 
 /** The table of file assets. */
 function FilesTable(props: FilesTableProps) {
-    const {
-        directoryId,
-        items,
-        isLoading,
-        columnDisplayMode,
-        query,
-        onCreate,
-        onRename,
-        onDelete,
-    } = props
+    const { directoryId, items, isLoading, columnDisplayMode, query, onCreate, onDelete } = props
     const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
-
-    const state: FileNamePropsState = React.useMemo(() => ({ onRename }), [onRename])
 
     if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
         return (
-            <Table<backendModule.FileAsset, FileNamePropsState>
+            <Table<backendModule.FileAsset>
                 items={items}
                 isLoading={isLoading}
-                state={state}
                 getKey={backendModule.getAssetId}
                 placeholder={query ? PLACEHOLDER_WITH_QUERY : PLACEHOLDER_WITHOUT_QUERY}
                 columns={columnModule.columnsFor(columnDisplayMode, backend.type).map(column =>

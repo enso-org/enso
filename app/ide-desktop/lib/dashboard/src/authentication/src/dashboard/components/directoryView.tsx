@@ -417,7 +417,6 @@ function DirectoryView(props: DirectoryViewProps) {
                 onDelete={doRefresh}
                 doOpenIde={onOpenIde}
                 doCloseIde={onCloseIde}
-                doRefresh={doRefresh}
             />
             <div className="h-10" />
             <DirectoriesTable
@@ -438,7 +437,6 @@ function DirectoryView(props: DirectoryViewProps) {
                 columnDisplayMode={columnDisplayMode}
                 query={query}
                 onCreate={doRefresh}
-                onRename={doRefresh}
                 onDelete={doRefresh}
             />
             <div className="h-10" />
@@ -449,7 +447,6 @@ function DirectoryView(props: DirectoryViewProps) {
                 columnDisplayMode={columnDisplayMode}
                 query={query}
                 onCreate={doRefresh}
-                onRename={doRefresh}
                 onDelete={doRefresh}
             />
         </>

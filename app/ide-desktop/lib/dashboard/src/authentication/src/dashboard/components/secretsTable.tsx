@@ -175,27 +175,16 @@ function SecretNameHeading(props: InternalSecretNameHeadingProps) {
 // === SecretName ===
 // ==================
 
-/** State passed through from a {@link SecretsTable} to every cell. */
-interface SecretNamePropsState {
-    onRename: () => void
-}
-
 /** Props for a {@link SecretName}. */
-interface InternalSecretNameProps
-    extends table.ColumnProps<backendModule.SecretAsset, SecretNamePropsState> {}
+interface InternalSecretNameProps extends table.ColumnProps<backendModule.SecretAsset> {}
 
 /** The icon and name of a specific secret asset. */
 function SecretName(props: InternalSecretNameProps) {
-    const {
-        item,
-        selected,
-        state: { onRename },
-    } = props
+    const { item, selected } = props
     const [isNameEditable, setIsNameEditable] = React.useState(false)
 
     // TODO: Wait for backend implementation.
     const doRename = async (/* _newName: string */) => {
-        onRename()
         await Promise.resolve(null)
     }
 
@@ -249,36 +238,23 @@ export interface SecretsTableProps {
     columnDisplayMode: columnModule.ColumnDisplayMode
     query: string
     onCreate: () => void
-    onRename: () => void
     onDelete: () => void
 }
 
 /** The table of secret assets. */
 function SecretsTable(props: SecretsTableProps) {
-    const {
-        directoryId,
-        items,
-        isLoading,
-        columnDisplayMode,
-        query,
-        onCreate,
-        onRename,
-        onDelete,
-    } = props
+    const { directoryId, items, isLoading, columnDisplayMode, query, onCreate, onDelete } = props
     const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
-
-    const state: SecretNamePropsState = React.useMemo(() => ({ onRename }), [onRename])
 
     if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
         return (
-            <Table<backendModule.SecretAsset, SecretNamePropsState>
+            <Table<backendModule.SecretAsset>
                 items={items}
                 isLoading={isLoading}
-                state={state}
                 getKey={backendModule.getAssetId}
                 placeholder={query ? PLACEHOLDER_WITH_QUERY : PLACEHOLDER_WITHOUT_QUERY}
                 columns={columnModule.columnsFor(columnDisplayMode, backend.type).map(column =>
