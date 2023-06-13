@@ -195,11 +195,11 @@ export class RemoteBackend implements backend.Backend {
                 '?' +
                 new URLSearchParams({
                     // eslint-disable-next-line @typescript-eslint/naming-convention
-                    ...(query.parentId ? { parent_id: query.parentId } : {}),
+                    ...(query.parentId != null ? { parent_id: query.parentId } : {}),
                 }).toString()
         )
         if (!responseIsSuccessful(response)) {
-            if (query.parentId) {
+            if (query.parentId != null) {
                 return this.throw(`Unable to list directory with ID '${query.parentId}'.`)
             } else {
                 return this.throw('Unable to list root directory.')
@@ -372,8 +372,8 @@ export class RemoteBackend implements backend.Backend {
                 '?' +
                 new URLSearchParams({
                     /* eslint-disable @typescript-eslint/naming-convention */
-                    ...(params.fileName ? { file_name: params.fileName } : {}),
-                    ...(params.fileId ? { file_id: params.fileId } : {}),
+                    ...(params.fileName != null ? { file_name: params.fileName } : {}),
+                    ...(params.fileId != null ? { file_id: params.fileId } : {}),
                     ...(params.parentDirectoryId
                         ? { parent_directory_id: params.parentDirectoryId }
                         : {}),
@@ -382,9 +382,9 @@ export class RemoteBackend implements backend.Backend {
             body
         )
         if (!responseIsSuccessful(response)) {
-            if (params.fileName) {
+            if (params.fileName != null) {
                 return this.throw(`Unable to upload file with name '${params.fileName}'.`)
-            } else if (params.fileId) {
+            } else if (params.fileId != null) {
                 return this.throw(`Unable to upload file with ID '${params.fileId}'.`)
             } else {
                 return this.throw('Unable to upload file.')

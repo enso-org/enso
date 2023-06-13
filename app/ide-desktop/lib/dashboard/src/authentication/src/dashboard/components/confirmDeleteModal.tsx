@@ -1,5 +1,5 @@
 /** @file Modal for confirming delete of any type of asset. */
-import * as react from 'react'
+import * as React from 'react'
 import toast from 'react-hot-toast'
 
 import * as modalProvider from '../../providers/modal'
@@ -24,7 +24,7 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
     const { assetType, name, doDelete, onSuccess } = props
     const { unsetModal } = modalProvider.useSetModal()
 
-    const [isSubmitting, setIsSubmitting] = react.useState(false)
+    const [isSubmitting, setIsSubmitting] = React.useState(false)
 
     const onSubmit = async () => {
         if (!isSubmitting) {
@@ -60,7 +60,7 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                 <button type="button" className="absolute right-0 top-0 m-2" onClick={unsetModal}>
                     {svg.CLOSE_ICON}
                 </button>
-                Are you sure you want to delete the {assetType} '{name}'?
+                Are you sure you want to delete the {assetType} &apos;{name}&apos;?
                 <div className="m-1">
                     <button
                         type="submit"

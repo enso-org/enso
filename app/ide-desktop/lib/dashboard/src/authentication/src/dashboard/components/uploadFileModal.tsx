@@ -1,5 +1,5 @@
 /** @file Modal dialog to upload a file. */
-import * as react from 'react'
+import * as React from 'react'
 import toast from 'react-hot-toast'
 
 import * as backendModule from '../backend'
@@ -26,8 +26,8 @@ function UploadFileModal(props: UploadFileModalProps) {
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
 
-    const [name, setName] = react.useState<string | null>(null)
-    const [file, setFile] = react.useState<File | null>(null)
+    const [name, setName] = React.useState<string | null>(null)
+    const [file, setFile] = React.useState<File | null>(null)
 
     if (backend.type === backendModule.BackendType.local) {
         return <></>

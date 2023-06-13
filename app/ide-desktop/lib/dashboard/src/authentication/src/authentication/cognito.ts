@@ -86,7 +86,7 @@ interface AmplifyError extends Error {
 
 /** Hint to TypeScript if we can safely cast an `unknown` error to an {@link AmplifyError}. */
 function isAmplifyError(error: unknown): error is AmplifyError {
-    if (error && typeof error === 'object') {
+    if (error != null && typeof error === 'object') {
         return 'code' in error && 'message' in error && 'name' in error
     } else {
         return false
@@ -116,7 +116,7 @@ interface AuthError {
 
 /** Hint to TypeScript if we can safely cast an `unknown` error to an `AuthError`. */
 function isAuthError(error: unknown): error is AuthError {
-    if (error && typeof error === 'object') {
+    if (error != null && typeof error === 'object') {
         return 'name' in error && 'log' in error
     } else {
         return false
@@ -481,7 +481,7 @@ async function signInWithGoogle(customState: string | null) {
     const provider = amplify.CognitoHostedUIIdentityProvider.Google
     const options = {
         provider,
-        ...(customState ? { customState } : {}),
+        ...(customState != null ? { customState } : {}),
     }
     await amplify.Auth.federatedSignIn(options)
 }

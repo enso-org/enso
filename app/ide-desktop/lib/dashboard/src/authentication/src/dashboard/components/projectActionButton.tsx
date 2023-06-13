@@ -1,5 +1,5 @@
 /** @file An interactive button displaying the status of a project. */
-import * as react from 'react'
+import * as React from 'react'
 import toast from 'react-hot-toast'
 
 import * as backendModule from '../backend'
@@ -92,7 +92,7 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
 export interface ProjectActionButtonProps {
     project: backendModule.Asset<backendModule.AssetType.project>
     projectData: ProjectData
-    setProjectData: react.Dispatch<react.SetStateAction<ProjectData>>
+    setProjectData: React.Dispatch<React.SetStateAction<ProjectData>>
     appRunner: AppRunner | null
     event: ProjectEvent | null
     /** Called when the project is opened via the {@link ProjectActionButton}. */
@@ -117,14 +117,14 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
 
-    const [state, setState] = react.useState<backendModule.ProjectState | null>(null)
-    const [isCheckingStatus, setIsCheckingStatus] = react.useState(false)
-    const [isCheckingResources, setIsCheckingResources] = react.useState(false)
-    const [spinnerState, setSpinnerState] = react.useState(SpinnerState.initial)
-    const [shouldOpenWhenReady, setShouldOpenWhenReady] = react.useState(false)
-    const [toastId, setToastId] = react.useState<string | null>(null)
+    const [state, setState] = React.useState<backendModule.ProjectState | null>(null)
+    const [isCheckingStatus, setIsCheckingStatus] = React.useState(false)
+    const [isCheckingResources, setIsCheckingResources] = React.useState(false)
+    const [spinnerState, setSpinnerState] = React.useState(SpinnerState.initial)
+    const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
+    const [toastId, setToastId] = React.useState<string | null>(null)
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (toastId != null) {
             return () => {
                 toast.dismiss(toastId)
@@ -134,20 +134,20 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         }
     }, [toastId])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         // Ensure that the previous spinner state is visible for at least one frame.
         requestAnimationFrame(() => {
             setSpinnerState(SPINNER_STATE[state ?? DEFAULT_PROJECT_STATE])
         })
     }, [state])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (toastId != null && state !== backendModule.ProjectState.openInProgress) {
             toast.dismiss(toastId)
         }
-    }, [state])
+    }, [state, toastId])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         switch (project.projectState.type) {
             case backendModule.ProjectState.opened:
                 setState(backendModule.ProjectState.openInProgress)
@@ -163,9 +163,41 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 setState(oldState => oldState ?? project.projectState.type)
                 break
         }
-    }, [])
+    }, [project.projectState.type])
 
-    react.useEffect(() => {
+    const openProject = React.useCallback(async () => {
+        setState(backendModule.ProjectState.openInProgress)
+        try {
+            switch (backend.type) {
+                case backendModule.BackendType.remote:
+                    setToastId(toast.loading(LOADING_MESSAGE))
+                    await backend.openProject(project.id)
+                    setProjectData(oldProjectData => ({ ...oldProjectData, isRunning: true }))
+                    doRefresh()
+                    setIsCheckingStatus(true)
+                    break
+                case backendModule.BackendType.local:
+                    await backend.openProject(project.id)
+                    setProjectData(oldProjectData => ({ ...oldProjectData, isRunning: true }))
+                    setState(oldState => {
+                        if (oldState === backendModule.ProjectState.openInProgress) {
+                            doRefresh()
+                            return backendModule.ProjectState.opened
+                        } else {
+                            return oldState
+                        }
+                    })
+                    break
+            }
+        } catch {
+            setIsCheckingStatus(false)
+            setIsCheckingResources(false)
+            toast.error(`Error opening project '${project.title}'.`)
+            setState(backendModule.ProjectState.closed)
+        }
+    }, [backend, doRefresh, project.id, project.title, setProjectData])
+
+    React.useEffect(() => {
         if (event != null) {
             switch (event.type) {
                 case ProjectEventType.open: {
@@ -182,25 +214,27 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 }
             }
         }
-    }, [event])
+    }, [event, openProject, project.id])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (shouldOpenWhenReady && state === backendModule.ProjectState.opened) {
             openIde()
             setShouldOpenWhenReady(false)
         }
-    }, [shouldOpenWhenReady, state])
+    }, [openIde, shouldOpenWhenReady, state])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (
             backend.type === backendModule.BackendType.local &&
             project.id !== localBackend.LocalBackend.currentlyOpeningProjectId
         ) {
             setState(backendModule.ProjectState.closed)
         }
-    }, [project, state, localBackend.LocalBackend.currentlyOpeningProjectId])
+        // `localBackend.LocalBackend.currentlyOpeningProjectId` is a mutable outer scope value.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [project, state, backend.type, localBackend.LocalBackend.currentlyOpeningProjectId])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (!isCheckingStatus) {
             return
         } else {
@@ -239,9 +273,9 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 }
             }
         }
-    }, [isCheckingStatus])
+    }, [backend, isCheckingStatus, project.id])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (!isCheckingResources) {
             return
         } else {
@@ -284,7 +318,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 }
             }
         }
-    }, [isCheckingResources])
+    }, [backend, isCheckingResources, project.id])
 
     const closeProject = async () => {
         onClose()
@@ -299,38 +333,6 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             // This is not 100% correct, but it is better than never setting `isRunning` to `false`,
             // which would prevent the project from ever being deleted.
             setProjectData(oldProjectData => ({ ...oldProjectData, isRunning: false }))
-        }
-    }
-
-    const openProject = async () => {
-        setState(backendModule.ProjectState.openInProgress)
-        try {
-            switch (backend.type) {
-                case backendModule.BackendType.remote:
-                    setToastId(toast.loading(LOADING_MESSAGE))
-                    await backend.openProject(project.id)
-                    setProjectData(oldProjectData => ({ ...oldProjectData, isRunning: true }))
-                    doRefresh()
-                    setIsCheckingStatus(true)
-                    break
-                case backendModule.BackendType.local:
-                    await backend.openProject(project.id)
-                    setProjectData(oldProjectData => ({ ...oldProjectData, isRunning: true }))
-                    setState(oldState => {
-                        if (oldState === backendModule.ProjectState.openInProgress) {
-                            doRefresh()
-                            return backendModule.ProjectState.opened
-                        } else {
-                            return oldState
-                        }
-                    })
-                    break
-            }
-        } catch {
-            setIsCheckingStatus(false)
-            setIsCheckingResources(false)
-            toast.error(`Error opening project '${project.title}'.`)
-            setState(backendModule.ProjectState.closed)
         }
     }
 

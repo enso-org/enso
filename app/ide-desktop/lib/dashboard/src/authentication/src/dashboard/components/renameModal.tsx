@@ -1,5 +1,5 @@
 /** @file Modal for confirming delete of any type of asset. */
-import * as react from 'react'
+import * as React from 'react'
 import toast from 'react-hot-toast'
 
 import * as modalProvider from '../../providers/modal'
@@ -27,8 +27,8 @@ function RenameModal(props: RenameModalProps) {
     const { assetType, name, namePattern, title, doRename, onSuccess } = props
     const { unsetModal } = modalProvider.useSetModal()
 
-    const [isSubmitting, setIsSubmitting] = react.useState(false)
-    const [newName, setNewName] = react.useState<string | null>(null)
+    const [isSubmitting, setIsSubmitting] = React.useState(false)
+    const [newName, setNewName] = React.useState<string | null>(null)
 
     const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
@@ -64,7 +64,7 @@ function RenameModal(props: RenameModalProps) {
                 <button type="button" className="absolute right-0 top-0 m-2" onClick={unsetModal}>
                     {svg.CLOSE_ICON}
                 </button>
-                What do you want to rename the {assetType} '{name}' to?
+                What do you want to rename the {assetType} &apos;{name}&apos; to?
                 <div className="m-2">
                     <label className="w-1/3" htmlFor="renamed_file_name">
                         File name

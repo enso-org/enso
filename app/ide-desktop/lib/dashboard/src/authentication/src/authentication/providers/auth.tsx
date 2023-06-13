@@ -3,7 +3,7 @@
  * Provides an `AuthProvider` component that wraps the entire application, and a `useAuth` hook that
  * can be used from any React component to access the currently logged-in user's session data. The
  * hook also provides methods for registering a user, logging in, logging out, etc. */
-import * as react from 'react'
+import * as React from 'react'
 import * as router from 'react-router-dom'
 import toast from 'react-hot-toast'
 
@@ -154,7 +154,7 @@ interface AuthContextType {
  * So changing the cast would provide no safety guarantees, and would require us to introduce null
  * checks everywhere we use the context. */
 // eslint-disable-next-line no-restricted-syntax
-const AuthContext = react.createContext<AuthContextType>({} as AuthContextType)
+const AuthContext = React.createContext<AuthContextType>({} as AuthContextType)
 
 // ====================
 // === AuthProvider ===
@@ -165,7 +165,7 @@ export interface AuthProviderProps {
     authService: authServiceModule.AuthService
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: () => void
-    children: react.ReactNode
+    children: React.ReactNode
 }
 
 /** A React provider for the Cognito API. */
@@ -179,23 +179,38 @@ export function AuthProvider(props: AuthProviderProps) {
     // and the function call would error.
     // eslint-disable-next-line no-restricted-properties
     const navigate = router.useNavigate()
-    const [initialized, setInitialized] = react.useState(false)
-    const [userSession, setUserSession] = react.useState<UserSession | null>(null)
+    const [initialized, setInitialized] = React.useState(false)
+    const [userSession, setUserSession] = React.useState<UserSession | null>(null)
+
+    const goOfflineInternal = React.useCallback(() => {
+        setInitialized(true)
+        setUserSession(OFFLINE_USER_SESSION)
+        setBackendWithoutSavingType(new localBackend.LocalBackend())
+    }, [/* should never change */ setBackendWithoutSavingType])
+
+    const goOffline = React.useCallback(() => {
+        toast.error('You are offline, switching to offline mode.')
+        goOfflineInternal()
+        navigate(app.DASHBOARD_PATH)
+        return Promise.resolve(true)
+    }, [/* should never change */ goOfflineInternal, /* should never change */ navigate])
 
     // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
     // circular dependency.
-    react.useEffect(() => {
+    React.useEffect(() => {
+        // `navigator.onLine` is not a dependency so that the app doesn't make the remote backend
+        // completely unusable on unreliable connections.
         if (!navigator.onLine) {
             void goOffline()
         }
-    }, [navigator.onLine])
+    }, [goOffline])
 
     /** Fetch the JWT access token from the session via the AWS Amplify library.
      *
      * When invoked, retrieves the access token (if available) from the storage method chosen when
      * Amplify was configured (e.g. local storage). If the token is not available, return `undefined`.
      * If the token has expired, automatically refreshes the token and returns the new token. */
-    react.useEffect(() => {
+    React.useEffect(() => {
         const fetchSession = async () => {
             if (!navigator.onLine) {
                 goOfflineInternal()
@@ -266,7 +281,18 @@ export function AuthProvider(props: AuthProviderProps) {
                 logger.error(error)
             }
         })
-    }, [session])
+        // `userSession` MUST NOT be a dependency as this effect always does a `setUserSession`,
+        // which would result in an infinite loop.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        cognito,
+        initialized,
+        logger,
+        onAuthenticated,
+        session,
+        /* should never change */ goOfflineInternal,
+        /* should never change */ setBackendWithoutSavingType,
+    ])
 
     /** Wrap a function returning a {@link Promise} to displays a loading toast notification
      * until the returned {@link Promise} finishes loading. */
@@ -282,19 +308,6 @@ export function AuthProvider(props: AuthProviderProps) {
             }
             return result
         }
-
-    const goOfflineInternal = () => {
-        setInitialized(true)
-        setUserSession(OFFLINE_USER_SESSION)
-        setBackendWithoutSavingType(new localBackend.LocalBackend())
-    }
-
-    const goOffline = () => {
-        toast.error('You are offline, switching to offline mode.')
-        goOfflineInternal()
-        navigate(app.DASHBOARD_PATH)
-        return Promise.resolve(true)
-    }
 
     const signUp = async (username: string, password: string) => {
         const result = await cognito.signUp(username, password)
@@ -463,7 +476,7 @@ function isUserFacingError(value: unknown): value is UserFacingError {
  * Only the hook is exported, and not the context, because we only want to use the hook directly and
  * never the context component. */
 export function useAuth() {
-    return react.useContext(AuthContext)
+    return React.useContext(AuthContext)
 }
 
 // ===============================

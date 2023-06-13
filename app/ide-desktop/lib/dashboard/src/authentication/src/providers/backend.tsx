@@ -1,6 +1,6 @@
 /** @file Defines the React provider for the project manager `Backend`, along with hooks to use the
  * provider via the shared React context. */
-import * as react from 'react'
+import * as React from 'react'
 
 import * as common from 'enso-common'
 
@@ -34,7 +34,7 @@ export interface BackendContextType {
 
 // @ts-expect-error The default value will never be exposed
 // as `backend` will always be accessed using `useBackend`.
-const BackendContext = react.createContext<BackendContextType>(null)
+const BackendContext = React.createContext<BackendContextType>(null)
 
 /** Props for a {@link BackendProvider}. */
 export interface BackendProviderProps extends React.PropsWithChildren<object> {
@@ -48,10 +48,10 @@ export interface BackendProviderProps extends React.PropsWithChildren<object> {
 /** A React Provider that lets components get and set the current backend. */
 export function BackendProvider(props: BackendProviderProps) {
     const { children } = props
-    const [backend, setBackendWithoutSavingType] = react.useState<
+    const [backend, setBackendWithoutSavingType] = React.useState<
         localBackend.LocalBackend | remoteBackend.RemoteBackend
     >(() => new localBackend.LocalBackend())
-    const setBackend = react.useCallback((newBackend: AnyBackendAPI) => {
+    const setBackend = React.useCallback((newBackend: AnyBackendAPI) => {
         setBackendWithoutSavingType(newBackend)
         localStorage.setItem(BACKEND_TYPE_KEY, newBackend.type)
     }, [])
@@ -65,12 +65,12 @@ export function BackendProvider(props: BackendProviderProps) {
 
 /** Exposes a property to get the current backend. */
 export function useBackend() {
-    const { backend } = react.useContext(BackendContext)
+    const { backend } = React.useContext(BackendContext)
     return { backend }
 }
 
 /** Exposes a property to set the current backend. */
 export function useSetBackend() {
-    const { setBackend, setBackendWithoutSavingType } = react.useContext(BackendContext)
+    const { setBackend, setBackendWithoutSavingType } = React.useContext(BackendContext)
     return { setBackend, setBackendWithoutSavingType }
 }

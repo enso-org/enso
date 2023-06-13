@@ -1,5 +1,5 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
-import * as react from 'react'
+import * as React from 'react'
 import * as router from 'react-router-dom'
 import toast from 'react-hot-toast'
 
@@ -18,9 +18,9 @@ import SvgIcon from './svgIcon'
 /** A form for users to register an account. */
 function Registration() {
     const { signUp } = auth.useAuth()
-    const [email, setEmail] = react.useState('')
-    const [password, setPassword] = react.useState('')
-    const [confirmPassword, setConfirmPassword] = react.useState('')
+    const [email, setEmail] = React.useState('')
+    const [password, setPassword] = React.useState('')
+    const [confirmPassword, setConfirmPassword] = React.useState('')
 
     const onSubmit = () => {
         /** The password & confirm password fields must match. */

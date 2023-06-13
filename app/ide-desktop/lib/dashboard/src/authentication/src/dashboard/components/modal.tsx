@@ -1,5 +1,5 @@
 /** @file Base modal component that provides the full-screen element that blocks mouse events. */
-import * as react from 'react'
+import * as React from 'react'
 
 import * as modalProvider from '../../providers/modal'
 
@@ -8,7 +8,7 @@ import * as modalProvider from '../../providers/modal'
 // =================
 
 /** Props for a {@link Modal}. */
-export interface ModalProps extends react.PropsWithChildren {
+export interface ModalProps extends React.PropsWithChildren {
     centered?: boolean
     className?: string
 }
@@ -18,7 +18,7 @@ export interface ModalProps extends react.PropsWithChildren {
  * background transparency can be enabled with Tailwind's `bg-opacity` classes,
  * like `className="bg-opacity-50"` */
 function Modal(props: ModalProps) {
-    const { children, centered, className } = props
+    const { children, centered = false, className } = props
     const { unsetModal } = modalProvider.useSetModal()
 
     return (

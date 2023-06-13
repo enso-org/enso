@@ -1,5 +1,5 @@
 /** @file Container that launches the IDE. */
-import * as react from 'react'
+import * as React from 'react'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
@@ -31,7 +31,7 @@ function Ide(props: IdeProps) {
     const { project, appRunner } = props
     const { backend } = backendProvider.useBackend()
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         void (async () => {
             const ideVersion =
                 project.ideVersion?.value ??
@@ -122,7 +122,7 @@ function Ide(props: IdeProps) {
                 }
             }
         })()
-    }, [project])
+    }, [appRunner, backend, project])
 
     return <></>
 }

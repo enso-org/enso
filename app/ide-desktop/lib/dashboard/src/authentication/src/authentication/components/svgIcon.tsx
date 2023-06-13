@@ -1,4 +1,5 @@
 /** @file Styled wrapper around SVG images. */
+import * as React from 'react'
 
 // ===============
 // === SvgIcon ===
