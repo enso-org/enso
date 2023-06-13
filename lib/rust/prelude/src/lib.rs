@@ -57,6 +57,7 @@ mod test;
 mod tp;
 mod unsafe_cell;
 mod vec;
+mod void;
 mod zeroable;
 
 pub use crate::bool::*;
@@ -94,6 +95,7 @@ pub use test::traits::*;
 pub use tp::*;
 pub use unsafe_cell::*;
 pub use vec::*;
+pub use void::*;
 pub use zeroable::*;
 
 pub use assert_approx_eq::assert_approx_eq;

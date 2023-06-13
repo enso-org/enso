@@ -133,7 +133,6 @@
 
 mod callstack;
 mod data;
-mod input;
 mod metrics;
 mod network;
 mod node;

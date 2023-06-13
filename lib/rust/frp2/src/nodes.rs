@@ -1,9 +1,9 @@
 use crate::prelude::*;
 
 use crate::data::Data;
-use crate::input::Listen;
-use crate::input::Sample;
 use crate::network::Network;
+use crate::node::input::Listen;
+use crate::node::input::Sample;
 use crate::node::Node;
 use crate::node::NodeInNetwork;
 use crate::node::NodeWithDefaultOutput;
@@ -25,7 +25,7 @@ impl !NotStream for STREAM {}
 /// with zero-overhead.
 pub type Stream<Output = ()> = TypedNode<STREAM, Output>;
 
-impl<Kind: NotStream, Output> Deref for TypedNode<Kind, Output> {
+impl<Type: NotStream, Output> Deref for TypedNode<Type, Output> {
     type Target = Stream<Output>;
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
@@ -33,9 +33,9 @@ impl<Kind: NotStream, Output> Deref for TypedNode<Kind, Output> {
     }
 }
 
-impl<Kind: NotStream, Output> From<TypedNode<Kind, Output>> for Stream<Output> {
+impl<Type: NotStream, Output> From<TypedNode<Type, Output>> for Stream<Output> {
     #[inline(always)]
-    fn from(node: TypedNode<Kind, Output>) -> Self {
+    fn from(node: TypedNode<Type, Output>) -> Self {
         TypedNode { _marker: PhantomData, id: node.id }
     }
 }
