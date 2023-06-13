@@ -47,7 +47,6 @@ export interface TableProps<T, State = never> {
     isLoading: boolean
     placeholder: JSX.Element
     onContextMenu: (selectedItems: Set<T>, event: React.MouseEvent<HTMLTableElement>) => void
-    onRowClick: (item: T, event: React.MouseEvent<HTMLTableRowElement>) => void
     onRowContextMenu: (item: T, event: React.MouseEvent<HTMLTableRowElement>) => void
 }
 
@@ -61,7 +60,6 @@ function Table<T, State = never>(props: TableProps<T, State>) {
         isLoading,
         placeholder,
         onContextMenu,
-        onRowClick,
         onRowContextMenu,
     } = props
     const { unsetModal } = modalProvider.useSetModal()
@@ -165,7 +163,6 @@ function Table<T, State = never>(props: TableProps<T, State>) {
                 onClick={event => {
                     unsetModal()
                     onItemClicked(item, event)
-                    onRowClick(item, event)
                 }}
                 onContextMenu={event => {
                     if (selectedItems.size === 0) {

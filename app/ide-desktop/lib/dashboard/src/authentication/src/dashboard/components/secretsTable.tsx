@@ -236,10 +236,6 @@ export interface SecretsTableProps {
     onCreate: () => void
     onRename: () => void
     onDelete: () => void
-    onAssetClick: (
-        asset: backendModule.SecretAsset,
-        event: React.MouseEvent<HTMLTableRowElement>
-    ) => void
 }
 
 /** The table of secret assets. */
@@ -253,7 +249,6 @@ function SecretsTable(props: SecretsTableProps) {
         onCreate,
         onRename,
         onDelete,
-        onAssetClick,
     } = props
     const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
@@ -329,7 +324,6 @@ function SecretsTable(props: SecretsTableProps) {
                         </ContextMenu>
                     )
                 }}
-                onRowClick={onAssetClick}
                 onRowContextMenu={(secret, event) => {
                     event.preventDefault()
                     event.stopPropagation()

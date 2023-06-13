@@ -152,10 +152,6 @@ export interface DirectoriesTableProps {
     doCreateDirectory: () => void
     onRename: () => void
     onDelete: () => void
-    onAssetClick: (
-        asset: backendModule.DirectoryAsset,
-        event: React.MouseEvent<HTMLTableRowElement>
-    ) => void
     enterDirectory: (directory: backendModule.DirectoryAsset) => void
 }
 
@@ -169,7 +165,6 @@ function DirectoriesTable(props: DirectoriesTableProps) {
         doCreateDirectory,
         onRename,
         onDelete,
-        onAssetClick,
         enterDirectory,
     } = props
     const logger = loggerProvider.useLogger()
@@ -242,7 +237,6 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                         </ContextMenu>
                     )
                 }}
-                onRowClick={onAssetClick}
                 onRowContextMenu={(directory, event) => {
                     event.preventDefault()
                     event.stopPropagation()

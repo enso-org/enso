@@ -218,10 +218,6 @@ export interface ProjectsTableProps {
     onDelete: () => void
     doOpenIde: (project: backendModule.ProjectAsset) => void
     doCloseIde: () => void
-    onAssetClick: (
-        asset: backendModule.ProjectAsset,
-        event: React.MouseEvent<HTMLTableRowElement>
-    ) => void
     doRefresh: () => void
 }
 
@@ -239,7 +235,6 @@ function ProjectsTable(props: ProjectsTableProps) {
         onDelete,
         doOpenIde,
         doCloseIde: rawDoCloseIde,
-        onAssetClick,
         doRefresh,
     } = props
     const logger = loggerProvider.useLogger()
@@ -379,7 +374,6 @@ function ProjectsTable(props: ProjectsTableProps) {
                     </ContextMenu>
                 )
             }}
-            onRowClick={onAssetClick}
             onRowContextMenu={(projectAsset, event) => {
                 event.preventDefault()
                 event.stopPropagation()

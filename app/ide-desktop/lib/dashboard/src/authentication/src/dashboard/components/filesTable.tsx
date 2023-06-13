@@ -241,10 +241,6 @@ export interface FilesTableProps {
     onCreate: () => void
     onRename: () => void
     onDelete: () => void
-    onAssetClick: (
-        asset: backendModule.FileAsset,
-        event: React.MouseEvent<HTMLTableRowElement>
-    ) => void
 }
 
 /** The table of file assets. */
@@ -258,7 +254,6 @@ function FilesTable(props: FilesTableProps) {
         onCreate,
         onRename,
         onDelete,
-        onAssetClick,
     } = props
     const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
@@ -343,7 +338,6 @@ function FilesTable(props: FilesTableProps) {
                         </ContextMenu>
                     )
                 }}
-                onRowClick={onAssetClick}
                 onRowContextMenu={(file, event) => {
                     event.preventDefault()
                     event.stopPropagation()

@@ -59,7 +59,6 @@ export interface DirectoryViewProps {
     doRefresh: () => void
     onOpenIde: (project: backendModule.ProjectAsset) => void
     onCloseIde: () => void
-    onAssetClick: (asset: backendModule.Asset, event: React.MouseEvent<HTMLTableRowElement>) => void
     appRunner: AppRunner | null
     loadingProjectManagerDidFail: boolean
     isListingRemoteDirectoryWhileOffline: boolean
@@ -83,7 +82,6 @@ function DirectoryView(props: DirectoryViewProps) {
         doRefresh,
         onOpenIde,
         onCloseIde,
-        onAssetClick,
         appRunner,
         loadingProjectManagerDidFail,
         isListingRemoteDirectoryWhileOffline,
@@ -419,7 +417,6 @@ function DirectoryView(props: DirectoryViewProps) {
                 onDelete={doRefresh}
                 doOpenIde={onOpenIde}
                 doCloseIde={onCloseIde}
-                onAssetClick={onAssetClick}
                 doRefresh={doRefresh}
             />
             <div className="h-10" />
@@ -431,7 +428,6 @@ function DirectoryView(props: DirectoryViewProps) {
                 doCreateDirectory={doCreateDirectory}
                 onRename={doRefresh}
                 onDelete={doRefresh}
-                onAssetClick={onAssetClick}
                 enterDirectory={enterDirectory}
             />
             <div className="h-10" />
@@ -444,7 +440,6 @@ function DirectoryView(props: DirectoryViewProps) {
                 onCreate={doRefresh}
                 onRename={doRefresh}
                 onDelete={doRefresh}
-                onAssetClick={onAssetClick}
             />
             <div className="h-10" />
             <FilesTable
@@ -456,7 +451,6 @@ function DirectoryView(props: DirectoryViewProps) {
                 onCreate={doRefresh}
                 onRename={doRefresh}
                 onDelete={doRefresh}
-                onAssetClick={onAssetClick}
             />
         </>
     )

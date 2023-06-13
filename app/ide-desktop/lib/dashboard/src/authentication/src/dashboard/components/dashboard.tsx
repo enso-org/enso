@@ -101,8 +101,6 @@ function Dashboard(props: DashboardProps) {
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
     const [tab, setTab] = React.useState(Tab.dashboard)
     const [project, setProject] = React.useState<backendModule.Project | null>(null)
-    // FIXME[sb]: Why is this not an object?
-    const [selectedAssets, setSelectedAssets] = React.useState<backendModule.Asset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
@@ -241,14 +239,6 @@ function Dashboard(props: DashboardProps) {
         [/* should never change */ dispatchDirectoryEvent]
     )
 
-    const onAssetClick = React.useCallback(
-        (asset: backendModule.Asset, event: React.MouseEvent) => {
-            event.stopPropagation()
-            setSelectedAssets(event.shiftKey ? [...selectedAssets, asset] : [asset])
-        },
-        [selectedAssets]
-    )
-
     const openIde = React.useCallback(
         async (newProject: backendModule.ProjectAsset) => {
             switchToIdeTab()
@@ -263,19 +253,18 @@ function Dashboard(props: DashboardProps) {
         setProject(null)
     }, [])
 
+    const closeModalIfExists = React.useCallback(() => {
+        if (getSelection()?.type !== 'Range') {
+            unsetModal()
+        }
+    }, [/* should never change */ unsetModal])
+
     return (
         <div
             className={`flex flex-col relative select-none text-primary text-xs min-h-screen p-2 ${
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
-            onClick={event => {
-                if (getSelection()?.type !== 'Range') {
-                    unsetModal()
-                    if (!event.shiftKey) {
-                        setSelectedAssets([])
-                    }
-                }
-            }}
+            onClick={closeModalIfExists}
             onKeyDown={handleEscapeKey}
             onDragEnter={openDropZone}
         >
@@ -323,7 +312,6 @@ function Dashboard(props: DashboardProps) {
                         query={query}
                         refresh={refresh}
                         doRefresh={doRefresh}
-                        onAssetClick={onAssetClick}
                         onOpenIde={openIde}
                         onCloseIde={closeIde}
                         appRunner={appRunner}
