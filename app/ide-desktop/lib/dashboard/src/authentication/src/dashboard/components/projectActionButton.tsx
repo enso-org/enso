@@ -109,13 +109,13 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             switch (backend.type) {
                 case backendModule.BackendType.remote:
                     setToastId(toast.loading(LOADING_MESSAGE))
-                    await backend.openProject(project.id)
+                    await backend.openProject(project.id, null, project.title)
                     setExtraData(project.id, { ...getExtraData(project.id), isRunning: true })
                     setCheckState(CheckState.checkingStatus)
                     doRefresh()
                     break
                 case backendModule.BackendType.local:
-                    await backend.openProject(project.id)
+                    await backend.openProject(project.id, null, project.title)
                     setExtraData(project.id, { ...getExtraData(project.id), isRunning: true })
                     setCheckState(CheckState.done)
                     setState(backendModule.ProjectState.opened)
@@ -230,7 +230,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 let previousTimestamp = 0
                 const checkProjectStatus = async () => {
                     try {
-                        const response = await backend.getProjectDetails(project.id)
+                        const response = await backend.getProjectDetails(project.id, project.title)
                         handle = null
                         if (
                             continuePolling &&
@@ -272,7 +272,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                     } else {
                         try {
                             // This call will error if the VM is not ready yet.
-                            await backend.checkResources(project.id)
+                            await backend.checkResources(project.id, project.title)
                             handle = null
                             if (continuePolling) {
                                 continuePolling = false
@@ -302,7 +302,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 }
             }
         }
-    }, [checkState, project.id, backend])
+    }, [checkState, project.id, project.title, backend])
 
     const closeProject = async () => {
         onClose()
@@ -311,7 +311,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         appRunner?.stopApp()
         setCheckState(CheckState.notChecking)
         try {
-            await backend.closeProject(project.id)
+            await backend.closeProject(project.id, project.title)
         } finally {
             // This is not 100% correct, but it is better than never setting `isRunning` to `false`,
             // which would prevent the project from ever being deleted.

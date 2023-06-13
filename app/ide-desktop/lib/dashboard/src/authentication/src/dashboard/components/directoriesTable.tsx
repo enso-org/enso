@@ -106,7 +106,7 @@ function DirectoryName(props: InternalDirectoryNameProps) {
     // TODO: Wait for backend implementation.
     const doRename = async (newName: string) => {
         if (backend.type !== backendModule.BackendType.local) {
-            await toast.promise(backend.updateDirectory(item.id, { title: newName }), {
+            await toast.promise(backend.updateDirectory(item.id, { title: newName }, item.title), {
                 loading: 'Renaming folder...',
                 success: 'Renamed folder',
                 error: reason => `Error renaming folder: ${error.unsafeIntoErrorMessage(reason)}`,
@@ -237,7 +237,8 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                                     await toastPromiseMultiple.toastPromiseMultiple(
                                         logger,
                                         [...directories],
-                                        directory => backend.deleteDirectory(directory.id),
+                                        directory =>
+                                            backend.deleteDirectory(directory.id, directory.title),
                                         TOAST_PROMISE_MULTIPLE_MESSAGES
                                     )
                                 }}
@@ -263,7 +264,11 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                     // eslint-disable-next-line no-restricted-syntax
                     const doRename = () => {
                         const innerDoRename = async (newName: string) => {
-                            await backend.updateDirectory(directory.id, { title: newName })
+                            await backend.updateDirectory(
+                                directory.id,
+                                { title: newName },
+                                directory.title
+                            )
                         }
                         setModal(
                             <RenameModal
@@ -283,7 +288,9 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                             <ConfirmDeleteModal
                                 description={directory.title}
                                 assetType={directory.type}
-                                doDelete={() => backend.deleteDirectory(directory.id)}
+                                doDelete={() =>
+                                    backend.deleteDirectory(directory.id, directory.title)
+                                }
                                 onSuccess={onDelete}
                             />
                         )

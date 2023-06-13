@@ -190,7 +190,10 @@ function DirectoryView(props: DirectoryViewProps) {
                         !isListingRemoteDirectoryWhileOffline &&
                         directoryId != null
                     ) {
-                        const newAssets = await backend.listDirectory({ parentId: directoryId })
+                        const newAssets = await backend.listDirectory(
+                            { parentId: directoryId },
+                            directory?.title ?? null
+                        )
                         if (!signal.aborted) {
                             setIsLoadingAssets(false)
                         }

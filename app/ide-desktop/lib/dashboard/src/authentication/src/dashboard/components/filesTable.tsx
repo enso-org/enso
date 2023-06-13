@@ -297,7 +297,7 @@ function FilesTable(props: FilesTableProps) {
                                     await toastPromiseMultiple.toastPromiseMultiple(
                                         logger,
                                         [...files],
-                                        file => backend.deleteFile(file.id),
+                                        file => backend.deleteFile(file.id, file.title),
                                         TOAST_PROMISE_MULTIPLE_MESSAGES
                                     )
                                 }}
@@ -338,7 +338,7 @@ function FilesTable(props: FilesTableProps) {
                             <ConfirmDeleteModal
                                 description={`'${file.title}'`}
                                 assetType={file.type}
-                                doDelete={() => backend.deleteFile(file.id)}
+                                doDelete={() => backend.deleteFile(file.id, file.title)}
                                 onSuccess={onDelete}
                             />
                         )

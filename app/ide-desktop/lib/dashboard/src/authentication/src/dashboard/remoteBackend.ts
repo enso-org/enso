@@ -197,7 +197,10 @@ export class RemoteBackend implements backend.Backend {
     /** Return a list of assets in a directory.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async listDirectory(query: backend.ListDirectoryRequestParams): Promise<backend.Asset[]> {
+    async listDirectory(
+        query: backend.ListDirectoryRequestParams,
+        title: string | null
+    ): Promise<backend.Asset[]> {
         const response = await this.get<ListDirectoryResponseBody>(
             LIST_DIRECTORY_PATH +
                 '?' +
@@ -208,7 +211,11 @@ export class RemoteBackend implements backend.Backend {
         )
         if (!responseIsSuccessful(response)) {
             if (query.parentId != null) {
-                return this.throw(`Unable to list directory with ID '${query.parentId}'.`)
+                return this.throw(
+                    `Unable to list directory ${
+                        title != null ? `'${title}'` : `with ID '${query.parentId}'`
+                    }.`
+                )
             } else {
                 return this.throw('Unable to list root directory.')
             }
@@ -238,14 +245,19 @@ export class RemoteBackend implements backend.Backend {
      * @throws An error if a non-successful status code (not 200-299) was received. */
     async updateDirectory(
         directoryId: backend.DirectoryId,
-        body: backend.UpdateDirectoryRequestBody
+        body: backend.UpdateDirectoryRequestBody,
+        title: string | null
     ) {
         const response = await this.put<backend.UpdatedDirectory>(
             updateDirectoryPath(directoryId),
             body
         )
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to update directory with id '${directoryId}'.`)
+            return this.throw(
+                `Unable to update directory ${
+                    title != null ? `'${title}'` : `with ID '${directoryId}'`
+                }.`
+            )
         } else {
             return await response.json()
         }
@@ -254,10 +266,14 @@ export class RemoteBackend implements backend.Backend {
     /** Change the name of a directory.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async deleteDirectory(directoryId: backend.DirectoryId) {
+    async deleteDirectory(directoryId: backend.DirectoryId, title: string | null) {
         const response = await this.delete(deleteDirectoryPath(directoryId))
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to delete directory with id '${directoryId}'.`)
+            return this.throw(
+                `Unable to delete directory ${
+                    title != null ? `'${title}'` : `with ID '${directoryId}'`
+                }.`
+            )
         } else {
             return
         }
@@ -300,10 +316,14 @@ export class RemoteBackend implements backend.Backend {
     /** Close a project.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async closeProject(projectId: backend.ProjectId): Promise<void> {
+    async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
         const response = await this.post(closeProjectPath(projectId), {})
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to close project with ID '${projectId}'.`)
+            return this.throw(
+                `Unable to close project ${
+                    title != null ? `'${title}'` : `with ID '${projectId}'`
+                }.`
+            )
         } else {
             return
         }
@@ -312,10 +332,17 @@ export class RemoteBackend implements backend.Backend {
     /** Return details for a project.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
+    async getProjectDetails(
+        projectId: backend.ProjectId,
+        title: string | null
+    ): Promise<backend.Project> {
         const response = await this.get<backend.ProjectRaw>(getProjectDetailsPath(projectId))
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to get details of project with ID '${projectId}'.`)
+            return this.throw(
+                `Unable to get details of project ${
+                    title != null ? `'${title}'` : `with ID '${projectId}'`
+                }.`
+            )
         } else {
             const project = await response.json()
             return {
@@ -337,11 +364,17 @@ export class RemoteBackend implements backend.Backend {
      * @throws An error if a non-successful status code (not 200-299) was received. */
     async openProject(
         projectId: backend.ProjectId,
-        body: backend.OpenProjectRequestBody = DEFAULT_OPEN_PROJECT_BODY
+        body: backend.OpenProjectRequestBody | null,
+        title: string | null
     ): Promise<void> {
-        const response = await this.post(openProjectPath(projectId), body)
+        const response = await this.post(
+            openProjectPath(projectId),
+            body ?? DEFAULT_OPEN_PROJECT_BODY
+        )
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to open project with ID '${projectId}'.`)
+            return this.throw(
+                `Unable to open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}.`
+            )
         } else {
             return
         }
@@ -352,11 +385,16 @@ export class RemoteBackend implements backend.Backend {
      * @throws An error if a non-successful status code (not 200-299) was received. */
     async projectUpdate(
         projectId: backend.ProjectId,
-        body: backend.ProjectUpdateRequestBody
+        body: backend.ProjectUpdateRequestBody,
+        title: string | null
     ): Promise<backend.UpdatedProject> {
         const response = await this.put<backend.UpdatedProject>(projectUpdatePath(projectId), body)
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to update project with ID '${projectId}'.`)
+            return this.throw(
+                `Unable to update project ${
+                    title != null ? `'${title}'` : `with ID '${projectId}'`
+                }.`
+            )
         } else {
             return await response.json()
         }
@@ -365,10 +403,14 @@ export class RemoteBackend implements backend.Backend {
     /** Delete a project.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async deleteProject(projectId: backend.ProjectId): Promise<void> {
+    async deleteProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
         const response = await this.delete(deleteProjectPath(projectId))
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to delete project with ID '${projectId}'.`)
+            return this.throw(
+                `Unable to delete project ${
+                    title != null ? `'${title}'` : `with ID '${projectId}'`
+                }.`
+            )
         } else {
             return
         }
@@ -377,10 +419,17 @@ export class RemoteBackend implements backend.Backend {
     /** Return the resource usage of a project.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async checkResources(projectId: backend.ProjectId): Promise<backend.ResourceUsage> {
+    async checkResources(
+        projectId: backend.ProjectId,
+        title: string | null
+    ): Promise<backend.ResourceUsage> {
         const response = await this.get<backend.ResourceUsage>(checkResourcesPath(projectId))
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to get resource usage for project with ID '${projectId}'.`)
+            return this.throw(
+                `Unable to get resource usage for project ${
+                    title != null ? `'${title}'` : `with ID '${projectId}'`
+                }.`
+            )
         } else {
             return await response.json()
         }
@@ -435,10 +484,12 @@ export class RemoteBackend implements backend.Backend {
     /** Delete a file.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async deleteFile(fileId: backend.FileId): Promise<void> {
+    async deleteFile(fileId: backend.FileId, title: string | null): Promise<void> {
         const response = await this.delete(deleteFilePath(fileId))
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to delete file with ID '${fileId}'.`)
+            return this.throw(
+                `Unable to delete file ${title != null ? `'${title}'` : `with ID '${fileId}'`}.`
+            )
         } else {
             return
         }
@@ -459,10 +510,12 @@ export class RemoteBackend implements backend.Backend {
     /** Return a secret environment variable.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async getSecret(secretId: backend.SecretId): Promise<backend.Secret> {
+    async getSecret(secretId: backend.SecretId, title: string | null): Promise<backend.Secret> {
         const response = await this.get<backend.Secret>(getSecretPath(secretId))
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to get secret with ID '${secretId}'.`)
+            return this.throw(
+                `Unable to get secret ${title != null ? `'${title}'` : `with ID '${secretId}'`}.`
+            )
         } else {
             return await response.json()
         }
@@ -483,10 +536,12 @@ export class RemoteBackend implements backend.Backend {
     /** Delete a secret environment variable.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async deleteSecret(secretId: backend.SecretId): Promise<void> {
+    async deleteSecret(secretId: backend.SecretId, title: string | null): Promise<void> {
         const response = await this.delete(deleteSecretPath(secretId))
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to delete secret with ID '${secretId}'.`)
+            return this.throw(
+                `Unable to delete secret ${title != null ? `'${title}'` : `with ID '${secretId}'`}.`
+            )
         } else {
             return
         }

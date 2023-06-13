@@ -4,6 +4,7 @@
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API. */
 import * as backend from './backend'
+import * as error from '../error'
 import * as newtype from '../newtype'
 import * as projectManager from './projectManager'
 
@@ -100,14 +101,26 @@ export class LocalBackend implements Partial<backend.Backend> {
     /** Close the project identified by the given project ID.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async closeProject(projectId: backend.ProjectId): Promise<void> {
+    async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null
         }
         if (LocalBackend.currentlyOpenProject?.id === projectId) {
             LocalBackend.currentlyOpenProject = null
         }
-        await this.projectManager.closeProject({ projectId })
+        try {
+            await this.projectManager.closeProject({ projectId })
+            return
+            // This is UNSAFE. It is assumed that all errors thrown are instances of `Error`
+            // and therefore have a string property called `message`.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (e: any) {
+            throw new Error(
+                `Unable to close project ${
+                    title != null ? `'${title}'` : `with ID '${projectId}'`
+                }: ${error.unsafeIntoErrorMessage(e)}.`
+            )
+        }
     }
 
     /** Close the project identified by the given project ID.
@@ -121,7 +134,7 @@ export class LocalBackend implements Partial<backend.Backend> {
             if (project == null) {
                 throw new Error(`The project ID '${projectId}' is invalid.`)
             } else if (engineVersion == null) {
-                throw new Error(`The project '${projectId}' does not have an engine version.`)
+                throw new Error(`The project '${project.name}' does not have an engine version.`)
             } else {
                 return {
                     name: project.name,
@@ -175,14 +188,30 @@ export class LocalBackend implements Partial<backend.Backend> {
     /** Prepare a project for execution.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async openProject(projectId: backend.ProjectId): Promise<void> {
+    async openProject(
+        projectId: backend.ProjectId,
+        _body: backend.OpenProjectRequestBody | null,
+        title: string | null
+    ): Promise<void> {
         LocalBackend.currentlyOpeningProjectId = projectId
-        const project = await this.projectManager.openProject({
-            projectId,
-            missingComponentAction: projectManager.MissingComponentAction.install,
-        })
-        if (LocalBackend.currentlyOpeningProjectId === projectId) {
-            LocalBackend.currentlyOpenProject = { id: projectId, project }
+        try {
+            const project = await this.projectManager.openProject({
+                projectId,
+                missingComponentAction: projectManager.MissingComponentAction.install,
+            })
+            if (LocalBackend.currentlyOpeningProjectId === projectId) {
+                LocalBackend.currentlyOpenProject = { id: projectId, project }
+            }
+            return
+            // This is UNSAFE. It is assumed that all errors thrown are instances of `Error`
+            // and therefore have a string property called `message`.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (e: any) {
+            throw new Error(
+                `Unable to open project ${
+                    title != null ? `'${title}'` : `with ID '${projectId}'`
+                }: ${error.unsafeIntoErrorMessage(e)}.`
+            )
         }
     }
 
@@ -208,7 +237,7 @@ export class LocalBackend implements Partial<backend.Backend> {
             if (project == null) {
                 throw new Error(`The project ID '${projectId}' is invalid.`)
             } else if (engineVersion == null) {
-                throw new Error(`The project '${projectId}' does not have an engine version.`)
+                throw new Error(`The project '${project.name}' does not have an engine version.`)
             } else {
                 return {
                     ami: null,
@@ -231,13 +260,25 @@ export class LocalBackend implements Partial<backend.Backend> {
     /** Delete a project.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async deleteProject(projectId: backend.ProjectId): Promise<void> {
+    async deleteProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null
         }
         if (LocalBackend.currentlyOpenProject?.id === projectId) {
             LocalBackend.currentlyOpenProject = null
         }
-        await this.projectManager.deleteProject({ projectId })
+        try {
+            await this.projectManager.deleteProject({ projectId })
+            return
+            // This is UNSAFE. It is assumed that all errors thrown are instances of `Error`
+            // and therefore have a string property called `message`.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (e: any) {
+            throw new Error(
+                `Unable to delete project ${
+                    title != null ? `'${title}'` : `with ID '${projectId}'`
+                }: ${error.unsafeIntoErrorMessage(e)}.`
+            )
+        }
     }
 }

@@ -428,45 +428,54 @@ export interface Backend {
     /** Return user details for the current user. */
     usersMe: () => Promise<UserOrOrganization | null>
     /** Return a list of assets in a directory. */
-    listDirectory: (query: ListDirectoryRequestParams) => Promise<Asset[]>
+    listDirectory: (query: ListDirectoryRequestParams, title: string | null) => Promise<Asset[]>
     /** Create a directory. */
     createDirectory: (body: CreateDirectoryRequestBody) => Promise<Directory>
     /** Change the name of a directory. */
     updateDirectory: (
         directoryId: DirectoryId,
-        body: UpdateDirectoryRequestBody
+        body: UpdateDirectoryRequestBody,
+        title: string | null
     ) => Promise<UpdatedDirectory>
     /** Delete a directory. */
-    deleteDirectory: (directoryId: DirectoryId) => Promise<void>
+    deleteDirectory: (directoryId: DirectoryId, title: string | null) => Promise<void>
     /** Return a list of projects belonging to the current user. */
     listProjects: () => Promise<ListedProject[]>
     /** Create a project for the current user. */
     createProject: (body: CreateProjectRequestBody) => Promise<CreatedProject>
     /** Close the project identified by the given project ID. */
-    closeProject: (projectId: ProjectId) => Promise<void>
+    closeProject: (projectId: ProjectId, title: string | null) => Promise<void>
     /** Return project details for the specified project ID. */
-    getProjectDetails: (projectId: ProjectId) => Promise<Project>
+    getProjectDetails: (projectId: ProjectId, title: string | null) => Promise<Project>
     /** Set a project to an open state. */
-    openProject: (projectId: ProjectId, body: OpenProjectRequestBody) => Promise<void>
-    projectUpdate: (projectId: ProjectId, body: ProjectUpdateRequestBody) => Promise<UpdatedProject>
+    openProject: (
+        projectId: ProjectId,
+        body: OpenProjectRequestBody | null,
+        title: string | null
+    ) => Promise<void>
+    projectUpdate: (
+        projectId: ProjectId,
+        body: ProjectUpdateRequestBody,
+        title: string | null
+    ) => Promise<UpdatedProject>
     /** Delete a project. */
-    deleteProject: (projectId: ProjectId) => Promise<void>
+    deleteProject: (projectId: ProjectId, title: string | null) => Promise<void>
     /** Return project memory, processor and storage usage. */
-    checkResources: (projectId: ProjectId) => Promise<ResourceUsage>
+    checkResources: (projectId: ProjectId, title: string | null) => Promise<ResourceUsage>
     /** Return a list of files accessible by the current user. */
     listFiles: () => Promise<File[]>
     /** Upload a file. */
     uploadFile: (params: UploadFileRequestParams, body: Blob) => Promise<FileInfo>
     /** Delete a file. */
-    deleteFile: (fileId: FileId) => Promise<void>
+    deleteFile: (fileId: FileId, title: string | null) => Promise<void>
     /** Create a secret environment variable. */
     createSecret: (body: CreateSecretRequestBody) => Promise<SecretAndInfo>
     /** Return a secret environment variable. */
-    getSecret: (secretId: SecretId) => Promise<Secret>
+    getSecret: (secretId: SecretId, title: string | null) => Promise<Secret>
     /** Return the secret environment variables accessible by the user. */
     listSecrets: () => Promise<SecretInfo[]>
     /** Delete a secret environment variable. */
-    deleteSecret: (secretId: SecretId) => Promise<void>
+    deleteSecret: (secretId: SecretId, title: string | null) => Promise<void>
     /** Create a file tag or project tag. */
     createTag: (body: CreateTagRequestBody) => Promise<TagInfo>
     /** Return file tags or project tags accessible by the user. */

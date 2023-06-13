@@ -291,7 +291,7 @@ function SecretsTable(props: SecretsTableProps) {
                                     await toastPromiseMultiple.toastPromiseMultiple(
                                         logger,
                                         [...secrets],
-                                        secret => backend.deleteSecret(secret.id),
+                                        secret => backend.deleteSecret(secret.id, secret.title),
                                         TOAST_PROMISE_MULTIPLE_MESSAGES
                                     )
                                 }}
@@ -320,7 +320,7 @@ function SecretsTable(props: SecretsTableProps) {
                             <ConfirmDeleteModal
                                 description={secret.title}
                                 assetType={secret.type}
-                                doDelete={() => backend.deleteSecret(secret.id)}
+                                doDelete={() => backend.deleteSecret(secret.id, secret.title)}
                                 onSuccess={onDelete}
                             />
                         )

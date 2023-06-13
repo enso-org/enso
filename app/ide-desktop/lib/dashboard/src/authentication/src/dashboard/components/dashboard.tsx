@@ -249,7 +249,7 @@ function Dashboard(props: DashboardProps) {
         async (newProject: backendModule.ProjectAsset) => {
             switchToIdeTab()
             if (project?.projectId !== newProject.id) {
-                setProject(await backend.getProjectDetails(newProject.id))
+                setProject(await backend.getProjectDetails(newProject.id, newProject.title))
             }
         },
         [backend, project?.projectId, switchToIdeTab]
