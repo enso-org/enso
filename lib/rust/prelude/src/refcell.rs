@@ -1,6 +1,5 @@
 use crate::Clearable;
 use crate::Deref;
-use crate::DerefMut;
 use crate::ImClearable;
 use crate::Zeroable;
 use core::fmt::Debug;
@@ -85,12 +84,18 @@ impl<T> OptRefCell<T> {
 
     #[inline(always)]
     pub fn borrow(&self) -> &T {
-        unsafe { &*self.inner.get() }
+        #[allow(unsafe_code)]
+        unsafe {
+            &*self.inner.get()
+        }
     }
 
     #[inline(always)]
     pub fn borrow_mut(&self) -> &mut T {
-        unsafe { &mut *self.inner.get() }
+        #[allow(unsafe_code)]
+        unsafe {
+            &mut *self.inner.get()
+        }
     }
 
     #[inline(always)]

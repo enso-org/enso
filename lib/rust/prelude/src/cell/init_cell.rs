@@ -31,7 +31,7 @@ pub struct InitCell<T> {
 
 impl<T: Debug> Debug for InitCell<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Debug::fmt(unsafe { self.not_exposed.unchecked_borrow() }, f)
+        write!(f, "InitCell")
     }
 }
 

@@ -26,6 +26,10 @@ pub enum ZeroableOption<T> {
     Some(T),
 }
 
+// # Safety
+// The [`ZeroableOption`] was designed to be zeroable. In particular, it uses `repr(u8)` and the
+// [`ZeroableOption::None`] variant is associated with the `0` value.
+#[allow(unsafe_code)]
 unsafe impl<T> Zeroable for ZeroableOption<T> {}
 
 #[allow(missing_docs)] // All the functions are the same as on the stdlib [`Option`] type.
@@ -183,6 +187,10 @@ pub struct ZeroableRefCell<T> {
     after_compiler_version_bump: update_this_code_according_to_the_comment_above,
 }
 
+// # Safety
+// Please see safety guarantees described in the comment inside the [`ZeroableRefCell`] struct
+// implementation.
+#[allow(unsafe_code)]
 unsafe impl<T: Zeroable> Zeroable for ZeroableRefCell<T> {}
 
 impl<T> ZeroableRefCell<T> {
@@ -192,9 +200,9 @@ impl<T> ZeroableRefCell<T> {
     }
 }
 
-impl<T> Debug for ZeroableRefCell<T> {
+impl<T: Debug> Debug for ZeroableRefCell<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Debug::fmt(&*self, f)
+        Debug::fmt(&self.cell, f)
     }
 }
 

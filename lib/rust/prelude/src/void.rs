@@ -20,4 +20,4 @@
 /// let node = self.new_node_with(|node| void(init(node)));
 /// ```
 #[inline(always)]
-pub fn void<T>(t: T) {}
+pub fn void<T>(_t: T) {}
