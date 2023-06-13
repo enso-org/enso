@@ -37,9 +37,8 @@ const SHOW_DELAY_DURATION_MS: f32 = 150.0;
 // ================
 
 use span_tree::node::Ref as PortRef;
-use span_tree::Crumbs;
-use span_tree::SpanTree;
 use span_tree::PortId;
+use span_tree::SpanTree;
 
 
 
@@ -123,9 +122,8 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        on_port_press               (Crumbs),
-        on_port_hover               (Switch<Crumbs>),
-        on_port_type_change         (Crumbs,Option<Type>),
+        on_port_press               (PortId),
+        on_port_hover               (Switch<PortId>),
         port_size_multiplier        (f32),
         body_hover                  (bool),
         type_label_visibility       (bool),
@@ -297,27 +295,35 @@ impl Model {
                     node_tp.or_else(|| whole_expr_type.clone())
                 };
 
-                let crumbs = node.crumbs.clone_ref();
                 let mut model = port::Model::default();
                 let span = node.span();
                 model.index = span.start.into();
                 model.length = span.size();
 
-                let (port_shape,port_frp) = model
-                    .init_shape(&self.app,&self.styles,&self.styles_frp,port_index,port_count);
+                let (port_shape, port_frp) = model.init_shape(
+                    &self.app,
+                    &self.styles,
+                    &self.styles_frp,
+                    port_index,
+                    port_count,
+                );
                 let port_network = &port_frp.network;
 
-                frp::extend! { port_network
-                    self.frp.source.on_port_hover <+ port_frp.on_hover.map
-                        (f!([crumbs](t) Switch::new(crumbs.clone(),*t)));
-                    self.frp.source.on_port_press <+ port_frp.on_press.constant(crumbs.clone());
+                let source = &self.frp.source;
 
-                    port_frp.set_size_multiplier        <+ self.frp.port_size_multiplier;
-                    self.frp.source.on_port_type_change <+ port_frp.tp.map(move |t|(crumbs.clone(),t.clone()));
-                    port_frp.set_type_label_visibility  <+ self.frp.type_label_visibility;
-                    self.frp.source.tooltip             <+ port_frp.tooltip;
-                    port_frp.set_view_mode              <+ self.frp.view_mode;
-                    port_frp.set_size                   <+ self.frp.size;
+                frp::extend! { port_network
+                    port_frp.set_size_multiplier <+ self.frp.port_size_multiplier;
+                    port_frp.set_type_label_visibility <+ self.frp.type_label_visibility;
+                    source.tooltip <+ port_frp.tooltip;
+                    port_frp.set_view_mode <+ self.frp.view_mode;
+                    port_frp.set_size <+ self.frp.size;
+                }
+
+                if let Some(id) = node.port_id {
+                    frp::extend! { port_network
+                        source.on_port_hover <+ port_frp.on_hover.map(move |&t| Switch::new(id,t));
+                        source.on_port_press <+ port_frp.on_press.constant(id);
+                    }
                 }
 
                 port_frp.set_type_label_visibility.emit(self.frp.type_label_visibility.value());
@@ -456,11 +462,9 @@ impl Area {
         match port {
             PortId::Ast(id) => {
                 let index = *self.model.id_ports_map.borrow().get(&id)?;
-                let port_model = self.model.port_models.borrow().get(index)?;
-                let span = enso_text::Range::new(
-                    port_model.index,
-                    port_model.index + port_model.length
-                );
+                let port_models = self.model.port_models.borrow();
+                let model = port_models.get(index)?;
+                let span = enso_text::Range::new(model.index, model.index + model.length);
                 Some(self.model.expression.borrow().code.as_ref()?[span].to_owned())
             }
             _ => None,

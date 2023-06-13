@@ -219,7 +219,14 @@ pub enum PortId {
         index:       usize,
     },
     /// A position within an array expression where a connection variable will be inserted.
-    ArrayInsert { array: ast::Id, insert_at: usize },
+    ArrayInsert {
+        /// ID of array expression containing this insertion point.
+        array:     ast::Id,
+        /// Insert position within the array, counting only array elements, not commas or brackets.
+        /// Index 0 means the variable will be inserted before the first element, index 1 means it
+        /// will be inserted after the first element, etc.
+        insert_at: usize,
+    },
 }
 
 impl Default for PortId {

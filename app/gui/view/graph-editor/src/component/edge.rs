@@ -1214,6 +1214,11 @@ impl Edge {
         Self { model, network }.init(app)
     }
 
+    /// Get main FRP network of the edge view.
+    pub fn network(&self) -> &frp::Network {
+        &self.network
+    }
+
     fn init(self, app: &Application) -> Self {
         let network = &self.network;
         let input = &self.frp;

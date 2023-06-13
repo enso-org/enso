@@ -4,6 +4,7 @@
 //! operations usually involves retrieving values on nodes: that's are i.e. operations on
 //! visualisations, retrieving types on ports, etc.
 
+use crate::controller::graph::NewConnection;
 use crate::prelude::*;
 
 use crate::model::execution_context::ComponentGroup;
@@ -353,7 +354,7 @@ impl Handle {
     ///
     /// ### Errors
     /// - Fails if the project is in read-only mode.
-    pub fn connect(&self, connection: &Connection) -> FallibleResult {
+    pub fn connect(&self, connection: &NewConnection) -> FallibleResult {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else {
@@ -614,9 +615,9 @@ main =
             let sum_tree = SpanTree::new(&sum_node.expression(), context).unwrap();
             let sum_input =
                 sum_tree.root_ref().leaf_iter().find(|n| n.is_argument()).unwrap().crumbs;
-            let connection = Connection {
-                source:      controller::graph::Endpoint::new(product_node.id(), []),
-                destination: controller::graph::Endpoint::new(sum_node.id(), sum_input),
+            let connection = NewConnection {
+                source:      controller::graph::NewEndpoint::new(product_node.id(), []),
+                destination: controller::graph::NewEndpoint::new(sum_node.id(), sum_input),
             };
 
             assert!(executed.connect(&connection).is_err());

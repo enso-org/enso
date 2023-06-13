@@ -539,8 +539,8 @@ main =
             let sum_input =
                 sum_tree.root_ref().leaf_iter().find(|n| n.is_argument()).unwrap().crumbs;
             let connection = controller::graph::Connection {
-                source:      controller::graph::Endpoint::new(product_node.id(), []),
-                destination: controller::graph::Endpoint::new(sum_node.id(), sum_input),
+                source:      controller::graph::NewEndpoint::new(product_node.id(), []),
+                destination: controller::graph::NewEndpoint::new(sum_node.id(), sum_input),
             };
 
             graph.connect(&connection, context).unwrap();

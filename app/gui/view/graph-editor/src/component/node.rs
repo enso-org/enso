@@ -221,7 +221,7 @@ ensogl::define_endpoints_2! {
         disable_visualization (),
         set_visualization     (Option<visualization::Definition>),
         set_disabled          (bool),
-        set_connections       (HashMap<ast::Id ,color::Lcha>),
+        set_connections       (HashMap<span_tree::PortId, color::Lcha>),
         set_expression        (Expression),
         edit_expression       (text::Range<text::Byte>, ImString),
         set_skip_macro        (bool),
@@ -667,16 +667,16 @@ impl Node {
             filtered_usage_type <- input.set_expression_usage_type.filter(
                 move |(_,tp)| *tp != unresolved_symbol_type
             );
-            eval filtered_usage_type   (((a,b)) model.set_expression_usage_type(*a,b));
-            eval input.set_expression  ((a)     model.set_expression(a));
+            eval filtered_usage_type(((a,b)) model.set_expression_usage_type(*a,b));
+            eval input.set_expression((a) model.set_expression(a));
             model.input.edit_expression <+ input.edit_expression;
-            out.on_expression_modified  <+ model.input.frp.on_port_code_update;
-            out.requested_widgets       <+ model.input.frp.requested_widgets;
-            out.request_import          <+ model.input.frp.request_import;
+            out.on_expression_modified <+ model.input.frp.on_port_code_update;
+            out.requested_widgets <+ model.input.frp.requested_widgets;
+            out.request_import <+ model.input.frp.request_import;
 
-            model.input.set_connections              <+ input.set_connections;
-            model.input.set_disabled               <+ input.set_disabled;
-            model.input.update_widgets             <+ input.update_widgets;
+            model.input.set_connections <+ input.set_connections;
+            model.input.set_disabled <+ input.set_disabled;
+            model.input.update_widgets <+ input.update_widgets;
             model.output.set_expression_visibility <+ input.set_output_expression_visibility;
 
 

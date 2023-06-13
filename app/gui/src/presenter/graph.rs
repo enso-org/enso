@@ -17,7 +17,6 @@ use futures::future::LocalBoxFuture;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
-use ide_view::graph_editor::EdgeEndpoint;
 use span_tree::generate::Context as _;
 use view::graph_editor::CallWidgetsConfig;
 

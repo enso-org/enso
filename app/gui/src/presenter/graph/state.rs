@@ -7,8 +7,6 @@ use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewConnection;
 use crate::presenter::graph::ViewNodeId;
 
-use bimap::BiMap;
-use bimap::Overwritten;
 use double_representation::context_switch::ContextSwitchExpression;
 use engine_protocol::language_server::ExpressionUpdatePayload;
 use engine_protocol::language_server::SuggestionId;
@@ -16,7 +14,6 @@ use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
-use ide_view::graph_editor::PortId;
 
 
 
@@ -522,12 +519,14 @@ impl<'a> ControllerChange<'a> {
         let nodes = self.nodes.borrow();
         connections
             .into_iter()
-            .map(|connection| {
+            .filter_map(|connection| {
                 let src_node = nodes.get(connection.source.node)?.view_id?;
                 let dst_node = nodes.get(connection.destination.node)?.view_id?;
-                let src = EdgeEndpoint::new(src_node, PortId::Ast(*connection.source.port));
-                let data = EdgeEndpoint::new(dst_node, PortId::Ast(*connection.destination.port));
-                Some((src, data))
+                let src_port = span_tree::PortId::Ast(*connection.source.port);
+                let dst_port = span_tree::PortId::Ast(*connection.destination.port);
+                let source = EdgeEndpoint::new(src_node, src_port);
+                let target = EdgeEndpoint::new(dst_node, dst_port);
+                Some(ViewConnection { source, target })
             })
             .collect()
     }
@@ -824,19 +823,19 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn adding_and_removing_connections() {
-        use controller::graph::Endpoint;
+        use controller::graph::NewEndpoint;
         let Fixture { state, nodes } = Fixture::setup_nodes(&["node1 = 2", "node1 + node1"]);
-        let src = Endpoint {
+        let src = NewEndpoint {
             node:       nodes[0].node.id(),
             port:       default(),
             var_crumbs: default(),
         };
-        let dest1 = Endpoint {
+        let dest1 = NewEndpoint {
             node:       nodes[1].node.id(),
             port:       span_tree::Crumbs::new(vec![0]),
             var_crumbs: default(),
         };
-        let dest2 = Endpoint {
+        let dest2 = NewEndpoint {
             node:       nodes[1].node.id(),
             port:       span_tree::Crumbs::new(vec![2]),
             var_crumbs: default(),

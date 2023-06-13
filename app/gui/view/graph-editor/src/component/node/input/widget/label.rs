@@ -72,9 +72,8 @@ impl SpanWidget for Widget {
 
         let styles = ctx.styles();
         frp::extend! { network
-            parent_port_hovered <- widgets_frp.on_port_hover.map2(&frp.crumbs, |h, crumbs| {
-                h.on().map_or(false, |h| crumbs.starts_with(h))
-            });
+            let id = ctx.info.identity;
+            parent_port_hovered <- widgets_frp.hovered_port_children.map(move |h| h.contains(&id));
             label_color <- frp.text_color.all_with4(
                 &parent_port_hovered, &widgets_frp.set_view_mode, &widgets_frp.set_profiling_status,
                 f!([styles](state, hovered, mode, status) {

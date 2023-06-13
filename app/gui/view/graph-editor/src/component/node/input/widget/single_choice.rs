@@ -334,10 +334,9 @@ impl Widget {
         let activation_shape = &self.activation_shape;
         let focus_receiver = &self.dropdown_wrapper;
         frp::extend! { network
-            is_hovered <- widgets_frp.on_port_hover.map2(&config_frp.current_crumbs, |h, crumbs| {
-                h.on().map_or(false, |h| crumbs.starts_with(h))
-            });
-            is_connected_or_hovered <- config_frp.is_connected || is_hovered;
+            let id = ctx.info.identity;
+            parent_port_hovered <- widgets_frp.hovered_port_children.map(move |h| h.contains(&id));
+            is_connected_or_hovered <- config_frp.is_connected || parent_port_hovered;
             activation_shape_theme <- is_connected_or_hovered.map(|is_connected_or_hovered| {
                 if *is_connected_or_hovered {
                     Some(theme::widget::activation_shape::connected)

@@ -257,19 +257,23 @@ impl Model {
         hovered.then(cursor::Style::cursor).unwrap_or_default()
     }
 
-    fn port_hover_pointer_style(&self, hovered: &Switch<Crumbs>) -> Option<cursor::Style> {
-        let crumbs = hovered.on()?;
-        let expr = self.expression.borrow();
-        let port = expr.span_tree.get_node(crumbs).ok()?;
-        let display_object = self.widget_tree.get_port_display_object(&port)?;
-        let tp = port.tp().map(|t| t.into());
-        let color = tp.as_ref().map(|tp| type_coloring::compute(tp, &self.styles));
+    fn port_hover_pointer_style(&self, hovered: &Switch<PortId>) -> Option<cursor::Style> {
+        let port_id = hovered.into_on()?;
+        let display_object = self.widget_tree.get_port_display_object(port_id)?;
+        let tp = self.port_type(port_id);
+        let color = tp.map(|tp| type_coloring::compute(&tp, &self.styles));
         let pad_x = node::input::port::PORT_PADDING_X * 2.0;
         let min_y = node::input::port::BASE_PORT_HEIGHT;
         let computed_size = display_object.computed_size();
         let size = Vector2(computed_size.x + pad_x, computed_size.y.max(min_y));
         let radius = size.y / 2.0;
         Some(cursor::Style::new_highlight(display_object, size, radius, color))
+    }
+
+    fn port_type(&self, port: PortId) -> Option<Type> {
+        let expression = self.expression.borrow();
+        let node = expression.port_node(port)?;
+        Some(Type::from(node.kind.tp()?))
     }
 
     /// Configure widgets associated with single Enso call expression, overriding default widgets
@@ -369,10 +373,8 @@ ensogl::define_endpoints! {
         /// Update widget configuration for widgets already present in this input area.
         update_widgets   (CallWidgetsConfig),
 
-        /// Enable / disable port hovering. The optional type indicates the type of the active edge
-        /// if any. It is used to highlight ports if they are missing type information or if their
-        /// types are polymorphic.
-        set_ports_active (bool,Option<Type>),
+        /// Enable / disable port hovering
+        set_ports_active (bool),
 
         set_view_mode        (view::Mode),
         set_profiling_status (profiling::Status),
@@ -392,8 +394,8 @@ ensogl::define_endpoints! {
         editing             (bool),
         ports_visible       (bool),
         body_hover          (bool),
-        on_port_press       (Crumbs),
-        on_port_hover       (Switch<Crumbs>),
+        on_port_press       (PortId),
+        on_port_hover       (Switch<PortId>),
         on_port_code_update (Crumbs,ImString),
         view_mode           (view::Mode),
         /// A set of widgets attached to a method requests their definitions to be queried from an
@@ -463,8 +465,8 @@ impl Area {
 
             let ports_active = &frp.set_ports_active;
             edit_or_ready <- frp.set_edit_ready_mode || set_editing;
-            reacts_to_hover <- all_with(&edit_or_ready, ports_active, |e, (a, _)| *e && !a);
-            port_vis <- all_with(&set_editing, ports_active, |e, (a, _)| !e && *a);
+            reacts_to_hover <- all_with(&edit_or_ready, ports_active, |e, a| *e && !a);
+            port_vis <- all_with(&set_editing, ports_active, |e, a| !e && *a);
             frp.output.source.ports_visible <+ port_vis;
             frp.output.source.editing <+ set_editing;
             model.widget_tree.set_ports_visible <+ frp.ports_visible;
@@ -567,23 +569,19 @@ impl Area {
 
     /// An offset from node position to a specific port.
     pub fn port_offset(&self, port: PortId) -> Vector2<f32> {
-        let expr = self.model.expression.borrow();
-        let port = expr
-            .port_node(port)
-            .and_then(|node| self.model.widget_tree.get_port_display_object(&node));
+        let object = self.model.widget_tree.get_port_display_object(port);
         let initial_position = Vector2(TEXT_OFFSET, NODE_HEIGHT / 2.0);
-        port.map_or(initial_position, |port| {
-            let pos = port.global_position();
+        object.map_or(initial_position, |object| {
+            let pos = object.global_position();
             let node_pos = self.model.display_object.global_position();
-            let size = port.computed_size();
+            let size = object.computed_size();
             pos.xy() - node_pos.xy() + size * 0.5
         })
     }
 
     /// A type of the specified port.
     pub fn port_type(&self, port: PortId) -> Option<Type> {
-        let tp = self.model.expression.borrow().port_node(port)?.kind.tp()?;
-        Some(Type::from(tp))
+        self.model.port_type(port)
     }
 
     /// Get the span-tree crumbs for the specified port.
