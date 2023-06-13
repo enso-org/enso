@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.Data.Table.Table as In_Memory_Table
-from Standard.Table import Aggregate_Column, Join_Kind, Value_Type
+from Standard.Table import Aggregate_Column, Join_Kind, Value_Type, Column_Selector
 from Standard.Table.Errors import all
 
 import project.Connection.Connection.Connection
@@ -20,6 +20,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 from project.Connection.Connection import all_known_table_names
 from project.Errors import all
+from project.Internal.Result_Set import result_set_to_table
 
 ## PRIVATE
    Creates a new database table with the provided structure and returns the name
@@ -282,3 +283,35 @@ check_update_arguments source_table target_table key_columns update_action error
                         problems = source_table.columns.flat_map check_source_column
                         problems.if_not_error <|
                             on_problems.attach_problems_before problems action
+
+## PRIVATE
+default_key_columns connection table_name =
+    keys = get_primary_key connection table_name
+    keys.catch Any _->
+        Error.throw (Illegal_Argument.Error "Could not determine the primary key for table "+table_name+". Please provide it explicitly.")
+
+## PRIVATE
+
+   This method may not work correctly with temporary tables, possibly resulting
+   in `SQL_Error` as such tables may not be found.
+
+   ! Temporary Tables in SQLite
+
+     The temporary tables in SQLite live in a `temp` database. There is a bug in
+     how JDBC retrieves primary keys - it only queries the `sqlite_schema` table
+     which contains schemas of only permanent tables.
+
+     Ideally, we should provide a custom implementation for SQLite that will
+     UNION both `sqlite_schema` and `temp.sqlite_schema` tables to get results
+     for both temporary and permanent tables.
+
+     TODO [RW] fix keys for SQLite temporary tables and test it
+get_primary_key connection table_name =
+    connection.query (SQL_Query.Table_Name table_name) . if_not_error <|
+        connection.jdbc_connection.with_connection java_connection->
+            rs = java_connection.getMetaData.getPrimaryKeys Nothing Nothing table_name
+            keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
+            # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
+            selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True
+            key_column_names = selected.order_by 1 . at 0 . to_vector
+            if key_column_names.is_empty then Nothing else key_column_names

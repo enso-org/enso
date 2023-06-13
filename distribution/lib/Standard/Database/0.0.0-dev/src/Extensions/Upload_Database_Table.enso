@@ -9,7 +9,6 @@ import project.Connection.Connection.Connection
 import project.Data.Table.Table
 import project.Data.Update_Action.Update_Action
 from project.Errors import all
-from project.Extensions.Upload_Default_Helpers import default_key_columns
 from project.Internal.Upload_Table import all
 
 ## Creates a new database table from this table.
