@@ -37,6 +37,8 @@ export interface ModalProviderProps extends React.PropsWithChildren {}
 export function ModalProvider(props: ModalProviderProps) {
     const { children } = props
     const [modal, setModal] = React.useState<Modal | null>(null)
+    // This is NOT for optimization purposes - this is for debugging purposes,
+    // so that a change of `modal` does not trigger VDOM changes everywhere in the page.
     const setModalProvider = React.useMemo(
         () => <SetModalProvider setModal={setModal}>{children}</SetModalProvider>,
         [children]

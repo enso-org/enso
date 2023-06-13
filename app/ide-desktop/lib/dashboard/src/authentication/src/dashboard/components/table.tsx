@@ -70,7 +70,7 @@ function Table<T, State = never>(props: TableProps<T, State>) {
 
     React.useEffect(() => {
         const onDocumentClick = (event: MouseEvent) => {
-            if (!event.ctrlKey) {
+            if (!event.ctrlKey && selectedItems.size !== 0) {
                 setSelectedItems(new Set())
             }
         }
@@ -78,7 +78,7 @@ function Table<T, State = never>(props: TableProps<T, State>) {
         return () => {
             document.removeEventListener('click', onDocumentClick)
         }
-    }, [])
+    }, [selectedItems])
 
     React.useEffect(() => {
         if (isLoading) {
