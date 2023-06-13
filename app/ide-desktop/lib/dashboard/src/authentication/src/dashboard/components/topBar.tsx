@@ -30,28 +30,8 @@ export interface TopBarProps {
 function TopBar(props: TopBarProps) {
     const { supportsLocalBackend, projectName, tab, toggleTab, setBackendType, query, setQuery } =
         props
-    const [isUserMenuVisible, setIsUserMenuVisible] = React.useState(false)
-    const { modal } = modalProvider.useModal()
-    const { setModal, unsetModal } = modalProvider.useSetModal()
+    const { setModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
-
-    React.useEffect(() => {
-        if (!modal) {
-            setIsUserMenuVisible(false)
-        }
-    }, [modal])
-
-    React.useEffect(() => {
-        if (isUserMenuVisible) {
-            setModal(<UserMenu />)
-        } else {
-            unsetModal()
-        }
-    }, [
-        isUserMenuVisible,
-        /* should never change */ setModal,
-        /* should never change */ unsetModal,
-    ])
 
     return (
         <div className="flex mb-2 h-8">
@@ -133,7 +113,7 @@ function TopBar(props: TopBarProps) {
                 <div
                     onClick={event => {
                         event.stopPropagation()
-                        setIsUserMenuVisible(!isUserMenuVisible)
+                        setModal(oldModal => (oldModal?.type === UserMenu ? null : <UserMenu />))
                     }}
                     className="rounded-full w-8 h-8 bg-cover cursor-pointer"
                 >

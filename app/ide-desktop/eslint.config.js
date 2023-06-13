@@ -213,7 +213,8 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use arrow functions for nested functions',
     },
     {
-        selector: ':not(ExportNamedDeclaration) > TSInterfaceDeclaration[id.name=/Props$/]',
+        selector:
+            ':not(ExportNamedDeclaration) > TSInterfaceDeclaration[id.name=/^(?!Internal).+Props$/]',
         message: 'All React component `Props` types must be exported',
     },
     {

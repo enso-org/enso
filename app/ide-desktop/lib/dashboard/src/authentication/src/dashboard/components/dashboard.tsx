@@ -21,6 +21,7 @@ import * as modalProvider from '../../providers/modal'
 import DirectoryView from './directoryView'
 import Ide from './ide'
 import Templates from './templates'
+import TheModal from './theModal'
 import TopBar from './topBar'
 
 // =================
@@ -89,7 +90,6 @@ function Dashboard(props: DashboardProps) {
     const session = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setBackend } = backendProvider.useSetBackend()
-    const { modal } = modalProvider.useModal()
     const { unsetModal } = modalProvider.useSetModal()
 
     const [refresh, doRefresh] = hooks.useRefresh()
@@ -198,13 +198,11 @@ function Dashboard(props: DashboardProps) {
                 !event.altKey &&
                 !event.metaKey
             ) {
-                if (modal != null) {
-                    event.preventDefault()
-                    unsetModal()
-                }
+                event.preventDefault()
+                unsetModal()
             }
         },
-        [modal, unsetModal]
+        [unsetModal]
     )
 
     const openDropZone = React.useCallback((event: React.DragEvent<HTMLDivElement>) => {
@@ -374,7 +372,7 @@ function Dashboard(props: DashboardProps) {
                     Drop to upload files.
                 </div>
             ) : null}
-            {modal}
+            <TheModal />
             {project && <Ide project={project} appRunner={appRunner} />}
         </div>
     )
