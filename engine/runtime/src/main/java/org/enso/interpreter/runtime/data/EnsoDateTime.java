@@ -182,23 +182,10 @@ public final class EnsoDateTime implements TruffleObject {
     return new EnsoDate(dateTime.toLocalDate());
   }
 
-  @Builtin.Method(description = "Return this datetime in the provided time zone.")
-  @CompilerDirectives.TruffleBoundary
-  public EnsoDateTime atZone(EnsoTimeZone zone) {
-    return new EnsoDateTime(dateTime.withZoneSameInstant(zone.asTimeZone()));
-  }
-
   @Builtin.Method(description = "Return this datetime to the datetime in the provided time zone.")
   @CompilerDirectives.TruffleBoundary
   public Text toText() {
     return Text.create(DateTimeFormatter.ISO_ZONED_DATE_TIME.format(dateTime));
-  }
-
-  @Builtin.Method(description = "Return this datetime to the datetime in the provided time zone.")
-  @Builtin.Specialize
-  @CompilerDirectives.TruffleBoundary
-  public Text format(String pattern) {
-    return Text.create(DateTimeFormatter.ofPattern(pattern).format(dateTime));
   }
 
   @ExportMessage

@@ -535,6 +535,12 @@ impl Chain {
         self.target = last_removed_arg.expect("Not enough operands to erase").operand;
     }
 
+    /// The right-most non-empty operand of the chain, if it has one.
+    pub fn last_operand(&self) -> Option<&ArgWithOffset<Ast>> {
+        let last_arg = self.args.iter().rev().filter_map(|arg| arg.operand.as_ref()).next();
+        last_arg.or(self.target.as_ref())
+    }
+
     /// Replace the target and first argument with a new target being an proper Infix or Section
     /// ast node. Does nothing if there are no more operands than target.
     pub fn fold_arg(&mut self) {
@@ -683,6 +689,15 @@ mod tests {
         expect_at(&chain.args[1].operand, &c);
 
         test_enumerating(&chain, &a_plus_b_plus_c, &[&a, &b, &c]);
+    }
+
+    #[test]
+    fn infix_section() {
+        let a = Ast::var("a");
+        let a_plus = Ast::section_left(a.clone(), "+");
+        let chain = Chain::try_new(&a_plus).unwrap();
+        expect_at(&chain.target, &a);
+        test_enumerating(&chain, &a_plus, &[&a]);
     }
 
     #[test]

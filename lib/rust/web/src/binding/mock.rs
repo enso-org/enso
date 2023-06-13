@@ -532,11 +532,13 @@ mock_data! { Document => EventTarget
     fn create_element(&self, local_name: &str) -> Result<Element, JsValue>;
     fn get_element_by_id(&self, element_id: &str) -> Option<Element>;
     fn create_text_node(&self, data: &str) -> Text;
+    fn dispatch_event(&self, event: &Event) -> Result<bool, JsValue>;
 }
 
 
 // === Window ===
 mock_data! { Window => EventTarget
+    fn document(&self) -> Option<Document>;
     fn open_with_url_and_target(&self, url: &str, target: &str)
         -> Result<Option<Window>, JsValue>;
     fn request_animation_frame(&self, callback: &Function) -> Result<i32, JsValue>;
@@ -574,6 +576,7 @@ impl AddEventListenerOptions {
 
 // === Event ===
 mock_data! { Event => Object
+    fn new(type_: &str) -> Result<Event, JsValue>;
     fn prevent_default(&self);
     fn stop_propagation(&self);
     fn current_target(&self) -> Option<EventTarget>;
@@ -601,6 +604,8 @@ mock_data! { MouseEvent => Event
     fn offset_y(&self) -> i32;
     fn screen_x(&self) -> i32;
     fn screen_y(&self) -> i32;
+    fn movement_x(&self) -> i32;
+    fn movement_y(&self) -> i32;
 }
 
 
@@ -685,6 +690,11 @@ impl From<HtmlDivElement> for EventTarget {
         default()
     }
 }
+impl PartialEq<HtmlDivElement> for HtmlDivElement {
+    fn eq(&self, _: &HtmlDivElement) -> bool {
+        true
+    }
+}
 
 
 // === HtmlDivElement ===
@@ -759,6 +769,9 @@ mock_data! { Node => EventTarget
         child: Option<&Node>
     ) -> Result<Node, JsValue>;
 }
+
+// === WebGlQuery ===
+mock_data! { WebGlQuery => Object }
 
 
 

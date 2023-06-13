@@ -19,12 +19,14 @@ use ensogl::prelude::*;
 
 use enso_frp as frp;
 use ensogl::application::Application;
+use ensogl::control::io::mouse;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::StyleWatch;
 use ensogl::gui::text;
 use ensogl::system::web;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text_msdf::run_once_initialized;
+use ide_view::execution_environment_selector::make_dummy_execution_environments;
 use ide_view::graph_editor;
 use ide_view::graph_editor::component::node::vcs;
 use ide_view::graph_editor::component::node::Expression;
@@ -254,6 +256,30 @@ fn init(app: &Application) {
     graph_editor.set_node_profiling_status(node3_id, node3_status);
 
 
+    // === Execution Modes ===
+
+    graph_editor.set_available_execution_environments(make_dummy_execution_environments());
+
+
+    // === Pop-up ===
+
+    // Create node to trigger a pop-up.
+    let node_id = graph_editor.model.add_node();
+    graph_editor.frp.set_node_position.emit((node_id, Vector2(-300.0, -100.0)));
+    let expression = expression_mock_string("Click me to show a pop-up");
+    graph_editor.frp.set_node_expression.emit((node_id, expression));
+    let node = graph_editor.nodes().all.get_cloned_ref(&node_id).unwrap();
+
+    let popup = project_view.popup();
+    let network = node.network();
+    let node_clicked = node.on_event::<mouse::Down>();
+    frp::extend! { network
+        eval_ node_clicked (popup.set_label.emit("This is a test pop-up."));
+    }
+
+
+    // === Rendering ===
+
     // let tgt_type = dummy_type_generator.get_dummy_type();
     let mut was_rendered = false;
     let mut loader_hidden = false;
@@ -411,18 +437,18 @@ pub fn expression_mock_trim() -> Expression {
         tag_values: vec![
             TagValue {
                 required_import: None,
-                expression:      "Location.Start".into(),
-                label:           Some("Start".into()),
+                expression:      "Standard.Base.Data.Text.Location.Start".into(),
+                label:           Some("Location.Start".into()),
             },
             TagValue {
                 required_import: None,
-                expression:      "Location.End".into(),
-                label:           Some("End".into()),
+                expression:      "Standard.Base.Data.Text.Location.End".into(),
+                label:           Some("Location.End".into()),
             },
             TagValue {
                 required_import: None,
-                expression:      "Location.Both".into(),
-                label:           Some("Both".into()),
+                expression:      "Standard.Base.Data.Text.Location.Both".into(),
+                label:           Some("Location.Both".into()),
             },
         ],
         ..default()

@@ -348,7 +348,7 @@ fn test_computed_value_update() {
             let update = &expression_updates.updates.first().unwrap();
             assert_eq!(update.expression_id, id);
             assert_eq!(update.typename.as_deref(), Some(typename));
-            assert!(update.method_pointer.is_none());
+            assert!(update.method_call.is_none());
             assert!(update.from_cache);
             assert!(matches!(update.payload, ExpressionUpdatePayload::Value { warnings: None }))
         }
@@ -373,9 +373,9 @@ fn test_execution_context() {
     let create_execution_context_response =
         response::CreateExecutionContext { context_id, can_modify, receives_updates };
     test_request(
-        |client| client.create_execution_context(),
+        |client| client.create_execution_context(&context_id),
         "executionContext/create",
-        json!({}),
+        json!({"contextId":"00000000-0000-0000-0000-000000000000"}),
         json!({
             "contextId" : "00000000-0000-0000-0000-000000000000",
             "canModify" : {
@@ -547,7 +547,7 @@ fn test_execution_context() {
     let path = main.clone();
     let edit = FileEdit { path, edits, old_version, new_version };
     test_request(
-        |client| client.apply_text_file_edit(&edit),
+        |client| client.apply_text_file_edit(&edit, &true),
         "text/applyEdit",
         json!({
             "edit" : {
@@ -572,7 +572,8 @@ fn test_execution_context() {
                 ],
                 "oldVersion" : "d3ee9b1ba1990fecfd794d2f30e0207aaa7be5d37d463073096d86f8",
                 "newVersion" : "6a33e22f20f16642697e8bd549ff7b759252ad56c05a1b0acc31dc69"
-            }
+            },
+            "execute": true
         }),
         unit_json.clone(),
         (),

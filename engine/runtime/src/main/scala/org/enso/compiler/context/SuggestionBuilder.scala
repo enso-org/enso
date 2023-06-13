@@ -1,9 +1,11 @@
 package org.enso.compiler.context
 
+import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.resolve.{
   DocumentationComments,
+  GenericAnnotations,
   MethodDefinitions,
   TypeNames,
   TypeSignatures
@@ -22,11 +24,13 @@ import scala.collection.mutable
   *
   * @param source the text source
   * @param typeGraph the type hierarchy
+  * @param compiler the compiler instance
   * @tparam A the type of the text source
   */
 final class SuggestionBuilder[A: IndexedSource](
   val source: A,
-  val typeGraph: TypeGraph
+  val typeGraph: TypeGraph,
+  val compiler: Compiler
 ) {
 
   import SuggestionBuilder._
@@ -74,7 +78,7 @@ final class SuggestionBuilder[A: IndexedSource](
               case data @ IR.Module.Scope.Definition.Data(
                     name,
                     arguments,
-                    _,
+                    annotations,
                     _,
                     _,
                     _
@@ -84,13 +88,17 @@ final class SuggestionBuilder[A: IndexedSource](
                   tpName.name,
                   name.name,
                   arguments,
+                  annotations,
                   data.getMetadata(DocumentationComments).map(_.documentation)
                 )
             }
             val getters = members
               .flatMap(_.arguments)
-              .map(_.name.name)
-              .distinct
+              .filterNot { argument =>
+                argument.name.name.startsWith(InternalPrefix) ||
+                argument.name.name.endsWith(InternalSuffix)
+              }
+              .distinctBy(_.name.name)
               .map(buildGetter(module, tpName.name, _))
 
             val tpSuggestions = tpe +: conses ++: getters
@@ -106,6 +114,7 @@ final class SuggestionBuilder[A: IndexedSource](
                   _
                 ) if !m.isStaticWrapperForInstanceMethod =>
             val typeSignature = ir.getMetadata(TypeSignatures)
+            val annotations   = ir.getMetadata(GenericAnnotations)
             val (selfTypeOpt, isStatic) = typePtr match {
               case Some(typePtr) =>
                 val selfType = typePtr
@@ -124,7 +133,9 @@ final class SuggestionBuilder[A: IndexedSource](
                 isStatic,
                 args,
                 doc,
-                typeSignature
+                typeSignature,
+                annotations,
+                MethodType.Defined
               )
             }
             val subforest = go(
@@ -222,21 +233,40 @@ final class SuggestionBuilder[A: IndexedSource](
     isStatic: Boolean,
     args: Seq[IR.DefinitionArgument],
     doc: Option[String],
-    typeSignature: Option[TypeSignatures.Metadata]
+    typeSignature: Option[TypeSignatures.Metadata],
+    genericAnnotations: Option[GenericAnnotations.Metadata],
+    methodType: MethodType
   ): Suggestion.Method = {
     val typeSig = buildTypeSignatureFromMetadata(typeSignature)
     val (methodArgs, returnTypeDef) =
       buildMethodArguments(args, typeSig, selfType)
-    Suggestion.Method(
-      externalId    = externalId,
-      module        = module.toString,
-      name          = name,
-      arguments     = methodArgs,
-      selfType      = selfType.toString,
-      returnType    = buildReturnType(returnTypeDef),
-      isStatic      = isStatic,
-      documentation = doc
-    )
+    val annotations =
+      genericAnnotations.map(buildAnnotationsFromMetadata).getOrElse(Seq())
+    methodType match {
+      case MethodType.Getter =>
+        Suggestion.Getter(
+          externalId    = externalId,
+          module        = module.toString,
+          name          = name,
+          arguments     = methodArgs,
+          selfType      = selfType.toString,
+          returnType    = buildReturnType(returnTypeDef),
+          documentation = doc,
+          annotations   = annotations
+        )
+      case MethodType.Defined =>
+        Suggestion.DefinedMethod(
+          externalId    = externalId,
+          module        = module.toString,
+          name          = name,
+          arguments     = methodArgs,
+          selfType      = selfType.toString,
+          returnType    = buildReturnType(returnTypeDef),
+          isStatic      = isStatic,
+          documentation = doc,
+          annotations   = annotations
+        )
+    }
   }
 
   /** Build a conversion suggestion. */
@@ -255,7 +285,7 @@ final class SuggestionBuilder[A: IndexedSource](
       externalId    = externalId,
       module        = module.toString,
       arguments     = methodArgs,
-      sourceType    = sourceTypeName,
+      selfType      = sourceTypeName,
       returnType    = buildReturnType(returnTypeDef),
       documentation = doc
     )
@@ -343,6 +373,7 @@ final class SuggestionBuilder[A: IndexedSource](
     tp: String,
     name: String,
     arguments: Seq[IR.DefinitionArgument],
+    genericAnnotations: Seq[IR.Name.GenericAnnotation],
     doc: Option[String]
   ): Suggestion.Constructor =
     Suggestion.Constructor(
@@ -351,15 +382,17 @@ final class SuggestionBuilder[A: IndexedSource](
       name          = name,
       arguments     = arguments.map(buildArgument),
       returnType    = module.createChild(tp).toString,
-      documentation = doc
+      documentation = doc,
+      annotations   = genericAnnotations.map(_.name)
     )
 
   /** Build getter methods from atom arguments. */
   private def buildGetter(
     module: QualifiedName,
     typeName: String,
-    getterName: String
+    argument: IR.DefinitionArgument
   ): Suggestion = {
+    val getterName = argument.name.name
     val thisArg = IR.DefinitionArgument.Specified(
       name         = IR.Name.Self(None),
       ascribedType = None,
@@ -368,32 +401,62 @@ final class SuggestionBuilder[A: IndexedSource](
       location     = None
     )
     buildMethod(
-      externalId    = None,
-      module        = module,
-      name          = getterName,
-      selfType      = module.createChild(typeName),
-      isStatic      = false,
-      args          = Seq(thisArg),
-      doc           = None,
-      typeSignature = None
+      externalId         = None,
+      module             = module,
+      name               = getterName,
+      selfType           = module.createChild(typeName),
+      isStatic           = false,
+      args               = Seq(thisArg),
+      doc                = None,
+      typeSignature      = argument.name.getMetadata(TypeSignatures),
+      genericAnnotations = None,
+      methodType         = MethodType.Getter
     )
   }
 
-  private def buildResolvedUnionTypeName(
+  /** Build a [[TypeArg]] from the resolved type name.
+    *
+    * @param resolvedName the resolved type name
+    * @return the corresponding type argument
+    */
+  private def buildResolvedTypeName(
     resolvedName: BindingsMap.ResolvedName
-  ): TypeArg = resolvedName match {
-    case tp: BindingsMap.ResolvedType =>
-      if (tp.getVariants.size > 1) {
-        TypeArg.Sum(
-          Some(tp.qualifiedName),
-          tp.getVariants.map(r => TypeArg.Value(r.qualifiedName))
-        )
-      } else {
-        TypeArg.Sum(Some(tp.qualifiedName), Seq.empty)
-      }
-    case _: BindingsMap.ResolvedName =>
-      TypeArg.Value(resolvedName.qualifiedName)
-  }
+  ): TypeArg =
+    resolvedName match {
+      case tp: BindingsMap.ResolvedType =>
+        tp.getVariants.size match {
+          case 0 =>
+            val isBuiltinTypeWithValues =
+              tp.tp.builtinType &&
+              Option(compiler.builtins.getBuiltinType(tp.tp.name))
+                .exists(_.containsValues())
+            if (isBuiltinTypeWithValues) {
+              TypeArg.Sum(Some(tp.qualifiedName), Seq())
+            } else {
+              TypeArg.Sum(
+                Some(tp.qualifiedName),
+                Seq(TypeArg.Value(tp.qualifiedName))
+              )
+            }
+
+          case 1 =>
+            TypeArg.Sum(Some(tp.qualifiedName), Seq())
+
+          case _ =>
+            TypeArg.Sum(
+              Some(tp.qualifiedName),
+              tp.getVariants.map(r => TypeArg.Value(r.qualifiedName))
+            )
+        }
+      case _: BindingsMap.ResolvedName =>
+        TypeArg.Value(resolvedName.qualifiedName)
+    }
+
+  /** Build annotations from metadata. */
+  private def buildAnnotationsFromMetadata(
+    genericAnnotations: GenericAnnotations.Metadata
+  ): Seq[String] =
+    genericAnnotations.annotations.map(_.name)
 
   /** Build type signature from the ir metadata.
     *
@@ -437,7 +500,7 @@ final class SuggestionBuilder[A: IndexedSource](
       case tname: IR.Name =>
         tname
           .getMetadata(TypeNames)
-          .map(t => buildResolvedUnionTypeName(t.target))
+          .map(t => buildResolvedTypeName(t.target))
           .getOrElse(TypeArg.Value(QualifiedName.simpleName(tname.name)))
 
       case _ =>
@@ -551,24 +614,29 @@ final class SuggestionBuilder[A: IndexedSource](
       isSuspended  = varg.suspended,
       hasDefault   = varg.defaultValue.isDefined,
       defaultValue = varg.defaultValue.flatMap(buildDefaultValue),
-      tagValues = targ match {
-        case s: TypeArg.Sum => {
-          val tagValues = pluckVariants(s)
-          if (tagValues.nonEmpty) {
-            Some(tagValues)
-          } else {
-            None
-          }
-        }
-        case _ => None
-      }
+      tagValues    = buildTagValues(targ)
     )
 
-  private def pluckVariants(arg: TypeArg): Seq[String] = arg match {
-    case TypeArg.Sum(_, List())   => Seq()
-    case TypeArg.Sum(_, variants) => variants.flatMap(pluckVariants)
-    case TypeArg.Value(n)         => Seq(n.toString)
-    case _                        => Seq()
+  /** Build tag values of type argument.
+    *
+    * @param targ the type argument
+    * @return the list of tag values
+    */
+  private def buildTagValues(targ: TypeArg): Option[Seq[String]] = {
+    def go(arg: TypeArg): Seq[String] = arg match {
+      case TypeArg.Sum(_, List())   => Seq()
+      case TypeArg.Sum(_, variants) => variants.flatMap(go)
+      case TypeArg.Value(n)         => Seq(n.toString)
+      case _                        => Seq()
+    }
+
+    targ match {
+      case s: TypeArg.Sum =>
+        val tagValues = go(s)
+        Option.unless(tagValues.isEmpty)(tagValues)
+      case _ => None
+
+    }
   }
 
   /** Build the name of type argument.
@@ -607,14 +675,20 @@ final class SuggestionBuilder[A: IndexedSource](
     * @param arg the value argument
     * @return the suggestion argument
     */
-  private def buildArgument(arg: IR.DefinitionArgument): Suggestion.Argument =
-    Suggestion.Argument(
-      name         = arg.name.name,
-      reprType     = Any,
-      isSuspended  = arg.suspended,
-      hasDefault   = arg.defaultValue.isDefined,
-      defaultValue = arg.defaultValue.flatMap(buildDefaultValue)
-    )
+  private def buildArgument(arg: IR.DefinitionArgument): Suggestion.Argument = {
+    buildTypeSignatureFromMetadata(arg.name.getMetadata(TypeSignatures)) match {
+      case Vector(targ) =>
+        buildTypedArgument(arg, targ)
+      case _ =>
+        Suggestion.Argument(
+          name         = arg.name.name,
+          reprType     = Any,
+          isSuspended  = arg.suspended,
+          hasDefault   = arg.defaultValue.isDefined,
+          defaultValue = arg.defaultValue.flatMap(buildDefaultValue)
+        )
+    }
+  }
 
   /** Build return type from the type definition.
     *
@@ -659,30 +733,40 @@ object SuggestionBuilder {
   /** Creates the suggestion builder for a module.
     *
     * @param module the module to index
+    * @param compiler the compiler instance
     * @return the suggestions builder for the module
     */
-  def apply(module: Module): SuggestionBuilder[CharSequence] =
-    SuggestionBuilder(module.getSource.getCharacters)
+  def apply(
+    module: Module,
+    compiler: Compiler
+  ): SuggestionBuilder[CharSequence] =
+    SuggestionBuilder(module.getSource.getCharacters, compiler)
 
   /** Create the suggestion builder.
     *
     * @param source the text source
     * @param typeGraph the type hierarchy
+    * @param compiler the compiler instance
     * @tparam A the type of the text source
     */
   def apply[A: IndexedSource](
     source: A,
-    typeGraph: TypeGraph
+    typeGraph: TypeGraph,
+    compiler: Compiler
   ): SuggestionBuilder[A] =
-    new SuggestionBuilder[A](source, typeGraph)
+    new SuggestionBuilder[A](source, typeGraph, compiler)
 
   /** Create the suggestion builder.
     *
     * @param source the text source
+    * @param compiler the compiler instance
     * @tparam A the type of the text source
     */
-  def apply[A: IndexedSource](source: A): SuggestionBuilder[A] =
-    new SuggestionBuilder[A](source, Types.getTypeHierarchy)
+  def apply[A: IndexedSource](
+    source: A,
+    compiler: Compiler
+  ): SuggestionBuilder[A] =
+    new SuggestionBuilder[A](source, Types.getTypeHierarchy, compiler)
 
   /** A single level of an `IR`.
     *
@@ -722,7 +806,7 @@ object SuggestionBuilder {
 
     /** Function type, like `A -> A`.
       *
-      * @param signature the list of types defining the function
+      * @param arguments the list of types defining the function
       */
     case class Function(arguments: Vector[TypeArg], result: TypeArg)
         extends TypeArg
@@ -745,9 +829,18 @@ object SuggestionBuilder {
       function: TypeArg,
       arguments: Vector[TypeArg]
     ) extends TypeArg
+  }
 
+  /** Base trait for method types. */
+  sealed private trait MethodType
+  private object MethodType {
+    case object Getter  extends MethodType
+    case object Defined extends MethodType
   }
 
   val Any: String = "Standard.Base.Any.Any"
+
+  private val InternalSuffix = "_internal"
+  private val InternalPrefix = "internal_"
 
 }

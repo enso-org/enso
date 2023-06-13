@@ -40,10 +40,8 @@ use ensogl_text as text;
 
 /// Invisible dummy color to catch hover events.
 const HOVER_COLOR: color::Rgba = color::Rgba::new(1.0, 0.0, 0.0, 0.000_001);
-/// The width of the visualisation selection menu.
-const MENU_WIDTH: f32 = 180.0;
-
-
+/// The default width of the selection menu.
+const DEFAULT_MENU_WIDTH: f32 = 180.0;
 
 // ==============
 // === Shapes ===
@@ -75,6 +73,7 @@ pub mod chooser_hover_area {
     use super::*;
 
     ensogl_core::shape! {
+        above = [arrow];
         alignment = center;
         (style: Style) {
             let width  : Var<Pixels> = "input_size.x".into();
@@ -86,6 +85,25 @@ pub mod chooser_hover_area {
     }
 }
 
+
+// =================
+// === Alignment ===
+// =================
+
+/// Indicates the alignment of the selection menu.
+#[derive(Clone, Copy, Debug)]
+pub enum Alignment {
+    /// Align the menu to the left side of the selection menu.
+    Left,
+    /// Align the menu to the right side of the selection menu.
+    Right,
+}
+
+impl Default for Alignment {
+    fn default() -> Self {
+        Self::Left
+    }
+}
 
 
 // ===========
@@ -100,6 +118,9 @@ ensogl_core::define_endpoints! {
         hide_selection_menu (),
         set_selected        (Option<list_view::entry::Id>),
         set_menu_offset_y   (f32),
+        set_menu_alignment  (Alignment),
+        set_label_alignment (Alignment),
+        set_width           (f32),
     }
     Output {
         menu_visible    (bool),
@@ -123,8 +144,8 @@ pub type Entry = list_view::entry::Label;
 struct Model {
     display_object: display::object::Instance,
 
-    icon:         arrow::View,
-    icon_overlay: chooser_hover_area::View,
+    icon:          arrow::View,
+    click_overlay: chooser_hover_area::View,
 
     label:          text::Text,
     selection_menu: list_view::ListView<Entry>,
@@ -137,17 +158,17 @@ impl Model {
     fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
         let icon = arrow::View::new();
-        let icon_overlay = chooser_hover_area::View::new();
+        let click_overlay = chooser_hover_area::View::new();
         let selection_menu = list_view::ListView::new(app);
         let label = app.new_view::<text::Text>();
         let content = default();
 
-        Self { display_object, icon, icon_overlay, label, selection_menu, content }.init()
+        Self { display_object, icon, click_overlay, label, selection_menu, content }.init()
     }
 
     fn init(self) -> Self {
         self.add_child(&self.icon);
-        self.add_child(&self.icon_overlay);
+        self.add_child(&self.click_overlay);
         self.add_child(&self.label);
         // Clear default parent and hide again.
         self.show_selection_menu();
@@ -248,10 +269,11 @@ impl DropDownMenu {
             // === Layouting ===
 
             let menu_height = DEPRECATED_Animation::<f32>::new(network);
+            let menu_width = frp.set_width.clone_ref();
 
-
-            eval menu_height.value ([model](height) {
-                model.selection_menu.frp.resize.emit(Vector2::new(MENU_WIDTH,*height));
+            resize_menu <- all(menu_width,menu_height.value);
+            eval resize_menu ([model]((width,height)) {
+                model.selection_menu.frp.resize.emit(Vector2::new(*width,*height));
                 if *height <= 0.0 {
                     model.hide_selection_menu();
                 } else if *height > 0.0 {
@@ -264,27 +286,42 @@ impl DropDownMenu {
                 model.icon.set_size(size-2.0*padding);
             });
 
-            resize_menu <- all(model.selection_menu.size,frp.input.set_icon_size,frp.input.set_menu_offset_y);
-            eval resize_menu (((menu_size,icon_size,menu_offset_y)) {
+            resize_menu <- all(model.selection_menu.size,frp.input.set_icon_size,
+                frp.input.set_menu_offset_y,frp.input.set_menu_alignment);
+            eval resize_menu (((menu_size,icon_size,menu_offset_y,alignment)) {
                 // Align the top of the menu to the bottom of the icon.
                 model.selection_menu.set_y(-menu_size.y/2.0-icon_size.y/2.0-menu_offset_y);
                 // Align the right of the menu to the right of the icon.
-                let offfset_y = -menu_size.x/2.0+icon_size.x/2.0-list_view::SHADOW_PX/2.0;
-                model.selection_menu.set_x(offfset_y);
+                let x_offset = match alignment {
+                    Alignment::Left => -menu_size.x/2.0+icon_size.x/2.0,
+                    Alignment::Right => 0.0,
+                };
+                model.selection_menu.set_x(x_offset);
             });
 
-            label_position <- all(model.label.frp.width,frp.input.set_icon_size);
-            eval label_position (((text_width,icon_size)) {
-                model.label.set_x(-text_width-icon_size.x/2.0);
+            label_position <- all5(&model.label.frp.width,&frp.input.set_icon_size,&model.label.frp
+                .height,&frp.input.set_label_alignment,&menu_width);
+            eval label_position ([model]((text_width,icon_size,text_height,alignment,menu_width)) {
+                let base_offset = match alignment {
+                    Alignment::Left => -menu_width + icon_size.x / 2.0,
+                    Alignment::Right => -text_width-icon_size.x / 2.0,
+                };
+                model.label.set_x(base_offset);
                 // Adjust for text offset, so this appears more centered.
-                model.label.set_y(0.25 * icon_size.y);
+                model.label.set_y(0.5 * text_height);
             });
 
-            overlay_size <- all(model.label.frp.width,frp.input.set_icon_size);
-            eval overlay_size ([model]((text_width,icon_size)) {
-                let size = Vector2::new(text_width + icon_size.x,icon_size.y);
-                model.icon_overlay.set_size(size);
-                model.icon_overlay.set_x(-text_width/2.0);
+            overlay_size <- all4(
+                &model.label.frp.height,
+                &frp.input.set_icon_size,
+                &frp.input.set_icon_padding,
+                &menu_width);
+            eval overlay_size ([model]((text_height,icon_size,icon_padding,menu_width)) {
+                let height = icon_size.y.max(*text_height);
+                let width = *menu_width;
+                let size = Vector2::new(width,height);
+                model.click_overlay.set_size(size);
+                model.click_overlay.set_x(-width / 2.0 + icon_size.x / 2.0 - icon_padding.x);
             });
 
 
@@ -324,8 +361,8 @@ impl DropDownMenu {
             chosen_entry_unmasked <- model.selection_menu.chosen_entry.map(f!((entry_id)
                 model.get_unmasked_index(*entry_id))
             );
-            frp.source.chosen_entry <+ chosen_entry_unmasked;
             set_selected            <- any(frp.input.set_selected, chosen_entry_unmasked);
+            frp.source.chosen_entry <+ set_selected;
 
             eval set_selected([model](entry_id) {
                 if let Some(entry_id) = entry_id {
@@ -349,14 +386,14 @@ impl DropDownMenu {
             // === Menu Toggle Through Mouse Interaction ===
 
             icon_hovered <- source::<bool>();
-            eval_ model.icon_overlay.events_deprecated.mouse_over ( icon_hovered.emit(true) );
-            eval_ model.icon_overlay.events_deprecated.mouse_out ( icon_hovered.emit(false) );
+            eval_ model.click_overlay.events_deprecated.mouse_over ( icon_hovered.emit(true) );
+            eval_ model.click_overlay.events_deprecated.mouse_out ( icon_hovered.emit(false) );
 
-            frp.source.icon_mouse_over <+ model.icon_overlay.events_deprecated.mouse_over;
-            frp.source.icon_mouse_out  <+ model.icon_overlay.events_deprecated.mouse_out;
+            frp.source.icon_mouse_over <+ model.click_overlay.events_deprecated.mouse_over;
+            frp.source.icon_mouse_out  <+ model.click_overlay.events_deprecated.mouse_out;
 
 
-            let icon_mouse_down = model.icon_overlay.events_deprecated.mouse_down_primary.clone_ref();
+            let icon_mouse_down = model.click_overlay.events_deprecated.mouse_down_primary.clone_ref();
             visibility_on_mouse_down <- frp.source.menu_visible.sample(&icon_mouse_down) ;
 
             eval visibility_on_mouse_down ([show_menu,hide_menu](is_visible){
@@ -381,8 +418,19 @@ impl DropDownMenu {
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let text_color = styles.get_color(theme::widget::list_view::text);
         model.label.set_property_default(text_color);
-
+        frp.set_width.emit(DEFAULT_MENU_WIDTH);
         self
+    }
+
+    /// Set the label of the dropdown menu.
+    pub fn set_label_color(&self, color: color::Rgba) {
+        self.model.label.set_property_default(color);
+    }
+
+    /// Set the layer of all text labels.
+    pub fn set_label_layer(&self, layer: &display::scene::Layer) {
+        self.model.selection_menu.set_label_layer(layer);
+        self.model.label.add_to_scene_layer(layer);
     }
 }
 

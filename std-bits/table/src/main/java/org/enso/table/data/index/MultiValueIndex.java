@@ -1,5 +1,9 @@
 package org.enso.table.data.index;
 
+import java.util.*;
+import java.util.function.IntFunction;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.object.Builder;
@@ -10,11 +14,6 @@ import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.util.ConstantList;
 import org.enso.table.util.NameDeduplicator;
-
-import java.util.*;
-import java.util.function.IntFunction;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   private final int keyColumnsLength;
@@ -215,11 +214,12 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     }
 
     // Merge Problems
-    AggregatedProblems[] problems = new AggregatedProblems[aggregates.length + 2];
+    AggregatedProblems[] problems = new AggregatedProblems[aggregates.length + 3];
     problems[0] = this.problems;
     problems[1] = AggregatedProblems.of(outputTableNameDeduplicator.getProblems());
+    problems[2] = nameIndex.getProblems();
     for (int i = 0; i < aggregates.length; i++) {
-      problems[i + 2] = aggregates[i].getProblems();
+      problems[i + 3] = aggregates[i].getProblems();
     }
     AggregatedProblems merged = AggregatedProblems.merge(problems);
 

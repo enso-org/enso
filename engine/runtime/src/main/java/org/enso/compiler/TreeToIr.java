@@ -21,7 +21,8 @@ import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidEscapeSequence$;
 import org.enso.compiler.core.IR$Error$Syntax$EmptyParentheses$;
-import org.enso.compiler.core.IR$Error$Syntax$InvalidImport$;
+import org.enso.compiler.core.IR$Error$Syntax$InvalidImport;
+import org.enso.compiler.core.IR$Error$Syntax$InvalidExport;
 import org.enso.compiler.core.IR$Error$Syntax$Reason;
 import org.enso.compiler.core.IR$Error$Syntax$UnrecognizedToken$;
 import org.enso.compiler.core.IR$Error$Syntax$UnsupportedSyntax;
@@ -70,6 +71,7 @@ import org.enso.syntax2.TextElement;
 import org.enso.syntax2.Token;
 import org.enso.syntax2.Tree;
 
+import org.enso.syntax2.Tree.Invalid;
 import scala.Option;
 import scala.collection.immutable.LinearSeq;
 import scala.collection.immutable.List;
@@ -1084,6 +1086,9 @@ final class TreeToIr {
       }
       case Tree.OprApp app -> {
         var op = app.getOpr().getRight();
+        if (op == null) {
+          yield translateSyntaxError(app, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
+        }
         yield switch (op.codeRepr()) {
           case "." -> {
             final Option<IdentifiedLocation> loc = getIdentifiedLocation(tree);
@@ -1138,7 +1143,7 @@ final class TreeToIr {
       }
       case Tree.Ident id when insideTypeAscription -> {
         try {
-          yield buildQualifiedName(id, getIdentifiedLocation(id), false);
+          yield buildNameOrQualifiedName(id, getIdentifiedLocation(id));
         } catch (SyntaxException ex) {
           yield ex.toError();
         }
@@ -1409,11 +1414,14 @@ final class TreeToIr {
     return new IR$Name$Qualified(qualifiedNameSegments(t, generateId), loc, meta(), diag());
   }
   private IR.Name buildNameOrQualifiedName(Tree t) throws SyntaxException {
+    return buildNameOrQualifiedName(t, Option.empty());
+  }
+  private IR.Name buildNameOrQualifiedName(Tree t, Option<IdentifiedLocation> loc) throws SyntaxException {
     var segments = qualifiedNameSegments(t, false);
     if (segments.length() == 1) {
       return segments.head();
     } else {
-      return new IR$Name$Qualified(segments, Option.empty(), meta(), diag());
+      return new IR$Name$Qualified(segments, loc, meta(), diag());
     }
   }
   private java.util.List<Tree> unrollOprRhs(Tree list, String operator) throws SyntaxException {
@@ -1519,8 +1527,22 @@ final class TreeToIr {
       meta(), diag()
       );
     } catch (SyntaxException err) {
-      return err.toError(IR$Error$Syntax$InvalidImport$.MODULE$);
+      if (err.where instanceof Invalid invalid) {
+        return err.toError(invalidImportReason(invalid.getError()));
+      } else {
+        return err.toError(invalidImportReason(null));
+      }
     }
+  }
+
+  private IR$Error$Syntax$Reason invalidImportReason(String msg) {
+    return new IR$Error$Syntax$InvalidImport(
+        Objects.requireNonNullElse(msg, "Imports must have a valid module path"));
+  }
+
+  private IR$Error$Syntax$Reason invalidExportReason(String msg) {
+    return new IR$Error$Syntax$InvalidExport(
+        Objects.requireNonNullElse(msg, "Exports must have a valid module path"));
   }
 
   @SuppressWarnings("unchecked")
@@ -1577,7 +1599,11 @@ final class TreeToIr {
         meta(), diag()
         );
     } catch (SyntaxException err) {
-      return err.toError(IR$Error$Syntax$InvalidImport$.MODULE$);
+      if (err.where instanceof Invalid invalid) {
+        return err.toError(invalidExportReason(invalid.getError()));
+      } else {
+        return err.toError(invalidExportReason(null));
+      }
     }
   }
 

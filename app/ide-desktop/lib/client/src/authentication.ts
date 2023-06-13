@@ -72,29 +72,26 @@
  * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
  * `pathname`. */
 
+import * as fs from 'node:fs'
+import * as os from 'node:os'
+import * as path from 'node:path'
+
 import * as electron from 'electron'
 import opener from 'opener'
 
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
+import * as urlAssociations from 'url-associations'
 
 import * as ipc from 'ipc'
 
 const logger = contentConfig.logger
 
-// =================
-// === Constants ===
-// =================
-
-/** Name of the Electron event that is emitted when a URL is opened in Electron (e.g., when the user
- * clicks a link in the dashboard). */
-const OPEN_URL_EVENT = 'open-url'
-
 // ========================================
 // === Initialize Authentication Module ===
 // ========================================
 
-/** Configures all the functionality that must be set up in the Electron app to support
+/** Configure all the functionality that must be set up in the Electron app to support
  * authentication-related flows. Must be called in the Electron app `whenReady` event.
  *
  * @param window - A function that returns the main Electron window. This argument is a lambda and
@@ -104,9 +101,10 @@ const OPEN_URL_EVENT = 'open-url'
 export function initModule(window: () => electron.BrowserWindow) {
     initIpc()
     initOpenUrlListener(window)
+    initSaveAccessTokenListener()
 }
 
-/** Registers an Inter-Process Communication (IPC) channel between the Electron application and the
+/** Register an Inter-Process Communication (IPC) channel between the Electron application and the
  * served website.
  *
  * This channel listens for {@link ipc.Channel.openUrlInSystemBrowser} events. When this kind of
@@ -117,10 +115,14 @@ export function initModule(window: () => electron.BrowserWindow) {
  * This functionality is necessary because we don't want to run the OAuth flow in the app. Users
  * don't trust Electron apps to handle their credentials. */
 function initIpc() {
-    electron.ipcMain.on(ipc.Channel.openUrlInSystemBrowser, (_event, url: string) => opener(url))
+    electron.ipcMain.on(ipc.Channel.openUrlInSystemBrowser, (_event, url: string) => {
+        logger.log(`Opening URL in system browser: '${url}'.`)
+        urlAssociations.setAsUrlHandler()
+        opener(url)
+    })
 }
 
-/** Registers a listener that fires a callback for `open-url` events, when the URL is a deep link.
+/** Register a listener that fires a callback for `open-url` events, when the URL is a deep link.
  *
  * This listener is used to open a page in *this* application window, when the user is
  * redirected to a URL with a protocol supported by this application.
@@ -128,14 +130,58 @@ function initIpc() {
  * All URLs that aren't deep links (i.e., URLs that don't use the {@link common.DEEP_LINK_SCHEME}
  * protocol) will be ignored by this handler. Non-deep link URLs will be handled by Electron. */
 function initOpenUrlListener(window: () => electron.BrowserWindow) {
-    electron.app.on(OPEN_URL_EVENT, (event, url) => {
-        const parsedUrl = new URL(url)
-        /** Prevent Electron from handling the URL at all, because redirects can be dangerous. */
+    urlAssociations.registerUrlCallback(url => {
+        onOpenUrl(url, window)
+    })
+}
+
+/** Handle the 'open-url' event by parsing the received URL, checking if it is a deep link, and
+ * sending it to the appropriate BrowserWindow via IPC.
+ *
+ * @param url - The URL to handle.
+ * @param window - A function that returns the BrowserWindow to send the parsed URL to. */
+export function onOpenUrl(url: URL, window: () => electron.BrowserWindow) {
+    logger.log(`Received 'open-url' event for '${url.toString()}'.`)
+    if (url.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
+        logger.error(`'${url.toString()}' is not a deep link, ignoring.`)
+    } else {
+        logger.log(`'${url.toString()}' is a deep link, sending to renderer.`)
+        window().webContents.send(ipc.Channel.openDeepLink, url.toString())
+    }
+}
+
+/** Register a listener that fires a callback for `save-access-token` events.
+ *
+ * This listener is used to save given access token to credentials file to be later used by
+ * the backend.
+ *
+ * The credentials file is placed in the user's home directory in the `.enso` subdirectory
+ * in the `credentials` file. */
+function initSaveAccessTokenListener() {
+    electron.ipcMain.on(ipc.Channel.saveAccessToken, (event, accessToken: string) => {
+        /** Home directory for the credentials file.  */
+        const credentialsDirectoryName = `.${common.PRODUCT_NAME.toLowerCase()}`
+        /** File name of the credentials file. */
+        const credentialsFileName = 'credentials'
+        /** System agnostic credentials directory home path. */
+        const credentialsHomePath = path.join(os.homedir(), credentialsDirectoryName)
+
+        fs.mkdir(credentialsHomePath, { recursive: true }, error => {
+            if (error) {
+                logger.error(`Couldn't create ${credentialsDirectoryName} directory.`)
+            } else {
+                fs.writeFile(
+                    path.join(credentialsHomePath, credentialsFileName),
+                    accessToken,
+                    innerError => {
+                        if (innerError) {
+                            logger.error(`Could not write to ${credentialsFileName} file.`)
+                        }
+                    }
+                )
+            }
+        })
+
         event.preventDefault()
-        if (parsedUrl.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
-            logger.error(`${url} is not a deep link, ignoring.`)
-        } else {
-            window().webContents.send(ipc.Channel.openDeepLink, url)
-        }
     })
 }

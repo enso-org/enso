@@ -28,6 +28,7 @@ class ContextFactory {
     *                                 location
     * @param options additional options for the Context
     * @param executionEnvironment optional name of the execution environment to use during execution
+    * @param warningsLimit maximal number of warnings reported to the user
     * @return configured Context instance
     */
   def create(
@@ -42,6 +43,7 @@ class ContextFactory {
     useGlobalIrCacheLocation: Boolean      = true,
     enableAutoParallelism: Boolean         = false,
     executionEnvironment: Option[String]   = None,
+    warningsLimit: Int                     = 100,
     options: java.util.Map[String, String] = java.util.Collections.emptyMap
   ): PolyglotContext = {
     executionEnvironment.foreach { name =>
@@ -66,6 +68,10 @@ class ContextFactory {
       .option(
         RuntimeOptions.ENABLE_AUTO_PARALLELISM,
         enableAutoParallelism.toString
+      )
+      .option(
+        RuntimeOptions.WARNINGS_LIMIT,
+        warningsLimit.toString
       )
       .option("js.foreign-object-prototype", "true")
       .out(out)

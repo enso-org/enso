@@ -13,11 +13,14 @@ import * as listen from '../listen'
 // === SessionContext ===
 // ======================
 
+/** State contained in a {@link SessionContext}. */
 interface SessionContextType {
     session: results.Option<cognito.UserSession>
+    /** Set `initialized` to false. Must be called when logging out. */
+    deinitializeSession: () => void
 }
 
-/** See {@link AuthContext} for safety details. */
+/** See `AuthContext` for safety details. */
 const SessionContext = react.createContext<SessionContextType>(
     // eslint-disable-next-line no-restricted-syntax
     {} as SessionContextType
@@ -27,7 +30,8 @@ const SessionContext = react.createContext<SessionContextType>(
 // === SessionProvider ===
 // =======================
 
-interface SessionProviderProps {
+/** Props for a {@link SessionProvider}. */
+export interface SessionProviderProps {
     /** URL that the content of the app is served at, by Electron.
      *
      * This **must** be the actual page that the content is served at, otherwise the OAuth flow will
@@ -45,36 +49,18 @@ interface SessionProviderProps {
     children: react.ReactNode
 }
 
+/** A React provider for the session of the authenticated user. */
 export function SessionProvider(props: SessionProviderProps) {
     const { mainPageUrl, children, userSession, registerAuthEventListener } = props
+
+    const [refresh, doRefresh] = hooks.useRefresh()
 
     /** Flag used to avoid rendering child components until we've fetched the user's session at least
      * once. Avoids flash of the login screen when the user is already logged in. */
     const [initialized, setInitialized] = react.useState(false)
 
-    /** Produces a new object every time.
-     * This is not equal to any other empty object because objects are compared by reference.
-     * Because it is not equal to the old value, React re-renders the component. */
-    function newRefresh() {
-        return {}
-    }
-
-    /** State that, when set, forces a refresh of the user session. This is useful when a
-     * user has just logged in (so their cached credentials are out of date). Should be used via the
-     * `refreshSession` function. */
-    const [refresh, setRefresh] = react.useState(newRefresh())
-
-    /** Forces a refresh of the user session.
-     *
-     * Should be called after any operation that **will** (not **might**) change the user's session.
-     * For example, this should be called after signing out. Calling this will result in a re-render
-     * of the whole page, which is why it should only be done when necessary. */
-    const refreshSession = () => {
-        setRefresh(newRefresh())
-    }
-
     /** Register an async effect that will fetch the user's session whenever the `refresh` state is
-     * incremented. This is useful when a user has just logged in (as their cached credentials are
+     * set. This is useful when a user has just logged in (as their cached credentials are
      * out of date, so this will update them). */
     const session = hooks.useAsyncEffect(
         results.None,
@@ -83,7 +69,7 @@ export function SessionProvider(props: SessionProviderProps) {
             setInitialized(true)
             return innerSession
         },
-        [refresh, userSession]
+        [userSession, refresh]
     )
 
     /** Register an effect that will listen for authentication events. When the event occurs, we
@@ -93,11 +79,13 @@ export function SessionProvider(props: SessionProviderProps) {
      * For example, if a user clicks the signout button, this will clear the user's session, which
      * means we want the login screen to render (which is a child of this provider). */
     react.useEffect(() => {
+        /** Handle Cognito authentication events
+         * @throws {error.UnreachableCaseError} Never. */
         const listener: listen.ListenerCallback = event => {
             switch (event) {
                 case listen.AuthEvent.signIn:
                 case listen.AuthEvent.signOut: {
-                    refreshSession()
+                    doRefresh()
                     break
                 }
                 case listen.AuthEvent.customOAuthState:
@@ -109,8 +97,8 @@ export function SessionProvider(props: SessionProviderProps) {
                      *
                      * See:
                      * https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970 */
-                    window.history.replaceState({}, '', mainPageUrl)
-                    refreshSession()
+                    history.replaceState({}, '', mainPageUrl)
+                    doRefresh()
                     break
                 }
                 default: {
@@ -126,10 +114,14 @@ export function SessionProvider(props: SessionProviderProps) {
         return cancel
     }, [registerAuthEventListener])
 
-    const value = { session }
+    const deinitializeSession = () => {
+        setInitialized(false)
+    }
 
     return (
-        <SessionContext.Provider value={value}>{initialized && children}</SessionContext.Provider>
+        <SessionContext.Provider value={{ session, deinitializeSession }}>
+            {initialized && children}
+        </SessionContext.Provider>
     )
 }
 
@@ -137,6 +129,7 @@ export function SessionProvider(props: SessionProviderProps) {
 // === useSession ===
 // ==================
 
+/** React context hook returning the session of the authenticated user. */
 export function useSession() {
     return react.useContext(SessionContext)
 }

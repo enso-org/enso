@@ -40,14 +40,12 @@ pub mod node;
 pub use node::Crumb;
 pub use node::Crumbs;
 pub use node::Node;
-pub use node::Payload;
 
 
 
 /// Module gathering all commonly used traits for massive importing.
 pub mod traits {
     pub use crate::action::Actions;
-    pub use crate::builder::Builder;
     pub use crate::generate::SpanTreeGenerator;
 }
 
@@ -153,24 +151,24 @@ impl ArgumentInfo {
 /// in the code. Even in the case of parenthesed expressions, like `(foo)`, the parentheses are also
 /// `SpanTree` tokens.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SpanTree<T = ()> {
+pub struct SpanTree {
     /// A root node of the tree.
-    pub root: Node<T>,
+    pub root: Node,
 }
 
-impl<T> SpanTree<T> {
+impl SpanTree {
     /// Create span tree from something that could generate it (usually AST).
-    pub fn new(gen: &impl SpanTreeGenerator<T>, context: &impl Context) -> FallibleResult<Self> {
+    pub fn new(gen: &impl SpanTreeGenerator, context: &impl Context) -> FallibleResult<Self> {
         gen.generate_tree(context)
     }
 
     /// Get a reference to the root node.
-    pub fn root_ref(&self) -> node::Ref<T> {
+    pub fn root_ref(&self) -> node::Ref {
         node::Ref::root(self)
     }
 
     /// Get a mutable reference to the root node.
-    pub fn root_ref_mut(&mut self) -> node::RefMut<T> {
+    pub fn root_ref_mut(&mut self) -> node::RefMut {
         node::RefMut::new(&mut self.root)
     }
 
@@ -178,21 +176,38 @@ impl<T> SpanTree<T> {
     pub fn get_node<'a>(
         &self,
         crumbs: impl IntoIterator<Item = &'a Crumb>,
-    ) -> FallibleResult<node::Ref<T>> {
+    ) -> FallibleResult<node::Ref> {
         self.root_ref().get_descendant(crumbs)
     }
 
-    /// Payload mapping utility.
-    pub fn map<S>(self, f: impl Copy + Fn(T) -> S) -> SpanTree<S> {
-        let root = self.root.map(f);
-        SpanTree { root }
+    /// Map over the nodes in given crumbs chain, from the root to the node identified by the
+    /// crumbs. Terminates on the first `Some(R)` result and returns it.
+    pub fn find_map_in_chain<'a, R, F>(
+        &self,
+        crumbs: impl IntoIterator<Item = &'a Crumb>,
+        mut f: F,
+    ) -> Option<R>
+    where
+        F: FnMut(usize, &Node) -> Option<R>,
+    {
+        let mut crumbs = crumbs.into_iter();
+        let mut current_node = &self.root;
+        let mut idx = 0;
+        loop {
+            let result = f(idx, current_node);
+            if result.is_some() {
+                return result;
+            }
+            idx += 1;
+            current_node = current_node.children.get(*crumbs.next()?)?;
+        }
     }
 }
 
 
 // === Getters ===
 
-impl<T> SpanTree<T> {
+impl SpanTree {
     /// Get `ast::Id` of the nested node, if exists.
     pub fn nested_ast_id(&self, crumbs: &Crumbs) -> Option<ast::Id> {
         if self.root_ref().crumbs == crumbs {
@@ -207,16 +222,16 @@ impl<T> SpanTree<T> {
 
 // == Impls ===
 
-impl<T: Payload> Default for SpanTree<T> {
+impl Default for SpanTree {
     fn default() -> Self {
-        let root = Node::<T>::new().with_kind(node::Kind::Root);
+        let root = Node::new().with_kind(node::Kind::Root);
         Self { root }
     }
 }
 
 // == Debug utils ==
 
-impl<T> SpanTree<T> {
+impl SpanTree {
     #[allow(dead_code)]
     /// Get pretty-printed representation of this span tree for debugging purposes. The `code`
     /// argument should be identical to the expression that was used during generation of this
@@ -224,32 +239,32 @@ impl<T> SpanTree<T> {
     ///
     /// Example output with AST ids removed for clarity:
     /// ```text
-    /// operator6.join operator31 Join_Kind.Inner ["County"] Root
-    /// operator6.join operator31 Join_Kind.Inner ["County"] ├── Chained
-    /// operator6.join operator31 Join_Kind.Inner ["County"] │   ├── Chained
-    /// operator6.join operator31 Join_Kind.Inner            │   │   ├── Chained
-    /// operator6.join operator31                            │   │   │   ├── Chained
-    /// operator6.join                                       │   │   │   │   ├── Operation
-    /// ▲                                                    │   │   │   │   │   ├── InsertionPoint(BeforeTarget)
-    /// operator6                                            │   │   │   │   │   ├── This
-    ///          ▲                                           │   │   │   │   │   ├── InsertionPoint(AfterTarget)
-    ///          .                                           │   │   │   │   │   ├── Operation
-    ///           join                                       │   │   │   │   │   ├── Argument
-    ///               ▲                                      │   │   │   │   │   ╰── InsertionPoint(Append)
-    ///                operator31                            │   │   │   │   ╰── Argument name="right"
-    ///                           Join_Kind.Inner            │   │   │   ╰── Argument name="join_kind"
-    ///                           ▲                          │   │   │       ├── InsertionPoint(BeforeTarget)
-    ///                           Join_Kind                  │   │   │       ├── This
-    ///                                    ▲                 │   │   │       ├── InsertionPoint(AfterTarget)
-    ///                                    .                 │   │   │       ├── Operation
-    ///                                     Inner            │   │   │       ├── Argument
-    ///                                          ▲           │   │   │       ╰── InsertionPoint(Append)
-    ///                                           ["County"] │   │   ╰── Argument name="on"
-    ///                                           [          │   │       ├── Token
-    ///                                            "County"  │   │       ├── Argument
-    ///                                                    ] │   │       ╰── Token
-    ///                                                     ▲│   ╰── InsertionPoint(ExpectedArgument(3)) name="right_prefix"
-    ///                                                     ▲╰── InsertionPoint(ExpectedArgument(4)) name="on_problems"
+    /// ▷operator4.join operator2 Join_Kind.Inner ["County"]◁Root
+    /// ▷operator4.join operator2 Join_Kind.Inner ["County"]◁ ├─Chained
+    /// ▷operator4.join operator2 Join_Kind.Inner ["County"]◁ │  ├─Chained
+    /// ▷operator4.join operator2 Join_Kind.Inner◁            │  │  ├─Chained
+    /// ▷operator4.join operator2◁                            │  │  │  ├─Chained
+    /// ▷operator4.join◁                                      │  │  │  │  ├─Operation
+    /// ▷◁                                                    │  │  │  │  │  ├─InsertionPoint(BeforeArgument(0))
+    /// ▷operator4◁                                           │  │  │  │  │  ├─Argument name="self"
+    ///          ▷.◁                                          │  │  │  │  │  ├─Operation
+    ///           ▷◁                                          │  │  │  │  │  ├─InsertionPoint(BeforeArgument(1))
+    ///           ▷join◁                                      │  │  │  │  │  ├─Argument
+    ///               ▷◁                                      │  │  │  │  │  ╰─InsertionPoint(Append)
+    ///                ▷operator2◁                            │  │  │  │  ╰─Argument name="right"
+    ///                          ▷Join_Kind.Inner◁            │  │  │  ╰─Argument name="join_kind"
+    ///                          ▷◁                           │  │  │     ├─InsertionPoint(BeforeArgument(0))
+    ///                          ▷Join_Kind◁                  │  │  │     ├─Argument
+    ///                                   ▷.◁                 │  │  │     ├─Operation
+    ///                                    ▷◁                 │  │  │     ├─InsertionPoint(BeforeArgument(1))
+    ///                                    ▷Inner◁            │  │  │     ├─Argument
+    ///                                         ▷◁            │  │  │     ╰─InsertionPoint(Append)
+    ///                                          ▷["County"]◁ │  │  ╰─Argument name="on"
+    ///                                          ▷[◁          │  │     ├─Token
+    ///                                           ▷"County"◁  │  │     ├─Argument
+    ///                                                   ▷]◁ │  │     ╰─Token
+    ///                                                    ▷◁ │  ╰─InsertionPoint(ExpectedArgument) name="right_prefix"
+    ///                                                    ▷◁ ╰─InsertionPoint(ExpectedArgument) name="on_problems"
     /// ```
     pub fn debug_print(&self, code: &str) -> String {
         use std::fmt::Write;
@@ -261,7 +276,7 @@ impl<T> SpanTree<T> {
         }
 
         let mut buffer = String::new();
-        let span_padding = " ".repeat(code.len() + 1);
+        let span_padding = " ".repeat(code.len() + 2);
 
         struct PrintState {
             indent:       String,
@@ -271,21 +286,17 @@ impl<T> SpanTree<T> {
         self.root_ref().dfs_with_layer_data(state, |node, state| {
             let span = node.span();
             let node_code = &code[span];
-            buffer.push_str(&span_padding[0..node.span_offset.into()]);
-            let mut written = node.span_offset.into();
-            if node_code.is_empty() {
-                buffer.push('▲');
-                written += 1;
-            } else {
-                buffer.push_str(node_code);
-                written += node_code.len();
-            }
+            buffer.push_str(&span_padding[0..node.span_offset.value]);
+            buffer.push('▷');
+            buffer.push_str(node_code);
+            buffer.push('◁');
+            let written = node.span_offset.value + node_code.len() + 2;
             buffer.push_str(&span_padding[written..]);
 
             let indent = if let Some(index) = node.crumbs.last() {
                 let is_last = *index == state.num_children - 1;
-                let indent_targeted = if is_last { "╰── " } else { "├── " };
-                let indent_continue = if is_last { "    " } else { "│   " };
+                let indent_targeted = if is_last { " ╰─" } else { " ├─" };
+                let indent_continue = if is_last { "   " } else { " │ " };
 
                 buffer.push_str(&state.indent);
                 buffer.push_str(indent_targeted);
@@ -309,7 +320,14 @@ impl<T> SpanTree<T> {
 
             if let Some(ast_id) = node.ast_id {
                 write!(buffer, " ast_id={ast_id:?}").unwrap();
+            } else if let Some(ext_id) = node.extended_ast_id {
+                write!(buffer, " ext_id={ext_id:?}").unwrap();
             }
+
+            if let Some(tt) = node.tree_type.as_ref() {
+                write!(buffer, " tt={tt:?}").unwrap();
+            }
+
             buffer.push('\n');
 
             let num_children = node.children.len();

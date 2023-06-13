@@ -1,13 +1,15 @@
 import project.Data.Pair.Pair
 import project.Data.Range.Extensions
 import project.Data.Text.Text
+import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.No_Such_Conversion
 import project.Errors.Common.Type_Error
-import project.Nothing.Nothing
 import project.Meta
+import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Warning.Warning
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Ordering import all
@@ -60,8 +62,7 @@ type Any
     to_display_text : Text
     to_display_text self = @Builtin_Method "Any.to_display_text"
 
-    ## ALIAS Equality
-
+    ## ALIAS Equals
        Checks if `self` is equal to `that`.
 
        Arguments:
@@ -106,25 +107,9 @@ type Any
                  a = 7 * 21
                  a == 147
     == : Any -> Boolean
-    == self that =
-        # If there is No_Such_Conversion, then `self` and `that` are probably
-        # host or polyglot values, so we just compare them with the default comparator.
-        eq_self = Comparable.from self
-        eq_that = Comparable.from that
-        similar_type = Meta.is_same_object eq_self eq_that
-        case similar_type of
-            False -> False
-            True ->
-                case Meta.is_same_object eq_self Default_Comparator of
-                    # Shortcut for objects with Default_Comparator, because of the performance.
-                    True -> Comparable.equals_builtin self that
-                    False ->
-                        case eq_self.compare self that of
-                            Ordering.Equal -> True
-                            _ -> False
+    == self that = @Builtin_Method "Any.=="
 
-    ## ALIAS Inequality
-
+    ## ALIAS Not Equals
        Checks if `self` is not equal to `that`.
 
        Arguments:
@@ -147,7 +132,6 @@ type Any
     != self that = (self == that).not
 
     ## ALIAS Greater Than
-
        Checks if `self` is greater than `that`.
 
        Arguments:
@@ -175,7 +159,6 @@ type Any
                 _ -> False
 
     ## ALIAS Greater Than or Equal
-
        Checks if `self` is greater than or equal to `that`.
 
        Arguments:
@@ -205,7 +188,6 @@ type Any
                 _ -> False
 
     ## ALIAS Less Than
-
        Checks if `self` is less than `that`.
 
        Arguments:
@@ -233,7 +215,6 @@ type Any
                 _ -> False
 
     ## ALIAS Less Than or Equal
-
        Checks if `self` is less than or equal to `that`.
 
        Arguments:
@@ -384,25 +365,6 @@ type Any
         Nothing -> Nothing
         a -> f a
 
-    ## Applies the function `self` to the provided argument.
-
-       Arguments:
-       - argument: The argument to apply `self` to.
-
-       ? Piping Blocks to Functions
-         This construction is particularly useful for passing a block as an argument
-         to a function. This means that you can compute more sophisticated values
-         in-line, as shown in the example below.
-
-       > Example
-         Applying a function to a block.
-
-             (x -> x + 1) <|
-                y = 1 ^ 3
-                3 + y
-    <| : Any -> Any
-    <| self ~argument = self argument
-
     ## Applies the function on the right hand side to the argument on the left.
 
        Arguments
@@ -424,40 +386,40 @@ type Any
     |> : (Any -> Any) -> Any
     |> self ~function = function self
 
-    ## Composes two functions together, for `f << g` creating the function
-       composition `f ∘ g` (equivalent to `x -> f (g x)`).
+    ## Checks if any warnings (either all or of a specified type) are attached to the value.
 
        Arguments:
-       - that: The function to compose with `self`.
+       - warning_type: The type to check if attached to the value. Defaults to any warning.
+    has_warnings : Any -> Boolean
+    has_warnings self warning_type=Any =
+        _ = warning_type
+        False
 
-       > Example
-         Multiply by 2 and then add 1 as a function applied to 2.
-
-             (+1 << *2) 2
-    << : (Any -> Any) -> (Any -> Any)
-    << self ~that = x -> self (that x)
-
-    ## Composes two functions together in the forward direction, for `f >> g`
-       creating the function composition `g ∘ f` (equivalent to `x -> g (f (x))`).
+    ## Remove the warnings (either all or of a specified type) attached to the value.
 
        Arguments:
-       - that: The function to compose with `self`.
+       - warning_type: The type to remove if attached to the value. Defaults to all warnings.
+    remove_warnings : Any -> Any
+    remove_warnings self warning_type=Any =
+        _ = warning_type
+        self
 
-       > Example
-         Add one and then multiply by two as a function applied to 2.
+    ## Throws the first matching warning (either all or of a specified type) as a data flow error.
 
-             (+1 >> *2) 2
-    >> : (Any -> Any) -> (Any -> Any)
-    >> self ~that = x -> that (self x)
-
+       Arguments:
+       - warning_type: The type to throw if attached to the value. Defaults to all warnings.
+    throw_on_warning : Any -> Any
+    throw_on_warning self warning_type=Any =
+        _ = warning_type
+        self
 
 ## PRIVATE
    Checks if the comparators for the given objects are both of the same type. If so,
-   proceeds with the given action, and if not, throws `Type_Error`.
-assert_same_comparators : Any -> Any -> (Any -> Any) -> Any ! Type_Error
+   proceeds with the given action, and if not, throws `Incomparable_Values` error.
+assert_same_comparators : Any -> Any -> (Any -> Any) -> Any ! Incomparable_Values
 assert_same_comparators this that ~action =
     comp_this = Comparable.from this
     comp_that = Comparable.from that
     case Meta.is_same_object comp_this comp_that of
         True -> action
-        False -> Error.throw (Type_Error.Error (Meta.type_of comp_this) comp_that "comp_that")
+        False -> Error.throw (Incomparable_Values.Error this that)

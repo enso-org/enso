@@ -1,10 +1,15 @@
 from Standard.Base import all
 
 import Standard.Table.Data.Type.Value_Type.Bits
-from Standard.Table import Aggregate_Column, Value_Type
-from Standard.Table.Errors import Invalid_Value_Type
+from Standard.Table import Aggregate_Column, Value_Type, Table
+from Standard.Table.Errors import Invalid_Value_Type, Inexact_Type_Coercion
 
+import Standard.Database.Data.Dialect
+import Standard.Database.Extensions.Upload_Database_Table
+import Standard.Database.Extensions.Upload_In_Memory_Table
+import Standard.Database.Internal.SQLite.SQLite_Type_Mapping
 from Standard.Database import Database, SQLite, In_Memory, SQL_Query
+from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Problems, Test, Test_Suite
 import Standard.Test.Extensions
@@ -25,7 +30,7 @@ spec =
             t.at "int" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t.at "real" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
             t.at "text" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
-            t.at "blob" . value_type . should_equal Value_Type.Mixed
+            t.at "blob" . value_type . should_equal Value_Type.Binary
             # We treat numeric as a float, since that is what really sits in SQLite under the hood.
             t.at "numeric" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
 
@@ -33,7 +38,7 @@ spec =
             t = make_table "complex" [["a", "VARCHAR(15)"], ["b", "CHAR(10)"], ["c", "BINARY(10)"], ["d", "BIGINT"], ["e", "SMALLINT"], ["f", "TINYINT"], ["g", "FLOAT"], ["h", "DOUBLE"]]
             t.at "a" . value_type . should_equal Value_Type.Char
             t.at "b" . value_type . should_equal Value_Type.Char
-            t.at "c" . value_type . should_equal Value_Type.Mixed
+            t.at "c" . value_type . should_equal Value_Type.Binary
             t.at "d" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t.at "e" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t.at "f" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
@@ -44,46 +49,69 @@ spec =
             t = make_table "bools" [["a", "BOOLEAN"], ["b", "BOOLEAN"]]
             t.at "b" . value_type . should_equal Value_Type.Boolean
 
-            c1 = t.compute "[a] || [b]"
+            c1 = t.evaluate_expression "[a] || [b]"
             c1 . value_type . should_equal Value_Type.Boolean
 
-            c2 = t.compute "[a] && False"
+            c2 = t.evaluate_expression "[a] && False"
             c2 . value_type . should_equal Value_Type.Boolean
 
-            #c3 = t.compute "[a] && 10"
-            #c3.should_fail_with Invalid_Value_Type
+            c3 = t.evaluate_expression "[a] && 10"
+            c3.should_fail_with Invalid_Value_Type
 
         Test.specify "should correctly handle types through operations" <|
             t = make_table "foo" [["a", "int"], ["b", "text"], ["c", "boolean"], ["d", "double precision"]]
 
-            t.compute 'starts_with([b], "1")' . value_type . should_equal Value_Type.Boolean
-            t.compute '[a] * [d]' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
-            t.compute '[a] + 100' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
-            t.compute '[a] + 100.0' . value_type . should_equal (Value_Type.Float Bits.Bits_64)
-            t.compute '[c] || not [c]' . value_type . should_equal Value_Type.Boolean
-            t.compute '[b] + "_suf"' . value_type . should_equal Value_Type.Char
-            t.compute 'fill_nothing([c], false)' . value_type . should_equal Value_Type.Boolean
-            t.compute 'fill_empty([b], "<NA>")' . value_type . should_equal Value_Type.Char
-            t.compute 'is_blank([b])' . value_type . should_equal Value_Type.Boolean
-            t.compute 'is_empty([b])' . value_type . should_equal Value_Type.Boolean
-            t.compute 'is_nan([d])' . value_type . should_equal Value_Type.Boolean
-            t.compute 'is_nothing([a])' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression 'starts_with([b], "1")' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression '[a] * [d]' . value_type . should_equal Value_Type.Float
+            t.evaluate_expression '[a] + 100' . value_type . should_equal Value_Type.Integer
+            t.evaluate_expression '[a] + 100.0' . value_type . should_equal Value_Type.Float
+            t.evaluate_expression '[c] || not [c]' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression '[b] + "_suf"' . value_type . should_equal Value_Type.Char
+            t.evaluate_expression 'fill_nothing([c], false)' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression 'fill_empty([b], "<NA>")' . value_type . should_equal Value_Type.Char
+            t.evaluate_expression 'is_blank([b])' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression 'is_empty([b])' . value_type . should_equal Value_Type.Boolean
+            t.evaluate_expression 'is_nothing([a])' . value_type . should_equal Value_Type.Boolean
 
             t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a", Aggregate_Column.Maximum "a", Aggregate_Column.Minimum "d", Aggregate_Column.Count_Not_Nothing "c", Aggregate_Column.Concatenate "b", Aggregate_Column.Count]
             t2.at "b" . value_type . should_equal Value_Type.Char
-            t2.at "Sum a" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
-            t2.at "Maximum a" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
-            t2.at "Minimum d" . value_type . should_equal (Value_Type.Float Bits.Bits_64)
-            t2.at "Count Not Nothing c" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "Sum a" . value_type . should_equal Value_Type.Integer
+            t2.at "Maximum a" . value_type . should_equal Value_Type.Integer
+            t2.at "Minimum d" . value_type . should_equal Value_Type.Float
+            t2.at "Count Not Nothing c" . value_type . should_equal Value_Type.Integer
             t2.at "Concatenate b" . value_type . should_equal Value_Type.Char
-            t2.at "Count" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "Count" . value_type . should_equal Value_Type.Integer
             # First is not currently implemented in SQLite
             # t2.at "First c" . value_type . should_equal Value_Type.Boolean
 
-        Test.specify "should approximate types to the closest supported one" pending="TODO: Table.cast" <|
-            # TODO this will be tested once the cast operator is implemented
-            # Binary 10 variable_length=False -> Binary max_int4 variable_length=True
-            # Byte -> Integer Bits.Bits_16
-            Nothing
+        Test.specify "should approximate types to the closest supported one" <|
+            t = make_table "approx-table" [["a", "BINARY"], ["b", "INT"]]
+
+            t1 = t.cast "a" (Value_Type.Binary 10 variable_length=True)
+            t1.at "a" . value_type . should_equal Value_Type.Binary
+            Problems.expect_warning Inexact_Type_Coercion t1
+
+            t2 = t.cast "b" Value_Type.Byte
+            t2.at "b" . value_type . should_equal Value_Type.Integer
+            Problems.expect_warning Inexact_Type_Coercion t2
+
+        Test.specify "will coerce date/time columns to Text in existing tables" <|
+            t = make_table "datetime-table" [["a", "DATE"], ["b", "TIME"], ["c", "DATETIME"], ["d", "TIMESTAMP"]]
+            t.at "a" . value_type . should_equal Value_Type.Char
+            t.at "b" . value_type . should_equal Value_Type.Char
+            t.at "c" . value_type . should_equal Value_Type.Char
+            t.at "d" . value_type . should_equal Value_Type.Char
+
+        Test.specify "does not support creating tables with date/time values" <|
+            t = Table.new [["a", [Date.now]], ["b", [Time_Of_Day.now]], ["c", [Date_Time.now]]]
+            r1 = t.select_into_database_table connection temporary=True
+            r1.should_fail_with Unsupported_Database_Operation
+
+        Test.specify "should be able to infer types for all supported operations" <|
+            dialect = Dialect.sqlite
+            internal_mapping = dialect.internal_generator_dialect.operation_map
+            operation_type_mapping = SQLite_Type_Mapping.operations_map
+
+            operation_type_mapping.keys.sort . should_equal internal_mapping.keys.sort
 
 main = Test_Suite.run_main spec

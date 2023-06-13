@@ -1,11 +1,14 @@
 package org.enso.interpreter.test;
 
+import java.lang.reflect.Method;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Period;
 import java.time.ZoneId;
@@ -13,12 +16,14 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+
 import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
@@ -35,6 +40,7 @@ class ValuesGenerator {
   private final Set<Language> languages;
   private final Map<String, ValueInfo> values = new HashMap<>();
   private final Map<String, List<Value>> multiValues = new HashMap<>();
+  private final Map<Method, Object> computed = new HashMap<>();
 
   private ValuesGenerator(Context ctx, Set<Language> languages) {
     this.ctx = ctx;
@@ -51,23 +57,28 @@ class ValuesGenerator {
   }
 
   private ValueInfo v(String key, String prelude, String typeOrValue) {
+    return v(key, prelude, typeOrValue, key != null ? typeOrValue : null);
+  }
+
+  private ValueInfo v(String key, String prelude, String typeOrValue, String typeCheck) {
     if (key == null) {
       key = typeOrValue;
     }
     var v = values.get(key);
     if (v == null) {
-      var f = ctx.eval("enso", prelude + "\nn = " + typeOrValue);
+      var code = prelude + "\nn = " + typeOrValue;
+      var f = ctx.eval("enso", code);
       var value = f.invokeMember("eval_expression", "n");
-      var c = ctx.eval("enso", """
-      {import}
+      if (typeCheck != null) {
+        var c = ctx.eval("enso", """
+        {import}
 
-      check x = case x of
-          v : {type} -> 1
-          _ -> 0
+        check x = case x of
+            _ : {type} -> 1
+            _ -> 0
 
-      """.replace("{type}", typeOrValue).replace("{import}", prelude)
-      );
-      if (key != null) {
+        """.replace("{type}", typeCheck).replace("{import}", prelude)
+        );
         var check = c.invokeMember("eval_expression", "check");
         assertTrue("Can execute the check", check.canExecute());
         v = new ValueInfo(value, check);
@@ -80,15 +91,15 @@ class ValuesGenerator {
   }
 
   /**
-   * Converts expressions into values of type described by {@code typeDefs} by concatenating
+   * Converts expressions into values date type described by {@code typeDefs} by concatenating
    * everything into a single source.
    *
    * This method exists so that there are no multiple definitions of a single type.
    *
    * @param typeDefs Type definitions.
-   * @param expressions List of expressions - every expression will be converted to a {@link Value}.
-   * @param checks list of names (with {@code null}) to define checks for
-   * @return List of values converted from the given expressions.
+   * @param expressions List date expressions - every expression will be converted to a {@link Value}.
+   * @param checks list date names (with {@code null}) to define checks for
+   * @return List date values converted from the given expressions.
    */
   private List<Value> createValuesOfCustomType(String typeDefs, List<String> expressions, List<String> checks) {
     var prev = multiValues.get(typeDefs);
@@ -109,7 +120,7 @@ class ValuesGenerator {
       }
       sb.append("""
       check_{i} x = case x of
-          v : {type} -> 1
+          _ : {type} -> 1
           _ -> 0
 
       """.replace("{type}", c).replace("{i}", "" + i));
@@ -301,10 +312,17 @@ class ValuesGenerator {
       collect.add(v(null, "", "42").type());
       collect.add(v(null, "", "6.7").type());
       collect.add(v(null, "", "40321 * 43202").type());
-      collect.add(v(null, """
+      collect.add(
+          v(
+                  null,
+                  """
+      from Standard.Base.Data.Ordering import all
+
       fac s n = if n <= 1 then s else
           @Tail_Call fac n*s n-1
-      """, "fac 1 100").type());
+      """,
+                  "fac 1 100")
+              .type());
       collect.add(v(null, "", "123 * 10^40").type());
       collect.add(v(null, "", "123 * 10^40 + 0.0").type());
       collect.add(v(null, "", "123 * 10^40 + 1.0").type());
@@ -336,9 +354,9 @@ class ValuesGenerator {
       collect.add(v(null, "", "'?'").type());
       collect.add(v(null, "", """
       '''
-      block of
-      multi-line
-      texts
+          block of
+          multi-line
+          texts
       """).type());
     }
 
@@ -397,9 +415,12 @@ class ValuesGenerator {
     }
 
     if (languages.contains(Language.JAVA)) {
-      collect.add(ctx.asValue(LocalDate.of(2022, 12, 10)));
+      var date = LocalDate.of(2022, 12, 10);
+      collect.add(ctx.asValue(date));
       collect.add(ctx.asValue(LocalDate.of(1999, 3, 23)));
-      collect.add(ctx.asValue(LocalTime.of(12, 35)));
+      LocalTime time = LocalTime.of(12, 35);
+      collect.add(ctx.asValue(time));
+      collect.add(ctx.asValue(LocalDateTime.of(date, time)));
       collect.add(ctx.asValue(ZonedDateTime.of(2021, 1, 1, 0, 30, 12, 710200000, ZoneId.of("Z"))));
     }
 
@@ -419,7 +440,7 @@ class ValuesGenerator {
           "Time_Zone.parse 'Europe/London'",
           "Time_Zone.parse 'CET'"
       )) {
-        collect.add(v("timeZones-" + expr, "import Standard.Base.Data.Time.Time_Zone.Time_Zone", expr).type());
+        collect.add(v("timeZones-" + expr, "import Standard.Base.Data.Time.Time_Zone.Time_Zone", expr, "Time_Zone").type());
       }
     }
     if (languages.contains(Language.JAVA)) {
@@ -430,7 +451,7 @@ class ValuesGenerator {
           TimeZone.getTimeZone(ZoneId.ofOffset("GMT", ZoneOffset.ofHoursMinutes(14, 45))),
           TimeZone.getTimeZone(ZoneId.ofOffset("UTC", ZoneOffset.ofHours(-15)))
       )) {
-        collect.add(ctx.asValue(javaValue));
+        collect.add(ctx.asValue(javaValue.toZoneId()));
       }
     }
     return collect;
@@ -562,8 +583,28 @@ class ValuesGenerator {
           "Map.empty.insert 'A' 1 . insert 'B' 2 . insert 'C' 3",
           "Map.empty.insert 'C' 3 . insert 'B' 2 . insert 'A' 1"
       )) {
-        collect.add(v("maps-" + expr, imports, expr).type());
+        collect.add(v("maps-" + expr, imports, expr, "Map").type());
       }
+    }
+    if (languages.contains(Language.JAVA)) {
+      collect.add(ctx.asValue(Collections.emptyMap()));
+      collect.add(ctx.asValue(Collections.singletonMap("A", 1)));
+      var map = new HashMap<String,Integer>();
+      map.put("A", 1);
+      map.put("B", 2);
+      map.put("C", 3);
+      collect.add(ctx.asValue(map));
+    }
+    if (languages.contains(Language.JAVASCRIPT)) {
+      var fn = ctx.eval("js", """
+      (function() {
+        var map = new Map();
+        map.set('A', 1);
+        map.set('B', 2);
+        return map;
+      })
+      """);
+      collect.add(fn.execute());
     }
     return collect;
   }
@@ -711,7 +752,7 @@ class ValuesGenerator {
       }
       if (m.getReturnType() == List.class) {
         @SuppressWarnings("unchecked")
-        var r = (List<Value>) m.invoke(this);
+        var r = (List<Value>) invokeWithCache(m);
         collect.addAll(r);
       }
     }
@@ -724,12 +765,22 @@ class ValuesGenerator {
 
       if (m.getName().startsWith("type")) {
         if (m.getReturnType() == Value.class) {
-          var r = (Value) m.invoke(this);
+          @SuppressWarnings("unchecked")
+          var r = (Value) invokeWithCache(m);
           collect.add(r);
         }
       }
     }
     return collect;
+  }
+
+  private Object invokeWithCache(Method m) throws Exception {
+    var v = computed.get(m);
+    if (v == null) {
+      v = m.invoke(this);
+      computed.put(m, v);
+    }
+    return v;
   }
 
   public enum Language {

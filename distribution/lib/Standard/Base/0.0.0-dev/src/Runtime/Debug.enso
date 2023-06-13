@@ -15,7 +15,7 @@ import project.Nothing.Nothing
    > Example
      Dropping into a debugging REPL during execution.
 
-        Debug.breakpoint
+        Standard.Base.Runtime.Debug.breakpoint
 breakpoint : Nothing
 breakpoint = @Builtin_Method "Debug.breakpoint"
 

@@ -1,7 +1,6 @@
 package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -215,8 +214,8 @@ public abstract class InvokeCallableNode extends BaseNode {
             lock.unlock();
           }
         }
-        selfArgument = thisExecutor.executeThunk(selfArgument, state, TailStatus.NOT_TAIL);
-        thatArgument = thatExecutor.executeThunk(thatArgument, state, TailStatus.NOT_TAIL);
+        selfArgument = thisExecutor.executeThunk(callerFrame, selfArgument, state, TailStatus.NOT_TAIL);
+        thatArgument = thatExecutor.executeThunk(callerFrame, thatArgument, state, TailStatus.NOT_TAIL);
 
         arguments[thisArgumentPosition] = selfArgument;
         arguments[thatArgumentPosition] = thatArgument;
@@ -225,8 +224,8 @@ public abstract class InvokeCallableNode extends BaseNode {
           callerFrame, state, conversion, selfArgument, thatArgument, arguments);
     } else {
       CompilerDirectives.transferToInterpreter();
-      throw new RuntimeException(
-          "Conversion currying without `this` or `that` argument is not supported.");
+      var ctx = EnsoContext.get(this);
+      throw new PanicException(ctx.getBuiltins().error().makeNoConversionCurrying(canApplyThis, canApplyThat, conversion), this);
     }
   }
 
@@ -248,7 +247,7 @@ public abstract class InvokeCallableNode extends BaseNode {
             lock.unlock();
           }
         }
-        selfArgument = thisExecutor.executeThunk(selfArgument, state, TailStatus.NOT_TAIL);
+        selfArgument = thisExecutor.executeThunk(callerFrame, selfArgument, state, TailStatus.NOT_TAIL);
         arguments[thisArgumentPosition] = selfArgument;
       }
       return invokeMethodNode.execute(callerFrame, state, symbol, selfArgument, arguments);
@@ -278,7 +277,7 @@ public abstract class InvokeCallableNode extends BaseNode {
                                     invokeFunctionNode.getSchema(),
                                     invokeFunctionNode.getDefaultsExecutionMode(),
                                     invokeFunctionNode.getArgumentsExecutionMode()));
-            childDispatch.setTailStatus(getTailStatus());
+            childDispatch.setTailStatus(TailStatus.NOT_TAIL);
             childDispatch.setId(invokeFunctionNode.getId());
             notifyInserted(childDispatch);
           }
@@ -297,9 +296,9 @@ public abstract class InvokeCallableNode extends BaseNode {
       if (result instanceof DataflowError) {
         return result;
       } else if (result instanceof WithWarnings withWarnings) {
-        return withWarnings.prepend(extracted);
+        return withWarnings.append(EnsoContext.get(this), extracted);
       } else {
-        return new WithWarnings(result, extracted);
+        return WithWarnings.wrap(EnsoContext.get(this), result, extracted);
       }
     } catch (UnsupportedMessageException e) {
       throw CompilerDirectives.shouldNotReachHere(e);

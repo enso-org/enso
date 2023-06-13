@@ -1,5 +1,10 @@
-/** @file TypeScript's closest equivalent of `newtype`s. */
+/** @file Emulates `newtype`s in TypeScript. */
 
+// ===============
+// === Newtype ===
+// ===============
+
+/** An interface specifying the variant of a newtype. */
 interface NewtypeVariant<TypeName extends string> {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     _$type: TypeName
@@ -20,11 +25,13 @@ interface NewtypeVariant<TypeName extends string> {
  * `a: string = asNewtype<Newtype<string, 'Name'>>(b)` successfully typechecks. */
 export type Newtype<T, TypeName extends string> = NewtypeVariant<TypeName> & T
 
+/** An interface that matches a type if and only if it is not a newtype. */
 interface NotNewtype {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     _$type?: never
 }
 
+/** Converts a value that is not a newtype, to a value that is a newtype. */
 export function asNewtype<T extends Newtype<unknown, string>>(
     s: NotNewtype & Omit<T, '_$type'>
 ): T {

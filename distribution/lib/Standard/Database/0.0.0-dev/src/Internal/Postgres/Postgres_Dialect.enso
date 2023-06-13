@@ -6,11 +6,14 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
+from Standard.Table import Value_Type
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
+from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.Connection.Connection.Connection
 import project.Data.Dialect
 import project.Data.SQL.Builder
+import project.Data.SQL.SQL_Fragment
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
@@ -20,6 +23,7 @@ import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.IR.Context.Context
+import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Nulls_Order.Nulls_Order
@@ -28,6 +32,7 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Query.Query
 import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
+import project.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
@@ -148,8 +153,36 @@ type Postgres_Dialect
     needs_execute_query_for_type_inference self = False
 
     ## PRIVATE
-    cast_after_union : Boolean
-    cast_after_union self = False
+    supports_separate_nan : Boolean
+    supports_separate_nan self = True
+
+    ## PRIVATE
+       There is a bug in Postgres type inference, where if we unify two
+       fixed-length char columns of length N and M, the result type is said to
+       be a **fixed-length** column of length max_int4. This is wrong, and in
+       practice the column is just a variable-length text. This method detects
+       this situations and overrides the type to make it correct.
+    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
+    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
+        needs_char_length_override_check = case approximate_result_type of
+            Value_Type.Char _ _ -> True
+            _ -> False
+        case needs_char_length_override_check of
+            True ->
+                type_mapping = self.get_type_mapping
+                db_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
+                case db_type of
+                    Value_Type.Char _ _ -> case db_type == approximate_result_type of
+                        True -> column
+                        False ->
+                            type_override = type_mapping.value_type_to_sql approximate_result_type Problem_Behavior.Report_Error
+                            type_override.catch Inexact_Type_Coercion _->
+                                Panic.throw <|
+                                    Illegal_State.Error "The target type ("+db_type.to_display_text+") that we need to cast to seems to not be supported by the Dialect. This is not expected. It is a bug in the Database library."
+                            self.make_cast column type_override infer_result_type_from_database_callback
+                    _ -> Panic.throw <|
+                        Illegal_State.Error "The type computed by our logic is Char, but the Database computed a non-text type ("+db_type.to_display_text+"). This should never happen and should be reported as a bug in the Database library."
+            False -> column
 
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
@@ -162,10 +195,26 @@ type Postgres_Dialect
         _ = aggregate
         True
 
+    ## PRIVATE
+       Checks if an operation is supported by the dialect.
+    is_supported : Text -> Boolean
+    is_supported self operation =
+        self.internal_generator_dialect.is_supported operation
+
+    ## PRIVATE
+       The default table types to use when listing tables.
+    default_table_types : Vector Text
+    default_table_types self =
+        ["TABLE", "VIEW", "TEMPORARY TABLE", "TEMPORARY VIEW", "MATERIALIZED VIEW", "FOREIGN TABLE", "PARTITIONED TABLE"]
+
+    ## PRIVATE
+    get_error_mapper : Error_Mapper
+    get_error_mapper self = Postgres_Error_Mapper
+
 ## PRIVATE
 make_internal_generator_dialect =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
-    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive]+concat_ops+cases
+    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [is_nan, decimal_div, mod_op,  ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
@@ -174,8 +223,51 @@ make_internal_generator_dialect =
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
     date_ops = [make_extract_as_int "year" "YEAR", make_extract_as_int "month" "MONTH", make_extract_as_int "day" "DAY"]
-    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops
+    special_overrides = [is_null, is_empty]
+    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides
     Base_Generator.base_dialect . extend_with my_mappings
+
+## PRIVATE
+   This overrides the default behaviour, due to a weird behaviour of Postgres -
+   it wants to determine the type for the parameter provided to IS NULL.
+
+   But when the parameter is NULL, the type is unspecified. This only occurs if
+   a constant-NULL column is created in an expression builder `make_constant`
+   when computing an expression. We do not want to give it a default type, as
+   it needs to be flexible - this NULL column may be used in expressions of
+   various types. Only with IS NULL, having no type associated will fail with
+   `ERROR: could not determine data type of parameter`. To circumvent this
+   issue, we simply check if the parameter to be provided there is a `Nothing`
+   interpolation. If it is, we will just rewrite the expression to `TRUE` since
+   that is the expected result of `NULL IS NULL`.
+
+   With the IR refactor, this should be done in some preprocess pass that still
+   works on SQL_Expression and not raw SQL.
+is_null = Base_Generator.lift_unary_op "IS_NULL" arg->
+    if represents_an_untyped_null_expression arg then Builder.code "TRUE" else
+        Builder.code "(" ++ arg.paren ++ " IS NULL)"
+
+## PRIVATE
+   See `is_null` above.
+
+   It is a heuristic that will match generated expressions coming from
+   a NULL Literal or a Nothing constant. This should be enough, as any more
+   complex expression should have some type associated with it.
+represents_an_untyped_null_expression arg =
+    vec = arg.fragments.build
+    if vec.length != 1 then False else
+        case vec.first of
+            SQL_Fragment.Code_Part "NULL" -> True
+            SQL_Fragment.Interpolation Nothing -> True
+            _ -> False
+
+## PRIVATE
+   The same issue as with `is_null` above, but here we can assume that `arg`
+   represents some `text` value, so we can just CAST it.
+is_empty = Base_Generator.lift_unary_op "IS_EMPTY" arg->
+    is_null = (arg.paren ++ "::text IS NULL").paren
+    is_empty = (arg ++ " = ''").paren
+    (is_null ++ " OR " ++ is_empty).paren
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
@@ -264,6 +356,20 @@ concat_ops =
     concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
+## PRIVATE
+trim_ops =
+    whitespace = "' ' || CHR(9) || CHR(10) || CHR(13)"
+    make_fn fn_name = Base_Generator.lift_binary_op fn_name input-> chars-> case chars of
+            Nothing -> Builder.code fn_name+"(" ++ input ++ ", " ++ whitespace ++ ")"
+            _ ->
+                case chars.is_constant of
+                    True ->
+                        const = chars.fragments.vec.first.object
+                        if const.is_nothing || const.is_empty then Builder.code fn_name+"(" ++ input ++ ", " ++ whitespace ++ ")" else
+                            Builder.code fn_name+"(" ++ input ++ ", " ++ chars ++ ")"
+                    False ->
+                        Builder.code "CASE WHEN " ++ chars ++ " IS NULL OR " ++ chars ++ " = '' THEN " ++ fn_name ++ "(" ++ input ++ ") ELSE " ++ fn_name ++ "(" ++ input ++ ", " ++ chars ++ ") END"
+    [make_fn "TRIM", make_fn "LTRIM", make_fn "RTRIM"]
 
 ## PRIVATE
 agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument.Error "COUNT_DISTINCT requires at least one argument.")) else

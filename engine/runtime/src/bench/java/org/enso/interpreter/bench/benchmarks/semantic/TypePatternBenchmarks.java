@@ -25,7 +25,7 @@ public class TypePatternBenchmarks {
   private Value self;
 
   @Setup
-  public void initializeBenchmark(BenchmarkParams params) {
+  public void initializeBenchmark(BenchmarkParams params) throws Exception {
     var ctx = Context.newBuilder()
       .allowExperimentalOptions(true)
       .allowIO(true)
@@ -35,7 +35,7 @@ public class TypePatternBenchmarks {
         "enso.languageHomeOverride",
         Paths.get("../../distribution/component").toFile().getAbsolutePath()
       ).build();
-    var module = ctx.eval("enso", """
+    var code ="""
         from Standard.Base import Integer, Vector, Any, Decimal
 
         avg arr =
@@ -60,14 +60,17 @@ public class TypePatternBenchmarks {
 
         match_dec = v -> case v of
             n : Decimal -> n + 1
-        """);
+        """;
+    var benchmarkName = SrcUtil.findName(params);
+    var src = SrcUtil.source(benchmarkName, code);
+    var module = ctx.eval(src);
 
     this.self = module.invokeMember("get_associated_type");
     Function<String,Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
 
     var length = 100;
     this.vec = getMethod.apply("gen_vec").execute(self, length, 1.1);
-    switch (params.getBenchmark().replaceFirst(".*\\.", "")) {
+    switch (SrcUtil.findName(params)) {
       case "matchOverAny":
         this.patternMatch = getMethod.apply("match_any");
         break;

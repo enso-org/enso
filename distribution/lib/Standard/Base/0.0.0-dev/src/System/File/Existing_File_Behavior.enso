@@ -4,6 +4,7 @@ import project.Errors.File_Error.File_Error
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Panic.Caught_Panic
+import project.Runtime.Context
 import project.System.File.File
 import project.System.File.File_Access.File_Access
 import project.System.File.Output_Stream
@@ -34,6 +35,17 @@ type Existing_File_Behavior
     Error
 
     ## PRIVATE
+       Adjust the Existing_File_Behavior to take account of Context enablement.
+    get_effective_behavior : File -> Boolean -> Existing_File_Behavior ! File_Error
+    get_effective_behavior self file is_enabled=Context.Output.is_enabled =
+        if is_enabled then self else
+            case self of
+                Existing_File_Behavior.Backup -> Existing_File_Behavior.Overwrite
+                Existing_File_Behavior.Error ->
+                    if file.exists then Error.throw (File_Error.Already_Exists file) else Existing_File_Behavior.Overwrite
+                _ -> self
+
+    ## PRIVATE
        Runs the `action` which is given a file output stream and should write
        the required contents to it.
 
@@ -58,7 +70,7 @@ type Existing_File_Behavior
                 handle_file_already_exists = catch_already_exists handle_existing_file
                 handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored handler=handle_write_failure_dataflow
                 ## We first attempt to write the file to the original
-                   destination, but if that files due to the file already
+                   destination, but if that fails due to the file already
                    existing, we will run the alternative algorithm which uses a
                    temporary file and creates a backup.
                 handle_file_already_exists <| handle_internal_dataflow <|

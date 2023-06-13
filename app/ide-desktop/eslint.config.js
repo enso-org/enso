@@ -14,6 +14,10 @@ import tsEslint from '@typescript-eslint/eslint-plugin'
 import tsEslintParser from '@typescript-eslint/parser'
 /* eslint-enable no-restricted-syntax */
 
+// =================
+// === Constants ===
+// =================
+
 const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 const NAME = 'enso'
 /** An explicit whitelist of CommonJS modules, which do not support namespace imports.
@@ -28,14 +32,17 @@ const DEFAULT_IMPORT_ONLY_MODULES =
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|react-hot-toast`
 const OUR_MODULES = 'enso-content-config|enso-common'
 const RELATIVE_MODULES =
-    'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|file-associations|index|ipc|naming|paths|preload|security'
+    'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|file-associations|index|ipc|log|naming|paths|preload|security|url-associations'
 const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
 const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_PASCAL_CASE = '/^(?!_?([A-Z][a-z0-9]*)+$)/'
 const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)/'
 const WHITELISTED_CONSTANTS = 'logger|.+Context'
 const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)/`
-const WITH_ROUTER = 'CallExpression[callee.name=withRouter]'
+
+// =======================================
+// === Restricted syntactic constructs ===
+// =======================================
 
 // Extracted to a variable because it needs to be used twice:
 // - once as-is for `.d.ts`
@@ -102,7 +109,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         selector:
-            ':not(:matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression, SwitchStatement, SwitchCase, IfStatement:has(.consequent > :matches(ReturnStatement, ThrowStatement)):has(.alternate :matches(ReturnStatement, ThrowStatement)), TryStatement:has(.block > :matches(ReturnStatement, ThrowStatement)):has(:matches([handler=null], .handler :matches(ReturnStatement, ThrowStatement))):has(:matches([finalizer=null], .finalizer :matches(ReturnStatement, ThrowStatement))))) > * > :matches(ReturnStatement, ThrowStatement)',
+            ':not(:matches(FunctionDeclaration, FunctionExpression, ArrowFunctionExpression, SwitchStatement, SwitchCase, IfStatement:has(.consequent > :matches(ReturnStatement, ThrowStatement)):has(.alternate :matches(ReturnStatement, ThrowStatement)), Program > TryStatement, Program > TryStatement > .handler, TryStatement:has(.block > :matches(ReturnStatement, ThrowStatement)):has(:matches([handler=null], .handler :matches(ReturnStatement, ThrowStatement))), TryStatement:has(.block > :matches(ReturnStatement, ThrowStatement)):has(:matches([handler=null], .handler :matches(ReturnStatement, ThrowStatement))) > .handler)) > * > :matches(ReturnStatement, ThrowStatement)',
         message: 'No early returns',
     },
     {
@@ -113,7 +120,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         // Matches functions and arrow functions, but not methods.
-        selector: `:matches(FunctionDeclaration[id.name=${NOT_PASCAL_CASE}]:has(${JSX}), VariableDeclarator[id.name=${NOT_PASCAL_CASE}]:has(:matches(ArrowFunctionExpression ${JSX}, ${WITH_ROUTER})))`,
+        selector: `:matches(FunctionDeclaration[id.name=${NOT_PASCAL_CASE}]:has(${JSX}), VariableDeclarator[id.name=${NOT_PASCAL_CASE}]:has(:matches(ArrowFunctionExpression.init ${JSX})))`,
         message: 'Use `PascalCase` for React components',
     },
     {
@@ -123,7 +130,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         // Matches non-functions.
-        selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:has(:matches(ArrowFunctionExpression, ${WITH_ROUTER})))`,
+        selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:has(:matches(ArrowFunctionExpression)))`,
         message: 'Use `CONSTANT_CASE` for top-level constants that are not functions',
     },
     {
@@ -198,7 +205,27 @@ const RESTRICTED_SYNTAXES = [
             'TSAsExpression:has(TSUnknownKeyword, TSNeverKeyword, TSAnyKeyword) > TSAsExpression',
         message: 'Use type assertions to specific types instead of `unknown`, `any` or `never`',
     },
+    {
+        selector: ':matches(MethodDeclaration, FunctionDeclaration) FunctionDeclaration',
+        message: 'Use arrow functions for nested functions',
+    },
+    {
+        selector: ':not(ExportNamedDeclaration) > TSInterfaceDeclaration[id.name=/Props$/]',
+        message: 'All React component `Props` types must be exported',
+    },
+    {
+        selector: 'FunctionDeclaration:has(:matches(ObjectPattern.params, ArrayPattern.params))',
+        message: 'Destructure function parameters in the body instead of in the parameter list',
+    },
+    {
+        selector: 'IfStatement > ExpressionStatement',
+        message: 'Wrap `if` branches in `{}`',
+    },
 ]
+
+// ============================
+// === ESLint configuration ===
+// ============================
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export default [
@@ -218,9 +245,6 @@ export default [
                 ...globals.browser,
                 ...globals.node,
                 ...globals.es2015,
-                BUNDLED_ENGINE_VERSION: true,
-                PROJECT_MANAGER_IN_BUNDLE_PATH: true,
-                BUILD_INFO: true,
             },
         },
         rules: {
@@ -229,7 +253,35 @@ export default [
             ...tsEslint.configs['recommended-requiring-type-checking']?.rules,
             ...tsEslint.configs.strict?.rules,
             eqeqeq: ['error', 'always', { null: 'never' }],
+            'jsdoc/require-jsdoc': [
+                'error',
+                {
+                    require: {
+                        FunctionDeclaration: true,
+                        MethodDefinition: true,
+                        ClassDeclaration: true,
+                        ArrowFunctionExpression: false,
+                        FunctionExpression: true,
+                    },
+                    // Top-level constants should require JSDoc as well,
+                    // however it does not seem like there is a way to do this.
+                    contexts: [
+                        'TSInterfaceDeclaration',
+                        'TSEnumDeclaration',
+                        'TSTypeAliasDeclaration',
+                        'TSMethodSignature',
+                    ],
+                },
+            ],
             'sort-imports': ['error', { allowSeparatedGroups: true }],
+            'no-restricted-properties': [
+                'error',
+                {
+                    object: 'router',
+                    property: 'useNavigate',
+                    message: 'Use `hooks.useNavigate` instead.',
+                },
+            ],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
             'prefer-arrow-callback': 'error',
             // Prefer `interface` over `type`.
@@ -272,6 +324,7 @@ export default [
                 },
             ],
             '@typescript-eslint/no-confusing-void-expression': 'error',
+            '@typescript-eslint/no-empty-interface': 'off',
             '@typescript-eslint/no-extraneous-class': 'error',
             '@typescript-eslint/no-invalid-void-type': ['error', { allowAsThisParameter: true }],
             // React 17 and later supports async functions as event handlers, so we need to disable this
@@ -378,6 +431,30 @@ export default [
             ],
             // This rule does not work with TypeScript, and TypeScript already does this.
             'no-undef': 'off',
+        },
+    },
+    {
+        files: [
+            'lib/dashboard/src/**/*.ts',
+            'lib/dashboard/src/**/*.mts',
+            'lib/dashboard/src/**/*.cts',
+            'lib/dashboard/src/**/*.tsx',
+            'lib/dashboard/src/**/*.mtsx',
+            'lib/dashboard/src/**/*.ctsx',
+        ],
+        rules: {
+            'no-restricted-properties': [
+                'error',
+                {
+                    object: 'console',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+                {
+                    object: 'hooks',
+                    property: 'useDebugState',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+            ],
         },
     },
     {

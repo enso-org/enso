@@ -112,7 +112,8 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                     }
                   ],
                   "returnType" : "MyAtom",
-                  "documentation" : " PRIVATE\n\n A key-value store. This type assumes all keys are pairwise comparable,\n using the `<`, `>` and `==` operators.\n\n Arguments:\n - one: The first.\n - two_three: The *second*.\n\n ? Info\n   Here is a thing."
+                  "documentation" : " PRIVATE\n\n A key-value store. This type assumes all keys are pairwise comparable,\n using the `<`, `>` and `==` operators.\n\n Arguments:\n - one: The first.\n - two_three: The *second*.\n\n ? Info\n   Here is a thing.",
+                  "annotations" : ["a"]
                }
              }
            ],
@@ -182,7 +183,8 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                   "selfType" : "MyType",
                   "returnType" : "Number",
                   "isStatic" : false,
-                  "documentation" : "Lovely"
+                  "documentation" : "Lovely",
+                  "annotations" : ["foo"]
                 }
               }
             ],
@@ -500,11 +502,14 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
               ModuleExports(
                 "Foo.Bar",
                 ListSet(
-                  ExportedSymbol
-                    .Atom(
-                      Suggestions.constructor.module,
-                      Suggestions.constructor.name
-                    )
+                  ExportedSymbol.Type(
+                    Suggestions.tpe.module,
+                    Suggestions.tpe.name
+                  ),
+                  ExportedSymbol.Constructor(
+                    Suggestions.constructor.module,
+                    Suggestions.constructor.name
+                  )
                 )
               ),
               Api.ExportsAction.Add()
@@ -519,6 +524,14 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
             "method" : "search/suggestionsDatabaseUpdates",
             "params" : {
               "updates" : [
+                {
+                  "type" : "Modify",
+                  "id" : 1,
+                  "reexport" : {
+                    "tag" : "Set",
+                    "value" : "Foo.Bar"
+                  }
+                },
                 {
                   "type" : "Modify",
                   "id" : 2,

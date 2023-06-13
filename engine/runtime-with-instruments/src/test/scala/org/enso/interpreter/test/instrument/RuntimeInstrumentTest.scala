@@ -99,6 +99,11 @@ class RuntimeInstrumentTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
+  override protected def afterEach(): Unit = {
+    context.executionContext.context.close()
+    context.runtimeServerEmulator.terminate()
+  }
+
   it should "instrument simple expression" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
@@ -243,7 +248,7 @@ class RuntimeInstrumentTest
         contextId,
         mainBody,
         fooTypeName,
-        Api.MethodPointer(moduleName, fooTypeName, "from")
+        Api.MethodCall(Api.MethodPointer(moduleName, fooTypeName, "from"))
       ),
       context.executionComplete(contextId)
     )
@@ -602,7 +607,9 @@ class RuntimeInstrumentTest
           contextId,
           xExpr,
           ConstantsGen.INTEGER_BUILTIN,
-          Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "f")
+          Api.MethodCall(
+            Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "f")
+          )
         ),
       TestMessages.update(contextId, mainRes, ConstantsGen.INTEGER_BUILTIN),
       TestMessages.update(contextId, mainExpr, ConstantsGen.INTEGER_BUILTIN),

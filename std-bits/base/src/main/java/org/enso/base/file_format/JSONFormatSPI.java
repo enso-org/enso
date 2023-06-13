@@ -9,6 +9,6 @@ public class JSONFormatSPI extends FileFormatSPI {
 
   @Override
   protected String getTypeName() {
-    return "JSON_File";
+    return "JSON_Format";
   }
 }

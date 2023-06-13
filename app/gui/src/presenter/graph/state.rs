@@ -11,6 +11,7 @@ use bimap::BiMap;
 use bimap::Overwritten;
 use double_representation::context_switch::ContextSwitchExpression;
 use engine_protocol::language_server::ExpressionUpdatePayload;
+use engine_protocol::language_server::SuggestionId;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
@@ -242,8 +243,8 @@ pub struct Expression {
     pub node:            AstNodeId,
     /// The known type of the expression.
     pub expression_type: Option<view::graph_editor::Type>,
-    /// A pointer to the method called by this expression.
-    pub method_pointer:  Option<view::graph_editor::MethodPointer>,
+    /// Suggestion database ID the method called by this expression.
+    pub suggestion_id:   Option<SuggestionId>,
     /// A AST ID of `self` argument associated with a method call represented by this expression.
     pub target_id:       Option<ast::Id>,
 }
@@ -654,16 +655,16 @@ impl<'a> ControllerChange<'a> {
         }
     }
 
-    /// Set the new expression's method pointer. If the method pointer actually changes, the
+    /// Set the new expression's suggestion ID. If the suggestion ID actually changes, the
     /// to-be-updated view and target (`self` argument) AST ID is returned.
-    pub fn set_expression_method_pointer(
+    pub fn set_expression_suggestion(
         &self,
         id: ast::Id,
-        method_ptr: Option<view::graph_editor::MethodPointer>,
+        suggestion: Option<SuggestionId>,
     ) -> Option<(ViewNodeId, Option<ast::Id>)> {
         let mut expressions = self.expressions.borrow_mut();
-        let displayed = expressions.get_mut(id).filter(|d| d.method_pointer != method_ptr)?;
-        displayed.method_pointer = method_ptr;
+        let displayed = expressions.get_mut(id).filter(|d| d.suggestion_id != suggestion)?;
+        displayed.suggestion_id = suggestion;
         let nodes = self.nodes.borrow();
         let node = nodes.get(displayed.node)?;
         Some((node.view_id?, displayed.target_id))
@@ -872,7 +873,6 @@ impl<'a> ViewChange<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use engine_protocol::language_server::MethodPointer;
     use parser::Parser;
 
     fn create_test_node(expression: &str) -> controller::graph::Node {
@@ -1082,17 +1082,8 @@ mod tests {
         let expr = nodes[0].node.id();
         let updater = state.update_from_controller();
 
-        let method_ptr = MethodPointer {
-            module:          "Foo".to_string(),
-            defined_on_type: "Foo".to_string(),
-            name:            "foo".to_string(),
-        };
-        let method_ptr = Some(view::graph_editor::MethodPointer::from(method_ptr));
-        assert_eq!(
-            updater.set_expression_method_pointer(expr, method_ptr.clone()),
-            Some((view, None))
-        );
-        assert_eq!(updater.set_expression_method_pointer(expr, method_ptr), None);
-        assert_eq!(updater.set_expression_method_pointer(expr, None), Some((view, None)));
+        assert_eq!(updater.set_expression_suggestion(expr, Some(5)), Some((view, None)));
+        assert_eq!(updater.set_expression_suggestion(expr, Some(5)), None);
+        assert_eq!(updater.set_expression_suggestion(expr, None), Some((view, None)));
     }
 }

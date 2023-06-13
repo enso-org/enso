@@ -139,8 +139,14 @@ pub struct Loop {
 
 impl Loop {
     /// Constructor.
-    pub fn new(callback: impl OnFrameCallback) -> Self {
-        let handle = LOOP_REGISTRY.with(|registry| registry.add(callback));
+    pub fn new_before_animations(f: impl BeforeAnimationCallback) -> Self {
+        let handle = LOOP_REGISTRY.with(|registry| registry.add_before_animation_callback(f));
+        Self { handle }
+    }
+
+    /// Constructor.
+    pub fn new_animation(f: impl AnimationCallback) -> Self {
+        let handle = LOOP_REGISTRY.with(|registry| registry.add_animation_callback(f));
         Self { handle }
     }
 }
@@ -153,8 +159,11 @@ impl Loop {
 
 // === Types ===
 
-/// Type of the function that will be called on every animation frame.
-pub trait OnFrameCallback = FnMut(TimeInfo) + 'static;
+/// Type of the animation function that will be called on every frame.
+pub trait AnimationCallback = FnMut(FixedFrameRateStep<TimeInfo>) + 'static;
+
+/// Type of a function that will be called on every frame before animation callbacks are run.
+pub trait BeforeAnimationCallback = FnMut(TimeInfo) + 'static;
 
 
 crate::define_endpoints_2! {
@@ -162,8 +171,8 @@ crate::define_endpoints_2! {
         on_frame_start(Duration),
         on_before_animations(TimeInfo),
         on_after_animations(TimeInfo),
+        on_before_layout(TimeInfo),
         on_before_rendering(TimeInfo),
-        frame_end(TimeInfo),
     }
 }
 
@@ -178,11 +187,6 @@ pub fn on_frame_start() -> enso_frp::Sampler<Duration> {
     LOOP_REGISTRY.with(|registry| registry.on_frame_start.clone_ref())
 }
 
-/// Fires at the end of every animation frame.
-pub fn frame_end() -> enso_frp::Sampler<TimeInfo> {
-    LOOP_REGISTRY.with(|registry| registry.frame_end.clone_ref())
-}
-
 /// Fires before the animations are evaluated.
 pub fn on_before_animations() -> enso_frp::Sampler<TimeInfo> {
     LOOP_REGISTRY.with(|registry| registry.on_before_animations.clone_ref())
@@ -193,19 +197,116 @@ pub fn on_after_animations() -> enso_frp::Sampler<TimeInfo> {
     LOOP_REGISTRY.with(|registry| registry.on_after_animations.clone_ref())
 }
 
+/// Fires before the layout is performed.
+pub fn on_before_layout() -> enso_frp::Sampler<TimeInfo> {
+    LOOP_REGISTRY.with(|registry| registry.on_before_layout.clone_ref())
+}
+
 /// Fires before the rendering is performed.
 pub fn on_before_rendering() -> enso_frp::Sampler<TimeInfo> {
     LOOP_REGISTRY.with(|registry| registry.on_before_rendering.clone_ref())
 }
 
-/// An animation loop. Runs the provided [`OnFrame`] callback on every animation frame.
+/// A wrapper for JavaScript `requestAnimationFrame` (RAF) loop. It allows registering callbacks and
+/// also exposes FRP endpoints that will emit signals on every loop iteration.
+///
+///
+/// # Warning, the following information is valid in Chrome only.
+/// Handling of events, animation frames, and scheduling tasks is an implementation detail of every
+/// browser. We did an in-depth analysis of how Chrome handles these things. Other browsers'
+/// behavior might differ. This should not affect the correctness of either application behavior nor
+/// performance measurements, but it is important to understand if you are working on
+/// performance-related issues.
+///
+///
+/// # Events scheduling in Chrome
+/// The following graph shows an example order of tasks per frame with the assumptions that all the
+/// frame tasks can be executed within that frame and the application runs with native FPS.
+///
+/// ```text
+///             ║    Frame 1     ║    Frame 2     ║    Frame 3     ║ ...
+/// Idle time   ║█            ███║██         █████║████           █║ ...
+/// Other tasks ║ █          █   ║  █       █     ║    █        █  ║ ...
+/// I/O Events  ║  ██   █████    ║      ████      ║     █   ████   ║ ...
+/// RAF         ║    ███         ║   ███          ║      ███       ║ ...
+/// GPU         ║      ████      ║     ███        ║        ██████  ║ ...
+/// ```
+///
+/// A few things should be noted here:
+///
+/// - **Frame start idle time.** At the beginning of almost every frame, there will be an idle time
+///   of up to a few milliseconds (we've observed idle times between 0 ms and 4 ms). This time is
+///   likely caused by frames being synchronized with the screen refresh rate, while the tasks are
+///   performed by the Chrome task scheduler, which is not fired at the synchronization points. To
+///   learn more, see [this link](https://bugs.chromium.org/p/chromium/issues/detail?id=607650). It
+///   is not clear whether Chrome considers this a bug or if they will ever fix it.
+///
+/// - **Other tasks.** These are Chrome-internal tasks. For example, before every animation frame,
+///   Chrome performs some preparation work, which in most cases is very short (we've observed times
+///   between 20 μs and 40 μs). At the end of the frame, Chrome performs pre-paint, layout,
+///   layerize, and commit jobs, which, in the case of EnsoGL applications (when no HTML elements
+///   are on the stage), are also short, ranging between 0.1 ms and 0.5 ms.
+///
+/// - **I/O Events.** Events such as mouse down/up/move can be scheduled before or after the RAF
+///   callback. Some of these events might originate in the previous frame, and their handling might
+///   be scheduled for the next frame by Chrome.
+///
+/// - **RAF.** The RAF (Request Animation Frame) callback triggers WebGL per-frame functions, such
+///   as animations, Display Object layout recomputation, WebGL buffer updates, and invoking WebGL
+///   draw calls.
+///
+/// - **GPU.** The GPU-related work starts at the end of the RAF callback, as soon as the first
+///   WebGL calls are issued. It is performed in parallel with the rest of the RAF callback, I/O
+///   events, and other tasks performed by Chrome.
+///
+/// In case the total time of all the per-frame tasks is longer than the frame duration with the
+/// native refresh rate, some frames might be skipped, and a very interesting time report behavior
+/// can be observed. Let's consider the following events graph:
+///
+/// ```text
+///             ║ Real frame 1 work  ┆          Real frame 2 work         ┆            ...
+///             ║    Frame 1     ║   ┆Frame 2     ║ Frame 3 (skip) ║    Frame 4     ║  ...
+/// Idle time   ║███             ║   ┆            ║                ║      ┆         ║  ...
+/// Other tasks ║   █            ║  █┆            ║                ║     █┆         ║  ...
+/// RAF         ║    ██████████  ║   ┆  ██████████████████████████████    ┆ ██████████ ...
+/// I/O Events  ║              █████ ┆██          ║                ║  ██  ┆█        ║  ...
+/// GPU         ║              ███   ┆            ║                ║     █┆         ║  ...
+/// ```
+///
+/// A few things should be noted here:
+///
+/// - **Frame start idle time.** As previously mentioned, we can observe an idle time at the
+///   beginning of the first frame. The Chrome task scheduler rendered the previous frame in time,
+///   so there was no pressure to start the next tasks immediately. However, there is no idle time
+///   present in the next frames as their computations took longer than the native frame duration.
+///
+/// - **Frame times.** Even if the real computation time can exceed the time of a few frames issued
+///   with the native refresh rate, the frames are always scheduled with the native refresh rate
+///   time. Thus, some of these frames might be skipped, like frame 3 in the example above.
+///
+/// - **RAF start time.** When the RAF callback is called, it is provided with the frame start time.
+///   However, this time might be smaller than the time reported by performance.now(). For example,
+///   in the graph above, the third call to the RAF callback will report the beginning time of frame
+///   4, even though it was performed in the middle of frame 4. If we measured the time at the end
+///   of the second RAF callback with performance.now(), this time would be bigger than the time
+///   reported by the third RAF callback.
+///
+///
+/// # It is impossible to measure correct CPU-time from within JavaScript.
+/// In Chrome, it is possible to get precise results of the GPU time (see
+/// [ExtDisjointTimerQueryWebgl2]). However, even if we measure the time of all I/O events and the
+/// time of the RAF callback, we cannot measure the time of the other tasks performed by Chrome
+/// because we cannot register an event at the end of the per-frame job. Thus, when measuring
+/// performance within the application, the only reliable way is to base it on the time reported by
+/// the RAF callback and the GPU time measurements.
 #[derive(CloneRef, Derivative, Deref)]
 #[derivative(Clone(bound = ""))]
 #[derivative(Debug(bound = ""))]
 pub struct LoopRegistry {
     #[deref]
-    frp:            Frp,
-    callbacks:      callback::registry::Copy1<Duration>,
+    frp: Frp,
+    before_animations_callbacks: callback::registry::Copy1<TimeInfo>,
+    animations_callbacks: callback::registry::Copy1<FixedFrameRateStep<TimeInfo>>,
     animation_loop: JsLoop<OnFrameClosure>,
 }
 
@@ -213,19 +314,42 @@ impl LoopRegistry {
     /// Constructor.
     fn new() -> Self {
         let frp = default();
-        let callbacks = default();
-        let animation_loop = JsLoop::new(on_frame_closure(&frp, &callbacks));
-        Self { frp, callbacks, animation_loop }
+        let before_animations_callbacks = default();
+        let animations_callbacks = default();
+        let animation_loop = JsLoop::new(on_frame_closure(
+            &frp,
+            &before_animations_callbacks,
+            &animations_callbacks,
+        ));
+        Self { frp, before_animations_callbacks, animations_callbacks, animation_loop }
     }
 
-    fn add(&self, callback: impl OnFrameCallback) -> callback::Handle {
-        self.callbacks.add(create_callback_wrapper(callback))
+    fn add_before_animation_callback(
+        &self,
+        callback: impl BeforeAnimationCallback,
+    ) -> callback::Handle {
+        self.before_animations_callbacks.add(callback)
+    }
+
+    fn add_animation_callback(&self, callback: impl AnimationCallback) -> callback::Handle {
+        self.animations_callbacks.add(create_callback_wrapper(callback))
     }
 }
 
-fn create_callback_wrapper(mut callback: impl OnFrameCallback) -> impl FnMut(Duration) {
-    let mut time_info = InitializedTimeInfo::default();
-    move |current_time: Duration| callback(time_info.next_frame(current_time))
+fn create_callback_wrapper(mut callback: impl AnimationCallback) -> impl AnimationCallback {
+    let mut loop_start_time: Option<Duration> = None;
+    move |time: FixedFrameRateStep<TimeInfo>| {
+        let local_time = time.map(|mut time| {
+            let start_time = loop_start_time.unwrap_or_else(|| {
+                let start_time = time.since_animation_loop_started - time.previous_frame;
+                loop_start_time = Some(start_time);
+                start_time
+            });
+            time.since_animation_loop_started -= start_time;
+            time
+        });
+        callback(local_time)
+    }
 }
 
 #[derive(Default)]
@@ -251,242 +375,115 @@ impl InitializedTimeInfo {
 
 /// Callback for an animation frame.
 pub type OnFrameClosure = impl FnMut(Duration);
-fn on_frame_closure(frp: &Frp, callbacks: &callback::registry::Copy1<Duration>) -> OnFrameClosure {
-    let callbacks = callbacks.clone_ref();
+fn on_frame_closure(
+    frp: &Frp,
+    before_animations: &callback::registry::Copy1<TimeInfo>,
+    animations: &callback::registry::Copy1<FixedFrameRateStep<TimeInfo>>,
+) -> OnFrameClosure {
     let output = frp.private.output.clone_ref();
-
+    let before_animations = before_animations.clone_ref();
+    let animations = animations.clone_ref();
     let mut time_info = InitializedTimeInfo::default();
     let h_cell = Rc::new(Cell::new(callback::Handle::default()));
+    let fixed_fps_sampler = Rc::new(RefCell::new(FixedFrameRateSampler::default()));
+
     move |frame_time: Duration| {
+        let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
         let time_info = time_info.next_frame(frame_time);
         let on_frame_start = output.on_frame_start.clone_ref();
         let on_before_animations = output.on_before_animations.clone_ref();
         let on_after_animations = output.on_after_animations.clone_ref();
-        let frame_end = output.frame_end.clone_ref();
-        let output = output.clone_ref();
-        let callbacks = callbacks.clone_ref();
-        let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
+        let on_before_layout = output.on_before_layout.clone_ref();
+        let on_before_rendering = output.on_before_rendering.clone_ref();
+        let before_animations = before_animations.clone_ref();
+        let animations = animations.clone_ref();
+        let fixed_fps_sampler = fixed_fps_sampler.clone_ref();
 
         TickPhases::new(&h_cell)
             .then(move || on_frame_start.emit(frame_time))
             .then(move || on_before_animations.emit(time_info))
-            .then(move || callbacks.run_all(frame_time))
+            .then(move || before_animations.run_all(time_info))
+            .then(move || fixed_fps_sampler.borrow_mut().run(time_info, |t| animations.run_all(t)))
             .then(move || on_after_animations.emit(time_info))
-            .then(move || frame_end.emit(time_info))
-            .then(move || {
-                output.on_before_rendering.emit(time_info);
-                drop(_profiler);
-            })
+            .then(move || on_before_layout.emit(time_info))
+            .then(move || on_before_rendering.emit(time_info))
             .schedule();
     }
 }
+
+
 
 // =============================
 // === FixedFrameRateSampler ===
 // =============================
 
-/// An animation loop transformer. Calls the provided [`OnFrame`] callback on every animation frame.
-/// If the real animation frames are too long, it will emit virtual frames in between. In case the
-/// delay is too long (more than [`max_skipped_frames`]), the [`OnTooManyFramesSkipped`] callback
-/// will be used instead.
-#[derive(Derivative)]
-#[derivative(Debug(bound = ""))]
+/// A single [`FixedFrameRateSampler`] step. Either a normal frame or an indicator that too many
+/// frames were skipped.
 #[allow(missing_docs)]
-pub struct FixedFrameRateSampler<OnFrame, OnTooManyFramesSkipped> {
-    pub max_skipped_frames:     usize,
-    frame_time:                 Duration,
-    local_time:                 Duration,
-    time_buffer:                Duration,
-    #[derivative(Debug = "ignore")]
-    callback:                   OnFrame,
-    #[derivative(Debug = "ignore")]
-    on_too_many_frames_skipped: OnTooManyFramesSkipped,
+#[derive(Clone, Copy, Debug)]
+pub enum FixedFrameRateStep<T> {
+    Normal(T),
+    TooManyFramesSkipped,
 }
 
-impl<OnFrame, OnTooManyFramesSkipped> FixedFrameRateSampler<OnFrame, OnTooManyFramesSkipped> {
-    /// Constructor.
-    pub fn new(
-        fps: f32,
-        callback: OnFrame,
-        on_too_many_frames_skipped: OnTooManyFramesSkipped,
-    ) -> Self {
-        let max_skipped_frames = 2;
-        let frame_time = (1000.0 / fps).ms();
-        let local_time = default();
-        // The first call to this sampler will be with frame time 0, which would drop this
-        // `time_buffer` to 0.
-        let time_buffer = frame_time;
-        Self {
-            max_skipped_frames,
-            frame_time,
-            local_time,
-            time_buffer,
-            callback,
-            on_too_many_frames_skipped,
+impl<T> FixedFrameRateStep<T> {
+    /// Map the value inside the step.
+    pub fn map<U>(self, f: impl FnOnce(T) -> U) -> FixedFrameRateStep<U> {
+        match self {
+            Self::Normal(t) => FixedFrameRateStep::Normal(f(t)),
+            Self::TooManyFramesSkipped => FixedFrameRateStep::TooManyFramesSkipped,
         }
     }
 }
 
-impl<OnFrame: FnOnce<(TimeInfo,)>, OnTooManyFramesSkipped> FnOnce<(TimeInfo,)>
-    for FixedFrameRateSampler<OnFrame, OnTooManyFramesSkipped>
-{
-    type Output = ();
-    extern "rust-call" fn call_once(self, args: (TimeInfo,)) -> Self::Output {
-        self.callback.call_once(args);
-    }
+/// A frame rate sampler that ensures the animations look the same no matter the frame rate. In case
+/// the frame rate is slower than expected, the sampler will call the provided function multiple
+/// times. In case the skipped frame count is too big, the provided function will be called with the
+/// [`FixedFrameRateStep::TooManyFramesSkipped`] argument indicating the animation engine to skip
+/// the animation completely.
+#[derive(Clone, Copy, Debug)]
+pub struct FixedFrameRateSampler {
+    desired_fps:        f32,
+    max_skipped_frames: usize,
+    desired_frame_time: Duration,
+    time:               Duration,
 }
 
-impl<OnFrame, OnTooManyFramesSkipped> FnMut<(TimeInfo,)>
-    for FixedFrameRateSampler<OnFrame, OnTooManyFramesSkipped>
-where
-    OnFrame: FnMut(TimeInfo),
-    OnTooManyFramesSkipped: FnMut(),
-{
-    extern "rust-call" fn call_mut(&mut self, args: (TimeInfo,)) -> Self::Output {
-        let mut time = args.0;
-        self.time_buffer += time.since_animation_loop_started - self.local_time;
-        let half_frame_time = self.frame_time * 0.5;
-        let skipped_frames = ((self.time_buffer - half_frame_time) / self.frame_time) as usize;
-        let too_many_frames_skipped = skipped_frames > self.max_skipped_frames;
+impl FixedFrameRateSampler {
+    /// Constructor.
+    pub fn new(desired_fps: f32) -> Self {
+        let max_skipped_frames = 5;
+        let desired_frame_time = (1000.0 / desired_fps).ms();
+        let time = default();
+        Self { desired_fps, desired_frame_time, max_skipped_frames, time }
+    }
+
+    fn run(&mut self, time: TimeInfo, f: impl Fn(FixedFrameRateStep<TimeInfo>)) {
+        let time_diff = time.since_animation_loop_started - self.time;
+        let frames_to_run = (time_diff / self.desired_frame_time).ceil() as usize;
+        let time_step = time_diff / frames_to_run as f32;
+        // warn!("frames_to_run: {frames_to_run:?}");
+        let too_many_frames_skipped = frames_to_run > self.max_skipped_frames;
         if !too_many_frames_skipped {
-            for _ in 0..skipped_frames {
-                self.local_time += self.frame_time;
-                self.time_buffer -= self.frame_time;
-                let animation_loop_start = time.animation_loop_start;
-                let previous_frame = self.frame_time;
-                let since_animation_loop_started = self.local_time;
-                let time2 =
-                    TimeInfo { animation_loop_start, previous_frame, since_animation_loop_started };
-                self.callback.call_mut((time2,));
+            for _ in 0..frames_to_run {
+                self.time += time_step;
+                let local_time = TimeInfo {
+                    animation_loop_start:         time.animation_loop_start,
+                    previous_frame:               time_step,
+                    since_animation_loop_started: self.time,
+                };
+                f(FixedFrameRateStep::Normal(local_time));
             }
-            let not_too_fast_refresh_rate = self.time_buffer >= -half_frame_time;
-            if not_too_fast_refresh_rate {
-                self.time_buffer -= self.frame_time;
-            }
-            time.previous_frame = time.since_animation_loop_started - self.local_time;
-            self.local_time = time.since_animation_loop_started;
-            (self.callback)(time);
         } else {
-            debug!("Animations running slow. Skipping {} frames.", skipped_frames);
-            self.local_time = time.since_animation_loop_started;
-            self.time_buffer = 0.ms();
-            (self.on_too_many_frames_skipped)();
+            debug!("Skipping animations because of {frames_to_run} frame delay.");
+            f(FixedFrameRateStep::TooManyFramesSkipped);
         }
+        self.time = time.since_animation_loop_started;
     }
 }
 
-
-
-// ==========================
-// === FixedFrameRateLoop ===
-// ==========================
-
-/// Callback used if too many frames were skipped.
-pub trait OnTooManyFramesSkippedCallback = FnMut() + 'static;
-
-impl Loop {
-    /// Constructor.
-    pub fn new_with_fixed_frame_rate<
-        OnFrame: OnFrameCallback,
-        OnTooManyFramesSkipped: OnTooManyFramesSkippedCallback,
-    >(
-        fps: f32,
-        on_frame: OnFrame,
-        on_too_many_frames_skipped: OnTooManyFramesSkipped,
-    ) -> Self {
-        Self::new(FixedFrameRateSampler::new(fps, on_frame, on_too_many_frames_skipped))
-    }
-}
-
-
-
-// =============
-// === Tests ===
-// =============
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::collections::VecDeque;
-
-    #[test]
-    fn fixed_frame_rate_sampler_test() {
-        let mut count_check = 0;
-        let count = Rc::new(Cell::new(0));
-        let too_many_frames_skipped_count = Rc::new(Cell::new(0));
-        let frame_times = Rc::new(RefCell::new(VecDeque::new()));
-        let mut lp = FixedFrameRateSampler::new(
-            10.0,
-            |t| {
-                frame_times.borrow_mut().push_back(t);
-                count.set(count.get() + 1);
-            },
-            || {
-                too_many_frames_skipped_count.set(too_many_frames_skipped_count.get() + 1);
-            },
-        );
-        let mut time = TimeInfo {
-            animation_loop_start:         0.ms(),
-            previous_frame:               0.ms(),
-            since_animation_loop_started: 0.ms(),
-        };
-
-        let mut step = |frame_time: Duration,
-                        sub_frames: &[Duration],
-                        offset: Duration,
-                        skipped_count: Option<usize>| {
-            let time2 = time.new_frame(frame_time);
-            lp(time2);
-            for sub_frame in sub_frames {
-                count_check += 1;
-                time = time.new_frame(*sub_frame);
-                assert_eq!(frame_times.borrow_mut().pop_front(), Some(time));
-            }
-            time = time.new_frame(time2.since_animation_loop_started);
-            if skipped_count.is_none() {
-                count_check += 1;
-                assert_eq!(frame_times.borrow_mut().pop_front(), Some(time));
-            }
-            assert_eq!(frame_times.borrow_mut().pop_front(), None);
-            assert_eq!(count.get(), count_check);
-            assert_eq!(lp.time_buffer, offset);
-            if let Some(skipped_count) = skipped_count {
-                assert_eq!(too_many_frames_skipped_count.get(), skipped_count);
-            }
-        };
-
-        // Start frame.
-        step(0.ms(), &[], 0.ms(), None);
-
-        // Perfectly timed next frame.
-        step(100.ms(), &[], 0.ms(), None);
-
-        // Skipping 2 frames.
-        step(400.ms(), &[200.ms(), 300.ms()], 0.ms(), None);
-
-        // Perfectly timed next frame.
-        step(500.ms(), &[], 0.ms(), None);
-
-        // Next frame too slow.
-        step(640.ms(), &[], 40.ms(), None);
-
-        // Next frame too slow.
-        step(800.ms(), &[740.ms()], 0.ms(), None);
-
-        // Not-perfectly timed next frames.
-        step(870.ms(), &[], -30.ms(), None);
-        step(1010.ms(), &[], 10.ms(), None);
-        step(1090.ms(), &[], -10.ms(), None);
-        step(1200.ms(), &[], 0.ms(), None);
-
-        // Next frames way too fast.
-        step(1210.ms(), &[], -90.ms(), None);
-        // Time compression – we don't want to accumulate too much of negative time buffer for
-        // monitors with bigger refresh-rate than assumed. The total accumulated time buffer would
-        // be -180 here, so we add a frame time to it (100).
-        step(1220.ms(), &[], -80.ms(), None);
-
-        // Too many frames skipped.
-        step(2000.ms(), &[], 0.ms(), Some(1));
+impl Default for FixedFrameRateSampler {
+    fn default() -> Self {
+        Self::new(60.0)
     }
 }

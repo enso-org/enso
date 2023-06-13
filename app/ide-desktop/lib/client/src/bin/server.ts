@@ -8,7 +8,10 @@ import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
 import createServer from 'create-servers'
 
+import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
+
+import * as paths from '../paths'
 
 const logger = contentConfig.logger
 
@@ -17,20 +20,6 @@ const logger = contentConfig.logger
 // =================
 
 const HTTP_STATUS_OK = 200
-
-// ======================
-// === URL Parameters ===
-// ======================
-
-/** Construct URL query with the given parameters. For each `key` - `value` pair,
- * `key=value` will be added to the query. */
-export function urlParamsFromObject(obj: Record<string, string>) {
-    const params = []
-    for (const [key, value] of Object.entries(obj)) {
-        params.push(`${key}=${encodeURIComponent(value)}`)
-    }
-    return params.length === 0 ? '' : '?' + params.join('&')
-}
 
 // ==============
 // === Config ===
@@ -46,6 +35,7 @@ interface ConfigConfig {
 export class Config {
     dir: string
     port: number
+    /** Create a server configuration. */
     constructor(cfg: ConfigConfig) {
         this.dir = path.resolve(cfg.dir)
         this.port = cfg.port
@@ -56,8 +46,8 @@ export class Config {
 // === Port Finder ===
 // ===================
 
-/** Determines the initial available communication endpoint, starting from the specified port, to
- * provide file hosting services. */
+/** Determine the initial available communication endpoint, starting from the specified port,
+ * to provide file hosting services. */
 async function findPort(port: number): Promise<number> {
     return await portfinder.getPortPromise({ port, startPort: port })
 }
@@ -66,12 +56,13 @@ async function findPort(port: number): Promise<number> {
 // === Server ===
 // ==============
 
-/// A simple server implementation.
-///
-/// Initially it was based on `union`, but later we migrated to `create-servers`. Read this topic to
-/// learn why: https://github.com/http-party/http-server/issues/483
+/** A simple server implementation.
+ *
+ * Initially it was based on `union`, but later we migrated to `create-servers`.
+ * Read this topic to learn why: https://github.com/http-party/http-server/issues/483 */
 export class Server {
     server: unknown
+    /** Create a simple HTTP server. */
     constructor(public config: Config) {}
 
     /** Server constructor. */
@@ -83,6 +74,7 @@ export class Server {
         return server
     }
 
+    /** Start the server. */
     run(): Promise<void> {
         return new Promise((resolve, reject) => {
             this.server = createServer(
@@ -103,6 +95,7 @@ export class Server {
         })
     }
 
+    /** Respond to an incoming request. */
     process(request: http.IncomingMessage, response: http.ServerResponse) {
         const requestUrl = request.url
         if (requestUrl == null) {
@@ -110,7 +103,16 @@ export class Server {
         } else {
             const url = requestUrl.split('?')[0]
             const resource = url === '/' ? '/index.html' : requestUrl
-            const resourceFile = `${this.config.dir}${resource}`
+            // `preload.cjs` must be specialcased here as it is loaded by electron from the root,
+            // in contrast to all assets loaded by the window, which are loaded from `assets/` via
+            // this server.
+            const resourceFile =
+                resource === '/preload.cjs.map'
+                    ? `${paths.APP_PATH}${resource}`
+                    : `${this.config.dir}${resource}`
+            for (const [header, value] of common.COOP_COEP_CORP_HEADERS) {
+                response.setHeader(header, value)
+            }
             fs.readFile(resourceFile, (err, data) => {
                 if (err) {
                     logger.error(`Resource '${resource}' not found.`)

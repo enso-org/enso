@@ -1,8 +1,10 @@
 package org.enso.interpreter.node.callable.argument;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
@@ -10,8 +12,6 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentM
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.State;
-
-import java.util.concurrent.locks.Lock;
 
 /**
  * This class handles the case where a mapping for reordering arguments to a given callable has
@@ -66,7 +66,7 @@ public class ArgumentSorterNode extends BaseNode {
   }
 
   @ExplodeLoop
-  private void executeArguments(Object[] arguments, State state) {
+  private void executeArguments(VirtualFrame frame, Object[] arguments, State state) {
     if (executors == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       Lock lock = getLock();
@@ -81,7 +81,7 @@ public class ArgumentSorterNode extends BaseNode {
     }
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
       if (executors[i] != null) {
-        arguments[i] = executors[i].executeThunk(arguments[i], state, TailStatus.NOT_TAIL);
+        arguments[i] = executors[i].executeThunk(frame, arguments[i], state, TailStatus.NOT_TAIL);
       }
     }
   }
@@ -94,9 +94,10 @@ public class ArgumentSorterNode extends BaseNode {
    * @param arguments the arguments to reorder
    * @return the provided {@code arguments} in the order expected by the cached {@link Function}
    */
-  public MappedArguments execute(Function function, State state, Object[] arguments) {
+  public MappedArguments execute(
+      VirtualFrame frame, Function function, State state, Object[] arguments) {
     if (argumentsExecutionMode.shouldExecute()) {
-      executeArguments(arguments, state);
+      executeArguments(frame, arguments, state);
     }
     Object[] mappedAppliedArguments =
         prepareArguments(

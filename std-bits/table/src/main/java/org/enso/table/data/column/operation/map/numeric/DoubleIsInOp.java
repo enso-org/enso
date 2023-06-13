@@ -1,12 +1,10 @@
 package org.enso.table.data.column.operation.map.numeric;
 
-import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.operation.map.SpecializedIsInOp;
-import org.enso.table.data.column.storage.DoubleStorage;
-import org.enso.table.data.column.storage.Storage;
-
 import java.util.HashSet;
 import java.util.List;
+import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.operation.map.SpecializedIsInOp;
+import org.enso.table.data.column.storage.numeric.DoubleStorage;
 
 public class DoubleIsInOp extends SpecializedIsInOp<Double, DoubleStorage> {
   @Override

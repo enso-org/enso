@@ -6,10 +6,12 @@
 
 use ensogl::prelude::*;
 
+use engine_protocol::project_manager::ProjectMetadata;
 use enso_frp as frp;
 use ensogl::application;
 use ensogl::application::Application;
 use ensogl::display;
+use ensogl::display::shape::StyleWatchFrp;
 use std::rc::Rc;
 
 
@@ -37,11 +39,12 @@ pub struct Model {
     status_bar:     crate::status_bar::View,
     welcome_view:   crate::welcome_screen::View,
     project_view:   Rc<CloneCell<Option<crate::project::View>>>,
+    frp:            Frp,
 }
 
 impl Model {
     /// Constuctor.
-    pub fn new(app: &Application) -> Self {
+    pub fn new(app: &Application, frp: &Frp) -> Self {
         let app = app.clone_ref();
         let display_object = display::object::Instance::new();
         let state = Rc::new(CloneCell::new(State::WelcomeScreen));
@@ -50,8 +53,9 @@ impl Model {
         let welcome_view = app.new_view::<crate::welcome_screen::View>();
         let project_view = Rc::new(CloneCell::new(None));
         display_object.add_child(&welcome_view);
+        let frp = frp.clone_ref();
 
-        Self { app, display_object, status_bar, welcome_view, project_view, state }
+        Self { app, display_object, state, status_bar, welcome_view, project_view, frp }
     }
 
     /// Switch displayed view from Project View to Welcome Screen. Project View will not be
@@ -80,7 +84,19 @@ impl Model {
 
     fn init_project_view(&self) {
         if self.project_view.get().is_none() {
+            let network = &self.frp.network;
             let view = self.app.new_view::<crate::project::View>();
+            let project_list_frp = &view.project_list().frp;
+            let status_bar = &self.status_bar;
+            let display_object = &self.display_object;
+            frp::new_bridge_network! { [network, view.network] project_bridge
+                fs_vis_shown <- view.fullscreen_visualization_shown.on_true();
+                fs_vis_hidden <- view.fullscreen_visualization_shown.on_false();
+                eval fs_vis_shown ((_) status_bar.unset_parent());
+                eval fs_vis_hidden ([display_object, status_bar](_) display_object.add_child(&status_bar));
+
+                self.frp.source.selected_project <+ project_list_frp.selected_project;
+            }
             self.project_view.set(Some(view));
         }
     }
@@ -100,6 +116,8 @@ ensogl::define_endpoints! {
         switch_view_to_welcome_screen(),
     }
     Output {
+        /// The selected project in the project list
+        selected_project (Option<ProjectMetadata>),
     }
 }
 
@@ -127,13 +145,25 @@ impl Deref for View {
 impl View {
     /// Constuctor.
     pub fn new(app: &Application) -> Self {
-        let model = Model::new(app);
         let frp = Frp::new();
+        let model = Model::new(app, &frp);
         let network = &frp.network;
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        let offset_y = style.get_number(ensogl_hardcoded_theme::application::status_bar::offset_y);
+
         frp::extend! { network
+            init <- source::<()>();
+
             eval_ frp.switch_view_to_project(model.switch_view_to_project());
             eval_ frp.switch_view_to_welcome_screen(model.switch_view_to_welcome_screen());
+            offset_y <- all(&init,&offset_y)._1();
+            eval offset_y ((offset_y) model.status_bar.set_y(*offset_y));
+
+            model.status_bar.add_event <+ app.frp.show_notification.map(|message| {
+                message.into()
+            });
         }
+        init.emit(());
         Self { model, frp }
     }
 

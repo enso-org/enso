@@ -81,7 +81,11 @@ class RuntimeManagementTest extends InterpreterTest {
       totalOut = consumeOut
       while (totalOut.length < expect && round < 500) {
         round = round + 1
-        if (round % 10 == 0) forceGC();
+        if (round % 10 == 0) {
+          forceGC();
+        }
+        val res = eval("main a b = a * b").execute(7, 6)
+        assertResult(42)(res.asInt)
         Thread.sleep(100)
         totalOut ++= consumeOut
       }

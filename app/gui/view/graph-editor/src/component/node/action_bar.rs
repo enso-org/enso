@@ -3,8 +3,7 @@
 use crate::prelude::*;
 use ensogl::display::shape::*;
 
-use crate::ExecutionEnvironment;
-
+use engine_protocol::language_server::ExecutionEnvironment;
 use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application::tooltip;
@@ -13,7 +12,7 @@ use ensogl::display;
 use ensogl_component::toggle_button;
 use ensogl_component::toggle_button::ColorableShape;
 use ensogl_component::toggle_button::ToggleButton;
-use ensogl_hardcoded_theme as theme;
+use ensogl_hardcoded_theme::graph_editor::node::actions as theme;
 
 
 // ==============
@@ -45,20 +44,11 @@ const SKIP_TOOLTIP_LABEL: &str = "Skip";
 // ===============
 
 /// Invisible rectangular area that can be hovered.
-mod hover_area {
-    use super::*;
-
-    ensogl::shape! {
-        alignment = center;
-        (style: Style, corner_radius: f32) {
-            let width  : Var<Pixels> = "input_size.x".into();
-            let height : Var<Pixels> = "input_size.y".into();
-            let rect                 = Rect((&width,&height));
-            let rect_rounded         = rect.corners_radius(corner_radius);
-            let rect_filled          = rect_rounded.fill(INVISIBLE_HOVER_COLOR);
-            rect_filled.into()
-        }
-    }
+fn hover_area() -> Rectangle {
+    let area = Rectangle();
+    area.set_color(INVISIBLE_HOVER_COLOR);
+    area.set_border_color(INVISIBLE_HOVER_COLOR);
+    area
 }
 
 
@@ -71,6 +61,7 @@ ensogl::define_endpoints! {
     Input {
         set_size                        (Vector2),
         set_visibility                  (bool),
+        /// Set whether the `visibility` icon should be toggled on or off.
         set_action_visibility_state     (bool),
         set_action_skip_state           (bool),
         set_action_freeze_state         (bool),
@@ -79,12 +70,17 @@ ensogl::define_endpoints! {
         set_action_context_switch_state (Option<bool>),
         show_on_hover                   (bool),
         set_execution_environment       (ExecutionEnvironment),
+        /// Set the read-only mode for the buttons.
+        set_read_only                   (bool),
     }
 
     Output {
         mouse_over            (),
         mouse_out             (),
         action_visibility     (bool),
+        /// The last visibility selection by the user. Ignores changes to the
+        /// visibility chooser icon made through the input API.
+        user_action_visibility (bool),
         action_context_switch (bool),
         action_freeze         (bool),
         action_skip           (bool),
@@ -129,11 +125,10 @@ impl Icons {
         self.skip.frp.set_visibility(visible);
     }
 
-    fn set_color_scheme(&self, color_scheme: &toggle_button::ColorScheme) {
-        self.visibility.frp.set_color_scheme(color_scheme);
-        self.context_switch.set_color_scheme(color_scheme);
-        self.freeze.frp.set_color_scheme(color_scheme);
-        self.skip.frp.set_color_scheme(color_scheme);
+    fn set_read_only(&self, read_only: bool) {
+        self.context_switch.set_read_only(read_only);
+        self.freeze.frp.set_read_only(read_only);
+        self.skip.frp.set_read_only(read_only);
     }
 }
 
@@ -207,6 +202,11 @@ impl ContextSwitchButton {
         self.enable_button.set_visibility(visible);
     }
 
+    fn set_read_only(&self, read_only: bool) {
+        self.disable_button.set_read_only(read_only);
+        self.enable_button.set_read_only(read_only);
+    }
+
     fn set_color_scheme(&self, color_scheme: &toggle_button::ColorScheme) {
         self.disable_button.set_color_scheme(color_scheme);
         self.enable_button.set_color_scheme(color_scheme);
@@ -228,7 +228,7 @@ impl display::Object for ContextSwitchButton {
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
     display_object: display::object::Instance,
-    hover_area:     hover_area::View,
+    hover_area:     Rectangle,
     icons:          Icons,
     size:           Rc<Cell<Vector2>>,
     shapes:         compound::events::MouseEvents,
@@ -239,7 +239,7 @@ impl Model {
     fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
-        let hover_area = hover_area::View::new();
+        let hover_area = hover_area();
         let icons = Icons::new(app);
         let shapes = compound::events::MouseEvents::default();
         let size = default();
@@ -252,13 +252,14 @@ impl Model {
         shapes.add_sub_shape(&icons.freeze.view());
         shapes.add_sub_shape(&icons.skip.view());
 
+        use display::shape::compound::rectangle;
         ensogl::shapes_order_dependencies! {
             scene => {
-                hover_area -> icon::visibility;
-                hover_area -> icon::disable_output_context;
-                hover_area -> icon::enable_output_context;
-                hover_area -> icon::freeze;
-                hover_area -> icon::skip;
+                rectangle -> icon::visibility;
+                rectangle -> icon::disable_output_context;
+                rectangle -> icon::enable_output_context;
+                rectangle -> icon::freeze;
+                rectangle -> icon::skip;
             }
         }
 
@@ -294,11 +295,12 @@ impl Model {
         let hover_width =
             button_width * (button_count + hover_padding + offset + padding) + HOVER_EXTENSION_X;
         let hover_height = button_width * 2.0;
-        let hover_ara_size = Vector2::new(hover_width, hover_height);
-        self.hover_area.set_size(hover_ara_size);
-        let center_offset = -size.x / 2.0 + hover_ara_size.x / 2.0;
+        let hover_area_size = Vector2::new(hover_width, hover_height);
+        self.hover_area.set_size(hover_area_size);
+        let center_offset = -size.x / 2.0;
         let padding_offset = -0.5 * hover_padding * button_width - HOVER_EXTENSION_X / 2.0;
-        self.hover_area.set_x(center_offset + padding_offset);
+        let hover_origin = Vector2(center_offset + padding_offset, -hover_height / 2.0);
+        self.hover_area.set_xy(hover_origin);
     }
 
     fn set_size(&self, size: Vector2) {
@@ -366,15 +368,19 @@ impl ActionBar {
     pub fn new(app: &Application) -> Self {
         let model = Rc::new(Model::new(app));
         let frp = Frp::new();
-        ActionBar { frp, model }.init_frp()
+        ActionBar { frp, model }.init_frp(app)
     }
 
-    fn init_frp(self) -> Self {
+    fn init_frp(self, app: &Application) -> Self {
         let network = &self.frp.network;
         let frp = &self.frp;
         let model = &self.model;
 
         frp::extend! { network
+            // === Read-only mode ===
+
+            eval frp.set_read_only((read_only) model.icons.set_read_only(*read_only));
+
 
             // === Input Processing ===
 
@@ -403,6 +409,7 @@ impl ActionBar {
             // === Icon Actions ===
 
             frp.source.action_visibility <+ model.icons.visibility.state;
+            frp.source.user_action_visibility <+ model.icons.visibility.last_user_state;
             frp.source.action_skip <+ model.icons.skip.state;
             frp.source.action_freeze <+ model.icons.freeze.state;
             disable_context_button_clicked <- model.icons.context_switch.disable_button.is_pressed.on_true();
@@ -443,22 +450,12 @@ impl ActionBar {
             );
         }
 
-        let color_scheme = toggle_button::ColorScheme {
-            non_toggled: Some(
-                model
-                    .styles
-                    .get_color(theme::graph_editor::node::actions::button::non_toggled)
-                    .into(),
-            ),
-            toggled: Some(
-                model.styles.get_color(theme::graph_editor::node::actions::button::toggled).into(),
-            ),
-            hovered: Some(
-                model.styles.get_color(theme::graph_editor::node::actions::button::hovered).into(),
-            ),
-            ..default()
+        let scene = &app.display.default_scene;
+        let context_switch_color_scheme = toggle_button::ColorScheme {
+            toggled: Some(model.styles.get_color(theme::context_switch::toggled).into()),
+            ..toggle_button::default_color_scheme(&scene.style_sheet)
         };
-        model.icons.set_color_scheme(&color_scheme);
+        model.icons.context_switch.set_color_scheme(&context_switch_color_scheme);
 
         frp.show_on_hover.emit(true);
         visibility_init.emit(false);

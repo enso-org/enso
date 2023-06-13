@@ -55,11 +55,7 @@ public class EqualsTest extends TestBase {
   private static Object[] fetchAllUnwrappedValues() {
     var valGenerator =
         ValuesGenerator.create(
-            context,
-            ValuesGenerator.Language.ENSO,
-            ValuesGenerator.Language.JAVA,
-            ValuesGenerator.Language.JAVASCRIPT,
-            ValuesGenerator.Language.PYTHON);
+            context, ValuesGenerator.Language.ENSO, ValuesGenerator.Language.JAVA);
     List<Value> values = new ArrayList<>();
     values.addAll(valGenerator.numbers());
     values.addAll(valGenerator.booleans());
@@ -184,8 +180,8 @@ public class EqualsTest extends TestBase {
   @Test
   public void testVectorsEquality() {
     Object ensoVector =
-        unwrapValue(context, createValue(context, "[1,2,3]", "from Standard.Base.import all"));
-    Object javaVector = unwrapValue(context, context.asValue(List.of(1, 2, 3)));
+        unwrapValue(context, createValue(context, "[1,2,3]", "from Standard.Base import all"));
+    Object javaVector = unwrapValue(context, context.asValue(List.of(1L, 2L, 3L)));
     executeInContext(
         context,
         () -> {

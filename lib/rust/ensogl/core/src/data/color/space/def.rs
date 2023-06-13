@@ -494,6 +494,15 @@ impl Rgba {
         Self::new(0.0, 0.0, 0.0, 0.0)
     }
 
+    /// Constructor.
+    pub fn black_with_alpha(alpha: f32) -> Self {
+        Self::new(0.0, 0.0, 0.0, alpha)
+    }
+
+    /// Constructor.
+    pub fn white_with_alpha(alpha: f32) -> Self {
+        Self::new(1.0, 1.0, 1.0, alpha)
+    }
     /// Convert the color to `LinearRgba` representation.
     pub fn into_linear(self) -> LinearRgba {
         self.into()

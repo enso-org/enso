@@ -1,9 +1,8 @@
 package org.enso.table.data.column.operation.map;
 
-import org.enso.table.data.column.storage.Storage;
-
 import java.util.HashMap;
 import java.util.Map;
+import org.enso.table.data.column.storage.Storage;
 
 /**
  * Stores map-like operations that can be performed on a given type.

@@ -1,4 +1,4 @@
-FROM ghcr.io/graalvm/graalvm-ce:ol9-java11-22.3.1
+FROM ghcr.io/graalvm/graalvm-ce:ol9-java17-22.3.1
 
 USER root
 

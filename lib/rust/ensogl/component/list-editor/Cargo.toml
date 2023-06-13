@@ -1,0 +1,14 @@
+[package]
+name = "ensogl-list-editor"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+enso-frp = { path = "../../../frp" }
+ensogl-core = { path = "../../core" }
+ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
+ensogl-text = { path = "../text" }

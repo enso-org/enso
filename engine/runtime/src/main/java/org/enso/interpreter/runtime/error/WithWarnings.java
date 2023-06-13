@@ -1,5 +1,10 @@
 package org.enso.interpreter.runtime.error;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.ArrayRope;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -8,61 +13,100 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.runtime.data.ArrayRope;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.polyglot.RuntimeOptions;
+import org.graalvm.collections.EconomicSet;
+import org.graalvm.collections.Equivalence;
 
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(WarningsLibrary.class)
 @ExportLibrary(ReflectionLibrary.class)
 public final class WithWarnings implements TruffleObject {
-  private final ArrayRope<Warning> warnings;
+
+  private final EconomicSet<Warning> warnings;
   private final Object value;
 
-  public WithWarnings(Object value, Warning... warnings) {
-    this.warnings = new ArrayRope<>(warnings);
+  private final boolean limitReached;
+  private final int maxWarnings;
+
+  /**
+   * Creates a new instance of value wrapped in warnings. `limitReached` parameter allows for indicating if some
+   * custom warnings filtering on `warnings` have already been performed.
+   *
+   * @param value value to be wrapped in warnings
+   * @param maxWarnings maximal number of warnings allowed to be attached to the value
+   * @param limitReached if `true`, indicates that `warnings` have already been limited for a custom-method, `false` otherwise
+   * @param warnings warnings to be attached to a value
+   */
+  private WithWarnings(Object value, int maxWarnings, boolean limitReached, Warning... warnings) {
+    assert !(value instanceof WithWarnings);
+    this.warnings = createSetFromArray(maxWarnings, warnings);
     this.value = value;
+    this.limitReached = limitReached || this.warnings.size() >= maxWarnings;
+    this.maxWarnings = maxWarnings;
+  }
+  private WithWarnings(Object value, int maxWarnings, Warning... warnings) {
+    this(value, maxWarnings, false, warnings);
   }
 
-  private WithWarnings(Object value, ArrayRope<Warning> warnings) {
-    this.warnings = warnings;
+
+  /**
+   * Creates a new instance of value wrapped in warnings. `limitReached` parameter allows for indicating if some
+   * custom warnings filtering on `additionalWarnings` have already been performed.
+   *
+   * @param value value to be wrapped in warnings
+   * @param maxWarnings maximal number of warnings allowed to be attached to the value
+   * @param warnings warnings originally attached to a value
+   * @param limitReached if `true`, indicates that `warnings` have already been limited for a custom-method, `false` otherwise
+   * @param additionalWarnings additional warnings to be appended to the list of `warnings`
+   */
+  private WithWarnings(Object value, int maxWarnings, EconomicSet<Warning> warnings, boolean limitReached, Warning... additionalWarnings) {
+    assert !(value instanceof WithWarnings);
+    this.warnings = cloneSetAndAppend(maxWarnings, warnings, additionalWarnings);
     this.value = value;
+    this.limitReached = limitReached || this.warnings.size() >= maxWarnings;
+    this.maxWarnings = maxWarnings;
+  }
+
+  private WithWarnings(Object value, int maxWarnings, EconomicSet<Warning> warnings, Warning... additionalWarnings) {
+    this(value, maxWarnings, warnings, false, additionalWarnings);
+  }
+
+  public static WithWarnings wrap(EnsoContext ctx, Object value, Warning... warnings) {
+    if (value instanceof WithWarnings with) {
+      return with.append(ctx, warnings);
+    } else {
+      return new WithWarnings(value, ctx.getWarningsLimit(), warnings);
+    }
   }
 
   public Object getValue() {
     return value;
   }
 
-  public WithWarnings append(Warning... newWarnings) {
-    return new WithWarnings(value, warnings.append(newWarnings));
+  public WithWarnings append(EnsoContext ctx, boolean limitReached, Warning... newWarnings) {
+    return new WithWarnings(value, ctx.getWarningsLimit(), warnings, limitReached, newWarnings);
   }
 
-  public WithWarnings append(ArrayRope<Warning> newWarnings) {
-    return new WithWarnings(value, warnings.append(newWarnings));
+  public WithWarnings append(EnsoContext ctx, Warning... newWarnings) {
+    return new WithWarnings(value, ctx.getWarningsLimit(), warnings, newWarnings);
   }
 
-  public WithWarnings prepend(Warning... newWarnings) {
-    return new WithWarnings(value, warnings.prepend(newWarnings));
-  }
-
-  public WithWarnings prepend(ArrayRope<Warning> newWarnings) {
-    return new WithWarnings(value, warnings.prepend(newWarnings));
+  public WithWarnings append(EnsoContext ctx, ArrayRope<Warning> newWarnings) {
+    return new WithWarnings(value, ctx.getWarningsLimit(), warnings, newWarnings.toArray(Warning[]::new));
   }
 
   public Warning[] getWarningsArray(WarningsLibrary warningsLibrary) {
-    Warning[] warningsArr = warnings.toArray(Warning[]::new);
     Warning[] allWarnings;
-
     if (warningsLibrary != null && warningsLibrary.hasWarnings(value)) {
       try {
-        Warning[] valuesWarnings = warningsLibrary.getWarnings(value, null);
-        allWarnings = new Warning[valuesWarnings.length + warningsArr.length];
-        System.arraycopy(warningsArr, 0, allWarnings, 0, warningsArr.length);
-        System.arraycopy(valuesWarnings, 0, allWarnings, warningsArr.length, valuesWarnings.length);
+        Warning[] valueWarnings = warningsLibrary.getWarnings(value, null);
+        EconomicSet<Warning> tmp = cloneSetAndAppend(maxWarnings, warnings, valueWarnings);
+        allWarnings = Warning.fromSetToArray(tmp);
       } catch (UnsupportedMessageException e) {
         throw new IllegalStateException(e);
       }
     } else {
-      allWarnings = warningsArr;
+      allWarnings = Warning.fromSetToArray(warnings);
     }
     return allWarnings;
   }
@@ -72,31 +116,35 @@ public final class WithWarnings implements TruffleObject {
     return warnings.size();
   }
 
-  public ArrayRope<Warning> getReassignedWarnings(Node location) {
-    return getReassignedWarnings(location, null);
+  public ArrayRope<Warning> getReassignedWarningsAsRope(Node location) {
+    return new ArrayRope<>(getReassignedWarnings(location, null));
   }
 
-  public ArrayRope<Warning> getReassignedWarnings(Node location, WarningsLibrary warningsLibrary) {
+  public Warning[] getReassignedWarnings(Node location, WarningsLibrary warningsLibrary) {
     Warning[] warnings = getWarningsArray(warningsLibrary);
     for (int i = 0; i < warnings.length; i++) {
       warnings[i] = warnings[i].reassign(location);
     }
-    return new ArrayRope<>(warnings);
+    return warnings;
   }
 
-  public static WithWarnings appendTo(Object target, ArrayRope<Warning> warnings) {
+  public static WithWarnings appendTo(EnsoContext ctx, Object target, ArrayRope<Warning> warnings) {
     if (target instanceof WithWarnings) {
-      return ((WithWarnings) target).append(warnings);
+      return ((WithWarnings) target).append(ctx, warnings.toArray(Warning[]::new));
     } else {
-      return new WithWarnings(target, warnings);
+      return new WithWarnings(target, ctx.getWarningsLimit(), warnings.toArray(Warning[]::new));
     }
   }
 
-  public static WithWarnings prependTo(Object target, ArrayRope<Warning> warnings) {
+  public static WithWarnings appendTo(EnsoContext ctx, Object target, Warning... warnings) {
+    return appendTo(ctx, target, false, warnings);
+  }
+
+  public static WithWarnings appendTo(EnsoContext ctx, Object target, boolean reachedMaxCount, Warning... warnings) {
     if (target instanceof WithWarnings) {
-      return ((WithWarnings) target).prepend(warnings);
+      return ((WithWarnings) target).append(ctx, reachedMaxCount, warnings);
     } else {
-      return new WithWarnings(target, warnings);
+      return new WithWarnings(target, ctx.getWarningsLimit(), reachedMaxCount, warnings);
     }
   }
 
@@ -115,9 +163,9 @@ public final class WithWarnings implements TruffleObject {
   Warning[] getWarnings(
       Node location, @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary) {
     if (location != null) {
-      return getReassignedWarnings(location, warningsLibrary).toArray(Warning[]::new);
+      return getReassignedWarnings(location, warningsLibrary);
     } else {
-      return warnings.toArray(Warning[]::new);
+      return Warning.fromSetToArray(warnings);
     }
   }
 
@@ -132,7 +180,68 @@ public final class WithWarnings implements TruffleObject {
   }
 
   @ExportMessage
+  public boolean isLimitReached() {
+    return limitReached;
+  }
+
+  @ExportMessage
   boolean hasSpecialDispatch() {
     return true;
+  }
+
+  public static class WarningEquivalence extends Equivalence {
+
+    @Override
+    public boolean equals(Object a, Object b) {
+      if (a instanceof Warning thisObj && b instanceof Warning thatObj) {
+        return thisObj.getSequenceId() == thatObj.getSequenceId();
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode(Object o) {
+      return (int)((Warning)o).getSequenceId();
+    }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private EconomicSet<Warning> createSetFromArray(int maxWarnings, Warning[] entries) {
+    EconomicSet<Warning> set = EconomicSet.create(new WarningEquivalence());
+    for (int i=0; i<entries.length; i++) {
+      if (set.size() == maxWarnings) {
+        return set;
+      }
+      set.add(entries[i]);
+    }
+    return set;
+  }
+
+  private EconomicSet<Warning> cloneSetAndAppend(int maxWarnings, EconomicSet<Warning> initial, Warning[] entries) {
+    return initial.size() == maxWarnings ? initial : cloneSetAndAppendSlow(maxWarnings, initial, entries);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private EconomicSet<Warning> cloneSetAndAppendSlow(int maxWarnings, EconomicSet<Warning> initial, Warning[] entries) {
+    EconomicSet<Warning> set = EconomicSet.create(new WarningEquivalence());
+    for (Warning warning: initial) {
+      if (set.size() == maxWarnings) {
+        return set;
+      }
+      set.add(warning);
+    }
+    for (int i=0; i<entries.length; i++) {
+      if (set.size() == maxWarnings) {
+        return set;
+      }
+      set.add(entries[i]);
+    }
+    return set;
+  }
+
+
+  @Override
+  public String toString() {
+    return "WithWarnings{" + value + " + " + warnings.size() + " warnings" + (limitReached ? " (warnings limit reached)}" : "}");
   }
 }

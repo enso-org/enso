@@ -6,7 +6,6 @@ use enso_text::unit::*;
 use crate::generate::context::CalledMethodInfo;
 use crate::node;
 use crate::node::InsertionPointType;
-use crate::node::Payload;
 use crate::ArgumentInfo;
 use crate::Node;
 use crate::SpanTree;
@@ -39,16 +38,16 @@ pub use context::Context;
 
 /// A trait for all types from which we can generate referred SpanTree. Meant to be implemented for
 /// all AST-like structures.
-pub trait SpanTreeGenerator<T> {
+pub trait SpanTreeGenerator {
     /// Generate node with its whole subtree.
     fn generate_node(
         &self,
         kind: impl Into<node::Kind>,
         context: &impl Context,
-    ) -> FallibleResult<Node<T>>;
+    ) -> FallibleResult<Node>;
 
     /// Generate tree for this AST treated as root for the whole expression.
-    fn generate_tree(&self, context: &impl Context) -> FallibleResult<SpanTree<T>> {
+    fn generate_tree(&self, context: &impl Context) -> FallibleResult<SpanTree> {
         let root = self.generate_node(node::Kind::Root, context)?;
         Ok(SpanTree { root })
     }
@@ -60,22 +59,18 @@ pub trait SpanTreeGenerator<T> {
 // === String ===
 // ==============
 
-impl<T: Payload> SpanTreeGenerator<T> for &str {
-    fn generate_node(
-        &self,
-        kind: impl Into<node::Kind>,
-        _: &impl Context,
-    ) -> FallibleResult<Node<T>> {
-        Ok(Node::<T>::new().with_kind(kind.into()).with_size(self.chars().count().into()))
+impl SpanTreeGenerator for &str {
+    fn generate_node(&self, kind: impl Into<node::Kind>, _: &impl Context) -> FallibleResult<Node> {
+        Ok(Node::new().with_kind(kind.into()).with_size(self.chars().count().into()))
     }
 }
 
-impl<T: Payload> SpanTreeGenerator<T> for String {
+impl SpanTreeGenerator for String {
     fn generate_node(
         &self,
         kind: impl Into<node::Kind>,
         context: &impl Context,
-    ) -> FallibleResult<Node<T>> {
+    ) -> FallibleResult<Node> {
         self.as_str().generate_node(kind, context)
     }
 }
@@ -91,16 +86,19 @@ impl<T: Payload> SpanTreeGenerator<T> for String {
 /// An utility to generate children with increasing offsets.
 #[derive(Debug, Derivative)]
 #[derivative(Default(bound = ""))]
-struct ChildGenerator<T> {
+struct ChildGenerator {
     current_offset: ByteDiff,
-    children:       Vec<node::Child<T>>,
+    sibling_offset: ByteDiff,
+    children:       Vec<node::Child>,
 }
 
-impl<T: Payload> ChildGenerator<T> {
+impl ChildGenerator {
     /// Add spacing to current generator state. It will be taken into account for the next generated
     /// children's offsets
     fn spacing(&mut self, size: usize) {
-        self.current_offset += (size as i32).byte_diff();
+        let offset = (size as i32).byte_diff();
+        self.current_offset += offset;
+        self.sibling_offset += offset;
     }
 
     fn generate_ast_node(
@@ -108,50 +106,49 @@ impl<T: Payload> ChildGenerator<T> {
         child_ast: Located<Ast>,
         kind: impl Into<node::Kind>,
         context: &impl Context,
-    ) -> FallibleResult<&mut node::Child<T>> {
+    ) -> FallibleResult<&mut node::Child> {
         let kind = kind.into();
         let node = child_ast.item.generate_node(kind, context)?;
         Ok(self.add_node(child_ast.crumbs, node))
     }
 
-    fn add_node(&mut self, ast_crumbs: ast::Crumbs, node: Node<T>) -> &mut node::Child<T> {
-        let offset = self.current_offset;
-        let child = node::Child { node, offset, ast_crumbs };
+    fn add_node(&mut self, ast_crumbs: ast::Crumbs, node: Node) -> &mut node::Child {
+        let parent_offset = self.current_offset;
+        let sibling_offset = self.sibling_offset;
+        let child = node::Child { node, parent_offset, sibling_offset, ast_crumbs };
         self.current_offset += child.node.size;
+        self.sibling_offset = 0.byte_diff();
         self.children.push(child);
         self.children.last_mut().unwrap()
     }
 
-    fn generate_empty_node(&mut self, insert_type: InsertionPointType) -> &mut node::Child<T> {
-        let child = node::Child {
-            node:       Node::<T>::new().with_kind(insert_type),
-            offset:     self.current_offset,
-            ast_crumbs: vec![],
-        };
-        self.children.push(child);
-        self.children.last_mut().unwrap()
+    fn generate_empty_node(&mut self, insert_type: InsertionPointType) -> &mut node::Child {
+        self.add_node(vec![], Node::new().with_kind(insert_type))
     }
 
     fn reverse_children(&mut self) {
         self.children.reverse();
+        let mut last_parent_offset = 0.byte_diff();
         for child in &mut self.children {
-            child.offset = self.current_offset - child.offset - child.node.size;
+            child.parent_offset = self.current_offset - child.parent_offset - child.node.size;
+            child.sibling_offset = child.parent_offset - last_parent_offset;
+            last_parent_offset = child.parent_offset;
         }
     }
 
-    fn into_node(self, kind: impl Into<node::Kind>, ast_id: Option<Id>) -> Node<T> {
+    fn into_node(self, kind: impl Into<node::Kind>, ast_id: Option<Id>) -> Node {
         let kind = kind.into();
         let size = self.current_offset;
         let children = self.children;
-        Node { kind, size, children, ast_id, parenthesized: false, payload: default() }
+        Node { kind, size, children, ast_id, ..default() }
     }
 }
 
 
 
-/// =============================
-/// === Trait Implementations ===
-/// =============================
+// =============================
+// === Trait Implementations ===
+// =============================
 
 /// Helper structure constructed from Ast that consists base of prefix application.
 ///
@@ -215,7 +212,7 @@ impl<'a> ApplicationBase<'a> {
             return None;
         }
 
-        let invocation_info = context.call_info(self.call_id?, self.function_name.as_deref())?;
+        let invocation_info = context.call_info(self.call_id?)?;
         let invocation_info = invocation_info.with_call_id(self.call_id);
 
         let self_in_access = || {
@@ -237,8 +234,9 @@ impl<'a> ApplicationBase<'a> {
         let mut param_iter = invocation_info.parameters.into_iter();
         let argument_in_access = if has_argument_in_access { param_iter.next() } else { None };
         let chain_arguments: VecDeque<(usize, ArgumentInfo)> = param_iter.enumerate().collect();
-
-        Some(ResolvedApplication { argument_in_access, chain_arguments })
+        let icon_name = invocation_info.icon_name;
+        let suggestion_id = invocation_info.suggestion_id;
+        Some(ResolvedApplication { argument_in_access, chain_arguments, suggestion_id, icon_name })
     }
 
     /// Switch the method application to use different expression as call id, but keep the same
@@ -251,16 +249,28 @@ impl<'a> ApplicationBase<'a> {
         let function_name = self.function_name.map(|s| s.into_owned().into());
         ApplicationBase { function_name, ..self }
     }
+
+    fn raw_node_data(&self) -> crate::node::ApplicationData {
+        crate::node::ApplicationData {
+            suggestion_id:  None,
+            icon_name:      None,
+            self_in_access: self.uses_method_notation,
+        }
+    }
 }
 
 /// A result of resolving arguments of [`ApplicationBase`]. It contains information about the
 /// expected arguments and their positions in the application.
 struct ResolvedApplication {
+    /// The ID of a resolved method suggestion used in this application, if available.
+    suggestion_id:      Option<usize>,
     argument_in_access: Option<ArgumentInfo>,
     /// Arguments are paired with their original positions in the chain. That way the position
     /// information is preserved even after the arguments are popped or removed from deque in
     /// arbitrary order.
     chain_arguments:    VecDeque<(usize, ArgumentInfo)>,
+    /// The icon to display on node when this is its main application.
+    icon_name:          Option<ImString>,
 }
 
 impl ResolvedApplication {
@@ -297,25 +307,33 @@ impl ResolvedApplication {
     fn put_back_argument(&mut self, argument: (usize, ArgumentInfo)) {
         self.chain_arguments.push_front(argument)
     }
+
+    fn node_data(&self) -> crate::node::ApplicationData {
+        crate::node::ApplicationData {
+            suggestion_id:  self.suggestion_id,
+            icon_name:      self.icon_name.clone(),
+            self_in_access: self.argument_in_access.is_some(),
+        }
+    }
 }
 
 // === AST ===
 
-impl<T: Payload> SpanTreeGenerator<T> for Ast {
+impl SpanTreeGenerator for Ast {
     fn generate_node(
         &self,
         kind: impl Into<node::Kind>,
         context: &impl Context,
-    ) -> FallibleResult<Node<T>> {
+    ) -> FallibleResult<Node> {
         generate_node_for_ast(self, kind.into(), context)
     }
 }
 
-fn generate_node_for_ast<T: Payload>(
+fn generate_node_for_ast(
     ast: &Ast,
     kind: node::Kind,
     context: &impl Context,
-) -> FallibleResult<Node<T>> {
+) -> FallibleResult<Node> {
     if let Some(infix) = GeneralizedInfix::try_new(ast) {
         infix.generate_node(kind, context)
     } else {
@@ -327,14 +345,13 @@ fn generate_node_for_ast<T: Payload>(
             _ => {
                 let size = (ast.len().value as i32).byte_diff();
                 let ast_id = ast.id;
-                let name = ast::identifier::name(ast);
-                if let Some(info) = ast.id.and_then(|id| context.call_info(id, name)) {
+                if let Some(info) = ast.id.and_then(|id| context.call_info(id)) {
                     let node = { Node { kind: node::Kind::Operation, size, ast_id, ..default() } };
                     // Note that in this place it is impossible that Ast is in form of
                     // `this.method` -- it is covered by the former if arm. As such, we don't
                     // need to use `ApplicationBase` here as we do elsewhere.
                     let params = info.with_call_id(ast.id).parameters.into_iter();
-                    Ok(generate_trailing_expected_arguments::<T>(node, params).with_kind(kind))
+                    Ok(generate_trailing_expected_arguments(node, params).with_kind(kind))
                 } else {
                     Ok(Node { kind, size, ast_id, ..default() })
                 }
@@ -346,17 +363,19 @@ fn generate_node_for_ast<T: Payload>(
 
 // === Operators (Sections and Infixes) ===
 
-impl<T: Payload> SpanTreeGenerator<T> for GeneralizedInfix {
+impl SpanTreeGenerator for GeneralizedInfix {
     fn generate_node(
         &self,
         kind: impl Into<node::Kind>,
         context: &impl Context,
-    ) -> FallibleResult<Node<T>> {
+    ) -> FallibleResult<Node> {
         // Code like `ast.func` or `a+b+c`.
         let chain = self.flatten();
         let kind = kind.into();
         let mut app_base = ApplicationBase::from_infix(self);
         let mut application = app_base.resolve(context);
+        let node_application =
+            application.as_ref().map_or_else(|| app_base.raw_node_data(), |r| r.node_data());
         if app_base.uses_method_notation {
             // This is a standalone method access chain, missing method parameters needs to be
             // handled here. It is guaranteed that no existing prefix arguments are present, as
@@ -382,7 +401,9 @@ impl<T: Payload> SpanTreeGenerator<T> for GeneralizedInfix {
 
             let argument_infos =
                 application.map_or_default(|i| i.chain_arguments).into_iter().map(|(_, info)| info);
-            Ok(generate_trailing_expected_arguments::<T>(node, argument_infos).with_kind(kind))
+            Ok(generate_trailing_expected_arguments(node, argument_infos)
+                .with_kind(kind)
+                .with_application(node_application))
         } else {
             // For non-access infix operators, missing arguments are not handled at this level.
             generate_node_for_opr_chain(chain, kind, app_base, application.as_mut(), context)
@@ -390,23 +411,23 @@ impl<T: Payload> SpanTreeGenerator<T> for GeneralizedInfix {
     }
 }
 
-fn generate_node_for_opr_chain<T: Payload>(
+fn generate_node_for_opr_chain(
     this: ast::opr::Chain,
     kind: node::Kind,
     mut app_base: ApplicationBase,
     mut application: Option<&mut ResolvedApplication>,
     context: &impl Context,
-) -> FallibleResult<Node<T>> {
+) -> FallibleResult<Node> {
     // Allow removing the chain elements as long as it doesn't destroy the chain.
     let removable = this.args.len() + (this.target.is_some() as usize) > 2;
 
-    let node_and_offset: FallibleResult<(Node<T>, usize)> = match &this.target {
+    let node_and_offset: FallibleResult<(Node, usize)> = match &this.target {
         Some(target) => {
             let kind = node::Kind::argument().with_removable(removable);
             let node = target.arg.generate_node(kind, context)?;
             Ok((node, target.offset))
         }
-        None => Ok((Node::<T>::new().with_kind(InsertionPointType::BeforeArgument(0)), 0)),
+        None => Ok((Node::new().with_kind(InsertionPointType::BeforeArgument(0)), 0)),
     };
 
     // In this fold we pass last generated node and offset after it, wrapped in Result.
@@ -496,12 +517,11 @@ fn generate_node_for_opr_chain<T: Payload>(
 
         Ok((
             Node {
-                kind:          if is_last { kind.clone() } else { node::Kind::chained().into() },
-                parenthesized: false,
-                size:          gen.current_offset,
-                children:      gen.children,
-                ast_id:        elem.infix_id,
-                payload:       default(),
+                kind: if is_last { kind.clone() } else { node::Kind::chained().into() },
+                size: gen.current_offset,
+                children: gen.children,
+                ast_id: elem.infix_id,
+                ..default()
             },
             elem.offset,
         ))
@@ -512,24 +532,30 @@ fn generate_node_for_opr_chain<T: Payload>(
 
 // === Application ===
 
-impl<T: Payload> SpanTreeGenerator<T> for ast::prefix::Chain {
+impl SpanTreeGenerator for ast::prefix::Chain {
     fn generate_node(
         &self,
         kind: impl Into<node::Kind>,
         context: &impl Context,
-    ) -> FallibleResult<Node<T>> {
+    ) -> FallibleResult<Node> {
         generate_node_for_prefix_chain(self, kind.into(), context)
     }
 }
 
-fn generate_node_for_prefix_chain<T: Payload>(
+fn generate_node_for_prefix_chain(
     this: &ast::prefix::Chain,
     kind: node::Kind,
     context: &impl Context,
-) -> FallibleResult<Node<T>> {
+) -> FallibleResult<Node> {
     let app_base = ApplicationBase::from_prefix_chain(this);
+
+    // If actual method arguments are not resolved, we still want to assign correct call ID to all
+    // argument spans. This is required for correct handling of span tree actions, as it is used to
+    // determine correct reinsertion point for removed span.
     let fallback_call_id = app_base.call_id;
     let mut application = app_base.resolve(context);
+    let node_application =
+        application.as_ref().map_or_else(|| app_base.raw_node_data(), |r| r.node_data());
 
     // When using method notation, expand the infix access chain manually to maintain correct method
     // application info and avoid generating expected arguments twice. We cannot use the
@@ -620,14 +646,14 @@ fn generate_node_for_prefix_chain<T: Payload>(
                     Ok(generate_expected_argument(node, named, i, info)),
             }
         })
-        .map(|node: Node<T>| node.with_kind(kind))
+        .map(|node: Node| node.with_kind(kind).with_application(node_application))
 }
 
-fn generate_node_for_named_argument<T: Payload>(
+fn generate_node_for_named_argument(
     this: NamedArgumentDef<'_>,
     arg_kind: node::Kind,
     context: &impl Context,
-) -> FallibleResult<Node<T>> {
+) -> FallibleResult<Node> {
     let NamedArgumentDef { id, larg, loff, opr, roff, rarg, .. } = this;
     let mut gen = ChildGenerator::default();
 
@@ -765,26 +791,27 @@ fn resolve_argument_positions(
 ///
 /// `index` is the argument's position in the prefix chain which may be different from parameter
 /// index in the method's parameter list.
-fn generate_expected_argument<T: Payload>(
-    node: Node<T>,
+fn generate_expected_argument(
+    node: Node,
     named: bool,
     index: usize,
     argument_info: ArgumentInfo,
-) -> Node<T> {
+) -> Node {
     let mut gen = ChildGenerator::default();
+    let extended_ast_id = node.ast_id.or(node.extended_ast_id);
     gen.add_node(ast::Crumbs::new(), node);
     let arg_node = gen.generate_empty_node(InsertionPointType::ExpectedArgument { index, named });
     arg_node.node.set_argument_info(argument_info);
     let kind = node::Kind::chained().into();
-    Node { kind, size: gen.current_offset, children: gen.children, ..default() }
+    Node { kind, size: gen.current_offset, children: gen.children, extended_ast_id, ..default() }
 }
 
 /// Build a prefix application-like span tree structure where no prefix argument has been provided
 /// so far. All prefix arguments will be generated as expected arguments..
-fn generate_trailing_expected_arguments<T: Payload>(
-    node: Node<T>,
+fn generate_trailing_expected_arguments(
+    node: Node,
     expected_args: impl Iterator<Item = ArgumentInfo>,
-) -> Node<T> {
+) -> Node {
     let mut inserted_any_argument = false;
     expected_args.enumerate().fold(node, |node, (index, parameter)| {
         inserted_any_argument = true;
@@ -799,44 +826,76 @@ fn generate_trailing_expected_arguments<T: Payload>(
 // === SpanTree for Tree ===
 // =========================
 
-fn tree_generate_node<T: Payload>(
+fn tree_generate_node(
     tree: &ast::Tree<Ast>,
     kind: node::Kind,
     context: &impl Context,
     ast_id: Option<Id>,
-) -> FallibleResult<Node<T>> {
-    let parenthesized = matches!(tree.type_info, ast::TreeType::Group);
+) -> FallibleResult<Node> {
     let mut children = vec![];
     let size;
     if let Some(leaf_info) = &tree.leaf_info {
         size = ByteDiff::from(leaf_info.len());
     } else {
-        let mut offset = ByteDiff::from(0);
+        let mut parent_offset = ByteDiff::from(0);
+        let mut sibling_offset = ByteDiff::from(0);
+        let first_token_or_child =
+            tree.span_info.iter().find(|span| !matches!(span, SpanSeed::Space(_)));
+        let is_array = matches!(first_token_or_child, Some(SpanSeed::Token(ast::SpanSeedToken { token })) if token == "[");
+        let last_token_index =
+            tree.span_info.iter().rposition(|span| matches!(span, SpanSeed::Token(_)));
         for (index, raw_span_info) in tree.span_info.iter().enumerate() {
             match raw_span_info {
-                SpanSeed::Space(ast::SpanSeedSpace { space }) => offset += ByteDiff::from(space),
+                SpanSeed::Space(ast::SpanSeedSpace { space }) => {
+                    parent_offset += ByteDiff::from(space);
+                    sibling_offset += ByteDiff::from(space);
+                }
                 SpanSeed::Token(ast::SpanSeedToken { token }) => {
+                    if is_array && Some(index) == last_token_index {
+                        let kind = InsertionPointType::Append;
+                        children.push(node::Child {
+                            node: Node::new().with_kind(kind),
+                            parent_offset,
+                            sibling_offset,
+                            ast_crumbs: vec![],
+                        });
+                        sibling_offset = 0.byte_diff();
+                    }
                     let kind = node::Kind::Token;
                     let size = ByteDiff::from(token.len());
                     let ast_crumbs = vec![TreeCrumb { index }.into()];
                     let node = Node { kind, size, ..default() };
-                    children.push(node::Child { node, offset, ast_crumbs });
-                    offset += size;
+                    children.push(node::Child { node, parent_offset, sibling_offset, ast_crumbs });
+                    parent_offset += size;
+                    sibling_offset = 0.byte_diff();
                 }
                 SpanSeed::Child(ast::SpanSeedChild { node }) => {
-                    let kind = node::Kind::argument();
+                    if is_array {
+                        let kind = InsertionPointType::BeforeArgument(index);
+                        children.push(node::Child {
+                            node: Node::new().with_kind(kind),
+                            parent_offset,
+                            sibling_offset,
+                            ast_crumbs: vec![],
+                        });
+                        sibling_offset = 0.byte_diff();
+                    }
+
+                    let kind = node::Kind::argument().with_removable(is_array);
                     let node = node.generate_node(kind, context)?;
                     let child_size = node.size;
                     let ast_crumbs = vec![TreeCrumb { index }.into()];
-                    children.push(node::Child { node, offset, ast_crumbs });
-                    offset += child_size;
+                    children.push(node::Child { node, parent_offset, sibling_offset, ast_crumbs });
+                    parent_offset += child_size;
+                    sibling_offset = 0.byte_diff();
                 }
             }
         }
-        size = offset;
+        size = parent_offset;
     }
-    let payload = default();
-    Ok(Node { kind, parenthesized, size, children, ast_id, payload })
+
+    let tree_type = Some(tree.type_info.clone());
+    Ok(Node { kind, tree_type, size, children, ast_id, ..default() })
 }
 
 
@@ -863,7 +922,7 @@ impl MockContext {
 }
 
 impl Context for MockContext {
-    fn call_info(&self, id: Id, _name: Option<&str>) -> Option<CalledMethodInfo> {
+    fn call_info(&self, id: Id) -> Option<CalledMethodInfo> {
         self.map.get(&id).cloned()
     }
 }
@@ -883,7 +942,6 @@ mod test {
     use crate::node;
     use crate::node::InsertionPoint;
     use crate::node::InsertionPointType::*;
-    use crate::node::Payload;
     use crate::ArgumentInfo;
 
     use ast::crumbs::InfixCrumb;
@@ -900,8 +958,10 @@ mod test {
     ///
     /// It is used in tests. Because parser can assign id as he pleases, therefore to keep tests
     /// cleaner the expression IDs are removed before comparing trees.
-    fn clear_expression_ids<T>(node: &mut Node<T>) {
+    fn clear_expression_ids(node: &mut Node) {
         node.ast_id = None;
+        node.extended_ast_id = None;
+        node.application = None;
         for child in &mut node.children {
             clear_expression_ids(&mut child.node);
         }
@@ -911,7 +971,7 @@ mod test {
     ///
     /// It is used in tests. Because constructing trees with set parameter infos is troublesome,
     /// it is often more convenient to test them separately and then erase infos and test for shape.
-    fn clear_parameter_infos<T: Payload>(node: &mut Node<T>) {
+    fn clear_parameter_infos(node: &mut Node) {
         node.set_argument_info(default());
         for child in &mut node.children {
             clear_parameter_infos(&mut child.node);
@@ -1271,11 +1331,13 @@ mod test {
 
                 let param = |n: &str| ArgumentInfo { name: Some(n.into()), call_id, ..default() };
                 let application = ResolvedApplication {
+                    suggestion_id:      None,
                     argument_in_access: None,
                     chain_arguments:    [param("a"), param("b"), param("c"), param("d")]
                         .into_iter()
                         .enumerate()
                         .collect(),
+                    icon_name:          None,
                 };
 
                 let chain = ast::prefix::Chain::from_ast(&ast).unwrap_or_else(|| {

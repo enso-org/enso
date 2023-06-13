@@ -1,7 +1,7 @@
 import java.io.File
 import java.nio.file.Path
 
-import sbt.{Def, File, _}
+import sbt._
 import sbt.Keys._
 import sbt.internal.util.ManagedLogger
 import sbtassembly.AssemblyKeys.assembly
@@ -15,6 +15,29 @@ object NativeImage {
     * Should be set to false for production builds. May work only on Linux.
     */
   private val includeDebugInfo: Boolean = false
+
+  /** List of classes that should be initialized at build time by the native image.
+    * Note that we strive to initialize as much classes during the native image build
+    * time as possible, as this reduces the time needed to start the native image.
+    * One wildcard could theoretically be used instead of the list, but to make things
+    * more explicit, we use the list.
+    */
+  private val defaultBuildTimeInitClasses = Seq(
+    "org",
+    "org.enso",
+    "scala",
+    "java",
+    "sun",
+    "cats",
+    "io",
+    "shapeless",
+    "com",
+    "izumi",
+    "zio",
+    "enumeratum",
+    "akka",
+    "nl"
+  )
 
   /** Creates a task that builds a native image for the current project.
     *
@@ -32,22 +55,29 @@ object NativeImage {
     *                      on Linux)
     * @param additionalOptions additional options for the Native Image build
     *                          tool
-    * @param memoryLimitMegabytes a memory limit for the build tool, in
+    * @param buildMemoryLimitMegabytes a memory limit for the build tool, in
     *                             megabytes; it is good to set this limit to
     *                             make GC more aggressive thus allowing it to
     *                             build successfully even with limited memory
+    * @param runtimeThreadStackMegabytes the runtime thread stack size; the
+    *                             minimum for ZIO to work is higher than the
+    *                             default value on some systems
     * @param initializeAtRuntime a list of classes that should be initialized at
     *                            run time - useful to set exceptions if build
     *                            time initialization is set to default
+    * @param initializeAtBuildtime a list of classes that should be initialized at
+    *                              build time.
     */
   def buildNativeImage(
     artifactName: String,
     staticOnLinux: Boolean,
-    additionalOptions: Seq[String]    = Seq.empty,
-    memoryLimitMegabytes: Option[Int] = Some(15608),
-    initializeAtRuntime: Seq[String]  = Seq.empty,
-    mainClass: Option[String]         = None,
-    cp: Option[String]                = None
+    additionalOptions: Seq[String]           = Seq.empty,
+    buildMemoryLimitMegabytes: Option[Int]   = Some(15608),
+    runtimeThreadStackMegabytes: Option[Int] = Some(2),
+    initializeAtRuntime: Seq[String]         = Seq.empty,
+    initializeAtBuildtime: Seq[String]       = defaultBuildTimeInitClasses,
+    mainClass: Option[String]                = None,
+    cp: Option[String]                       = None
   ): Def.Initialize[Task[Unit]] = Def
     .task {
       val log            = state.value.log
@@ -100,8 +130,18 @@ object NativeImage {
       val quickBuildOption =
         if (BuildInfo.isReleaseMode) Seq() else Seq("-Ob")
 
-      val memoryLimitOptions =
-        memoryLimitMegabytes.map(megs => s"-J-Xmx${megs}M").toSeq
+      val buildMemoryLimitOptions =
+        buildMemoryLimitMegabytes.map(megs => s"-J-Xmx${megs}M").toSeq
+
+      val runtimeMemoryOptions =
+        runtimeThreadStackMegabytes.map(megs => s"-R:StackSize=${megs}M").toSeq
+
+      val initializeAtBuildtimeOptions =
+        if (initializeAtBuildtime.isEmpty) Seq()
+        else {
+          val classes = initializeAtBuildtime.mkString(",")
+          Seq(s"--initialize-at-build-time=$classes")
+        }
 
       val initializeAtRuntimeOptions =
         if (initializeAtRuntime.isEmpty) Seq()
@@ -115,10 +155,11 @@ object NativeImage {
         quickBuildOption ++
         debugParameters ++ staticParameters ++ configs ++
         Seq("--no-fallback", "--no-server") ++
-        Seq("--initialize-at-build-time=") ++
+        initializeAtBuildtimeOptions ++
         initializeAtRuntimeOptions ++
-        memoryLimitOptions ++
-        additionalOptions;
+        buildMemoryLimitOptions ++
+        runtimeMemoryOptions ++
+        additionalOptions
 
       if (mainClass.isEmpty) {
         cmd = cmd ++

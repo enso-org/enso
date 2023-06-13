@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.ObjectBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
@@ -41,7 +40,7 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
 
   private static final MapOpStorage<Object, SpecializedStorage<Object>> ops = buildObjectOps();
 
-  static <T, S extends SpecializedStorage<T>> MapOpStorage<T, S> buildObjectOps() {
+  public static <T, S extends SpecializedStorage<T>> MapOpStorage<T, S> buildObjectOps() {
     MapOpStorage<T, S> ops = new MapOpStorage<>();
     ops.add(
         new UnaryMapOperation<>(Maps.IS_NOTHING) {

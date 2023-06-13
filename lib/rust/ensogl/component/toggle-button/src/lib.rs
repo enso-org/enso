@@ -18,6 +18,7 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
@@ -27,7 +28,9 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::system::Shape;
 use ensogl_core::display::shape::system::ShapeWithDefaultableData;
+use ensogl_core::display::style;
 use ensogl_core::gui::component::ShapeView;
+use ensogl_hardcoded_theme::component::toggle_button as theme;
 
 
 
@@ -51,16 +54,22 @@ pub trait ColorableShape: ShapeWithDefaultableData {
 // === Frp ===
 // ===========
 
-ensogl_core::define_endpoints! {
+ensogl_core::define_endpoints_2! {
     Input {
         set_visibility   (bool),
         set_color_scheme (ColorScheme),
         set_size         (Vector2),
         toggle           (),
         set_state        (bool),
+        /// Read only mode forbids changing the state of the button by clicking.
+        set_read_only    (bool),
     }
     Output {
+        /// Current state of the button, as visible in the scene,
         state      (bool),
+        /// Last state of the button from a user interaction.
+        /// This ignores state changes based on the `set_state` input.
+        last_user_state (bool),
         visible    (bool),
         mouse_over (),
         mouse_out  (),
@@ -157,6 +166,18 @@ impl ColorScheme {
     }
 }
 
+/// Return the default color scheme for the given style sheet.
+pub fn default_color_scheme(style_sheet: &style::Sheet) -> ColorScheme {
+    let styles = StyleWatch::new(style_sheet);
+    ColorScheme {
+        non_toggled: Some(styles.get_color(theme::non_toggled).into()),
+        toggled: Some(styles.get_color(theme::toggled).into()),
+        hovered: Some(styles.get_color(theme::hovered).into()),
+        ..default()
+    }
+}
+
+
 
 // === Getters ===
 
@@ -215,6 +236,8 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
     fn init_frp(self, app: &Application, tooltip_style: tooltip::Style) -> Self {
         let network = &self.frp.network;
         let frp = &self.frp;
+        let input = &self.frp.private.input;
+        let output = &self.frp.private.output;
         let model = &self.model;
         let color = color::Animation::new(network);
         let icon = &model.icon.events_deprecated;
@@ -232,35 +255,37 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
 
              // === Input Processing ===
 
-            eval frp.set_size ((size) model.icon.set_size(*size););
+            eval input.set_size ((size) model.icon.set_size(*size););
 
 
             // === State ===
 
-            toggle <- any_(frp.toggle, icon.mouse_down_primary);
-            frp.source.state <+ frp.state.not().sample(&toggle);
-            frp.source.state <+ frp.set_state;
+            clicked <- icon.mouse_down_primary.gate_not(&input.set_read_only);
+            toggle <- any_(input.toggle, clicked);
+            output.state <+ output.state.not().sample(&toggle);
+            output.state <+ input.set_state;
+            output.last_user_state <+ output.state.sample(&clicked);
 
 
             // === Mouse Interactions ===
 
-            frp.source.mouse_over <+ icon.mouse_over;
-            frp.source.mouse_out  <+ icon.mouse_out;
-            frp.source.is_hovered <+ bool(&icon.mouse_out, &icon.mouse_over);
-            frp.source.is_pressed <+ bool(&icon.mouse_up_primary, &icon.mouse_down_primary);
+            output.mouse_over <+ icon.mouse_over;
+            output.mouse_out  <+ icon.mouse_out;
+            output.is_hovered <+ bool(&icon.mouse_out, &icon.mouse_over);
+            output.is_pressed <+ bool(&icon.mouse_up_primary, &icon.mouse_down_primary);
 
 
             // === Color ===
 
-            invisible <- frp.set_visibility.on_false().constant(0.0);
+            invisible <- input.set_visibility.on_false().constant(0.0);
             color.target_alpha <+ invisible;
 
-            frp.source.visible <+ frp.set_visibility;
+            output.visible <+ input.set_visibility;
 
-            button_state <- all_with4(&frp.visible,&frp.state,&frp.is_hovered,&frp.is_pressed,
+            button_state <- all_with4(&output.visible,&output.state,&output.is_hovered,&output.is_pressed,
                 |a,b,c,d| ButtonState::new(*a,*b,*c,*d));
 
-            color_target <- all_with(&frp.set_color_scheme,&button_state,
+            color_target <- all_with(&input.set_color_scheme,&button_state,
                 |colors,state| colors.query(*state));
 
             color.target <+ color_target;
@@ -269,7 +294,7 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
 
             // === Tooltip ===
 
-            tooltip <- frp.is_hovered.map(move |is_hovered| {
+            tooltip <- output.is_hovered.map(move |is_hovered| {
                 if *is_hovered {
                     tooltip_style.clone()
                 } else {
@@ -280,7 +305,9 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
         }
 
         frp.set_state.emit(false);
-        color.target_alpha.emit(0.0);
+        frp.set_visibility.emit(true);
+        let color_scheme = default_color_scheme(&app.display.default_scene.style_sheet);
+        frp.set_color_scheme.emit(color_scheme);
         self
     }
 

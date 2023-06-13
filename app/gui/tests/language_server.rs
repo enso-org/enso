@@ -95,7 +95,7 @@ async fn ls_text_protocol_test() {
     response.expect("Couldn't write yaml file.");
 
     // Setting execution context.
-    let execution_context = client.create_execution_context().await;
+    let execution_context = client.create_execution_context(&Uuid::new_v4()).await;
     let execution_context = execution_context.expect("Couldn't create execution context.");
     let execution_context_id = execution_context.context_id;
 
@@ -240,7 +240,7 @@ async fn ls_text_protocol_test() {
     let new_version = Sha3_224::new(b"Hello, world!");
     let path = move_path.clone();
     let edit = FileEdit { path, edits, old_version, new_version: new_version.clone() };
-    client.apply_text_file_edit(&edit).await.expect("Couldn't apply edit.");
+    client.apply_text_file_edit(&edit, &true).await.expect("Couldn't apply edit.");
 
     let saving_result = client.save_text_file(&move_path, &new_version).await;
     saving_result.expect("Couldn't save file.");
@@ -356,7 +356,10 @@ async fn binary_visualization_updates_test_hlp() {
     let module_qualified_name = project.qualified_module_name(&module_path);
     let module = project.module(module_path).await.unwrap();
     info!("Got module: {module:?}");
-    let graph_executed = controller::ExecutedGraph::new(project, method).await.unwrap();
+    let context_id = Uuid::new_v4();
+    let execution_ctx = project.create_execution_context(method.clone(), context_id).await.unwrap();
+    let graph = controller::Graph::new_method(&project, &method).await.unwrap();
+    let graph_executed = controller::ExecutedGraph::new_internal(graph, project, execution_ctx);
 
     let the_node = graph_executed.graph().nodes().unwrap()[0].info.clone();
     graph_executed.graph().set_expression(the_node.id(), "10+20").unwrap();

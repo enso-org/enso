@@ -1,11 +1,11 @@
 package org.enso.interpreter.node.callable.dispatch;
 
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
+import java.util.UUID;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.CaptureCallerInfoNode;
@@ -20,8 +20,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.State;
 
-import java.util.UUID;
-
 /**
  * This class represents the protocol for remapping the arguments provided at a call site into the
  * positional order expected by the definition of the {@link Function}.
@@ -30,7 +28,7 @@ import java.util.UUID;
 @ImportStatic({CallArgumentInfo.ArgumentMappingBuilder.class, Constants.CacheSizes.class})
 public abstract class InvokeFunctionNode extends BaseNode {
 
-  private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
+  private final CallArgumentInfo[] schema;
   private final InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode;
   private final InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode;
   private @Child CaptureCallerInfoNode captureCallerInfoNode = CaptureCallerInfoNode.build();
@@ -82,7 +80,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
               "build(argumentMapping, getDefaultsExecutionMode(), getArgumentsExecutionMode(), getTailStatus())")
           CurryNode curryNode) {
     ArgumentSorterNode.MappedArguments mappedArguments =
-        mappingNode.execute(function, state, arguments);
+        mappingNode.execute(callerFrame, function, state, arguments);
     CallerInfo callerInfo = null;
     if (cachedSchema.getCallerFrameAccess().shouldFrameBePassed()) {
       callerInfo = captureCallerInfoNode.execute(callerFrame.materialize());
@@ -121,6 +119,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
 
     ArgumentSorterNode.MappedArguments mappedArguments =
         mappingNode.execute(
+            callerFrame,
             function.getSchema(),
             argumentMapping,
             getArgumentsExecutionMode(),

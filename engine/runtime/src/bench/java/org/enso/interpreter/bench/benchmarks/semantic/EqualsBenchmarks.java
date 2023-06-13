@@ -68,10 +68,9 @@ public class EqualsBenchmarks {
             Paths.get("../../distribution/component").toFile().getAbsolutePath()
         ).build();
 
-    var benchmarkName = params.getBenchmark().replaceFirst(".*\\.", "");
+    var benchmarkName = SrcUtil.findName(params);
     var codeBuilder = new StringBuilder("""
         import Standard.Base.Data.Range.Extensions
-        import Standard.Base.Any.Any
         
         type Node
             C1 f1

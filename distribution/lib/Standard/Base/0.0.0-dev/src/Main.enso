@@ -4,6 +4,7 @@ import project.Data.Boolean
 import project.Data.List.List
 import project.Data.Numbers
 import project.Data.Map.Map
+import project.Data.Set.Set
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -12,6 +13,7 @@ import project.Function
 import project.IO
 import project.Math
 import project.Meta
+from project.Meta.Enso_Project import enso_project
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Polyglot.Java
@@ -35,6 +37,7 @@ export project.Any.Any
 export project.Data.Array.Array
 export project.Data.List.List
 export project.Data.Map.Map
+export project.Data.Set.Set
 export project.Data.Text.Text
 export project.Data.Vector.Vector
 export project.Error.Error
@@ -42,6 +45,7 @@ export project.Errors
 export project.IO
 export project.Math
 export project.Meta
+from project.Meta.Enso_Project export enso_project
 export project.Nothing.Nothing
 export project.Panic.Panic
 export project.Polyglot.Java
@@ -63,7 +67,7 @@ export project.Warning.Warning
 from project.Data.Boolean export Boolean, True, False
 from project.Function export all
 from project.Data.Numbers export Number, Integer, Decimal
-from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer, Auto_Detect, JSON_File
+from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer, Auto_Detect, JSON_Format
 
 import project.Data
 import project.Data.Filter_Condition.Filter_Condition
@@ -98,6 +102,7 @@ import project.Data.Text.Text_Ordering.Text_Ordering
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
+import project.Data.Time.Date_Range.Date_Range
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Day_Of_Week_From
@@ -147,6 +152,7 @@ export project.Data.Text.Text_Ordering.Text_Ordering
 export project.Data.Text.Text_Sub_Range.Text_Sub_Range
 export project.Data.Time.Date.Date
 export project.Data.Time.Date_Period.Date_Period
+export project.Data.Time.Date_Range.Date_Range
 export project.Data.Time.Date_Time.Date_Time
 export project.Data.Time.Day_Of_Week.Day_Of_Week
 export project.Data.Time.Day_Of_Week_From

@@ -216,7 +216,7 @@ pub struct ExpressionUpdate {
     pub expression_id:  ExpressionId,
     #[serde(rename = "type")] // To avoid collision with the `type` keyword.
     pub typename: Option<String>,
-    pub method_pointer: Option<MethodPointer>,
+    pub method_call:    Option<MethodCall>,
     pub profiling_info: Vec<ProfilingInfo>,
     pub from_cache:     bool,
     pub payload:        ExpressionUpdatePayload,
@@ -740,6 +740,16 @@ pub struct MethodPointer {
     pub name:            String,
 }
 
+/// A representation of a method call.
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MethodCall {
+    /// The method pointer of a call.
+    pub method_pointer:        MethodPointer,
+    /// Indexes of arguments that have not been applied to this method.
+    pub not_applied_arguments: Vec<usize>,
+}
+
 /// Used for entering a method. The first item on the execution context stack should always be
 /// an `ExplicitCall`.
 #[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1155,6 +1165,58 @@ pub struct LibraryComponentGroup {
 }
 
 
+
+// =============================
+// === Execution Environment ===
+// =============================
+
+/// The execution environment which controls the global execution of functions with side effects.
+///
+/// For more information, see
+/// https://github.com/enso-org/design/blob/main/epics/basic-libraries/write-action-control/design.md.
+#[derive(Hash, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ExecutionEnvironment {
+    /// Allows editing the graph, but the `Output` context is disabled, so it prevents accidental
+    /// changes.
+    Design,
+    /// Unrestricted, live editing of data.
+    Live,
+}
+
+impl Display for ExecutionEnvironment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Design => write!(f, "design"),
+            Self::Live => write!(f, "live"),
+        }
+    }
+}
+
+impl Default for ExecutionEnvironment {
+    fn default() -> Self {
+        ExecutionEnvironment::Design
+    }
+}
+
+impl ExecutionEnvironment {
+    /// List all available execution environments.
+    pub fn list_all() -> Vec<Self> {
+        vec![ExecutionEnvironment::Design, ExecutionEnvironment::Live]
+    }
+}
+
+impl ExecutionEnvironment {
+    /// Returns whether the output context is enabled for this execution environment.
+    pub fn output_context_enabled(&self) -> bool {
+        match self {
+            Self::Design => false,
+            Self::Live => true,
+        }
+    }
+}
+
+
+
 // ======================
 // === Test Utilities ===
 // ======================
@@ -1174,7 +1236,7 @@ pub mod test {
         ExpressionUpdate {
             expression_id:  id,
             typename:       Some(typename.into()),
-            method_pointer: None,
+            method_call:    None,
             profiling_info: default(),
             from_cache:     false,
             payload:        ExpressionUpdatePayload::Value { warnings: None },
@@ -1190,7 +1252,7 @@ pub mod test {
         ExpressionUpdate {
             expression_id:  id,
             typename:       None,
-            method_pointer: Some(method_pointer),
+            method_call:    Some(MethodCall { method_pointer, not_applied_arguments: vec![] }),
             profiling_info: default(),
             from_cache:     false,
             payload:        ExpressionUpdatePayload::Value { warnings: None },
@@ -1204,7 +1266,7 @@ pub mod test {
         ExpressionUpdate {
             expression_id:  id,
             typename:       None,
-            method_pointer: None,
+            method_call:    None,
             profiling_info: default(),
             from_cache:     false,
             payload:        ExpressionUpdatePayload::DataflowError { trace },
@@ -1222,7 +1284,7 @@ pub mod test {
         ExpressionUpdate {
             expression_id:  id,
             typename:       None,
-            method_pointer: None,
+            method_call:    None,
             profiling_info: default(),
             from_cache:     false,
             payload:        ExpressionUpdatePayload::Panic { trace, message },

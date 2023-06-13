@@ -1,11 +1,10 @@
 package org.enso.table.util;
 
+import java.util.*;
+import java.util.stream.Collectors;
 import org.enso.table.problems.Problem;
 import org.enso.table.util.problems.DuplicateNames;
 import org.enso.table.util.problems.InvalidNames;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 public class NameDeduplicator {
   private final Set<String> usedNames = new HashSet<>();
@@ -36,11 +35,11 @@ public class NameDeduplicator {
     return input;
   }
 
-  public List<String> makeUnique(List<String> names) {
+  public List<String> makeUniqueList(List<String> names) {
     return names.stream().map(this::makeUnique).collect(Collectors.toList());
   }
 
-  public String[] makeUnique(String[] names) {
+  public String[] makeUniqueArray(String[] names) {
     return Arrays.stream(names).map(this::makeUnique).toArray(String[]::new);
   }
 
@@ -87,7 +86,7 @@ public class NameDeduplicator {
     if (index == 0) {
       return name;
     }
-    return name + "_" + index;
+    return name + " " + index;
   }
 
   public String[] getInvalidNames() {
@@ -134,7 +133,7 @@ public class NameDeduplicator {
       String name = second.get(i);
       if (output.get(i) == null) {
         var prefixed = secondPrefix + name;
-        output.set(i, makeUnique(secondPrefix + name));
+        output.set(i, makeUnique(prefixed));
       }
     }
     return output;

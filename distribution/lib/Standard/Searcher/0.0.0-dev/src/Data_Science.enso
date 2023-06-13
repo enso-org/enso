@@ -52,7 +52,7 @@
 
          example_sort =
              table = Examples.inventory_table
-             table.order_by ([Sort_Column.Name "total_stock", Sort_Column.Name "sold_stock" Sort_Direction.Descending])
+             table.order_by [Sort_Column.Name "total_stock", Sort_Column.Name "sold_stock" Sort_Direction.Descending]
 
    > Example
      Compute the number of transactions that each item has participated in, as

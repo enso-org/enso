@@ -100,9 +100,9 @@ const MAX_RECURSIVE_MICROTASKS: usize = 1000;
 
 
 
-/// =================
+/// ======================
 /// === next_microtask ===
-/// =================
+/// ======================
 
 /// Schedules a callback for evaluation during next microtask. This is useful for scheduling tasks
 /// that should be performed right after current JS event loop iteration, but before animation
@@ -213,6 +213,7 @@ struct SchedulerData {
 }
 
 impl SchedulerData {
+    #[profile(Task)]
     fn schedule_task(&self) {
         if !self.is_scheduled.replace(true) {
             // Result left unused on purpose. We only care about `closure` being run in the next
@@ -227,6 +228,7 @@ impl SchedulerData {
         }
     }
 
+    #[profile(Task)]
     fn run_all(&self) {
         let current_count = self.schedule_depth.get();
         let task_limit_reached = current_count >= MAX_RECURSIVE_MICROTASKS;

@@ -11,6 +11,7 @@ use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 
 use engine_protocol::language_server;
+use engine_protocol::language_server::ExecutionEnvironment;
 
 
 
@@ -65,10 +66,11 @@ impl ExecutionContext {
     pub fn create(
         language_server: Rc<language_server::Connection>,
         root_definition: language_server::MethodPointer,
+        id: model::execution_context::Id,
     ) -> impl Future<Output = FallibleResult<Self>> {
         async move {
             info!("Creating.");
-            let id = language_server.client.create_execution_context().await?.context_id;
+            let id = language_server.client.create_execution_context(&id).await?.context_id;
             let model = model::execution_context::Plain::new(root_definition);
             info!("Created. Id: {id}.");
             let this = Self { id, model, language_server };
@@ -79,7 +81,7 @@ impl ExecutionContext {
     }
 
     fn push_root_frame(&self) -> impl Future<Output = FallibleResult> {
-        let method_pointer = self.model.entry_point.clone();
+        let method_pointer = self.model.entry_point.borrow().clone();
         let this_argument_expression = default();
         let positional_arguments_expressions = default();
 
@@ -168,6 +170,10 @@ impl model::execution_context::API for ExecutionContext {
 
     fn current_method(&self) -> language_server::MethodPointer {
         self.model.current_method()
+    }
+
+    fn method_at_frame_back(&self, count: usize) -> FallibleResult<language_server::MethodPointer> {
+        self.model.method_at_frame_back(count)
     }
 
     fn visualization_info(&self, id: VisualizationId) -> FallibleResult<Visualization> {
@@ -298,7 +304,50 @@ impl model::execution_context::API for ExecutionContext {
         async move {
             self.language_server
                 .client
-                .recompute(&self.id, &language_server::InvalidatedExpressions::All)
+                .recompute(
+                    &self.id,
+                    &language_server::InvalidatedExpressions::All,
+                    &Some(self.model.execution_environment.get()),
+                )
+                .await?;
+            Ok(())
+        }
+        .boxed_local()
+    }
+
+    fn rename_method_pointers(&self, old_project_name: String, new_project_name: String) {
+        self.model.rename_method_pointers(old_project_name, new_project_name);
+    }
+
+    fn set_execution_environment(
+        &self,
+        execution_environment: ExecutionEnvironment,
+    ) -> BoxFuture<FallibleResult> {
+        self.model.execution_environment.set(execution_environment);
+        async move {
+            info!("Setting execution environment to {execution_environment:?}.");
+            self.language_server
+                .client
+                .set_execution_environment(&self.id, &execution_environment)
+                .await?;
+            Ok(())
+        }
+        .boxed_local()
+    }
+
+    fn execution_environment(&self) -> ExecutionEnvironment {
+        self.model.execution_environment.get()
+    }
+
+    fn trigger_clean_live_execution(&self) -> BoxFuture<FallibleResult> {
+        async move {
+            self.language_server
+                .client
+                .recompute(
+                    &self.id,
+                    &language_server::InvalidatedExpressions::All,
+                    &Some(ExecutionEnvironment::Live),
+                )
                 .await?;
             Ok(())
         }
@@ -371,7 +420,7 @@ pub mod test {
             let connection = language_server::Connection::new_mock_rc(ls_client);
             let mut test = TestWithLocalPoolExecutor::set_up();
             let method = data.main_method_pointer();
-            let context = ExecutionContext::create(connection, method);
+            let context = ExecutionContext::create(connection, method, data.context_id);
             let context = test.expect_completion(context).unwrap();
             Fixture { data, context, test }
         }
@@ -390,7 +439,7 @@ pub mod test {
         fn mock_create_destroy_calls(data: &MockData, ls: &mut language_server::MockClient) {
             let id = data.context_id;
             let result = Self::expected_creation_response(data);
-            expect_call!(ls.create_execution_context()    => Ok(result));
+            expect_call!(ls.create_execution_context(id)  => Ok(result));
             expect_call!(ls.destroy_execution_context(id) => Ok(()));
         }
 
@@ -433,7 +482,8 @@ pub mod test {
         let f = Fixture::new();
         assert_eq!(f.data.context_id, f.context.id);
         let name_in_data = f.data.module_qualified_name();
-        let name_in_ctx_model = QualifiedName::try_from(&f.context.model.entry_point.module);
+        let name_in_ctx_model =
+            QualifiedName::try_from(&f.context.model.entry_point.borrow().module);
         assert_eq!(name_in_data, name_in_ctx_model.unwrap());
         assert_eq!(Vec::<LocalCall>::new(), f.context.model.stack_items().collect_vec());
     }

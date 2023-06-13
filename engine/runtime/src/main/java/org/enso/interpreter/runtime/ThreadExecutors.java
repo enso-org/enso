@@ -5,7 +5,9 @@ import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 final class ThreadExecutors {
   private final EnsoContext context;
@@ -30,8 +32,18 @@ final class ThreadExecutors {
   public void shutdown() {
     var it = pools.entrySet().iterator();
     while (it.hasNext()) {
-      var p = it.next().getKey();
+      var next = it.next();
+      var p = next.getKey();
       p.shutdown();
+      boolean success;
+      try {
+        success = p.awaitTermination(10, TimeUnit.SECONDS);
+      } catch (InterruptedException ex) {
+        success = false;
+      }
+      if (!success) {
+        context.getLogger().log(Level.WARNING, "Cannot shutdown {0} thread pool", next.getValue());
+      }
     }
   }
 

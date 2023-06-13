@@ -63,7 +63,7 @@ class DesignExecutionEnvironmentTest extends InterpreterTest {
           |input_action : Integer -> Integer
           |input_action i = Input.if_enabled i environment="design"
           |
-          |main = Runtime.with_enabled_context Input (input_action 2)
+          |main = Runtime.with_enabled_context Input action=(input_action 2)
           |""".stripMargin
       eval(code) shouldEqual 2
     }
@@ -90,7 +90,7 @@ class DesignExecutionEnvironmentTest extends InterpreterTest {
           |input_action i = Input.if_enabled i
           |
           |main =
-          |    res = Runtime.with_enabled_context Input (input_action 2)
+          |    res = Runtime.with_enabled_context Input action=(input_action 2)
           |    Panic.catch Any (input_action 2) p-> res.to_text+" and "+p.payload.to_text
           |""".stripMargin
       eval(code) shouldEqual "2 and (Forbidden_Operation.Error 'Input')"

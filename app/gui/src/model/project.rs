@@ -39,6 +39,15 @@ pub trait API: Debug {
     /// Project's qualified name
     fn qualified_name(&self) -> project::QualifiedName;
 
+    /// Whether the read-only mode is enabled for the project.
+    ///
+    /// Read-only mode forbids certain operations, like renaming the project or editing the code
+    /// through the IDE.
+    fn read_only(&self) -> bool;
+
+    /// Set the read-only mode for the project.
+    fn set_read_only(&self, read_only: bool);
+
     /// Get Language Server JSON-RPC Connection for this project.
     fn json_rpc(&self) -> Rc<language_server::Connection>;
 
@@ -76,6 +85,7 @@ pub trait API: Debug {
     fn create_execution_context<'a>(
         &'a self,
         root_definition: language_server::MethodPointer,
+        context_id: model::execution_context::Id,
     ) -> BoxFuture<'a, FallibleResult<model::ExecutionContext>>;
 
     /// Set a new project name.
@@ -170,6 +180,10 @@ pub enum Notification {
     ConnectionLost(BackendConnection),
     /// Indicates that the project VCS status has changed.
     VcsStatusChanged(VcsStatus),
+    /// Indicates that the project has finished execution.
+    ExecutionFinished,
+    /// Indicates failure of the project execution.
+    ExecutionFailed,
 }
 
 /// Denotes one of backend connections used by a project.
@@ -223,8 +237,10 @@ pub mod test {
         let ctx2 = ctx.clone_ref();
         project
             .expect_create_execution_context()
-            .withf_st(move |root_definition| root_definition == &ctx.current_method())
-            .returning_st(move |_root_definition| ready(Ok(ctx2.clone_ref())).boxed_local());
+            .withf_st(move |root_definition, _context_id| root_definition == &ctx.current_method())
+            .returning_st(move |_root_definition, _context_id| {
+                ready(Ok(ctx2.clone_ref())).boxed_local()
+            });
     }
 
     /// Sets up project root id expectation on the mock project, returning a given id.
@@ -266,5 +282,9 @@ pub mod test {
         project.expect_qualified_module_name().returning_st(move |path: &model::module::Path| {
             path.qualified_module_name(name.clone())
         });
+    }
+
+    pub fn expect_read_only(project: &mut MockAPI, read_only: Rc<Cell<bool>>) {
+        project.expect_read_only().returning_st(move || read_only.get());
     }
 }

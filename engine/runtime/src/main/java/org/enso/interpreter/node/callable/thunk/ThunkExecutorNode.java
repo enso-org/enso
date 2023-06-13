@@ -2,6 +2,7 @@ package org.enso.interpreter.node.callable.thunk;
 
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
@@ -35,12 +36,14 @@ public abstract class ThunkExecutorNode extends Node {
   /**
    * Forces the thunk to its resulting value.
    *
+   * @param frame the current frame
    * @param thunk the thunk to force
    * @param state the state to pass to the thunk
    * @param isTail is the execution happening in a tail-call position
    * @return the return value of this thunk
    */
-  public abstract Object executeThunk(Object thunk, State state, BaseNode.TailStatus isTail);
+  public abstract Object executeThunk(
+      VirtualFrame frame, Object thunk, State state, BaseNode.TailStatus isTail);
 
   boolean sameCallTarget(DirectCallNode callNode, Function function) {
     return function.getCallTarget() == callNode.getCallTarget();
@@ -50,6 +53,7 @@ public abstract class ThunkExecutorNode extends Node {
       guards = {"function.isThunk()", "sameCallTarget(callNode, function)"},
       limit = Constants.CacheSizes.THUNK_EXECUTOR_NODE)
   Object doCached(
+      VirtualFrame frame,
       Function function,
       State state,
       BaseNode.TailStatus isTail,
@@ -63,13 +67,14 @@ public abstract class ThunkExecutorNode extends Node {
         return callNode.call(Function.ArgumentsHelper.buildArguments(function, state));
       } catch (TailCallException e) {
         return loopingCallOptimiserNode.executeDispatch(
-            e.getFunction(), e.getCallerInfo(), state, e.getArguments());
+            frame, e.getFunction(), e.getCallerInfo(), state, e.getArguments());
       }
     }
   }
 
   @Specialization(replaces = "doCached", guards = "function.isThunk()")
   Object doUncached(
+      VirtualFrame frame,
       Function function,
       State state,
       BaseNode.TailStatus isTail,
@@ -84,7 +89,7 @@ public abstract class ThunkExecutorNode extends Node {
             function.getCallTarget(), Function.ArgumentsHelper.buildArguments(function, state));
       } catch (TailCallException e) {
         return loopingCallOptimiserNode.executeDispatch(
-            e.getFunction(), e.getCallerInfo(), state, e.getArguments());
+            frame, e.getFunction(), e.getCallerInfo(), state, e.getArguments());
       }
     }
   }

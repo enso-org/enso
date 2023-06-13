@@ -1,22 +1,22 @@
 /** @file Globals defined outside of TypeScript files.
  * These are from variables defined at build time, environment variables,
- * monkeypatching on `window` and generated code.
- *
- * This file MUST `export {}` for the globals to be visible to other files. */
+ * monkeypatching on `window` and generated code. */
+// This file is being imported for its types.
+// eslint-disable-next-line no-restricted-syntax
+import * as buildJson from './build.json' assert { type: 'json' }
 
+// =============
+// === Types ===
+// =============
+
+/** Nested configuration options with `string` values. */
 interface StringConfig {
     [key: string]: StringConfig | string
 }
 
+/** The public interface exposed to `window` by the IDE. */
 interface Enso {
     main: (inputConfig?: StringConfig) => Promise<void>
-}
-
-interface BuildInfo {
-    commit: string
-    version: string
-    engineVersion: string
-    name: string
 }
 
 // ==========================
@@ -38,15 +38,24 @@ interface AuthenticationApi {
     /** Set the callback to be called when the system browser redirects back to a URL in the app,
      * via a deep link. See {@link setDeepLinkHandler} for details. */
     setDeepLinkHandler: (callback: (url: string) => void) => void
+    /** Saves the access token to a file. */
+    saveAccessToken: (access_token: string) => void
 }
 
+// =====================================
+// === Global namespace augmentation ===
+// =====================================
+
+// JSDocs here are intentionally empty as these interfaces originate from elsewhere.
 declare global {
+    /** */
     interface Window {
-        enso: Enso
+        enso: AppRunner & Enso
         authenticationApi: AuthenticationApi
     }
 
     namespace NodeJS {
+        /** */
         interface ProcessEnv {
             /* eslint-disable @typescript-eslint/naming-convention */
             APPLEID: string
@@ -58,11 +67,11 @@ declare global {
     // These are used in other files (because they're globals)
     /* eslint-disable @typescript-eslint/naming-convention */
     const BUNDLED_ENGINE_VERSION: string
-    const BUILD_INFO: BuildInfo
-    // eslint-disable-next-line no-restricted-syntax
+    const BUILD_INFO: buildJson.BuildInfo
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string
     const IS_DEV_MODE: boolean
+    // This will be `undefined` when it is not defined by esbuild.
+    // eslint-disable-next-line no-restricted-syntax
+    const REDIRECT_OVERRIDE: string | undefined
     /* eslint-disable @typescript-eslint/naming-convention */
 }
-
-export {}

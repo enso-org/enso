@@ -258,6 +258,11 @@ impl<T, I> NonEmptyVec<T, I> {
         self.elems.into()
     }
 
+    /// Consume this non-empty vector and return it's first element. The rest will be dropped.
+    pub fn take_first(self) -> T {
+        self.elems.into_iter().next().unwrap_or_else(|| unreachable!())
+    }
+
     /// Consume this non-empty vector, map each element with a function, and produce a new one.
     pub fn mapped<S>(self, f: impl FnMut(T) -> S) -> NonEmptyVec<S> {
         let elems = self.elems.into_iter().map(f).collect();

@@ -66,6 +66,15 @@ case object GatherDiagnostics extends IRPass {
     val diagnostics = ir.preorder.collect {
       case err: IR.Diagnostic =>
         List(err)
+      case arg: IR.DefinitionArgument =>
+        val typeSignatureDiagnostics =
+          arg
+            .getMetadata(TypeSignatures)
+            .map(_.signature.preorder.collect { case err: IR.Diagnostic =>
+              err
+            })
+            .getOrElse(Nil)
+        typeSignatureDiagnostics ++ arg.diagnostics.toList
       case x: IR.Module.Scope.Definition.Method =>
         val typeSignatureDiagnostics =
           x.getMetadata(TypeSignatures)

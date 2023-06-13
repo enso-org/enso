@@ -3,7 +3,9 @@ package org.enso.interpreter.runtime.error;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
-import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.interop.ExceptionType;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -26,7 +28,7 @@ import org.enso.interpreter.runtime.state.State;
 /** An exception type for user thrown panic exceptions. */
 @ExportLibrary(value = InteropLibrary.class, delegateTo = "payload")
 @ExportLibrary(TypesLibrary.class)
-public class PanicException extends AbstractTruffleException {
+public final class PanicException extends AbstractTruffleException {
   final Object payload;
   String cacheMessage;
 

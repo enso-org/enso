@@ -7,8 +7,8 @@
     ".": "./src/index.tsx",
     "./src/platform": "./src/platform.ts"
   },
-  "devDependencies": {
-    "typescript": "^4.9.3"
+  "scripts": {
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@aws-amplify/auth": "^5.1.8",
@@ -19,5 +19,8 @@
     "react-hot-toast": "^2.4.0",
     "react-router-dom": "^6.8.1",
     "ts-results": "^3.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.3"
   }
 }

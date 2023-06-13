@@ -7,6 +7,9 @@ import * as newtype from './newtype'
 // === Constants ===
 // =================
 
+/** The web domain of the cloud website. */
+export const CLOUD_DOMAIN = 'https://cloud.enso.org'
+
 /** The current environment that we're running in. */
 export const ENVIRONMENT: Environment = 'production'
 
@@ -16,8 +19,8 @@ const CLOUD_REDIRECTS = {
      * The redirect URL must be known ahead of time because it is registered with the OAuth provider
      * when it is created. In the native app, the port is unpredictable, but this is not a problem
      * because the native app does not use port-based redirects, but deep links. */
-    development: newtype.asNewtype<auth.OAuthRedirect>('http://localhost:8081'),
-    production: newtype.asNewtype<auth.OAuthRedirect>('https://cloud.enso.org'),
+    development: newtype.asNewtype<auth.OAuthRedirect>('http://localhost:8080'),
+    production: newtype.asNewtype<auth.OAuthRedirect>(REDIRECT_OVERRIDE ?? CLOUD_DOMAIN),
 }
 
 /** All possible API URLs, sorted by environment. */

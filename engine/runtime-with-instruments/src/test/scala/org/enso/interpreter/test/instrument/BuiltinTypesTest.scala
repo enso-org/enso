@@ -97,6 +97,10 @@ class BuiltinTypesTest
     context = new TestContext("Test")
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
+  override protected def afterEach(): Unit = {
+    context.executionContext.context.close()
+    context.runtimeServerEmulator.terminate()
+  }
 
   def runCode(contextId: UUID, requestId: UUID, contents: String): Unit = {
     val moduleName = "Enso_Test.Test.Main"

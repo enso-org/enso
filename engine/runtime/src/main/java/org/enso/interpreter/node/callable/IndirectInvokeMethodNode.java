@@ -1,10 +1,10 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -121,7 +121,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       int thisArgumentPosition,
       @Cached IndirectInvokeMethodNode childDispatch) {
     arguments[thisArgumentPosition] = self.getValue();
-    ArrayRope<Warning> warnings = self.getReassignedWarnings(this);
+    ArrayRope<Warning> warnings = self.getReassignedWarningsAsRope(this);
     Object result =
         childDispatch.execute(
             frame,
@@ -134,7 +134,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
             argumentsExecutionMode,
             isTail,
             thisArgumentPosition);
-    return WithWarnings.prependTo(result, warnings);
+    return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
   }
 
   @Specialization
@@ -178,7 +178,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
       @Cached HostMethodCallNode hostMethodCallNode) {
     Object[] args = new Object[arguments.length - 1];
     for (int i = 0; i < arguments.length - 1; i++) {
-      var r = argExecutor.executeThunk(arguments[i + 1], state, BaseNode.TailStatus.NOT_TAIL);
+      var r =
+          argExecutor.executeThunk(frame, arguments[i + 1], state, BaseNode.TailStatus.NOT_TAIL);
       if (r instanceof DataflowError) {
         return r;
       }

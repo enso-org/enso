@@ -1,7 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.StringBuilder;
@@ -12,9 +10,12 @@ import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
+import org.enso.table.data.column.operation.map.text.StringStringOp;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.graalvm.polyglot.Value;
+
+import java.util.BitSet;
 
 /** A column storing strings. */
 public final class StringStorage extends SpecializedStorage<String> {
@@ -46,12 +47,14 @@ public final class StringStorage extends SpecializedStorage<String> {
   private static final MapOpStorage<String, SpecializedStorage<String>> ops = buildOps();
 
   @Override
-  protected Storage<?> runVectorizedMap(String name, Object argument, MapOperationProblemBuilder problemBuilder) {
+  protected Storage<?> runVectorizedMap(
+      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
     return ops.runMap(name, this, argument, problemBuilder);
   }
 
   @Override
-  protected Storage<?> runVectorizedZip(String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
+  protected Storage<?> runVectorizedZip(
+      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
     return ops.runZip(name, this, argument, problemBuilder);
   }
 
@@ -74,7 +77,10 @@ public final class StringStorage extends SpecializedStorage<String> {
     t.add(
         new MapOperation<>(Maps.EQ) {
           @Override
-          public BoolStorage runMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+          public BoolStorage runMap(
+              SpecializedStorage<String> storage,
+              Object arg,
+              MapOperationProblemBuilder problemBuilder) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
             for (int i = 0; i < storage.size(); i++) {
@@ -88,7 +94,10 @@ public final class StringStorage extends SpecializedStorage<String> {
           }
 
           @Override
-          public BoolStorage runZip(SpecializedStorage<String> storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+          public BoolStorage runZip(
+              SpecializedStorage<String> storage,
+              Storage<?> arg,
+              MapOperationProblemBuilder problemBuilder) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
             for (int i = 0; i < storage.size(); i++) {
@@ -139,6 +148,13 @@ public final class StringStorage extends SpecializedStorage<String> {
         });
     t.add(new LikeOp());
     t.add(new StringIsInOp<>());
+    t.add(
+        new StringStringOp(Maps.ADD) {
+          @Override
+          protected String doString(String a, String b) {
+            return a + b;
+          }
+        });
     return t;
   }
 }

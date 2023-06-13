@@ -1,8 +1,7 @@
 package org.enso.table.parsing.problems;
 
-import org.enso.table.problems.Problem;
-
 import java.util.List;
+import org.enso.table.problems.Problem;
 
 /** An aggregator for parsing problems. */
 public interface ProblemAggregator {
@@ -14,9 +13,6 @@ public interface ProblemAggregator {
    * given column is reported.
    */
   void reportInvalidFormat(String cell);
-
-  /** Reports a cell containing unexpected leading zeros. */
-  void reportLeadingZeroes(String cell);
 
   /** Reports that a mismatched quote has been encountered. */
   void reportMismatchedQuote(String cellText);

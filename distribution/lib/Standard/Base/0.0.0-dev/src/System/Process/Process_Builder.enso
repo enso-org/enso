@@ -78,3 +78,10 @@ type Process_Builder
 type Process_Result
     ## PRIVATE
     Value exit_code:Exit_Code stdout:Text stderr:Text
+
+    ## PRIVATE
+       Convert to a display representation of this Process_Result.
+    to_display_text : Text
+    to_display_text self = case self.exit_code of
+        Exit_Code.Success -> "Success(" + self.stdout.to_display_text + ")"
+        _ -> self.exit_code.to_display_text + "(" + self.stderr.to_display_text + ")"

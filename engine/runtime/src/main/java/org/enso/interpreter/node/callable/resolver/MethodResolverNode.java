@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.callable.resolver;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
@@ -49,7 +48,6 @@ public abstract class MethodResolverNode extends Node {
   }
 
   @Specialization(replaces = "resolveCached")
-  @CompilerDirectives.TruffleBoundary
   Function resolveUncached(Type self, UnresolvedSymbol symbol) {
     return symbol.resolveFor(self);
   }

@@ -107,7 +107,7 @@ class MethodsTest extends InterpreterTest {
           |""".stripMargin
       the[InterpreterException] thrownBy eval(
         code
-      ) should have message "Method `foo` of 7 (Integer) could not be found."
+      ) should have message "Method `foo` of type Integer could not be found."
     }
 
     "be callable for any type when defined on Any" in {
@@ -216,7 +216,7 @@ class MethodsTest extends InterpreterTest {
           |""".stripMargin
       the[InterpreterException] thrownBy eval(
         code
-      ) should have message "Method `new` of Mk_Foo could not be found."
+      ) should have message "Method `new` of type Foo could not be found."
     }
 
     "not be callable on Nothing when non-static" in {

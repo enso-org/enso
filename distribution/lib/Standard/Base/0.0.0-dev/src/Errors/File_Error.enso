@@ -1,9 +1,11 @@
+import project.Any.Any
 import project.Data.Text.Text
 import project.Error.Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.System.File.File
+import project.System.File_Format.File_Format
 
 polyglot java import java.io.IOException
 polyglot java import java.nio.file.AccessDeniedException
@@ -37,7 +39,7 @@ type File_Error
 
     ## Indicates that the given type cannot be serialized to the provided file
        format.
-    Unsupported_Output_Type (format : File_Format | File) (data_type : Any)
+    Unsupported_Output_Type (format : File_Format | File | Any) (data_type : Any)
 
     ## Indicates that the given file is corrupted, i.e. the data it contains
        is not in the expected format.

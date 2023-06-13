@@ -4,26 +4,17 @@
 use crate::prelude::*;
 
 use crate::executor::global::spawn_stream_handler;
+use crate::model::project::synchronized::ProjectNameInvalid;
 use crate::presenter;
-use crate::presenter::graph::ViewNodeId;
 
+use engine_protocol::language_server::ExecutionEnvironment;
+use engine_protocol::project_manager::ProjectMetadata;
 use enso_frp as frp;
-use ensogl::system::js;
 use ide_view as view;
 use ide_view::project::SearcherParams;
 use model::module::NotificationKind;
 use model::project::Notification;
 use model::project::VcsStatus;
-
-
-
-// =================
-// === Constants ===
-// =================
-
-/// We don't know how long the project opening will take, but we still want to show a fake progress
-/// indicator for the user. This constant represents a progress percentage that will be displayed.
-const OPEN_PROJECT_SPINNER_PROGRESS: f32 = 0.8;
 
 
 
@@ -35,16 +26,17 @@ const OPEN_PROJECT_SPINNER_PROGRESS: f32 = 0.8;
 #[allow(unused)]
 #[derive(Debug)]
 struct Model {
-    controller:         controller::Project,
-    module_model:       model::Module,
-    graph_controller:   controller::ExecutedGraph,
-    ide_controller:     controller::Ide,
-    view:               view::project::View,
-    status_bar:         view::status_bar::View,
-    graph:              presenter::Graph,
-    code:               presenter::Code,
-    searcher:           RefCell<Option<presenter::Searcher>>,
-    available_projects: Rc<RefCell<Vec<(ImString, Uuid)>>>,
+    controller:           controller::Project,
+    module_model:         model::Module,
+    graph_controller:     controller::ExecutedGraph,
+    ide_controller:       controller::Ide,
+    view:                 view::project::View,
+    status_bar:           view::status_bar::View,
+    graph:                presenter::Graph,
+    code:                 presenter::Code,
+    searcher:             RefCell<Option<presenter::Searcher>>,
+    available_projects:   Rc<RefCell<Vec<ProjectMetadata>>>,
+    shortcut_transaction: RefCell<Option<Rc<model::undo_redo::Transaction>>>,
 }
 
 impl Model {
@@ -67,6 +59,7 @@ impl Model {
         let code = presenter::Code::new(text_controller, &view);
         let searcher = default();
         let available_projects = default();
+        let shortcut_transaction = default();
         Model {
             controller,
             module_model,
@@ -78,6 +71,7 @@ impl Model {
             code,
             searcher,
             available_projects,
+            shortcut_transaction,
         }
     }
 
@@ -97,28 +91,6 @@ impl Model {
             Err(err) => {
                 error!("Error while creating searcher integration: {err}");
             }
-        }
-    }
-
-    fn editing_committed_old_searcher(
-        &self,
-        node: ViewNodeId,
-        entry_id: Option<view::searcher::entry::Id>,
-    ) -> bool {
-        let searcher = self.searcher.take();
-        if let Some(searcher) = searcher {
-            let is_example = entry_id.map_or(false, |i| searcher.is_entry_an_example(i));
-            if let Some(created_node) = searcher.commit_editing(entry_id) {
-                self.graph.allow_expression_auto_updates(created_node, true);
-                if is_example {
-                    self.view.graph().enable_visualization(node);
-                }
-                false
-            } else {
-                true
-            }
-        } else {
-            false
         }
     }
 
@@ -158,11 +130,23 @@ impl Model {
         if self.controller.model.name() != name.as_ref() {
             let project = self.controller.model.clone_ref();
             let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
+            let popup = self.view.popup().clone_ref();
             let name = name.into();
             executor::global::spawn(async move {
-                if let Err(e) = project.rename_project(name).await {
-                    error!("The project couldn't be renamed: {e}");
-                    breadcrumbs.cancel_project_name_editing.emit(());
+                if let Err(error) = project.rename_project(name).await {
+                    let error_message = match error.downcast::<ProjectNameInvalid>() {
+                        Ok(error) => error.to_string(),
+                        Err(error) => {
+                            // Other errors aren't geared towards users, so display a generic
+                            // message.
+                            let prefix = "The project couldn't be renamed".to_string();
+                            error!("{prefix}: {error}");
+                            prefix
+                        }
+                    };
+                    popup.set_label.emit(error_message);
+                    // Reset name to old, valid value
+                    breadcrumbs.input.project_name.emit(project.name());
                 }
             });
         }
@@ -194,9 +178,29 @@ impl Model {
         })
     }
 
+    /// Notification from shortcut manager that the handled shortcut has changed.
+    /// It is either the name of the command that was triggered or `None` when handling of the
+    /// last command was completed.
+    fn handled_shortcut_changed(&self, handled_shortcut: &Option<ImString>) {
+        debug!("Handled shortcut changed: {handled_shortcut:?}.");
+        let transaction = handled_shortcut
+            .as_ref()
+            .map(|shortcut| self.controller.model.urm().get_or_open_transaction(shortcut.as_str()));
+        *self.shortcut_transaction.borrow_mut() = transaction;
+    }
+
     fn toggle_component_browser_private_entries_visibility(&self) {
         let visibility = self.ide_controller.are_component_browser_private_entries_visible();
         self.ide_controller.set_component_browser_private_entries_visibility(!visibility);
+    }
+
+    /// Toggle the read-only mode, return the new state.
+    fn toggle_read_only(&self) -> bool {
+        let current_state = self.controller.model.read_only();
+        let new_state = !current_state;
+        self.controller.model.set_read_only(new_state);
+        info!("New read only state: {}.", new_state);
+        new_state
     }
 
     fn restore_project_snapshot(&self) {
@@ -213,6 +217,17 @@ impl Model {
 
     fn set_project_changed(&self, changed: bool) {
         self.view.graph().model.breadcrumbs.set_project_changed(changed);
+    }
+
+    fn execution_finished(&self) {
+        self.view.graph().frp.set_read_only(false);
+        self.view.graph().frp.execution_finished.emit(());
+    }
+
+    fn execution_failed(&self) {
+        let message = crate::EXECUTION_FAILED_MESSAGE;
+        let message = view::status_bar::event::Label::from(message);
+        self.status_bar.add_event(message);
     }
 
     fn execution_context_interrupt(&self) {
@@ -240,8 +255,6 @@ impl Model {
         executor::global::spawn(async move {
             if let Ok(api) = controller.manage_projects() {
                 if let Ok(projects) = api.list_projects().await {
-                    let projects = projects.into_iter();
-                    let projects = projects.map(|p| (p.name.clone().into(), p.id)).collect_vec();
                     *projects_list.borrow_mut() = projects;
                     project_list_ready.emit(());
                 }
@@ -249,34 +262,37 @@ impl Model {
         })
     }
 
-    /// User clicked a project in the Open Project dialog. Open it.
-    fn open_project(&self, id_in_list: &usize) {
-        let controller = self.ide_controller.clone_ref();
-        let projects_list = self.available_projects.clone_ref();
-        let view = self.view.clone_ref();
-        let status_bar = self.status_bar.clone_ref();
-        let id = *id_in_list;
+    fn execution_environment_changed(
+        &self,
+        execution_environment: ide_view::execution_environment_selector::ExecutionEnvironment,
+    ) {
+        let graph_controller = self.graph_controller.clone_ref();
         executor::global::spawn(async move {
-            let app = js::app_or_panic();
-            app.show_progress_indicator(OPEN_PROJECT_SPINNER_PROGRESS);
-            view.hide_graph_editor();
-            if let Ok(api) = controller.manage_projects() {
-                api.close_project();
-                let uuid = projects_list.borrow().get(id).map(|(_name, uuid)| *uuid);
-                if let Some(uuid) = uuid {
-                    if let Err(error) = api.open_project(uuid).await {
-                        error!("Error opening project: {error}.");
-                        status_bar.add_event(format!("Error opening project: {error}."));
-                    }
-                } else {
-                    error!("Project with id {id} not found.");
-                }
-            } else {
-                error!("Project Manager API not available, cannot open project.");
+            if let Err(err) =
+                graph_controller.set_execution_environment(execution_environment).await
+            {
+                error!("Error setting execution environment: {err}");
             }
-            app.hide_progress_indicator();
-            view.show_graph_editor();
-        })
+        });
+    }
+
+    fn trigger_clean_live_execution(&self) {
+        let graph_controller = self.graph_controller.clone_ref();
+        executor::global::spawn(async move {
+            if let Err(err) = graph_controller.trigger_clean_live_execution().await {
+                error!("Error starting clean live execution: {err}");
+            }
+        });
+    }
+
+    fn show_dashboard(&self) {
+        match enso_web::Event::new("show-dashboard") {
+            Ok(event) =>
+                if let Err(error) = enso_web::document.dispatch_event(&event) {
+                    error!("Failed to dispatch event to show the dashboard. {error:?}");
+                },
+            Err(error) => error!("Failed to create event to show the dashboard. {error:?}"),
+        }
     }
 }
 
@@ -319,28 +335,15 @@ impl Project {
         let view = &model.view.frp;
         let breadcrumbs = &model.view.graph().model.breadcrumbs;
         let graph_view = &model.view.graph().frp;
-        let project_list = &model.view.project_list();
+        let project_list = &model.view.project_list().frp;
 
         frp::extend! { network
             project_list_ready <- source_();
-
-            project_list.grid.reset_entries <+ project_list_ready.map(f_!([model]{
-                let cols = 1;
-                let rows = model.available_projects.borrow().len();
-                (rows, cols)
-            }));
-            entry_model <- project_list.grid.model_for_entry_needed.map(f!([model]((row, col)) {
-                let projects = model.available_projects.borrow();
-                let project = projects.get(*row);
-                project.map(|(name, _)| (*row, *col, name.clone_ref()))
-            })).filter_map(|t| t.clone());
-            project_list.grid.model_for_entry <+ entry_model;
-
+            project_list.project_list <+ project_list_ready.map(
+                f_!(model.available_projects.borrow().clone())
+            );
             open_project_list <- view.project_list_shown.on_true();
-            eval_ open_project_list(model.project_list_opened(project_list_ready.clone_ref()));
-            selected_project <- project_list.grid.entry_selected.filter_map(|e| *e);
-            eval selected_project(((row, _col)) model.open_project(row));
-            project_list.grid.select_entry <+ selected_project.constant(None);
+            eval_ open_project_list (model.project_list_opened(project_list_ready.clone_ref()));
 
             eval view.searcher ([model](params) {
                 if let Some(params) = params {
@@ -348,9 +351,6 @@ impl Project {
                 }
             });
 
-            graph_view.remove_node <+ view.editing_committed_old_searcher.filter_map(f!([model]((node_view, entry)) {
-                model.editing_committed_old_searcher(*node_view, *entry).as_some(*node_view)
-            }));
             graph_view.remove_node <+ view.editing_committed.filter_map(f!([model]((node_view, entry)) {
                 model.editing_committed(*entry).as_some(*node_view)
             }));
@@ -374,13 +374,29 @@ impl Project {
             eval_ view.execution_context_interrupt(model.execution_context_interrupt());
 
             eval_ view.execution_context_restart(model.execution_context_restart());
+
+            view.set_read_only <+ view.toggle_read_only.map(f_!(model.toggle_read_only()));
+            eval graph_view.execution_environment((env) model.execution_environment_changed(*env));
+            eval_ graph_view.execution_environment_play_button_pressed( model.trigger_clean_live_execution());
+
+            eval_ view.go_to_dashboard_button_pressed (model.show_dashboard());
+            eval view.current_shortcut ((shortcut) model.handled_shortcut_changed(shortcut));
         }
 
         let graph_controller = self.model.graph_controller.clone_ref();
 
         self.init_analytics()
+            .init_execution_environments()
             .setup_notification_handler()
             .attach_frp_to_values_computed_notifications(graph_controller, values_computed)
+    }
+
+    /// Initialises execution environment.
+    fn init_execution_environments(self) -> Self {
+        let graph = &self.model.view.graph();
+        let entries = Rc::new(ExecutionEnvironment::list_all());
+        graph.set_available_execution_environments(entries);
+        self
     }
 
     fn init_analytics(self) -> Self {
@@ -420,6 +436,12 @@ impl Project {
                 }
                 Notification::VcsStatusChanged(VcsStatus::Clean) => {
                     model.set_project_changed(false);
+                }
+                Notification::ExecutionFinished => {
+                    model.execution_finished();
+                }
+                Notification::ExecutionFailed => {
+                    model.execution_failed();
                 }
             };
             std::future::ready(())
@@ -466,7 +488,16 @@ impl Project {
         view: view::project::View,
         status_bar: view::status_bar::View,
     ) -> FallibleResult<Self> {
+        debug!("Initializing project controller...");
         let init_result = controller.initialize().await?;
-        Ok(Self::new(ide_controller, controller, init_result, view, status_bar))
+        debug!("Project controller initialized.");
+        let presenter =
+            Self::new(ide_controller, controller.clone(), init_result, view, status_bar);
+        debug!("Project presenter created.");
+        // Following the project initialization, the Undo/Redo stack should be empty.
+        // This makes sure that any initial modifications resulting from the GUI initialization
+        // won't clutter the undo stack.
+        controller.model.urm().repository.clear_all();
+        Ok(presenter)
     }
 }

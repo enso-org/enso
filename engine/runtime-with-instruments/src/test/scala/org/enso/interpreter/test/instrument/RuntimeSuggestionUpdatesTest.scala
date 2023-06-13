@@ -94,6 +94,11 @@ class RuntimeSuggestionUpdatesTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
+  override protected def afterEach(): Unit = {
+    context.executionContext.context.close()
+    context.runtimeServerEmulator.terminate()
+  }
+
   it should "send suggestion updates after file modification" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
@@ -156,7 +161,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -164,7 +169,8 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None
+                    None,
+                    Seq()
                   ),
                   Api.SuggestionAction.Add()
                 ),
@@ -205,7 +211,7 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -213,7 +219,8 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None
+                    None,
+                    Seq()
                   ),
                   Api.SuggestionAction.Modify()
                 ),
@@ -276,7 +283,7 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -284,7 +291,8 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None
+                    None,
+                    Seq()
                   ),
                   Api.SuggestionAction.Modify()
                 ),
@@ -367,7 +375,7 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -375,7 +383,8 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None
+                    None,
+                    Seq()
                   ),
                   Api.SuggestionAction.Modify()
                 ),
@@ -466,7 +475,7 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -474,7 +483,8 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None
+                    None,
+                    Seq()
                   ),
                   Api.SuggestionAction.Modify()
                 ),
@@ -531,7 +541,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "foo",
@@ -550,7 +560,8 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None
+                    None,
+                    Seq()
                   ),
                   Api.SuggestionAction.Add()
                 ),
@@ -591,7 +602,7 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "foo",
@@ -610,7 +621,8 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None
+                    None,
+                    Seq()
                   ),
                   Api.SuggestionAction.Modify(
                     None,
@@ -703,7 +715,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -711,7 +723,8 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None
+                    None,
+                    Seq()
                   ),
                   Api.SuggestionAction.Add()
                 ),
@@ -760,7 +773,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     "Enso_Test.Foo.Main",
                     "main",
@@ -768,7 +781,8 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Foo.Main",
                     ConstantsGen.ANY,
                     true,
-                    None
+                    None,
+                    Seq()
                   ),
                   Api.SuggestionAction.Add()
                 ),
@@ -857,7 +871,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -865,7 +879,8 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None
+                    None,
+                    Seq()
                   ),
                   Api.SuggestionAction.Add()
                 ),
@@ -891,7 +906,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "overloaded",
@@ -909,7 +924,8 @@ class RuntimeSuggestionUpdatesTest
                     ConstantsGen.TEXT,
                     ConstantsGen.ANY,
                     false,
-                    None
+                    None,
+                    Seq()
                   ),
                   Api.SuggestionAction.Add()
                 ),
@@ -917,7 +933,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "overloaded",
@@ -935,7 +951,8 @@ class RuntimeSuggestionUpdatesTest
                     ConstantsGen.NUMBER,
                     ConstantsGen.ANY,
                     false,
-                    None
+                    None,
+                    Seq()
                   ),
                   Api.SuggestionAction.Add()
                 ),
@@ -1009,7 +1026,7 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      5
+      6
     ) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
@@ -1054,7 +1071,8 @@ class RuntimeSuggestionUpdatesTest
                         .Argument("a", ConstantsGen.ANY, false, false, None)
                     ),
                     "Enso_Test.Test.A.MyType",
-                    None
+                    None,
+                    Seq()
                   ),
                   Api.SuggestionAction.Add()
                 ),
@@ -1062,7 +1080,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.Getter(
                     None,
                     "Enso_Test.Test.A",
                     "a",
@@ -1078,8 +1096,8 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Enso_Test.Test.A.MyType",
                     ConstantsGen.ANY,
-                    false,
-                    None
+                    None,
+                    Seq()
                   ),
                   Api.SuggestionAction.Add()
                 ),
@@ -1087,7 +1105,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     "Enso_Test.Test.A",
                     "fortytwo",
@@ -1103,7 +1121,8 @@ class RuntimeSuggestionUpdatesTest
                     ConstantsGen.INTEGER,
                     ConstantsGen.ANY,
                     false,
-                    None
+                    None,
+                    Seq()
                   ),
                   Api.SuggestionAction.Add()
                 ),
@@ -1111,7 +1130,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     "Enso_Test.Test.A",
                     "hello",
@@ -1127,7 +1146,8 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.A",
                     ConstantsGen.ANY,
                     true,
-                    None
+                    None,
+                    Seq()
                   ),
                   Api.SuggestionAction.Add()
                 ),
@@ -1146,7 +1166,8 @@ class RuntimeSuggestionUpdatesTest
               ModuleExports(
                 "Enso_Test.Test.Main",
                 Set(
-                  ExportedSymbol.Atom("Enso_Test.Test.A", "MkA"),
+                  ExportedSymbol.Type("Enso_Test.Test.A", "MyType"),
+                  ExportedSymbol.Constructor("Enso_Test.Test.A", "MkA"),
                   ExportedSymbol.Method("Enso_Test.Test.A", "hello")
                 )
               ),
@@ -1167,7 +1188,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -1175,7 +1196,8 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     true,
-                    None
+                    None,
+                    Seq()
                   ),
                   Api.SuggestionAction.Add()
                 ),
@@ -1185,6 +1207,7 @@ class RuntimeSuggestionUpdatesTest
           )
         )
       ),
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
@@ -1205,7 +1228,7 @@ class RuntimeSuggestionUpdatesTest
       )
     )
     context.receiveNIgnoreExpressionUpdates(
-      3
+      2
     ) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -1223,7 +1246,6 @@ class RuntimeSuggestionUpdatesTest
           updates = Tree.Root(Vector())
         )
       ),
-      Api.Response(Api.AnalyzeModuleInScopeJobFinished()),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello World!")
@@ -1254,7 +1276,10 @@ class RuntimeSuggestionUpdatesTest
             Api.ExportsUpdate(
               ModuleExports(
                 "Enso_Test.Test.Main",
-                Set(ExportedSymbol.Atom("Enso_Test.Test.A", "MkA"))
+                Set(
+                  ExportedSymbol.Type("Enso_Test.Test.A", "MyType"),
+                  ExportedSymbol.Constructor("Enso_Test.Test.A", "MkA")
+                )
               ),
               Api.ExportsAction.Remove()
             )

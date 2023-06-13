@@ -40,6 +40,12 @@ type Internal_Dialect
         new_map = mappings.fold self.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
         Internal_Dialect.Value new_map self.wrap_identifier
 
+    ## PRIVATE
+       Checks if an operation is supported by the dialect.
+    is_supported : Text -> Boolean
+    is_supported self operation =
+        self.operation_map.contains_key operation
+
 ## PRIVATE
 
    A helper function to create a binary operator.
@@ -169,7 +175,7 @@ base_dialect =
     fun = name -> [name, make_function name]
 
     arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["mod", make_function "MOD"], ["^", make_function "POWER"]]
-    logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif]]
+    logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif], ["CASE", case_when]]
     eq = lift_binary_op "==" make_equals
     neq = lift_binary_op "!=" make_not_equals
     compare = [eq, neq, bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
@@ -199,6 +205,22 @@ make_iif arguments = case arguments.length of
         (Builder.code "CASE WHEN " ++ expr ++ " THEN " ++ when_true ++ " WHEN " ++ expr ++ " IS NULL THEN NULL ELSE " ++ when_false ++ " END").paren
     _ ->
         Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation IIF")
+
+## PRIVATE
+   For Internal use.
+   An IR expression for constructing SQL `CASE` expressions.
+case_when : Vector Builder -> Builder
+case_when arguments =
+    if arguments.length < 4 then Error.throw (Illegal_State.Error "CASE_WHEN needs at least 3 arguments.") else
+        fallback = arguments.last
+        cases = arguments.drop (Last 1)
+        if cases.length % 2 != 0 then Error.throw (Illegal_State.Error "CASE_WHEN expects an odd number of arguments (two arguments for each case and a fallback).") else
+            n = cases.length . div 2
+            cases_exprs = 0.up_to n . map i->
+                condition = cases.at 2*i
+                result = cases.at (2*i)+1
+                Builder.code "WHEN " ++ condition ++ " THEN " ++ result
+            Builder.code "CASE " ++ Builder.join " " cases_exprs ++ " ELSE " ++ fallback ++ " END"
 
 ## PRIVATE
 simple_cast = Base_Generator.lift_binary_op "CAST" a-> b->
@@ -409,6 +431,15 @@ generate_query dialect query = case query of
         Builder.code "SELECT " ++ prefix ++ cols ++ generate_select_context dialect ctx
     Query.Insert table_name pairs ->
         generate_insert_query dialect table_name pairs
+    Query.Create_Table name columns primary_key temporary ->
+        generate_create_table dialect name columns primary_key temporary
+    Query.Drop_Table name ->
+        Builder.code "DROP TABLE " ++ dialect.wrap_identifier name
+    Query.Insert_From_Select table_name select_query -> case select_query of
+        Query.Select _ _ ->
+            inner_query = generate_query dialect select_query
+            Builder.code "INSERT INTO " ++ dialect.wrap_identifier table_name ++ " " ++ inner_query
+        _ -> Panic.throw (Illegal_State.Error "The inner query of `Query.Insert_From_Select` must be `Query.Select`, but it was "+select_query.to_display_text+". This is a bug in the Database library.")
     _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type: "+query.to_text
 
 ## PRIVATE
@@ -456,3 +487,17 @@ make_concat make_raw_concat_expr make_contains_expr has_quote args =
         transformed_expr = Builder.code "CASE WHEN " ++ expr ++ " IS NULL THEN '' ELSE " ++ possibly_quoted.paren ++ " END"
         concatenated = make_raw_concat_expr transformed_expr separator
         prefix.paren ++ append ++ concatenated ++ append ++ suffix.paren
+
+## PRIVATE
+   Generates the SQL code corresponding to a CREATE TABLE query.
+generate_create_table dialect name columns primary_key temporary =
+    column_definitions = columns.map descriptor->
+        name = descriptor.first
+        sql_type_as_text = descriptor.second
+        dialect.wrap_identifier name ++ " " ++ sql_type_as_text
+    modifiers = if primary_key.is_nothing then [] else
+        [Builder.code ", PRIMARY KEY (" ++ Builder.join ", " (primary_key.map dialect.wrap_identifier) ++ ")"]
+    table_type = if temporary then "TEMPORARY TABLE" else "TABLE"
+    create_prefix = Builder.code ("CREATE "+table_type+" ") ++ dialect.wrap_identifier name
+    create_body = (Builder.join ", " column_definitions) ++ (Builder.join "" modifiers)
+    create_prefix ++ " (" ++ create_body ++ ")"

@@ -1,7 +1,11 @@
+import project.Any.Any
 import project.Data.Text.Text
 import project.Data.Locale.Locale
 import project.Errors.Common.Arithmetic_Error
+import project.Errors.Common.Incomparable_Values
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Error.Error
+import project.Function.Function
 import project.Nothing.Nothing
 import project.Panic.Panic
 
@@ -9,9 +13,10 @@ from project.Data.Boolean import Boolean, True, False
 
 polyglot java import java.lang.Double
 polyglot java import java.lang.Math
-polyglot java import java.lang.String
 polyglot java import java.lang.Long
 polyglot java import java.lang.NumberFormatException
+polyglot java import java.text.DecimalFormat
+polyglot java import java.text.DecimalFormatSymbols
 polyglot java import java.text.NumberFormat
 polyglot java import java.text.ParseException
 
@@ -21,8 +26,7 @@ polyglot java import java.text.ParseException
    an Integer in its place.
 @Builtin_Type
 type Number
-    ## ALIAS Add
-
+    ## ALIAS Add, Plus
        Adds two arbitrary numbers.
 
        Arguments:
@@ -38,8 +42,7 @@ type Number
     + : Number -> Number
     + self that = @Builtin_Method "Integer.+"
 
-    ## ALIAS Subtract
-
+    ## ALIAS Subtract, Minus
        Subtract an arbitrary number from this.
 
        Arguments:
@@ -52,8 +55,7 @@ type Number
     - : Number -> Number
     - self that = @Builtin_Method "Integer.-"
 
-    ## ALIAS Multiply
-
+    ## ALIAS Multiply, Times, Product
        Multiply two arbitrary numbers.
 
        Arguments:
@@ -70,7 +72,6 @@ type Number
     * self that = @Builtin_Method "Integer.*"
 
     ## ALIAS Divide
-
        Divides an this by an arbitrary number.
 
        Arguments:
@@ -87,7 +88,6 @@ type Number
     / self that = @Builtin_Method "Integer./"
 
     ## ALIAS Power
-
        Compute the result of raising this to the power that.
 
        Arguments:
@@ -262,22 +262,27 @@ type Number
     log : Number -> Decimal
     log self base = self.ln / base.ln
 
-    ## UNSTABLE This API is not user-friendly and will be improved in the future.
-
-       Converts a numeric value to a string, using the Java string formatting
-       syntax.
+    ## Converts a numeric value to a string, using the Java DecimalFormat
+       formatter.
 
        Arguments:
-       - fmt: The java-style formatting specifier.
+       - format: The java-style formatting specifier.
 
        > Example
-         Convert the value 5 to a string.
+         Convert the value 5000 to a string.
 
-             5.format "%x"
-    format : Text -> Text
-    format self fmt = String.format fmt self
+             5000.format "#,##0"
+    @locale Locale.default_widget
+    format : Text -> Locale -> Text
+    format self format locale=Locale.default =
+        symbols = DecimalFormatSymbols.new locale.java_locale
+        formatter = DecimalFormat.new format symbols
+        formatter.format self
 
     ## Checks equality of numbers, using an `epsilon` value.
+
+       ! Error Conditions
+         If either of the arguments is `Number.nan`, an `Incomparable_Values` error is raised.
 
        Arguments:
        - that: The number to check equality against.
@@ -288,7 +293,7 @@ type Number
          Check if 1 is equal to 1.0000001 within 0.001.
 
              1.equals 1.0000001 epsilon=0.001
-    equals : Number -> Number -> Boolean
+    equals : Number -> Number -> Boolean ! Incomparable_Values
     equals self that epsilon=0.0 =
         (self == that) || ((self - that).abs <= epsilon)
 
@@ -367,8 +372,8 @@ type Number
      floating point numbers.
 @Builtin_Type
 type Decimal
-
-    ## Adds a deceimal and an arbitrary number.
+    ## ALIAS Add, Plus
+       Adds a decimal and an arbitrary number.
 
        Arguments:
        - that: The number to add to this.
@@ -383,7 +388,8 @@ type Decimal
     + : Number -> Number
     + self that = @Builtin_Method "Decimal.+"
 
-    ## Subtract an arbitrary number from this.
+    ## ALIAS Subtract, Minus
+       Subtract an arbitrary number from this.
 
        Arguments:
        - that: The number to subtract from this.
@@ -395,7 +401,8 @@ type Decimal
     - : Number -> Number
     - self that = @Builtin_Method "Decimal.-"
 
-    ## Multiply a decimal by an arbitrary number.
+    ## ALIAS Multiply, Times, Product
+       Multiply a decimal by an arbitrary number.
 
        Arguments:
        - that: The number to multiply this by.
@@ -410,7 +417,8 @@ type Decimal
     * : Number -> Number
     * self that = @Builtin_Method "Decimal.*"
 
-    ## Divides a decimal by an arbitrary number.
+    ## ALIAS Divide
+       Divides a decimal by an arbitrary number.
 
        Arguments:
        - that: The number to divide this by.
@@ -425,7 +433,8 @@ type Decimal
     / : Number -> Number
     / self that = @Builtin_Method "Decimal./"
 
-    ## Computes the remainder when dividing this by that.
+    ## ALIAS Modulus, Modulo
+       Computes the remainder when dividing this by that.
 
        Arguments:
        - that: The number to divide this by.
@@ -445,7 +454,8 @@ type Decimal
     % : Number -> Number ! Arithmetic_Error
     % self that = @Builtin_Method "Decimal.%"
 
-    ## Compute the result of raising this to the power that.
+    ## ALIAS Power
+       Compute the result of raising this to the power that.
 
        Arguments:
        - that: The exponent.
@@ -457,7 +467,8 @@ type Decimal
     ^ : Number -> Number
     ^ self that = @Builtin_Method "Decimal.^"
 
-    ## Checks if this is greater than that.
+    ## ALIAS Greater Than
+       Checks if this is greater than that.
 
        Arguments:
        - that: The number to compare this against.
@@ -469,7 +480,8 @@ type Decimal
     > : Number -> Boolean
     > self that = @Builtin_Method "Decimal.>"
 
-    ## Checks if this is greater than or equal to thatthat.
+    ## ALIAS Greater Than or Equal
+       Checks if this is greater than or equal to that.
 
        Arguments:
        - that: The number to compare this against.
@@ -481,7 +493,8 @@ type Decimal
     >= : Number -> Boolean
     >= self that = @Builtin_Method "Decimal.>="
 
-    ## Checks if this is less than that.
+    ## ALIAS Less Than
+       Checks if this is less than that.
 
        Arguments:
        - that: The number to compare this against.
@@ -493,7 +506,8 @@ type Decimal
     < : Number -> Boolean
     < self that = @Builtin_Method "Decimal.<"
 
-    ## Checks if this is less than or equal to thatthat.
+    ## ALIAS Less Than Or Equal
+       Checks if this is less than or equal to that.
 
        Arguments:
        - that: The number to compare this against.
@@ -538,6 +552,81 @@ type Decimal
              4.323.floor
     floor : Integer
     floor self = @Builtin_Method "Decimal.floor"
+
+    ## ALIAS int
+
+       Truncate a floating-point number to an integer by dropping the fractional
+       part. This is equivalent to "round-toward-zero".
+    truncate : Integer
+    truncate self = self.truncate_builtin
+
+    ## Round to a specified number of decimal places.
+
+       By default, rounding uses "asymmetric round-half-up", also known as
+       "round towards positive infinity." If use_bankers=True, then it uses
+       "round-half-even", also known as "banker's rounding".
+
+       If `decimal_places` > 0, `round` returns a `Decimal`; otherwise, it
+       returns an `Integer`.
+
+       If the argument is `NaN` or `+/-Inf`, an `Arithmetic_Error` error is
+       thrown.
+
+       Arguments:
+       - decimal_places: The number of decimal places to round to. Can be
+         negative, which results in rounding to positive integer powers of 10.
+         Must be between -15 and 15 (inclusive).
+       - use_bankers: Rounds mid-point to nearest even number.
+
+       ! Error Conditions
+
+         If `decimal_places` is outside the range -15..15 (inclusive), an
+         `Illegal_Argument` error is thrown.
+
+       ? Negative decimal place counts
+         Rounding to `n` digits can be thought of as "rounding to the nearest
+         multiple of 10^(-n)". For negative decimal counts, this results in
+         rounding to the nearest positive integer power of 10.
+
+       > Example
+         Round to the nearest integer.
+
+            3.3 . round == 3
+
+       > Example
+         Round to two decimal places.
+
+            3.1415 . round 2 == 3.14
+
+       > Example
+         Round to the nearest hundred.
+
+            1234.0 . round -2 == 1200
+
+       > Example
+         Use Banker's Rounding.
+
+            2.5 . round use_bankers=True == 2
+    round : Integer -> Boolean -> Integer | Decimal ! Illegal_Argument
+    round self decimal_places=0 use_bankers=False =
+        check_decimal_places decimal_places <|
+            case self.is_nan || self.is_infinite of
+                True ->
+                    msg = "round cannot accept " + self.to_text
+                    Error.throw (Arithmetic_Error.Error msg)
+                False ->  check_round_input self <|
+                    decimal_result =
+                        # Algorithm taken from https://stackoverflow.com/a/7211688
+                        scale = 10 ^ decimal_places
+                        scaled = self * scale
+                        round_base = scaled.floor
+                        round_midpoint = (round_base + 0.5) / scale
+                        even_is_up = if self >= 0 then (scaled.truncate % 2) != 0 else (scaled.truncate % 2) == 0
+                        half_goes_up = if use_bankers then even_is_up else True
+                        do_round_up = if half_goes_up then self >= round_midpoint else self > round_midpoint
+                        if do_round_up then ((round_base + 1.0) / scale) else (round_base / scale)
+                    # Convert to integer if it's really an integer anyway.
+                    if decimal_places > 0 then decimal_result else decimal_result.truncate
 
     ## Compute the negation of this.
 
@@ -595,8 +684,8 @@ type Decimal
      degrade.
 @Builtin_Type
 type Integer
-
-    ## Adds an integer and an arbitrary number.
+    ## ALIAS Add, Plus
+       Adds an integer and an arbitrary number.
 
        Arguments:
        - that: The number to add to this.
@@ -611,7 +700,8 @@ type Integer
     + : Number -> Number
     + self that = @Builtin_Method "Integer.+"
 
-    ## Subtract an arbitrary number from this.
+    ## ALIAS Subtract, Minus
+       Subtract an arbitrary number from this.
 
        Arguments:
        - that: The number to subtract from this.
@@ -623,7 +713,8 @@ type Integer
     - : Number -> Number
     - self that = @Builtin_Method "Integer.-"
 
-    ## Multiply an integer by an arbitrary number.
+    ## ALIAS Multiply, Times, Product
+       Multiply an integer by an arbitrary number.
 
        Arguments:
        - that: The number to multiply this by.
@@ -638,7 +729,8 @@ type Integer
     * : Number -> Number
     * self that = @Builtin_Method "Integer.*"
 
-    ## Divides an integer by an arbitrary number.
+    ## ALIAS Divide
+       Divides an integer by an arbitrary number.
 
        Arguments:
        - that: The number to divide this by.
@@ -653,7 +745,8 @@ type Integer
     / : Number -> Number
     / self that = @Builtin_Method "Integer./"
 
-    ## Computes the remainder when dividing this by that.
+    ## ALIAS Modulus, Modulo
+       Computes the remainder when dividing this by that.
 
        Arguments:
        - that: The number to divide this by.
@@ -670,7 +763,8 @@ type Integer
     % : Number -> Number ! Arithmetic_Error
     % self that = @Builtin_Method "Integer.%"
 
-    ## Compute the result of raising this to the power that.
+    ## ALIAS Power
+       Compute the result of raising this to the power that.
 
        Arguments:
        - that: The exponent.
@@ -682,7 +776,8 @@ type Integer
     ^ : Number -> Number
     ^ self that = @Builtin_Method "Integer.^"
 
-    ## Checks if this is greater than that.
+    ## ALIAS Greater Than
+       Checks if this is greater than that.
 
        Arguments:
        - that: The number to compare this against.
@@ -694,7 +789,8 @@ type Integer
     > : Number -> Boolean
     > self that = @Builtin_Method "Integer.>"
 
-    ## Checks if this is greater than or equal to thatthat.
+    ## ALIAS Greater Than or Equal
+       Checks if this is greater than or equal to that.
 
        Arguments:
        - that: The number to compare this against.
@@ -706,7 +802,8 @@ type Integer
     >= : Number -> Boolean
     >= self that = @Builtin_Method "Integer.>="
 
-    ## Checks if this is less than that.
+    ## ALIAS Less Than
+       Checks if this is less than that.
 
        Arguments:
        - that: The number to compare this against.
@@ -718,7 +815,8 @@ type Integer
     < : Number -> Boolean
     < self that = @Builtin_Method "Integer.<"
 
-    ## Checks if this is less than or equal to thatthat.
+    ## ALIAS Less Than Or Equal
+       Checks if this is less than or equal to that.
 
        Arguments:
        - that: The number to compare this against.
@@ -781,6 +879,78 @@ type Integer
              4.floor
     floor : Integer
     floor self = @Builtin_Method "Integer.floor"
+
+    ## ALIAS int
+
+       Truncate an `Integer` to an `Integer`, i.e. returns its argument. For
+       compatibility with `Decimal.truncate`.
+    truncate : Integer
+    truncate self = self
+
+    ## Round to a specified number of decimal places.
+
+       For integers, rounding to 0 or more decimal places simply returns the
+       argument. For negative decimal places, see below.
+
+       By default, rounding uses "asymmetric round-half-up", also known as
+       "round towards positive infinity." If use_bankers=True, then it uses
+       "round-half-even", also known as "banker's rounding".
+
+       Arguments:
+       - decimal_places: The number of decimal places to round to. Can be
+         negative, which results in rounding to positive integer powers of 10.
+         Must be between -15 and 15 (inclusive).
+       - use_bankers: Rounds mid-point to nearest even number.
+
+       ! Error Conditions
+         Throws `Illegal_Argument` if the number is 15 or more decimal places.
+         Above 14 digits, it is possible that the underlying long, converted to
+         double in the rounding process, would lose precision in the least
+         significant bits.
+         (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
+
+         If `decimal_places` is outside the range -15..15 (inclusive), an
+         `Illegal_Argument` error is thrown.
+
+       ? Negative decimal place counts
+         Rounding to `n` digits can be thought of as "rounding to the nearest
+         multiple of 10^(-n)". For negative decimal counts, this results in
+         rounding to the nearest positive integer power of 10.
+
+       > Example
+         Round an integer (returns the value unchanged).
+
+            3 . round == 3
+
+       > Example
+         Round to the nearest thousand.
+
+            2511 . round -3 == 3000
+
+       > Example
+         Round to the nearest hundred, using Banker's Rounding.
+
+            12250 . round -2 use_bankers=True == 12200
+    round : Integer -> Boolean -> Integer ! Illegal_Argument
+    round self decimal_places=0 use_bankers=False =
+        ## It's already an integer so unless decimal_places is
+           negative, the value is unchanged.
+        if decimal_places >= 0 then self else
+            check_decimal_places decimal_places <| check_round_input self <|
+                scale = 10 ^ -decimal_places
+                halfway = scale.div 2
+                remainder = self % scale
+                scaled_down = self.div scale
+                result_unnudged = scaled_down * scale
+                case self >= 0 of
+                    True ->
+                        half_goes_up = if use_bankers then (scaled_down % 2) != 0 else True
+                        round_up = if half_goes_up then remainder >= halfway else remainder > halfway
+                        if round_up  then result_unnudged + scale else result_unnudged
+                    False ->
+                        half_goes_up = if use_bankers then (scaled_down % 2) == 0 else True
+                        round_up = if half_goes_up then remainder < -halfway else remainder <= -halfway
+                        if round_up then result_unnudged - scale else result_unnudged
 
     ## Compute the negation of this.
 
@@ -922,13 +1092,14 @@ type Integer
 
        Arguments:
        - text: The text to parse into a integer.
-       - radix: The number base to use for parsing (defaults to 10).
+       - radix: The number base to use for parsing (defaults to 10). `radix`
+         must be between 2 and 36 (inclusive) -- see https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/Character.html#MIN_RADIX.
 
        > Example
          Parse the text "20220216" into an integer number.
 
             Integer.parse "20220216"
-    parse : Text -> Text -> Integer ! Number_Parse_Error
+    parse : Text -> Integer -> Integer ! Number_Parse_Error
     parse text (radix=10) = Integer.parse_builtin text radix
 
     ## PRIVATE
@@ -950,3 +1121,45 @@ type Number_Parse_Error
     to_display_text : Text
     to_display_text =
         "Could not parse " + self.text.to_text + " as a double."
+
+## PRIVATE
+   The smallest allowed value for the `decimal_places` argument to `round`
+round_min_decimal_places : Integer
+round_min_decimal_places = -15
+
+## PRIVATE
+   The largest allowed value for the `decimal_places` argument to `round`
+round_max_decimal_places : Integer
+round_max_decimal_places = 15
+
+## PRIVATE
+   The largest smallInteger (Long) that integer round can handle. Above 14
+   digits, it is possible that the underlying long, converted to double in the
+   rounding process, would lose precision in the least significant bits.
+   (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
+round_max_long : Integer
+round_max_long = 99999999999999
+
+## PRIVATE
+   The largest smallInteger (Long) that integer round can handle. Above 14
+   digits, it is possible that the underlying long, converted to double in the
+   rounding process, would lose precision in the least significant bits.
+   (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
+round_min_long : Integer
+round_min_long = -99999999999999
+
+## PRIVATE
+   Restrict rounding decimal_places parameter.
+check_decimal_places : Integer -> Any -> Any ! Illegal_Argument
+check_decimal_places decimal_places ~action =
+    if decimal_places >= round_min_decimal_places && decimal_places <= round_max_decimal_places then action else
+        msg = "round: decimal_places must be between " + round_min_decimal_places.to_text + " and " + round_max_decimal_places.to_text + " (inclusive), but was " + decimal_places.to_text
+        Error.throw (Illegal_Argument.Error msg)
+
+## PRIVATE
+   Restrict allowed range of input to rounding methods.
+check_round_input : Number -> Function -> Any ! Illegal_Argument
+check_round_input n ~action =
+    if n >= round_min_long && n <= round_max_long then action else
+        msg = "Error: `round` can only accept values between " + round_min_long.to_text + " and " + round_max_long.to_text + " (inclusive), but was " + n.to_text
+        Error.throw (Illegal_Argument.Error msg)

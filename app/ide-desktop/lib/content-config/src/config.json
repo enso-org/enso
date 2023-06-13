@@ -1,10 +1,9 @@
 {
   "options": {
     "authentication": {
-      "value": false,
-      "description": "Determines whether user authentication is enabled. This option is disregarded if the application is executed in the cloud."
+      "value": true,
+      "description": "Determines whether user authentication is enabled. This option is always true when executed in the cloud."
     },
-
     "dataCollection": {
       "value": true,
       "description": "Determines whether anonymous usage data is to be collected.",
@@ -116,9 +115,13 @@
           "description": "Color theme.",
           "primary": false
         },
-        "vectorEditor": {
+        "newDashboard": {
+          "value": true,
+          "description": "Determines whether the new dashboard with cloud integration is enabled."
+        },
+        "profiling": {
           "value": false,
-          "description": "Show Vector Editor widget on nodes.",
+          "description": "Enable the button to profile workflows.",
           "primary": false
         }
       }

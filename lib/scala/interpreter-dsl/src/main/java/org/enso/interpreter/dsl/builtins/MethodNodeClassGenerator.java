@@ -1,15 +1,13 @@
 package org.enso.interpreter.dsl.builtins;
 
 import com.google.common.base.CaseFormat;
-
-import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.*;
-import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.List;
-
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.*;
+import javax.tools.JavaFileObject;
 import org.enso.interpreter.dsl.Builtin;
 
 public abstract class MethodNodeClassGenerator {
@@ -39,7 +37,8 @@ public abstract class MethodNodeClassGenerator {
       String methodName,
       String description,
       String ownerMethodName,
-      boolean isAutoRegister)
+      boolean isAutoRegister,
+      Boolean needsFrame)
       throws IOException {
     JavaFileObject gen =
         processingEnv.getFiler().createSourceFile(builtinNode.jvmFriendlyFullyQualifiedName());
@@ -57,6 +56,9 @@ public abstract class MethodNodeClassGenerator {
       String moduleOwnerInfo = "";
       if (!isAutoRegister) {
         moduleOwnerInfo = ", autoRegister = " + isAutoRegister;
+      }
+      if (needsFrame != null) {
+        moduleOwnerInfo = moduleOwnerInfo + ", needsFrame = " + needsFrame;
       }
       out.println(
           "@BuiltinMethod(type = \""

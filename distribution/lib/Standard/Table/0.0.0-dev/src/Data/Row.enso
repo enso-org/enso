@@ -3,6 +3,8 @@ import Standard.Base.Data.Array_Proxy.Array_Proxy
 
 import project.Data.Table.Table
 
+import project.Internal.Widget_Helpers
+
 ## Represents a single row of some in-memory Table.
 type Row
     ## PRIVATE
@@ -16,6 +18,7 @@ type Row
 
        Arguments:
        - column: The name or index of the column being looked up.
+    @column (self -> Widget_Helpers.make_column_name_selector self.table)
     at : (Integer | Text) -> Any
     at self column = self.table.at column . at self.index
 
@@ -24,6 +27,7 @@ type Row
        Arguments:
        - column: The name or index of the column being looked up.
        - if_missing: The value to use if the column isn't present.
+    @column (self -> Widget_Helpers.make_column_name_selector self.table)
     get : (Integer | Text) -> Any -> Any
     get self column ~if_missing=Nothing =
         table_column = self.table.get column
@@ -35,7 +39,15 @@ type Row
     to_vector : Vector
     to_vector self = Vector.from_polyglot_array (Array_Proxy.from_proxy_object self)
 
+    ## Gets the row as a Map.
+    to_map : Map
+    to_map self =
+        pairs = self.table.column_names.map n-> [n, self.get n]
+        Map.from_vector pairs
+
     ## PRIVATE
        Converts this row into a JS_Object.
-    to_js_object : Vector
-    to_js_object self = self.to_vector.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        pairs = self.table.column_names.map n-> [n, self.get n]
+        JS_Object.from_pairs pairs

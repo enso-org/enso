@@ -42,7 +42,7 @@ public abstract class WarningsLibrary extends Library {
   }
 
   /**
-   * Returns all warnings associated with the receiver.
+   * Returns all unique warnings associated with the receiver.
    *
    * @param receiver the receiver to analyze
    * @param location optional parameter specifying the node to which the warnings should be
@@ -63,5 +63,16 @@ public abstract class WarningsLibrary extends Library {
   @GenerateLibrary.Abstract(ifExported = {"hasWarnings"})
   public Object removeWarnings(Object receiver) throws UnsupportedMessageException {
     throw UnsupportedMessageException.create();
+  }
+
+  /**
+   * Checks if the receiver reached a maximal number of warnings that could be reported.
+   *
+   * @param receiver the receiver to analyze
+   * @return whether the receiver reached a maximal number of warnings
+   */
+  @GenerateLibrary.Abstract(ifExported = {"hasWarnings"})
+  public boolean isLimitReached(Object receiver) {
+    return false;
   }
 }

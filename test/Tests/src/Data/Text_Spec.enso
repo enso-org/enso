@@ -736,6 +736,25 @@ spec =
             "".drop (Sample 0) . should_equal ""
             "".drop (Sample 100) . should_equal ""
 
+        Test.specify "take and drop should gracefully handle missing constructor arguments" <|
+            "".take "FOO" . should_fail_with Type_Error
+            "".drop "FOO" . should_fail_with Type_Error
+
+            r1 = "".take (Index_Sub_Range.While)
+            r1.should_fail_with Illegal_Argument
+            r1.catch.to_display_text . should_contain "The constructor While is missing some arguments"
+
+            r2 = "".drop (Text_Sub_Range.Before ...)
+            r2.should_fail_with Illegal_Argument
+            r2.catch.to_display_text . should_contain "The constructor Before is missing some arguments"
+
+            r3 = "".take (Index_Sub_Range.First _)
+            r3.should_fail_with Illegal_Argument
+            r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"
+
+            # Double-check that constructors of _unexpected_ types are still yielding a type error.
+            "".take (Case_Sensitivity.Insensitive ...) . should_fail_with Type_Error
+
         Test.specify "should correctly convert character case" <|
             "FooBar Baz".to_case Case.Lower . should_equal "foobar baz"
             "FooBar Baz".to_case Case.Upper . should_equal "FOOBAR BAZ"
@@ -1259,6 +1278,12 @@ spec =
             "Hello World!".find ".o" Case_Sensitivity.Insensitive . span 0 . should_equal (Span.Value (3.up_to 5) "Hello World!")
             "Hello World!".find_all ".o" . map (match-> match.span 0) . should_equal [Span.Value (3.up_to 5) "Hello World!", Span.Value (6.up_to 8) "Hello World!"]
             "foobar".find "BAR" Case_Sensitivity.Insensitive . span 0 . should_equal (Span.Value (3.up_to 6) "foobar")
+
+        Test.specify "find_all should handle 0 length matches" <|
+            "Hello World".find_all ".*" . map (_.text) . should_equal ["Hello World", ""]
+            "".find_all ".*" . map (_.text) . should_equal [""]
+            "Hello World".find_all ".*(?=.)" . map (_.text) . should_equal ["Hello Worl", ""]
+            "".find_all ".*(?=.)" . map (_.text) . should_equal []
 
         Test.specify "should handle accents and other multi-point graphemes" <|
             accents = 'a\u{301}e\u{301}o\u{301}he\u{301}h'

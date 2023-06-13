@@ -113,10 +113,12 @@ class InterpreterContext(
       .newBuilder(LanguageInfo.ID)
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
+      .allowCreateThread(false)
       .out(output)
       .err(err)
       .option(RuntimeOptions.LOG_LEVEL, "WARNING")
       .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+      .environment("NO_COLOR", "true")
       .logHandler(System.err)
       .in(in)
       .option(

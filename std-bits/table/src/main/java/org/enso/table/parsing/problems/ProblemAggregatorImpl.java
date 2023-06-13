@@ -1,9 +1,8 @@
 package org.enso.table.parsing.problems;
 
-import org.enso.table.problems.Problem;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.table.problems.Problem;
 
 public class ProblemAggregatorImpl implements ProblemAggregator {
   public final String relatedColumnName;
@@ -17,11 +16,6 @@ public class ProblemAggregatorImpl implements ProblemAggregator {
   @Override
   public void reportInvalidFormat(String cell) {
     invalidFormatCells.add(cell);
-  }
-
-  @Override
-  public void reportLeadingZeroes(String cell) {
-    leadingZerosCells.add(cell);
   }
 
   @Override
@@ -40,10 +34,6 @@ public class ProblemAggregatorImpl implements ProblemAggregator {
 
     if (!invalidFormatCells.isEmpty()) {
       problems.add(new InvalidFormat(relatedColumnName, invalidFormatCells));
-    }
-
-    if (!leadingZerosCells.isEmpty()) {
-      problems.add(new LeadingZeros(relatedColumnName, leadingZerosCells));
     }
 
     assert problems.isEmpty() == !hasProblems();

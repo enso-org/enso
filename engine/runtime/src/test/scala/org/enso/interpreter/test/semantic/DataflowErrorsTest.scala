@@ -204,8 +204,8 @@ class DataflowErrorsTest extends InterpreterTest {
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List(
-        "(Error: (Syntax_Error.Error 'Unexpected expression.'))",
-        "(Syntax_Error.Error 'Unexpected expression.')"
+        "(Error: (Syntax_Error.Error 'Unexpected expression'))",
+        "(Syntax_Error.Error 'Unexpected expression')"
       )
     }
   }

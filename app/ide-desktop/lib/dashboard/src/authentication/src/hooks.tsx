@@ -1,48 +1,20 @@
 /** @file Module containing common custom React hooks used throughout out Dashboard. */
 import * as react from 'react'
+import * as router from 'react-router'
 
+import * as app from './components/app'
+import * as auth from './authentication/providers/auth'
 import * as loggerProvider from './providers/logger'
 
-// ============
-// === Bind ===
-// ============
+// ==================
+// === useRefresh ===
+// ==================
 
-/** Type of the second parameter returned by the {@link useInput} hook.
- *
- * # Example
- *
- * This type is used to bind the `value` and `onChange` props to an input field. That is, the object
- * can be passed as the props to an input field, and the input field will be updated when the value
- * changes.
- *
- * ```tsx
- * const [value, bind] = useInput("");
- *
- * <input {...bind} />
- * ``` */
-interface Bind {
-    value: string
-    onChange: (value: react.ChangeEvent<HTMLInputElement>) => void
-}
-
-// ================
-// === useInput ===
-// ================
-
-/** A custom hook to handle input fields.
- *
- * In React, managing state (e.g., user input values) must be done via the `useState` hook, which
- * returns a prop (e.g., `value`) containing the current value of the state, and a function (e.g.,
- * `setValue`) to update the state. Because of this, to bind a `value` to an input field, we must
- * use the `value` prop and the `onChange` event handler. However, this can be tedious to do for
- * every input field, so we can use a custom hook to handle this for us. */
-export function useInput(initialValue: string): [string, Bind] {
-    const [value, setValue] = react.useState(initialValue)
-    const onChange = (event: react.ChangeEvent<HTMLInputElement>) => {
-        setValue(event.target.value)
-    }
-    const bind = { value, onChange }
-    return [value, bind]
+/** A hook that contains no state, and is used only to tell React when to re-render. */
+export function useRefresh() {
+    // Uses an empty object literal because every distinct literal
+    // is a new reference and therefore is not equal to any other object literal.
+    return react.useReducer(() => ({}), {})
 }
 
 // ======================
@@ -98,4 +70,81 @@ export function useAsyncEffect<T>(
     }, deps)
 
     return value
+}
+
+// ===================
+// === useNavigate ===
+// ===================
+
+/** A wrapper around {@link router.useNavigate} that goes into offline mode when
+ * offline. */
+export function useNavigate() {
+    const { goOffline } = auth.useAuth()
+    // This function is a wrapper around `router.useNavigate`. It shouldbe the only place where
+    // `router.useNavigate` is used.
+    // eslint-disable-next-line no-restricted-properties
+    const originalNavigate = router.useNavigate()
+
+    const navigate: router.NavigateFunction = (...args: [unknown, unknown?]) => {
+        const isOnline = navigator.onLine
+        if (!isOnline) {
+            void goOffline()
+            originalNavigate(app.DASHBOARD_PATH)
+        } else {
+            // This is safe, because the arguments are being passed through transparently.
+            // eslint-disable-next-line no-restricted-syntax
+            originalNavigate(...(args as [never, never?]))
+        }
+    }
+
+    return navigate
+}
+
+// =====================
+// === useDebugState ===
+// =====================
+
+/** A modified `useState` that logs the old and new values when `setState` is called. */
+export function useDebugState<T>(
+    initialState: T | (() => T),
+    name?: string
+): [state: T, setState: (valueOrUpdater: react.SetStateAction<T>, source?: string) => void] {
+    const [state, rawSetState] = react.useState(initialState)
+
+    const description = name != null ? `state for '${name}'` : 'state'
+
+    const setState = react.useCallback(
+        (valueOrUpdater: react.SetStateAction<T>, source?: string) => {
+            const fullDescription = `${description}${source != null ? ` from '${source}'` : ''}`
+            if (typeof valueOrUpdater === 'function') {
+                // This is UNSAFE, however React makes the same assumption.
+                // eslint-disable-next-line no-restricted-syntax
+                const updater = valueOrUpdater as (prevState: T) => T
+                // `console.*` is allowed because this is for debugging purposes only.
+                /* eslint-disable no-restricted-properties */
+                rawSetState(oldState => {
+                    console.group(description)
+                    console.log(`Old ${fullDescription}:`, oldState)
+                    const newState = updater(oldState)
+                    console.log(`New ${fullDescription}:`, newState)
+                    console.groupEnd()
+                    return newState
+                })
+            } else {
+                rawSetState(oldState => {
+                    if (!Object.is(oldState, valueOrUpdater)) {
+                        console.group(description)
+                        console.log(`Old ${fullDescription}:`, oldState)
+                        console.log(`New ${fullDescription}:`, valueOrUpdater)
+                        console.groupEnd()
+                    }
+                    return valueOrUpdater
+                })
+                /* eslint-enable no-restricted-properties */
+            }
+        },
+        []
+    )
+
+    return [state, setState]
 }

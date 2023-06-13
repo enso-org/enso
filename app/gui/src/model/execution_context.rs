@@ -6,6 +6,7 @@ use double_representation::identifier::Identifier;
 use double_representation::name::project;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server;
+use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::ExpressionUpdate;
 use engine_protocol::language_server::ExpressionUpdatePayload;
 use engine_protocol::language_server::MethodPointer;
@@ -63,7 +64,7 @@ impl From<ExpressionUpdate> for ComputedValueInfo {
     fn from(update: ExpressionUpdate) -> Self {
         ComputedValueInfo {
             typename:    update.typename.map(ImString::new),
-            method_call: update.method_pointer,
+            method_call: update.method_call.map(|mc| mc.method_pointer),
             payload:     update.payload,
         }
     }
@@ -413,6 +414,10 @@ pub trait API: Debug {
     /// Obtain the method pointer to the method of the call stack's top frame.
     fn current_method(&self) -> MethodPointer;
 
+    /// Obtain the method pointer to the method of the call `count` frames back from the stack's top
+    /// (calling with 0 is the same as [`current_method`](Self::current_method).
+    fn method_at_frame_back(&self, count: usize) -> FallibleResult<MethodPointer>;
+
     /// Get the information about the given visualization. Fails, if there's no such visualization
     /// active.
     fn visualization_info(&self, id: VisualizationId) -> FallibleResult<Visualization>;
@@ -500,6 +505,24 @@ pub trait API: Debug {
     /// Restart the program execution.
     #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
     fn restart<'a>(&'a self) -> BoxFuture<'a, FallibleResult>;
+
+    /// Adjust method pointers after the project rename action.
+    fn rename_method_pointers(&self, old_project_name: String, new_project_name: String);
+
+    /// Set the execution environment of the context.
+    #[allow(clippy::needless_lifetimes)]
+    fn set_execution_environment<'a>(
+        &'a self,
+        execution_environment: ExecutionEnvironment,
+    ) -> BoxFuture<'a, FallibleResult>;
+
+    /// Get the execution environment of the context.
+    fn execution_environment(&self) -> ExecutionEnvironment;
+
+    /// Trigger a clean execution of the current graph with the "live" execution environment. That
+    /// means old computations and caches will be discarded.
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn trigger_clean_live_execution<'a>(&'a self) -> BoxFuture<'a, FallibleResult>;
 }
 
 // Note: Needless lifetimes

@@ -1,12 +1,8 @@
 package org.enso.interpreter.test;
 
-import java.io.ByteArrayOutputStream;
 import java.net.URI;
-import java.nio.file.Paths;
-import java.util.Map;
-import org.enso.polyglot.RuntimeOptions;
+import java.util.Set;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -15,27 +11,23 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TypeMembersTest {
+public class TypeMembersTest extends TestBase {
   private Context ctx;
 
   @Before
   public void prepareCtx() {
-    this.ctx = Context.newBuilder()
-      .allowExperimentalOptions(true)
-      .allowIO(true)
-      .allowAllAccess(true)
-      .logHandler(new ByteArrayOutputStream())
-      .option(
-        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-        Paths.get("../../distribution/component").toFile().getAbsolutePath()
-      ).build();
-    final Map<String, Language> langs = ctx.getEngine().getLanguages();
-    assertNotNull("Enso found: " + langs, langs.get("enso"));
+    ctx = createDefaultContext();
   }
 
+  @After
+  public void disposeCtx() {
+    ctx.close();
+  }
 
   @Test
   public void checkAtomMembers() throws Exception {
@@ -87,6 +79,26 @@ public class TypeMembersTest {
     assertMembers("Keys in list2", true, endAtom, "h", "t");
   }
 
+  @Test
+  public void ensureNonBuiltinMembersArePresent() throws Exception {
+    final URI uri = new URI("memory://how_long.enso");
+    final Source src = Source.newBuilder("enso", """
+    @Builtin_Type
+    type Compile_Error
+        Error message
+        
+        to_display_text self = "Compile error: "+self.message
+        
+    v = Compile_Error.Error "foo"
+    """, "to_display_text.enso")
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var compileError = module.invokeMember("eval_expression", "v");
+    assertEquals("all members", compileError.getMemberKeys(), Set.of("to_display_text", "message"));
+  }
+
   private static void assertMembers(String msg, boolean invokeFails, Value v, String... keys) {
     var realKeys = v.getMemberKeys();
     for (var k : keys) {
@@ -97,7 +109,7 @@ public class TypeMembersTest {
           v.invokeMember(k);
           fail("Invoking " + k + " on " + v + " shall fail");
         } catch (PolyglotException ex) {
-          assertEquals("No_Such_Field.Error", ex.getMessage());
+          assertEquals("Field `" + k + "` of IntList could not be found.", ex.getMessage());
         }
       } else {
         assertNotNull(msg + " - can be invoked", v.invokeMember(k));

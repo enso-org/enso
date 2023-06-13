@@ -27,6 +27,7 @@ import org.enso.compiler.pass.resolve.{
   GlobalNames,
   MethodDefinitions,
   Patterns,
+  TypeNames,
   TypeSignatures
 }
 import org.enso.interpreter.epb.EpbParser
@@ -67,9 +68,9 @@ import org.enso.interpreter.runtime.callable.function.{
   Function => RuntimeFunction
 }
 import org.enso.interpreter.runtime.callable.{
-  Annotation => RuntimeAnnotation,
   UnresolvedConversion,
-  UnresolvedSymbol
+  UnresolvedSymbol,
+  Annotation => RuntimeAnnotation
 }
 import org.enso.interpreter.runtime.data.Type
 import org.enso.interpreter.runtime.data.text.Text
@@ -81,12 +82,11 @@ import org.enso.interpreter.runtime.scope.{
 import org.enso.interpreter.{Constants, EnsoLanguage}
 
 import java.math.BigInteger
-
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-import scala.jdk.OptionConverters._
 import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters._
 
 /** This is an implementation of a codegeneration pass that lowers the Enso
   * [[IR]] into the truffle structures that are actually executed.
@@ -155,7 +155,6 @@ class IrToTruffle(
     * @param module the module for which code should be generated
     */
   private def processModule(module: IR.Module): Unit = {
-    generateMethods()
     generateReExportBindings(module)
     val bindingsMap =
       module
@@ -191,10 +190,17 @@ class IrToTruffle(
     // Register the imports in scope
     imports.foreach {
       case poly @ Import.Polyglot(i: Import.Polyglot.Java, _, _, _, _) =>
-        this.moduleScope.registerPolyglotSymbol(
-          poly.getVisibleName,
-          context.getEnvironment.lookupHostSymbol(i.getJavaName)
-        )
+        val hostSymbol = context.lookupJavaClass(i.getJavaName)
+        if (hostSymbol != null) {
+          this.moduleScope.registerPolyglotSymbol(
+            poly.getVisibleName,
+            hostSymbol
+          )
+        } else {
+          throw new CompilerError(
+            s"Incorrect polyglot import: Cannot find host symbol (Java class) '${i.getJavaName}'"
+          )
+        }
       case _: Import.Module =>
       case _: Error         =>
     }
@@ -241,7 +247,9 @@ class IrToTruffle(
 
           for (idx <- atomDefn.arguments.indices) {
             val unprocessedArg = atomDefn.arguments(idx)
-            val arg            = argFactory.run(unprocessedArg, idx)
+            val runtimeTypes   = checkRuntimeTypes(unprocessedArg)
+
+            val arg = argFactory.run(unprocessedArg, idx)
             val occInfo = unprocessedArg
               .unsafeGetMetadata(
                 AliasAnalysis,
@@ -251,7 +259,12 @@ class IrToTruffle(
             val slotIdx = localScope.getVarSlotIdx(occInfo.id)
             argDefs(idx) = arg
             val readArg =
-              ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
+              ReadArgumentNode.build(
+                arg.getName(),
+                idx,
+                arg.getDefaultValue.orElse(null),
+                runtimeTypes.asJava
+              )
             val assignmentArg = AssignmentNode.build(readArg, slotIdx)
             val argRead =
               ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
@@ -292,6 +305,7 @@ class IrToTruffle(
           if (!atomCons.isInitialized) {
             atomCons.initializeFields(
               language,
+              makeSection(moduleScope, atomDefn.location),
               localScope,
               assignments.toArray,
               reads.toArray,
@@ -393,7 +407,7 @@ class IrToTruffle(
             val builtinNameElements = fullMethodName.text.split('.')
             if (builtinNameElements.length != 2) {
               throw new CompilerError(
-                s"Unknwon builtin method ${fullMethodName.text}"
+                s"Unknown builtin method ${fullMethodName.text}, probably should be '$fullMethodDefName?'"
               )
             }
             val methodName      = builtinNameElements(1)
@@ -626,6 +640,25 @@ class IrToTruffle(
   // === Utility Functions ====================================================
   // ==========================================================================
 
+  private def checkRuntimeTypes(arg: IR.DefinitionArgument): List[Type] = {
+    def extractAscribedType(t: IR.Expression): List[Type] = t match {
+      case u: IR.Type.Set.Union     => u.operands.flatMap(extractAscribedType)
+      case p: IR.Application.Prefix => extractAscribedType(p.function)
+      case t => {
+        t.getMetadata(TypeNames) match {
+          case Some(
+                BindingsMap
+                  .Resolution(BindingsMap.ResolvedType(mod, tpe))
+              ) =>
+            List(mod.unsafeAsModule().getScope.getTypes.get(tpe.name))
+          case _ => List()
+        }
+      }
+    }
+
+    arg.ascribedType.map(extractAscribedType).getOrElse(List())
+  }
+
   /** Checks if the expression has a @Builtin_Method annotation
     *
     * @param expression the expression to check
@@ -721,26 +754,6 @@ class IrToTruffle(
       loc.id.foreach { id => expr.setId(id) }
     }
     expr
-  }
-
-  private def generateMethods(): Unit = {
-    generateEnsoProjectMethod()
-  }
-
-  private def generateEnsoProjectMethod(): Unit = {
-    val name            = BindingsMap.Generated.ensoProjectMethodName
-    val pkg             = context.getPackageOf(moduleScope.getModule.getSourceFile)
-    val ensoProjectNode = new EnsoProjectNode(language, context, pkg)
-    val body            = ensoProjectNode.getCallTarget
-    val schema = new FunctionSchema(
-      new ArgumentDefinition(
-        0,
-        Constants.Names.SELF_ARGUMENT,
-        ArgumentDefinition.ExecutionMode.EXECUTE
-      )
-    )
-    val fun = new RuntimeFunction(body, null, schema)
-    moduleScope.registerMethod(moduleScope.getAssociatedType, name, fun)
   }
 
   private def generateReExportBindings(module: IR.Module): Unit = {
@@ -948,7 +961,7 @@ class IrToTruffle(
       * @param block the block to generate code for
       * @return the truffle nodes corresponding to `block`
       */
-    def processBlock(block: IR.Expression.Block): RuntimeExpression = {
+    private def processBlock(block: IR.Expression.Block): RuntimeExpression = {
       if (block.suspended) {
         val scopeInfo = block
           .unsafeGetMetadata(
@@ -996,7 +1009,7 @@ class IrToTruffle(
             .error()
             .makeSyntaxError(
               Text.create(
-                "Type operators are not currently supported at runtime."
+                "Type operators are not currently supported at runtime"
               )
             )
         ),
@@ -1370,7 +1383,9 @@ class IrToTruffle(
       * @param binding the binding to generate code for
       * @return the truffle nodes corresponding to `binding`
       */
-    def processBinding(binding: IR.Expression.Binding): RuntimeExpression = {
+    private def processBinding(
+      binding: IR.Expression.Binding
+    ): RuntimeExpression = {
       val occInfo = binding
         .unsafeGetMetadata(
           AliasAnalysis,
@@ -1672,7 +1687,7 @@ class IrToTruffle(
           case (unprocessedArg, idx) =>
             val arg = argFactory.run(unprocessedArg, idx)
             argDefinitions(idx) = arg
-
+            val runtimeTypes = checkRuntimeTypes(unprocessedArg)
             val occInfo = unprocessedArg
               .unsafeGetMetadata(
                 AliasAnalysis,
@@ -1682,7 +1697,12 @@ class IrToTruffle(
 
             val slotIdx = scope.getVarSlotIdx(occInfo.id)
             val readArg =
-              ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
+              ReadArgumentNode.build(
+                arg.getName(),
+                idx,
+                arg.getDefaultValue.orElse(null),
+                runtimeTypes.asJava
+              )
             val assignArg = AssignmentNode.build(readArg, slotIdx)
 
             argExpressions.append(assignArg)
@@ -1806,7 +1826,7 @@ class IrToTruffle(
                 .error()
                 .makeSyntaxError(
                   Text.create(
-                    "Typeset literals are not yet supported at runtime."
+                    "Typeset literals are not yet supported at runtime"
                   )
                 )
             ),

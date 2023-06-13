@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Function import Function
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Errors.Common import Uninitialized_State
@@ -29,8 +30,12 @@ type My_Type
     @b (self -> self.foo)
     other_method self a = a
 
+    create foo bar = My_Type.Value foo bar 3
+
 @self ("se" + "lf")
 My_Type.my_method self = self.foo + self.bar + self.baz
+
+My_Type.factory = My_Type.create 1 2
 
 @a (test_method 3 4)
 @b (Test_Type.Value 49)
@@ -193,7 +198,8 @@ spec =
             list.add 123
             list_tpe = Meta.type_of list
             list_tpe . should_not_equal_type JObject
-            list_tpe . should_equal_type ArrayList
+            list_tpe . should_not_equal_type ArrayList
+            list_tpe . should_equal_type Array
 
             e = IOException.new "meh"
             e_tpe = Meta.type_of e
@@ -206,6 +212,7 @@ spec =
             Meta.is_atom typ . should_be_false
             meta_typ = Meta.meta typ
             meta_typ . should_be_a Meta.Type
+            meta_typ.name . should_equal "Boolean"
             cons = case meta_typ of
                 Meta.Type.Value _ -> meta_typ.constructors
                 _ -> Test.fail "Should be a Meta.Type.Value: " + meta_typ.to_text
@@ -221,6 +228,7 @@ spec =
             Meta.is_atom typ . should_be_false
             meta_typ = Meta.meta typ
             meta_typ . should_be_a Meta.Type
+            meta_typ.name . should_equal "My_Type"
             cons = case meta_typ of
                 Meta.Type.Value _ -> meta_typ.constructors
                 _ -> Test.fail "Should be a Meta.Type.Value: " + meta_typ.to_text
@@ -228,6 +236,8 @@ spec =
             cons.length . should_equal 1
             cons.at 0 . should_be_a Meta.Constructor
             cons . map (x -> x.name) . sort . should_equal [ "Value" ]
+            cons.each ctor->
+                ctor.declaring_type . should_equal meta_typ
 
         Test.specify "methods of MyType" <|
             typ = My_Type
@@ -240,6 +250,16 @@ spec =
                 _ -> Test.fail "Should be a Meta.Type: " + meta_typ.to_text
 
             methods.sort . should_equal ['bar', 'baz', 'first_method', 'foo', 'my_method', 'other_method', 'second_method']
+
+        Test.specify "static methods of MyType" <|
+            methods = Meta.meta (Meta.type_of My_Type) . methods
+            methods.sort . should_equal ['Value', 'create', 'factory', 'first_method', 'my_method', 'other_method', 'second_method']
+
+        Test.specify "methods of Integer" <|
+            Meta.meta Integer . methods . sort . should_equal ['round', 'truncate']
+
+        Test.specify "static methods of Integer" <|
+            Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['parse', 'parse_builtin', 'round', 'truncate']
 
         Test.specify "should correctly handle Java values" <|
             java_meta = Meta.meta Random.new
@@ -276,16 +296,28 @@ spec =
 
             Meta.get_annotation value "my_method" "self" . should_equal "self"
 
-            Meta.get_annotation value "Value" "foo" 7 8 . should_equal 15
+        Test.specify "no constructor annotations on value" <|
+            value = My_Type.Value 99 "bar" True
+            Meta.get_annotation value "Value" "foo" . should_equal Nothing
             Meta.get_annotation value "Value" "bar" . should_equal Nothing
-            Meta.get_annotation value "Value" "baz" . should_equal (My_Type.Value 1 2 3)
+            Meta.get_annotation value "Value" "baz" . should_equal Nothing
 
-    Test.group "Check Nothing" <|
+        Test.specify "get annotations on constructor" <|
+            Meta.get_annotation My_Type "Value" "foo" 7 8 . should_equal 15
+            Meta.get_annotation My_Type "Value" "bar" . should_equal Nothing
+            Meta.get_annotation My_Type "Value" "baz" . should_equal (My_Type.Value 1 2 3)
+
+    Test.group "Check Nothing and NaN" <|
         Test.specify "Nothing.is_a Nothing" <|
             Nothing.is_a Nothing . should_be_true
+            Meta.is_same_object Nothing Nothing . should_be_true
 
         Test.specify "type_of Nothing is Nothing" <|
             Meta.type_of Nothing . should_equal Nothing
+
+        Test.specify "NaN and NaN should be the same object" <|
+            Meta.is_same_object Number.nan Number.nan . should_be_true
+            (Number.nan == Number.nan) . should_be_false
 
     Test.group "Atom with holes" <|
         Test.specify "construct and fill" <|
@@ -302,8 +334,13 @@ spec =
                 n : Number -> Test.fail "Shouldn't be number yet: "+n
                 _ -> Nothing
 
+            tpe_of_bar = Meta.type_of atom.bar
+            tpe_of_bar.is_error . should_equal True
+
             fill 2
             atom.bar . should_equal 2
+            tpe_of_bar_after_fill = Meta.type_of atom.bar
+            tpe_of_bar_after_fill . should_equal Integer
 
             fill 10 # no change
             atom.bar . should_equal 2
@@ -353,5 +390,11 @@ spec =
             case atom.bar of
                 n : Number -> Test.fail "Not changed to number: "+n
                 _ -> Nothing
+    Test.group "Unresolved symbol"
+        Test.specify "should be treated as a Function" <|
+            (_.is_nothing) . is_a Function . should_equal True
+            (.is_nothing) . is_a Function . should_equal True
+            Meta.type_of (_.is_nothing) . should_equal Function
+            Meta.type_of (.is_nothing) . should_equal Function
 
 main = Test_Suite.run_main spec

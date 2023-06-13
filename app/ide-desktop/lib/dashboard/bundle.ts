@@ -17,6 +17,7 @@ export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta
 // === Bundler ===
 // ===============
 
+/** Clean up old build output and runs the esbuild bundler. */
 async function bundle() {
     try {
         try {
@@ -32,9 +33,14 @@ async function bundle() {
             path.resolve(THIS_PATH, 'src', 'index.html'),
             path.resolve(THIS_PATH, 'src', 'index.tsx')
         )
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        opts.loader = { '.html': 'copy' }
         await esbuild.build(opts)
+        return
     } catch (error) {
         console.error(error)
+        // The error is being re-thrown.
+        // eslint-disable-next-line no-restricted-syntax
         throw error
     }
 }

@@ -47,6 +47,7 @@ mod smallvec;
 mod std_reexports;
 mod string;
 mod switch;
+pub mod sync;
 mod test;
 mod tp;
 mod vec;
@@ -140,6 +141,20 @@ pub mod serde_reexports {
     pub use serde::Serialize;
 }
 
+
+
+// ================
+// === Printing ===
+// ================
+
+pub use web_sys;
+
+#[macro_export]
+macro_rules! console_log {
+    ( $( $t:tt )* ) => {
+        $crate::web_sys::console::log_1(&format!( $( $t )* ).into());
+    }
+}
 
 
 // ===============

@@ -1,13 +1,20 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
+import Standard.Base.Metadata.Widget
+from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Metadata.Choice import Option
+import Standard.Base.Metadata.Display
+
 import Standard.Table.Data.Table.Table as Materialized_Table
+import Standard.Table.Data.Type.Value_Type.Value_Type
 
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
-import project.Data.Table.Table
+import project.Data.Table.Table as Database_Table
 import project.Data.Table as Database_Table_Module
 import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression
@@ -16,8 +23,9 @@ import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
 
 from project.Internal.Result_Set import read_column, result_set_to_table
-from project.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
-from project.Errors import SQL_Error, Table_Not_Found
+from project.Internal.JDBC_Connection import handle_sql_errors
+from project.Errors import SQL_Error, Table_Not_Found, Table_Already_Exists
+from project.Internal.Upload_Table import create_table_structure
 
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.UUID
@@ -95,22 +103,34 @@ type Connection
         self.jdbc_connection.with_metadata metadata->
             read_column metadata.getTableTypes "TABLE_TYPE"
 
-    ## PRIVATE
-       Returns a materialized Table of all the matching views and tables.
+    ## Returns a materialized Table of all the matching views and tables.
+
+       ? Temporary Tables
+
+         Note that the temporary tables may be created in a different schema
+         than the current one, so take this into account when filtering by schema.
 
        Arguments:
        - name_like: The table name pattern to search for. Supports SQL wildcards (`%`, `_`). Defaults to `Nothing` which
          means all tables are selected.
        - database: The database name to search in (default is current database).
-       - schema: The schema name to search in (defaults to current schema).
-       - types: The table types to search for. The list of possible values can be obtained using the `table_types` method.
+       - schema: The schema name to search in (defaults to `Nothing`, meaning all
+         schemas are searched).
+       - types: The table types to search for. The list of possible values can
+         be obtained using the `table_types` method. Defaults to a set of most
+         commonly used table types, ignoring internal system tables or indices.
        - all_fields: Return all the fields in the metadata table.
-    tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
-    tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
-        types_array = if types.is_nothing then Nothing else types.to_array
+    @types make_table_types_selector
+    @schema make_schema_selector
+    tables : Text -> Text -> Text -> Vector Text | Text | Nothing -> Boolean -> Materialized_Table
+    tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
+        types_vector = case types of
+            Nothing -> Nothing
+            _ : Vector -> types
+            _ -> [types]
         name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
         self.jdbc_connection.with_metadata metadata->
-            table = Managed_Resource.bracket (metadata.getTables database schema name_like types_array) .close result_set->
+            table = Managed_Resource.bracket (metadata.getTables database schema name_like types_vector) .close result_set->
                 result_set_to_table result_set self.dialect.make_column_fetcher_for_type
             renamed = table.rename_columns name_map
             if all_fields then renamed else
@@ -133,17 +153,18 @@ type Connection
            raised.
          - If provided with a `Table_Name` or a text short-hand and the table is
            not found, a `Table_Not_Found` error is raised.
-    query : Text | SQL_Query -> Text -> Table ! Table_Not_Found | SQL_Error
+    @query make_table_name_selector
+    query : Text | SQL_Query -> Text -> Database_Table ! Table_Not_Found | SQL_Error
     query self query alias="" = case query of
         _ : Text ->
             result = self.query alias=alias <|
-                if self.tables.at 'Name' . to_vector . contains query then (SQL_Query.Table_Name query) else
+                if (all_known_table_names self).contains query then (SQL_Query.Table_Name query) else
                     SQL_Query.Raw_SQL query
             result.catch SQL_Error sql_error->
                 case self.dialect.is_probably_a_query query of
                     True -> result
                     False ->
-                        Error.throw (Table_Not_Found.Error query sql_error treated_as_query=True)
+                        Error.throw (Table_Not_Found.Error query sql_error treated_as_query=True extra_message="")
         SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <|
             self.jdbc_connection.ensure_query_has_no_holes raw_sql . if_not_error <|
                 columns = self.fetch_columns raw_sql Statement_Setter.null
@@ -158,7 +179,7 @@ type Connection
                 columns = self.fetch_columns statement statement_setter
                 Database_Table_Module.make_table self name columns ctx
             result.catch SQL_Error sql_error->
-                Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False)
+                Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False extra_message="")
 
     ## PRIVATE
        Execute the query and load the results into memory as a Table.
@@ -167,9 +188,53 @@ type Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - limit: the maximum number of rows to return.
-    read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table
+    @query make_table_name_selector
+    read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table ! Table_Not_Found
     read self query limit=Nothing =
         self.query query . read max_rows=limit
+
+    ## PRIVATE
+       Creates a new empty table in the database and returns a query referencing
+       the new table.
+
+       Arguments:
+       - table_name: the name of the table to create. If not provided, a random
+         name will be generated for temporary tables. If `temporary=False`, then
+         a name must be provided.
+       - structure: the structure of the table. This can be provided as a vector
+         of pairs of column names and types or an existing `Table` to copy the
+         structure from it. Note that if a `Table` is provided, only its column
+         structure is inherited - no table content is copied.
+       - primary_key: the names of the columns to use as the primary key. The
+         first column from the table is used by default. If it is set to
+         `Nothing` or an empty vector, no primary key will be created.
+       - temporary: if set to `True`, the table will be temporary, meaning that
+         it will be dropped once the `connection` is closed. Defaults to
+         `False`.
+       - allow_existing: Defaults to `False`, meaning that if the table with the
+         provided name already exists, an error will be raised. If set to `True`,
+         the existing table will be returned instead. Note that the existing
+         table is not guaranteed to have the same structure as the one provided.
+       - on_problems: the behavior to use when encountering non-fatal problems.
+         Defaults to reporting them as warning.
+
+       ! Error Conditions
+
+         - If a table with the given name already exists, then a
+           `Table_Already_Exists` error is raised.
+         - If a column type is not supported and is coerced to a similar
+           supported type, an `Inexact_Type_Coercion` problem is reported
+           according to the `on_problems` setting.
+         - If a column type is not supported and there is no replacement (e.g.
+           native Enso types), an `Unsupported_Type` error is raised.
+         - If the provided primary key columns are not present in table
+           structure provided, `Missing_Input_Columns` error is raised.
+         - An `SQL_Error` may be reported if there is a failure on the database
+           side.
+    create_table : Text|Nothing -> Vector (Pair Text Value_Type) | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
+    create_table self (table_name : Text | Nothing = Nothing) (structure : Vector | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+        created_table_name = create_table_structure self table_name structure primary_key temporary allow_existing on_problems
+        self.query (SQL_Query.Table_Name created_table_name)
 
     ## PRIVATE
        Internal read function for a statement with optional types.
@@ -215,43 +280,33 @@ type Connection
                 stmt.executeUpdate
 
     ## PRIVATE
-       UNSTABLE
-       This is a prototype function used in our test suites. It may change.
+    drop_table : Text -> Nothing
+    drop_table self table_name =
+        self.execute_update (self.dialect.generate_sql (Query.Drop_Table table_name))
 
-       It creates a new table in the database with the given name (will fail if
-       the table already existed), inserts the contents of the provided
-       in-memory table and returns a handle to the newly created table.
+## PRIVATE
+make_table_types_selector : Connection -> Widget
+make_table_types_selector connection =
+    Single_Choice values=(connection.table_types.map t-> Option t t.pretty)
 
-       ! Temporary Tables
+## PRIVATE
+make_schema_selector : Connection -> Widget
+make_schema_selector connection =
+    schemas_without_nothing = connection.schemas.filter Filter_Condition.Not_Nothing
+    Single_Choice values=(schemas_without_nothing.map t-> Option t t.pretty)+[Option "any schema" "Nothing"]
 
-         Note that temporary tables may not be visible in the table catalog, so
-         some features which rely on it like the `Table.query` shorthand mode
-         may not work correctly with temporary tables.
+## PRIVATE
+all_known_table_names connection =
+    tables = connection.tables name_like=Nothing database=connection.database schema=Nothing types=Nothing all_fields=False
+    tables.at "Name" . to_vector
 
-       Arguments:
-       - name: The name of the table to create.
-       - table: An In-Memory table specifying the contents to upload. Schema of
-         the created database table is based on the column types of this table.
-       - temporary: Specifies whether the table should be marked as temporary. A
-         temporary table will be dropped after the connection closes and will
-         usually not be visible to other connections.
-       - batch_size: Specifies how many rows should be uploaded in a single
-         batch.
-    upload_table : Text -> Materialized_Table -> Boolean -> Integer -> Table
-    upload_table self name table temporary=True batch_size=1000 = Panic.recover Illegal_State <|
-        type_mapping = self.dialect.get_type_mapping
-        ## TODO [RW] problem handling! probably want to add on_problems to this method?
-           This is just a prototype, so ignoring this. To be revisited as part of #5161.
-        type_mapper value_type = type_mapping.value_type_to_sql value_type Problem_Behavior.Report_Error
-        create_sql = create_table_statement type_mapper name table temporary
-        create_table = self.execute_update create_sql
+## PRIVATE
+make_table_name_selector : Connection -> Widget
+make_table_name_selector connection =
+    tables_to_display = connection.tables.at "Name" . to_vector
+    Single_Choice display=Display.Always values=(tables_to_display.map t-> Option t t.pretty)
 
-        db_table = if create_table.is_error then create_table else self.query (SQL_Query.Table_Name name)
-        if db_table.is_error.not then
-            pairs = db_table.internal_columns.map col->[col.name, SQL_Expression.Constant Nothing]
-            insert_query = self.dialect.generate_sql <| Query.Insert name pairs
-            insert_template = insert_query.prepare.first
-            statement_setter = self.dialect.get_statement_setter
-            self.jdbc_connection.load_table insert_template statement_setter table batch_size
-
-        db_table
+## PRIVATE
+first_column_in_structure structure = case structure of
+    _ : Vector -> structure.first.first
+    _ -> structure.column_names.first
