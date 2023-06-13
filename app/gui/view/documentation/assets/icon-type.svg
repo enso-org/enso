@@ -4,4 +4,4 @@
 <ellipse cx="24" cy="8" rx="4" ry="4" transform="rotate(-90 24 8)" fill="#9640DA"/>
 <ellipse cx="8" cy="8" rx="4" ry="4" transform="rotate(-90 8 8)" fill="#9640DA"/>
 <circle cx="8" cy="24" r="5" transform="rotate(-90 8 24)" fill="#9640DA" fill-opacity="0.5"/>
-<svg>
+</svg>
