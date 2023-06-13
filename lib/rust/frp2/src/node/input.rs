@@ -1,75 +1,68 @@
+//! FRP node input type implementation.
+
 use crate::prelude::*;
 
-use crate::network::NodeId;
 use crate::node::Node;
+use crate::runtime::NodeId;
 
 
 
-#[derive(Clone, Copy, Debug, Deref, DerefMut, Eq, PartialEq)]
-#[repr(transparent)]
-pub struct Listen<T>(pub(crate) T);
+// ============
+// === Type ===
+// ============
 
-#[derive(Clone, Copy, Debug, Deref, DerefMut, Eq, PartialEq)]
-#[repr(transparent)]
-pub struct Sample<T>(pub(crate) T);
+macro_rules! run {
+    () => { run!{
+        Listen          { listener: true,  sampler: false },
+        ListenAndSample { listener: true,  sampler: true  },
+        Sample          { listener: false, sampler: true  },
+    }};
 
-#[derive(Clone, Copy, Debug, Deref, DerefMut, Eq, PartialEq)]
-#[repr(transparent)]
-pub struct ListenAndSample<T>(pub(crate) T);
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum InputType {
-    Listen(NodeId),
-    ListenAndSample(NodeId),
-    Sample(NodeId),
-}
-
-impl InputType {
-    #[inline(always)]
-    pub fn node_id(self) -> NodeId {
-        match self {
-            InputType::Listen(t) => t,
-            InputType::ListenAndSample(t) => t,
-            InputType::Sample(t) => t,
+    ( $($variant: ident { listener: $is_listener:tt, sampler: $is_sampler:tt }),* $(,)? ) => {
+        /// One of possible node input types. To learn more about node types, see docs of this
+        /// crate.
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        #[allow(missing_docs)]
+        pub enum Type {
+            $($variant(NodeId)),*
         }
-    }
 
-    #[inline(always)]
-    pub fn is_sampler(self) -> bool {
-        match self {
-            InputType::Listen(_) => false,
-            InputType::ListenAndSample(_) => true,
-            InputType::Sample(_) => true,
+        $(
+            /// One of possible node input types. To learn more about node types, see docs of this
+            /// crate.
+            #[derive(Clone, Copy, Debug, Deref, DerefMut, Eq, PartialEq)]
+            #[repr(transparent)]
+            pub struct $variant<T>(pub(crate) T);
+        )*
+
+        impl Type {
+            /// Get the node id.
+            #[inline(always)]
+            pub fn node_id(self) -> NodeId {
+                match self { $(Self::$variant(t) => t),* }
+            }
+
+            /// Check whether the input type is s sampler.
+            #[inline(always)]
+            pub fn is_sampler(self) -> bool {
+                match self { $(Self::$variant(_) => $is_sampler),* }
+            }
+
+            /// Check whether the input type is a listener.
+            #[inline(always)]
+            pub fn is_listener(self) -> bool {
+                match self { $(Self::$variant(_) => $is_listener),* }
+            }
         }
-    }
 
-    #[inline(always)]
-    pub fn is_listener(self) -> bool {
-        match self {
-            InputType::Listen(_) => true,
-            InputType::ListenAndSample(_) => true,
-            InputType::Sample(_) => false,
-        }
-    }
+        $(
+            impl<T: Node> From<$variant<T>> for Type {
+                #[inline(always)]
+                fn from(t: $variant<T>) -> Self {
+                    Self::$variant(t.0.id())
+                }
+            }
+        )*
+    };
 }
-
-impl<T: Node> From<Listen<T>> for InputType {
-    #[inline(always)]
-    fn from(t: Listen<T>) -> Self {
-        InputType::Listen(t.0.id())
-    }
-}
-
-impl<T: Node> From<ListenAndSample<T>> for InputType {
-    #[inline(always)]
-    fn from(t: ListenAndSample<T>) -> Self {
-        InputType::ListenAndSample(t.0.id())
-    }
-}
-
-impl<T: Node> From<Sample<T>> for InputType {
-    #[inline(always)]
-    fn from(t: Sample<T>) -> Self {
-        InputType::Sample(t.0.id())
-    }
-}
+run!();

@@ -1,8 +1,11 @@
+//! FRP nodes definitions. They are the main user-facing API for creating FRP networks.
+
 use crate::prelude::*;
 
 use crate::data::Data;
 use crate::network::Network;
 use crate::node::input::Listen;
+use crate::node::input::ListenAndSample;
 use crate::node::input::Sample;
 use crate::node::Node;
 use crate::node::NodeInNetwork;
@@ -50,20 +53,28 @@ impl<Type: NotStream, Output> From<TypedNode<Type, Output>> for Stream<Output> {
 }
 
 
+pub trait Model = 'static;
+
 // ==============
 // === Source ===
 // ==============
 
+/// Marker type for the [`Source`] node.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SOURCE;
+
+/// A node that allows the user to explicitly emit values on.
 pub type Source<Output = ()> = TypedNode<SOURCE, Output>;
 
 impl<Model> Network<Model> {
+    /// Starting point in the FRP network. It provides the API to explicitly emit events. Often, it
+    /// is used to indicate a GUI action, like pressing a button.
     #[inline(always)]
     pub fn source<T>(&self) -> NodeInNetwork<Model, Source<T>> {
         self.new_node((), |_, _| {})
     }
 
+    /// Specialization of [`source`] for with the unit output type.
     #[inline(always)]
     pub fn source_(&self) -> NodeInNetwork<Model, Source> {
         self.new_node((), |_, _| {})
@@ -73,32 +84,49 @@ impl<Model> Network<Model> {
 
 // === Sampler ===
 
+/// Marker type for the [`Sampler`] node.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SAMPLER;
+
+/// A node that allows the user to sample the last value of the node output.
 pub type Sampler<Output = ()> = TypedNode<SAMPLER, Output>;
 
-impl<Model> Network<Model> {
-    #[inline(always)]
-    pub fn sampler<T>(&self) -> NodeInNetwork<Model, Sampler<T>> {
-        self.new_node_with_init((), |_, _| {}, |node| node.sampler_count.update(|t| t + 1))
+impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
+    /// On every event, remember it, and pass it trough.
+    #[inline(never)]
+    pub fn sampler(self) -> NodeInNetwork<'a, M, Stream<N1::Output>> {
+        self.network.new_node((ListenAndSample(self),), move |event, _, t1| event.emit(t1))
     }
 }
 
+
 // === Trace ===
 
-impl<Model> Network<Model> {
-    /// Pass all incoming events to the output. Print them to console.
-    pub fn trace<T0: Data>(
-        &self,
-        source: impl Node<Output = T0>,
-    ) -> NodeInNetwork<Model, Stream<T0>> {
-        self.new_node((Listen(source),), move |event, _, t0| {
+impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
+    /// On every event, print it to console, and pass it trough.
+    pub fn trace(self) -> NodeInNetwork<'a, M, Stream<N1::Output>> {
+        self.network.new_node((Listen(self),), move |event, _, t0| {
             println!("TRACE: {:?}", t0);
             event.emit(t0);
         })
     }
 
-    /// Pass all incoming events to the output. Print them to console if [`cond`] is true.
+    pub fn trace_if(
+        self,
+        cond: impl Node<Output = bool>,
+    ) -> NodeInNetwork<'a, M, Stream<N1::Output>> {
+        self.network.new_node((Listen(self), Sample(cond)), move |event, _, src, cond| {
+            if *cond {
+                println!("TRACE: {:?}", src);
+            }
+            event.emit(src);
+        })
+    }
+}
+
+impl<Model> Network<Model> {
+    /// On every event on the `src` input, print it to console if `cond` is true, and pass it
+    /// trough.
     pub fn trace_if<T0: Data>(
         &self,
         src: impl Node<Output = T0>,

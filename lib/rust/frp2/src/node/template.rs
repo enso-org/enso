@@ -1,16 +1,22 @@
-use crate::node::input::*;
+//! FRP node template implementation. It defines the node boilerplate logic for a given set of input
+//! types, allowing node definitions to be short and easy to read.
+
 use crate::prelude::*;
 use enso_generics::traits::*;
 
 use crate::data::Data;
-use crate::network::with_runtime;
 use crate::network::Network;
-use crate::network::NodeData;
-use crate::network::Runtime;
 use crate::node::class::NodeInNetwork;
 use crate::node::class::TypedNode;
+use crate::node::input;
+use crate::node::input::Listen;
+use crate::node::input::ListenAndSample;
+use crate::node::input::Sample;
 use crate::node::Node;
 use crate::node::NodeWithDefaultOutput;
+use crate::runtime::with_runtime;
+use crate::runtime::NodeData;
+use crate::runtime::Runtime;
 
 
 
@@ -231,7 +237,38 @@ where
         init: impl FnOnce(&mut NodeData),
     ) -> TypedNode<Type, Output> {
         let model = M::clone_model(&net.model);
-        let inputs = inputs.map_fields_into::<InputType>();
+        let inputs = inputs.map_fields_into::<input::Type>();
+        let node = net.new_node_with_init_unchecked(
+            move |rt: &Runtime, node: &NodeData, data: &dyn Data| {
+                #[allow(trivial_casts)]
+                let data = unsafe { &*(data as *const dyn Data as *const N0::Output) };
+                M::with_model_borrow_mut(&model, |model| {
+                    f(EventContext::unchecked_new(rt, node), model, data);
+                })
+            },
+            init,
+        );
+        with_runtime(|rt| inputs.field_iter(|input| rt.connect(*input, node.id)));
+        node
+    }
+}
+
+impl<M, Model, N0, Output, F> Template<M, Model, Output, F> for (ListenAndSample<N0>,)
+where
+    M: ModelChooser<Model>,
+    N0: Node,
+    F: 'static + Fn(EventContext<Output>, &mut ChosenModel<M, Model>, &N0::Output),
+{
+    #[inline(always)]
+    #[allow(unsafe_code)]
+    fn new_node_with_init<Type>(
+        net: &Network<Model>,
+        inputs: Self,
+        f: F,
+        init: impl FnOnce(&mut NodeData),
+    ) -> TypedNode<Type, Output> {
+        let model = M::clone_model(&net.model);
+        let inputs = inputs.map_fields_into::<input::Type>();
         let node = net.new_node_with_init_unchecked(
             move |rt: &Runtime, node: &NodeData, data: &dyn Data| {
                 #[allow(trivial_casts)]
@@ -263,7 +300,7 @@ where
         init: impl FnOnce(&mut NodeData),
     ) -> TypedNode<Type, Output> {
         let model = M::clone_model(&net.model);
-        let inputs = inputs.map_fields_into::<InputType>();
+        let inputs = inputs.map_fields_into::<input::Type>();
         let node = net.new_node_with_init_unchecked(
             move |rt: &Runtime, node: &NodeData, data: &dyn Data| unsafe {
                 #[allow(trivial_casts)]
@@ -300,7 +337,7 @@ where
         init: impl FnOnce(&mut NodeData),
     ) -> TypedNode<Type, Output> {
         let model = M::clone_model(&net.model);
-        let inputs = inputs.map_fields_into::<InputType>();
+        let inputs = inputs.map_fields_into::<input::Type>();
         let node = net.new_node_with_init_unchecked(
             move |rt: &Runtime, node: &NodeData, data: &dyn Data| unsafe {
                 #[allow(trivial_casts)]

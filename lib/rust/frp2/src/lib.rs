@@ -168,6 +168,7 @@ pub mod metrics;
 pub mod network;
 pub mod node;
 pub mod nodes;
+pub mod runtime;
 
 pub use enso_prelude as prelude;
 

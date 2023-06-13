@@ -1,11 +1,11 @@
 use crate::prelude::*;
 
 use crate::data::Data;
-use crate::network::with_runtime;
-use crate::network::EventConsumer;
 use crate::network::Network;
-use crate::network::NodeData;
-use crate::network::NodeId;
+use crate::runtime::with_runtime;
+use crate::runtime::EventConsumer;
+use crate::runtime::NodeData;
+use crate::runtime::NodeId;
 use crate::DefInfo;
 
 
@@ -15,8 +15,9 @@ use crate::DefInfo;
 // ============
 
 /// Any FRP node. This is a generalization for [`TypedNode`] with hidden `Type`.
+#[allow(missing_docs)]
 pub trait Node: Copy {
-    type Output;
+    type Output: Data;
     fn id(self) -> NodeId;
 }
 
@@ -35,7 +36,7 @@ pub struct TypedNode<Type, Output> {
     pub(crate) id:      NodeId,
 }
 
-impl<Type, Output> Node for TypedNode<Type, Output> {
+impl<Type, Output: Data> Node for TypedNode<Type, Output> {
     type Output = Output;
     #[inline(always)]
     fn id(self) -> NodeId {

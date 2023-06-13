@@ -1,3 +1,5 @@
+//! FRP node implementation.
+
 mod class;
 pub mod input;
 mod template;
