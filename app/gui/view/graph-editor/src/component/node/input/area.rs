@@ -245,9 +245,9 @@ impl Model {
 
     fn set_label_layer(&self, layer: &display::scene::Layer) {
         *self.label_layer.borrow_mut() = layer.downgrade();
-        // We're taking extra measures to ensure that the actual layer of the label will be updated
-        // even if it is already displayed. It should be unnecessary with the current
-        // implementation. See [`Self::show_edit_mode_label`] and [`Self::hide_edit_mode_label`].
+        // Currently, we never sets label layer when it's already displayed, but - as
+        // `set_label_layer` is a public method of this component - we're taking extra measures.
+        // See [`Self::show_edit_mode_label`] and [`Self::hide_edit_mode_label`].
         if self.edit_mode_label_displayed.get() {
             self.show_edit_mode_label();
         }

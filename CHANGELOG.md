@@ -183,7 +183,9 @@
   execution failed][6918].
 - [Performance and readability of documentation panel was improved][6893]. The
   documentation is now split into separate pages, which are much smaller.
-- [Fixed cursor position when ctrl-clicking the node][7014].
+- [Fixed cursor position when ctrl-clicking the node][7014]. Sometimes
+  ctrl-clicking to edit the node placed the mouse cursor in the wrong position
+  in the text. This is fixed now.
 
 [6279]: https://github.com/enso-org/enso/pull/6279
 [6421]: https://github.com/enso-org/enso/pull/6421
