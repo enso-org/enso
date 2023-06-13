@@ -33,7 +33,7 @@ export function useRefresh() {
  * finishes and sets the state).
  *
  * For further details, see: https://devtrium.com/posts/async-functions-useeffect.
- * Also see: https://stackoverflow.com/questions/61751728/asynchronous-calls-with-react-usememo.
+ * Also see: https://stackoverflow.com/questions/61751728/asynchronous-calls-with-React-usememo.
  *
  * @param initialValue - The initial value of the state controlled by this hook.
  * @param asyncEffect - The asynchronous function used to load the state controlled by this hook.

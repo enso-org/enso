@@ -1,9 +1,10 @@
 /** @file File containing SVG icon definitions. */
+import * as React from 'react'
+
 /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/342
  * These should all be regular `.svg` files rather than React components, but React doesn't include
  * the `svg` files when building for Electron. Once the build scripts have been adapted to allow for
  * for this, the contents of this file should be moved back to standalone SVG files. */
-import * as React from 'react'
 
 // =================
 // === Constants ===

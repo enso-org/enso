@@ -179,7 +179,6 @@ export function AuthProvider(props: AuthProviderProps) {
     // and the function call would error.
     // eslint-disable-next-line no-restricted-properties
     const navigate = router.useNavigate()
-
     const [initialized, setInitialized] = React.useState(false)
     const [userSession, setUserSession] = React.useState<UserSession | null>(null)
 
@@ -200,7 +199,7 @@ export function AuthProvider(props: AuthProviderProps) {
     // circular dependency.
     React.useEffect(() => {
         // `navigator.onLine` is not a dependency so that the app doesn't make the remote backend
-        // completely unusable on spotty connections.
+        // completely unusable on unreliable connections.
         if (!navigator.onLine) {
             void goOffline()
         }

@@ -4,8 +4,6 @@
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-import * as reactHooks from 'eslint-plugin-react-hooks'
-
 // The preferred syntax is `import * as name`, however these modules do not support it.
 // This is specialcased in other files, but these modules shouldn't be used in other files anyway.
 /* eslint-disable no-restricted-syntax */
@@ -13,6 +11,7 @@ import eslintJs from '@eslint/js'
 import globals from 'globals'
 import jsdoc from 'eslint-plugin-jsdoc'
 import react from 'eslint-plugin-react'
+import reactHooks from 'eslint-plugin-react-hooks'
 import tsEslint from '@typescript-eslint/eslint-plugin'
 import tsEslintParser from '@typescript-eslint/parser'
 /* eslint-enable no-restricted-syntax */

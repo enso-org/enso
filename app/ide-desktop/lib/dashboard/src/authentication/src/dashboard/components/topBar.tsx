@@ -64,10 +64,9 @@ function TopBar(props: TopBarProps) {
                 </div>
             )}
             <div
-                className={`flex items-center bg-label rounded-full pl-1
-                                pr-2.5 mx-2 ${
-                                    projectName != null ? 'cursor-pointer' : 'opacity-50'
-                                }`}
+                className={`flex items-center bg-label rounded-full pl-1 pr-2.5 mx-2 ${
+                    projectName != null ? 'cursor-pointer' : 'opacity-50'
+                }`}
                 onClick={toggleTab}
             >
                 <span

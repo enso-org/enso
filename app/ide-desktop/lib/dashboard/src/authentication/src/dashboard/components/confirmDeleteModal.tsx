@@ -1,6 +1,5 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
-
 import toast from 'react-hot-toast'
 
 import * as modalProvider from '../../providers/modal'
