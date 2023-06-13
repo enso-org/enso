@@ -600,9 +600,15 @@ type Column
          Rounding to `n` digits can be thought of as "rounding to the nearest
          multiple of 10^(-n)". For negative decimal counts, this results in
          rounding to the nearest positive integer power of 10.
+
+       > Example
+         Round a column to two decimal places.
+
+             import Standard.Examples
+
+             example_round = Examples.decimal_column.round 2
     round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
     round self decimal_places=0 use_bankers=False =
-        _ = [use_bankers]
         check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
             new_name = self.naming_helpers.function_name "round" [self]
             scale = 10 ^ decimal_places
@@ -623,9 +629,8 @@ type Column
     ## ALIAS int
        UNSTABLE
 
-       If the column is numeric, truncate the floating-point values to an
-       integer by dropping the fractional part. This is equivalent to
-       "round-toward-zero".
+       Truncate the floating-point values to an integer by dropping the
+       fractional part. This is equivalent to "round-toward-zero".
 
        > Example
          Truncate a column of floating-point values.
@@ -641,8 +646,7 @@ type Column
 
     ## UNSTABLE
 
-       If the column is numeric, takes the ceiling of floating-point values,
-       returning integer values.
+       Takes the ceiling of floating-point values, returning integer values.
 
        > Example
          Take the ceiling of a column of floating-point values.
@@ -658,8 +662,7 @@ type Column
 
     ## UNSTABLE
 
-       If the column is numeric, takes the floor of floating-point values,
-       returning integer values.
+       Takes the floor of floating-point values, returning integer values.
 
        > Example
          Take the floor of a column of floating-point values.
