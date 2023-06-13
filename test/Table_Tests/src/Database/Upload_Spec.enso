@@ -85,6 +85,10 @@ spec make_new_connection prefix persistent_connector=True =
             r1 = connection.create_table structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Mixed] temporary=True
             r1.should_fail_with Unsupported_Database_Operation
 
+        Test.specify "should fail if empty structure is provided" <|
+            r1 = connection.create_table structure=[] temporary=True
+            r1.should_fail_with Illegal_Argument
+
         Test.specify "should include the created table in the tables directory" <|
             name = Name_Generator.random_name "persistent_table 1"
             db_table = connection.create_table name structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Char] temporary=False

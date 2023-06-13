@@ -31,12 +31,13 @@ create_table_structure connection table_name structure primary_key temporary all
         False ->
             effective_table_name = resolve_effective_table_name table_name temporary
             aligned_structure = align_structure structure
-            resolved_primary_key = resolve_primary_key aligned_structure primary_key
-            create_table_statement = prepare_create_table_statement connection effective_table_name aligned_structure resolved_primary_key temporary on_problems
-            update_result = create_table_statement.if_not_error <|
-                connection.execute_update create_table_statement
-            update_result.if_not_error <|
-                effective_table_name
+            if aligned_structure.is_empty then Error.throw (Illegal_Argument.Error "An empty table cannot be created: the `structure` must consist of at list one column description.") else
+                resolved_primary_key = resolve_primary_key aligned_structure primary_key
+                create_table_statement = prepare_create_table_statement connection effective_table_name aligned_structure resolved_primary_key temporary on_problems
+                update_result = create_table_statement.if_not_error <|
+                    connection.execute_update create_table_statement
+                update_result.if_not_error <|
+                    effective_table_name
 
 ## PRIVATE
    A helper that can upload a table from any backend to a database.

@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
 import Standard.Base.Metadata.Widget
-from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 from Standard.Base.Metadata.Choice import Option
 import Standard.Base.Metadata.Display
 
@@ -232,8 +232,9 @@ type Connection
            structure provided, `Missing_Input_Columns` error is raised.
          - An `SQL_Error` may be reported if there is a failure on the database
            side.
+    @structure make_structure_creator
     create_table : Text|Nothing -> Vector Column_Description | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
-    create_table self (table_name : Text | Nothing = Nothing) (structure : Vector | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+    create_table self (table_name : Text | Nothing = Nothing) (structure : Vector Column_Description | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
         created_table_name = create_table_structure self table_name structure primary_key temporary allow_existing on_problems
         self.query (SQL_Query.Table_Name created_table_name)
 
@@ -306,6 +307,12 @@ make_table_name_selector : Connection -> Widget
 make_table_name_selector connection =
     tables_to_display = connection.tables.at "Name" . to_vector
     Single_Choice display=Display.Always values=(tables_to_display.map t-> Option t t.pretty)
+
+## PRIVATE
+make_structure_creator : Widget
+make_structure_creator =
+    item_editor = Single_Choice display=Display.Always values=[Option "new column" "(Column_Description.Value)"]
+    Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=Display.Always
 
 ## PRIVATE
 first_column_in_structure structure = case structure of
