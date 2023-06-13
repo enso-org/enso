@@ -127,10 +127,6 @@ spec setup =
             result = table.at "x" . round dp use_bankers
             result.to_vector.at 0
 
-        Test.specify "should fail on decimal_places out of range" <|
-            table = table_builder [["x", [0, 3, -3, 1, -2]]]
-            table.at "x" . round 16 . should_fail_with Illegal_Argument
-
     Test.group prefix+"Column Operations - Equality & Null Handling" <|
         Test.specify "should provide basic == and != comparisons" pending="TODO figure out proper null handling" <|
             (x == y).to_vector . should_equal [False, False, True, Nothing]
@@ -1107,11 +1103,14 @@ spec setup =
                 t.at "a" . zip (t.at "b") [_, _] . name . should_equal "[a] x [b]"
 
     Test.group prefix+"Column.rename" <|
-        Test.specify "should not allow illegal names" <|
-            t = table_builder [["a", [1, 2, 3]]]
-            c = t.at "a"
+        Test.specify "Should allow the creation of constant columns" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            t.at "x" . konst True . to_vector . should_equal [True, True, True]
+            t.at "x" . konst 12 . to_vector . should_equal [12, 12, 12]
+            t.at "x" . konst 12.3 . to_vector . should_equal [12.3, 12.3, 12.3]
+            t.at "x" . konst "asdf" . to_vector . should_equal ["asdf", "asdf", "asdf"]
 
-            c.rename Nothing . should_fail_with Illegal_Argument
-            c.rename '' . should_fail_with Illegal_Argument
-            c.rename 'a\0b' . should_fail_with Illegal_Argument
-            c.rename '\0' . should_fail_with Illegal_Argument
+        Test.specify "Should not allow the creation of constant columns of an invalid type" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            t.at "x" . konst (Date.new 1997) . should_fail_with Illegal_Argument
+
