@@ -9,6 +9,7 @@ from Standard.Table.Errors import all
 
 import project.Connection.Connection.Connection
 import project.Data.Column_Constraint.Column_Constraint
+import project.Data.Column_Description.Column_Description
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.Table.Table as Database_Table
@@ -113,7 +114,7 @@ resolve_primary_key structure primary_key = case primary_key of
             if key.is_a Text then key else
                 Error.throw (Illegal_Argument.Error "Primary key must be a vector of column names.")
         validated.if_not_error <|
-            column_names = Set.from_vector (structure.map .first)
+            column_names = Set.from_vector (structure.map .name)
             missing_columns = (Set.from_vector primary_key).difference column_names
             if missing_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_columns.to_vector) else
                 primary_key
@@ -165,23 +166,13 @@ raise_duplicated_primary_key_error source_table primary_key original_panic =
             Error.throw (Non_Unique_Primary_Key.Error primary_key example_entry example_count)
 
 ## PRIVATE
-align_structure : Database_Table | In_Memory_Table | Vector (Pair Text Value_Type) -> Vector (Pair Text Value_Type)
+align_structure : Database_Table | In_Memory_Table | Vector Column_Description -> Vector Column_Description
 align_structure table_or_columns = case table_or_columns of
     _ : Vector -> table_or_columns.map def->
-        if def.length < 2 then Error.throw (Illegal_Argument.Error "The structure must be an existing Table or vector of pairs (or vectors of column name, type and constraints).") else
-            name = def.first
-            value_type = def.second
-            if name . is_a Text . not then Error.throw (Illegal_Argument.Error "Column names must be a Text. Instead, got a: "+name.to_display_text+".") else
-                if value_type . is_a Value_Type . not then Error.throw (Illegal_Argument.Error "Column value types must be a Value_Type. Instead, got a: "+value_type.to_display_text+".") else
-                    constraints = case def of
-                        _ : Pair -> []
-                        _ : Vector -> def.drop 2
-                    wrong_constraint = constraints.find if_missing=Nothing c-> c.is_a Column_Constraint . not
-                    if wrong_constraint.is_nothing.not then Error.throw (Illegal_Argument.Error "Column constraints must be a `Column_Constraint`. Instead, got: "+wrong_constraint.to_display_text+".") else
-                        [name, value_type]+constraints
-
+        if def.is_a Column_Description . not then Error.throw (Illegal_Argument.Error "The structure must be an existing Table or vector of Column_Description.") else
+            def
     _ -> table_or_columns.columns.map column->
-        [column.name, column.value_type]
+        Column_Description.Value column.name column.value_type
 
 ## PRIVATE
    Creates a statement that will create a table with structure determined by the
@@ -190,16 +181,13 @@ align_structure table_or_columns = case table_or_columns of
    The `primary_key` columns must be present in `columns`, but it is the
    responsibility of the caller to ensure that, otherwise the generated
    statement will be invalid.
-prepare_create_table_statement : Connection -> Text -> Vector -> Vector Text -> Boolean -> Problem_Behavior -> SQL_Statement
+prepare_create_table_statement : Connection -> Text -> Vector Column_Description -> Vector Text -> Boolean -> Problem_Behavior -> SQL_Statement
 prepare_create_table_statement connection table_name columns primary_key temporary on_problems =
     type_mapping = connection.dialect.get_type_mapping
     column_descriptors = columns.map def->
-        name = def.first
-        value_type = def.second
-        constraints = def.drop 2
-        sql_type = type_mapping.value_type_to_sql value_type on_problems
+        sql_type = type_mapping.value_type_to_sql def.value_type on_problems
         sql_type_text = type_mapping.sql_type_to_text sql_type
-        Create_Column_Descriptor.Value name sql_type_text constraints
+        Create_Column_Descriptor.Value def.name sql_type_text def.constraints
     connection.dialect.generate_sql <|
         Query.Create_Table table_name column_descriptors primary_key temporary
 
