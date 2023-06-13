@@ -430,6 +430,7 @@ function DirectoryView(props: DirectoryViewProps) {
                 query={query}
                 doCreateDirectory={doCreateDirectory}
                 onRename={doRefresh}
+                onDelete={doRefresh}
                 onAssetClick={onAssetClick}
                 enterDirectory={enterDirectory}
             />

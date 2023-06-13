@@ -6,6 +6,7 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as error from '../../error'
+import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
 import * as toastPromiseMultiple from '../../toastPromiseMultiple'
@@ -206,16 +207,14 @@ function SecretName(props: SecretNameProps) {
                 editable={isNameEditable}
                 onSubmit={async newTitle => {
                     setIsNameEditable(false)
-                    if (newTitle === item.title) {
-                        toast.success('The secret name is unchanged.')
-                    } else {
+                    if (newTitle !== item.title) {
                         await doRename(/* newTitle */)
                     }
                 }}
                 onCancel={() => {
                     setIsNameEditable(false)
                 }}
-                className="px-2 bg-transparent grow"
+                className="bg-transparent grow px-2"
             >
                 {item.title}
             </EditableSpan>
@@ -256,6 +255,7 @@ function SecretsTable(props: SecretsTableProps) {
         onDelete,
         onAssetClick,
     } = props
+    const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
 
@@ -308,6 +308,7 @@ function SecretsTable(props: SecretsTableProps) {
                                 assetType="secrets"
                                 doDelete={async () => {
                                     await toastPromiseMultiple.toastPromiseMultiple(
+                                        logger,
                                         [...secrets],
                                         secret => backend.deleteSecret(secret.id),
                                         TOAST_PROMISE_MULTIPLE_MESSAGES

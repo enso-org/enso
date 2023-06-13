@@ -2,6 +2,8 @@
  * with progress being reported by a continually updating toast notification. */
 import toast from 'react-hot-toast'
 
+import * as loggerModule from './providers/logger'
+
 // ============================
 // === toastPromiseMultiple ===
 // ============================
@@ -16,6 +18,7 @@ export interface ToastPromiseMultipleMessages<T> {
 
 /** Displays progress  multiple files to the backend, showing a continuously updated toast notification. */
 export async function toastPromiseMultiple<T>(
+    logger: loggerModule.Logger,
     items: T[],
     map: (item: T) => Promise<void>,
     messages: ToastPromiseMultipleMessages<T>
@@ -35,7 +38,8 @@ export async function toastPromiseMultiple<T>(
                 try {
                     await map(item)
                     successCount += 1
-                } catch {
+                } catch (e) {
+                    logger.error(e)
                     toast.error(messages.error(item))
                 } finally {
                     finishedCount += 1

@@ -17,13 +17,16 @@ export interface ConfirmDeleteModalProps {
     assetType: string
     /** Must fit in the sentence "Are you sure you want to delete <description>"? */
     description: string
+    /** Whether a toast notification indicating progress should be shown.
+     * Set this to `false` when showing a custom toast notification. */
+    shouldShowToast?: boolean
     doDelete: () => Promise<void>
     onSuccess: () => void
 }
 
 /** A modal for confirming the deletion of an asset. */
 function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
-    const { assetType, description, doDelete, onSuccess } = props
+    const { assetType, description, shouldShowToast = true, doDelete, onSuccess } = props
     const { unsetModal } = modalProvider.useSetModal()
 
     const [isSubmitting, setIsSubmitting] = React.useState(false)
@@ -32,11 +35,16 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
         if (!isSubmitting) {
             try {
                 setIsSubmitting(true)
-                await toast.promise(doDelete(), {
-                    loading: `Deleting ${assetType}...`,
-                    success: `Deleted ${assetType}.`,
-                    error: `Could not delete ${assetType}.`,
-                })
+                const deletePromise = doDelete()
+                if (!shouldShowToast) {
+                    await deletePromise
+                } else {
+                    await toast.promise(deletePromise, {
+                        loading: `Deleting ${assetType}...`,
+                        success: `Deleted ${assetType}.`,
+                        error: `Could not delete ${assetType}.`,
+                    })
+                }
                 unsetModal()
                 onSuccess()
             } finally {

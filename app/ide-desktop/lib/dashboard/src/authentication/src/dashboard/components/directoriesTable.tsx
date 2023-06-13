@@ -5,13 +5,39 @@ import toast from 'react-hot-toast'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
+import * as error from '../../error'
+import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
+import * as toastPromiseMultiple from '../../toastPromiseMultiple'
+import * as uniqueString from '../../uniqueString'
 
 import Table, * as table from './table'
+import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import EditableSpan from './editableSpan'
+import RenameModal from './renameModal'
+
+// =================
+// === Constants ===
+// =================
+
+/** Messages to be passed to {@link toastPromiseMultiple.toastPromiseMultiple}. */
+const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultipleMessages<backendModule.DirectoryAsset> =
+    {
+        begin: expectedCount =>
+            `Deleting ${expectedCount} ${expectedCount === 1 ? 'folder' : 'folders'}...`,
+        inProgress: (successCount, expectedCount) =>
+            `Deleted ${successCount}/${expectedCount} ${
+                expectedCount === 1 ? 'folder' : 'folders'
+            }.`,
+        end: (successCount, expectedCount) =>
+            `Deleted ${successCount}/${expectedCount} ${
+                expectedCount === 1 ? 'folder' : 'folders'
+            }.`,
+        error: directory => `Could not delete folder '${directory.title}'.`,
+    }
 
 // ============================
 // === DirectoryNameHeading ===
@@ -63,12 +89,19 @@ function DirectoryName(props: DirectoryNameProps) {
         selected,
         state: { onRename, enterDirectory },
     } = props
+    const { backend } = backendProvider.useBackend()
     const [isNameEditable, setIsNameEditable] = React.useState(false)
 
     // TODO: Wait for backend implementation.
-    const doRename = async (/* _newName: string */) => {
+    const doRename = async (newName: string) => {
+        if (backend.type !== backendModule.BackendType.local) {
+            await toast.promise(backend.updateDirectory(item.id, { title: newName }), {
+                loading: 'Renaming folder...',
+                success: 'Renamed folder',
+                error: reason => `Error renaming folder: ${error.unsafeIntoErrorMessage(reason)}`,
+            })
+        }
         onRename()
-        return await Promise.resolve(null)
     }
 
     return (
@@ -91,16 +124,14 @@ function DirectoryName(props: DirectoryNameProps) {
                 editable={isNameEditable}
                 onSubmit={async newTitle => {
                     setIsNameEditable(false)
-                    if (newTitle === item.title) {
-                        toast.success('The folder name is unchanged.')
-                    } else {
-                        await doRename(/* newTitle */)
+                    if (newTitle !== item.title) {
+                        await doRename(newTitle)
                     }
                 }}
                 onCancel={() => {
                     setIsNameEditable(false)
                 }}
-                className="px-2 bg-transparent grow"
+                className="cursor-pointer bg-transparent grow px-2"
             >
                 {item.title}
             </EditableSpan>
@@ -120,6 +151,7 @@ export interface DirectoriesTableProps {
     query: string
     doCreateDirectory: () => void
     onRename: () => void
+    onDelete: () => void
     onAssetClick: (
         asset: backendModule.DirectoryAsset,
         event: React.MouseEvent<HTMLTableRowElement>
@@ -136,9 +168,11 @@ function DirectoriesTable(props: DirectoriesTableProps) {
         query,
         doCreateDirectory,
         onRename,
+        onDelete,
         onAssetClick,
         enterDirectory,
     } = props
+    const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
 
@@ -174,18 +208,36 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                               render: columnModule.COLUMN_RENDERER[column],
                           }
                 )}
-                onContextMenu={(_directories, event) => {
+                onContextMenu={(directories, event) => {
                     event.preventDefault()
                     event.stopPropagation()
-                    setModal(
-                        <ContextMenu key={backendModule.AssetType.directory} event={event}>
-                            <ContextMenuEntry
-                                disabled
-                                onClick={() => {
-                                    // Ignored.
+                    // This is not a React component even though it contains JSX.
+                    // eslint-disable-next-line no-restricted-syntax
+                    const doDeleteAll = () => {
+                        setModal(
+                            <ConfirmDeleteModal
+                                description={`${directories.size} selected folders`}
+                                assetType="folders"
+                                shouldShowToast={false}
+                                doDelete={async () => {
+                                    await toastPromiseMultiple.toastPromiseMultiple(
+                                        logger,
+                                        [...directories],
+                                        directory => backend.deleteDirectory(directory.id),
+                                        TOAST_PROMISE_MULTIPLE_MESSAGES
+                                    )
                                 }}
-                            >
-                                No actions available
+                                onSuccess={onDelete}
+                            />
+                        )
+                    }
+                    const directoriesText = directories.size === 1 ? 'folder' : 'folders'
+                    setModal(
+                        <ContextMenu key={uniqueString.uniqueString()} event={event}>
+                            <ContextMenuEntry onClick={doDeleteAll}>
+                                <span className="text-red-700">
+                                    Delete {directories.size} {directoriesText}
+                                </span>
                             </ContextMenuEntry>
                         </ContextMenu>
                     )
@@ -194,15 +246,38 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                 onRowContextMenu={(directory, event) => {
                     event.preventDefault()
                     event.stopPropagation()
+                    // This is not a React component even though it contains JSX.
+                    // eslint-disable-next-line no-restricted-syntax
+                    const doRename = () => {
+                        const innerDoRename = async (newName: string) => {
+                            await backend.updateDirectory(directory.id, { title: newName })
+                        }
+                        setModal(
+                            <RenameModal
+                                name={directory.title}
+                                assetType={directory.type}
+                                doRename={innerDoRename}
+                                onSuccess={onRename}
+                            />
+                        )
+                    }
+                    // This is not a React component even though it contains JSX.
+                    // eslint-disable-next-line no-restricted-syntax
+                    const doDelete = () => {
+                        setModal(
+                            <ConfirmDeleteModal
+                                description={directory.title}
+                                assetType={directory.type}
+                                doDelete={() => backend.deleteDirectory(directory.id)}
+                                onSuccess={onDelete}
+                            />
+                        )
+                    }
                     setModal(
                         <ContextMenu key={directory.id} event={event}>
-                            <ContextMenuEntry
-                                disabled
-                                onClick={() => {
-                                    // Ignored.
-                                }}
-                            >
-                                No actions available
+                            <ContextMenuEntry onClick={doRename}>Rename</ContextMenuEntry>
+                            <ContextMenuEntry onClick={doDelete}>
+                                <span className="text-red-700">Delete</span>
                             </ContextMenuEntry>
                         </ContextMenu>
                     )

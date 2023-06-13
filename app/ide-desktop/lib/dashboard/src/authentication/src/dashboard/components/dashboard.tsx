@@ -354,6 +354,7 @@ function Dashboard(props: DashboardProps) {
                         event.preventDefault()
                         setIsFileBeingDragged(false)
                         await toastPromiseMultiple.toastPromiseMultiple(
+                            logger,
                             Array.from(event.dataTransfer.files),
                             async file => {
                                 await backend.uploadFile(

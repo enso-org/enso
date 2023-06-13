@@ -6,6 +6,7 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as error from '../../error'
+import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as reactiveEvents from '../events/projectEvent'
 import * as svg from '../../components/svg'
@@ -169,9 +170,7 @@ function ProjectName(props: ProjectNameProps) {
                 editable={isNameEditable}
                 onSubmit={async newTitle => {
                     setIsNameEditable(false)
-                    if (newTitle === item.title) {
-                        toast.success('The project name is unchanged.')
-                    } else {
+                    if (newTitle !== item.title) {
                         await doRename(newTitle)
                     }
                 }}
@@ -184,7 +183,7 @@ function ProjectName(props: ProjectNameProps) {
                           inputTitle: validation.LOCAL_PROJECT_NAME_TITLE,
                       }
                     : {})}
-                className="px-2 bg-transparent grow"
+                className="cursor-pointer bg-transparent grow px-2"
             >
                 {item.title}
             </EditableSpan>
@@ -243,6 +242,7 @@ function ProjectsTable(props: ProjectsTableProps) {
         onAssetClick,
         doRefresh,
     } = props
+    const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
 
@@ -355,8 +355,10 @@ function ProjectsTable(props: ProjectsTableProps) {
                         <ConfirmDeleteModal
                             description={`${projects.size} selected projects`}
                             assetType="projects"
+                            shouldShowToast={false}
                             doDelete={async () => {
                                 await toastPromiseMultiple.toastPromiseMultiple(
+                                    logger,
                                     [...projects],
                                     project => backend.deleteProject(project.id),
                                     TOAST_PROMISE_MULTIPLE_MESSAGES

@@ -246,6 +246,13 @@ export interface UserPermission {
     permission: PermissionAction
 }
 
+/** The type returned from the "update directory" endpoint. */
+export interface UpdatedDirectory {
+    id: DirectoryId
+    parentId: DirectoryId
+    title: string
+}
+
 /** Metadata uniquely identifying a directory entry.
  * These can be Projects, Files, Secrets, or other directories. */
 export interface BaseAsset {
@@ -293,7 +300,7 @@ export interface SecretAsset extends Asset<AssetType.secret> {}
 export interface FileAsset extends Asset<AssetType.file> {}
 
 /** The type returned from the "create directory" endpoint. */
-export interface Directory extends Asset<AssetType.directory> {}
+export interface Directory extends DirectoryAsset {}
 
 // =================
 // === Endpoints ===
@@ -309,6 +316,11 @@ export interface CreateUserRequestBody {
 export interface CreateDirectoryRequestBody {
     title: string
     parentId: DirectoryId | null
+}
+
+/** HTTP request body for the "update directory" endpoint. */
+export interface UpdateDirectoryRequestBody {
+    title: string
 }
 
 /** HTTP request body for the "create project" endpoint. */
@@ -419,6 +431,13 @@ export interface Backend {
     listDirectory: (query: ListDirectoryRequestParams) => Promise<Asset[]>
     /** Create a directory. */
     createDirectory: (body: CreateDirectoryRequestBody) => Promise<Directory>
+    /** Change the name of a directory. */
+    updateDirectory: (
+        directoryId: DirectoryId,
+        body: UpdateDirectoryRequestBody
+    ) => Promise<UpdatedDirectory>
+    /** Delete a directory. */
+    deleteDirectory: (directoryId: DirectoryId) => Promise<void>
     /** Return a list of projects belonging to the current user. */
     listProjects: () => Promise<ListedProject[]>
     /** Create a project for the current user. */
