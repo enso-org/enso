@@ -8,7 +8,6 @@ import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
 import org.enso.interpreter.epb.runtime.PolyglotExceptionProxy;
-import org.enso.interpreter.epb.runtime.PolyglotProxy;
 
 @GenerateUncached
 @ReportPolymorphism

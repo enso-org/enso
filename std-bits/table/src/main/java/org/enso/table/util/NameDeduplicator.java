@@ -1,11 +1,10 @@
 package org.enso.table.util;
 
+import java.util.*;
+import java.util.stream.Collectors;
 import org.enso.table.problems.Problem;
 import org.enso.table.util.problems.DuplicateNames;
 import org.enso.table.util.problems.InvalidNames;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 public class NameDeduplicator {
   private final Set<String> usedNames = new HashSet<>();

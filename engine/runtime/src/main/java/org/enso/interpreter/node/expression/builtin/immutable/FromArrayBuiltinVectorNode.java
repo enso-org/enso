@@ -8,8 +8,8 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.mutable.CoerceArrayNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
     type = "Vector",

@@ -1,9 +1,5 @@
 package org.enso.base;
 
-import java.util.ArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 public class Regex_Utils {
 
   /**

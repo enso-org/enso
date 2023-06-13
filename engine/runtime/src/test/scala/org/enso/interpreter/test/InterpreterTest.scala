@@ -118,6 +118,7 @@ class InterpreterContext(
       .err(err)
       .option(RuntimeOptions.LOG_LEVEL, "WARNING")
       .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+      .environment("NO_COLOR", "true")
       .logHandler(System.err)
       .in(in)
       .option(
