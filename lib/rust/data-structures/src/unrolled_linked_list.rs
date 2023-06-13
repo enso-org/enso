@@ -165,11 +165,9 @@ where
         let new_capacity = self.len().max(capacity);
         if new_capacity == 0 {
             self.first_node.set_default();
-        } else {
-            if let Some(first_node) = self.first_node.opt_item_mut() {
-                let new_capacity = first_node.shrink_to_fit(new_capacity);
-                self.capacity.set(new_capacity)
-            }
+        } else if let Some(first_node) = self.first_node.opt_item_mut() {
+            let new_capacity = first_node.shrink_to_fit(new_capacity);
+            self.capacity.set(new_capacity)
         }
     }
 
@@ -257,12 +255,6 @@ where
     // pub fn iter_mut(&mut self) -> IterMut<T, N, B> {
     //     IntoIterator::into_iter(self)
     // }
-
-    /// Consume the list and return an iterator over its items.
-    #[inline(always)]
-    pub fn into_iter(self) -> IntoIter<T, N, B> {
-        IntoIterator::into_iter(self)
-    }
 
     /// Clone all elements to a vector.
     pub fn to_vec(&self) -> Vec<T>
@@ -493,7 +485,7 @@ where B: AllocationBehavior<T>
                     items.extend(next.items_mut().drain(0..end));
                     let empty_next_node = next.items().is_empty();
                     let next_next_node = next.next.opt_item_mut();
-                    empty_next_node.then(|| next_next_node.map(|t| mem::take(t)))
+                    empty_next_node.then(|| next_next_node.map(mem::take))
                 })
             };
             if let Some(new_next_node) = new_next_node {

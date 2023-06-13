@@ -192,7 +192,7 @@ where B: AllocationBehavior<Slot<Item>>
     /// previous value.
     #[inline(always)]
     pub fn reserve(&self) -> VersionedIndex<Kind> {
-        let free_indexes = self.free_indexes.borrow_mut();
+        let mut free_indexes = self.free_indexes.borrow_mut();
         if let Some(index) = free_indexes.pop() {
             let version = self.slots[index].version.update(|v| v.inc());
             VersionedIndex::new(index, version)
@@ -296,12 +296,6 @@ where B: AllocationBehavior<Slot<Item>>
     //     IntoIterator::into_iter(self)
     // }
 
-    /// Consume the list and return an iterator over its items.
-    #[inline(always)]
-    pub fn into_iter(self) -> IntoIter<Item, N, B> {
-        IntoIterator::into_iter(self)
-    }
-
     /// Clone all elements to a vector.
     pub fn to_vec(&self) -> Vec<Item>
     where Item: Clone {
@@ -327,7 +321,7 @@ where B: AllocationBehavior<Slot<Item>>
                 slot.version.update(|v| v.inc());
             }
         }
-        let free_indexes = self.free_indexes.borrow_mut();
+        let mut free_indexes = self.free_indexes.borrow_mut();
         free_indexes.clear();
         // We add the keys in reversed order to make the new reservation from the beginning of the
         // list.

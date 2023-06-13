@@ -10,11 +10,17 @@ use std::cell::UnsafeCell;
 
 /// Additional methods for [`UnsafeCell`].
 pub trait UnsafeCellOps<T> {
-    /// Borrow the cell content. It will not be checked if the cell is already mutably borrowed.
+    /// Borrow the cell content.
+    ///
+    /// # Safety
+    /// It is not checked whether the cell is already mutably borrowed.
     #[allow(unsafe_code)]
     unsafe fn unchecked_borrow(&self) -> &T;
 
-    /// Mutably borrow the cell content. It will not be checked if the cell is already borrowed.
+    /// Mutably borrow the cell content.
+    ///
+    /// # Safety
+    /// It is not checked whether the cell is already borrowed.
     #[allow(clippy::mut_from_ref)]
     #[allow(unsafe_code)]
     unsafe fn unchecked_borrow_mut(&self) -> &mut T;

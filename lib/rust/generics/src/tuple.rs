@@ -116,6 +116,7 @@ macro_rules! impl_from_hlist_for_tuple {
     ($t:tt $($ts:tt)*) => {
         impl<$($ts),*> IntoFamily<Tuple> for crate::ty![$($ts),*] {
             type Output = ($($ts,)*);
+            #[allow(clippy::unused_unit)]
             fn _into_family(self) -> Self::Output {
                 #[allow(non_snake_case)]
                 let crate::pat![$($ts),*] = self;
@@ -125,6 +126,7 @@ macro_rules! impl_from_hlist_for_tuple {
 
         impl<'t, $($ts),*> IntoFamily<Tuple> for &'t crate::ty![$($ts),*] {
             type Output = ($(&'t $ts,)*);
+            #[allow(clippy::unused_unit)]
             fn _into_family(self) -> Self::Output {
                 #[allow(non_snake_case)]
                 let crate::pat![$($ts),*] = self;
@@ -134,6 +136,7 @@ macro_rules! impl_from_hlist_for_tuple {
 
         impl<'t, $($ts),*> IntoFamily<Tuple> for &'t mut crate::ty![$($ts),*] {
             type Output = ($(&'t mut $ts,)*);
+            #[allow(clippy::unused_unit)]
             fn _into_family(self) -> Self::Output {
                 #[allow(non_snake_case)]
                 let crate::pat![$($ts),*] = self;

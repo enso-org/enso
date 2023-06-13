@@ -214,7 +214,7 @@ impl Runtime {
     #[inline(always)]
     fn drop_network(&self, id: NetworkId) {
         if let Some(network) = self.networks.get(id) {
-            let network_data = network.borrow_mut();
+            let mut network_data = network.borrow_mut();
             for node_id in &network_data.nodes {
                 self.drop_node(*node_id);
             }
@@ -253,7 +253,7 @@ impl Runtime {
         self.metrics.inc_nodes();
         if let Some(network) = self.networks.get(net_id) {
             let id = self.nodes.reserve_and_init_im_(|node| {
-                let node = node.borrow_mut();
+                let mut node = node.borrow_mut();
                 node.reuse((ZeroableOption::Some(Box::new(f)), net_id, def));
                 init(&mut *node);
             });
