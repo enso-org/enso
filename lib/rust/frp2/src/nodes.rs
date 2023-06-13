@@ -14,6 +14,7 @@ use crate::node::TypedNode;
 // ==============
 
 /// Marker type for the [`Stream`] node.
+#[derive(Clone, Copy, Debug, Default)]
 pub struct STREAM;
 
 auto trait NotStream {}
@@ -29,7 +30,13 @@ impl<Type: NotStream, Output> Deref for TypedNode<Type, Output> {
     type Target = Stream<Output>;
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
-        unsafe { &*(self as *const Self as *const Self::Target) }
+        // # Safety
+        // The values differ only in phantom parametrization, so it is safe to coerce them.
+        #[allow(unsafe_code)]
+        #[allow(trivial_casts)]
+        unsafe {
+            &*(self as *const Self as *const Self::Target)
+        }
     }
 }
 
@@ -45,7 +52,7 @@ impl<Type: NotStream, Output> From<TypedNode<Type, Output>> for Stream<Output> {
 // === Source ===
 // ==============
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct SOURCE;
 pub type Source<Output = ()> = TypedNode<SOURCE, Output>;
 
@@ -64,7 +71,7 @@ impl<Model> Network<Model> {
 
 // === Sampler ===
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct SAMPLER;
 pub type Sampler<Output = ()> = TypedNode<SAMPLER, Output>;
 
@@ -153,17 +160,6 @@ where
         self.network.new_node_with_model((Listen(self),), move |event, m, t1| event.emit(&f(m, t1)))
     }
 
-    // #[inline(never)]
-    // pub fn map2<N2, F, Output>(self, n2: N2, f: F) -> NodeInNetwork<'a, Model, Stream<Output>>
-    // where
-    //     N2: NodeWithDefaultOutput,
-    //     Output: Data,
-    //     F: 'static + Fn(&mut Model, &N1::Output, &N2::Output) -> Output, {
-    //     self.network.new_node_with_model((Listen(self), Sample(n2)), move |event, m, t1, t2| {
-    //         event.emit(&f(m, t1, t2))
-    //     })
-    // }
-
     #[inline(never)]
     pub fn map_<F, Output>(self, f: F) -> NodeInNetwork<'a, Model, Stream<Output>>
     where
@@ -182,7 +178,7 @@ where
             .new_node((Listen(self), Sample(n2)), move |event, _, t1, t2| event.emit(&f(t1, t2)))
     }
 }
-//
+
 macro_rules! def_map_nodes {
     ($($is:literal),*) => {
         def_map_nodes! { @ [[1 []]] $($is)* }

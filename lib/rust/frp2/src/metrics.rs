@@ -3,6 +3,7 @@
 //! Metrics for the FRP engine, providing insights into the FRP engine, such as the number of FRP
 //! networks or the count of FRP nodes. Only available when the `metrics` feature is enabled.
 
+
 use crate::prelude::*;
 
 
@@ -20,7 +21,7 @@ macro_rules! def_metrics {
     ) => { paste! {
         $(#$meta)*
         #[cfg(not(feature = "metrics"))]
-        #[derive(Default, Debug, Clone)]
+        #[derive(Clone, Copy, Default, Debug)]
         pub struct $name;
 
         $(#$meta)*

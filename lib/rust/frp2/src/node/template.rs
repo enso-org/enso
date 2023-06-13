@@ -223,6 +223,7 @@ where
     F: 'static + Fn(EventContext<Output>, &mut ChosenModel<M, Model>, &N0::Output),
 {
     #[inline(always)]
+    #[allow(unsafe_code)]
     fn new_node_with_init<Type>(
         net: &Network<Model>,
         inputs: Self,
@@ -233,6 +234,7 @@ where
         let inputs = inputs.map_fields_into::<InputType>();
         let node = net.new_node_with_init_unchecked(
             move |rt: &Runtime, node: &NodeData, data: &dyn Data| {
+                #[allow(trivial_casts)]
                 let data = unsafe { &*(data as *const dyn Data as *const N0::Output) };
                 M::with_model_borrow_mut(&model, |model| {
                     f(EventContext::unchecked_new(rt, node), model, data);
@@ -253,6 +255,7 @@ where
     F: 'static + Fn(EventContext<Output>, &mut ChosenModel<M, Model>, &N0::Output, &N1::Output),
 {
     #[inline(always)]
+    #[allow(unsafe_code)]
     fn new_node_with_init<Type>(
         net: &Network<Model>,
         inputs: Self,
@@ -263,6 +266,7 @@ where
         let inputs = inputs.map_fields_into::<InputType>();
         let node = net.new_node_with_init_unchecked(
             move |rt: &Runtime, node: &NodeData, data: &dyn Data| unsafe {
+                #[allow(trivial_casts)]
                 let t0 = &*(data as *const dyn Data as *const N0::Output);
                 rt.with_borrowed_node_output_coerced(inputs.1.node_id(), |t1| {
                     M::with_model_borrow_mut(&model, |model| {
@@ -288,6 +292,7 @@ where
         + Fn(EventContext<Output>, &mut ChosenModel<M, Model>, &N0::Output, &N1::Output, &N2::Output),
 {
     #[inline(always)]
+    #[allow(unsafe_code)]
     fn new_node_with_init<Type>(
         net: &Network<Model>,
         inputs: Self,
@@ -298,6 +303,7 @@ where
         let inputs = inputs.map_fields_into::<InputType>();
         let node = net.new_node_with_init_unchecked(
             move |rt: &Runtime, node: &NodeData, data: &dyn Data| unsafe {
+                #[allow(trivial_casts)]
                 let t0 = &*(data as *const dyn Data as *const N0::Output);
                 rt.with_borrowed_node_output_coerced(inputs.1.node_id(), |t1| {
                     rt.with_borrowed_node_output_coerced(inputs.2.node_id(), |t2| {

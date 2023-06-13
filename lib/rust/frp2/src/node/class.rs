@@ -44,13 +44,13 @@ impl<Type, Output> Node for TypedNode<Type, Output> {
 }
 
 impl<Type, Output> TypedNode<Type, Output> {
+    /// # Safety
+    /// The value is checked to have the correct [`Output`] type.
     #[inline(never)]
+    #[allow(unsafe_code)]
     pub fn emit(&self, value: &Output)
     where Output: Data {
-        with_runtime(|rt|
-            // # Safety
-            // The value is checked to have the correct [`Output`] type.
-            unsafe { rt.unchecked_emit_borrow(self.id, value) });
+        with_runtime(|rt| unsafe { rt.unchecked_emit_borrow(self.id, value) });
     }
 }
 
@@ -80,7 +80,7 @@ impl<Model> Network<Model> {
 
 /// A [`Node`] associated with a [`Network`]. This is used to provide a nice API for creation of new
 /// nodes without the need for the user to specify in which network to create the node.
-#[derive(Deref, DerefMut)]
+#[derive(Debug, Deref, DerefMut)]
 pub struct NodeInNetwork<'t, Model, N> {
     #[deref]
     #[deref_mut]

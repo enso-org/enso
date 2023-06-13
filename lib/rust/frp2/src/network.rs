@@ -173,9 +173,11 @@ pub(crate) fn with_runtime<T>(f: impl FnOnce(&Runtime) -> T) -> T {
 }
 
 /// Phantom type used to provide type-level hints for network-related structs.
+#[derive(Clone, Copy, Debug)]
 pub struct NETWORK;
 
 /// Phantom type used to provide type-level hints for node-related structs.
+#[derive(Clone, Copy, Debug)]
 pub struct NODE;
 
 /// A unique identifier of a network.
@@ -187,7 +189,7 @@ pub type NodeId = VersionedIndex<NODE>;
 /// A global FRP network. Both networks and nodes are stored in a global slot-maps. This allows for
 /// both fast initialization of the slot-maps, as well as re-using already allocated memory in case
 /// a network or a node is dropped and created again.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Runtime {
     networks: UnrolledSlotMap<
         OptRefCell<NetworkData>,
@@ -280,7 +282,11 @@ impl Runtime {
 
     /// Emit the event to all listeners of the given node. The event type is not checked, so you
     /// have to guarantee that the type is correct.
+    ///
+    /// # Safety
+    /// The event type is not checked, so you have to guarantee that the type is correct.
     #[inline(always)]
+    #[allow(unsafe_code)]
     pub(crate) unsafe fn unchecked_emit_borrow(&self, src_node_id: NodeId, event: &dyn Data) {
         self.with_borrowed_node(src_node_id, |src_node| {
             self.unchecked_emit(src_node, event);
@@ -335,6 +341,7 @@ impl Runtime {
     /// The cache will be casted to the provided type without checking it, so you need to guarantee
     /// type safety when using this function.
     #[inline(always)]
+    #[allow(unsafe_code)]
     pub(crate) unsafe fn with_borrowed_node_output_coerced<T>(
         &self,
         node_id: NodeId,
@@ -345,6 +352,7 @@ impl Runtime {
         self.with_borrowed_node(node_id, |node| {
             let output = node.output_cache.borrow();
             if let Some(output) = output.as_ref().map(|t| &**t) {
+                #[allow(trivial_casts)]
                 let output_coerced = unsafe { &*(output as *const dyn Data as *const T) };
                 f(output_coerced)
             } else {
