@@ -104,6 +104,7 @@ function Dashboard(props: DashboardProps) {
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
+    // This is a bad solution as it dirties the entire DOM subtree.
     const [directoryEvent, dispatchDirectoryEvent] =
         hooks.useEvent<directoryEventModule.DirectoryEvent>()
 
@@ -136,13 +137,18 @@ function Dashboard(props: DashboardProps) {
         }
     }, [/* should never change */ doRefresh])
 
-    const toggleTab = () => {
+    const toggleTab = React.useCallback(() => {
         if (project != null && tab === Tab.dashboard) {
             switchToIdeTab()
         } else {
             switchToDashboardTab()
         }
-    }
+    }, [
+        project,
+        tab,
+        /* should never change */ switchToDashboardTab,
+        /* should never change */ switchToIdeTab,
+    ])
 
     React.useEffect(() => {
         if (

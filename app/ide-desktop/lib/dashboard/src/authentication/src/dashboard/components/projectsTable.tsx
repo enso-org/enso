@@ -171,6 +171,11 @@ function ProjectName(props: InternalProjectNameProps) {
                 onSubmit={async newTitle => {
                     setIsNameEditable(false)
                     if (newTitle !== item.title) {
+                        // Mutation is UNSAFE as it does not cause a re-render.
+                        // However, `setIsNameEditable` causes a re-render, and
+                        // using a `useState` is not an option as it will not get overwritten by
+                        // the updated value from the server.
+                        item.title = newTitle
                         await doRename(newTitle)
                     }
                 }}
