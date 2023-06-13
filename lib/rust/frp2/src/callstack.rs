@@ -1,5 +1,7 @@
-use crate::prelude::bytemuck;
+#![allow(dead_code)]
+
 use crate::prelude::*;
+
 
 #[derive(Clone, Copy, Debug, Zeroable)]
 pub struct Label(#[cfg(feature = "stack-trace")] &'static str);

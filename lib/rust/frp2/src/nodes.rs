@@ -201,6 +201,7 @@ macro_rules! def_map_nodes {
 
     (# $i:tt [$($ns:tt)*]) => { paste! {
         #[inline(never)]
+        #[allow(non_snake_case)]
         pub fn [<map $i>] < $($ns,)* F, Output>
         (self, $($ns:$ns,)* f: F) -> NodeInNetwork<'a, Model, Stream<Output>>
         where

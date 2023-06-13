@@ -6,7 +6,6 @@ use crate::network::EventConsumer;
 use crate::network::Network;
 use crate::network::NodeData;
 use crate::network::NodeId;
-use crate::network::Runtime;
 use crate::DefInfo;
 
 

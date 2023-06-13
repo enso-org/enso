@@ -15,27 +15,6 @@ pub struct Sample<T>(pub(crate) T);
 #[repr(transparent)]
 pub struct ListenAndSample<T>(pub(crate) T);
 
-impl<T> Listen<T> {
-    #[inline(always)]
-    fn map<S>(self, f: impl FnOnce(T) -> S) -> Listen<S> {
-        Listen(f(self.0))
-    }
-}
-
-impl<T> Sample<T> {
-    #[inline(always)]
-    fn map<S>(self, f: impl FnOnce(T) -> S) -> Sample<S> {
-        Sample(f(self.0))
-    }
-}
-
-impl<T> ListenAndSample<T> {
-    #[inline(always)]
-    fn map<S>(self, f: impl FnOnce(T) -> S) -> ListenAndSample<S> {
-        ListenAndSample(f(self.0))
-    }
-}
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum InputType {
     Listen(NodeId),

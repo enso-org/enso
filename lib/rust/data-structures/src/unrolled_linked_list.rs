@@ -232,7 +232,7 @@ where
     }
 
     /// Retain only the elements that satisfy the predicate.
-    pub fn retain<F>(&mut self, mut f: F)
+    pub fn retain<F>(&mut self, f: F)
     where F: FnMut(&T) -> bool {
         if let Some(first_node) = self.first_node.opt_item_mut() {
             let len = self.len.get();

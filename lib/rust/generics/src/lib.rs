@@ -34,6 +34,7 @@ pub use generic::*;
 pub use hlist::*;
 pub use tuple::*;
 
+/// Common traits.
 pub mod traits {
     pub use super::generic::traits::*;
 }

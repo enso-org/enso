@@ -1228,6 +1228,7 @@ where
 /// Evaluate the provided function for every field reference. Please note that all fields have to be
 /// of the same type. If you want to iterate over fields with different types, use the [`MapFields`]
 /// interface with a custom defined mapper.
+#[allow(missing_docs)]
 pub trait FieldIter<F> {
     fn field_iter(&self, f: impl FnMut(&F));
 }
@@ -1273,6 +1274,7 @@ where
 /// Evaluate the provided function for every field mutable reference. Please note that all fields
 /// have to be of the same type. If you want to iterate over fields with different types, use the
 /// [`MapFields`] interface with a custom defined mapper.
+#[allow(missing_docs)]
 pub trait FieldIterMut<F> {
     fn field_iter_mut(&mut self, f: impl FnMut(&mut F));
 }

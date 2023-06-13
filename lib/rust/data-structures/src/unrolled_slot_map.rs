@@ -191,7 +191,7 @@ where B: AllocationBehavior<Slot<Item>>
     /// previous value.
     #[inline(always)]
     pub fn reserve(&self) -> VersionedIndex<Kind> {
-        let mut free_indexes = self.free_indexes.borrow_mut();
+        let free_indexes = self.free_indexes.borrow_mut();
         if let Some(index) = free_indexes.pop() {
             let version = self.slots[index].version.update(|v| v.inc());
             VersionedIndex::new(index, version)
@@ -326,7 +326,7 @@ where B: AllocationBehavior<Slot<Item>>
                 slot.version.update(|v| v.inc());
             }
         }
-        let mut free_indexes = self.free_indexes.borrow_mut();
+        let free_indexes = self.free_indexes.borrow_mut();
         free_indexes.clear();
         // We add the keys in reversed order to make the new reservation from the beginning of the
         // list.

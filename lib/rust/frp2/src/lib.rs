@@ -130,13 +130,14 @@
 #![feature(core_intrinsics)]
 #![feature(auto_traits)]
 #![feature(negative_impls)]
+#![feature(cell_update)]
 
-mod callstack;
-mod data;
-mod metrics;
-mod network;
-mod node;
-mod nodes;
+pub mod callstack;
+pub mod data;
+pub mod metrics;
+pub mod network;
+pub mod node;
+pub mod nodes;
 
 pub use enso_prelude as prelude;
 
@@ -155,7 +156,6 @@ use enso_frp as frp_old;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::callstack::Location;
 
     #[test]
     fn test() {
@@ -198,9 +198,9 @@ mod tests {
 
     #[test]
     fn test2() {
-        for i in 0..10 {
+        for _ in 0..10 {
             let net = Network_::new();
-            let src1 = net.source::<usize>();
+            let _src1 = net.source::<usize>();
             // let src2 = net.source::<usize>();
             // let m1 = net.map2(src1, src2, map_fn);
         }
@@ -283,7 +283,7 @@ mod benches {
         let net = Network_::new();
         let src1 = net.source::<usize>();
         let src2 = net.source::<usize>();
-        let m1 = src1.map2_(src2, map_fn);
+        let _m1 = src1.map2_(src2, map_fn);
         src2.emit(&2);
 
         bencher.iter(move || {
@@ -300,7 +300,7 @@ mod benches {
         frp_old::extend! { net
             src1 <- source::<usize>();
             src2 <- source::<usize>();
-            m1 <- map2(&src1, &src2, map_fn);
+            _m1 <- map2(&src1, &src2, map_fn);
         }
         src2.emit(2);
 
@@ -364,12 +364,12 @@ mod benches {
         let net = Network_::new();
         let src1 = net.source::<String>();
         let src2 = net.source::<usize>();
-        let m1 = src1.map2_(src2, |s, i| s.len() + i);
+        let _m1 = src1.map2_(src2, |s, i| s.len() + i);
         src2.emit(&2);
 
         bencher.iter(move || {
             let str = "test".to_owned();
-            for i in 0..REPS {
+            for _ in 0..REPS {
                 src1.emit(&str);
             }
         });
@@ -382,14 +382,14 @@ mod benches {
         frp_old::extend! { net
             src1 <- source::<Rc<String>>();
             src2 <- source::<usize>();
-            m1 <- map2(&src1, &src2, |s, i| s.len() + i);
+            _m1 <- map2(&src1, &src2, |s, i| s.len() + i);
         }
         src2.emit(2);
 
         bencher.iter(move || {
             let str = Rc::new("test".to_owned());
             let _keep = &net;
-            for i in 0..REPS {
+            for _ in 0..REPS {
                 src1.emit(&str);
             }
         });
@@ -401,8 +401,8 @@ mod benches {
         bencher.iter(move || {
             // with_runtime(|rt| rt.unsafe_clear());
             let net = Network_::new();
-            for i in 0..100_000 {
-                let src1 = net.source::<usize>();
+            for _ in 0..100_000 {
+                let _src1 = net.source::<usize>();
                 // let src2 = net.source::<usize>();
                 // let m1 = src1.map2_(src2, map_fn);
             }
@@ -414,9 +414,9 @@ mod benches {
     fn bench_create_frp_old(bencher: &mut Bencher) {
         bencher.iter(move || {
             let net = frp_old::Network::new("label");
-            for i in 0..100_000 {
+            for _ in 0..100_000 {
                 frp_old::extend! { net
-                    src1 <- source::<usize>();
+                    _src1 <- source::<usize>();
                 }
                 // let src2 = net.source::<usize>();
                 // let m1 = net.map2(src1, src2, map_fn);
@@ -434,59 +434,5 @@ mod benches {
             }
             assert_eq!(vec.len(), 100_000);
         });
-    }
-
-
-    #[bench]
-    fn b1(bencher: &mut Bencher) {
-        let mut vec = Vec::<Box<dyn Fn(usize) -> usize>>::new();
-        bencher.iter(move || {
-            for i in 0..100_000 {
-                vec.push(Box::new(move |x| x + i));
-            }
-        });
-    }
-
-    #[bench]
-    fn b2(bencher: &mut Bencher) {
-        let mut vec = Vec::<Box<dyn FF2>>::new();
-        bencher.iter(move || {
-            for i in 0..100_000 {
-                vec.push(Box::new(S(i)));
-            }
-        });
-    }
-
-    // 93085
-    // 42930
-    // 57315
-    // 45130
-}
-
-// 4835920
-// 4134314
-// 4146143
-
-// 2107576
-// 2102113
-// 2280935
-
-// 3039606
-// 3411847
-// 1941622
-
-
-
-type FF = dyn Fn(usize) -> usize;
-
-pub struct S(usize);
-
-trait FF2 {
-    fn ff(&self, x: usize) -> usize;
-}
-
-impl FF2 for S {
-    fn ff(&self, x: usize) -> usize {
-        self.0 + x
     }
 }

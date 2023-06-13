@@ -9,6 +9,7 @@
 //! let HList::pat![t1, t2] : HList::ty![&str, usize] = HList::new!["hello", 7];
 //! ```
 
+/// Common traits for [`HList`] operations.
 pub mod traits {
     pub use super::AsHList as _TRAIT_AsHList;
     pub use super::AsHListMut as _TRAIT_AsHListMut;
@@ -78,6 +79,7 @@ macro_rules! ty {
 
 /// A generic representation of the given type. This is a [`HList`] representation of all struct
 /// fields.
+#[allow(missing_docs)]
 pub trait HasHListRepr {
     type HListRepr: HList;
 }

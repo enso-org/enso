@@ -99,9 +99,9 @@ macro_rules! def_node {
         impl Reusable for NodeData {
             type Args = ($($reusable_field_ty,)*);
             #[inline(always)]
-            fn reuse(&mut self, args: Self::Args) {
+            fn reuse(&mut self, _args: Self::Args) {
                 $(
-                    let (arg, args) = args.pop_first_field();
+                    let (arg, _args) = _args.pop_first_field();
                     self.$reusable_field = arg;
                 )*
             }
@@ -210,7 +210,7 @@ impl Runtime {
     #[inline(always)]
     fn drop_network(&self, id: NetworkId) {
         if let Some(network) = self.networks.get(id) {
-            let mut network_data = network.borrow_mut();
+            let network_data = network.borrow_mut();
             for node_id in &network_data.nodes {
                 self.drop_node(*node_id);
             }
@@ -249,7 +249,7 @@ impl Runtime {
         self.metrics.inc_nodes();
         if let Some(network) = self.networks.get(net_id) {
             let id = self.nodes.reserve_and_init_im_(|node| {
-                let mut node = node.borrow_mut();
+                let node = node.borrow_mut();
                 node.reuse((ZeroableOption::Some(Box::new(f)), net_id, def));
                 init(&mut *node);
             });

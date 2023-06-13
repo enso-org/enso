@@ -151,6 +151,7 @@ impl<Model> Network<Model> {
         self._new_node_with_init::<ModelNotUsed, Type, Inputs, Output, F, _Out>(inps, body, init)
     }
 
+    #[allow(dead_code)]
     #[inline(always)]
     fn new_node_with_model_with_init<Type, Inputs, Output, F, _Out>(
         &self,
