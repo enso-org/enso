@@ -458,6 +458,18 @@ spec setup =
             table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
             table.at "x" . round . name . should_equal "round([x])"
 
+        Test.specify "should allow round on a float column" <|
+            table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
+            result = table.at "x" . round
+            result.to_vector.should_equal [0, 1, 3, 4, 0, -1, -3, -4]
+            result.value_type . is_integer . should_be_true
+
+        Test.specify "should allow round on an int column" <|
+            table = table_builder [["x", [1, 9, 31, 39, -1, -9, -31, -39]]]
+            result = table.at "x" . round -1
+            result.to_vector.should_equal [0, 10, 30, 40, 0, -10, -30, -40]
+            result.value_type . is_integer . should_be_true
+
         Test.specify "should allow truncate on a float column" <|
             table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
             result = table.at "x" . truncate
