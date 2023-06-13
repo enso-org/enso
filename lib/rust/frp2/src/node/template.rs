@@ -1,7 +1,6 @@
+use crate::node::input::*;
 use crate::prelude::*;
 use enso_generics::traits::*;
-
-use crate::node::input::*;
 
 use crate::data::Data;
 use crate::network::with_runtime;
@@ -12,6 +11,7 @@ use crate::node::class::NodeInNetwork;
 use crate::node::class::TypedNode;
 use crate::node::Node;
 use crate::node::NodeWithDefaultOutput;
+
 
 
 // ====================

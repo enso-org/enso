@@ -1,10 +1,11 @@
 //! This module contains implementations of generic operations on tuples.
 
-use crate as hlist;
-use paste::paste;
-
 use crate::generic::*;
+
+use crate as hlist;
 use crate::HasHListRepr;
+
+use paste::paste;
 
 
 

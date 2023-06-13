@@ -3,8 +3,10 @@
 //! storing list metadata such as references. It is related to the B-tree. To learn more, see:
 //! https://en.wikipedia.org/wiki/Unrolled_linked_list
 
-use crate::prelude::Index as IndexOps;
 use crate::prelude::*;
+
+use crate::prelude::Index as IndexOps;
+
 use std::cell::UnsafeCell;
 
 

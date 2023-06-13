@@ -1,12 +1,13 @@
 //! Generic representation of data types. Refer to the crate documentation to learn more.
 
 use super::hlist;
-use std::marker::PhantomData;
-
 use derivative::Derivative;
 use hlist::Cons;
 use hlist::Nil;
 use paste::paste;
+use std::marker::PhantomData;
+
+
 
 #[rustfmt::skip]
 macro_rules! dec {

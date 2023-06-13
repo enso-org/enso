@@ -121,6 +121,7 @@
 //! be able to sample it on demand. If no sample ports are connected to the node output, the data
 //! will not be cloned.
 
+// === Features ===
 #![feature(allocator_api)]
 #![feature(test)]
 #![feature(let_chains)]
@@ -149,6 +150,18 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+use prelude::*;
+
+use crate::callstack::DefInfo;
+
+use enso_frp as frp_old;
+use network::Network_;
+
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod callstack;
 pub mod data;
 pub mod metrics;
@@ -158,12 +171,6 @@ pub mod nodes;
 
 pub use enso_prelude as prelude;
 
-use prelude::*;
-
-use crate::callstack::DefInfo;
-use network::Network_;
-
-use enso_frp as frp_old;
 
 
 // =============

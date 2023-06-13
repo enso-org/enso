@@ -1,8 +1,8 @@
-#![allow(dead_code)]
-
 //! Metrics for the FRP engine, providing insights into the FRP engine, such as the number of FRP
 //! networks or the count of FRP nodes. Only available when the `metrics` feature is enabled.
 
+// === Non-Standard Linter Configuration ===
+#![allow(dead_code)]
 
 use crate::prelude::*;
 
