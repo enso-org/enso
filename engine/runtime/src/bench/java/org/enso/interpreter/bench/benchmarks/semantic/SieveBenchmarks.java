@@ -41,11 +41,7 @@ public class SieveBenchmarks {
       ).build();
 
     var benchmarkName = SrcUtil.findName(params);
-    var code = switch (benchmarkName) {
-      case "sieve1" ->  SieveCode1.CODE;
-      default -> throw new IllegalStateException("Unexpected benchmark: " + params.getBenchmark());
-    };
-    var module = ctx.eval(SrcUtil.source(benchmarkName, code));
+    var module = ctx.eval(SrcUtil.read(benchmarkName));
 
     this.computeNthPrime = module.invokeMember("eval_expression", "compute_nth_prime");
 
