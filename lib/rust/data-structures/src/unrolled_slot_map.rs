@@ -366,7 +366,7 @@ impl<'a, T, const N: usize, B> Iterator for Iter<'a, T, N, B> {
     type Item = &'a T;
     #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(slot) = self.inner.next() {
+        for slot in self.inner.by_ref() {
             if slot.is_occupied() {
                 return Some(&slot.value);
             }
@@ -399,7 +399,7 @@ impl<T, const N: usize, B> Iterator for IntoIter<T, N, B> {
     type Item = T;
     #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(slot) = self.inner.next() {
+        for slot in self.inner.by_ref() {
             if slot.is_occupied() {
                 return Some(slot.value);
             }

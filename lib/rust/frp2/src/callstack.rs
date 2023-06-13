@@ -1,8 +1,14 @@
+//! Call stack tracing for FRP events propagation. Used for debugging purposes only. It is fully
+//! optimized away if the `stack-trace` feature is not enabled.
+
 // === Non-Standard Linter Configuration ===
 #![allow(dead_code)]
+#![allow(missing_docs)]
 
 use crate::prelude::*;
 
+
+// FIXME: This code is not finished, to be finished in the next PR.
 
 
 #[derive(Clone, Copy, Debug, Zeroable)]
@@ -12,7 +18,7 @@ pub struct Label(#[cfg(feature = "stack-trace")] &'static str);
 pub struct Hidden(#[cfg(feature = "stack-trace")] bool);
 
 impl Hidden {
-    fn hidden() -> Self {
+    fn new() -> Self {
         Self(
             #[cfg(feature = "stack-trace")]
             true,
@@ -20,6 +26,7 @@ impl Hidden {
     }
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for Label {
     fn default() -> Self {
         Self(
@@ -135,11 +142,7 @@ impl DefInfo {
     #[track_caller]
     #[inline(always)]
     pub fn hidden() -> Self {
-        Self {
-            label:    Label::default(),
-            location: Location::caller(),
-            hidden:   Hidden::hidden(),
-        }
+        Self { label: Label::default(), location: Location::caller(), hidden: Hidden::new() }
     }
 }
 

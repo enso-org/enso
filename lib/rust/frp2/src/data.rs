@@ -1,3 +1,5 @@
+//! Type of data passed in FRP events.
+
 use crate::prelude::*;
 
 
@@ -11,6 +13,7 @@ use crate::prelude::*;
 /// - [`Debug`]: For debug purposes in order to be able to trace the data flow when needed.
 /// - [`Clone + 'static`]: Needed in case the data needs to be cloned if it is passed to a sample
 ///   port.
+#[allow(missing_docs)]
 pub trait Data: DataBounds {
     fn boxed_clone(&self) -> Box<dyn Data>;
 }

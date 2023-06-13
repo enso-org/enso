@@ -16,24 +16,6 @@ use enso_data_structures::unrolled_slot_map::VersionedIndex;
 pub(crate) trait EventConsumer = Fn(&Runtime, &NodeData, &dyn Data) + 'static;
 
 
-// ===============
-// === Network ===
-// ===============
-
-
-#[derive(Debug, Default)]
-struct NetworkData {
-    nodes: Vec<NodeId>,
-}
-
-impl Clearable for NetworkData {
-    #[inline(always)]
-    fn clear(&mut self) {
-        self.nodes.clear();
-    }
-}
-
-
 
 // ============
 // === Edge ===
@@ -49,9 +31,9 @@ pub struct Edge {
 
 
 
-// ============
-// === Node ===
-// ============
+// ================
+// === NodeData ===
+// ================
 
 /// A helper macro to define node data. It is defined with a macro to guarantee that all fields are
 /// used either by the `ImClearable` or `Reusable` implementations.
@@ -155,6 +137,25 @@ impl NodeData {
 
 
 
+// ===================
+// === NetworkData ===
+// ===================
+
+
+#[derive(Debug, Default)]
+struct NetworkData {
+    nodes: Vec<NodeId>,
+}
+
+impl Clearable for NetworkData {
+    #[inline(always)]
+    fn clear(&mut self) {
+        self.nodes.clear();
+    }
+}
+
+
+
 // ===============
 // === Runtime ===
 // ===============
@@ -234,7 +235,7 @@ impl Runtime {
     #[inline(always)]
     fn with_borrowed_node(&self, node_id: NodeId, f: impl FnOnce(&NodeData)) {
         if let Some(node) = self.nodes.get(node_id) {
-            f(&*node.borrow());
+            f(&node.borrow());
         } else {
             // If enabled, it slows down event emitting by 20%.
             #[cfg(debug_assertions)]

@@ -237,7 +237,7 @@ pub fn pub_bench() {
     let n1 = net.source::<usize>();
     let n2 = n1.map_(|t| t + 1);
     let mut prev = n2;
-    for _ in 0..100_0 {
+    for _ in 0..1_000 {
         let next = prev.map_(|t| t + 1);
         prev = next;
     }
@@ -255,7 +255,7 @@ pub fn pub_bench_old() {
         n2 <- map(&n1, |t| t + 1);
     }
     let mut prev = n2;
-    for _ in 0..100_0 {
+    for _ in 0..1_000 {
         frp_old::extend! { net
             next <- map(&prev, |t| t + 1);
         }
