@@ -1,8 +1,6 @@
 package org.enso.interpreter.runtime.util;
 
 import com.oracle.truffle.api.TruffleFile;
-import org.enso.filesystem.FileSystem;
-
 import java.io.*;
 import java.nio.file.FileVisitResult;
 import java.nio.file.SimpleFileVisitor;
@@ -13,6 +11,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.stream.Stream;
+import org.enso.filesystem.FileSystem;
 
 /** A {@link TruffleFile}-based implementation of {@link FileSystem}. */
 public class TruffleFileSystem implements FileSystem<TruffleFile> {

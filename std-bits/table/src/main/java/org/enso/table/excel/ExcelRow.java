@@ -1,12 +1,11 @@
 package org.enso.table.excel;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
-
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 
 /** Wrapper class to handle Excel rows. */
 public class ExcelRow {
