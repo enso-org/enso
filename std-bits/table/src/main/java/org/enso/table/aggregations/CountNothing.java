@@ -1,10 +1,9 @@
 package org.enso.table.aggregations;
 
+import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
-
-import java.util.List;
 
 /**
  * Aggregate Column counting the number of (not-)null entries in a group. If `isNothing` is true,

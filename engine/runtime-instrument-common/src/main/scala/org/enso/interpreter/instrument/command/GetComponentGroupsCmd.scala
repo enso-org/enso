@@ -12,10 +12,10 @@ import scala.concurrent.{ExecutionContext, Future}
   */
 class GetComponentGroupsCmd(
   maybeRequestId: Option[RequestId]
-) extends Command(maybeRequestId) {
+) extends AsynchronousCommand(maybeRequestId) {
 
   /** @inheritdoc */
-  override def execute(implicit
+  override def executeAsynchronously(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = Future {

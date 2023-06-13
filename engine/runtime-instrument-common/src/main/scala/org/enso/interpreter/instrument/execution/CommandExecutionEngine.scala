@@ -2,15 +2,9 @@ package org.enso.interpreter.instrument.execution
 
 import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.command.Command
-import org.enso.interpreter.instrument.execution.Completion.{Done, Interrupted}
-import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.polyglot.RuntimeOptions
 
-import java.util.logging.Level
-
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
-import scala.util.control.NonFatal
-import scala.util.{Failure, Success}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 /** This component schedules the execution of commands. It keep a queue of
   * pending commands and activates command execution in FIFO order.
@@ -63,43 +57,8 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
     )
 
   /** @inheritdoc */
-  def invoke(cmd: Command): Future[Completion] = {
-    val logger = runtimeContext.executionService.getLogger
-    val doIt = () =>
-      cmd
-        .execute(runtimeContext, commandExecutionContext)
-        .transformWith[Completion] {
-          case Success(()) =>
-            Future.successful(Done)
-
-          case Failure(
-                _: InterruptedException | _: ThreadInterruptedException
-              ) =>
-            Future.successful[Completion](Interrupted)
-
-          case Failure(NonFatal(ex)) =>
-            logger.log(
-              Level.SEVERE,
-              s"An error occurred during execution of $cmd command",
-              ex
-            )
-            Future.failed[Completion](ex)
-
-          case Failure(ex) =>
-            logger.log(
-              Level.SEVERE,
-              s"An error occurred during execution of $cmd command",
-              ex
-            )
-            Future.failed[Completion](ex)
-        }
-
-    for {
-      _ <- Future { logger.log(Level.FINE, s"Executing command: $cmd...") }
-      _ <- doIt()
-      _ <- Future { logger.log(Level.FINE, s"Command $cmd finished.") }
-    } yield Done
-
+  def invoke(cmd: Command): cmd.Result[Completion] = {
+    cmd.execute(runtimeContext, commandExecutionContext)
   }
 
   /** @inheritdoc */

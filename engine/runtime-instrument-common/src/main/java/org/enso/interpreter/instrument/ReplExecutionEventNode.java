@@ -1,8 +1,7 @@
 package org.enso.interpreter.instrument;
 
-import scala.util.Either;
-
 import java.util.Map;
+import scala.util.Either;
 
 public interface ReplExecutionEventNode {
 
