@@ -144,10 +144,8 @@ type Postgres_Connection
        - table_name: the name of the table to create. If not provided, a random
          name will be generated for temporary tables. If `temporary=False`, then
          a name must be provided.
-       - structure: the structure of the table. This can be provided as a vector
-         of column descriptions or an existing `Table` to copy the structure
-         from it. Note that if a `Table` is provided, only its column structure
-         is inherited - no table content is copied.
+       - structure: the structure of the table, provided as either an existing
+         `Table` (no data will be copied) or a `Vector` of `Column_Description`.
        - primary_key: the names of the columns to use as the primary key. The
          first column from the table is used by default. If it is set to
          `Nothing` or an empty vector, no primary key will be created.

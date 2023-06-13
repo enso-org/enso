@@ -182,6 +182,12 @@ type Unmatched_Rows
        have any matching rows in the target table.
     Error
 
+    ## PRIVATE
+       Pretty print the rows already present error.
+    to_display_text : Text
+    to_display_text self =
+        "The `Update` operation encountered input rows that did not have any matching rows in the target table. The operation has been rolled back. Consider `Update_Or_Insert` if you want to insert rows that do not match any existing rows."
+
 type Rows_Already_Present
     ## PRIVATE
        Indicates that the `Insert` operation encountered input rows that already
@@ -199,3 +205,9 @@ type Multiple_Target_Rows_Matched_For_Update
        Indicates that the source table had rows matching multiple rows in the
        target table by the specified key.
     Error
+
+    ## PRIVATE
+       Pretty print the multiple target rows matched for update error.
+    to_display_text : Text
+    to_display_text self =
+        "The update operation encountered input rows that matched multiple rows in the target table. The operation has been rolled back. You may need to use a more specific key for matching."
