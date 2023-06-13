@@ -127,11 +127,9 @@ spec setup =
             result = table.at "x" . round dp use_bankers
             result.to_vector.at 0
 
-        Test.specify "should allow round on a float column (to >0 decimal places)" <|
-            table = table_builder [["x", [0.51, 0.59, 3.51, 3.59, -0.51, -0.59, -3.51, -3.59]]]
-            result = table.at "x" . round 1
-            result.to_vector.should_equal [0.5, 0.6, 3.5, 3.6, -0.5, -0.6, -3.5, -3.6]
-            result.value_type . is_integer . should_be_false
+        Test.specify "should fail on decimal_places out of range" <|
+            table = table_builder [["x", [0, 3, -3, 1, -2]]]
+            table.at "x" . round 16 . should_fail_with Illegal_Argument
 
     Test.group prefix+"Column Operations - Equality & Null Handling" <|
         Test.specify "should provide basic == and != comparisons" pending="TODO figure out proper null handling" <|
@@ -511,6 +509,10 @@ spec setup =
             result = table.at "x" . floor
             result.to_vector.should_equal [0, 3, -3, 1, -2]
             result.value_type . is_integer . should_be_true
+
+        Test.specify "should fail on decimal_places out of range" <|
+            table = table_builder [["x", [0, 3, -3, 1, -2]]]
+            table.at "x" . round 16 . should_fail_with Illegal_Argument
 
     Test.group prefix+"Rounding numeric tests" <|
         do_round n dp=0 use_bankers=False =
