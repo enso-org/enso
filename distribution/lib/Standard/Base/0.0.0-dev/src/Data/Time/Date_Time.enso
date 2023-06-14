@@ -5,6 +5,7 @@ import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
 import project.Data.Text.Text
+from project.Data.Text.Extensions import all
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
 import project.Data.Time.Day_Of_Week.Day_Of_Week
