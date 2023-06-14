@@ -485,7 +485,7 @@ val scalatestVersion        = "3.3.0-SNAP4"
 val shapelessVersion        = "2.3.10"
 val slf4jVersion            = "1.7.36"
 val slickVersion            = "3.4.1"
-val sqliteVersion           = "3.41.2.1"
+val sqliteVersion           = "3.42.0.0"
 val tikaVersion             = "2.4.1"
 val typesafeConfigVersion   = "1.4.2"
 val junitVersion            = "4.13.2"
@@ -1594,6 +1594,12 @@ lazy val `engine-runner` = project
           .mkString(File.pathSeparator)
       Seq(s"-Dtruffle.class.path.append=$runtimeClasspath")
     },
+    packageOptions := Seq(
+      // The `Multi-Release: true` comes from the `org.xerial/sqlite-jdbc` dependency.
+      // But the current version of sbt-assembly does not allow to merge MANIFEST.MF
+      // files this way.
+      Package.ManifestAttributes(("Multi-Release", "true"))
+    ),
     Compile / run / mainClass := Some("org.enso.runner.Main"),
     assembly / mainClass := (Compile / run / mainClass).value,
     assembly / assemblyJarName := "runner.jar",
