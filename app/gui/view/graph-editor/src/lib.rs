@@ -1824,6 +1824,8 @@ pub struct GraphEditorModel {
     profiling_statuses: profiling::Statuses,
     profiling_button: component::profiling::Button,
     styles_frp: StyleWatchFrp,
+    #[deprecated = "StyleWatch was designed as an internal tool for shape system (#795)"]
+    styles: StyleWatch,
     selection_controller: selection::Controller,
     execution_environment_selector: ExecutionEnvironmentSelector,
     sources_of_detached_target_edges: SharedHashSet<NodeId>,
@@ -1856,6 +1858,7 @@ impl GraphEditorModel {
         let drop_manager =
             ensogl_drop_manager::Manager::new(&scene.dom.root.clone_ref().into(), scene);
         let styles_frp = StyleWatchFrp::new(&scene.style_sheet);
+        let styles = StyleWatch::new(&scene.style_sheet);
         let selection_controller = selection::Controller::new(
             frp,
             &app.cursor,
@@ -1865,6 +1868,7 @@ impl GraphEditorModel {
         );
         let sources_of_detached_target_edges = default();
 
+        #[allow(deprecated)] // `styles`
         Self {
             display_object,
             app,
@@ -1884,6 +1888,7 @@ impl GraphEditorModel {
             frp: frp.private.clone_ref(),
             frp_public: frp.public.clone_ref(),
             styles_frp,
+            styles,
             selection_controller,
             execution_environment_selector,
             sources_of_detached_target_edges,
@@ -2557,17 +2562,17 @@ impl GraphEditorModel {
     /// This might need to be more sophisticated in the case of polymorphic types. For example,
     /// consider the edge source type to be `(a,Number)`, and target to be `(Text,a)`. These unify
     /// to `(Text,Number)`.
+    #[profile(Debug)]
     fn edge_color(&self, edge_id: EdgeId, neutral_color: color::Lcha) -> color::Lcha {
-        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
-        // system (#795)
-        let styles = StyleWatch::new(&self.scene().style_sheet);
         match self.frp_public.output.view_mode.value() {
             view::Mode::Normal => {
                 let edge_type = self
                     .edge_hover_type()
                     .or_else(|| self.edge_target_type(edge_id))
                     .or_else(|| self.edge_source_type(edge_id));
-                let opt_color = edge_type.map(|t| type_coloring::compute(&t, &styles));
+                // FIXME: `type_coloring::compute` should be ported to `StyleWatchFrp`.
+                #[allow(deprecated)] // `self.styles`
+                let opt_color = edge_type.map(|t| type_coloring::compute(&t, &self.styles));
                 opt_color.unwrap_or(neutral_color)
             }
             view::Mode::Profiling => neutral_color,

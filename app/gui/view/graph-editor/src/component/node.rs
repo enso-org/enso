@@ -598,7 +598,7 @@ impl NodeModel {
         if let Some(error) = error {
             self.error_visualization.display_kind(*error.kind);
             if let Some(error_data) = error.visualization_data() {
-                self.error_visualization.set_data(&error_data);
+                self.error_visualization.set_data(error_data);
             }
             if error.should_display() {
                 self.display_object.add_child(&self.error_visualization);
