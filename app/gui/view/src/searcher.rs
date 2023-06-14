@@ -107,7 +107,6 @@ pub type Entry = list_view::entry::GlyphHighlightedLabel;
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    app:            Application,
     display_object: display::object::Instance,
     list:           ListView<Entry>,
     documentation:  documentation::View,
@@ -117,11 +116,10 @@ struct Model {
 impl Model {
     fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
-        let app = app.clone_ref();
         let display_object = display::object::Instance::new();
         let list = app.new_view::<ListView<Entry>>();
         list.deprecated_focus();
-        let documentation = documentation::View::new(&app);
+        let documentation = documentation::View::new(app);
         let doc_provider = default();
         scene.layers.node_searcher.add(&list);
         display_object.add_child(&documentation);
@@ -137,7 +135,7 @@ impl Model {
         list.set_x(ACTION_LIST_X);
         documentation.set_x(DOCUMENTATION_X);
         documentation.set_y(-action_list_gap);
-        Self { app, display_object, list, documentation, doc_provider }
+        Self { display_object, list, documentation, doc_provider }
     }
 
     fn set_height(&self, h: f32) {
@@ -287,12 +285,11 @@ impl application::View for View {
     fn label() -> &'static str {
         "Searcher"
     }
+
     fn new(app: &Application) -> Self {
         Self::new(app)
     }
-    fn app(&self) -> &Application {
-        &self.model.app
-    }
+
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [(Press, "tab", "use_as_suggestion")]

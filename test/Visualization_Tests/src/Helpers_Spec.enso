@@ -7,7 +7,7 @@ import Standard.Visualization.Helpers
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-import project.Helpers
+from project.Helpers import all
 
 polyglot java import java.util.LinkedHashSet
 

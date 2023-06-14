@@ -59,6 +59,7 @@ impl<E: display::Object> display::Object for VisibleEntry<E> {
 #[derive(CloneRef, Debug, Derivative)]
 #[derivative(Clone(bound = ""))]
 pub struct CreationCtx<EntryParams> {
+    // Required for dynamically creating entries.
     pub app:                   Application,
     pub network:               frp::WeakNetwork,
     pub set_entry_size:        frp::Stream<Vector2>,

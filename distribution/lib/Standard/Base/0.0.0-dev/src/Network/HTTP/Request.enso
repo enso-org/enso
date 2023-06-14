@@ -2,7 +2,7 @@ import project.Any.Any
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Network.Extensions
+from project.Network.Extensions import all
 import project.Network.HTTP.Form.Form
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Method.HTTP_Method

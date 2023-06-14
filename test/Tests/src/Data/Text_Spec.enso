@@ -1,4 +1,4 @@
-from Standard.Base import all
+from Standard.Base import all hiding First, Last
 import Standard.Base.Data.Text.Regex.No_Such_Group
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Data.Text.Span.Span
@@ -7,14 +7,12 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.IO
 
 from Standard.Base.Data.Text.Text_Sub_Range.Text_Sub_Range import all
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import all
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
-import Standard.Base.Data.Text.Extensions
 
 type Auto
     Value a

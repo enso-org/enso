@@ -133,7 +133,6 @@ impl From<node::Expression> for Expression {
 /// Internal model of the port area.
 #[derive(Debug)]
 pub struct Model {
-    app:             Application,
     display_object:  display::object::Instance,
     edit_mode_label: text::Text,
     expression:      RefCell<Expression>,
@@ -152,17 +151,16 @@ impl Model {
     /// Constructor.
     #[profile(Debug)]
     pub fn new(app: &Application) -> Self {
-        let app = app.clone_ref();
         let display_object = display::object::Instance::new_named("input");
 
         let edit_mode_label = app.new_view::<text::Text>();
         let expression = default();
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        let widget_tree = widget::Tree::new(&app);
+        let widget_tree = widget::Tree::new(app);
         with_context(|ctx| ctx.layers.widget.add(&widget_tree));
-        Self { app, display_object, edit_mode_label, expression, styles, styles_frp, widget_tree }
-            .init()
+        Self { display_object, edit_mode_label, expression, styles, styles_frp, widget_tree }
+            .init(app)
     }
 
     /// React to edit mode change. Shows and hides appropriate child views according to current
@@ -183,19 +181,24 @@ impl Model {
     }
 
     #[profile(Debug)]
-    fn init(self) -> Self {
+    fn init(self, app: &Application) -> Self {
         // TODO: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
         //   It needs to be more flexible once we have proper depth management.
         //   See https://www.pivotaltracker.com/story/show/183567632.
-        let scene = &self.app.display.default_scene;
+        let scene = &app.display.default_scene;
         self.set_label_layer(&scene.layers.label);
 
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
 
         self.edit_mode_label.set_single_line_mode(true);
-        self.edit_mode_label.disable_command("cursor_move_up");
-        self.edit_mode_label.disable_command("cursor_move_down");
-        self.edit_mode_label.disable_command("add_cursor_at_mouse_position");
+
+        app.commands.set_command_enabled(&self.edit_mode_label, "cursor_move_up", false);
+        app.commands.set_command_enabled(&self.edit_mode_label, "cursor_move_down", false);
+        app.commands.set_command_enabled(
+            &self.edit_mode_label,
+            "add_cursor_at_mouse_position",
+            false,
+        );
         self.edit_mode_label.set_property_default(text_color);
         self.edit_mode_label.set_property_default(text::Size(TEXT_SIZE));
         self.edit_mode_label.remove_all_cursors();

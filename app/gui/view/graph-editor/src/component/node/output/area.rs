@@ -156,7 +156,6 @@ impl Model {
     /// Constructor.
     #[profile(Debug)]
     pub fn new(app: &Application, frp: &Frp) -> Self {
-        let app = app.clone_ref();
         let display_object = display::object::Instance::new_named("output");
         let ports = display::object::Instance::new();
         let port_models = default();
@@ -169,7 +168,7 @@ impl Model {
         display_object.add_child(&label);
         display_object.add_child(&ports);
         Self {
-            app,
+            app: app.clone_ref(),
             display_object,
             ports,
             port_models,
@@ -180,21 +179,21 @@ impl Model {
             styles_frp,
             frp,
         }
-        .init()
+        .init(app)
     }
 
     #[profile(Debug)]
-    fn init(self) -> Self {
+    fn init(self, app: &Application) -> Self {
         // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
         // It needs to be more flexible once we have proper depth management.
-        let scene = &self.app.display.default_scene;
+        let scene = &app.display.default_scene;
         scene.layers.main.remove(&self.label);
         self.label.add_to_scene_layer(&scene.layers.label);
 
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
         self.label.set_single_line_mode(true);
-        self.label.disable_command("cursor_move_up");
-        self.label.disable_command("cursor_move_down");
+        app.commands.set_command_enabled(&self.label, "cursor_move_up", false);
+        app.commands.set_command_enabled(&self.label, "cursor_move_up", false);
         self.label.set_property_default(text_color);
         self.label.set_property_default(text::Size(input::area::TEXT_SIZE));
         self.label.remove_all_cursors();
