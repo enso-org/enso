@@ -26,9 +26,9 @@ class AICompletionHandler(cfg: AICompletionConfig)
 
   case class AIResponse(status: StatusCode, data: ByteString)
 
-  val http                          = Http(context.system)
-  implicit val ec: ExecutionContext = context.dispatcher
-  implicit val materializer         = Materializer(context)
+  val http                                = Http(context.system)
+  implicit val ec: ExecutionContext       = context.dispatcher
+  implicit val materializer: Materializer = Materializer(context)
 
   private def requestStage: Receive = {
     case Request(AICompletion, id, AICompletion.Params(prompt, stop)) =>
