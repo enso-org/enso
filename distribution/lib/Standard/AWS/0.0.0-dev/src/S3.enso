@@ -11,14 +11,14 @@ type S3
     ## Gets the list of the S3 buckets.
     @credentials AWS_Credential.default_widget
     list_buckets : AWS_Credential | Nothing -> Vector Text ! S3_Error
-    list_buckets credentials:(AWS_Credential | Nothing)=Nothing = catch_s3 <|
+    list_buckets credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <|
         client = make_client credentials
         buckets = client.listBuckets.buckets
         buckets.map b->b.name
 
 ## PRIVATE
-catch_s3 : Function -> Any ! S3_Error
-catch_s3 ~action =
+handle_s3_errors : Function -> Any ! S3_Error
+handle_s3_errors  ~action =
     Panic.catch S3Exception action caught_panic->
         aws_error = caught_panic.payload.awsErrorDetails
         Error.throw (S3_Error.Error aws_error.errorMessage aws_error.errorCode)

@@ -1237,7 +1237,7 @@ type Table
 
                     Table.Value union_alias self.connection new_columns new_ctx
 
-    ## ALIAS group, summarize
+    ## ALIAS group by, summarize
 
        Aggregates the rows in a table using any `Group_By` entries in columns.
        The columns argument specifies which additional aggregations to perform and to return.
