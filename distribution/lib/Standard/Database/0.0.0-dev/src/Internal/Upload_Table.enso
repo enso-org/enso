@@ -1,7 +1,6 @@
 from Standard.Base import all
 from Standard.Base.Random import random_uuid
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.Data.Table.Table as In_Memory_Table
 from Standard.Table import Aggregate_Column, Join_Kind, Value_Type, Column_Selector
@@ -244,19 +243,19 @@ append_to_existing_table source_table target_table update_action key_columns err
         upload_status = case update_action of
             Update_Action.Insert ->
                 helper.check_already_existing_rows <|
-                    helper.insert_new_rows
+                    helper.insert_rows source_table
             Update_Action.Update ->
                 helper.check_rows_unmatched_in_target <|
-                    helper.check_multiple_target_rows_matched <|
+                    helper.check_multiple_target_rows_match <|
                         helper.update_common_rows
             Update_Action.Update_Or_Insert ->
-                helper.check_multiple_target_rows_matched <|
+                helper.check_multiple_target_rows_match <|
                     helper.update_common_rows
-                    helper.insert_new_rows
+                    helper.insert_rows helper.new_source_rows
             Update_Action.Align_Records ->
-                helper.check_multiple_target_rows_matched <|
+                helper.check_multiple_target_rows_match <|
                     helper.update_common_rows
-                    helper.insert_new_rows
+                    helper.insert_rows helper.new_source_rows
                     helper.delete_unmatched_target_rows
         upload_status.if_not_error target_table
 
@@ -266,7 +265,7 @@ type Append_Helper
     Context source_table target_table key_columns
 
     ## PRIVATE
-    connection = self.target_table.connection
+    connection self = self.target_table.connection
 
     ## PRIVATE
        The update only affects matched rows, unmatched rows are ignored.
@@ -276,17 +275,25 @@ type Append_Helper
         Panic.rethrow <| self.connection.execute_update update_statement
 
     ## PRIVATE
-       Inserts rows from source that were not already present in the target table.
-       Does not affect matching rows.
-    insert_new_rows self =
+       Inserts all rows from the source.
+
+       Behaviour is ill-defined if any of the rows already exist in the target.
+       If only new rows are supposed to be inserted, they have to be filtered
+       before inserting.
+    insert_rows self table_to_insert =
         insert_statement = self.connection.dialect.generate_sql <|
-            Query.Insert_From_Select self.target_table.name self.source_table.column_names self.source_table.to_select_query
+            Query.Insert_From_Select self.target_table.name table_to_insert.column_names table_to_insert.to_select_query
         Panic.rethrow <| self.connection.execute_update insert_statement
+
+    ## PRIVATE
+       Finds rows that are present in the source but not in the target.
+    new_source_rows self =
+        self.source_table.join self.target_table on=self.key_columns join_kind=Join_Kind.Left_Exclusive
 
     ## PRIVATE
        Deletes rows from target table that were not present in the source.
     delete_unmatched_target_rows self =
-        Error.throw (Illegal_State.Error "Not implemented yet.")
+        Nothing
 
     ## PRIVATE
        Checks if any rows from the source table already exist in the target, and
@@ -295,7 +302,7 @@ type Append_Helper
        Does nothing if `key_columns` is empty, as then there is no notion of
        'matching' rows.
     check_already_existing_rows self ~continuation =
-        if self.key_columns.is_empty then True else
+        if self.key_columns.is_empty then continuation else
             joined = self.source_table.join self.target_table on=self.key_columns join_kind=Join_Kind.Inner
             count = joined.row_count
             if count == 0 then continuation else
@@ -304,7 +311,7 @@ type Append_Helper
     ## PRIVATE
     check_rows_unmatched_in_target self ~continuation =
         # assert key_columns.not_empty
-        unmatched_rows = self.source_table.join self.target_table on=self.key_columns join_kind=Join_Kind.Left_Exclusive
+        unmatched_rows = self.new_source_rows
         count = unmatched_rows.row_count
         if count != 0 then Error.throw (Unmatched_Rows.Error count) else continuation
 
@@ -323,7 +330,7 @@ type Append_Helper
                 row = duplicated_key_in_target.first_row . to_vector
                 offending_key = row.drop (Index_Sub_Range.Last 1)
                 count = row.last
-                Panic.throw (Multiple_Target_Rows_Matched_For_Update.Error offending_key count)
+                Error.throw (Multiple_Target_Rows_Matched_For_Update.Error offending_key count)
             True -> continuation
 
 ## PRIVATE

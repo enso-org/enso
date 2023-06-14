@@ -588,7 +588,7 @@ spec make_new_connection prefix persistent_connector=True =
             r1.catch.to_display_text . should_contain "columns were not present"
             r1.catch.to_display_text . should_contain "Y"
 
-        Test.specify "by default should keep columns missing from source as-is and use defaults when inserting" <|
+        Test.specify "should use defaults when inserting" <|
             dest_name = Name_Generator.random_name "table-defaults"
             connection.create_table dest_name [Column_Description.Value "Y" Value_Type.Integer [Column_Constraint.Default_Expression "42"], Column_Description.Value "X" Value_Type.Integer] temporary=True primary_key=[] . should_succeed
             src = source_table_builder [["X", [1, 2, 3]]]
@@ -596,6 +596,21 @@ spec make_new_connection prefix persistent_connector=True =
             Problems.assume_no_problems r1
             r1.column_names . should_equal ["Y", "X"]
             expected_rows = [[42, 1], [42, 2], [42, 3]]
+            rows1 = r1.rows.to_vector.map .to_vector
+            rows1.should_contain_the_same_elements_as expected_rows
+            connection.drop_table dest_name
+
+        Test.specify "should use defaults when inserting new values in upsert, but retain existing values" <|
+            dest_name = Name_Generator.random_name "table-defaults"
+            connection.create_table dest_name [Column_Description.Value "Y" Value_Type.Integer [Column_Constraint.Default_Expression "42"], Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Z" Value_Type.Integer] temporary=True primary_key=[] . should_succeed
+            Problems.assume_no_problems <|
+                (Table.from_rows ["X", "Y", "Z"] [[1, 1000, 10]]).update_database_table connection dest_name key_columns=[] update_action=Update_Action.Insert
+
+            src = source_table_builder [["X", [1, 2, 3]], ["Z", [100, 200, 300]]]
+            r1 = src.update_database_table connection dest_name key_columns=["X"] update_action=Update_Action.Update_Or_Insert
+            Problems.assume_no_problems r1
+            r1.column_names . should_equal ["Y", "X", "Z"]
+            expected_rows = [[1000, 1, 100], [42, 2, 200], [42, 3, 300]]
             rows1 = r1.rows.to_vector.map .to_vector
             rows1.should_contain_the_same_elements_as expected_rows
             connection.drop_table dest_name
