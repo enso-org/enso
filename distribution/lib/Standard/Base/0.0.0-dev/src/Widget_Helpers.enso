@@ -47,7 +47,7 @@ make_time_format_selector =
     time = Time_Of_Day.new 13 30 55 123
 
     iso_format = ['ISO-Format (e.g. ' + time.to_text + ')', '""']
-    formats = ['HH:mm', 'HH:mm:ss', 'h:MM:ss a', 'hh:MM:ss a', 'HH:mm:ss.S'].map f-> [f + " (e.g. " + time.format f + ")", f.pretty]
-    custom_format = ['Custom', "'HH:MM:ss'"]
+    formats = ['HH:mm', 'HH:mm:ss', 'h:MM:ss a', 'hh:mm:ss a', 'HH:mm:ss.S'].map f-> [f + " (e.g. " + time.format f + ")", f.pretty]
+    custom_format = ['Custom', "'HH:mm:ss'"]
 
     make_single_choice ([iso_format] + formats + [custom_format])
