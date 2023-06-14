@@ -57,4 +57,9 @@ spec =
             Any.x (With_Y.Value 22) . should_equal "Any:With_Y(22)"
             Date.to_display_text . should_equal "Date"
 
+        Test.specify "should always resolve to instance method on Any" <|
+            Any.to_text . should_equal "Any"
+            Any.to_display_text . should_equal "Any"
+            Any == Boolean . should_be_false
+
 main = Test_Suite.run_main spec
