@@ -204,10 +204,10 @@ type Multiple_Target_Rows_Matched_For_Update
     ## PRIVATE
        Indicates that the source table had rows matching multiple rows in the
        target table by the specified key.
-    Error
+    Error (example_key : Vector Any) (example_count : Integer)
 
     ## PRIVATE
        Pretty print the multiple target rows matched for update error.
     to_display_text : Text
     to_display_text self =
-        "The update operation encountered input rows that matched multiple rows in the target table. The operation has been rolled back. You may need to use a more specific key for matching."
+        "The update operation encountered input rows that matched multiple rows in the target table (for example, the key " + self.example_key.to_display_text + " matched " + self.example_count.to_text + " rows). The operation has been rolled back. You may need to use a more specific key for matching."

@@ -502,7 +502,7 @@ spec make_new_connection prefix persistent_connector=True =
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
             t1 = source_table_builder [["Z", [10, 20]], ["Y", ['D', 'E']]]
             t2 = source_table_builder [["Z", [20, 10]], ["X", [-99, 10]]]
-            src = t1.join t2 on=["Z"] . remove_columns "Z" . set "[X] + 100" "X"
+            src = t1.join t2 on=["Z"] join_kind=Join_Kind.Inner . remove_columns "Z" . set "[X] + 100" "X"
             src.at "X" . to_vector . should_contain_the_same_elements_as [1, 110]
 
             r1 = src.update_database_table connection dest.name key_columns=["X"]
@@ -560,6 +560,20 @@ spec make_new_connection prefix persistent_connector=True =
             src = source_table_builder [["X", [1, 2, 3]], ["Y", ['d', 'e', 'f']]]
             r1 = src.update_database_table connection dest.name key_columns=["X"]
             r1.should_fail_with Multiple_Target_Rows_Matched_For_Update
+            r1.catch.to_display_text . should_contain "key [1] matched 2 rows"
+
+            src2 = source_table_builder [["X", [1]], ["Y", ['d']]]
+            r2 = src2.update_database_table connection dest.name key_columns=["X"] update_action=Update_Action.Update
+            r2.should_fail_with Multiple_Target_Rows_Matched_For_Update
+
+            ## In the future we may consider `Align_Records` to remove the
+               duplicated rows and keep just one of them. But that probably
+               should not be a default, so maybe only if we introduce a
+               parameter like `multi_row_update`.
+            # TODO
+            Nothing
+            #r3 = src.update_database_table connection dest.name key_columns=["X"] update_action=Update_Action.Align_Records
+            #r3.should_fail_with Multiple_Target_Rows_Matched_For_Update
 
         Test.specify "should fail if the source table contains columns not present in the target (data loss)" <|
             dest = target_table_builder [["X", [0, 10, 100]]] primary_key=["X"]
@@ -567,6 +581,8 @@ spec make_new_connection prefix persistent_connector=True =
             r1 = src.update_database_table connection dest.name key_columns=["X"]
             r1.should_fail_with Unmatched_Columns
             r1.catch.column_names . should_equal ["Y"]
+            r1.catch.to_display_text . should_contain "columns were not present"
+            r1.catch.to_display_text . should_contain "Y"
 
         Test.specify "by default should keep columns missing from source as-is and use defaults when inserting" <|
             dest_name = Name_Generator.random_name "table-defaults"

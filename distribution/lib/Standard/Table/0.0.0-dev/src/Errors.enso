@@ -477,13 +477,12 @@ type Unmatched_Columns
        merged tables.
     Error (column_names : Vector Text)
 
-    # TODO [RW] the message is wrong for update_database_table_case, needs updating
     ## PRIVATE
 
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        "The following columns were not present in some of the provided tables: " + (self.column_names.map (n -> "["+n+"]") . join ", ") + ". The missing values have been filled with `Nothing`."
+        "The following columns were not present in some of the provided tables: " + (self.column_names.map (n -> "["+n+"]") . join ", ") + "."
 
 type Cross_Join_Row_Limit_Exceeded
     ## PRIVATE

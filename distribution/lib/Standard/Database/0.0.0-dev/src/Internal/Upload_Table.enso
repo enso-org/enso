@@ -258,26 +258,52 @@ append_to_existing_table source_table target_table update_action key_columns err
                 unmatched_rows = source_table.join target_table on=key_columns join_kind=Join_Kind.Left_Exclusive
                 unmatched_rows_count = unmatched_rows.row_count
                 if unmatched_rows_count != 0 then Error.throw (Unmatched_Rows.Error unmatched_rows_count) else
+                    check_multiple_target_rows_match source_table target_table key_columns <|
+                        connection = target_table.connection
+                        update_statement = connection.dialect.generate_sql <|
+                            Query.Update_From_Table target_table.name source_table.name source_table.column_names key_columns
+                        Panic.rethrow <| connection.execute_update update_statement
+            Update_Action.Update_Or_Insert ->
+                check_multiple_target_rows_match source_table target_table key_columns <|
                     connection = target_table.connection
+                    # The update will only affect matched rows and ignore unmatched ones.
                     update_statement = connection.dialect.generate_sql <|
                         Query.Update_From_Table target_table.name source_table.name source_table.column_names key_columns
                     Panic.rethrow <| connection.execute_update update_statement
-            Update_Action.Update_Or_Insert ->
-                connection = target_table.connection
 
-                # The update will only affect matched rows and ignore unmatched ones.
-                update_statement = connection.dialect.generate_sql <|
-                    Query.Update_From_Table target_table.name source_table.name source_table.column_names key_columns
-                Panic.rethrow <| connection.execute_update update_statement
-
-                # Having updated the matched rows, I now insert the unmatched ones.
-                unmatched_rows = source_table.join target_table on=key_columns join_kind=Join_Kind.Left_Exclusive
-                # assert source_table.column_names == unmatched_rows.column_names
-                insert_statement = connection.dialect.generate_sql <|
-                    Query.Insert_From_Select target_table.name unmatched_rows.column_names unmatched_rows.to_select_query
-                Panic.rethrow <| connection.execute_update insert_statement
+                    # Having updated the matched rows, I now insert the unmatched ones.
+                    unmatched_rows = source_table.join target_table on=key_columns join_kind=Join_Kind.Left_Exclusive
+                    # assert source_table.column_names == unmatched_rows.column_names
+                    insert_statement = connection.dialect.generate_sql <|
+                        Query.Insert_From_Select target_table.name unmatched_rows.column_names unmatched_rows.to_select_query
+                    Panic.rethrow <| connection.execute_update insert_statement
             Update_Action.Align_Records -> throw_not_implemented
         upload_status.if_not_error target_table
+
+## PRIVATE
+check_multiple_target_rows_match source_table target_table key_columns ~action =
+    connection = target_table.connection
+    agg = (key_columns.map (Aggregate_Column.Group_By _)) + [Aggregate_Column.Count]
+    duplicated_key_in_target = target_table.aggregate agg . filter -1 (Filter_Condition.Greater than=1)
+    example =  duplicated_key_in_target.read max_rows=1
+    case example.row_count == 0 of
+        False ->
+            row = duplicated_key_in_target.first_row . to_vector
+            offending_key = row.drop (Index_Sub_Range.Last 1)
+            count = row.last
+            Error.throw (Multiple_Target_Rows_Matched_For_Update.Error offending_key count)
+        True -> action
+
+type Unmatched_Source_Rows_Behavior
+    Insert
+    Error
+
+type Unmatched_Target_Rows_Behavior
+    Keep
+    Delete
+
+perform_update source_table target_table key_columns unmatched_rows_behavior unmatched_source_rows_behavior =
+    "TODO"
 
 ## PRIVATE
    This helper ensures that all arguments are valid.
