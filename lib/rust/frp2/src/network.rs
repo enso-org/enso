@@ -6,6 +6,15 @@ use crate::runtime::with_runtime;
 use crate::runtime::NetworkId;
 
 
+
+// =============
+// === Model ===
+// =============
+
+/// The model of network. Networks can store any model that is static.
+pub trait Model = 'static;
+
+
 // ===============
 // === Network ===
 // ===============
