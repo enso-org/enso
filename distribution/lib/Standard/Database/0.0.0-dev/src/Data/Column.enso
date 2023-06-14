@@ -122,25 +122,31 @@ type Column
        - operands: A vector of additional operation arguments (the column itself
          is always passed as the first argument).
        - new_name: The name of the resulting column.
-    make_op : Text -> Vector Text -> (Text | Nothing) -> Column
-    make_op self op_kind operands new_name =
+       - include_self: If True, then self is used as the first argument;
+         otherwise, it is omitted.
+    make_op : Text -> Vector Text -> (Text | Nothing) -> Boolean -> Column
+    make_op self op_kind operands new_name include_self=True =
         checked_support = if self.connection.dialect.is_supported op_kind then True else
             Error.throw (Unsupported_Database_Operation.Error "The operation "+op_kind+" is not supported by this backend.")
         checked_support.if_not_error <|
             type_mapping = self.connection.dialect.get_type_mapping
             prepare_operand operand = case operand of
                 other_column : Column ->
-                    if Helpers.check_integrity self other_column then other_column.expression else
+                    ## self and other_column do not have to be compatible if self is not going to be used as an argument to the op.
+                    if include_self == False || Helpers.check_integrity self other_column then other_column.expression else
                         Error.throw <| Unsupported_Database_Operation.Error "Cannot use columns coming from different contexts in one expression without a join."
                 constant ->
                     SQL_Expression.Constant constant
 
+            self_maybe = if include_self then [self] else []
+            self_expression_maybe = if include_self then [self.expression] else []
+
             expressions = operands.map prepare_operand
-            new_expr = SQL_Expression.Operation op_kind ([self.expression] + expressions)
+            new_expr = SQL_Expression.Operation op_kind (self_expression_maybe + expressions)
 
             infer_from_database_callback expression =
                 SQL_Type_Reference.new self.connection self.context expression
-            new_type_ref = type_mapping.infer_return_type infer_from_database_callback op_kind [self]+operands new_expr
+            new_type_ref = type_mapping.infer_return_type infer_from_database_callback op_kind self_maybe+operands new_expr
             Column.Value new_name self.connection new_type_ref new_expr self.context
 
     ## PRIVATE
@@ -151,11 +157,13 @@ type Column
        - op_kind: The kind of binary operator.
        - operand: The right operand to the binary operator.
        - new_name: The name of the resulting column.
-    make_binary_op : Text -> Text -> (Text | Nothing) -> Column
-    make_binary_op self op_kind operand new_name=Nothing =
+       - include_self: If True, then self is used as the first argument;
+         otherwise, it is omitted.
+    make_binary_op : Text -> Text -> (Text | Nothing) -> Boolean -> Column
+    make_binary_op self op_kind operand new_name=Nothing include_self=True =
         effective_new_name = new_name.if_nothing <|
             self.naming_helpers.binary_operation_name op_kind self operand
-        self.make_op op_kind [operand] effective_new_name
+        self.make_op op_kind [operand] effective_new_name include_self
 
     ## PRIVATE
 
@@ -551,14 +559,18 @@ type Column
                 op_result = self.make_op "IIF" [when_true, when_false] new_name
                 adapt_unified_column op_result common_type
 
-    ## Creates a column from a single constant value.
+    ## PRIVATE
+
+       Creates a column from a single constant value. The value must be numeric,
+       text, or boolean.
 
        This method is not static; it must be called on an existing column. That
        existing column is only used for its internal state; the contents of the
        column are not used.
 
        Arguments:
-       - value: the constant value to use for the entire column.
+       - value: the constant value to use for the entire column. Must be
+         numeric, text, or boolean.
 
        > Example
          Create a column of the value 42
@@ -566,8 +578,13 @@ type Column
          column.const 42
     const : Any -> Column
     const self value =
-        new_name = "Constant " + value.to_text
-        self.make_binary_op "CONST" value new_name
+        case value.is_a Number || value.is_a Boolean || value.is_a Text of
+            True ->
+                new_name = "Constant " + value.to_text
+                self.make_binary_op "CONST" value new_name include_self=False
+            False ->
+                msg = "Cannot create a constant column of " + value.to_text
+                Error.throw (Illegal_Argument.Error msg)
 
     ## Round to a specified number of decimal places.
 

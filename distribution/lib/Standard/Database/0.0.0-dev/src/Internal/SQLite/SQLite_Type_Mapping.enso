@@ -161,7 +161,7 @@ operations_map =
         find_a_common_type (arguments.drop 1)
 
     handle_const arguments =
-        v = arguments.at 1
+        v = arguments.at 0
         if v.is_a Decimal then SQLite_Types.real else
             if v.is_a Integer then SQLite_Types.integer else
                 if v.is_a Text then SQLite_Types.text else
