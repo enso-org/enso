@@ -12,7 +12,6 @@ use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
 
 use enso_frp as frp;
-use ensogl::application::View;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
@@ -181,7 +180,6 @@ impl Visualization {
             state,
         });
 
-        let app = &view.app().frp;
         frp::extend! { network
             eval view.visualization_shown (((node, metadata)) model.visualization_shown(*node, metadata.clone()));
             eval view.visualization_hidden ((node) model.visualization_hidden(*node));
@@ -196,8 +194,7 @@ impl Visualization {
 
             view.set_visualization_data <+ set_data;
             view.set_error_visualization_data <+ error_update;
-            view.disable_visualization <+ visualization_failure._0();
-            app.show_notification <+ visualization_failure._1();
+            view.visualization_update_failed <+ visualization_failure;
 
             eval_ view.visualization_registry_reload_requested (model.load_visualizations());
         }

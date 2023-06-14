@@ -402,6 +402,7 @@ impl Deref for Node {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct NodeModel {
+    // Required for switching the node to a different layer
     pub app:                 Application,
     pub display_object:      display::object::Instance,
     pub background:          Background,

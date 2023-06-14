@@ -232,16 +232,14 @@ impl FrpNetworkProvider for SliderCollection {
 struct SliderCollection {
     #[deref]
     frp:   Frp,
-    app:   Application,
     model: Model,
 }
 
 impl SliderCollection {
     fn new(app: &Application) -> Self {
         let frp = Frp::new();
-        let app = app.clone_ref();
-        let model = Model::new(&app);
-        Self { frp, app, model }.init()
+        let model = Model::new(app);
+        Self { frp, model }.init()
     }
 
     fn init(self) -> Self {
@@ -270,10 +268,6 @@ impl View for SliderCollection {
 
     fn new(app: &Application) -> Self {
         Self::new(app)
-    }
-
-    fn app(&self) -> &Application {
-        &self.app
     }
 
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {

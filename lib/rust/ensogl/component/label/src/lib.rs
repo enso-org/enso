@@ -59,8 +59,7 @@ struct Model {
 }
 
 impl Model {
-    fn new(app: Application) -> Self {
-        let app = app.clone_ref();
+    fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
         let label = app.new_view::<text::Text>();
@@ -144,7 +143,7 @@ impl Label {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let frp = Rc::new(Frp::new());
-        let model = Rc::new(Model::new(app.clone_ref()));
+        let model = Rc::new(Model::new(app));
         Label { model, frp }.init()
     }
 

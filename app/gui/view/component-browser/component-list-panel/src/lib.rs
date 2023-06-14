@@ -246,7 +246,6 @@ pub struct Model {
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let app = app.clone_ref();
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
 
@@ -256,7 +255,7 @@ impl Model {
         let grid = app.new_view::<grid::View>();
         display_object.add_child(&grid);
 
-        let section_navigator = SectionNavigator::new(&app);
+        let section_navigator = SectionNavigator::new(app);
         display_object.add_child(&section_navigator);
 
         let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();
