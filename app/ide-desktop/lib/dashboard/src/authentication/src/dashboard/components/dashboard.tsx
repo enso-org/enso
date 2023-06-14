@@ -31,12 +31,6 @@ import TopBar from './topBar'
 /** The `id` attribute of the element into which the IDE will be rendered. */
 const IDE_ELEMENT_ID = 'root'
 
-/** Feature flags to enable or disable experimental features. */
-const EXPERIMENTAL = {
-    /** A selector that lets the user choose between pre-defined sets of visible columns. */
-    columnDisplayModeSwitcher: false,
-}
-
 /** Messages to be passed to {@link toastPromiseMultiple.toastPromiseMultiple}. */
 const UPLOAD_MULTIPLE_FILES_TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultipleMessages<File> =
     {
@@ -325,9 +319,6 @@ function Dashboard(props: DashboardProps) {
                         isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
                         isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
                         isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
-                        experimentalShowColumnDisplayModeSwitcher={
-                            EXPERIMENTAL.columnDisplayModeSwitcher
-                        }
                     />
                 </>
             )}

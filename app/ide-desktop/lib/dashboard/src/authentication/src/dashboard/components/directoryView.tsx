@@ -64,7 +64,6 @@ export interface DirectoryViewProps {
     isListingRemoteDirectoryWhileOffline: boolean
     isListingLocalDirectoryAndWillFail: boolean
     isListingRemoteDirectoryAndWillFail: boolean
-    experimentalShowColumnDisplayModeSwitcher: boolean
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
@@ -87,7 +86,6 @@ function DirectoryView(props: DirectoryViewProps) {
         isListingRemoteDirectoryWhileOffline,
         isListingLocalDirectoryAndWillFail,
         isListingRemoteDirectoryAndWillFail,
-        experimentalShowColumnDisplayModeSwitcher,
     } = props
     const logger = loggerProvider.useLogger()
     const { organization, accessToken } = authProvider.useNonPartialUserSession()
@@ -401,9 +399,6 @@ function DirectoryView(props: DirectoryViewProps) {
                 parentDirectory={parentDirectory}
                 columnDisplayMode={columnDisplayMode}
                 setColumnDisplayMode={setColumnDisplayMode}
-                experimentalShowColumnDisplayModeSwitcher={
-                    experimentalShowColumnDisplayModeSwitcher
-                }
                 onUpload={doRefresh}
                 exitDirectory={exitDirectory}
             />

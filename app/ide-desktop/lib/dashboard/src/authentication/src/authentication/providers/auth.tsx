@@ -225,9 +225,8 @@ export function AuthProvider(props: AuthProviderProps) {
                 // The backend MUST be the remote backend before login is finished.
                 // This is because the "set username" flow requires the remote backend.
                 if (!initialized) {
-                    // This is an ugly back but `userSession` MUST NOT be a dependency
-                    // as this effect always does a `setUserSession`, which would cause
-                    // an infinite loop.
+                    // `userSession` MUST NOT be a dependency as this effect always
+                    // calls `setUserSession`, which would cause an infinite loop.
                     setUserSession(oldUserSession => {
                         if (oldUserSession == null) {
                             setBackendWithoutSavingType(backend)

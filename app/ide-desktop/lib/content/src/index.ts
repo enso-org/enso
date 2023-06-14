@@ -145,7 +145,6 @@ class Main implements AppRunner {
 
     /** Stop an app instance, if one is running. */
     stopApp() {
-        console.log('stopping app...', this.app)
         this.app?.stop()
     }
 

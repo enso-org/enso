@@ -5,6 +5,7 @@ import * as React from 'react'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as column from '../column'
+import * as featureFlags from '../featureFlags'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
 
@@ -22,7 +23,6 @@ export interface DriveBarProps {
     parentDirectory: backendModule.DirectoryAsset | null
     columnDisplayMode: column.ColumnDisplayMode
     setColumnDisplayMode: (columnDisplayMode: column.ColumnDisplayMode) => void
-    experimentalShowColumnDisplayModeSwitcher: boolean
     onUpload: () => void
     exitDirectory: () => void
 }
@@ -36,7 +36,6 @@ function DriveBar(props: DriveBarProps) {
         parentDirectory,
         columnDisplayMode,
         setColumnDisplayMode,
-        experimentalShowColumnDisplayModeSwitcher,
         onUpload,
         exitDirectory,
     } = props
@@ -88,7 +87,7 @@ function DriveBar(props: DriveBarProps) {
                         {svg.DOWNLOAD_ICON}
                     </button>
                 </div>
-                {experimentalShowColumnDisplayModeSwitcher && (
+                {featureFlags.FEATURE_FLAGS.columnDisplayModeSwitcher && (
                     <ColumnDisplayModeSwitcher
                         columnDisplayMode={columnDisplayMode}
                         setColumnDisplayMode={setColumnDisplayMode}
