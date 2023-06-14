@@ -1648,6 +1648,7 @@ lazy val `engine-runner` = project
         initializeAtRuntime = Seq(
           // Note [WSLoggerManager Shutdown Hook]
           "org.enso.loggingservice.WSLoggerManager$",
+          "org.jline.nativ.JLineLibrary",
           "io.methvin.watchservice.jna.CarbonAPI",
           "org.enso.syntax2.Parser",
           "zio.internal.ZScheduler$$anon$4"
