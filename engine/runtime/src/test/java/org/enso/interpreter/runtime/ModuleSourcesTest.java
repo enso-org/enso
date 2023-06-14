@@ -1,5 +1,11 @@
 package org.enso.interpreter.runtime;
 
+import static org.junit.Assert.assertTrue;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
@@ -9,13 +15,6 @@ import org.graalvm.polyglot.Engine;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
-
-import static org.junit.Assert.assertTrue;
 
 public class ModuleSourcesTest {
 

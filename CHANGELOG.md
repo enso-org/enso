@@ -181,6 +181,8 @@
 - [A loading animation is now shown when opening and creating projects][6827],
   as the previous behaviour of showing a blank screen while the project was
   being loaded was potentially confusing to users.
+- [Error message is displayed in the status bar when the backend reports
+  execution failed][6918].
 - [Performance and readability of documentation panel was improved][6893]. The
   documentation is now split into separate pages, which are much smaller.
 
@@ -196,6 +198,7 @@
 [6474]: https://github.com/enso-org/enso/pull/6474
 [6844]: https://github.com/enso-org/enso/pull/6844
 [6827]: https://github.com/enso-org/enso/pull/6827
+[6918]: https://github.com/enso-org/enso/pull/6918
 [6893]: https://github.com/enso-org/enso/pull/6893
 
 #### EnsoGL (rendering engine)
@@ -818,6 +821,10 @@
 - [Add project creation time to project metadata][6780]
 - [Upgrade GraalVM to 22.3.1 JDK17][6750]
 - [Ascribed types are checked during runtime][6790]
+- [Add compiler pass that discovers ambiguous and duplicated symbols][6868]
+- [Improve and colorize compiler's diagnostic messages][6931]
+- [Execute some runtime commands synchronously to avoid race conditions][6998]
+- [Scala 2.13.11 update][7010]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -932,6 +939,10 @@
 [6755]: https://github.com/enso-org/enso/pull/6755
 [6780]: https://github.com/enso-org/enso/pull/6780
 [6790]: https://github.com/enso-org/enso/pull/6790
+[6868]: https://github.com/enso-org/enso/pull/6868
+[6931]: https://github.com/enso-org/enso/pull/6931
+[6998]: https://github.com/enso-org/enso/pull/6998
+[7010]: https://github.com/enso-org/enso/pull/7010
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

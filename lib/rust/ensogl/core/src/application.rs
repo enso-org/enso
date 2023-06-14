@@ -76,15 +76,6 @@ pub struct ApplicationData {
     pub frp:       Frp,
 }
 
-impl ApplicationData {
-    /// Show or hide the system mouse cursor by setting the `cursor` CSS property of the `body`
-    /// element.
-    fn show_system_cursor(&self, show: bool) {
-        let style = if show { "auto" } else { "none" };
-        web::document.body_or_panic().set_style_or_warn("cursor", style);
-    }
-}
-
 impl Application {
     /// Constructor.
     pub fn new(dom: impl DomPath) -> Self {
@@ -94,7 +85,7 @@ impl Application {
         let commands = command::Registry::create();
         let shortcuts =
             shortcut::Registry::new(&scene.mouse.frp_deprecated, &scene.keyboard.frp, &commands);
-        let views = view::Registry::create(&display, &commands, &shortcuts);
+        let views = view::Registry::create(&commands, &shortcuts);
         let cursor = Cursor::new(&display.default_scene);
         display.add_child(&cursor);
         let frp = Frp::new();
@@ -106,18 +97,25 @@ impl Application {
 
     fn init(self) -> Self {
         let frp = &self.frp;
-        let data = &self.inner;
         let network = self.frp.network();
         enso_frp::extend! { network
             app_focused <- self.display.default_scene.frp.focused.on_change();
-            eval app_focused((t) data.show_system_cursor(!t));
+            eval app_focused([](t) Self::show_system_cursor(!t));
+            eval_ frp.private.input.show_system_cursor([] Self::show_system_cursor(true));
+            eval_ frp.private.input.hide_system_cursor([] Self::show_system_cursor(false));
+
             frp.private.output.tooltip <+ frp.private.input.set_tooltip;
-            eval_ frp.private.input.show_system_cursor(data.show_system_cursor(true));
-            eval_ frp.private.input.hide_system_cursor(data.show_system_cursor(false));
         }
         // We hide the system cursor to replace it with the EnsoGL-provided one.
         self.frp.hide_system_cursor();
         self
+    }
+
+    /// Show or hide the system mouse cursor by setting the `cursor` CSS property of the `body`
+    /// element.
+    fn show_system_cursor(show: bool) {
+        let style = if show { "auto" } else { "none" };
+        web::document.body_or_panic().set_style_or_warn("cursor", style);
     }
 
     /// Create a new instance of a view.

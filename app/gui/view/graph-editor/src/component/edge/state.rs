@@ -1,10 +1,10 @@
 use crate::prelude::*;
-use ensogl::data::color;
 
 use super::layout::Corner;
 use super::layout::EdgeSplit;
 use super::layout::Oriented;
 use super::layout::TargetAttachment;
+use ensogl::data::color;
 
 
 

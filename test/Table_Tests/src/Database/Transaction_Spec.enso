@@ -1,0 +1,62 @@
+from Standard.Base import all
+
+from Standard.Table import Value_Type
+
+from Standard.Database import all
+from Standard.Database.Errors import all
+import Standard.Database.Data.Column_Description.Column_Description
+
+from Standard.Test import Test, Test_Suite, Problems
+import Standard.Test.Extensions
+
+type My_Error
+    Error
+
+main = Test_Suite.run_main <|
+    spec (Database.connect (SQLite In_Memory)) "[SQLite] "
+
+spec connection prefix =
+    Test.group prefix+"Transaction Support" <|
+        simple_table_structure = [Column_Description.Value "X" Value_Type.Integer]
+        Test.specify "should commit the changes after the transaction returns a regular value" <|
+            t1 = connection.create_table table_name=Nothing structure=simple_table_structure temporary=True
+            t1.should_succeed
+            r1 = connection.jdbc_connection.run_within_transaction <|
+                t1.insert [1] . should_succeed
+                42
+            r1.should_equal 42
+
+            t1.at "X" . to_vector . should_equal [1]
+
+        Test.specify "should rollback the changes after the inner action panics" <|
+            t1 = connection.create_table table_name=Nothing structure=simple_table_structure temporary=True
+            t1.should_succeed
+            Test.expect_panic_with matcher=My_Error <|
+                connection.jdbc_connection.run_within_transaction <|
+                    t1.insert [1] . should_succeed
+                    Panic.throw My_Error.Error
+
+            t1.at "X" . to_vector . should_equal []
+
+        Test.specify "should rollback the changes if the inner action returns a dataflow error" <|
+            t1 = connection.create_table table_name=Nothing structure=simple_table_structure temporary=True
+            t1.should_succeed
+            r1 = connection.jdbc_connection.run_within_transaction <|
+                t1.insert [1] . should_succeed
+                Error.throw My_Error.Error
+            r1.should_fail_with My_Error
+
+            t1.at "X" . to_vector . should_equal []
+
+        Test.specify "should commit the changes even if the inner action return value has warnings attached" <|
+            t1 = connection.create_table table_name=Nothing structure=simple_table_structure temporary=True
+            t1.should_succeed
+            r1 = connection.jdbc_connection.run_within_transaction <|
+                t1.insert [1] . should_succeed
+                result = 43
+                with_warnings = Warning.attach My_Error.Error result
+                with_warnings
+            r1.should_equal 43
+            Problems.expect_only_warning My_Error r1
+
+            t1.at "X" . to_vector . should_equal [1]

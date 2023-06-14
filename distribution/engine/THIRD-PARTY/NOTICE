@@ -3,52 +3,47 @@ Copyright 2020 - 2023 New Byte Order sp. z o. o.
 
 'enumeratum-circe_2.13', licensed under the MIT, is distributed with the engine.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.beachape.enumeratum-circe_2.13-1.7.0`.
+Copyright notices related to this dependency can be found in the directory `com.beachape.enumeratum-circe_2.13-1.7.2`.
 
 
 'enumeratum-macros_2.13', licensed under the MIT, is distributed with the engine.
 The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `com.beachape.enumeratum-macros_2.13-1.6.1`.
+Copyright notices related to this dependency can be found in the directory `com.beachape.enumeratum-macros_2.13-1.6.3`.
 
 
 'enumeratum_2.13', licensed under the MIT, is distributed with the engine.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.beachape.enumeratum_2.13-1.7.0`.
+Copyright notices related to this dependency can be found in the directory `com.beachape.enumeratum_2.13-1.7.2`.
 
 
 'shapeless_2.13', licensed under the Apache 2, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.chuusai.shapeless_2.13-2.3.9`.
-
-
-'shapeless_2.13', licensed under the Apache 2, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.chuusai.shapeless_2.13-2.4.0-M1`.
+Copyright notices related to this dependency can be found in the directory `com.chuusai.shapeless_2.13-2.3.10`.
 
 
 'jackson-annotations', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-annotations-2.13.3`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-annotations-2.15.2`.
 
 
 'jackson-core', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-core-2.13.3`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-core-2.15.2`.
 
 
 'jackson-databind', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-databind-2.13.3`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-databind-2.15.2`.
 
 
 'jackson-dataformat-cbor', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.dataformat.jackson-dataformat-cbor-2.13.3`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.dataformat.jackson-dataformat-cbor-2.15.2`.
 
 
 'jackson-module-scala_2.13', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.module.jackson-module-scala_2.13-2.13.3`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.module.jackson-module-scala_2.13-2.15.2`.
 
 
 'monocle-core_2.13', licensed under the MIT, is distributed with the engine.
@@ -63,7 +58,7 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'error_prone_annotations', licensed under the Apache 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.errorprone.error_prone_annotations-2.11.0`.
+Copyright notices related to this dependency can be found in the directory `com.google.errorprone.error_prone_annotations-2.18.0`.
 
 
 'flatbuffers-java', licensed under the Apache License V2.0, is distributed with the engine.
@@ -78,7 +73,7 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'guava', licensed under the Apache License, Version 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.guava.guava-31.1-jre`.
+Copyright notices related to this dependency can be found in the directory `com.google.guava.guava-32.0.0-jre`.
 
 
 'listenablefuture', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
@@ -86,9 +81,9 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.google.guava.listenablefuture-9999.0-empty-to-avoid-conflict-with-guava`.
 
 
-'j2objc-annotations', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+'j2objc-annotations', licensed under the Apache License, Version 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.j2objc.j2objc-annotations-1.3`.
+Copyright notices related to this dependency can be found in the directory `com.google.j2objc.j2objc-annotations-2.8`.
 
 
 'JavaEWAH', licensed under the Apache 2, is distributed with the engine.
@@ -98,27 +93,27 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'icu4j', licensed under the Unicode/ICU License, is distributed with the engine.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.ibm.icu.icu4j-71.1`.
+Copyright notices related to this dependency can be found in the directory `com.ibm.icu.icu4j-73.1`.
 
 
 'fansi_2.13', licensed under the MIT, is distributed with the engine.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.lihaoyi.fansi_2.13-0.3.1`.
+Copyright notices related to this dependency can be found in the directory `com.lihaoyi.fansi_2.13-0.4.0`.
 
 
 'pprint_2.13', licensed under the MIT, is distributed with the engine.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.lihaoyi.pprint_2.13-0.7.3`.
+Copyright notices related to this dependency can be found in the directory `com.lihaoyi.pprint_2.13-0.8.1`.
 
 
 'sourcecode_2.13', licensed under the MIT, is distributed with the engine.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.lihaoyi.sourcecode_2.13-0.2.8`.
+Copyright notices related to this dependency can be found in the directory `com.lihaoyi.sourcecode_2.13-0.3.0`.
 
 
 'decline_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.monovore.decline_2.13-2.3.0`.
+Copyright notices related to this dependency can be found in the directory `com.monovore.decline_2.13-2.4.1`.
 
 
 'paranamer', licensed under the BSD, is distributed with the engine.
@@ -128,47 +123,47 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'akka-actor-typed_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-actor-typed_2.13-2.6.19`.
+Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-actor-typed_2.13-2.6.20`.
 
 
 'akka-actor_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-actor_2.13-2.6.19`.
+Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-actor_2.13-2.6.20`.
 
 
 'akka-http-core_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-http-core_2.13-10.2.9`.
+Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-http-core_2.13-10.2.10`.
 
 
 'akka-http-spray-json_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-http-spray-json_2.13-10.2.9`.
+Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-http-spray-json_2.13-10.2.10`.
 
 
 'akka-http_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-http_2.13-10.2.9`.
+Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-http_2.13-10.2.10`.
 
 
 'akka-parsing_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-parsing_2.13-10.2.9`.
+Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-parsing_2.13-10.2.10`.
 
 
 'akka-protobuf-v3_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-protobuf-v3_2.13-2.6.19`.
+Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-protobuf-v3_2.13-2.6.20`.
 
 
 'akka-slf4j_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-slf4j_2.13-2.6.19`.
+Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-slf4j_2.13-2.6.20`.
 
 
 'akka-stream_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-stream_2.13-2.6.19`.
+Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-stream_2.13-2.6.20`.
 
 
 'config', licensed under the Apache-2.0, is distributed with the engine.
@@ -196,39 +191,39 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `commons-cli.commons-cli-1.5.0`.
 
 
-'commons-io', licensed under the Apache License, Version 2.0, is distributed with the engine.
+'commons-io', licensed under the Apache-2.0, is distributed with the engine.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `commons-io.commons-io-2.11.0`.
+Copyright notices related to this dependency can be found in the directory `commons-io.commons-io-2.12.0`.
 
 
 'izumi-reflect-thirdparty-boopickle-shaded_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `dev.zio.izumi-reflect-thirdparty-boopickle-shaded_2.13-2.2.5`.
+Copyright notices related to this dependency can be found in the directory `dev.zio.izumi-reflect-thirdparty-boopickle-shaded_2.13-2.3.8`.
 
 
 'izumi-reflect_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `dev.zio.izumi-reflect_2.13-2.2.5`.
+Copyright notices related to this dependency can be found in the directory `dev.zio.izumi-reflect_2.13-2.3.8`.
 
 
 'zio-internal-macros_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `dev.zio.zio-internal-macros_2.13-2.0.10`.
+Copyright notices related to this dependency can be found in the directory `dev.zio.zio-internal-macros_2.13-2.0.14`.
 
 
 'zio-stacktracer_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `dev.zio.zio-stacktracer_2.13-2.0.10`.
+Copyright notices related to this dependency can be found in the directory `dev.zio.zio-stacktracer_2.13-2.0.14`.
 
 
 'zio_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `dev.zio.zio_2.13-2.0.10`.
+Copyright notices related to this dependency can be found in the directory `dev.zio.zio_2.13-2.0.14`.
 
 
 'circe-core_2.13', licensed under the Apache 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.circe.circe-core_2.13-0.14.2`.
+Copyright notices related to this dependency can be found in the directory `io.circe.circe-core_2.13-0.14.5`.
 
 
 'circe-generic-extras_2.13', licensed under the Apache 2.0, is distributed with the engine.
@@ -238,37 +233,37 @@ Copyright notices related to this dependency can be found in the directory `io.c
 
 'circe-generic_2.13', licensed under the Apache 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.circe.circe-generic_2.13-0.14.2`.
+Copyright notices related to this dependency can be found in the directory `io.circe.circe-generic_2.13-0.14.5`.
 
 
 'circe-jawn_2.13', licensed under the Apache 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.circe.circe-jawn_2.13-0.14.2`.
+Copyright notices related to this dependency can be found in the directory `io.circe.circe-jawn_2.13-0.14.5`.
 
 
 'circe-literal_2.13', licensed under the Apache 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.circe.circe-literal_2.13-0.14.2`.
+Copyright notices related to this dependency can be found in the directory `io.circe.circe-literal_2.13-0.14.5`.
 
 
 'circe-numbers_2.13', licensed under the Apache 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.circe.circe-numbers_2.13-0.14.2`.
+Copyright notices related to this dependency can be found in the directory `io.circe.circe-numbers_2.13-0.14.5`.
 
 
 'circe-parser_2.13', licensed under the Apache 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.circe.circe-parser_2.13-0.14.2`.
+Copyright notices related to this dependency can be found in the directory `io.circe.circe-parser_2.13-0.14.5`.
 
 
 'circe-yaml_2.13', licensed under the Apache 2.0, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.circe.circe-yaml_2.13-0.14.1`.
-
-
-'newtype_2.13', licensed under the Apache 2.0, is distributed with the engine.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `io.estatico.newtype_2.13-0.4.4`.
+Copyright notices related to this dependency can be found in the directory `io.circe.circe-yaml_2.13-0.14.2`.
+
+
+'java-diff-utils', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.github.java-diff-utils.java-diff-utils-4.12`.
 
 
 'directory-watcher', licensed under the Apache-2.0, is distributed with the engine.
@@ -281,14 +276,14 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.spray.spray-json_2.13-1.3.6`.
 
 
+'jna', licensed under the Apache-2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `net.java.dev.jna.jna-5.13.0`.
+
+
 'jna', licensed under the Apache License v2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `net.java.dev.jna.jna-5.5.0`.
-
-
-'jna', licensed under the Apache-2.0, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `net.java.dev.jna.jna-5.9.0`.
 
 
 'bump_2.13', licensed under the MIT, is distributed with the engine.
@@ -296,9 +291,9 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `nl.gn0s1s.bump_2.13-0.1.3`.
 
 
-'commons-compress', licensed under the Apache License, Version 2.0, is distributed with the engine.
+'commons-compress', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.apache.commons.commons-compress-1.21`.
+Copyright notices related to this dependency can be found in the directory `org.apache.commons.commons-compress-1.23.0`.
 
 
 'commons-lang3', licensed under the Apache License, Version 2.0, is distributed with the engine.
@@ -328,7 +323,7 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 'checker-qual', licensed under the The MIT License, is distributed with the engine.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.checkerframework.checker-qual-3.12.0`.
+Copyright notices related to this dependency can be found in the directory `org.checkerframework.checker-qual-3.33.0`.
 
 
 'org.eclipse.jgit', licensed under the Eclipse Distribution License (New BSD License), is distributed with the engine.
@@ -338,17 +333,22 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 'jline', licensed under the The BSD License, is distributed with the engine.
 The license file can be found at `licenses/BSD-3-Clause`.
-Copyright notices related to this dependency can be found in the directory `org.jline.jline-3.21.0`.
+Copyright notices related to this dependency can be found in the directory `org.jline.jline-3.22.0`.
+
+
+'jline', licensed under the The BSD License, is distributed with the engine.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `org.jline.jline-3.23.0`.
 
 
 'org-netbeans-modules-sampler', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-netbeans-modules-sampler-RELEASE140`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-netbeans-modules-sampler-RELEASE180`.
 
 
 'org-openide-util-lookup', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-util-lookup-RELEASE140`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-util-lookup-RELEASE180`.
 
 
 'reactive-streams', licensed under the CC0, is distributed with the engine.
@@ -378,17 +378,17 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 'scala-compiler', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-compiler-2.13.8`.
+Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-compiler-2.13.11`.
 
 
 'scala-library', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-library-2.13.8`.
+Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-library-2.13.11`.
 
 
 'scala-reflect', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-reflect-2.13.8`.
+Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-reflect-2.13.11`.
 
 
 'slf4j-api', licensed under the MIT License, is distributed with the engine.
@@ -397,13 +397,13 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 
 'alleycats-core_2.13', licensed under the MIT, is distributed with the engine.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.typelevel.alleycats-core_2.13-2.6.1`.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `org.typelevel.alleycats-core_2.13-2.8.0`.
 
 
 'cats-core_2.13', licensed under the MIT, is distributed with the engine.
 The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `org.typelevel.cats-core_2.13-2.8.0`.
+Copyright notices related to this dependency can be found in the directory `org.typelevel.cats-core_2.13-2.9.0`.
 
 
 'cats-free_2.13', licensed under the MIT, is distributed with the engine.
@@ -413,7 +413,7 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 'cats-kernel_2.13', licensed under the MIT, is distributed with the engine.
 The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `org.typelevel.cats-kernel_2.13-2.8.0`.
+Copyright notices related to this dependency can be found in the directory `org.typelevel.cats-kernel_2.13-2.9.0`.
 
 
 'cats-macros_2.13', licensed under the MIT, is distributed with the engine.
@@ -423,17 +423,12 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 'jawn-parser_2.13', licensed under the MIT, is distributed with the engine.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.typelevel.jawn-parser_2.13-1.3.2`.
+Copyright notices related to this dependency can be found in the directory `org.typelevel.jawn-parser_2.13-1.4.0`.
 
 
-'kittens_2.13', licensed under the Apache 2, is distributed with the engine.
+'kittens_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.typelevel.kittens_2.13-2.3.2`.
-
-
-'simulacrum-scalafix-annotations_2.13', licensed under the Apache 2.0, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.typelevel.simulacrum-scalafix-annotations_2.13-0.5.4`.
+Copyright notices related to this dependency can be found in the directory `org.typelevel.kittens_2.13-3.0.0`.
 
 
 'sqlite-jdbc', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
@@ -443,5 +438,5 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 'snakeyaml', licensed under the Apache License, Version 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.yaml.snakeyaml-1.28`.
+Copyright notices related to this dependency can be found in the directory `org.yaml.snakeyaml-1.33`.
 

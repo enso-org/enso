@@ -115,7 +115,7 @@ impl Frp {
             resize <- frp.set_length.map(|&length| Vector2::new(length,WIDTH));
         }
 
-        let base_frp = selector::Frp::new(model, style, network, resize.clone(), mouse);
+        let base_frp = selector::Frp::new(app, model, style, network, resize.clone(), mouse);
 
         model.use_track_handles(false);
         model.set_track_corner_round(true);
@@ -358,22 +358,17 @@ pub struct Scrollbar {
     /// Public FRP api of the Component.
     pub frp: Rc<Frp>,
     model:   Rc<Model>,
-    /// Reference to the application the Component belongs to. Generally required for implementing
-    /// `application::View` and initialising the `Model` and `Frp` and thus provided by the
-    /// `Component`.
-    pub app: Application,
 }
 
 impl Scrollbar {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let app = app.clone_ref();
-        let model = Rc::new(Model::new(&app));
+        let model = Rc::new(Model::new(app));
         let frp = Frp::default();
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        frp.init(&app, &model, &style);
+        frp.init(app, &model, &style);
         let frp = Rc::new(frp);
-        Self { frp, model, app }
+        Self { frp, model }
     }
 }
 
@@ -400,10 +395,8 @@ impl application::View for Scrollbar {
     fn label() -> &'static str {
         "Scrollbar"
     }
+
     fn new(app: &Application) -> Self {
         Scrollbar::new(app)
-    }
-    fn app(&self) -> &Application {
-        &self.app
     }
 }

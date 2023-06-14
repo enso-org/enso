@@ -8,7 +8,11 @@ import com.oracle.truffle.api.nodes.LanguageInfo;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Optional;
+import org.enso.distribution.locking.LockManager;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.service.ExecutionService;
+import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.polyglot.RuntimeServerInfo;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
@@ -61,7 +65,23 @@ public class RuntimeServerInstrument extends TruffleInstrument {
         Object token = context.enter(null);
         ExecutionService service;
         try {
-          service = instrument.env.lookup(language, ExecutionService.class);
+          var ctx = EnsoContext.get(null);
+          var idExecutionInstrument =
+              Optional.ofNullable(
+                      instrument.env.getInstruments().get(IdExecutionService.INSTRUMENT_ID))
+                  .map(
+                      idValueListenerInstrument ->
+                          instrument.env.lookup(
+                              idValueListenerInstrument, IdExecutionService.class));
+
+          var timer = instrument.env.lookup(language, Timer.class);
+          var notificationHandler =
+              instrument.env.lookup(language, NotificationHandler.Forwarder.class);
+          var connectedLockManager = instrument.env.lookup(language, LockManager.class) instanceof ConnectedLockManager connected ? connected : null;
+          service =
+              new ExecutionService(
+                  ctx, idExecutionInstrument, notificationHandler, connectedLockManager, timer);
+
         } finally {
           context.leave(null, token);
         }
