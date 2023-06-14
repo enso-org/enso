@@ -392,7 +392,7 @@ impl QueryData {
     /// Generate visualization metadata for this query.
     fn visualization_metadata(&self) -> Metadata {
         let arguments: Vec<Code> = vec![
-            Self::escape_visualization_argument(&self.method_name).into(),
+            format!("(self.{}...)", &self.method_name).into(),
             Self::arg_sequence(&self.arguments).into(),
         ];
 
