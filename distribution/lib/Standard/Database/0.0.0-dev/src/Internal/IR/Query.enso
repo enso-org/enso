@@ -62,3 +62,6 @@ type Query
          The columns in that query should correspond to the columns in specified
          in `column_names`, matching by position.
     Insert_From_Select (table_name:Text) (column_names : Vector Text) (select:Query)
+
+    ## PRIVATE
+    Update_From_Table (target_table_name:Text) (source_table_name:Text) (column_names : Vector Text) (key_columns : Vector Text)

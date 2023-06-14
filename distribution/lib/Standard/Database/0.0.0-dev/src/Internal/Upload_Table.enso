@@ -227,13 +227,16 @@ common_update_table source_table connection table_name update_action key_columns
                 Error.throw new_error
             if target_table.is_error then handle_error else
                 tmp_table_name = "temporary-source-table-"+random_uuid
-                tmp_table = internal_upload_table source_table connection tmp_table_name key_columns temporary=True on_problems=Problem_Behavior.Report_Error
+                tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=key_columns temporary=True on_problems=Problem_Behavior.Report_Error
                 tmp_table.if_not_error <|
                     resulting_table = append_to_existing_table tmp_table target_table update_action key_columns error_on_missing_columns on_problems
                     connection.drop_table tmp_table.name
                     resulting_table
 
 ## PRIVATE
+   Assumes that `source_table` is a simple table query without any filters,
+   joins and other composite operations - if a complex query is needed, it
+   should be first materialized into a temporary table.
 append_to_existing_table source_table target_table update_action key_columns error_on_missing_columns on_problems = In_Transaction.ensure_in_transaction <|
     effective_key_columns = if key_columns.is_nothing then [] else key_columns
     check_update_arguments source_table target_table effective_key_columns update_action error_on_missing_columns on_problems <|
@@ -251,12 +254,25 @@ append_to_existing_table source_table target_table update_action key_columns err
                     insert_statement = connection.dialect.generate_sql <|
                         Query.Insert_From_Select target_table.name source_table.column_names source_table.to_select_query
                     Panic.rethrow <| connection.execute_update insert_statement
-            Update_Action.Update -> throw_not_implemented
+            Update_Action.Update ->
+                rows_missing_from_target = source_table.join target_table on=key_columns join_kind=Join_Kind.Left_Exclusive
+                rows_missing_from_target_count = rows_missing_from_target.row_count
+                if rows_missing_from_target_count != 0 then Error.throw (Unmatched_Rows.Error rows_missing_from_target_count) else
+                    connection = target_table.connection
+                    update_statement = connection.dialect.generate_sql <|
+                        Query.Update_From_Table target_table.name source_table.name source_table.column_names key_columns
+                    Panic.rethrow <| connection.execute_update update_statement
             Update_Action.Update_Or_Insert -> throw_not_implemented
             Update_Action.Align_Records -> throw_not_implemented
         upload_status.if_not_error target_table
 
 ## PRIVATE
+   This helper ensures that all arguments are valid.
+
+   The `action` is run only if the input invariants are satisfied:
+   - all columns in `source_table` have a corresponding column in `target_table`
+     (with the same name),
+   - all `key_columns` are present in both source and target tables.
 check_update_arguments source_table target_table key_columns update_action error_on_missing_columns on_problems ~action =
     check_source_column source_column =
         # The column must exist because it was verified earlier.

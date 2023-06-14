@@ -180,13 +180,13 @@ type Unmatched_Rows
     ## PRIVATE
        Indicates that the `Update` operation encountered input rows that did not
        have any matching rows in the target table.
-    Error
+    Error (count : Integer)
 
     ## PRIVATE
        Pretty print the rows already present error.
     to_display_text : Text
     to_display_text self =
-        "The `Update` operation encountered input rows that did not have any matching rows in the target table. The operation has been rolled back. Consider `Update_Or_Insert` if you want to insert rows that do not match any existing rows."
+        "The `Update` operation encountered " + self.count.to_text + " input rows that did not have any matching rows in the target table. The operation has been rolled back. Consider `Update_Or_Insert` if you want to insert rows that do not match any existing rows."
 
 type Rows_Already_Present
     ## PRIVATE
