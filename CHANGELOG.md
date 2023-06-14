@@ -821,6 +821,7 @@
 - [Add compiler pass that discovers ambiguous and duplicated symbols][6868]
 - [Improve and colorize compiler's diagnostic messages][6931]
 - [Execute some runtime commands synchronously to avoid race conditions][6998]
+- [Scala 2.13.11 update][7010]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -938,6 +939,7 @@
 [6868]: https://github.com/enso-org/enso/pull/6868
 [6931]: https://github.com/enso-org/enso/pull/6931
 [6998]: https://github.com/enso-org/enso/pull/6998
+[7010]: https://github.com/enso-org/enso/pull/7010
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -32,9 +32,9 @@ class TypeFunctionTest extends AnyFlatSpec with Matchers {
     case class A()
     case class B()
     case class C()
-    implicit def sizedA = new Sized[A] { type Out = _1 }
-    implicit def sizedB = new Sized[B] { type Out = _3 }
-    implicit def sizedC = new Sized[C] { type Out = _5 }
+    implicit def sizedA: Sized.Aux[A, _1] = new Sized[A] { type Out = _1 }
+    implicit def sizedB: Sized.Aux[B, _3] = new Sized[B] { type Out = _3 }
+    implicit def sizedC: Sized.Aux[C, _5] = new Sized[C] { type Out = _5 }
 
     implicitly[MapSized.Aux[HNil, HNil]]
     implicitly[MapSized.Aux[A :: B :: C :: HNil, _1 :: _3 :: _5 :: HNil]]
@@ -44,9 +44,9 @@ class TypeFunctionTest extends AnyFlatSpec with Matchers {
     case class A()
     case class B()
     case class C()
-    implicit def sizedA = new Sized[A] { type Out = _1 }
-    implicit def sizedB = new Sized[B] { type Out = _3 }
-    implicit def sizedC = new Sized[C] { type Out = _5 }
+    implicit def sizedA: Sized.Aux[A, _1] = new Sized[A] { type Out = _1 }
+    implicit def sizedB: Sized.Aux[B, _3] = new Sized[B] { type Out = _3 }
+    implicit def sizedC: Sized.Aux[C, _5] = new Sized[C] { type Out = _5 }
 
     implicitly[SizeUntil.Aux[A, HNil, _0]]
     implicitly[SizeUntil.Aux[A, A :: B :: C :: HNil, _0]]

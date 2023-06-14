@@ -16,11 +16,13 @@ object WorkspaceApi {
       engineVersion: String,
       graalVersion: String
     )
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ProjectInfo.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = ProjectInfo.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, ProjectInfo.Params] =
+      new HasParams[this.type] {
+        type Params = ProjectInfo.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, ProjectInfo.Result] =
+      new HasResult[this.type] {
+        type Result = ProjectInfo.Result
+      }
   }
 }

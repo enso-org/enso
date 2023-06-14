@@ -21,12 +21,14 @@ object TextApi {
       content: String,
       currentVersion: Version
     )
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = OpenFile.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = OpenFile.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, OpenFile.Params] =
+      new HasParams[this.type] {
+        type Params = OpenFile.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, OpenFile.Result] =
+      new HasResult[this.type] {
+        type Result = OpenFile.Result
+      }
   }
 
   case object OpenBuffer extends Method("text/openBuffer") {
@@ -36,32 +38,38 @@ object TextApi {
       content: String,
       currentVersion: Version
     )
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = OpenBuffer.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = OpenBuffer.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, OpenBuffer.Params] =
+      new HasParams[this.type] {
+        type Params = OpenBuffer.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, OpenBuffer.Result] =
+      new HasResult[this.type] {
+        type Result = OpenBuffer.Result
+      }
   }
 
   case object CloseFile extends Method("text/closeFile") {
     case class Params(path: Path)
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = CloseFile.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, CloseFile.Params] =
+      new HasParams[this.type] {
+        type Params = CloseFile.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object ApplyEdit extends Method("text/applyEdit") {
     case class Params(edit: FileEdit, execute: Option[Boolean])
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ApplyEdit.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, ApplyEdit.Params] =
+      new HasParams[this.type] {
+        type Params = ApplyEdit.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object ApplyExpressionValue extends Method("text/applyExpressionValue") {
@@ -72,26 +80,43 @@ object TextApi {
       oldVersion: TextApi.Version,
       newVersion: TextApi.Version
     )
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ApplyExpressionValue.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit
+    val hasParams: HasParams.Aux[this.type, ApplyExpressionValue.Params] =
+      new HasParams[this.type] {
+        type Params = ApplyExpressionValue.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object TextDidChange extends Method("text/didChange") {
     case class Params(edits: List[FileEdit])
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = TextDidChange.Params
-    }
+    implicit val hasParams: HasParams.Aux[this.type, TextDidChange.Params] =
+      new HasParams[this.type] {
+        type Params = TextDidChange.Params
+      }
   }
 
   case object FileAutoSaved extends Method("text/autoSave") {
     case class Params(path: Path)
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = FileAutoSaved.Params
-    }
+    implicit val hasParams: HasParams.Aux[this.type, FileAutoSaved.Params] =
+      new HasParams[this.type] {
+        type Params = FileAutoSaved.Params
+      }
+  }
+
+  case object SaveFile extends Method("text/save") {
+    case class Params(path: Path, currentVersion: Version)
+    implicit val hasParams: HasParams.Aux[this.type, SaveFile.Params] =
+      new HasParams[this.type] {
+        type Params = SaveFile.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object FileNotOpenedError extends Error(3001, "File not opened")
@@ -105,15 +130,4 @@ object TextApi {
         s"Invalid version [client version: $clientVersion, server version: $serverVersion]"
       )
   case object WriteDeniedError extends Error(3004, "Write denied")
-
-  case object SaveFile extends Method("text/save") {
-    case class Params(path: Path, currentVersion: Version)
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = SaveFile.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
-  }
-
 }
