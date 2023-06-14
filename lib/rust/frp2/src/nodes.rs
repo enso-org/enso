@@ -9,6 +9,7 @@ use crate::node::input::ListenAndSample;
 use crate::node::input::Sample;
 use crate::node::Node;
 use crate::node::NodeInNetwork;
+use crate::node::NodeOf;
 use crate::node::NodeWithDefaultOutput;
 use crate::node::TypedNode;
 
@@ -95,7 +96,7 @@ impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
     /// On every event, remember it, and pass it trough.
     #[inline(never)]
     pub fn sampler(self) -> NodeInNetwork<'a, M, Stream<N1::Output>> {
-        self.network.new_node((ListenAndSample(self),), move |event, _, t1| event.emit(t1))
+        self.new_node((ListenAndSample(self),), move |event, _, t1| event.emit(t1))
     }
 }
 
@@ -105,34 +106,14 @@ impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
 impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
     /// On every event, print it to console, and pass it trough.
     pub fn trace(self) -> NodeInNetwork<'a, M, Stream<N1::Output>> {
-        self.network.new_node((Listen(self),), move |event, _, t0| {
+        self.new_node((Listen(self),), move |event, _, t0| {
             println!("TRACE: {:?}", t0);
             event.emit(t0);
         })
     }
 
-    pub fn trace_if(
-        self,
-        cond: impl Node<Output = bool>,
-    ) -> NodeInNetwork<'a, M, Stream<N1::Output>> {
-        self.network.new_node((Listen(self), Sample(cond)), move |event, _, src, cond| {
-            if *cond {
-                println!("TRACE: {:?}", src);
-            }
-            event.emit(src);
-        })
-    }
-}
-
-impl<Model> Network<Model> {
-    /// On every event on the `src` input, print it to console if `cond` is true, and pass it
-    /// trough.
-    pub fn trace_if<T0: Data>(
-        &self,
-        src: impl Node<Output = T0>,
-        cond: impl Node<Output = bool>,
-    ) -> NodeInNetwork<Model, Stream<T0>> {
-        self.new_node((Listen(src), Sample(cond)), move |event, _, src, cond| {
+    pub fn trace_if(self, cond: impl NodeOf<bool>) -> NodeInNetwork<'a, M, Stream<N1::Output>> {
+        self.new_node((Listen(self), Sample(cond)), move |event, _, src, cond| {
             if *cond {
                 println!("TRACE: {:?}", src);
             }
@@ -187,7 +168,7 @@ where
     where
         Output: Data,
         F: 'static + Fn(&mut Model, &N1::Output) -> Output, {
-        self.network.new_node_with_model((Listen(self),), move |event, m, t1| event.emit(&f(m, t1)))
+        self.new_node_with_model((Listen(self),), move |event, m, t1| event.emit(&f(m, t1)))
     }
 
     #[inline(never)]
@@ -195,7 +176,7 @@ where
     where
         Output: Data,
         F: 'static + Fn(&N1::Output) -> Output, {
-        self.network.new_node((Listen(self),), move |event, _, t1| event.emit(&f(t1)))
+        self.new_node((Listen(self),), move |event, _, t1| event.emit(&f(t1)))
     }
 
     #[inline(never)]
@@ -204,8 +185,7 @@ where
         N2: NodeWithDefaultOutput,
         Output: Data,
         F: 'static + Fn(&N1::Output, &N2::Output) -> Output, {
-        self.network
-            .new_node((Listen(self), Sample(n2)), move |event, _, t1, t2| event.emit(&f(t1, t2)))
+        self.new_node((Listen(self), Sample(n2)), move |event, _, t1, t2| event.emit(&f(t1, t2)))
     }
 }
 

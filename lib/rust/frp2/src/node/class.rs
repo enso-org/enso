@@ -2,12 +2,13 @@ use crate::prelude::*;
 
 use crate::data::Data;
 use crate::network::Network;
+use crate::node::template;
+use crate::node::template::Template;
 use crate::runtime::with_runtime;
 use crate::runtime::EventConsumer;
 use crate::runtime::NodeData;
 use crate::runtime::NodeId;
 use crate::DefInfo;
-
 
 
 // ============
@@ -20,6 +21,9 @@ pub trait Node: Copy {
     type Output: Data;
     fn id(self) -> NodeId;
 }
+
+/// A short version of typing `Node<Output = T>`.
+pub trait NodeOf<T> = Node<Output = T>;
 
 /// An alias for [`Node`] with default output type bounds.
 pub trait NodeWithDefaultOutput = Node where <Self as Node>::Output: Default;
@@ -104,8 +108,45 @@ impl<'t, Model, N: Node> Clone for NodeInNetwork<'t, Model, N> {
     }
 }
 
-impl<'t, Model, N> NodeInNetwork<'t, Model, N> {
-    pub(crate) fn new(network: &'t Network<Model>, node: N) -> Self {
+impl<'a, Model, N> NodeInNetwork<'a, Model, N> {
+    #[inline(always)]
+    pub(crate) fn new(network: &'a Network<Model>, node: N) -> Self {
         Self { network, node }
     }
+
+    #[inline(always)]
+    pub(crate) fn new_node<Type, Inputs, Output, F>(
+        &self,
+        inputs: Inputs,
+        body: F,
+    ) -> NodeInNetwork<'a, Model, TypedNode<Type, Output>>
+    where
+        Inputs: Template<template::ModelNotUsed, Model, Output, F>,
+    {
+        self.network.new_node(inputs, body)
+    }
+
+    #[inline(always)]
+    pub(crate) fn new_node_with_model<Type, Inputs, Output, F>(
+        &self,
+        inputs: Inputs,
+        body: F,
+    ) -> NodeInNetwork<'a, Model, TypedNode<Type, Output>>
+    where
+        Inputs: Template<template::ModelUsed, Model, Output, F>,
+    {
+        self.network.new_node_with_model(inputs, body)
+    }
 }
+
+// #[inline(always)]
+// pub(crate) fn new_node<Type, Inputs, Output, F>(
+//     &self,
+//     inps: Inputs,
+//     body: F,
+// ) -> NodeInNetwork<Model, TypedNode<Type, Output>>
+//     where
+//         Inputs: Template<ModelNotUsed, Model, Output, F>,
+// {
+//     self.new_node_with_init(inps, body, |_| {})
+// }
