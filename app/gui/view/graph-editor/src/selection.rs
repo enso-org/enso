@@ -291,9 +291,13 @@ fn enable_disable_toggle(
     toggle: &frp::Any,
 ) -> frp::Stream<bool> {
     frp::extend! { network
-        out        <- any(...);
-        out        <+ out.not().sample(toggle);
-        out        <+ bool(disable, enable);
+        out <- any(...);
+        let on_toggle = network.map2("on_toggle", toggle, &out, |_,t| !t);
+        let on_enable = network.to_true("on_enable", enable);
+        let on_disable = network.to_false("on_disable", disable);
+        out <+ on_toggle;
+        out <+ on_enable;
+        out <+ on_disable;
     }
     out.into()
 }

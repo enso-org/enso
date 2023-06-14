@@ -51,7 +51,7 @@ pub trait Aware {
     /// Get handle to undo-redo [`Repository`].
     fn undo_redo_repository(&self) -> Rc<Repository>;
 
-    /// Get current ongoing transaction. If there is no ongoing transaction, create a one.
+    /// Get the current ongoing transaction. If there is no ongoing transaction, create one.
     #[profile(Debug)]
     #[must_use]
     fn get_or_open_transaction(&self, name: &str) -> Rc<Transaction> {
@@ -75,6 +75,12 @@ pub struct Transaction {
     frame:   RefCell<Frame>,
     urm:     Weak<Repository>,
     ignored: Cell<bool>,
+}
+
+impl Display for Transaction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Transaction '{}'", self.frame.borrow())
+    }
 }
 
 impl Transaction {
@@ -103,15 +109,7 @@ impl Transaction {
     /// the current transaction in context where it is not clear whether transaction was already set
     /// up or not.
     pub fn fill_content(&self, id: model::module::Id, content: model::module::Content) {
-        with(self.frame.borrow_mut(), |mut data| {
-            debug!(
-                "Filling transaction '{}' with snapshot of module '{id}':\n{content}",
-                data.name
-            );
-            if data.snapshots.try_insert(id, content).is_err() {
-                debug!("Skipping this snapshot, as module's state was already saved.")
-            }
-        })
+        with(self.frame.borrow_mut(), |mut data| data.store_module_content(id, content))
     }
 
     /// Ignore the transaction.
@@ -127,16 +125,7 @@ impl Transaction {
 impl Drop for Transaction {
     fn drop(&mut self) {
         if let Some(urm) = self.urm.upgrade() {
-            if !self.ignored.get() {
-                info!("Transaction '{}' will create a new frame. {}", self.name(), backtrace());
-                urm.push_to(Stack::Undo, self.frame.borrow().clone());
-                urm.clear(Stack::Redo);
-            } else {
-                debug!(
-                    "Dropping the ignored transaction '{}' without pushing a frame to repository.",
-                    self.name()
-                )
-            }
+            urm.close_transaction(self)
         }
     }
 }
@@ -153,28 +142,54 @@ impl Drop for Transaction {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Frame {
     /// Name of the transaction that created this frame.
-    pub name:      String,
+    pub name:            String,
+    /// Names of all subsequent transactions that were covered by this frame. This serves the
+    /// debugging purposes only, to understand what actions are covered by given frame.
+    pub secondary_names: Vec<String>,
     /// Context module where the change was made.
-    pub module:    Option<model::module::Id>,
+    pub module:          Option<model::module::Id>,
     /// Context graph where the change was made.
-    pub graph:     Option<controller::graph::Id>,
+    pub graph:           Option<controller::graph::Id>,
     /// Snapshots of content for all edited modules.
-    pub snapshots: BTreeMap<model::module::Id, model::module::Content>,
+    pub snapshots:       BTreeMap<model::module::Id, model::module::Content>,
 }
 
 impl Display for Frame {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Name: {}; ", self.name)?;
+        writeln!(f, "Name: {}; ", self.name)?;
+        if !self.secondary_names.is_empty() {
+            writeln!(f, "Secondary names:")?;
+            for name in &self.secondary_names {
+                writeln!(f, "\t{name}")?;
+            }
+        }
         if let Some(m) = &self.module {
-            write!(f, "Module: {m}; ")?;
+            writeln!(f, "Module: {m}; ")?;
         }
         if let Some(g) = &self.graph {
-            write!(f, "Graph: {g}; ")?;
+            writeln!(f, "Graph: {g}; ")?;
         }
         for (id, code) in &self.snapshots {
-            write!(f, "Code for {id}: {code}; ")?;
+            writeln!(f, "Code for {id}: {code}; ")?;
         }
         Ok(())
+    }
+}
+
+impl Frame {
+    /// Store the snapshot of given module's content.
+    pub fn store_module_content(&mut self, id: model::module::Id, content: model::module::Content) {
+        debug!("Filling frame '{}' with snapshot of module '{id}':\n{content}", self.name);
+        if self.snapshots.try_insert(id, content).is_err() {
+            debug!("Skipping this snapshot, as module's state was already saved.")
+        }
+    }
+
+    /// Add secondary name to the frame.
+    ///
+    /// secondary names are used to track sub-transactions that were covered by this frame.
+    pub fn add_secondary_name(&mut self, name: impl Into<String>) {
+        self.secondary_names.push(name.into())
     }
 }
 
@@ -234,6 +249,16 @@ impl Repository {
         name: impl Into<String>,
     ) -> Result<Rc<Transaction>, Rc<Transaction>> {
         if let Some(ongoing_transaction) = self.current_transaction() {
+            // If there is already an ongoing transaction, we will just add a secondary name to it.
+            // This is useful when we want to understand what actions were covered by given frame.
+            // Apart from the debugging purposes, this deos not affect the undo-redo mechanism in
+            // any way.
+            let name = name.into();
+            debug!(
+                "Adding secondary name to transaction {}: `{name}`",
+                ongoing_transaction.frame.borrow().name
+            );
+            ongoing_transaction.frame.borrow_mut().secondary_names.push(name);
             Err(ongoing_transaction)
         } else {
             let name = name.into();
@@ -244,7 +269,7 @@ impl Repository {
         }
     }
 
-    /// Open an ignored transaction
+    /// Open an ignored transaction.
     ///
     /// This function should be used when we want to do some changes in module which should not be
     /// tracked in undo redo (when they are not a result of user activity). If the transaction is
@@ -262,6 +287,48 @@ impl Repository {
         transaction
     }
 
+    /// Open an ignored transaction.
+    ///
+    /// If there is already an ongoing transaction, it will be marked as ignored, unlike the
+    /// behavior of [`Repository::open_ignored_transaction`].
+    pub fn open_ignored_transaction_or_ignore_current(
+        self: &Rc<Self>,
+        name: impl Into<String>,
+    ) -> Rc<Transaction> {
+        match self.open_ignored_transaction(name) {
+            Ok(transaction) => transaction,
+            Err(transaction) => {
+                transaction.ignore();
+                transaction
+            }
+        }
+    }
+
+    fn new_undo_frame(&self, frame: Frame) {
+        info!("Adding a new frame to the stack: {frame}. {}", backtrace());
+        self.push_to(Stack::Undo, frame);
+        self.clear(Stack::Redo)
+    }
+
+    /// Close the currently opened transaction.
+    ///
+    /// This method should not be used directly. Instead just drop the [`Transaction`] handle.
+    fn close_transaction(&self, transaction: &Transaction) {
+        if transaction.frame.borrow().snapshots.is_empty() {
+            // If there was a transaction with no snapshots, we will just ignore it.
+            // As we create transactions for every user interaction (command), there will be a lot
+            // of empty transactions. We do not want to pollute the undo-redo stack with them.
+            debug!("Ignoring empty transaction '{}'. It will be skipped.", transaction.name());
+        } else if !transaction.ignored.get() {
+            // If the transaction was not ignored, we will add it to the undo stack.
+            let frame = transaction.frame.borrow().clone();
+            self.new_undo_frame(frame);
+        } else {
+            debug!(
+                "Closing the ignored transaction '{transaction}' without adding a frame to the repository.",
+            )
+        }
+    }
 
     /// Get currently opened transaction. If there is none, open a new one.
     pub fn transaction(self: &Rc<Self>, name: impl Into<String>) -> Rc<Transaction> {
@@ -291,13 +358,16 @@ impl Repository {
 
     /// Push a new frame to the given stack.
     fn push_to(&self, stack: Stack, frame: Frame) {
-        debug!("Pushing to {stack} stack a new frame: {frame}");
+        debug!(
+            "Pushing to {stack} stack a new frame: {frame}. New frame count: {}",
+            self.borrow(stack).len() + 1
+        );
         self.borrow_mut(stack).push(frame);
     }
 
     /// Clear all frames from the given stack.
     fn clear(&self, stack: Stack) {
-        debug!("Clearing {stack} stack.");
+        debug!("Clearing {stack} stack, dropping {} frames.", self.borrow(stack).len(),);
         self.borrow_mut(stack).clear();
     }
 
@@ -329,6 +399,20 @@ impl Repository {
     #[allow(clippy::len_without_is_empty)]
     pub fn len(&self, stack: Stack) -> usize {
         self.borrow(stack).len()
+    }
+
+    /// If there is an ongoing transaction, abort it. It will be ignored. After this call, there
+    /// will be no ongoing transaction.
+    ///
+    /// Returns the aborted transaction, if there was one.
+    pub fn abort_current_transaction(&self) -> Option<Rc<Transaction>> {
+        let transaction =
+            self.data.borrow_mut().current_transaction.take().and_then(|t| t.upgrade());
+        if let Some(transaction) = transaction.as_ref() {
+            debug!("Aborting transaction `{}`", transaction.name());
+            transaction.ignore();
+        }
+        transaction
     }
 }
 
@@ -377,6 +461,10 @@ impl Manager {
     pub fn undo(&self) -> FallibleResult {
         debug!("Undo requested, stack size is {}.", self.repository.len(Stack::Undo));
         let frame = self.repository.last(Stack::Undo)?;
+
+        // We need to abort any ongoing transaction before applying undo. Otherwise, we might end up
+        // with a situation when undoing would re-add itself onto the undo stack.
+        self.repository.abort_current_transaction();
 
         // Before applying undo we create a special transaction. The purpose it two-fold:
         // 1) We want to prevent any undo attempt if there is already an ongoing transaction;
@@ -501,7 +589,7 @@ mod tests {
     }
 
     // Collapse two middle nodes.
-    #[wasm_bindgen_test]
+    #[test]
     fn collapse_nodes_atomic() {
         let code = r#"
 main =
@@ -519,7 +607,7 @@ main =
 
     // A complex operation: involves introducing variable name, reordering lines and
     // replacing an argument.
-    #[wasm_bindgen_test]
+    #[test]
     fn connect_nodes_atomic() {
         let code = r#"
 main =
@@ -549,7 +637,7 @@ main =
 
 
     // Check that node position is properly updated.
-    #[wasm_bindgen_test]
+    #[test]
     fn move_node() {
         use model::module::Position;
 
@@ -578,7 +666,7 @@ main =
         assert_eq!(graph.node(node.id()).unwrap().position(), Some(pos2));
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn undo_redo() {
         use crate::test::mock::Fixture;
         // Setup the controller.

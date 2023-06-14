@@ -118,7 +118,7 @@ trait API {
     /// Create a new execution context. Return capabilities executionContext/canModify and
     /// executionContext/receivesUpdates containing freshly created ContextId
     #[MethodInput=CreateExecutionContextInput, rpc_name="executionContext/create"]
-    fn create_execution_context(&self) -> response::CreateExecutionContext;
+    fn create_execution_context(&self, context_id: ContextId) -> response::CreateExecutionContext;
 
     /// Destroy an execution context and free its resources.
     #[MethodInput=DestroyExecutionContextInput, rpc_name="executionContext/destroy"]

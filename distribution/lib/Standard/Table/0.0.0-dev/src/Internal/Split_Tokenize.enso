@@ -6,10 +6,8 @@ import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Java_Exports
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
-import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Pattern.Pattern
 
-from project import Value_Type
 from project.Errors import Column_Count_Exceeded, Column_Count_Mismatch, Duplicate_Output_Column_Names, Invalid_Value_Type, Missing_Input_Columns
 from project.Internal.Java_Exports import make_string_builder
 

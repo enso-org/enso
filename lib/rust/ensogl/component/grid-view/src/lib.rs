@@ -688,10 +688,6 @@ impl<E: Entry> application::View for GridView<E> {
         GridView::<E>::new(app)
     }
 
-    fn app(&self) -> &Application {
-        self.widget.app()
-    }
-
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use application::shortcut::ActionType::*;
         [

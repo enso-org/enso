@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Sort_Column
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 from Standard.Table.Errors import all
 
 from Standard.Database import all
@@ -18,7 +18,7 @@ spec prefix connection =
     tables_to_clean = Vector.new_builder
     upload prefix data temporary=True =
         name = Name_Generator.random_name prefix
-        table = data.create_database_table connection name temporary=temporary primary_key=Nothing
+        table = data.select_into_database_table connection name temporary=temporary primary_key=Nothing
         tables_to_clean.append table.name
         table
 

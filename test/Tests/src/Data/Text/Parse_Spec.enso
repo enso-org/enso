@@ -1,15 +1,11 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Text.Extensions
-import Standard.Base.Data.Time.Date.Date
-import Standard.Base.Data.Time.Time_Zone.Time_Zone
 import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.Time_Error.Time_Error
-import Standard.Base.Network.URI.URI
 import Standard.Test.Extensions
+import Standard.Base.Data.Json.Invalid_JSON
 
-from Standard.Base.Data.Json import Json, Invalid_JSON, JS_Object
-from Standard.Base.Data.Numbers import Decimal, Integer, Number_Parse_Error
+import Standard.Base.Data.Numbers.Number_Parse_Error
 from Standard.Test import Test, Test_Suite
 
 spec =

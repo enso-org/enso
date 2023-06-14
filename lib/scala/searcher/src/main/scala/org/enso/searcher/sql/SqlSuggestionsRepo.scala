@@ -744,6 +744,9 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
       .filterOpt(module) { case (row, value) =>
         row.scopeStartLine === ScopeColumn.EMPTY || row.module === value
       }
+      .filterIf(selfTypes.isEmpty) { row =>
+        row.kind =!= SuggestionKind.GETTER
+      }
       .filterIf(selfTypes.nonEmpty) { row =>
         row.selfType.inSet(selfTypes) &&
         (row.kind =!= SuggestionKind.CONSTRUCTOR)
@@ -823,6 +826,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             _,
             returnType,
             doc,
+            _,
             reexport
           ) =>
         SuggestionRow(
@@ -843,7 +847,36 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           scopeEndOffset   = ScopeColumn.EMPTY,
           reexport         = reexport
         )
-      case Suggestion.Method(
+      case Suggestion.Getter(
+            expr,
+            module,
+            name,
+            _,
+            selfType,
+            returnType,
+            doc,
+            _,
+            reexport
+          ) =>
+        SuggestionRow(
+          id               = None,
+          externalIdLeast  = expr.map(_.getLeastSignificantBits),
+          externalIdMost   = expr.map(_.getMostSignificantBits),
+          kind             = SuggestionKind.GETTER,
+          module           = module,
+          name             = name,
+          selfType         = selfType,
+          returnType       = returnType,
+          parentType       = None,
+          isStatic         = false,
+          documentation    = doc,
+          scopeStartLine   = ScopeColumn.EMPTY,
+          scopeStartOffset = ScopeColumn.EMPTY,
+          scopeEndLine     = ScopeColumn.EMPTY,
+          scopeEndOffset   = ScopeColumn.EMPTY,
+          reexport         = reexport
+        )
+      case Suggestion.DefinedMethod(
             expr,
             module,
             name,
@@ -852,6 +885,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             returnType,
             isStatic,
             doc,
+            _,
             reexport
           ) =>
         SuggestionRow(
@@ -981,10 +1015,24 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           arguments     = Seq(),
           returnType    = suggestion.returnType,
           documentation = suggestion.documentation,
+          annotations   = Seq(),
+          reexport      = suggestion.reexport
+        )
+      case SuggestionKind.GETTER =>
+        Suggestion.Getter(
+          externalId =
+            toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
+          module        = suggestion.module,
+          name          = suggestion.name,
+          arguments     = Seq(),
+          selfType      = suggestion.selfType,
+          returnType    = suggestion.returnType,
+          documentation = suggestion.documentation,
+          annotations   = Seq(),
           reexport      = suggestion.reexport
         )
       case SuggestionKind.METHOD =>
-        Suggestion.Method(
+        Suggestion.DefinedMethod(
           externalId =
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
           module        = suggestion.module,
@@ -994,6 +1042,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           returnType    = suggestion.returnType,
           isStatic      = suggestion.isStatic,
           documentation = suggestion.documentation,
+          annotations   = Seq(),
           reexport      = suggestion.reexport
         )
       case SuggestionKind.CONVERSION =>
@@ -1002,7 +1051,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
           module        = suggestion.module,
           arguments     = Seq(),
-          sourceType    = suggestion.selfType,
+          selfType      = suggestion.selfType,
           returnType    = suggestion.returnType,
           documentation = suggestion.documentation,
           reexport      = suggestion.reexport

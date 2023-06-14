@@ -151,7 +151,7 @@ default_fetcher_for_value_type value_type =
 ## PRIVATE
 seal_java_builder java_builder column_name =
     storage = java_builder.seal
-    Java_Exports.make_column column_name storage
+    Materialized_Column.from_storage column_name storage
 
 ## PRIVATE
 make_builder_from_java_object_builder java_builder =

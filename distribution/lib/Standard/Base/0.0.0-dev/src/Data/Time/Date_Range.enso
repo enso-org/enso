@@ -3,7 +3,7 @@ import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Range.Empty_Error
-import project.Data.Range.Extensions
+from project.Data.Range.Extensions import all
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period

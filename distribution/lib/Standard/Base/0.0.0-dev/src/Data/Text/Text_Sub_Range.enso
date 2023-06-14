@@ -1,7 +1,7 @@
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
-import project.Data.Range.Extensions
+from project.Data.Range.Extensions import all
 import project.Data.Range.Range
 import project.Data.Text.Text
 import project.Data.Vector.Vector

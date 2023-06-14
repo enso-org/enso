@@ -14,12 +14,14 @@ object LibraryApi {
 
     case class Result(editionNames: Seq[String])
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = self.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = self.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, self.Params] =
+      new HasParams[this.type] {
+        type Params = self.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, self.Result] =
+      new HasResult[this.type] {
+        type Result = self.Result
+      }
   }
 
   case object EditionsResolve extends Method("editions/resolve") {
@@ -29,12 +31,14 @@ object LibraryApi {
 
     case class Result(engineVersion: String)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = self.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = self.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, self.Params] =
+      new HasParams[this.type] {
+        type Params = self.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, self.Result] =
+      new HasResult[this.type] {
+        type Result = self.Result
+      }
   }
 
   case object EditionsGetProjectSettings
@@ -45,12 +49,15 @@ object LibraryApi {
       preferLocalLibraries: Boolean
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = Unused.type
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = self.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, Unused.type] =
+      new HasParams[this.type] {
+        type Params = Unused.type
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, self.Result] =
+      new HasResult[this.type] {
+        type Result = self.Result
+      }
   }
 
   case object EditionsSetParentEdition
@@ -60,12 +67,14 @@ object LibraryApi {
 
     case class Result(needsRestart: Option[Boolean])
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = self.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = self.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, self.Params] =
+      new HasParams[this.type] {
+        type Params = self.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, self.Result] =
+      new HasResult[this.type] {
+        type Result = self.Result
+      }
   }
 
   case object EditionsSetLocalLibrariesPreference
@@ -75,12 +84,14 @@ object LibraryApi {
 
     case class Result(needsRestart: Option[Boolean])
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = self.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = self.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, self.Params] =
+      new HasParams[this.type] {
+        type Params = self.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, self.Result] =
+      new HasResult[this.type] {
+        type Result = self.Result
+      }
   }
 
   case object EditionsListDefinedLibraries
@@ -90,12 +101,14 @@ object LibraryApi {
 
     case class Result(availableLibraries: Seq[LibraryEntry])
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = self.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = self.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, self.Params] =
+      new HasParams[this.type] {
+        type Params = self.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, self.Result] =
+      new HasResult[this.type] {
+        type Result = self.Result
+      }
   }
 
   case object EditionsListDefinedComponents
@@ -105,24 +118,29 @@ object LibraryApi {
 
     case class Result(availableComponents: Seq[LibraryComponentGroup])
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = self.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = self.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, self.Params] =
+      new HasParams[this.type] {
+        type Params = self.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, self.Result] =
+      new HasResult[this.type] {
+        type Result = self.Result
+      }
   }
 
   case object LibraryListLocal extends Method("library/listLocal") { self =>
 
     case class Result(localLibraries: Seq[LibraryEntry])
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = Unused.type
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = self.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, Unused.type] =
+      new HasParams[this.type] {
+        type Params = Unused.type
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, self.Result] =
+      new HasResult[this.type] {
+        type Result = self.Result
+      }
   }
 
   case object LibraryCreate extends Method("library/create") { self =>
@@ -135,12 +153,15 @@ object LibraryApi {
       license: String
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = self.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, self.Params] =
+      new HasParams[this.type] {
+        type Params = self.Params
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object LibraryGetMetadata extends Method("library/getMetadata") { self =>
@@ -153,12 +174,14 @@ object LibraryApi {
 
     case class Result(description: Option[String], tagLine: Option[String])
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = self.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = self.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, self.Params] =
+      new HasParams[this.type] {
+        type Params = self.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, self.Result] =
+      new HasResult[this.type] {
+        type Result = self.Result
+      }
   }
 
   case object LibrarySetMetadata extends Method("library/setMetadata") { self =>
@@ -170,12 +193,15 @@ object LibraryApi {
       tagLine: Option[String]
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = self.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, self.Params] =
+      new HasParams[this.type] {
+        type Params = self.Params
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object LibraryGetPackage extends Method("library/getPackage") { self =>
@@ -194,12 +220,14 @@ object LibraryApi {
       raw: JsonObject
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = self.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = self.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, self.Params] =
+      new HasParams[this.type] {
+        type Params = self.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, self.Result] =
+      new HasResult[this.type] {
+        type Result = self.Result
+      }
   }
 
   case object LibraryPublish extends Method("library/publish") { self =>
@@ -212,24 +240,30 @@ object LibraryApi {
       bumpVersionAfterPublish: Option[Boolean]
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = self.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, self.Params] =
+      new HasParams[this.type] {
+        type Params = self.Params
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object LibraryPreinstall extends Method("library/preinstall") { self =>
 
     case class Params(namespace: String, name: String)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = self.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, self.Params] =
+      new HasParams[this.type] {
+        type Params = self.Params
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case class EditionNotFoundError(editionName: String)

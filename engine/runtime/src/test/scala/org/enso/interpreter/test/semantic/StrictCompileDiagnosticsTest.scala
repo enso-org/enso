@@ -14,6 +14,10 @@ class StrictCompileDiagnosticsTest extends InterpreterTest {
   override def contextModifiers: Option[Context#Builder => Context#Builder] =
     Some(_.option(RuntimeOptions.STRICT_ERRORS, "true"))
 
+  private def isDiagnosticLine(line: String): Boolean = {
+    line.contains(" | ")
+  }
+
   override def specify(implicit
     interpreterContext: InterpreterContext
   ): Unit = {
@@ -30,14 +34,13 @@ class StrictCompileDiagnosticsTest extends InterpreterTest {
 
       val errors = consumeOut
       errors
-        .filterNot(_.contains("Compiler encountered"))
-        .filterNot(_.contains("In module"))
+        .filterNot(isDiagnosticLine)
         .toSet shouldEqual Set(
-        "Test[2:9-2:10]: Parentheses can't be empty.",
-        "Test[3:5-3:9]: Variable x is being redefined.",
-        "Test[4:9-4:9]: Unexpected expression.",
-        "Test[4:5-4:5]: Unused variable y.",
-        "Test[2:5-2:5]: Unused variable x."
+        "Test:2:9: error: Parentheses can't be empty.",
+        "Test:3:5: error: Variable x is being redefined.",
+        "Test:4:9: error: Unexpected expression.",
+        "Test:4:5: warning: Unused variable y.",
+        "Test:2:5: warning: Unused variable x."
       )
     }
   }

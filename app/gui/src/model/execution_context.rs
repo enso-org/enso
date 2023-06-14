@@ -414,6 +414,10 @@ pub trait API: Debug {
     /// Obtain the method pointer to the method of the call stack's top frame.
     fn current_method(&self) -> MethodPointer;
 
+    /// Obtain the method pointer to the method of the call `count` frames back from the stack's top
+    /// (calling with 0 is the same as [`current_method`](Self::current_method).
+    fn method_at_frame_back(&self, count: usize) -> FallibleResult<MethodPointer>;
+
     /// Get the information about the given visualization. Fails, if there's no such visualization
     /// active.
     fn visualization_info(&self, id: VisualizationId) -> FallibleResult<Visualization>;

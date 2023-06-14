@@ -386,7 +386,7 @@ mod test {
 
     use enso_text::index::*;
 
-    #[wasm_bindgen_test]
+    #[test]
     fn applying_code_change() {
         let _test = TestWithLocalPoolExecutor::set_up();
         let module = model::module::test::plain_from_code("2 + 2");
@@ -398,7 +398,7 @@ mod test {
         assert_eq!("2 - abc", module.ast().repr());
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn notifying() {
         let mut test = TestWithLocalPoolExecutor::set_up();
         let module = model::module::test::plain_from_code("");
@@ -479,5 +479,30 @@ mod test {
             )
             .unwrap();
         assert_eq!(Some(new_pos), module.node_metadata(id).unwrap().position);
+    }
+
+    #[test]
+    fn test_metadata_stability() {
+        // TODO [mwu]
+        //  This tests makes sure that the program included below properly round-trips through
+        //  AST <-> Text conversions. This is specifically for testing workaround for the bug
+        //  https://github.com/enso-org/enso/issues/6718. After proper fix is implemented, this
+        //  test should be removed or accordingly modified (remove the module ast id).
+        const PROGRAM: &str = r#"from Standard.Base import all
+from Standard.Table import all
+from Standard.Database import all
+from Standard.AWS import all
+import Standard.Visualization
+
+main =
+    operator1 = "Press TAB key to create a new node"
+
+
+
+#### METADATA ####
+[[{"index":{"value":5},"size":{"value":8}},"2237ae5e-903c-4a9f-9fd0-fc38b8042d7c"],[{"index":{"value":13},"size":{"value":1}},"5dd326f5-5914-401c-8ef3-517ba857d6aa"],[{"index":{"value":14},"size":{"value":4}},"b928d231-d0da-4349-b1d5-e02915ca9d4a"],[{"index":{"value":5},"size":{"value":13}},"42c59577-b318-4d87-bfe2-45db95b58be9"],[{"index":{"value":0},"size":{"value":29}},"50648f66-fa28-4585-b48e-fa742d0b7e06"],[{"index":{"value":35},"size":{"value":8}},"9d1366e1-7e1d-45fb-9eb0-c8ff1a9e86c5"],[{"index":{"value":43},"size":{"value":1}},"8ee6b8fc-dee5-4544-ae2e-b99539f1433d"],[{"index":{"value":44},"size":{"value":5}},"21832d23-bc1f-4801-8575-4001e33b94b6"],[{"index":{"value":35},"size":{"value":14}},"f0266d43-7e5b-497a-9ad0-58be68948d0a"],[{"index":{"value":30},"size":{"value":30}},"5291f4d1-3b72-49e9-bbae-9a66c31ae53e"],[{"index":{"value":66},"size":{"value":8}},"6234fc57-8953-4477-afa3-269b8217bc0f"],[{"index":{"value":74},"size":{"value":1}},"0b2dea39-fa5f-4234-9e12-dc2aee306fd4"],[{"index":{"value":75},"size":{"value":8}},"459efd89-3b04-4f0c-b43b-c9f1a14d53e9"],[{"index":{"value":66},"size":{"value":17}},"a001484a-fec9-48e8-a1b4-259d3b8884ba"],[{"index":{"value":61},"size":{"value":33}},"c80868fb-9f2f-41dc-ab45-33f9536462fc"],[{"index":{"value":100},"size":{"value":8}},"f5ee7eec-897d-489c-9c86-3ee9f40769cf"],[{"index":{"value":108},"size":{"value":1}},"0065ad69-4045-4c67-80a8-a723de221dcc"],[{"index":{"value":109},"size":{"value":3}},"83f63951-e783-4c04-835f-f4842cd19aa5"],[{"index":{"value":100},"size":{"value":12}},"1b119185-e823-429e-bc0a-e4e67d6b2619"],[{"index":{"value":95},"size":{"value":28}},"85fbfdc1-666d-47df-bcc9-f7a4653774f0"],[{"index":{"value":131},"size":{"value":8}},"aaa27a07-8bf9-4015-889e-7f3ad93ba83a"],[{"index":{"value":139},"size":{"value":1}},"2f16eb27-c7e5-4def-8982-9c8d3bcff8be"],[{"index":{"value":140},"size":{"value":13}},"b9bd5554-eb2d-4d60-99c6-e9796abbde3a"],[{"index":{"value":131},"size":{"value":22}},"e828a1d8-90f4-4350-8144-8e0c85448c33"],[{"index":{"value":124},"size":{"value":29}},"9ec14bd9-bff9-4485-96b0-0dd2b7c711a1"],[{"index":{"value":155},"size":{"value":4}},"de34419e-7ab4-4080-aad4-26a0960fc7b0"],[{"index":{"value":160},"size":{"value":1}},"53c348a5-a048-4f25-b1b0-43aa4f4bdddb"],[{"index":{"value":166},"size":{"value":9}},"ce3e86b8-9106-4ecf-9b35-a064ce435162"],[{"index":{"value":176},"size":{"value":1}},"4b428a34-3e14-4c89-9fea-7fb8b0c8d010"],[{"index":{"value":178},"size":{"value":36}},"f32c12eb-0fab-4e9b-ace6-718c34ad5726"],[{"index":{"value":166},"size":{"value":48}},"8ee5a81e-5428-4b18-8b52-5c4f66f77792"],[{"index":{"value":161},"size":{"value":53}},"1f9ab84d-6918-4245-8fdc-2b4c435f3252"],[{"index":{"value":155},"size":{"value":59}},"5938d821-22bc-4408-94b6-2f1f70f6fdc6"],[{"index":{"value":0},"size":{"value":215}},"16bb0e35-6793-49e7-b850-2b23d02a377e"]]
+{"ide":{"node":{"f32c12eb-0fab-4e9b-ace6-718c34ad5726":{"position":{"vector":[-116.0,105.0]},"intended_method":null,"uploading_file":null,"selected":false,"visualization":{"name":{"content":{"content":"JSON"}},"project":"Builtin"}}},"import":{},"project":null}}"#;
+        let ast = Parser::new().parse_with_metadata::<Metadata>(PROGRAM);
+        assert_eq!(ast.to_string(), PROGRAM);
     }
 }

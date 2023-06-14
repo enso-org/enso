@@ -85,6 +85,7 @@ pub trait API: Debug {
     fn create_execution_context<'a>(
         &'a self,
         root_definition: language_server::MethodPointer,
+        context_id: model::execution_context::Id,
     ) -> BoxFuture<'a, FallibleResult<model::ExecutionContext>>;
 
     /// Set a new project name.
@@ -181,6 +182,8 @@ pub enum Notification {
     VcsStatusChanged(VcsStatus),
     /// Indicates that the project has finished execution.
     ExecutionFinished,
+    /// Indicates failure of the project execution.
+    ExecutionFailed,
 }
 
 /// Denotes one of backend connections used by a project.
@@ -234,8 +237,10 @@ pub mod test {
         let ctx2 = ctx.clone_ref();
         project
             .expect_create_execution_context()
-            .withf_st(move |root_definition| root_definition == &ctx.current_method())
-            .returning_st(move |_root_definition| ready(Ok(ctx2.clone_ref())).boxed_local());
+            .withf_st(move |root_definition, _context_id| root_definition == &ctx.current_method())
+            .returning_st(move |_root_definition, _context_id| {
+                ready(Ok(ctx2.clone_ref())).boxed_local()
+            });
     }
 
     /// Sets up project root id expectation on the mock project, returning a given id.
