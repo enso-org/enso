@@ -5,7 +5,7 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
-import project.Data.Range.Extensions
+from project.Data.Range.Extensions import all
 import project.Data.Vector.Vector
 import project.Errors.Common.Incomparable_Values
 import project.Error.Error

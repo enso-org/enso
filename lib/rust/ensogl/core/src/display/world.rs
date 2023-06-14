@@ -670,6 +670,13 @@ impl WorldData {
         self.garbage_collector.collect(object);
     }
 
+    /// Immediately drop the garbage.
+    ///
+    /// May be used to resolve dependence cycles if garbage keeps reference to [`World`].
+    pub fn force_garbage_drop(&self) {
+        self.garbage_collector.force_garbage_drop()
+    }
+
     /// Set the maximum frequency at which the pointer location will be checked, in terms of number
     /// of frames per check.
     pub fn set_pixel_read_period(&self, period: usize) {

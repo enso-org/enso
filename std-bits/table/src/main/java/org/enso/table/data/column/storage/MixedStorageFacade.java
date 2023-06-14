@@ -1,14 +1,13 @@
 package org.enso.table.data.column.storage;
 
+import java.util.BitSet;
+import java.util.List;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-
-import java.util.BitSet;
-import java.util.List;
 
 /**
  * Wraps a storage of any type and alters its reported storage to be of type AnyObject.

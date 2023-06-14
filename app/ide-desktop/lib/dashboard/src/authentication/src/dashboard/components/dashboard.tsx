@@ -35,7 +35,6 @@ import ConfirmDeleteModal from './confirmDeleteModal'
 import RenameModal from './renameModal'
 import UploadFileModal from './uploadFileModal'
 
-import DirectoryCreateForm from './directoryCreateForm'
 import FileCreateForm from './fileCreateForm'
 import SecretCreateForm from './secretCreateForm'
 
@@ -99,6 +98,10 @@ const EXPERIMENTAL = {
 const IDE_ELEMENT_ID = 'root'
 /** The `localStorage` key under which the ID of the current directory is stored. */
 const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-directory-stack`
+/** The {@link RegExp} matching a directory name following the default naming convention. */
+const DIRECTORY_NAME_REGEX = /^New_Directory_(?<directoryIndex>\d+)$/
+/** The default prefix of an automatically generated directory. */
+const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Directory_'
 
 /** English names for the name column. */
 const ASSET_TYPE_NAME: Record<backendModule.AssetType, string> = {
@@ -110,12 +113,14 @@ const ASSET_TYPE_NAME: Record<backendModule.AssetType, string> = {
 
 /** Forms to create each asset type. */
 const ASSET_TYPE_CREATE_FORM: Record<
-    Exclude<backendModule.AssetType, backendModule.AssetType.project>,
+    Exclude<
+        backendModule.AssetType,
+        backendModule.AssetType.directory | backendModule.AssetType.project
+    >,
     (props: CreateFormProps) => JSX.Element
 > = {
     [backendModule.AssetType.file]: FileCreateForm,
     [backendModule.AssetType.secret]: SecretCreateForm,
-    [backendModule.AssetType.directory]: DirectoryCreateForm,
 }
 
 /** English names for every column except for the name column. */
@@ -171,7 +176,7 @@ const PERMISSION: Record<backendModule.PermissionAction, permissionDisplay.Permi
 
 /** The list of columns displayed on each `ColumnDisplayMode`. */
 const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {
-    [ColumnDisplayMode.release]: [Column.name, Column.lastModified, Column.sharedWith],
+    [ColumnDisplayMode.release]: [Column.name, Column.lastModified /*, Column.sharedWith*/],
     [ColumnDisplayMode.all]: [
         Column.name,
         Column.lastModified,
@@ -504,7 +509,7 @@ function Dashboard(props: DashboardProps) {
             <div
                 className="flex text-left items-center align-middle whitespace-nowrap"
                 onClick={event => {
-                    if (event.detail === 2 && event.target === event.currentTarget) {
+                    if (event.detail === 2) {
                         // It is a double click; open the project.
                         setProjectEvent({
                             type: projectActionButton.ProjectEventType.open,
@@ -723,6 +728,15 @@ function Dashboard(props: DashboardProps) {
                                 error: (promiseError: Error) =>
                                     `Error creating new empty project: ${promiseError.message}`,
                             })
+                        } else if (assetType === backendModule.AssetType.directory) {
+                            void toast.promise(handleCreateDirectory(), {
+                                loading: 'Creating new directory...',
+                                success: 'Created new directory.',
+                                // This is UNSAFE, as the original function's parameter is of type
+                                // `any`.
+                                error: (promiseError: Error) =>
+                                    `Error creating new directory: ${promiseError.message}`,
+                            })
                         } else {
                             // This is a React component even though it doesn't contain JSX.
                             // eslint-disable-next-line no-restricted-syntax
@@ -881,6 +895,38 @@ function Dashboard(props: DashboardProps) {
         // would display as closed as it would be created after the event is sent.
         setNameOfProjectToImmediatelyOpen(projectName)
         doRefresh()
+    }
+
+    const handleCreateDirectory = async () => {
+        if (backend.type !== backendModule.BackendType.remote) {
+            // This should never happen, but even if it does, it is the caller's responsibility
+            // to log, or display this error.
+            throw new Error('Folders cannot be created on the local backend.')
+        } else {
+            const directoryIndices = directoryAssets
+                .map(directoryAsset => DIRECTORY_NAME_REGEX.exec(directoryAsset.title))
+                .map(match => match?.groups?.directoryIndex)
+                .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
+            const title = `${DIRECTORY_NAME_DEFAULT_PREFIX}${Math.max(...directoryIndices) + 1}`
+            setDirectoryAssets([
+                {
+                    title,
+                    type: backendModule.AssetType.directory,
+                    id: newtype.asNewtype<backendModule.DirectoryId>(Number(new Date()).toString()),
+                    modifiedAt: dateTime.toRfc3339(new Date()),
+                    parentId: directoryId ?? newtype.asNewtype<backendModule.DirectoryId>(''),
+                    permissions: [],
+                    projectState: null,
+                },
+                ...directoryAssets,
+            ])
+            await backend.createDirectory({
+                parentId: directoryId,
+                title,
+            })
+            doRefresh()
+            return
+        }
     }
 
     return (

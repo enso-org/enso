@@ -2,7 +2,6 @@ package org.enso.shttp;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -10,7 +9,6 @@ import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.commons.text.StringEscapeUtils;
 
 public class DummyHandler implements HttpHandler {

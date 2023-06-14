@@ -8,7 +8,9 @@ import project.Connection.SQLite_Details.SQLite_Details
 import project.Connection.SQLite_Details.In_Memory
 import project.Connection.SQLite_Format.SQLite_Format
 import project.Connection.SSL_Mode.SSL_Mode
+import project.Data.Column_Description.Column_Description
 import project.Data.SQL_Query.SQL_Query
+import project.Data.Update_Action.Update_Action
 import project.Extensions.Upload_Database_Table
 import project.Extensions.Upload_In_Memory_Table
 
@@ -25,7 +27,9 @@ export project.Connection.SQLite_Details.SQLite_Details
 export project.Connection.SQLite_Details.In_Memory
 export project.Connection.SQLite_Format.SQLite_Format
 export project.Connection.SSL_Mode.SSL_Mode
+export project.Data.Column_Description.Column_Description
 export project.Data.SQL_Query.SQL_Query
+export project.Data.Update_Action.Update_Action
 export project.Extensions.Upload_Database_Table
 export project.Extensions.Upload_In_Memory_Table
 

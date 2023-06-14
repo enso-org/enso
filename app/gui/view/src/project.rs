@@ -130,6 +130,8 @@ ensogl::define_endpoints! {
         drop_files_enabled             (bool),
         debug_mode                     (bool),
         go_to_dashboard_button_pressed (),
+        /// The name of the command currently being handled due to shortcut being pressed.
+        current_shortcut               (Option<ImString>),
     }
 }
 
@@ -141,7 +143,6 @@ ensogl::define_endpoints! {
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    app:                  Application,
     display_object:       display::object::Instance,
     project_view_top_bar: ProjectViewTopBar,
     graph_editor:         Rc<GraphEditor>,
@@ -173,10 +174,8 @@ impl Model {
         display_object.add_child(&project_view_top_bar);
         display_object.remove_child(&searcher);
 
-        let app = app.clone_ref();
         let graph_editor = Rc::new(graph_editor);
         Self {
-            app,
             display_object,
             project_view_top_bar,
             graph_editor,
@@ -359,6 +358,7 @@ impl View {
             .init_style_toggle_frp()
             .init_fullscreen_visualization_frp()
             .init_debug_mode_frp()
+            .init_shortcut_observer()
     }
 
     fn init_top_bar_frp(self, scene: &Scene) -> Self {
@@ -408,6 +408,7 @@ impl View {
             graph.set_navigator_disabled <+ disable_navigation;
 
             model.popup.set_label <+ graph.model.breadcrumbs.project_name_error;
+            model.popup.set_label <+ graph.visualization_update_error._1();
             graph.set_read_only <+ frp.set_read_only;
             graph.set_debug_mode <+ frp.source.debug_mode;
 
@@ -658,6 +659,15 @@ impl View {
         self
     }
 
+    fn init_shortcut_observer(self) -> Self {
+        let frp = &self.frp;
+        frp::extend! { network
+            frp.source.current_shortcut <+ self.model.app.shortcuts.currently_handled;
+        }
+
+        self
+    }
+
     /// Graph Editor View.
     pub fn graph(&self) -> &GraphEditor {
         &self.model.graph_editor
@@ -708,10 +718,6 @@ impl application::View for View {
 
     fn new(app: &Application) -> Self {
         View::new(app)
-    }
-
-    fn app(&self) -> &Application {
-        &self.model.app
     }
 
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {

@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Data.SQL.Builder
+import project.Data.Column_Constraint.Column_Constraint
 import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.From_Spec.From_Spec
@@ -435,10 +436,11 @@ generate_query dialect query = case query of
         generate_create_table dialect name columns primary_key temporary
     Query.Drop_Table name ->
         Builder.code "DROP TABLE " ++ dialect.wrap_identifier name
-    Query.Insert_From_Select table_name select_query -> case select_query of
+    Query.Insert_From_Select table_name column_names select_query -> case select_query of
         Query.Select _ _ ->
             inner_query = generate_query dialect select_query
-            Builder.code "INSERT INTO " ++ dialect.wrap_identifier table_name ++ " " ++ inner_query
+            columns_part = Builder.join ", " (column_names.map dialect.wrap_identifier) . paren
+            Builder.code "INSERT INTO " ++ dialect.wrap_identifier table_name ++ " " ++ columns_part ++ " " ++ inner_query
         _ -> Panic.throw (Illegal_State.Error "The inner query of `Query.Insert_From_Select` must be `Query.Select`, but it was "+select_query.to_display_text+". This is a bug in the Database library.")
     _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type: "+query.to_text
 
@@ -491,13 +493,20 @@ make_concat make_raw_concat_expr make_contains_expr has_quote args =
 ## PRIVATE
    Generates the SQL code corresponding to a CREATE TABLE query.
 generate_create_table dialect name columns primary_key temporary =
-    column_definitions = columns.map descriptor->
-        name = descriptor.first
-        sql_type_as_text = descriptor.second
-        dialect.wrap_identifier name ++ " " ++ sql_type_as_text
+    column_definitions = columns.map (generate_column_description dialect)
     modifiers = if primary_key.is_nothing then [] else
         [Builder.code ", PRIMARY KEY (" ++ Builder.join ", " (primary_key.map dialect.wrap_identifier) ++ ")"]
     table_type = if temporary then "TEMPORARY TABLE" else "TABLE"
     create_prefix = Builder.code ("CREATE "+table_type+" ") ++ dialect.wrap_identifier name
     create_body = (Builder.join ", " column_definitions) ++ (Builder.join "" modifiers)
     create_prefix ++ " (" ++ create_body ++ ")"
+
+## PRIVATE
+   Generates a description of a single column for a CREATE TABLE query.
+generate_column_description dialect descriptor =
+    modifiers = descriptor.constraints.map constraint-> case constraint of
+        Column_Constraint.Default_Expression raw_expression -> (Builder.code "DEFAULT ") ++ (Builder.code raw_expression . paren)
+        Column_Constraint.Not_Null -> Builder.code "NOT NULL"
+    suffix = if modifiers.is_empty then Builder.empty else
+        Builder.code " " ++ (Builder.join " " modifiers)
+    (dialect.wrap_identifier descriptor.name) ++ " " ++ descriptor.sql_type ++ suffix

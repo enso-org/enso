@@ -1,7 +1,5 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Text.Extensions import slice_text
-
 ## PRIVATE
    Message to be sent to the IDE.
 type Message
