@@ -461,7 +461,7 @@ generate_query dialect query = case query of
         source = dialect.wrap_identifier source_table_name
         if key_columns.is_empty then
             Panic.throw (Illegal_State.Error "Invalid IR: `Query.Delete_Unmatched_Rows` must have at least one key column. This is a bug in the Database library.")
-        key_part = Builder.join ", " key_columns
+        key_part = Builder.join ", " (key_columns.map dialect.wrap_identifier)
         Builder.code "DELETE FROM " ++ target ++ " WHERE (" ++ key_part ++ ") NOT IN (SELECT " ++ key_part ++ " FROM " ++ source ++ ")"
     _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type: "+query.to_text
 
