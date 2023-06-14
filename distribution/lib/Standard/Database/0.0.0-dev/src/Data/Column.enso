@@ -551,16 +551,14 @@ type Column
                 op_result = self.make_op "IIF" [when_true, when_false] new_name
                 adapt_unified_column op_result common_type
 
-    ## Creates a column from a single constant value. The value must be numeric,
-       text, or boolean.
+    ## Creates a column from a single constant value.
 
        This method is not static; it must be called on an existing column. That
        existing column is only used for its internal state; the contents of the
        column are not used.
 
        Arguments:
-       - value: the constant value to use for the entire column. Must be
-         numeric, text, or boolean.
+       - value: the constant value to use for the entire column.
 
        > Example
          Create a column of the value 42
@@ -568,13 +566,8 @@ type Column
          column.const 42
     const : Any -> Column
     const self value =
-        case value.is_a Number || value.is_a Boolean || value.is_a Text of
-            True ->
-                new_name = "Constant " + value.to_text
-                self.make_binary_op "CONST" value new_name
-            False -> 
-                msg = "Cannot create a constant column of " + value.to_text
-                Error.throw (Illegal_Argument.Error msg)
+        new_name = "Constant " + value.to_text
+        self.make_binary_op "CONST" value new_name
 
     ## Round to a specified number of decimal places.
 
