@@ -113,7 +113,7 @@ pub enum Notification {
     /// A new Suggestion list is available.
     NewActionList,
     /// Code should be inserted by means of using an AI autocompletion.
-    AISuggestionUpdated(String),
+    AISuggestionUpdated(String, text::Range<text::Byte>),
 }
 
 
@@ -577,6 +577,7 @@ impl Searcher {
     /// 3. Replaces the query with the result of the Open AI call.
     async fn accept_ai_query(
         query: String,
+        query_range: text::Range<Byte>,
         this: ThisNode,
         graph: Handle,
         notifier: notification::Publisher<Notification>,
@@ -593,7 +594,7 @@ impl Searcher {
         let prompt_with_goal = prompt.replace(Self::AI_GOAL_PLACEHOLDER, &query);
         graph.detach_visualization(vis.id).await?;
         let completion = graph.get_ai_completion(&prompt_with_goal, Self::AI_STOP_SEQUENCE).await?;
-        notifier.publish(Notification::AISuggestionUpdated(completion)).await;
+        notifier.publish(Notification::AISuggestionUpdated(completion, query_range)).await;
         Ok(())
     }
 
@@ -602,6 +603,8 @@ impl Searcher {
     /// sequence. Otherwise, calls `Self::accept_ai_query` to perform the final
     /// replacement.
     fn handle_ai_query(&self, query: String) -> FallibleResult {
+        let len = query.as_bytes().len();
+        let range = text::Range::new(Byte::from(0), Byte::from(len));
         let query = query.trim_start_matches(Self::AI_QUERY_PREFIX);
         if !query.ends_with(Self::AI_QUERY_ACCEPT_TOKEN) {
             return Ok(());
@@ -615,7 +618,7 @@ impl Searcher {
         let graph = self.graph.clone_ref();
         let notifier = self.notifier.clone_ref();
         executor::global::spawn(async move {
-            if let Err(e) = Self::accept_ai_query(query, this, graph, notifier).await {
+            if let Err(e) = Self::accept_ai_query(query, range, this, graph, notifier).await {
                 error!("error when handling AI query: {e}");
             }
         });

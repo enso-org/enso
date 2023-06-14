@@ -368,8 +368,8 @@ impl Searcher {
         spawn_stream_handler(weak_model, notifications, move |notification, _| {
             match notification {
                 Notification::NewActionList => action_list_changed.emit(()),
-                Notification::AISuggestionUpdated(expr) =>
-                    graph.set_node_expression((input_view, Expression::new_plain(expr))),
+                Notification::AISuggestionUpdated(expr, range) =>
+                    graph.edit_node_expression((input_view, range, ImString::new(expr))),
             };
             std::future::ready(())
         });
