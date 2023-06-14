@@ -292,6 +292,10 @@ impl MethodPointerToIdMap {
 #[fail(display = "The suggestion with id {} has not been found in the database.", _0)]
 pub struct NoSuchEntry(pub SuggestionId);
 
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Eq, Fail, PartialEq)]
+#[fail(display = "The suggestion with name {} has not been found in the database.", _0)]
+pub struct NoSuchEntryWithName(pub String);
 
 
 // ====================
@@ -476,10 +480,13 @@ impl SuggestionDatabase {
 
     /// Search the database for an entry at `fully_qualified_name`. The parameter is expected to be
     /// composed of segments separated by the [`ACCESS`] character.
-    pub fn lookup_by_qualified_name_str(&self, qualified_name_str: &str) -> Option<Rc<Entry>> {
-        let qualified_name = QualifiedName::from_text(qualified_name_str).ok()?;
+    pub fn lookup_by_qualified_name_str(
+        &self,
+        qualified_name_str: &str,
+    ) -> FallibleResult<Rc<Entry>> {
+        let qualified_name = QualifiedName::from_text(qualified_name_str)?;
         let (_, entry) = self.lookup_by_qualified_name(&qualified_name)?;
-        Some(entry)
+        Ok(entry)
     }
 
     /// Search the database for an entry at `name` consisting fully qualified name segments, e.g.
@@ -487,11 +494,15 @@ impl SuggestionDatabase {
     pub fn lookup_by_qualified_name<'a>(
         &self,
         name: impl Into<QualifiedNameRef<'a>>,
-    ) -> Option<(SuggestionId, Rc<Entry>)> {
+    ) -> FallibleResult<(SuggestionId, Rc<Entry>)> {
         let name = name.into();
         let segments = name.segments().map(CloneRef::clone_ref);
-        let id = self.qualified_name_to_id_map.borrow().get(segments);
-        id.and_then(|id| Some((id, self.lookup(id).ok()?)))
+        let id = self
+            .qualified_name_to_id_map
+            .borrow()
+            .get(segments)
+            .ok_or(NoSuchEntryWithName(name.to_string()))?;
+        Ok((id, self.lookup(id)?))
     }
 
     /// Search the database for entries with given name and visible at given location in module.
@@ -818,7 +829,7 @@ pub mod test {
     /// is [`None`].
     fn lookup_and_verify_empty_result(db: &SuggestionDatabase, fully_qualified_name: &str) {
         let lookup = db.lookup_by_qualified_name_str(fully_qualified_name);
-        assert_eq!(lookup, None);
+        assert!(lookup.is_err());
     }
 
     fn db_entry(id: SuggestionId, suggestion: SuggestionEntry) -> SuggestionsDatabaseEntry {
@@ -1328,7 +1339,7 @@ pub mod test {
 
     fn lookup_id_by_name(db: &SuggestionDatabase, name: &str) -> Option<entry::Id> {
         let name = QualifiedName::from_text(name).ok()?;
-        let (id, _) = db.lookup_by_qualified_name(&name)?;
+        let (id, _) = db.lookup_by_qualified_name(&name).ok()?;
         Some(id)
     }
 

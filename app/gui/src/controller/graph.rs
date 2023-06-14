@@ -17,7 +17,10 @@ use double_representation::definition;
 use double_representation::definition::DefinitionProvider;
 use double_representation::graph::GraphInfo;
 use double_representation::identifier::generate_name;
+use double_representation::import;
 use double_representation::module;
+use double_representation::name::project;
+use double_representation::name::QualifiedName;
 use double_representation::node;
 use double_representation::node::MainLine;
 use double_representation::node::NodeAst;
@@ -463,6 +466,21 @@ impl EndpointInfo {
 
 
 
+// ======================
+// === RequiredImport ===
+// ======================
+
+/// An import that is needed for the picked suggestion.
+#[derive(Debug, Clone)]
+pub enum RequiredImport {
+    /// A specific entry needs to be imported.
+    Entry(Rc<enso_suggestion_database::Entry>),
+    /// An entry with a specific name needs to be imported.
+    Name(QualifiedName),
+}
+
+
+
 // ==================
 // === Controller ===
 // ==================
@@ -475,6 +493,7 @@ pub struct Handle {
     pub id:            Rc<Id>,
     pub module:        model::Module,
     pub suggestion_db: Rc<model::SuggestionDatabase>,
+    project_name:      project::QualifiedName,
     parser:            Parser,
 }
 
@@ -485,9 +504,10 @@ impl Handle {
         suggestion_db: Rc<model::SuggestionDatabase>,
         parser: Parser,
         id: Id,
+        project_name: project::QualifiedName,
     ) -> Handle {
         let id = Rc::new(id);
-        Handle { id, module, suggestion_db, parser }
+        Handle { id, module, suggestion_db, parser, project_name }
     }
 
     /// Create a new graph controller. Given ID should uniquely identify a definition in the
@@ -497,8 +517,9 @@ impl Handle {
         suggestion_db: Rc<model::SuggestionDatabase>,
         parser: Parser,
         id: Id,
+        project_name: project::QualifiedName,
     ) -> FallibleResult<Handle> {
-        let ret = Self::new_unchecked(module, suggestion_db, parser, id);
+        let ret = Self::new_unchecked(module, suggestion_db, parser, id, project_name);
         // Get and discard definition info, we are just making sure it can be obtained.
         let _ = ret.definition()?;
         Ok(ret)
@@ -517,7 +538,13 @@ impl Handle {
         let module_path = model::module::Path::from_method(root_id, &method)?;
         let module = project.module(module_path).await?;
         let definition = module.lookup_method(project.qualified_name(), &method)?;
-        Self::new(module, project.suggestion_db(), project.parser(), definition)
+        Self::new(
+            module,
+            project.suggestion_db(),
+            project.parser(),
+            definition,
+            project.qualified_name(),
+        )
     }
 
     /// Get the double representation description of the graph.
@@ -670,24 +697,82 @@ impl Handle {
 
     /// Add a necessary unqualified import (`from module import name`) to the module, such that
     /// the provided fully qualified name is imported and available in the module.
-    pub fn add_import_if_missing(
-        &self,
-        qualified_name: double_representation::name::QualifiedName,
-    ) -> FallibleResult {
-        if let Some(module_path) = qualified_name.parent() {
-            let import = model::suggestion_database::entry::Import::Unqualified {
-                module: module_path.to_owned(),
-                name:   qualified_name.name().into(),
-            };
+    pub fn add_import_if_missing(&self, qualified_name: QualifiedName) -> FallibleResult {
+        self.add_required_imports(iter::once(RequiredImport::Name(qualified_name)), true)
+    }
 
-            let mut module = double_representation::module::Info { ast: self.module.ast() };
-            let already_imported = module.iter_imports().any(|info| import.covered_by(&info));
-            if !already_imported {
-                module.add_import(&self.parser, import.into());
-                self.module.update_ast(module.ast)?;
+    /// Add imports to the module, but avoid their duplication. Temporary imports added by passing
+    /// `permanent: false` can be removed by calling [`Self::clear_temporary_imports`].
+    #[profile(Debug)]
+    pub fn add_required_imports<'a>(
+        &self,
+        import_requirements: impl Iterator<Item = RequiredImport>,
+        permanent: bool,
+    ) -> FallibleResult {
+        let module_path = self.module.path();
+        let project_name = self.project_name.clone_ref();
+        let module_qualified_name = module_path.qualified_module_name(project_name);
+        let imports = import_requirements
+            .filter_map(|requirement| match requirement {
+                RequiredImport::Entry(entry) => Some(
+                    entry.required_imports(&self.suggestion_db, module_qualified_name.as_ref()),
+                ),
+                RequiredImport::Name(name) => {
+                    let (_id, entry) = self.suggestion_db.lookup_by_qualified_name(&name).ok()?;
+                    let defined_in = module_qualified_name.as_ref();
+                    Some(entry.required_imports(&self.suggestion_db, defined_in))
+                }
+            })
+            .flatten();
+        let mut module = double_representation::module::Info { ast: self.module.ast() };
+        let parser = Parser::new();
+        for entry_import in imports {
+            let already_imported =
+                module.iter_imports().any(|existing| entry_import.covered_by(&existing));
+            let import: import::Info = entry_import.into();
+            let import_id = import.id();
+            let already_inserted = module.contains_import(import_id);
+            let need_to_insert = !already_imported;
+            let old_import_became_permanent = permanent && already_inserted;
+            let need_to_update_md = need_to_insert || old_import_became_permanent;
+            if need_to_insert {
+                module.add_import(&parser, import);
+            }
+            if need_to_update_md {
+                self.module.with_import_metadata(
+                    import_id,
+                    Box::new(|import_metadata| {
+                        import_metadata.is_temporary = !permanent;
+                    }),
+                )?;
             }
         }
-        Ok(())
+        self.module.update_ast(module.ast)
+    }
+
+    /// Remove temporary imports added by [`Self::add_required_imports`].
+    pub fn clear_temporary_imports(&self) {
+        let mut module = double_representation::module::Info { ast: self.module.ast() };
+        let import_metadata = self.module.all_import_metadata();
+        let metadata_to_remove = import_metadata
+            .into_iter()
+            .filter_map(|(id, import_metadata)| {
+                import_metadata.is_temporary.then(|| {
+                    if let Err(e) = module.remove_import_by_id(id) {
+                        warn!("Failed to remove import because of: {e:?}");
+                    }
+                    id
+                })
+            })
+            .collect_vec();
+        if let Err(e) = self.module.update_ast(module.ast) {
+            warn!("Failed to update module ast when removing imports because of: {e:?}");
+        }
+        for id in metadata_to_remove {
+            if let Err(e) = self.module.remove_import_metadata(id) {
+                warn!("Failed to remove import metadata for import id {id} because of: {e:?}");
+            }
+        }
     }
 
     /// Reorders lines so the former node is placed after the latter. Does nothing, if the latter
@@ -1142,7 +1227,8 @@ pub mod tests {
             let module = self.module_data().plain(&parser, urm);
             let id = self.graph_id.clone();
             let db = self.suggestion_db();
-            Handle::new(module, db, parser, id).unwrap()
+            let project_name = self.project_name.clone_ref();
+            Handle::new(module, db, parser, id, project_name).unwrap()
         }
 
         pub fn method(&self) -> MethodPointer {
