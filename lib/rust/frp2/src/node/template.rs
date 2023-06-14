@@ -6,12 +6,12 @@ use enso_generics::traits::*;
 
 use crate::data::Data;
 use crate::network::Network;
-use crate::node::class::NodeInNetwork;
-use crate::node::class::TypedNode;
 use crate::node::input;
 use crate::node::input::Listen;
 use crate::node::input::ListenAndSample;
 use crate::node::input::Sample;
+use crate::node::node::NodeInNetwork;
+use crate::node::node::TypedNode;
 use crate::node::Node;
 use crate::node::NodeWithDefaultOutput;
 use crate::runtime::with_runtime;

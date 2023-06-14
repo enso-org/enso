@@ -1,7 +1,7 @@
 //! FRP node implementation.
 
-mod class;
 pub mod input;
+mod node;
 mod template;
 
-pub use class::*;
+pub use node::*;
