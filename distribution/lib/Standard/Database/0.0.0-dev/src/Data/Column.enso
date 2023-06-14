@@ -601,6 +601,17 @@ type Column
          Must be between -15 and 15 (inclusive).
        - use_bankers: Rounds mid-point to nearest even number.
 
+       ! NaN/Inf
+         `round` behaves differently on different database engines.
+         - Postgres:
+           - NaN: Error
+           - +Inf: Error
+           - -Inf: Error
+         - SQLite:
+           - NaN: Returns Nothing
+           - +Inf: Returns Java `Long.MAX_VALUE`
+           - -Inf: Returns Java `Long.MIN_VALUE`
+
        ! Error Conditions
 
          If `decimal_places` is outside the range -15..15 (inclusive), an
