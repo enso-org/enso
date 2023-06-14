@@ -485,6 +485,8 @@
 - [Speed improvements to `Column` `.truncate`, `.ceil`, and `.floor`.][6941]
 - [Implemented addition and subtraction for `Date_Period` and
   `Time_Period`.][6956]
+- [Added `round`, `ceil`, `floor`, `truncate` to the In-Database Column type]
+  [6988]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -704,6 +706,7 @@
 [6925]: https://github.com/enso-org/enso/pull/6925
 [6941]: https://github.com/enso-org/enso/pull/6941
 [6956]: https://github.com/enso-org/enso/pull/6956
+[6988]: https://github.com/enso-org/enso/pull/6988
 
 #### Enso Compiler
 
