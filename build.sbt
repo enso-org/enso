@@ -445,7 +445,7 @@ val scalaCompiler = Seq(
 // === std-lib ================================================================
 
 val antlrVersion            = "4.13.0"
-val awsJavaSdkV1Version     = "1.12.273"
+val awsJavaSdkV1Version     = "1.12.480"
 val awsJavaSdkV2Version     = "2.20.78"
 val icuVersion              = "73.1"
 val poiOoxmlVersion         = "5.2.3"
