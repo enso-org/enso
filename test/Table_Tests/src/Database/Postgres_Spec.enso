@@ -1,10 +1,10 @@
-from Standard.Base import all hiding First, Last
+from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 
 import Standard.Database.Data.SQL_Type.SQL_Type
 import Standard.Database.Internal.Postgres.Pgpass
