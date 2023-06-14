@@ -5,7 +5,6 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
 
-import Standard.Database.Connection.SQLite_Format.SQLite_Format
 from Standard.Database import all
 from Standard.Database.Errors import SQL_Error
 

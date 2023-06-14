@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from project import Test
-import project.Extensions
+from project.Extensions import all
 
 ## Returns values of warnings attached to the value.
 get_attached_warnings v =

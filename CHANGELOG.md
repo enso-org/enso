@@ -818,6 +818,7 @@
 - [Add project creation time to project metadata][6780]
 - [Upgrade GraalVM to 22.3.1 JDK17][6750]
 - [Ascribed types are checked during runtime][6790]
+- [Add compiler pass that discovers ambiguous and duplicated symbols][6868]
 - [Improve and colorize compiler's diagnostic messages][6931]
 - [Execute some runtime commands synchronously to avoid race conditions][6998]
 
@@ -934,6 +935,7 @@
 [6755]: https://github.com/enso-org/enso/pull/6755
 [6780]: https://github.com/enso-org/enso/pull/6780
 [6790]: https://github.com/enso-org/enso/pull/6790
+[6868]: https://github.com/enso-org/enso/pull/6868
 [6931]: https://github.com/enso-org/enso/pull/6931
 [6998]: https://github.com/enso-org/enso/pull/6998
 

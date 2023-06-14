@@ -2,7 +2,6 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Time_Error.Time_Error
-import Standard.Base.Meta
 
 from Standard.Test import Problems, Test, Test_Suite
 import Standard.Test.Extensions

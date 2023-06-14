@@ -2,7 +2,7 @@ import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Vector.Vector
 import project.Data.Pair.Pair
-import project.Data.Text.Extensions
+from project.Data.Text.Extensions import all
 import project.Data.Text.Text
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument

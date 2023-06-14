@@ -4,11 +4,11 @@ import Standard.Base.Data.Text as Text_Module
 import Standard.Base.Data.Vector as Vector_Module
 
 polyglot java import java.lang.Class
-polyglot java import java.lang.Object as JObject
-polyglot java import java.util.Random
+polyglot java import java.lang.Object as Java_Object
+polyglot java import java.util.Random as Java_Random
 polyglot java import java.util.AbstractList
 polyglot java import java.util.ArrayList
-polyglot java import java.util.List as JList
+polyglot java import java.util.List as Java_List
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -108,7 +108,7 @@ spec = Test.group "Pattern Matches" <|
             Array_Module -> Nothing
             _ -> Test.fail "Expected the Array module to match."
     Test.specify "should be able to match on the Polyglot type" <|
-        random_gen = Random.new
+        random_gen = Java_Random.new
         case random_gen of
             Polyglot -> Nothing
             _ -> Test.fail "Expected a polyglot object to match."
@@ -285,7 +285,7 @@ spec = Test.group "Pattern Matches" <|
             _ -> Test.fail "Expected to match on Any type."
 
         case ArrayList.new of
-            _ : JObject -> Nothing
+            _ : Java_Object -> Nothing
             _ -> Test.fail "Expected to match on java.lang.Object type."
 
         case ArrayList.new of
@@ -293,7 +293,7 @@ spec = Test.group "Pattern Matches" <|
             _ -> Test.fail "Expected to match on java.lang.Object type."
 
         case ArrayList.new of
-            _ : JList -> Nothing
+            _ : Java_List -> Nothing
             _ -> Test.fail "Expected to match on java.lang.Object type."
 
         case ArrayList.new of

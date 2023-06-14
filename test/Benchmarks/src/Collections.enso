@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Test import Bench
 
-polyglot java import java.util.Random
+polyglot java import java.util.Random as Java_Random
 
 gen_list len = 0.up_to len . fold List.Nil (l -> i -> List.Cons i+1 l)
 
@@ -19,7 +19,7 @@ sum_list_meta list =
 sum_recur n = if n == 0 then 0 else 1 + sum_recur n-1
 
 build_map size =
-    rand = Random.new
+    rand = Java_Random.new
     0.up_to size . fold Map.empty (m -> i -> m.insert (rand.nextInt 10000) i)
 
 bench =
