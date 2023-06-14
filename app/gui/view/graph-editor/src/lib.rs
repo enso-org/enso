@@ -625,8 +625,6 @@ ensogl::define_endpoints_2! {
 
 
         deselect_all_nodes           (),
-        press_node_input             (EdgeEndpoint),
-        press_node_output            (EdgeEndpoint),
         remove_node                  (NodeId),
         edit_node                    (NodeId),
         collapse_nodes               ((Vec<NodeId>,NodeId)),
@@ -728,6 +726,9 @@ ensogl::define_endpoints_2! {
         node_editing (bool),
 
         file_dropped     (ensogl_drop_manager::File,Vector2<f32>),
+
+        connection_made (Connection),
+        connection_broken (Connection),
 
         default_x_gap_between_nodes (f32),
         default_y_gap_between_nodes (f32),
@@ -832,24 +833,31 @@ pub struct EdgeId(pub Id);
 
 impl Edge {
     /// Create a new edge with no source or target set yet.
-    pub fn new(view: component::Edge) -> Self {
+    fn new(view: component::Edge) -> Self {
         Self { view, color: default(), source: None, target: None, connection: None }
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn id(&self) -> EdgeId {
+    fn id(&self) -> EdgeId {
         self.view.id().into()
     }
 
+    fn target(&self) -> Option<EdgeEndpoint> {
+        self.target
+    }
+
+    fn source(&self) -> Option<EdgeEndpoint> {
+        self.source
+    }
+    
     /// Get a detached edge that would be created if this edge was detached, such that it remained
     /// connected only to its target.
-    fn as_detached_target(&self) -> Option<DetachedEdge> {
+    fn as_detached_at_target(&self) -> Option<DetachedEdge> {
         Some(DetachedEdge::OnlyTarget { id: Some(self.id()), target: self.target? })
     }
 
     /// Get a detached edge that would be created if this edge was detached, such that it remained
     /// connected only to its source.
-    fn as_detached_source(&self) -> Option<DetachedEdge> {
+    fn as_detached_at_source(&self) -> Option<DetachedEdge> {
         Some(DetachedEdge::OnlySource { id: Some(self.id()), source: self.source? })
     }
 
@@ -867,7 +875,7 @@ impl Edge {
     }
 
     /// Set this edge's target endpoint and update node's edge sets.
-    pub fn set_target(&mut self, target: Option<EdgeEndpoint>, nodes: &Nodes) -> bool {
+    fn set_target(&mut self, target: Option<EdgeEndpoint>, nodes: &Nodes) -> bool {
         let changed = self.target != target;
         if changed {
             let old_node = self.target.map(|target| target.node_id);
@@ -880,7 +888,7 @@ impl Edge {
     }
 
     /// Set this edge's source endpoint and update node's edge sets.
-    pub fn set_source(&mut self, source: Option<EdgeEndpoint>, nodes: &Nodes) -> bool {
+    fn set_source(&mut self, source: Option<EdgeEndpoint>, nodes: &Nodes) -> bool {
         let changed = self.source != source;
         if changed {
             let old_node = self.source.map(|source| source.node_id);
@@ -892,7 +900,7 @@ impl Edge {
         changed
     }
 
-    pub fn set_color(&mut self, color: color::Lcha) -> bool {
+    fn set_color(&mut self, color: color::Lcha) -> bool {
         let changed = self.color != color;
         if changed {
             self.color = color;
@@ -900,15 +908,10 @@ impl Edge {
         }
         changed
     }
-
-    #[allow(missing_docs)]
-    pub fn target(&self) -> Option<EdgeEndpoint> {
-        self.target
-    }
-
-    #[allow(missing_docs)]
-    pub fn source(&self) -> Option<EdgeEndpoint> {
-        self.source
+    
+    fn set_hover_position(&self, position: Option<Vector2>) {
+        self.view.frp.hover_position.emit(position);
+        self.view.frp.redraw.emit(());
     }
 }
 
@@ -1369,6 +1372,11 @@ impl Default for DetachedEdge {
     }
 }
 
+/// Get the Edge ID from an optional detached edge. Useful for FRP nodes, as there we mostly deal
+/// with references to the optional.
+fn detached_id(detached: &Option<DetachedEdge>) -> Option<EdgeId> {
+    detached.as_ref()?.edge_id()
+}
 
 impl DetachedEdge {
     fn edge_id(&self) -> Option<EdgeId> {
@@ -1451,21 +1459,16 @@ struct Visualisations {
     selected: SharedHashSet<NodeId>,
 }
 
-
-
-#[derive(Debug, CloneRef, Derivative)]
-#[derivative(Clone(bound = ""))]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub struct TouchNetwork<T: frp::Data> {
-    pub down:     frp::Source<T>,
-    pub up:       frp::Stream<T>,
-    pub is_down:  frp::Stream<bool>,
-    pub selected: frp::Stream<T>,
+#[derive(Debug)]
+struct TouchNetwork<T: frp::Data> {
+    down:     frp::Source<T>,
+    up:       frp::Stream<T>,
+    is_down:  frp::Stream<bool>,
+    selected: frp::Stream<T>,
 }
 
 impl<T: frp::Data> TouchNetwork<T> {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn new(network: &frp::Network, mouse: &frp::io::Mouse_DEPRECATED) -> Self {
+    fn new(network: &frp::Network, mouse: &frp::io::Mouse_DEPRECATED) -> Self {
         frp::extend! { network
             down          <- source::<T> ();
             is_down       <- bool(&mouse.up_primary,&down);
@@ -1473,53 +1476,33 @@ impl<T: frp::Data> TouchNetwork<T> {
             mouse_up      <- mouse.up_primary.gate(&was_down);
             pos_on_down   <- mouse.position.sample(&down);
             pos_on_up     <- mouse.position.sample(&mouse_up);
-            should_select <- pos_on_up.map3(&pos_on_down,&mouse.distance,Self::check);
+            should_select <- pos_on_up.map3(
+                &pos_on_down, &mouse.distance,
+                |end, start, distance| (end - start).norm() <= distance * 2.0
+            );
             up            <- down.sample(&mouse_up);
             selected      <- up.gate(&should_select);
         }
         Self { down, up, is_down, selected }
     }
-
-    #[allow(clippy::trivially_copy_pass_by_ref)]
-    fn check(end: &Vector2, start: &Vector2, diff: &f32) -> bool {
-        (end - start).norm() <= diff * 2.0
-    }
 }
 
-#[derive(Debug, Clone, CloneRef)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub struct TouchState {
-    pub nodes:      TouchNetwork<NodeId>,
-    pub background: TouchNetwork<()>,
+#[derive(Debug)]
+struct TouchState {
+    nodes:      TouchNetwork<NodeId>,
+    background: TouchNetwork<()>,
+    input_port: TouchNetwork<EdgeEndpoint>,
+    output_port: TouchNetwork<EdgeEndpoint>,
 }
 
 impl TouchState {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn new(network: &frp::Network, mouse: &frp::io::Mouse_DEPRECATED) -> Self {
-        let nodes = TouchNetwork::<NodeId>::new(network, mouse);
-        let background = TouchNetwork::<()>::new(network, mouse);
-        Self { nodes, background }
+    fn new(network: &frp::Network, mouse: &frp::io::Mouse_DEPRECATED) -> Self {
+        let nodes = TouchNetwork::new(network, mouse);
+        let background = TouchNetwork::new(network, mouse);
+        let input_port = TouchNetwork::new(network, mouse);
+        let output_port = TouchNetwork::new(network, mouse);
+        Self { nodes, background, input_port, output_port }
     }
-}
-
-
-
-#[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-pub fn is_sub_crumb_of(src: &[span_tree::Crumb], tgt: &[span_tree::Crumb]) -> bool {
-    if src.len() < tgt.len() {
-        return false;
-    }
-    for (s, t) in src.iter().zip(tgt.iter()) {
-        if s != t {
-            return false;
-        }
-    }
-    true
-}
-
-#[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-pub fn crumbs_overlap(src: &[span_tree::Crumb], tgt: &[span_tree::Crumb]) -> bool {
-    is_sub_crumb_of(src, tgt) || is_sub_crumb_of(tgt, src)
 }
 
 // === Node Creation ===
@@ -1547,12 +1530,11 @@ impl Default for WayOfCreatingNode {
 }
 
 /// Context data required to create a new node.
-#[derive(Debug)]
-struct NodeCreationContext<'a> {
-    pointer_style: &'a frp::Any<cursor::Style>,
-    output_press:  &'a frp::Source<EdgeEndpoint>,
-    input_press:   &'a frp::Source<EdgeEndpoint>,
-    output:        &'a api::private::Output,
+#[derive(Debug, Clone, CloneRef)]
+struct NodeCreationContext {
+    pointer_style: frp::Any<cursor::Style>,
+    output_press:  frp::Source<EdgeEndpoint>,
+    input_press:   frp::Source<EdgeEndpoint>,
 }
 
 impl GraphEditorModel {
@@ -1572,14 +1554,14 @@ impl GraphEditorModel {
         self.nodes.get_cloned_ref(&node_id).map(|node| node.position())
     }
 
-    /// Synchronize view edge state with current list of existing connections.
+    /// Synchronize view edge state with current list of existing connections and detached edge
+    /// state. For additional context, see "Edge maintenance" section in
+    /// [`GraphEditor::frp_init_edge_state`].
     fn maintain_edges(
         &self,
         connections: &[Connection],
         mut detached: Option<DetachedEdge>,
-        edge_click: &frp::Any<EdgeId>,
-        edge_over: &frp::Any<EdgeId>,
-        edge_out: &frp::Any<EdgeId>,
+        pointer_frp: &EdgePointerFrp,
     ) -> (Option<DetachedEdge>, Vec<EdgeId>) {
         let mut edges = self.edges.borrow_mut();
         let mut connections_set: HashSet<_> = connections.iter().collect();
@@ -1605,7 +1587,7 @@ impl GraphEditorModel {
 
         // Connections remaining in connections_set are new, create new edges for them.
         for conn in connections_set {
-            let mut edge = self.create_edge(edge_click, edge_over, edge_out);
+            let mut edge = self.create_edge(pointer_frp);
             edge.connection = Some(*conn);
             if edge.set_endpoints(Some(conn.source), Some(conn.target), &self.nodes) {
                 dirty_edges.push(edge.id());
@@ -1613,8 +1595,9 @@ impl GraphEditorModel {
             edges.all.insert(edge.id(), edge);
         }
 
-        // If we had a detached edge and it was changed. Update it if it still exists.
+        // If a previously detached edge is no longer detached, set its endpoints.
         if edges.detached != detached_id && let Some(detached) = edges.detached.take() {
+            console_log!("Detached edge mismatch, took old: {detached:?}");
             if let Some(edge) = edges.all.get_mut(&detached) {
                 // If an edge is no longer detached and had no connection, it has already been
                 // removed as part of `drain_filter` above. Therefore `edge.connection` must always
@@ -1628,11 +1611,12 @@ impl GraphEditorModel {
 
         // If we have a detached edge, update or create it.
         if let Some(some_detached) = &mut detached {
+            console_log!("Maintain detached edge: {:?}", some_detached);
             let edge = match some_detached.edge_id() {
                 Some(id) => edges.all.get_mut(&id),
                 None => {
                     // DetachedEdge state has no edge assigned yet. Get a new one.
-                    let edge = self.create_edge(edge_click, edge_over, edge_out);
+                    let edge = self.create_edge(pointer_frp);
                     let edge_id = edge.id();
                     some_detached.assign_edge_id(edge_id);
                     edges.all.insert(edge_id, edge);
@@ -1640,6 +1624,10 @@ impl GraphEditorModel {
                 }
             };
 
+            console_log!("Assigned detached edge: {:?}", some_detached);
+            console_log!("Found edge: {}", edge.is_some());
+
+            // Configure the source and target of the detached edge's view.
             if let Some(edge) = edge {
                 let (source, target) = match *some_detached {
                     DetachedEdge::OnlySource { source, .. } => (Some(source), None),
@@ -1660,21 +1648,16 @@ impl GraphEditorModel {
         (detached, dirty_edges)
     }
 
-    fn create_edge(
-        &self,
-        edge_click: &frp::Any<EdgeId>,
-        edge_over: &frp::Any<EdgeId>,
-        edge_out: &frp::Any<EdgeId>,
-    ) -> Edge {
+    fn create_edge(&self, pointer: &EdgePointerFrp) -> Edge {
         let edge = Edge::new(component::Edge::new(&self.app));
         self.add_child(&edge);
         let id = edge.id();
         let network = edge.view.network();
         let edge_events = &edge.view.frp.shape_events;
         frp::extend! { network
-            eval_ edge_events.mouse_down_primary(edge_click.emit(id));
-            eval_ edge_events.mouse_over(edge_over.emit(id));
-            eval_ edge_events.mouse_out(edge_out.emit(id));
+            eval_ edge_events.mouse_down_primary(pointer.down.emit(id));
+            eval_ edge_events.mouse_over(pointer.over.emit(id));
+            eval_ edge_events.mouse_out(pointer.out.emit(id));
         }
         edge
     }
@@ -1722,13 +1705,14 @@ impl GraphEditorModel {
         let output_frp = &node_model.output.frp;
 
         let touch = &self.touch_state;
-        let NodeCreationContext { pointer_style, output_press, input_press, output } = ctx;
+        let NodeCreationContext { pointer_style, output_press, input_press } = ctx;
 
         frp::extend! { network
-            eval_ node.background_press(touch.nodes.down.emit(node_id));
+            let node_down = &touch.nodes.down;
+            eval_ node.background_press(node_down.emit(node_id));
 
             hovered <- node.output.hover.map (move |t| Some(Switch::new(node_id,*t)));
-            output.node_hovered <+ hovered;
+            out.node_hovered <+ hovered;
         }
         frp::extend! { network
 
@@ -1805,14 +1789,14 @@ impl GraphEditorModel {
 
             selected    <- vis_is_selected.on_true();
             deselected  <- vis_is_selected.on_false();
-            output.on_visualization_select <+ selected.constant(Switch::On(node_id));
-            output.on_visualization_select <+ deselected.constant(Switch::Off(node_id));
+            out.on_visualization_select <+ selected.constant(Switch::On(node_id));
+            out.on_visualization_select <+ deselected.constant(Switch::Off(node_id));
 
             preprocessor_changed <-
                 node_model.visualization.frp.preprocessor.map(move |preprocessor| {
                     (node_id,preprocessor.clone())
                 });
-            output.visualization_preprocessor_changed <+ preprocessor_changed.gate(&node.visualization_visible);
+            out.visualization_preprocessor_changed <+ preprocessor_changed.gate(&node.visualization_visible);
 
 
             metadata <- any(...);
@@ -1823,8 +1807,8 @@ impl GraphEditorModel {
             // new one has been enabled.
             // TODO: Create a better API for updating the controller about visualisation changes
             // (see #896)
-            output.visualization_hidden <+ visualization_hidden.constant(node_id);
-            output.visualization_shown  <+
+            out.visualization_hidden <+ visualization_hidden.constant(node_id);
+            out.visualization_shown  <+
                 visualization_shown.map2(&metadata,move |_,metadata| (node_id,metadata.clone()));
 
 
@@ -1833,7 +1817,7 @@ impl GraphEditorModel {
                 &node.visualization_enabled, &node.visualization_path,
                 move |_init, is_enabled, path| (node_id, is_enabled.and_option(path.clone()))
             );
-            output.enabled_visualization_path <+ enabled_visualization_path;
+            out.enabled_visualization_path <+ enabled_visualization_path;
 
         }
         frp::extend! { network
@@ -1881,7 +1865,6 @@ pub struct GraphEditorModel {
     pub display_object: display::object::Instance,
     pub app: Application,
     pub breadcrumbs: component::Breadcrumbs,
-    pub cursor: cursor::Cursor,
     pub nodes: Nodes,
     edges: RefCell<Edges>,
     pub vis_registry: visualization::Registry,
@@ -1904,7 +1887,7 @@ pub struct GraphEditorModel {
 
 impl GraphEditorModel {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn new(app: &Application, cursor: cursor::Cursor, frp: &Frp) -> Self {
+    pub fn new(app: &Application, frp: &Frp) -> Self {
         let network = frp.network();
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new_named("GraphEditor");
@@ -1916,7 +1899,6 @@ impl GraphEditorModel {
         let breadcrumbs = component::Breadcrumbs::new(app.clone_ref());
         let execution_environment_selector =
             execution_environment_selector::ExecutionEnvironmentSelector::new(app);
-
         let app = app.clone_ref();
         let navigator = Navigator::new(scene, &scene.camera());
         let tooltip = Tooltip::new(&app);
@@ -1937,7 +1919,6 @@ impl GraphEditorModel {
             display_object,
             app,
             breadcrumbs,
-            cursor,
             nodes,
             edges,
             vis_registry,
@@ -1968,11 +1949,6 @@ impl GraphEditorModel {
         self.scene().add_child(&self.tooltip);
         self.add_child(&*self.add_node_button);
         self
-    }
-
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn all_nodes(&self) -> Vec<NodeId> {
-        self.nodes.all.keys()
     }
 
     fn scene(&self) -> &Scene {
@@ -2126,29 +2102,6 @@ impl GraphEditorModel {
     fn set_edge_freeze(&self, edge_id: EdgeId, is_frozen: bool) {
         self.with_edge(edge_id, |edge| edge.view.frp.set_disabled.emit(is_frozen));
     }
-
-    /// Commit edge disconnection - prepare edit that removes edge variable expression from the
-    /// edge's target endpoint.
-    fn disconnect_edge(&self, edge_id: EdgeId) -> Option<(NodeId, span_tree::Crumbs, ImString)> {
-        let Connection { target, .. } = self.with_edge(edge_id, |edge| edge.connection)??;
-        let target_crumbs =
-            self.with_node(target.node_id, |node| node.model().input.port_crumbs(target.port))??;
-        Some((target.node_id, target_crumbs, "".into()))
-    }
-
-    /// Create new connection - prepare edit that writes source endpoint's expression to target
-    /// endpoint.
-    fn make_connection(
-        &self,
-        connection: Connection,
-    ) -> Option<(NodeId, span_tree::Crumbs, ImString)> {
-        let Connection { source, target } = connection;
-        let source_expression = self
-            .with_node(source.node_id, |node| node.model().output.port_expression(source.port))??;
-        let target_crumbs =
-            self.with_node(target.node_id, |node| node.model().input.port_crumbs(target.port))??;
-        Some((target.node_id, target_crumbs, source_expression.into()))
-    }
 }
 
 
@@ -2184,7 +2137,6 @@ impl GraphEditorModel {
             let entries = node.in_edges().into_iter().filter_map(|edge_id| {
                 self.with_edge(edge_id, |edge| Some((edge.target?.port, edge.color)))?
             });
-            console_log!("set_connections {node_id:?}: {:?}", entries);
             node.view.set_connections.emit(entries.collect::<HashMap<_, _>>());
         });
     }
@@ -2222,20 +2174,21 @@ impl GraphEditorModel {
     pub fn refresh_edge_colors(&self, edge_ids: impl IntoIterator<Item = EdgeId>) -> Vec<EdgeId> {
         let styles = StyleWatch::new(&self.scene().style_sheet);
         let mut edges = self.edges.borrow_mut();
-        let detached_id = edges.detached;
         edge_ids.into_iter()
             .filter(|edge_id| {
-                let edge = edges.all.get_mut(edge_id);
-                edge.map_or(false, |edge| {
-                    let is_detached = detached_id == Some(*edge_id);
-                    let edge_type = is_detached
-                        .and_option_from(|| self.hovered_input_type())
-                        .or_else(|| self.target_endpoint_type(edge.target?))
-                        .or_else(|| self.source_endpoint_type(edge.source?));
-                    let opt_color = edge_type.map(|t| type_coloring::compute(&t, &styles));
-                    let color = opt_color.unwrap_or_else(|| self.edge_fallback_color());
-                    edge.set_color(color)
-                })
+                let Some(edge) = edges.all.get_mut(edge_id) else { return false };
+                let source_type = || match edge.target {
+                    Some(target) => self.target_endpoint_type(target),
+                    None => self.hovered_input_type(),
+                };
+                let target_type = || match edge.source {
+                    Some(source) => self.source_endpoint_type(source),
+                    None => self.hovered_output_type(),
+                };
+                let edge_type = source_type().or_else(target_type);
+                let opt_color = edge_type.map(|t| type_coloring::compute(&t, &styles));
+                let color = opt_color.unwrap_or_else(|| self.edge_fallback_color());
+                edge.set_color(color)
             })
             .collect()
     }
@@ -2328,7 +2281,8 @@ impl GraphEditorModel {
         self.display_object().update(self.scene());
     }
 
-    fn with_node<T>(&self, id: NodeId, f: impl FnOnce(&Node) -> T) -> Option<T> {
+    /// Perform an operation on a node with given ID.
+    pub fn with_node<T>(&self, id: NodeId, f: impl FnOnce(&Node) -> T) -> Option<T> {
         self.nodes.with(&id, f).map_none(|| warn!("Trying to access nonexistent node '{id}'"))
     }
 
@@ -2337,6 +2291,10 @@ impl GraphEditorModel {
         let edge =
             edges.all.get(&id).map_none(|| warn!("Trying to access nonexistent edge '{id}'"))?;
         Some(f(edge))
+    }
+
+    fn edge_connection(&self, id: EdgeId) -> Option<Connection> {
+        self.with_edge(id, |edge| edge.connection).flatten()
     }
 
     fn edge_target(&self, id: EdgeId) -> Option<EdgeEndpoint> {
@@ -2354,6 +2312,11 @@ impl GraphEditorModel {
     fn hovered_input_type(&self) -> Option<Type> {
         let hover_target = self.frp_public.output.hover_node_input.value();
         hover_target.and_then(|tgt| self.target_endpoint_type(tgt))
+    }
+
+    fn hovered_output_type(&self) -> Option<Type> {
+        let hover_target = self.frp_public.output.hover_node_output.value();
+        hover_target.and_then(|tgt| self.source_endpoint_type(tgt))
     }
 
     /// Retrieve the color of the edge. Does not recomputes it, but returns the cached value.
@@ -2376,7 +2339,7 @@ impl GraphEditorModel {
         screen_max_xy: Vector2,
     ) {
         use ensogl::display::navigation::navigator::PanEvent;
-        let scene = &self.app.display.default_scene;
+        let scene = &self.scene();
         let screen_to_scene_xy = |pos: Vector2| {
             let vec3 = Vector3(pos.x, pos.y, 0.0);
             scene.screen_to_scene_coordinates(vec3).xy()
@@ -2397,7 +2360,7 @@ impl GraphEditorModel {
     fn pan_camera_to_node(&self, node_id: NodeId) {
         use theme::graph_editor::screen_margin_when_panning_camera_to_node as pan_margin;
         self.with_node(node_id, |node| {
-            let camera = &self.app.display.default_scene.camera();
+            let camera = &self.scene().camera();
             let screen_size_halved = Vector2::from(camera.screen()) / 2.0;
             let styles = &self.styles_frp;
             let top_margin = styles.get_number(pan_margin::top).value();
@@ -2436,35 +2399,390 @@ impl display::Object for GraphEditorModel {
     }
 }
 
+/// Set of internal FRP signals initialized in [`GraphEditor::frp_init_background_interaction`].
+struct BgInteractionFrp {
+    /// A pointer was released over a background. This signal is emitted even if the pointer was
+    /// not originally pressed over a background.
+    pointer_up: frp::Stream,
+    clicked_with_detached_edge: frp::Stream,
+    clicked_without_detached_edge: frp::Stream,
+}
 
+/// Set of internal FRP signals initialized in [`GraphEditor::frp_init_edge_pointer`].
+#[derive(Debug, Clone, CloneRef)]
+struct EdgePointerFrp {
+    down: frp::Any<EdgeId>,
+    over:  frp::Any<EdgeId>,
+    out:   frp::Any<EdgeId>,
+    hover: frp::Stream<Option<EdgeId>>,
+}
+
+/// Set of internal FRP signals initialized in [`GraphEditor::frp_init_edge_state`].
+struct EdgeStateFrp {
+    /// The edge currently being dragged. May or may not represent an existing connection.
+    detached_edge: frp::Stream<Option<DetachedEdge>>,
+    /// Set of edges that were modified during maintenance process.
+    /// See "Edge maintenance" section in [`GraphEditor::frp_init_edge_state`].
+    maintained_edges_dirty: frp::Stream<Vec<EdgeId>>,
+    /// Set given edge as detached. If any other edge is already detached, it will be cleared first.
+    /// When detached edge is set to invalid edge ID, the state will be cleared during maintain.
+    set_detached_edge: frp::Any<DetachedEdge>,
+    /// Clear detached edge state. Does NOT remove the connection. If currently detached edge is
+    /// still representing the connection, its view will be reconfigured to match that connection.
+    /// In order to remove the connection, use `break_detached_connection` signal first. If there is
+    /// no detached edge currently set, this signal is ignored.
+    #[allow(dead_code)]
+    clear_detached_edge: frp::Any_,
+    /// Break the connection represented by the currently detached edge. Does NOT clear the detached
+    /// edge state, nor does it remove the detached edge from view. In order to remove detached edge
+    /// view, use `clear_detached_edge` signal. If there is no detached edge currently set, this
+    /// signal is ignored.
+    break_detached_connection: frp::Any_,
+}
+
+// Set of internal FRP signals initialized in [`GraphEditor::frp_init_edge_interaction`].
+struct EdgeInteractionFrp {
+    create_node_from_edge: frp::Stream<DetachedEdge>,
+}
 
 // ===================
 // === GraphEditor ===
 // ===================
 
-#[derive(Debug, Clone, CloneRef)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
+/// The graph editor is the main view of the application once project has been opened. It displays
+/// the graph and allows the user to interact with it. It manages the views of all nodes and edges
+/// on the scene.
+#[allow(missing_docs)]
+#[derive(Debug, Clone, CloneRef, Deref)]
 pub struct GraphEditor {
     pub model: Rc<GraphEditorModel>,
+    #[deref]
     pub frp:   Frp,
 }
 
 impl GraphEditor {
-    /// Graph editor nodes.
-    pub fn nodes(&self) -> &Nodes {
-        &self.model.nodes
+    fn new(app: &Application) -> Self {
+        let frp = Frp::new();
+        let model = Rc::new(GraphEditorModel::new(app, &frp));
+        GraphEditor { model, frp }.init()
     }
 
-    /// Number of graph editor edge views.
-    pub fn num_edges(&self) -> usize {
-        self.model.edges.borrow().all.len()
+    /// Initialize graph editor FRP network.
+    fn init(self) -> Self {
+        let bg_interaction = self.frp_init_background_interaction();
+        let edge_pointer = self.frp_init_edge_pointer();
+        let edge_state = self.frp_init_edge_state(edge_pointer.clone_ref());
+        let create_node_from_edge = self.frp_init_edge_interaction(&edge_state, &edge_pointer, &bg_interaction);
+        
+        init_remaining_graph_editor_frp(&self, &edge_state, &bg_interaction, &create_node_from_edge);
+        self
     }
-}
 
-impl Deref for GraphEditor {
-    type Target = api::Public;
-    fn deref(&self) -> &Self::Target {
-        &self.frp.public
+    fn frp_init_background_interaction(&self) -> BgInteractionFrp {
+        use display::scene::PointerTargetId;
+
+        let network = self.frp.network();
+        let out = &self.frp.private.output;
+        let scene = self.model.scene();
+        let touch = &self.model.touch_state;
+        let mouse_target = &scene.mouse.target;
+        let mouse = &scene.mouse.frp_deprecated;
+
+        let bg_down = &touch.background.down;
+        let bg_click = &touch.background.selected;
+
+        frp::extend! { network
+            up_target <- mouse.up_primary.map(f_!(mouse_target.get()));
+            pointer_up <- up_target.filter(|t| t == &PointerTargetId::Background).constant(());
+            eval_ scene.background.mouse_down_primary (bg_down.emit(()));
+
+            was_edge_detached_on_bg_click  <- out.has_detached_edge.sample(bg_click);
+            clicked_with_detached_edge <- was_edge_detached_on_bg_click.on_true();
+            clicked_without_detached_edge <- was_edge_detached_on_bg_click.on_false();
+        }
+        BgInteractionFrp {
+            pointer_up,
+            clicked_with_detached_edge,
+            clicked_without_detached_edge,
+        }
+    }
+
+    fn frp_init_edge_pointer(&self) -> EdgePointerFrp {
+        let network = self.frp.network();
+
+        frp::extend! { network
+            down <- any_mut::<EdgeId>();
+            over <- any_mut::<EdgeId>();
+            out <- any_mut::<EdgeId>();
+            hover <- source::<Option<EdgeId>>();
+            eval  over((edge_id) hover.emit(Some(*edge_id)));
+            eval_ out(hover.emit(None));
+        }
+    
+        EdgePointerFrp {
+            down,
+            over,
+            out,
+            hover: hover.into(),
+        }
+    }
+
+    // Initialize the maintenance of edge state. Updates the edge views according to the set of
+    // active connections and current detached edge state.
+    fn frp_init_edge_state(&self, pointer: EdgePointerFrp) -> EdgeStateFrp {
+        let network = self.frp.network();
+        let input = &self.frp.private.input;
+        let out = &self.frp.private.output;
+        let model = &self.model;
+
+        // === Edge interactions  ===
+
+        frp::extend! { network
+    
+        // Attempt to set detached edge state. See [`EdgeStateFrp.set_detached_edge`].
+        set_detached_edge <- any_mut::<DetachedEdge>();
+    
+        // Clear detached edge state. See [`EdgeStateFrp.clear_detached_edge`].
+        clear_detached_edge <- any_(...);
+        clear_detached_edge <+ input.drop_dragged_edge;
+        clear_detached_edge <+ out.node_added;
+        clear_detached_edge <+ out.node_entered;
+        clear_detached_edge <+ out.node_exited;
+        clear_detached_edge <+ out.connection_made;
+        clear_detached_edge <+ input.set_read_only.on_true();
+    
+        // === Edge maintenance ===
+        // Edge maintenance is a process of updating the view of all edges. It is triggered by any
+        // connection change received through `set_connections` signal, or by any change to the
+        // detached edge state. When triggered, it will update the view of all edges to match that
+        // desired state. When the set detached edge is determined to be no longer valid, it will be
+        // automatically cleared.
+
+        // The state of detached edge that should be used during next maintain. Note that this state
+        // forms a feedback loop, as it is influences by `maintain_result`. That way, the detached
+        // edge state can be influenced by the maintain process itself.
+        detached_edge_to_maintain <- any(...);
+        detached_edge_to_maintain <+ set_detached_edge.some();
+        detached_edge_to_maintain <+ clear_detached_edge.constant(None);
+        
+        // The timing signal when to perform the maintain. This separation of data and timing is
+        // necessary, because the maintain process can effectively influence its own input state
+        // (see `detached_edge_to_maintain` above). By separating the timing, we can avoid
+        // unnecessary looping.
+        do_maintain_edges <- any_(input.set_connections, set_detached_edge, clear_detached_edge);
+        maintain_result <- do_maintain_edges.map3(
+            &input.set_connections, &detached_edge_to_maintain,
+            f!((_, connections, detached) model.maintain_edges(connections, *detached, &pointer))
+        );
+        detached_edge <- maintain_result._0();
+        maintained_edges_dirty <- maintain_result._1();
+        // Complete detached edge update feedback cycle - make sure the detached edge set during
+        // maintain will also be used during maintain.
+        detached_edge_to_maintain <+ detached_edge;
+        out.has_detached_edge <+ detached_edge.is_some();
+
+        // Break the connection of currently detached edge.
+        // See [`EdgeStateFrp.break_detached_connection`].
+        break_detached_connection <- any_(...);
+        detached_to_break <- detached_edge.sample(&break_detached_connection);
+        out.connection_broken <+ detached_to_break
+            .filter_map(f!((detached) model.edge_connection(detached_id(detached)?)));
+        }
+
+        EdgeStateFrp {
+            detached_edge,
+            maintained_edges_dirty,
+            set_detached_edge,
+            clear_detached_edge,
+            break_detached_connection,
+        }
+    }
+
+    /// Initialize drag and drop interactions for edges.
+    fn frp_init_edge_interaction(&self, state: &EdgeStateFrp, pointer: &EdgePointerFrp, bg: &BgInteractionFrp) -> EdgeInteractionFrp {
+        self.frp_init_edge_hover(pointer);
+        self.frp_init_edge_click(state, pointer);
+        self.frp_init_edge_creation(state);
+        self.frp_init_detached_edge_position(state);
+        let create_node_from_edge = self.frp_init_edge_bg_drop(state, bg);
+        EdgeInteractionFrp {
+            create_node_from_edge,
+        }
+    }
+
+    fn frp_init_edge_hover(&self, pointer: &EdgePointerFrp) {
+        let network = self.frp.network();
+        let out = &self.frp.private.output;
+        let input = &self.frp.private.input;
+        let model = &self.model;
+        let cursor_pos = &model.app.cursor.frp.scene_position;
+
+        frp::extend! { network
+            cannot_interact <- input.set_read_only || out.has_detached_edge;
+            edge_hover_mouse_position <- map2(
+                cursor_pos, &pointer.hover, |pos, &id| Some((id?, pos.xy()))
+            ).unwrap();
+        
+            // We do not want edge hover to occur for detached edges.
+            set_edge_hover <- edge_hover_mouse_position.gate_not(&cannot_interact);
+            eval set_edge_hover (
+                ((id, pos)) model.with_edge(*id,|edge| edge.set_hover_position(Some(*pos)))
+            );
+            remove_edge_hover <- any(&pointer.out, &pointer.down);
+            eval remove_edge_hover ((id) model.with_edge(*id,|edge| edge.set_hover_position(None)));
+        }
+    }
+
+    fn frp_init_edge_click(&self, state: &EdgeStateFrp, pointer: &EdgePointerFrp) {
+        let network = self.frp.network();
+        let input = &self.frp.private.input;
+        let out = &self.frp.private.output;
+        let model = &self.model;
+        let cursor_pos = &model.app.cursor.frp.scene_position;
+
+        use component::edge::PortType;
+        frp::extend! { network
+            cannot_interact <- input.set_read_only || out.has_detached_edge;
+            valid_edge_disconnect_click <- pointer.down.gate_not(&cannot_interact);
+            detached_on_click <- valid_edge_disconnect_click.map2(cursor_pos,
+                f!((edge_id, cursor_pos) model.with_edge(*edge_id, |edge| {
+                    match edge.port_to_detach_for_position(cursor_pos.xy()) {
+                        PortType::OutputPort => edge.as_detached_at_target(),
+                        PortType::InputPort => edge.as_detached_at_source(),
+                    }
+                }).flatten())
+            ).unwrap();
+            state.set_detached_edge <+ detached_on_click;
+            // Only break the dragged connection when it is no longer connected to a target.
+            // Otherwise keep the connection still active, so that the edge still has a valid target
+            // AST to connect to. 
+            state.break_detached_connection <+ detached_on_click.filter(
+                |d| matches!(d, DetachedEdge::OnlySource { .. })
+            );
+        }
+    }
+    
+    fn frp_init_edge_creation(&self, state: &EdgeStateFrp) {
+        let network = self.frp.network();
+        let input = &self.frp.private.input;
+        let out = &self.frp.private.output;
+        let model = &self.model;
+        let touch = &model.touch_state;
+        let scene = model.scene();
+        let mouse = &scene.mouse.frp_deprecated;
+
+        frp::extend! { network
+            // Create new detached edge when clicking on node port.
+            cannot_interact <- input.set_read_only || out.has_detached_edge;
+            new_detached_source <- touch.output_port.selected
+                .gate_not(&cannot_interact)
+                .map(|source| DetachedEdge::new_source(*source));
+            new_detached_target <- touch.output_port.selected
+                .gate_not(&cannot_interact)
+                .filter(f!([model] (t) !model.is_node_connected_at_input(t.node_id,t.port)))
+                .map(|target| DetachedEdge::new_target(*target));
+            state.set_detached_edge <+ new_detached_source;
+            state.set_detached_edge <+ new_detached_target;
+        
+            // Attach detached edge to node port when clicking or releasing on node port.
+            port_input_mouse_up <- out.hover_node_input.sample(&mouse.up_primary).unwrap();
+            port_output_mouse_up <- out.hover_node_output.sample(&mouse.up_primary).unwrap();
+            attach_edge_input <- any(port_input_mouse_up, touch.output_port.down);
+            attach_edge_output <- any(port_output_mouse_up, touch.output_port.down);
+            new_connection_to_make <- any(...);
+            new_connection_to_make <+ attach_edge_input.map2(&state.detached_edge,
+                |target, detached| detached.as_ref()?.connect_to_target(*target)
+            ).unwrap();
+            new_connection_to_make <+ attach_edge_output.map2(&state.detached_edge,
+                |source, detached| detached.as_ref()?.connect_to_source(*source)
+            ).unwrap();
+            // Before making a new connection from existing detached edge, break the old connection 
+            // if it was still present.
+            state.break_detached_connection <+ new_connection_to_make;
+            out.connection_made <+ new_connection_to_make;
+        }
+    }
+
+    fn frp_init_detached_edge_position(&self, state: &EdgeStateFrp) {
+        let network = self.frp.network();
+        let model = &self.model;
+        let cursor = &model.app.cursor.frp;
+        let out = &self.frp.private.output;
+
+        frp::extend! { network
+            cursor_pos_on_update <- cursor.scene_position.sample(&state.detached_edge);
+            edge_refresh_cursor_pos <- any(cursor_pos_on_update, cursor.scene_position);
+        
+            is_hovering_output <- out.hover_node_output.is_some();
+            hover_node         <- out.hover_node_output.unwrap();
+        
+            edge_refresh_on_node_hover <- all(cursor.scene_position, hover_node).gate(&is_hovering_output);
+            edge_refresh_cursor_pos_no_hover <- edge_refresh_cursor_pos.gate_not(&is_hovering_output);
+            edge_refresh_cursor_pos_on_hover <- cursor.scene_position.gate(&is_hovering_output);
+        
+            refresh_target      <- any(&edge_refresh_cursor_pos_on_hover,&edge_refresh_cursor_pos_no_hover);
+            let refresh_source  = edge_refresh_cursor_pos_no_hover.clone_ref();
+            snap_source_to_node <- edge_refresh_on_node_hover._1();
+        
+            detached_source_edge <- state.detached_edge.map(|&d| d?.detached_source_edge_id());
+            detached_target_edge <- state.detached_edge.map(|&d| d?.detached_target_edge_id());
+        
+            _eval <- refresh_target.map2(&detached_source_edge,
+                f!((position, &edge_id) model.with_edge(edge_id?, |edge| {
+                    edge.frp.target_position.emit(position.xy());
+                    edge.frp.redraw.emit(());
+                }))
+            );
+        
+            _eval <- refresh_source.map2(&detached_target_edge, f!([model](position, &edge_id) {
+                let edge_id = edge_id?;
+                model.with_edge(edge_id, |edge| {
+                    edge.frp.source_width.emit(cursor::DEFAULT_RADIUS);
+                    edge.frp.source_height.emit(cursor::DEFAULT_RADIUS);
+                    edge.frp.target_position.emit(-position.xy());
+                    edge.frp.redraw.emit(());
+                    edge.set_xy((position.x, position.y));
+                })?;
+                model.refresh_edge_positions([edge_id]);
+                Some(())
+            }));
+        
+            _eval <- snap_source_to_node.map2(&detached_target_edge, f!([model](target, &edge_id) {
+                let edge_id = edge_id?;
+                let (node_width, node_height, node_pos) = model.with_node(target.node_id, |node| {
+                    let node_width  = node.view.model().width();
+                    let node_height = node.view.model().height();
+                    let node_pos    = node.position();
+                    (node_width, node_height, node_pos)
+                })?;
+                model.with_edge(edge_id, |edge| {
+                    edge.frp.source_width.emit(node_width);
+                    edge.frp.source_height.emit(node_height);
+                    edge.frp.target_position.emit(-node_pos.xy());
+                    edge.frp.redraw.emit(());
+                    edge.set_xy((node_pos.x + node_width/2.0, node_pos.y));
+                })?;
+                model.refresh_edge_positions([edge_id]);
+                Some(())
+            }));
+        }
+    }
+
+    fn frp_init_edge_bg_drop(&self, state: &EdgeStateFrp, bg: &BgInteractionFrp) -> frp::Stream<DetachedEdge> {
+        let network = self.frp.network();
+        let touch = &self.model.touch_state;
+
+        frp::extend! { network
+            connect_drag_mode <- any(...);
+            connect_drag_mode <+ touch.output_port.down.constant(true);
+            connect_drag_mode <+ touch.input_port.down.constant(true);
+            connect_drag_mode <+ touch.output_port.selected.constant(false);
+            connect_drag_mode <+ touch.input_port.selected.constant(false);
+            drop_onto_background <- bg.pointer_up.gate(&connect_drag_mode);
+            create_node <- any_(drop_onto_background, bg.clicked_with_detached_edge);
+            edge_dropped_to_create_node <- state.detached_edge.sample(&create_node).unwrap();
+        }
+        edge_dropped_to_create_node
     }
 }
 
@@ -2474,7 +2792,7 @@ impl application::View for GraphEditor {
     }
 
     fn new(app: &Application) -> Self {
-        new_graph_editor(app)
+        GraphEditor::new(app)
     }
 
     fn app(&self) -> &Application {
@@ -2487,42 +2805,29 @@ impl application::View for GraphEditor {
     }
 }
 
-/// Return the toggle status of the given enable/disable/toggle inputs as a stream of booleans.
-pub fn enable_disable_toggle(
-    network: &frp::Network,
-    enable: &frp::Any,
-    disable: &frp::Any,
-    toggle: &frp::Any,
-) -> frp::Stream<bool> {
-    // FIXME: the clone_refs bellow should not be needed.
-    let enable = enable.clone_ref();
-    let disable = disable.clone_ref();
-    let toggle = toggle.clone_ref();
-    frp::extend! { network
-        out        <- any(...);
-        on_toggle  <- toggle.map2(&out,|_,t| !t);
-        on_enable  <- enable.constant(true);
-        on_disable <- disable.constant(false);
-        out        <+ on_toggle;
-        out        <+ on_enable;
-        out        <+ on_disable;
-    }
-    out.into()
-}
-
-#[allow(unused_parens)]
-fn new_graph_editor(app: &Application) -> GraphEditor {
-    let world = &app.display;
-    let scene = &world.default_scene;
-    let cursor = &app.cursor;
-    let frp = Frp::new();
-    let model = Rc::new(GraphEditorModel::new(app, cursor.clone_ref(), &frp));
+/// Initialize remaining parts of graph editor FRP network. See [`GraphEditor::init`].
+/// 
+/// NOTE[PG]: This should eventually be refactored into smaller methods. I will chip away at this
+/// over time, especially once the new FRP system is in place. For the time being, it is kept in one
+/// big mess left over from the old days. If you are in need to modify this method to add a new
+/// feature, consider separating parts relevant to you into another init method.
+fn init_remaining_graph_editor_frp(
+    graph_editor: &GraphEditor,
+    edge_state: &EdgeStateFrp,
+    bg_interaction: &BgInteractionFrp,
+    edge_interaction: &EdgeInteractionFrp
+) {
+    let frp = &graph_editor.frp;
+    let app = &graph_editor.model.app;
     let network = frp.network();
+    let out = &frp.private.output;
     let inputs = &frp.private.input;
+    let model = &graph_editor.model;
+    let scene = model.scene();
     let mouse = &scene.mouse.frp_deprecated;
+    let cursor = &model.app.cursor.frp;
     let touch = &model.touch_state;
     let vis_registry = &model.vis_registry;
-    let out = &frp.private.output;
     let selection_controller = &model.selection_controller;
 
 
@@ -2534,13 +2839,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     frp::extend! { network
         out.read_only <+ inputs.set_read_only;
         model.breadcrumbs.set_read_only <+ inputs.set_read_only;
-
-        // Drop the currently dragged edge if read-only mode is enabled.
-        read_only_enabled <- inputs.set_read_only.on_true();
-        frp.drop_dragged_edge <+ read_only_enabled;
     }
-
-
 
     // ========================
     // === Scene Navigation ===
@@ -2620,198 +2919,15 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // === User Interactions ===
     // =========================
 
-    // === Mouse Cursor Transform ===
-    frp::extend! { network
-        cursor_pos_in_scene <- cursor.frp.screen_position.map(f!((position)
-            scene.screen_to_scene_coordinates(*position).xy()
-        ));
-    }
-
-
-    // === Selection Target Redirection ===
-
-    frp::extend! { network
-        let scene = model.scene();
-
-        mouse_up_target <- mouse.up_primary.map(f_!(model.scene().mouse.target.get()));
-        background_up   <= mouse_up_target.map(
-            |t| (t == &display::scene::PointerTargetId::Background).as_some(())
-        );
-
-        eval_ scene.background.mouse_down_primary (touch.background.down.emit(()));
-    }
-
-
-    // === Mouse Interactions ===
-
-    frp::extend! { network
-
-        node_pointer_style <- any_mut::<cursor::Style>();
-
-        let node_input_touch  = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
-        let node_output_touch = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
-
-        on_output_connect_drag_mode <- node_output_touch.down.constant(true);
-        on_output_connect_follow_mode <- node_output_touch.selected.constant(false);
-        on_input_connect_drag_mode <- node_input_touch.down.constant(true);
-        on_input_connect_follow_mode <- node_input_touch.selected.constant(false);
-
-        connect_drag_mode <- any(
-            on_output_connect_drag_mode,
-            on_input_connect_drag_mode,
-            on_output_connect_follow_mode,
-            on_input_connect_follow_mode
-        );
-
-        frp.press_node_input <+ node_input_touch.down;
-        frp.press_node_output <+ node_output_touch.down;
-    }
-
-
-
-    // =============
-    // === Edges ===
-    // =============
-
-
-    // === Edge interactions  ===
-
-    frp::extend! { network
-    edge_mouse_down <- any_mut::<EdgeId>();
-    edge_over <- any_mut::<EdgeId>();
-    edge_out <- any_mut::<EdgeId>();
-    edge_hover <- source::<Option<EdgeId>>();
-    eval  edge_over((edge_id) edge_hover.emit(Some(*edge_id)));
-    eval_ edge_out(edge_hover.emit(None));
-
-
-    set_detached_edge <- any_mut::<Option<DetachedEdge>>();
-    detached_edge_with_feedback <- any(...);
-    process_connections <- all(frp.set_connections, set_detached_edge);
-    maintain_result <- process_connections.map2(&detached_edge_with_feedback,
-        f!([model, edge_mouse_down, edge_over, edge_out] ((connections,_), detached) {
-            model.maintain_edges(
-                connections, *detached,
-                &edge_mouse_down,&edge_over,&edge_out
-            )
-        })
-    );
-    detached_edge <- maintain_result._0();
-    detached_edge_id <- detached_edge.map(|&d| d?.edge_id()).on_change();
-    maintained_edges_dirty <- maintain_result._1();
-    nodes_with_updated_inputs <-
-        maintain_result.map(f!((_) model.nodes.take_nodes_with_updated_inputs()));
-
-    detached_edge_with_feedback <+ any(&set_detached_edge,&detached_edge);
-    out.has_detached_edge <+ detached_edge.is_some();
-
-    edge_over_pos <- map2(&cursor_pos_in_scene,&edge_hover,|pos, edge_id|
-        edge_id.map(|id| (id, *pos))
-    ).unwrap();
-
-    // We do not want edge hover to occur for detached edges.
-    set_edge_hover <- edge_over_pos.gate_not(&out.has_detached_edge);
-
-    eval set_edge_hover ([model]((edge_id,pos)) {
-        model.with_edge(*edge_id,|edge| {
-            edge.frp.hover_position.emit(Some(*pos));
-            edge.frp.redraw.emit(());
-        });
-    });
-
-    remove_split <- any(&edge_out,&edge_mouse_down);
-    eval remove_split ([model](edge_id) {
-        model.with_edge(*edge_id,|edge| {
-            edge.frp.hover_position.emit(None);
-            edge.frp.redraw.emit(());
-        });
-    });
-    edge_click <- map2(&edge_mouse_down,&cursor_pos_in_scene,|edge_id,pos|(*edge_id,*pos));
-    valid_edge_disconnect_click <- edge_click.gate_not(&out.has_detached_edge).gate_not(&inputs.set_read_only);
-
-    edge_is_source_click <- valid_edge_disconnect_click.map(f!([model]((edge_id,pos)) {
-        model.with_edge(*edge_id, |edge| {
-            edge.port_to_detach_for_position(*pos) == component::edge::PortType::OutputPort
-        }).unwrap_or(false)
-    }));
-
-    edge_source_click <- edge_mouse_down.gate(&edge_is_source_click);
-    edge_target_click <- edge_mouse_down.gate_not(&edge_is_source_click);
-    set_detached_edge <+ edge_source_click.map(f!((id) model.with_edge(*id,|e|e.as_detached_source()).flatten()));
-    set_detached_edge <+ edge_target_click.map(f!((id) model.with_edge(*id,|e|e.as_detached_target()).flatten()));
-    }
-
-
-    // === Edge creation  ===
-
-    frp::extend! { network
-
-    // Create new detached edge when clicking on node port.
-
-    new_detached_source <- node_output_touch.down.map(|e| DetachedEdge::new_source(*e));
-    new_detached_target <- node_input_touch.down
-        .filter(f!([model] (target) !model.is_node_connected_at_input(target.node_id,target.port)))
-        .map(|e| DetachedEdge::new_target(*e));
-    new_detached_edge <- any(new_detached_source, new_detached_target);
-    new_detached_edge <- new_detached_edge.gate_not(&inputs.set_read_only);
-    new_detached_edge <- new_detached_edge.gate_not(&out.has_detached_edge);
-    set_detached_edge <+ new_detached_edge.some();
-
-    // Attach detached edge to node port when clicking or releasing on node port.
-
-    port_input_mouse_up  <- frp.output.hover_node_input.sample(&mouse.up_primary).unwrap();
-    port_output_mouse_up <- frp.output.hover_node_output.sample(&mouse.up_primary).unwrap();
-
-    attach_edge_input  <- any (port_input_mouse_up, inputs.press_node_input);
-    attach_edge_output <- any (port_output_mouse_up, inputs.press_node_output);
-
-    new_connection <- any(...);
-    new_connection <+ attach_edge_input
-        .map2(&detached_edge, |target, detached| detached.as_ref()?.connect_to_target(*target));
-    new_connection <+ attach_edge_output
-        .map2(&detached_edge, |source, detached| detached.as_ref()?.connect_to_source(*source));
-    out.node_expression_span_set <+ new_connection.filter_map(f!((c) model.make_connection((*c)?)));
-
-    // Clear detached edge when clicking on node port.
-
-    let selection_mode = selection::get_mode(network,&frp);
-    node_in_out_touch <- any_(&node_output_touch.down,&node_input_touch.down);
-    keep_selection <- selection_mode.map(|t| *t != selection::Mode::Normal);
-    clear_detached <- node_in_out_touch.gate_not(&keep_selection);
-    detached_to_clear <- detached_edge.sample(&clear_detached);
-    out.node_expression_span_set <+ detached_to_clear
-        .filter_map(f!((detached) model.disconnect_edge(detached.as_ref()?.edge_id()?)));
-    set_detached_edge <+ clear_detached.constant(None);
-    set_detached_edge <+ inputs.drop_dragged_edge.constant(None);
-
-    }
-
-
-    // === Edge Connect ===
-
-    frp::extend! { network
-
-        // Clicking on background either drops dragged edge or aborts node editing.
-        let background_selected = &touch.background.selected;
-        was_edge_detached_when_background_selected  <- out.has_detached_edge.sample(background_selected);
-        clicked_to_drop_edge  <- was_edge_detached_when_background_selected.on_true();
-        clicked_to_abort_edit <- was_edge_detached_when_background_selected.on_false();
-
-        drop_on_bg_up  <- background_up.gate(&connect_drag_mode);
-        create_node_from_detached_edge <- any_(drop_on_bg_up, clicked_to_drop_edge);
-        edge_dropped_to_create_node <- detached_edge.sample(&create_node_from_detached_edge).unwrap();
-
-    }
-
     // === Adding Node ===
 
     frp::extend! { network
         node_added_with_button <- model.add_node_button.clicked.gate_not(&inputs.set_read_only);
-
-        start_node_creation_from_port <- out.hover_node_output
-            .sample(&inputs.start_node_creation_from_port)
-            .unwrap();
-        set_detached_edge <+ start_node_creation_from_port.constant(None);
+        start_node_creation_from_port <- out.hover_node_output.sample(
+            &inputs.start_node_creation_from_port
+        ).unwrap();
+    }
+    frp::extend! { network
 
         input_add_node_way <- inputs.add_node.constant(WayOfCreatingNode::AddNodeEvent);
         input_start_creation_way <- inputs.start_node_creation.map(f_!([scene]
@@ -2819,38 +2935,49 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
             // creating nodes when we are editing texts and press enter.
             scene.focused_instance().is_none().then_some(WayOfCreatingNode::StartCreationEvent)
         )).unwrap();
+    }
+    frp::extend! { network
 
         start_creation_from_port_way <- start_node_creation_from_port.map(
             |endpoint| WayOfCreatingNode::StartCreationFromPortEvent{ endpoint: endpoint.clone() });
         add_with_button_way <- node_added_with_button.constant(WayOfCreatingNode::ClickingButton);
-        add_with_edge_drop_way <- edge_dropped_to_create_node.map(
-            |detached_edge| WayOfCreatingNode::DroppingEdge { endpoint: detached_edge.endpoint() });
-        add_node_way <- any5 (
-            &input_add_node_way,
-            &input_start_creation_way,
-            &start_creation_from_port_way,
-            &add_with_button_way,
-            &add_with_edge_drop_way,
-        );
+    }
+    frp::extend! { network
+        add_with_edge_drop_way <- edge_interaction.create_node_from_edge.map(
+            |detached| WayOfCreatingNode::DroppingEdge { endpoint: detached.endpoint() });
+    }
+    frp::extend! { network
+        add_node_way <- any(...);
+        add_node_way <+ input_add_node_way;
+        add_node_way <+ input_start_creation_way;
+        add_node_way <+ start_creation_from_port_way;
+        add_node_way <+ add_with_button_way;
+        add_node_way <+ add_with_edge_drop_way;
+    }
+    frp::extend! { network
 
-        new_node <- add_node_way.map2(&cursor_pos_in_scene, f!([model,node_pointer_style,out](way, mouse_pos) {
-            let ctx = NodeCreationContext {
-                pointer_style  : &node_pointer_style,
-                output_press   : &node_output_touch.down,
-                input_press    : &node_input_touch.down,
-                output         : &out,
-            };
-            model.create_node(&ctx, way, *mouse_pos)
-        }));
+        node_pointer_style <- any(...);
+        let node_ctx = NodeCreationContext {
+            pointer_style: node_pointer_style.clone_ref(),
+            output_press:  touch.output_port.down.clone_ref(),
+            input_press:   touch.input_port.down.clone_ref(),
+        };
+        new_node <- add_node_way.map2(&cursor.scene_position,
+            f!((way, cursor_pos) model.create_node(&node_ctx, way, cursor_pos.xy()))
+        );
+    }
+    frp::extend! { network
         out.node_added <+ new_node.map(|&(id, src, should_edit)| (id, src, should_edit));
         node_to_edit_after_adding <- new_node.filter_map(|&(id,_,cond)| cond.as_some(id));
-                eval new_node ([model](&(id, _, should_edit)) {
+        eval new_node ([model](&(id, _, should_edit)) {
             if should_edit {
                 if let Some(node) = model.nodes.get_cloned_ref(&id) {
                     node.show_preview();
                 }
             }
         });
+    }
+    frp::extend! { network
 
         pan_camera_to_node <- new_node._0().debounce();
         eval pan_camera_to_node((&node) model.pan_camera_to_node(node));
@@ -2860,19 +2987,19 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // === Node Editing ===
 
     frp::extend! { network
-        node_in_edit_mode     <- out.node_being_edited.map(|n| n.is_some());
-        edit_mode             <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
+        node_in_edit_mode <- out.node_being_edited.map(|n| n.is_some());
+        edit_mode <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
         clicked_node <- touch.nodes.down.gate(&edit_mode);
         clicked_and_edited_nodes <- clicked_node.map2(&out.node_being_edited, |n, c| (*n, *c));
         let not_being_edited_already = |(clicked, edited): &(NodeId, Option<NodeId>)| {
             if let Some(edited) = edited { edited != clicked } else { true }
         };
-        node_to_edit          <- clicked_and_edited_nodes.filter(not_being_edited_already)._0();
-        edit_node             <- any(node_to_edit, node_to_edit_after_adding, inputs.edit_node);
-        stop_edit_on_bg_click <- clicked_to_abort_edit.gate(&node_in_edit_mode);
-        stop_edit             <- any(&stop_edit_on_bg_click,&inputs.stop_editing);
-        edit_switch           <- edit_node.gate(&node_in_edit_mode);
-        node_being_edited     <- out.node_being_edited.map(|n| n.unwrap_or_default());
+        node_to_edit <- clicked_and_edited_nodes.filter(not_being_edited_already)._0();
+        edit_node <- any(node_to_edit, node_to_edit_after_adding, inputs.edit_node);
+        stop_edit_on_bg_click <- bg_interaction.clicked_without_detached_edge.gate(&node_in_edit_mode);
+        stop_edit <- any(&stop_edit_on_bg_click,&inputs.stop_editing);
+        edit_switch <- edit_node.gate(&node_in_edit_mode);
+        node_being_edited <- out.node_being_edited.map(|n| n.unwrap_or_default());
 
         // The "finish" events must be emitted before "start", to properly cover the "switch" case.
         out.node_editing_finished <+ node_being_edited.sample(&stop_edit);
@@ -2881,9 +3008,9 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
         out.node_being_edited <+ out.node_editing_started.map(|n| Some(*n));
         out.node_being_edited <+ out.node_editing_finished.constant(None);
-        out.node_editing      <+ out.node_being_edited.map(|t|t.is_some());
+        out.node_editing <+ out.node_being_edited.map(|t|t.is_some());
 
-        out.node_edit_mode       <+ edit_mode;
+        out.node_edit_mode <+ edit_mode;
         out.nodes_labels_visible <+ out.node_edit_mode || node_in_edit_mode;
 
         eval out.node_editing_started ([model] (id) {
@@ -2910,13 +3037,13 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     // See the docs of `Node` to learn about how the graph - nodes event propagation works.
     frp::extend! { network
-        _eval <- all_with(&out.node_hovered,&edit_mode,f!([model](tgt,e)
-            if let Some(tgt) = tgt {
+        _eval <- all_with(&out.node_hovered,&edit_mode,
+            f!([model](tgt,e) if let Some(tgt) = tgt {
                 model.with_node(tgt.value,|t| t.set_edit_ready_mode(*e && tgt.is_on()));
             }
         ));
-        _eval <- all_with(&out.node_hovered,&detached_edge,f!([model](hover_target,detached)
-            if let Some(hover_target) = hover_target {
+        _eval <- all_with(&out.node_hovered,&edge_state.detached_edge,
+            f!([model](hover_target,detached) if let Some(hover_target) = hover_target {
                 let node_id = hover_target.value;
                 let can_attach = detached.map_or(false, |d| d.endpoint().node_id != node_id);
                 let is_active = can_attach && hover_target.is_on();
@@ -2940,8 +3067,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // === Remove Node ===
 
     frp::extend! { network
-        all_nodes       <= inputs.remove_all_nodes      . map(f_!(model.all_nodes()));
-        selected_nodes  <= inputs.remove_selected_nodes . map(f_!(model.nodes.all_selected()));
+        all_nodes       <= inputs.remove_all_nodes.map(f_!(model.nodes.all.keys()));
+        selected_nodes  <= inputs.remove_selected_nodes.map(f_!(model.nodes.all_selected()));
         nodes_to_remove <- any (all_nodes, selected_nodes);
         out.node_removed <+ nodes_to_remove;
     }
@@ -3113,19 +3240,21 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     eval inputs.update_node_widgets(((node, updates)) model.update_node_widgets(*node, updates));
 
     // === Update edge colors ===
-
-    edges_to_refresh_color <- any(...);
-    edges_to_refresh_color <+ node_with_new_expression_type.map(
+    edge_to_refresh_color <- any(...);
+    edge_to_refresh_color <+ node_with_new_expression_type.map(
         f!((id) model.node_in_and_out_edges(*id))
-    );
-    edges_to_refresh_color <+ maintained_edges_dirty;
-    edges_to_refresh_color_batch <- edges_to_refresh_color.iter().batch_unique();
-    edge_with_updated_color <= edges_to_refresh_color_batch.map(
-        f!([model]((edge_ids)) model.refresh_edge_colors(edge_ids.iter().copied()))
+    ).iter();
+    edge_to_refresh_color <+ edge_state.maintained_edges_dirty.iter();
+    port_hovered <- any_(out.hover_node_output, out.hover_node_input);
+    edge_to_refresh_color <+ edge_state.detached_edge.sample(&port_hovered).filter_map(detached_id);
+    edges_to_refresh_color_batch <- edge_to_refresh_color.batch_unique();
+    edges_with_updated_color <- edges_to_refresh_color_batch.map(
+        f!((edge_ids) model.refresh_edge_colors(edge_ids.iter().copied()))
     );
     node_with_updated_inputs <- any(...);
-    node_with_updated_inputs <+ nodes_with_updated_inputs.iter();
-    node_with_updated_inputs <+ edge_with_updated_color
+    node_with_updated_inputs <+ edge_state.maintained_edges_dirty
+        .map(f!((_) model.nodes.take_nodes_with_updated_inputs())).iter();
+    node_with_updated_inputs <+ edges_with_updated_color.iter()
         .filter_map(f!((id) model.edge_target(*id).map(|t| t.node_id)));
     nodes_to_update_connections <- node_with_updated_inputs.batch_unique();
     eval nodes_to_update_connections(
@@ -3138,75 +3267,14 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     outgoing_batch <- out.node_outgoing_edge_updates.batch();
     incoming_dirty <- incoming_batch.map(f!((n) model.refresh_incoming_edge_positions(n)));
     outgoing_dirty <- outgoing_batch.map(f!((n) model.refresh_outgoing_edge_positions(n)));
-    maintained_dirty <- maintained_edges_dirty.map(f!((e) model.refresh_edge_positions(e.iter().copied())));
+    maintained_dirty <- edge_state.maintained_edges_dirty.map(
+        f!((e) model.refresh_edge_positions(e.iter().copied()))
+    );
     any_edges_dirty <- incoming_dirty.all_with3(&outgoing_dirty, &maintained_dirty, 
         |a, b, c| *a || *b || *c
     );
     force_update_layout <- any_edges_dirty.on_true().debounce();
     eval force_update_layout((_) model.force_update_layout());
-
-    }
-
-
-    // === Move Edges ===
-
-    frp::extend! { network
-
-    cursor_pos_on_update    <- cursor_pos_in_scene.sample(&detached_edge);
-    edge_refresh_cursor_pos <- any(cursor_pos_on_update,cursor_pos_in_scene);
-
-    is_hovering_output <- out.hover_node_output.map(|target| target.is_some());
-    hover_node         <- out.hover_node_output.unwrap();
-
-    edge_refresh_on_node_hover        <- all(cursor_pos_in_scene,hover_node).gate(&is_hovering_output);
-    edge_refresh_cursor_pos_no_hover  <- edge_refresh_cursor_pos.gate_not(&is_hovering_output);
-    edge_refresh_cursor_pos_on_hover  <- cursor_pos_in_scene.gate(&is_hovering_output);
-
-    refresh_target      <- any(&edge_refresh_cursor_pos_on_hover,&edge_refresh_cursor_pos_no_hover);
-    let refresh_source  = edge_refresh_cursor_pos_no_hover.clone_ref();
-    snap_source_to_node <- edge_refresh_on_node_hover._1();
-
-    detached_source_edge <- detached_edge.map(|d| d.as_ref()?.detached_source_edge_id());
-    detached_target_edge <- detached_edge.map(|d| d.as_ref()?.detached_target_edge_id());
-
-    _eval <- refresh_target.map2(&detached_source_edge, f!([model](position, &edge_id) {
-        model.with_edge(edge_id?, |edge| {
-            edge.view.frp.target_position.emit(position.xy());
-            edge.view.frp.redraw.emit(());
-        })
-    }));
-
-    _eval <- refresh_source.map2(&detached_target_edge, f!([model](position, &edge_id) {
-        let edge_id = edge_id?;
-        model.with_edge(edge_id, |edge| {
-            edge.frp.source_width.emit(cursor::DEFAULT_RADIUS);
-            edge.frp.source_height.emit(cursor::DEFAULT_RADIUS);
-            edge.frp.target_position.emit(-position.xy());
-            edge.frp.redraw.emit(());
-            edge.set_xy((position.x, position.y));
-        })?;
-        model.refresh_edge_positions([edge_id]);
-        Some(())
-    }));
-
-    _eval <- snap_source_to_node.map2(&detached_target_edge, f!([model](target, &edge_id) {
-        let edge_id = edge_id?;
-        let (node_width, node_height, node_pos) = model.with_node(target.node_id, |node| {
-            let node_width  = node.view.model().width();
-            let node_height = node.view.model().height();
-            let node_pos    = node.position();
-            (node_width, node_height, node_pos)
-        })?;
-        model.with_edge(edge_id, |edge| {
-            edge.frp.source_width.emit(node_width);
-            edge.frp.source_height.emit(node_height);
-            edge.frp.target_position.emit(-node_pos.xy());
-            edge.frp.redraw.emit(());
-            edge.set_xy((node_pos.x + node_width/2.0, node_pos.y));
-        })?;
-        model.refresh_edge_positions([edge_id]);
-        Some(())
-    }));
 
     }
 
@@ -3349,10 +3417,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     node_to_enter           <= inputs.enter_selected_node.map(f_!(model.nodes.last_selected()));
     out.node_entered <+ node_to_enter;
     out.node_exited  <+ inputs.exit_node;
-    clear_edges <- any_(&out.node_entered, &out.node_exited);
-    set_detached_edge <+ clear_edges.constant(None);
-
-
 
     // ================
     // === Node VCS ===
@@ -3388,27 +3452,23 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     frp::extend! { network
 
-    detached_edge_color <- detached_edge_id.all_with(&edges_to_refresh_color_batch,
-        f!([model](&id, _) Some(model.edge_color(id?)))
-    );
-
-    cursor_style_edge_drag <- detached_edge_color.map(
-        |c| c.map_or_default(|c| cursor::Style::new_color(c).press())
+    detached_edge_style <- edge_state.detached_edge.all_with(&edges_to_refresh_color_batch,
+        f!([model](d, _) {
+            let color = detached_id(d).map(|id| model.edge_color(id));
+            color.map_or_default(|c| cursor::Style::new_color(c).press())
+        })
     );
 
     let breadcrumb_style = model.breadcrumbs.pointer_style.clone_ref();
     let selection_style  = selection_controller.cursor_style.clone_ref();
 
-    pointer_style <- all
+    cursor.set_style <+ all
         [ pointer_on_drag
         , selection_style
         , node_pointer_style
-        , cursor_style_edge_drag
+        , detached_edge_style
         , breadcrumb_style
         ].fold();
-
-    eval pointer_style ((style) cursor.frp.set_style.emit(style));
-
     }
 
     // ==============================
@@ -3528,8 +3588,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // Init defaults
     frp.edit_mode_off.emit(());
     frp.set_debug_mode.emit(false);
-
-    GraphEditor { model, frp }
 }
 
 
@@ -3557,9 +3615,9 @@ mod tests {
     #[test]
     fn test_adding_node_by_internal_api() {
         let (_, graph_editor) = init();
-        assert_eq!(graph_editor.nodes().len(), 0);
+        assert_eq!(graph_editor.num_nodes(), 0);
         graph_editor.add_node();
-        assert_eq!(graph_editor.nodes().len(), 1);
+        assert_eq!(graph_editor.num_nodes(), 1);
         graph_editor.assert(Case { node_source: None, should_edit: false });
     }
 
@@ -3584,13 +3642,13 @@ mod tests {
 
     fn test_adding_node(add_node: impl Fn(&GraphEditor)) {
         let (app, graph_editor) = init();
-        assert_eq!(graph_editor.nodes().len(), 0);
+        assert_eq!(graph_editor.num_nodes(), 0);
 
         // Adding first node.
         let (node_1_id, node_1) = graph_editor.add_node_by(&add_node);
         graph_editor.assert(Case { node_source: None, should_edit: true });
         graph_editor.stop_editing();
-        assert_eq!(graph_editor.nodes().len(), 1);
+        assert_eq!(graph_editor.num_nodes(), 1);
 
         // First node is created in the center of the screen.
         let node_1_pos = node_1.position();
@@ -3598,10 +3656,10 @@ mod tests {
         assert_eq!(node_1_pos.xy(), screen_center.xy());
 
         // Adding second node with the first node selected.
-        graph_editor.nodes().select(node_1_id);
+        graph_editor.model.nodes.select(node_1_id);
         let (_, node_2) = graph_editor.add_node_by(&add_node);
         graph_editor.assert(Case { node_source: Some(node_1_id), should_edit: true });
-        assert_eq!(graph_editor.nodes().len(), 2);
+        assert_eq!(graph_editor.num_nodes(), 2);
 
         // Second node is below the first and left-aligned to it.
         let node_2_pos = node_2.position();
@@ -3612,7 +3670,7 @@ mod tests {
     #[test]
     fn test_adding_node_by_dropping_edge() {
         let (app, graph_editor) = init();
-        assert_eq!(graph_editor.nodes().len(), 0);
+        assert_eq!(graph_editor.num_nodes(), 0);
         // Adding a new node.
         let (node_1_id, node_1) = graph_editor.add_node_by_api();
         graph_editor.stop_editing();
@@ -3635,7 +3693,7 @@ mod tests {
     #[test]
     fn test_connecting_two_nodes() {
         let (_, ref graph_editor) = init();
-        assert!(graph_editor.nodes().is_empty());
+        assert_eq!(graph_editor.num_nodes(), 0);
         assert_eq!(graph_editor.num_edges(), 0);
         // Adding two nodes.
         let (node_id_1, node_1) = graph_editor.add_node_by_api();
@@ -3752,12 +3810,12 @@ mod tests {
         graph_editor.stop_editing();
 
         // Create 2nd node below the 1st one and move it slightly to the right.
-        graph_editor.nodes().select(node_1_id);
+        graph_editor.model.nodes.select(node_1_id);
         let (node_2_id, node_2) = graph_editor.add_node_by(&press_add_node_shortcut);
         node_2.update_x(|x| x + 16.0);
 
         // Create 3rd node below the 2nd one and move it slightly down and far to the right.
-        graph_editor.nodes().select(node_2_id);
+        graph_editor.model.nodes.select(node_2_id);
         let (_, node_3) = graph_editor.add_node_by(&press_add_node_shortcut);
         node_2.update_xy(|pos| pos + Vector2(800.0, -7.0));
 
@@ -3784,11 +3842,20 @@ mod tests {
     }
 
     impl GraphEditor {
+        fn num_edges(&self) -> usize {
+            self.model.edges.borrow().all.len()
+        }
+
+        fn num_nodes(&self) -> usize {
+            self.model.nodes.all.len()
+        }
+
         fn add_node_by<F: Fn(&GraphEditor)>(&self, add_node: &F) -> (NodeId, Node) {
             add_node(self);
             let (node_id, ..) = self.node_added.value();
-            let node = self.nodes().get_cloned_ref(&node_id).expect("Node was not added.");
-            node.set_expression(node::Expression::new_plain("some_not_empty_expression"));
+            self.with_node(node_id, |node| {
+                node.set_expression(node::Expression::new_plain("some_not_empty_expression"));
+            }).expect("Node was not added.");
             (node_id, node)
         }
 
@@ -3823,7 +3890,7 @@ mod tests {
     fn init() -> (Application, GraphEditor) {
         let app = Application::new("root");
         app.set_screen_size_for_tests();
-        let graph_editor = new_graph_editor(&app);
+        let graph_editor = GraphEditor::new(&app);
         let mouse = &app.display.default_scene.mouse;
         mouse.frp_deprecated.position.emit(Vector2::zeros());
         (app, graph_editor)

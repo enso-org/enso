@@ -49,12 +49,12 @@ impl Endpoint {
 // === Connection ===
 // ==================
 
-/// Describes a connection between two endpoints: from `source` to `destination`.
+/// Describes a connection between two endpoints: from `source` to `target`.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Connection {
     pub source:      Endpoint,
-    pub destination: Endpoint,
+    pub target: Endpoint,
 }
 
 /// Lists all the connection in the graph for the given code block.
@@ -69,8 +69,8 @@ pub fn list_block(block: &ast::Block<Ast>) -> Vec<Connection> {
         // If name is both introduced and used in the graph's scope; and both of these
         // occurrences can be represented as endpoints, then we have a connection.
         let source = introduced_names.get(&ident.item)?.clone();
-        let destination = Endpoint::new_in_block(block, ident.crumbs)?;
-        Some(Connection { source, destination })
+        let target = Endpoint::new_in_block(block, ident.crumbs)?;
+        Some(Connection { source, target })
     })
     .collect()
 }
@@ -119,7 +119,7 @@ pub fn dependent_nodes_in_def(body: &Ast, node: Id) -> HashSet<Id> {
     while let Some(current_node) = to_visit.pop() {
         let opt_out_connections = node_out_connections.get(&current_node);
         let out_connections = opt_out_connections.iter().flat_map(|v| v.iter());
-        let out_nodes = out_connections.map(|c| c.destination.node);
+        let out_nodes = out_connections.map(|c| c.target.node);
         let new_nodes_in_result = out_nodes.filter(|n| result.insert(*n));
         for node in new_nodes_in_result {
             to_visit.push(node)
@@ -202,26 +202,26 @@ f = fun 2";
         let c = &run.connections[0];
         assert_eq!(run.endpoint_node_repr(&c.source), "a = d");
         assert_eq!(&c.source.crumbs, &crumbs![LeftOperand]);
-        assert_eq!(run.endpoint_node_repr(&c.destination), "c = a + b");
-        assert_eq!(&c.destination.crumbs, &crumbs![RightOperand, LeftOperand]);
+        assert_eq!(run.endpoint_node_repr(&c.target), "c = a + b");
+        assert_eq!(&c.target.crumbs, &crumbs![RightOperand, LeftOperand]);
 
         let c = &run.connections[1];
         assert_eq!(run.endpoint_node_repr(&c.source), "b = d");
         assert_eq!(&c.source.crumbs, &crumbs![LeftOperand]);
-        assert_eq!(run.endpoint_node_repr(&c.destination), "c = a + b");
-        assert_eq!(&c.destination.crumbs, &crumbs![RightOperand, RightOperand]);
+        assert_eq!(run.endpoint_node_repr(&c.target), "c = a + b");
+        assert_eq!(&c.target.crumbs, &crumbs![RightOperand, RightOperand]);
 
         let c = &run.connections[2];
         assert_eq!(run.endpoint_node_repr(&c.source), "d = p");
         assert_eq!(&c.source.crumbs, &crumbs![LeftOperand]);
-        assert_eq!(run.endpoint_node_repr(&c.destination), "a = d");
-        assert_eq!(&c.destination.crumbs, &crumbs![RightOperand]);
+        assert_eq!(run.endpoint_node_repr(&c.target), "a = d");
+        assert_eq!(&c.target.crumbs, &crumbs![RightOperand]);
 
         let c = &run.connections[3];
         assert_eq!(run.endpoint_node_repr(&c.source), "d = p");
         assert_eq!(&c.source.crumbs, &crumbs![LeftOperand]);
-        assert_eq!(run.endpoint_node_repr(&c.destination), "b = d");
-        assert_eq!(&c.destination.crumbs, &crumbs![RightOperand]);
+        assert_eq!(run.endpoint_node_repr(&c.target), "b = d");
+        assert_eq!(&c.target.crumbs, &crumbs![RightOperand]);
 
         // Note that line `fun a = a b` des not introduce any connections, as it is a definition.
 

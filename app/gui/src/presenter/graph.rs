@@ -50,6 +50,9 @@ pub type ViewConnection = view::graph_editor::Connection;
 /// The connection identifier used by controllers.
 pub type AstConnection = controller::graph::Connection;
 
+/// The connection endpoint used by controllers.
+pub type AstEndpoint = controller::graph::Endpoint;
+
 
 // =================
 // === Constants ===
@@ -162,6 +165,26 @@ impl Model {
                 Some(graph.set_expression_span(ast_id, crumbs, expression, &self.controller))
             },
             "update expression input span",
+        );
+    }
+
+    fn connection_made(&self, connection: &ViewConnection) {
+        self.log_action(
+            || {
+                let update = self.state.update_from_view();
+                Some(self.controller.connect(&update.view_to_ast_connection(connection)?))
+            },
+            "connection broken",
+        );
+    }
+
+    fn connection_broken(&self, connection: &ViewConnection) {
+        self.log_action(
+            || {
+                let update = self.state.update_from_view();
+                Some(self.controller.disconnect(&update.view_to_ast_connection(connection)?))
+            },
+            "connection made",
         );
     }
 
@@ -701,11 +724,16 @@ impl Graph {
 
             // === Changes from the View ===
 
+            trace view.connection_made;
+            trace view.connection_broken;
+
             eval view.node_position_set_batched(((node_id, position)) model.node_position_changed(*node_id, *position));
             eval view.node_removed((node_id) model.node_removed(*node_id));
             eval view.nodes_collapsed(((nodes, _)) model.nodes_collapsed(nodes));
             eval view.enabled_visualization_path(((node_id, path)) model.node_visualization_changed(*node_id, path.clone()));
             eval view.node_expression_span_set(((node_id, crumbs, expression)) model.node_expression_span_set(*node_id, crumbs, expression.clone_ref()));
+            eval view.connection_made((connection) model.connection_made(connection));
+            eval view.connection_broken((connection) model.connection_broken(connection));
             eval view.node_action_context_switch(((node_id, active)) model.node_action_context_switch(*node_id, *active));
             eval view.node_action_skip(((node_id, enabled)) model.node_action_skip(*node_id, *enabled));
             eval view.node_action_freeze(((node_id, enabled)) model.node_action_freeze(*node_id, *enabled));

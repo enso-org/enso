@@ -259,14 +259,14 @@ fn init(app: &Application) {
     graph_editor.frp.set_node_position.emit((node_id, Vector2(-300.0, -100.0)));
     let expression = expression_mock_string("Click me to show a pop-up");
     graph_editor.frp.set_node_expression.emit((node_id, expression));
-    let node = graph_editor.nodes().all.get_cloned_ref(&node_id).unwrap();
-
-    let popup = project_view.popup();
-    let network = node.network();
-    let node_clicked = node.on_event::<mouse::Down>();
-    frp::extend! { network
-        eval_ node_clicked (popup.set_label.emit("This is a test pop-up."));
-    }
+    graph_editor.model.with_node(node_id, |node| {
+        let popup = project_view.popup();
+        let network = node.network();
+        let node_clicked = node.on_event::<mouse::Down>();
+        frp::extend! { network
+            eval_ node_clicked (popup.set_label.emit("This is a test pop-up."));
+        }
+    });
 
 
     // === Rendering ===

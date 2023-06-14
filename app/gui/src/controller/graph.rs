@@ -182,7 +182,7 @@ pub type PortRef<'a> = span_tree::node::Ref<'a>;
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct Connection {
     pub source:      Endpoint,
-    pub destination: Endpoint,
+    pub target: Endpoint,
 }
 
 // === Endpoint
@@ -259,7 +259,7 @@ impl Connections {
     ) -> Connection {
         Connection {
             source:      Self::convert_endpoint(&connection.source),
-            destination: Self::convert_endpoint(&connection.destination),
+            target: Self::convert_endpoint(&connection.target),
         }
     }
 }
@@ -535,15 +535,15 @@ impl Handle {
         })
     }
 
-    /// Obtains information for new connection's destination endpoint.
-    pub fn destination_info(
+    /// Obtains information for new connection's target endpoint.
+    pub fn target_info(
         &self,
         connection: &Connection,
         context: &impl SpanTreeContext,
     ) -> FallibleResult<EndpointInfo> {
-        let destination_node = self.node_info(connection.destination.node)?;
-        let target_node_ast = destination_node.expression().clone();
-        EndpointInfo::new(&connection.destination, target_node_ast, context)
+        let target_node = self.node_info(connection.target.node)?;
+        let target_node_ast = target_node.expression().clone();
+        EndpointInfo::new(&connection.target, target_node_ast, context)
     }
 
     /// Obtains information about new connection's source endpoint.
@@ -659,15 +659,15 @@ impl Handle {
     ) -> FallibleResult {
         let _transaction_guard = self.get_or_open_transaction("Connect");
         let source_info = self.source_info(connection, context)?;
-        let destination_info = self.destination_info(connection, context)?;
+        let target_info = self.target_info(connection, context)?;
         let source_identifier = source_info.target_ast()?.clone();
-        let updated_target_node_expr = destination_info.set(source_identifier.with_new_id())?;
-        self.set_expression_ast(connection.destination.node, updated_target_node_expr)?;
+        let updated_target_node_expr = target_info.set(source_identifier.with_new_id())?;
+        self.set_expression_ast(connection.target.node, updated_target_node_expr)?;
 
         // Reorder node lines, so the connection target is after connection source.
         let source_node = connection.source.node;
-        let destination_node = connection.destination.node;
-        self.place_node_and_dependencies_lines_after(source_node, destination_node)
+        let target_node = connection.target.node;
+        self.place_node_and_dependencies_lines_after(source_node, target_node)
     }
 
     /// Remove the connections from the graph.
@@ -677,7 +677,7 @@ impl Handle {
         context: &impl SpanTreeContext,
     ) -> FallibleResult {
         let _transaction_guard = self.get_or_open_transaction("Disconnect");
-        let info = self.destination_info(connection, context)?;
+        let info = self.target_info(connection, context)?;
         let port = info.span_tree_node()?;
         let updated_expression = if port.is_action_available(Action::Erase) {
             info.erase()
@@ -685,7 +685,7 @@ impl Handle {
             info.set(Ast::blank())
         }?;
 
-        self.set_expression_ast(connection.destination.node, updated_expression)?;
+        self.set_expression_ast(connection.target.node, updated_expression)?;
         Ok(())
     }
 
@@ -1422,26 +1422,26 @@ main =
             let c = &connections.connections[0];
             assert_eq!(c.source.node, node0.info.id());
             assert_eq!(c.source.port.item, PortId::Ast(x_src));
-            assert_eq!(c.destination.node, node1.info.id());
-            assert_eq!(c.destination.port.item, PortId::Ast(x_dst));
+            assert_eq!(c.target.node, node1.info.id());
+            assert_eq!(c.target.port.item, PortId::Ast(x_dst));
 
             let c = &connections.connections[1];
             assert_eq!(c.source.node, node0.info.id());
             assert_eq!(c.source.port.item, PortId::Ast(y_src));
-            assert_eq!(c.destination.node, node2.info.id());
-            assert_eq!(c.destination.port.item, PortId::Ast(y_dst));
+            assert_eq!(c.target.node, node2.info.id());
+            assert_eq!(c.target.port.item, PortId::Ast(y_dst));
 
             let c = &connections.connections[2];
             assert_eq!(c.source.node, node2.info.id());
             assert_eq!(c.source.port.item, PortId::Ast(z_src));
-            assert_eq!(c.destination.node, node3.info.id());
-            assert_eq!(c.destination.port.item, PortId::Ast(z_src1));
+            assert_eq!(c.target.node, node3.info.id());
+            assert_eq!(c.target.port.item, PortId::Ast(z_src1));
 
             let c = &connections.connections[3];
             assert_eq!(c.source.node, node2.info.id());
             assert_eq!(c.source.port.item, PortId::Ast(z_src));
-            assert_eq!(c.destination.node, node4.info.id());
-            assert_eq!(c.destination.port.item, PortId::Ast(z_src2));
+            assert_eq!(c.target.node, node4.info.id());
+            assert_eq!(c.target.port.item, PortId::Ast(z_src2));
         })
     }
 
@@ -1453,11 +1453,11 @@ main =
         struct Case {
             /// A pattern (the left side of assignment operator) of source node.
             src:      &'static str,
-            /// An expression of destination node.
+            /// An expression of target node.
             dst:      &'static str,
-            /// Crumbs of source and destination ports (i.e. SpanTree nodes)
+            /// Crumbs of source and target ports (i.e. SpanTree nodes)
             ports:    (Range<usize>, Range<usize>),
-            /// Expected destination expression after connecting.
+            /// Expected target expression after connecting.
             expected: &'static str,
         }
 
@@ -1480,8 +1480,8 @@ main =
                 test.run(|graph| async move {
                     let (node0, node1) = graph.nodes().unwrap().expect_tuple();
                     let source = Endpoint::new(node0.info.id(), src_port);
-                    let destination = Endpoint::new(node1.info.id(), dst_port);
-                    let connection = Connection { source, destination };
+                    let target = Endpoint::new(node1.info.id(), dst_port);
+                    let connection = Connection { source, target };
                     graph.connect(&connection, &span_tree::generate::context::Empty).unwrap();
                     let new_main = graph.definition().unwrap().ast.repr();
                     assert_eq!(new_main, expected, "Case {this:?}");
@@ -1517,7 +1517,7 @@ main =
             let (node0, _node1, node2) = graph.nodes().unwrap().expect_tuple();
             let connection_to_add = Connection {
                 source:      Endpoint { node: node2.info.id(), port: default() },
-                destination: Endpoint { node: node0.info.id(), port: vec![4].into() },
+                target: Endpoint { node: node0.info.id(), port: vec![4].into() },
             };
             graph.connect(&connection_to_add, &span_tree::generate::context::Empty).unwrap();
             let new_main = graph.definition().unwrap().ast.repr();
@@ -1548,7 +1548,7 @@ main =
                 graph.nodes().unwrap().expect_tuple();
             let connection_to_add = Connection {
                 source:      Endpoint { node: node4.info.id(), port: default() },
-                destination: Endpoint { node: node0.info.id(), port: vec![4].into() },
+                target: Endpoint { node: node0.info.id(), port: vec![4].into() },
             };
             graph.connect(&connection_to_add, &span_tree::generate::context::Empty).unwrap();
             let new_main = graph.definition().unwrap().ast.repr();
@@ -1577,7 +1577,7 @@ main =
             let (node0, node1, _) = graph.nodes().unwrap().expect_tuple();
             let connection_to_add = Connection {
                 source:      Endpoint { node: node0.info.id(), port: default() },
-                destination: Endpoint {
+                target: Endpoint {
                     node: node1.info.id(),
                     port: vec![2].into(), // `_` in `print _`
                 },

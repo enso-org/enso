@@ -206,7 +206,7 @@ impl Extracted {
         let mut output = None;
         for connection in graph.info.connections() {
             let starts_inside = extracted_nodes_set.contains(&connection.source.node);
-            let ends_inside = extracted_nodes_set.contains(&connection.destination.node);
+            let ends_inside = extracted_nodes_set.contains(&connection.target.node);
 
             leaves.remove(&connection.source.node);
             if !starts_inside && ends_inside {

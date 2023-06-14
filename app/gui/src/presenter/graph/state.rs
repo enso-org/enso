@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::presenter::graph::AstConnection;
+use crate::presenter::graph::AstEndpoint;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewConnection;
 use crate::presenter::graph::ViewNodeId;
@@ -521,9 +522,9 @@ impl<'a> ControllerChange<'a> {
             .into_iter()
             .filter_map(|connection| {
                 let src_node = nodes.get(connection.source.node)?.view_id?;
-                let dst_node = nodes.get(connection.destination.node)?.view_id?;
+                let dst_node = nodes.get(connection.target.node)?.view_id?;
                 let source = EdgeEndpoint::new(src_node, connection.source.port);
-                let target = EdgeEndpoint::new(dst_node, connection.destination.port);
+                let target = EdgeEndpoint::new(dst_node, connection.target.port);
                 Some(ViewConnection { source, target })
             })
             .collect()
@@ -725,6 +726,16 @@ impl<'a> ViewChange<'a> {
         let expression_has_changed = span_expression != new_span_expression;
         expression_has_changed.then_some(ast_id)
     }
+
+    /// Map a connection on view side to a connection on controller side.
+    pub fn view_to_ast_connection(&self, connection: &ViewConnection) -> Option<AstConnection> {
+        let source_node = self.state.ast_node_id_of_view(connection.source.node_id)?;
+        let target_node = self.state.ast_node_id_of_view(connection.target.node_id)?;
+        Some(AstConnection {
+            source: AstEndpoint::new(source_node, connection.source.port),
+            target: AstEndpoint::new(target_node, connection.target.port),
+        })
+    }
 }
 
 
@@ -832,8 +843,8 @@ mod tests {
             Endpoint { node: nodes[1].node.id(), port: PortId::Ast(id_map.get(0..5).unwrap()) };
         let dest2 =
             Endpoint { node: nodes[1].node.id(), port: PortId::Ast(id_map.get(8..13).unwrap()) };
-        let ast_con1 = AstConnection { source: src.clone(), destination: dest1.clone() };
-        let ast_con2 = AstConnection { source: src.clone(), destination: dest2.clone() };
+        let ast_con1 = AstConnection { source: src.clone(), target: dest1.clone() };
+        let ast_con2 = AstConnection { source: src.clone(), target: dest2.clone() };
         let view_con1 = ensogl::display::object::Id::from(1).into();
         let view_con2 = ensogl::display::object::Id::from(2).into();
         let view_src = EdgeEndpoint { node_id: nodes[0].view, port: src.port };
