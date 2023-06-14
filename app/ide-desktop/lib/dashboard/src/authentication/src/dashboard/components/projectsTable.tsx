@@ -1,6 +1,5 @@
 /** @file Form to create a project. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
@@ -11,6 +10,7 @@ import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as reactiveEvents from '../events/projectEvent'
 import * as svg from '../../components/svg'
+import * as toastPromise from '../toastPromise'
 import * as toastPromiseMultiple from '../../toastPromiseMultiple'
 import * as uniqueString from '../../uniqueString'
 import * as validation from '../validation'
@@ -122,7 +122,7 @@ function ProjectName(props: InternalProjectNameProps) {
     const [isNameEditable, setIsNameEditable] = React.useState(false)
 
     const doRename = async (newName: string) => {
-        await toast.promise(
+        await toastPromise.toastPromise(
             backend.projectUpdate(
                 item.id,
                 {
@@ -171,7 +171,6 @@ function ProjectName(props: InternalProjectNameProps) {
                     doOpenIde(item)
                 }}
                 onClose={doCloseIde}
-                doRefresh={doRefresh}
             />
             <EditableSpan
                 editable={isNameEditable}

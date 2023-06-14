@@ -4,6 +4,8 @@
 export const FEATURE_FLAGS = {
     /** A selector that lets the user choose between pre-defined sets of visible columns. */
     columnDisplayModeSwitcher: false,
+    /** Show toast notifications for almost every API request, rather than only on error. */
+    moreToasts: false,
 }
 
 if (IS_DEV_MODE) {

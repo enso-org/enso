@@ -59,6 +59,13 @@ export interface UserOrOrganization {
     isEnabled: boolean
 }
 
+/** A `Directory` returned by `createDirectory`. */
+export interface CreatedDirectory {
+    id: DirectoryId
+    parentId: DirectoryId
+    title: string
+}
+
 /** Possible states that a project can be in. */
 export enum ProjectState {
     created = 'Created',
@@ -430,7 +437,7 @@ export interface Backend {
     /** Return a list of assets in a directory. */
     listDirectory: (query: ListDirectoryRequestParams, title: string | null) => Promise<Asset[]>
     /** Create a directory. */
-    createDirectory: (body: CreateDirectoryRequestBody) => Promise<Directory>
+    createDirectory: (body: CreateDirectoryRequestBody) => Promise<CreatedDirectory>
     /** Change the name of a directory. */
     updateDirectory: (
         directoryId: DirectoryId,

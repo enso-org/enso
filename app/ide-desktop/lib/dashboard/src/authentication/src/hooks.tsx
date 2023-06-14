@@ -143,19 +143,32 @@ export function useDebugState<T>(
                 // eslint-disable-next-line no-restricted-syntax
                 const updater = valueOrUpdater as (prevState: T) => T
                 rawSetState(oldState => {
-                    console.group(description)
-                    console.log(`Old ${fullDescription}:`, oldState)
                     const newState = updater(oldState)
-                    console.log(`New ${fullDescription}:`, newState)
-                    console.groupEnd()
+                    // This will not nest logs if states are nested.
+                    // However, this eliminates a lot of unnecessary noise.
+                    if (!Object.is(oldState, newState)) {
+                        console.group(description)
+                        console.log(`Old ${fullDescription}:`, oldState)
+                        console.log(`New ${fullDescription}:`, newState)
+                        console.groupEnd()
+                    }
                     return newState
                 })
             } else {
+                const value = valueOrUpdater
                 rawSetState(oldState => {
-                    if (!Object.is(oldState, valueOrUpdater)) {
+                    if (!Object.is(oldState, value)) {
                         console.group(description)
                         console.log(`Old ${fullDescription}:`, oldState)
-                        console.log(`New ${fullDescription}:`, valueOrUpdater)
+                        console.log(`New ${fullDescription}:`, value)
+                        console.log(
+                            oldState,
+                            value,
+                            oldState === value,
+                            Object.is(oldState, value),
+                            typeof oldState,
+                            typeof value
+                        )
                         console.groupEnd()
                     }
                     return valueOrUpdater

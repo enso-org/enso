@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
+import * as toastPromise from '../toastPromise'
 
 import Input from './input'
 import Modal from './modal'
@@ -37,7 +38,7 @@ function RenameModal(props: RenameModalProps) {
         } else if (!isSubmitting) {
             try {
                 setIsSubmitting(true)
-                await toast.promise(doRename(newName), {
+                await toastPromise.toastPromise(doRename(newName), {
                     loading: `Renaming ${assetType}...`,
                     success: `Renamed ${assetType}.`,
                     // This is UNSAFE, as the original function's parameter is of type `any`.

@@ -4,7 +4,6 @@ import toast from 'react-hot-toast'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
-import * as localBackend from '../localBackend'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
 // Warning: This is a circular import.
@@ -25,9 +24,16 @@ enum SpinnerState {
 /** The state of checking whether a project is ready. It should go from not checking, to checking
  * status, to checking resources, to done. */
 enum CheckState {
+    /** The project is not open. */
     notChecking = 'not-checking',
+    /** A local project is being opened. There are no status and resource checks; the state is
+     * set to done when the RPC call finishes. */
+    localProject = 'local-project',
+    /** Status is not yet `ProjectState.opened`. */
     checkingStatus = 'checking-status',
+    /** `backend.checkResources` calls are still failing. */
     checkingResources = 'checking-resources',
+    /** The project is open. */
     done = 'done',
 }
 
@@ -77,7 +83,6 @@ export interface ProjectActionButtonProps {
     onClose: () => void
     appRunner: AppRunner | null
     openIde: () => void
-    doRefresh: () => void
 }
 
 /** An interactive button displaying the status of a project. */
@@ -92,7 +97,6 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         doOpenManually,
         onClose,
         openIde,
-        doRefresh,
     } = props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
@@ -112,14 +116,22 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                     await backend.openProject(project.id, null, project.title)
                     setExtraData(project.id, { ...getExtraData(project.id), isRunning: true })
                     setCheckState(CheckState.checkingStatus)
-                    doRefresh()
                     break
                 case backendModule.BackendType.local:
+                    setCheckState(CheckState.localProject)
                     await backend.openProject(project.id, null, project.title)
-                    setExtraData(project.id, { ...getExtraData(project.id), isRunning: true })
-                    setCheckState(CheckState.done)
-                    setState(backendModule.ProjectState.opened)
-                    doRefresh()
+                    setCheckState(oldCheckState => {
+                        if (oldCheckState === CheckState.localProject) {
+                            setTimeout(() => {
+                                setExtraData(project.id, {
+                                    ...getExtraData(project.id),
+                                    isRunning: true,
+                                })
+                            }, 0)
+                            setState(backendModule.ProjectState.opened)
+                        }
+                        return oldCheckState
+                    })
                     break
             }
         } catch {
@@ -127,7 +139,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             toast.error(`Error opening project '${project.title}'.`)
             setState(backendModule.ProjectState.closed)
         }
-    }, [backend, doRefresh, project.id, project.title, getExtraData, setExtraData])
+    }, [backend, project.id, project.title, getExtraData, setExtraData])
 
     React.useEffect(() => {
         return () => {
@@ -183,6 +195,10 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             switch (event.type) {
                 case reactiveEvents.ProjectEventType.open: {
                     if (event.projectId !== project.id) {
+                        if (backend.type === backendModule.BackendType.local) {
+                            setState(backendModule.ProjectState.closed)
+                            setCheckState(CheckState.notChecking)
+                        }
                         setShouldOpenWhenReady(false)
                     } else {
                         setShouldOpenWhenReady(true)
@@ -191,11 +207,15 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                     break
                 }
                 case reactiveEvents.ProjectEventType.cancelOpeningAll: {
+                    if (backend.type === backendModule.BackendType.local) {
+                        setState(backendModule.ProjectState.closed)
+                        setCheckState(CheckState.notChecking)
+                    }
                     setShouldOpenWhenReady(false)
                 }
             }
         }
-    }, [event, openProject, project.id])
+    }, [event, openProject, project.id, backend.type])
 
     React.useEffect(() => {
         if (shouldOpenWhenReady && state === backendModule.ProjectState.opened) {
@@ -205,22 +225,9 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     }, [shouldOpenWhenReady, state, openIde])
 
     React.useEffect(() => {
-        if (
-            backend.type === backendModule.BackendType.local &&
-            project.id !== localBackend.LocalBackend.currentlyOpeningProjectId
-        ) {
-            setState(backendModule.ProjectState.closed)
-            setCheckState(CheckState.notChecking)
-        }
-        // `localBackend.LocalBackend.currentlyOpeningProjectId` is a mutable outer scope value.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [project, state, localBackend.LocalBackend.currentlyOpeningProjectId])
-
-    React.useEffect(() => {
         switch (checkState) {
-            case CheckState.notChecking: {
-                return
-            }
+            case CheckState.notChecking:
+            case CheckState.localProject:
             case CheckState.done: {
                 return
             }

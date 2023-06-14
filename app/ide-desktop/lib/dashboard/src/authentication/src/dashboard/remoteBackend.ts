@@ -231,8 +231,10 @@ export class RemoteBackend implements backend.Backend {
     /** Create a directory.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async createDirectory(body: backend.CreateDirectoryRequestBody): Promise<backend.Directory> {
-        const response = await this.post<backend.Directory>(CREATE_DIRECTORY_PATH, body)
+    async createDirectory(
+        body: backend.CreateDirectoryRequestBody
+    ): Promise<backend.CreatedDirectory> {
+        const response = await this.post<backend.CreatedDirectory>(CREATE_DIRECTORY_PATH, body)
         if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to create directory with name '${body.title}'.`)
         } else {

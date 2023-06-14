@@ -14,6 +14,7 @@ import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
 import * as projectEventModule from '../events/projectEvent'
+import * as toastPromise from '../toastPromise'
 
 import DirectoriesTable from './directoriesTable'
 import DriveBar from './driveBar'
@@ -283,20 +284,34 @@ function DirectoryView(props: DirectoryViewProps) {
                             projectTemplateName: directoryEvent.templateId ?? null,
                             parentDirectoryId: directoryId,
                         })
-                        await toast.promise(createProjectPromise, {
-                            loading: 'Creating new empty project...',
-                            success: 'Created new empty project.',
-                            // This is UNSAFE, as the original function's parameter is of type
-                            // `any`.
-                            error: (promiseError: Error) =>
-                                `Error creating new empty project: ${promiseError.message}`,
-                        })
+                        const createdProject = await toastPromise.toastPromise(
+                            createProjectPromise,
+                            {
+                                loading: 'Creating new empty project...',
+                                success: 'Created new empty project.',
+                                // This is UNSAFE, as the original function's parameter is of type
+                                // `any`.
+                                error: (promiseError: Error) =>
+                                    `Error creating new empty project: ${promiseError.message}`,
+                            }
+                        )
                         // `newProject.projectId` cannot be used directly in a `ProjectEvent`
                         // as the project does not yet exist in the project list.
                         // Opening the project would work, but the project would display as closed
                         // as it would be created after the event is sent.
                         setNameOfProjectToImmediatelyOpen(projectName)
-                        doRefresh()
+                        setProjectAssets(oldProjectAssets => {
+                            const newProjectAssets = [...oldProjectAssets]
+                            newProjectAssets[newProjectAssets.indexOf(placeholderNewProjectAsset)] =
+                                {
+                                    ...placeholderNewProjectAsset,
+                                    type: backendModule.AssetType.project,
+                                    title: createdProject.name,
+                                    id: createdProject.projectId,
+                                    projectState: createdProject.state,
+                                }
+                            return newProjectAssets
+                        })
                         break
                     }
                     case directoryEventModule.DirectoryEventType.createDirectory: {
@@ -334,15 +349,27 @@ function DirectoryView(props: DirectoryViewProps) {
                                 parentId: directoryId,
                                 title,
                             })
-                            await toast.promise(createDirectoryPromise, {
-                                loading: 'Creating folder...',
-                                success: 'Sucessfully created folder.',
-                                // This is UNSAFE, as the original function's parameter is
-                                // of type `any`.
-                                error: (promiseError: Error) =>
-                                    `Error creating new folder: ${promiseError.message}`,
+                            const createdDirectory = await toastPromise.toastPromise(
+                                createDirectoryPromise,
+                                {
+                                    loading: 'Creating folder...',
+                                    success: 'Sucessfully created folder.',
+                                    // This is UNSAFE, as the original function's parameter is
+                                    // of type `any`.
+                                    error: (promiseError: Error) =>
+                                        `Error creating new folder: ${promiseError.message}`,
+                                }
+                            )
+                            setDirectoryAssets(oldDirectoryAssets => {
+                                const newDirectoryAssets = [...oldDirectoryAssets]
+                                newDirectoryAssets[
+                                    newDirectoryAssets.indexOf(placeholderNewDirectoryAsset)
+                                ] = {
+                                    ...placeholderNewDirectoryAsset,
+                                    ...createdDirectory,
+                                }
+                                return newDirectoryAssets
                             })
-                            doRefresh()
                         }
                         break
                     }

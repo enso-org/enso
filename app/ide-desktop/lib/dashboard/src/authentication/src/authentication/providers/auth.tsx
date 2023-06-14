@@ -364,6 +364,8 @@ export function AuthProvider(props: AuthProviderProps) {
             return false
         } else {
             try {
+                // This should not use `toastPromise` as it is not possible to render this
+                // optimistically.
                 await toast.promise(
                     backend.createUser({
                         userName: username,
@@ -419,6 +421,7 @@ export function AuthProvider(props: AuthProviderProps) {
         deinitializeSession()
         setInitialized(false)
         setUserSession(null)
+        // This should not use `toastPromise` as it is difficult to render this optimistically.
         await toast.promise(cognito.signOut(), {
             success: MESSAGES.signOutSuccess,
             error: MESSAGES.signOutError,

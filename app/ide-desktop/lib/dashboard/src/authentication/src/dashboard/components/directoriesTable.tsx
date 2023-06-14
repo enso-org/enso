@@ -1,6 +1,5 @@
 /** @file Form to create a project. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
@@ -10,6 +9,7 @@ import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
+import * as toastPromise from '../toastPromise'
 import * as toastPromiseMultiple from '../../toastPromiseMultiple'
 import * as uniqueString from '../../uniqueString'
 
@@ -103,14 +103,17 @@ function DirectoryName(props: InternalDirectoryNameProps) {
     const [, doRefresh] = hooks.useRefresh()
     const [isNameEditable, setIsNameEditable] = React.useState(false)
 
-    // TODO: Wait for backend implementation.
     const doRename = async (newName: string) => {
         if (backend.type !== backendModule.BackendType.local) {
-            await toast.promise(backend.updateDirectory(item.id, { title: newName }, item.title), {
-                loading: 'Renaming folder...',
-                success: 'Renamed folder',
-                error: reason => `Error renaming folder: ${error.unsafeIntoErrorMessage(reason)}`,
-            })
+            await toastPromise.toastPromise(
+                backend.updateDirectory(item.id, { title: newName }, item.title),
+                {
+                    loading: 'Renaming folder...',
+                    success: 'Renamed folder',
+                    error: reason =>
+                        `Error renaming folder: ${error.unsafeIntoErrorMessage(reason)}`,
+                }
+            )
         }
     }
 

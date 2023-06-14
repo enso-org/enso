@@ -1,9 +1,9 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
 
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
+import * as toastPromise from '../toastPromise'
 
 import Modal from './modal'
 
@@ -38,7 +38,7 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                 if (!shouldShowToast) {
                     await deletePromise
                 } else {
-                    await toast.promise(deletePromise, {
+                    await toastPromise.toastPromise(deletePromise, {
                         loading: `Deleting ${assetType}...`,
                         success: `Deleted ${assetType}.`,
                         error: `Could not delete ${assetType}.`,

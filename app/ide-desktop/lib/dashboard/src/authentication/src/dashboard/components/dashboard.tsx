@@ -113,23 +113,21 @@ function Dashboard(props: DashboardProps) {
 
     const switchToIdeTab = React.useCallback(() => {
         setTab(Tab.ide)
-        doRefresh()
         const ideElement = document.getElementById(IDE_ELEMENT_ID)
         if (ideElement) {
             ideElement.style.top = ''
             ideElement.style.display = 'absolute'
         }
-    }, [/* should never change */ doRefresh])
+    }, [])
 
     const switchToDashboardTab = React.useCallback(() => {
         setTab(Tab.dashboard)
-        doRefresh()
         const ideElement = document.getElementById(IDE_ELEMENT_ID)
         if (ideElement) {
             ideElement.style.top = '-100vh'
             ideElement.style.display = 'fixed'
         }
-    }, [/* should never change */ doRefresh])
+    }, [])
 
     const toggleTab = React.useCallback(() => {
         if (project != null && tab === Tab.dashboard) {
