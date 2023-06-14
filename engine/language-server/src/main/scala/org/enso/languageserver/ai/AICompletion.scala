@@ -11,7 +11,7 @@ case object AICompletion extends Method("ai/completion") {
       type Params = AICompletion.Params
     }
 
-  implicit val hasResult: HasResult.Aux[this.type, AICompletion.Params] =
+  implicit val hasResult: HasResult.Aux[this.type, AICompletion.Result] =
     new HasResult[this.type] {
       type Result = AICompletion.Result
     }
