@@ -848,7 +848,7 @@ impl Edge {
     fn source(&self) -> Option<EdgeEndpoint> {
         self.source
     }
-    
+
     /// Get a detached edge that would be created if this edge was detached, such that it remained
     /// connected only to its target.
     fn as_detached_at_target(&self) -> Option<DetachedEdge> {
@@ -908,7 +908,7 @@ impl Edge {
         }
         changed
     }
-    
+
     fn set_hover_position(&self, position: Option<Vector2>) {
         self.view.frp.hover_position.emit(position);
         self.view.frp.redraw.emit(());
@@ -1372,12 +1372,6 @@ impl Default for DetachedEdge {
     }
 }
 
-/// Get the Edge ID from an optional detached edge. Useful for FRP nodes, as there we mostly deal
-/// with references to the optional.
-fn detached_id(detached: &Option<DetachedEdge>) -> Option<EdgeId> {
-    detached.as_ref()?.edge_id()
-}
-
 impl DetachedEdge {
     fn edge_id(&self) -> Option<EdgeId> {
         match self {
@@ -1489,9 +1483,9 @@ impl<T: frp::Data> TouchNetwork<T> {
 
 #[derive(Debug)]
 struct TouchState {
-    nodes:      TouchNetwork<NodeId>,
-    background: TouchNetwork<()>,
-    input_port: TouchNetwork<EdgeEndpoint>,
+    nodes:       TouchNetwork<NodeId>,
+    background:  TouchNetwork<()>,
+    input_port:  TouchNetwork<EdgeEndpoint>,
     output_port: TouchNetwork<EdgeEndpoint>,
 }
 
@@ -1597,7 +1591,6 @@ impl GraphEditorModel {
 
         // If a previously detached edge is no longer detached, set its endpoints.
         if edges.detached != detached_id && let Some(detached) = edges.detached.take() {
-            console_log!("Detached edge mismatch, took old: {detached:?}");
             if let Some(edge) = edges.all.get_mut(&detached) {
                 // If an edge is no longer detached and had no connection, it has already been
                 // removed as part of `drain_filter` above. Therefore `edge.connection` must always
@@ -1611,7 +1604,6 @@ impl GraphEditorModel {
 
         // If we have a detached edge, update or create it.
         if let Some(some_detached) = &mut detached {
-            console_log!("Maintain detached edge: {:?}", some_detached);
             let edge = match some_detached.edge_id() {
                 Some(id) => edges.all.get_mut(&id),
                 None => {
@@ -1623,9 +1615,6 @@ impl GraphEditorModel {
                     edges.all.get_mut(&edge_id)
                 }
             };
-
-            console_log!("Assigned detached edge: {:?}", some_detached);
-            console_log!("Found edge: {}", edge.is_some());
 
             // Configure the source and target of the detached edge's view.
             if let Some(edge) = edge {
@@ -2174,7 +2163,8 @@ impl GraphEditorModel {
     pub fn refresh_edge_colors(&self, edge_ids: impl IntoIterator<Item = EdgeId>) -> Vec<EdgeId> {
         let styles = StyleWatch::new(&self.scene().style_sheet);
         let mut edges = self.edges.borrow_mut();
-        edge_ids.into_iter()
+        edge_ids
+            .into_iter()
             .filter(|edge_id| {
                 let Some(edge) = edges.all.get_mut(edge_id) else { return false };
                 let source_type = || match edge.target {
@@ -2202,7 +2192,7 @@ impl GraphEditorModel {
         for edge_id in edge_ids.into_iter() {
             let mut redraw = false;
             let Some(edge) = edges.all.get(&edge_id) else { continue };
-            
+
             if let Some(edge_source) = edge.source() {
                 self.with_node(edge_source.node_id, |node| {
                     let node_width = node.model().width();
@@ -2243,7 +2233,6 @@ impl GraphEditorModel {
             }
         }
         updated
-
     }
 
     /// Refresh the positions of all outgoing edges connected to the given node. Returns `true` if
@@ -2403,15 +2392,15 @@ impl display::Object for GraphEditorModel {
 struct BgInteractionFrp {
     /// A pointer was released over a background. This signal is emitted even if the pointer was
     /// not originally pressed over a background.
-    pointer_up: frp::Stream,
-    clicked_with_detached_edge: frp::Stream,
+    pointer_up:                    frp::Stream,
+    clicked_with_detached_edge:    frp::Stream,
     clicked_without_detached_edge: frp::Stream,
 }
 
 /// Set of internal FRP signals initialized in [`GraphEditor::frp_init_edge_pointer`].
 #[derive(Debug, Clone, CloneRef)]
 struct EdgePointerFrp {
-    down: frp::Any<EdgeId>,
+    down:  frp::Any<EdgeId>,
     over:  frp::Any<EdgeId>,
     out:   frp::Any<EdgeId>,
     hover: frp::Stream<Option<EdgeId>>,
@@ -2420,23 +2409,24 @@ struct EdgePointerFrp {
 /// Set of internal FRP signals initialized in [`GraphEditor::frp_init_edge_state`].
 struct EdgeStateFrp {
     /// The edge currently being dragged. May or may not represent an existing connection.
-    detached_edge: frp::Stream<Option<DetachedEdge>>,
+    detached_edge:             frp::Stream<Option<DetachedEdge>>,
     /// Set of edges that were modified during maintenance process.
     /// See "Edge maintenance" section in [`GraphEditor::frp_init_edge_state`].
-    maintained_edges_dirty: frp::Stream<Vec<EdgeId>>,
-    /// Set given edge as detached. If any other edge is already detached, it will be cleared first.
-    /// When detached edge is set to invalid edge ID, the state will be cleared during maintain.
-    set_detached_edge: frp::Any<DetachedEdge>,
+    maintained_edges_dirty:    frp::Stream<Vec<EdgeId>>,
+    /// Set given edge as detached. If any other edge is already detached, it will be cleared
+    /// first. When detached edge is set to invalid edge ID, the state will be cleared during
+    /// maintain.
+    set_detached_edge:         frp::Any<DetachedEdge>,
     /// Clear detached edge state. Does NOT remove the connection. If currently detached edge is
     /// still representing the connection, its view will be reconfigured to match that connection.
-    /// In order to remove the connection, use `break_detached_connection` signal first. If there is
-    /// no detached edge currently set, this signal is ignored.
+    /// In order to remove the connection, use `break_detached_connection` signal first. If there
+    /// is no detached edge currently set, this signal is ignored.
     #[allow(dead_code)]
-    clear_detached_edge: frp::Any_,
-    /// Break the connection represented by the currently detached edge. Does NOT clear the detached
-    /// edge state, nor does it remove the detached edge from view. In order to remove detached edge
-    /// view, use `clear_detached_edge` signal. If there is no detached edge currently set, this
-    /// signal is ignored.
+    clear_detached_edge:       frp::Any_,
+    /// Break the connection represented by the currently detached edge. Does NOT clear the
+    /// detached edge state, nor does it remove the detached edge from view. In order to remove
+    /// detached edge view, use `clear_detached_edge` signal. If there is no detached edge
+    /// currently set, this signal is ignored.
     break_detached_connection: frp::Any_,
 }
 
@@ -2472,9 +2462,15 @@ impl GraphEditor {
         let bg_interaction = self.frp_init_background_interaction();
         let edge_pointer = self.frp_init_edge_pointer();
         let edge_state = self.frp_init_edge_state(edge_pointer.clone_ref());
-        let create_node_from_edge = self.frp_init_edge_interaction(&edge_state, &edge_pointer, &bg_interaction);
-        
-        init_remaining_graph_editor_frp(&self, &edge_state, &bg_interaction, &create_node_from_edge);
+        let create_node_from_edge =
+            self.frp_init_edge_interaction(&edge_state, &edge_pointer, &bg_interaction);
+
+        init_remaining_graph_editor_frp(
+            &self,
+            &edge_state,
+            &bg_interaction,
+            &create_node_from_edge,
+        );
         self
     }
 
@@ -2500,11 +2496,7 @@ impl GraphEditor {
             clicked_with_detached_edge <- was_edge_detached_on_bg_click.on_true();
             clicked_without_detached_edge <- was_edge_detached_on_bg_click.on_false();
         }
-        BgInteractionFrp {
-            pointer_up,
-            clicked_with_detached_edge,
-            clicked_without_detached_edge,
-        }
+        BgInteractionFrp { pointer_up, clicked_with_detached_edge, clicked_without_detached_edge }
     }
 
     fn frp_init_edge_pointer(&self) -> EdgePointerFrp {
@@ -2518,13 +2510,8 @@ impl GraphEditor {
             eval  over((edge_id) hover.emit(Some(*edge_id)));
             eval_ out(hover.emit(None));
         }
-    
-        EdgePointerFrp {
-            down,
-            over,
-            out,
-            hover: hover.into(),
-        }
+
+        EdgePointerFrp { down, over, out, hover: hover.into() }
     }
 
     // Initialize the maintenance of edge state. Updates the edge views according to the set of
@@ -2538,10 +2525,15 @@ impl GraphEditor {
         // === Edge interactions  ===
 
         frp::extend! { network
-    
+
         // Attempt to set detached edge state. See [`EdgeStateFrp.set_detached_edge`].
         set_detached_edge <- any_mut::<DetachedEdge>();
-    
+
+        // Break the connection of currently detached edge.
+        // See [`EdgeStateFrp.break_detached_connection`].
+        break_detached_connection <- any_(...);
+        break_detached_connection <+ input.drop_dragged_edge;
+
         // Clear detached edge state. See [`EdgeStateFrp.clear_detached_edge`].
         clear_detached_edge <- any_(...);
         clear_detached_edge <+ input.drop_dragged_edge;
@@ -2550,7 +2542,7 @@ impl GraphEditor {
         clear_detached_edge <+ out.node_exited;
         clear_detached_edge <+ out.connection_made;
         clear_detached_edge <+ input.set_read_only.on_true();
-    
+
         // === Edge maintenance ===
         // Edge maintenance is a process of updating the view of all edges. It is triggered by any
         // connection change received through `set_connections` signal, or by any change to the
@@ -2564,8 +2556,8 @@ impl GraphEditor {
         detached_edge_to_maintain <- any(...);
         detached_edge_to_maintain <+ set_detached_edge.some();
         detached_edge_to_maintain <+ clear_detached_edge.constant(None);
-        
-        // The timing signal when to perform the maintain. This separation of data and timing is
+
+        // The trigger signal when to perform the maintain. This separation of data and timing is
         // necessary, because the maintain process can effectively influence its own input state
         // (see `detached_edge_to_maintain` above). By separating the timing, we can avoid
         // unnecessary looping.
@@ -2575,18 +2567,16 @@ impl GraphEditor {
             f!((_, connections, detached) model.maintain_edges(connections, *detached, &pointer))
         );
         detached_edge <- maintain_result._0();
+        trace maintain_result;
         maintained_edges_dirty <- maintain_result._1();
         // Complete detached edge update feedback cycle - make sure the detached edge set during
         // maintain will also be used during maintain.
         detached_edge_to_maintain <+ detached_edge;
         out.has_detached_edge <+ detached_edge.is_some();
 
-        // Break the connection of currently detached edge.
-        // See [`EdgeStateFrp.break_detached_connection`].
-        break_detached_connection <- any_(...);
         detached_to_break <- detached_edge.sample(&break_detached_connection);
         out.connection_broken <+ detached_to_break
-            .filter_map(f!((detached) model.edge_connection(detached_id(detached)?)));
+            .filter_map(f!((detached) model.edge_connection(detached.as_ref()?.edge_id()?)));
         }
 
         EdgeStateFrp {
@@ -2599,15 +2589,18 @@ impl GraphEditor {
     }
 
     /// Initialize drag and drop interactions for edges.
-    fn frp_init_edge_interaction(&self, state: &EdgeStateFrp, pointer: &EdgePointerFrp, bg: &BgInteractionFrp) -> EdgeInteractionFrp {
+    fn frp_init_edge_interaction(
+        &self,
+        state: &EdgeStateFrp,
+        pointer: &EdgePointerFrp,
+        bg: &BgInteractionFrp,
+    ) -> EdgeInteractionFrp {
         self.frp_init_edge_hover(pointer);
         self.frp_init_edge_click(state, pointer);
         self.frp_init_edge_creation(state);
         self.frp_init_detached_edge_position(state);
         let create_node_from_edge = self.frp_init_edge_bg_drop(state, bg);
-        EdgeInteractionFrp {
-            create_node_from_edge,
-        }
+        EdgeInteractionFrp { create_node_from_edge }
     }
 
     fn frp_init_edge_hover(&self, pointer: &EdgePointerFrp) {
@@ -2622,7 +2615,7 @@ impl GraphEditor {
             edge_hover_mouse_position <- map2(
                 cursor_pos, &pointer.hover, |pos, &id| Some((id?, pos.xy()))
             ).unwrap();
-        
+
             // We do not want edge hover to occur for detached edges.
             set_edge_hover <- edge_hover_mouse_position.gate_not(&cannot_interact);
             eval set_edge_hover (
@@ -2655,13 +2648,13 @@ impl GraphEditor {
             state.set_detached_edge <+ detached_on_click;
             // Only break the dragged connection when it is no longer connected to a target.
             // Otherwise keep the connection still active, so that the edge still has a valid target
-            // AST to connect to. 
+            // AST to connect to.
             state.break_detached_connection <+ detached_on_click.filter(
                 |d| matches!(d, DetachedEdge::OnlySource { .. })
             );
         }
     }
-    
+
     fn frp_init_edge_creation(&self, state: &EdgeStateFrp) {
         let network = self.frp.network();
         let input = &self.frp.private.input;
@@ -2672,34 +2665,31 @@ impl GraphEditor {
         let mouse = &scene.mouse.frp_deprecated;
 
         frp::extend! { network
-            // Create new detached edge when clicking on node port.
+
+            // Before performing edge attach logic, check if creating new edge on click makes sense.
             cannot_interact <- input.set_read_only || out.has_detached_edge;
-            new_detached_source <- touch.output_port.selected
-                .gate_not(&cannot_interact)
-                .map(|source| DetachedEdge::new_source(*source));
-            new_detached_target <- touch.output_port.selected
-                .gate_not(&cannot_interact)
-                .filter(f!([model] (t) !model.is_node_connected_at_input(t.node_id,t.port)))
-                .map(|target| DetachedEdge::new_target(*target));
-            state.set_detached_edge <+ new_detached_source;
-            state.set_detached_edge <+ new_detached_target;
-        
+            can_create_new_edge <- cannot_interact.not();
+            can_create_on_output <- can_create_new_edge.sample(&touch.output_port.selected);
+            can_create_on_input <- can_create_new_edge.sample(&touch.input_port.selected);
+
             // Attach detached edge to node port when clicking or releasing on node port.
-            port_input_mouse_up <- out.hover_node_input.sample(&mouse.up_primary).unwrap();
             port_output_mouse_up <- out.hover_node_output.sample(&mouse.up_primary).unwrap();
-            attach_edge_input <- any(port_input_mouse_up, touch.output_port.down);
-            attach_edge_output <- any(port_output_mouse_up, touch.output_port.down);
-            new_connection_to_make <- any(...);
-            new_connection_to_make <+ attach_edge_input.map2(&state.detached_edge,
-                |target, detached| detached.as_ref()?.connect_to_target(*target)
-            ).unwrap();
-            new_connection_to_make <+ attach_edge_output.map2(&state.detached_edge,
+            port_input_mouse_up <- out.hover_node_input.sample(&mouse.up_primary).unwrap();
+            attach_edge_output <- any(port_output_mouse_up, touch.output_port.selected);
+            attach_edge_input <- any(port_input_mouse_up, touch.input_port.selected);
+            out.connection_made <+ attach_edge_output.map2(&state.detached_edge,
                 |source, detached| detached.as_ref()?.connect_to_source(*source)
             ).unwrap();
-            // Before making a new connection from existing detached edge, break the old connection 
-            // if it was still present.
-            state.break_detached_connection <+ new_connection_to_make;
-            out.connection_made <+ new_connection_to_make;
+            out.connection_made <+ attach_edge_input.map2(&state.detached_edge,
+                |target, detached| detached.as_ref()?.connect_to_target(*target)
+            ).unwrap();
+
+            // Create new detached edge when clicking on node port.
+            state.set_detached_edge <+ touch.output_port.selected.gate(&can_create_on_output)
+                .map(|source| DetachedEdge::new_source(*source));
+            state.set_detached_edge <+ touch.input_port.selected.gate(&can_create_on_input)
+                .filter(f!([model] (t) !model.is_node_connected_at_input(t.node_id,t.port)))
+                .map(|target| DetachedEdge::new_target(*target));
         }
     }
 
@@ -2712,28 +2702,28 @@ impl GraphEditor {
         frp::extend! { network
             cursor_pos_on_update <- cursor.scene_position.sample(&state.detached_edge);
             edge_refresh_cursor_pos <- any(cursor_pos_on_update, cursor.scene_position);
-        
+
             is_hovering_output <- out.hover_node_output.is_some();
             hover_node         <- out.hover_node_output.unwrap();
-        
+
             edge_refresh_on_node_hover <- all(cursor.scene_position, hover_node).gate(&is_hovering_output);
             edge_refresh_cursor_pos_no_hover <- edge_refresh_cursor_pos.gate_not(&is_hovering_output);
             edge_refresh_cursor_pos_on_hover <- cursor.scene_position.gate(&is_hovering_output);
-        
+
             refresh_target      <- any(&edge_refresh_cursor_pos_on_hover,&edge_refresh_cursor_pos_no_hover);
             let refresh_source  = edge_refresh_cursor_pos_no_hover.clone_ref();
             snap_source_to_node <- edge_refresh_on_node_hover._1();
-        
+
             detached_source_edge <- state.detached_edge.map(|&d| d?.detached_source_edge_id());
             detached_target_edge <- state.detached_edge.map(|&d| d?.detached_target_edge_id());
-        
+
             _eval <- refresh_target.map2(&detached_source_edge,
                 f!((position, &edge_id) model.with_edge(edge_id?, |edge| {
                     edge.frp.target_position.emit(position.xy());
                     edge.frp.redraw.emit(());
                 }))
             );
-        
+
             _eval <- refresh_source.map2(&detached_target_edge, f!([model](position, &edge_id) {
                 let edge_id = edge_id?;
                 model.with_edge(edge_id, |edge| {
@@ -2746,7 +2736,7 @@ impl GraphEditor {
                 model.refresh_edge_positions([edge_id]);
                 Some(())
             }));
-        
+
             _eval <- snap_source_to_node.map2(&detached_target_edge, f!([model](target, &edge_id) {
                 let edge_id = edge_id?;
                 let (node_width, node_height, node_pos) = model.with_node(target.node_id, |node| {
@@ -2768,7 +2758,11 @@ impl GraphEditor {
         }
     }
 
-    fn frp_init_edge_bg_drop(&self, state: &EdgeStateFrp, bg: &BgInteractionFrp) -> frp::Stream<DetachedEdge> {
+    fn frp_init_edge_bg_drop(
+        &self,
+        state: &EdgeStateFrp,
+        bg: &BgInteractionFrp,
+    ) -> frp::Stream<DetachedEdge> {
         let network = self.frp.network();
         let touch = &self.model.touch_state;
 
@@ -2779,8 +2773,19 @@ impl GraphEditor {
             connect_drag_mode <+ touch.output_port.selected.constant(false);
             connect_drag_mode <+ touch.input_port.selected.constant(false);
             drop_onto_background <- bg.pointer_up.gate(&connect_drag_mode);
-            create_node <- any_(drop_onto_background, bg.clicked_with_detached_edge);
-            edge_dropped_to_create_node <- state.detached_edge.sample(&create_node).unwrap();
+            perform_drop <- any_(drop_onto_background, bg.clicked_with_detached_edge);
+            dropped_detached_edge <- state.detached_edge.sample(&perform_drop).unwrap();
+            dropped_detached_source <- dropped_detached_edge
+                .filter(|d| matches!(d, DetachedEdge::OnlySource { .. }));
+            dropped_detached_target <- dropped_detached_edge
+                .filter(|d| matches!(d, DetachedEdge::OnlyTarget { .. }));
+
+            // Only consider creating a node from detached edge if it was still connected on the
+            // source side.
+            let edge_dropped_to_create_node = dropped_detached_source;
+            // Otherwise, remove the edge completely.
+            state.break_detached_connection <+ dropped_detached_target;
+            state.clear_detached_edge <+ dropped_detached_target;
         }
         edge_dropped_to_create_node
     }
@@ -2806,7 +2811,7 @@ impl application::View for GraphEditor {
 }
 
 /// Initialize remaining parts of graph editor FRP network. See [`GraphEditor::init`].
-/// 
+///
 /// NOTE[PG]: This should eventually be refactored into smaller methods. I will chip away at this
 /// over time, especially once the new FRP system is in place. For the time being, it is kept in one
 /// big mess left over from the old days. If you are in need to modify this method to add a new
@@ -2815,7 +2820,7 @@ fn init_remaining_graph_editor_frp(
     graph_editor: &GraphEditor,
     edge_state: &EdgeStateFrp,
     bg_interaction: &BgInteractionFrp,
-    edge_interaction: &EdgeInteractionFrp
+    edge_interaction: &EdgeInteractionFrp,
 ) {
     let frp = &graph_editor.frp;
     let app = &graph_editor.model.app;
@@ -3246,7 +3251,8 @@ fn init_remaining_graph_editor_frp(
     ).iter();
     edge_to_refresh_color <+ edge_state.maintained_edges_dirty.iter();
     port_hovered <- any_(out.hover_node_output, out.hover_node_input);
-    edge_to_refresh_color <+ edge_state.detached_edge.sample(&port_hovered).filter_map(detached_id);
+    edge_to_refresh_color <+ edge_state.detached_edge.sample(&port_hovered)
+        .filter_map(|&d| d?.edge_id());
     edges_to_refresh_color_batch <- edge_to_refresh_color.batch_unique();
     edges_with_updated_color <- edges_to_refresh_color_batch.map(
         f!((edge_ids) model.refresh_edge_colors(edge_ids.iter().copied()))
@@ -3270,7 +3276,7 @@ fn init_remaining_graph_editor_frp(
     maintained_dirty <- edge_state.maintained_edges_dirty.map(
         f!((e) model.refresh_edge_positions(e.iter().copied()))
     );
-    any_edges_dirty <- incoming_dirty.all_with3(&outgoing_dirty, &maintained_dirty, 
+    any_edges_dirty <- incoming_dirty.all_with3(&outgoing_dirty, &maintained_dirty,
         |a, b, c| *a || *b || *c
     );
     force_update_layout <- any_edges_dirty.on_true().debounce();
@@ -3454,7 +3460,7 @@ fn init_remaining_graph_editor_frp(
 
     detached_edge_style <- edge_state.detached_edge.all_with(&edges_to_refresh_color_batch,
         f!([model](d, _) {
-            let color = detached_id(d).map(|id| model.edge_color(id));
+            let color = d.and_then(|d| d.edge_id()).map(|id| model.edge_color(id));
             color.map_or_default(|c| cursor::Style::new_color(c).press())
         })
     );
@@ -3855,7 +3861,8 @@ mod tests {
             let (node_id, ..) = self.node_added.value();
             self.with_node(node_id, |node| {
                 node.set_expression(node::Expression::new_plain("some_not_empty_expression"));
-            }).expect("Node was not added.");
+            })
+            .expect("Node was not added.");
             (node_id, node)
         }
 

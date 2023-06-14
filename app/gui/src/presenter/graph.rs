@@ -174,7 +174,7 @@ impl Model {
                 let update = self.state.update_from_view();
                 Some(self.controller.connect(&update.view_to_ast_connection(connection)?))
             },
-            "connection broken",
+            "make connection",
         );
     }
 
@@ -184,7 +184,7 @@ impl Model {
                 let update = self.state.update_from_view();
                 Some(self.controller.disconnect(&update.view_to_ast_connection(connection)?))
             },
-            "connection made",
+            "break connection",
         );
     }
 
