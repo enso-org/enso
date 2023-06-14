@@ -337,10 +337,6 @@ pub struct Slider {
     #[deref]
     pub frp: Frp,
     model:   Rc<Model>,
-    /// Reference to the application the component belongs to. Generally required for implementing
-    /// `application::View` and initialising the `Model` and `Frp` and thus provided by the
-    /// component.
-    pub app: Application,
 }
 
 impl Slider {
@@ -348,12 +344,11 @@ impl Slider {
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
         let model = Rc::new(Model::new(app, frp.network()));
-        let app = app.clone_ref();
-        Self { frp, model, app }.init()
+        Self { frp, model }.init(app)
     }
 
-    fn init(self) -> Self {
-        self.init_value_update();
+    fn init(self, app: &Application) -> Self {
+        self.init_value_update(app);
         self.init_limit_handling();
         self.init_value_display();
 
@@ -367,13 +362,13 @@ impl Slider {
     }
 
     /// Initialize the slider value update FRP network.
-    fn init_value_update(&self) {
+    fn init_value_update(&self, app: &Application) {
         let network = self.frp.network();
         let frp = &self.frp;
         let input = &self.frp.input;
         let output = &self.frp.private.output;
         let model = &self.model;
-        let scene = &self.app.display.default_scene;
+        let scene = &app.display.default_scene;
         let mouse = &scene.mouse.frp_deprecated;
         let keyboard = &scene.keyboard.frp;
 
@@ -843,10 +838,6 @@ impl application::View for Slider {
 
     fn new(app: &Application) -> Self {
         Self::new(app)
-    }
-
-    fn app(&self) -> &Application {
-        &self.app
     }
 
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {

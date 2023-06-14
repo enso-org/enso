@@ -49,6 +49,7 @@ pub struct Model<T> {
     pub grid:         Grid,
     selected_entries: Rc<RefCell<HashSet<T>>>,
     cache:            Rc<RefCell<EntryCache<T>>>,
+    expected_indices: Rc<RefCell<HashSet<usize>>>,
 }
 
 impl<T> component::Model for Model<T> {
@@ -72,7 +73,14 @@ impl<T> component::Model for Model<T> {
         grid.scroll_frp().set_corner_radius(inner_corners_radius);
         grid.set_entries_size(Vector2(min_width, ENTRY_HEIGHT));
 
-        Model { background, grid, display_object, selected_entries: default(), cache: default() }
+        Model {
+            background,
+            grid,
+            display_object,
+            selected_entries: default(),
+            cache: default(),
+            expected_indices: default(),
+        }
     }
 }
 
@@ -138,28 +146,31 @@ impl<T: DropdownValue> Model<T> {
         requested_indices: &[usize],
     ) -> (Vec<Range<usize>>, Vec<Range<usize>>) {
         let cache = self.cache.borrow();
-
+        let sorted_indices = {
+            let mut indices = requested_indices.to_owned();
+            indices.sort_unstable();
+            indices
+        };
         let mut request_ranges: Vec<Range<usize>> = Vec::new();
         let mut ready_ranges: Vec<Range<usize>> = Vec::new();
-        for &index in requested_indices {
+        for index in sorted_indices {
             let modify_ranges = match cache.contains_key(index) {
                 true => &mut ready_ranges,
                 false => &mut request_ranges,
             };
-
-            let mut new_range = Range { start: index, end: index + 1 };
-            modify_ranges.retain(|range| {
-                let ranges_overlap = new_range.start <= range.end && range.start <= new_range.end;
-                if ranges_overlap {
-                    new_range.start = range.start.min(new_range.start);
-                    new_range.end = range.end.max(new_range.end);
-                }
-                !ranges_overlap
-            });
-            modify_ranges.push(new_range);
+            if let Some(range) = modify_ranges.last_mut() && range.end == index {
+                range.end = index + 1;
+            } else {
+                modify_ranges.push(Range { start: index, end: index + 1 });
+            }
         }
-
         (ready_ranges, request_ranges)
+    }
+
+    /// Add the specified values to the set of indices that have been requested by the [`GridView`]
+    /// before their data has become available.
+    pub fn expect_update_for_range(&self, range: Range<usize>) {
+        self.expected_indices.borrow_mut().extend(range);
     }
 
     /// Accepts entry at given index, modifying selection. If entry is already selected, it will be
@@ -202,7 +213,8 @@ impl<T: DropdownValue> Model<T> {
         })
     }
 
-    /// Update cache with new entries at given range. Returns range of indices that were updated.
+    /// Update cache with new entries at given range. Returns ranges of indices that were previously
+    /// marked as expected and have now become available.
     #[profile(Debug)]
     pub fn insert_entries_in_range(
         &self,
@@ -211,7 +223,7 @@ impl<T: DropdownValue> Model<T> {
         visible_range: Range<usize>,
         max_cache_size: usize,
         num_entries: usize,
-    ) -> Range<usize> {
+    ) -> Vec<Range<usize>> {
         let update_start = updated_range.start.min(num_entries);
         let update_end = updated_range.end.min(num_entries);
         let truncated_range = update_start..update_end;
@@ -219,7 +231,23 @@ impl<T: DropdownValue> Model<T> {
 
         let mut cache = self.cache.borrow_mut();
         cache.insert(truncated_range.clone(), truncated_entries, visible_range, max_cache_size);
-        truncated_range
+
+        let mut updated_ranges = vec![];
+        let mut new_range: Option<Range<usize>> = None;
+        let mut expected = self.expected_indices.borrow_mut();
+        for i in truncated_range {
+            let was_expected = expected.remove(&i);
+            if was_expected {
+                if let Some(new_range) = new_range.as_mut() && new_range.end == i {
+                    new_range.end = i + 1;
+                } else {
+                    let ended_range = new_range.replace(Range { start: i, end: i + 1 });
+                    updated_ranges.extend(ended_range);
+                }
+            }
+        }
+        updated_ranges.extend(new_range);
+        updated_ranges
     }
 
     /// Prune selection according to changed multiselect mode. Returns true if the selection was

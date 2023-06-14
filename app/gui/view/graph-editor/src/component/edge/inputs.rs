@@ -1,7 +1,7 @@
-use crate::prelude::*;
-use ensogl::data::color;
-
 use super::coords::*;
+use crate::prelude::*;
+
+use ensogl::data::color;
 
 
 

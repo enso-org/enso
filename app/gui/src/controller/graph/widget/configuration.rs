@@ -22,6 +22,7 @@ use ide_view::graph_editor::ArgumentWidgetConfig;
 /// data. Allows for partial deserialization: if any of the widget definitions fails to deserialize,
 /// it will be skipped, but the deserialization will continue. All errors are returned as a separate
 /// list.
+#[profile(Debug)]
 pub fn deserialize_widget_definitions(
     data: &VisualizationUpdateData,
     db: &SuggestionDatabase,

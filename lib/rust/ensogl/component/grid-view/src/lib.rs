@@ -370,6 +370,7 @@ impl<E: Entry> Model<E, E::Params> {
         entry_frp.set_model(model);
     }
 
+    #[profile(Debug)]
     fn update_after_column_resize(
         &self,
         resized_column: Col,
@@ -686,10 +687,6 @@ impl<E: Entry> application::View for GridView<E> {
 
     fn new(app: &Application) -> Self {
         GridView::<E>::new(app)
-    }
-
-    fn app(&self) -> &Application {
-        self.widget.app()
     }
 
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {

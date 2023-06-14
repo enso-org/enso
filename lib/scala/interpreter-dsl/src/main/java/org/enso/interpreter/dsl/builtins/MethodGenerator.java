@@ -4,19 +4,18 @@ import com.google.common.base.CaseFormat;
 import com.sun.tools.javac.code.Attribute;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.util.Pair;
-import org.apache.commons.lang3.StringUtils;
-import org.enso.interpreter.dsl.Builtin;
-
-import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.*;
-import javax.lang.model.type.TypeMirror;
-import javax.lang.model.util.Types;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.*;
+import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.Types;
+import org.apache.commons.lang3.StringUtils;
+import org.enso.interpreter.dsl.Builtin;
 
 public abstract class MethodGenerator {
   protected final boolean isStatic;

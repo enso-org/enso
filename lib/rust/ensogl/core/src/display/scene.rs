@@ -310,16 +310,10 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
-    pub fn new() -> Self {
+    pub fn new(target: &web::EventTarget) -> Self {
         let frp = enso_frp::io::keyboard::Keyboard::default();
-        let bindings = Rc::new(enso_frp::io::keyboard::DomBindings::new(&frp));
+        let bindings = Rc::new(enso_frp::io::keyboard::DomBindings::new(target, &frp));
         Self { frp, bindings }
-    }
-}
-
-impl Default for Keyboard {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -348,6 +342,7 @@ impl Dom {
         root.set_style_or_warn("height", "100vh");
         root.set_style_or_warn("width", "100vw");
         root.set_style_or_warn("display", "block");
+        root.set_style_or_warn("outline", "none");
         let root = web::dom::WithKnownShape::new(&root);
         Self { root, layers }
     }
@@ -592,16 +587,14 @@ impl Renderer {
 // === Layers ===
 // ==============
 
-type RectLayerPartition = Rc<LayerSymbolPartition<rectangle::Shape>>;
+type RectLayerPartition = LayerSymbolPartition<rectangle::Shape>;
 
-/// Create a new layer partition with the given name, wrapped in an `Rc` for use in the
-/// [`HardcodedLayers`] structure.
+/// Create a new layer partition with the given name.
 fn partition_layer<S: display::shape::primitive::system::Shape>(
     base_layer: &Layer,
     name: &str,
-) -> Rc<LayerSymbolPartition<S>> {
-    let partition = base_layer.create_symbol_partition::<S>(name);
-    Rc::new(partition)
+) -> LayerSymbolPartition<S> {
+    base_layer.create_symbol_partition::<S>(name)
 }
 
 /// Please note that currently the `Layers` structure is implemented in a hacky way. It assumes the
@@ -882,7 +875,7 @@ impl SceneData {
         let mouse =
             Mouse::new(&frp, &dom.root, &variables, &display_mode, &pointer_target_registry);
         let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
-        let keyboard = Keyboard::new();
+        let keyboard = Keyboard::new(&web::window);
         let network = &frp.network;
         let extensions = Extensions::default();
         let bg_color_var = style_sheet.var("application.background");

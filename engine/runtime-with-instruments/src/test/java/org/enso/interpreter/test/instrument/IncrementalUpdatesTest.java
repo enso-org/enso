@@ -16,7 +16,7 @@ import org.enso.polyglot.runtime.Runtime$Api$BackgroundJobsStartedNotification;
 import org.enso.polyglot.runtime.Runtime$Api$CreateContextRequest;
 import org.enso.polyglot.runtime.Runtime$Api$CreateContextResponse;
 import org.enso.polyglot.runtime.Runtime$Api$EditFileNotification;
-import org.enso.polyglot.runtime.Runtime$Api$ExecutionFailed;
+import org.enso.polyglot.runtime.Runtime$Api$ExecutionComplete;
 import org.enso.polyglot.runtime.Runtime$Api$ExpressionUpdates;
 import org.enso.polyglot.runtime.Runtime$Api$InitializedNotification;
 import org.enso.polyglot.runtime.Runtime$Api$MethodCall;
@@ -107,8 +107,11 @@ public class IncrementalUpdatesTest {
 
   @Test
   public void sendNotANumberChange() {
-    var failed = sendUpdatesWhenFunctionBodyIsChangedBySettingValue("4", ConstantsGen.INTEGER, "4", "x", null, LiteralNode.class);
-    assertTrue("Execution failed: " + failed, failed.head().payload() instanceof Runtime$Api$ExecutionFailed);
+    var result = sendUpdatesWhenFunctionBodyIsChangedBySettingValue("4", ConstantsGen.INTEGER, "4", "x", null, LiteralNode.class);
+    assertTrue("Execution succeeds: " + result, result.head().payload() instanceof Runtime$Api$ExecutionComplete);
+    assertEquals("Error is printed as a result",
+      List.newBuilder().addOne("(Error: Uninitialized value)"), context.consumeOut()
+    );
   }
 
   private static String extractPositions(String code, String chars, Map<Character, int[]> beginAndLength) {

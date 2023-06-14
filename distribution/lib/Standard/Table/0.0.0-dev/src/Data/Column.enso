@@ -18,7 +18,6 @@ import project.Internal.Java_Problems
 import project.Internal.Naming_Helpers.Naming_Helpers
 import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
-import project.Data.Type.Value_Type_Helpers
 
 from project.Internal.Column_Format import all
 from project.Data.Table import print_table

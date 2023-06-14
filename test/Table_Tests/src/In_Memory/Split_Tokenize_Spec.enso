@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity
 import Standard.Test.Extensions
 
 from Standard.Table import Table

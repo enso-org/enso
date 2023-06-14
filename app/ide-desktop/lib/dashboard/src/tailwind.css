@@ -16,6 +16,10 @@ body {
   font-feature-settings: normal;
 }
 
+.enso-dashboard *:focus {
+  outline: none !important;
+}
+
 /* Must be kept in sync with app/gui/view/graph-editor/src/builtin/visualization/java_script/helpers/scrollable.js. */
 
 ::-webkit-scrollbar {

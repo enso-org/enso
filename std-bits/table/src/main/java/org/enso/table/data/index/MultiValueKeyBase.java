@@ -1,10 +1,9 @@
 package org.enso.table.data.index;
 
-import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.Storage;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.storage.Storage;
 
 /** The base class for keys used for sorting/grouping rows by a set of columns. */
 public abstract class MultiValueKeyBase {

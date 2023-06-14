@@ -367,13 +367,6 @@ impl<Model: 'static, Frp: 'static> Widget<Model, Frp> {
     pub fn model(&self) -> &Model {
         &self.data.model
     }
-
-    /// Reference to the application the Widget belongs to. It's required for handling model and
-    /// FRP garbage collection, but also may be helpful when, for example, implementing
-    /// `application::View`.
-    pub fn app(&self) -> &Application {
-        &self.data.app
-    }
 }
 
 impl<Model: 'static, Frp: 'static> display::Object for Widget<Model, Frp> {

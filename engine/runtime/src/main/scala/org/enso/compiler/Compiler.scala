@@ -1,7 +1,7 @@
 package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleLogger
-import com.oracle.truffle.api.source.Source
+import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.codegen.{IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
@@ -21,22 +21,21 @@ import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.runtime.{EnsoContext, Module}
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
-import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.Parser
+import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax2.Tree
 
 import java.io.{PrintStream, StringReader}
 import java.util.concurrent.{
   CompletableFuture,
   ExecutorService,
+  Future,
   LinkedBlockingDeque,
   ThreadPoolExecutor,
   TimeUnit
 }
 import java.util.logging.Level
-
 import scala.jdk.OptionConverters._
-import java.util.concurrent.Future
 
 /** This class encapsulates the static transformation processes that take place
   * on source code, including parsing, desugaring, type-checking, static
@@ -966,7 +965,6 @@ class Compiler(
     diagnostics
       .foldLeft(false) { case (result, (mod, diags)) =>
         if (diags.nonEmpty) {
-          output.println(s"In module ${mod.getName}:")
           reportDiagnostics(diags, mod.getSource) || result
         } else {
           result
@@ -985,41 +983,184 @@ class Compiler(
     diagnostics: List[IR.Diagnostic],
     source: Source
   ): Boolean = {
-    val errors   = diagnostics.collect { case e: IR.Error => e }
-    val warnings = diagnostics.collect { case w: IR.Warning => w }
-
-    if (warnings.nonEmpty) {
-      output.println("Compiler encountered warnings:")
-      warnings.foreach { warning =>
-        output.println(formatDiagnostic(warning, source))
-      }
-    }
-
-    if (errors.nonEmpty) {
-      output.println("Compiler encountered errors:")
-      errors.foreach { error =>
-        output.println(formatDiagnostic(error, source))
-      }
-      true
-    } else {
-      false
-    }
+    diagnostics.foreach(diag =>
+      output.println(new DiagnosticFormatter(diag, source).format())
+    )
+    diagnostics.exists(_.isInstanceOf[IR.Error])
   }
 
-  /** Pretty prints compiler diagnostics.
-    *
+  /** Formatter of IR diagnostics. Heavily inspired by GCC. Can format one-line as well as multiline
+    * diagnostics. The output is colorized if the output stream supports ANSI colors.
+    * Also prints the offending lines from the source along with line number - the same way as
+    * GCC does.
     * @param diagnostic the diagnostic to pretty print
-    * @param source the original source code
-    * @return the result of pretty printing `diagnostic`
+    * @param source     the original source code
     */
-  private def formatDiagnostic(
-    diagnostic: IR.Diagnostic,
-    source: Source
-  ): String = {
-    fileLocationFromSection(
-      diagnostic.location,
-      source
-    ) + ": " + diagnostic.formattedMessage
+  private class DiagnosticFormatter(
+    private val diagnostic: IR.Diagnostic,
+    private val source: Source
+  ) {
+    private val maxLineNum                     = 99999
+    private val blankLinePrefix                = "      | "
+    private val maxSourceLinesToPrint          = 3
+    private val linePrefixSize                 = blankLinePrefix.length
+    private val outSupportsAnsiColors: Boolean = outSupportsColors
+    private val (textAttrs: fansi.Attrs, subject: String) = diagnostic match {
+      case _: IR.Error   => (fansi.Color.Red ++ fansi.Bold.On, "error: ")
+      case _: IR.Warning => (fansi.Color.Yellow ++ fansi.Bold.On, "warning: ")
+      case _             => throw new IllegalStateException("Unexpected diagnostic type")
+    }
+    private val sourceSection: Option[SourceSection] =
+      diagnostic.location match {
+        case Some(location) =>
+          Some(source.createSection(location.start, location.length))
+        case None => None
+      }
+    private val shouldPrintLineNumber = sourceSection match {
+      case Some(section) =>
+        section.getStartLine <= maxLineNum && section.getEndLine <= maxLineNum
+      case None => false
+    }
+
+    def format(): String = {
+      sourceSection match {
+        case Some(section) =>
+          val isOneLine = section.getStartLine == section.getEndLine
+          val srcPath: String =
+            if (source.getPath == null && source.getName == null) {
+              "<Unknown source>"
+            } else if (source.getPath != null) {
+              source.getPath
+            } else {
+              source.getName
+            }
+          if (isOneLine) {
+            val lineNumber  = section.getStartLine
+            val startColumn = section.getStartColumn
+            val endColumn   = section.getEndColumn
+            var str         = fansi.Str()
+            str ++= fansi
+              .Str(srcPath + ":" + lineNumber + ":" + startColumn + ": ")
+              .overlay(fansi.Bold.On)
+            str ++= fansi.Str(subject).overlay(textAttrs)
+            str ++= diagnostic.formattedMessage
+            str ++= "\n"
+            str ++= oneLineFromSourceColored(lineNumber, startColumn, endColumn)
+            str ++= "\n"
+            str ++= underline(startColumn, endColumn)
+            if (outSupportsAnsiColors) {
+              str.render.stripLineEnd
+            } else {
+              str.plainText.stripLineEnd
+            }
+          } else {
+            var str = fansi.Str()
+            str ++= fansi
+              .Str(
+                srcPath + ":[" + section.getStartLine + ":" + section.getStartColumn + "-" + section.getEndLine + ":" + section.getEndColumn + "]: "
+              )
+              .overlay(fansi.Bold.On)
+            str ++= fansi.Str(subject).overlay(textAttrs)
+            str ++= diagnostic.formattedMessage
+            str ++= "\n"
+            val printAllSourceLines =
+              section.getEndLine - section.getStartLine <= maxSourceLinesToPrint
+            val endLine =
+              if (printAllSourceLines) section.getEndLine
+              else section.getStartLine + maxSourceLinesToPrint
+            for (lineNum <- section.getStartLine to endLine) {
+              str ++= oneLineFromSource(lineNum)
+              str ++= "\n"
+            }
+            if (!printAllSourceLines) {
+              val restLineCount =
+                section.getEndLine - section.getStartLine - maxSourceLinesToPrint
+              str ++= blankLinePrefix + "... and " + restLineCount + " more lines ..."
+              str ++= "\n"
+            }
+            if (outSupportsAnsiColors) {
+              str.render.stripLineEnd
+            } else {
+              str.plainText.stripLineEnd
+            }
+          }
+        case None =>
+          // We dont have location information, so we just print the message
+          var str = fansi.Str()
+          str ++= fansi
+            .Str(fileLocationFromSection(diagnostic.location, source))
+            .overlay(fansi.Bold.On)
+          str ++= ": "
+          str ++= fansi.Str(subject).overlay(textAttrs)
+          str ++= diagnostic.formattedMessage
+          if (outSupportsAnsiColors) {
+            str.render.stripLineEnd
+          } else {
+            str.plainText.stripLineEnd
+          }
+      }
+    }
+
+    /** @see https://github.com/termstandard/colors/
+      * @see https://no-color.org/
+      * @return
+      */
+    private def outSupportsColors: Boolean = {
+      if (System.console() == null) {
+        // Non-interactive output is always without color support
+        return false
+      }
+      if (System.getenv("NO_COLOR") != null) {
+        return false
+      }
+      if (config.outputRedirect.isDefined) {
+        return false
+      }
+      if (System.getenv("COLORTERM") != null) {
+        return true
+      }
+      if (System.getenv("TERM") != null) {
+        val termEnv = System.getenv("TERM").toLowerCase
+        return termEnv.split("-").contains("color") || termEnv
+          .split("-")
+          .contains("256color")
+      }
+      return false
+    }
+
+    private def oneLineFromSource(lineNum: Int): String = {
+      val line = source.createSection(lineNum).getCharacters.toString
+      linePrefix(lineNum) + line
+    }
+
+    private def oneLineFromSourceColored(
+      lineNum: Int,
+      startCol: Int,
+      endCol: Int
+    ): String = {
+      val line = source.createSection(lineNum).getCharacters.toString
+      linePrefix(lineNum) + fansi
+        .Str(line)
+        .overlay(textAttrs, startCol - 1, endCol)
+    }
+
+    private def linePrefix(lineNum: Int): String = {
+      if (shouldPrintLineNumber) {
+        val pipeSymbol = " | "
+        val prefixWhitespaces =
+          linePrefixSize - lineNum.toString.length - pipeSymbol.length
+        " " * prefixWhitespaces + lineNum + pipeSymbol
+      } else {
+        blankLinePrefix
+      }
+    }
+
+    private def underline(startColumn: Int, endColumn: Int): String = {
+      val sectionLen = endColumn - startColumn
+      blankLinePrefix +
+      " " * (startColumn - 1) +
+      fansi.Str("^" + ("~" * sectionLen)).overlay(textAttrs)
+    }
   }
 
   private def fileLocationFromSection(
@@ -1038,7 +1179,7 @@ class Compiler(
         "[" + locStr + "]"
       }
       .getOrElse("")
-    source.getName + srcLocation
+    source.getPath + ":" + srcLocation
   }
 
   /** Generates code for the truffle interpreter.

@@ -5,7 +5,7 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 polyglot java import java.lang.Float
-polyglot java import java.lang.Integer
+polyglot java import java.lang.Integer as Java_Integer
 polyglot java import java.lang.Long
 polyglot java import java.lang.String
 polyglot java import java.lang.StringBuilder as Java_String_Builder
@@ -31,7 +31,7 @@ spec =
             Test.expect_panic_with (list.asList) No_Such_Method
         Test.specify "should auto-convert numeric types across the polyglot boundary" <|
             (Float.valueOf "123.3" + 5).should_equal 128.3 epsilon=0.0001
-            (Integer.sum 1 2 + 3) . should_equal 6
+            (Java_Integer.sum 1 2 + 3) . should_equal 6
         Test.specify "should auto-convert strings across the polyglot boundary" <|
             (String.format "%s bar %s" "baz" "quux" + " foo").should_equal "baz bar quux foo"
         Test.specify "should support Java import renaming" <|
@@ -41,7 +41,7 @@ spec =
             str = builder.toString
             str.should_equal "foobar"
         Test.specify "should invoke static methods" <|
-            x = Integer.valueOf 1
+            x = Java_Integer.valueOf 1
             x.test_me x . should_equal False
 
     Test.group "Numeric values" <|

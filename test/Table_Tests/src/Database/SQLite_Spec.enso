@@ -5,7 +5,6 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
 
-import Standard.Database.Connection.SQLite_Format.SQLite_Format
 from Standard.Database import all
 from Standard.Database.Errors import SQL_Error
 
@@ -13,6 +12,7 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 import project.Database.Common_Spec
+import project.Database.Transaction_Spec
 import project.Database.Upload_Spec
 import project.Database.Types.SQLite_Type_Mapping_Spec
 import project.Database.Helpers.Name_Generator
@@ -170,11 +170,13 @@ spec =
     file.delete_if_exists
     in_file_prefix = "[SQLite File] "
     sqlite_spec (Database.connect (SQLite file)) in_file_prefix
+    Transaction_Spec.spec (Database.connect (SQLite file)) in_file_prefix
     Upload_Spec.spec (_ -> Database.connect (SQLite file)) in_file_prefix
     file.delete
 
     in_memory_prefix = "[SQLite In-Memory] "
     sqlite_spec (Database.connect (SQLite In_Memory)) in_memory_prefix
+    Transaction_Spec.spec (Database.connect (SQLite In_Memory)) in_memory_prefix
     Upload_Spec.spec (_ -> Database.connect (SQLite In_Memory)) in_memory_prefix persistent_connector=False
 
     SQLite_Type_Mapping_Spec.spec

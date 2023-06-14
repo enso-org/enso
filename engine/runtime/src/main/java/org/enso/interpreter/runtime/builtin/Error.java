@@ -1,5 +1,7 @@
 package org.enso.interpreter.runtime.builtin;
 
+import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
+
 import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.node.expression.builtin.error.*;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchField;
@@ -12,10 +14,8 @@ import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 
-import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
-
 /** Container for builtin Error types */
-public class Error {
+public final class Error {
   private final EnsoContext context;
   private final SyntaxError syntaxError;
   private final TypeError typeError;

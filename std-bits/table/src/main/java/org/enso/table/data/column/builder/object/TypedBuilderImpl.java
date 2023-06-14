@@ -1,12 +1,11 @@
 package org.enso.table.data.column.builder.object;
 
+import java.util.Arrays;
+import java.util.Objects;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
-
-import java.util.Arrays;
-import java.util.Objects;
 
 public abstract class TypedBuilderImpl<T> extends TypedBuilder {
   protected T[] data;

@@ -4,7 +4,7 @@ import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 
 import Standard.Database.Data.SQL_Type.SQL_Type
 import Standard.Database.Internal.Postgres.Pgpass
@@ -16,6 +16,7 @@ import Standard.Test.Extensions
 import Standard.Test.Test_Environment
 
 import project.Database.Common_Spec
+import project.Database.Transaction_Spec
 import project.Database.Upload_Spec
 import project.Database.Helpers.Name_Generator
 import project.Database.Types.Postgres_Type_Mapping_Spec
@@ -275,6 +276,7 @@ table_spec =
             run_tests connection db_name
             Postgres_Type_Mapping_Spec.spec connection
 
+            Transaction_Spec.spec connection "[PostgreSQL] "
             Upload_Spec.spec connection_builder "[PostgreSQL] "
 
 create_connection_builder =

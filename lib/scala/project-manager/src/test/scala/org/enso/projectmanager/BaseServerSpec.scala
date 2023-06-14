@@ -126,7 +126,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
 
   lazy val supervisionConfig = config.supervision
 
-  implicit val exec = new ZioEnvExec(Runtime.default)
+  implicit val exec: ZioEnvExec = new ZioEnvExec(Runtime.default)
 
   lazy val fileSystem = new BlockingFileSystem(5.seconds)
 

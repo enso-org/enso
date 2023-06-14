@@ -12,13 +12,15 @@ object RefactoringApi {
 
     case class Params(namespace: String, oldName: String, newName: String)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = RenameProject.Params
-    }
+    implicit val hasParams: HasParams.Aux[this.type, RenameProject.Params] =
+      new HasParams[this.type] {
+        type Params = RenameProject.Params
+      }
 
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
 
   }
 

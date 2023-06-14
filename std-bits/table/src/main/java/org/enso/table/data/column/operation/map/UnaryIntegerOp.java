@@ -1,9 +1,8 @@
 package org.enso.table.data.column.operation.map;
 
-import org.enso.table.data.column.storage.numeric.LongStorage;
-import org.enso.table.data.column.storage.Storage;
-
 import java.util.BitSet;
+import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.numeric.LongStorage;
 
 /** An operation that takes a single argument of some type and returns an integer. */
 public abstract class UnaryIntegerOp<T, I extends Storage<T>> extends UnaryMapOperation<T, I> {

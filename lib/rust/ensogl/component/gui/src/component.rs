@@ -144,10 +144,6 @@ where
         ComponentView::new(app)
     }
 
-    fn app(&self) -> &Application {
-        self.widget.app()
-    }
-
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         F::default_shortcuts()
     }

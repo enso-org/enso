@@ -43,10 +43,6 @@ polyglot java import java.sql.Types
    allows to store any data in a column, we restrict the data to only what can
    match the column's affinity to be aligned with our other backends.
 
-   As the text storage is most universal as a single type, we coerce our `Mixed`
-   type to a `Char` type. Values of mixed types will be able to be stored in
-   such a column and they will be retrieved by their text representation.
-
    See `JDBC3ResultSet::getColumnType` method in the `org.xerial.sqlite-jdbc`
    module for the logic JDBC is using to map the SQLite types.
 type SQLite_Type_Mapping
@@ -64,7 +60,12 @@ type SQLite_Type_Mapping
             Value_Type.Date -> unsupported_date_time
             Value_Type.Date_Time _ -> unsupported_date_time
             Value_Type.Binary _ _ -> SQLite_Types.blob
-            Value_Type.Mixed -> SQLite_Types.text
+            Value_Type.Mixed ->
+                ## The best we could do would be to store mixed values and
+                   report invalid type or coerce the values to Text. Both seem
+                   bad when Mixed type is explicitly requested. Instead, we
+                   should rely on explicit casting to text.
+                Error.throw (Unsupported_Database_Operation.Error "SQLite tables do not support Mixed types.")
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
                 underlying_type.if_nothing <|
                     Error.throw <|
