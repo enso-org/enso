@@ -943,9 +943,16 @@ impl LayerModel {
         let system_id = ShapeSystem::<S>::id();
         let mut partitions = self.symbol_buffer_partitions.borrow_mut();
         let index = partitions.entry(system_id).or_default();
-        let id = SymbolPartitionId { index: *index };
+        let id = Immutable(SymbolPartitionId { index: *index });
         *index += 1;
         LayerSymbolPartition { layer: WeakLayer { model: self.downgrade() }, id, shape: default() }
+    }
+
+    /// Return some symbol partition for a particular symbol in the layer. This can be used to refer
+    /// to the only partition in an unpartitioned layer.
+    pub fn default_partition<S: Shape>(self: &Rc<Self>) -> LayerSymbolPartition<S> {
+        let layer = WeakLayer { model: self.downgrade() };
+        LayerSymbolPartition { layer, id: default(), shape: default() }
     }
 
     /// The layer's mask, if any.
@@ -1067,11 +1074,11 @@ impl std::borrow::Borrow<LayerModel> for Layer {
 ///
 /// Symbol partitions determine the depth-order of instances of a particular symbol within a layer.
 /// Any other symbol added to a symbol partition will be treated as if present in the parent layer.
-#[derive(Debug, Derivative)]
+#[derive(Debug, Derivative, CloneRef)]
 #[derivative(Clone(bound = ""))]
 pub struct LayerSymbolPartition<S> {
     layer: WeakLayer,
-    id:    SymbolPartitionId,
+    id:    Immutable<SymbolPartitionId>,
     shape: PhantomData<*const S>,
 }
 
@@ -1120,7 +1127,7 @@ impl AnySymbolPartition {
 impl<S: Shape> From<&'_ LayerSymbolPartition<S>> for AnySymbolPartition {
     fn from(value: &'_ LayerSymbolPartition<S>) -> Self {
         let shape = ShapeSystem::<S>::id();
-        let id = value.id;
+        let id = *value.id;
         Self { shape, id }
     }
 }

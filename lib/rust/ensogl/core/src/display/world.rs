@@ -505,7 +505,7 @@ impl WorldData {
                 let key = event.code();
                 if key == "Backquote" {
                     stats_monitor.toggle()
-                } else if key == "KeyP" {
+                } else if key == "KeyO" {
                     if event.shift_key() {
                         let forwarding_incrementally = emit_measurements_handle.borrow().is_some();
                         // If we are submitting the data continuously, the hotkey is redundant.
