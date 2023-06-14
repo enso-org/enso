@@ -418,6 +418,7 @@ spec make_new_connection prefix persistent_connector=True =
 
             r1 = src.update_database_table connection dest.name update_action=Update_Action.Update key_columns=["X"]
             r1.column_names . should_equal ["X", "Y"]
+            r1.should_succeed
 
             rows = dest.rows.to_vector.map .to_vector
             rows.should_contain_the_same_elements_as [[1, 'a'], [2, 'ZZZ'], [3, 'c']]

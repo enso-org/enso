@@ -451,10 +451,10 @@ generate_query dialect query = case query of
             Panic.throw (Illegal_State.Error "Invalid IR: `Query.Update_From_Table` must have at least one key column. This is a bug in the Database library.")
         set_part = Builder.join ", " <| column_names.map column_name->
             id = dialect.wrap_identifier column_name
-            Builder.code id ++ "=" ++ source ++ "." ++ id
-        key_part = Builder.join " AND " <| column_names.map column_name->
+            id ++ "=" ++ source ++ "." ++ id
+        key_part = Builder.join " AND " <| key_columns.map column_name->
             id = dialect.wrap_identifier column_name
-            Builder.code target ++ "." ++ id ++ "=" ++ source ++ "." ++ id
+            target ++ "." ++ id ++ "=" ++ source ++ "." ++ id
         Builder.code "UPDATE " ++ target ++ " SET " ++ set_part ++ " FROM " ++ source ++ " WHERE " ++ key_part
     _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type: "+query.to_text
 
