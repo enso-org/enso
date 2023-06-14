@@ -242,7 +242,7 @@ type Date_Time
                 Time_Utils.make_formatter pattern locale.java_locale
 
             needs_normalised = if pattern.is_empty then True else Time_Utils.is_iso_datetime_based pattern
-            normalised = if needs_normalised then Time_Utils.normalise_iso_datetime text else text
+            normalised = if needs_normalised then Time_Utils.normalise_iso_datetime text.trim else text.trim
             Time_Utils.parse_date_time normalised formatter
         result . map_error <| case _ of
             err : JException -> Time_Error.Error err.getMessage

@@ -179,7 +179,7 @@ type Date
         result = Panic.recover Any <|
             formatter = if pattern.is_empty then Time_Utils.default_date_formatter else
                 Time_Utils.make_formatter pattern locale.java_locale
-            Time_Utils.parse_date text formatter
+            Time_Utils.parse_date text.trim formatter
         result . map_error <| case _ of
             err : JException -> Time_Error.Error err.getMessage
             ex -> ex

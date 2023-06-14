@@ -54,8 +54,7 @@ public class Core_Date_Utils {
    * @return the parsed date time
    */
   public static LocalDate parseLocalDate(String dateString, DateTimeFormatter formatter) {
-    var trimmed = dateString.trim();
-    var parsed = formatter.parse(trimmed);
+    var parsed = formatter.parse(dateString);
 
     if (parsed.isSupported(ChronoField.EPOCH_DAY)) {
       return LocalDate.ofEpochDay(parsed.getLong(ChronoField.EPOCH_DAY));
@@ -74,7 +73,7 @@ public class Core_Date_Utils {
       return LocalDate.of(LocalDate.now().getYear(), parsed.get(ChronoField.MONTH_OF_YEAR), parsed.get(ChronoField.DAY_OF_MONTH));
     }
 
-    throw new DateTimeParseException("Unable to parse date.", trimmed, 0);
+    throw new DateTimeParseException("Unable to parse date.", dateString, 0);
 
   }
 
