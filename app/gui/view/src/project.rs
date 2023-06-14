@@ -47,7 +47,12 @@ pub mod project_view_top_bar;
 /// A time which must pass since last change of expression of node which is the searcher input
 /// to send `searcher_input_changed` event. The delay ensures we don't needlessly update Component
 /// Browser when user is quickly typing in the expression input.
-const INPUT_CHANGE_DELAY_MS: i32 = 200;
+///
+/// Note: This value is set to zero, which means that the event is processed as fast as possible,
+/// but still at the earliest in the next frame. This means that there is a minimal delay but
+/// other events can be processed in the meantime. This is important since the event can lead to
+/// a lot of processing in the Component Browser and we don't want to block the UI.
+const INPUT_CHANGE_DELAY_MS: i32 = 0;
 
 
 

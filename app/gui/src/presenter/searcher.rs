@@ -303,7 +303,7 @@ impl Searcher {
                 model.input_changed(expr, cursor_position);
             });
 
-            action_list_changed <- source::<()>();
+            action_list_changed <- any_mut::<()>();
 
             eval_ model.view.toggle_component_browser_private_entries_visibility (
                 model.controller.reload_list());
@@ -325,6 +325,7 @@ impl Searcher {
             grid.select_first_entry <+ action_list_changed.filter(f_!(model.should_select_first_entry()));
             input_edit <- grid.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
             graph.edit_node_expression <+ input_edit;
+            action_list_changed <+ input_edit.constant(());
 
             entry_selected <- grid.active.map(|&s| s?.as_entry_id());
             selected_entry_changed <- entry_selected.on_change().constant(());
