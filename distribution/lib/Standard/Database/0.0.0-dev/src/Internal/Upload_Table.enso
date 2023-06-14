@@ -293,7 +293,9 @@ type Append_Helper
     ## PRIVATE
        Deletes rows from target table that were not present in the source.
     delete_unmatched_target_rows self =
-        Nothing
+        delete_statement = self.connection.dialect.generate_sql <|
+            Query.Delete_Unmatched_Rows self.target_table.name self.source_table.name self.key_columns
+        Panic.rethrow <| self.connection.execute_update delete_statement
 
     ## PRIVATE
        Checks if any rows from the source table already exist in the target, and

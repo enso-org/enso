@@ -456,6 +456,13 @@ generate_query dialect query = case query of
             id = dialect.wrap_identifier column_name
             target ++ "." ++ id ++ "=" ++ source ++ "." ++ id
         Builder.code "UPDATE " ++ target ++ " SET " ++ set_part ++ " FROM " ++ source ++ " WHERE " ++ key_part
+    Query.Delete_Unmatched_Rows target_table_name source_table_name key_columns ->
+        target = dialect.wrap_identifier target_table_name
+        source = dialect.wrap_identifier source_table_name
+        if key_columns.is_empty then
+            Panic.throw (Illegal_State.Error "Invalid IR: `Query.Delete_Unmatched_Rows` must have at least one key column. This is a bug in the Database library.")
+        key_part = Builder.join ", " key_columns
+        Builder.code "DELETE FROM " ++ target ++ " WHERE (" ++ key_part ++ ") NOT IN (SELECT " ++ key_part ++ " FROM " ++ source ++ ")"
     _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type: "+query.to_text
 
 ## PRIVATE
