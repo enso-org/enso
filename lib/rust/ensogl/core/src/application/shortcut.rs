@@ -263,12 +263,24 @@ impl Registry {
             RegistryModel::new(mouse, keyboard, cmd_registry, currently_handled.clone_ref());
         let mouse = &model.mouse;
         frp::extend! { network
-            kb_down    <- keyboard.down.map (f!((t) model.shortcuts_registry.on_press(t.simple_name())));
-            kb_up      <- keyboard.up.map   (f!((t) model.shortcuts_registry.on_release(t.simple_name())));
-            mouse_down <- mouse.down.map    (f!((t) model.shortcuts_registry.on_press(t.simple_name())));
-            mouse_up   <- mouse.up.map      (f!((t) model.shortcuts_registry.on_release(t.simple_name())));
-            event      <- any(kb_down,kb_up,mouse_down,mouse_up);
-            eval event ((m) model.process_rules(m));
+            kb_down <- keyboard.down.map(f!((t) model.shortcuts_registry.on_press(t.simple_name())));
+            kb_up <- keyboard.up.map(f!((t) model.shortcuts_registry.on_release(t.simple_name())));
+            mouse_down <- mouse.down.map(f!((t) model.shortcuts_registry.on_press(t.simple_name())));
+            mouse_up <- mouse.up.map(f!((t) model.shortcuts_registry.on_release(t.simple_name())));
+            event <- any(kb_down, kb_up, mouse_down, mouse_up);
+            // Delay command execution. Because pointer-based shortcut events are delivered
+            // regardless of pointer location, a pattern used e.g. by `ensogl_text` is to:
+            // A. Update the focus state as appropriate.
+            // B. Use the focus state as a condition for shortcuts.
+            //
+            // Note that the other handler (A), and the shortcut (B) may be triggered in response to
+            // the same event. Thus relative timing of the event handlers is important, and in
+            // particular users of the `shortcut` API may need to run other events *before*
+            // shortcuts are run and their conditions are checked. We achieve this by using
+            // `batch()` to schedule the events. Any handlers connected directly to pointer events
+            // (not delayed through a `microtask`) will be run first.
+            delayed_event <- event.batch().iter();
+            eval delayed_event ((m) model.process_rules(m));
         }
         Self { model, network, currently_handled }
     }

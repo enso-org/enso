@@ -363,6 +363,7 @@ ensogl_core::define_endpoints_2! {
 impl Text {
     fn init(self) -> Self {
         self.init_hover();
+        self.init_focus();
         self.init_single_line_mode();
         self.init_cursors();
         self.init_selections();
@@ -384,6 +385,21 @@ impl Text {
             hovered <- any(&input.set_hover,&hovered);
             out.hovered <+ hovered;
             out.pointer_style <+ out.hovered.map(|h| h.then_or_default(cursor::Style::cursor));
+        }
+    }
+
+    fn init_focus(&self) {
+        let network = self.frp.network();
+        let input = &self.frp.input;
+
+        let focus_in = self.on_event::<ensogl_core::event::FocusIn>();
+        let focus_out = self.on_event::<ensogl_core::event::FocusOut>();
+
+        frp::extend! { network
+            // The `shortcut` API uses the old focus API. By forwarding the new API to the old API
+            // here, the text component is compatible with either.
+            input.deprecated_focus <+_ focus_in;
+            input.deprecated_defocus <+_ focus_out;
         }
     }
 

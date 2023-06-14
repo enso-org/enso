@@ -622,6 +622,8 @@ impl component::Frp<Model> for Frp {
         let entry_style = entry::Style::from_theme(network, style_frp);
         let colors = entry::style::Colors::from_theme(network, style_frp);
         let selection_colors = entry::style::SelectionColors::from_theme(network, style_frp);
+        let focus_in = model.on_event::<ensogl_core::event::FocusIn>();
+        let focus_out = model.on_event::<ensogl_core::event::FocusOut>();
         frp::extend! { network
             // === Active and Hovered Entry ===
 
@@ -753,8 +755,9 @@ impl component::Frp<Model> for Frp {
 
             // === Focus propagation ===
 
+            is_focused <- bool(&focus_out, &focus_in);
             // The underlying grid should handle keyboard events only when any element is active.
-            grid.deprecated_set_focus <+ out.focused && out.is_active;
+            grid.deprecated_set_focus <+ is_focused && out.is_active;
         }
 
         // Set the proper number of columns so we can set column widths.

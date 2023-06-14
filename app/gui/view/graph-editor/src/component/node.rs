@@ -673,9 +673,13 @@ impl Node {
             let background_press = model.background.on_event::<mouse::Down>();
             let input_press = model.input.on_event::<mouse::Down>();
             input_as_background_press <- input_press.gate(&input.set_edit_ready_mode);
+            // When editing, clicks focus the `Text` component and set the cursor position.
+            background_as_input_press <- background_press.gate(&model.input.editing);
+            model.input.mouse_down <+_ background_as_input_press;
+            background_press <- background_press.gate_not(&model.input.editing);
             any_background_press <- any(&background_press, &input_as_background_press);
             any_primary_press <- any_background_press.filter(mouse::event::is_primary);
-            out.background_press <+ any_primary_press.constant(());
+            out.background_press <+_ any_primary_press;
 
 
             // === Selection ===

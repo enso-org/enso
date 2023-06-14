@@ -172,12 +172,13 @@ impl Model {
             self.display_object.remove_child(&self.widget_tree);
             self.display_object.add_child(&self.edit_mode_label);
             self.edit_mode_label.set_cursor_at_mouse_position();
+            self.edit_mode_label.focus();
         } else {
             self.display_object.remove_child(&self.edit_mode_label);
             self.display_object.add_child(&self.widget_tree);
             self.edit_mode_label.set_content("");
+            self.edit_mode_label.blur();
         }
-        self.edit_mode_label.deprecated_set_focus(edit_mode_active);
     }
 
     #[profile(Debug)]
@@ -355,6 +356,10 @@ ensogl::define_endpoints! {
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
         /// colored if the definition type was present.
         set_expression_usage_type (ast::Id,Option<Type>),
+
+        /// Signal a mouse click in the input area. The click position will be determined by the
+        /// current pointer position, and the cursor position will be updated in the text area.
+        mouse_down (),
     }
 
     Output {
@@ -451,6 +456,10 @@ impl Area {
             label_hovered <- reacts_to_hover && frp.output.body_hover;
             model.edit_mode_label.set_hover <+ label_hovered && set_editing;
             hovered_body_pointer <- label_hovered.map(f!((t) model.body_hover_pointer_style(t)));
+
+            // === Edit Mode Focus ===
+
+            eval_ frp.input.mouse_down (model.edit_mode_label.focus());
 
             // === Port Hover ===
 
