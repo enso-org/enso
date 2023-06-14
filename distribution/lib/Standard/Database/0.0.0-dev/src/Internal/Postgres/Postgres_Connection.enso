@@ -9,6 +9,7 @@ import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type.Value_Type
 
 import project.Connection.Connection.Connection
+import project.Data.Column_Description.Column_Description
 import project.Data.Dialect
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
@@ -18,7 +19,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.JDBC_Connection
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
-from project.Connection.Connection import make_table_types_selector, make_schema_selector, make_table_name_selector, first_column_in_structure
+from project.Connection.Connection import make_table_types_selector, make_schema_selector, make_table_name_selector, first_column_in_structure, make_structure_creator
 from project.Errors import SQL_Error, Table_Not_Found, Table_Already_Exists
 from project.Internal.Result_Set import read_column
 
@@ -143,10 +144,8 @@ type Postgres_Connection
        - table_name: the name of the table to create. If not provided, a random
          name will be generated for temporary tables. If `temporary=False`, then
          a name must be provided.
-       - structure: the structure of the table. This can be provided as a vector
-         of pairs of column names and types or an existing `Table` to copy the
-         structure from it. Note that if a `Table` is provided, only its column
-         structure is inherited - no table content is copied.
+       - structure: the structure of the table, provided as either an existing
+         `Table` (no data will be copied) or a `Vector` of `Column_Description`.
        - primary_key: the names of the columns to use as the primary key. The
          first column from the table is used by default. If it is set to
          `Nothing` or an empty vector, no primary key will be created.
@@ -173,8 +172,9 @@ type Postgres_Connection
            structure provided, `Missing_Input_Columns` error is raised.
          - An `SQL_Error` may be reported if there is a failure on the database
            side.
-    create_table : Text|Nothing -> Vector (Pair Text Value_Type) | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
-    create_table self (table_name : Text | Nothing = Nothing) (structure : Vector | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+    @structure make_structure_creator
+    create_table : Text|Nothing -> Vector Column_Description | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
+    create_table self (table_name : Text | Nothing = Nothing) (structure : Vector Column_Description | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
         self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
 
     ## ADVANCED
