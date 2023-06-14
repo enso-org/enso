@@ -446,7 +446,7 @@ spec make_new_connection prefix persistent_connector=True =
             rows2 = dest.rows.to_vector.map .to_vector
             rows2.should_contain_the_same_elements_as expected_rows
 
-        Test.specify "should allow to align an existing table with a source (upsert + delete rows missing from source)" pending="TODO: Align_Records" <|
+        Test.specify "should allow to align an existing table with a source (upsert + delete rows missing from source)" <|
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
             src = source_table_builder [["X", [2, 100]], ["Y", ['D', 'E']]]
             r1 = src.update_database_table connection dest.name update_action=Update_Action.Align_Records key_columns=["X"]
@@ -488,7 +488,7 @@ spec make_new_connection prefix persistent_connector=True =
             rows1 = result.rows.to_vector.map .to_vector
             rows1.should_contain_the_same_elements_as expected_rows
 
-        Test.specify "should match columns by name, reordering to destination order if needed (Align)" pending="TODO: Align_Records" <|
+        Test.specify "should match columns by name, reordering to destination order if needed (Align)" <|
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
             src = source_table_builder [["Y", ['d', 'e', 'f']], ["X", [2, 1, 6]]]
             result = src.update_database_table connection dest.name update_action=Update_Action.Align_Records key_columns=["X"]
@@ -520,7 +520,7 @@ spec make_new_connection prefix persistent_connector=True =
             result.column_names . should_equal ["X"]
             result.at "X" . to_vector . should_contain_the_same_elements_as [1, 10, 100, 1, 2, 3]
 
-        Test.specify "should fail if no key is specified in other modes" pending="TODO: other modes" <|
+        Test.specify "should fail if no key is specified in other modes" <|
             dest = target_table_builder [["X", [1, 10, 100]]]
             src = source_table_builder [["X", [1, 2, 3]]]
 
@@ -570,10 +570,14 @@ spec make_new_connection prefix persistent_connector=True =
                duplicated rows and keep just one of them. But that probably
                should not be a default, so maybe only if we introduce a
                parameter like `multi_row_update`.
-            # TODO
-            Nothing
-            #r3 = src.update_database_table connection dest.name key_columns=["X"] update_action=Update_Action.Align_Records
-            #r3.should_fail_with Multiple_Target_Rows_Matched_For_Update
+            r3 = src.update_database_table connection dest.name key_columns=["X"] update_action=Update_Action.Align_Records
+            r3.should_fail_with Multiple_Target_Rows_Matched_For_Update
+
+            ## BUT the check should not throw an error if the duplicated key is on an unaffected row!
+               (here key 1 is duplicated, but we are NOT updating it)
+            src3 = source_table_builder [["X", [2]], ["Y", ['f']]]
+            Problems.assume_no_problems <|
+                src3.update_database_table connection dest.name key_columns=["X"]
 
         Test.specify "should fail if the source table contains columns not present in the target (data loss)" <|
             dest = target_table_builder [["X", [0, 10, 100]]] primary_key=["X"]
@@ -596,7 +600,7 @@ spec make_new_connection prefix persistent_connector=True =
             rows1.should_contain_the_same_elements_as expected_rows
             connection.drop_table dest_name
 
-        Test.specify "should use defaults for missing input columns for newly inserted rows when Aligning the tables, but keep existing values for existing rows" pending="TODO: Align_Records" <|
+        Test.specify "should use defaults for missing input columns for newly inserted rows when Aligning the tables, but keep existing values for existing rows" <|
             dest_name = Name_Generator.random_name "table-defaults-align"
             connection.create_table dest_name [Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Integer [Column_Constraint.Default_Expression "42"], Column_Description.Value "Z" Value_Type.Integer] temporary=True . should_succeed
             initial_data = Table.new [["X", [10, 20]], ["Y", [100, 200]], ["Z", [1000, 2000]]]

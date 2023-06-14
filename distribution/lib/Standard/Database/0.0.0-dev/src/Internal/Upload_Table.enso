@@ -240,8 +240,6 @@ common_update_table source_table connection table_name update_action key_columns
 append_to_existing_table source_table target_table update_action key_columns error_on_missing_columns on_problems = In_Transaction.ensure_in_transaction <|
     effective_key_columns = if key_columns.is_nothing then [] else key_columns
     check_update_arguments source_table target_table effective_key_columns update_action error_on_missing_columns on_problems <|
-        throw_not_implemented =
-            Error.throw (Illegal_State.Error "Not implemented yet.")
         upload_status = case update_action of
             Update_Action.Insert ->
                 existing_rows_check = if effective_key_columns.is_empty then True else
@@ -255,55 +253,85 @@ append_to_existing_table source_table target_table update_action key_columns err
                         Query.Insert_From_Select target_table.name source_table.column_names source_table.to_select_query
                     Panic.rethrow <| connection.execute_update insert_statement
             Update_Action.Update ->
-                unmatched_rows = source_table.join target_table on=key_columns join_kind=Join_Kind.Left_Exclusive
-                unmatched_rows_count = unmatched_rows.row_count
-                if unmatched_rows_count != 0 then Error.throw (Unmatched_Rows.Error unmatched_rows_count) else
-                    check_multiple_target_rows_match source_table target_table key_columns <|
-                        connection = target_table.connection
-                        update_statement = connection.dialect.generate_sql <|
-                            Query.Update_From_Table target_table.name source_table.name source_table.column_names key_columns
-                        Panic.rethrow <| connection.execute_update update_statement
+                perform_update source_table target_table key_columns Unmatched_Source_Rows_Behavior.Error Unmatched_Target_Rows_Behavior.Ignore
             Update_Action.Update_Or_Insert ->
-                check_multiple_target_rows_match source_table target_table key_columns <|
-                    connection = target_table.connection
-                    # The update will only affect matched rows and ignore unmatched ones.
-                    update_statement = connection.dialect.generate_sql <|
-                        Query.Update_From_Table target_table.name source_table.name source_table.column_names key_columns
-                    Panic.rethrow <| connection.execute_update update_statement
-
-                    # Having updated the matched rows, I now insert the unmatched ones.
-                    unmatched_rows = source_table.join target_table on=key_columns join_kind=Join_Kind.Left_Exclusive
-                    # assert source_table.column_names == unmatched_rows.column_names
-                    insert_statement = connection.dialect.generate_sql <|
-                        Query.Insert_From_Select target_table.name unmatched_rows.column_names unmatched_rows.to_select_query
-                    Panic.rethrow <| connection.execute_update insert_statement
-            Update_Action.Align_Records -> throw_not_implemented
+                perform_update source_table target_table key_columns Unmatched_Source_Rows_Behavior.Insert Unmatched_Target_Rows_Behavior.Ignore
+            Update_Action.Align_Records ->
+                perform_update source_table target_table key_columns Unmatched_Source_Rows_Behavior.Insert Unmatched_Target_Rows_Behavior.Delete
         upload_status.if_not_error target_table
 
 ## PRIVATE
-check_multiple_target_rows_match source_table target_table key_columns ~action =
+type Unmatched_Source_Rows_Behavior
+    ## PRIVATE
+    Insert
+
+    ## PRIVATE
+    Error
+
+## PRIVATE
+type Unmatched_Target_Rows_Behavior
+    ## PRIVATE
+    Ignore
+
+    ## PRIVATE
+    Delete
+
+## PRIVATE
+   Common logic for `Update`, `Update_Or_Insert` and `Align_Records` actions.
+perform_update source_table target_table key_columns unmatched_source_rows_behavior unmatched_target_rows_behavior = Panic.recover [Unmatched_Rows, Multiple_Target_Rows_Matched_For_Update] <|
+    unmatched_source_rows = source_table.join target_table on=key_columns join_kind=Join_Kind.Left_Exclusive
+
+    # First, check if there are unmatched source rows and report an error if needed.
+    case unmatched_source_rows_behavior of
+        Unmatched_Source_Rows_Behavior.Error ->
+            count = unmatched_source_rows.row_count
+            if count != 0 then Panic.throw (Unmatched_Rows.Error count) else Nothing
+
+        # The insert will happen _after_ updates.
+        Unmatched_Source_Rows_Behavior.Insert -> Nothing
+
+    # Check if there are rows in source that match multiple rows in the target.
+    check_multiple_target_rows_match source_table target_table key_columns
+
     connection = target_table.connection
+
+    # The update will only affect matched rows and ignore unmatched ones.
+    update_statement = connection.dialect.generate_sql <|
+        Query.Update_From_Table target_table.name source_table.name source_table.column_names key_columns
+    Panic.rethrow <| connection.execute_update update_statement
+
+    case unmatched_target_rows_behavior of
+        Unmatched_Target_Rows_Behavior.Ignore -> Nothing
+        Unmatched_Target_Rows_Behavior.Delete ->
+            Error.throw (Illegal_State.Error "Not implemented yet.")
+
+    case unmatched_source_rows_behavior of
+        # This check was handled before.
+        Unmatched_Source_Rows_Behavior.Error -> Nothing
+
+        # Having updated the matched rows, I now insert the unmatched ones.
+        Unmatched_Source_Rows_Behavior.Insert ->
+            # assert source_table.column_names == unmatched_rows.column_names
+            insert_statement = connection.dialect.generate_sql <|
+                Query.Insert_From_Select target_table.name unmatched_source_rows.column_names unmatched_source_rows.to_select_query
+            Panic.rethrow <| connection.execute_update insert_statement
+
+## PRIVATE
+check_multiple_target_rows_match source_table target_table key_columns =
+    matched_rows = source_table.join target_table on=key_columns join_kind=Join_Kind.Inner
     agg = (key_columns.map (Aggregate_Column.Group_By _)) + [Aggregate_Column.Count]
-    duplicated_key_in_target = target_table.aggregate agg . filter -1 (Filter_Condition.Greater than=1)
+    ## This aggregation will only find duplicated in target, not in the source,
+       because the source is already guaranteed to be unique - that was checked
+       when uploading the temporary table with the key as its primary key.
+    duplicated_key_in_target = matched_rows.aggregate agg . filter -1 (Filter_Condition.Greater than=1)
     example =  duplicated_key_in_target.read max_rows=1
     case example.row_count == 0 of
         False ->
             row = duplicated_key_in_target.first_row . to_vector
             offending_key = row.drop (Index_Sub_Range.Last 1)
             count = row.last
-            Error.throw (Multiple_Target_Rows_Matched_For_Update.Error offending_key count)
-        True -> action
-
-type Unmatched_Source_Rows_Behavior
-    Insert
-    Error
-
-type Unmatched_Target_Rows_Behavior
-    Keep
-    Delete
-
-perform_update source_table target_table key_columns unmatched_rows_behavior unmatched_source_rows_behavior =
-    "TODO"
+            Panic.throw (Multiple_Target_Rows_Matched_For_Update.Error offending_key count)
+        True -> Nothing
 
 ## PRIVATE
    This helper ensures that all arguments are valid.
