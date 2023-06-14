@@ -485,6 +485,7 @@
 - [Speed improvements to `Column` `.truncate`, `.ceil`, and `.floor`.][6941]
 - [Implemented addition and subtraction for `Date_Period` and
   `Time_Period`.][6956]
+- [Implemented `Table.update_database_table`.][7035]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -704,6 +705,7 @@
 [6925]: https://github.com/enso-org/enso/pull/6925
 [6941]: https://github.com/enso-org/enso/pull/6941
 [6956]: https://github.com/enso-org/enso/pull/6956
+[7035]: https://github.com/enso-org/enso/pull/7035
 
 #### Enso Compiler
 
