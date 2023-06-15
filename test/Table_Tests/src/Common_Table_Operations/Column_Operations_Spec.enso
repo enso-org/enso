@@ -19,16 +19,15 @@ spec setup =
     table_builder = setup.table_builder
 
     Test.group "gmt" <|
-        Test.specify "Should allow the creation of constant columns" <|
-            t = table_builder [["x", ["1", "2", "3"]]]
-            t.at "x" . const True . to_vector . should_equal [True, True, True]
-            t.at "x" . const 12 . to_vector . should_equal [12, 12, 12]
-            t.at "x" . const 12.3 . to_vector . should_equal [12.3, 12.3, 12.3]
-            t.at "x" . const "asdf" . to_vector . should_equal ["asdf", "asdf", "asdf"]
+        Test.specify "should name a rounding column correctly" <|
+            table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
+            table.at "x" . round . name . should_equal "round([x])"
 
-        Test.specify "Should create the correct column name" <|
-            t = table_builder [["x", ["1", "2", "3"]]]
-            t.at "x" . const 12 . name . take 9 . should_equal "Constant_"
+        Test.specify "should allow round on a column" <|
+            table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
+            result = table.at "x" . round
+            result.to_vector.should_equal [0, 1, 3, 4, 0, -1, -3, -4]
+            result.value_type . is_integer . should_be_true
 
     Test.group prefix+"Boolean Column Operations" <|
         Test.specify "iif" <|

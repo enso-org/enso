@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Decimal_Places_Helpers
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
@@ -622,7 +623,7 @@ type Column
              example_round = Examples.decimal_column.round 2
     round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
     round self decimal_places=0 use_bankers=False =
-        check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
+        Decimal_Places_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
             new_name = self.naming_helpers.function_name "round" [self]
             scale = 10 ^ decimal_places
             scaled = self * scale
@@ -1354,21 +1355,3 @@ adapt_unified_column column expected_type =
         SQL_Type_Reference.new column.connection column.context expression
     adapted = dialect.adapt_unified_column column.as_internal expected_type infer_return_type
     Column.Value name=column.name connection=column.connection sql_type_reference=adapted.sql_type_reference expression=adapted.expression context=column.context
-
-## PRIVATE
-   The smallest allowed value for the `decimal_places` argument to `round`
-round_min_decimal_places : Integer
-round_min_decimal_places = -15
-
-## PRIVATE
-   The largest allowed value for the `decimal_places` argument to `round`
-round_max_decimal_places : Integer
-round_max_decimal_places = 15
-
-## PRIVATE
-   Restrict rounding decimal_places parameter.
-check_decimal_places : Integer -> Any -> Any ! Illegal_Argument
-check_decimal_places decimal_places ~action =
-    if decimal_places >= round_min_decimal_places && decimal_places <= round_max_decimal_places then action else
-        msg = "round: decimal_places must be between " + round_min_decimal_places.to_text + " and " + round_max_decimal_places.to_text + " (inclusive), but was " + decimal_places.to_text
-        Error.throw (Illegal_Argument.Error msg)
