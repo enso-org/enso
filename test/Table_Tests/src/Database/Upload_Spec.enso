@@ -378,7 +378,8 @@ spec make_new_connection prefix persistent_connector=True =
             db_table.column_names . should_equal ["X"]
             db_table.at "X" . to_vector . should_equal []
 
-    sqlite_temporary_primary_key_pending = if prefix.contains "SQLite" then "Fix get_primary_key on SQLite temporary tables"
+    # TODO this should be removed as part of #7037
+    sqlite_temporary_primary_key_pending = if prefix.contains "SQLite" then "Fix get_primary_key on SQLite temporary tables. See #7037"
     test_table_append source_table_builder target_table_builder =
         Test.specify "should be able to append new rows to a table" <|
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
