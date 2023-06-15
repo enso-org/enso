@@ -19,13 +19,16 @@ spec setup =
     table_builder = setup.table_builder
 
     Test.group "gmt" <|
+        Test.specify "Should allow the creation of constant columns" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            t.at "x" . const True . to_vector . should_equal [True, True, True]
+            t.at "x" . const 12 . to_vector . should_equal [12, 12, 12]
+            t.at "x" . const 12.3 . to_vector . should_equal [12.3, 12.3, 12.3]
+            t.at "x" . const "asdf" . to_vector . should_equal ["asdf", "asdf", "asdf"]
+
         Test.specify "Should create the correct column name" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             t.at "x" . const 12 . name . take 9 . should_equal "Constant_"
-
-        Test.specify "Should not allow the creation of constant columns of an invalid type" <|
-            t = table_builder [["x", ["1", "2", "3"]]]
-            t.at "x" . const [[]] . should_fail_with Unsupported_Database_Operation
 
     Test.group prefix+"Boolean Column Operations" <|
         Test.specify "iif" <|
@@ -1136,7 +1139,3 @@ spec setup =
         Test.specify "Should create the correct column name" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             t.at "x" . const 12 . name . take 9 . should_equal "Constant_"
-
-        Test.specify "Should not allow the creation of constant columns of an invalid type" <|
-            t = table_builder [["x", ["1", "2", "3"]]]
-            t.at "x" . const [[]] . should_fail_with Unsupported_Database_Operation

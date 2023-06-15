@@ -659,6 +659,27 @@ type Column
                 rs = s.iif true_val false_val storage_type
                 Column.Value (Java_Column.new new_name rs)
 
+    ## PRIVATE
+
+       Creates a column from a single constant value.
+
+       This method is not static; it must be called on an existing column. That
+       existing column is only used for its internal state; the contents of the
+       column are not used.
+
+       Arguments:
+       - value: the constant value to use for the entire column.
+
+       > Example
+         Create a column of the value 42
+
+         column.const 42
+    const : Any -> Column
+    const self value =
+        name = "Constant_" + value.to_text
+        values = Vector.new (self.length) (_-> value)
+        Column.from_vector name values
+
     ## Round the values in a numeric column to a specified number of decimal
        places.
 
