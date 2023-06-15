@@ -75,7 +75,7 @@ public class ImportApiAnalysis implements IRPass {
 
       if (mod != null) {
         var pkg = mod.getPackage();
-        if (moduleContext.module().getPackage() != pkg) {
+        if (pkg != null && moduleContext.module().getPackage() != pkg) {
           if (pkg.mainFile() != null) {
             if (pkg.findModule("Main") instanceof Module mainModule) {
               // if the package has Main file, then imports has to go thru the main mod
