@@ -61,8 +61,8 @@ type Redshift_Details
             Nothing -> Pgpass.read self.host self.port self.schema
             AWS_Credential.Profile profile ->
                 [Pair.new 'user' self.db_user] + (if profile == '' then [] else [Pair.new 'profile' profile])
-            AWS_Credential.Key access_key secret_access_key ->
-                [Pair.new 'user' self.db_user, Pair.new 'AccessKeyID' access_key, Pair.new 'SecretAccessKey' secret_access_key]
+            AWS_Credential.Key access_key_id secret_access_key ->
+                [Pair.new 'user' self.db_user, Pair.new 'AccessKeyID' access_key_id, Pair.new 'SecretAccessKey' secret_access_key]
             Credentials.Username_And_Password username password ->
                 [Pair.new 'user' username, Pair.new 'password' password]
 
