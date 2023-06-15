@@ -725,7 +725,6 @@ impl Handle {
             })
             .flatten();
         let mut module = double_representation::module::Info { ast: self.module.ast() };
-        let parser = Parser::new();
         for entry_import in imports {
             let already_imported =
                 module.iter_imports().any(|existing| entry_import.covered_by(&existing));
@@ -736,7 +735,7 @@ impl Handle {
             let old_import_became_permanent = permanent && already_inserted;
             let need_to_update_md = need_to_insert || old_import_became_permanent;
             if need_to_insert {
-                module.add_import(&parser, import);
+                module.add_import(&self.parser, import);
             }
             if need_to_update_md {
                 self.module.with_import_metadata(

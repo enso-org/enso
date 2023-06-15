@@ -453,7 +453,6 @@ impl Entry {
         db: &SuggestionDatabase,
         in_module: QualifiedNameRef,
     ) -> SmallVec<[Import; 2]> {
-        error!("Required imports: {self:#?} in module {in_module:?}");
         let defined_in_same_module = self.defined_in == in_module;
         match self.kind {
             Kind::Method => {
