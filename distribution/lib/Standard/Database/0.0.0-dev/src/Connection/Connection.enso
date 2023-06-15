@@ -1,6 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Context as Execution_Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
 import Standard.Base.Metadata.Widget
@@ -207,9 +209,7 @@ type Connection
        the new table.
 
        Arguments:
-       - table_name: the name of the table to create. If not provided, a random
-         name will be generated for temporary tables. If `temporary=False`, then
-         a name must be provided.
+       - table_name: the name of the table to create.
        - structure: the structure of the table, provided as either an existing
          `Table` (no data will be copied) or a `Vector` of `Column_Description`.
        - primary_key: the names of the columns to use as the primary key. The
@@ -238,9 +238,19 @@ type Connection
            structure provided, `Missing_Input_Columns` error is raised.
          - An `SQL_Error` may be reported if there is a failure on the database
            side.
+
+       ? Dry Run
+
+         If the Output context is disabled, only a dry run is performed. This
+         means that the operation checks for errors like missing columns.
+
+         The operation creates a temporary table (the `temporary` setting is
+         ignored in dry run mode) and a `Dry_Run_Operation` warning attached.
+         The dry-run table name is prefixed with `enso-dry-run-` and suffixed
+         with a random string.
     @structure make_structure_creator
-    create_table : Text | Nothing -> Vector Column_Description | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
-    create_table self (table_name : Text | Nothing = Nothing) (structure : Vector Column_Description | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+    create_table : Text  -> Vector Column_Description | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
+    create_table self (table_name : Text) (structure : Vector Column_Description | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
         created_table_name = create_table_structure self table_name structure primary_key temporary allow_existing on_problems
         self.query (SQL_Query.Table_Name created_table_name)
 
@@ -282,10 +292,11 @@ type Connection
          representing the query to execute.
     execute_update : Text | SQL_Statement -> Integer
     execute_update self query =
-        statement_setter = self.dialect.get_statement_setter
-        self.jdbc_connection.with_prepared_statement query statement_setter stmt->
-            Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
-                stmt.executeUpdate
+        if Execution_Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Executing update queries is forbidden as the Output context is disabled.") else
+            statement_setter = self.dialect.get_statement_setter
+            self.jdbc_connection.with_prepared_statement query statement_setter stmt->
+                Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
+                    stmt.executeUpdate
 
     ## PRIVATE
     drop_table : Text -> Nothing

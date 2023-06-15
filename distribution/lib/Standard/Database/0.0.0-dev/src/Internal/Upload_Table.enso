@@ -25,19 +25,18 @@ from project.Internal.Result_Set import result_set_to_table
    Creates a new database table with the provided structure and returns the name
    of the created table.
 create_table_structure connection table_name structure primary_key temporary allow_existing on_problems =
-    case table_name.is_nothing.not && all_known_table_names connection . contains table_name of
+    case all_known_table_names connection . contains table_name of
         True ->
             if allow_existing then table_name else Error.throw (Table_Already_Exists.Error table_name)
         False ->
-            effective_table_name = resolve_effective_table_name table_name temporary
             aligned_structure = align_structure structure
             if aligned_structure.is_empty then Error.throw (Illegal_Argument.Error "An empty table cannot be created: the `structure` must consist of at list one column description.") else
                 resolved_primary_key = resolve_primary_key aligned_structure primary_key
-                create_table_statement = prepare_create_table_statement connection effective_table_name aligned_structure resolved_primary_key temporary on_problems
+                create_table_statement = prepare_create_table_statement connection table_name aligned_structure resolved_primary_key temporary on_problems
                 update_result = create_table_statement.if_not_error <|
                     connection.execute_update create_table_statement
                 update_result.if_not_error <|
-                    effective_table_name
+                    table_name
 
 ## PRIVATE
    A helper that can upload a table from any backend to a database.
@@ -193,13 +192,6 @@ prepare_create_table_statement connection table_name columns primary_key tempora
         Query.Create_Table table_name column_descriptors primary_key temporary
 
 ## PRIVATE
-   Generates a random table name if it was nothing, if it is allowed (temporary=True).
-resolve_effective_table_name table_name temporary = case table_name of
-    Nothing -> if temporary then "temporary-table-"+random_uuid else
-        Error.throw (Illegal_Argument.Error "A name must be provided when creating a non-temporary table.")
-    _ : Text -> table_name
-
-## PRIVATE
    The recommended batch size seems to be between 50 and 100.
    See: https://docs.oracle.com/cd/E18283_01/java.112/e16548/oraperf.htm#:~:text=batch%20sizes%20in%20the%20general%20range%20of%2050%20to%20100
 default_batch_size = 100
@@ -228,9 +220,8 @@ common_update_table source_table connection table_name update_action key_columns
                 tmp_table_name = "temporary-source-table-"+random_uuid
                 tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=key_columns temporary=True on_problems=Problem_Behavior.Report_Error
                 tmp_table.if_not_error <|
-                    resulting_table = append_to_existing_table tmp_table target_table update_action key_columns error_on_missing_columns on_problems
-                    connection.drop_table tmp_table.name
-                    resulting_table
+                    Panic.with_finalizer (connection.drop_table tmp_table.name) <|
+                        append_to_existing_table tmp_table target_table update_action key_columns error_on_missing_columns on_problems
 
 ## PRIVATE
    Assumes that `source_table` is a simple table query without any filters,
@@ -400,3 +391,8 @@ get_primary_key connection table_name =
             selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True
             key_column_names = selected.order_by 1 . at 0 . to_vector
             if key_column_names.is_empty then Nothing else key_column_names
+
+## PRIVATE
+   Generates a temporary table name for the given table name, used for dry runs.
+dry_run_table_name table_name =
+    "enso-dry-run-"+table_name

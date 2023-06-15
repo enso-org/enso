@@ -141,7 +141,7 @@ type Panic
          Print the `Cleaning...` message regardless of if the action succeeds.
              do_cleanup =
                  IO.println "Cleaning..."
-             Panic.with_finally do_cleanup <|
+             Panic.with_finalizer do_cleanup <|
                  Panic.throw (Illegal_State.Error "Foo")
     with_finalizer : Any -> Any -> Any
     with_finalizer ~finalizer ~action =
