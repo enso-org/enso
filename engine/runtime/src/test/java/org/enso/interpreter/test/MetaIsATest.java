@@ -28,7 +28,7 @@ public class MetaIsATest extends TestBase {
     ctx = createDefaultContext();
     final URI uri = new URI("memory://choose.enso");
     final Source src = Source.newBuilder("enso", """
-    import Standard.Base.Meta
+    from Standard.Base import Meta
 
     check x y = Meta.is_a x y
     """, "check.enso")

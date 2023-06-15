@@ -6,13 +6,12 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.junit.After;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -33,7 +32,7 @@ public class TypeMembersTest extends TestBase {
   public void checkAtomMembers() throws Exception {
     final URI uri = new URI("memory://how_long.enso");
     final Source src = Source.newBuilder("enso", """
-    from Standard.Base.Data.Boolean import True, False
+    from Standard.Base import True, False
 
     type IntList
         End
@@ -86,9 +85,9 @@ public class TypeMembersTest extends TestBase {
     @Builtin_Type
     type Compile_Error
         Error message
-        
+
         to_display_text self = "Compile error: "+self.message
-        
+
     v = Compile_Error.Error "foo"
     """, "to_display_text.enso")
             .uri(uri)

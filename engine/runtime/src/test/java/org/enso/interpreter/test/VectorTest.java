@@ -32,11 +32,10 @@ public class VectorTest extends TestBase {
   public void evaluation() throws Exception {
     final URI facUri = new URI("memory://choose.enso");
     final Source facSrc = Source.newBuilder("enso", """
-    import Standard.Base.Data.Vector
+    from Standard.Base import Vector
 
     choose x = case x of
-        Vector -> "is vector module"
-        _ : Vector.Vector -> "is vector type"
+        _ : Vector -> "is vector type"
         _ -> "nothing"
 
     check = choose [1, 2, 3]
@@ -81,7 +80,7 @@ public class VectorTest extends TestBase {
   public void passingVectorDirectlyIntoJava() throws Exception {
     final URI uri = new URI("memory://callback.enso");
     final Source src = Source.newBuilder("enso", """
-    import Standard.Base.Data.Vector
+    from Standard.Base import Vector
 
     callback f = f.accept ([1, 2, 3].map +5)
     """, "callback.enso")

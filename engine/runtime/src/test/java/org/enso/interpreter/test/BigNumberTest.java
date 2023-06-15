@@ -155,7 +155,7 @@ public class BigNumberTest extends TestBase {
   @Test
   public void averageOfMixedArrayOverBigInteger() throws Exception {
     var code = """
-    from Standard.Base.Data.Vector import Vector
+    from Standard.Base import Vector
     polyglot java import org.enso.example.TestClass
 
     powers n =

@@ -49,7 +49,7 @@ public class PrintTest extends TestBase {
   @Test
   public void testPrintText() throws Exception {
     final String code = """
-    import Standard.Base.IO
+    from Standard.Base import IO
 
     test =
         IO.println "Foobar"
@@ -61,7 +61,7 @@ public class PrintTest extends TestBase {
   @Test
   public void testPrintPrimitive() throws Exception {
     final String code = """
-    import Standard.Base.IO
+    from Standard.Base import IO
 
     test =
         IO.println 42
@@ -73,7 +73,7 @@ public class PrintTest extends TestBase {
   @Test
   public void testPrintToText() throws Exception {
     final String code = """
-    import Standard.Base.IO
+    from Standard.Base import IO
 
     type My_Object
         Value x
@@ -90,8 +90,7 @@ public class PrintTest extends TestBase {
   @Test
   public void testPrintError() throws Exception {
     final String code = """
-    import Standard.Base.IO
-    import Standard.Base.Error.Error
+    from Standard.Base import IO, Error
 
     type My_Error
         Error x
@@ -175,7 +174,7 @@ public class PrintTest extends TestBase {
   @Test
   public void testPrintToTextTypeError() throws Exception {
     final String code = """
-    import Standard.Base.IO
+    from Standard.Base import IO
 
     type My_Object
         Value x
@@ -193,8 +192,7 @@ public class PrintTest extends TestBase {
   @Test
   public void testPrintToTextTypeErrorAndWarnings() throws Exception {
     final String code = """
-    import Standard.Base.IO
-    from Standard.Base import Warning
+    from Standard.Base import IO, Warning
 
     type My_Object
         Value x
@@ -215,7 +213,7 @@ public class PrintTest extends TestBase {
   @Test
   public void testPrintToTextStaticMethod() throws Exception {
     final String code = """
-    import Standard.Base.IO
+    from Standard.Base import IO
 
     type My_Object
         Value x

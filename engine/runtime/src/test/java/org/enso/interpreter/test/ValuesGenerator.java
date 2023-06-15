@@ -316,8 +316,6 @@ class ValuesGenerator {
           v(
                   null,
                   """
-      from Standard.Base.Data.Ordering import all
-
       fac s n = if n <= 1 then s else
           @Tail_Call fac n*s n-1
       """,
