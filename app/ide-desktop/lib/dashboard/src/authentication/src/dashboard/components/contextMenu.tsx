@@ -47,6 +47,9 @@ function ContextMenu(props: ContextMenuProps) {
             // The location must be offset by -0.5rem to balance out the `m-2`.
             style={{ left: `calc(${event.pageX}px - 0.5rem)`, top: `calc(${top}px - 0.5rem)` }}
             className="absolute bg-white rounded-lg shadow-soft flex flex-col flex-nowrap m-2"
+            onClick={clickEvent => {
+                clickEvent.stopPropagation()
+            }}
         >
             {children}
         </div>

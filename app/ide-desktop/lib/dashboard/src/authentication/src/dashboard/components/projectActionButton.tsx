@@ -177,10 +177,12 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             case backendModule.ProjectState.opened:
                 setState(backendModule.ProjectState.openInProgress)
                 setCheckState(CheckState.checkingResources)
+                setExtraData(project.id, { ...getExtraData(project.id), isRunning: true })
                 break
             case backendModule.ProjectState.openInProgress:
                 setState(backendModule.ProjectState.openInProgress)
                 setCheckState(CheckState.checkingStatus)
+                setExtraData(project.id, { ...getExtraData(project.id), isRunning: true })
                 break
             default:
                 // Some functions below set the state to something different to
@@ -188,6 +190,8 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 setState(oldState => oldState ?? project.projectState.type)
                 break
         }
+        // `getExtraData` is NOT a dependency.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [project.projectState.type])
 
     React.useEffect(() => {
