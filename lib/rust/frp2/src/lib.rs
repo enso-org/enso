@@ -132,6 +132,7 @@
 #![feature(auto_traits)]
 #![feature(negative_impls)]
 #![feature(cell_update)]
+#![feature(fn_traits)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

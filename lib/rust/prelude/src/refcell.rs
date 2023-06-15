@@ -7,7 +7,6 @@ use core::fmt::Debug;
 use std::cell::RefCell;
 
 
-#[cfg(debug_assertions)]
 use crate::DerefMut;
 
 
@@ -55,6 +54,71 @@ where
 }
 
 
+// ================
+// === Borrowed ===
+// ================
+
+/// A value borrowed from a `RefCell` or `OptRefCell`. In debug mode, this is an alias for
+/// [`std::cell::Ref`].
+#[cfg(debug_assertions)]
+pub type Borrowed<'a, T> = std::cell::Ref<'a, T>;
+
+/// A value borrowed from a `RefCell` or `OptRefCell`. In debug mode, this is an alias for
+/// [`std::cell::Ref`].
+#[cfg(not(debug_assertions))]
+#[derive(Clone, Debug)]
+pub struct Borrowed<'a, T: ?Sized + 'a>(&'a T);
+
+#[cfg(not(debug_assertions))]
+impl<'a, T> Borrowed<'a, T> {
+    #[allow(missing_docs)]
+    #[inline(always)]
+    pub fn map<U, F>(orig: Borrowed<'a, T>, f: F) -> Borrowed<'a, U>
+    where
+        F: FnOnce(&'a T) -> &'a U,
+        U: ?Sized, {
+        Borrowed(f(orig.0))
+    }
+}
+
+#[cfg(not(debug_assertions))]
+impl<'a, T: ?Sized> Deref for Borrowed<'a, T> {
+    type Target = T;
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        self.0
+    }
+}
+
+/// A value mutably borrowed from a `RefCell` or `OptRefCell`. In debug mode, this is an alias for
+/// [`std::cell::RefMut`].
+#[cfg(debug_assertions)]
+pub type BorrowedMut<'a, T> = std::cell::RefMut<'a, T>;
+
+/// A value mutably borrowed from a `RefCell` or `OptRefCell`. In debug mode, this is an alias for
+/// [`std::cell::RefMut`].
+#[cfg(not(debug_assertions))]
+#[derive(Debug)]
+pub struct BorrowedMut<'a, T: ?Sized + 'a>(&'a mut T);
+
+#[cfg(not(debug_assertions))]
+impl<'a, T: ?Sized> Deref for BorrowedMut<'a, T> {
+    type Target = T;
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        self.0
+    }
+}
+
+#[cfg(not(debug_assertions))]
+impl<'a, T: ?Sized> DerefMut for BorrowedMut<'a, T> {
+    #[inline(always)]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.0
+    }
+}
+
+
 
 // ==================
 // === OptRefCell ===
@@ -88,34 +152,34 @@ impl<T> OptRefCell<T> {
     }
 
     #[inline(always)]
-    pub fn borrow(&self) -> &T {
+    pub fn borrow(&self) -> Borrowed<T> {
         #[allow(unsafe_code)]
         unsafe {
-            &*self.inner.get()
+            Borrowed(&*self.inner.get())
         }
     }
 
     #[inline(always)]
-    pub fn borrow_mut(&self) -> &mut T {
+    pub fn borrow_mut(&self) -> BorrowedMut<T> {
         #[allow(unsafe_code)]
         unsafe {
-            &mut *self.inner.get()
+            BorrowedMut(&mut *self.inner.get())
         }
     }
 
     #[inline(always)]
     pub fn with_borrowed<R>(&self, f: impl FnOnce(&T) -> R) -> R {
-        f(self.borrow())
+        f(&*self.borrow())
     }
 
     #[inline(always)]
     pub fn with_borrowed_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
-        f(self.borrow_mut())
+        f(&mut *self.borrow_mut())
     }
 
     #[inline(always)]
     pub fn replace(&self, t: T) -> T {
-        std::mem::replace(self.borrow_mut(), t)
+        std::mem::replace(&mut *self.borrow_mut(), t)
     }
 }
 

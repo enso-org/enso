@@ -91,7 +91,7 @@ pub struct SAMPLER;
 /// A node that allows the user to sample the last value of the node output.
 pub type Sampler<Output = ()> = TypedNode<SAMPLER, Output>;
 
-impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
+impl<'a, M: Model, N1: NodeWithDefaultOutput> NodeInNetwork<'a, M, N1> {
     /// On every event, remember it, and pass it trough.
     #[inline(never)]
     pub fn sampler(self) -> NodeInNetwork<'a, M, Stream<N1::Output>> {
@@ -217,5 +217,5 @@ macro_rules! def_map_nodes {
 }
 
 impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
-    def_map_nodes![2, 3];
+    def_map_nodes![2, 3, 4, 5, 6, 7, 8, 9];
 }

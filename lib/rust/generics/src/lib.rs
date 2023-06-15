@@ -255,7 +255,7 @@ mod tests {
     }
 
     #[test]
-    fn test_map_fields() {
+    fn test_map_fields_into() {
         let hlist = new![];
         assert_eq!(hlist.map_fields_into::<f32>(), new![]);
         let hlist = new![1_u16, 2_u16, 3_u16];
@@ -264,6 +264,21 @@ mod tests {
         assert_eq!(tuple.map_fields_into::<f32>(), ());
         let tuple = (1_u16, 2_u16, 3_u16);
         assert_eq!(tuple.map_fields_into::<f32>(), (1.0, 2.0, 3.0));
+    }
+
+    #[test]
+    fn test_map_fields() {
+        let hlist = new![];
+        assert_eq!(hlist.map_fields(|t: usize| t + 1), new![]);
+
+        let hlist = new![1, 2, 3];
+        assert_eq!(hlist.map_fields(|t| t + 1), new![2, 3, 4]);
+
+        let tuple = ();
+        assert_eq!(tuple.map_fields(|t: usize| t + 1), ());
+
+        let tuple = (1, 2, 3);
+        assert_eq!(tuple.map_fields(|t| t + 1), (2, 3, 4));
     }
 
     #[test]

@@ -63,6 +63,7 @@ pub mod traits {
     pub use super::IntoLastField as _TRAIT_IntoLastField;
     pub use super::MapFields as _TRAIT_MapFields;
     pub use super::MapFieldsInto as _TRAIT_MapFieldsInto;
+    pub use super::MapFieldsWith as _TRAIT_MapFieldsWith;
     pub use super::PopFirstField as _TRAIT_PopFirstField;
     pub use super::PopLastField as _TRAIT_PopLastField;
     pub use super::PushFirstField as _TRAIT_PushFirstField;
@@ -1066,75 +1067,79 @@ where
 
 
 
-// =================
-// === MapFields ===
-// =================
+// =====================
+// === MapFieldsWith ===
+// =====================
 
 /// Map all fields with the provided mapper [`M`]. There are multiple mappers defined out of the
 /// box, such as [`MapperInto`], which maps all fields with [`Into`]. Alternatively, you can define
 /// your own mapper.
 #[allow(missing_docs)]
-pub trait MapFields<M>: Sized {
-    type MappedFields;
-    fn _map_fields(self, mapper: &M) -> Self::MappedFields;
+pub trait MapFieldsWith<M>: Sized {
+    type MappedFieldsWith;
+    fn _map_fields_with(self, mapper: &M) -> Self::MappedFieldsWith;
 }
 
 /// The type `T` with all fields mapped with the mapper `M`.
-pub type MappedFields<T, M> = <T as MapFields<M>>::MappedFields;
+pub type MappedFieldsWith<T, M> = <T as MapFieldsWith<M>>::MappedFieldsWith;
 
-/// Map a single field with the provided mapper [`M`]. To learn more, see the docs of [`MapFields`].
+/// Map a single field with the provided mapper [`M`]. To learn more, see the docs of
+/// [`MapFieldsWith`].
 #[allow(missing_docs)]
-pub trait MapField<M> {
-    type MappedField;
-    fn map_field(self, mapper: &M) -> Self::MappedField;
+pub trait MapFieldWith<M> {
+    type MappedFieldWith;
+    fn map_field_with(self, mapper: &M) -> Self::MappedFieldWith;
 }
 
 /// The field `T` mapped with the mapper `M`.
-pub type MappedField<T, M> = <T as MapField<M>>::MappedField;
+pub type MappedFieldWith<T, M> = <T as MapFieldWith<M>>::MappedFieldWith;
 
-/// Wrapper for [`MapFields`] enabling the syntax `t.map_fields::<Mapper>()`. This trait is
+/// Wrapper for [`MapFieldsWith`] enabling the syntax `t.map_fields_with::<Mapper>()`. This trait is
 /// automatically implemented for all structs.
 #[allow(missing_docs)]
 pub trait _MapFields: Sized {
     #[inline(always)]
-    fn map_fields<M>(self, mapper: &M) -> MappedFields<Self, M>
-    where Self: MapFields<M> {
-        MapFields::<M>::_map_fields(self, mapper)
+    fn map_fields_with<M>(self, mapper: &M) -> MappedFieldsWith<Self, M>
+    where Self: MapFieldsWith<M> {
+        MapFieldsWith::<M>::_map_fields_with(self, mapper)
     }
 }
 impl<T> _MapFields for T {}
 
-impl<M> MapFields<M> for Nil {
-    type MappedFields = Nil;
+impl<M> MapFieldsWith<M> for Nil {
+    type MappedFieldsWith = Nil;
     #[inline(always)]
-    fn _map_fields(self, _mapper: &M) -> Self::MappedFields {
+    fn _map_fields_with(self, _mapper: &M) -> Self::MappedFieldsWith {
         Nil
     }
 }
 
-impl<M, H, T> MapFields<M> for Cons<H, T>
+impl<M, H, T> MapFieldsWith<M> for Cons<H, T>
 where
-    H: MapField<M>,
-    T: MapFields<M>,
+    H: MapFieldWith<M>,
+    T: MapFieldsWith<M>,
 {
-    type MappedFields = Cons<MappedField<H, M>, MappedFields<T, M>>;
+    type MappedFieldsWith = Cons<MappedFieldWith<H, M>, MappedFieldsWith<T, M>>;
     #[inline(always)]
-    fn _map_fields(self, mapper: &M) -> Self::MappedFields {
-        Cons(MapField::<M>::map_field(self.0, mapper), MapFields::<M>::_map_fields(self.1, mapper))
+    fn _map_fields_with(self, mapper: &M) -> Self::MappedFieldsWith {
+        Cons(
+            MapFieldWith::<M>::map_field_with(self.0, mapper),
+            MapFieldsWith::<M>::_map_fields_with(self.1, mapper),
+        )
     }
 }
 
-impl<M, T> MapFields<M> for T
+impl<M, T> MapFieldsWith<M> for T
 where
     T: BelongsToFamily,
     T: IntoHList,
-    HListRepr<T>: MapFields<M>,
-    MappedFields<HListRepr<T>, M>: IntoFamily<Family<T>>,
+    HListRepr<T>: MapFieldsWith<M>,
+    MappedFieldsWith<HListRepr<T>, M>: IntoFamily<Family<T>>,
 {
-    type MappedFields = <MappedFields<HListRepr<T>, M> as IntoFamily<Family<T>>>::Output;
+    type MappedFieldsWith = <MappedFieldsWith<HListRepr<T>, M> as IntoFamily<Family<T>>>::Output;
     #[inline(always)]
-    fn _map_fields(self, mapper: &M) -> Self::MappedFields {
-        self.into_hlist()._map_fields(mapper).into_family_of::<T>()
+    fn _map_fields_with(self, mapper: &M) -> Self::MappedFieldsWith {
+        self.into_hlist()._map_fields_with(mapper).into_family_of::<T>()
     }
 }
 
@@ -1149,36 +1154,85 @@ where
 #[derivative(Default(bound = ""))]
 pub struct MapperInto<S>(PhantomData<S>);
 
-impl<T: Into<S>, S> MapField<MapperInto<S>> for T {
-    type MappedField = S;
+impl<T: Into<S>, S> MapFieldWith<MapperInto<S>> for T {
+    type MappedFieldWith = S;
     #[inline(always)]
-    fn map_field(self, _mapper: &MapperInto<S>) -> Self::MappedField {
+    fn map_field_with(self, _mapper: &MapperInto<S>) -> Self::MappedFieldWith {
         self.into()
     }
 }
 
-/// Alias for [`MapFields<MapperInto<S>>`]. This trait is automatically implemented for every
+/// Alias for [`MapFieldsWith<MapperInto<S>>`]. This trait is automatically implemented for every
 /// struct.
 #[allow(missing_docs)]
-pub trait MapFieldsInto<S>: MapFields<MapperInto<S>> {
+pub trait MapFieldsInto<S>: MapFieldsWith<MapperInto<S>> {
     #[inline(always)]
-    fn _map_fields_into(self) -> MappedFields<Self, MapperInto<S>> {
-        self.map_fields(&MapperInto::<S>::default())
+    fn _map_fields_into(self) -> MappedFieldsWith<Self, MapperInto<S>> {
+        self.map_fields_with(&MapperInto::<S>::default())
     }
 }
-impl<T, S> MapFieldsInto<S> for T where T: MapFields<MapperInto<S>> {}
+impl<T, S> MapFieldsInto<S> for T where T: MapFieldsWith<MapperInto<S>> {}
+
+/// The result of mapping all fields of `T` with [`Into`].
+pub type MappedFieldsInto<T, S> = MappedFieldsWith<T, MapperInto<S>>;
 
 /// Wrapper for [`MapFieldsInto`] enabling syntax `t.map_fields_into::<S>()`. This trait is
 /// automatically implemented for every struct.
 #[allow(missing_docs)]
 pub trait _MapFieldsInto {
     #[inline(always)]
-    fn map_fields_into<S>(self) -> MappedFields<Self, MapperInto<S>>
-    where Self: MapFields<MapperInto<S>> {
-        self.map_fields(&MapperInto::<S>::default())
+    fn map_fields_into<S>(self) -> MappedFieldsWith<Self, MapperInto<S>>
+    where Self: MapFieldsWith<MapperInto<S>> {
+        self.map_fields_with(&MapperInto::<S>::default())
     }
 }
 impl<T> _MapFieldsInto for T {}
+
+
+
+// =================
+// === MapFields ===
+// =================
+
+#[allow(missing_docs)]
+pub trait MapFields<F, F2> {
+    type MappedFields;
+    fn map_fields(self, f: impl FnMut(F) -> F2) -> Self::MappedFields;
+}
+
+/// The result of mapping all fields of `S` with the provided function `Fn(F) -> F2`.
+pub type MappedFields<S, F, F2> = <S as MapFields<F, F2>>::MappedFields;
+
+impl<F, F2> MapFields<F, F2> for Nil {
+    type MappedFields = Nil;
+    #[inline(always)]
+    fn map_fields(self, _f: impl FnMut(F) -> F2) -> Self::MappedFields {
+        Nil
+    }
+}
+
+impl<F, F2, T> MapFields<F, F2> for Cons<F, T>
+where T: MapFields<F, F2>
+{
+    type MappedFields = Cons<F2, MappedFields<T, F, F2>>;
+    #[inline(always)]
+    fn map_fields(self, mut f: impl FnMut(F) -> F2) -> Self::MappedFields {
+        Cons(f(self.0), self.1.map_fields(f))
+    }
+}
+
+impl<F, F2, T> MapFields<F, F2> for T
+where
+    T: BelongsToFamily + IntoHList,
+    HListRepr<T>: MapFields<F, F2>,
+    MappedFields<HListRepr<T>, F, F2>: IntoFamily<Family<T>>,
+{
+    type MappedFields = <MappedFields<HListRepr<T>, F, F2> as IntoFamily<Family<T>>>::Output;
+    #[inline(always)]
+    fn map_fields(self, f: impl FnMut(F) -> F2) -> Self::MappedFields {
+        self.into_hlist().map_fields(f).into_family_of::<T>()
+    }
+}
 
 
 
@@ -1188,7 +1242,7 @@ impl<T> _MapFieldsInto for T {}
 
 /// Take ownership of the structure and evaluate the provided function for every field. Please note
 /// that all fields have to be of the same type. If you want to iterate over fields with different
-/// types, use the [`MapFields`] interface with a custom defined mapper.
+/// types, use the [`MapFieldsWith`] interface with a custom defined mapper.
 #[allow(missing_docs)]
 pub trait IntoFieldIter<F> {
     fn into_field_iter(self, f: impl FnMut(F));
@@ -1227,8 +1281,8 @@ where
 // =================
 
 /// Evaluate the provided function for every field reference. Please note that all fields have to be
-/// of the same type. If you want to iterate over fields with different types, use the [`MapFields`]
-/// interface with a custom defined mapper.
+/// of the same type. If you want to iterate over fields with different types, use the
+/// [`MapFieldsWith`] interface with a custom defined mapper.
 #[allow(missing_docs)]
 pub trait FieldIter<F> {
     fn field_iter(&self, f: impl FnMut(&F));
@@ -1274,7 +1328,7 @@ where
 
 /// Evaluate the provided function for every field mutable reference. Please note that all fields
 /// have to be of the same type. If you want to iterate over fields with different types, use the
-/// [`MapFields`] interface with a custom defined mapper.
+/// [`MapFieldsWith`] interface with a custom defined mapper.
 #[allow(missing_docs)]
 pub trait FieldIterMut<F> {
     fn field_iter_mut(&mut self, f: impl FnMut(&mut F));
