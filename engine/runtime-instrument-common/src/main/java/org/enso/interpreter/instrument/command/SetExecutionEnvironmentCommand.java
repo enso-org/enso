@@ -1,6 +1,8 @@
 package org.enso.interpreter.instrument.command;
 
 import java.util.UUID;
+import java.util.logging.Level;
+
 import org.enso.interpreter.instrument.CacheInvalidation;
 import org.enso.interpreter.instrument.InstrumentFrame;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
@@ -40,8 +42,10 @@ public class SetExecutionEnvironmentCommand extends Command {
 
   private void setExecutionEnvironment(
       Runtime$Api$ExecutionEnvironment executionEnvironment, UUID contextId, RuntimeContext ctx) {
-    ctx.locking().acquireContextLock(contextId);
+    var logger = ctx.executionService().getLogger();
+    var contextLockTimestamp = ctx.locking().acquireContextLock(contextId);
     ctx.locking().acquireWriteCompilationLock();
+
     try {
       Stack<InstrumentFrame> stack = ctx.contextManager().getStack(contextId);
       ctx.jobControlPlane().abortJobs(contextId);
@@ -54,6 +58,11 @@ public class SetExecutionEnvironmentCommand extends Command {
     } finally {
       ctx.locking().releaseWriteCompilationLock();
       ctx.locking().releaseContextLock(contextId);
+      logger.log(
+          Level.FINEST,
+          "Kept context lock [UpsertVisualisationJob] for "
+              + (System.currentTimeMillis() - contextLockTimestamp)
+              + " milliseconds");
     }
   }
 }

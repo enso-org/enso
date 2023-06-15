@@ -48,6 +48,11 @@ public class RuntimeOptions {
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION)
           .build();
 
+  public static final String JOB_PARALLELISM = interpreterOptionName("jobParallelism");
+  public static final OptionKey<Integer> JOB_PARALLELISM_KEY = new OptionKey<>(1);
+  public static final OptionDescriptor JOB_PARALLELISM_DESCRIPTOR =
+      OptionDescriptor.newBuilder(JOB_PARALLELISM_KEY, JOB_PARALLELISM).build();
+
   public static final String ENABLE_PROJECT_SUGGESTIONS = optionName("enableProjectSuggestions");
   public static final OptionKey<Boolean> ENABLE_PROJECT_SUGGESTIONS_KEY = new OptionKey<>(true);
   private static final OptionDescriptor ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR =
@@ -127,6 +132,7 @@ public class RuntimeOptions {
               LANGUAGE_HOME_OVERRIDE_DESCRIPTOR,
               EDITION_OVERRIDE_DESCRIPTOR,
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR,
+              JOB_PARALLELISM_DESCRIPTOR,
               DISABLE_IR_CACHES_DESCRIPTOR,
               PREINITIALIZE_DESCRIPTOR,
               WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESCRIPTOR,

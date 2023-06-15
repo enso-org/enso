@@ -6,6 +6,8 @@ import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.runtime.state.ExecutionEnvironment
 import org.enso.polyglot.runtime.Runtime.Api
 
+import java.util.logging.Level
+
 /** A job responsible for executing a call stack for the provided context.
   *
   * @param contextId an identifier of a context to execute
@@ -26,8 +28,8 @@ class ExecuteJob(
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
+    val acquiredLock = ctx.locking.acquireContextLock(contextId)
     ctx.locking.acquireReadCompilationLock()
-    ctx.locking.acquireContextLock(contextId)
     val context = ctx.executionService.getContext
     val originalExecutionEnvironment =
       executionEnvironment.map(_ => context.getExecutionEnvironment)
@@ -48,11 +50,19 @@ class ExecuteJob(
       }
     } finally {
       originalExecutionEnvironment.foreach(context.setExecutionEnvironment)
-      ctx.locking.releaseContextLock(contextId)
       ctx.locking.releaseReadCompilationLock()
+      ctx.locking.releaseContextLock(contextId)
+      ctx.executionService.getLogger.log(
+        Level.FINEST,
+        s"Kept context lock [ExecuteJob] for ${contextId} for ${System.currentTimeMillis() - acquiredLock}"
+      )
     }
     ctx.endpoint.sendToClient(Api.Response(Api.ExecutionComplete(contextId)))
     StartBackgroundProcessingJob.startBackgroundJobs()
+  }
+
+  override def toString(): String = {
+    s"ExecuteJob(contextId=$contextId)"
   }
 
 }

@@ -21,24 +21,22 @@ import org.enso.interpreter.instrument.{
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.runtime.Runtime.Api._
-import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
+//import org.enso.polyglot.runtime.Runtime.Api.
+import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.logging.Level
 
 /** A job that upserts a visualisation.
   *
   * @param requestId maybe a request id
-  * @param response a response used to reply to a client
   * @param visualisationId an identifier of visualisation
   * @param expressionId an identifier of expression
   * @param config a visualisation config
   */
 class UpsertVisualisationJob(
-  requestId: Option[RequestId],
-  response: ApiResponse,
-  visualisationId: VisualisationId,
-  expressionId: ExpressionId,
+  requestId: Option[Api.RequestId],
+  visualisationId: Api.VisualisationId,
+  expressionId: Api.ExpressionId,
   config: Api.VisualisationConfiguration
 ) extends UniqueJob[Option[Executable]](
       expressionId,
@@ -46,10 +44,17 @@ class UpsertVisualisationJob(
       false
     ) {
 
+  /** Return the id of the visualisation associated with this job
+    *
+    * @return visualisation id
+    */
+  def getVisualizationId(): Api.VisualisationId = visualisationId
+
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Option[Executable] = {
-    ctx.locking.acquireContextLock(config.executionContextId)
-    ctx.locking.acquireWriteCompilationLock()
+    val logger = ctx.executionService.getLogger
+    val lockTimestamp =
+      ctx.locking.acquireContextLock(config.executionContextId)
     try {
       val maybeCallable =
         UpsertVisualisationJob.evaluateVisualisationExpression(
@@ -75,7 +80,6 @@ class UpsertVisualisationJob(
               callable,
               arguments
             )
-          ctx.endpoint.sendToClient(Api.Response(requestId, response))
           val stack = ctx.contextManager.getStack(config.executionContextId)
           val cachedValue = stack.headOption
             .flatMap(frame => Option(frame.cache.get(expressionId)))
@@ -98,8 +102,11 @@ class UpsertVisualisationJob(
           }
       }
     } finally {
-      ctx.locking.releaseWriteCompilationLock()
       ctx.locking.releaseContextLock(config.executionContextId)
+      logger.log(
+        Level.FINEST,
+        s"Kept context lock [UpsertVisualisationJob] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
+      )
     }
   }
 
@@ -316,10 +323,10 @@ object UpsertVisualisationJob {
     * @return the re-evaluated visualisation
     */
   private def updateVisualisation(
-    visualisationId: VisualisationId,
-    expressionId: ExpressionId,
+    visualisationId: Api.VisualisationId,
+    expressionId: Api.ExpressionId,
     module: Module,
-    visualisationConfig: VisualisationConfiguration,
+    visualisationConfig: Api.VisualisationConfiguration,
     callback: AnyRef,
     arguments: Vector[AnyRef]
   )(implicit ctx: RuntimeContext): Visualisation = {
@@ -335,7 +342,12 @@ object UpsertVisualisationJob {
       callback,
       arguments
     )
-    invalidateCaches(visualisation)
+    ctx.locking.acquireWriteCompilationLock()
+    try {
+      invalidateCaches(visualisation)
+    } finally {
+      ctx.locking.releaseWriteCompilationLock()
+    }
     ctx.contextManager.upsertVisualisation(
       visualisationConfig.executionContextId,
       visualisation
@@ -351,10 +363,10 @@ object UpsertVisualisationJob {
     */
   private def findVisualisationExpressionId(
     module: Module,
-    visualisationExpression: VisualisationExpression
-  ): Option[ExpressionId] =
+    visualisationExpression: Api.VisualisationExpression
+  ): Option[Api.ExpressionId] =
     visualisationExpression match {
-      case VisualisationExpression.ModuleMethod(methodPointer, _) =>
+      case Api.VisualisationExpression.ModuleMethod(methodPointer, _) =>
         module.getIr.bindings
           .collect { case method: IR.Module.Scope.Definition.Method =>
             val methodReference        = method.methodReference
@@ -373,7 +385,7 @@ object UpsertVisualisationJob {
           .flatten
           .headOption
 
-      case _: VisualisationExpression.Text => None
+      case _: Api.VisualisationExpression.Text => None
     }
 
   /** Update the caches. */
@@ -407,7 +419,7 @@ object UpsertVisualisationJob {
     * @return `true` if the expression exists in the frame cache
     */
   private def isExpressionCached(
-    expressionId: ExpressionId,
+    expressionId: Api.ExpressionId,
     stack: Iterable[InstrumentFrame]
   ): Boolean = {
     stack.headOption.exists { frame =>
@@ -434,7 +446,7 @@ object UpsertVisualisationJob {
     * @param expressionId the expression id
     */
   private def invalidateFirstDependent(
-    expressionId: ExpressionId
+    expressionId: Api.ExpressionId
   )(implicit ctx: RuntimeContext): Unit = {
     ctx.executionService.getContext
       .findModuleByExpressionId(expressionId)
@@ -485,7 +497,7 @@ object UpsertVisualisationJob {
     */
   private def requireVisualisationSynchronization(
     stack: Iterable[InstrumentFrame],
-    expressionId: ExpressionId
+    expressionId: Api.ExpressionId
   ): Unit =
     stack.foreach(_.syncState.setVisualisationUnsync(expressionId))
 

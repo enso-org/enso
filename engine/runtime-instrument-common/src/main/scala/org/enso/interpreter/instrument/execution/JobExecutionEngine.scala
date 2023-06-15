@@ -187,4 +187,11 @@ final class JobExecutionEngine(
     delayedBackgroundJobsQueue.forEach(job => runBackground(job))
     delayedBackgroundJobsQueue.clear()
   }
+
+  override def jobInProgress[T](filter: Job[_] => Option[T]): Option[T] = {
+    val allJobs = runningJobsRef.get()
+    allJobs
+      .find(runningJob => filter(runningJob.job).nonEmpty)
+      .flatMap(runningJob => filter(runningJob.job))
+  }
 }
