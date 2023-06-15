@@ -44,7 +44,7 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
         var item = getItemBoxed(i);
         if (item != null) {
           var itemType = StorageType.forBoxedItem(item);
-          currentType = StorageType.findGeneralType(currentType, itemType);
+          currentType = StorageType.findCommonType(currentType, itemType);
           if (currentType instanceof AnyObjectType) {
             break;
           }
