@@ -623,7 +623,7 @@ type Decimal
                         round_base = scaled.floor
                         round_midpoint = (round_base + 0.5) / scale
                         even_is_up = if self >= 0 then (scaled.truncate % 2) != 0 else (scaled.truncate % 2) == 0
-                        half_goes_up = if use_bankers then even_is_up else True
+                        half_goes_up = if use_bankers then even_is_up else self >= 0
                         do_round_up = if half_goes_up then self >= round_midpoint else self > round_midpoint
                         if do_round_up then ((round_base + 1.0) / scale) else (round_base / scale)
                     # Convert to integer if it's really an integer anyway.
@@ -945,11 +945,11 @@ type Integer
                 result_unnudged = scaled_down * scale
                 case self >= 0 of
                     True ->
-                        half_goes_up = if use_bankers then (scaled_down % 2) != 0 else True
+                        half_goes_up = if use_bankers then (scaled_down % 2) != 0 else self >= 0
                         round_up = if half_goes_up then remainder >= halfway else remainder > halfway
                         if round_up  then result_unnudged + scale else result_unnudged
                     False ->
-                        half_goes_up = if use_bankers then (scaled_down % 2) == 0 else True
+                        half_goes_up = if use_bankers then (scaled_down % 2) == 0 else self >= 0
                         round_up = if half_goes_up then remainder < -halfway else remainder <= -halfway
                         if round_up then result_unnudged - scale else result_unnudged
 
