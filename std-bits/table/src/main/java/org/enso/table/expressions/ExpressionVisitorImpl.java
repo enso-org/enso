@@ -314,10 +314,10 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitDatetime(ExpressionParser.DatetimeContext ctx) {
-    var text = Time_Utils.normaliseISODateTime(ctx.text.getText());
+    var text = Time_Utils.normalise_iso_datetime(ctx.text.getText());
 
     try {
-      var dateTime = Core_Date_Utils.parseZonedDateTime(text, Time_Utils.default_zoned_date_time_formatter());
+      var dateTime = Core_Date_Utils.parseZonedDateTime(text, Time_Utils.default_date_time_formatter());
       return Value.asValue(dateTime);
     } catch (DateTimeParseException ignored) {
     }

@@ -445,7 +445,8 @@ val scalaCompiler = Seq(
 // === std-lib ================================================================
 
 val antlrVersion            = "4.13.0"
-val awsJavaSdkVersion       = "1.12.480"
+val awsJavaSdkV1Version     = "1.12.480"
+val awsJavaSdkV2Version     = "2.20.78"
 val icuVersion              = "73.1"
 val poiOoxmlVersion         = "5.2.3"
 val redshiftVersion         = "2.1.0.15"
@@ -2138,11 +2139,13 @@ lazy val `std-aws` = project
     Compile / packageBin / artifactPath :=
       `std-aws-polyglot-root` / "std-aws.jar",
     libraryDependencies ++= Seq(
-      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "com.amazon.redshift" % "redshift-jdbc42"         % redshiftVersion,
-      "com.amazonaws"       % "aws-java-sdk-core"       % awsJavaSdkVersion,
-      "com.amazonaws"       % "aws-java-sdk-redshift"   % awsJavaSdkVersion,
-      "com.amazonaws"       % "aws-java-sdk-sts"        % awsJavaSdkVersion
+      "org.netbeans.api"       % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "com.amazon.redshift"    % "redshift-jdbc42"         % redshiftVersion,
+      "com.amazonaws"          % "aws-java-sdk-core"       % awsJavaSdkV1Version,
+      "com.amazonaws"          % "aws-java-sdk-redshift"   % awsJavaSdkV1Version,
+      "com.amazonaws"          % "aws-java-sdk-sts"        % awsJavaSdkV1Version,
+      "software.amazon.awssdk" % "auth"                    % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "s3"                      % awsJavaSdkV2Version
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
