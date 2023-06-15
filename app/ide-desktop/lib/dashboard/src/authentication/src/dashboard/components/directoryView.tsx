@@ -204,7 +204,7 @@ function DirectoryView(props: DirectoryViewProps) {
                 }
             }
         },
-        [accessToken, directoryId, refresh, backend, nameOfProjectToImmediatelyOpen]
+        [accessToken, directoryId, refresh, backend]
     )
 
     React.useEffect(() => {
@@ -233,7 +233,7 @@ function DirectoryView(props: DirectoryViewProps) {
                 logger.error(`Error opening project on startup: ${errorMessage}`)
             }
         }
-        // `nameOfProjectToImmediatelyOpen` is a dependency of `assets`.
+        // `nameOfProjectToImmediatelyOpen` must NOT trigger this effect.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         assets,
@@ -296,11 +296,6 @@ function DirectoryView(props: DirectoryViewProps) {
                                     `Error creating new empty project: ${promiseError.message}`,
                             }
                         )
-                        // `newProject.projectId` cannot be used directly in a `ProjectEvent`
-                        // as the project does not yet exist in the project list.
-                        // Opening the project would work, but the project would display as closed
-                        // as it would be created after the event is sent.
-                        setNameOfProjectToImmediatelyOpen(projectName)
                         setProjectAssets(oldProjectAssets => {
                             const newProjectAssets = [...oldProjectAssets]
                             newProjectAssets[newProjectAssets.indexOf(placeholderNewProjectAsset)] =
@@ -312,6 +307,10 @@ function DirectoryView(props: DirectoryViewProps) {
                                     projectState: createdProject.state,
                                 }
                             return newProjectAssets
+                        })
+                        dispatchProjectEvent({
+                            type: projectEventModule.ProjectEventType.open,
+                            projectId: createdProject.projectId,
                         })
                         break
                     }
@@ -383,8 +382,7 @@ function DirectoryView(props: DirectoryViewProps) {
         directoryId,
         directoryAssets,
         getNewProjectName,
-        /* should never change */ doRefresh,
-        /* should never change */ setNameOfProjectToImmediatelyOpen,
+        /* should never change */ dispatchProjectEvent,
     ])
 
     const doCreateProject = React.useCallback(() => {
