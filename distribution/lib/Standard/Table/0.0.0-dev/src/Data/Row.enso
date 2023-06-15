@@ -1,4 +1,9 @@
-from Standard.Base import all
+from Standard.Base import Integer, Text, Vector
+from Standard.Base import Map
+from Standard.Base import Any
+from Standard.Base import Nothing
+from Standard.Base import JS_Object
+
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 
 import project.Data.Table.Table

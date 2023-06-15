@@ -1,5 +1,3 @@
-from Standard.Base import all
-
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Column.Column
 import project.Data.Column_Selector.Column_Selector
