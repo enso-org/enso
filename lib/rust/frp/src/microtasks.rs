@@ -186,19 +186,30 @@ impl Scheduler {
     }
 
     fn add(&self, f: impl FnOnce() + 'static) -> callback::Handle {
-        let handle = self.data.callbacks.add(f);
+        let handle = self.data.callbacks.add(profile(f));
         self.data.schedule_task();
         handle
     }
 
     fn add_late(&self, f: impl FnOnce() + 'static) -> callback::Handle {
-        let handle = self.data.late_callbacks.add(f);
+        let handle = self.data.late_callbacks.add(profile(f));
         self.data.schedule_task();
         handle
     }
 
     fn flush(&self) {
         self.data.flush();
+    }
+}
+
+/// Add profiling to a function. The current profiler (if any) will be the parent, regardless of
+/// when the scheduled task is actually executed.
+fn profile(f: impl FnOnce() + 'static) -> impl FnOnce() + 'static {
+    let profiler = profiler::create_debug!("<microtask>");
+    move || {
+        profiler.resume();
+        f();
+        profiler.pause();
     }
 }
 

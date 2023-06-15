@@ -438,14 +438,14 @@ type Invalid_JSON_Format
 type Column_Type_Mismatch
     ## PRIVATE
        An error indicating a mismatch of column types of merged columns.
-    Error (column_name : Text) (expected_type : Text | Any) (got_type : Text | Any)
+    Error (column_name : Text) (expected_type : Text | Value_Type) (got_type : Text | Value_Type)
 
     ## PRIVATE
 
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        "The column ["+self.column_name+"] expects type "+self.expected_type+" but one of the provided tables had type "+self.got_type+" which is not compatible with it."
+        "The column ["+self.column_name+"] expects type "+self.expected_type.to_display_text+" but one of the provided tables had type "+self.got_type.to_display_text+" which is not compatible with it."
 
 type No_Common_Type
     ## PRIVATE
@@ -482,7 +482,7 @@ type Unmatched_Columns
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        "The following columns were not present in some of the provided tables: " + (self.column_names.map (n -> "["+n+"]") . join ", ") + ". The missing values have been filled with `Nothing`."
+        "The following columns were not present in some of the provided tables: " + (self.column_names.map (n -> "["+n+"]") . join ", ") + "."
 
 type Cross_Join_Row_Limit_Exceeded
     ## PRIVATE

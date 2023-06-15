@@ -19,12 +19,14 @@ object VisualisationApi {
       visualisationConfig: VisualisationConfiguration
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ExecuteExpression.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, ExecuteExpression.Params] =
+      new HasParams[this.type] {
+        type Params = ExecuteExpression.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object AttachVisualisation
@@ -36,12 +38,15 @@ object VisualisationApi {
       visualisationConfig: VisualisationConfiguration
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = AttachVisualisation.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit
+    val hasParams: HasParams.Aux[this.type, AttachVisualisation.Params] =
+      new HasParams[this.type] {
+        type Params = AttachVisualisation.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object DetachVisualisation
@@ -53,13 +58,15 @@ object VisualisationApi {
       expressionId: UUID
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = DetachVisualisation.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
-
+    implicit
+    val hasParams: HasParams.Aux[this.type, DetachVisualisation.Params] =
+      new HasParams[this.type] {
+        type Params = DetachVisualisation.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object ModifyVisualisation
@@ -70,12 +77,15 @@ object VisualisationApi {
       visualisationConfig: VisualisationConfiguration
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ModifyVisualisation.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit
+    val hasParams: HasParams.Aux[this.type, ModifyVisualisation.Params] =
+      new HasParams[this.type] {
+        type Params = ModifyVisualisation.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
 }

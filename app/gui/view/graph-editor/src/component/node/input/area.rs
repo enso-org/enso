@@ -133,15 +133,14 @@ impl From<node::Expression> for Expression {
 /// Internal model of the port area.
 #[derive(Debug)]
 pub struct Model {
-    app: Application,
-    display_object: display::object::Instance,
-    edit_mode_label: text::Text,
-    label_layer: RefCell<display::scene::layer::WeakLayer>,
+    display_object:            display::object::Instance,
+    edit_mode_label:           text::Text,
+    label_layer:               RefCell<display::scene::layer::WeakLayer>,
     edit_mode_label_displayed: Cell<bool>,
-    expression: RefCell<Expression>,
-    styles: StyleWatch,
-    styles_frp: StyleWatchFrp,
-    widget_tree: widget::Tree,
+    expression:                RefCell<Expression>,
+    styles:                    StyleWatch,
+    styles_frp:                StyleWatchFrp,
+    widget_tree:               widget::Tree,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -154,7 +153,6 @@ impl Model {
     /// Constructor.
     #[profile(Debug)]
     pub fn new(app: &Application) -> Self {
-        let app = app.clone_ref();
         let display_object = display::object::Instance::new_named("input");
 
         let edit_mode_label = app.new_view::<text::Text>();
@@ -163,11 +161,10 @@ impl Model {
         let expression = default();
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        let widget_tree = widget::Tree::new(&app);
         display_object.add_child(&edit_mode_label);
+        let widget_tree = widget::Tree::new(app);
         with_context(|ctx| ctx.layers.widget.add(&widget_tree));
         Self {
-            app,
             display_object,
             edit_mode_label,
             edit_mode_label_displayed,
@@ -177,7 +174,7 @@ impl Model {
             styles_frp,
             widget_tree,
         }
-        .init()
+        .init(app)
     }
 
     /// React to edit mode change. Shows and hides appropriate child views according to current
@@ -207,7 +204,7 @@ impl Model {
     /// back to the correct scene layer)
     fn hide_edit_mode_label(&self) {
         self.edit_mode_label_displayed.set(false);
-        self.app.display.default_scene.layers.DETACHED.add(&self.edit_mode_label);
+        scene().layers.DETACHED.add(&self.edit_mode_label);
     }
 
     /// Show the edit mode label by placing it in the correct layer.
@@ -222,13 +219,18 @@ impl Model {
     }
 
     #[profile(Debug)]
-    fn init(self) -> Self {
+    fn init(self, app: &Application) -> Self {
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
 
         self.edit_mode_label.set_single_line_mode(true);
-        self.edit_mode_label.disable_command("cursor_move_up");
-        self.edit_mode_label.disable_command("cursor_move_down");
-        self.edit_mode_label.disable_command("add_cursor_at_mouse_position");
+
+        app.commands.set_command_enabled(&self.edit_mode_label, "cursor_move_up", false);
+        app.commands.set_command_enabled(&self.edit_mode_label, "cursor_move_down", false);
+        app.commands.set_command_enabled(
+            &self.edit_mode_label,
+            "add_cursor_at_mouse_position",
+            false,
+        );
         self.edit_mode_label.set_property_default(text_color);
         self.edit_mode_label.set_property_default(text::Size(TEXT_SIZE));
         self.edit_mode_label.remove_all_cursors();

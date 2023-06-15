@@ -3,7 +3,6 @@ package org.enso.table.operations;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.IntStream;
-
 import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.mask.OrderMask;

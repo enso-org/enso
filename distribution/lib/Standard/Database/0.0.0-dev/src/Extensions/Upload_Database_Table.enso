@@ -9,7 +9,6 @@ import project.Connection.Connection.Connection
 import project.Data.Table.Table
 import project.Data.Update_Action.Update_Action
 from project.Errors import all
-from project.Extensions.Upload_Default_Helpers import default_key_columns
 from project.Internal.Upload_Table import all
 
 ## Creates a new database table from this table.
@@ -80,9 +79,27 @@ Table.select_into_database_table self connection table_name=Nothing primary_key=
        table, an `Unmatched_Columns` error is raised.
      - If a column in the source table has a type that cannot be trivially
        widened to the corresponding column in the target table, a
-       `Column_Type_Mismatch` error is raised.
+       `Column_Type_Mismatch` error is raised. If the types do not match but can
+       be widened, an `Inexact_Type_Coercion` is reported.
+     - If `update_action` is `Insert` and a row with the same key already exists
+       in the target table, a `Rows_Already_Present` error is raised.
+     - If the `update_action` is `Update` and some rows in the source have no
+       corresponding rows in the target table, a `Unmatched_Rows` error is
+       raised.
+     - If the source table contains multiple rows for the same key, a
+       `Non_Unique_Primary_Key` error is raised.
+     - If a row in the source table matches multiple rows in the target table, a
+       `Multiple_Target_Rows_Matched_For_Update` error is raised.
+     - If another database error occurs, an `SQL_Error` is raised.
 
      If any error was raised, the data in the target table is not modified.
-Table.update_database_table : Connection -> Text -> Update_Action -> Vector Text-> Boolean -> Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
-Table.update_database_table connection (table_name : Text) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector = default_key_columns connection table_name) (error_on_missing_columns : Boolean = False) =
-    common_update_table self connection table_name update_action key_columns error_on_missing_columns
+
+   ? Type Widening
+
+     Smaller types can be widened to a larger type, for example 32-bit integer
+     column can be widened to a 64-bit integer column, but not vice versa
+     (because larger numbers could not fit the smaller type and the type of the
+     column in the target table cannot be changed).
+Table.update_database_table : Connection -> Text -> Update_Action -> Vector Text | Nothing -> Boolean -> Problem_Behavior -> Table ! Table_Not_Found | Unmatched_Columns | Missing_Input_Columns | Column_Type_Mismatch | SQL_Error | Illegal_Argument
+Table.update_database_table self connection (table_name : Text) (update_action : Update_Action = Update_Action.Update_Or_Insert) (key_columns : Vector | Nothing = default_key_columns connection table_name) (error_on_missing_columns : Boolean = False) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+    common_update_table self connection table_name update_action key_columns error_on_missing_columns on_problems

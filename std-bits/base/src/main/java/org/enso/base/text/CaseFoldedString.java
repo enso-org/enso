@@ -3,9 +3,8 @@ package org.enso.base.text;
 import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.CaseMap;
 import com.ibm.icu.text.CaseMap.Fold;
-import org.enso.base.arrays.IntArrayBuilder;
-
 import java.util.Locale;
+import org.enso.base.arrays.IntArrayBuilder;
 
 /**
  * Represents a string transformed using Unicode Case Folding which can be used for case insensitive

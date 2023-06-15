@@ -95,7 +95,6 @@ impl component::Frp<Model> for Frp {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    app:            Application,
     background:     background::View,
     label:          Rc<RefCell<Option<text::Text>>>,
     display_object: display::object::Instance,
@@ -115,8 +114,7 @@ impl component::Model for Model {
         display_object.add_child(&background);
         scene.layers.tooltip.add(&background);
 
-        let app = app.clone_ref();
-        Model { app, background, label, display_object }
+        Model { background, label, display_object }
     }
 }
 

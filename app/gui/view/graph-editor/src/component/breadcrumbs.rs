@@ -132,6 +132,7 @@ pub struct BreadcrumbsModel {
     /// A container for all the breadcrumbs after project name. This contained and all its
     /// breadcrumbs are moved when project name component is resized.
     breadcrumbs_container: display::object::Instance,
+    // Required for creating new breadcrumbs
     app:                   Application,
     breadcrumbs:           Rc<RefCell<Vec<Breadcrumb>>>,
     frp_inputs:            FrpInputs,

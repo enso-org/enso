@@ -124,7 +124,6 @@ impl Default for JumpTarget {
 /// The Model of Select Component.
 #[derive(Clone, CloneRef, Debug)]
 struct Model<E: Entry> {
-    app:            Application,
     entries:        entry::List<E>,
     selection:      Selection,
     background:     Rectangle,
@@ -134,10 +133,9 @@ struct Model<E: Entry> {
 
 impl<E: Entry> Model<E> {
     fn new(app: &Application) -> Self {
-        let app = app.clone_ref();
         let display_object = display::object::Instance::new();
         let scrolled_area = display::object::Instance::new();
-        let entries = entry::List::new(&app);
+        let entries = entry::List::new(app);
         let background = Rectangle();
         background.set_border_color(color::Rgba::transparent());
         let selection = Selection::default();
@@ -146,7 +144,7 @@ impl<E: Entry> Model<E> {
         display_object.add_child(&scrolled_area);
         scrolled_area.add_child(&entries);
         scrolled_area.add_child(&selection);
-        Model { app, entries, selection, background, scrolled_area, display_object }
+        Model { entries, selection, background, scrolled_area, display_object }
     }
 
     /// Update the displayed entries list when _view_ has changed - the list was scrolled or
@@ -438,7 +436,7 @@ where E::Model: Default
 
             // === Selected Entry ===
 
-            eval frp.source.focused([frp](f) if !f { frp.deselect_entries.emit(()) } );
+            frp.deselect_entries <+ frp.focused.on_false();
 
             frp.source.selected_entry <+ frp.select_entry;
             frp.source.selected_entry <+ frp.output.chosen_entry;
@@ -636,12 +634,11 @@ impl<E: Entry> application::View for ListView<E> {
     fn label() -> &'static str {
         "ListView"
     }
+
     fn new(app: &Application) -> Self {
         ListView::new(app)
     }
-    fn app(&self) -> &Application {
-        &self.model.app
-    }
+
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [

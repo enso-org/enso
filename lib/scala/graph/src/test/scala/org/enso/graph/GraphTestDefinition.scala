@@ -1,5 +1,7 @@
 package org.enso.graph
 
+import org.enso.graph.Graph.Component
+import org.enso.graph.Graph.Component.Field
 import org.enso.graph.definition.Macro.{component, field, opaque}
 import org.enso.graph.{Graph => PrimGraph}
 import shapeless.{::, HNil}
@@ -24,18 +26,25 @@ object GraphTestDefinition {
 
     case class Graph() extends PrimGraph
 
-    implicit def components =
+    implicit def components: Component.List[Graph] {
+      type Out = Nodes :: Edges :: HNil
+    } =
       new PrimGraph.Component.List[Graph] {
         type Out = Nodes :: Edges :: HNil
       }
 
-    implicit def nodeFields =
+    implicit def nodeFields: Field.List[Graph, Nodes] {
+      type Out =
+        Node.Shape :: Node.ParentLink :: Node.Location :: Node.Backref :: HNil
+    } =
       new PrimGraph.Component.Field.List[Graph, Nodes] {
         type Out =
           Node.Shape :: Node.ParentLink :: Node.Location :: Node.Backref :: HNil
       }
 
-    implicit def edgeFields =
+    implicit def edgeFields: Field.List[Graph, Edges] {
+      type Out = Edge.Shape :: HNil
+    } =
       new PrimGraph.Component.Field.List[Graph, Edges] {
         type Out = Edge.Shape :: HNil
       }

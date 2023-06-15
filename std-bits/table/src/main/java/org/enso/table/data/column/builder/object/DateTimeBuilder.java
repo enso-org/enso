@@ -1,11 +1,10 @@
 package org.enso.table.data.column.builder.object;
 
-import org.enso.table.data.column.storage.datetime.DateTimeStorage;
+import java.time.ZonedDateTime;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.StorageType;
-
-import java.time.ZonedDateTime;
 
 /** A builder for string columns. */
 public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {

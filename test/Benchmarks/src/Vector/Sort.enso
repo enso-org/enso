@@ -5,7 +5,7 @@ from Standard.Test import Bench
 
 import project.Vector.Utils
 
-polyglot java import java.util.Random
+polyglot java import java.util.Random as Java_Random
 polyglot java import org.enso.base.Time_Utils
 
 
@@ -21,7 +21,7 @@ make_sorted_ascending_vec n = 0.up_to n+1 . to_vector
 
 make_partially_sorted_vec : Integer -> Vector
 make_partially_sorted_vec n =
-    random_gen = Random.new n
+    random_gen = Java_Random.new n
     direction = Ref.new Sort_Direction.Ascending
     last_num = Ref.new 0
     run_length = Ref.new 0

@@ -1,9 +1,7 @@
 package org.enso.interpreter.dsl.builtins;
 
-import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.ExecutableElement;
 import java.util.List;
-import java.util.Map;
+import javax.lang.model.element.ExecutableElement;
 
 /**
  * Generator for a builtin method with specializations. The target class will always be abstract and

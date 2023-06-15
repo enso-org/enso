@@ -6,7 +6,6 @@ import org.enso.interpreter.instrument.InstrumentFrame;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
 import org.enso.interpreter.instrument.job.ExecuteJob;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
-import org.enso.polyglot.runtime.Runtime;
 import org.enso.polyglot.runtime.Runtime$Api$ExecutionEnvironment;
 import org.enso.polyglot.runtime.Runtime$Api$SetExecutionEnvironmentResponse;
 import scala.Option;

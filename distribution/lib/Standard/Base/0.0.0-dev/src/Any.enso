@@ -1,5 +1,5 @@
 import project.Data.Pair.Pair
-import project.Data.Range.Extensions
+from project.Data.Range.Extensions import all
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error

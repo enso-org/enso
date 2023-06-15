@@ -1,12 +1,10 @@
 package org.enso.interpreter.node.expression.builtin.ordering;
 
-import org.enso.interpreter.node.expression.builtin.Builtin;
-
+import java.util.List;
 import org.enso.interpreter.dsl.BuiltinType;
+import org.enso.interpreter.node.expression.builtin.Builtin;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-
-import java.util.List;
 
 @BuiltinType
 public class Ordering extends Builtin {
