@@ -127,6 +127,14 @@ type SQLite_Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - limit: the maximum number of rows to return.
+
+       ? Side Effects
+
+         Note that the `read` method is running without restrictions when the
+         output context is disabled, but it can technically cause side effects,
+         if it is provided with a DML query. Usually it is preferred to use
+         `execute_update` for DML queries, or if they are supposed to return
+         results, the `read` should be wrapped in an execution context check.
     @query make_table_name_selector
     read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table ! Table_Not_Found
     read self query limit=Nothing = self.connection.read query limit
