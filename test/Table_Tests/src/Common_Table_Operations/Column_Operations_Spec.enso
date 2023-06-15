@@ -1108,6 +1108,16 @@ spec setup =
                 t.at "a" . zip (t.at "b") [_, _] . name . should_equal "[a] x [b]"
 
     Test.group prefix+"Column.rename" <|
+        Test.specify "should not allow illegal names" <|
+            t = table_builder [["a", [1, 2, 3]]]
+            c = t.at "a"
+
+            c.rename Nothing . should_fail_with Illegal_Argument
+            c.rename '' . should_fail_with Illegal_Argument
+            c.rename 'a\0b' . should_fail_with Illegal_Argument
+            c.rename '\0' . should_fail_with Illegal_Argument
+
+    Test.group prefix+"Column.const" <|
         Test.specify "Should allow the creation of constant columns" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             t.at "x" . const True . to_vector . should_equal [True, True, True]

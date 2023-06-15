@@ -132,8 +132,7 @@ type Column
             type_mapping = self.connection.dialect.get_type_mapping
             prepare_operand operand = case operand of
                 other_column : Column ->
-                    ## self and other_column do not have to be compatible if self is not going to be used as an argument to the op.
-                    if include_self == False || Helpers.check_integrity self other_column then other_column.expression else
+                    if Helpers.check_integrity self other_column then other_column.expression else
                         Error.throw <| Unsupported_Database_Operation.Error "Cannot use columns coming from different contexts in one expression without a join."
                 constant ->
                     SQL_Expression.Constant constant
