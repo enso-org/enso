@@ -15,3 +15,4 @@ export project.Test_Suite.Test_Suite
 export project.Test.Test
 export project.Test_Environment
 from project.Extensions import all
+export project.Extensions
