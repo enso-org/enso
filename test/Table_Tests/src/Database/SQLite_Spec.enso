@@ -1,4 +1,10 @@
-from Standard.Base import all
+from Standard.Base import Boolean, True, False
+from Standard.Base import Nothing, Any
+from Standard.Base import Vector, Map, First
+from Standard.Base import JS_Object, Filter_Condition, Sort_Direction
+from Standard.Base import Panic, Warning, Auto_Detect, Existing_File_Behavior
+from Standard.Base import IO, Meta, enso_project
+
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.Errors.File_Error.File_Error
 

@@ -1,10 +1,9 @@
-from Standard.Base import all
+from Standard.Base import Vector, Warning, Nothing, Panic, True, Error
 
 from Standard.Table import Value_Type
 
 from Standard.Database import all
 from Standard.Database.Errors import all
-import Standard.Database.Data.Column_Description.Column_Description
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions

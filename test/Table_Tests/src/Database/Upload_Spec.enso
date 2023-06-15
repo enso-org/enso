@@ -1,12 +1,17 @@
-from Standard.Base import all
+from Standard.Base import Boolean, True, False
+from Standard.Base import Nothing, Any
+from Standard.Base import Vector, Map
+from Standard.Base import JS_Object, Filter_Condition, Sort_Direction
+from Standard.Base import Panic
+from Standard.Base import IO
+
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import all
 from Standard.Table.Errors import all
 
-from Standard.Database import all
+from Standard.Database import all hiding Data, Errors
 from Standard.Database.Errors import all
-from Standard.Database.Internal.Upload_Table import get_primary_key, default_key_columns
 import Standard.Database.Data.Column_Constraint.Column_Constraint
 
 from Standard.Test import Test, Test_Suite, Problems
@@ -19,6 +24,9 @@ polyglot java import org.enso.table_test_helpers.ExplodingStoragePayload
 
 main = Test_Suite.run_main <|
     spec (_ -> Database.connect (SQLite In_Memory)) "[SQLite] " persistent_connector=False
+
+get_primary_key = Upload_Table.get_primary_key
+default_key_columns = Upload_Table.default_key_columns
 
 ## PRIVATE
    Tests uploading tables.

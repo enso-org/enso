@@ -1,4 +1,10 @@
-from Standard.Base import all
+from Standard.Base import Boolean, True, False
+from Standard.Base import Nothing, Any
+from Standard.Base import Vector, Map
+from Standard.Base import JS_Object, Filter_Condition, Sort_Direction, Comparable
+from Standard.Base import Panic, Error, Problem_Behavior
+from Standard.Base import IO
+
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Table import all hiding Table

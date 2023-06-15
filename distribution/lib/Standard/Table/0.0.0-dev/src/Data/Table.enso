@@ -2099,7 +2099,7 @@ make_join_helpers left_table right_table =
    It returns True or throws a dataflow error explaining the issue.
 check_table arg_name table =
     if Table_Helpers.is_table table . not then Error.throw (Type_Error.Error Table table arg_name) else
-            same_backend = table.is_a Table
+            same_backend = Meta.is_a table Table
             case same_backend of
                 False ->
                     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
