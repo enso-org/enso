@@ -1,4 +1,12 @@
-from Standard.Base import all
+from Standard.Base import Integer, Decimal, Text, Any, Array, Vector, Math
+from Standard.Base import Range, Index_Sub_Range, Date_Range, First, Pair
+from Standard.Base import JS_Object, JSON_Format
+from Standard.Base import True, False, Map, Boolean, Nothing, Problem_Behavior
+from Standard.Base import Ordering, Text_Ordering, Natural_Order, Case_Sensitivity, Sort_Direction, Filter_Condition, Case
+from Standard.Base import Meta, Error, Warning, Panic, Function, Report_Warning, Report_Error
+from Standard.Base import IO, File_Format, Existing_File_Behavior, Auto_Detect, File, Platform, Locale, Location
+
+
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
