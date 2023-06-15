@@ -22,28 +22,32 @@ use ide_view::graph_editor::component::visualization as visualization_view;
 // === Model ===
 // =============
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Debug)]
 struct Model {
     controller:    controller::Visualization,
     graph_view:    view::graph_editor::GraphEditor,
     manager:       Rc<Manager>,
     error_manager: Rc<Manager>,
     state:         Rc<graph::state::State>,
+    shown:         RefCell<HashSet<ViewNodeId>>,
 }
 
 impl Model {
     /// Handle the showing visualization UI.
     fn visualization_shown(&self, node_id: ViewNodeId, metadata: visualization_view::Metadata) {
+        self.shown.borrow_mut().insert(node_id);
         self.update_visualization(node_id, &self.manager, Some(metadata));
     }
 
     /// Handle the hiding in UI.
     fn visualization_hidden(&self, node_id: view::graph_editor::NodeId) {
+        self.shown.borrow_mut().remove(&node_id);
         self.update_visualization(node_id, &self.manager, None);
     }
 
     /// Handle the node removal in UI.
     fn node_removed(&self, node_id: view::graph_editor::NodeId) {
+        self.shown.borrow_mut().remove(&node_id);
         if self.state.ast_node_id_of_view(node_id).is_some() {
             self.update_visualization(node_id, &self.manager, None);
             self.update_visualization(node_id, &self.error_manager, None);
@@ -56,8 +60,10 @@ impl Model {
         node_id: ViewNodeId,
         preprocessor: visualization_view::instance::PreprocessorConfiguration,
     ) {
-        let metadata = visualization_view::Metadata { preprocessor };
-        self.update_visualization(node_id, &self.manager, Some(metadata))
+        if self.shown.borrow().contains(&node_id) {
+            let metadata = visualization_view::Metadata { preprocessor };
+            self.update_visualization(node_id, &self.manager, Some(metadata))
+        }
     }
 
     /// Handle the error change on given node: attach/detach the error visualization if needed.
@@ -95,7 +101,7 @@ impl Model {
         data: VisualizationUpdateData,
     ) {
         if let Some(view_id) = self.state.view_id_of_ast_node(target) {
-            match deserialize_visualization_data(data) {
+            match visualization_view::Data::json(&data) {
                 Ok(data) => update_endpoint.emit((view_id, data)),
                 Err(err) => {
                     // TODO [mwu]: We should consider having the visualization also accept error
@@ -178,6 +184,7 @@ impl Visualization {
             manager: manager.clone_ref(),
             error_manager: error_manager.clone_ref(),
             state,
+            shown: default(),
         });
 
         frp::extend! { network
@@ -295,19 +302,4 @@ impl Visualization {
         });
         self
     }
-}
-
-
-
-// ========================
-// === Helper Functions ===
-// ========================
-
-fn deserialize_visualization_data(
-    data: VisualizationUpdateData,
-) -> FallibleResult<visualization_view::Data> {
-    let binary = data.as_ref();
-    let as_text = std::str::from_utf8(binary)?;
-    let as_json: serde_json::Value = serde_json::from_str(as_text)?;
-    Ok(visualization_view::Data::from(as_json))
 }

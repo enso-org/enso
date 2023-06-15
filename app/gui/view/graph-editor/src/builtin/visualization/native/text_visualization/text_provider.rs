@@ -269,30 +269,19 @@ struct LazyGridDataUpdate {
 impl TryFrom<visualization::Data> for LazyGridDataUpdate {
     type Error = visualization::DataError;
 
+    #[profile(Debug)]
     fn try_from(data: visualization::Data) -> Result<Self, Self::Error> {
-        if let visualization::Data::Json { content } = data {
-            let grid_data = serde_json::from_value(content.deref().clone());
-            let (data, update_type) = match grid_data {
-                Ok(data) => (data, UpdateType::PartialUpdate),
-                Err(_) => {
-                    let data_str = if content.is_string() {
-                        // We need to access the content `as_str` to preserve newlines. Just using
-                        // `content.to_string()` would turn them into the characters `\n` in the
-                        // output. The unwrap can never fail, as we just
-                        // checked that the content is a string.
-                        Ok(content.as_str().map(|s| s.to_owned()).unwrap_or_default())
-                    } else {
-                        serde_json::to_string_pretty(&*content)
-                    };
-                    let data_str =
-                        data_str.unwrap_or_else(|e| format!("<Cannot render data: {e}.>"));
-                    (data_str.into(), UpdateType::FullUpdate)
-                }
-            };
-            Ok(LazyGridDataUpdate { data, update_type })
-        } else {
-            Err(visualization::DataError::BinaryNotSupported)
-        }
+        let content = data.as_json()?;
+        let grid_data: Result<LazyGridData, _> = content.deserialize();
+        let (data, update_type) = match grid_data {
+            Ok(data) => (data, UpdateType::PartialUpdate),
+            Err(_) => {
+                let data_str = content.to_string();
+                let data_str = data_str.unwrap_or_else(|e| format!("<Cannot render data: {e}.>"));
+                (data_str.into(), UpdateType::FullUpdate)
+            }
+        };
+        Ok(LazyGridDataUpdate { data, update_type })
     }
 }
 
