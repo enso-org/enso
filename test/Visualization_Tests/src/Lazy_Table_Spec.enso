@@ -1,10 +1,8 @@
-from Standard.Base import all
-from Standard.Visualization import all
+from Standard.Base import Vector
 from Standard.Table import Table
 
 import Standard.Examples
 import Standard.Visualization.Table as Table_Visualisation
-import Standard.Visualization.Preprocessor as Preprocessor
 
 from Standard.Test import Test
 import Standard.Test.Extensions

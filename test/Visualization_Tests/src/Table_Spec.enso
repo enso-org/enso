@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Table import Table, Aggregate_Column, Value_Type
 
-from Standard.Database import all
+from Standard.Database import Database, SQLite
 import Standard.Database.Data.Table.Table as Database_Table
 
 import Standard.Visualization.Table.Visualization

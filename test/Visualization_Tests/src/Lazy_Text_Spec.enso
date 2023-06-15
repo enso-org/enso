@@ -1,5 +1,4 @@
 from Standard.Base import all
-from Standard.Visualization import all
 
 import Standard.Examples
 import Standard.Visualization.Text as TextVis

@@ -1,4 +1,4 @@
-from Standard.Base import all
+from Standard.Base import Vector, Nothing
 
 import Standard.Base.Metadata.Choice
 import Standard.Base.Metadata.Widget
