@@ -60,7 +60,8 @@ pub mod shape {
             let body = body.fill(color);
 
             // === Border ===
-            let border = body.grow(border.px());
+            let padded_body = body.grow((inset - &border).px());
+            let border = padded_body.grow(border.px()) - padded_body;
             let border_color = Var::<color::Rgba>::from(border_color);
             let border = border.fill(border_color);
 
@@ -152,9 +153,13 @@ impl Rectangle {
         self.set_corner_radius(max_radius)
     }
 
-    /// Set the padding between edge of the frame and shape itself. If you want to use border, you
-    /// should always set the inset at least of the size of the border. If you do not want the
-    /// border to be animated, you can use [`Self::set_inset_border`] instead.
+    /// Set the padding between edge of the frame and main shape.
+    ///
+    /// This value should not be less than the width of the border. To set it to the same width as
+    /// the border, you can use [`Self::set_inset_border`].
+    ///
+    /// If this value is greater than the border width, the extra padding will be between the body
+    /// and the border.
     pub fn set_inset(&self, inset: f32) -> &Self {
         self.modify_view(|view| view.inset.set(inset))
     }

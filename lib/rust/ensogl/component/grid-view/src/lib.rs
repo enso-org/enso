@@ -370,6 +370,7 @@ impl<E: Entry> Model<E, E::Params> {
         entry_frp.set_model(model);
     }
 
+    #[profile(Debug)]
     fn update_after_column_resize(
         &self,
         resized_column: Col,

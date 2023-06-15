@@ -180,13 +180,13 @@ type Unmatched_Rows
     ## PRIVATE
        Indicates that the `Update` operation encountered input rows that did not
        have any matching rows in the target table.
-    Error
+    Error (count : Integer)
 
     ## PRIVATE
        Pretty print the rows already present error.
     to_display_text : Text
     to_display_text self =
-        "The `Update` operation encountered input rows that did not have any matching rows in the target table. The operation has been rolled back. Consider `Update_Or_Insert` if you want to insert rows that do not match any existing rows."
+        "The `Update` operation encountered " + self.count.to_text + " input rows that did not have any matching rows in the target table. The operation has been rolled back. Consider `Update_Or_Insert` if you want to insert rows that do not match any existing rows."
 
 type Rows_Already_Present
     ## PRIVATE
@@ -204,10 +204,10 @@ type Multiple_Target_Rows_Matched_For_Update
     ## PRIVATE
        Indicates that the source table had rows matching multiple rows in the
        target table by the specified key.
-    Error
+    Error (example_key : Vector Any) (example_count : Integer)
 
     ## PRIVATE
        Pretty print the multiple target rows matched for update error.
     to_display_text : Text
     to_display_text self =
-        "The update operation encountered input rows that matched multiple rows in the target table. The operation has been rolled back. You may need to use a more specific key for matching."
+        "The update operation encountered input rows that matched multiple rows in the target table (for example, the key " + self.example_key.to_display_text + " matched " + self.example_count.to_text + " rows). The operation has been rolled back. You may need to use a more specific key for matching."

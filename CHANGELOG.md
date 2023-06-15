@@ -485,6 +485,7 @@
 - [Speed improvements to `Column` `.truncate`, `.ceil`, and `.floor`.][6941]
 - [Implemented addition and subtraction for `Date_Period` and
   `Time_Period`.][6956]
+- [Implemented `Table.update_database_table`.][7035]
 - [Added AWS credential support and initial S3 list buckets API.][6973]
 
 [debug-shortcuts]:
@@ -705,6 +706,7 @@
 [6925]: https://github.com/enso-org/enso/pull/6925
 [6941]: https://github.com/enso-org/enso/pull/6941
 [6956]: https://github.com/enso-org/enso/pull/6956
+[7035]: https://github.com/enso-org/enso/pull/7035
 [6973]: https://github.com/enso-org/enso/pull/6973
 
 #### Enso Compiler

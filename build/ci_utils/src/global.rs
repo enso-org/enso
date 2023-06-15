@@ -32,6 +32,10 @@ const REFRESHES_PER_SECOND: u32 = 100;
 #[derive(derivative::Derivative)]
 #[derivative(Debug)]
 struct GlobalState {
+    /// A globally-shared reference to the multi-progress bar.
+    ///
+    /// All progress bars must be added to this multi-progress bar. This ensures that the progress
+    /// bars are displayed in a way that does not interfere with tracing log output.
     mp:            MultiProgress,
     #[derivative(Debug = "ignore")]
     bars:          Vec<WeakProgressBar>,
@@ -71,6 +75,11 @@ impl Default for GlobalState {
 }
 
 static GLOBAL: LazyLock<Mutex<GlobalState>> = LazyLock::new(default);
+
+/// Returns a reference to the global multi-progress bar.
+pub fn multi_progress_bar() -> MultiProgress {
+    GLOBAL.lock().unwrap().mp.clone()
+}
 
 pub fn progress_bar(f: impl FnOnce() -> ProgressBar) -> ProgressBar {
     let ret = f();

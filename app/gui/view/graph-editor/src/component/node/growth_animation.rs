@@ -113,7 +113,7 @@ impl GraphEditorModel {
     #[profile(Debug)]
     fn move_node_to_edited_node_layer(&self, node_id: NodeId) {
         if let Some(node) = self.nodes.get_cloned(&node_id) {
-            node.model().move_to_edited_node_layer();
+            node.model().set_editing_expression(true);
         }
     }
 
@@ -121,7 +121,7 @@ impl GraphEditorModel {
     #[profile(Debug)]
     fn move_node_to_main_layer(&self, node_id: NodeId) {
         if let Some(node) = self.nodes.get_cloned(&node_id) {
-            node.model().move_to_main_layer();
+            node.model().set_editing_expression(false);
         }
     }
 }
