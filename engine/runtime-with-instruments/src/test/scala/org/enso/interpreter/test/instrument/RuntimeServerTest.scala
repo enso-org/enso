@@ -2667,14 +2667,10 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(122, 87, "aaaa")
-    val id1      = metadata.addItem(131, 15, "aad1")
-    val id2      = metadata.addItem(151, 18, "aad2")
-    val id3      = metadata.addItem(174, 15, "aad3")
-    // Note that Nothing.Nothing is on purpose.
-    // If not provided the full name it will resolve the expression Nothing to a Nothing module.
-    // Similarly Text.Text. That in turn will mismatch the expectations for method types which actually
-    // return proper types.
+    val idMain   = metadata.addItem(127, 79, "aaaa")
+    val id1      = metadata.addItem(136, 15, "aad1")
+    val id2      = metadata.addItem(156, 18, "aad2")
+    val id3      = metadata.addItem(179, 15, "aad3")
     val code =
       """from Standard.Base.Data.Numbers import Number
         |from Standard.Base.Data.Text import all
@@ -2684,13 +2680,27 @@ class RuntimeServerTest
         |    x = 15.overloaded 1
         |    "foo".overloaded 2
         |    10.overloaded x
-        |    Nothing.Nothing
+        |    Nothing
         |
         |Text.overloaded self arg = arg + 1
         |Number.overloaded self arg = arg + 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(id1, code, "15.overloaded 1")
+    metadata.assertInCode(id2, code, "\"foo\".overloaded 2")
+    metadata.assertInCode(id3, code, "10.overloaded x")
+    metadata.assertInCode(
+      idMain,
+      code,
+      """
+        |    x = 15.overloaded 1
+        |    "foo".overloaded 2
+        |    10.overloaded x
+        |    Nothing
+        |""".stripMargin.linesIterator.mkString("\n")
+    )
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -2721,7 +2731,6 @@ class RuntimeServerTest
     context.receiveNIgnoreStdLib(7) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       TestMessages.update(
         contextId,
         id1,
@@ -2746,6 +2755,7 @@ class RuntimeServerTest
           Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded")
         )
       ),
+      TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
 
@@ -2828,6 +2838,16 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages.update(
         contextId,
+        id1,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded")
+        ),
+        fromCache   = true,
+        typeChanged = true
+      ),
+      TestMessages.update(
+        contextId,
         id2,
         ConstantsGen.INTEGER,
         Api.MethodCall(
@@ -2851,16 +2871,6 @@ class RuntimeServerTest
         idMain,
         ConstantsGen.NOTHING,
         typeChanged = false
-      ),
-      TestMessages.update(
-        contextId,
-        id1,
-        ConstantsGen.INTEGER,
-        Api.MethodCall(
-          Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded")
-        ),
-        fromCache   = true,
-        typeChanged = true
       ),
       context.executionComplete(contextId)
     )
@@ -2886,6 +2896,16 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages.update(
         contextId,
+        id1,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded")
+        ),
+        fromCache   = true,
+        typeChanged = true
+      ),
+      TestMessages.update(
+        contextId,
         id2,
         ConstantsGen.INTEGER,
         Api.MethodCall(
@@ -2910,16 +2930,6 @@ class RuntimeServerTest
         ConstantsGen.NOTHING,
         fromCache   = false,
         typeChanged = false
-      ),
-      TestMessages.update(
-        contextId,
-        id1,
-        ConstantsGen.INTEGER,
-        Api.MethodCall(
-          Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded")
-        ),
-        fromCache   = true,
-        typeChanged = true
       ),
       context.executionComplete(contextId)
     )
@@ -4399,7 +4409,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "No_Such_Method.Error",
+              "Method `pi` of type Number.type could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(2, 7), model.Position(2, 16))),
               None,
