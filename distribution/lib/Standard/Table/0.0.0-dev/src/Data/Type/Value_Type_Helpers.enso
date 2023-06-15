@@ -92,7 +92,7 @@ find_argument_type value = if Nothing == value then Nothing else
         False -> Enso_Types.most_specific_value_type value use_smallest=True
         True ->
             col_type = value.value_type
-            if col_type == Value_Type.Mixed then value.resolved_value_type else col_type
+            if col_type == Value_Type.Mixed then value.inferred_precise_value_type else col_type
 
 ## PRIVATE
    A helper which resolves if numeric addition or string concatenation should be
