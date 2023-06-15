@@ -2161,6 +2161,7 @@ name = "enso-generics"
 version = "0.2.0"
 dependencies = [
  "derivative",
+ "enso-zst",
  "nalgebra",
  "paste",
  "serde",
@@ -2287,6 +2288,7 @@ dependencies = [
  "bincode 1.3.3",
  "derivative",
  "derive_more",
+ "enso-zst",
 ]
 
 [[package]]
@@ -2391,6 +2393,7 @@ dependencies = [
  "enso-reflect",
  "enso-shapely",
  "enso-web",
+ "enso-zst",
  "failure",
  "futures",
  "gen-iter",
@@ -2495,6 +2498,7 @@ dependencies = [
  "derivative",
  "enso-prelude",
  "enso-shapely-macros",
+ "enso-zst",
  "paste",
  "rustversion",
  "wasm-bindgen",
@@ -2595,6 +2599,15 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-test",
  "web-sys",
+]
+
+[[package]]
+name = "enso-zst"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "paste",
+ "serde",
 ]
 
 [[package]]
@@ -4172,6 +4185,7 @@ dependencies = [
  "derive_more",
  "dirs",
  "enso-build-base",
+ "enso-zst",
  "filetime",
  "flate2",
  "flume",

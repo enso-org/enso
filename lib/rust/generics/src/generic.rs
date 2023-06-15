@@ -2,10 +2,10 @@
 
 use super::hlist;
 use derivative::Derivative;
+use enso_zst::ZST;
 use hlist::Cons;
 use hlist::Nil;
 use paste::paste;
-use std::marker::PhantomData;
 
 
 
@@ -1152,7 +1152,7 @@ where
 #[derivative(Copy(bound = ""))]
 #[derivative(Debug(bound = ""))]
 #[derivative(Default(bound = ""))]
-pub struct MapperInto<S>(PhantomData<S>);
+pub struct MapperInto<S>(ZST<S>);
 
 impl<T: Into<S>, S> MapFieldWith<MapperInto<S>> for T {
     type MappedFieldWith = S;
