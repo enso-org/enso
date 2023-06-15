@@ -105,7 +105,7 @@ fn parse(input: &str) -> Vec<Token> {
 #[derive(Default, Debug)]
 struct TokenCollector<L> {
     tokens:        Vec<Token>,
-    location_type: PhantomData<L>,
+    location_type: ZST<L>,
 }
 
 #[derive(Debug)]

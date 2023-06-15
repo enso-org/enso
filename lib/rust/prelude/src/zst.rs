@@ -1,8 +1,8 @@
 //! Zero-sized type representation. This module is similar to the `zst` crate with the following
 //! differences:
 //! - All impls are derived manually to not include the type parameter in bounds.
-//! - It implements the [`Zeroable`] trait.
-//! - It implements the [`serde::Serialize`] and [`serde::Deserialize`] traits.
+//! - It implements the [`Zeroable`], [`serde::Serialize`],  [`serde::Deserialize`], and
+//!   [`CloneRef`] trait.
 //! - Its internal `PhantomData` field is defined as public. Otherwise, the compiler does not allow
 //!   its usage in `repr(transparent)` types because there is no guarantee that in the future the
 //!   private fields might be changed and become non-zero-sized.
@@ -95,6 +95,11 @@ impl<T: ?Sized> PartialOrd for ZST<T> {
         Some(std::cmp::Ordering::Equal)
     }
 }
+
+impl<T: ?Sized> std::hash::Hash for ZST<T> {
+    fn hash<H: std::hash::Hasher>(&self, _: &mut H) {}
+}
+
 
 // === serde::Serialize ===
 

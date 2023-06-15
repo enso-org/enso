@@ -6,16 +6,21 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as fileInfo from '../../fileInfo'
 import * as modalProvider from '../../providers/modal'
-import * as platform from '../../platform'
 import * as svg from '../../components/svg'
 
 import Modal from './modal'
 
+// =======================
+// === UploadFileModal ===
+// =======================
+
+/** Props for an {@link UploadFileModal}. */
 export interface UploadFileModalProps {
     directoryId: backendModule.DirectoryId
     onSuccess: () => void
 }
 
+/** A modal for uploading a file. */
 function UploadFileModal(props: UploadFileModalProps) {
     const { directoryId, onSuccess } = props
     const { backend } = backendProvider.useBackend()
@@ -24,7 +29,7 @@ function UploadFileModal(props: UploadFileModalProps) {
     const [name, setName] = react.useState<string | null>(null)
     const [file, setFile] = react.useState<File | null>(null)
 
-    if (backend.platform === platform.Platform.desktop) {
+    if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
         const onSubmit = async () => {
@@ -104,13 +109,7 @@ function UploadFileModal(props: UploadFileModalProps) {
                                     {file ? fileInfo.toReadableSize(file.size) : '\u00a0'}
                                 </div>
                             </div>
-                            <div>
-                                {file ? (
-                                    fileInfo.fileIcon(fileInfo.fileExtension(file.name))
-                                ) : (
-                                    <></>
-                                )}
-                            </div>
+                            <div>{file && fileInfo.fileIcon()}</div>
                         </div>
                     </div>
                     <div className="m-1">

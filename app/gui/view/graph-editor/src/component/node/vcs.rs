@@ -58,6 +58,7 @@ mod status_indicator_shape {
     const INDICATOR_WIDTH_INNER: f32 = 10.0;
 
     ensogl::shape! {
+        pointer_events = false;
         alignment = center;
         (style:Style,color_rgba:Vector4<f32>) {
             let width  = Var::<Pixels>::from("input_size.x");

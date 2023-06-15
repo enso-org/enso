@@ -36,6 +36,7 @@ pub use web_sys::MouseEvent;
 pub use web_sys::Node;
 pub use web_sys::Performance;
 pub use web_sys::WebGl2RenderingContext;
+pub use web_sys::WebGlQuery;
 pub use web_sys::WheelEvent;
 pub use web_sys::Window;
 

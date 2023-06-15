@@ -6,13 +6,12 @@ import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.SuggestionEntry
 import org.enso.searcher.data.QueryResult
+import org.enso.searcher.sql.SqlSuggestionsRepo.UniqueConstraintViolatedError
 import org.enso.searcher.sql.equality.SuggestionsEquality
 import org.enso.testkit.RetrySpec
 import org.scalactic.TripleEqualsSupport
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-
-import java.sql.SQLException
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -70,26 +69,16 @@ class SuggestionsRepoTest
       thrown.version shouldEqual wrongSchemaVersion
     }
 
-    "insert all suggestions" taggedAs Retry in withRepo { repo =>
-      val suggestions = Seq(
-        suggestion.module,
-        suggestion.tpe,
-        suggestion.constructor,
-        suggestion.method,
-        suggestion.instanceMethod,
-        suggestion.conversion,
-        suggestion.function,
-        suggestion.local
-      )
+    "insert all suggestions111" taggedAs Retry in withRepo { repo =>
       val action =
         for {
           v1        <- repo.currentVersion
-          (v2, ids) <- repo.insertAll(suggestions)
+          (v2, ids) <- repo.insertAll(suggestion.all)
           all       <- repo.selectAllSuggestions
         } yield (ids, all, v1, v2)
 
       val (ids, entries, v1, v2) = Await.result(action, Timeout)
-      val expectedEntries        = ids.zip(suggestions).map(SuggestionEntry.tupled)
+      val expectedEntries        = ids.zip(suggestion.all).map(SuggestionEntry.tupled)
       entries should contain theSameElementsAs expectedEntries
       v1 should not equal v2
     }
@@ -97,32 +86,12 @@ class SuggestionsRepoTest
     "get all suggestions" taggedAs Retry in withRepo { repo =>
       val action =
         for {
-          _ <- repo.insertAll(
-            Seq(
-              suggestion.module,
-              suggestion.tpe,
-              suggestion.constructor,
-              suggestion.method,
-              suggestion.instanceMethod,
-              suggestion.conversion,
-              suggestion.function,
-              suggestion.local
-            )
-          )
+          _   <- repo.insertAll(suggestion.all)
           all <- repo.getAll
         } yield all._2
 
       val suggestions = Await.result(action, Timeout).map(_.suggestion)
-      suggestions should contain theSameElementsAs Seq(
-        suggestion.module,
-        suggestion.tpe,
-        suggestion.constructor,
-        suggestion.method,
-        suggestion.instanceMethod,
-        suggestion.conversion,
-        suggestion.function,
-        suggestion.local
-      )
+      suggestions should contain theSameElementsAs suggestion.all
     }
 
     "fail to insertAll duplicate suggestion" taggedAs Retry in withRepo {
@@ -132,7 +101,10 @@ class SuggestionsRepoTest
             _ <- repo.insertAll(Seq(suggestion.local, suggestion.local))
           } yield ()
 
-        an[SQLException] should be thrownBy Await.result(action, Timeout)
+        an[UniqueConstraintViolatedError] should be thrownBy Await.result(
+          action,
+          Timeout
+        )
     }
 
     "select suggestion by id" taggedAs Retry in withRepo { repo =>
@@ -158,17 +130,7 @@ class SuggestionsRepoTest
 
     "remove suggestions by module names" taggedAs Retry in withRepo { repo =>
       val action = for {
-        (_, idsIns) <- repo.insertAll(
-          Seq(
-            suggestion.module,
-            suggestion.tpe,
-            suggestion.constructor,
-            suggestion.method,
-            suggestion.conversion,
-            suggestion.function,
-            suggestion.local
-          )
-        )
+        (_, idsIns) <- repo.insertAll(suggestion.all)
         (_, idsRem) <- repo.removeModules(Seq(suggestion.constructor.module))
       } yield (idsIns, idsRem)
 
@@ -179,17 +141,7 @@ class SuggestionsRepoTest
     "remove suggestions by empty module names" taggedAs Retry in withRepo {
       repo =>
         val action = for {
-          (v1, _) <- repo.insertAll(
-            Seq(
-              suggestion.module,
-              suggestion.tpe,
-              suggestion.constructor,
-              suggestion.method,
-              suggestion.conversion,
-              suggestion.function,
-              suggestion.local
-            )
-          )
+          (v1, _)       <- repo.insertAll(suggestion.all)
           (v2, removed) <- repo.removeModules(Seq())
         } yield (v1, v2, removed)
 
@@ -968,6 +920,32 @@ class SuggestionsRepoTest
       res should contain theSameElementsAs Seq(id).flatten
     }
 
+    "search suggestion by self type excluding constructors" taggedAs Retry in withRepo {
+      repo =>
+        val constructorSelfType =
+          Suggestion.SelfType(suggestion.constructor).toSeq
+        val action = for {
+          _ <- repo.insert(suggestion.module)
+          _ <- repo.insert(suggestion.tpe)
+          _ <- repo.insert(suggestion.constructor)
+          _ <- repo.insert(suggestion.method)
+          _ <- repo.insert(suggestion.conversion)
+          _ <- repo.insert(suggestion.function)
+          _ <- repo.insert(suggestion.local)
+          res <- repo.search(
+            None,
+            constructorSelfType,
+            None,
+            None,
+            None,
+            None
+          )
+        } yield res._2
+
+        val res = Await.result(action, Timeout)
+        res.isEmpty shouldEqual true
+    }
+
     "search suggestion by return type" taggedAs Retry in withRepo { repo =>
       val action = for {
         _   <- repo.insert(suggestion.module)
@@ -1462,11 +1440,24 @@ class SuggestionsRepoTest
           Suggestion.Argument("b", "Any", false, false, None)
         ),
         returnType    = "Standard.Builtins.Pair",
-        documentation = Some("Awesome")
+        documentation = Some("Awesome"),
+        annotations   = Seq()
       )
 
-    val method: Suggestion.Method =
-      Suggestion.Method(
+    val getter: Suggestion.Getter =
+      Suggestion.Getter(
+        externalId    = Some(UUID.randomUUID()),
+        module        = "local.Test.Main",
+        name          = "a",
+        arguments     = Seq(),
+        selfType      = "Standard.Builtins.Pair",
+        returnType    = "Standard.Builtins.IO",
+        documentation = None,
+        annotations   = Seq()
+      )
+
+    val method: Suggestion.DefinedMethod =
+      Suggestion.DefinedMethod(
         externalId    = Some(UUID.randomUUID()),
         module        = "local.Test.Main",
         name          = "main",
@@ -1474,11 +1465,12 @@ class SuggestionsRepoTest
         selfType      = "local.Test.Main",
         returnType    = "Standard.Builtins.IO",
         isStatic      = true,
-        documentation = None
+        documentation = None,
+        annotations   = Seq()
       )
 
-    val instanceMethod: Suggestion.Method =
-      Suggestion.Method(
+    val instanceMethod: Suggestion.DefinedMethod =
+      Suggestion.DefinedMethod(
         externalId    = Some(UUID.randomUUID()),
         module        = "local.Test.Main",
         name          = "foo",
@@ -1486,7 +1478,8 @@ class SuggestionsRepoTest
         selfType      = "local.Test.Main.A",
         returnType    = "Standard.Builtins.Nothing",
         isStatic      = false,
-        documentation = None
+        documentation = None,
+        annotations   = Seq()
       )
 
     val conversion: Suggestion.Conversion =
@@ -1494,7 +1487,7 @@ class SuggestionsRepoTest
         externalId    = Some(UUID.randomUUID()),
         module        = "local.Test.Main",
         arguments     = Seq(),
-        sourceType    = "local.Test.Main.Foo",
+        selfType      = "local.Test.Main.Foo",
         returnType    = "local.Test.Main.Bar",
         documentation = None
       )
@@ -1525,5 +1518,18 @@ class SuggestionsRepoTest
         ),
         documentation = Some("Some bazz")
       )
+
+    val all: Seq[Suggestion] = Seq(
+      module,
+      tpe,
+      constructor,
+      getter,
+      method,
+      instanceMethod,
+      conversion,
+      function,
+      local
+    )
+
   }
 }

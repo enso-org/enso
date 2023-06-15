@@ -2,10 +2,12 @@ from Standard.Base import all
 
 import project.Semantic.Deep_Export.Internal
 
-from Standard.Test import Test
+from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 spec =
     Test.group "Deep Exports" <|
         Test.specify "should allow to re-export a symbol through a module hierarchy" <|
             Internal.my_fun.should_equal 478
+
+main = Test_Suite.run_main spec

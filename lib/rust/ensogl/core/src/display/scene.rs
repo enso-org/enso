@@ -23,6 +23,7 @@ use crate::display::style::data::DataMatch;
 use crate::display::symbol::Symbol;
 use crate::display::world;
 use crate::system;
+use crate::system::gpu::context::profiler::Results;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::shader;
@@ -219,19 +220,19 @@ impl Mouse {
             (event: &mouse::Up) {
                 if display_mode.get().allow_mouse_events() {
                     let button = event.button();
-                    frp_deprecated.up.emit(button);
 
                     let current_target = target.get();
                     if let Some(last_target) = last_pressed_elem.borrow_mut().remove(&button) {
                         pointer_target_registry.with_mouse_target(last_target, |t, d| {
-                            t.emit_mouse_release(button);
                             d.emit_event(event.clone().unchecked_convert_to::<mouse::Release>());
+                            t.emit_mouse_release(button);
                         });
                     }
                     pointer_target_registry.with_mouse_target(current_target, |t, d| {
-                        t.emit_mouse_up(button);
                         d.emit_event(event.clone());
+                        t.emit_mouse_up(button);
                     });
+                    frp_deprecated.up.emit(button);
                 }
             }),
         );
@@ -309,16 +310,10 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
-    pub fn new() -> Self {
+    pub fn new(target: &web::EventTarget) -> Self {
         let frp = enso_frp::io::keyboard::Keyboard::default();
-        let bindings = Rc::new(enso_frp::io::keyboard::DomBindings::new(&frp));
+        let bindings = Rc::new(enso_frp::io::keyboard::DomBindings::new(target, &frp));
         Self { frp, bindings }
-    }
-}
-
-impl Default for Keyboard {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -347,6 +342,7 @@ impl Dom {
         root.set_style_or_warn("height", "100vh");
         root.set_style_or_warn("width", "100vw");
         root.set_style_or_warn("display", "block");
+        root.set_style_or_warn("outline", "none");
         let root = web::dom::WithKnownShape::new(&root);
         Self { root, layers }
     }
@@ -591,16 +587,14 @@ impl Renderer {
 // === Layers ===
 // ==============
 
-type RectLayerPartition = Rc<LayerSymbolPartition<rectangle::Shape>>;
+type RectLayerPartition = LayerSymbolPartition<rectangle::Shape>;
 
-/// Create a new layer partition with the given name, wrapped in an `Rc` for use in the
-/// [`HardcodedLayers`] structure.
+/// Create a new layer partition with the given name.
 fn partition_layer<S: display::shape::primitive::system::Shape>(
     base_layer: &Layer,
     name: &str,
-) -> Rc<LayerSymbolPartition<S>> {
-    let partition = base_layer.create_symbol_partition::<S>(name);
-    Rc::new(partition)
+) -> LayerSymbolPartition<S> {
+    base_layer.create_symbol_partition::<S>(name)
 }
 
 /// Please note that currently the `Layers` structure is implemented in a hacky way. It assumes the
@@ -616,6 +610,11 @@ pub struct HardcodedLayers {
     pub viz: Layer,
     pub below_main: Layer,
     pub main: Layer,
+    pub main_edges_level: RectLayerPartition,
+    pub main_nodes_level: RectLayerPartition,
+    pub main_above_inactive_nodes_level: RectLayerPartition,
+    pub main_active_nodes_level: RectLayerPartition,
+    pub main_above_all_nodes_level: RectLayerPartition,
     pub widget: Layer,
     pub port: Layer,
     pub port_selection: Layer,
@@ -662,6 +661,11 @@ impl HardcodedLayers {
         let viz = root.create_sublayer("viz");
         let below_main = root.create_sublayer("below_main");
         let main = root.create_sublayer("main");
+        let main_edges_level = partition_layer(&main, "edges");
+        let main_nodes_level = partition_layer(&main, "nodes");
+        let main_above_inactive_nodes_level = partition_layer(&main, "above_inactive_nodes");
+        let main_active_nodes_level = partition_layer(&main, "active_nodes");
+        let main_above_all_nodes_level = partition_layer(&main, "above_all_nodes");
         let widget = root.create_sublayer("widget");
         let port = root.create_sublayer("port");
         let port_selection =
@@ -693,6 +697,11 @@ impl HardcodedLayers {
             viz,
             below_main,
             main,
+            main_edges_level,
+            main_nodes_level,
+            main_above_inactive_nodes_level,
+            main_active_nodes_level,
+            main_above_all_nodes_level,
             widget,
             port,
             port_selection,
@@ -866,7 +875,7 @@ impl SceneData {
         let mouse =
             Mouse::new(&frp, &dom.root, &variables, &display_mode, &pointer_target_registry);
         let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
-        let keyboard = Keyboard::new();
+        let keyboard = Keyboard::new(&web::window);
         let network = &frp.network;
         let extensions = Extensions::default();
         let bg_color_var = style_sheet.var("application.background");
@@ -942,6 +951,16 @@ impl SceneData {
 
     pub fn new_symbol(&self, label: &'static str) -> Symbol {
         world::with_context(|t| t.new(label))
+    }
+
+    /// If enabled, the scene will be rendered with 1.0 device pixel ratio, even on high-dpi
+    /// monitors.
+    pub fn low_resolution_mode(&self, enabled: bool) {
+        if enabled {
+            self.dom.root.override_device_pixel_ratio(Some(1.0));
+        } else {
+            self.dom.root.override_device_pixel_ratio(None);
+        }
     }
 
     fn update_shape(&self) -> bool {
@@ -1021,16 +1040,20 @@ impl SceneData {
     }
 
     pub fn render(&self, update_status: UpdateStatus) {
-        self.renderer.run(update_status);
-        // WebGL `flush` should be called when expecting results such as queries, or at completion
-        // of a rendering frame. Flush tells the implementation to push all pending commands out
-        // for execution, flushing them out of the queue, instead of waiting for more commands to
-        // enqueue before sending for execution.
-        //
-        // Not flushing commands can sometimes cause context loss. To learn more, see:
-        // [https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#flush_when_expecting_results].
         if let Some(context) = &*self.context.borrow() {
-            context.flush()
+            context.profiler.measure_drawing(|| {
+                self.renderer.run(update_status);
+                // WebGL `flush` should be called when expecting results such as queries, or at
+                // completion of a rendering frame. Flush tells the implementation
+                // to push all pending commands out for execution, flushing them out
+                // of the queue, instead of waiting for more commands to
+                // enqueue before sending for execution.
+                //
+                // Not flushing commands can sometimes cause context loss. To learn more, see:
+                // [https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#flush_when_expecting_results].
+
+                context.flush()
+            });
         }
     }
 
@@ -1167,6 +1190,18 @@ impl Scene {
         }
     }
 
+    /// Run the GPU profiler. If the result is [`None`], either the GPU context is not initialized
+    /// to the profiler is not available at the current platform. In case the resulting vector
+    /// is empty, the previous frame measurements are not available yet and they will be
+    /// provided in the future.
+    pub fn on_frame_start(&self) -> Option<Vec<Results>> {
+        if let Some(context) = &*self.context.borrow() {
+            context.profiler.start_frame()
+        } else {
+            None
+        }
+    }
+
     pub fn extension<T: Extension>(&self) -> T {
         self.extensions.get(self)
     }
@@ -1268,6 +1303,8 @@ impl Scene {
     pub fn update_layout(&self, time: animation::TimeInfo) -> UpdateStatus {
         if self.context.borrow().is_some() {
             debug_span!("Early update.").in_scope(|| {
+                world::with_context(|t| t.theme_manager.update());
+
                 let mut scene_was_dirty = false;
                 self.frp.frame_time_source.emit(time.since_animation_loop_started.unchecked_raw());
                 // Please note that `update_camera` is called first as it may trigger FRP events
@@ -1296,7 +1333,9 @@ impl Scene {
                     early_status;
                 scene_was_dirty |= self.layers.update();
                 scene_was_dirty |= self.update_shape();
-                scene_was_dirty |= self.update_symbols();
+                context.profiler.measure_data_upload(|| {
+                    scene_was_dirty |= self.update_symbols();
+                });
                 self.handle_mouse_over_and_out_events();
                 scene_was_dirty |= self.shader_compiler.run(context, time);
 

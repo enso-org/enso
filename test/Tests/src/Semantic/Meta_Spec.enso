@@ -1,5 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Function import Function
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Errors.Common import Uninitialized_State
@@ -9,7 +8,7 @@ polyglot java import java.lang.Long as JLong
 polyglot java import java.lang.Exception as JException
 polyglot java import java.io.IOException
 polyglot java import java.util.ArrayList
-polyglot java import java.util.Random
+polyglot java import java.util.Random as Java_Random
 polyglot java import java.util.Locale as JavaLocale
 
 from Standard.Test import Test, Test_Suite
@@ -30,8 +29,12 @@ type My_Type
     @b (self -> self.foo)
     other_method self a = a
 
+    create foo bar = My_Type.Value foo bar 3
+
 @self ("se" + "lf")
 My_Type.my_method self = self.foo + self.bar + self.baz
+
+My_Type.factory = My_Type.create 1 2
 
 @a (test_method 3 4)
 @b (Test_Type.Value 49)
@@ -109,8 +112,8 @@ spec =
             1.0.is_a Integer . should_be_false
             1.0.is_a Text . should_be_false
 
-            random_gen = Random.new
-            Meta.is_a random_gen Random . should_be_true
+            random_gen = Java_Random.new
+            Meta.is_a random_gen Java_Random . should_be_true
             Meta.is_a random_gen Integer . should_be_false
 
             (My_Type.Value 1 "foo" Nothing).is_a My_Type . should_be_true
@@ -194,7 +197,8 @@ spec =
             list.add 123
             list_tpe = Meta.type_of list
             list_tpe . should_not_equal_type JObject
-            list_tpe . should_equal_type ArrayList
+            list_tpe . should_not_equal_type ArrayList
+            list_tpe . should_equal_type Array
 
             e = IOException.new "meh"
             e_tpe = Meta.type_of e
@@ -246,8 +250,18 @@ spec =
 
             methods.sort . should_equal ['bar', 'baz', 'first_method', 'foo', 'my_method', 'other_method', 'second_method']
 
+        Test.specify "static methods of MyType" <|
+            methods = Meta.meta (Meta.type_of My_Type) . methods
+            methods.sort . should_equal ['Value', 'create', 'factory', 'first_method', 'my_method', 'other_method', 'second_method']
+
+        Test.specify "methods of Integer" <|
+            Meta.meta Integer . methods . sort . should_equal ['round', 'truncate']
+
+        Test.specify "static methods of Integer" <|
+            Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['parse', 'parse_builtin', 'round', 'truncate']
+
         Test.specify "should correctly handle Java values" <|
-            java_meta = Meta.meta Random.new
+            java_meta = Meta.meta Java_Random.new
             java_meta . should_be_a Meta.Polyglot
             java_meta . get_language . should_equal Meta.Language.Java
 

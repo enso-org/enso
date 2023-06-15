@@ -6,7 +6,7 @@ from Standard.Table import Table, Value_Type
 
 from Standard.Database import Database, SQL_Query
 
-from Standard.AWS import Redshift, AWS_Credential
+from Standard.AWS import Redshift_Details, AWS_Credential
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -45,7 +45,7 @@ run_tests connection =
         name = Name_Generator.random_name "table_"+ix.to_text
 
         in_mem_table = Table.new columns
-        in_mem_table.create_database_table connection name primary_key=Nothing temporary=True
+        in_mem_table.select_into_database_table connection name primary_key=Nothing temporary=True
     materialize = .read
 
     Common_Spec.spec prefix connection
@@ -54,9 +54,9 @@ run_tests connection =
     common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True take_drop=False allows_mixed_type_comparisons=False
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False date_support=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
-    agg_table = agg_in_memory_table.create_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
+    agg_table = agg_in_memory_table.select_into_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
     tables.append agg_table.name
-    empty_agg_table = (agg_in_memory_table.take (First 0)).create_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
+    empty_agg_table = (agg_in_memory_table.take (First 0)).select_into_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
     tables.append empty_agg_table.name
 
     setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection
@@ -68,7 +68,7 @@ connect_via_json_config =
 
     if credentials.exists.not then msg else
         creds = Json.parse credentials.read_text
-        access_key = creds.get 'access_key_id'
+        access_key_id = creds.get 'access_key_id'
         secret_key = creds.get 'secret_access_key'
         uri = uri_parse (creds.get 'db_uri')
         db_uri = uri.at 0
@@ -76,7 +76,7 @@ connect_via_json_config =
         db_name = uri.at 2
 
         user = creds.get 'db_user'
-        Redshift db_uri db_port db_name credentials=(AWS_Credential.Key user access_key secret_key)
+        Redshift_Details.Redshift db_uri db_port db_name user credentials=(AWS_Credential.Key access_key_id secret_key)
 
 connect_via_aws_environment db_host_port =
     db_host_port_split = uri_parse db_host_port
@@ -85,13 +85,13 @@ connect_via_aws_environment db_host_port =
     db_name = db_host_port_split.at 2
 
     db_user = Environment.get "ENSO_REDSHIFT_USER"
-    access_key = Environment.get "AWS_ACCESS_KEY_ID"
+    access_key_id = Environment.get "AWS_ACCESS_KEY_ID"
     secret_key = Environment.get "AWS_SECRET_ACCESS_KEY"
 
-    credentials = if (access_key.is_nothing || secret_key.is_nothing) then AWS_Credential.Profile db_user (Environment.get "AWS_PROFILE" . if_nothing '') else
-        AWS_Credential.Key db_user access_key secret_key
+    credentials = if (access_key_id.is_nothing || secret_key.is_nothing) then AWS_Credential.Profile (Environment.get "AWS_PROFILE" . if_nothing '') else
+        AWS_Credential.Key access_key_id secret_key
 
-    Redshift db_uri db_port db_name credentials=credentials
+    Redshift_Details.Redshift db_uri db_port db_name db_user credentials=credentials
 
 uri_parse uri =
     host_db_split = uri.split '/'

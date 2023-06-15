@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use crate::config::ProjectToOpen;
 use crate::presenter::Presenter;
 
 use analytics::AnonymousData;
@@ -27,6 +28,9 @@ pub use initializer::Initializer;
 /// Text that shows up in the statusbar when any of the backend connections is lost.
 pub const BACKEND_DISCONNECTED_MESSAGE: &str =
     "Connection to the backend has been lost. Please try restarting IDE.";
+/// Text that shows up in the statusbar when backend reports a failed execution.
+pub const EXECUTION_FAILED_MESSAGE: &str =
+    "Execution failed. Please try restarting project or IDE and report this problem at support@enso.org.";
 
 const ALIVE_LOG_INTERVAL_SEC: u64 = 60;
 
@@ -90,6 +94,11 @@ impl Ide {
             }
         }
     }
+
+    /// Open a project by name or ID. If no project with the given name exists, it will be created.
+    pub fn open_or_create_project(&self, project: ProjectToOpen) {
+        self.presenter.open_or_create_project(project)
+    }
 }
 
 /// A reduced version of [`Ide`] structure, representing an application which failed to initialize.
@@ -100,7 +109,6 @@ impl Ide {
 pub struct FailedIde {
     pub view: ide_view::root::View,
 }
-
 
 /// The Path of the module initially opened after opening project in IDE.
 pub fn initial_module_path(project: &model::Project) -> model::module::Path {

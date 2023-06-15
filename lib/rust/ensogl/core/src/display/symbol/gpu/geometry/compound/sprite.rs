@@ -2,7 +2,6 @@
 //! differ in size and can have different attributes driving the look and feel of the material.
 //! Sprites are very fast to render. You can expect even millions of sprites to be rendered 60 FPS.
 
-use crate::display::traits::*;
 use crate::prelude::*;
 use crate::system::gpu::types::*;
 
@@ -60,10 +59,10 @@ impl Drop for SpriteStats {
 /// Smart wrapper for size attribute of sprite. The size attribute is set to zero in order to hide
 /// the sprite. This wrapper remembers the real size when the sprite is hidden and allows changing
 /// it without making the sprite appear on the screen.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone)]
 pub struct Size {
-    hidden: Rc<Cell<bool>>,
-    value:  Rc<Cell<Vector2<f32>>>,
+    hidden: Cell<bool>,
+    value:  Cell<Vector2<f32>>,
     attr:   Attribute<Vector2<f32>>,
 }
 
@@ -94,8 +93,8 @@ impl CellSetter for Size {
 
 impl Size {
     fn new(attr: Attribute<Vector2<f32>>) -> Self {
-        let hidden = Rc::new(Cell::new(true));
-        let value = Rc::new(Cell::new(zero()));
+        let hidden = Cell::new(true);
+        let value = Cell::new(zero());
         Self { hidden, value, attr }
     }
 
@@ -112,97 +111,37 @@ impl Size {
 
 
 
-// ===================
-// === SizedObject ===
-// ===================
-
-/// A display object bound with [`Size`].
-#[derive(Debug)]
-pub struct SizedObject {
-    size:           Size,
-    display_object: display::object::Instance,
-}
-
-impl SizedObject {
-    fn new(attr: Attribute<Vector2<f32>>, transform: &Attribute<Matrix4<f32>>) -> Self {
-        let size = Size::new(attr);
-        let display_object = display::object::Instance::new_named_no_debug("Sprite");
-        let weak_display_object = display_object.downgrade();
-        let network = &display_object.network;
-        frp::extend! { network
-            eval_ display_object.on_transformed ([transform, size] {
-                if let Some(display_object) = weak_display_object.upgrade() {
-                    transform.set(display_object.transformation_matrix());
-                    size.set(display_object.computed_size());
-                }
-            });
-        }
-        Self { size, display_object }.init()
-    }
-
-    /// Init display object bindings. In particular define the behavior of the show and hide
-    /// callbacks.
-    fn init(self) -> Self {
-        let size = &self.size;
-        let display_object = &self.display_object;
-        let network = &display_object.network;
-        frp::extend! { network
-            eval_ display_object.on_show(size.show());
-            eval_ display_object.on_hide(size.hide());
-        }
-        self
-    }
-
-    /// Clone ref the underlying [`Size`].
-    pub fn clone_ref(&self) -> Size {
-        self.size.clone_ref()
-    }
-}
-
-impl HasItem for SizedObject {
-    type Item = Vector2;
-}
-
-impl CellGetter for SizedObject {
-    fn get(&self) -> Vector2 {
-        self.size.get()
-    }
-}
-
-impl CellSetter for SizedObject {
-    fn set(&self, v: Vector2) {
-        self.size.set(v);
-    }
-}
-
-
-
 // ==============
 // === Sprite ===
 // ==============
 
-/// Sprite is a simple rectangle object. In most cases, sprites always face the camera and can be
+/// A sprite is a simple rectangle object. In most cases, sprites always face the camera and can be
 /// freely rotated only by their local z-axis. This implementation, however, implements sprites as
 /// full 3D objects. We may want to fork this implementation in the future to create a specialized
 /// 2d representation as well.
+///
+/// This type is "raw": It implements the GPU side of a sprite. For a raw sprite to be fit into a
+/// display object hierarchy, it should be controlled by the event handlers of a display object.
+/// [`Sprite`] does this in the simplest way, which is not compatible with layers. [`ShapeSystem`]
+/// does so with an indirection allowing one display object to be associated with different
+/// [`Sprite`]s, for full layer support.
 #[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
-pub struct Sprite {
+pub struct RawSprite {
     model: Rc<SpriteModel>,
 }
 
-/// Internal representation of [`Sprite`].
+/// Internal representation of [`RawSprite`].
 #[derive(Debug, Deref)]
 #[allow(missing_docs)]
 pub struct SpriteModel {
     #[deref]
-    pub instance:         SymbolInstance,
-    pub symbol:           Symbol,
-    size:                 SizedObject,
-    transform:            Attribute<Matrix4<f32>>,
-    stats:                SpriteStats,
-    erase_on_drop:        EraseOnDrop<Attribute<Vector2<f32>>>,
-    unset_parent_on_drop: display::object::UnsetParentOnDrop,
+    pub instance:  SymbolInstance,
+    pub symbol:    Symbol,
+    size:          Size,
+    transform:     Attribute<Matrix4<f32>>,
+    stats:         SpriteStats,
+    erase_on_drop: EraseOnDrop<Attribute<Vector2<f32>>>,
 }
 
 impl SpriteModel {
@@ -217,15 +156,14 @@ impl SpriteModel {
         let symbol = symbol.clone_ref();
         let stats = SpriteStats::new(stats);
         let erase_on_drop = EraseOnDrop::new(size.clone_ref());
-        let size = SizedObject::new(size, &transform);
-        let unset_parent_on_drop = display::object::UnsetParentOnDrop::new(&size.display_object);
+        let size = Size::new(size);
         let default_size = Vector2(DEFAULT_SPRITE_SIZE.0, DEFAULT_SPRITE_SIZE.1);
         size.set(default_size);
-        Self { symbol, instance, size, transform, stats, erase_on_drop, unset_parent_on_drop }
+        Self { symbol, instance, size, transform, stats, erase_on_drop }
     }
 }
 
-impl Sprite {
+impl RawSprite {
     /// Constructor.
     pub fn new(
         symbol: &Symbol,
@@ -250,17 +188,25 @@ impl Sprite {
             display::scene::PointerTargetId::Symbol { id } => self.global_instance_id == id,
         }
     }
-}
 
-impl display::Object for SpriteModel {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.size.display_object
+    /// Turn on drawing the sprite.
+    pub fn show(&self) {
+        self.size.show();
     }
-}
 
-impl display::Object for Sprite {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
+    /// Turn off drawing the sprite.
+    pub fn hide(&self) {
+        self.size.hide();
+    }
+
+    /// Set the sprite's transformation matrix.
+    pub fn set_transform(&self, transform: Matrix4<f32>) {
+        self.transform.set(transform);
+    }
+
+    /// Set the sprite's dimensions.
+    pub fn set_size(&self, size: Vector2<f32>) {
+        self.size.set(size);
     }
 }
 
@@ -309,18 +255,16 @@ impl SpriteSystem {
     }
 
     /// Creates a new sprite instance.
-    pub fn new_instance(&self) -> Sprite {
+    pub fn new_instance(&self) -> RawSprite {
         self.new_instance_at(default())
     }
 
     /// Creates a new sprite instance in the specified buffer.
-    pub fn new_instance_at(&self, buffer_partition: attribute::BufferPartitionId) -> Sprite {
+    pub fn new_instance_at(&self, buffer_partition: attribute::BufferPartitionId) -> RawSprite {
         let instance = self.symbol.new_instance(buffer_partition);
         let transform = self.transform.at(instance.instance_id);
         let size = self.size.at(instance.instance_id);
-        let sprite = Sprite::new(&self.symbol, instance, transform, size, &self.stats);
-        self.add_child(&sprite);
-        sprite
+        RawSprite::new(&self.symbol, instance, transform, size, &self.stats)
     }
 
     /// Hide the symbol. Hidden symbols will not be rendered.
@@ -427,8 +371,54 @@ impl SpriteSystem {
     }
 }
 
-impl display::Object for SpriteSystem {
+
+
+// ==============
+// === Sprite ===
+// ==============
+
+/// A [`RawSprite`] with an associated display object.
+///
+/// This simple construct allows configuring sprites via display objects without any other layer
+/// such as a [`ShapeSystem`]; however, because the display object is permanently bound to an
+/// instance from a particular [`SpriteSystem`], it is not possible to implement layer operations
+/// for such objects.
+#[derive(Debug, Clone, CloneRef, Deref)]
+pub struct Sprite {
+    #[deref]
+    sprite:         RawSprite,
+    display_object: display::object::Instance,
+}
+
+impl Sprite {
+    /// Create a display object and bind it to the sprite.
+    pub fn new(sprite: RawSprite) -> Self {
+        let display_object = default();
+        let this = Self { sprite, display_object };
+        this.init_display_object_events();
+        this
+    }
+
+    fn init_display_object_events(&self) {
+        let display_object = &self.display_object;
+        let network = &self.display_object.network;
+        let weak_display_object = display_object.downgrade();
+        let sprite = &self.sprite;
+        frp::extend! { network
+            eval_ display_object.on_transformed ([sprite, weak_display_object] {
+                if let Some(display_object) = weak_display_object.upgrade() {
+                    sprite.set_transform(display_object.transformation_matrix());
+                    sprite.set_size(display_object.computed_size());
+                }
+            });
+            eval_ display_object.on_show(sprite.show());
+            eval_ display_object.on_hide(sprite.hide());
+        }
+    }
+}
+
+impl display::Object for Sprite {
     fn display_object(&self) -> &display::object::Instance {
-        self.symbol.display_object()
+        &self.display_object
     }
 }

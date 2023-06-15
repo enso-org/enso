@@ -33,7 +33,7 @@ impl TestOnNewProjectControllersOnly {
         let initializer = enso_gui::Initializer::new(config);
         let error_msg = "Couldn't open project.";
         let ide = initializer.initialize_ide_controller().await.expect(error_msg);
-        ide.manage_projects().unwrap().create_new_project(None).await.unwrap();
+        ide.manage_projects().unwrap().create_new_project(None, None).await.unwrap();
         let project = ide.current_project().unwrap();
         Self { _ide: ide, project, _executor: executor }
     }
@@ -53,7 +53,7 @@ async fn getting_component_groups() {
     let test = TestOnNewProjectControllersOnly::set_up().await;
     let ls_json_connection = test.project.json_rpc();
     let main_module = test.project.main_module().to_string();
-    let execution_ctx = ls_json_connection.create_execution_context().await.unwrap();
+    let execution_ctx = ls_json_connection.create_execution_context(&Uuid::new_v4()).await.unwrap();
     let frame = StackItem::ExplicitCall(ExplicitCall {
         method_pointer:                   MethodPointer {
             module:          main_module.clone(),

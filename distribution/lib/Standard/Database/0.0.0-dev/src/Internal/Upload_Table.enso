@@ -1,0 +1,402 @@
+from Standard.Base import all
+from Standard.Base.Random import random_uuid
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import Standard.Table.Data.Table.Table as In_Memory_Table
+from Standard.Table import Aggregate_Column, Join_Kind, Value_Type, Column_Selector
+from Standard.Table.Errors import all
+
+import project.Connection.Connection.Connection
+import project.Data.Column_Constraint.Column_Constraint
+import project.Data.Column_Description.Column_Description
+import project.Data.SQL_Query.SQL_Query
+import project.Data.SQL_Statement.SQL_Statement
+import project.Data.Table.Table as Database_Table
+import project.Data.Update_Action.Update_Action
+import project.Internal.In_Transaction.In_Transaction
+import project.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor
+import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_Expression.SQL_Expression
+from project.Connection.Connection import all_known_table_names
+from project.Errors import all
+from project.Internal.Result_Set import result_set_to_table
+
+## PRIVATE
+   Creates a new database table with the provided structure and returns the name
+   of the created table.
+create_table_structure connection table_name structure primary_key temporary allow_existing on_problems =
+    case table_name.is_nothing.not && all_known_table_names connection . contains table_name of
+        True ->
+            if allow_existing then table_name else Error.throw (Table_Already_Exists.Error table_name)
+        False ->
+            effective_table_name = resolve_effective_table_name table_name temporary
+            aligned_structure = align_structure structure
+            if aligned_structure.is_empty then Error.throw (Illegal_Argument.Error "An empty table cannot be created: the `structure` must consist of at list one column description.") else
+                resolved_primary_key = resolve_primary_key aligned_structure primary_key
+                create_table_statement = prepare_create_table_statement connection effective_table_name aligned_structure resolved_primary_key temporary on_problems
+                update_result = create_table_statement.if_not_error <|
+                    connection.execute_update create_table_statement
+                update_result.if_not_error <|
+                    effective_table_name
+
+## PRIVATE
+   A helper that can upload a table from any backend to a database.
+   It should be run within a transaction and wrapped in `handle_upload_errors`.
+internal_upload_table source_table connection table_name primary_key temporary on_problems =
+    case source_table of
+        _ : In_Memory_Table ->
+            internal_upload_in_memory_table source_table connection table_name primary_key temporary on_problems
+        _ : Database_Table ->
+            internal_upload_database_table source_table connection table_name primary_key temporary on_problems
+        _ ->
+            Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.get_qualified_type_name source_table)
+
+## PRIVATE
+upload_in_memory_table source_table connection table_name primary_key temporary on_problems =
+    Panic.recover SQL_Error <| handle_upload_errors <|
+        connection.jdbc_connection.run_within_transaction <|
+            internal_upload_in_memory_table source_table connection table_name primary_key temporary on_problems
+
+## PRIVATE
+   It should be run within a transaction and wrapped in `handle_upload_errors`.
+internal_upload_in_memory_table source_table connection table_name primary_key temporary on_problems =
+    In_Transaction.ensure_in_transaction <|
+        created_table_name = create_table_structure connection table_name structure=source_table primary_key=primary_key temporary=temporary allow_existing=False on_problems=on_problems
+        column_names = source_table.column_names
+
+        ## `created_table_name.if_not_error` is used to ensure that if there are
+           any dataflow errors up to this point, we want to propagate them and not
+           continue. Otherwise, they could 'leak' to `Panic.rethrow` and be wrongly
+           raised as panics.
+        upload_status = created_table_name.if_not_error <|
+            internal_translate_known_upload_errors source_table connection primary_key <|
+                insert_template = make_batched_insert_template connection created_table_name column_names
+                statement_setter = connection.dialect.get_statement_setter
+                Panic.rethrow <| connection.jdbc_connection.batch_insert insert_template statement_setter source_table default_batch_size
+
+        upload_status.if_not_error <|
+            connection.query (SQL_Query.Table_Name created_table_name)
+
+## PRIVATE
+upload_database_table source_table connection table_name primary_key temporary on_problems =
+    Panic.recover SQL_Error <| handle_upload_errors <|
+        connection.jdbc_connection.run_within_transaction <|
+            internal_upload_database_table source_table connection table_name primary_key temporary on_problems
+
+## PRIVATE
+   It should be run within a transaction and wrapped in `handle_upload_errors`.
+internal_upload_database_table source_table connection table_name primary_key temporary on_problems =
+    In_Transaction.ensure_in_transaction <|
+        connection_check = if source_table.connection.jdbc_connection == connection.jdbc_connection then True else
+            Error.throw (Unsupported_Database_Operation.Error "The Database table to be uploaded must be coming from the same connection as the connection on which the new table is being created. Cross-connection uploads are currently not supported. To work around this, you can first `.read` the table into memory and then upload it from memory to a different connection.")
+
+        connection_check.if_not_error <|
+            created_table_name = create_table_structure connection table_name structure=source_table primary_key=primary_key temporary=temporary allow_existing=False on_problems=on_problems
+            upload_status = created_table_name.if_not_error <|
+                internal_translate_known_upload_errors source_table connection primary_key <|
+                    ## We need to ensure that the columns in this statement are
+                       matching positionally the columns in the newly created
+                       table. But we create both from the same source table, so
+                       that is guaranteed.
+                    copy_into_statement = connection.dialect.generate_sql <|
+                        Query.Insert_From_Select created_table_name source_table.column_names source_table.to_select_query
+                    Panic.rethrow <| connection.execute_update copy_into_statement
+
+            upload_status.if_not_error <|
+                connection.query (SQL_Query.Table_Name created_table_name)
+
+## PRIVATE
+   Ensures that provided primary key columns are present in the table and that
+   there are no duplicates.
+resolve_primary_key structure primary_key = case primary_key of
+    Nothing -> Nothing
+    _ : Vector -> if primary_key.is_empty then Nothing else
+        validated = primary_key.map key->
+            if key.is_a Text then key else
+                Error.throw (Illegal_Argument.Error "Primary key must be a vector of column names.")
+        validated.if_not_error <|
+            column_names = Set.from_vector (structure.map .name)
+            missing_columns = (Set.from_vector primary_key).difference column_names
+            if missing_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_columns.to_vector) else
+                primary_key
+
+## PRIVATE
+   Inspects any `SQL_Error` thrown and replaces it with an error recipe, that is
+   converted into a proper error in an outer layer.
+
+   The special handling is needed, because computing the
+   `Non_Unique_Primary_Key` error may need to perform a SQL query that must be
+   run outside of the just-failed transaction.
+internal_translate_known_upload_errors source_table connection primary_key ~action =
+    handler caught_panic =
+        error_mapper = connection.dialect.get_error_mapper
+        sql_error = caught_panic.payload
+        case error_mapper.is_primary_key_violation sql_error of
+            True -> Panic.throw (Non_Unique_Primary_Key_Recipe.Recipe source_table primary_key caught_panic)
+            False -> Panic.throw caught_panic
+    Panic.catch SQL_Error action handler
+
+## PRIVATE
+handle_upload_errors ~action =
+    Panic.catch Non_Unique_Primary_Key_Recipe action caught_panic->
+        recipe = caught_panic.payload
+        raise_duplicated_primary_key_error recipe.source_table recipe.primary_key recipe.original_panic
+
+## PRIVATE
+type Non_Unique_Primary_Key_Recipe
+    ## PRIVATE
+    Recipe source_table primary_key original_panic
+
+## PRIVATE
+   Creates a `Non_Unique_Primary_Key` error containing information about an
+   example group violating the uniqueness constraint.
+raise_duplicated_primary_key_error source_table primary_key original_panic =
+    agg = source_table.aggregate [Aggregate_Column.Count]+(primary_key.map Aggregate_Column.Group_By)
+    filtered = agg.filter column=0 (Filter_Condition.Greater than=1)
+    materialized = filtered.read max_rows=1
+    case materialized.row_count == 0 of
+        ## If we couldn't find a duplicated key, we give up the translation and
+           rethrow the original panic containing the SQL error. This could
+           happen if the constraint violation is on some non-trivial key, like
+           case insensitive.
+        True -> Panic.throw original_panic
+        False ->
+            row = materialized.first_row.to_vector
+            example_count = row.first
+            example_entry = row.drop 1
+            Error.throw (Non_Unique_Primary_Key.Error primary_key example_entry example_count)
+
+## PRIVATE
+align_structure : Database_Table | In_Memory_Table | Vector Column_Description -> Vector Column_Description
+align_structure table_or_columns = case table_or_columns of
+    _ : Vector -> table_or_columns.map def->
+        if def.is_a Column_Description . not then Error.throw (Illegal_Argument.Error "The structure must be an existing Table or vector of Column_Description.") else
+            def
+    _ -> table_or_columns.columns.map column->
+        Column_Description.Value column.name column.value_type
+
+## PRIVATE
+   Creates a statement that will create a table with structure determined by the
+   provided columns.
+
+   The `primary_key` columns must be present in `columns`, but it is the
+   responsibility of the caller to ensure that, otherwise the generated
+   statement will be invalid.
+prepare_create_table_statement : Connection -> Text -> Vector Column_Description -> Vector Text -> Boolean -> Problem_Behavior -> SQL_Statement
+prepare_create_table_statement connection table_name columns primary_key temporary on_problems =
+    type_mapping = connection.dialect.get_type_mapping
+    column_descriptors = columns.map def->
+        sql_type = type_mapping.value_type_to_sql def.value_type on_problems
+        sql_type_text = type_mapping.sql_type_to_text sql_type
+        Create_Column_Descriptor.Value def.name sql_type_text def.constraints
+    connection.dialect.generate_sql <|
+        Query.Create_Table table_name column_descriptors primary_key temporary
+
+## PRIVATE
+   Generates a random table name if it was nothing, if it is allowed (temporary=True).
+resolve_effective_table_name table_name temporary = case table_name of
+    Nothing -> if temporary then "temporary-table-"+random_uuid else
+        Error.throw (Illegal_Argument.Error "A name must be provided when creating a non-temporary table.")
+    _ : Text -> table_name
+
+## PRIVATE
+   The recommended batch size seems to be between 50 and 100.
+   See: https://docs.oracle.com/cd/E18283_01/java.112/e16548/oraperf.htm#:~:text=batch%20sizes%20in%20the%20general%20range%20of%2050%20to%20100
+default_batch_size = 100
+
+## PRIVATE
+make_batched_insert_template : Connection -> Text -> Vector (Vector Text) -> SQL_Query
+make_batched_insert_template connection table_name column_names =
+    # We add Nothing as placeholders, they will be replaced with the actual values later.
+    pairs = column_names.map name->[name, SQL_Expression.Constant Nothing]
+    query = connection.dialect.generate_sql <| Query.Insert table_name pairs
+    template = query.prepare.first
+    template
+
+## PRIVATE
+common_update_table source_table connection table_name update_action key_columns error_on_missing_columns on_problems =
+    Panic.recover SQL_Error <| handle_upload_errors <|
+        connection.jdbc_connection.run_within_transaction <|
+            target_table = connection.query (SQL_Query.Table_Name table_name)
+            # We catch the `Table_Not_Found` error and handle it specially, if the error was different, it will just get passed through further.
+            handle_error = target_table.catch Table_Not_Found error->
+                # Rethrow the error with more info.
+                msg_suffix = " Use `Connection.create_table` to create a table before trying to append to it."
+                new_error = error.with_changed_extra_message msg_suffix
+                Error.throw new_error
+            if target_table.is_error then handle_error else
+                tmp_table_name = "temporary-source-table-"+random_uuid
+                tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=key_columns temporary=True on_problems=Problem_Behavior.Report_Error
+                tmp_table.if_not_error <|
+                    resulting_table = append_to_existing_table tmp_table target_table update_action key_columns error_on_missing_columns on_problems
+                    connection.drop_table tmp_table.name
+                    resulting_table
+
+## PRIVATE
+   Assumes that `source_table` is a simple table query without any filters,
+   joins and other composite operations - if a complex query is needed, it
+   should be first materialized into a temporary table.
+append_to_existing_table source_table target_table update_action key_columns error_on_missing_columns on_problems = In_Transaction.ensure_in_transaction <|
+    effective_key_columns = if key_columns.is_nothing then [] else key_columns
+    check_update_arguments source_table target_table effective_key_columns update_action error_on_missing_columns on_problems <|
+        helper = Append_Helper.Context source_table target_table effective_key_columns
+        upload_status = case update_action of
+            Update_Action.Insert ->
+                helper.check_already_existing_rows <|
+                    helper.insert_rows source_table
+            Update_Action.Update ->
+                helper.check_rows_unmatched_in_target <|
+                    helper.check_multiple_target_rows_match <|
+                        helper.update_common_rows
+            Update_Action.Update_Or_Insert ->
+                helper.check_multiple_target_rows_match <|
+                    helper.update_common_rows
+                    helper.insert_rows helper.new_source_rows
+            Update_Action.Align_Records ->
+                helper.check_multiple_target_rows_match <|
+                    helper.update_common_rows
+                    helper.insert_rows helper.new_source_rows
+                    helper.delete_unmatched_target_rows
+        upload_status.if_not_error target_table
+
+## PRIVATE
+type Append_Helper
+    ## PRIVATE
+    Context source_table target_table key_columns
+
+    ## PRIVATE
+    connection self = self.target_table.connection
+
+    ## PRIVATE
+       The update only affects matched rows, unmatched rows are ignored.
+    update_common_rows self =
+        update_statement = self.connection.dialect.generate_sql <|
+            Query.Update_From_Table self.target_table.name self.source_table.name self.source_table.column_names self.key_columns
+        Panic.rethrow <| self.connection.execute_update update_statement
+
+    ## PRIVATE
+       Inserts all rows from the source.
+
+       Behaviour is ill-defined if any of the rows already exist in the target.
+       If only new rows are supposed to be inserted, they have to be filtered
+       before inserting.
+    insert_rows self table_to_insert =
+        insert_statement = self.connection.dialect.generate_sql <|
+            Query.Insert_From_Select self.target_table.name table_to_insert.column_names table_to_insert.to_select_query
+        Panic.rethrow <| self.connection.execute_update insert_statement
+
+    ## PRIVATE
+       Finds rows that are present in the source but not in the target.
+    new_source_rows self =
+        self.source_table.join self.target_table on=self.key_columns join_kind=Join_Kind.Left_Exclusive
+
+    ## PRIVATE
+       Deletes rows from target table that were not present in the source.
+    delete_unmatched_target_rows self =
+        delete_statement = self.connection.dialect.generate_sql <|
+            Query.Delete_Unmatched_Rows self.target_table.name self.source_table.name self.key_columns
+        Panic.rethrow <| self.connection.execute_update delete_statement
+
+    ## PRIVATE
+       Checks if any rows from the source table already exist in the target, and
+       if they do - raises an error.
+
+       Does nothing if `key_columns` is empty, as then there is no notion of
+       'matching' rows.
+    check_already_existing_rows self ~continuation =
+        if self.key_columns.is_empty then continuation else
+            joined = self.source_table.join self.target_table on=self.key_columns join_kind=Join_Kind.Inner
+            count = joined.row_count
+            if count == 0 then continuation else
+                Error.throw (Rows_Already_Present.Error count)
+
+    ## PRIVATE
+    check_rows_unmatched_in_target self ~continuation =
+        # assert key_columns.not_empty
+        unmatched_rows = self.new_source_rows
+        count = unmatched_rows.row_count
+        if count != 0 then Error.throw (Unmatched_Rows.Error count) else continuation
+
+    ## PRIVATE
+       Check if there are rows in source that match multiple rows in the target.
+    check_multiple_target_rows_match self ~continuation =
+        matched_rows = self.source_table.join self.target_table on=self.key_columns join_kind=Join_Kind.Inner
+        agg = (self.key_columns.map (Aggregate_Column.Group_By _)) + [Aggregate_Column.Count]
+        ## This aggregation will only find duplicated in target, not in the source,
+           because the source is already guaranteed to be unique - that was checked
+           when uploading the temporary table with the key as its primary key.
+        duplicated_key_in_target = matched_rows.aggregate agg . filter -1 (Filter_Condition.Greater than=1)
+        example =  duplicated_key_in_target.read max_rows=1
+        case example.row_count == 0 of
+            False ->
+                row = duplicated_key_in_target.first_row . to_vector
+                offending_key = row.drop (Index_Sub_Range.Last 1)
+                count = row.last
+                Error.throw (Multiple_Target_Rows_Matched_For_Update.Error offending_key count)
+            True -> continuation
+
+## PRIVATE
+   This helper ensures that all arguments are valid.
+
+   The `action` is run only if the input invariants are satisfied:
+   - all columns in `source_table` have a corresponding column in `target_table`
+     (with the same name),
+   - all `key_columns` are present in both source and target tables.
+check_update_arguments source_table target_table key_columns update_action error_on_missing_columns on_problems ~action =
+    check_source_column source_column =
+        # The column must exist because it was verified earlier.
+        target_column = target_table.get source_column.name
+        source_type = source_column.value_type
+        target_type = target_column.value_type
+        if source_type == target_type then [] else
+            if source_type.can_be_widened_to target_type then [Inexact_Type_Coercion.Warning source_type target_type] else
+                Error.throw (Column_Type_Mismatch.Error source_column.name target_type source_type)
+
+    source_columns = Set.from_vector source_table.column_names
+    target_columns = Set.from_vector target_table.column_names
+    extra_columns = source_columns.difference target_columns
+    if extra_columns.not_empty then Error.throw (Unmatched_Columns.Error extra_columns.to_vector) else
+        missing_columns = target_columns.difference source_columns
+        if missing_columns.not_empty && error_on_missing_columns then Error.throw (Missing_Input_Columns.Error missing_columns.to_vector "the source table") else
+            key_set = Set.from_vector key_columns
+            missing_source_key_columns = key_set.difference source_columns
+            missing_target_key_columns = key_set.difference target_columns
+            if missing_source_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_source_key_columns.to_vector "the source table") else
+                if missing_target_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_target_key_columns.to_vector "the target table") else
+                    if (update_action != Update_Action.Insert) && key_columns.is_empty then Error.throw (Illegal_Argument.Error "For the `update_action = "+update_action.to_text+"`, the `key_columns` must be specified to define how to match the records.") else
+                        # Verify type matching
+                        problems = source_table.columns.flat_map check_source_column
+                        problems.if_not_error <|
+                            on_problems.attach_problems_before problems action
+
+## PRIVATE
+default_key_columns connection table_name =
+    keys = get_primary_key connection table_name
+    keys.catch Any _->
+        Error.throw (Illegal_Argument.Error "Could not determine the primary key for table "+table_name+". Please provide it explicitly.")
+
+## PRIVATE
+
+   This method may not work correctly with temporary tables, possibly resulting
+   in `SQL_Error` as such tables may not be found.
+
+   ! Temporary Tables in SQLite
+
+     The temporary tables in SQLite live in a `temp` database. There is a bug in
+     how JDBC retrieves primary keys - it only queries the `sqlite_schema` table
+     which contains schemas of only permanent tables.
+
+     Ideally, we should provide a custom implementation for SQLite that will
+     UNION both `sqlite_schema` and `temp.sqlite_schema` tables to get results
+     for both temporary and permanent tables.
+
+     TODO [RW] fix keys for SQLite temporary tables and test it
+get_primary_key connection table_name =
+    connection.query (SQL_Query.Table_Name table_name) . if_not_error <|
+        connection.jdbc_connection.with_connection java_connection->
+            rs = java_connection.getMetaData.getPrimaryKeys Nothing Nothing table_name
+            keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
+            # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
+            selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True
+            key_column_names = selected.order_by 1 . at 0 . to_vector
+            if key_column_names.is_empty then Nothing else key_column_names

@@ -27,7 +27,7 @@ use crate::runtime::Runtime;
 /// A wrapper for the runtime and current node data with explicit information about the event type.
 /// It is mainly used to make the API for defining nodes easy and type-safe.
 pub(crate) struct EventContext<'a, Output> {
-    tp:      PhantomData<Output>,
+    tp:      ZST<Output>,
     runtime: &'a Runtime,
     node:    &'a NodeData,
 }
@@ -37,7 +37,7 @@ impl<'a, Output> EventContext<'a, Output> {
     /// function.
     #[inline(always)]
     fn unchecked_new(runtime: &'a Runtime, node: &'a NodeData) -> Self {
-        EventContext { tp: PhantomData, runtime, node }
+        EventContext { tp: ZST(), runtime, node }
     }
 }
 

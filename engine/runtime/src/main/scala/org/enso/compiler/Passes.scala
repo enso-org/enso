@@ -46,6 +46,8 @@ class Passes(
       SectionsToBinOp,
       OperatorToFunction,
       LambdaShorthandToLambda,
+      ImportSymbolAnalysis,
+      AmbiguousImportsAnalysis,
       ShadowedPatternFields,
       UnreachableMatchBranches,
       NestedPatternMatch,

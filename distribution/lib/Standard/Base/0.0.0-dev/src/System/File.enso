@@ -1,4 +1,3 @@
-from Standard.Base import all
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Index_Sub_Range.Index_Sub_Range
@@ -11,6 +10,7 @@ import project.Data.Text.Text
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Common.Dry_Run_Operation
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.File_Error.File_Error
@@ -23,9 +23,10 @@ import project.Runtime.Context
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.File_Access.File_Access
 import project.System.File.File_Permissions.File_Permissions
+import project.Warning.Warning
 
 from project.Data.Boolean import Boolean, True, False
-from project.System.File_Format import Auto_Detect, File_Format, format_widget
+from project.System.File_Format import Auto_Detect, File_Format
 
 import project.Metadata.Widget
 from project.Metadata.Choice import Option
@@ -61,11 +62,10 @@ type File
 
              example_new = File.new Examples.csv_path
     new : (Text | File) -> File
-    new path =
+    new (path : Text|File) =
       case path of
         _ : Text -> get_file path
         _ : File -> path
-        _        -> Error.throw (Illegal_Argument.Error "new file should be either a File or a Text")
 
     ## Creates a temporary file which will be deleted when Enso exits.
     create_temporary_file : Text -> Text -> File
@@ -88,7 +88,10 @@ type File
             if self.exists && copy_original then
                 Context.Output.with_enabled <|
                     self.copy_to temp replace_existing=True
-            temp
+
+            ## Attach a warning to the file that it is a dry run
+            warning = Dry_Run_Operation.Warning "Only a dry run has occurred, with data written to a temporary file."
+            Warning.attach warning temp
 
     ## ALIAS Current Directory
 
@@ -242,7 +245,7 @@ type File
              import Standard.Examples
 
              example_xls_to_table = Examples.xls.read (Excel (Worksheet 'Dates'))
-    @format format_widget
+    @format File_Format.default_widget
     read : File_Format -> Problem_Behavior -> Any ! File_Error
     read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
         if self.exists.not then Error.throw (File_Error.Not_Found self) else

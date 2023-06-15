@@ -1,0 +1,58 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import project.Data.Column.Column
+import project.Data.Data_Formatter.Data_Formatter
+import project.Data.Type.Storage
+import project.Data.Type.Value_Type.Value_Type
+
+from project.Internal.Java_Exports import make_string_builder
+
+polyglot java import java.lang.IllegalArgumentException
+polyglot java import java.time.temporal.UnsupportedTemporalTypeException
+polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
+polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
+polyglot java import org.enso.table.data.table.Column as Java_Column
+polyglot java import org.enso.table.operations.OrderBuilder
+
+## PRIVATE
+   Create a formatter for the specified `Value_Type`.
+make_value_formatter_for_value_type : Value_Type -> Locale -> (Any -> Text)
+make_value_formatter_for_value_type value_type locale = case value_type of
+    Value_Type.Date -> make_value_formatter locale
+    Value_Type.Date_Time _ -> make_value_formatter locale
+    Value_Type.Time -> make_value_formatter locale
+    Value_Type.Boolean -> make_boolean_formatter
+    Value_Type.Integer _ -> make_value_formatter locale
+    Value_Type.Float _ -> make_value_formatter locale
+    bad_type ->
+        msg = "Cannot format a Column of type " + bad_type.to_text
+        Error.throw (Illegal_Argument.Error msg)
+
+## PRIVATE
+   Create a formatter for the given format string.
+   The `value` parameter has to have a `format` method that takes a format and
+   locale.
+make_value_formatter : Locale -> (Any -> Text)
+make_value_formatter locale = value-> format->
+    handle_illegal_argument_exception format <|
+        if format.is_nothing || format.is_empty then value.to_text else
+            value.format format locale
+## PRIVATE
+   Create a `Boolean` formatter that takes the format string as the second
+   parameter.
+make_boolean_formatter : (Boolean -> Text -> Text)
+make_boolean_formatter = bool-> format->
+    if format.is_nothing || format.is_empty then bool.to_text else
+        data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
+        data_formatter.format bool
+
+## PRIVATE
+   Rethrow a Java IllegalArgumentException as an Illegal_Argument.
+handle_illegal_argument_exception : Text -> Any -> Any
+handle_illegal_argument_exception format_string ~action =
+    handler cause =
+        msg = cause.payload.getMessage + ' in \"' + format_string + '\"'
+        Error.throw (Illegal_Argument.Error msg)
+    Panic.catch IllegalArgumentException handler=handler <|
+        Panic.catch UnsupportedTemporalTypeException handler=handler action

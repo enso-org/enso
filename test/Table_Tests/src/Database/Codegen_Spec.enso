@@ -2,13 +2,13 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Table import Sort_Column
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column
 
 from Standard.Database import all
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.SQL_Type.SQL_Type
-from Standard.Database.Data.Table import combine_names, fresh_names
+from Standard.Database.Data.Table import fresh_names
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test, Test_Suite, Problems

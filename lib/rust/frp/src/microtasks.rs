@@ -186,19 +186,30 @@ impl Scheduler {
     }
 
     fn add(&self, f: impl FnOnce() + 'static) -> callback::Handle {
-        let handle = self.data.callbacks.add(f);
+        let handle = self.data.callbacks.add(profile(f));
         self.data.schedule_task();
         handle
     }
 
     fn add_late(&self, f: impl FnOnce() + 'static) -> callback::Handle {
-        let handle = self.data.late_callbacks.add(f);
+        let handle = self.data.late_callbacks.add(profile(f));
         self.data.schedule_task();
         handle
     }
 
     fn flush(&self) {
         self.data.flush();
+    }
+}
+
+/// Add profiling to a function. The current profiler (if any) will be the parent, regardless of
+/// when the scheduled task is actually executed.
+fn profile(f: impl FnOnce() + 'static) -> impl FnOnce() + 'static {
+    let profiler = profiler::create_debug!("<microtask>");
+    move || {
+        profiler.resume();
+        f();
+        profiler.pause();
     }
 }
 
@@ -213,6 +224,7 @@ struct SchedulerData {
 }
 
 impl SchedulerData {
+    #[profile(Task)]
     fn schedule_task(&self) {
         if !self.is_scheduled.replace(true) {
             // Result left unused on purpose. We only care about `closure` being run in the next
@@ -227,6 +239,7 @@ impl SchedulerData {
         }
     }
 
+    #[profile(Task)]
     fn run_all(&self) {
         let current_count = self.schedule_depth.get();
         let task_limit_reached = current_count >= MAX_RECURSIVE_MICROTASKS;

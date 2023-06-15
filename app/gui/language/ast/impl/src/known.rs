@@ -24,7 +24,7 @@ use crate::TokenConsumer;
 #[derive(Debug, PartialEq, Eq)]
 pub struct KnownAst<T> {
     ast:     Ast,
-    phantom: PhantomData<T>,
+    phantom: ZST<T>,
 }
 
 impl<T> KnownAst<T> {

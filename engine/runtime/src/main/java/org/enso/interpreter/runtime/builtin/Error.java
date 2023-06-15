@@ -1,5 +1,7 @@
 package org.enso.interpreter.runtime.builtin;
 
+import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
+
 import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.node.expression.builtin.error.*;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchField;
@@ -12,10 +14,8 @@ import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 
-import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
-
 /** Container for builtin Error types */
-public class Error {
+public final class Error {
   private final EnsoContext context;
   private final SyntaxError syntaxError;
   private final TypeError typeError;
@@ -25,6 +25,7 @@ public class Error {
   private final UninitializedState uninitializedState;
   private final NoSuchMethod noSuchMethod;
   private final NoSuchConversion noSuchConversion;
+  private final NoConversionCurrying noConversionCurrying;
   private final ModuleNotInPackageError moduleNotInPackageError;
   private final ArithmeticError arithmeticError;
   private final InvalidArrayIndex invalidArrayIndex;
@@ -60,6 +61,7 @@ public class Error {
     uninitializedState = builtins.getBuiltinType(UninitializedState.class);
     noSuchMethod = builtins.getBuiltinType(NoSuchMethod.class);
     noSuchConversion = builtins.getBuiltinType(NoSuchConversion.class);
+    noConversionCurrying = builtins.getBuiltinType(NoConversionCurrying.class);
     moduleNotInPackageError = builtins.getBuiltinType(ModuleNotInPackageError.class);
     arithmeticError = builtins.getBuiltinType(ArithmeticError.class);
     invalidArrayIndex = builtins.getBuiltinType(InvalidArrayIndex.class);
@@ -134,6 +136,11 @@ public class Error {
 
   public Atom makeInvalidConversionTarget(Object target) {
     return invalidConversionTarget.newInstance(target);
+  }
+
+  public Atom makeNoConversionCurrying(
+      boolean hasThis, boolean hasThat, UnresolvedConversion conversion) {
+    return noConversionCurrying.newInstance(hasThis, hasThat, conversion);
   }
 
   /**

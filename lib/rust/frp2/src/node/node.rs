@@ -36,7 +36,7 @@ pub trait NodeWithDefaultOutput = Node where <Self as Node>::Output: Default;
 #[derivative(Debug(bound = ""))]
 #[repr(transparent)]
 pub struct TypedNode<Type, Output> {
-    pub(crate) _marker: PhantomData<*const (Type, Output)>,
+    pub(crate) _marker: ZST<(Type, Output)>,
     pub(crate) id:      NodeId,
 }
 
@@ -71,9 +71,8 @@ impl<Model> Network<Model> {
         f: impl EventConsumer,
         init: impl FnOnce(&mut NodeData),
     ) -> TypedNode<Type, Output> {
-        let _marker = PhantomData;
         let id = with_runtime(|rt| rt.new_node(self.id, DefInfo::unlabelled(), f, init));
-        TypedNode { _marker, id }
+        TypedNode { _marker: ZST(), id }
     }
 }
 

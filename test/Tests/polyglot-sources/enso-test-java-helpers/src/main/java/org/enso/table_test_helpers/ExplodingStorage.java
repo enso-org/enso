@@ -1,5 +1,7 @@
 package org.enso.table_test_helpers;
 
+import java.util.BitSet;
+import java.util.List;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.Storage;
@@ -7,9 +9,6 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-
-import java.util.BitSet;
-import java.util.List;
 
 /**
  * A helper class used in the Upload_Spec test to purposefully interrupt a table upload in the

@@ -106,7 +106,7 @@ futures = { version = "0.3" }
 itertools = { version = "0.10.5" }
 lazy_static = { version = "1.4" }
 paste = { version = "1.0" }
-serde_json = { version = "1.0" }
+serde_json = { version = "1.0", features = ["raw_value"] }
 smallvec = { version = "1.0.0" }
 weak-table = { version = "0.3.0" }
 gen-iter = { version = "0.2.1" }
@@ -137,3 +137,4 @@ quote = { version = "1.0.23" }
 semver = { version = "1.0.0", features = ["serde"] }
 thiserror = "1.0.40"
 bytemuck = { version = "1.13.1", features = ["derive"] }
+bitflags = { version = "2.2.1" }

@@ -1,13 +1,8 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-import java.util.List;
-import java.util.function.IntFunction;
-
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.object.BoolBuilder;
 import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
@@ -21,6 +16,10 @@ import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Value;
+
+import java.util.BitSet;
+import java.util.List;
+import java.util.function.IntFunction;
 
 /** A boolean column storage. */
 public final class BoolStorage extends Storage<Boolean> {
@@ -81,12 +80,14 @@ public final class BoolStorage extends Storage<Boolean> {
   }
 
   @Override
-  protected Storage<?> runVectorizedMap(String name, Object argument, MapOperationProblemBuilder problemBuilder) {
+  protected Storage<?> runVectorizedMap(
+      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
     return ops.runMap(name, this, argument, problemBuilder);
   }
 
   @Override
-  protected Storage<?> runVectorizedZip(String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
+  protected Storage<?> runVectorizedZip(
+      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
     return ops.runZip(name, this, argument, problemBuilder);
   }
 
@@ -198,10 +199,10 @@ public final class BoolStorage extends Storage<Boolean> {
 
   private static IntFunction<Object> makeRowProvider(Value value) {
     if (value.isHostObject() && value.asHostObject() instanceof Storage<?> s) {
-      return i->(Object)s.getItemBoxed(i);
+      return i -> (Object) s.getItemBoxed(i);
     }
     var converted = Polyglot_Utils.convertPolyglotValue(value);
-    return i->converted;
+    return i -> converted;
   }
 
   private static MapOpStorage<Boolean, BoolStorage> buildOps() {
@@ -217,7 +218,8 @@ public final class BoolStorage extends Storage<Boolean> {
         .add(
             new MapOperation<>(Maps.EQ) {
               @Override
-              public BoolStorage runMap(BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage runMap(
+                  BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg == null) {
                   return BoolStorage.makeEmpty(storage.size);
                 } else if (arg instanceof Boolean v) {
@@ -233,7 +235,8 @@ public final class BoolStorage extends Storage<Boolean> {
               }
 
               @Override
-              public BoolStorage runZip(BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage runZip(
+                  BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
                 BitSet out = new BitSet();
                 BitSet missing = new BitSet();
                 for (int i = 0; i < storage.size; i++) {
@@ -251,7 +254,8 @@ public final class BoolStorage extends Storage<Boolean> {
         .add(
             new MapOperation<>(Maps.AND) {
               @Override
-              public BoolStorage runMap(BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage runMap(
+                  BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg == null) {
                   return BoolStorage.makeEmpty(storage.size);
                 } else if (arg instanceof Boolean v) {
@@ -266,7 +270,8 @@ public final class BoolStorage extends Storage<Boolean> {
               }
 
               @Override
-              public BoolStorage runZip(BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage runZip(
+                  BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg instanceof BoolStorage v) {
                   BitSet missing = v.isMissing.get(0, storage.size);
                   missing.or(storage.isMissing);
@@ -295,7 +300,8 @@ public final class BoolStorage extends Storage<Boolean> {
         .add(
             new MapOperation<>(Maps.OR) {
               @Override
-              public BoolStorage runMap(BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage runMap(
+                  BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg == null) {
                   return BoolStorage.makeEmpty(storage.size);
                 } else if (arg instanceof Boolean v) {
@@ -310,7 +316,8 @@ public final class BoolStorage extends Storage<Boolean> {
               }
 
               @Override
-              public BoolStorage runZip(BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage runZip(
+                  BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg instanceof BoolStorage v) {
                   BitSet missing = v.isMissing.get(0, storage.size);
                   missing.or(storage.isMissing);

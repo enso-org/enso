@@ -77,6 +77,8 @@ pub struct FileToUpload<DataProvider> {
 #[derive(Clone, Debug)]
 pub struct FileUploadProcess<DataProvider> {
     bin_connection:  Rc<binary::Connection>,
+    // See FIXME in upload_chunk method.
+    #[allow(dead_code)]
     json_connection: Rc<language_server::Connection>,
     file:            FileToUpload<DataProvider>,
     remote_path:     Path,
@@ -142,13 +144,17 @@ impl<DP: DataProvider> FileUploadProcess<DP> {
                     );
                     self.bytes_uploaded = self.file.size;
                 }
-                self.check_checksum().await?;
+                //TODO[ao]: The language server checksum method sometimes fails:
+                // https://github.com/enso-org/enso/issues/6691 so we skip the check until fixed.
+                // self.check_checksum().await?;
                 Ok(UploadingState::Finished)
             }
             Err(err) => Err(err),
         }
     }
 
+    // See FIXME in upload_chunk method.
+    #[allow(dead_code)]
     async fn check_checksum(&mut self) -> FallibleResult {
         let remote = self.json_connection.file_checksum(&self.remote_path).await?.checksum;
         let local = Into::<Sha3_224>::into(std::mem::take(&mut self.checksum));
@@ -191,6 +197,10 @@ impl NodeFromDroppedFileHandler {
         file: FileToUpload<impl DataProvider + 'static>,
         position: Position,
     ) -> FallibleResult {
+        let _transaction = self
+            .graph
+            .module
+            .get_or_open_transaction(&format!("Create a node from dropped file '{}'.", file.name));
         let node = self.graph.add_node(Self::new_node_info(&file, position))?;
         let this = self.clone_ref();
         executor::global::spawn(async move {
@@ -198,6 +208,14 @@ impl NodeFromDroppedFileHandler {
                 error!("Error while uploading file: {err}");
                 this.update_metadata(node, |md| md.error = Some(err.to_string()));
             }
+            // TODO [mwu]: In general this does play good with undo/redo. The transaction will get
+            //      dropped as soon as the asynchronous task is spawned, which means that the
+            //      post-completion steps will end up in a different transaction.
+            //      This is a case where text-snapshot-based undo/redo model does not play nicely
+            //      with asynchronous text edits being made.
+            //      As the file upload (particularly with cloud backend) can take a long time, we
+            //      do not try to fix this by simply holding the transaction alive until the upload
+            //      is finished.
         });
         Ok(())
     }
@@ -257,7 +275,9 @@ impl NodeFromDroppedFileHandler {
 
     fn update_metadata(&self, node: ast::Id, f: impl FnOnce(&mut UploadingFile)) {
         //TODO[ao] see the TODO comment in update_expression.
-        let _tr = self.undo_redo_repository().open_ignored_transaction("Upload Metadata Update");
+        let _tr = self
+            .undo_redo_repository()
+            .open_ignored_transaction_or_ignore_current("Upload Metadata Update");
         let update_md = Box::new(|md: &mut NodeMetadata| {
             if let Some(uploading_md) = &mut md.uploading_file {
                 f(uploading_md)
@@ -432,7 +452,7 @@ mod test {
 
         fn setup_uploading_expectations(
             &self,
-            json_client: &language_server::MockClient,
+            _json_client: &language_server::MockClient,
             binary_client: &mut binary::MockClient,
         ) {
             let mut write_seq = Sequence::new();
@@ -450,12 +470,13 @@ mod test {
                     .returning(move |_, _, _, _| future::ready(Ok(checksum.clone())).boxed_local());
                 offset += chunk_len as u64;
             }
-            let checksum = self.checksum.clone();
-            let path = self.path.clone();
-            json_client.expect.file_checksum(move |p| {
-                assert_eq!(*p, path);
-                Ok(response::FileChecksum { checksum })
-            });
+            // See FIXME in upload_chunk method.
+            // let checksum = self.checksum.clone();
+            // let path = self.path.clone();
+            // json_client.expect.file_checksum(move |p| {
+            //     assert_eq!(*p, path);
+            //     Ok(response::FileChecksum { checksum })
+            // });
         }
 
         fn file_to_upload(&self) -> FileToUpload<TestProvider> {
@@ -535,6 +556,7 @@ mod test {
     }
 
     #[test]
+    #[ignore] // See FIXME in upload_chunk method.
     fn checksum_mismatch_should_cause_an_error() {
         let mut data = TestData::new(vec![vec![1, 2, 3, 4, 5]]);
         data.checksum = Sha3_224::new(&[3, 4, 5, 6, 7, 8]);
@@ -573,7 +595,7 @@ mod test {
         assert_eq!(fixture.module.ast().repr(), module_code_uploaded(TEST_FILE));
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn recreating_data_directory() {
         let mut fixture = mock::Unified::new().fixture_customize(|_, json_rpc, _| {
             json_rpc.expect.file_info(|path| {
@@ -595,7 +617,7 @@ mod test {
         fixture.executor.expect_completion(handler.ensure_data_directory_exists()).unwrap();
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn name_collisions_are_avoided() {
         struct Case {
             file_name:            String,

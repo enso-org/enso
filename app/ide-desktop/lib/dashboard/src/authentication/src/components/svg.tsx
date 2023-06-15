@@ -264,6 +264,48 @@ export const DEFAULT_USER_ICON = (
     </svg>
 )
 
+/** An icon representing a menu that can be expanded downwards. */
+export const DOWN_CARET_ICON = (
+    <svg height={16} width={16} viewBox="-1-1 12 12" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1 3l4 4 4-4" fill="transparent" stroke="currentColor" strokeLinecap="round" />
+    </svg>
+)
+
+/** Props for a {@link Spinner}. */
+export interface SpinnerProps {
+    size: number
+    className: string
+}
+
+/** A spinning arc that animates using the `dasharray-<percentage>` custom Tailwind classes. */
+export function Spinner(props: SpinnerProps) {
+    const { size, className } = props
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+        >
+            <rect
+                x={1.5}
+                y={1.5}
+                width={21}
+                height={21}
+                rx={10.5}
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeWidth={3}
+                className={
+                    'animate-spin-ease origin-center transition-stroke-dasharray ' + className
+                }
+            />
+        </svg>
+    )
+}
+
+/** Props for a {@link StopIcon}. */
 export interface StopIconProps {
     className?: string
 }
@@ -314,8 +356,8 @@ export function StopIcon(props: StopIconProps) {
 // === Svg ===
 // ===========
 
-/** Props for the `Svg` component. */
-interface Props {
+/** Props for a {@link Svg}. */
+export interface SvgProps {
     path: string
 }
 
@@ -323,7 +365,7 @@ interface Props {
  *
  * @param props - Extra props for the SVG path. The `props.data` field in particular contains the
  * SVG path data. */
-function Svg(props: Props) {
+function Svg(props: SvgProps) {
     return (
         <svg
             className="h-6 w-6"

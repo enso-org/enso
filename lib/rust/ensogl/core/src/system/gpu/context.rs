@@ -17,6 +17,7 @@ use web_sys::WebGl2RenderingContext;
 
 pub mod extension;
 pub mod native;
+pub mod profiler;
 
 
 
@@ -64,6 +65,7 @@ pub struct Context {
 pub struct ContextData {
     #[deref]
     native:              native::ContextWithExtensions,
+    pub profiler:        profiler::Profiler,
     pub shader_compiler: shader::Compiler,
 }
 
@@ -76,8 +78,9 @@ impl Context {
 impl ContextData {
     fn from_native(native: WebGl2RenderingContext) -> Self {
         let native = native::ContextWithExtensions::from_native(native);
+        let profiler = profiler::Profiler::new(&native);
         let shader_compiler = shader::Compiler::new(&native);
-        Self { native, shader_compiler }
+        Self { native, profiler, shader_compiler }
     }
 }
 

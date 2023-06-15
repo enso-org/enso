@@ -2,7 +2,6 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Syntax_Error
 
 import Standard.Base.Network.HTTP.Form.Form
-import Standard.Base.Network.HTTP.Header.Header
 import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Request_Error
@@ -11,10 +10,10 @@ import Standard.Base.Network.Proxy.Proxy
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-polyglot java import java.lang.System
+polyglot java import java.lang.System as Java_System
 
 spec =
-    base_url = System.getenv "ENSO_HTTP_TEST_HTTPBIN_URL"
+    base_url = Java_System.getenv "ENSO_HTTP_TEST_HTTPBIN_URL"
     pending = if base_url != Nothing then Nothing else
         "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
 
@@ -47,7 +46,7 @@ spec =
                 {
                   "headers": {
                     "Content-Length": "0",
-                    "User-Agent": "Java-http-client/11.0.18"
+                    "User-Agent": "Java-http-client/17.0.6"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -55,13 +54,13 @@ spec =
                 }
             res = HTTP.new.get url_get
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.parse_json.should_equal expected_response
+            res.body.decode_as_json.should_equal expected_response
         Test.specify "should send Get request using module method" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {
                     "Content-Length": "0",
-                    "User-Agent": "Java-http-client/11.0.18"
+                    "User-Agent": "Java-http-client/17.0.6"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -69,35 +68,35 @@ spec =
                 }
             res = HTTP.new.get url_get
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.parse_json.should_equal expected_response
+            res.body.decode_as_json.should_equal expected_response
 
         Test.specify "should fetch the body of a Get request" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {
                     "Content-Length": "0",
-                    "User-Agent": "Java-http-client/11.0.18"
+                    "User-Agent": "Java-http-client/17.0.6"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
                   "args": {}
                 }
             res = HTTP.fetch url_get
-            res.parse_json.should_equal expected_response
+            res.decode_as_json.should_equal expected_response
         Test.specify "should return error if the fetch method fails" <|
             HTTP.fetch "http://undefined_host" . should_fail_with Request_Error
 
         Test.specify "should send Head request" <|
             res = HTTP.new.head url_get
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.to_text.should_equal ''
+            res.body.decode_as_text.should_equal ''
 
         Test.specify "should Post empty body" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {
                     "Content-Length": "0",
-                    "User-Agent": "Java-http-client/11.0.18"
+                    "User-Agent": "Java-http-client/17.0.6"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -110,13 +109,13 @@ spec =
             body_empty = Request_Body.Empty
             res = HTTP.new.post url_post body_empty
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.parse_json.should_equal expected_response
+            res.body.decode_as_json.should_equal expected_response
         Test.specify "should Post empty body using module method" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {
                     "Content-Length": "0",
-                    "User-Agent": "Java-http-client/11.0.18"
+                    "User-Agent": "Java-http-client/17.0.6"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -129,14 +128,14 @@ spec =
             body_empty = Request_Body.Empty
             res = HTTP.new.post url_post body_empty
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.parse_json.should_equal expected_response
+            res.body.decode_as_json.should_equal expected_response
         Test.specify "should Post text body" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {
                     "Content-Length": "12",
                     "Content-Type": "text/plain",
-                    "User-Agent": "Java-http-client/11.0.18"
+                    "User-Agent": "Java-http-client/17.0.6"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -149,14 +148,14 @@ spec =
             body_text = Request_Body.Text "Hello World!"
             res = HTTP.new.post url_post body_text
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.parse_json.should_equal expected_response
+            res.body.decode_as_json.should_equal expected_response
         Test.specify "should Post form text" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {
                     "Content-Length": "7",
                     "Content-Type": "application/x-www-form-urlencoded",
-                    "User-Agent": "Java-http-client/11.0.18"
+                    "User-Agent": "Java-http-client/17.0.6"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -169,14 +168,14 @@ spec =
             form_parts = [Form.text_field "key" "val"]
             res = HTTP.new.post_form url_post form_parts
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.parse_json.should_equal expected_response
+            res.body.decode_as_json.should_equal expected_response
         Test.specify "should Post form text using module method" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {
                     "Content-Length": "7",
                     "Content-Type": "application/x-www-form-urlencoded",
-                    "User-Agent": "Java-http-client/11.0.18"
+                    "User-Agent": "Java-http-client/17.0.6"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -189,7 +188,7 @@ spec =
             form_parts = [Form.text_field "key" "val"]
             res = HTTP.new.post_form url_post form_parts
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.parse_json.should_equal expected_response
+            res.body.decode_as_json.should_equal expected_response
         Test.specify "should Post form file" <|
             test_file = enso_project.data / "sample.txt"
             form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
@@ -206,7 +205,7 @@ spec =
                   "headers": {
                     "Content-Length": "13",
                     "Content-Type": "application/json",
-                    "User-Agent": "Java-http-client/11.0.18"
+                    "User-Agent": "Java-http-client/17.0.6"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -221,14 +220,14 @@ spec =
             json = '{"key":"val"}'
             res = HTTP.new.post_json url_post json
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.parse_json.should_equal expected_response
+            res.body.decode_as_json.should_equal expected_response
         Test.specify "should Post Json using module method" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {
                     "Content-Length": "13",
                     "Content-Type": "application/json",
-                    "User-Agent": "Java-http-client/11.0.18"
+                    "User-Agent": "Java-http-client/17.0.6"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -243,14 +242,14 @@ spec =
             json = '{"key":"val"}'
             res = HTTP.new.post_json url_post json
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.parse_json.should_equal expected_response
+            res.body.decode_as_json.should_equal expected_response
         Test.specify "should Post binary" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {
                     "Content-Length": "12",
                     "Content-Type": "application/octet-stream",
-                    "User-Agent": "Java-http-client/11.0.18"
+                    "User-Agent": "Java-http-client/17.0.6"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -263,14 +262,14 @@ spec =
             body_bytes = Request_Body.Bytes "Hello World!".utf_8
             res = HTTP.new.post url_post body_bytes
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.parse_json.should_equal expected_response
+            res.body.decode_as_json.should_equal expected_response
 
         Test.specify "should create and send Get request" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {
                     "Content-Length": "0",
-                    "User-Agent": "Java-http-client/11.0.18"
+                    "User-Agent": "Java-http-client/17.0.6"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -279,14 +278,14 @@ spec =
             req = Request.new HTTP_Method.Get url_get
             res = HTTP.new.request req
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.parse_json.should_equal expected_response
+            res.body.decode_as_json.should_equal expected_response
         Test.specify "should create and send Post request with json body" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {
                     "Content-Length": "13",
                     "Content-Type": "application/json",
-                    "User-Agent": "Java-http-client/11.0.18"
+                    "User-Agent": "Java-http-client/17.0.6"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -303,14 +302,14 @@ spec =
             req_with_body = req.with_json json_body
             res = HTTP.new.request req_with_body
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.parse_json.should_equal expected_response
+            res.body.decode_as_json.should_equal expected_response
         Test.specify "should create and send Post request with json text" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {
                     "Content-Length": "16",
                     "Content-Type": "application/json",
-                    "User-Agent": "Java-http-client/11.0.18"
+                    "User-Agent": "Java-http-client/17.0.6"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
@@ -328,6 +327,6 @@ spec =
             req_with_body = req.with_json json_text
             res = HTTP.new.request req_with_body
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.parse_json.should_equal expected_response
+            res.body.decode_as_json.should_equal expected_response
 
 main = Test_Suite.run_main spec

@@ -12,7 +12,6 @@ import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -29,17 +28,6 @@ public final class EnsoTimeOfDay implements TruffleObject {
 
   public EnsoTimeOfDay(LocalTime localTime) {
     this.localTime = localTime;
-  }
-
-  @Builtin.Method(
-      name = "parse_builtin",
-      description = "Constructs a new DateTime from text with optional pattern",
-      autoRegister = false)
-  @Builtin.Specialize
-  @Builtin.WrapException(from = DateTimeParseException.class)
-  @CompilerDirectives.TruffleBoundary
-  public static EnsoTimeOfDay parse(String text) {
-    return new EnsoTimeOfDay(LocalTime.parse(text));
   }
 
   @Builtin.Method(
@@ -109,14 +97,6 @@ public final class EnsoTimeOfDay implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   public long toSeconds() {
     return localTime.toSecondOfDay();
-  }
-
-  @Builtin.Method(
-      name = "to_date_time_builtin",
-      description = "Combine this time of day with a date to create a point in time.")
-  @CompilerDirectives.TruffleBoundary
-  public EnsoDateTime toTime(EnsoDate date, EnsoTimeZone zone) {
-    return new EnsoDateTime(localTime.atDate(date.asDate()).atZone(zone.asTimeZone()));
   }
 
   @Builtin.Method(description = "Return this datetime to the datetime in the provided time zone.")

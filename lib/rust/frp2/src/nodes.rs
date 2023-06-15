@@ -50,7 +50,7 @@ impl<Type: NotStream, Output> Deref for TypedNode<Type, Output> {
 impl<Type: NotStream, Output> From<TypedNode<Type, Output>> for Stream<Output> {
     #[inline(always)]
     fn from(node: TypedNode<Type, Output>) -> Self {
-        TypedNode { _marker: PhantomData, id: node.id }
+        TypedNode { _marker: ZST(), id: node.id }
     }
 }
 

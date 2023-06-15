@@ -233,7 +233,7 @@ where
 
     /// Element type of this texture.
     pub fn item_type() -> AnyItemType {
-        PhantomData::<T>.into()
+        ZST::<T>().into()
     }
 }
 

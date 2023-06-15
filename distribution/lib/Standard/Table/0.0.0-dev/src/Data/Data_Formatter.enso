@@ -129,6 +129,7 @@ type Data_Formatter
 
        Arguments:
        - locale: The locale to use when parsing dates and times.
+    @datetime_locale Locale.default_widget
     with_locale : Locale -> Data_Formatter
     with_locale self datetime_locale = self.clone datetime_locale=datetime_locale
 

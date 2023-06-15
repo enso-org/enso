@@ -21,6 +21,7 @@ const HTTP_STATUS_OK = 200
 // However, the path should still be non-empty in order for `esbuild.serve` to work properly.
 const ARGS: bundler.Arguments = { outputPath: '/', devMode: true }
 const OPTS = bundler.bundlerOptions(ARGS)
+OPTS.define.REDIRECT_OVERRIDE = JSON.stringify(`http://localhost:${PORT}`)
 OPTS.entryPoints.push(
     path.resolve(THIS_PATH, 'src', 'index.html'),
     path.resolve(THIS_PATH, 'src', 'index.tsx'),
@@ -34,12 +35,15 @@ OPTS.loader = { '.html': 'copy' }
 // === Watcher ===
 // ===============
 
+/** Start the esbuild watcher. */
 async function watch() {
     const builder = await esbuild.context(OPTS)
     await builder.watch()
     await builder.serve({
         port: PORT,
         servedir: OPTS.outdir,
+        /** This function is called on every request.
+         * It is used here to show an error if the file to serve was not found. */
         onRequest(args) {
             if (args.status !== HTTP_STATUS_OK) {
                 console.error(

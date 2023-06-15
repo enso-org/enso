@@ -2,10 +2,9 @@ package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.ThreadLocalAction;
 import com.oracle.truffle.api.TruffleLanguage.Env;
-import org.enso.interpreter.runtime.control.ThreadInterruptedException;
-
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
+import org.enso.interpreter.runtime.control.ThreadInterruptedException;
 
 /** Manages threads running guest code, exposing a safepoint-like functionality. */
 public class ThreadManager {

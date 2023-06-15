@@ -203,6 +203,21 @@ impl Network {
         self.register(OwnedBufferedGate::new(label, event, behavior))
     }
 
+    /// Passes the incoming event of the first stream only if the second stream has emitted an event
+    /// since the last event of the first stream.
+    ///
+    /// Event:  1---2---3-----4-------5---6---7---8--
+    /// Sync:   --|--------|---|---|-----------------
+    /// Output: ----2---------4-------5--------------
+    pub fn sync_gate<T, T2>(&self, label: Label, event: &T, sync: &T2) -> Stream<Output<T>>
+    where
+        T: EventOutput,
+        T2: EventOutput, {
+        let can_emit = Rc::new(Cell::new(false));
+        self.map(label, sync, f_!(can_emit.set(true)));
+        self.filter(label, event, f_!(can_emit.take()))
+    }
+
     /// Unwraps the value of incoming events and emits the unwrapped values.
     pub fn unwrap<T, S>(&self, label: Label, event: &T) -> Stream<S>
     where
@@ -1442,7 +1457,7 @@ impl Network {
 // === Dynamic Node API ===
 // ========================
 
-/// This is a phantom structure used by macros to create dynamic FRP graphs. It exposes the same
+/// This is a _phantom structure used by macros to create dynamic FRP graphs. It exposes the same
 /// API as `Network` in order to reuse macro code for both network and dynamic modes.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct DynamicNetwork {}
@@ -1956,7 +1971,7 @@ fn watch_stream<T: EventOutput>(target: &T) -> watch::Ref<T> {
 
 #[derive(Debug)]
 pub struct SourceData<Out = ()> {
-    phantom: PhantomData<Out>,
+    _phantom: ZST<Out>,
 }
 pub type OwnedSource<Out = ()> = stream::Node<SourceData<Out>>;
 pub type Source<Out = ()> = stream::WeakNode<SourceData<Out>>;
@@ -1968,8 +1983,8 @@ impl<Out: Data> HasOutput for SourceData<Out> {
 impl<Out: Data> OwnedSource<Out> {
     /// Constructor.
     pub fn new(label: Label) -> Self {
-        let phantom = default();
-        let definition = SourceData { phantom };
+        let _phantom = default();
+        let definition = SourceData { _phantom };
         Self::construct(label, definition)
     }
 }
@@ -2849,8 +2864,8 @@ impl<T: EventOutput> stream::InputBehaviors for DebounceData<T> {
 
 #[derive(Debug)]
 pub struct AnyData<Out = ()> {
-    srcs:    Rc<RefCell<Vec<Box<dyn std::any::Any>>>>,
-    phantom: PhantomData<Out>,
+    srcs:     Rc<RefCell<Vec<Box<dyn std::any::Any>>>>,
+    _phantom: ZST<Out>,
 }
 pub type OwnedAny<Out = ()> = stream::Node<AnyData<Out>>;
 /// Please refer to `any_mut` docs to learn more.
@@ -2864,8 +2879,8 @@ impl<Out: Data> OwnedAny<Out> {
     /// Constructor.
     pub fn new(label: Label) -> Self {
         let srcs = default();
-        let phantom = default();
-        let def = AnyData { srcs, phantom };
+        let _phantom = default();
+        let def = AnyData { srcs, _phantom };
         Self::construct(label, def)
     }
 
@@ -3367,9 +3382,9 @@ impl<T1> stream::InputBehaviors for FoldData<T1> {
 // ==============
 
 pub struct AllMutData<Out = ()> {
-    srcs:    Rc<RefCell<Vec<Box<dyn ValueProvider<Output = Out>>>>>,
-    watches: Rc<RefCell<Vec<Box<dyn std::any::Any>>>>,
-    phantom: PhantomData<Out>,
+    srcs:     Rc<RefCell<Vec<Box<dyn ValueProvider<Output = Out>>>>>,
+    watches:  Rc<RefCell<Vec<Box<dyn std::any::Any>>>>,
+    _phantom: ZST<Out>,
 }
 pub type OwnedAllMut<Out = ()> = stream::Node<AllMutData<Out>>;
 pub type AllMut<Out = ()> = stream::WeakNode<AllMutData<Out>>;
@@ -3389,8 +3404,8 @@ impl<Out: Data> OwnedAllMut<Out> {
     pub fn new(label: Label) -> Self {
         let srcs = default();
         let watches = default();
-        let phantom = default();
-        let def = AllMutData { srcs, watches, phantom };
+        let _phantom = default();
+        let def = AllMutData { srcs, watches, _phantom };
         Self::construct(label, def)
     }
 
@@ -4020,7 +4035,7 @@ where
 // ==============
 
 pub struct FilterData<T, P> {
-    phantom:   PhantomData<T>,
+    _phantom:  ZST<T>,
     predicate: P,
 }
 pub type OwnedFilter<T, P> = stream::Node<FilterData<T, P>>;
@@ -4041,7 +4056,7 @@ where
 {
     /// Constructor.
     pub fn new(label: Label, src: &T, predicate: P) -> Self {
-        let definition = FilterData { phantom: PhantomData, predicate };
+        let definition = FilterData { _phantom: ZST(), predicate };
         Self::construct_and_connect(label, src, definition)
     }
 }
@@ -4071,7 +4086,7 @@ impl<T, P> Debug for FilterData<T, P> {
 // =================
 
 pub struct FilterMapData<T, F> {
-    phantom:  PhantomData<T>,
+    _phantom: ZST<T>,
     function: F,
 }
 pub type OwnedFilterMap<T, F> = stream::Node<FilterMapData<T, F>>;
@@ -4094,7 +4109,7 @@ where
 {
     /// Constructor.
     pub fn new(label: Label, src: &T, function: F) -> Self {
-        let definition = FilterMapData { phantom: PhantomData, function };
+        let definition = FilterMapData { _phantom: ZST(), function };
         Self::construct_and_connect(label, src, definition)
     }
 }
@@ -4125,7 +4140,7 @@ impl<T, F> Debug for FilterMapData<T, F> {
 // ===========
 
 pub struct MapData<T, F> {
-    phantom:  PhantomData<T>,
+    _phantom: ZST<T>,
     function: F,
 }
 pub type OwnedMap<T, F> = stream::Node<MapData<T, F>>;
@@ -4148,7 +4163,7 @@ where
 {
     /// Constructor.
     pub fn new(label: Label, src: &T, function: F) -> Self {
-        let definition = MapData { phantom: PhantomData, function };
+        let definition = MapData { _phantom: ZST(), function };
         Self::construct_and_connect(label, src, definition)
     }
 }
