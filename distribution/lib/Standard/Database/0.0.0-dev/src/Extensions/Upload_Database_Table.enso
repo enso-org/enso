@@ -1,4 +1,6 @@
-from Standard.Base import all
+from Standard.Base import Boolean, True, False
+from Standard.Base import Nothing, Text, Problem_Behavior, Panic
+from Standard.Base import Vector
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Internal.Widget_Helpers
