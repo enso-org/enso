@@ -168,18 +168,21 @@ impl<T> ZeroOverheadRefCell<T> {
     }
 
     #[inline(always)]
-    pub fn with_borrowed<R>(&self, f: impl FnOnce(&T) -> R) -> R {
-        f(&*self.borrow())
-    }
-
-    #[inline(always)]
-    pub fn with_borrowed_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
-        f(&mut *self.borrow_mut())
-    }
-
-    #[inline(always)]
     pub fn replace(&self, t: T) -> T {
         std::mem::replace(&mut *self.borrow_mut(), t)
+    }
+}
+
+#[cfg(not(debug_assertions))]
+impl<T> RefCellOps for ZeroOverheadRefCell<T> {
+    type Borrowed = T;
+    #[inline(always)]
+    fn with_borrowed<U>(&self, f: impl FnOnce(&Self::Borrowed) -> U) -> U {
+        f(&*self.borrow())
+    }
+    #[inline(always)]
+    fn with_borrowed_mut<U>(&self, f: impl FnOnce(&mut Self::Borrowed) -> U) -> U {
+        f(&mut *self.borrow_mut())
     }
 }
 

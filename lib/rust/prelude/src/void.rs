@@ -14,10 +14,15 @@
 //  });
 /// ```
 /// 
-/// It is impossible to write it in a more compact form, as the `new_node_with` requires a closure
-/// which does not return a value. With this utility, the code can be rewritten to:
+/// It is impossible to write it in a more compact form when using Rust formatter, as the
+/// `new_node_with` requires a closure which does not return a value. With this utility, the code
+/// can be rewritten to:
 /// ```text
-/// let node = self.new_node_with(|node| void(init(node)));
+/// let node = self.new_node_with(|node| init(node).void());
 /// ```
-#[inline(always)]
-pub fn void<T>(_t: T) {}
+#[allow(missing_docs)]
+pub trait Void {
+    #[inline(always)]
+    fn void(&self) {}
+}
+impl<T> Void for T {}

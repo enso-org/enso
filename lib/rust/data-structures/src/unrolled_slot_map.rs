@@ -60,7 +60,7 @@ impl Version {
 pub struct VersionedIndex<Kind = ()> {
     index:   usize,
     version: Version,
-    _kind:   PhantomData<Kind>,
+    _kind:   ZST<Kind>,
 }
 
 #[allow(unsafe_code)]
@@ -69,7 +69,7 @@ unsafe impl<Kind> Zeroable for VersionedIndex<Kind> {}
 impl<Kind> VersionedIndex<Kind> {
     #[inline(always)]
     fn new(index: usize, version: Version) -> Self {
-        Self { index, version, _kind: PhantomData }
+        Self { index, version, _kind: ZST() }
     }
 
     /// Create a new index that is not occupied. you will not be able to use this index. It can be
@@ -130,7 +130,7 @@ impl<Item> Slot<Item> {
 pub struct UnrolledSlotMap<Item, const N: usize, Kind = (), B = prealloc::Disabled> {
     free_indexes: ZeroOverheadRefCell<Vec<usize>>,
     slots:        Box<UnrolledLinkedList<Slot<Item>, N, usize, B>>,
-    _kind:        PhantomData<Kind>,
+    _kind:        ZST<Kind>,
 }
 
 impl<T: Debug, const N: usize, Kind, B> Debug for UnrolledSlotMap<T, N, Kind, B>

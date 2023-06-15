@@ -45,12 +45,17 @@ derive_zeroable! {
     /// This ensures no unnecessary allocations or deallocations occur. Emptying it and then filling
     /// it back up to the same len should incur no calls to the allocator. If you wish to free up
     /// unused memory, use [`Self::shrink_to_fit`] or [`Self::shrink_to`].
+    ///
+    /// # Pushing new elements during iteration
+    /// Please note that as adding new elements does not require mutable access to self, it is
+    /// possible to add new elements during iteration. However, the iterator will not yield the new
+    /// elements. If you wish to iterate over the new elements, you need to create a new iterator.
     pub struct UnrolledLinkedList
     [T, N, I, B][T, const N: usize, I, B][T, const N: usize, I = usize, B = prealloc::Disabled] {
         len:        Cell<usize>,
         capacity:   Cell<usize>,
         first_node: InitCell<ZeroableOption<Node<T, N, B>>>,
-        _index_tp:  PhantomData<I>,
+        _index_tp:  ZST<I>,
     }
 }
 
@@ -160,6 +165,8 @@ where
         self.shrink_to_internal(capacity);
     }
 
+    /// This is the internal implementation of [`Self::shrink_to_fit`] and [`Self::shrink_to`]. It
+    /// is defined separately to allow inlining in both methods.
     #[inline(always)]
     fn shrink_to_internal(&mut self, capacity: usize) {
         let new_capacity = self.len().max(capacity);
@@ -174,7 +181,7 @@ where
     /// Number of nodes used to store the items.
     #[inline(always)]
     pub fn node_count(&self) -> usize {
-        self.first_node.opt_item().map(|t| t.node_count()).unwrap_or(0)
+        self.first_node.opt_item().map_or_default(|t| t.node_count())
     }
 
     /// Get the element at the given index if the index is in bounds.
@@ -203,15 +210,26 @@ where
         index.into()
     }
 
-    /// Add a new item at the end and return its index. If the list uses preallocated memory and
-    /// there is enough space, this operation is almost zero-cost.
+    /// Add a new item at the end and return its index. The exact new item shape depends on the
+    /// allocation behavior (the [`Self::B`] parametrization). In case of [`prealloc::Disabled]` or
+    /// [`prealloc::Default`], the new element will be initialized with its default value. in case
+    /// of [`prealloc::Zeroed`], the new element will be initialized with zeroed memory.
+    ///
+    /// If the list uses preallocated memory and there is enough space, this operation is almost
+    /// zero-cost.
     #[inline(always)]
     pub fn push_new(&self) -> I {
         self.push_new_multiple(1)
     }
 
-    /// Add several new items at the end and return the index of the first added item. If the list
-    /// uses preallocated memory and there is enough space, this operation is almost zero-cost.
+    /// Add several new items at the end and return the index of the first added item. The exact
+    /// mew item shape depends on the allocation behavior (the [`Self::B`] parametrization). In case
+    /// of [`prealloc::Disabled]` or [`prealloc::Default`], the new element will be initialized
+    /// with its default value. in case of [`prealloc::Zeroed`], the new element will be
+    /// initialized with zeroed memory.
+    ///
+    /// If the list uses preallocated memory and there is enough space, this operation is almost
+    /// zero-cost.
     #[inline(always)]
     pub fn push_new_multiple(&self, count: usize) -> I {
         AllocationBehavior::push_new_multiple(self, count).into()
@@ -236,8 +254,8 @@ where
     where F: FnMut(&T) -> bool {
         if let Some(first_node) = self.first_node.opt_item_mut() {
             let len = self.len.get();
-            first_node.retain_stage1(len, f);
-            let (new_size, new_capacity) = first_node.retain_stage2();
+            first_node.retain_stage1_retain_nodes_elements(len, f);
+            let (new_size, new_capacity) = first_node.retain_stage2_merge_sparse_nodes();
             self.len.set(new_size);
             self.capacity.set(new_capacity);
         }
@@ -321,7 +339,7 @@ type NodeItem<T> = UnsafeCell<T>;
 /// A single node in the [`UnrolledLinkedList`]. It stores up to `N` items in an array and contains
 /// a pointer to the next node, if any.
 pub struct Node<T, const N: usize, B> {
-    _allocation_behavior: PhantomData<B>,
+    _allocation_behavior: ZST<B>,
     // Vec is used here instead of an array in order to re-use some of its functionality, such as
     // efficient retaining implementation. It is initialized like an array and never allocated or
     // deallocates memory.
@@ -452,7 +470,7 @@ where B: AllocationBehavior<T>
     /// For each node, retain the items. Node lengths will be shortened if necessary, however,
     /// two adjacent not-full nodes will not be merged. Merging will be performed in stage 2.
     #[inline(always)]
-    pub fn retain_stage1<F>(&mut self, len: usize, mut f: F)
+    pub fn retain_stage1_retain_nodes_elements<F>(&mut self, len: usize, mut f: F)
     where F: FnMut(&T) -> bool {
         if len < N {
             // # Safety
@@ -470,13 +488,13 @@ where B: AllocationBehavior<T>
         #[allow(unsafe_code)]
         self.items_mut().retain(|t| f(unsafe { t.unchecked_borrow() }));
         if let Some(next) = self.next.opt_item_mut() {
-            next.retain_stage1(len - N, f);
+            next.retain_stage1_retain_nodes_elements(len - N, f);
         }
     }
 
     /// For each node, merge two adjacent not-full nodes.
     #[inline(always)]
-    pub fn retain_stage2(&mut self) -> (usize, usize) {
+    pub fn retain_stage2_merge_sparse_nodes(&mut self) -> (usize, usize) {
         while self.items().len() < N {
             let new_next_node = {
                 let (items, mut next_node) = self.items_and_next_mut();
@@ -502,7 +520,7 @@ where B: AllocationBehavior<T>
                 (len, N)
             }
             Some(next) => {
-                let (next_len, next_capacity) = next.retain_stage2();
+                let (next_len, next_capacity) = next.retain_stage2_merge_sparse_nodes();
                 (N + next_len, N + next_capacity)
             }
         }
@@ -603,7 +621,7 @@ impl<T: Default> AllocationBehavior<T> for prealloc::Default {
         }
         let items = UnsafeCell::new(items);
         let next = default();
-        let _allocation_behavior = PhantomData;
+        let _allocation_behavior = ZST();
         Node { _allocation_behavior, items, next }
     }
 
@@ -654,7 +672,7 @@ impl<T: Zeroable> AllocationBehavior<T> for prealloc::Zeroed {
         };
         let items = UnsafeCell::new(items);
         let next = default();
-        let _allocation_behavior = PhantomData;
+        let _allocation_behavior = ZST();
         Node { _allocation_behavior, items, next }
     }
 
@@ -721,7 +739,7 @@ impl<T: Default> AllocationBehavior<T> for prealloc::Disabled {
         };
         let items = UnsafeCell::new(items);
         let next = default();
-        let _allocation_behavior = PhantomData;
+        let _allocation_behavior = ZST();
         Node { _allocation_behavior, items, next }
     }
 

@@ -140,7 +140,7 @@ impl<Model> Network<Model> {
     where
         Inputs: Template<M, Model, Output, F>,
     {
-        let node = Inputs::new_node_with_init(self, inps, body, |n| void(init(n)));
+        let node = Inputs::new_node_with_init(self, inps, body, |n| init(n).void());
         NodeInNetwork::new(self, node)
     }
 
