@@ -152,8 +152,12 @@ public class ImportApiAnalysis implements IRPass {
       }
       var ir = current.getIr();
       if (ir == null) {
-        var ctx = EnsoContext.get(null);
-        ir = current.compileScope(ctx).getModule().getIr();
+        try {
+          var ctx = EnsoContext.get(null);
+          ir = current.compileScope(ctx).getModule().getIr();
+        } catch (AssertionError e) {
+          continue;
+        }
       }
       var meta = ir.passData();
       var map = (BindingsMap) meta.get(BindingAnalysis$.MODULE$).get();
