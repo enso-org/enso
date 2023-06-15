@@ -2,9 +2,7 @@ package org.enso.compiler.pass.analyse;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
-import java.util.Set;
 import java.util.UUID;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
@@ -20,6 +18,7 @@ import org.enso.compiler.pass.desugar.FunctionBinding$;
 import org.enso.compiler.pass.desugar.GenerateMethodBodies$;
 import org.enso.compiler.pass.resolve.MethodDefinitions$;
 import org.enso.compiler.pass.resolve.Patterns$;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.QualifiedName;
@@ -84,13 +83,7 @@ public class ImportApiAnalysis implements IRPass {
               if (mod == mainModule) {
                 forbidden = false;
               } else {
-                // if different that Main mod is requested, do a check
-                if (mainModule.getIr() == null) {
-                  // if main mod IR isn't loaded, then certainly the import didn't go thru Main
-                  forbidden = true;
-                } else {
-                  forbidden = findLogicalImport(mod, mainModule);
-                }
+                forbidden = !findLogicalImport(mod, mainModule);
               }
               if (forbidden) {
                 forbiddenImports.put(
@@ -157,7 +150,13 @@ public class ImportApiAnalysis implements IRPass {
       if (!checked.add(current)) {
         continue;
       }
-      var map = (BindingsMap) current.getIr().passData().get(BindingAnalysis$.MODULE$).get();
+      var ir = current.getIr();
+      if (ir == null) {
+        var ctx = EnsoContext.get(null);
+        ir = current.compileScope(ctx).getModule().getIr();
+      }
+      var meta = ir.passData();
+      var map = (BindingsMap) meta.get(BindingAnalysis$.MODULE$).get();
 
       var itMainMap = map.exportedSymbols().iterator();
       while (itMainMap.hasNext()) {
@@ -168,7 +167,7 @@ public class ImportApiAnalysis implements IRPass {
                 case BindingsMap$ModuleReference$Concrete allowed -> {
                   if (allowed.module() == mod) {
                     // found import
-                    return false;
+                    return true;
                   } else {
                     if (isParentModule(allowed.getName(), mod.getName())) {
                       toProcess.add(allowed.module());
@@ -185,20 +184,24 @@ public class ImportApiAnalysis implements IRPass {
         }
       }
     }
-    return true;
+    // no logical import found
+    return false;
   }
 
   private static boolean isParentModule(QualifiedName parent, QualifiedName mod) {
-    var path = parent.pathAsJava();
-    for (int i = 0; i < path.size(); i++) {
-      if (mod.pathAsJava().size() >= i) {
-        break;
-      }
-      if (!mod.pathAsJava().get(i).equals(path.get(i))) {
+    var at = 0;
+    var parentPath = parent.pathAsJava();
+    var modPath = mod.pathAsJava();
+    while (at < parentPath.size()) {
+      if (at >= modPath.size()) {
         return false;
       }
+      if (!modPath.get(at).equals(parentPath.get(at))) {
+        return false;
+      }
+      at++;
     }
-    return true;
+    return modPath.size() > at && parent.item().equals(modPath.get(at));
   }
 
   @SuppressWarnings("unchecked")
