@@ -1,18 +1,16 @@
 package org.enso.interpreter.dsl.builtins;
 
-import org.apache.commons.lang3.StringUtils;
-
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.VariableElement;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import org.apache.commons.lang3.StringUtils;
 
 /** A method generator for a single concrete `execute` method. */
 public final class ExecuteMethodImplGenerator extends MethodGenerator {

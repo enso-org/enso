@@ -1,12 +1,12 @@
 from Standard.Base import all
-import Standard.Base.Data.Index_Sub_Range
+from Standard.Base.Data.Index_Sub_Range import sort_and_merge_ranges
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 spec = Test.group "Vector Slicing Helpers" <|
     Test.specify "should be able to sort correctly merge neighboring sequences" <|
-        merge = Index_Sub_Range.sort_and_merge_ranges
+        merge = sort_and_merge_ranges
         merge [] . should_equal []
         merge [0.up_to 0] . should_equal []
         merge [0.up_to 10] . should_equal [0.up_to 10]

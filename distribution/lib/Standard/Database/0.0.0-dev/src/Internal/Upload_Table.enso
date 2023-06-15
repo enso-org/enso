@@ -4,20 +4,23 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.Data.Table.Table as In_Memory_Table
-import Standard.Table.Data.Type.Value_Type.Value_Type
-from Standard.Table import Aggregate_Column
+from Standard.Table import Aggregate_Column, Join_Kind, Value_Type, Column_Selector
 from Standard.Table.Errors import all
 
 import project.Connection.Connection.Connection
+import project.Data.Column_Constraint.Column_Constraint
+import project.Data.Column_Description.Column_Description
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.Table.Table as Database_Table
 import project.Data.Update_Action.Update_Action
 import project.Internal.In_Transaction.In_Transaction
+import project.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 from project.Connection.Connection import all_known_table_names
 from project.Errors import all
+from project.Internal.Result_Set import result_set_to_table
 
 ## PRIVATE
    Creates a new database table with the provided structure and returns the name
@@ -29,12 +32,13 @@ create_table_structure connection table_name structure primary_key temporary all
         False ->
             effective_table_name = resolve_effective_table_name table_name temporary
             aligned_structure = align_structure structure
-            resolved_primary_key = resolve_primary_key aligned_structure primary_key
-            create_table_statement = prepare_create_table_statement connection effective_table_name aligned_structure resolved_primary_key temporary on_problems
-            update_result = create_table_statement.if_not_error <|
-                connection.execute_update create_table_statement
-            update_result.if_not_error <|
-                effective_table_name
+            if aligned_structure.is_empty then Error.throw (Illegal_Argument.Error "An empty table cannot be created: the `structure` must consist of at list one column description.") else
+                resolved_primary_key = resolve_primary_key aligned_structure primary_key
+                create_table_statement = prepare_create_table_statement connection effective_table_name aligned_structure resolved_primary_key temporary on_problems
+                update_result = create_table_statement.if_not_error <|
+                    connection.execute_update create_table_statement
+                update_result.if_not_error <|
+                    effective_table_name
 
 ## PRIVATE
    A helper that can upload a table from any backend to a database.
@@ -96,7 +100,7 @@ internal_upload_database_table source_table connection table_name primary_key te
                        table. But we create both from the same source table, so
                        that is guaranteed.
                     copy_into_statement = connection.dialect.generate_sql <|
-                        Query.Insert_From_Select created_table_name source_table.to_select_query
+                        Query.Insert_From_Select created_table_name source_table.column_names source_table.to_select_query
                     Panic.rethrow <| connection.execute_update copy_into_statement
 
             upload_status.if_not_error <|
@@ -112,7 +116,7 @@ resolve_primary_key structure primary_key = case primary_key of
             if key.is_a Text then key else
                 Error.throw (Illegal_Argument.Error "Primary key must be a vector of column names.")
         validated.if_not_error <|
-            column_names = Set.from_vector (structure.map .first)
+            column_names = Set.from_vector (structure.map .name)
             missing_columns = (Set.from_vector primary_key).difference column_names
             if missing_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_columns.to_vector) else
                 primary_key
@@ -164,17 +168,13 @@ raise_duplicated_primary_key_error source_table primary_key original_panic =
             Error.throw (Non_Unique_Primary_Key.Error primary_key example_entry example_count)
 
 ## PRIVATE
-align_structure : Database_Table | In_Memory_Table | Vector (Pair Text Value_Type) -> Vector (Pair Text Value_Type)
+align_structure : Database_Table | In_Memory_Table | Vector Column_Description -> Vector Column_Description
 align_structure table_or_columns = case table_or_columns of
-    _ : Vector -> table_or_columns.map pair->
-        if pair.length != 2 then Error.throw (Illegal_Argument.Error "The structure must be an existing Table or vector of pairs.") else
-            name = pair.first
-            value_type = pair.second
-            if name . is_a Text . not then Error.throw (Illegal_Argument.Error "Column names must be a Text. Instead, got a: "+name.to_display_text+".") else
-                if value_type . is_a Value_Type . not then Error.throw (Illegal_Argument.Error "Column value types must be a Value_Type. Instead, got a: "+value_type.to_display_text+".") else
-                    pair
+    _ : Vector -> table_or_columns.map def->
+        if def.is_a Column_Description . not then Error.throw (Illegal_Argument.Error "The structure must be an existing Table or vector of Column_Description.") else
+            def
     _ -> table_or_columns.columns.map column->
-        Pair.new column.name column.value_type
+        Column_Description.Value column.name column.value_type
 
 ## PRIVATE
    Creates a statement that will create a table with structure determined by the
@@ -183,15 +183,13 @@ align_structure table_or_columns = case table_or_columns of
    The `primary_key` columns must be present in `columns`, but it is the
    responsibility of the caller to ensure that, otherwise the generated
    statement will be invalid.
-prepare_create_table_statement : Connection -> Text -> Vector -> Vector Text -> Boolean -> Problem_Behavior -> SQL_Statement
+prepare_create_table_statement : Connection -> Text -> Vector Column_Description -> Vector Text -> Boolean -> Problem_Behavior -> SQL_Statement
 prepare_create_table_statement connection table_name columns primary_key temporary on_problems =
     type_mapping = connection.dialect.get_type_mapping
-    column_descriptors = columns.map pair->
-        name = pair.first
-        value_type = pair.second
-        sql_type = type_mapping.value_type_to_sql value_type on_problems
+    column_descriptors = columns.map def->
+        sql_type = type_mapping.value_type_to_sql def.value_type on_problems
         sql_type_text = type_mapping.sql_type_to_text sql_type
-        Pair.new name sql_type_text
+        Create_Column_Descriptor.Value def.name sql_type_text def.constraints
     connection.dialect.generate_sql <|
         Query.Create_Table table_name column_descriptors primary_key temporary
 
@@ -217,7 +215,7 @@ make_batched_insert_template connection table_name column_names =
     template
 
 ## PRIVATE
-common_update_table source_table connection table_name update_action key_columns error_on_missing_columns =
+common_update_table source_table connection table_name update_action key_columns error_on_missing_columns on_problems =
     Panic.recover SQL_Error <| handle_upload_errors <|
         connection.jdbc_connection.run_within_transaction <|
             target_table = connection.query (SQL_Query.Table_Name table_name)
@@ -229,20 +227,91 @@ common_update_table source_table connection table_name update_action key_columns
                 Error.throw new_error
             if target_table.is_error then handle_error else
                 tmp_table_name = "temporary-source-table-"+random_uuid
-                tmp_table = internal_upload_table source_table connection tmp_table_name key_columns temporary=True structure_only=False on_problems=Problem_Behavior.Report_Error
+                tmp_table = internal_upload_table source_table connection tmp_table_name key_columns temporary=True on_problems=Problem_Behavior.Report_Error
                 tmp_table.if_not_error <|
-                    resulting_table = append_to_existing_table tmp_table target_table update_action key_columns error_on_missing_columns
+                    resulting_table = append_to_existing_table tmp_table target_table update_action key_columns error_on_missing_columns on_problems
                     connection.drop_table tmp_table.name
                     resulting_table
 
 ## PRIVATE
-append_to_existing_table source_table target_table update_action key_columns error_on_missing_columns =
+append_to_existing_table source_table target_table update_action key_columns error_on_missing_columns on_problems = In_Transaction.ensure_in_transaction <|
+    effective_key_columns = if key_columns.is_nothing then [] else key_columns
+    check_update_arguments source_table target_table effective_key_columns update_action error_on_missing_columns on_problems <|
+        throw_not_implemented =
+            Error.throw (Illegal_State.Error "Not implemented yet. Only `Insert` is implemented.")
+        upload_status = case update_action of
+            Update_Action.Insert ->
+                existing_rows_check = if effective_key_columns.is_empty then True else
+                    joined = source_table.join target_table on=key_columns join_kind=Join_Kind.Inner
+                    count = joined.row_count
+                    if count == 0 then True else
+                        Error.throw (Rows_Already_Present.Error count)
+                existing_rows_check.if_not_error <|
+                    connection = target_table.connection
+                    insert_statement = connection.dialect.generate_sql <|
+                        Query.Insert_From_Select target_table.name source_table.column_names source_table.to_select_query
+                    Panic.rethrow <| connection.execute_update insert_statement
+            Update_Action.Update -> throw_not_implemented
+            Update_Action.Update_Or_Insert -> throw_not_implemented
+            Update_Action.Align_Records -> throw_not_implemented
+        upload_status.if_not_error target_table
+
+## PRIVATE
+check_update_arguments source_table target_table key_columns update_action error_on_missing_columns on_problems ~action =
+    check_source_column source_column =
+        # The column must exist because it was verified earlier.
+        target_column = target_table.get source_column.name
+        source_type = source_column.value_type
+        target_type = target_column.value_type
+        if source_type == target_type then [] else
+            if source_type.can_be_widened_to target_type then [Inexact_Type_Coercion.Warning source_type target_type] else
+                Error.throw (Column_Type_Mismatch.Error source_column.name target_type source_type)
+
     source_columns = Set.from_vector source_table.column_names
     target_columns = Set.from_vector target_table.column_names
     extra_columns = source_columns.difference target_columns
-    if extra_columns.not_empty then Error.throw (Unmatched_Columns.Error extra_columns) else
+    if extra_columns.not_empty then Error.throw (Unmatched_Columns.Error extra_columns.to_vector) else
         missing_columns = target_columns.difference source_columns
-        if missing_columns.not_empty && error_on_missing_columns then Error.throw (Missing_Input_Columns.Error missing_columns "the source table") else
-            # TODO [RW] to be finished in follow up PR
-            _ = [update_action, key_columns]
-            Error.throw (Illegal_State.Error "TODO: Not implemented yet.")
+        if missing_columns.not_empty && error_on_missing_columns then Error.throw (Missing_Input_Columns.Error missing_columns.to_vector "the source table") else
+            key_set = Set.from_vector key_columns
+            missing_source_key_columns = key_set.difference source_columns
+            missing_target_key_columns = key_set.difference target_columns
+            if missing_source_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_source_key_columns.to_vector "the source table") else
+                if missing_target_key_columns.not_empty then Error.throw (Missing_Input_Columns.Error missing_target_key_columns.to_vector "the target table") else
+                    if (update_action != Update_Action.Insert) && key_columns.is_empty then Error.throw (Illegal_Argument.Error "For the `update_action = "+update_action.to_text+"`, the `key_columns` must be specified to define how to match the records.") else
+                        # Verify type matching
+                        problems = source_table.columns.flat_map check_source_column
+                        problems.if_not_error <|
+                            on_problems.attach_problems_before problems action
+
+## PRIVATE
+default_key_columns connection table_name =
+    keys = get_primary_key connection table_name
+    keys.catch Any _->
+        Error.throw (Illegal_Argument.Error "Could not determine the primary key for table "+table_name+". Please provide it explicitly.")
+
+## PRIVATE
+
+   This method may not work correctly with temporary tables, possibly resulting
+   in `SQL_Error` as such tables may not be found.
+
+   ! Temporary Tables in SQLite
+
+     The temporary tables in SQLite live in a `temp` database. There is a bug in
+     how JDBC retrieves primary keys - it only queries the `sqlite_schema` table
+     which contains schemas of only permanent tables.
+
+     Ideally, we should provide a custom implementation for SQLite that will
+     UNION both `sqlite_schema` and `temp.sqlite_schema` tables to get results
+     for both temporary and permanent tables.
+
+     TODO [RW] fix keys for SQLite temporary tables and test it
+get_primary_key connection table_name =
+    connection.query (SQL_Query.Table_Name table_name) . if_not_error <|
+        connection.jdbc_connection.with_connection java_connection->
+            rs = java_connection.getMetaData.getPrimaryKeys Nothing Nothing table_name
+            keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
+            # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
+            selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True
+            key_column_names = selected.order_by 1 . at 0 . to_vector
+            if key_column_names.is_empty then Nothing else key_column_names

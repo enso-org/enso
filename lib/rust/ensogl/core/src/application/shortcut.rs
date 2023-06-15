@@ -225,8 +225,11 @@ impl Shortcut {
 /// shortcut is unregistered.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Registry {
-    model:   RegistryModel,
-    network: frp::Network,
+    model:                 RegistryModel,
+    network:               frp::Network,
+    /// An FRP node that contains the name of the command currently being executed.
+    /// `None` means that no command is being executed.
+    pub currently_handled: frp::Source<Option<ImString>>,
 }
 
 /// Internal representation of `Registry`.
@@ -236,6 +239,7 @@ pub struct RegistryModel {
     mouse:              Mouse_DEPRECATED,
     command_registry:   command::Registry,
     shortcuts_registry: shortcuts::HashSetRegistry<Shortcut>,
+    currently_handled:  frp::Source<Option<ImString>>,
 }
 
 impl Deref for Registry {
@@ -252,10 +256,13 @@ impl Registry {
         keyboard: &keyboard::Keyboard,
         cmd_registry: &command::Registry,
     ) -> Self {
-        let model = RegistryModel::new(mouse, keyboard, cmd_registry);
-        let mouse = &model.mouse;
-
         frp::new_network! { network
+            def currently_handled = source();
+        }
+        let model =
+            RegistryModel::new(mouse, keyboard, cmd_registry, currently_handled.clone_ref());
+        let mouse = &model.mouse;
+        frp::extend! { network
             kb_down    <- keyboard.down.map (f!((t) model.shortcuts_registry.on_press(t.simple_name())));
             kb_up      <- keyboard.up.map   (f!((t) model.shortcuts_registry.on_release(t.simple_name())));
             mouse_down <- mouse.down.map    (f!((t) model.shortcuts_registry.on_press(t.simple_name())));
@@ -263,7 +270,7 @@ impl Registry {
             event      <- any(kb_down,kb_up,mouse_down,mouse_up);
             eval event ((m) model.process_rules(m));
         }
-        Self { model, network }
+        Self { model, network, currently_handled }
     }
 }
 
@@ -273,12 +280,13 @@ impl RegistryModel {
         mouse: &Mouse_DEPRECATED,
         keyboard: &keyboard::Keyboard,
         command_registry: &command::Registry,
+        currently_handled: frp::Source<Option<ImString>>,
     ) -> Self {
         let keyboard = keyboard.clone_ref();
         let mouse = mouse.clone_ref();
         let command_registry = command_registry.clone_ref();
         let shortcuts_registry = default();
-        Self { keyboard, mouse, command_registry, shortcuts_registry }
+        Self { keyboard, mouse, command_registry, shortcuts_registry, currently_handled }
     }
 
     fn process_rules(&self, rules: &[Shortcut]) {
@@ -294,7 +302,7 @@ impl RegistryModel {
                             match instance.command_map.borrow().get(command_name) {
                                 Some(cmd) =>
                                     if cmd.enabled {
-                                        targets.push(cmd.frp.clone_ref())
+                                        targets.push((cmd.frp.clone_ref(), command_name))
                                     },
                                 None => warn!("Command {command_name} was not found on {target}."),
                             }
@@ -303,8 +311,14 @@ impl RegistryModel {
                 })
             }
         }
-        for target in targets {
-            target.emit(())
+
+        for (target, name) in targets {
+            debug_span!("Emitting command {name} on {target:?}.").in_scope(|| {
+                let name = Some(ImString::from(name));
+                self.currently_handled.emit(name);
+                target.emit(());
+                self.currently_handled.emit(None);
+            });
         }
     }
 

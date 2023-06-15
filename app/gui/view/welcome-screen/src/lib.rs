@@ -116,7 +116,6 @@ static STYLESHEET: &str = include_str!("../style.css");
 /// Model of Welcome Screen that generates HTML DOM elements.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    application:    Application,
     dom:            DomSymbol,
     display_object: display::object::Instance,
     side_menu:      SideMenu,
@@ -126,7 +125,6 @@ pub struct Model {
 impl Model {
     /// Constructor. `frp` is used to set up event handlers on buttons.
     pub fn new(app: &Application) -> Self {
-        let application = app.clone_ref();
         let display_object = display::object::Instance::new();
 
         let side_menu = SideMenu::new();
@@ -141,7 +139,7 @@ impl Model {
         style.set_inner_html(STYLESHEET);
         dom.append_or_warn(&style);
 
-        Self { application, dom, display_object, side_menu, template_cards }
+        Self { dom, display_object, side_menu, template_cards }
     }
 
     fn create_dom(side_menu: &SideMenu, template_cards: &TemplateCards) -> DomSymbol {
@@ -257,9 +255,5 @@ impl application::View for View {
 
     fn new(app: &Application) -> Self {
         Self::new(app)
-    }
-
-    fn app(&self) -> &Application {
-        &self.model.application
     }
 }

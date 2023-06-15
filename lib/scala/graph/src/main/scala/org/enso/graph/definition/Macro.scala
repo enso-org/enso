@@ -752,9 +752,10 @@ object Macro {
         val companionModuleStub: ModuleDef =
           q"""
             object $fieldTermName {
-              implicit def sized = new Sized[$fieldTypeName] {
-                type Out = $natSubfields
-              }
+              implicit def sized: Sized.Aux[$fieldTypeName, $natSubfields] =
+                new Sized[$fieldTypeName] {
+                  type Out = $natSubfields
+                }
             }
             """.asInstanceOf[ModuleDef]
 
@@ -869,10 +870,11 @@ object Macro {
                   $parentName,
                   $typeName
                 ](index)
-              implicit def sized = new Sized[$typeName] {
-                type Out = $natSubfields
-              }
-              implicit def indexed =
+              implicit def sized: Sized.Aux[$typeName, $natSubfields] =
+                new Sized[$typeName] {
+                  type Out = $natSubfields
+                }
+              implicit def indexed: VariantIndexed[$parentName, $typeName] =
                 new VariantIndexed[$parentName, $typeName] {
                   val ix = index
                 }
@@ -1031,12 +1033,14 @@ object Macro {
           .map(_._2)
           .foldLeft(0)((x: Int, y: Int) => Math.max(x, y)) + 1
 
+        val natTypeName = mkNatConstantTypeName(numTotalSize)
         val baseModuleStub: ModuleDef =
           q"""
             object $variantTermName {
-              implicit def sized = new Sized[$variantTypeName] {
-                type Out = ${mkNatConstantTypeName(numTotalSize)}
-              }
+              implicit def sized: Sized.Aux[$variantTypeName, $natTypeName] =
+                new Sized[$variantTypeName] {
+                  type Out = $natTypeName
+                }
             }
            """.asInstanceOf[ModuleDef]
 

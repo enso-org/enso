@@ -1,7 +1,7 @@
 import project.Any.Any
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
-import project.Data.Range.Extensions
+from project.Data.Range.Extensions import all
 import project.Data.Range.Range
 import project.Data.Text.Regex.No_Such_Group
 import project.Data.Text.Regex.Pattern.Pattern

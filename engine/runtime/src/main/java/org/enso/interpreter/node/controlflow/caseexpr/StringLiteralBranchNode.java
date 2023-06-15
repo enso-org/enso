@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.controlflow.caseexpr;
 
+import com.ibm.icu.text.Normalizer;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
@@ -10,8 +11,6 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.data.text.Text;
-
-import com.ibm.icu.text.Normalizer;
 
 @NodeInfo(shortName = "StringLiteralMatch", description = "Allows matching on String literals")
 public abstract class StringLiteralBranchNode extends BranchNode {

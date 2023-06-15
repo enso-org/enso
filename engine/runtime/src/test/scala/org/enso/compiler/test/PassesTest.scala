@@ -6,6 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
+  AmbiguousImportsAnalysis,
   BindingAnalysis,
   ImportSymbolAnalysis,
   ImportApiAnalysis
@@ -64,6 +65,7 @@ class PassesTest extends CompilerTest {
           LambdaShorthandToLambda,
           ImportSymbolAnalysis,
           ImportApiAnalysis.MODULE$,
+          AmbiguousImportsAnalysis,
           ShadowedPatternFields,
           UnreachableMatchBranches,
           NestedPatternMatch,

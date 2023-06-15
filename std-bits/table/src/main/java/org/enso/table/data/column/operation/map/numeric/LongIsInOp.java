@@ -1,11 +1,10 @@
 package org.enso.table.data.column.operation.map.numeric;
 
+import java.util.HashSet;
+import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
-
-import java.util.HashSet;
-import java.util.List;
 
 public class LongIsInOp extends SpecializedIsInOp<Long, AbstractLongStorage> {
   @Override

@@ -27,9 +27,6 @@ pub trait View: FrpNetworkProvider + DerefToCommandApi {
     /// Constructor.
     fn new(app: &Application) -> Self;
 
-    /// Application reference.
-    fn app(&self) -> &Application;
-
     /// Set of default shortcuts.
     fn default_shortcuts() -> Vec<Shortcut> {
         default()
@@ -57,24 +54,6 @@ pub trait View: FrpNetworkProvider + DerefToCommandApi {
             command,
             condition,
         )
-    }
-
-    /// Disable the command in this component instance.
-    fn disable_command(&self, name: impl AsRef<str>)
-    where Self: Sized {
-        self.set_command_enabled(name, false)
-    }
-
-    /// Enable the command in this component instance.
-    fn enable_command(&self, name: impl AsRef<str>)
-    where Self: Sized {
-        self.set_command_enabled(name, true)
-    }
-
-    /// Set the command enable status in this component instance.
-    fn set_command_enabled(&self, name: impl AsRef<str>, enabled: bool)
-    where Self: Sized {
-        self.app().commands.set_command_enabled(self, name, enabled)
     }
 }
 
@@ -232,7 +211,7 @@ impl Registry {
     }
 
     /// Sets the command enable status for the provided component instance.
-    fn set_command_enabled<T: View>(&self, instance: &T, name: impl AsRef<str>, enabled: bool) {
+    pub fn set_command_enabled<T: View>(&self, instance: &T, name: impl AsRef<str>, enabled: bool) {
         self.with_command_mut(instance, name, |command| command.enabled = enabled)
     }
 }

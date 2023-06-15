@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor
 
 ## PRIVATE
 
@@ -35,15 +36,14 @@ type Query
 
        Arguments:
        - table_name: the name of the table.
-       - columns: descriptions of table columns. Each column is described by a
-         pair of its name and the text representation of its SQL type.
+       - columns: descriptions of table columns.
        - primary_key: a vector of names of primary key columns or `Nothing` if
          no primary key should be set. The column names are not checked, it is
          the responsibility of the caller to ensure that the columns in
          `primary_key` actually exist in `columns`, as otherwise the behavior is
          undefined (most likely will result in an `SQL_Error` once executed).
        - temporary: specifies if the table should be marked as temporary.
-    Create_Table (table_name:Text) (columns : Vector (Pair Text Text)) (primary_key : Nothing | Vector Text) (temporary : Boolean)
+    Create_Table (table_name:Text) (columns : Vector Create_Column_Descriptor) (primary_key : Nothing | Vector Text) (temporary : Boolean)
 
     ## PRIVATE
        An SQL query that drops a table.
@@ -52,4 +52,13 @@ type Query
     ## PRIVATE
        An INSERT INTO ... SELECT query that allows to insert results of a query
        into an existing table.
-    Insert_From_Select (table_name:Text) (select:Query)
+
+       Arguments:
+       - table_name: the name of the table to insert to.
+       - column_names: a vector of names of target table columns. If not all
+         columns of the target table are provided, the remaining ones will be
+         initialized with their default values.
+       - select: the query whose results will be inserted into the target table.
+         The columns in that query should correspond to the columns in specified
+         in `column_names`, matching by position.
+    Insert_From_Select (table_name:Text) (column_names : Vector Text) (select:Query)

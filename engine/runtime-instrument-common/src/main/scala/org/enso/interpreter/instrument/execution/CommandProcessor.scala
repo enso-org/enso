@@ -2,8 +2,6 @@ package org.enso.interpreter.instrument.execution
 
 import org.enso.interpreter.instrument.command.Command
 
-import scala.concurrent.Future
-
 /** Defines a uniform interface to execute commands.
   */
 trait CommandProcessor {
@@ -11,9 +9,10 @@ trait CommandProcessor {
   /** Invokes a command with the provided context.
     *
     * @param cmd a command to execute
-    * @return a future signaling the completion of computations
+    * @return if the command is asynchronous, a future signaling the completion of computations,
+    *         a signal indicating the completion otherwise
     */
-  def invoke(cmd: Command): Future[Completion]
+  def invoke(cmd: Command): cmd.Result[Completion]
 
   /** Stops the command processor.
     */

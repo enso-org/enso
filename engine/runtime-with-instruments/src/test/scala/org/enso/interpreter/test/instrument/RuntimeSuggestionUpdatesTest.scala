@@ -161,7 +161,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -211,7 +211,7 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -283,7 +283,7 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -375,7 +375,7 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -475,7 +475,7 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -541,7 +541,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "foo",
@@ -602,7 +602,7 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "foo",
@@ -715,7 +715,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -773,7 +773,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     "Enso_Test.Foo.Main",
                     "main",
@@ -871,7 +871,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",
@@ -906,7 +906,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "overloaded",
@@ -933,7 +933,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "overloaded",
@@ -1080,7 +1080,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.Getter(
                     None,
                     "Enso_Test.Test.A",
                     "a",
@@ -1096,7 +1096,6 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Enso_Test.Test.A.MyType",
                     ConstantsGen.ANY,
-                    false,
                     None,
                     Seq()
                   ),
@@ -1106,7 +1105,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     "Enso_Test.Test.A",
                     "fortytwo",
@@ -1131,7 +1130,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     "Enso_Test.Test.A",
                     "hello",
@@ -1189,7 +1188,7 @@ class RuntimeSuggestionUpdatesTest
               ),
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Method(
+                  Suggestion.DefinedMethod(
                     None,
                     moduleName,
                     "main",

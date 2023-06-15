@@ -197,6 +197,10 @@ impl NodeFromDroppedFileHandler {
         file: FileToUpload<impl DataProvider + 'static>,
         position: Position,
     ) -> FallibleResult {
+        let _transaction = self
+            .graph
+            .module
+            .get_or_open_transaction(&format!("Create a node from dropped file '{}'.", file.name));
         let node = self.graph.add_node(Self::new_node_info(&file, position))?;
         let this = self.clone_ref();
         executor::global::spawn(async move {
@@ -204,6 +208,14 @@ impl NodeFromDroppedFileHandler {
                 error!("Error while uploading file: {err}");
                 this.update_metadata(node, |md| md.error = Some(err.to_string()));
             }
+            // TODO [mwu]: In general this does play good with undo/redo. The transaction will get
+            //      dropped as soon as the asynchronous task is spawned, which means that the
+            //      post-completion steps will end up in a different transaction.
+            //      This is a case where text-snapshot-based undo/redo model does not play nicely
+            //      with asynchronous text edits being made.
+            //      As the file upload (particularly with cloud backend) can take a long time, we
+            //      do not try to fix this by simply holding the transaction alive until the upload
+            //      is finished.
         });
         Ok(())
     }
@@ -263,7 +275,9 @@ impl NodeFromDroppedFileHandler {
 
     fn update_metadata(&self, node: ast::Id, f: impl FnOnce(&mut UploadingFile)) {
         //TODO[ao] see the TODO comment in update_expression.
-        let _tr = self.undo_redo_repository().open_ignored_transaction("Upload Metadata Update");
+        let _tr = self
+            .undo_redo_repository()
+            .open_ignored_transaction_or_ignore_current("Upload Metadata Update");
         let update_md = Box::new(|md: &mut NodeMetadata| {
             if let Some(uploading_md) = &mut md.uploading_file {
                 f(uploading_md)

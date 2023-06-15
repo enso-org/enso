@@ -11,24 +11,28 @@ object VcsManagerApi {
   case object InitVcs extends Method("vcs/init") {
     case class Params(root: Path)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = InitVcs.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, InitVcs.Params] =
+      new HasParams[this.type] {
+        type Params = InitVcs.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object SaveVcs extends Method("vcs/save") {
     case class Params(root: Path, name: Option[String])
     case class Result(commitId: String, message: String)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = SaveVcs.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = SaveVcs.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, SaveVcs.Params] =
+      new HasParams[this.type] {
+        type Params = SaveVcs.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, SaveVcs.Result] =
+      new HasResult[this.type] {
+        type Result = SaveVcs.Result
+      }
   }
 
   case object StatusVcs extends Method("vcs/status") {
@@ -40,24 +44,28 @@ object VcsManagerApi {
     )
     case class Save(commitId: String, message: String)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = StatusVcs.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = StatusVcs.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, StatusVcs.Params] =
+      new HasParams[this.type] {
+        type Params = StatusVcs.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, StatusVcs.Result] =
+      new HasResult[this.type] {
+        type Result = StatusVcs.Result
+      }
   }
 
   case object RestoreVcs extends Method("vcs/restore") {
     case class Params(root: Path, commitId: Option[String])
     case class Result(changed: List[Path])
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = RestoreVcs.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = RestoreVcs.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, RestoreVcs.Params] =
+      new HasParams[this.type] {
+        type Params = RestoreVcs.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, RestoreVcs.Result] =
+      new HasResult[this.type] {
+        type Result = RestoreVcs.Result
+      }
   }
 
   case object ListVcs extends Method("vcs/list") {
@@ -65,12 +73,14 @@ object VcsManagerApi {
     case class Result(saves: List[Save])
     case class Save(commitId: String, message: String)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ListVcs.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = ListVcs.Result
-    }
+    implicit val hasParams: HasParams.Aux[this.type, ListVcs.Params] =
+      new HasParams[this.type] {
+        type Params = ListVcs.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, ListVcs.Result] =
+      new HasResult[this.type] {
+        type Result = ListVcs.Result
+      }
   }
 
   // Errors

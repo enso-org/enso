@@ -11,13 +11,14 @@ import scala.concurrent.{ExecutionContext, Future}
   *
   * @param request a request for editing
   */
-class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
+class EditFileCmd(request: Api.EditFileNotification)
+    extends AsynchronousCommand(None) {
 
   /** Executes a request.
     *
     * @param ctx contains suppliers of services to perform a request
     */
-  override def execute(implicit
+  override def executeAsynchronously(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {

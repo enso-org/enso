@@ -1,7 +1,6 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
-
 import java.util.Arrays;
 import java.util.function.Function;
 

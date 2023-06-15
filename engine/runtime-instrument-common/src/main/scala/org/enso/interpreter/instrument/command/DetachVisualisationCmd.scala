@@ -15,10 +15,10 @@ import scala.concurrent.{ExecutionContext, Future}
 class DetachVisualisationCmd(
   maybeRequestId: Option[RequestId],
   request: Api.DetachVisualisation
-) extends Command(maybeRequestId) {
+) extends AsynchronousCommand(maybeRequestId) {
 
   /** @inheritdoc */
-  override def execute(implicit
+  override def executeAsynchronously(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {

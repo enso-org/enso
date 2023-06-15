@@ -48,6 +48,7 @@ class Passes(
       LambdaShorthandToLambda,
       ImportSymbolAnalysis,
       ImportApiAnalysis.MODULE$,
+      AmbiguousImportsAnalysis,
       ShadowedPatternFields,
       UnreachableMatchBranches,
       NestedPatternMatch,
