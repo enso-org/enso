@@ -721,6 +721,64 @@ pub fn ignore_context_menu(target: &EventTarget) -> EventListenerHandle {
 // === Event Listeners ===
 // =======================
 
+// === EventListenerHandleOptions ===
+
+#[derive(Copy, Clone, Debug, Default)]
+pub struct EventListenerHandleOptions {
+    pub passive: Option<bool>,
+    pub capture: bool,
+    pub once:    bool,
+}
+
+impl EventListenerHandleOptions {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn passive(mut self) -> Self {
+        self.passive = Some(true);
+        self
+    }
+
+    pub fn not_passive(mut self) -> Self {
+        self.passive = Some(false);
+        self
+    }
+
+    pub fn capture(mut self) -> Self {
+        self.capture = true;
+        self
+    }
+
+    pub fn once(mut self) -> Self {
+        self.once = true;
+        self
+    }
+}
+
+impl Into<AddEventListenerOptions> for EventListenerHandleOptions {
+    fn into(self) -> AddEventListenerOptions {
+        let mut options = AddEventListenerOptions::new();
+        if let Some(passive) = self.passive {
+            options.passive(passive);
+        }
+        options.capture(self.capture);
+        options.once(self.once);
+        options
+    }
+}
+
+impl Into<EventListenerOptions> for EventListenerHandleOptions {
+    fn into(self) -> EventListenerOptions {
+        let mut options = EventListenerOptions::new();
+        options.capture(self.capture);
+        options
+    }
+}
+
+
+// === EventListenerHandle ===
+
 /// The type of closures used for 'add_event_listener_*' functions.
 pub type JsEventHandler<T = JsValue> = Closure<dyn FnMut(T)>;
 
@@ -742,9 +800,10 @@ impl EventListenerHandle {
         target: EventTarget,
         name: Rc<String>,
         closure: Closure<T>,
+        options: EventListenerHandleOptions,
     ) -> Self {
         let closure = Box::new(closure);
-        let data = EventListenerHandleData { target, name, closure };
+        let data = EventListenerHandleData { target, name, closure, options };
         let rc = Rc::new(data);
         Self { rc }
     }
@@ -759,46 +818,62 @@ struct EventListenerHandleData {
     target:  EventTarget,
     name:    Rc<String>,
     closure: Box<dyn traits::ClosureOps>,
+    options: EventListenerHandleOptions,
 }
 
 impl Drop for EventListenerHandleData {
     fn drop(&mut self) {
         let function = self.closure.as_js_function();
-        self.target.remove_event_listener_with_callback(&self.name, function).ok();
+        self.target
+            .remove_event_listener_with_callback_and_event_listener_options(
+                &self.name,
+                function,
+                &self.options.into(),
+            )
+            .ok();
     }
 }
 
-macro_rules! gen_add_event_listener {
-    ($name:ident, $wbindgen_name:ident $(,$arg:ident : $tp:ty)*) => {
-        /// Wrapper for the function defined in web_sys which allows passing wasm_bindgen
-        /// [`Closure`] directly.
-        pub fn $name<T: ?Sized + 'static>(
-            target: &EventTarget,
-            name: &str,
-            closure: Closure<T>
-            $(,$arg : $tp)*
-        ) -> EventListenerHandle {
-            // Please note that using [`ok`] is safe here, as according to MDN this function never
-            // fails: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener.
-            target.$wbindgen_name(name, closure.as_js_function() $(,$arg)*).ok();
-            let target = target.clone();
-            let name = Rc::new(name.to_string());
-            EventListenerHandle::new(target, name, closure)
-        }
-    };
+
+///   Wrapper for the function defined in web_sys which allows passing wasm_bindgen
+///   [` Closure `]  directly.
+pub fn add_event_listener_with_options<T: ?Sized + 'static>(
+    target: &EventTarget,
+    name: &str,
+    closure: Closure<T>,
+    options: EventListenerHandleOptions,
+) -> EventListenerHandle {
+    // Please note that using [`ok`] is safe here, as according to MDN this function never
+    // fails: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener.
+    target
+        .add_event_listener_with_callback_and_add_event_listener_options(
+            name,
+            closure.as_js_function(),
+            &options.into(),
+        )
+        .ok();
+    let target = target.clone();
+    let name = Rc::new(name.to_string());
+    EventListenerHandle::new(target, name, closure, options)
 }
 
-gen_add_event_listener!(add_event_listener, add_event_listener_with_callback);
-gen_add_event_listener!(
-    add_event_listener_with_bool,
-    add_event_listener_with_callback_and_bool,
-    options: bool
-);
-gen_add_event_listener!(
-    add_event_listener_with_options,
-    add_event_listener_with_callback_and_add_event_listener_options,
-    options: &AddEventListenerOptions
-);
+pub fn add_event_listener<T: ?Sized + 'static>(
+    target: &EventTarget,
+    name: &str,
+    closure: Closure<T>,
+) -> EventListenerHandle {
+    add_event_listener_with_options(target, name, closure, default())
+}
+
+pub fn add_event_listener_with_bool<T: ?Sized + 'static>(
+    target: &EventTarget,
+    name: &str,
+    closure: Closure<T>,
+    capture: bool,
+) -> EventListenerHandle {
+    let options = EventListenerHandleOptions { capture, ..default() };
+    add_event_listener_with_options(target, name, closure, options)
+}
 
 
 
