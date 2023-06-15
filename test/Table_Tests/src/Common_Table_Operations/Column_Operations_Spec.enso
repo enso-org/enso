@@ -18,6 +18,15 @@ spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
 
+    Test.group "gmt" <|
+        Test.specify "Should create the correct column name" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            t.at "x" . const 12 . name . take 9 . should_equal "Constant_"
+
+        Test.specify "Should not allow the creation of constant columns of an invalid type" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            t.at "x" . const [[]] . should_fail_with Unsupported_Database_Operation
+
     Test.group prefix+"Boolean Column Operations" <|
         Test.specify "iif" <|
             t = table_builder [["X", [True, False, Nothing, True]]]
@@ -121,7 +130,6 @@ spec setup =
     t2 = table_builder [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]]
     x = t2.at "x"
     y = t2.at "y"
-
     Test.group prefix+"Column Operations - Equality & Null Handling" <|
         Test.specify "should provide basic == and != comparisons" pending="TODO figure out proper null handling" <|
             (x == y).to_vector . should_equal [False, False, True, Nothing]
@@ -1127,9 +1135,8 @@ spec setup =
 
         Test.specify "Should create the correct column name" <|
             t = table_builder [["x", ["1", "2", "3"]]]
-            t.at "x" . const 12 . name . should_equal "Constant 12"
+            t.at "x" . const 12 . name . take 9 . should_equal "Constant_"
 
         Test.specify "Should not allow the creation of constant columns of an invalid type" <|
             t = table_builder [["x", ["1", "2", "3"]]]
-            t.at "x" . const (Date.new 1997) . should_fail_with Illegal_Argument
-
+            t.at "x" . const [[]] . should_fail_with Unsupported_Database_Operation

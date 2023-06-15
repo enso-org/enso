@@ -138,19 +138,13 @@ make_function name =
         (Builder.code name) ++ (Builder.join ", " arguments . paren)
 
 ## PRIVATE
-make_const : Vector Builder -> Builder
-make_const =
-    arguments ->
-        arguments.at 0 . paren
-
-## PRIVATE
 
    A helper function to create an operation that takes no arguments.
 
    Arguments:
-   - sql_code: The SQL code for the literal.
-make_literal : Text -> (Vector Builder -> Builder)
-make_literal sql_code =
+   - sql_code: The SQL code for the constant.
+make_constant : Text -> (Vector Builder -> Builder)
+make_constant sql_code =
     arguments ->
         if arguments.not_empty then Error.throw <| Illegal_State.Error "No arguments were expected" else
             Builder.code sql_code
@@ -188,13 +182,12 @@ base_dialect =
     compare = [eq, neq, bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
     functions = [["COALESCE", make_function "COALESCE"], ["ROW_MIN", make_function "MIN"], ["ROW_MAX", make_function "MAX"]]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
-    counts = [fun "COUNT", ["COUNT_ROWS", make_literal "COUNT(*)"]]
-    constants = [["CONST", make_const]]
+    counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
     text = [is_empty, bin "LIKE", simple_equals_ignore_case, fold_case, make_case_sensitive]
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
     types = [simple_cast]
-    base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + constants + text + nulls + contains + types)
+    base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types)
     Internal_Dialect.Value base_map wrap_in_quotes
 
 ## PRIVATE
