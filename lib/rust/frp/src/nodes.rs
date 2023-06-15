@@ -1050,6 +1050,29 @@ impl Network {
         self.register(OwnedMap::new(label, src, f))
     }
 
+    /// A version of map that operates on [`Some`] values. The provided function will only be called
+    /// when incoming stream's value is `Some(In)`. If you need the provided function to return an
+    /// optional type, use [`Network::and_then`].
+    pub fn map_some<T, In, F, Out>(&self, label: Label, src: &T, f: F) -> Stream<Option<Out>>
+    where
+        T: EventOutput<Output = Option<In>>,
+        Out: Data,
+        F: 'static + Fn(&In) -> Out, {
+            self.map(label, src, move |value| value.as_ref().map(|v| f(v)))
+    }
+    
+    /// A version of map that operates on optionals. The provided function will only be called when
+    /// incoming stream's value is [`Some`], and then the provided function can return an optional
+    /// itself. If you want a non-optional return type, use [`Network::and_then`].
+    pub fn and_then<T, In, F, Out>(&self, label: Label, src: &T, f: F) -> Stream<Option<Out>>
+    where
+        T: EventOutput<Output = Option<In>>,
+        Out: Data,
+        F: 'static + Fn(&In) -> Option<Out>, {
+            self.map(label, src, move |value| value.as_ref().and_then(|v| f(v)))
+    }
+
+
     pub fn map_<'a, T, F, Out>(&self, label: Label, src: &T, f: F) -> Stream<()>
     where
         T: EventOutput,
@@ -2919,12 +2942,14 @@ impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedDebounce<T> {
         let mut next_value = self.next_value.borrow_mut();
         let not_scheduled = next_value.is_none();
         next_value.replace(value.clone());
+        drop(next_value);
 
         if not_scheduled {
             let weak = self.downgrade();
             let handler = next_microtask(move || {
                 if let Some(node) = weak.upgrade() {
-                    if let Some(value) = node.next_value.borrow_mut().take() {
+                    let taken_value = node.next_value.borrow_mut().take();
+                    if let Some(value) = taken_value {
                         node.emit_event(&default(), &value);
                     }
                 }

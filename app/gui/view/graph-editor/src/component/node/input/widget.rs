@@ -121,6 +121,8 @@ ensogl::define_endpoints_2! {
         /// Dirty flag has been marked. This signal is fired immediately after the update that
         /// caused it. Prefer using `rebuild_required` signal instead, which is debounced.
         marked_dirty_sync (),
+        /// The widget tree has been rebuilt. Its port structure has potentially been updated. 
+        on_rebuild_finished (),
     }
 }
 
@@ -475,7 +477,6 @@ pub struct WidgetsFrp {
     pub(super) set_view_mode:          frp::Sampler<crate::view::Mode>,
     pub(super) set_profiling_status:   frp::Sampler<crate::node::profiling::Status>,
     pub(super) hovered_port_children:  frp::Sampler<HashSet<WidgetIdentity>>,
-    pub(super) on_rebuild_finished:    frp::Source<()>,
     /// Remove given tree node's reference from the widget tree, and send its only remaining strong
     /// reference to a new widget owner using [`SpanWidget::receive_ownership`] method. This will
     /// effectively give up tree's ownership of that node, and will prevent its view from being
@@ -554,8 +555,7 @@ impl Tree {
             frp.private.output.on_port_hover <+ on_port_hover;
             frp.private.output.on_port_press <+ on_port_press;
 
-            on_rebuild_finished <- source_();
-            port_hover_chain_dirty <- all(&on_port_hover, &on_rebuild_finished)._0().debounce();
+            port_hover_chain_dirty <- all(&on_port_hover, &frp.on_rebuild_finished)._0().debounce();
             hovered_port_children <- port_hover_chain_dirty.map(
                 f!([model] (port) port.into_on().map_or_default(|id| model.port_child_widgets(id)))
             ).sampler();
@@ -575,7 +575,6 @@ impl Tree {
             transfer_ownership,
             value_changed,
             request_import,
-            on_rebuild_finished,
             on_port_hover,
             on_port_press,
             pointer_style,
@@ -639,7 +638,8 @@ impl Tree {
         node_expression: &str,
         styles: &StyleWatch,
     ) {
-        self.model.rebuild_tree(self.widgets_frp.clone_ref(), tree, node_expression, styles)
+        self.model.rebuild_tree(self.widgets_frp.clone_ref(), tree, node_expression, styles);
+        self.frp.private.output.on_rebuild_finished.emit(());
     }
 
     /// Get the root display object of the widget port for given span tree node. Not all nodes must
@@ -964,7 +964,6 @@ impl TreeModel {
             let (port_id, index) = v.assigned_port?;
             Some((port_id, WidgetIdentity { main: k, index }))
         }));
-        builder.frp.on_rebuild_finished.emit(());
     }
 
     /// Perform an operation on a shared reference to a tree port under given pointer. When there is

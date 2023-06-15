@@ -732,9 +732,6 @@ impl Graph {
 
             // === Changes from the View ===
 
-            trace view.connection_made;
-            trace view.connection_broken;
-
             eval view.node_position_set_batched(((node_id, position)) model.node_position_changed(*node_id, *position));
             eval view.node_removed((node_id) model.node_removed(*node_id));
             eval view.nodes_collapsed(((nodes, _)) model.nodes_collapsed(nodes));

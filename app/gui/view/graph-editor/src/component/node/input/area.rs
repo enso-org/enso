@@ -408,6 +408,8 @@ ensogl::define_endpoints! {
         request_import       (ImString),
         /// A connected port within the node has been moved. Some edges might need to be updated.
         input_edges_need_refresh (),
+        /// The widget tree has been rebuilt. Some ports might have been added or removed.
+        widget_tree_rebuilt (),
     }
 }
 
@@ -543,6 +545,8 @@ impl Area {
             eval frp.set_expression_usage_type(((id,tp)) model.set_expression_usage_type(*id,tp.clone()));
             eval frp.set_disabled ((disabled) model.widget_tree.set_disabled(*disabled));
             eval_ model.widget_tree.rebuild_required(model.rebuild_widget_tree_if_dirty());
+            frp.output.source.widget_tree_rebuilt <+ model.widget_tree.on_rebuild_finished;
+            
 
             // === View Mode ===
 
