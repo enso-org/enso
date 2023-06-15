@@ -62,9 +62,9 @@ const BASE_AMPLIFY_CONFIG = {
 const AMPLIFY_CONFIGS = {
     /** Configuration for @indiv0's Cognito user pool. */
     npekin: {
-        userPoolId: newtype.asNewtype<auth.UserPoolId>('eu-west-1_VSqmZt9At'),
+        userPoolId: newtype.asNewtype<auth.UserPoolId>('eu-west-1_AXX1gMvpx'),
         userPoolWebClientId: newtype.asNewtype<auth.UserPoolWebClientId>(
-            '2fdbrr68us2ltolkfm0prke31j'
+            '1rpnb2n1ijn6o5529a7ob017o'
         ),
         domain: newtype.asNewtype<auth.OAuthDomain>(
             'npekin-enso-domain.auth.eu-west-1.amazoncognito.com'
