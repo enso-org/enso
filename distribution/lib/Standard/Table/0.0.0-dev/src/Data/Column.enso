@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Data.Decimal_Places_Helpers
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -719,13 +720,25 @@ type Column
 
              Column.from_vector "foo" [1.2, 2.3, 3.6] . round == (Column.from_vector "foo" [1, 2, 4])
     round : Integer -> Boolean -> Problem_Behavior -> Column | Illegal_Argument | Invalid_Value_Type
-    round self decimal_places=0 use_bankers=False on_problems=Report_Warning = Value_Type.expect_numeric self <|
-        # If it's an integer column and decimal_places >=0 then it's a no-op.
-        if self.value_type.is_integer && decimal_places >= 0 then self else
-            returns_double = decimal_places > 0
-            builder = if returns_double then make_double_builder else make_long_builder
-            fun = _.round decimal_places use_bankers
-            Column_Ops.map_over_storage self fun builder skip_nothing=True on_problems=on_problems
+    round self decimal_places=0 use_bankers=False on_problems=Report_Warning =
+        Decimal_Places_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
+            # If it's an integer column and decimal_places >=0 then it's a no-op.
+            new_name = Naming_Helpers.function_name "round" [self]
+            if self.value_type.is_integer && decimal_places >= 0 then self.rename new_name else
+                scale = 10 ^ decimal_places
+                scaled = self * scale
+                round_base = scaled.floor
+                round_midpoint = (round_base + 0.5) / scale
+                even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
+                half_goes_up = if use_bankers then even_is_up else (self.const True)
+                do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
+                result_float = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
+
+                should_cast_to_integer = decimal_places <= 0 || self.value_type.is_integer
+                result = if should_cast_to_integer.not then result_float else
+                    result_float.cast Value_Type.Integer
+
+                result.rename new_name
 
     ## ALIAS int
 
