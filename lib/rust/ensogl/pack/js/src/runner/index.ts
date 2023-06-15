@@ -264,6 +264,8 @@ export class App {
             }).catch(error => {
                 logger.error(error)
             })
+        } else {
+            logger.log("Remote logging is not configured, disabling.")
         }
     }
 
