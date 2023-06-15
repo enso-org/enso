@@ -5,10 +5,10 @@ import toast from 'react-hot-toast'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
-import * as svg from '../../components/svg'
+import * as projectEvent from '../events/projectEvent'
 // Warning: This is a circular import.
 import * as projectsTable from './projectsTable'
-import * as reactiveEvents from '../events/projectEvent'
+import * as svg from '../../components/svg'
 
 // =============
 // === Types ===
@@ -77,7 +77,7 @@ export interface ProjectActionButtonProps {
         newExtraData: projectsTable.ProjectExtraData
     ) => void
     deleteExtraData: (projectId: backendModule.ProjectId) => void
-    event: reactiveEvents.ProjectEvent | null
+    event: projectEvent.ProjectEvent | null
     /** Called when the project is opened via the {@link ProjectActionButton}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
     onClose: () => void
@@ -193,7 +193,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     React.useEffect(() => {
         if (event != null) {
             switch (event.type) {
-                case reactiveEvents.ProjectEventType.open: {
+                case projectEvent.ProjectEventType.open: {
                     if (event.projectId !== project.id) {
                         if (backend.type === backendModule.BackendType.local) {
                             setState(backendModule.ProjectState.closed)
@@ -206,7 +206,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                     }
                     break
                 }
-                case reactiveEvents.ProjectEventType.cancelOpeningAll: {
+                case projectEvent.ProjectEventType.cancelOpeningAll: {
                     if (backend.type === backendModule.BackendType.local) {
                         setState(backendModule.ProjectState.closed)
                         setCheckState(CheckState.notChecking)

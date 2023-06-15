@@ -8,7 +8,7 @@ import * as error from '../../error'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
-import * as reactiveEvents from '../events/projectEvent'
+import * as projectEventModule from '../events/projectEvent'
 import * as svg from '../../components/svg'
 import * as toastPromise from '../toastPromise'
 import * as toastPromiseMultiple from '../../toastPromiseMultiple'
@@ -85,8 +85,8 @@ function ProjectNameHeading(props: InternalProjectNameHeadingProps) {
 /** State passed through from a {@link ProjectsTable} to every cell. */
 interface ProjectNamePropsState {
     appRunner: AppRunner | null
-    projectEvent: reactiveEvents.ProjectEvent | null
-    setProjectEvent: (projectEvent: reactiveEvents.ProjectEvent | null) => void
+    projectEvent: projectEventModule.ProjectEvent | null
+    setProjectEvent: (projectEvent: projectEventModule.ProjectEvent | null) => void
     getExtraData: (projectId: backendModule.ProjectId) => ProjectExtraData
     setExtraData: (projectId: backendModule.ProjectId, newExtraData: ProjectExtraData) => void
     deleteExtraData: (projectId: backendModule.ProjectId) => void
@@ -147,7 +147,7 @@ function ProjectName(props: InternalProjectNameProps) {
                 if (event.detail === 2) {
                     // It is a double click; open the project.
                     setProjectEvent({
-                        type: reactiveEvents.ProjectEventType.open,
+                        type: projectEventModule.ProjectEventType.open,
                         projectId: item.id,
                     })
                 } else if (
@@ -225,8 +225,8 @@ export interface ProjectsTableProps {
     items: backendModule.ProjectAsset[]
     isLoading: boolean
     columnDisplayMode: columnModule.ColumnDisplayMode
-    projectEvent: reactiveEvents.ProjectEvent | null
-    setProjectEvent: (projectEvent: reactiveEvents.ProjectEvent | null) => void
+    projectEvent: projectEventModule.ProjectEvent | null
+    setProjectEvent: (projectEvent: projectEventModule.ProjectEvent | null) => void
     doCreateProject: () => void
     onRename: () => void
     onDelete: () => void
@@ -283,7 +283,7 @@ function ProjectsTable(props: ProjectsTableProps) {
     const doOpenManually = React.useCallback(
         (projectId: backendModule.ProjectId) => {
             setProjectEvent({
-                type: reactiveEvents.ProjectEventType.open,
+                type: projectEventModule.ProjectEventType.open,
                 projectId,
             })
         },
@@ -292,7 +292,7 @@ function ProjectsTable(props: ProjectsTableProps) {
 
     const doCloseIde = React.useCallback(() => {
         setProjectEvent({
-            type: reactiveEvents.ProjectEventType.cancelOpeningAll,
+            type: projectEventModule.ProjectEventType.cancelOpeningAll,
         })
         rawDoCloseIde()
     }, [rawDoCloseIde, setProjectEvent])
@@ -389,7 +389,7 @@ function ProjectsTable(props: ProjectsTableProps) {
                 const doOpenForEditing = () => {
                     unsetModal()
                     setProjectEvent({
-                        type: reactiveEvents.ProjectEventType.open,
+                        type: projectEventModule.ProjectEventType.open,
                         projectId: project.id,
                     })
                 }
