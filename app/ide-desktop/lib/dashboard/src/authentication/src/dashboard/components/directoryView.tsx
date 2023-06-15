@@ -204,7 +204,7 @@ function DirectoryView(props: DirectoryViewProps) {
                 }
             }
         },
-        [accessToken, directoryId, refresh, backend]
+        [accessToken, directoryId, refresh, backend, nameOfProjectToImmediatelyOpen]
     )
 
     React.useEffect(() => {
@@ -233,9 +233,10 @@ function DirectoryView(props: DirectoryViewProps) {
                 logger.error(`Error opening project on startup: ${errorMessage}`)
             }
         }
+        // `nameOfProjectToImmediatelyOpen` is a dependency of `assets`.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         assets,
-        nameOfProjectToImmediatelyOpen,
         initialized,
         initialProjectName,
         logger,
