@@ -4,6 +4,7 @@
 
 // === Features ===
 #![feature(associated_type_defaults)]
+#![feature(cell_update)]
 #![feature(const_trait_impl)]
 #![feature(drain_filter)]
 #![feature(entry_insert)]
@@ -1352,7 +1353,7 @@ impl Nodes {
 // === Edges ===
 // =============
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum DetachedEdge {
     /// Edge connected to a source endpoint, detached from target. This edge is not represented in
     /// the connections list.
@@ -1399,7 +1400,7 @@ impl DetachedEdge {
             _ => None,
         }
     }
-    
+
     fn source_endpoint(&self) -> Option<EdgeEndpoint> {
         match *self {
             Self::OnlySource { source, .. } => Some(source),
@@ -1645,6 +1646,8 @@ impl GraphEditorModel {
             }
         }
 
+        console_log!("Maintained edges. Dirty count: {}", dirty_edges.len());
+
         (detached, dirty_edges)
     }
 
@@ -1860,6 +1863,8 @@ pub struct GraphEditorModel {
     frp_public: api::Public,
     profiling_statuses: profiling::Statuses,
     styles_frp: StyleWatchFrp,
+    #[deprecated = "StyleWatch was designed as an internal tool for shape system (#795)"]
+    styles: StyleWatch,
     selection_controller: selection::Controller,
     execution_environment_selector: ExecutionEnvironmentSelector,
 }
@@ -1889,6 +1894,7 @@ impl GraphEditorModel {
         let drop_manager =
             ensogl_drop_manager::Manager::new(&scene.dom.root.clone_ref().into(), scene);
         let styles_frp = StyleWatchFrp::new(&scene.style_sheet);
+        let styles = StyleWatch::new(&scene.style_sheet);
         let selection_controller = selection::Controller::new(
             frp,
             &app.cursor,
@@ -1897,6 +1903,7 @@ impl GraphEditorModel {
             &nodes,
         );
 
+        #[allow(deprecated)] // `styles`
         Self {
             display_object,
             app,
@@ -1914,6 +1921,7 @@ impl GraphEditorModel {
             frp: frp.private.clone_ref(),
             frp_public: frp.public.clone_ref(),
             styles_frp,
+            styles,
             selection_controller,
             execution_environment_selector,
         }
@@ -2157,7 +2165,6 @@ impl GraphEditorModel {
     /// Recalculate colors for edges in specified list. Returns a set of edges that have changed
     /// their color.
     pub fn refresh_edge_colors(&self, edge_ids: impl IntoIterator<Item = EdgeId>) -> Vec<EdgeId> {
-        let styles = StyleWatch::new(&self.scene().style_sheet);
         let mut edges = self.edges.borrow_mut();
         edge_ids
             .into_iter()
@@ -2172,7 +2179,9 @@ impl GraphEditorModel {
                     None => self.hovered_output_type(),
                 };
                 let edge_type = source_type().or_else(target_type);
-                let opt_color = edge_type.map(|t| type_coloring::compute(&t, &styles));
+                // FIXME: `type_coloring::compute` should be ported to `StyleWatchFrp`.
+                #[allow(deprecated)] // `self.styles`
+                let opt_color = edge_type.map(|t| type_coloring::compute(&t, &self.styles));
                 let color = opt_color.unwrap_or_else(|| self.edge_fallback_color());
                 edge.set_color(color)
             })
@@ -2382,7 +2391,6 @@ struct EdgeStateFrp {
     /// still representing the connection, its view will be reconfigured to match that connection.
     /// In order to remove the connection, use `break_detached_connection` signal first. If there
     /// is no detached edge currently set, this signal is ignored.
-    #[allow(dead_code)]
     clear_detached_edge:       frp::Any_,
     /// Break the connection represented by the currently detached edge. Does NOT clear the
     /// detached edge state, nor does it remove the detached edge from view. In order to remove
@@ -2539,11 +2547,12 @@ impl GraphEditor {
             // Clear detached edge state. See [`EdgeStateFrp.clear_detached_edge`].
             clear_detached_edge <- any_(...);
             clear_detached_edge <+ input.drop_dragged_edge;
+            clear_detached_edge <+ input.set_read_only.on_true();
+            clear_detached_edge <+ out.connection_made;
             clear_detached_edge <+ out.node_added.debounce();
+            clear_detached_edge <+ out.node_editing;
             clear_detached_edge <+ out.node_entered;
             clear_detached_edge <+ out.node_exited;
-            clear_detached_edge <+ out.connection_made;
-            clear_detached_edge <+ input.set_read_only.on_true();
 
             // === Edge maintenance ===
             // Edge maintenance is a process of updating the view of all edges. It is triggered by
@@ -2555,27 +2564,31 @@ impl GraphEditor {
             // The state of detached edge that should be used during next maintain. Note that this
             // state forms a feedback loop, as it is influences by `maintain_result`. That way, the
             // detached edge state can be influenced by the maintain process itself.
-            detached_edge_to_maintain <- any(...);
-            detached_edge_to_maintain <+ set_detached_edge.some();
-            detached_edge_to_maintain <+ clear_detached_edge.constant(None);
+            detached_edge_cell <- any(...);
+
+            new_detached_edge <- any(...);
+            new_detached_edge <+ set_detached_edge.some();
+            new_detached_edge <+ clear_detached_edge.constant(None);
+            detached_edge_changed <- new_detached_edge.map2(&detached_edge_cell, |a, b| a != b);
+            detached_edge_cell <+ new_detached_edge;
+
 
             // The trigger signal when to perform the maintain. This separation of data and timing
             // is necessary, because the maintain process can effectively influence its own input
-            // state (see `detached_edge_to_maintain` above). By separating the timing, we can avoid
+            // state (see `detached_edge_cell` above). By separating the timing, we can avoid
             // unnecessary looping.
             do_maintain_edges <- any_(...);
             do_maintain_edges <+ input.set_connections;
-            do_maintain_edges <+ set_detached_edge;
-            do_maintain_edges <+ clear_detached_edge;
+            do_maintain_edges <+ new_detached_edge.gate(&detached_edge_changed);
             maintain_result <- do_maintain_edges.map3(
-                &input.set_connections, &detached_edge_to_maintain,
+                &input.set_connections, &detached_edge_cell,
                 f!((_, conn, detached) model.maintain_edges(conn, *detached, &pointer))
             );
             detached_edge <- maintain_result._0();
             maintained_edges_dirty <- maintain_result._1();
             // Complete detached edge update feedback cycle - make sure the detached edge set during
             // maintain will also be used during maintain.
-            detached_edge_to_maintain <+ detached_edge;
+            detached_edge_cell <+ detached_edge;
             out.has_detached_edge <+ detached_edge.is_some().on_change();
 
             detached_to_break <- detached_edge.sample(&break_detached_connection);
@@ -2769,10 +2782,10 @@ impl GraphEditor {
             active_node <- active_source_node.unwrap();
             rest_node <- active_source_node.previous().unwrap();
 
-            eval active_node((id) model.with_node(*id, |n| n.model().move_to_active_node_layer()));
+            eval active_node((id) model.with_node(*id, |n| n.model().set_editing_edge(true)));
             // Use `nodes.with` to avoid emitting warning when node no longer exists. This is a
             // valid case, as the node might have been removed while the edge was being dragged.
-            eval rest_node((id) model.nodes.with(id, |n| n.model().move_to_resting_node_layer()));
+            eval rest_node((id) model.nodes.with(id, |n| n.model().set_editing_edge(false)));
 
             // Whenever the detached edge is connected to a target, monitor for that target's port
             // existence. If it becomes invalid, the edge must be dropped.

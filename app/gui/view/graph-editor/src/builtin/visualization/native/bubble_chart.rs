@@ -51,19 +51,10 @@ pub struct BubbleChartModel {
 }
 
 impl BubbleChartModel {
+    #[profile(Debug)]
     #[allow(clippy::question_mark)]
     fn receive_data(&self, data: &Data) -> Result<(), DataError> {
-        let data_inner = match data {
-            Data::Json { content } => content,
-            _ => return Err(DataError::BinaryNotSupported),
-        };
-        let data_inner: &serde_json::Value = data_inner;
-        let data_inner: Rc<Vec<Vector3<f32>>> =
-            if let Ok(result) = serde_json::from_value(data_inner.clone()) {
-                result
-            } else {
-                return Err(DataError::InvalidJsonText);
-            };
+        let data_inner: Rc<Vec<Vector3<f32>>> = data.as_json()?.deserialize()?;
 
         // Avoid re-creating views, if we have already created some before.
         let mut views = self.views.borrow_mut();
