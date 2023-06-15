@@ -62,3 +62,22 @@ type Query
          The columns in that query should correspond to the columns in specified
          in `column_names`, matching by position.
     Insert_From_Select (table_name:Text) (column_names : Vector Text) (select:Query)
+
+    ## PRIVATE
+       An SQL UPDATE query that updates rows in the target table with values
+       from the source table when the key columns match. Target table rows that
+       do not match the source are left unaffected.
+
+       This will usually be a query of the form
+       `UPDATE target SET c1=source.c1, ... FROM source WHERE target.key1=source.key1 AND ...`
+       where `c1` comes from `column_names` and `key1` comes from `key_columns`.
+    Update_From_Table (target_table_name:Text) (source_table_name:Text) (column_names : Vector Text) (key_columns : Vector Text)
+
+    ## PRIVATE
+       An SQL DELETE query that deletes from target table rows that are _not_
+       present in the source table, based on the specified key columns.
+       They key columns must be present under the same name in both tables.
+
+       This will usually be a query of the form
+       `DELETE FROM target WHERE (key_columns...) NOT IN (SELECT key_columns... FROM source)`.
+    Delete_Unmatched_Rows (target_table_name:Text) (source_table_name:Text) (key_columns : Vector Text)
