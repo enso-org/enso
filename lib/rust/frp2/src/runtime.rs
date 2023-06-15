@@ -1,3 +1,5 @@
+//! The FRP runtime, a singleton containing all node and network data.
+
 use crate::prelude::*;
 use enso_generics::traits::*;
 
@@ -23,6 +25,7 @@ pub(crate) trait EventConsumer = Fn(&Runtime, &NodeData, &dyn Data) + 'static;
 
 /// A connection between FRP nodes.
 #[derive(Clone, Copy, Debug, Default, Zeroable)]
+#[allow(missing_docs)]
 pub struct Edge {
     pub target:     NodeId,
     /// Determines whether the edge is connected to a sample port.
@@ -94,7 +97,7 @@ macro_rules! def_node {
     };
 }
 
-type NodeOutputs = OptRefCell<UnrolledLinkedList<Edge, 8, usize, prealloc::Zeroed>>;
+type NodeOutputs = ZeroOverheadRefCell<UnrolledLinkedList<Edge, 8, usize, prealloc::Zeroed>>;
 
 def_node! {
     /// An FRP node.
@@ -106,14 +109,14 @@ def_node! {
             def: DefInfo,
         }
         clearable {
-            inputs: OptRefCell<UnrolledLinkedList<NodeId, 8, usize, prealloc::Zeroed>>,
+            inputs: ZeroOverheadRefCell<UnrolledLinkedList<NodeId, 8, usize, prealloc::Zeroed>>,
             /// Outputs to which an event should be emitted. This includes both [`Listener`] and
             /// [`ListenerAndSampler`] connections.
             outputs: NodeOutputs,
             /// Outputs to which an event should NOT be emitted. This includes only [`Sampler`]
             /// connections.
             sampler_outputs: NodeOutputs,
-            output_cache: OptRefCell<ZeroableOption<Box<dyn Data>>>,
+            output_cache: ZeroOverheadRefCell<ZeroableOption<Box<dyn Data>>>,
             /// Number of samplers connected to this nodes. This includes both the count of
             /// [`ListenerAndSampler`] connections in [`Self::outputs`] and the count of all
             /// connections in [`Self::sampler_outputs`].
@@ -195,12 +198,17 @@ pub type NodeId = VersionedIndex<NODE>;
 #[derive(Default, Debug)]
 pub struct Runtime {
     networks: UnrolledSlotMap<
-        OptRefCell<NetworkData>,
+        ZeroOverheadRefCell<NetworkData>,
         NETWORK_LINKED_ARRAY_SIZE,
         NETWORK,
         prealloc::Default,
     >,
-    nodes: UnrolledSlotMap<OptRefCell<NodeData>, NODES_LINKED_ARRAY_SIZE, NODE, prealloc::Zeroed>,
+    nodes: UnrolledSlotMap<
+        ZeroOverheadRefCell<NodeData>,
+        NODES_LINKED_ARRAY_SIZE,
+        NODE,
+        prealloc::Zeroed,
+    >,
     metrics:  metrics::Metrics,
     stack:    CallStack,
 }
@@ -258,7 +266,7 @@ impl Runtime {
                 #[allow(unused_mut)]
                 let mut node = node.borrow_mut();
                 node.reuse((ZeroableOption::Some(Box::new(f)), net_id, def));
-                init(&mut *node);
+                init(&mut node);
             });
             network.borrow_mut().nodes.push(id);
             id

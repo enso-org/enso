@@ -128,7 +128,7 @@ impl<Item> Slot<Item> {
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
 pub struct UnrolledSlotMap<Item, const N: usize, Kind = (), B = prealloc::Disabled> {
-    free_indexes: OptRefCell<Vec<usize>>,
+    free_indexes: ZeroOverheadRefCell<Vec<usize>>,
     slots:        Box<UnrolledLinkedList<Slot<Item>, N, usize, B>>,
     _kind:        PhantomData<Kind>,
 }
@@ -469,6 +469,6 @@ mod tests {
         assert_eq!(map.get(key5), Some(&0));
         assert_eq!(map.get(key6), Some(&0));
         assert_eq!(map.get(key7), Some(&0));
-        println!("{:#?}", map);
+        println!("{map:#?}");
     }
 }

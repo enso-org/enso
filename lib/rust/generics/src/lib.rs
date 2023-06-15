@@ -46,6 +46,8 @@ pub mod traits {
 // =============
 
 #[cfg(test)]
+#[allow(clippy::unit_cmp)]
+#[allow(clippy::let_unit_value)]
 mod tests {
     use super::traits::*;
     use super::*;
@@ -173,13 +175,13 @@ mod tests {
         let hlist = new![1, 1.0, vec![2, 3]];
         assert_eq!(hlist.clone().into_field_at::<0>(), 1);
         assert_eq!(hlist.clone().into_field_at::<1>(), 1.0);
-        assert_eq!(hlist.clone().into_field_at::<2>(), vec![2, 3]);
+        assert_eq!(hlist.into_field_at::<2>(), vec![2, 3]);
         let tuple = (1,);
         assert_eq!(tuple.into_field_at::<0>(), 1);
         let tuple = (1, 1.0, vec![2, 3]);
         assert_eq!(tuple.clone().into_field_at::<0>(), 1);
         assert_eq!(tuple.clone().into_field_at::<1>(), 1.0);
-        assert_eq!(tuple.clone().into_field_at::<2>(), vec![2, 3]);
+        assert_eq!(tuple.into_field_at::<2>(), vec![2, 3]);
     }
 
     #[test]

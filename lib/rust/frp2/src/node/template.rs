@@ -72,7 +72,7 @@ type ChosenModel<M, Model> = <M as ModelChooser<Model>>::ChosenModel;
 trait ModelChooser<Model> {
     type ChosenModel;
     type ClonedModel: 'static;
-    fn clone_model(model: &Rc<OptRefCell<Model>>) -> Self::ClonedModel;
+    fn clone_model(model: &Rc<ZeroOverheadRefCell<Model>>) -> Self::ClonedModel;
     fn with_model_borrow_mut<Out>(
         model: &Self::ClonedModel,
         f: impl FnOnce(&mut Self::ChosenModel) -> Out,
@@ -83,7 +83,7 @@ impl<Model> ModelChooser<Model> for ModelNotUsed {
     type ChosenModel = ModelSkipped;
     type ClonedModel = ModelSkipped;
     #[inline(always)]
-    fn clone_model(_model: &Rc<OptRefCell<Model>>) -> Self::ClonedModel {
+    fn clone_model(_model: &Rc<ZeroOverheadRefCell<Model>>) -> Self::ClonedModel {
         ModelSkipped
     }
     #[inline(always)]
@@ -97,9 +97,9 @@ impl<Model> ModelChooser<Model> for ModelNotUsed {
 
 impl<Model: 'static> ModelChooser<Model> for ModelUsed {
     type ChosenModel = Model;
-    type ClonedModel = Rc<OptRefCell<Model>>;
+    type ClonedModel = Rc<ZeroOverheadRefCell<Model>>;
     #[inline(always)]
-    fn clone_model(model: &Rc<OptRefCell<Model>>) -> Self::ClonedModel {
+    fn clone_model(model: &Rc<ZeroOverheadRefCell<Model>>) -> Self::ClonedModel {
         model.clone()
     }
     #[inline(always)]

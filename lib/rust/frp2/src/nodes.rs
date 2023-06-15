@@ -106,15 +106,16 @@ impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
     /// On every event, print it to console, and pass it trough.
     pub fn trace(self) -> NodeInNetwork<'a, M, Stream<N1::Output>> {
         self.new_node((Listen(self),), move |event, _, t0| {
-            println!("TRACE: {:?}", t0);
+            println!("TRACE: {t0:?}");
             event.emit(t0);
         })
     }
 
+    /// On every event, print it to console if the `cond` input is `true`, and pass it trough.
     pub fn trace_if(self, cond: impl NodeOf<bool>) -> NodeInNetwork<'a, M, Stream<N1::Output>> {
         self.new_node((Listen(self), Sample(cond)), move |event, _, src, cond| {
             if *cond {
-                println!("TRACE: {:?}", src);
+                println!("TRACE: {src:?}");
             }
             event.emit(src);
         })
@@ -122,15 +123,17 @@ impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
 }
 
 
-// === Trace ===
+// === DebugCollect ===
 
+/// A node that collects all the events it receives. Usd mainly for debug purposes.
 #[derive(Debug, Clone, Derivative)]
 #[derivative(Default(bound = ""))]
 pub struct DebugCollectData<T> {
-    cell: Rc<OptRefCell<Vec<T>>>,
+    cell: Rc<ZeroOverheadRefCell<Vec<T>>>,
 }
 
 impl<T> DebugCollectData<T> {
+    /// Assert that the collected events are equal to the given slice.
     pub fn assert_eq(&self, expected: &[T])
     where T: PartialEq + Debug {
         let actual = self.cell.borrow();
@@ -139,6 +142,7 @@ impl<T> DebugCollectData<T> {
 }
 
 impl<M: Model> Network<M> {
+    /// On every event, remember it, and pass it trough.
     pub fn debug_collect<T0: Data + Clone + 'static>(
         &self,
         source: impl Node<Output = T0>,
@@ -155,55 +159,32 @@ impl<M: Model> Network<M> {
 
 
 
-// === Map2 ===
-
-impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
-    #[inline(never)]
-    pub fn map<F, Output>(self, f: F) -> NodeInNetwork<'a, M, Stream<Output>>
-    where
-        Output: Data,
-        F: 'static + Fn(&mut M, &N1::Output) -> Output, {
-        self.new_node_with_model((Listen(self),), move |event, m, t1| event.emit(&f(m, t1)))
-    }
-
-    #[inline(never)]
-    pub fn map_<F, Output>(self, f: F) -> NodeInNetwork<'a, M, Stream<Output>>
-    where
-        Output: Data,
-        F: 'static + Fn(&N1::Output) -> Output, {
-        self.new_node((Listen(self),), move |event, _, t1| event.emit(&f(t1)))
-    }
-
-    #[inline(never)]
-    pub fn map2_<N2, F, Output>(self, n2: N2, f: F) -> NodeInNetwork<'a, M, Stream<Output>>
-    where
-        N2: NodeWithDefaultOutput,
-        Output: Data,
-        F: 'static + Fn(&N1::Output, &N2::Output) -> Output, {
-        self.new_node((Listen(self), Sample(n2)), move |event, _, t1, t2| event.emit(&f(t1, t2)))
-    }
-}
+// === Map ===
 
 macro_rules! def_map_nodes {
     ($($is:literal),*) => {
-        def_map_nodes! { @ [[1 []]] $($is)* }
+        def_map_nodes! { @ [[map 1 []]] $($is)* }
     };
 
-    (@ [ [$i:tt [$($is:tt)*]] $($iss:tt)* ] $n:tt $($ns:tt)*) => {
-        def_map_nodes! { @ [ [$n [$($is)* $n]] [$i [$($is)*]] $($iss)* ] $($ns)* }
-    };
+    (@ [ [$name:ident $i:tt [$($is:tt)*]] $($iss:tt)* ] $n:tt $($ns:tt)*) => { paste !{
+        def_map_nodes! { @ [ [[<map $n>] $n [$($is)* $n]] [$name $i [$($is)*]] $($iss)* ] $($ns)* }
+    }};
 
-    (@ [ [$i:tt [$($is:tt)*]] $($iss:tt)* ]) => {
+    (@ [ [$name:ident $i:tt [$($is:tt)*]] $($iss:tt)* ]) => {
         def_map_nodes! { @ [ $($iss)* ] }
-        paste! { def_map_nodes! { # $i [$([<N $is>])*] } }
+        paste! { def_map_nodes! { # $name $i [$([<N $is>])*] } }
     };
 
     (@ []) => {};
 
-    (# $i:tt [$($ns:tt)*]) => { paste! {
+    (# $name:ident $i:tt [$($ns:tt)*]) => { paste! {
+        /// On every event on the first input, sample other inputs, evaluate the provided function,
+        /// and pass the result trough. The function contains mutable reference to the network
+        /// model. If you don't need the model, use the `mapX_` family of functions instead.
         #[inline(never)]
         #[allow(non_snake_case)]
-        pub fn [<map $i>] < $($ns,)* F, Output>
+        #[allow(clippy::too_many_arguments)]
+        pub fn $name < $($ns,)* F, Output>
         (self, $($ns:$ns,)* f: F) -> NodeInNetwork<'a, M, Stream<Output>>
         where
             $($ns: NodeWithDefaultOutput,)*
@@ -213,9 +194,26 @@ macro_rules! def_map_nodes {
                 move |event, m, t1, $($ns,)*| { event.emit(&f(m, t1, $($ns,)*)) }
             )
         }
+
+        /// On every event on the first input, sample other inputs, evaluate the provided function,
+        /// and pass the result trough. The function does not contain mutable reference to the
+        /// network model. If you need the model, use the `mapX` family of functions instead.
+        #[inline(never)]
+        #[allow(non_snake_case)]
+        #[allow(clippy::too_many_arguments)]
+        pub fn [<$name _>] < $($ns,)* F, Output>
+        (self, $($ns:$ns,)* f: F) -> NodeInNetwork<'a, M, Stream<Output>>
+        where
+            $($ns: NodeWithDefaultOutput,)*
+            Output: Data,
+            F: 'static + Fn(&N1::Output, $(&$ns::Output,)*) -> Output, {
+            self.network.new_node((Listen(self), $(Sample($ns),)*),
+                move |event, _, t1, $($ns,)*| { event.emit(&f(t1, $($ns,)*)) }
+            )
+        }
     }};
 }
 
 impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
-    def_map_nodes![2, 3, 4, 5, 6, 7, 8, 9];
+    def_map_nodes![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 }

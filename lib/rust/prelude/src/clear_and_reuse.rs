@@ -1,4 +1,4 @@
-//! Definition of [`Clearable`] and [`Reusable`] traits, allowing perforant way of clearing and
+//! Definition of [`Clearable`] and [`Reusable`] traits, allowing performant way of clearing and
 //! reusing data structures.
 
 use std::cell::Cell;
@@ -31,7 +31,7 @@ pub trait Clearable {
     fn clear(&mut self);
 }
 
-/// Immutable version of [`Clearable`].
+/// Version of [`Clearable`] with internal mutability pattern.
 #[allow(missing_docs)]
 pub trait ImClearable {
     fn clear_im(&self);
@@ -43,7 +43,9 @@ pub trait ImClearable {
 // === Reusable ===
 // ================
 
-/// Abstraction for structures that can be cleared and reused. See the docs of [`Clearable`] to
+/// Abstraction for structures that can be cleared and reused. This does not have to set all fields
+/// of the given struct, only the ones that were not cleared by [`Clearable`]. You should not use
+/// this abstraction if the struct was not cleared beforehand. See the docs of [`Clearable`] to
 /// learn more.
 #[allow(missing_docs)]
 pub trait Reusable {

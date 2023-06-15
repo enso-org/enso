@@ -58,12 +58,12 @@ where
 // === Borrowed ===
 // ================
 
-/// A value borrowed from a `RefCell` or `OptRefCell`. In debug mode, this is an alias for
+/// A value borrowed from a [`RefCell`]-like struct. In debug mode, this is an alias for
 /// [`std::cell::Ref`].
 #[cfg(debug_assertions)]
 pub type Borrowed<'a, T> = std::cell::Ref<'a, T>;
 
-/// A value borrowed from a `RefCell` or `OptRefCell`. In debug mode, this is an alias for
+/// A value borrowed from a [`RefCell`]-like struct. In debug mode, this is an alias for
 /// [`std::cell::Ref`].
 #[cfg(not(debug_assertions))]
 #[derive(Clone, Debug)]
@@ -90,12 +90,12 @@ impl<'a, T: ?Sized> Deref for Borrowed<'a, T> {
     }
 }
 
-/// A value mutably borrowed from a `RefCell` or `OptRefCell`. In debug mode, this is an alias for
+/// A value mutably borrowed from a [`RefCell`]-like struct. In debug mode, this is an alias for
 /// [`std::cell::RefMut`].
 #[cfg(debug_assertions)]
 pub type BorrowedMut<'a, T> = std::cell::RefMut<'a, T>;
 
-/// A value mutably borrowed from a `RefCell` or `OptRefCell`. In debug mode, this is an alias for
+/// A value mutably borrowed from a [`RefCell`]-like struct. In debug mode, this is an alias for
 /// [`std::cell::RefMut`].
 #[cfg(not(debug_assertions))]
 #[derive(Debug)]
@@ -120,9 +120,9 @@ impl<'a, T: ?Sized> DerefMut for BorrowedMut<'a, T> {
 
 
 
-// ==================
-// === OptRefCell ===
-// ==================
+// ===========================
+// === ZeroOverheadRefCell ===
+// ===========================
 
 #[cfg(debug_assertions)]
 use crate::ZeroableRefCell;
@@ -136,7 +136,7 @@ use std::cell::UnsafeCell;
 /// cause immediate undefined behavior, so all code using it must be extensively tested.
 #[derive(Default, Zeroable)]
 #[repr(transparent)]
-pub struct OptRefCell<T> {
+pub struct ZeroOverheadRefCell<T> {
     #[cfg(not(debug_assertions))]
     inner: UnsafeCell<T>,
     #[cfg(debug_assertions)]
@@ -145,7 +145,7 @@ pub struct OptRefCell<T> {
 
 #[cfg(not(debug_assertions))]
 #[allow(missing_docs)] // The functions reflect the [`RefCell`] API.
-impl<T> OptRefCell<T> {
+impl<T> ZeroOverheadRefCell<T> {
     #[inline(always)]
     pub fn new(t: T) -> Self {
         Self { inner: UnsafeCell::new(t) }
@@ -185,7 +185,7 @@ impl<T> OptRefCell<T> {
 
 #[cfg(debug_assertions)]
 #[allow(missing_docs)] // The functions reflect the [`RefCell`] API.
-impl<T> OptRefCell<T> {
+impl<T> ZeroOverheadRefCell<T> {
     #[inline(always)]
     pub fn new(t: T) -> Self {
         Self { inner: ZeroableRefCell::new(t) }
@@ -193,7 +193,7 @@ impl<T> OptRefCell<T> {
 }
 
 #[cfg(debug_assertions)]
-impl<T> Deref for OptRefCell<T> {
+impl<T> Deref for ZeroOverheadRefCell<T> {
     type Target = ZeroableRefCell<T>;
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
@@ -202,20 +202,20 @@ impl<T> Deref for OptRefCell<T> {
 }
 
 #[cfg(debug_assertions)]
-impl<T> DerefMut for OptRefCell<T> {
+impl<T> DerefMut for ZeroOverheadRefCell<T> {
     #[inline(always)]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
 }
 
-impl<T: Debug> Debug for OptRefCell<T> {
+impl<T: Debug> Debug for ZeroOverheadRefCell<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Debug::fmt(&self.borrow(), f)
     }
 }
 
-impl<T: Clearable> ImClearable for OptRefCell<T> {
+impl<T: Clearable> ImClearable for ZeroOverheadRefCell<T> {
     #[inline(always)]
     fn clear_im(&self) {
         self.borrow_mut().clear()

@@ -142,6 +142,7 @@
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
 #![allow(dead_code)]
+#![allow(clippy::module_inception)]
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -155,8 +156,6 @@ use prelude::*;
 
 use crate::callstack::DefInfo;
 
-use enso_frp as frp_old;
-use network::Network_;
 
 
 // ==============
@@ -182,6 +181,7 @@ pub use enso_prelude as prelude;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use network::Network_;
 
     #[test]
     fn test() {
@@ -234,46 +234,17 @@ mod tests {
 }
 
 
-pub fn pub_bench() {
-    let net = Network_::new();
-    let n1 = net.source::<usize>();
-    let n2 = n1.map_(|t| t + 1);
-    let mut prev = n2;
-    for _ in 0..1_000 {
-        let next = prev.map_(|t| t + 1);
-        prev = next;
-    }
 
-    let _keep = &net;
-    for i in 0..1_000 {
-        n1.emit(&i);
-    }
-}
-
-pub fn pub_bench_old() {
-    let net = frp_old::Network::new("label");
-    frp_old::extend! { net
-        n1 <- source::<usize>();
-        n2 <- map(&n1, |t| t + 1);
-    }
-    let mut prev = n2;
-    for _ in 0..1_000 {
-        frp_old::extend! { net
-            next <- map(&prev, |t| t + 1);
-        }
-        prev = next;
-    }
-
-    let _keep = &net;
-    for i in 0..1_000 {
-        n1.emit(i);
-    }
-}
+// ===============
+// === Benches ===
+// ===============
 
 #[cfg(test)]
 mod benches {
     use super::*;
     extern crate test;
+    use enso_frp as frp_old;
+    use network::Network_;
     use test::Bencher;
 
     const REPS: usize = 100_000;

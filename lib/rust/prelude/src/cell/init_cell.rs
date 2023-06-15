@@ -20,12 +20,6 @@ pub trait InitCellContent = HasSizedItem + OptItemRef + FromItem;
 #[derive(Default, Zeroable)]
 #[repr(transparent)]
 pub struct InitCell<T> {
-    // # Safety
-    // Please note that the implementation never exposes reference to this field. If it was
-    // exposed, the implementation of [`Self::init_if_empty`] would be unsound. For example, given
-    // the `InitCell<Option<usize>>` parametrization, the user might acquire a reference to a
-    // [`None`] value and then have it changed with [`Self::init_if_empty`] while keeping the
-    // reference, causing undefined behavior.
     not_exposed: UnsafeCell<T>,
 }
 

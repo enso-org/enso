@@ -46,7 +46,7 @@ impl<Model: Default> Network<Model> {
 #[derive(Debug)]
 pub struct NetworkModel<Model> {
     pub(crate) id:    NetworkId,
-    pub(crate) model: Rc<OptRefCell<Model>>,
+    pub(crate) model: Rc<ZeroOverheadRefCell<Model>>,
 }
 
 impl<Model: Default> NetworkModel<Model> {
