@@ -183,6 +183,9 @@
   execution failed][6918].
 - [Performance and readability of documentation panel was improved][6893]. The
   documentation is now split into separate pages, which are much smaller.
+- [IDE no longer inserts redundant imports when selecting options from dropdown
+  widgets][7028]. The code was unified with the component browser, and it now
+  correctly handles reexports and already existing imports.
 
 [6279]: https://github.com/enso-org/enso/pull/6279
 [6421]: https://github.com/enso-org/enso/pull/6421
@@ -197,6 +200,7 @@
 [6827]: https://github.com/enso-org/enso/pull/6827
 [6918]: https://github.com/enso-org/enso/pull/6918
 [6893]: https://github.com/enso-org/enso/pull/6893
+[7028]: https://github.com/enso-org/enso/pull/7028
 
 #### EnsoGL (rendering engine)
 
