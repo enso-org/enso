@@ -3,26 +3,26 @@
 /* Common parts. */
 
 :root {
-  --type-name-color: #9640da;
-  --module-name-color: #a239e2;
-  --methods-header-color: #1f71d3;
-  --method-name-color: #1f71d3;
-  --types-header-color: #1f71d3;
-  --examples-header-color: #6da85e;
-  --important-background-color: #edefe7;
-  --info-background-color: #e6f1f8;
-  --example-background-color: #e6f1f8;
-  --docs-background-color: #fcfeff;
-  --docs-text-color: #434343;
-  --tag-background-color: #f5f5f5;
-  --caption-background-color: #0077f6;
+  --enso-docs-type-name-color: #9640da;
+  --enso-docs-module-name-color: #a239e2;
+  --enso-docs-methods-header-color: #1f71d3;
+  --enso-docs-method-name-color: #1f71d3;
+  --enso-docs-types-header-color: #1f71d3;
+  --enso-docs-examples-header-color: #6da85e;
+  --enso-docs-important-background-color: #edefe7;
+  --enso-docs-info-background-color: #e6f1f8;
+  --enso-docs-example-background-color: #e6f1f8;
+  --enso-docs-background-color: #fcfeff;
+  --enso-docs-text-color: #434343;
+  --enso-docs-tag-background-color: #f5f5f5;
+  --enso-docs-caption-background-color: #0077f6;
 }
 
 .enso-docs {
   font-family: "M PLUS 1", DejaVuSansMonoBook, sans-serif;
   font-size: 11.5px;
-  color: var(--docs-text-color);
-  background-color: var(--docs-background-color);
+  color: var(--enso-docs-text-color);
+  background-color: var(--enso-docs-background-color);
   padding-left: 0.5rem;
   padding-right: 0.5rem;
   padding-bottom: 0.5rem;
@@ -45,11 +45,11 @@
 }
 
 .enso-docs ul li.type-item:before {
-  color: var(--type-name-color);
+  color: var(--enso-docs-type-name-color);
 }
 
 .enso-docs ul li.method-item:before {
-  color: var(--method-name-color);
+  color: var(--enso-docs-method-name-color);
 }
 
 .enso-docs .paragraph {
@@ -65,17 +65,17 @@
 }
 
 .enso-docs .method {
-  color: var(--method-name-color);
+  color: var(--enso-docs-method-name-color);
   font-weight: 600;
 }
 
 .enso-docs .constructor {
-  color: var(--type-name-color);
+  color: var(--enso-docs-type-name-color);
   font-weight: 600;
 }
 
 .enso-docs .type {
-  color: var(--type-name-color);
+  color: var(--enso-docs-type-name-color);
   font-weight: 600;
 }
 
@@ -96,7 +96,7 @@
 .enso-docs .header-top {
   font-size: 17px;
   font-weight: 700;
-  color: var(--type-name-color);
+  color: var(--enso-docs-type-name-color);
   margin: 0.5rem 0;
 }
 
@@ -131,25 +131,25 @@ div.enso-docs .header-icon {
 }
 
 .enso-docs .methods-header {
-  color: var(--methods-header-color);
+  color: var(--enso-docs-methods-header-color);
 }
 
 .enso-docs .types-header {
-  color: var(--types-header-color);
+  color: var(--enso-docs-types-header-color);
 }
 
 .enso-docs .examples-header {
-  color: var(--examples-header-color);
+  color: var(--enso-docs-examples-header-color);
 }
 
 /* Marked sections, such as `Info` and `Important` sections. */
 
 .enso-docs .background-info {
-  background-color: var(--info-background-color);
+  background-color: var(--enso-docs-info-background-color);
 }
 
 .enso-docs .background-important {
-  background-color: var(--important-background-color);
+  background-color: var(--enso-docs-important-background-color);
 }
 
 .enso-docs .marked-container {
@@ -189,7 +189,7 @@ div.enso-docs .marked-icon-info {
 /* Examples. */
 
 .enso-docs .example-container {
-  background-color: var(--example-background-color);
+  background-color: var(--enso-docs-example-background-color);
   border-radius: 0.25rem;
   padding: 0.5rem;
   margin-bottom: 0.5rem;
@@ -210,7 +210,7 @@ div.enso-docs .marked-icon-info {
 }
 
 .enso-docs .tag {
-  background-color: var(--tag-background-color);
+  background-color: var(--enso-docs-tag-background-color);
   border-radius: 0.5rem;
   padding: 0.15rem 0.5rem;
   margin-bottom: 0.25rem;
@@ -220,7 +220,7 @@ div.enso-docs .marked-icon-info {
 /* "Hover item preview" caption. */
 
 .enso-docs .caption-container {
-  background-color: var(--caption-background-color);
+  background-color: var(--enso-docs-caption-background-color);
   border-top-left-radius: 14px;
   border-top-right-radius: 14px;
   width: 100%;
