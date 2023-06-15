@@ -10,7 +10,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 
 /** A column storing arbitrary objects. */
 public final class ObjectStorage extends SpecializedStorage<Object> {
-  private StorageType resolvedType;
+  private StorageType inferredType = null;
 
   /**
    * @param data the underlying data
@@ -18,7 +18,7 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
    */
   public ObjectStorage(Object[] data, int size) {
     super(data, size, ops);
-    resolvedType = null;
+    inferredType = null;
   }
 
   @Override
@@ -37,8 +37,8 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
   }
 
   @Override
-  public StorageType getValuesType() {
-    if (resolvedType == null) {
+  public StorageType inferPreciseType() {
+    if (inferredType == null) {
       StorageType currentType = null;
       for (int i = 0; i < size(); i++) {
         var item = getItemBoxed(i);
@@ -51,10 +51,10 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
         }
       }
 
-      resolvedType = currentType == null ? AnyObjectType.INSTANCE : currentType;
+      inferredType = currentType == null ? AnyObjectType.INSTANCE : currentType;
     }
 
-    return resolvedType;
+    return inferredType;
   }
 
   @Override

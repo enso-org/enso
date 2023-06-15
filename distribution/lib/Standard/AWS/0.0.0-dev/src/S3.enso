@@ -26,5 +26,5 @@ handle_s3_errors  ~action =
 ## PRIVATE
 make_client : (AWS_Credential | Nothing) -> S3Client
 make_client credentials =
-    pvdr = Auth.create_provider credentials
-    S3Client.builder.credentialsProvider pvdr . build
+    provider = Auth.create_provider credentials
+    S3Client.builder.credentialsProvider provider . build

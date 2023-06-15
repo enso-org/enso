@@ -30,9 +30,10 @@ public abstract class Storage<T> {
   public abstract StorageType getType();
 
   /**
-   * @return the type of the values in this column's storage. Resolves type for Mixed if possible.
+   * @return the type of the values in this column's storage. Most storages just return their type.
+   *     Mixed storage will try to see if all elements fit some more precise type.
    */
-  public StorageType getValuesType() {
+  public StorageType inferPreciseType() {
     return getType();
   }
 

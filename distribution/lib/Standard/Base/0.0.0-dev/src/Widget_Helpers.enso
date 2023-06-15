@@ -9,7 +9,7 @@ from project.Metadata import make_single_choice
    Creates a Single_Choice Widget for delimiters.
 make_delimiter_selector : Widget
 make_delimiter_selector =
-    make_single_choice [',', ';', '|', ['{tab}', "'\t'"], ['{space}', "' '"], ['{newline}', "['\n', '\r\n', '\r']"], ['{underscore}', '"_"'], ['{bar}', '"|"'], ['Custom', "'?'"]]
+    make_single_choice [',', ';', '|', ['{tab}', "'\t'"], ['{space}', "' '"], ['{newline}', "['\n', '\r\n', '\r']"], '_', ['Custom', "'?'"]]
 
 ## PRIVATE
    Creates a Single_Choice Widget for parsing dates.

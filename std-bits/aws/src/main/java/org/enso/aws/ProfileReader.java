@@ -8,9 +8,8 @@ public class ProfileReader {
   private final String[] profiles;
 
   private ProfileReader() {
-
-    var pvdr = ProfileFileSupplier.defaultSupplier();
-    var profileFile = pvdr.get();
+    var provider = ProfileFileSupplier.defaultSupplier();
+    var profileFile = provider.get();
     profiles = profileFile.profiles().keySet().toArray(new String[0]);
   }
 
