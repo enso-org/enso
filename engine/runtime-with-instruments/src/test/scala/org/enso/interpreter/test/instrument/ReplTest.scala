@@ -290,7 +290,7 @@ class ReplTest
       }
       eval(code)
       val errorMsg =
-        "Compile_Error.Error"
+        "Compile error: The name `undefined` could not be found."
       evalResult.left.value.getMessage shouldEqual errorMsg
     }
 

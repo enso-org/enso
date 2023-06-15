@@ -279,8 +279,7 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
-        ),
-        builtin = true
+        )
       ),
       TestMessages.panic(
         contextId,
@@ -288,8 +287,7 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
-        ),
-        builtin = true
+        )
       ),
       TestMessages.panic(
         contextId,
@@ -297,8 +295,7 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `undefined` could not be found.",
           Seq(xId)
-        ),
-        builtin = true
+        )
       ),
       context.executionComplete(contextId)
     )
@@ -449,7 +446,7 @@ class RuntimeErrorsTest
           "Compile error: The name `x` could not be found.",
           Seq(mainBodyId)
         ),
-        builtin = true
+        builtin = false
       ),
       context.executionComplete(contextId)
     )
@@ -1796,8 +1793,8 @@ class RuntimeErrorsTest
     context.receiveNIgnorePendingExpressionUpdates(
       3
     ) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, x1Id, ConstantsGen.NOTHING_BUILTIN),
-      TestMessages.update(contextId, mainRes1Id, ConstantsGen.NOTHING_BUILTIN),
+      TestMessages.update(contextId, x1Id, ConstantsGen.NOTHING),
+      TestMessages.update(contextId, mainRes1Id, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("MyError")
@@ -1874,8 +1871,7 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `IO` could not be found.",
           Seq(xId)
-        ),
-        builtin = true
+        )
       ),
       TestMessages.panic(
         contextId,
@@ -1883,8 +1879,7 @@ class RuntimeErrorsTest
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: The name `IO` could not be found.",
           Seq(xId)
-        ),
-        builtin = true
+        )
       ),
       context.executionComplete(contextId)
     )
@@ -1908,8 +1903,8 @@ class RuntimeErrorsTest
     context.receiveNIgnorePendingExpressionUpdates(
       3
     ) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, x1Id, ConstantsGen.NOTHING_BUILTIN),
-      TestMessages.update(contextId, mainRes1Id, ConstantsGen.NOTHING_BUILTIN),
+      TestMessages.update(contextId, x1Id, ConstantsGen.NOTHING),
+      TestMessages.update(contextId, mainRes1Id, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("MyError")
