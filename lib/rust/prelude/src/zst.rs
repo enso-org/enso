@@ -7,6 +7,7 @@
 //!   its usage in `repr(transparent)` types because there is no guarantee that in the future the
 //!   private fields might be changed and become non-zero-sized.
 
+use crate::CloneRef;
 use crate::Zeroable;
 use core::fmt::Debug;
 use core::marker::PhantomData;
@@ -62,6 +63,13 @@ impl<T: ?Sized> Copy for ZST<T> {}
 impl<T: ?Sized> Clone for ZST<T> {
     #[inline(always)]
     fn clone(&self) -> Self {
+        Self::new()
+    }
+}
+
+impl<T: ?Sized> CloneRef for ZST<T> {
+    #[inline(always)]
+    fn clone_ref(&self) -> Self {
         Self::new()
     }
 }
