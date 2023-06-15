@@ -31,7 +31,7 @@ export interface IdeProps {
 function Ide(props: IdeProps) {
     const { project, appRunner } = props
     const { backend } = backendProvider.useBackend()
-    const { accessToken } = auth.useFullUserSession()
+    const { accessToken } = auth.useNonPartialUserSession()
 
     react.useEffect(() => {
         void (async () => {
