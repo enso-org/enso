@@ -587,16 +587,14 @@ impl Renderer {
 // === Layers ===
 // ==============
 
-type RectLayerPartition = Rc<LayerSymbolPartition<rectangle::Shape>>;
+type RectLayerPartition = LayerSymbolPartition<rectangle::Shape>;
 
-/// Create a new layer partition with the given name, wrapped in an `Rc` for use in the
-/// [`HardcodedLayers`] structure.
+/// Create a new layer partition with the given name.
 fn partition_layer<S: display::shape::primitive::system::Shape>(
     base_layer: &Layer,
     name: &str,
-) -> Rc<LayerSymbolPartition<S>> {
-    let partition = base_layer.create_symbol_partition::<S>(name);
-    Rc::new(partition)
+) -> LayerSymbolPartition<S> {
+    base_layer.create_symbol_partition::<S>(name)
 }
 
 /// Please note that currently the `Layers` structure is implemented in a hacky way. It assumes the

@@ -1,11 +1,10 @@
 package org.enso.image.data;
 
+import java.util.Base64;
 import nu.pattern.OpenCV;
 import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
-
-import java.util.Base64;
 
 /** Methods for standard library operations on Image. */
 public class Image {

@@ -1,14 +1,13 @@
 package org.enso.table.data.column.storage.numeric;
 
+import java.util.BitSet;
+import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-
-import java.util.BitSet;
-import java.util.List;
 
 /**
  * Implements a storage that computes the ith stored value using some function.

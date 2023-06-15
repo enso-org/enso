@@ -1,4 +1,3 @@
-from Standard.Base import all
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Index_Sub_Range.Index_Sub_Range
@@ -24,6 +23,7 @@ import project.Runtime.Context
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.File_Access.File_Access
 import project.System.File.File_Permissions.File_Permissions
+import project.Warning.Warning
 
 from project.Data.Boolean import Boolean, True, False
 from project.System.File_Format import Auto_Detect, File_Format

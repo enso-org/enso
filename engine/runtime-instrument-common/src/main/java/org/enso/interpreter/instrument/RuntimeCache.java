@@ -1,7 +1,6 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.CompilerDirectives;
-
 import java.lang.ref.SoftReference;
 import java.util.HashMap;
 import java.util.Map;

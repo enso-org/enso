@@ -1,6 +1,8 @@
 use crate::prelude::*;
 use tracing_subscriber::prelude::*;
 
+use crate::global;
+use std::io;
 use std::sync::Once;
 use tracing::span::Attributes;
 use tracing::subscriber::Interest;
@@ -68,15 +70,67 @@ pub fn setup_logging() -> Result {
             .with_default_directive(LevelFilter::TRACE.into())
             .from_env_lossy();
 
+        let progress_bar = global::multi_progress_bar();
+        let progress_bar_writer = IndicatifWriter::new(progress_bar);
+
         tracing::subscriber::set_global_default(
             Registry::default().with(MyLayer).with(
                 tracing_subscriber::fmt::layer()
                     .without_time()
                     .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+                    .with_writer(progress_bar_writer)
                     .with_filter(filter),
             ),
         )
         .unwrap()
     });
     Ok(())
+}
+
+
+
+// =======================
+// === IndicatifWriter ===
+// =======================
+
+/// A writer that writes to stderr, but suspends any active progress bars while doing so.
+///
+/// Progress bars use `stderr` to draw themselves. If we log to `stderr` while there is a progress
+/// bar visible, the progress bar will be overwritten by the log message. This results in the
+/// previous states of the progress bar remaining visible on the screen, which is not desirable.
+///
+/// To avoid this, the writer suspends the progress bars when writing logs.
+#[derive(Clone, Debug)]
+struct IndicatifWriter {
+    progress_bar: indicatif::MultiProgress,
+}
+
+
+// === Main `impl` ===
+
+impl IndicatifWriter {
+    pub fn new(progress_bar: indicatif::MultiProgress) -> Self {
+        Self { progress_bar }
+    }
+}
+
+
+// === Trait `impl`s ===
+
+impl std::io::Write for IndicatifWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.progress_bar.suspend(|| io::stderr().write(buf))
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.progress_bar.suspend(|| io::stderr().flush())
+    }
+}
+
+impl tracing_subscriber::fmt::MakeWriter<'_> for IndicatifWriter {
+    type Writer = Self;
+
+    fn make_writer(&self) -> Self::Writer {
+        self.clone()
+    }
 }

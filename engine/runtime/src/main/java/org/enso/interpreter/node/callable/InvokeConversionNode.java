@@ -8,6 +8,8 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
+import java.util.UUID;
+import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.ConversionResolverNode;
@@ -21,9 +23,6 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
-
-import java.util.UUID;
-import java.util.concurrent.locks.Lock;
 
 public abstract class InvokeConversionNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;

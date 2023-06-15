@@ -1,6 +1,5 @@
 package org.enso.projectmanager.service.config
 
-import org.enso.jsonrpc
 import org.enso.projectmanager.protocol.ProjectManagementApi
 import org.enso.projectmanager.requesthandler.FailureMapper
 
@@ -16,12 +15,8 @@ object GlobalConfigServiceFailure {
       extends GlobalConfigServiceFailure
 
   /** [[FailureMapper]] instance for [[GlobalConfigServiceFailure]]. */
-  implicit val failureMapper = new FailureMapper[GlobalConfigServiceFailure] {
-    override def mapFailure(
-      failure: GlobalConfigServiceFailure
-    ): jsonrpc.Error = failure match {
-      case ConfigurationFileAccessFailure(message) =>
-        ProjectManagementApi.GlobalConfigurationAccessError(message)
-    }
+  implicit val failureMapper: FailureMapper[GlobalConfigServiceFailure] = {
+    case ConfigurationFileAccessFailure(message) =>
+      ProjectManagementApi.GlobalConfigurationAccessError(message)
   }
 }

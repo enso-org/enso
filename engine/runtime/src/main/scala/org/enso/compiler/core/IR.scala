@@ -9,9 +9,9 @@ import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.interpreter.epb.EpbParser
 import org.enso.syntax.text.{Debug, Location}
+import com.oracle.truffle.api.source.Source
 
 import java.util.UUID
-
 import scala.annotation.unused
 
 /** [[IR]] is a temporary and fairly unsophisticated internal representation
@@ -196,6 +196,20 @@ object IR {
     */
   def mkIndent(n: Int): String = {
     " " * n
+  }
+
+  private def fileLocationFromSection(
+    loc: IR.IdentifiedLocation,
+    source: Source
+  ): String = {
+    val section =
+      source.createSection(loc.location.start, loc.location.length)
+    val locStr =
+      "" + section.getStartLine + ":" +
+      section.getStartColumn + "-" +
+      section.getEndLine + ":" +
+      section.getEndColumn
+    source.getName + "[" + locStr + "]"
   }
 
   /** The size of a single indentation level. */
@@ -6999,6 +7013,25 @@ object IR {
       }
     }
 
+    case class DuplicatedImport(
+      override val location: Option[IdentifiedLocation],
+      originalImport: IR.Module.Scope.Import,
+      symbolName: String,
+      source: Source
+    ) extends Warning {
+      override def message: String = {
+        val originalImportRepr =
+          originalImport.location match {
+            case Some(location) =>
+              s"'${originalImport.showCode()}' in ${fileLocationFromSection(location, source)}"
+            case None => originalImport.showCode()
+          }
+        s"Duplicated import of $symbolName. The original import is ${originalImportRepr}."
+      }
+
+      override def diagnosticKeys(): Array[Any] = Array()
+    }
+
     /** A warning about a `@Tail_Call` annotation placed in a non-tail
       * position.
       * @param location the location of the annotated application
@@ -8814,6 +8847,34 @@ object IR {
       ) extends Reason {
         override def message: String =
           s"No such constructor ${constructorName} in type $typeName"
+      }
+
+      /** Represents an ambiguous import resolution error, where the same symbol is imported more than once refereing
+        * to different objects. The objects are represented by their physical path in the project.
+        * @param originalImport the original import statement.
+        * @param originalSymbolPath the original symbol path.
+        * @param symbolName the symbol name that is ambiguous.
+        * @param symbolPath the symbol path that is different than [[originalSymbolPath]].
+        * @param source Location of the original import.
+        */
+      case class AmbiguousImport(
+        originalImport: IR.Module.Scope.Import,
+        originalSymbolPath: String,
+        symbolName: String,
+        symbolPath: String,
+        source: Source
+      ) extends Reason {
+        override def message: String = {
+          val originalImportRepr =
+            originalImport.location match {
+              case Some(location) =>
+                fileLocationFromSection(location, source)
+              case None => originalImport.showCode()
+            }
+          s"Symbol '$symbolName' resolved ambiguously to '$symbolPath' in the import Statement. " +
+          s"The symbol was first resolved to '$originalSymbolPath' in the import statement '$originalImportRepr'."
+        }
+
       }
     }
 

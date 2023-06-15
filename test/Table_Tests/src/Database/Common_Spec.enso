@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Sort_Column
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 from Standard.Table.Errors import all
 
 from Standard.Database import all

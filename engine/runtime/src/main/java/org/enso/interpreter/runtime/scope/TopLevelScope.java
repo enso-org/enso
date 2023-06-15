@@ -15,7 +15,6 @@ import java.io.File;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-
 import org.enso.compiler.PackageRepository;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;

@@ -744,6 +744,7 @@ impl FontTemplate<NonVariableFamily> {
     }
 
     /// Populate the cache with the given data.
+    #[profile(Debug)]
     pub fn load_cache(&self, snapshot: &CacheSnapshot) -> anyhow::Result<()> {
         self.atlas.set_data(snapshot.atlas.clone());
         let cache: HashMap<String, HashMap<String, GlyphRenderInfo>> =
