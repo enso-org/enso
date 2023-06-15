@@ -11,7 +11,7 @@ import * as newtype from './newtype'
 export const CLOUD_DOMAIN = 'https://cloud.enso.org'
 
 /** The current environment that we're running in. */
-export const ENVIRONMENT: Environment = 'npekin'
+export const ENVIRONMENT: Environment = 'production'
 
 /** All possible URLs used as the OAuth redirects when running the cloud app. */
 const CLOUD_REDIRECTS = {
