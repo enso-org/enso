@@ -19,7 +19,9 @@ trait Locking {
     */
   def removeFileLock(file: File): Unit
 
-  /** Acquires a compilation write lock.
+  /** Acquires a compilation write lock and returns a timestamp when it succeeded.
+    *
+    * @return timestamp of when the lock was acquired
     */
   def acquireWriteCompilationLock(): Long
 
@@ -27,7 +29,9 @@ trait Locking {
     */
   def releaseWriteCompilationLock(): Unit
 
-  /** Acquires a compilation read lock.
+  /** Acquires a compilation read lock and returns a timestamp when it succeeded.
+    *
+    * @return timestamp of when the lock was acquired
     */
   def acquireReadCompilationLock(): Long
 
@@ -35,7 +39,9 @@ trait Locking {
     */
   def releaseReadCompilationLock(): Unit
 
-  /** Acquires a pending edits lock.
+  /** Acquires a pending edits lock and returns a timestamp when it succeeded.
+    *
+    * @return timestamp of when the lock was acquired
     */
   def acquirePendingEditsLock(): Long
 
@@ -56,9 +62,10 @@ trait Locking {
     */
   def releaseContextLock(contextId: UUID): Unit
 
-  /** Acquires a file lock.
+  /** Acquires a file lock and returns a timestamp when it succeeded.
     *
     * @param file a file to lock
+    * @return timestamp of when the lock was acquired
     */
   def acquireFileLock(file: File): Long
 
