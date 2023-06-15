@@ -675,10 +675,7 @@ type Column
 
          column.const 42
     const : Any -> Column
-    const self value =
-        name = "Constant_" + value.to_text
-        values = Vector.new (self.length) (_-> value)
-        Column.from_vector name values
+    const self value = self.to_table.make_constant_column value
 
     ## Round the values in a numeric column to a specified number of decimal
        places.
