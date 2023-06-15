@@ -5,6 +5,7 @@ from Standard.Base import True, False, Map, Boolean, Nothing, Problem_Behavior
 from Standard.Base import Ordering, Text_Ordering, Natural_Order, Case_Sensitivity, Sort_Direction, Filter_Condition, Case
 from Standard.Base import Meta, Error, Warning, Panic, Function, Report_Warning, Report_Error
 from Standard.Base import IO, File_Format, Existing_File_Behavior, Auto_Detect, File, Platform, Locale, Location
+from Standard.Base.Meta import all hiding Error
 
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Errors.Common.Incomparable_Values

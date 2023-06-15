@@ -1,10 +1,4 @@
-from Standard.Base import Boolean, True, False
-from Standard.Base import Nothing, Any
-from Standard.Base import Vector, Map
-from Standard.Base import JS_Object, Filter_Condition, Sort_Direction
-from Standard.Base import Panic
-from Standard.Base import Date, Date_Time, Time_Of_Day
-from Standard.Base import IO
+from Standard.Base import all
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Aggregate_Column, Value_Type, Table
