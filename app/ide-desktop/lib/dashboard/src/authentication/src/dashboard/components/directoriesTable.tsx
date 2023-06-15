@@ -225,11 +225,9 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                               render: columnModule.COLUMN_RENDERER[column],
                           }
                 )}
-                onContextMenu={(directories, event) => {
+                onContextMenu={(directories, event, setSelectedItems) => {
                     event.preventDefault()
                     event.stopPropagation()
-                    // This is not a React component even though it contains JSX.
-                    // eslint-disable-next-line no-restricted-syntax
                     const doDeleteAll = () => {
                         setModal(
                             <ConfirmDeleteModal
@@ -237,6 +235,7 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                                 assetType="folders"
                                 shouldShowToast={false}
                                 doDelete={async () => {
+                                    setSelectedItems(new Set())
                                     await toastPromiseMultiple.toastPromiseMultiple(
                                         logger,
                                         [...directories],
@@ -263,8 +262,6 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                 onRowContextMenu={(directory, event) => {
                     event.preventDefault()
                     event.stopPropagation()
-                    // This is not a React component even though it contains JSX.
-                    // eslint-disable-next-line no-restricted-syntax
                     const doRename = () => {
                         const innerDoRename = async (newName: string) => {
                             await backend.updateDirectory(
@@ -284,8 +281,6 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                             />
                         )
                     }
-                    // This is not a React component even though it contains JSX.
-                    // eslint-disable-next-line no-restricted-syntax
                     const doDelete = () => {
                         setModal(
                             <ConfirmDeleteModal

@@ -3,13 +3,10 @@ import * as React from 'react'
 
 import * as backend from './backend'
 import * as dateTime from './dateTime'
-import * as modalProvider from '../providers/modal'
 import * as svg from '../components/svg'
 import * as table from './components/table'
 
 import PermissionDisplay, * as permissionDisplay from './components/permissionDisplay'
-import ContextMenu from './components/contextMenu'
-import ContextMenuEntry from './components/contextMenuEntry'
 
 // =============
 // === Types ===
@@ -128,31 +125,7 @@ export const COLUMN_RENDERER: Record<
         </>
     ),
     [Column.docs]: () => <></>,
-    [Column.labels]: () => {
-        const { setModal } = modalProvider.useSetModal()
-
-        // This is not a React component even though it contains JSX.
-        // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
-        const onContextMenu = (event: React.MouseEvent) => {
-            event.preventDefault()
-            event.stopPropagation()
-            setModal(
-                // This is a placeholder key. It should be replaced with label ID when labels
-                // are implemented.
-                <ContextMenu key={'label'} event={event}>
-                    <ContextMenuEntry
-                        disabled
-                        onClick={() => {
-                            // TODO: Wait for backend implementation.
-                        }}
-                    >
-                        Rename label
-                    </ContextMenuEntry>
-                </ContextMenu>
-            )
-        }
-        return <></>
-    },
+    [Column.labels]: () => <></>,
     [Column.dataAccess]: () => <></>,
     [Column.usagePlan]: () => <></>,
     [Column.engine]: () => <></>,

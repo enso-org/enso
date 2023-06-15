@@ -277,23 +277,16 @@ function FilesTable(props: FilesTableProps) {
                               render: columnModule.COLUMN_RENDERER[column],
                           }
                 )}
-                onContextMenu={(files, event) => {
+                onContextMenu={(files, event, setSelectedItems) => {
                     event.preventDefault()
                     event.stopPropagation()
-                    const doCopyAll = () => {
-                        /** TODO: Wait for backend endpoint. */
-                    }
-                    const doCutAll = () => {
-                        /** TODO: Wait for backend endpoint. */
-                    }
-                    // This is not a React component even though it contains JSX.
-                    // eslint-disable-next-line no-restricted-syntax
                     const doDeleteAll = () => {
                         setModal(
                             <ConfirmDeleteModal
                                 description={`${files.size} selected files`}
                                 assetType="files"
                                 doDelete={async () => {
+                                    setSelectedItems(new Set())
                                     await toastPromiseMultiple.toastPromiseMultiple(
                                         logger,
                                         [...files],
@@ -308,12 +301,12 @@ function FilesTable(props: FilesTableProps) {
                     const filesText = files.size === 1 ? 'file' : 'files'
                     setModal(
                         <ContextMenu key={uniqueString.uniqueString()} event={event}>
-                            <ContextMenuEntry disabled onClick={doCopyAll}>
+                            {/*<ContextMenuEntry disabled onClick={doCopyAll}>
                                 Copy {files.size} files
                             </ContextMenuEntry>
                             <ContextMenuEntry disabled onClick={doCutAll}>
                                 Cut {files.size} files
-                            </ContextMenuEntry>
+                            </ContextMenuEntry>*/}
                             <ContextMenuEntry onClick={doDeleteAll}>
                                 <span className="text-red-700">
                                     Delete {files.size} {filesText}
@@ -325,14 +318,6 @@ function FilesTable(props: FilesTableProps) {
                 onRowContextMenu={(file, event) => {
                     event.preventDefault()
                     event.stopPropagation()
-                    const doCopy = () => {
-                        /** TODO: Wait for backend endpoint. */
-                    }
-                    const doCut = () => {
-                        /** TODO: Wait for backend endpoint. */
-                    }
-                    // This is not a React component even though it contains JSX.
-                    // eslint-disable-next-line no-restricted-syntax
                     const doDelete = () => {
                         setModal(
                             <ConfirmDeleteModal
@@ -343,23 +328,20 @@ function FilesTable(props: FilesTableProps) {
                             />
                         )
                     }
-                    const doDownload = () => {
-                        /** TODO: Wait for backend endpoint. */
-                    }
                     setModal(
                         <ContextMenu key={file.id} event={event}>
-                            <ContextMenuEntry disabled onClick={doCopy}>
+                            {/*<ContextMenuEntry disabled onClick={doCopy}>
                                 Copy
                             </ContextMenuEntry>
                             <ContextMenuEntry disabled onClick={doCut}>
                                 Cut
-                            </ContextMenuEntry>
+                            </ContextMenuEntry>*/}
                             <ContextMenuEntry onClick={doDelete}>
                                 <span className="text-red-700">Delete</span>
                             </ContextMenuEntry>
-                            <ContextMenuEntry disabled onClick={doDownload}>
+                            {/*<ContextMenuEntry disabled onClick={doDownload}>
                                 Download
-                            </ContextMenuEntry>
+                            </ContextMenuEntry>*/}
                         </ContextMenu>
                     )
                 }}

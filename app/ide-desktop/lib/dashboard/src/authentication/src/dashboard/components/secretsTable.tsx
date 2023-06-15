@@ -277,17 +277,16 @@ function SecretsTable(props: SecretsTableProps) {
                               render: columnModule.COLUMN_RENDERER[column],
                           }
                 )}
-                onContextMenu={(secrets, event) => {
+                onContextMenu={(secrets, event, setSelectedItems) => {
                     event.preventDefault()
                     event.stopPropagation()
-                    // This is not a React component even though it contains JSX.
-                    // eslint-disable-next-line no-restricted-syntax
                     const doDeleteAll = () => {
                         setModal(
                             <ConfirmDeleteModal
                                 description={`${secrets.size} selected secrets`}
                                 assetType="secrets"
                                 doDelete={async () => {
+                                    setSelectedItems(new Set())
                                     await toastPromiseMultiple.toastPromiseMultiple(
                                         logger,
                                         [...secrets],
@@ -313,8 +312,6 @@ function SecretsTable(props: SecretsTableProps) {
                 onRowContextMenu={(secret, event) => {
                     event.preventDefault()
                     event.stopPropagation()
-                    // This is not a React component even though it contains JSX.
-                    // eslint-disable-next-line no-restricted-syntax
                     const doDelete = () => {
                         setModal(
                             <ConfirmDeleteModal

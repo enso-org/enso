@@ -46,7 +46,11 @@ export interface TableProps<T, State = never> {
     columns: Column<T, State>[]
     isLoading: boolean
     placeholder: JSX.Element
-    onContextMenu: (selectedItems: Set<T>, event: React.MouseEvent<HTMLTableElement>) => void
+    onContextMenu: (
+        selectedItems: Set<T>,
+        event: React.MouseEvent<HTMLTableElement>,
+        setSelectedItems: (items: Set<T>) => void
+    ) => void
     onRowContextMenu: (item: T, event: React.MouseEvent<HTMLTableRowElement>) => void
 }
 
@@ -196,7 +200,9 @@ function Table<T, State = never>(props: TableProps<T, State>) {
         <table
             className="table-fixed items-center border-collapse w-0 mt-2"
             onContextMenu={event => {
-                onContextMenu(selectedItems, event)
+                onContextMenu(selectedItems, event, () => {
+                    setSelectedItems(new Set())
+                })
             }}
         >
             <thead>{headerRow}</thead>

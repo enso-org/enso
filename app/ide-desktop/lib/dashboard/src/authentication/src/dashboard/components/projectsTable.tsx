@@ -345,7 +345,7 @@ function ProjectsTable(props: ProjectsTableProps) {
                           render: columnModule.COLUMN_RENDERER[column],
                       }
             )}
-            onContextMenu={(projects, event) => {
+            onContextMenu={(projects, event, setSelectedItems) => {
                 event.preventDefault()
                 event.stopPropagation()
                 // This is not a React component even though it contains JSX.
@@ -357,6 +357,7 @@ function ProjectsTable(props: ProjectsTableProps) {
                             assetType="projects"
                             shouldShowToast={false}
                             doDelete={async () => {
+                                setSelectedItems(new Set())
                                 await toastPromiseMultiple.toastPromiseMultiple(
                                     logger,
                                     [...projects],
@@ -392,14 +393,6 @@ function ProjectsTable(props: ProjectsTableProps) {
                         projectId: project.id,
                     })
                 }
-                const doOpenAsFolder = () => {
-                    // FIXME[sb]: Uncomment once backend support is in place.
-                    // The following code does not typecheck
-                    // since `ProjectId`s are not `DirectoryId`s.
-                    // enterDirectory(projectAsset)
-                }
-                // This is not a React component even though it contains JSX.
-                // eslint-disable-next-line no-restricted-syntax
                 const doRename = () => {
                     const innerDoRename = async (newName: string) => {
                         await backend.projectUpdate(
@@ -427,8 +420,6 @@ function ProjectsTable(props: ProjectsTableProps) {
                         />
                     )
                 }
-                // This is not a React component even though it contains JSX.
-                // eslint-disable-next-line no-restricted-syntax
                 const doDelete = () => {
                     setModal(
                         <ConfirmDeleteModal
@@ -444,11 +435,11 @@ function ProjectsTable(props: ProjectsTableProps) {
                         <ContextMenuEntry onClick={doOpenForEditing}>
                             Open for editing
                         </ContextMenuEntry>
-                        {backend.type !== backendModule.BackendType.local && (
+                        {/*backend.type !== backendModule.BackendType.local && (
                             <ContextMenuEntry disabled onClick={doOpenAsFolder}>
                                 Open as folder
                             </ContextMenuEntry>
-                        )}
+                        )*/}
                         <ContextMenuEntry onClick={doRename}>Rename</ContextMenuEntry>
                         <ContextMenuEntry
                             disabled={isDeleteDisabled}
