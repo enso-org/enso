@@ -78,3 +78,95 @@ enso publish-library --upload-url <URL> <path to project root>
 The `--upload-url` is optional, if not provided, the library will be uploaded to
 the main Enso library repository. See `enso publish-library --help` for more
 information.
+
+## Crafting Library API
+
+Exporting your project as a library is as easy publishing its ZIP archive.
+However, if you want to increase comfort of users of your library, you may want
+to polish the API of your library. Following sections describe how to do it.
+
+### Ease of Exporting
+
+To make creation of new libraries as smooth as possible, one doesn’t have to
+define anything special than library identification in `package.yaml` (read
+above). Every module your library contains is then exposed and ready for use.
+
+### Exposing Logical Structure
+
+However sometimes exposing everything can create confusion and you may want to
+craft your library and expose just parts of your library. To do so define
+`Main.enso` file in the root of your library. Once such file exists, only
+elements re-exported from that file are going to be available to your library
+users. Typical `Main.enso` file:
+
+```haskell
+import project.Api.Useful_Tool
+export project.Api.Useful_Tool
+
+import project.Helpers.Less_Useful_Tool
+export project.Helpers.Less_Useful_Tool
+```
+
+One way to envision these re-export is to treat them like _symlinks on a
+filesystem_. The structure of `.enso` files in your `project` defines a physical
+structure of modules. Rather than exposing such physical structure (as is the
+case when `Main.enso` file is missing), we expose _logical structure_ defined by
+`Main.enso` file. In the example above users can use your library as:
+
+```haskell
+from Namespace.Library_Name import Useful_Tool, Less_Useful_Tool
+```
+
+By using re-exports one can re-export modules, types, constructors present in
+the library in a way most suitable for users of the library.
+
+### Encapsulation
+
+Defining `Main.enso` library entry point not only allows re-exports of important
+API elements, but it also provides encapsulation. Only the re-exported modules,
+types, etc. are accessible to users of your library. The rest is hidden.
+
+Should there be a file `Internal/Implementation/Utilities.enso` in a library
+with a `Main.enso` entry point without being re-exported in `Main.enso`, then
+trying to import such module from another project:
+
+```haskell
+import Namespace.Library_Name.Internal.Implementation.Utilities
+```
+
+Would generate a compiler error claiming such module isn't exposed for use.
+
+### Ease of Imports
+
+Enso language offers two basic ways to import a library. One can import it
+**all**:
+
+```haskell
+from Namespace.Library_Name import all
+```
+
+That's the simplest import suitable for most users. One gets all re-exported
+elements of a library as crafted by the library API designer.
+
+Another way to import is to selectively enumerate elements to import:
+
+```haskell
+from Namespace.Library_Name import Useful_Tool, Less_Useful_Tool
+```
+
+This way one gets more direct control over the imported API elements. However
+this style requires deeper knowledge of library design intentions. As such it is
+suitable for more experienced users of the library.
+
+In both cases one may access the imported API elements directly and may also get
+access to other (sub)elements indirectly. One could for example use:
+
+```haskell
+direct = Useful_Tool
+indirect = Useful_Tool.Submodule.Utility
+```
+
+e.g. access `Useful_Tool` directly and its API subelements with a `.` notation.
+As noted in the _encapsulation_ section, only API elements re-exported in
+`Main.enso` and their subelements are accessible from outside of other projects.
+One cannot get access to more of a library than defined by **all**.

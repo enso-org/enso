@@ -819,6 +819,8 @@
 - [Upgrade GraalVM to 22.3.1 JDK17][6750]
 - [Ascribed types are checked during runtime][6790]
 - [Add compiler pass that discovers ambiguous and duplicated symbols][6868]
+- [Hide non-exported library stuff][6905] -
+  [craft API of your library](docs/libraries/sharing.md#crafting-library-api)!
 - [Improve and colorize compiler's diagnostic messages][6931]
 - [Execute some runtime commands synchronously to avoid race conditions][6998]
 - [Scala 2.13.11 update][7010]
@@ -937,6 +939,7 @@
 [6780]: https://github.com/enso-org/enso/pull/6780
 [6790]: https://github.com/enso-org/enso/pull/6790
 [6868]: https://github.com/enso-org/enso/pull/6868
+[6905]: https://github.com/enso-org/enso/pull/6905
 [6931]: https://github.com/enso-org/enso/pull/6931
 [6998]: https://github.com/enso-org/enso/pull/6998
 [7010]: https://github.com/enso-org/enso/pull/7010
