@@ -4,7 +4,6 @@ import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 from Standard.Table import Aggregate_Column
 from Standard.Table import Value_Type
 
-from Standard.Database import Errors
 import Standard.Database.Connection.Connection.Connection
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.SQL.Builder
@@ -28,6 +27,7 @@ import Standard.Database.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_M
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
+from Standard.Database.Errors import Unsupported_Database_Operation
 
 import project.Database.Redshift.Internal.Redshift_Error_Mapper.Redshift_Error_Mapper
 
@@ -139,7 +139,7 @@ type Redshift_Dialect
         Dialect.default_fetch_types_query self expression context
 
     ## PRIVATE
-    check_aggregate_support : Aggregate_Column -> Boolean ! Errors.Unsupported_Database_Operation
+    check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
     check_aggregate_support self aggregate =
         _ = aggregate
         True
