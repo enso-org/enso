@@ -551,7 +551,7 @@ impl View {
             // to refresh the searcher if we don't have outstanding key presses, as this will
             // cause the searcher to lose the selected entry and instead select the default entry.
 
-            needs_refresh <- input_change_delay.is_running;
+            let needs_refresh = input_change_delay.is_running;
             // We have retained key presses that we need to process.
             update_with_refresh <- committed_in_searcher.gate(&needs_refresh);
             // No key presses retained, accept the selection as is.
