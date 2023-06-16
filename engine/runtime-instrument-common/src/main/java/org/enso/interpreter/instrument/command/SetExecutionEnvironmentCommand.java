@@ -2,7 +2,6 @@ package org.enso.interpreter.instrument.command;
 
 import java.util.UUID;
 import java.util.logging.Level;
-
 import org.enso.interpreter.instrument.CacheInvalidation;
 import org.enso.interpreter.instrument.InstrumentFrame;
 import org.enso.interpreter.instrument.execution.RuntimeContext;

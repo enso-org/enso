@@ -1,6 +1,5 @@
 package org.enso.polyglot;
 
-import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionKey;
 
 /** Container for Runtime Server related constants. */

@@ -45,7 +45,6 @@ import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
-import org.enso.polyglot.RuntimeServerInfo;
 import org.graalvm.options.OptionKey;
 import scala.jdk.javaapi.OptionConverters;
 
