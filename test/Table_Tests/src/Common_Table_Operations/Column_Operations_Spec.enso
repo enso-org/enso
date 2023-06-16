@@ -575,7 +575,7 @@ spec setup =
             do_round -3.00001 . should_equal -3
             do_round -3.3 . should_equal -3
             do_round -3.49999 . should_equal -3
-            do_round -3.5 . should_equal -3
+            do_round -3.5 . should_equal -4
             do_round -3.50001 . should_equal -4
             do_round -3.99999 . should_equal -4
 
@@ -628,7 +628,7 @@ spec setup =
             do_round -1499.0 -2 . should_equal -1500
             do_round -1499.0 -3 . should_equal -1000
 
-            do_round -1495.0 -1 . should_equal -1490
+            do_round -1495.0 -1 . should_equal -1500
             do_round -1494.0 -1 . should_equal -1490
             do_round -1495.0 -2 . should_equal -1500
             do_round -1494.0 -2 . should_equal -1500
@@ -682,12 +682,12 @@ spec setup =
             do_round 1.222222222222225 14 . should_equal 1.22222222222223
             do_round 1.2222222222222225 15 . should_equal 1.222222222222223
 
-            do_round -1.22222222225 10 . should_equal -1.2222222222
-            do_round -1.222222222225 11 . should_equal -1.22222222222
-            do_round -1.2222222222225 12 . should_equal -1.222222222222
-            do_round -1.22222222222225 13 . should_equal -1.2222222222222
-            do_round -1.222222222222225 14 . should_equal -1.22222222222222
-            do_round -1.2222222222222225 15 . should_equal -1.222222222222222
+            do_round -1.22222222225 10 . should_equal -1.2222222223
+            do_round -1.222222222225 11 . should_equal -1.22222222223
+            do_round -1.2222222222225 12 . should_equal -1.222222222223
+            do_round -1.22222222222225 13 . should_equal -1.2222222222223
+            do_round -1.222222222222225 14 . should_equal -1.22222222222223
+            do_round -1.2222222222222225 15 . should_equal -1.222222222222223
 
             do_round 1.22222222235 10 . should_equal 1.2222222224
             do_round 1.222222222235 11 . should_equal 1.22222222224
@@ -696,12 +696,12 @@ spec setup =
             do_round 1.222222222222235 14 . should_equal 1.22222222222224
             do_round 1.2222222222222235 15 . should_equal 1.222222222222224
 
-            do_round -1.22222222235 10 . should_equal -1.2222222223
-            do_round -1.222222222235 11 . should_equal -1.22222222223
-            do_round -1.2222222222235 12 . should_equal -1.222222222223
-            do_round -1.22222222222235 13 . should_equal -1.2222222222223
-            do_round -1.222222222222235 14 . should_equal -1.22222222222223
-            do_round -1.2222222222222235 15 . should_equal -1.222222222222223
+            do_round -1.22222222235 10 . should_equal -1.2222222224
+            do_round -1.222222222235 11 . should_equal -1.22222222224
+            do_round -1.2222222222235 12 . should_equal -1.222222222224
+            do_round -1.22222222222235 13 . should_equal -1.2222222222224
+            do_round -1.222222222222235 14 . should_equal -1.22222222222224
+            do_round -1.2222222222222235 15 . should_equal -1.222222222222224
 
         Test.specify "Can round correctly near the precision limit, using banker's rounding" <|
             do_round 1.22222222225 10 use_bankers=True . should_equal 1.2222222222
@@ -779,13 +779,13 @@ spec setup =
 
         Test.specify "Can round negative integers to a specified number of negative places correctly"
             do_round -4 -1 . should_equal 0
-            do_round -5 -1 . should_equal 0
+            do_round -5 -1 . should_equal -10
             do_round -6 -1 . should_equal -10
             do_round -9 -1 . should_equal -10
             do_round -10 -1 . should_equal -10
             do_round -11 -1 . should_equal -10
             do_round -24 -1 . should_equal -20
-            do_round -25 -1 . should_equal -20
+            do_round -25 -1 . should_equal -30
             do_round -29 -1 . should_equal -30
             do_round -30 -1 . should_equal -30
             do_round -31 -1 . should_equal -30
@@ -794,7 +794,7 @@ spec setup =
             do_round -2001 -3 . should_equal -2000
             do_round -2412 -3 . should_equal -2000
             do_round -2499 -3 . should_equal -2000
-            do_round -2500 -3 . should_equal -2000
+            do_round -2500 -3 . should_equal -3000
             do_round -2501 -3 . should_equal -3000
             do_round -2511 -3 . should_equal -3000
             do_round -2907 -3 . should_equal -3000
