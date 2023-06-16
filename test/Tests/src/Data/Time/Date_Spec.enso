@@ -37,6 +37,11 @@ spec_with name create_new_date parse_date =
             text = create_new_date 2020 12 21 . format "yyyyMMdd"
             text . should_equal "20201221"
 
+        Test.specify "should format local date using provided pattern and US locale" <|
+            d = create_new_date 2020 6 21
+            d.format "d. MMM yyyy" . should_equal "21. Jun 2020"
+            d.format "d. MMMM yyyy" . should_equal "21. June 2020"
+
         Test.specify "should format local date using provided pattern and locale" <|
             d = create_new_date 2020 6 21
             d.format "d. MMMM yyyy" (Locale.new "gb") . should_equal "21. Jun 2020"
@@ -72,6 +77,18 @@ spec_with name create_new_date parse_date =
             date . month . should_equal 1
             date . day . should_equal 1
 
+        Test.specify "should parse text month formats" <|
+            date = parse_date "1999 Jan 1" "yyyy MMM d"
+            date . year . should_equal 1999
+            date . month . should_equal 1
+            date . day . should_equal 1
+
+        Test.specify "should parse text long month formats" <|
+            date = parse_date "1999 January 1" "yyyy MMMM d"
+            date . year . should_equal 1999
+            date . month . should_equal 1
+            date . day . should_equal 1
+
         Test.specify "should throw error when parsing custom format" <|
             date = parse_date "1999-01-01" "yyyy M d"
             case date.catch of
@@ -90,6 +107,13 @@ spec_with name create_new_date parse_date =
             time . second . should_equal 45
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal Time_Zone.utc.zone_id
+
+        Test.specify "date-time conversion should work with interop values" <|
+            date = create_new_date 2000 12 21
+            time = Time_Of_Day.new 12 30 45
+            datetime = time.to_date_time date
+            datetime.date . should_equal date
+            datetime.time_of_day . should_equal time
 
         Test.specify "should convert to Json" <|
             date = create_new_date 2001 12 21
@@ -115,18 +139,33 @@ spec_with name create_new_date parse_date =
             date . day . should_equal 1
 
         Test.specify "should throw error when adding time-based Duration" <|
-            case (create_new_date 1970 + (Duration.new hours=1)) . catch of
-                Time_Error.Error message ->
-                    message . should_equal "Date does not support adding/subtracting Duration. Use Period instead."
-                result ->
-                    Test.fail ("Unexpected result: " + result.to_text)
+            Test.expect_panic_with matcher=Type_Error <|
+                 create_new_date 1970 + (Duration.new hours=1)
 
         Test.specify "should throw error when subtracting time-based Duration" <|
-            case (create_new_date 1970 - (Duration.new minutes=1)) . catch of
-                Time_Error.Error message ->
-                    message . should_equal "Date does not support adding/subtracting Duration. Use Period instead."
-                result ->
-                    Test.fail ("Unexpected result: " + result.to_text)
+            Test.expect_panic_with matcher=Type_Error <|
+                 create_new_date 1970 - (Duration.new minutes=1)
+
+        Test.specify "should support addition of Date_Period" <|
+            time = create_new_date 1970
+            time+Date_Period.Year . should_equal <| create_new_date 1971
+            time+Date_Period.Quarter . should_equal <| create_new_date 1970 4
+            time+Date_Period.Month . should_equal <| create_new_date 1970 2
+            time+Date_Period.Week . should_equal <| create_new_date 1970 1 8
+            time+Date_Period.Day . should_equal <| create_new_date 1970 1 2
+
+        Test.specify "should support subtraction of Date_Period" <|
+            time = create_new_date 1970
+            time-Date_Period.Year . should_equal <| create_new_date 1969
+            time-Date_Period.Quarter . should_equal <| create_new_date 1969 10
+            time-Date_Period.Month . should_equal <| create_new_date 1969 12
+            time-Date_Period.Week . should_equal <| create_new_date 1969 12 25
+            time-Date_Period.Day . should_equal <| create_new_date 1969 12 31
+
+        Test.specify "should support mixed addition and subtraction of Date_Period" <|
+            time = create_new_date 1970
+            time+Date_Period.Quarter-Date_Period.Month . should_equal <| create_new_date 1970 3 1
+            time-Date_Period.Month+Date_Period.Year . should_equal <| create_new_date 1970 12 1
 
         Test.specify "should be comparable" <|
             date_1 = parse_date "2021-01-02"
@@ -457,7 +496,7 @@ main = Test_Suite.run_main spec
 
 parseNormally x y = (Date.parse x y) . to_text
 
-js_parse text format=Nothing =
+js_parse text format="" =
     d = Date.parse text format
     js_date d.year d.month d.day
 

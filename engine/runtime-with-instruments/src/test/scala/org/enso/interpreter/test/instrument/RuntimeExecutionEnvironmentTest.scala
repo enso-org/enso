@@ -31,7 +31,7 @@ class RuntimeExecutionEnvironmentTest
     with BeforeAndAfterAll
     with OsSpec {
 
-  import RuntimeExecutionEnvironmentTest.IF_ENABLED_METH_PTR
+  import RuntimeExecutionEnvironmentTest.IF_ENABLED_METH_CALL
 
   override val timeLimit = 5.minutes
 
@@ -186,7 +186,7 @@ class RuntimeExecutionEnvironmentTest
       TestMessages.panic(
         contextId,
         idRes,
-        IF_ENABLED_METH_PTR,
+        IF_ENABLED_METH_CALL,
         Api.ExpressionUpdate.Payload
           .Panic("Forbidden operation: Output.", Seq(idRes)),
         false
@@ -218,7 +218,7 @@ class RuntimeExecutionEnvironmentTest
             Api.ExpressionUpdate(
               idRes,
               Some(ConstantsGen.NOTHING),
-              Some(IF_ENABLED_METH_PTR),
+              Some(IF_ENABLED_METH_CALL),
               Vector(Api.ProfilingInfo.ExecutionTime(0)),
               false,
               true,
@@ -286,7 +286,7 @@ class RuntimeExecutionEnvironmentTest
       TestMessages.panic(
         contextId,
         idRes,
-        IF_ENABLED_METH_PTR,
+        IF_ENABLED_METH_CALL,
         Api.ExpressionUpdate.Payload
           .Panic("Forbidden operation: Input.", Seq(idRes)),
         false
@@ -318,7 +318,7 @@ class RuntimeExecutionEnvironmentTest
             Api.ExpressionUpdate(
               idRes,
               Some(ConstantsGen.INTEGER),
-              Some(IF_ENABLED_METH_PTR),
+              Some(IF_ENABLED_METH_CALL),
               Vector(Api.ProfilingInfo.ExecutionTime(0)),
               false,
               true,
@@ -337,9 +337,14 @@ class RuntimeExecutionEnvironmentTest
 }
 
 object RuntimeExecutionEnvironmentTest {
-  val IF_ENABLED_METH_PTR = Api.MethodPointer(
-    "Standard.Base.Runtime",
-    "Standard.Base.Runtime.Context",
-    "if_enabled"
-  )
+
+  private val IF_ENABLED_METH_CALL =
+    Api.MethodCall(
+      Api.MethodPointer(
+        "Standard.Base.Runtime",
+        "Standard.Base.Runtime.Context",
+        "if_enabled"
+      ),
+      Vector(2)
+    )
 }

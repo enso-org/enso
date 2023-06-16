@@ -108,14 +108,16 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: LogLevel)
 
   private def terminateAkka(serverContext: ServerContext): Future[Unit] = {
     for {
-      _ <- serverContext.jsonBinding.terminate(2.seconds).recover(logError)
+      _ <- serverContext.jsonBinding.terminate(2.seconds).recover[Any](logError)
       _ <- Future { logger.info("Terminated json connections.") }
-      _ <- serverContext.binaryBinding.terminate(2.seconds).recover(logError)
+      _ <- serverContext.binaryBinding
+        .terminate(2.seconds)
+        .recover[Any](logError)
       _ <- Future { logger.info("Terminated binary connections.") }
       _ <-
         Await
           .ready(
-            serverContext.mainModule.system.terminate().recover(logError),
+            serverContext.mainModule.system.terminate().recover[Any](logError),
             2.seconds
           )
           .recover(logError)
@@ -130,7 +132,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: LogLevel)
         .mapTo[RuntimeShutdownResult]
 
     for {
-      _ <- killFiber.recover(logError)
+      _ <- killFiber.recover[Any](logError)
       _ <- Future { logger.info("Terminated truffle context.") }
     } yield ()
   }

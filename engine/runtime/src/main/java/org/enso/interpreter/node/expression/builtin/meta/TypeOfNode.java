@@ -1,5 +1,14 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -12,16 +21,6 @@ import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
-
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Fallback;
-import com.oracle.truffle.api.dsl.GenerateUncached;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.Node;
 
 @BuiltinMethod(
     type = "Meta",
@@ -115,6 +114,11 @@ public abstract class TypeOfNode extends Node {
       return EnsoContext.get(this).getBuiltins().array();
     }
 
+    @Specialization(guards = {"type.isMap()"})
+    Type doPolygotMap(Interop type, Object value) {
+      return EnsoContext.get(this).getBuiltins().map();
+    }
+
     @Specialization(guards = {"type.isString()"})
     Type doPolyglotString(Interop type, Object value) {
       return EnsoContext.get(this).getBuiltins().text();
@@ -192,6 +196,7 @@ public abstract class TypeOfNode extends Node {
       STRING,
       NUMBER,
       ARRAY,
+      MAP,
       DATE_TIME,
       TIME_ZONE,
       DATE,
@@ -208,6 +213,9 @@ public abstract class TypeOfNode extends Node {
         }
         if (interop.hasArrayElements(value)) {
           return ARRAY;
+        }
+        if (interop.hasHashEntries(value)) {
+          return MAP;
         }
         boolean time = interop.isTime(value);
         boolean date = interop.isDate(value);
@@ -239,6 +247,10 @@ public abstract class TypeOfNode extends Node {
 
       boolean isArray() {
         return this == ARRAY;
+      }
+
+      boolean isMap() {
+        return this == MAP;
       }
 
       boolean isDateTime() {

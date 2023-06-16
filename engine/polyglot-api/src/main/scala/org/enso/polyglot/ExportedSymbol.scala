@@ -43,7 +43,6 @@ object ExportedSymbol {
       case s: Suggestion.Type        => Some(Type(s.module, s.name))
       case s: Suggestion.Constructor => Some(Constructor(s.module, s.name))
       case s: Suggestion.Method      => Some(Method(s.module, s.name))
-      case _: Suggestion.Conversion  => None
       case _: Suggestion.Function    => None
       case _: Suggestion.Local       => None
     }

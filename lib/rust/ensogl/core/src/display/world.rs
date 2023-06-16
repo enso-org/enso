@@ -505,7 +505,7 @@ impl WorldData {
                 let key = event.code();
                 if key == "Backquote" {
                     stats_monitor.toggle()
-                } else if key == "KeyP" {
+                } else if key == "KeyO" {
                     if event.shift_key() {
                         let forwarding_incrementally = emit_measurements_handle.borrow().is_some();
                         // If we are submitting the data continuously, the hotkey is redundant.
@@ -560,22 +560,27 @@ impl WorldData {
         {
             if let Some(gpu_perf_results) = &gpu_perf_results {
                 for result in gpu_perf_results {
-                    // The monitor is not updated yet, so the last sample is from the previous
-                    // frame.
-                    let frame_offset = result.frame_offset - 1;
-                    if frame_offset == 0 {
-                        let stats_data = &mut self.stats.borrow_mut().stats_data;
-                        stats_data.gpu_time = Some(result.total);
-                        stats_data.cpu_and_idle_time = Some(stats_data.frame_time - result.total);
-                    } else {
-                        // The last sampler stored in monitor is from 2 frames ago, as the last
-                        // frame stats are not submitted yet.
-                        let sampler_offset = result.frame_offset - 2;
-                        self.stats_monitor.with_last_nth_sample(sampler_offset, |sample| {
-                            sample.gpu_time = Some(result.total);
-                            sample.cpu_and_idle_time = Some(sample.frame_time - result.total);
-                        });
-                        self.stats_monitor.redraw_historical_data(sampler_offset);
+                    // If run in the first frame, the results can be reported with frame offset
+                    // being 0. In such a case, we are ignoring it.
+                    if result.frame_offset > 0 {
+                        // The monitor is not updated yet, so the last sample is from the previous
+                        // frame.
+                        let frame_offset = result.frame_offset - 1;
+                        if frame_offset == 0 {
+                            let stats_data = &mut self.stats.borrow_mut().stats_data;
+                            stats_data.gpu_time = Some(result.total);
+                            stats_data.cpu_and_idle_time =
+                                Some(stats_data.frame_time - result.total);
+                        } else {
+                            // The last sampler stored in monitor is from 2 frames ago, as the last
+                            // frame stats are not submitted yet.
+                            let sampler_offset = result.frame_offset - 2;
+                            self.stats_monitor.with_last_nth_sample(sampler_offset, |sample| {
+                                sample.gpu_time = Some(result.total);
+                                sample.cpu_and_idle_time = Some(sample.frame_time - result.total);
+                            });
+                            self.stats_monitor.redraw_historical_data(sampler_offset);
+                        }
                     }
                 }
             }
@@ -663,6 +668,13 @@ impl WorldData {
     #[profile(Debug)]
     pub fn collect_garbage<T: 'static>(&self, object: T) {
         self.garbage_collector.collect(object);
+    }
+
+    /// Immediately drop the garbage.
+    ///
+    /// May be used to resolve dependence cycles if garbage keeps reference to [`World`].
+    pub fn force_garbage_drop(&self) {
+        self.garbage_collector.force_garbage_drop()
     }
 
     /// Set the maximum frequency at which the pointer location will be checked, in terms of number

@@ -22,28 +22,32 @@ use ide_view::graph_editor::component::visualization as visualization_view;
 // === Model ===
 // =============
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Debug)]
 struct Model {
     controller:    controller::Visualization,
     graph_view:    view::graph_editor::GraphEditor,
     manager:       Rc<Manager>,
     error_manager: Rc<Manager>,
     state:         Rc<graph::state::State>,
+    shown:         RefCell<HashSet<ViewNodeId>>,
 }
 
 impl Model {
     /// Handle the showing visualization UI.
     fn visualization_shown(&self, node_id: ViewNodeId, metadata: visualization_view::Metadata) {
+        self.shown.borrow_mut().insert(node_id);
         self.update_visualization(node_id, &self.manager, Some(metadata));
     }
 
     /// Handle the hiding in UI.
     fn visualization_hidden(&self, node_id: view::graph_editor::NodeId) {
+        self.shown.borrow_mut().remove(&node_id);
         self.update_visualization(node_id, &self.manager, None);
     }
 
     /// Handle the node removal in UI.
     fn node_removed(&self, node_id: view::graph_editor::NodeId) {
+        self.shown.borrow_mut().remove(&node_id);
         if self.state.ast_node_id_of_view(node_id).is_some() {
             self.update_visualization(node_id, &self.manager, None);
             self.update_visualization(node_id, &self.error_manager, None);
@@ -56,8 +60,10 @@ impl Model {
         node_id: ViewNodeId,
         preprocessor: visualization_view::instance::PreprocessorConfiguration,
     ) {
-        let metadata = visualization_view::Metadata { preprocessor };
-        self.update_visualization(node_id, &self.manager, Some(metadata))
+        if self.shown.borrow().contains(&node_id) {
+            let metadata = visualization_view::Metadata { preprocessor };
+            self.update_visualization(node_id, &self.manager, Some(metadata))
+        }
     }
 
     /// Handle the error change on given node: attach/detach the error visualization if needed.
@@ -95,7 +101,7 @@ impl Model {
         data: VisualizationUpdateData,
     ) {
         if let Some(view_id) = self.state.view_id_of_ast_node(target) {
-            match deserialize_visualization_data(data) {
+            match visualization_view::Data::json(&data) {
                 Ok(data) => update_endpoint.emit((view_id, data)),
                 Err(err) => {
                     // TODO [mwu]: We should consider having the visualization also accept error
@@ -110,11 +116,12 @@ impl Model {
     /// endpoint.
     fn handle_controller_failure(
         &self,
-        failure_endpoint: &frp::Source<ViewNodeId>,
+        failure_endpoint: &frp::Source<(ViewNodeId, String)>,
         node: AstNodeId,
+        message: String,
     ) {
         if let Some(node_view) = self.state.view_id_of_ast_node(node) {
-            failure_endpoint.emit(node_view);
+            failure_endpoint.emit((node_view, message));
         }
     }
 
@@ -177,6 +184,7 @@ impl Visualization {
             manager: manager.clone_ref(),
             error_manager: error_manager.clone_ref(),
             state,
+            shown: default(),
         });
 
         frp::extend! { network
@@ -186,20 +194,20 @@ impl Visualization {
             eval view.visualization_preprocessor_changed (((node, preprocessor)) model.visualization_preprocessor_changed(*node, preprocessor.clone_ref()));
             eval view.set_node_error_status (((node, error)) model.error_on_node_changed(*node, error));
 
-            update <- source::<(ViewNodeId, visualization_view::Data)>();
+            set_data <- source::<(ViewNodeId, visualization_view::Data)>();
             error_update <- source::<(ViewNodeId, visualization_view::Data)>();
-            visualization_failure <- source::<ViewNodeId>();
-            error_vis_failure <- source::<ViewNodeId>();
+            visualization_failure <- source::<(ViewNodeId,String)>();
+            error_vis_failure <- source::<(ViewNodeId,String)>();
 
-            view.set_visualization_data <+ update;
+            view.set_visualization_data <+ set_data;
             view.set_error_visualization_data <+ error_update;
-            view.disable_visualization <+ visualization_failure;
+            view.visualization_update_failed <+ visualization_failure;
 
             eval_ view.visualization_registry_reload_requested (model.load_visualizations());
         }
 
         Self { model, _network: network }
-            .spawn_visualization_handler(notifications, manager, update, visualization_failure)
+            .spawn_visualization_handler(notifications, manager, set_data, visualization_failure)
             .spawn_visualization_handler(
                 error_notifications,
                 error_manager,
@@ -213,19 +221,25 @@ impl Visualization {
         self,
         notifier: impl Stream<Item = manager::Notification> + Unpin + 'static,
         manager: Rc<Manager>,
-        update_endpoint: frp::Source<(ViewNodeId, visualization_view::Data)>,
-        failure_endpoint: frp::Source<ViewNodeId>,
+        set_data_endpoint: frp::Source<(ViewNodeId, visualization_view::Data)>,
+        failure_endpoint: frp::Source<(ViewNodeId, String)>,
     ) -> Self {
         let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, notifier, move |notification, model| {
             info!("Received update for visualization: {notification:?}");
             match notification {
                 manager::Notification::ValueUpdate { target, data, .. } => {
-                    model.handle_value_update(&update_endpoint, target, data);
+                    model.handle_value_update(&set_data_endpoint, target, data);
                 }
                 manager::Notification::FailedToAttach { visualization, error } => {
                     error!("Visualization {} failed to attach: {error}.", visualization.id);
-                    model.handle_controller_failure(&failure_endpoint, visualization.expression_id);
+                    let message =
+                        format!("Failed to open visualization because of an error: {error}");
+                    model.handle_controller_failure(
+                        &failure_endpoint,
+                        visualization.expression_id,
+                        message,
+                    );
                 }
                 manager::Notification::FailedToDetach { visualization, error } => {
                     error!("Visualization {} failed to detach: {error}.", visualization.id);
@@ -245,11 +259,17 @@ impl Visualization {
                         "Visualization {} failed to be modified: {error}. Will hide it in GUI.",
                         desired.id
                     );
+                    let message =
+                        format!("Failed to modify visualization because of an error: {error}");
                     // Actually it would likely have more sense if we had just restored the previous
                     // visualization, as its LS state should be preserved. However, we already
                     // scrapped it on the GUI side and we don't even know its
                     // path anymore.
-                    model.handle_controller_failure(&failure_endpoint, desired.expression_id);
+                    model.handle_controller_failure(
+                        &failure_endpoint,
+                        desired.expression_id,
+                        message,
+                    );
                 }
             }
             std::future::ready(())
@@ -282,19 +302,4 @@ impl Visualization {
         });
         self
     }
-}
-
-
-
-// ========================
-// === Helper Functions ===
-// ========================
-
-fn deserialize_visualization_data(
-    data: VisualizationUpdateData,
-) -> FallibleResult<visualization_view::Data> {
-    let binary = data.as_ref();
-    let as_text = std::str::from_utf8(binary)?;
-    let as_json: serde_json::Value = serde_json::from_str(as_text)?;
-    Ok(visualization_view::Data::from(as_json))
 }

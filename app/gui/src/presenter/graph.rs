@@ -12,13 +12,13 @@ use crate::presenter::graph::state::State;
 use double_representation::context_switch::Context;
 use double_representation::context_switch::ContextSwitch;
 use double_representation::context_switch::ContextSwitchExpression;
-use engine_protocol::language_server::SuggestionId;
 use enso_frp as frp;
 use futures::future::LocalBoxFuture;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
+use span_tree::generate::Context as _;
 use view::graph_editor::CallWidgetsConfig;
 
 
@@ -249,14 +249,8 @@ impl Model {
             .state
             .update_from_view()
             .set_call_expression_target_id(call_expression, Some(target_expression))?;
-        let method_id = self.expression_method_suggestion(call_expression)?;
-
-        Some(WidgetRequest {
-            node_id,
-            call_expression,
-            target_expression,
-            call_suggestion: method_id,
-        })
+        let call_suggestion = self.controller.call_info(call_expression)?.suggestion_id?;
+        Some(WidgetRequest { node_id, call_expression, target_expression, call_suggestion })
     }
 
     /// Map widget controller update data to the node views.
@@ -332,9 +326,15 @@ impl Model {
 
     fn log_action<F>(&self, f: F, action: &str)
     where F: FnOnce() -> Option<FallibleResult> {
-        if let Some(Err(err)) = f() {
-            error!("Failed to {action} in AST: {err}");
-        }
+        debug_span!(
+            "Will attempt to '{action}' in the graph for {}.",
+            self.controller.graph().module.path()
+        )
+        .in_scope(|| {
+            if let Some(Err(err)) = f() {
+                error!("Failed to {action} in AST: {err}");
+            }
+        });
     }
 
     /// Extract all types for subexpressions in node expressions, update the state,
@@ -375,11 +375,9 @@ impl Model {
     ///
     /// If the view update is required, the widget query data is returned.
     fn refresh_expression_widgets(&self, expr_id: ast::Id) -> Option<(ast::Id, ast::Id)> {
-        let method_pointer = self.expression_method_pointer(expr_id);
-        let (_, method_target_id) = self
-            .state
-            .update_from_controller()
-            .set_expression_method_pointer(expr_id, method_pointer)?;
+        let suggestion = self.controller.call_info(expr_id).and_then(|i| i.suggestion_id);
+        let (_, method_target_id) =
+            self.state.update_from_controller().set_expression_suggestion(expr_id, suggestion)?;
         Some((expr_id, method_target_id?))
     }
 
@@ -415,23 +413,6 @@ impl Model {
         Some(view::graph_editor::Type(info.typename.as_ref()?.clone_ref()))
     }
 
-    /// Extract the expression's current suggestion entry from controllers.
-    fn expression_method_suggestion(&self, id: ast::Id) -> Option<SuggestionId> {
-        let registry = self.controller.computed_value_info_registry();
-        let computed_value = registry.get(&id)?;
-        let method_pointer = computed_value.method_call.as_ref()?;
-        let suggestion_db = self.controller.suggestion_db();
-        suggestion_db.get_method_suggestion(method_pointer)
-    }
-
-    /// Extract the expression's current method pointer from controllers.
-    fn expression_method_pointer(&self, id: ast::Id) -> Option<view::graph_editor::MethodPointer> {
-        let registry = self.controller.computed_value_info_registry();
-        let computed_value = registry.get(&id)?;
-        let method_pointer = computed_value.method_call.as_ref()?;
-        Some(view::graph_editor::MethodPointer(Rc::new(method_pointer.clone())))
-    }
-
     fn file_dropped(&self, file: ensogl_drop_manager::File, position: Vector2<f32>) {
         let project = self.project.clone_ref();
         let graph = self.controller.graph();
@@ -448,28 +429,31 @@ impl Model {
     }
 
     /// Look through all graph's nodes in AST and set position where it is missing.
+    #[profile(Debug)]
     fn initialize_nodes_positions(&self, default_gap_between_nodes: f32) {
         match self.controller.graph().nodes() {
             Ok(nodes) => {
-                use model::module::Position;
+                // We try to avoid spurious updates for nodes that are already positioned.
+                if nodes.iter().any(|n| !n.has_position()) {
+                    use model::module::Position;
 
-                let base_default_position = default_node_position();
-                let node_positions =
-                    nodes.iter().filter_map(|node| node.metadata.as_ref()?.position);
-                let bottommost_pos = node_positions
-                    .min_by(Position::ord_by_y)
-                    .map(|p| p.vector)
-                    .unwrap_or(base_default_position);
+                    let base_default_position = default_node_position();
+                    let node_positions =
+                        nodes.iter().filter_map(|node| node.metadata.as_ref()?.position);
+                    let bottommost_pos = node_positions
+                        .min_by(Position::ord_by_y)
+                        .map(|p| p.vector)
+                        .unwrap_or(base_default_position);
 
-                let offset = default_gap_between_nodes + node_view::HEIGHT;
-                let mut next_default_position =
-                    Vector2::new(bottommost_pos.x, bottommost_pos.y - offset);
+                    let offset = default_gap_between_nodes + node_view::HEIGHT;
+                    let mut next_default_position =
+                        Vector2::new(bottommost_pos.x, bottommost_pos.y - offset);
 
-                let transaction =
-                    self.controller.get_or_open_transaction("Setting default positions.");
-                transaction.ignore();
-                for node in nodes {
-                    if !node.has_position() {
+                    // As this is not a user-initiated action, we ignore the transaction.
+                    let transaction =
+                        self.controller.get_or_open_transaction("Setting default positions.");
+                    transaction.ignore();
+                    for node in nodes.iter().filter(|n| !n.has_position()) {
                         if let Err(err) = self
                             .controller
                             .graph()
@@ -562,6 +546,7 @@ struct ViewUpdate {
 
 impl ViewUpdate {
     /// Create ViewUpdate information from Graph Presenter's model.
+    #[profile(Debug)]
     fn new(model: &Model) -> FallibleResult<Self> {
         let state = model.state.clone_ref();
         let nodes = model.controller.graph().nodes()?;
@@ -572,11 +557,13 @@ impl ViewUpdate {
     }
 
     /// Remove nodes from the state and return node views to be removed.
+    #[profile(Debug)]
     fn remove_nodes(&self) -> Vec<ViewNodeId> {
         self.state.update_from_controller().retain_nodes(&self.node_ids().collect())
     }
 
     /// Returns number of nodes view should create.
+    #[profile(Debug)]
     fn count_nodes_to_add(&self) -> usize {
         self.node_ids().filter(|n| self.state.view_id_of_ast_node(*n).is_none()).count()
     }
@@ -616,6 +603,7 @@ impl ViewUpdate {
     /// input for nodes where position changed.
     ///
     /// The nodes not having views are also updated in the state.
+    #[profile(Debug)]
     fn set_node_positions(&self) -> Vec<(ViewNodeId, Vector2)> {
         self.nodes
             .iter()
@@ -629,6 +617,7 @@ impl ViewUpdate {
             .collect()
     }
 
+    #[profile(Debug)]
     fn set_node_visualizations(&self) -> Vec<(ViewNodeId, Option<visualization_view::Path>)> {
         self.nodes
             .iter()
@@ -640,11 +629,13 @@ impl ViewUpdate {
     }
 
     /// Remove connections from the state and return views to be removed.
+    #[profile(Debug)]
     fn remove_connections(&self) -> Vec<ViewConnection> {
         self.state.update_from_controller().retain_connections(&self.connections)
     }
 
     /// Add connections to the state and return endpoints of connections to be created in views.
+    #[profile(Debug)]
     fn add_connections(&self) -> Vec<(EdgeEndpoint, EdgeEndpoint)> {
         let ast_conns = self.connections.iter();
         ast_conns
@@ -654,6 +645,7 @@ impl ViewUpdate {
             .collect()
     }
 
+    #[profile(Debug)]
     fn node_ids(&self) -> impl Iterator<Item = AstNodeId> + '_ {
         self.nodes.iter().map(controller::graph::Node::id)
     }
@@ -699,10 +691,11 @@ impl Graph {
 
         frp::extend! { network
             update_view <- source::<()>();
+            update_view_once <- update_view.debounce();
             // Position initialization should go before emitting `update_data` event.
-            update_with_gap <- view.default_y_gap_between_nodes.sample(&update_view);
+            update_with_gap <- view.default_y_gap_between_nodes.sample(&update_view_once);
             eval update_with_gap ((gap) model.initialize_nodes_positions(*gap));
-            update_data <- update_view.map(f_!([model] match ViewUpdate::new(&model) {
+            update_data <- update_view_once.map(f_!([model] match ViewUpdate::new(&model) {
                 Ok(update) => Rc::new(update),
                 Err(err) => {
                     error!("Failed to update view: {err:?}");

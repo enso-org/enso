@@ -6,7 +6,6 @@ use crate::prelude::*;
 use crate::executor::global::spawn_stream_handler;
 use crate::model::project::synchronized::ProjectNameInvalid;
 use crate::presenter;
-use crate::presenter::graph::ViewNodeId;
 
 use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::project_manager::ProjectMetadata;
@@ -27,16 +26,17 @@ use model::project::VcsStatus;
 #[allow(unused)]
 #[derive(Debug)]
 struct Model {
-    controller:         controller::Project,
-    module_model:       model::Module,
-    graph_controller:   controller::ExecutedGraph,
-    ide_controller:     controller::Ide,
-    view:               view::project::View,
-    status_bar:         view::status_bar::View,
-    graph:              presenter::Graph,
-    code:               presenter::Code,
-    searcher:           RefCell<Option<presenter::Searcher>>,
-    available_projects: Rc<RefCell<Vec<ProjectMetadata>>>,
+    controller:           controller::Project,
+    module_model:         model::Module,
+    graph_controller:     controller::ExecutedGraph,
+    ide_controller:       controller::Ide,
+    view:                 view::project::View,
+    status_bar:           view::status_bar::View,
+    graph:                presenter::Graph,
+    code:                 presenter::Code,
+    searcher:             RefCell<Option<presenter::Searcher>>,
+    available_projects:   Rc<RefCell<Vec<ProjectMetadata>>>,
+    shortcut_transaction: RefCell<Option<Rc<model::undo_redo::Transaction>>>,
 }
 
 impl Model {
@@ -59,6 +59,7 @@ impl Model {
         let code = presenter::Code::new(text_controller, &view);
         let searcher = default();
         let available_projects = default();
+        let shortcut_transaction = default();
         Model {
             controller,
             module_model,
@@ -70,6 +71,7 @@ impl Model {
             code,
             searcher,
             available_projects,
+            shortcut_transaction,
         }
     }
 
@@ -89,28 +91,6 @@ impl Model {
             Err(err) => {
                 error!("Error while creating searcher integration: {err}");
             }
-        }
-    }
-
-    fn editing_committed_old_searcher(
-        &self,
-        node: ViewNodeId,
-        entry_id: Option<view::searcher::entry::Id>,
-    ) -> bool {
-        let searcher = self.searcher.take();
-        if let Some(searcher) = searcher {
-            let is_example = entry_id.map_or(false, |i| searcher.is_entry_an_example(i));
-            if let Some(created_node) = searcher.commit_editing(entry_id) {
-                self.graph.allow_expression_auto_updates(created_node, true);
-                if is_example {
-                    self.view.graph().enable_visualization(node);
-                }
-                false
-            } else {
-                true
-            }
-        } else {
-            false
         }
     }
 
@@ -198,6 +178,17 @@ impl Model {
         })
     }
 
+    /// Notification from shortcut manager that the handled shortcut has changed.
+    /// It is either the name of the command that was triggered or `None` when handling of the
+    /// last command was completed.
+    fn handled_shortcut_changed(&self, handled_shortcut: &Option<ImString>) {
+        debug!("Handled shortcut changed: {handled_shortcut:?}.");
+        let transaction = handled_shortcut
+            .as_ref()
+            .map(|shortcut| self.controller.model.urm().get_or_open_transaction(shortcut.as_str()));
+        *self.shortcut_transaction.borrow_mut() = transaction;
+    }
+
     fn toggle_component_browser_private_entries_visibility(&self) {
         let visibility = self.ide_controller.are_component_browser_private_entries_visible();
         self.ide_controller.set_component_browser_private_entries_visibility(!visibility);
@@ -231,6 +222,12 @@ impl Model {
     fn execution_finished(&self) {
         self.view.graph().frp.set_read_only(false);
         self.view.graph().frp.execution_finished.emit(());
+    }
+
+    fn execution_failed(&self) {
+        let message = crate::EXECUTION_FAILED_MESSAGE;
+        let message = view::status_bar::event::Label::from(message);
+        self.status_bar.add_event(message);
     }
 
     fn execution_context_interrupt(&self) {
@@ -354,9 +351,6 @@ impl Project {
                 }
             });
 
-            graph_view.remove_node <+ view.editing_committed_old_searcher.filter_map(f!([model]((node_view, entry)) {
-                model.editing_committed_old_searcher(*node_view, *entry).as_some(*node_view)
-            }));
             graph_view.remove_node <+ view.editing_committed.filter_map(f!([model]((node_view, entry)) {
                 model.editing_committed(*entry).as_some(*node_view)
             }));
@@ -386,6 +380,7 @@ impl Project {
             eval_ graph_view.execution_environment_play_button_pressed( model.trigger_clean_live_execution());
 
             eval_ view.go_to_dashboard_button_pressed (model.show_dashboard());
+            eval view.current_shortcut ((shortcut) model.handled_shortcut_changed(shortcut));
         }
 
         let graph_controller = self.model.graph_controller.clone_ref();
@@ -445,6 +440,9 @@ impl Project {
                 Notification::ExecutionFinished => {
                     model.execution_finished();
                 }
+                Notification::ExecutionFailed => {
+                    model.execution_failed();
+                }
             };
             std::future::ready(())
         });
@@ -490,7 +488,16 @@ impl Project {
         view: view::project::View,
         status_bar: view::status_bar::View,
     ) -> FallibleResult<Self> {
+        debug!("Initializing project controller...");
         let init_result = controller.initialize().await?;
-        Ok(Self::new(ide_controller, controller, init_result, view, status_bar))
+        debug!("Project controller initialized.");
+        let presenter =
+            Self::new(ide_controller, controller.clone(), init_result, view, status_bar);
+        debug!("Project presenter created.");
+        // Following the project initialization, the Undo/Redo stack should be empty.
+        // This makes sure that any initial modifications resulting from the GUI initialization
+        // won't clutter the undo stack.
+        controller.model.urm().repository.clear_all();
+        Ok(presenter)
     }
 }

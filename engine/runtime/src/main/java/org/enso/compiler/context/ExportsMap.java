@@ -1,14 +1,13 @@
 package org.enso.compiler.context;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.ExportedSymbol;
 import org.enso.polyglot.ModuleExports;
 import org.enso.polyglot.Suggestion;
 import scala.Option;
 import scala.runtime.BoxedUnit;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public final class ExportsMap {
 

@@ -95,6 +95,49 @@ public class MetaIsATest extends TestBase {
     }
   }
 
+  private void assertType(String msg, Value value, Value... types) {
+    var error = new StringBuilder();
+    for (var type : types) {
+      var r = isACheck.execute(value, type);
+      if (r.asBoolean()) {
+        return;
+      }
+      var typeName = value.getMetaObject().getMetaQualifiedName();
+      error.append("\n").append(msg).append(", but value ").append(value).append(" has type ").append(typeName);
+    }
+    fail(error.toString());
+  }
+
+  @Test
+  public void mapsAreMaps() {
+    for (var v : generator().maps()) {
+      assertType("Expecting a map", v, generator().typeMap());
+    }
+  }
+
+  @Test
+  public void datesAreDates() {
+    for (var v : generator().timesAndDates()) {
+      assertType(
+        "Expecting a date", v,
+        generator().typeDate(),
+        generator().typeDateTime(),
+        generator().typeTimeOfDay(),
+        generator().typeDuration(),
+        generator().typePeriod(),
+        generator().typeTimePeriod(),
+        generator().typeDatePeriod()
+      );
+    }
+  }
+
+  @Test
+  public void zonesAreZones() {
+    for (var v : generator().timeZones()) {
+      assertType("Expecting time zone", v, generator().typeTimeZone());
+    }
+  }
+
   @Test
   public void checkIntegerIsNotInstanceOfInteger() {
     var t = generator().typeInteger();

@@ -1978,10 +1978,6 @@ impl application::View for Text {
         Text::new(app)
     }
 
-    fn app(&self) -> &Application {
-        &self.data.app
-    }
-
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         ([

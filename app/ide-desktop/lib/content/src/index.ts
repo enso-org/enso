@@ -23,8 +23,10 @@ const INITIAL_URL_KEY = `${common.PRODUCT_NAME.toLowerCase()}-initial-url`
 const ESBUILD_PATH = '/esbuild'
 /** SSE event indicating a build has finished. */
 const ESBUILD_EVENT_NAME = 'change'
-/** Path to the service worker that resolves all extensionless paths to `/index.html`.
- * This service worker is required for client-side routing to work when doing `./run gui watch`. */
+/** Path to the serice worker that caches assets for offline usage.
+ * In development, it also resolves all extensionless paths to `/index.html`.
+ * This is required for client-side routing to work when doing `./run gui watch`.
+ */
 const SERVICE_WORKER_PATH = '/serviceWorker.js'
 /** One second in milliseconds. */
 const SECOND = 1000
@@ -45,12 +47,8 @@ if (IS_DEV_MODE) {
         // The `toString()` is to bypass a lint without using a comment.
         location.href = location.href.toString()
     })
-    void navigator.serviceWorker.register(SERVICE_WORKER_PATH)
-} else {
-    void navigator.serviceWorker
-        .getRegistration()
-        .then(serviceWorker => serviceWorker?.unregister())
 }
+void navigator.serviceWorker.register(SERVICE_WORKER_PATH)
 
 // =============
 // === Fetch ===
@@ -225,13 +223,13 @@ class Main implements AppRunner {
             const isOpeningMainEntryPoint =
                 contentConfig.OPTIONS.groups.startup.options.entry.value ===
                 contentConfig.OPTIONS.groups.startup.options.entry.default
-            const isNotOpeningProject =
-                contentConfig.OPTIONS.groups.startup.options.project.value === ''
-            if (
-                (isUsingAuthentication || isUsingNewDashboard) &&
-                isOpeningMainEntryPoint &&
-                isNotOpeningProject
-            ) {
+            // This MUST be removed as it would otherwise override the `startup.project` passed
+            // explicitly in `ide.tsx`.
+            if (isOpeningMainEntryPoint && url.searchParams.has('startup.project')) {
+                url.searchParams.delete('startup.project')
+                history.replaceState(null, '', url.toString())
+            }
+            if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningMainEntryPoint) {
                 this.runAuthentication(isInAuthenticationFlow, inputConfig)
             } else {
                 void this.runApp(inputConfig)
@@ -241,6 +239,8 @@ class Main implements AppRunner {
 
     /** Begins the authentication UI flow. */
     runAuthentication(isInAuthenticationFlow: boolean, inputConfig?: StringConfig) {
+        const initialProjectName =
+            contentConfig.OPTIONS.groups.startup.options.project.value || null
         let projectManagerUrl =
             contentConfig.OPTIONS.groups.engine.options.projectManagerUrl.value || null
         // This option MUST currently be reset as the dashboard opens the IDE by specifying
@@ -272,6 +272,7 @@ class Main implements AppRunner {
             supportsLocalBackend: SUPPORTS_LOCAL_BACKEND,
             supportsDeepLinks: SUPPORTS_DEEP_LINKS,
             showDashboard: contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
+            initialProjectName,
             projectManagerUrl,
             onAuthenticated: () => {
                 if (isInAuthenticationFlow) {

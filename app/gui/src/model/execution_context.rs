@@ -64,7 +64,7 @@ impl From<ExpressionUpdate> for ComputedValueInfo {
     fn from(update: ExpressionUpdate) -> Self {
         ComputedValueInfo {
             typename:    update.typename.map(ImString::new),
-            method_call: update.method_pointer,
+            method_call: update.method_call.map(|mc| mc.method_pointer),
             payload:     update.payload,
         }
     }
@@ -413,6 +413,10 @@ pub trait API: Debug {
 
     /// Obtain the method pointer to the method of the call stack's top frame.
     fn current_method(&self) -> MethodPointer;
+
+    /// Obtain the method pointer to the method of the call `count` frames back from the stack's top
+    /// (calling with 0 is the same as [`current_method`](Self::current_method).
+    fn method_at_frame_back(&self, count: usize) -> FallibleResult<MethodPointer>;
 
     /// Get the information about the given visualization. Fails, if there's no such visualization
     /// active.

@@ -68,6 +68,7 @@ export interface ProjectMetadata {
     namespace: string
     id: ProjectId
     engineVersion: string | null
+    created: UTCDateTime
     lastOpened: UTCDateTime | null
 }
 

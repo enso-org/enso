@@ -46,7 +46,7 @@ type Column
        which they come. Combined expressions must come from the same context -
        they must both have the same filtering, grouping etc. rules applied to be
        able to be combined.
-    Value name:Text connection:Connection sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
+    Value name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
 
     ## PRIVATE
        ADVANCED
@@ -109,6 +109,17 @@ type Column
     value_type self =
         mapping = self.connection.dialect.get_type_mapping
         mapping.sql_type_to_value_type self.sql_type
+
+    ## PRIVATE
+       Returns a possibly more precise `Value_Type` based on the data in the
+       column.
+
+       Most columns will return their type without changes. A mixed column may
+       return a more precise type if a common type can be found for all of its
+       values.
+    inferred_precise_value_type : Value_Type
+    inferred_precise_value_type self =
+        self.value_type
 
     ## Returns an SQL statement that will be used for materializing this column.
     to_sql : SQL_Statement
@@ -190,7 +201,8 @@ type Column
     count self =
         self.to_table.filter 0 Filter_Condition.Not_Nothing . row_count
 
-    ## Element-wise equality comparison.
+    ## ALIAS Equals
+       Element-wise equality comparison.
 
        Arguments:
        - other: The value to compare `self` against. If `other` is a column, the
@@ -232,6 +244,7 @@ type Column
 
        Returns a column with results of comparing this column's elements against
        `other`.
+    @locale Locale.default_widget
     equals_ignore_case : Column | Any -> Locale -> Column
     equals_ignore_case self other locale=Locale.default =
         Value_Type.expect_text self <|
@@ -240,7 +253,8 @@ type Column
                     new_name = self.naming_helpers.function_name "equals_ignore_case" [self, other]
                     self.make_binary_op "equals_ignore_case" other new_name
 
-    ## Element-wise non-equality comparison.
+    ## ALIAS Not Equals
+       Element-wise non-equality comparison.
 
        Arguments:
        - other: The value to compare `self` against. If `other` is a column, the
@@ -273,8 +287,7 @@ type Column
     != self other =
         make_equality_check_with_floating_point_handling self other "!="
 
-    ## UNSTABLE
-
+    ## ALIAS Greater Than Or Equal
        Element-wise order comparison.
 
        Arguments:
@@ -287,8 +300,7 @@ type Column
     >= self other = Value_Type.expect_comparable self other <|
         self.make_binary_op ">=" other
 
-    ## UNSTABLE
-
+    ## ALIAS Less Than Or Equal
        Element-wise order comparison.
 
        Arguments:
@@ -301,8 +313,7 @@ type Column
     <= self other = Value_Type.expect_comparable self other <|
         self.make_binary_op "<=" other
 
-    ## UNSTABLE
-
+    ## ALIAS Greater Than
        Element-wise order comparison.
 
        Arguments:
@@ -315,8 +326,7 @@ type Column
     > self other = Value_Type.expect_comparable self other <|
         self.make_binary_op ">" other
 
-    ## UNSTABLE
-
+    ## ALIAS Less Than
        Element-wise order comparison.
 
        Arguments:
@@ -348,8 +358,7 @@ type Column
                 new_name = self.naming_helpers.to_expression_text self + " between " + self.naming_helpers.to_expression_text lower + " and " + self.naming_helpers.to_expression_text upper
                 self.make_op "BETWEEN" [lower, upper] new_name
 
-    ## UNSTABLE
-
+    ## ALIAS Add, Plus, Concatenate
        Element-wise addition.
 
        Arguments:
@@ -365,8 +374,7 @@ type Column
             new_name = self.naming_helpers.binary_operation_name "+" self other
             self.make_binary_op op other new_name
 
-    ## UNSTABLE
-
+    ## ALIAS Subtract, Minus
        Element-wise subtraction.
 
        Arguments:
@@ -380,8 +388,7 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op "-" other
 
-    ## UNSTABLE
-
+    ## ALIAS Multiply, Times, Product
        Element-wise multiplication.
 
        Arguments:
@@ -395,8 +402,7 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op "*" other
 
-    ## ALIAS Divide Columns
-
+    ## ALIAS Divide
        Element-wise division.
 
        Arguments:
@@ -430,7 +436,8 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op "/" other
 
-    ## Element-wise modulus.
+    ## ALIAS Modulus, Modulo
+       Element-wise modulus.
 
        Arguments:
        - other: The value to modulo `self` against. If `other` is a column, the
@@ -468,7 +475,6 @@ type Column
             self.make_binary_op op other new_name
 
     ## ALIAS Power
-
        Element-wise raising to the power.
 
        Arguments:
@@ -497,8 +503,7 @@ type Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op '^' other
 
-    ## UNSTABLE
-
+    ## ALIAS And
        Element-wise boolean conjunction.
 
        Arguments:
@@ -514,8 +519,7 @@ type Column
             new_name = self.naming_helpers.binary_operation_name "&&" self other
             self.make_binary_op "AND" other new_name
 
-    ## UNSTABLE
-
+    ## ALIAS Or
        Element-wise boolean disjunction.
 
        Arguments:
@@ -556,6 +560,27 @@ type Column
                 new_name = "if " + self.naming_helpers.to_expression_text self + " then " + self.naming_helpers.to_expression_text when_true + " else " + self.naming_helpers.to_expression_text when_false
                 op_result = self.make_op "IIF" [when_true, when_false] new_name
                 adapt_unified_column op_result common_type
+
+    ## Rounding values is not supported in database columns.
+    round : Integer -> Boolean -> Problem_Behavior -> Column | Illegal_Argument | Invalid_Value_Type
+    round self decimal_places=0 use_bankers=False on_problems=Report_Warning =
+        _ = [decimal_places, use_bankers, on_problems]
+        Error.throw <| Unsupported_Database_Operation.Error "`Column.round` is not implemented yet for the Database backends."
+
+    ## Truncating values is not supported in database columns.
+    truncate : Column ! Invalid_Value_Type
+    truncate self =
+        Error.throw <| Unsupported_Database_Operation.Error "`Column.truncate` is not implemented yet for the Database backends."
+
+    ## Taking the ceiling of values is not supported in database columns.
+    ceil : Column ! Invalid_Value_Type
+    ceil self =
+        Error.throw <| Unsupported_Database_Operation.Error "`Column.ceil` is not implemented yet for the Database backends."
+
+    ## Taking the floor of values is not supported in database columns.
+    floor : Column ! Invalid_Value_Type
+    floor self =
+        Error.throw <| Unsupported_Database_Operation.Error "`Column.floor` is not implemented yet for the Database backends."
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
@@ -678,7 +703,8 @@ type Column
             False -> is_blank
         result.rename new_name
 
-    ## Returns a new column where missing values have been replaced with the
+    ## ALIAS if_nothing
+       Returns a new column where missing values have been replaced with the
        provided default.
     fill_nothing : Column | Any -> Column
     fill_nothing self default =
@@ -688,7 +714,8 @@ type Column
             op_result = self.make_binary_op "FILL_NULL" default new_name
             adapt_unified_column op_result common_type
 
-    ## Returns a new column where empty Text values have been replaced with the
+    ## ALIAS if_empty
+       Returns a new column where empty Text values have been replaced with the
        provided default.
 
        Arguments:
@@ -719,8 +746,7 @@ type Column
     rename self name = self.naming_helpers.ensure_name_is_valid name <|
         Column.Value name self.connection self.sql_type_reference self.expression self.context
 
-    ## UNSTABLE
-
+    ## ALIAS order_by
        Sorts the column according to the specified rules.
 
        Arguments:
@@ -739,7 +765,7 @@ type Column
              column.sort Sort_Direction.Descending
     sort : Sort_Direction -> Column
     sort self order=Sort_Direction.Ascending =
-        self.to_table.order_by (Sort_Column.Index 0 order) . at 0
+        self.to_table.order_by [Sort_Column.Index 0 order] . at 0
 
     ## UNSTABLE
        Creates a new Column with the specified range of rows from the input
@@ -1037,6 +1063,7 @@ type Column
                 self.internal_do_cast type on_problems
 
     ## Formatting values is not supported in database columns.
+    @locale Locale.default_widget
     format : Text | Column -> Locale -> Column ! Illegal_Argument
     format self format=Nothing locale=Locale.default =
         _ = [format, locale]
