@@ -202,7 +202,7 @@ pub fn check_if_identical(source: impl AsRef<Path>, target: impl AsRef<Path>) ->
 /// This is meant not really as an optimization for copying, but rather as a way to avoid
 /// unnecessary file changes, which would trigger unnecessary rebuilds.
 pub fn copy_file_if_different(source: impl AsRef<Path>, target: impl AsRef<Path>) -> Result {
-    if check_if_identical(&source, &target).contains(&true) {
+    if let Ok(true) = check_if_identical(&source, &target) {
         trace!("Files are identical, not copying from {}.", source.as_ref().display());
     } else {
         trace!(

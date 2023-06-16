@@ -8,7 +8,7 @@ pub struct Policy {
     pub format:    Option<String>,
 }
 
-impl const Default for Policy {
+impl Default for Policy {
     fn default() -> Self {
         Self { flag_case: Case::Kebab, format: None }
     }

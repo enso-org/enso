@@ -4,12 +4,10 @@
 //! Currently it is employed by the native build scripts code.
 
 // === Features ===
-#![feature(pin_macro)]
 #![feature(default_free_fn)]
 #![feature(result_flattening)]
 #![feature(associated_type_bounds)]
 #![feature(extend_one)]
-#![feature(option_result_contains)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

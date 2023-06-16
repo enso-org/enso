@@ -100,8 +100,8 @@ impl<'a> RepoRef<'a> {
     #[allow(missing_docs)]
     pub const fn new<T1, T2>(owner: &'a T1, name: &'a T2) -> Self
     where
-        T1: ~const AsRef<str> + ?Sized,
-        T2: ~const AsRef<str> + ?Sized, {
+        T1: AsRef<str> + ?Sized,
+        T2: AsRef<str> + ?Sized, {
         Self { owner: owner.as_ref(), name: name.as_ref() }
     }
 }

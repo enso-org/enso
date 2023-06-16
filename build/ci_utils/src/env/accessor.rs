@@ -98,7 +98,7 @@ impl<Variable: TypedVariable, Value: AsRef<Variable::Borrowed>> FallibleManipula
 #[derive(Clone, Copy, Debug, Display, Ord, PartialOrd, Eq, PartialEq)]
 pub struct PathBufVariable(pub &'static str);
 
-impl const From<&'static str> for PathBufVariable {
+impl From<&'static str> for PathBufVariable {
     fn from(value: &'static str) -> Self {
         PathBufVariable(value)
     }
@@ -138,7 +138,7 @@ impl<Value, Borrowed: ?Sized> From<&'static str> for SimpleVariable<Value, Borro
     }
 }
 
-impl<Value, Borrowed: ?Sized> const AsRef<str> for SimpleVariable<Value, Borrowed> {
+impl<Value, Borrowed: ?Sized> AsRef<str> for SimpleVariable<Value, Borrowed> {
     fn as_ref(&self) -> &str {
         self.name
     }
