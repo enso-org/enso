@@ -58,7 +58,7 @@ spec =
             Any.x (With_Y.Value 22) . should_equal "Any:With_Y(22)"
             Date.to_display_text . should_equal "Date"
 
-        Test.specify "instance methods on Any should have defaulted self argument to Any" <|
+        Test.specify "static method calls on Any should have defaulted self argument to Any" <|
             # Any.== is a method that takes two arguments (self other)
             Any.== . to_text . contains "Any.type.==" . should_be_true
             Any.== self=Boolean . to_text . contains "Any.type.==" . should_be_true
@@ -66,6 +66,8 @@ spec =
             Any.== Any Boolean . should_be_false
             Any.== Boolean . should_be_false
             Any.== Any . should_be_true
+            Any == Boolean . should_be_false
+            Any == Any . should_be_true
 
             # Any.to_text is a method that takes one argument (self)
             Any.to_text . should_equal "Any"
@@ -75,6 +77,16 @@ spec =
             Any.to_text Any . should_equal "Any"
             Any.to_text Vector . should_equal "Vector"
             Any.to_text [1,2,3] . should_equal "[1, 2, 3]"
+
+            # Any.spec_method is a method that takes three arguments (self, arg1, arg2)
+            Any.spec_method . to_text . contains "Any.type.spec_method" . should_be_true
+            Any.spec_method self=Boolean . to_text . contains "Any.type.spec_method" . should_be_true
+            Any.spec_method Boolean . to_text . contains "Any.type.spec_method" . should_be_true
+            Any.spec_method Boolean Vector . should_equal "Any.spec_method:{Any}{Boolean}{Vector}"
+            Any.spec_method Any Boolean Vector . should_equal "Any.spec_method:{Any}{Boolean}{Vector}"
+            Any.spec_method Date Boolean Vector . should_equal "Any.spec_method:{Date}{Boolean}{Vector}"
+            Any.spec_method self=Any Boolean Vector . should_equal "Any.spec_method:{Any}{Boolean}{Vector}"
+
 
         Test.specify "instance methods on different types should not have defaulted self argument" <|
             # Vector.contains has two arguments (self elem)
