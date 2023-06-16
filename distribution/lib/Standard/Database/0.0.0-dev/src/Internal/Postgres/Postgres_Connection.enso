@@ -215,9 +215,15 @@ type Postgres_Connection
     jdbc_connection self = self.connection.jdbc_connection
 
     ## PRIVATE
-    drop_table : Text -> Nothing
-    drop_table self table_name =
-        self.connection.drop_table table_name
+       Drops a table.
+
+       Arguments:
+       - table_name: the name of the table to drop.
+       - if_exists: if set to `True`, the operation will not fail if the table
+         does not exist. Defaults to `False`.
+    drop_table : Text -> Boolean -> Nothing
+    drop_table self table_name if_exists=False =
+        self.connection.drop_table table_name if_exists
 
 ## PRIVATE
 

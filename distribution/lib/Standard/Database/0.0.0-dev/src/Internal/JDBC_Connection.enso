@@ -161,11 +161,14 @@ type JDBC_Connection
 
        It is the caller's responsibility to call this method from within a
        transaction to ensure consistency.
-    batch_insert : Text -> Statement_Setter -> Materialized_Table -> Integer -> Nothing
-    batch_insert self insert_template statement_setter table batch_size =
+    batch_insert : Text -> Statement_Setter -> Materialized_Table -> Integer -> Integer -> Nothing
+    batch_insert self insert_template statement_setter table batch_size row_limit=Nothing =
         self.with_connection java_connection->
             Managed_Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
-                num_rows = table.row_count
+                table_row_count = table.row_count
+                num_rows = case row_limit of
+                    Nothing -> table_row_count
+                    limit : Integer -> Math.min table_row_count limit
                 columns = table.columns
                 check_rows updates_array expected_size =
                     updates = Vector.from_polyglot_array updates_array

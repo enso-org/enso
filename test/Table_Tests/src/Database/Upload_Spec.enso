@@ -744,13 +744,6 @@ spec make_new_connection prefix persistent_connector=True =
         Test.specify "should warn if type widening occurs" <|
             dest = target_table_builder [["X", [3.25, 4.25, 10.0]]]
             src = source_table_builder [["X", [1, 2, 0]]]
-            result = src.update_database_table connection dest.name update_action=Update_Action.Insert key_columns=[]
-            warning = Problems.expect_warning Inexact_Type_Coercion result
-            warning.requested_type.is_integer . should_be_true
-            warning.actual_type.is_floating_point . should_be_true
-
-            result.column_names . should_equal ["X"]
-            result.at "X" . to_vector . should_contain_the_same_elements_as [3.25, 4.25, 10.0, 1, 2, 0]
 
             # Warning should be present in dry-run mode too!
             Context.Output.with_disabled <|
@@ -759,6 +752,14 @@ spec make_new_connection prefix persistent_connector=True =
 
                 # But in dry run the update is not actually performed:
                 r2.at "X" . to_vector . should_contain_the_same_elements_as [3.25, 4.25, 10.0]
+
+            result = src.update_database_table connection dest.name update_action=Update_Action.Insert key_columns=[]
+            warning = Problems.expect_warning Inexact_Type_Coercion result
+            warning.requested_type.is_integer . should_be_true
+            warning.actual_type.is_floating_point . should_be_true
+
+            result.column_names . should_equal ["X"]
+            result.at "X" . to_vector . should_contain_the_same_elements_as [3.25, 4.25, 10.0, 1, 2, 0]
 
         Test.specify "should fail if types of columns are not compatible" <|
             dest = target_table_builder [["X", ["a", "B", "c"]]]
@@ -778,12 +779,12 @@ spec make_new_connection prefix persistent_connector=True =
             connection.create_table dest_name [Column_Description.Value "X" Value_Type.Integer [Column_Constraint.Not_Null]] temporary=True primary_key=[] . should_succeed
             src = source_table_builder [["X", [1, Nothing, 3]]]
 
-            existing_tables = connection.tables types=Nothing
+            existing_tables = connection.tables types=Nothing . at "Name" . to_vector
             res = src.update_database_table connection dest_name update_action=Update_Action.Insert key_columns=[]
             res.should_fail_with SQL_Error
 
-            tables_after = connection.tables types=Nothing
-            tables_after . should_equal existing_tables
+            tables_after = connection.tables types=Nothing . at "Name" . to_vector
+            tables_after . should_contain_the_same_elements_as existing_tables
 
     table_builder name_prefix args primary_key=[] =
         in_memory_table = Table.new args
@@ -804,43 +805,48 @@ spec make_new_connection prefix persistent_connector=True =
             Context.Output.with_disabled <|
                 name = (Name_Generator.random_name "table-foo")
                 r1 = connection.create_table name [Column_Description.Value "x" Value_Type.Integer] temporary=False primary_key=[]
-                Problems.expect_warning Dry_Run_Operation r1
+                Problems.expect_only_warning Dry_Run_Operation r1
                 r1.column_names . should_equal ["x"]
                 r1.name . should_not_equal name
 
-        Test.specify "should return a temporary table with a sample of the data for select_into_table" <|
-            Context.Output.with_disabled <|
-                src1 = Table.new [["X", [1, 2, 3]]]
-                name = (Name_Generator.random_name "table-foo")
-                r1 = src1.select_into_database_table connection name
-                Problems.expect_warning Dry_Run_Operation r1
-                r1.column_names . should_equal ["X"]
-                r1.name . should_not_equal name
-                # A small table is uploaded whole.
-                r1.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
-                r1.row_count . should_equal 3
+        tests source_table_builder suffix =
+            Test.specify "should return a temporary table with a sample of the data for select_into_table"+suffix <|
+                Context.Output.with_disabled <|
+                    src1 = source_table_builder [["X", [1, 2, 3]]]
+                    name = (Name_Generator.random_name "table-foo")
+                    r1 = src1.select_into_database_table connection name
+                    Problems.expect_only_warning Dry_Run_Operation r1
+                    r1.column_names . should_equal ["X"]
+                    r1.name . should_not_equal name
+                    # A small table is uploaded whole.
+                    r1.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+                    r1.row_count . should_equal 3
 
-                # But a big one will be sampled.
-                n = 2000
-                src2 = Table.new [["X", (0.up_to n).to_vector]]
-                r2 = src2.select_into_database_table connection name
-                Problems.expect_warning Dry_Run_Operation r2
-                r2.column_names . should_equal ["X"]
-                # Only a sample is uploaded.
-                r2.row_count . should_equal 1000
+                    # But a big one will be sampled.
+                    n = 2000
+                    src2 = source_table_builder [["X", (0.up_to n).to_vector]]
+                    # We re-use the name - multiple dry-runs for the same table name should be allowed without issues.
+                    r2 = src2.select_into_database_table connection name
+                    Problems.expect_only_warning Dry_Run_Operation r2
+                    r2.column_names . should_equal ["X"]
+                    # Only a sample is uploaded.
+                    r2.row_count . should_equal 1000
 
-        Test.specify "should return the target table unchanged for update_database_table" <|
-            dest_data = Table.new [["X", [1, 2, 3]]]
-            dest = dest_data.select_into_database_table connection (Name_Generator.random_name "target-table") temporary=True primary_key=[]
-            Context.Output.with_disabled <|
-                src = Table.new [["X", [4, 5, 6]]]
-                r1 = src.update_database_table connection dest.name update_action=Update_Action.Insert key_columns=[]
-                Problems.expect_warning Dry_Run_Operation r1
-                r1.column_names . should_equal ["X"]
-                # The target table is returned, as usually.
-                r1.name . should_equal dest.name
-                # But the data is not appended due to the dry-run - the table is unmodified.
-                r1.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+            Test.specify "should return the target table unchanged for update_database_table"+suffix <|
+                dest_data = Table.new [["X", [1, 2, 3]]]
+                dest = dest_data.select_into_database_table connection (Name_Generator.random_name "target-table") temporary=True primary_key=[]
+                Context.Output.with_disabled <|
+                    src = source_table_builder [["X", [4, 5, 6]]]
+                    r1 = src.update_database_table connection dest.name update_action=Update_Action.Insert key_columns=[]
+                    Problems.expect_warning Dry_Run_Operation r1
+                    r1.column_names . should_equal ["X"]
+                    # The target table is returned, as usually.
+                    r1.name . should_equal dest.name
+                    # But the data is not appended due to the dry-run - the table is unmodified.
+                    r1.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+
+        tests (Table.new) " (from memory)"
+        tests (table_builder "ec-tests-table") " (from Database table)"
 
 ## PRIVATE
    Creates a mock column containing `values`.
