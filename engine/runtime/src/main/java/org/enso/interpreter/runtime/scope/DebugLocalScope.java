@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.DataflowError;
 
 /**
  * This class serves as a basic support for debugging with Chrome inspector. Currently, only
@@ -180,11 +181,8 @@ public class DebugLocalScope implements TruffleObject {
   @ExportMessage
   Object readMember(String member) {
     FramePointer framePtr = allBindings.get(member);
-    if (framePtr == null) {
-      return null;
-    } else {
-      return getValue(frame, framePtr);
-    }
+    var value = getValue(frame, framePtr);
+    return value != null ? value : DataflowError.UNINITIALIZED;
   }
 
   @ExportMessage
