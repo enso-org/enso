@@ -8,8 +8,8 @@ import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   AmbiguousImportsAnalysis,
   BindingAnalysis,
-  ImportSymbolAnalysis,
-  ImportApiAnalysis
+  ImportApiAnalysis,
+  ImportSymbolAnalysis
 }
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.{ModuleNameConflicts, ShadowedPatternFields}
