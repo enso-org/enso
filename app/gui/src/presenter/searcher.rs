@@ -2,6 +2,7 @@
 //! more about presenters in general.
 
 use crate::prelude::*;
+use enso_debug_api::console;
 
 use crate::controller::graph::NewNodeInfo;
 use crate::controller::searcher::action::Suggestion;
@@ -222,6 +223,7 @@ impl Model {
         &self,
         entry_id: Option<component_grid::GroupEntryId>,
     ) -> Option<AstNodeId> {
+        console_log!("expression_accepted");
         if let Some(entry_id) = entry_id {
             self.suggestion_accepted(entry_id);
         }
@@ -297,13 +299,14 @@ impl Searcher {
         let graph = &model.view.graph().frp;
         let browser = model.view.searcher();
 
-        frp::extend! { network
+        frp::extend! { TRACE_ALL network
             eval model.view.searcher_input_changed ([model]((expr, selections)) {
                 let cursor_position = selections.last().map(|sel| sel.end).unwrap_or_default();
                 model.input_changed(expr, cursor_position);
             });
 
             action_list_changed <- any_mut::<()>();
+            action_list_changed <+ model.view.searcher_input_changed.constant(());
 
             eval_ model.view.toggle_component_browser_private_entries_visibility (
                 model.controller.reload_list());
@@ -313,7 +316,7 @@ impl Searcher {
         let navigator = &browser.model().list.model().section_navigator;
         let breadcrumbs = &browser.model().list.model().breadcrumbs;
         let documentation = &browser.model().documentation;
-        frp::extend! { network
+        frp::extend! { TRACE_ALL network
             eval_ action_list_changed ([model, grid, navigator] {
                 model.provider.take();
                 let controller_provider = model.controller.provider();
@@ -325,7 +328,6 @@ impl Searcher {
             grid.select_first_entry <+ action_list_changed.filter(f_!(model.should_select_first_entry()));
             input_edit <- grid.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
             graph.edit_node_expression <+ input_edit;
-            action_list_changed <+ input_edit.constant(());
 
             entry_selected <- grid.active.map(|&s| s?.as_entry_id());
             selected_entry_changed <- entry_selected.on_change().constant(());

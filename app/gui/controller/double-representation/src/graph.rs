@@ -196,6 +196,7 @@ impl GraphInfo {
     #[profile(Debug)]
     pub fn edit_node(&mut self, node_id: ast::Id, new_expression: Ast) -> FallibleResult {
         self.update_node(node_id, |mut node| {
+            console_log!("Updating node expression to {}", new_expression.repr());
             node.set_expression(new_expression);
             Some(node)
         })

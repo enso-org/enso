@@ -556,7 +556,10 @@ impl Searcher {
     /// in a new action list (the appropriate notification will be emitted).
     #[profile(Debug)]
     pub fn set_input(&self, new_input: String, cursor_position: Byte) -> FallibleResult {
-        debug!("Manually setting input to {new_input} with cursor position {cursor_position}");
+        console_log!(
+            "Manually setting input to `{new_input}` with cursor \
+        position {cursor_position}"
+        );
         let parsed_input = input::Input::parse(self.ide.parser(), new_input, cursor_position);
         let new_context = parsed_input.context().map(|ctx| ctx.into_ast().repr());
         let new_literal = parsed_input.edited_literal().cloned();
@@ -600,7 +603,7 @@ impl Searcher {
         &self,
         picked_suggestion: action::Suggestion,
     ) -> FallibleResult<text::Change<Byte, String>> {
-        debug!("Picking suggestion: {picked_suggestion:?}.");
+        console_log!("Picking suggestion: {picked_suggestion:?}.");
         let change = {
             let mut data = self.data.borrow_mut();
             let has_this = self.this_var().is_some();
@@ -670,7 +673,7 @@ impl Searcher {
         let transaction_name = "Previewing Component Browser suggestion.";
         let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
 
-        debug!("Updating node preview. Previewed suggestion: \"{suggestion:?}\".");
+        console_log!("Updating node preview. Previewed suggestion: \"{suggestion:?}\".");
         self.clear_temporary_imports();
         let has_this = self.this_var().is_some();
         let preview_change_result = suggestion.map(|suggestion| {
@@ -712,6 +715,7 @@ impl Searcher {
     /// will be returned by this function.
     #[profile(Task)]
     pub fn execute_action(&self, action: Action) -> FallibleResult<Option<ast::Id>> {
+        console_log!("Executing action: {action:?}.");
         match action {
             Action::Suggestion(suggestion) => {
                 self.use_suggestion(suggestion)?;
@@ -756,6 +760,7 @@ impl Searcher {
     /// picked suggestions.
     #[profile(Debug)]
     pub fn commit_node(&self) -> FallibleResult<ast::Id> {
+        console_log!("Commit node");
         let _transaction_guard = self.graph.get_or_open_transaction("Commit node");
         self.clear_temporary_imports();
 
@@ -763,6 +768,7 @@ impl Searcher {
             input::InputAst::Line(ast) => ast.clone(),
             input::InputAst::Invalid(input) => self.ide.parser().parse_line(input)?,
         };
+        console_log!("Expression: {:#?}", expression);
 
         // We add the required imports before we edit its content. This way, we avoid an
         // intermediate state where imports would already be in use but not yet available.

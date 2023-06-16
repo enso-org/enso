@@ -52,7 +52,7 @@ pub mod project_view_top_bar;
 /// but still at the earliest in the next frame. This means that there is a minimal delay but
 /// other events can be processed in the meantime. This is important since the event can lead to
 /// a lot of processing in the Component Browser and we don't want to block the UI.
-const INPUT_CHANGE_DELAY_MS: i32 = 0;
+const INPUT_CHANGE_DELAY_MS: i32 = 200;
 
 
 
@@ -82,7 +82,7 @@ impl SearcherParams {
     }
 }
 
-ensogl::define_endpoints! {
+ensogl::define_endpoints! { [TRACE_ALL]
     Input {
         /// Open the Open Project Dialog.
         show_project_list(),
@@ -528,14 +528,13 @@ impl View {
         let grid = &self.model.searcher.model().list.model().grid;
         let graph = &self.model.graph_editor;
 
-        frp::extend! { network
+        frp::extend! { TRACE_ALL network
             last_searcher <- frp.searcher.filter_map(|&s| s);
 
             node_editing_finished <- graph.node_editing_finished.gate(&frp.is_searcher_opened);
             committed_in_searcher <-
                 grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, entry));
             aborted_in_searcher <- frp.close_searcher.map2(&last_searcher, |(), &s| s.input);
-            frp.source.editing_committed <+ committed_in_searcher;
             frp.source.editing_committed <+ node_editing_finished.map(|id| (*id,None));
             frp.source.editing_aborted <+ aborted_in_searcher;
 
@@ -564,8 +563,16 @@ impl View {
         let network = &frp.network;
         let graph = &self.model.graph_editor;
         let input_change_delay = frp::io::timer::Timeout::new(network);
+        let grid = &self.model.searcher.model().list.model().grid;
 
-        frp::extend! { network
+        frp::extend! { TRACE_ALL network
+            last_searcher <- frp.searcher.filter_map(|&s| s);
+
+            // If the searcher thinks he has committed the input, we need to ensure that the input
+            // (and the state of the searcher) is up to date.
+            committed_in_searcher <-
+                grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, entry));
+
             searcher_input_change_opt <- graph.node_expression_edited.map2(&frp.searcher,
                 |(node_id, expr, selections), searcher| {
                     let input_change = || (*node_id, expr.clone_ref(), selections.clone());
@@ -574,9 +581,16 @@ impl View {
             );
             input_change <- searcher_input_change_opt.unwrap();
             input_change_delay.restart <+ input_change.constant(INPUT_CHANGE_DELAY_MS);
-            update_input_on_commit <- frp.output.editing_committed.constant(());
-            input_change_delay.cancel <+ update_input_on_commit;
-            update_input <- any(&input_change_delay.on_expired, &update_input_on_commit);
+
+            // We have retained key presses that we need to process.
+            update_with_refresh <- committed_in_searcher.gate(&input_change_delay.is_running);
+            // No keypressed retained, accept the selection as is.
+            update_without_refresh <- committed_in_searcher.gate_not(&input_change_delay.is_running);
+
+            on_update_with_refresh <- update_with_refresh.constant(());
+            input_change_delay.cancel <+ on_update_with_refresh;
+
+            update_input <- any(&input_change_delay.on_expired, &on_update_with_refresh);
             input_change_and_searcher <-
                 all_with(&input_change, &frp.searcher, |c, s| (c.clone(), *s));
             updated_input <- input_change_and_searcher.sample(&update_input);
@@ -585,6 +599,14 @@ impl View {
                 (searcher.as_ref()?.input == *node_id).then(input_change)
             });
             frp.source.searcher_input_changed <+ input_changed;
+
+            // Instead of the original selected item, we replace it with the potentially
+            // updated item.  WHAT IF THE SELECTION WAS NOT THE DEFAULT???
+            frp.source.editing_committed <+ on_update_with_refresh.map3(&committed_in_searcher,&grid.active,
+                |_, (node_id, _), &entry| Some((*node_id, entry?.as_entry_id()))).unwrap();
+
+            frp.source.editing_committed  <+ committed_in_searcher.sample(&update_without_refresh);
+
         }
         self
     }
