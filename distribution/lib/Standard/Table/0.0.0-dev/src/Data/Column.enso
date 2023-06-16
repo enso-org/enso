@@ -730,7 +730,7 @@ type Column
                 round_base = scaled.floor
                 round_midpoint = (round_base + 0.5) / scale
                 even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
-                half_goes_up = if use_bankers then even_is_up else (self.const True)
+                half_goes_up = if use_bankers then even_is_up else self >= 0
                 do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
                 result_float = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
 

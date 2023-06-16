@@ -98,26 +98,31 @@ spec =
 
     Test.group "Rounding" <|
         Test.specify "should be able to round a column of decimals" <|
-            Column.from_vector "foo" [1.2, 2.3, 3.6] . round . should_equal (Column.from_vector "foo" [1, 2, 4])
-            Column.from_vector "foo" [1.25, 2.33, 3.57] . round 1 . should_equal <| Column.from_vector "foo" [1.3, 2.3, 3.6]
-            Column.from_vector "foo" [12.0, 24.0, 25.0, 29.0] . round -1 . should_equal <| Column.from_vector "foo" [10, 20, 30, 30]
-            Column.from_vector "foo" [1.5, 2.5, 3.5] . round use_bankers=True . should_equal <| Column.from_vector "foo" [2, 2, 4]
+            Column.from_vector "foo" [1.2, 2.3, 2.5, 3.6] . round . should_equal (Column.from_vector "round([foo])" [1, 2, 3, 4])
+            Column.from_vector "foo" [1.25, 2.33, 3.57] . round 1 . should_equal <| Column.from_vector "round([foo])" [1.3, 2.3, 3.6]
+            Column.from_vector "foo" [12.0, 24.0, 25.0, 29.0] . round -1 . should_equal <| Column.from_vector "round([foo])" [10, 20, 30, 30]
+            Column.from_vector "foo" [1.5, 2.5, 3.5] . round use_bankers=True . should_equal <| Column.from_vector "round([foo])" [2, 2, 4]
+
+            Column.from_vector "foo" [-1.2, -2.3, -2.5, -3.6] . round . should_equal (Column.from_vector "round([foo])" [-1, -2, -3, -4])
+            Column.from_vector "foo" [-1.25, -2.33, -2.45, -3.57] . round 1 . should_equal <| Column.from_vector "round([foo])" [-1.3, -2.3, -2.5, -3.6]
+            Column.from_vector "foo" [-12.0, -24.0, -25.0, -29.0] . round -1 . should_equal <| Column.from_vector "round([foo])" [-10, -20, -30, -30]
 
         Test.specify "decimal rounding should return the correct column type" <|
             Column.from_vector "foo" [1.2, 2.3, 3.6] . round . value_type . should_equal Value_Type.Integer
             Column.from_vector "foo" [1.2, 2.3, 3.6] . round 1 . value_type . should_equal Value_Type.Float
 
         Test.specify "should be able to round a column of integers" <|
-            Column.from_vector "foo" [12, 24, 25, 29] . round . should_equal <| Column.from_vector "foo" [12, 24, 25, 29]
-            Column.from_vector "foo" [12, 24, 25, 29] . round -1 . should_equal <| Column.from_vector "foo" [10, 20, 30, 30]
-            Column.from_vector "foo" [15, 25, 35] . round -1 use_bankers=True . should_equal <| Column.from_vector "foo" [20, 20, 40]
+            Column.from_vector "foo" [12, 24, 25, 29] . round . should_equal <| Column.from_vector "round([foo])" [12, 24, 25, 29]
+            Column.from_vector "foo" [12, 24, 25, 29] . round -1 . should_equal <| Column.from_vector "round([foo])" [10, 20, 30, 30]
+            Column.from_vector "foo" [15, 25, 35] . round -1 use_bankers=True . should_equal <| Column.from_vector "round([foo])" [20, 20, 40]
 
         Test.specify "integer rounding should return the correct column type" <|
             Column.from_vector "foo" [12, 24, 25, 29] . round -1 . value_type . should_equal Value_Type.Integer
 
         Test.specify "should report out-of-range values as problems" <|
             col = Column.from_vector "foo" [12, 23, 99999999999999999]
-            expected = Column.from_vector "foo" [10, 20, Nothing]
+            expected = Column.from_vector "round([foo])" [10, 20, Nothing]
+            col.round -1 . should_equal expected
             action = col.round -1 on_problems=_
             problems = [Illegal_Argument.Error "Error: `round` can only accept values between -99999999999999 and 99999999999999 (inclusive), but was 99999999999999999"]
             tester = _.should_equal expected
@@ -125,7 +130,7 @@ spec =
 
         Test.specify "should throw an error on decimal places out of range" <|
             col = Column.from_vector "foo" [12, 23, 99999999999999999]
-            expected = Column.from_vector "foo" [Nothing, Nothing, Nothing]
+            expected = Column.from_vector "round([foo])" [Nothing, Nothing, Nothing]
             action = col.round decimal_places=-1200 on_problems=_
             problems = [Illegal_Argument.Error "round: decimal_places must be between -15 and 15 (inclusive), but was -1200"]
             tester = _.should_equal expected
