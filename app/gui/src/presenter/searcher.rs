@@ -303,7 +303,8 @@ impl Searcher {
                 model.input_changed(expr, cursor_position);
             });
 
-            action_list_changed <- source::<()>();
+            action_list_changed <- any_mut::<()>();
+            action_list_changed <+ model.view.searcher_input_changed.constant(());
 
             eval_ model.view.toggle_component_browser_private_entries_visibility (
                 model.controller.reload_list());

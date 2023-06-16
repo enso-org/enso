@@ -527,38 +527,10 @@ impl View {
 
         frp::extend! { network
 
-
-            // === Closing the Searcher / End of Editing ===
-
             last_searcher <- frp.searcher.filter_map(|&s| s);
-
-            // The searcher will be closed due to no longer editing the node (e.g., a click
-            // on the background of the scene).
-            node_editing_finished <- graph.node_editing_finished.gate(&frp.is_searcher_opened);
-            aborted_in_searcher <- frp.close_searcher.map2(&last_searcher, |(), &s| s.input);
-            frp.source.editing_committed <+ node_editing_finished.map(|id| (*id,None));
-            frp.source.editing_aborted <+ aborted_in_searcher;
-
             // The searcher will bve closed due to accepting the input (e.g., pressing enter).
             committed_in_searcher <-
                 grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, entry));
-
-            // Should be done before we update `searcher` and `adding_new_node` outputs.
-            adding_committed <- committed_in_searcher.gate(&frp.adding_new_node);
-            graph.deselect_all_nodes <+ adding_committed.constant(());
-            graph.select_node <+ adding_committed._0();
-
-            node_editing_finished_event <- node_editing_finished.constant(());
-            committed_in_searcher_event <- committed_in_searcher.constant(());
-            aborted_in_searcher_event <- aborted_in_searcher.constant(());
-            searcher_should_close <- any(
-                node_editing_finished_event,
-                committed_in_searcher_event,
-                aborted_in_searcher_event
-            );
-            graph.stop_editing <+ any(&committed_in_searcher_event, &aborted_in_searcher_event);
-            frp.source.searcher <+ searcher_should_close.constant(None);
-            frp.source.adding_new_node <+ searcher_should_close.constant(false);
 
 
             // === Handling Inputs to the Searcher ===
@@ -568,7 +540,7 @@ impl View {
                     let input_change = || (*node_id, expr.clone_ref(), selections.clone());
                     (searcher.as_ref()?.input == *node_id).then(input_change)
                 }
-            );
+            ).on_change();
             input_change <- searcher_input_change_opt.unwrap();
             // We wait with processing an updated input to avoid unnecessary refreshes during
             // typing. This is done by delaying the input change by a short amount of time.
@@ -608,7 +580,35 @@ impl View {
                 |_, (node_id, _), &entry| Some((*node_id, entry?.as_entry_id()))).unwrap();
 
             // If we have no outstanding key presses, we can accept the selection as is.
-            frp.source.editing_committed  <+ committed_in_searcher.sample(&update_without_refresh);
+            frp.source.editing_committed <+ committed_in_searcher.sample(&update_without_refresh);
+
+
+            // === Closing the Searcher / End of Editing ===
+
+            // The searcher will be closed due to no longer editing the node (e.g., a click
+            // on the background of the scene).
+            node_editing_finished <- graph.node_editing_finished.gate(&frp.is_searcher_opened);
+            aborted_in_searcher <- frp.close_searcher.map2(&last_searcher, |(), &s| s.input);
+            frp.source.editing_committed <+ node_editing_finished.map(|id| (*id,None));
+            frp.source.editing_aborted <+ aborted_in_searcher;
+
+
+            // Should be done before we update `searcher` and `adding_new_node` outputs.
+            adding_committed <- committed_in_searcher.gate(&frp.adding_new_node);
+            graph.deselect_all_nodes <+ adding_committed.constant(());
+            graph.select_node <+ adding_committed._0();
+
+            node_editing_finished_event <- node_editing_finished.constant(());
+            committed_in_searcher_event <- committed_in_searcher.constant(());
+            aborted_in_searcher_event <- aborted_in_searcher.constant(());
+            searcher_should_close <- any(
+                node_editing_finished_event,
+                committed_in_searcher_event,
+                aborted_in_searcher_event
+            );
+            graph.stop_editing <+ any(&committed_in_searcher_event, &aborted_in_searcher_event);
+            frp.source.searcher <+ searcher_should_close.constant(None);
+            frp.source.adding_new_node <+ searcher_should_close.constant(false);
         }
         self
     }
