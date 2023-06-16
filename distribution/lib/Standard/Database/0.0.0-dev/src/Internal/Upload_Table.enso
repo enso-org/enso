@@ -90,6 +90,7 @@ internal_upload_database_table source_table connection table_name primary_key te
             Error.throw (Unsupported_Database_Operation.Error "The Database table to be uploaded must be coming from the same connection as the connection on which the new table is being created. Cross-connection uploads are currently not supported. To work around this, you can first `.read` the table into memory and then upload it from memory to a different connection.")
 
         connection_check.if_not_error <|
+            # Warning: in some DBs, calling a DDL query in a transaction may commit it. We may have to have some special handling for this.
             created_table_name = create_table_structure connection table_name structure=source_table primary_key=primary_key temporary=temporary allow_existing=False on_problems=on_problems
             upload_status = created_table_name.if_not_error <|
                 internal_translate_known_upload_errors source_table connection primary_key <|
@@ -220,8 +221,12 @@ common_update_table source_table connection table_name update_action key_columns
                 tmp_table_name = "temporary-source-table-"+random_uuid
                 tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=key_columns temporary=True on_problems=Problem_Behavior.Report_Error
                 tmp_table.if_not_error <|
-                    Panic.with_finalizer (connection.drop_table tmp_table.name) <|
-                        append_to_existing_table tmp_table target_table update_action key_columns error_on_missing_columns on_problems
+                    resulting_table = append_to_existing_table tmp_table target_table update_action key_columns error_on_missing_columns on_problems
+                    ## We don't need to drop the table if append panics, because
+                       all of this happens within a transaction, so in case the
+                       above fails, the whole transaction will be rolled back.
+                    connection.drop_table tmp_table.name
+                    resulting_table
 
 ## PRIVATE
    Assumes that `source_table` is a simple table query without any filters,

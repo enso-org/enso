@@ -772,6 +772,19 @@ spec make_new_connection prefix persistent_connector=True =
                 err.expected_type.is_text . should_be_true
                 err.got_type.is_numeric . should_be_true
 
+        Test.specify "should not leave behind any garbage temporary tables if the upload fails" <|
+            dest_name = Name_Generator.random_name "dest-table"
+            # We will make the upload fail by violating the NOT NULL constraint.
+            connection.create_table dest_name [Column_Description.Value "X" Value_Type.Integer [Column_Constraint.Not_Null]] temporary=True primary_key=[] . should_succeed
+            src = source_table_builder [["X", [1, Nothing, 3]]]
+
+            existing_tables = connection.tables types=Nothing
+            res = src.update_database_table connection dest_name update_action=Update_Action.Insert key_columns=[]
+            res.should_fail_with SQL_Error
+
+            tables_after = connection.tables types=Nothing
+            tables_after . should_equal existing_tables
+
     table_builder name_prefix args primary_key=[] =
         in_memory_table = Table.new args
         in_memory_table.select_into_database_table connection (Name_Generator.random_name name_prefix) temporary=True primary_key=primary_key
