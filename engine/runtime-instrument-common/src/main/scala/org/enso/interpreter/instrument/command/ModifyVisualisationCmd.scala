@@ -50,19 +50,17 @@ class ModifyVisualisationCmd(
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
-    val exisitingVisualisation = ctx.contextManager.getVisualisationById(
+    val existingVisualisation = ctx.contextManager.getVisualisationById(
       request.visualisationConfig.executionContextId,
       request.visualisationId
     )
     val visualisationPresent: Option[ExpressionId] =
-      exisitingVisualisation.map(_.expressionId).orElse {
-        val jobFilter = (job: Job[_]) =>
-          job match {
-            case upsert: UpsertVisualisationJob
-                if upsert.getVisualizationId() == request.visualisationId =>
-              Some(upsert.key)
-            case _ => None
-          }
+      existingVisualisation.map(_.expressionId).orElse {
+        val jobFilter: PartialFunction[Job[_], Option[ExpressionId]] = {
+          case upsert: UpsertVisualisationJob
+              if upsert.getVisualizationId() == request.visualisationId =>
+            Some(upsert.key)
+        }
         ctx.jobControlPlane.jobInProgress(jobFilter)
       }
     visualisationPresent match {

@@ -32,5 +32,5 @@ trait JobControlPlane {
 
   /** Finds the first in-progress job satisfying the `filter` condition
     */
-  def jobInProgress[T](filter: Job[_] => Option[T]): Option[T]
+  def jobInProgress[T](filter: PartialFunction[Job[_], Option[T]]): Option[T]
 }
