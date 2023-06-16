@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument.job
 
 import cats.implicits._
+import com.oracle.truffle.api.TruffleLogger
 import org.enso.compiler.CompilerResult
 import org.enso.compiler.context._
 import org.enso.compiler.core.IR
@@ -26,7 +27,6 @@ import org.enso.text.buffer.Rope
 
 import java.io.File
 import java.util.logging.Level
-
 import scala.jdk.OptionConverters._
 
 /** A job that ensures that specified files are compiled.
@@ -40,7 +40,8 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): CompilationStatus = {
-    ctx.locking.acquireWriteCompilationLock()
+    val writeLockTimestamp             = ctx.locking.acquireWriteCompilationLock()
+    implicit val logger: TruffleLogger = ctx.executionService.getLogger
 
     try {
       val compilationResult = ensureCompiledFiles(files)
@@ -48,6 +49,10 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
       compilationResult
     } finally {
       ctx.locking.releaseWriteCompilationLock()
+      logger.log(
+        Level.FINEST,
+        s"Kept write compilation lock [EnsureCompiledJob] for ${System.currentTimeMillis() - writeLockTimestamp} milliseconds"
+      )
     }
   }
 
@@ -59,7 +64,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     */
   private def ensureCompiledFiles(
     files: Iterable[File]
-  )(implicit ctx: RuntimeContext): CompilationStatus = {
+  )(implicit ctx: RuntimeContext, logger: TruffleLogger): CompilationStatus = {
     val modules = files.flatMap { file =>
       ctx.executionService.getContext.getModuleForFile(file).toScala
     }
@@ -79,7 +84,10 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     */
   private def ensureCompiledModule(
     module: Module
-  )(implicit ctx: RuntimeContext): Option[CompilationStatus] = {
+  )(implicit
+    ctx: RuntimeContext,
+    logger: TruffleLogger
+  ): Option[CompilationStatus] = {
     compile(module)
     applyEdits(new File(module.getPath)).map { changeset =>
       compile(module)
@@ -228,9 +236,12 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     */
   private def applyEdits(
     file: File
-  )(implicit ctx: RuntimeContext): Option[Changeset[Rope]] = {
-    ctx.locking.acquireFileLock(file)
-    ctx.locking.acquirePendingEditsLock()
+  )(implicit
+    ctx: RuntimeContext,
+    logger: TruffleLogger
+  ): Option[Changeset[Rope]] = {
+    val fileLockTimestamp         = ctx.locking.acquireFileLock(file)
+    val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
     try {
       val pendingEdits = ctx.state.pendingEdits.dequeue(file)
       val edits        = pendingEdits.map(_.edit)
@@ -252,7 +263,16 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
       Option.when(shouldExecute)(changeset)
     } finally {
       ctx.locking.releasePendingEditsLock()
+      logger.log(
+        Level.FINEST,
+        s"Kept pending edits lock [EnsureCompiledJob] for ${System.currentTimeMillis() - pendingEditsLockTimestamp} milliseconds"
+      )
       ctx.locking.releaseFileLock(file)
+      logger.log(
+        Level.FINEST,
+        s"Kept file lock [EnsureCompiledJob] for ${System.currentTimeMillis() - fileLockTimestamp} milliseconds"
+      )
+
     }
   }
 
@@ -297,7 +317,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
   private def invalidateCaches(
     module: Module,
     changeset: Changeset[_]
-  )(implicit ctx: RuntimeContext): Unit = {
+  )(implicit ctx: RuntimeContext, logger: TruffleLogger): Unit = {
     val invalidationCommands =
       buildCacheInvalidationCommands(
         changeset,

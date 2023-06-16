@@ -291,7 +291,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     .option(RuntimeOptions.LOG_MASKING, Masking.isMaskingEnabled.toString)
     .option(RuntimeOptions.EDITION_OVERRIDE, Info.currentEdition)
     .option(
-      RuntimeServerInfo.JOB_PARALLELISM_OPTION,
+      RuntimeOptions.JOB_PARALLELISM,
       Runtime.getRuntime.availableProcessors().toString
     )
     .option(RuntimeOptions.PREINITIALIZE, "js")

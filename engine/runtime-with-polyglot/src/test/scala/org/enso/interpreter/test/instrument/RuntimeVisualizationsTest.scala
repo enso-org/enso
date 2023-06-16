@@ -1605,7 +1605,8 @@ class RuntimeVisualizationsTest
         )
       )
     )
-    context.receiveN(1) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.VisualisationAttached()),
       Api.Response(requestId, Api.ModuleNotFound("Test.Undefined"))
     )
   }
@@ -1766,7 +1767,8 @@ class RuntimeVisualizationsTest
         )
       )
     )
-    context.receiveN(1) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.VisualisationAttached()),
       Api.Response(
         requestId,
         Api.VisualisationExpressionFailed(
