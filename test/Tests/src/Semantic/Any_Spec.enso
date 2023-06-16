@@ -42,7 +42,6 @@ spec =
             My_Type.Value 33 . x . should_equal "Any:(My_Type.Value 33)"
             With_X.Value 44 . x . should_equal "With_X:(With_X.Value 44)"
             With_Y.Value 44 . x . should_equal "With_Y:With_Y(44)"
-            Any.x . to_text . should_equal "Any.type.x[Any_Types.enso:6-26]"
             My_Type.x . should_equal "Any:My_Type"
             With_X.x . to_text . should_equal "Any:With_X"
             With_X.y . to_text . should_equal "With_X.type.y[Any_Types.enso:12-32]"
@@ -50,6 +49,8 @@ spec =
             With_Y.y . to_text . should_equal "With_Y.type.y[Any_Types.enso:18-38]"
             With_X.to_text . to_text . should_equal "With_X"
             With_Y.to_text . to_text . should_equal "With_Y"
+            Any.x . to_text . should_equal "Any:Any"
+            Any.x self=Any . to_text . should_equal "Any:Any"
             Any.x self=With_X . should_equal "Any:With_X"
             Any.x self=With_Y . should_equal "Any:With_Y"
             Any.x (My_Type.Value 22) . should_equal "Any:(My_Type.Value 22)"
@@ -59,7 +60,48 @@ spec =
 
         Test.specify "should always resolve to instance method on Any" <|
             Any.to_text . should_equal "Any"
+            Any.to_text self=Any . should_equal "Any"
             Any.to_display_text . should_equal "Any"
+            Any.to_display_text self=Any . should_equal "Any"
             Any == Boolean . should_be_false
+            Any.== Any Boolean . should_be_false
+            Any.== self=Any Boolean . should_be_false
+
+        Test.specify "instance methods on Any should have defaulted self argument to Any" <|
+            # Any.== is a method that takes two arguments (self other)
+            eq_method = Any.==...
+            Meta.is_a eq_method Function . should_be_true
+            eq_method Any Boolean . should_be_false
+            eq_method self=Any Boolean . should_be_false
+            # self should be defaulted to Any
+            eq_method Boolean . should_be_false
+            eq_method Any . should_be_true
+
+            # Any.to_text is a method that takes one argument (self)
+            to_text_method = Any.to_text...
+            Meta.is_a to_text_method Function . should_be_true
+            to_text_method . should_equal "Any"
+            to_text_method self=Any . should_equal "Any"
+            to_text_method self=Vector . should_equal "Vector"
+            to_text_method self=[1,2,3] . should_equal "[1, 2, 3]"
+            to_text_method Any . should_equal "Any"
+            to_text_method Vector . should_equal "Vector"
+            to_text_method [1,2,3] . should_equal "[1, 2, 3]"
+
+        Test.specify "instance methods on different types should not have defaulted self argument" <|
+            # Vector.contains has two arguments (self elem)
+            contains_method = Vector.contains...
+            Meta.is_a contains_method Function . should_be_true
+            Meta.is_a (contains_method 42) Function . should_be_true
+            contains_method self=[1,2,3] 1 . should_be_true
+            contains_method [1,2,3] 1 . should_be_true
+
+            # Vector.is_empty has just one argument (self)
+            is_empty_method = Vector.is_empty...
+            Meta.is_a is_empty_method Function . should_be_true
+            is_empty_method . to_text . contains "Vector.type.is_empty" . should_be_true
+            is_empty_method self=[] . should_be_true
+            is_empty_method [] . should_be_true
+
 
 main = Test_Suite.run_main spec
