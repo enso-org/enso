@@ -1,9 +1,4 @@
-from Standard.Base import Boolean, True, False
-from Standard.Base import Nothing, Any, Integer
-from Standard.Base import Vector, Map, First, Pair
-from Standard.Base import JS_Object, Filter_Condition, Sort_Direction
-from Standard.Base import Panic
-from Standard.Base import IO, Environment, Meta, Platform, Process, Exit_Code, enso_project
+from Standard.Base import all hiding Data, Errors
 
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
