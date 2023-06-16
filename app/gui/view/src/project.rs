@@ -47,11 +47,6 @@ pub mod project_view_top_bar;
 /// A time which must pass since last change of expression of node which is the searcher input
 /// to send `searcher_input_changed` event. The delay ensures we don't needlessly update Component
 /// Browser when user is quickly typing in the expression input.
-///
-/// Note: This value is set to zero, which means that the event is processed as fast as possible,
-/// but still at the earliest in the next frame. This means that there is a minimal delay but
-/// other events can be processed in the meantime. This is important since the event can lead to
-/// a lot of processing in the Component Browser and we don't want to block the UI.
 const INPUT_CHANGE_DELAY_MS: i32 = 200;
 
 
@@ -82,7 +77,7 @@ impl SearcherParams {
     }
 }
 
-ensogl::define_endpoints! { [TRACE_ALL]
+ensogl::define_endpoints! {
     Input {
         /// Open the Open Project Dialog.
         show_project_list(),
@@ -528,7 +523,7 @@ impl View {
         let grid = &self.model.searcher.model().list.model().grid;
         let graph = &self.model.graph_editor;
 
-        frp::extend! { TRACE_ALL network
+        frp::extend! { network
             last_searcher <- frp.searcher.filter_map(|&s| s);
 
             node_editing_finished <- graph.node_editing_finished.gate(&frp.is_searcher_opened);
@@ -565,7 +560,7 @@ impl View {
         let input_change_delay = frp::io::timer::Timeout::new(network);
         let grid = &self.model.searcher.model().list.model().grid;
 
-        frp::extend! { TRACE_ALL network
+        frp::extend! { network
             last_searcher <- frp.searcher.filter_map(|&s| s);
 
             // If the searcher thinks he has committed the input, we need to ensure that the input

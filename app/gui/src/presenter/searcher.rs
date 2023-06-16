@@ -222,7 +222,6 @@ impl Model {
         &self,
         entry_id: Option<component_grid::GroupEntryId>,
     ) -> Option<AstNodeId> {
-        console_log!("expression_accepted");
         if let Some(entry_id) = entry_id {
             self.suggestion_accepted(entry_id);
         }
@@ -298,7 +297,7 @@ impl Searcher {
         let graph = &model.view.graph().frp;
         let browser = model.view.searcher();
 
-        frp::extend! { TRACE_ALL network
+        frp::extend! { network
             eval model.view.searcher_input_changed ([model]((expr, selections)) {
                 let cursor_position = selections.last().map(|sel| sel.end).unwrap_or_default();
                 model.input_changed(expr, cursor_position);
@@ -314,7 +313,7 @@ impl Searcher {
         let navigator = &browser.model().list.model().section_navigator;
         let breadcrumbs = &browser.model().list.model().breadcrumbs;
         let documentation = &browser.model().documentation;
-        frp::extend! { TRACE_ALL network
+        frp::extend! { network
             eval_ action_list_changed ([model, grid, navigator] {
                 model.provider.take();
                 let controller_provider = model.controller.provider();

@@ -95,7 +95,6 @@ impl Model {
         &self,
         entry_id: Option<view::component_browser::component_list_panel::grid::GroupEntryId>,
     ) -> bool {
-        console_log!("Editing committed: {:?}", entry_id);
         let searcher = self.searcher.take();
         if let Some(searcher) = searcher {
             if let Some(created_node) = searcher.expression_accepted(entry_id) {
@@ -318,7 +317,7 @@ impl Project {
         let graph_view = &model.view.graph().frp;
         let project_list = &model.view.project_list().frp;
 
-        frp::extend! { TRACE_ALL network
+        frp::extend! { network
             project_list_ready <- source_();
             project_list.project_list <+ project_list_ready.map(
                 f_!(model.available_projects.borrow().clone())

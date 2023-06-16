@@ -138,7 +138,7 @@ pub struct EntryModel {
 
 // === API ===
 
-ensogl_core::define_endpoints_2! { [TRACE_ALL]
+ensogl_core::define_endpoints_2! {
     Input {
         reset(content::Info),
         select_first_entry(),
@@ -622,7 +622,7 @@ impl component::Frp<Model> for Frp {
         let entry_style = entry::Style::from_theme(network, style_frp);
         let colors = entry::style::Colors::from_theme(network, style_frp);
         let selection_colors = entry::style::SelectionColors::from_theme(network, style_frp);
-        frp::extend! { TRACE_ALL network
+        frp::extend! { network
             // === Active and Hovered Entry ===
 
             out.active <+ grid.entry_selected.map(f!((loc)
@@ -645,12 +645,6 @@ impl component::Frp<Model> for Frp {
             element_on_suggestion_accept <- out.active.sample(&input.accept_suggestion);
             out.suggestion_accepted <+ element_on_suggestion_accept.filter_map(|&e| e?.as_entry_id());
 
-            // trace grid.entry_accepted;
-            // trace action;
-            // trace input.accept_current_input_expression;
-            // trace element_on_suggestion_accept;
-            // trace out.expression_accepted;
-            // trace out.suggestion_accepted;
 
             // === Groups colors ===
 

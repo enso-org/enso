@@ -592,12 +592,6 @@ impl<E: Entry> GridView<E> {
             out.entry_accepted <+ input.accept_entry;
             out.entry_accepted <+ out.entry_selected.filter_map(|e| *e).sample(&input.accept_selected_entry);
 
-            trace input.select_entry;
-            trace input.accept_entry;
-            trace out.entry_accepted;
-            trace out.entry_selected;
-
-
             // The ordering here is important: we want to first call [`update_entry`] and only then
             // inform everyone that the entry is visible. They may want to immediately get the entry
             // with [`get_entry`] method.
