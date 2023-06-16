@@ -549,9 +549,9 @@ mod tests {
     use super::*;
     use crate::test::mock::Fixture;
     use crate::test::mock::Unified;
+    use ast::crumbs::InfixCrumb;
     use controller::graph::Connection;
     use controller::graph::Endpoint;
-    use ast::crumbs::InfixCrumb;
 
     fn check_atomic_undo(fixture: Fixture, action: impl FnOnce()) {
         let Fixture { project, module, searcher, .. } = fixture;

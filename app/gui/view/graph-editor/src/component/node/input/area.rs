@@ -546,7 +546,7 @@ impl Area {
             eval frp.set_disabled ((disabled) model.widget_tree.set_disabled(*disabled));
             eval_ model.widget_tree.rebuild_required(model.rebuild_widget_tree_if_dirty());
             frp.output.source.widget_tree_rebuilt <+ model.widget_tree.on_rebuild_finished;
-            
+
 
             // === View Mode ===
 

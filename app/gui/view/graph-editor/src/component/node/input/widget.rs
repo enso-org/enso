@@ -121,7 +121,7 @@ ensogl::define_endpoints_2! {
         /// Dirty flag has been marked. This signal is fired immediately after the update that
         /// caused it. Prefer using `rebuild_required` signal instead, which is debounced.
         marked_dirty_sync (),
-        /// The widget tree has been rebuilt. Its port structure has potentially been updated. 
+        /// The widget tree has been rebuilt. Its port structure has potentially been updated.
         on_rebuild_finished (),
     }
 }

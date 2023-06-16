@@ -508,10 +508,10 @@ pub mod tests {
     use crate::test;
 
     use crate::test::mock::Fixture;
+    use ast::crumbs::InfixCrumb;
     use controller::graph::Endpoint;
     use engine_protocol::language_server::types::test::value_update_with_type;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
-    use ast::crumbs::InfixCrumb;
 
     wasm_bindgen_test_configure!(run_in_browser);
 

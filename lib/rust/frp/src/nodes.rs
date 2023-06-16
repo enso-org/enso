@@ -313,9 +313,10 @@ impl Network {
     /// ```
     ///
     /// Note: See documentation of [`crate::microtasks`] module for more details about microtasks.
-
     pub fn batch_unique<T>(&self, label: Label, input: &T) -> Stream<HashSet<Output<T>>>
-    where T: EventOutput, Output<T>: Hash + Eq {
+    where
+        T: EventOutput,
+        Output<T>: Hash + Eq, {
         self.register(OwnedBatchUnique::new(label, input))
     }
 
@@ -1058,9 +1059,9 @@ impl Network {
         T: EventOutput<Output = Option<In>>,
         Out: Data,
         F: 'static + Fn(&In) -> Out, {
-            self.map(label, src, move |value| value.as_ref().map(|v| f(v)))
+        self.map(label, src, move |value| value.as_ref().map(|v| f(v)))
     }
-    
+
     /// A version of map that operates on optionals. The provided function will only be called when
     /// incoming stream's value is [`Some`], and then the provided function can return an optional
     /// itself. If you want a non-optional return type, use [`Network::and_then`].
@@ -1069,7 +1070,7 @@ impl Network {
         T: EventOutput<Output = Option<In>>,
         Out: Data,
         F: 'static + Fn(&In) -> Option<Out>, {
-            self.map(label, src, move |value| value.as_ref().and_then(|v| f(v)))
+        self.map(label, src, move |value| value.as_ref().and_then(|v| f(v)))
     }
 
 
@@ -2869,8 +2870,7 @@ impl<T: HasOutput> HasOutput for BatchUniqueData<T> {
 }
 
 impl<T: EventOutput> OwnedBatchUnique<T>
-where
-    Output<T>: Eq + Hash
+where Output<T>: Eq + Hash
 {
     /// Constructor.
     pub fn new(label: Label, input: &T) -> Self {
@@ -2884,8 +2884,7 @@ where
 }
 
 impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedBatchUnique<T>
-where
-    Output<T>: Eq + Hash
+where Output<T>: Eq + Hash
 {
     fn on_event(&self, _stack: CallStack, value: &Output<T>) {
         self.collected_batch.borrow_mut().insert(value.clone());
@@ -2894,8 +2893,8 @@ where
             let weak = self.downgrade();
             let handle = next_microtask(move || {
                 let this = weak.upgrade();
-                let this = this
-                    .expect("BatchUniqueData holds callback handle, so it must be alive.");
+                let this =
+                    this.expect("BatchUniqueData holds callback handle, so it must be alive.");
                 this.scheduled_task.take();
                 let batch = this.collected_batch.take();
                 this.emit_event(&default(), &batch);

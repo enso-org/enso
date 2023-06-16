@@ -26,10 +26,13 @@ pub async fn add_node(
     let node_added = graph_editor.node_added.next_event();
     method(graph_editor);
     let (node_id, source_node, _) = node_added.expect();
-    let node = graph_editor.model.with_node(node_id, |node| {
-        node.set_expression(node::Expression::new_plain(expression));
-        node.clone_ref()
-    }).expect("Node was not added");
+    let node = graph_editor
+        .model
+        .with_node(node_id, |node| {
+            node.set_expression(node::Expression::new_plain(expression));
+            node.clone_ref()
+        })
+        .expect("Node was not added");
     graph_editor.stop_editing();
     (node_id, source_node, node)
 }
