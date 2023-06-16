@@ -49,6 +49,7 @@ pub struct Timeout {
     pub cancel:     frp::Any,
     /// Emitted when timer expires. At most one event is emitted for each start of the timer.
     pub on_expired: frp::Stream<()>,
+    /// Indicates whether the timer is currently running.
     pub is_running: frp::Stream<bool>,
     raw_timeout:    Rc<RawTimeout>,
 }

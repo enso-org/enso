@@ -351,9 +351,8 @@ impl View {
             .init_graph_editor_frp()
             .init_code_editor_frp()
             .init_searcher_position_frp(scene)
-            .init_searcher_input_changes_frp()
+            .init_searcher_input_handling()
             .init_opening_searcher_frp()
-            .init_closing_searcher_frp()
             .init_open_projects_dialog_frp(scene)
             .init_style_toggle_frp()
             .init_fullscreen_visualization_frp()
@@ -518,21 +517,31 @@ impl View {
         self
     }
 
-    fn init_closing_searcher_frp(self) -> Self {
+    /// Handles changes to the searcher input and accepting the input.
+    fn init_searcher_input_handling(self) -> Self {
         let frp = &self.frp;
         let network = &frp.network;
         let grid = &self.model.searcher.model().list.model().grid;
         let graph = &self.model.graph_editor;
+        let input_change_delay = frp::io::timer::Timeout::new(network);
 
         frp::extend! { network
+
+
+            // === Closing the Searcher / End of Editing ===
+
             last_searcher <- frp.searcher.filter_map(|&s| s);
 
+            // The searcher will be closed due to no longer editing the node (e.g., a click
+            // on the background of the scene).
             node_editing_finished <- graph.node_editing_finished.gate(&frp.is_searcher_opened);
-            committed_in_searcher <-
-                grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, entry));
             aborted_in_searcher <- frp.close_searcher.map2(&last_searcher, |(), &s| s.input);
             frp.source.editing_committed <+ node_editing_finished.map(|id| (*id,None));
             frp.source.editing_aborted <+ aborted_in_searcher;
+
+            // The searcher will bve closed due to accepting the input (e.g., pressing enter).
+            committed_in_searcher <-
+                grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, entry));
 
             // Should be done before we update `searcher` and `adding_new_node` outputs.
             adding_committed <- committed_in_searcher.gate(&frp.adding_new_node);
@@ -550,24 +559,9 @@ impl View {
             graph.stop_editing <+ any(&committed_in_searcher_event, &aborted_in_searcher_event);
             frp.source.searcher <+ searcher_should_close.constant(None);
             frp.source.adding_new_node <+ searcher_should_close.constant(false);
-        }
-        self
-    }
 
-    fn init_searcher_input_changes_frp(self) -> Self {
-        let frp = &self.frp;
-        let network = &frp.network;
-        let graph = &self.model.graph_editor;
-        let input_change_delay = frp::io::timer::Timeout::new(network);
-        let grid = &self.model.searcher.model().list.model().grid;
 
-        frp::extend! { network
-            last_searcher <- frp.searcher.filter_map(|&s| s);
-
-            // If the searcher thinks he has committed the input, we need to ensure that the input
-            // (and the state of the searcher) is up to date.
-            committed_in_searcher <-
-                grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, entry));
+            // === Handling Inputs to the Searcher ===
 
             searcher_input_change_opt <- graph.node_expression_edited.map2(&frp.searcher,
                 |(node_id, expr, selections), searcher| {
@@ -576,14 +570,23 @@ impl View {
                 }
             );
             input_change <- searcher_input_change_opt.unwrap();
+            // We wait with processing an updated input to avoid unnecessary refreshes during
+            // typing. This is done by delaying the input change by a short amount of time.
             input_change_delay.restart <+ input_change.constant(INPUT_CHANGE_DELAY_MS);
+
+            // When accepting the input, we need to make sure we correctly process any outstanding
+            // key presses. If we don't, we may end up with a stale selection. Byt we do not want
+            // to refresh the searcher if we don't have outstanding key presses, as this will
+            // cause the searcher to lose the selected entry and instead select the default entry.
 
             // We have retained key presses that we need to process.
             update_with_refresh <- committed_in_searcher.gate(&input_change_delay.is_running);
-            // No keypressed retained, accept the selection as is.
+            // No key presses retained, accept the selection as is.
             update_without_refresh <- committed_in_searcher.gate_not(&input_change_delay.is_running);
 
             on_update_with_refresh <- update_with_refresh.constant(());
+            // We only need to cancel the delay if the timer is running, that is, if we have
+            // unprocessed changes and need to refresh.
             input_change_delay.cancel <+ on_update_with_refresh;
 
             update_input <- any(&input_change_delay.on_expired, &on_update_with_refresh);
@@ -596,13 +599,16 @@ impl View {
             });
             frp.source.searcher_input_changed <+ input_changed;
 
-            // Instead of the original selected item, we replace it with the potentially
-            // updated item.  WHAT IF THE SELECTION WAS NOT THE DEFAULT???
-            frp.source.editing_committed <+ on_update_with_refresh.map3(&committed_in_searcher,&grid.active,
+            // Since the input was updated, the selected item might have been replaced, so we need
+            // discard it and instead use the currently selected item. Note that this will be the
+            // default item, and we loose any selection that was made. But that is fine, as the
+            // user was typing and a change to the selection was to be expected.
+            frp.source.editing_committed <+ on_update_with_refresh.map3(
+                &committed_in_searcher,&grid.active,
                 |_, (node_id, _), &entry| Some((*node_id, entry?.as_entry_id()))).unwrap();
 
+            // If we have no outstanding key presses, we can accept the selection as is.
             frp.source.editing_committed  <+ committed_in_searcher.sample(&update_without_refresh);
-
         }
         self
     }
