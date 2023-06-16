@@ -11,6 +11,7 @@ import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as projectEventModule from '../events/projectEvent'
 import * as projectRowState from '../projectRowState'
+import * as shortcuts from '../shortcuts'
 import * as string from '../../string'
 import * as svg from '../../components/svg'
 import * as toastPromise from '../toastPromise'
@@ -151,7 +152,10 @@ function ProjectName(props: InternalProjectNameProps) {
                 } else if (
                     eventModule.isSingleClick(event) &&
                     (selected ||
-                        (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey))
+                        shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
+                            shortcuts.MouseAction.editName,
+                            event
+                        ))
                 ) {
                     setIsNameEditable(true)
                 }

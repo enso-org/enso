@@ -11,6 +11,7 @@ import * as http from '../../http'
 import * as localBackend from '../localBackend'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
+import * as shortcuts from '../shortcuts'
 import * as toastPromiseMultiple from '../../toastPromiseMultiple'
 
 import * as authProvider from '../../authentication/providers/auth'
@@ -185,21 +186,23 @@ function Dashboard(props: DashboardProps) {
         }
     }, [])
 
-    const handleEscapeKey = React.useCallback(
-        (event: React.KeyboardEvent<HTMLDivElement>) => {
+    React.useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
             if (
-                event.key === 'Escape' &&
-                !event.ctrlKey &&
-                !event.shiftKey &&
-                !event.altKey &&
-                !event.metaKey
+                shortcuts.SHORTCUT_REGISTRY.matchesKeyboardAction(
+                    shortcuts.KeyboardAction.closeModal,
+                    event
+                )
             ) {
                 event.preventDefault()
                 unsetModal()
             }
-        },
-        [unsetModal]
-    )
+        }
+        document.addEventListener('keydown', onKeyDown)
+        return () => {
+            document.removeEventListener('keydown', onKeyDown)
+        }
+    }, [unsetModal])
 
     const openDropZone = React.useCallback((event: React.DragEvent<HTMLDivElement>) => {
         if (event.dataTransfer.types.includes('Files')) {
@@ -263,7 +266,6 @@ function Dashboard(props: DashboardProps) {
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
             onClick={closeModalIfExists}
-            onKeyDown={handleEscapeKey}
             onDragEnter={openDropZone}
         >
             <TopBar

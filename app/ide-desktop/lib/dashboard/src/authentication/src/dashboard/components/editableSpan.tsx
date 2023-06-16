@@ -1,6 +1,7 @@
 /** @file A text `<span>` which turns into an `input` when desired. */
 import * as React from 'react'
 
+import * as shortcuts from '../shortcuts'
 import * as svg from '../../components/svg'
 
 // ====================
@@ -54,11 +55,10 @@ function EditableSpan(props: EditableSpanProps) {
                     onBlur={event => event.currentTarget.form?.requestSubmit()}
                     onKeyUp={event => {
                         if (
-                            event.key === 'Escape' &&
-                            !event.ctrlKey &&
-                            !event.shiftKey &&
-                            !event.altKey &&
-                            !event.metaKey
+                            shortcuts.SHORTCUT_REGISTRY.matchesKeyboardAction(
+                                shortcuts.KeyboardAction.cancelEditName,
+                                event
+                            )
                         ) {
                             onCancel()
                         }

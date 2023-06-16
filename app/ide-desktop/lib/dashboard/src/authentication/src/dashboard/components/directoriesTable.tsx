@@ -9,6 +9,7 @@ import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
+import * as shortcuts from '../shortcuts'
 import * as string from '../../string'
 import * as svg from '../../components/svg'
 import * as toastPromise from '../toastPromise'
@@ -130,7 +131,10 @@ function DirectoryName(props: InternalDirectoryNameProps) {
                 if (
                     eventModule.isSingleClick(event) &&
                     (selected ||
-                        (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey))
+                        shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
+                            shortcuts.MouseAction.editName,
+                            event
+                        ))
                 ) {
                     setIsNameEditable(true)
                 } else if (eventModule.isDoubleClick(event)) {

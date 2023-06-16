@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as modalProvider from '../../providers/modal'
+import * as shortcuts from '../shortcuts'
 import * as svg from '../../components/svg'
 
 // =================
@@ -190,12 +191,24 @@ function Table<T, State = never, RowState = never>(props: TableProps<T, State, R
         props
 
     const [spinnerClasses, setSpinnerClasses] = React.useState(SPINNER_INITIAL_CLASSES)
+    // This should not be made mutable as an optimization, otherwise its value may change after
+    // `await`ing an I/O operation.
     const [selectedItems, setSelectedItems] = React.useState(() => new Set<T>())
     const [previouslySelectedItem, setPreviouslySelectedItem] = React.useState<T | null>(null)
 
     React.useEffect(() => {
         const onDocumentClick = (event: MouseEvent) => {
-            if (!event.ctrlKey && selectedItems.size !== 0) {
+            if (
+                !shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
+                    shortcuts.MouseAction.selectAdditional,
+                    event
+                ) &&
+                !shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
+                    shortcuts.MouseAction.selectAdditionalRange,
+                    event
+                ) &&
+                selectedItems.size !== 0
+            ) {
                 setSelectedItems(new Set())
             }
         }
@@ -219,25 +232,37 @@ function Table<T, State = never, RowState = never>(props: TableProps<T, State, R
     const onRowClick = React.useCallback(
         (item: T, event: React.MouseEvent) => {
             event.stopPropagation()
-            // The Shift key should select a range of items, however the current architecture
-            // is not designed to handle this.
-            if (event.shiftKey) {
+            const getNewlySelectedItems = () => {
                 if (previouslySelectedItem == null) {
-                    setSelectedItems(new Set([item]))
+                    return [item]
                 } else {
                     const index1 = items.indexOf(previouslySelectedItem)
                     const index2 = items.indexOf(item)
-                    const newlySelectedItems =
-                        index1 <= index2
-                            ? items.slice(index1, index2 + 1)
-                            : items.slice(index2, index1 + 1)
-                    if (event.ctrlKey) {
-                        setSelectedItems(new Set([...selectedItems, ...newlySelectedItems]))
-                    } else {
-                        setSelectedItems(new Set(newlySelectedItems))
-                    }
+                    return index1 <= index2
+                        ? items.slice(index1, index2 + 1)
+                        : items.slice(index2, index1 + 1)
                 }
-            } else if (event.ctrlKey) {
+            }
+            if (
+                shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
+                    shortcuts.MouseAction.selectRange,
+                    event
+                )
+            ) {
+                setSelectedItems(new Set(getNewlySelectedItems()))
+            } else if (
+                shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
+                    shortcuts.MouseAction.selectAdditionalRange,
+                    event
+                )
+            ) {
+                setSelectedItems(new Set([...selectedItems, ...getNewlySelectedItems()]))
+            } else if (
+                shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
+                    shortcuts.MouseAction.selectAdditional,
+                    event
+                )
+            ) {
                 const newItems = new Set(selectedItems)
                 if (selectedItems.has(item)) {
                     newItems.delete(item)
