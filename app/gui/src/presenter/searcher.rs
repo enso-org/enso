@@ -24,7 +24,6 @@ use ide_view as view;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::component_browser::component_list_panel::BreadcrumbId;
 use ide_view::component_browser::component_list_panel::SECTION_NAME_CRUMB_INDEX;
-use ide_view::graph_editor::component::node::Expression;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::project::SearcherParams;
 

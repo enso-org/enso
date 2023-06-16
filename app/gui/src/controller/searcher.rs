@@ -113,7 +113,7 @@ pub enum Notification {
     /// A new Suggestion list is available.
     NewActionList,
     /// Code should be inserted by means of using an AI autocompletion.
-    AISuggestionUpdated(String, text::Range<text::Byte>),
+    AISuggestionUpdated(String, text::Range<Byte>),
 }
 
 

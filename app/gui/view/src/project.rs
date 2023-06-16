@@ -358,7 +358,7 @@ impl View {
             .init_style_toggle_frp()
             .init_fullscreen_visualization_frp()
             .init_debug_mode_frp()
-            .init_shortcut_observer()
+            .init_shortcut_observer(app)
     }
 
     fn init_top_bar_frp(self, scene: &Scene) -> Self {
@@ -659,10 +659,10 @@ impl View {
         self
     }
 
-    fn init_shortcut_observer(self) -> Self {
+    fn init_shortcut_observer(self, app: &Application) -> Self {
         let frp = &self.frp;
         frp::extend! { network
-            frp.source.current_shortcut <+ self.model.app.shortcuts.currently_handled;
+            frp.source.current_shortcut <+ app.shortcuts.currently_handled;
         }
 
         self
