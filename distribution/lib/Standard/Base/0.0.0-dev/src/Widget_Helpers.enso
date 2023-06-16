@@ -20,9 +20,8 @@ make_date_format_selector =
 
     iso_format = ['ISO-Format (e.g. ' + date.to_text + ')', '""']
     formats = ['d/M/yyyy', 'dd/MM/yyyy', 'd-MMM-yy', 'd MMMM yyyy', 'M/d/yyyy', 'MM/dd/yyyy', 'MMMM d, yyyy'].map f-> [f + " (e.g. " + date.format f + ")", f.pretty]
-    custom_format = ['Custom', "'yyyy-MM-dd'"]
 
-    make_single_choice ([iso_format] + formats + [custom_format])
+    make_single_choice ([iso_format] + formats)
 
 ## PRIVATE
    Creates a Single_Choice Widget for parsing date times.
@@ -35,9 +34,8 @@ make_date_time_format_selector =
     iso_local = ['ISO-Local (e.g. ' + (date.format "ISO_LOCAL_DATE_TIME") + ')', '"ISO_LOCAL_DATE_TIME"']
     formats = ['yyyy-MM-dd HH:mm:ss.S', 'yyyy-MM-dd HH:mm:ss.S VV', 'd/M/yyyy h:mm a', 'dd/MM/yyyy HH:mm:ss', 'd-MMM-yy HH:mm:ss', 'd-MMM-yy h:mm:ss a', 'd MMMM yyyy h:mm a', 'M/d/yyyy h:mm:ss a', 'MM/dd/yyyy HH:mm:ss']
     mapped_formats = formats.map f-> [f + " (e.g. " + date.format f + ")", f.pretty]
-    custom_format = ['Custom', "'yyyy-MM-dd HH:mm:ss'"]
 
-    make_single_choice ([enso_format, iso_format, iso_local] + mapped_formats + [custom_format])
+    make_single_choice ([enso_format, iso_format, iso_local] + mapped_formats)
 
 ## PRIVATE
    Creates a Single_Choice Widget for parsing times.
@@ -48,6 +46,5 @@ make_time_format_selector =
 
     iso_format = ['ISO-Format (e.g. ' + time.to_text + ')', '""']
     formats = ['HH:mm[:ss]', 'HH:mm:ss', 'h:mm[:ss] a', 'hh:mm:ss a', 'HH:mm:ss.S'].map f-> [f + " (e.g. " + time.format f + ")", f.pretty]
-    custom_format = ['Custom', "'HH:mm:ss'"]
 
-    make_single_choice ([iso_format] + formats + [custom_format])
+    make_single_choice ([iso_format] + formats)
