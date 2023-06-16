@@ -889,6 +889,7 @@ impl Handle {
     /// Sets the given's node expression.
     #[profile(Debug)]
     pub fn set_expression(&self, id: ast::Id, expression_text: impl Str) -> FallibleResult {
+        info!("Setting node {id} expression to `{}`", expression_text.as_ref());
         let new_expression_ast = self.parse_node_expression(expression_text)?;
         self.set_expression_ast(id, new_expression_ast)
     }
@@ -896,6 +897,7 @@ impl Handle {
     /// Sets the given's node expression.
     #[profile(Debug)]
     pub fn set_expression_ast(&self, id: ast::Id, expression: Ast) -> FallibleResult {
+        info!("Setting node {id} expression to `{}`", expression.repr());
         self.update_definition_ast(|definition| {
             let mut graph = GraphInfo::from_definition(definition);
             graph.edit_node(id, expression)?;
