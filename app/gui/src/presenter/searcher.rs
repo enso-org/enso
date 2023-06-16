@@ -2,7 +2,6 @@
 //! more about presenters in general.
 
 use crate::prelude::*;
-use enso_debug_api::console;
 
 use crate::controller::graph::NewNodeInfo;
 use crate::controller::searcher::action::Suggestion;
@@ -305,8 +304,7 @@ impl Searcher {
                 model.input_changed(expr, cursor_position);
             });
 
-            action_list_changed <- any_mut::<()>();
-            action_list_changed <+ model.view.searcher_input_changed.constant(());
+            action_list_changed <- source::<()>();
 
             eval_ model.view.toggle_component_browser_private_entries_visibility (
                 model.controller.reload_list());
