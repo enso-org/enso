@@ -1,13 +1,12 @@
 use crate::Clearable;
 use crate::Deref;
+use crate::DerefMut;
 use crate::ImClearable;
 use crate::Zeroable;
 
 use core::fmt::Debug;
 use std::cell::RefCell;
 
-
-use crate::DerefMut;
 
 
 // ==================

@@ -249,7 +249,7 @@ pub struct OutputPath<Target: IsTargetSource> {
     #[derivative(Debug = "ignore", PartialEq(bound = ""))]
     #[allow(missing_docs)]
     #[clap(skip)]
-    pub phantom:     ZST<Target>,
+    pub phantom:     PhantomData<Target>,
 }
 
 impl<Target: IsTargetSource> AsRef<Path> for OutputPath<Target> {
