@@ -20,30 +20,146 @@ const SPINNER_LOADING_CLASSES = 'grow dasharray-75 duration-1000 ease-linear'
 // =============
 
 /** Props for a {@link Column}. */
-export interface ColumnProps<T, State = never> {
+export interface ColumnProps<T, State = never, RowState = never> {
     item: T
     selected: boolean
     state: State
+    rowState: RowState
+    setRowState: (rowState: RowState) => void
 }
 
 /** Metadata describing how to render a column of the table. */
-export interface Column<T, State = never> {
+export interface Column<T, State = never, RowState = never> {
     id: string
     className?: string
     heading: JSX.Element
-    render: (props: ColumnProps<T, State>) => JSX.Element
+    render: (props: ColumnProps<T, State, RowState>) => JSX.Element
 }
 
 // =================
-// === Component ===
+// === StateProp ===
 // =================
 
+/** `state: State`. */
+interface StateProp<State> {
+    state: State
+}
+
+// ===========================
+// === InitialRowStateProp ===
+// ===========================
+
+/** `initialRowState: RowState`. */
+interface InitialRowStateProp<RowState> {
+    initialRowState: RowState
+}
+
+// ===========
+// === Row ===
+// ===========
+
+/** Props for a {@link Row}. */
+interface InternalBaseRowProps<T, State = never, RowState = never> {
+    item: T
+    state?: State
+    initialRowState?: RowState
+    columns: Column<T, State, RowState>[]
+    selected: boolean
+    allowContextMenu: boolean
+    onClick: (item: T, event: React.MouseEvent) => void
+    onContextMenu: (
+        item: T,
+        event: React.MouseEvent<HTMLTableRowElement>,
+        rowState: RowState,
+        setRowState: (newRowState: RowState) => void
+    ) => void
+}
+
+/** Props for a {@link Row}. */
+export type RowProps<T, State = never, RowState = never> = InternalBaseRowProps<
+    T,
+    State,
+    RowState
+> &
+    ([RowState] extends [never] ? unknown : InitialRowStateProp<RowState>) &
+    ([State] extends [never] ? unknown : StateProp<State>)
+
+/** A row of a table. This is required because each row may store its own state. */
+function Row<T, State = never, RowState = never>(props: RowProps<T, State, RowState>) {
+    const {
+        item,
+        state,
+        initialRowState,
+        columns,
+        selected,
+        allowContextMenu,
+        onClick,
+        onContextMenu,
+    } = props
+    const { unsetModal } = modalProvider.useSetModal()
+
+    /** This is SAFE, as the type is defined such that they MUST be
+     * present if it is specified as a generic parameter.
+     * See the type definitions of {@link RowProps} and {@link TableProps}.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const [rowState, setRowState] = React.useState<RowState>(initialRowState!)
+
+    return (
+        <tr
+            tabIndex={-1}
+            onClick={event => {
+                unsetModal()
+                onClick(item, event)
+            }}
+            onContextMenu={event => {
+                if (allowContextMenu) {
+                    onContextMenu(item, event, rowState, setRowState)
+                }
+            }}
+            className={`h-10 transition duration-300 ease-in-out hover:bg-gray-100 ${
+                selected ? 'bg-gray-200' : ''
+            }`}
+        >
+            {columns.map(column => {
+                // This is a React component even though it does not contain JSX.
+                // eslint-disable-next-line no-restricted-syntax
+                const Render = column.render
+                return (
+                    <td
+                        key={column.id}
+                        className={`px-4 border-0 border-r ${column.className ?? ''}`}
+                    >
+                        <Render
+                            item={item}
+                            selected={selected}
+                            /** This is SAFE, as the type is defined such that they MUST be
+                             * present if it is specified as a generic parameter.
+                             * See the type definitions of {@link RowProps} and {@link TableProps}.
+                             */
+                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                            state={state!}
+                            rowState={rowState}
+                            setRowState={setRowState}
+                        />
+                    </td>
+                )
+            })}
+        </tr>
+    )
+}
+
+// =============
+// === Table ===
+// =============
+
 /** Props for a {@link Table}. */
-export interface TableProps<T, State = never> {
+interface InternalTableProps<T, State = never, RowState = never> {
     items: T[]
     state?: State
+    initialRowState?: RowState
     getKey: (item: T) => string
-    columns: Column<T, State>[]
+    columns: Column<T, State, RowState>[]
     isLoading: boolean
     placeholder: JSX.Element
     onContextMenu: (
@@ -51,22 +167,27 @@ export interface TableProps<T, State = never> {
         event: React.MouseEvent<HTMLTableElement>,
         setSelectedItems: (items: Set<T>) => void
     ) => void
-    onRowContextMenu: (item: T, event: React.MouseEvent<HTMLTableRowElement>) => void
+    onRowContextMenu: (
+        item: T,
+        event: React.MouseEvent<HTMLTableRowElement>,
+        rowState: RowState,
+        setRowState: (newRowState: RowState) => void
+    ) => void
 }
 
+/** Props for a {@link Table}. */
+export type TableProps<T, State = never, RowState = never> = InternalTableProps<
+    T,
+    State,
+    RowState
+> &
+    ([RowState] extends [never] ? unknown : InitialRowStateProp<RowState>) &
+    ([State] extends [never] ? unknown : StateProp<State>)
+
 /** Table that projects an object into each column. */
-function Table<T, State = never>(props: TableProps<T, State>) {
-    const {
-        items,
-        state,
-        getKey,
-        columns,
-        isLoading,
-        placeholder,
-        onContextMenu,
-        onRowContextMenu,
-    } = props
-    const { unsetModal } = modalProvider.useSetModal()
+function Table<T, State = never, RowState = never>(props: TableProps<T, State, RowState>) {
+    const { items, getKey, columns, isLoading, placeholder, onContextMenu, onRowContextMenu } =
+        props
 
     const [spinnerClasses, setSpinnerClasses] = React.useState(SPINNER_INITIAL_CLASSES)
     const [selectedItems, setSelectedItems] = React.useState(() => new Set<T>())
@@ -95,7 +216,7 @@ function Table<T, State = never>(props: TableProps<T, State>) {
         }
     }, [isLoading])
 
-    const onItemClicked = React.useCallback(
+    const onRowClick = React.useCallback(
         (item: T, event: React.MouseEvent) => {
             event.stopPropagation()
             // The Shift key should select a range of items, however the current architecture
@@ -161,39 +282,15 @@ function Table<T, State = never>(props: TableProps<T, State>) {
         </tr>
     ) : (
         items.map(item => (
-            <tr
+            <Row<T, State, RowState>
+                {...props}
                 key={getKey(item)}
-                tabIndex={-1}
-                onClick={event => {
-                    unsetModal()
-                    onItemClicked(item, event)
-                }}
-                onContextMenu={event => {
-                    if (selectedItems.size === 0) {
-                        onRowContextMenu(item, event)
-                    }
-                }}
-                className={`h-10 transition duration-300 ease-in-out hover:bg-gray-100 ${
-                    selectedItems.has(item) ? 'bg-gray-200' : ''
-                }`}
-            >
-                {columns.map(column => {
-                    // This is a React component even though it does not contain JSX.
-                    // eslint-disable-next-line no-restricted-syntax
-                    const Render = column.render
-                    return (
-                        <td
-                            key={column.id}
-                            className={`px-4 border-0 border-r ${column.className ?? ''}`}
-                        >
-                            {/* This is UNSAFE if `State` is explicitly specified by the caller,
-                             * however it is unavoidable. */}
-                            {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
-                            <Render item={item} selected={selectedItems.has(item)} state={state!} />
-                        </td>
-                    )
-                })}
-            </tr>
+                item={item}
+                selected={selectedItems.has(item)}
+                allowContextMenu={selectedItems.size === 0}
+                onClick={onRowClick}
+                onContextMenu={onRowContextMenu}
+            />
         ))
     )
     return (

@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
+import * as errorModule from '../../error'
 import * as modalProvider from '../../providers/modal'
 import * as projectEvent from '../events/projectEvent'
 // Warning: This is a circular import.
@@ -71,12 +72,8 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
 /** Props for a {@link ProjectActionButton}. */
 export interface ProjectActionButtonProps {
     project: backendModule.ProjectAsset
-    getExtraData: (projectId: backendModule.ProjectId) => projectsTable.ProjectExtraData
-    setExtraData: (
-        projectId: backendModule.ProjectId,
-        newExtraData: projectsTable.ProjectExtraData
-    ) => void
-    deleteExtraData: (projectId: backendModule.ProjectId) => void
+    rowState: projectsTable.ProjectRowState
+    setRowState: (newRowState: projectsTable.ProjectRowState) => void
     event: projectEvent.ProjectEvent | null
     /** Called when the project is opened via the {@link ProjectActionButton}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
@@ -87,17 +84,8 @@ export interface ProjectActionButtonProps {
 
 /** An interactive button displaying the status of a project. */
 function ProjectActionButton(props: ProjectActionButtonProps) {
-    const {
-        project,
-        getExtraData,
-        setExtraData,
-        deleteExtraData,
-        event,
-        appRunner,
-        doOpenManually,
-        onClose,
-        openIde,
-    } = props
+    const { project, rowState, setRowState, event, appRunner, doOpenManually, onClose, openIde } =
+        props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
 
@@ -114,40 +102,31 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 case backendModule.BackendType.remote:
                     setToastId(toast.loading(LOADING_MESSAGE))
                     await backend.openProject(project.id, null, project.title)
-                    setExtraData(project.id, { ...getExtraData(project.id), isRunning: true })
+                    setRowState({ ...rowState, isRunning: true })
                     setCheckState(CheckState.checkingStatus)
                     break
                 case backendModule.BackendType.local:
                     setCheckState(CheckState.localProject)
+                    setRowState({ ...rowState, isRunning: true })
                     await backend.openProject(project.id, null, project.title)
                     setCheckState(oldCheckState => {
                         if (oldCheckState === CheckState.localProject) {
-                            setTimeout(() => {
-                                setExtraData(project.id, {
-                                    ...getExtraData(project.id),
-                                    isRunning: true,
-                                })
-                            }, 0)
                             setState(backendModule.ProjectState.opened)
                         }
                         return oldCheckState
                     })
                     break
             }
-        } catch {
+        } catch (error) {
             setCheckState(CheckState.notChecking)
-            toast.error(`Error opening project '${project.title}'.`)
+            toast.error(
+                `Error opening project '${project.title}': ${
+                    errorModule.tryGetMessage(error) ?? 'unknown error'
+                }.`
+            )
             setState(backendModule.ProjectState.closed)
         }
-    }, [backend, project.id, project.title, getExtraData, setExtraData])
-
-    React.useEffect(() => {
-        return () => {
-            deleteExtraData(project.id)
-        }
-        // The above callback MUST only run on unmount.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, [backend, project.id, project.title, rowState, /* should never change */ setRowState])
 
     React.useEffect(() => {
         if (toastId != null) {
@@ -177,12 +156,12 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             case backendModule.ProjectState.opened:
                 setState(backendModule.ProjectState.openInProgress)
                 setCheckState(CheckState.checkingResources)
-                setExtraData(project.id, { ...getExtraData(project.id), isRunning: true })
+                setRowState({ ...rowState, isRunning: true })
                 break
             case backendModule.ProjectState.openInProgress:
                 setState(backendModule.ProjectState.openInProgress)
                 setCheckState(CheckState.checkingStatus)
-                setExtraData(project.id, { ...getExtraData(project.id), isRunning: true })
+                setRowState({ ...rowState, isRunning: true })
                 break
             default:
                 // Some functions below set the state to something different to
@@ -326,7 +305,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         } finally {
             // This is not 100% correct, but it is better than never setting `isRunning` to `false`,
             // which would prevent the project from ever being deleted.
-            setExtraData(project.id, { ...getExtraData(project.id), isRunning: false })
+            setRowState({ ...rowState, isRunning: false })
         }
     }
 

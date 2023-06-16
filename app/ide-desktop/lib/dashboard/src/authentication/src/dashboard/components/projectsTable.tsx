@@ -4,7 +4,7 @@ import * as React from 'react'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
-import * as error from '../../error'
+import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
@@ -87,9 +87,6 @@ interface ProjectNamePropsState {
     appRunner: AppRunner | null
     projectEvent: projectEventModule.ProjectEvent | null
     setProjectEvent: (projectEvent: projectEventModule.ProjectEvent | null) => void
-    getExtraData: (projectId: backendModule.ProjectId) => ProjectExtraData
-    setExtraData: (projectId: backendModule.ProjectId, newExtraData: ProjectExtraData) => void
-    deleteExtraData: (projectId: backendModule.ProjectId) => void
     /** Called when the project is opened via the {@link ProjectActionButton}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
     doOpenIde: (project: backendModule.ProjectAsset) => void
@@ -98,24 +95,16 @@ interface ProjectNamePropsState {
 
 /** Props for a {@link ProjectName}. */
 interface InternalProjectNameProps
-    extends table.ColumnProps<backendModule.ProjectAsset, ProjectNamePropsState> {}
+    extends table.ColumnProps<backendModule.ProjectAsset, ProjectNamePropsState, ProjectRowState> {}
 
 /** The icon and name of a specific project asset. */
 function ProjectName(props: InternalProjectNameProps) {
     const {
         item,
         selected,
-        state: {
-            appRunner,
-            getExtraData,
-            setExtraData,
-            deleteExtraData,
-            projectEvent,
-            setProjectEvent,
-            doOpenManually,
-            doOpenIde,
-            doCloseIde,
-        },
+        rowState,
+        setRowState,
+        state: { appRunner, projectEvent, setProjectEvent, doOpenManually, doOpenIde, doCloseIde },
     } = props
     const { backend } = backendProvider.useBackend()
     const [, doRefresh] = hooks.useRefresh()
@@ -135,7 +124,10 @@ function ProjectName(props: InternalProjectNameProps) {
             {
                 loading: 'Renaming project...',
                 success: 'Renamed project',
-                error: reason => `Error renaming project: ${error.unsafeIntoErrorMessage(reason)}`,
+                error: error =>
+                    `Error renaming project: ${
+                        errorModule.tryGetMessage(error) ?? 'unknown error'
+                    }`,
             }
         )
     }
@@ -161,9 +153,8 @@ function ProjectName(props: InternalProjectNameProps) {
         >
             <ProjectActionButton
                 project={item}
-                getExtraData={getExtraData}
-                setExtraData={setExtraData}
-                deleteExtraData={deleteExtraData}
+                rowState={rowState}
+                setRowState={setRowState}
                 event={projectEvent}
                 doOpenManually={doOpenManually}
                 appRunner={appRunner}
@@ -210,12 +201,12 @@ function ProjectName(props: InternalProjectNameProps) {
 // =====================
 
 /** Data associated with a project, used for rendering. */
-export interface ProjectExtraData {
+export interface ProjectRowState {
     isRunning: boolean
 }
 
-/** The default {@link ProjectExtraData} associated with a {@link backendModule.Project}. */
-export const DEFAULT_PROJECT_EXTRA_DATA: ProjectExtraData = Object.freeze({
+/** The default {@link ProjectRowState} associated with a {@link backendModule.Project}. */
+export const INITIAL_ROW_STATE: ProjectRowState = Object.freeze({
     isRunning: false,
 })
 
@@ -253,33 +244,6 @@ function ProjectsTable(props: ProjectsTableProps) {
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
 
-    const [extraDatas, setExtraDatas] = React.useState<
-        Record<backendModule.ProjectId, ProjectExtraData>
-    >({})
-
-    const getExtraData = React.useCallback(
-        (projectId: backendModule.ProjectId) => extraDatas[projectId] ?? DEFAULT_PROJECT_EXTRA_DATA,
-        [extraDatas]
-    )
-
-    const setExtraData = React.useCallback(
-        (projectId: backendModule.ProjectId, extraData: ProjectExtraData) => {
-            setExtraDatas(oldExtraDatas => ({ ...oldExtraDatas, [projectId]: extraData }))
-        },
-        []
-    )
-
-    /** This must never change as it needs to be called exactly once when
-     * the {@link ProjectActionButton} is being cleaned up. */
-    const deleteExtraData = React.useCallback((projectId: backendModule.ProjectId) => {
-        setExtraDatas(oldExtraDatas => {
-            // The unused variable is intentional as it needs to be removed from the map.
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { [projectId]: ignored, ...newExtraDatas } = oldExtraDatas
-            return newExtraDatas
-        })
-    }, [])
-
     const doOpenManually = React.useCallback(
         (projectId: backendModule.ProjectId) => {
             setProjectEvent({
@@ -306,28 +270,16 @@ function ProjectsTable(props: ProjectsTableProps) {
             doOpenManually,
             doOpenIde,
             doCloseIde,
-            getExtraData,
-            setExtraData,
-            deleteExtraData,
         }),
-        [
-            appRunner,
-            projectEvent,
-            setProjectEvent,
-            doOpenManually,
-            doOpenIde,
-            doCloseIde,
-            getExtraData,
-            setExtraData,
-            deleteExtraData,
-        ]
+        [appRunner, projectEvent, setProjectEvent, doOpenManually, doOpenIde, doCloseIde]
     )
 
     return (
-        <Table<backendModule.ProjectAsset, ProjectNamePropsState>
+        <Table<backendModule.ProjectAsset, ProjectNamePropsState, ProjectRowState>
             items={items}
             isLoading={isLoading}
             state={state}
+            initialRowState={INITIAL_ROW_STATE}
             getKey={backendModule.getAssetId}
             placeholder={PLACEHOLDER}
             columns={columnModule.columnsFor(columnDisplayMode, backend.type).map(column =>
@@ -380,12 +332,11 @@ function ProjectsTable(props: ProjectsTableProps) {
                     </ContextMenu>
                 )
             }}
-            onRowContextMenu={(project, event) => {
+            onRowContextMenu={(project, event, rowState) => {
                 event.preventDefault()
                 event.stopPropagation()
                 const isDeleteDisabled =
-                    backend.type === backendModule.BackendType.local &&
-                    getExtraData(project.id).isRunning
+                    backend.type === backendModule.BackendType.local && rowState.isRunning
                 const doOpenForEditing = () => {
                     unsetModal()
                     setProjectEvent({

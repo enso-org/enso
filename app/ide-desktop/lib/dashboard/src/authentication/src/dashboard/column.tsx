@@ -107,7 +107,9 @@ const PERMISSION: Record<backend.PermissionAction, permissionDisplay.Permissions
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
 export const COLUMN_RENDERER: Record<
     Exclude<Column, Column.name>,
-    (props: table.ColumnProps<backend.Asset, unknown>) => JSX.Element
+    (
+        props: Omit<table.ColumnProps<backend.Asset>, 'rowState' | 'setRowState' | 'state'>
+    ) => JSX.Element
 > = {
     [Column.lastModified]: props => (
         <>{props.item.modifiedAt && dateTime.formatDateTime(new Date(props.item.modifiedAt))}</>

@@ -4,7 +4,7 @@ import * as React from 'react'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
-import * as error from '../../error'
+import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
@@ -110,8 +110,10 @@ function DirectoryName(props: InternalDirectoryNameProps) {
                 {
                     loading: 'Renaming folder...',
                     success: 'Renamed folder',
-                    error: reason =>
-                        `Error renaming folder: ${error.unsafeIntoErrorMessage(reason)}`,
+                    error: error =>
+                        `Error renaming folder: ${
+                            errorModule.tryGetMessage(error) ?? 'unknown error'
+                        }`,
                 }
             )
         }

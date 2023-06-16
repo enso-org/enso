@@ -1,6 +1,7 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
+import * as errorModule from '../../error'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
 import * as toastPromise from '../toastPromise'
@@ -41,7 +42,10 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                     await toastPromise.toastPromise(deletePromise, {
                         loading: `Deleting ${assetType}...`,
                         success: `Deleted ${assetType}.`,
-                        error: `Could not delete ${assetType}.`,
+                        error: error =>
+                            `Could not delete ${assetType}: ${
+                                errorModule.tryGetMessage(error) ?? 'unknown error'
+                            }`,
                     })
                 }
                 unsetModal()

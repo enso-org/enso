@@ -4,7 +4,7 @@
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API. */
 import * as backend from './backend'
-import * as error from '../error'
+import * as errorModule from '../error'
 import * as newtype from '../newtype'
 import * as projectManager from './projectManager'
 
@@ -111,14 +111,11 @@ export class LocalBackend implements Partial<backend.Backend> {
         try {
             await this.projectManager.closeProject({ projectId })
             return
-            // This is UNSAFE. It is assumed that all errors thrown are instances of `Error`
-            // and therefore have a string property called `message`.
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (e: any) {
+        } catch (error) {
             throw new Error(
                 `Unable to close project ${
                     title != null ? `'${title}'` : `with ID '${projectId}'`
-                }: ${error.unsafeIntoErrorMessage(e)}.`
+                }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
             )
         }
     }
@@ -203,14 +200,11 @@ export class LocalBackend implements Partial<backend.Backend> {
                 LocalBackend.currentlyOpenProject = { id: projectId, project }
             }
             return
-            // This is UNSAFE. It is assumed that all errors thrown are instances of `Error`
-            // and therefore have a string property called `message`.
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (e: any) {
+        } catch (error) {
             throw new Error(
                 `Unable to open project ${
                     title != null ? `'${title}'` : `with ID '${projectId}'`
-                }: ${error.unsafeIntoErrorMessage(e)}.`
+                }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
             )
         }
     }
@@ -270,14 +264,11 @@ export class LocalBackend implements Partial<backend.Backend> {
         try {
             await this.projectManager.deleteProject({ projectId })
             return
-            // This is UNSAFE. It is assumed that all errors thrown are instances of `Error`
-            // and therefore have a string property called `message`.
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (e: any) {
+        } catch (error) {
             throw new Error(
                 `Unable to delete project ${
                     title != null ? `'${title}'` : `with ID '${projectId}'`
-                }: ${error.unsafeIntoErrorMessage(e)}.`
+                }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
             )
         }
     }
