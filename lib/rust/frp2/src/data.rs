@@ -18,7 +18,9 @@ pub trait Data: DataBounds {
     fn boxed_clone(&self) -> Box<dyn Data>;
 }
 
-/// Alias for bounds required on [`Data`] types.
+/// Alias for bounds required on [`Data`] types. Please note that there is no [`Clone`] bound,
+/// although it is required (see the impl below). This is because we use `Data` as dyn trait, which
+/// can't be `Sized` (required by `Clone`).
 pub trait DataBounds = where Self: Debug + 'static;
 
 impl<T: DataBounds + Clone> Data for T {

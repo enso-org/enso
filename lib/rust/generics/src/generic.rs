@@ -9,6 +9,11 @@ use paste::paste;
 
 
 
+// =============
+// === Utils ===
+// =============
+
+/// Currently, Rust type system does not work well with type-level subtraction.
 #[rustfmt::skip]
 macro_rules! dec {
     (1) => { 0 };
@@ -28,6 +33,7 @@ macro_rules! dec {
     (15) => { 14 };
     (16) => { 15 };
 }
+
 
 
 // ==============
@@ -101,7 +107,7 @@ pub trait BelongsToFamily {
 /// Generic marker of the given type. See [`BelongsToFamily`] for more information.
 pub type Family<T> = <T as BelongsToFamily>::Family;
 
-/// Converts the generic representation (HList) to the concrete type of the given family. For
+/// Converts the generic representation [`HList`] to the concrete type of the given family. For
 /// example, `t.into_family::<Tuple>()` converts the given data to appropriate tuple representation.
 #[allow(missing_docs)]
 pub trait IntoFamily<M> {
@@ -109,7 +115,7 @@ pub trait IntoFamily<M> {
     fn _into_family(self) -> Self::Output;
 }
 
-/// Convert the generic representation (HList) to the concrete type of the given family. For
+/// Convert the generic representation [`HList`] to the concrete type of the given family. For
 /// example, `t.into_family::<Tuple>()` converts the given data to appropriate tuple representation.
 ///
 /// This is wrapper for [`IntoFamily`] enabling the syntax `t.into_family::<F>()`.
@@ -121,7 +127,7 @@ pub trait _IntoFamily: Sized {
         self._into_family()
     }
 
-    /// Convert the generic representation (HList) to the same generic type family as the `T` type
+    /// Convert the generic representation [`HList]` to the same generic type family as the `T` type
     /// family.
     #[inline(always)]
     fn into_family_of<T>(self) -> Self::Output
@@ -289,7 +295,8 @@ where
 // === FirstField ===
 // ==================
 
-/// The type of the first field of `T`. This is automatically implemented for every generic type.
+/// The type of the first field of `T`. This is automatically implemented for every type with a
+/// generic representation.
 pub type FirstField<T> = <T as HasFirstField>::FirstField;
 
 
@@ -345,7 +352,8 @@ where
 
 // === GetFirstField ===
 
-/// Return reference to the first field. This is automatically implemented for every generic type.
+/// Return reference to the first field. This is automatically implemented for every type with a
+/// generic representation.
 #[allow(missing_docs)]
 pub trait GetFirstField: HasFirstField {
     fn first_field(&self) -> &Self::FirstField;
@@ -409,7 +417,8 @@ where for<'t> Self: GetFirstFieldMutHelper<'t>
 // === LastField ===
 // =================
 
-/// The type of the last field of `T`. This is automatically implemented for every generic type.
+/// The type of the last field of `T`. This is automatically implemented for every type with a
+/// generic representation.
 pub type LastField<T> = <T as HasLastField>::LastField;
 
 
@@ -478,7 +487,8 @@ where
 
 // === GetLastField ===
 
-/// Return reference to the last field. This is automatically implemented for every generic type.
+/// Return reference to the last field. This is automatically implemented for every type with a
+/// generic representation.
 #[allow(missing_docs)]
 pub trait GetLastField: HasLastField {
     fn last_field(&self) -> &Self::LastField;
@@ -588,10 +598,10 @@ where
 // === InitFields ===
 // ==================
 
-/// LastField element type accessor.
+/// Accessor of all fields but the last one.
 pub type InitFields<T> = <T as HasInitFields>::InitFields;
 
-/// Last element accessor.
+/// Accessor of all fields but the last one.
 #[allow(missing_docs)]
 pub trait HasInitFields {
     type InitFields;
@@ -627,7 +637,7 @@ pub type FieldAt<const I: usize, T> = <T as HasFieldAt<I>>::FieldType;
 // === HasFieldAt ===
 
 /// Association between field index and field type. Please note that this is automatically
-/// implemented for every generic type.
+/// implemented for every type with a generic representation.
 #[allow(missing_docs)]
 pub trait HasFieldAt<const I: usize> {
     type FieldType;
@@ -663,7 +673,7 @@ impl_field_index_for_hlist![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1
 // === IntoFieldAt ===
 
 /// Take the ownership of self and return its I-th field. Please note that this is automatically
-/// implemented for every generic type.
+/// implemented for every type with a generic representation.
 #[allow(missing_docs)]
 pub trait IntoFieldAt<const I: usize>: Sized + HasFieldAt<I> {
     fn _into_field_at(self) -> FieldAt<I, Self>;

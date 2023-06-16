@@ -58,7 +58,7 @@
 //! # Imperative FRP evaluation order
 //! This library implements so called "imperative FRP evaluation order". This means that a node
 //! evaluates as soon as it receives an event on one of its listen ports. After evaluating, the node
-//! emits the output value which triggers evaluation of all nodes connected to its output ports. For
+//! emits the output value which triggers evaluation of all nodes listening on its output port. For
 //! example, given the following FRP network:
 //!
 //! ```text
@@ -97,8 +97,8 @@
 //! An alternative way to imperative FRP evaluation order is a reactive one. This library does NOT
 //! implement such a mode, but it is important to understand this difference, as we plan to
 //! introduce this mode in the future. In this mode, the evaluation of some nodes is triggered
-//! automatically to make the FRP network contain the most up-to-date values. This mode eliminates
-//! the above described problems:
+//! automatically, when some required values are not up to date. This mode eliminates the above
+//! described problems:
 //!
 //! - It eliminates the "diamond problem" as a node will evaluate only after all of its inputs will
 //!   be computed.

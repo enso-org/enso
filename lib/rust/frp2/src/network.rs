@@ -35,10 +35,16 @@ pub struct Network<Model = ()> {
     rc: Rc<NetworkModel<Model>>,
 }
 
-impl<Model: Default> Network<Model> {
+impl<Model> Network<Model> {
     /// Constructor.
-    pub fn new() -> Self {
-        default()
+    pub fn new() -> Self
+    where Model: Default {
+        Self::new_with_model(default())
+    }
+
+    /// Constructor with the given model.
+    pub fn new_with_model(model: Model) -> Self {
+        Network { rc: Rc::new(NetworkModel::new_with_model(model)) }
     }
 }
 
@@ -49,12 +55,18 @@ pub struct NetworkModel<Model> {
     pub(crate) model: Rc<ZeroOverheadRefCell<Model>>,
 }
 
-impl<Model: Default> NetworkModel<Model> {
+impl<Model> NetworkModel<Model> {
     #[inline(never)]
-    fn new() -> Self {
+    fn new_with_model(model: Model) -> Self {
         let id = with_runtime(|rt| rt.new_network());
-        let model = default();
+        let model = Rc::new(ZeroOverheadRefCell::new(model));
         NetworkModel { id, model }
+    }
+
+    #[inline(never)]
+    fn new() -> Self
+    where Model: Default {
+        Self::new_with_model(default())
     }
 }
 

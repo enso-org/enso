@@ -11,8 +11,8 @@ use crate::runtime::NodeId;
 // === Type ===
 // ============
 
-macro_rules! run {
-    () => { run!{
+macro_rules! gen {
+    () => { gen!{
         Listen          { listener: true,  sampler: false },
         ListenAndSample { listener: true,  sampler: true  },
         Sample          { listener: false, sampler: true  },
@@ -65,4 +65,4 @@ macro_rules! run {
         )*
     };
 }
-run!();
+gen!();

@@ -154,15 +154,13 @@ where B: AllocationBehavior<Slot<Item>>
         default()
     }
 
-    /// Return the number of elements in the map. This will iterate over all elements, skipping
-    /// freed slots, so it's cost is `O(n)`, where `n` is the number of occupied and freed slots.
+    /// Return the number of elements in the map.
     #[inline(always)]
     pub fn len(&self) -> usize {
-        self.iter().count()
+        self.slots.len() - self.free_indexes.borrow().len()
     }
 
-    /// Check if the map is empty. This will iterate over all elements, skipping freed slots, so
-    /// it's cost is `O(n)`, where `n` is the number of occupied and freed slots.
+    /// Check if the map is empty.
     #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
@@ -245,7 +243,7 @@ where B: AllocationBehavior<Slot<Item>>
         index
     }
 
-    /// Insert a new value into the map.
+    /// Remove the value at the provided index and return it.
     #[inline(always)]
     pub fn remove(&mut self, id: VersionedIndex<Kind>) -> Option<Item>
     where Item: Default {

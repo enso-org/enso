@@ -24,7 +24,8 @@ use crate::node::TypedNode;
 #[derive(Clone, Copy, Debug, Default)]
 pub struct STREAM;
 
-auto trait NotStream {}
+/// Auto trait for discovering that the given marker is not [`STREAM`].
+pub auto trait NotStream {}
 impl !NotStream for STREAM {}
 
 /// The most generic type of a node. Every node can be converted to this type while losing some
@@ -32,6 +33,15 @@ impl !NotStream for STREAM {}
 /// However, if you need to store different node types in an array, you can convert them to samplers
 /// with zero-overhead.
 pub type Stream<Output = ()> = TypedNode<STREAM, Output>;
+
+impl<Type, Output> TypedNode<Type, Output> {
+    /// Convert the node to a [`Stream`].
+    #[inline(always)]
+    pub fn as_stream(self) -> Stream<Output>
+    where Type: NotStream {
+        self.into()
+    }
+}
 
 impl<Type: NotStream, Output> Deref for TypedNode<Type, Output> {
     type Target = Stream<Output>;
@@ -80,6 +90,8 @@ impl<M: Model> Network<M> {
         self.new_node((), |_, _| {})
     }
 }
+
+// TODO: Limit allowing emitting events to source node only.
 
 
 // === Sampler ===
@@ -217,3 +229,5 @@ macro_rules! def_map_nodes {
 impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
     def_map_nodes![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 }
+
+// TODO: Allow more than one listen port - for example, `any` node uses this pattern.

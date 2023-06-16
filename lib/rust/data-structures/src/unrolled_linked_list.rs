@@ -383,10 +383,12 @@ impl<T, const N: usize, B> Node<T, N, B> {
         }
     }
 
-    /// Get a mutable reference to the next node if it exists;
+    /// Get a mutable reference to items and the next node if it exists.
     #[inline(always)]
     fn items_and_next_mut(&mut self) -> (&mut Vec<NodeItem<T>>, Option<&mut Box<Self>>) {
         let next = self.next.opt_item_mut();
+        // # Safety
+        // Self is mutably borrowed, so this call is safe.
         #[allow(unsafe_code)]
         let items = unsafe { self.items.unchecked_borrow_mut() };
         (items, next)
@@ -394,6 +396,9 @@ impl<T, const N: usize, B> Node<T, N, B> {
 
     #[inline(always)]
     fn items(&self) -> &Vec<NodeItem<T>> {
+        // # Safety
+        // The only function that does not require mutable self access which mutably borrows items
+        // is [`Self::push_internal`], but it borrows newly created item only.
         #[allow(unsafe_code)]
         unsafe {
             self.items.unchecked_borrow()
@@ -402,6 +407,9 @@ impl<T, const N: usize, B> Node<T, N, B> {
 
     #[inline(always)]
     fn items_mut(&mut self) -> &mut Vec<NodeItem<T>> {
+        // # Safety
+        // The only function that does not require mutable self access which mutably borrows items
+        // is [`Self::push_internal`], but it borrows newly created item only.
         #[allow(unsafe_code)]
         unsafe {
             self.items.unchecked_borrow_mut()
@@ -412,16 +420,6 @@ impl<T, const N: usize, B> Node<T, N, B> {
 impl<T, const N: usize, B> Node<T, N, B>
 where B: AllocationBehavior<T>
 {
-    #[inline(always)]
-    fn init_next_node(&self) -> bool {
-        let mut was_empty = false;
-        self.next.init_if_empty(|| {
-            was_empty = true;
-            default()
-        });
-        was_empty
-    }
-
     #[inline(always)]
     fn push(&self, offset: usize, elem: T) -> bool {
         AllocationBehavior::push_to_node(self, offset, elem)
@@ -441,17 +439,15 @@ where B: AllocationBehavior<T>
             }
 
             // # Safety
-            // The item at `offset` either:
-            // 1. Did not exist yet.
-            // 2. Was removed, which required `self` to be mutably borrowed, so there are no other
-            //    mutable borrows to the element.
+            // The item at `offset` either does not exist yet or was removed, so there are no
+            // mutable references to it.
             #[allow(unsafe_code)]
             unsafe {
                 *self.items()[offset].unchecked_borrow_mut() = elem
             };
             false
         } else {
-            let next_node_added = self.init_next_node();
+            let next_node_added = self.next.init_default_if_empty();
             let next_node = self.next.opt_item().unwrap();
             let sub_node_added = next_node.push_internal(offset - N, elem, resize_items);
             next_node_added || sub_node_added
@@ -462,7 +458,7 @@ where B: AllocationBehavior<T>
     #[allow(unconditional_recursion)]
     fn add_tail_nodes(&self, count: usize) {
         if count > 0 {
-            let sub_count = if self.init_next_node() { count - 1 } else { count };
+            let sub_count = if self.next.init_default_if_empty() { count - 1 } else { count };
             self.next.opt_item().unwrap().add_tail_nodes(sub_count);
         }
     }
@@ -484,7 +480,7 @@ where B: AllocationBehavior<T>
         // # Safety
         // All mutable borrows of an item require `self` to be mutably borrowed as well, so there
         // are no other mutable borrows currently. The only exception is [`Self::push`] which
-        // mutably borrows the newly added item.
+        // mutably borrows the newly added item for its lifetime.
         #[allow(unsafe_code)]
         self.items_mut().retain(|t| f(unsafe { t.unchecked_borrow() }));
         if let Some(next) = self.next.opt_item_mut() {
@@ -705,6 +701,7 @@ impl<T: Zeroable> AllocationBehavior<T> for prealloc::Zeroed {
     #[inline(always)]
     fn preallocate_missing_node_items<const N: usize>(node: &mut Node<T, N, Self>) {
         let len = node.items().len();
+        // TODO: This might be implemented more efficiently by zeroing the whole memory chunk.
         for _ in len..N {
             node.items_mut().push(Zeroable::zeroed());
         }
@@ -860,6 +857,43 @@ where
 
 
 
+// ====================
+// === FromIterator ===
+// ====================
+
+impl<T, const N: usize, I, B> FromIterator<T> for UnrolledLinkedList<T, N, I, B>
+where
+    I: Index,
+    B: AllocationBehavior<T>,
+{
+    #[inline(always)]
+    fn from_iter<Iter: IntoIterator<Item = T>>(iter: Iter) -> Self {
+        let mut list = Self::new();
+        list.extend(iter);
+        list
+    }
+}
+
+
+
+// ==============
+// === Extend ===
+// ==============
+
+impl<T, const N: usize, I, B> Extend<T> for UnrolledLinkedList<T, N, I, B>
+where
+    I: Index,
+    B: AllocationBehavior<T>,
+{
+    fn extend<Iter: IntoIterator<Item = T>>(&mut self, iter: Iter) {
+        for item in iter {
+            self.push(item);
+        }
+    }
+}
+
+
+
 // =============
 // === Tests ===
 // =============
@@ -999,11 +1033,7 @@ mod tests {
     where
         I: Index,
         B: AllocationBehavior<usize>, {
-        list.push(1);
-        list.push(2);
-        list.push(3);
-        list.push(4);
-        list.push(5);
+        list.extend([1, 2, 3, 4, 5].iter().copied());
         assert_eq!(&list.to_vec(), &[1, 2, 3, 4, 5]);
         list.clear();
         assert!(&list.is_empty());
@@ -1027,19 +1057,13 @@ mod tests {
     where
         I: Index,
         B: AllocationBehavior<usize>, {
-        list.push(1);
-        list.push(2);
-        list.push(3);
-        list.push(4);
-        list.push(5);
+        list.extend([1, 2, 3, 4, 5].iter().copied());
         assert_eq!(&list.to_vec(), &[1, 2, 3, 4, 5]);
         list.retain(|t| *t > 0);
         assert_eq!(&list.to_vec(), &[1, 2, 3, 4, 5]);
         list.retain(|t| *t > 3);
         assert_eq!(&list.to_vec(), &[4, 5]);
-        list.push(6);
-        list.push(7);
-        list.push(8);
+        list.extend([6, 7, 8].iter().copied());
         assert_eq!(&list.to_vec(), &[4, 5, 6, 7, 8]);
         list.retain(|t| t % 2 == 0);
         assert_eq!(&list.to_vec(), &[4, 6, 8]);

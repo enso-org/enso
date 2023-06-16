@@ -22,11 +22,11 @@ pub enum Mode {
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Disabled;
 
-/// Preallocate the memory with default values.
+/// Preallocate the memory with values initialized to their defaults.
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Default;
 
-/// Preallocate the memory by zeroing it.
+/// Preallocate zero-initialized memory.
 ///
 /// In this mode, the container items must be [`Zeroable`] and it has to be enforced by the
 /// container implementation bounds.

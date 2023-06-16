@@ -19,6 +19,8 @@ use crate::runtime::NodeData;
 use crate::runtime::Runtime;
 
 
+// TODO: Add explanations why unsafe code is actually safe. Should be part of this issue:
+// https://github.com/enso-org/enso/issues/7043
 
 // ====================
 // === EventContext ===
@@ -67,8 +69,8 @@ pub(crate) struct ModelSkipped;
 /// Resolved model based on the model chooser and the FRP network model type.
 type ChosenModel<M, Model> = <M as ModelChooser<Model>>::ChosenModel;
 
-/// A trait allowing choosing either real FRP Network model or a phantom one based on the provided
-/// type-level configuration.
+/// A trait allowing choosing either real FRP Network model or a phantom one ([`ModelSkipped`])
+/// based on the provided type-level configuration.
 trait ModelChooser<Model> {
     type ChosenModel;
     type ClonedModel: 'static;

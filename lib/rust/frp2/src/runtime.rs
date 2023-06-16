@@ -163,10 +163,12 @@ impl Clearable for NetworkData {
 // === Runtime ===
 // ===============
 
-/// The size of a single array in the array-linked list of FRP networks.
+/// The size of a single array in the array-linked list of FRP networks. This value was picked
+/// empirically.
 const NETWORK_LINKED_ARRAY_SIZE: usize = 1024;
 
-/// The size of a single array in the array-linked list of FRP nodes.
+/// The size of a single array in the array-linked list of FRP nodes. This value was picked
+/// empirically.
 const NODES_LINKED_ARRAY_SIZE: usize = 131072; // 2 ^ 17
 
 thread_local! {
@@ -301,6 +303,7 @@ impl Runtime {
     #[inline(always)]
     #[allow(unsafe_code)]
     pub(crate) unsafe fn unchecked_emit_borrow(&self, src_node_id: NodeId, event: &dyn Data) {
+        // TODO: Maybe we can check the type correctness with debug-assertions enabled?
         self.with_borrowed_node(src_node_id, |src_node| {
             self.unchecked_emit(src_node, event);
         })

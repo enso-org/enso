@@ -15,4 +15,3 @@ enso-generics = { path = "../generics" }
 [features]
 stack-trace = []
 metrics = []
-#default = ["stack-trace"]

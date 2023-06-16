@@ -38,12 +38,13 @@ impl<T> InitCell<T> {
 
 
 impl<T: InitCellContent> InitCell<T> {
-    /// Initialize the value stored in this cell if it is empty. It is impossible to re-initialize
-    /// the value without requiring mutable access to self, as there might exist a reference to the
-    /// value.
+    /// Initialize the value stored in this cell if it is empty. Returns `true` if it was empty. It
+    /// is impossible to re-initialize the value without requiring mutable access to self, as
+    /// there might exist a reference to the value.
     #[inline(always)]
-    pub fn init_if_empty(&self, f: impl FnOnce() -> T::Item) {
-        if !self.has_item() {
+    pub fn init_if_empty(&self, f: impl FnOnce() -> T::Item) -> bool {
+        let was_empty = !self.has_item();
+        if was_empty {
             // # Safety
             // We checked that the current value does not contain an item. We also know that no one
             // has a reference to [`Self::not_exposed`] (see the docs of [`Self`] to
@@ -53,6 +54,16 @@ impl<T: InitCellContent> InitCell<T> {
                 *self.not_exposed.unchecked_borrow_mut() = T::from_item(f())
             };
         }
+        was_empty
+    }
+
+    /// Initialize the value stored in this cell with its default value if it is empty. Returns
+    /// `true` if it was empty. It is impossible to re-initialize the value without requiring
+    /// mutable access to self, as there might exist a reference to the value.
+    #[inline(always)]
+    pub fn init_default_if_empty(&self) -> bool
+    where T::Item: Default {
+        self.init_if_empty(default)
     }
 
     /// Set the internal data of this cell.
@@ -66,6 +77,20 @@ impl<T: InitCellContent> InitCell<T> {
     pub fn set_default(&mut self)
     where T: Default {
         self.set_value(default())
+    }
+
+    /// Return a reference to the value stored in this cell, initializing it if it does not exist.
+    #[inline(always)]
+    pub fn get_or_init(&self, f: impl FnOnce() -> T::Item) -> &T::Item {
+        self.init_if_empty(f);
+        self.opt_item().unwrap()
+    }
+
+    /// Return a reference to the value stored in this cell, initializing it if it does not exist.
+    #[inline(always)]
+    pub fn get_or_init_default(&self) -> &T::Item
+    where T::Item: Default {
+        self.get_or_init(default)
     }
 }
 
