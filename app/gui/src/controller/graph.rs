@@ -74,6 +74,11 @@ pub struct NoPatternOnNode {
     pub node: node::Id,
 }
 
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, Fail)]
+#[fail(display = "AST node is missing ID.")]
+pub struct MissingAstId;
+
 
 
 // ====================
@@ -181,7 +186,7 @@ pub type PortRef<'a> = span_tree::node::Ref<'a>;
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct Connection {
-    pub source:      Endpoint,
+    pub source: Endpoint,
     pub target: Endpoint,
 }
 
@@ -199,6 +204,19 @@ impl Endpoint {
     /// Create endpoint with empty `var_crumbs`.
     pub fn new(node: double_representation::node::Id, port: PortId) -> Self {
         Endpoint { node, port }
+    }
+
+    /// Create a source endpoint pointing to default node output - its whole pattern expression.
+    pub fn default_source(node_id: node::Id) -> Self {
+        Endpoint { node: node_id, port: PortId::Ast(node_id) }
+    }
+
+    /// Create a target endpoint from given node info, pointing at a port under given AST crumbs.
+    /// Returns error if the crumbs do not point at any valid AST node.
+    pub fn target_at(node: &Node, crumbs: impl ast::crumbs::IntoCrumbs) -> FallibleResult<Self> {
+        let expression = node.info.expression();
+        let port_ast = expression.get_traversing(&crumbs.into_crumbs())?;
+        Ok(Endpoint { node: node.info.id(), port: PortId::Ast(port_ast.id.ok_or(MissingAstId)?) })
     }
 }
 
@@ -258,7 +276,7 @@ impl Connections {
         connection: &double_representation::connection::Connection,
     ) -> Connection {
         Connection {
-            source:      Self::convert_endpoint(&connection.source),
+            source: Self::convert_endpoint(&connection.source),
             target: Self::convert_endpoint(&connection.target),
         }
     }
@@ -563,7 +581,10 @@ impl Handle {
             false => {
                 let source_node = self.node_info(connection.source.node)?;
                 // For subports we would not have any idea what pattern to introduce. So we fail.
-                source_node.pattern().ok_or(NoPatternOnNode { node: connection.source.node })?.clone()
+                source_node
+                    .pattern()
+                    .ok_or(NoPatternOnNode { node: connection.source.node })?
+                    .clone()
             }
         };
 
@@ -805,8 +826,7 @@ impl Handle {
             let mut graph = GraphInfo::from_definition(definition);
             graph.edit_node(id, expression)?;
             Ok(graph.source)
-        })?;
-        Ok(())
+        })
     }
 
     /// Updates the given node's expression by rewriting a part of it, as specified by span crumbs.
@@ -980,7 +1000,7 @@ pub mod tests {
     use crate::model::suggestion_database;
     use crate::test::mock::data;
 
-    use ast::crumbs;
+    use ast::crumbs::*;
     use ast::test_utils::expect_shape;
     use double_representation::name::project;
     use engine_protocol::language_server::MethodPointer;
@@ -988,7 +1008,7 @@ pub mod tests {
     use parser::Parser;
     use span_tree::generate::context::CalledMethodInfo;
     use span_tree::generate::MockContext;
-
+    use span_tree::PortId;
 
     /// Returns information about all the connections between graph's nodes.
     pub fn connections(graph: &Handle) -> FallibleResult<Connections> {
@@ -1393,7 +1413,7 @@ main =
         let mut test = Fixture::set_up();
         const PROGRAM: &str = r"
 main =
-    x,y = get_pos
+    [x,y] = get_pos
     print x
     z = print $ foo y
     print z
@@ -1401,15 +1421,15 @@ main =
         print z";
         test.data.code = PROGRAM.into();
         let id_map = &mut test.data.id_map;
-        let x_src = id_map.generate(12..13);
-        let y_src = id_map.generate(14..15);
-        let z_src = id_map.generate(42..43);
-        let x_dst = id_map.generate(36..37);
-        let y_dst = id_map.generate(58..59);
-        let z_dst1 = id_map.generate(70..71);
-        let z_dst2 = id_map.generate(94..95);
+        let x_src = id_map.generate(13..14);
+        let y_src = id_map.generate(15..16);
+        let z_src = id_map.generate(44..45);
+        let x_dst = id_map.generate(38..39);
+        let y_dst = id_map.generate(60..61);
+        let z_dst1 = id_map.generate(72..73);
+        let z_dst2 = id_map.generate(96..97);
 
-        test.run(|graph| async move {
+        test.run(move |graph| async move {
             let connections = connections(&graph).unwrap();
 
 
@@ -1421,27 +1441,27 @@ main =
 
             let c = &connections.connections[0];
             assert_eq!(c.source.node, node0.info.id());
-            assert_eq!(c.source.port.item, PortId::Ast(x_src));
+            assert_eq!(c.source.port, PortId::Ast(x_src));
             assert_eq!(c.target.node, node1.info.id());
-            assert_eq!(c.target.port.item, PortId::Ast(x_dst));
+            assert_eq!(c.target.port, PortId::Ast(x_dst));
 
             let c = &connections.connections[1];
             assert_eq!(c.source.node, node0.info.id());
-            assert_eq!(c.source.port.item, PortId::Ast(y_src));
+            assert_eq!(c.source.port, PortId::Ast(y_src));
             assert_eq!(c.target.node, node2.info.id());
-            assert_eq!(c.target.port.item, PortId::Ast(y_dst));
+            assert_eq!(c.target.port, PortId::Ast(y_dst));
 
             let c = &connections.connections[2];
             assert_eq!(c.source.node, node2.info.id());
-            assert_eq!(c.source.port.item, PortId::Ast(z_src));
+            assert_eq!(c.source.port, PortId::Ast(z_src));
             assert_eq!(c.target.node, node3.info.id());
-            assert_eq!(c.target.port.item, PortId::Ast(z_src1));
+            assert_eq!(c.target.port, PortId::Ast(z_dst1));
 
             let c = &connections.connections[3];
             assert_eq!(c.source.node, node2.info.id());
-            assert_eq!(c.source.port.item, PortId::Ast(z_src));
+            assert_eq!(c.source.port, PortId::Ast(z_src));
             assert_eq!(c.target.node, node4.info.id());
-            assert_eq!(c.target.port.item, PortId::Ast(z_src2));
+            assert_eq!(c.target.port, PortId::Ast(z_dst2));
         })
     }
 
@@ -1470,14 +1490,14 @@ main =
                 let expected = format!("{}{}", main_prefix, self.expected);
                 let this = self.clone();
 
-                let (src_port, dst_port) = self.ports;
+                let (src_port, dst_port) = self.ports.clone();
                 let src_port = src_port.start + src_prefix.len()..src_port.end + src_prefix.len();
                 let dst_port = dst_port.start + main_prefix.len()..dst_port.end + main_prefix.len();
                 let src_port = PortId::Ast(test.data.id_map.generate(src_port));
                 let dst_port = PortId::Ast(test.data.id_map.generate(dst_port));
                 test.data.code = main;
 
-                test.run(|graph| async move {
+                test.run(move |graph| async move {
                     let (node0, node1) = graph.nodes().unwrap().expect_tuple();
                     let source = Endpoint::new(node0.info.id(), src_port);
                     let target = Endpoint::new(node1.info.id(), dst_port);
@@ -1516,8 +1536,8 @@ main =
             assert!(connections(&graph).unwrap().connections.is_empty());
             let (node0, _node1, node2) = graph.nodes().unwrap().expect_tuple();
             let connection_to_add = Connection {
-                source:      Endpoint { node: node2.info.id(), port: default() },
-                target: Endpoint { node: node0.info.id(), port: vec![4].into() },
+                source: Endpoint::default_source(node2.info.id()),
+                target: Endpoint::target_at(&node0, [InfixCrumb::RightOperand]).unwrap(),
             };
             graph.connect(&connection_to_add, &span_tree::generate::context::Empty).unwrap();
             let new_main = graph.definition().unwrap().ast.repr();
@@ -1544,11 +1564,10 @@ main =
     d = 4";
         test.data.code = PROGRAM.into();
         test.run(|graph| async move {
-            let (node0, _node1, _node2, _node3, node4, _node5) =
-                graph.nodes().unwrap().expect_tuple();
+            let (node0, _node1, _node2, _node3, node4, _) = graph.nodes().unwrap().expect_tuple();
             let connection_to_add = Connection {
-                source:      Endpoint { node: node4.info.id(), port: default() },
-                target: Endpoint { node: node0.info.id(), port: vec![4].into() },
+                source: Endpoint::default_source(node4.info.id()),
+                target: Endpoint::target_at(&node0, [InfixCrumb::RightOperand]).unwrap(),
             };
             graph.connect(&connection_to_add, &span_tree::generate::context::Empty).unwrap();
             let new_main = graph.definition().unwrap().ast.repr();
@@ -1576,11 +1595,8 @@ main =
             assert!(connections(&graph).unwrap().connections.is_empty());
             let (node0, node1, _) = graph.nodes().unwrap().expect_tuple();
             let connection_to_add = Connection {
-                source:      Endpoint { node: node0.info.id(), port: default() },
-                target: Endpoint {
-                    node: node1.info.id(),
-                    port: vec![2].into(), // `_` in `print _`
-                },
+                source: Endpoint::default_source(node0.info.id()),
+                target: Endpoint::target_at(&node1, [PrefixCrumb::Arg]).unwrap(),
             };
             graph.connect(&connection_to_add, &span_tree::generate::context::Empty).unwrap();
             let new_main = graph.definition().unwrap().ast.repr();
@@ -1683,7 +1699,7 @@ main =
             Case {
                 info: None,
                 dest_node_expr:     "f\n        bar a var",
-                dest_node_expected: "f\n        bar a _",
+                dest_node_expected: "f\n        bar a",
             },
         ];
         for case in cases {

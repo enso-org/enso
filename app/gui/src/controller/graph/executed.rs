@@ -508,9 +508,10 @@ pub mod tests {
     use crate::test;
 
     use crate::test::mock::Fixture;
-    use controller::graph::SpanTree;
+    use controller::graph::Endpoint;
     use engine_protocol::language_server::types::test::value_update_with_type;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
+    use ast::crumbs::InfixCrumb;
 
     wasm_bindgen_test_configure!(run_in_browser);
 
@@ -674,15 +675,10 @@ main =
             assert_eq!(sum_node.expression().to_string(), "2 + 2");
             assert_eq!(product_node.expression().to_string(), "5 * 5");
 
-            let context = &span_tree::generate::context::Empty;
-            let sum_tree = SpanTree::new(&sum_node.expression(), context).unwrap();
-            let sum_input =
-                sum_tree.root_ref().leaf_iter().find(|n| n.is_argument()).unwrap().crumbs;
             let connection = Connection {
-                source: controller::graph::NewEndpoint::new(product_node.id(), []),
-                target: controller::graph::NewEndpoint::new(sum_node.id(), sum_input),
+                source: Endpoint::default_source(product_node.id()),
+                target: Endpoint::target_at(sum_node, [InfixCrumb::LeftOperand]).unwrap(),
             };
-
             assert!(executed.connect(&connection).is_err());
         });
     }

@@ -1195,12 +1195,12 @@ impl Nodes {
     ) {
         if old_node != new_node {
             if let Some(node_id) = old_node {
-                self.all.with(&node_id, |node| {
+                self.with(&node_id, |node| {
                     node.out_edges.remove(&edge);
                 });
             }
             if let Some(node_id) = new_node {
-                self.all.with(&node_id, |node| {
+                self.with(&node_id, |node| {
                     node.out_edges.insert(edge);
                 });
             }
@@ -1217,13 +1217,13 @@ impl Nodes {
         if old_node != new_node {
             let mut inputs_updated = self.inputs_updated.borrow_mut();
             if let Some(node_id) = old_node {
-                self.all.with(&node_id, |node| {
+                self.with(&node_id, |node| {
                     node.in_edges.remove(&edge);
                     inputs_updated.push(node_id);
                 });
             }
             if let Some(node_id) = new_node {
-                self.all.with(&node_id, |node| {
+                self.with(&node_id, |node| {
                     node.in_edges.insert(edge);
                     inputs_updated.push(node_id);
                 });
@@ -1247,7 +1247,7 @@ impl Nodes {
     fn recompute_grid(&self, blacklist: HashSet<NodeId>) {
         let mut sorted_xs = Vec::new();
         let mut sorted_ys = Vec::new();
-        for (id, node) in &*self.all.raw.borrow() {
+        for (id, node) in &*self.raw.borrow() {
             if !blacklist.contains(id) {
                 let position = node.position();
                 sorted_xs.push(position.x);
@@ -1278,7 +1278,7 @@ impl Nodes {
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn set_quick_preview(&self, quick: bool) {
-        self.all.raw.borrow().values().for_each(|node| node.view.quick_preview_vis.emit(quick))
+        self.raw.borrow().values().for_each(|node| node.view.quick_preview_vis.emit(quick))
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
@@ -1320,7 +1320,7 @@ impl Nodes {
 
     /// Mark all node as selected and send FRP events to nodes.
     pub fn select_all(&self) {
-        for id in self.all.keys() {
+        for id in self.keys() {
             self.select(id);
         }
     }
@@ -1445,8 +1445,10 @@ impl DetachedEdge {
         }
     }
 }
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Deref, DerefMut)]
 struct Edges {
+    #[deref]
+    #[deref_mut]
     all:      HashMap<EdgeId, Edge>,
     detached: Option<EdgeId>,
 }
@@ -1575,7 +1577,7 @@ impl GraphEditorModel {
 
         let detached_id = detached.and_then(|detached| detached.edge_id());
 
-        edges.all.retain(|edge_id, edge| {
+        edges.retain(|edge_id, edge| {
             let has_connection = edge.connection.map_or(false, |c| connections_set.remove(&c));
             if has_connection {
                 // Edge still is present in connections, keep it.
@@ -1597,13 +1599,13 @@ impl GraphEditorModel {
             edge.connection = Some(*connection);
             edge.set_endpoints(Some(connection.source), Some(connection.target), &self.nodes);
             let edge_id = edge.id();
-            edges.all.insert(edge_id, edge);
+            edges.insert(edge_id, edge);
             edge_id
         }));
 
         // If a previously detached edge is no longer detached, set its endpoints.
         if edges.detached != detached_id && let Some(detached) = edges.detached.take() {
-            if let Some(edge) = edges.all.get_mut(&detached) {
+            if let Some(edge) = edges.get_mut(&detached) {
                 // If an edge is no longer detached and had no connection, it has already been
                 // removed as part of `drain_filter` above. Therefore `edge.connection` must always
                 // be `Some` at this point.
@@ -1617,14 +1619,14 @@ impl GraphEditorModel {
         // If we have a detached edge, update or create it.
         if let Some(some_detached) = &mut detached {
             let edge = match some_detached.edge_id() {
-                Some(id) => edges.all.get_mut(&id),
+                Some(id) => edges.get_mut(&id),
                 None => {
                     // Detached edge has no view assigned yet. Create a new one.
                     let edge = self.create_edge(pointer_frp);
                     let edge_id = edge.id();
                     some_detached.assign_edge_id(edge_id);
-                    edges.all.insert(edge_id, edge);
-                    edges.all.get_mut(&edge_id)
+                    edges.insert(edge_id, edge);
+                    edges.get_mut(&edge_id)
                 }
             };
 
@@ -2010,7 +2012,7 @@ impl GraphEditorModel {
         &self,
         node_id: impl Into<NodeId>,
     ) -> Option<visualization::Metadata> {
-        let node = self.nodes.all.get_cloned_ref(&node_id.into())?;
+        let node = self.nodes.get_cloned_ref(&node_id.into())?;
         let frp = &node.model().visualization.frp;
         frp.visible.value().then(|| visualization::Metadata::new(&frp.preprocessor.value()))
     }
@@ -2169,7 +2171,7 @@ impl GraphEditorModel {
         edge_ids
             .into_iter()
             .filter(|edge_id| {
-                let Some(edge) = edges.all.get_mut(edge_id) else { return false };
+                let Some(edge) = edges.get_mut(edge_id) else { return false };
                 let source_type = || match edge.target {
                     Some(target) => self.target_endpoint_type(target),
                     None => self.hovered_input_type(),
@@ -2192,7 +2194,7 @@ impl GraphEditorModel {
     pub fn refresh_edge_positions(&self, edge_ids: impl IntoIterator<Item = EdgeId>) {
         let edges = self.edges.borrow();
         for edge_id in edge_ids.into_iter() {
-            let Some(edge) = edges.all.get(&edge_id) else { continue };
+            let Some(edge) = edges.get(&edge_id) else { continue };
 
             if let Some(edge_source) = edge.source() {
                 self.with_node(edge_source.node_id, |node| {
@@ -2240,8 +2242,7 @@ impl GraphEditorModel {
 
     fn with_edge<T>(&self, id: EdgeId, f: impl FnOnce(&Edge) -> T) -> Option<T> {
         let edges = self.edges.borrow();
-        let edge =
-            edges.all.get(&id).map_none(|| warn!("Trying to access nonexistent edge '{id}'"))?;
+        let edge = edges.get(&id).map_none(|| warn!("Trying to access nonexistent edge '{id}'"))?;
         Some(f(edge))
     }
 
@@ -3096,7 +3097,7 @@ fn init_remaining_graph_editor_frp(
     // === Remove Node ===
 
     frp::extend! { network
-        all_nodes       <= inputs.remove_all_nodes.map(f_!(model.nodes.all.keys()));
+        all_nodes       <= inputs.remove_all_nodes.map(f_!(model.nodes.keys()));
         selected_nodes  <= inputs.remove_selected_nodes.map(f_!(model.nodes.all_selected()));
         nodes_to_remove <- any (all_nodes, selected_nodes);
         out.node_removed <+ nodes_to_remove;
@@ -3671,8 +3672,8 @@ mod tests {
         port.events_deprecated.emit_mouse_down(PrimaryButton);
         port.events_deprecated.emit_mouse_up(PrimaryButton);
         assert_eq!(graph_editor.num_edges(), 1);
-        let edge_id = graph_editor.edges.borrow().keys().next().unwrap("Edge was not added");
-        let edge = graph_editor.with_edge(&edge_id, |edge| {
+        let edge_id = *graph_editor.model.edges.borrow().keys().next().expect("Edge was not added");
+        graph_editor.model.with_edge(edge_id, |edge| {
             assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
             assert_eq!(edge.target(), None);
         });
@@ -3684,8 +3685,10 @@ mod tests {
         // Input ports already use new event API.
         port_hover.emit_event(mouse::Down::default());
         port_hover.emit_event(mouse::Up::default());
-        assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
-        assert_eq!(edge.target().map(|e| e.node_id), Some(node_id_2));
+        graph_editor.model.with_edge(edge_id, |edge| {
+            assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
+            assert_eq!(edge.target().map(|e| e.node_id), Some(node_id_2));
+        });
     }
 
     #[test]
@@ -3809,20 +3812,19 @@ mod tests {
 
     impl GraphEditor {
         fn num_edges(&self) -> usize {
-            self.model.edges.borrow().all.len()
+            self.model.edges.borrow().len()
         }
 
-        fn num_nodes(&self) -> usize {
-            self.model.nodes.all.len()
+        /// Get the number of nodes currently present in the graph.
+        pub fn num_nodes(&self) -> usize {
+            self.model.nodes.len()
         }
 
         fn add_node_by<F: Fn(&GraphEditor)>(&self, add_node: &F) -> (NodeId, Node) {
             add_node(self);
             let (node_id, ..) = self.node_added.value();
-            self.with_node(node_id, |node| {
-                node.set_expression(node::Expression::new_plain("some_not_empty_expression"));
-            })
-            .expect("Node was not added.");
+            let node = self.model.nodes.get_cloned_ref(&node_id).expect("Node was not added.");
+            node.set_expression(node::Expression::new_plain("some_not_empty_expression"));
             (node_id, node)
         }
 

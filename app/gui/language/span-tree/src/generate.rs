@@ -11,6 +11,7 @@ use crate::ArgumentInfo;
 use crate::Node;
 use crate::SpanTree;
 
+use ast::crumbs::BlockCrumb;
 use ast::crumbs::InfixCrumb;
 use ast::crumbs::Located;
 use ast::crumbs::PrefixCrumb;
@@ -104,7 +105,7 @@ impl ChildGenerator {
 
     fn generate_ast_node(
         &mut self,
-        child_ast: Located<Ast>,
+        child_ast: Located<&Ast>,
         kind: impl Into<node::Kind>,
         context: &impl Context,
     ) -> FallibleResult<&mut node::Child> {
@@ -343,6 +344,7 @@ fn generate_node_for_ast(
                 ast::prefix::Chain::from_ast(ast).unwrap().generate_node(kind, context),
             ast::Shape::Tree(tree) if tree.type_info != ast::TreeType::Lambda =>
                 tree_generate_node(tree, kind, context, ast.id),
+            ast::Shape::Block(block) => block_generate_node(block, kind, context, ast.id),
             _ => {
                 let size = (ast.len().value as i32).byte_diff();
                 let ast_id = ast.id;
@@ -443,7 +445,7 @@ fn generate_node_for_opr_chain(
         let is_last = i + 1 == this.args.len();
         let has_left = !node.is_insertion_point();
         let opr_crumbs = elem.crumb_to_operator(has_left);
-        let opr_ast = Located::new(opr_crumbs, elem.operator.ast().clone_ref());
+        let opr_ast = Located::new(opr_crumbs, elem.operator.ast());
         let left_crumbs = if has_left { vec![elem.crumb_to_previous()] } else { vec![] };
 
         let mut gen = ChildGenerator::default();
@@ -495,7 +497,7 @@ fn generate_node_for_opr_chain(
         gen.generate_ast_node(opr_ast, node::Kind::Operation, context)?;
         if let Some(operand) = &elem.operand {
             let arg_crumbs = elem.crumb_to_operand(has_left);
-            let arg_ast = Located::new(arg_crumbs, operand.arg.clone_ref());
+            let arg_ast = Located::new(arg_crumbs, &operand.arg);
 
             gen.spacing(operand.offset);
             if has_left {
@@ -627,7 +629,7 @@ fn generate_node_for_prefix_chain(
                             gen.add_node(vec![PrefixCrumb::Arg.into()], node);
                         }
                         None => {
-                            let arg_ast = Located::new(PrefixCrumb::Arg, arg.sast.wrapped.clone());
+                            let arg_ast = Located::new(PrefixCrumb::Arg, &arg.sast.wrapped);
                             gen.generate_ast_node(arg_ast, arg_kind, context)?;
                         }
                     }
@@ -653,19 +655,11 @@ fn generate_node_for_named_argument(
     let NamedArgumentDef { id, larg, loff, opr, roff, rarg, .. } = this;
     let mut gen = ChildGenerator::default();
 
-    gen.generate_ast_node(
-        Located::new(InfixCrumb::LeftOperand, larg.clone()),
-        node::Kind::Token,
-        context,
-    )?;
+    gen.generate_ast_node(Located::new(InfixCrumb::LeftOperand, larg), node::Kind::Token, context)?;
     gen.spacing(loff);
-    gen.generate_ast_node(
-        Located::new(InfixCrumb::Operator, opr.clone()),
-        node::Kind::Token,
-        context,
-    )?;
+    gen.generate_ast_node(Located::new(InfixCrumb::Operator, opr), node::Kind::Token, context)?;
     gen.spacing(roff);
-    let arg_ast = Located::new(InfixCrumb::RightOperand, rarg.clone());
+    let arg_ast = Located::new(InfixCrumb::RightOperand, rarg);
     gen.generate_ast_node(arg_ast, arg_kind, context)?;
     Ok(gen.into_node(node::Kind::NamedArgument, id))
 }
@@ -899,6 +893,36 @@ fn tree_generate_node(
 
     let tree_type = Some(tree.type_info.clone());
     Ok(Node { kind, tree_type, size, children, ..default() }.with_ast_id(ast_id))
+}
+
+fn block_generate_node(
+    block: &ast::Block<Ast>,
+    kind: node::Kind,
+    context: &impl Context,
+    ast_id: Option<Id>,
+) -> FallibleResult<Node> {
+    let mut gen = ChildGenerator::default();
+    let newline = Node::new().with_kind(node::Kind::Token).with_size(1.byte_diff());
+
+    gen.add_node(vec![], newline.clone());
+    for empty_line_space in &block.empty_lines {
+        gen.spacing(*empty_line_space);
+        gen.add_node(vec![], newline.clone());
+    }
+    gen.spacing(block.indent);
+    let first_line = Located::new(BlockCrumb::HeadLine, &block.first_line.elem);
+    gen.generate_ast_node(first_line, node::Kind::BlockLine, context)?;
+    gen.spacing(block.first_line.off);
+    for (tail_index, line) in block.lines.iter().enumerate() {
+        gen.add_node(vec![], newline.clone());
+        if let Some(elem) = &line.elem {
+            gen.spacing(block.indent);
+            let line = Located::new(BlockCrumb::TailLine { tail_index }, elem);
+            gen.generate_ast_node(line, node::Kind::BlockLine, context)?;
+        }
+        gen.spacing(line.off);
+    }
+    Ok(gen.into_node(kind, ast_id))
 }
 
 

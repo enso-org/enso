@@ -1128,11 +1128,6 @@ impl<T> Block<T> {
         leading_empty_lines.chain(first_line).chain(lines)
     }
 
-    /// Calculate absolute indentation of lines in this block.
-    pub fn indent(&self, parent_indent: usize) -> usize {
-        parent_indent + self.indent
-    }
-
     /// Iterate over non-empty lines, while keeping their absolute indices.
     pub fn enumerate_non_empty_lines(&self) -> impl Iterator<Item = (usize, BlockLine<&T>)> + '_ {
         self.iter_all_lines().enumerate().filter_map(

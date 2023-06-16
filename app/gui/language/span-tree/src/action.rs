@@ -114,7 +114,7 @@ pub trait Implementation {
 
 impl<'a> Implementation for node::Ref<'a> {
     fn set_impl(&self) -> Option<SetOperation> {
-        match &self.node.kind {
+        match dbg!(&self.node.kind) {
             node::Kind::InsertionPoint(ins_point) => Some(Box::new(move |root, new| {
                 use node::InsertionPointType::*;
                 let kind = &ins_point.kind;
@@ -243,6 +243,7 @@ impl<'a> Implementation for node::Ref<'a> {
             })),
             node::Kind::Token => None,
             _ => {
+                dbg!(&self.ast_crumbs);
                 match &self.ast_crumbs.last() {
                     // Operators should be treated in a special way - setting functions in place in
                     // a operator should replace Infix with Prefix with two applications.
@@ -262,7 +263,7 @@ impl<'a> Implementation for node::Ref<'a> {
     }
 
     fn erase_impl(&self) -> Option<EraseOperation> {
-        if self.node.kind.removable() {
+        if dbg!(&self.node.kind).removable() {
             Some(Box::new(move |root| {
                 let (mut last_crumb, mut parent_crumbs) =
                     self.ast_crumbs.split_last().expect("Erase target must have parent AST node");
@@ -463,7 +464,7 @@ mod test {
                 let case = format!("{self:?}");
                 let result = match &self.action {
                     Set => node.set(&ast, arg),
-                    Erase => node.erase(&ast).map(|(ast, _)| ast),
+                    Erase => node.erase(&ast),
                 }
                 .expect(&case);
                 let result_repr = result.repr();

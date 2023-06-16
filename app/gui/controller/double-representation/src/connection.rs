@@ -53,7 +53,7 @@ impl Endpoint {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Connection {
-    pub source:      Endpoint,
+    pub source: Endpoint,
     pub target: Endpoint,
 }
 
@@ -156,7 +156,7 @@ mod tests {
             let repr_of = |connection: &Connection| {
                 let endpoint = &connection.source;
                 let node = graph.find_node(endpoint.node).unwrap();
-                let ast = node.ast().get_traversing(&endpoint.crumbs).unwrap();
+                let ast = node.ast().get_traversing(&endpoint.port.crumbs).unwrap();
                 ast.repr()
             };
 
@@ -201,27 +201,27 @@ f = fun 2";
         let run = TestRun::from_block(code_block);
         let c = &run.connections[0];
         assert_eq!(run.endpoint_node_repr(&c.source), "a = d");
-        assert_eq!(&c.source.crumbs, &crumbs![LeftOperand]);
+        assert_eq!(&c.source.port.crumbs, &crumbs![LeftOperand]);
         assert_eq!(run.endpoint_node_repr(&c.target), "c = a + b");
-        assert_eq!(&c.target.crumbs, &crumbs![RightOperand, LeftOperand]);
+        assert_eq!(&c.target.port.crumbs, &crumbs![RightOperand, LeftOperand]);
 
         let c = &run.connections[1];
         assert_eq!(run.endpoint_node_repr(&c.source), "b = d");
-        assert_eq!(&c.source.crumbs, &crumbs![LeftOperand]);
+        assert_eq!(&c.source.port.crumbs, &crumbs![LeftOperand]);
         assert_eq!(run.endpoint_node_repr(&c.target), "c = a + b");
-        assert_eq!(&c.target.crumbs, &crumbs![RightOperand, RightOperand]);
+        assert_eq!(&c.target.port.crumbs, &crumbs![RightOperand, RightOperand]);
 
         let c = &run.connections[2];
         assert_eq!(run.endpoint_node_repr(&c.source), "d = p");
-        assert_eq!(&c.source.crumbs, &crumbs![LeftOperand]);
+        assert_eq!(&c.source.port.crumbs, &crumbs![LeftOperand]);
         assert_eq!(run.endpoint_node_repr(&c.target), "a = d");
-        assert_eq!(&c.target.crumbs, &crumbs![RightOperand]);
+        assert_eq!(&c.target.port.crumbs, &crumbs![RightOperand]);
 
         let c = &run.connections[3];
         assert_eq!(run.endpoint_node_repr(&c.source), "d = p");
-        assert_eq!(&c.source.crumbs, &crumbs![LeftOperand]);
+        assert_eq!(&c.source.port.crumbs, &crumbs![LeftOperand]);
         assert_eq!(run.endpoint_node_repr(&c.target), "b = d");
-        assert_eq!(&c.target.crumbs, &crumbs![RightOperand]);
+        assert_eq!(&c.target.port.crumbs, &crumbs![RightOperand]);
 
         // Note that line `fun a = a b` des not introduce any connections, as it is a definition.
 

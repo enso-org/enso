@@ -619,7 +619,7 @@ impl ViewUpdate {
     /// Synchronize connections to the graph state.
     #[profile(Debug)]
     fn update_connections(&self) -> Vec<ViewConnection> {
-        self.state.update_from_controller().set_connections(&self.connections)
+        self.state.update_from_controller().map_connections(&self.connections)
     }
 
     #[profile(Debug)]
