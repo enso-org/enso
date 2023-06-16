@@ -144,7 +144,6 @@ impl NodeData {
 // === NetworkData ===
 // ===================
 
-
 #[derive(Debug, Default)]
 struct NetworkData {
     nodes: Vec<NodeId>,

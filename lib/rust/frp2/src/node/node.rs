@@ -138,15 +138,3 @@ impl<'a, Model, N> NodeInNetwork<'a, Model, N> {
         self.network.new_node_with_model(inputs, body)
     }
 }
-
-// #[inline(always)]
-// pub(crate) fn new_node<Type, Inputs, Output, F>(
-//     &self,
-//     inps: Inputs,
-//     body: F,
-// ) -> NodeInNetwork<Model, TypedNode<Type, Output>>
-//     where
-//         Inputs: Template<ModelNotUsed, Model, Output, F>,
-// {
-//     self.new_node_with_init(inps, body, |_| {})
-// }
