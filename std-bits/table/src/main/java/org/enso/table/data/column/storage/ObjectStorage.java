@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.ObjectBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
@@ -55,7 +54,8 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
           currentType = itemType;
         } else if (currentType != itemType) {
           // Allow mixed integer and float types in a column, returning a float.
-          if ((itemType instanceof IntegerType && currentType instanceof FloatType) || (itemType instanceof FloatType && currentType instanceof IntegerType)) {
+          if ((itemType instanceof IntegerType && currentType instanceof FloatType)
+              || (itemType instanceof FloatType && currentType instanceof IntegerType)) {
             currentType = FloatType.FLOAT_64;
           } else {
             currentType = AnyObjectType.INSTANCE;

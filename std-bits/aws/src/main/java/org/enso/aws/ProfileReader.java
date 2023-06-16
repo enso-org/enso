@@ -7,8 +7,7 @@ public class ProfileReader {
 
   private String[] profiles = null;
 
-  private ProfileReader() {
-  }
+  private ProfileReader() {}
 
   public String[] getProfiles() {
     if (profiles == null) {
