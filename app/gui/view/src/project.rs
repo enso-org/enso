@@ -528,7 +528,7 @@ impl View {
         frp::extend! { network
 
             last_searcher <- frp.searcher.filter_map(|&s| s);
-            // The searcher will bve closed due to accepting the input (e.g., pressing enter).
+            // The searcher will be closed due to accepting the input (e.g., pressing enter).
             committed_in_searcher <-
                 grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, entry));
 
@@ -547,14 +547,15 @@ impl View {
             input_change_delay.restart <+ input_change.constant(INPUT_CHANGE_DELAY_MS);
 
             // When accepting the input, we need to make sure we correctly process any outstanding
-            // key presses. If we don't, we may end up with a stale selection. Byt we do not want
+            // key presses. If we don't, we may end up with a stale selection. But we do not want
             // to refresh the searcher if we don't have outstanding key presses, as this will
             // cause the searcher to lose the selected entry and instead select the default entry.
 
+            needs_refresh <- input_change_delay.is_running;
             // We have retained key presses that we need to process.
-            update_with_refresh <- committed_in_searcher.gate(&input_change_delay.is_running);
+            update_with_refresh <- committed_in_searcher.gate(&needs_refresh);
             // No key presses retained, accept the selection as is.
-            update_without_refresh <- committed_in_searcher.gate_not(&input_change_delay.is_running);
+            update_without_refresh <- committed_in_searcher.gate_not(&needs_refresh);
 
             on_update_with_refresh <- update_with_refresh.constant(());
             // We only need to cancel the delay if the timer is running, that is, if we have
