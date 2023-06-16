@@ -98,7 +98,7 @@ impl<'a> IsRepo for RepoRef<'a> {
 
 impl<'a> RepoRef<'a> {
     #[allow(missing_docs)]
-    pub const fn new<T1, T2>(owner: &'a T1, name: &'a T2) -> Self
+    pub fn new<T1, T2>(owner: &'a T1, name: &'a T2) -> Self
     where
         T1: AsRef<str> + ?Sized,
         T2: AsRef<str> + ?Sized, {

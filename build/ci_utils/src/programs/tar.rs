@@ -235,7 +235,7 @@ impl Tar {
             .args(compression)
             .args(&Switch::TargetFile(output_archive.as_ref()))
             .args(&Switch::WorkingDir(root_directory.as_ref()));
-        if TARGET_OS == OS::Windows && Tar.flavor().await.contains(&Flavor::Bsd) {
+        if TARGET_OS == OS::Windows && Tar.flavor().await.is_ok_and(|f| f == Flavor::Bsd) {
             // Used only when `tar` is `bsdtar`. This is the default
             // but e.g. Git can come with its own non-bsd tar. GNU tar does not support this option.
             //

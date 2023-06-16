@@ -22,7 +22,7 @@ pub async fn ensure_present(dist_path: impl AsRef<Path>, target: &TargetTriple) 
     // Check if already done
     let build_info_file = dist_path.as_ref().join("installed-enso-version");
     let old_info = dbg!(build_info_file.read_to_json::<TargetTriple>());
-    if old_info.contains(target) {
+    if old_info.as_ref().is_ok_and(|i| i == target) {
         debug!(
             "Project Manager in version {target} is already installed, according to {info}.",
             info = build_info_file.display()

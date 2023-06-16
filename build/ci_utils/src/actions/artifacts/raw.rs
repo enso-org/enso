@@ -139,7 +139,8 @@ pub mod endpoints {
         let is_gzipped = response
             .headers()
             .get(reqwest::header::ACCEPT_ENCODING)
-            .contains(&HeaderValue::from_static("gzip"));
+            .as_ref()
+            .is_some_and(|h| h == &HeaderValue::from_static("gzip"));
 
         let reader = crate::io::web::async_reader(response);
         if is_gzipped {

@@ -15,7 +15,7 @@ pub mod definition;
 /// Check if we are running in an environment that looks like being spawned by GitHub Actions
 /// workflow.
 pub fn is_in_env() -> bool {
-    env::GITHUB_ACTIONS.get().contains(&true)
+    env::GITHUB_ACTIONS.get().unwrap_or(false)
 }
 
 /// Sets an action's output parameter.

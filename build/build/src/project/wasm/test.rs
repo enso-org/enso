@@ -123,7 +123,7 @@ pub fn blacklisted(memeber: &Path) -> bool {
 pub fn is_proc_macro_crate(member: &Path) -> bool {
     let cargo_toml_path = member.join("Cargo.toml");
     let cargo_toml_root = parse_toml(cargo_toml_path);
-    get_proc_macro(cargo_toml_root).contains(&true)
+    get_proc_macro(cargo_toml_root).unwrap_or(false)
 }
 
 /// Retrieve a `lib.proc-macro` field from Cargo.toml

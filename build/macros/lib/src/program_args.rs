@@ -8,9 +8,11 @@ pub struct Policy {
     pub format:    Option<String>,
 }
 
+const DEFAULT_POLICY: Policy = Policy { flag_case: Case::Kebab, format: None };
+
 impl Default for Policy {
     fn default() -> Self {
-        Self { flag_case: Case::Kebab, format: None }
+        DEFAULT_POLICY
     }
 }
 
@@ -22,7 +24,6 @@ pub struct Generator<'a> {
 
 impl<'a> Generator<'a> {
     pub fn current_policy(&self) -> &Policy {
-        static DEFAULT_POLICY: Policy = Policy::default();
         self.policy.last().unwrap_or(&DEFAULT_POLICY)
     }
 

@@ -50,7 +50,7 @@ impl TryFrom<&Prerelease> for NightlyPrerelease {
         let prerelease = prerelease.as_str();
         let identifiers = prerelease.split('.').collect_vec();
         ensure!(
-            identifiers.first().contains(&&version::NIGHTLY_BUILD_PREFIX),
+            identifiers.first().is_some_and(|i| i == &version::NIGHTLY_BUILD_PREFIX),
             "Not a nightly build."
         );
         ensure!(identifiers.len() == 4 || identifiers.len() == 5, "Wrong number of identifiers.");

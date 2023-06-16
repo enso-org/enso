@@ -11,7 +11,6 @@
 
 // === Features ===
 #![feature(exit_status_error)]
-#![feature(option_result_contains)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -417,16 +416,16 @@ pub fn discover_paths_internal(
     // All files to be formatted should be reachable from the repository root without following
     // any symlinks.
     let md = fs::symlink_metadata(path)?;
-    if md.is_dir() && !path.file_name().contains(&"target") {
+    if md.is_dir() && !path.file_name().is_some_and(|n| n == "target") {
         let dir_name = path.file_name();
         // FIXME: This should cover 'tests' folder also, but only the files that contain actual
         //        tests. Otherwise, not all attributes are allowed there.
-        let is_main_dir = dir_name.contains(&"bin"); // || dir_name == Some(OsStr::new("tests"));
+        let is_main_dir = dir_name.is_some_and(|n| n == "bin"); // || dir_name == Some(OsStr::new("tests"));
         let sub_paths = fs::read_dir(path)?;
         for sub_path in sub_paths {
             discover_paths_internal(vec, &sub_path?.path(), is_main_dir)?;
         }
-    } else if md.is_file() && path.extension().contains(&"rs") {
+    } else if md.is_file() && path.extension().is_some_and(|e| e == "rs") {
         let is_main_file = path
             .file_name()
             .map_or(false, |file_name| file_name == "main.rs" || file_name == "lib.rs");

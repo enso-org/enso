@@ -8,12 +8,10 @@
 #![feature(exit_status_error)]
 #![feature(async_closure)]
 #![feature(associated_type_bounds)]
-#![feature(option_result_contains)]
 #![feature(result_flattening)]
 #![feature(default_free_fn)]
 #![feature(result_option_inspect)]
 #![feature(associated_type_defaults)]
-#![feature(once_cell)]
 #![feature(duration_constants)]
 #![feature(slice_take)]
 // === Standard Linter Configuration ===

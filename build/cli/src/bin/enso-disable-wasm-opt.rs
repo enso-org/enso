@@ -3,7 +3,6 @@
 //! command line flag, so we have to disable it by setting an appropriate flag in each Cargo.toml.
 
 // === Features ===
-#![feature(option_result_contains)]
 #![feature(associated_type_bounds)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -53,7 +52,7 @@ pub fn traverse(
 /// Check if the given (parsed) Cargo.toml has already disabled wasm-opt.
 fn has_wasm_opt_disabled(document: &toml::Value) -> bool {
     let wasm_opt_entry = traverse(document, WASM_OPT_PATH);
-    wasm_opt_entry.and_then(toml::Value::as_bool).contains(&false)
+    wasm_opt_entry.and_then(toml::Value::as_bool).is_some_and(|v| v == false)
 }
 
 /// Disable wasm-opt in the Cargo.toml file.

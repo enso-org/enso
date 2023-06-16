@@ -1,6 +1,4 @@
 // === Features ===
-#![feature(option_result_contains)]
-#![feature(once_cell)]
 #![feature(default_free_fn)]
 #![feature(future_join)]
 // === Standard Linter Configuration ===
