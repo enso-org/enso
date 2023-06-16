@@ -581,6 +581,9 @@ type Column
 
     ## Round to a specified number of decimal places.
 
+       `round` is only valid for `Value_Type.Decimal`, `Value_Type.Float`, and
+       `Value_Type.Integer` columns.
+
        By default, rounding uses "symmetric round-half-up", also known as
        "round towards 0." If use_bankers=True, then it uses "round-half-even",
        also known as "banker's rounding".
@@ -623,22 +626,74 @@ type Column
              example_round = Examples.decimal_column.round 2
     round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
     round self decimal_places=0 use_bankers=False =
-        Decimal_Places_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
-            new_name = self.naming_helpers.function_name "round" [self]
-            scale = 10 ^ decimal_places
-            scaled = self * scale
-            round_base = scaled.floor
-            round_midpoint = (round_base + 0.5) / scale
-            even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
-            half_goes_up = if use_bankers then even_is_up else self >= 0
-            do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
-            result_float = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
+        Decimal_Places_Helpers.check_decimal_places decimal_places <|
+            k = case self.value_type of
+                    Value_Type.Integer _ -> self.round_integer decimal_places use_bankers
+                    Value_Type.Float _ -> self.round_float decimal_places use_bankers
+                    Value_Type.Decimal _ _ -> self.round_float decimal_places use_bankers
+                    _ ->
+                        expected = "Value_Type.Decimal, Value_Type.Float, or Value_Type.Integer"
+                        Error.throw (Invalid_Value_Type.Column expected self.value_type self.name)
+            #IO.println 'k'
+            #IO.println k
+            k
 
-            should_cast_to_integer = decimal_places <= 0 || self.value_type.is_integer
-            result = if should_cast_to_integer.not then result_float else
-                result_float.cast Value_Type.Integer
+    ## PRIVATE
+       Round a float-like column.
+    round_float : Integer -> Boolean -> Column
+    round_float self decimal_places use_bankers =
+        IO.println 'round_float'
+        new_name = self.naming_helpers.function_name "round" [self]
+        scale = 10 ^ decimal_places
+        scaled = self * scale
+        round_base = scaled.floor
+        round_midpoint = (round_base + 0.5) / scale
+        even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
+        half_goes_up = if use_bankers then even_is_up else self >= 0
+        do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
+        result_float = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
 
-            result.rename new_name
+        should_cast_to_integer = decimal_places <= 0 || self.value_type.is_integer
+        result = if should_cast_to_integer.not then result_float else
+            result_float.cast Value_Type.Integer
+
+        result.rename new_name
+
+    ## PRIVATE
+       Round an integer column.
+    round_integer : Integer -> Boolean -> Column
+    round_integer self decimal_places use_bankers =
+        IO.println 'round_integer'
+        new_name = self.naming_helpers.function_name "round" [self]
+        scale = 10 ^ -decimal_places
+        halfway = scale.div 2
+        remainder = self % scale
+        #scaled_down_float = (self / scale)
+        scaled_down = (self / scale).truncate . cast Value_Type.Integer
+        result_unnudged = scaled_down * scale
+
+        ##
+            IO.println 'halfway'
+            IO.println halfway
+            result_unnudged
+
+        if_non_neg =
+            half_goes_up = if use_bankers then (scaled_down % 2) != 0 else self >= 0
+            round_up = half_goes_up.iif (remainder >= halfway) (remainder > halfway)
+            round_up.iif (result_unnudged + scale) result_unnudged
+        if_neg =
+            half_goes_up = if use_bankers then (scaled_down % 2) == 0 else self >= 0
+            round_up = half_goes_up.iif (remainder < -halfway) (remainder <= -halfway)
+            round_up.iif (result_unnudged - scale) result_unnudged
+
+        result_float = (self >= 0).iif if_non_neg if_neg
+        should_cast_to_integer = decimal_places <= 0 || self.value_type.is_integer
+        result = if should_cast_to_integer.not then result_float else
+            result_float.cast Value_Type.Integer
+
+        result.rename new_name
+        #result_unnudged
+        #scaled_down_float
 
     ## ALIAS int
        UNSTABLE
