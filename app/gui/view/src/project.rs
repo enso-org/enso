@@ -592,7 +592,6 @@ impl View {
             frp.source.editing_committed <+ node_editing_finished.map(|id| (*id,None));
             frp.source.editing_aborted <+ aborted_in_searcher;
 
-
             // Should be done before we update `searcher` and `adding_new_node` outputs.
             adding_committed <- committed_in_searcher.gate(&frp.adding_new_node);
             graph.deselect_all_nodes <+ adding_committed.constant(());
