@@ -5,10 +5,13 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as errorModule from '../../error'
+import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as projectEventModule from '../events/projectEvent'
+import * as projectRowState from '../projectRowState'
+import * as string from '../../string'
 import * as svg from '../../components/svg'
 import * as toastPromise from '../toastPromise'
 import * as toastPromiseMultiple from '../../toastPromiseMultiple'
@@ -27,6 +30,13 @@ import RenameModal from './renameModal'
 // === Constants ===
 // =================
 
+/** The user-facing name of this asset type. */
+const ASSET_TYPE_NAME = 'project'
+/** The user-facing plural name of this asset type. */
+const ASSET_TYPE_NAME_PLURAL = 'projects'
+// This is a function, even though it is not syntactically a function.
+// eslint-disable-next-line no-restricted-syntax
+const pluralize = string.makePluralize(ASSET_TYPE_NAME, ASSET_TYPE_NAME_PLURAL)
 /** Placeholder row. */
 const PLACEHOLDER = (
     <span className="opacity-75">
@@ -36,17 +46,10 @@ const PLACEHOLDER = (
 /** Messages to be passed to {@link toastPromiseMultiple.toastPromiseMultiple}. */
 const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultipleMessages<backendModule.ProjectAsset> =
     {
-        begin: expectedCount =>
-            `Deleting ${expectedCount} ${expectedCount === 1 ? 'project' : 'projects'}...`,
-        inProgress: (successCount, expectedCount) =>
-            `Deleted ${successCount}/${expectedCount} ${
-                expectedCount === 1 ? 'project' : 'projects'
-            }.`,
-        end: (successCount, expectedCount) =>
-            `Deleted ${successCount}/${expectedCount} ${
-                expectedCount === 1 ? 'project' : 'projects'
-            }.`,
-        error: project => `Could not delete project '${project.title}'.`,
+        begin: total => `Deleting ${total} ${pluralize(total)}...`,
+        inProgress: (successful, total) => `Deleted ${successful}/${total} ${pluralize(total)}.`,
+        end: (successful, total) => `Deleted ${successful}/${total} ${pluralize(total)}.`,
+        error: asset => `Could not delete ${ASSET_TYPE_NAME} '${asset.title}'.`,
     }
 
 // ==========================
@@ -62,16 +65,15 @@ interface InternalProjectNameHeadingProps {
 function ProjectNameHeading(props: InternalProjectNameHeadingProps) {
     const { doCreateProject } = props
 
+    const onClick = (event: React.MouseEvent) => {
+        event.stopPropagation()
+        doCreateProject()
+    }
+
     return (
         <div className="inline-flex">
             Project
-            <button
-                className="mx-1"
-                onClick={event => {
-                    event.stopPropagation()
-                    doCreateProject()
-                }}
-            >
+            <button className="mx-1" onClick={onClick}>
                 {svg.ADD_ICON}
             </button>
         </div>
@@ -95,7 +97,11 @@ interface ProjectNamePropsState {
 
 /** Props for a {@link ProjectName}. */
 interface InternalProjectNameProps
-    extends table.ColumnProps<backendModule.ProjectAsset, ProjectNamePropsState, ProjectRowState> {}
+    extends table.ColumnProps<
+        backendModule.ProjectAsset,
+        ProjectNamePropsState,
+        projectRowState.ProjectRowState
+    > {}
 
 /** The icon and name of a specific project asset. */
 function ProjectName(props: InternalProjectNameProps) {
@@ -136,14 +142,14 @@ function ProjectName(props: InternalProjectNameProps) {
         <div
             className="flex text-left items-center align-middle whitespace-nowrap"
             onClick={event => {
-                if (event.detail === 2) {
+                if (eventModule.isDoubleClick(event)) {
                     // It is a double click; open the project.
                     setProjectEvent({
                         type: projectEventModule.ProjectEventType.open,
                         projectId: item.id,
                     })
                 } else if (
-                    event.detail === 1 &&
+                    eventModule.isSingleClick(event) &&
                     (selected ||
                         (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey))
                 ) {
@@ -169,6 +175,9 @@ function ProjectName(props: InternalProjectNameProps) {
                     setIsNameEditable(false)
                     if (newTitle !== item.title) {
                         const oldTitle = item.title
+                        // Mutation is bad practice as it does not cause a re-render. However, a
+                        // `useState` is not an option because a new value may come from the props.
+                        // `doRefresh()` ensures that a re-render always happens.
                         item.title = newTitle
                         doRefresh()
                         try {
@@ -199,16 +208,6 @@ function ProjectName(props: InternalProjectNameProps) {
 // =====================
 // === ProjectsTable ===
 // =====================
-
-/** Data associated with a project, used for rendering. */
-export interface ProjectRowState {
-    isRunning: boolean
-}
-
-/** The default {@link ProjectRowState} associated with a {@link backendModule.Project}. */
-export const INITIAL_ROW_STATE: ProjectRowState = Object.freeze({
-    isRunning: false,
-})
 
 /** Props for a {@link ProjectsTable}. */
 export interface ProjectsTableProps {
@@ -275,11 +274,11 @@ function ProjectsTable(props: ProjectsTableProps) {
     )
 
     return (
-        <Table<backendModule.ProjectAsset, ProjectNamePropsState, ProjectRowState>
+        <Table<backendModule.ProjectAsset, ProjectNamePropsState, projectRowState.ProjectRowState>
             items={items}
             isLoading={isLoading}
             state={state}
-            initialRowState={INITIAL_ROW_STATE}
+            initialRowState={projectRowState.INITIAL_ROW_STATE}
             getKey={backendModule.getAssetId}
             placeholder={PLACEHOLDER}
             columns={columnModule.columnsFor(columnDisplayMode, backend.type).map(column =>
@@ -321,12 +320,12 @@ function ProjectsTable(props: ProjectsTableProps) {
                         />
                     )
                 }
-                const projectsText = projects.size === 1 ? 'project' : 'projects'
+                const pluralized = pluralize(projects.size)
                 setModal(
                     <ContextMenu key={uniqueString.uniqueString()} event={event}>
                         <ContextMenuEntry onClick={doDeleteAll}>
                             <span className="text-red-700">
-                                Delete {projects.size} {projectsText}
+                                Delete {projects.size} {pluralized}
                             </span>
                         </ContextMenuEntry>
                     </ContextMenu>

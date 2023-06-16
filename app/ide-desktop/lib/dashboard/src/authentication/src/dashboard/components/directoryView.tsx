@@ -10,6 +10,7 @@ import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as dateTime from '../dateTime'
 import * as directoryEventModule from '../events/directoryEvent'
+import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
@@ -95,7 +96,8 @@ function DirectoryView(props: DirectoryViewProps) {
     const [initialized, setInitialized] = React.useState(false)
     const [isLoadingAssets, setIsLoadingAssets] = React.useState(true)
     const [directoryStack, setDirectoryStack] = React.useState<backendModule.DirectoryAsset[]>([])
-    // Defined by the spec as `compact` by default, however it is not ready yet.
+    // Defined by the spec as `compact` by default, however some columns lack an implementation
+    // in the remote (cloud) backend and will therefore be empty.
     const [columnDisplayMode, setColumnDisplayMode] = React.useState(
         columnModule.ColumnDisplayMode.release
     )
@@ -290,10 +292,10 @@ function DirectoryView(props: DirectoryViewProps) {
                             {
                                 loading: 'Creating new empty project...',
                                 success: 'Created new empty project.',
-                                // This is UNSAFE, as the original function's parameter is of type
-                                // `any`.
-                                error: (promiseError: Error) =>
-                                    `Error creating new empty project: ${promiseError.message}`,
+                                error: error =>
+                                    `Could not create new empty project: ${
+                                        errorModule.tryGetMessage(error) ?? 'unknown error'
+                                    }`,
                             }
                         )
                         setProjectAssets(oldProjectAssets => {

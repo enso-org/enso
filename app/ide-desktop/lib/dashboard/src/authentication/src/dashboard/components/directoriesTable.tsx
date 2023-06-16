@@ -5,9 +5,11 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as errorModule from '../../error'
+import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
+import * as string from '../../string'
 import * as svg from '../../components/svg'
 import * as toastPromise from '../toastPromise'
 import * as toastPromiseMultiple from '../../toastPromiseMultiple'
@@ -24,30 +26,32 @@ import RenameModal from './renameModal'
 // === Constants ===
 // =================
 
+/** The user-facing name of this asset type. */
+const ASSET_TYPE_NAME = 'folder'
+/** The user-facing plural name of this asset type. */
+const ASSET_TYPE_NAME_PLURAL = 'folders'
+// This is a function, even though it is not syntactically a function.
+// eslint-disable-next-line no-restricted-syntax
+const pluralize = string.makePluralize(ASSET_TYPE_NAME, ASSET_TYPE_NAME_PLURAL)
 /** Placeholder row when the search query is not empty. */
 const PLACEHOLDER_WITH_QUERY = (
     <span className="opacity-75">
-        This folder does not contain any subfolders matching your query.
+        This folder does not contain any sub{ASSET_TYPE_NAME_PLURAL} matching your query.
     </span>
 )
 /** Placeholder row when the search query is empty. */
 const PLACEHOLDER_WITHOUT_QUERY = (
-    <span className="opacity-75">This folder does not contain any subfolders.</span>
+    <span className="opacity-75">
+        This folder does not contain any sub{ASSET_TYPE_NAME_PLURAL}.
+    </span>
 )
 /** Messages to be passed to {@link toastPromiseMultiple.toastPromiseMultiple}. */
 const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultipleMessages<backendModule.DirectoryAsset> =
     {
-        begin: expectedCount =>
-            `Deleting ${expectedCount} ${expectedCount === 1 ? 'folder' : 'folders'}...`,
-        inProgress: (successCount, expectedCount) =>
-            `Deleted ${successCount}/${expectedCount} ${
-                expectedCount === 1 ? 'folder' : 'folders'
-            }.`,
-        end: (successCount, expectedCount) =>
-            `Deleted ${successCount}/${expectedCount} ${
-                expectedCount === 1 ? 'folder' : 'folders'
-            }.`,
-        error: directory => `Could not delete folder '${directory.title}'.`,
+        begin: total => `Deleting ${total} ${pluralize(total)}...`,
+        inProgress: (successful, total) => `Deleted ${successful}/${total} ${pluralize(total)}.`,
+        end: (successful, total) => `Deleted ${successful}/${total} ${pluralize(total)}.`,
+        error: asset => `Could not delete ${ASSET_TYPE_NAME} '${asset.title}'.`,
     }
 
 // ============================
@@ -124,12 +128,12 @@ function DirectoryName(props: InternalDirectoryNameProps) {
             className="flex text-left items-center align-middle whitespace-nowrap"
             onClick={event => {
                 if (
-                    event.detail === 1 &&
+                    eventModule.isSingleClick(event) &&
                     (selected ||
                         (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey))
                 ) {
                     setIsNameEditable(true)
-                } else if (event.detail === 2) {
+                } else if (eventModule.isDoubleClick(event)) {
                     enterDirectory(item)
                 }
             }}
@@ -141,6 +145,9 @@ function DirectoryName(props: InternalDirectoryNameProps) {
                     setIsNameEditable(false)
                     if (newTitle !== item.title) {
                         const oldTitle = item.title
+                        // Mutation is bad practice as it does not cause a re-render. However, a
+                        // `useState` is not an option because a new value may come from the props.
+                        // `doRefresh()` ensures that a re-render always happens.
                         item.title = newTitle
                         doRefresh()
                         try {
@@ -250,12 +257,12 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                             />
                         )
                     }
-                    const directoriesText = directories.size === 1 ? 'folder' : 'folders'
+                    const pluralized = pluralize(directories.size)
                     setModal(
                         <ContextMenu key={uniqueString.uniqueString()} event={event}>
                             <ContextMenuEntry onClick={doDeleteAll}>
                                 <span className="text-red-700">
-                                    Delete {directories.size} {directoriesText}
+                                    Delete {directories.size} {pluralized}
                                 </span>
                             </ContextMenuEntry>
                         </ContextMenu>

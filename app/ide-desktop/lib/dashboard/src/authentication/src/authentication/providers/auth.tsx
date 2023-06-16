@@ -37,7 +37,7 @@ const MESSAGES = {
     resetPasswordSuccess: 'Successfully reset password!',
     signOutLoading: 'Logging out...',
     signOutSuccess: 'Successfully logged out!',
-    signOutError: 'Error logging out, please try again.',
+    signOutError: 'Could not log out, please try again.',
     pleaseWait: 'Please wait...',
 } as const
 
@@ -195,11 +195,12 @@ export function AuthProvider(props: AuthProviderProps) {
         return Promise.resolve(true)
     }, [/* should never change */ goOfflineInternal, /* should never change */ navigate])
 
-    // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
-    // circular dependency.
+    // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid a circular
+    // import.
     React.useEffect(() => {
-        // `navigator.onLine` is not a dependency so that the app doesn't make the remote backend
-        // completely unusable on unreliable connections.
+        // `navigator.onLine` is not a dependency of this `useEffect` (so this effect is not called
+        // when `navigator.onLine` changes) - the internet being down for e.g. 5 seconds should not
+        // completely disable the remote backend.
         if (!navigator.onLine) {
             void goOffline()
         }
@@ -225,8 +226,9 @@ export function AuthProvider(props: AuthProviderProps) {
                 // The backend MUST be the remote backend before login is finished.
                 // This is because the "set username" flow requires the remote backend.
                 if (!initialized) {
-                    // `userSession` MUST NOT be a dependency as this effect always
-                    // calls `setUserSession`, which would cause an infinite loop.
+                    // `userSession` MUST NOT be a dependency of this `useEffect` (so this effect
+                    // is not called when `userSession` changes) as this effect always calls
+                    // `setUserSession`, which would cause an infinite loop.
                     setUserSession(oldUserSession => {
                         if (oldUserSession == null) {
                             setBackendWithoutSavingType(backend)
@@ -254,8 +256,6 @@ export function AuthProvider(props: AuthProviderProps) {
                     }
                 }
                 let newUserSession: UserSession
-                // Not sure why the `strict-boolean-expressions` lint does not detect
-                // `!organization` as invalid.
                 if (organization == null) {
                     newUserSession = {
                         type: UserSessionType.partial,

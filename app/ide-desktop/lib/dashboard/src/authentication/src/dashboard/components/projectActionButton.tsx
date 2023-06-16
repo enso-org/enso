@@ -7,8 +7,7 @@ import * as backendProvider from '../../providers/backend'
 import * as errorModule from '../../error'
 import * as modalProvider from '../../providers/modal'
 import * as projectEvent from '../events/projectEvent'
-// Warning: This is a circular import.
-import * as projectsTable from './projectsTable'
+import * as projectRowState from '../projectRowState'
 import * as svg from '../../components/svg'
 
 // =============
@@ -72,8 +71,8 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
 /** Props for a {@link ProjectActionButton}. */
 export interface ProjectActionButtonProps {
     project: backendModule.ProjectAsset
-    rowState: projectsTable.ProjectRowState
-    setRowState: (newRowState: projectsTable.ProjectRowState) => void
+    rowState: projectRowState.ProjectRowState
+    setRowState: (newRowState: projectRowState.ProjectRowState) => void
     event: projectEvent.ProjectEvent | null
     /** Called when the project is opened via the {@link ProjectActionButton}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
@@ -256,7 +255,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 let previousTimestamp = 0
                 const checkProjectResources = async () => {
                     if (backend.type === backendModule.BackendType.local) {
-                        // This should never happen, but still should be handled
+                        // This should never happen, but still should be handled.
                         setState(backendModule.ProjectState.opened)
                         setCheckState(CheckState.done)
                     } else {

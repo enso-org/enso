@@ -17,6 +17,7 @@ export const PREVIOUS_PASSWORD_TITLE =
     'Your password must neither start nor end with whitespace, and must contain ' +
     'at least two characters.'
 
+// The Project Manager has restrictions on names of projects.
 /** Regex pattern for valid names for local projects. */
 export const LOCAL_PROJECT_NAME_PATTERN = '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*'
 /** Human readable explanation of project name restrictions for local projects. */

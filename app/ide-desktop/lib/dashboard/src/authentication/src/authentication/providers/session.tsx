@@ -67,7 +67,7 @@ export function SessionProvider(props: SessionProviderProps) {
             setInitialized(true)
             return innerSession
         },
-        [userSession, refresh]
+        [refresh]
     )
 
     /** Register an effect that will listen for authentication events. When the event occurs, we

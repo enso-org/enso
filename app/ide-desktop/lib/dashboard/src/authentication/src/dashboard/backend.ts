@@ -388,9 +388,9 @@ export interface ListVersionsRequestParams {
     default: boolean
 }
 
-// ========================
-// === Helper functions ===
-// ========================
+// ===================
+// === Type guards ===
+// ===================
 
 /** A type guard that returns whether an {@link Asset} is a specific type of asset. */
 export function assetIsType<Type extends AssetType>(type: Type) {
@@ -409,12 +409,20 @@ export const assetIsSecret = assetIsType(AssetType.secret)
 export const assetIsFile = assetIsType(AssetType.file)
 /* eslint-disable no-restricted-syntax */
 
+// =======================
+// === rootDirectoryId ===
+// =======================
+
 /** Return the id of the root directory for a user or organization. */
 export function rootDirectoryId(userOrOrganizationId: UserOrOrganizationId) {
     return newtype.asNewtype<DirectoryId>(
         userOrOrganizationId.replace(/^organization-/, `${AssetType.directory}-`)
     )
 }
+
+// ==================
+// === getAssetId ===
+// ==================
 
 /** A convenience function to get the `id` of an {@link Asset}.
  * This is useful to avoid React re-renders as it is not re-created on each function call. */

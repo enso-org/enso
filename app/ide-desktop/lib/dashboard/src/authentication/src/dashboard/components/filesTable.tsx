@@ -5,10 +5,13 @@ import toast from 'react-hot-toast'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
-import * as error from '../../error'
+import * as errorModule from '../../error'
+import * as eventModule from '../event'
 import * as fileInfo from '../../fileInfo'
+import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
+import * as string from '../../string'
 import * as svg from '../../components/svg'
 import * as toastPromiseMultiple from '../../toastPromiseMultiple'
 import * as uniqueString from '../../uniqueString'
@@ -24,24 +27,30 @@ import EditableSpan from './editableSpan'
 // === Constants ===
 // =================
 
+/** The user-facing name of this asset type. */
+const ASSET_TYPE_NAME = 'file'
+/** The user-facing plural name of this asset type. */
+const ASSET_TYPE_NAME_PLURAL = 'files'
+// This is a function, even though it is not syntactically a function.
+// eslint-disable-next-line no-restricted-syntax
+const pluralize = string.makePluralize(ASSET_TYPE_NAME, ASSET_TYPE_NAME_PLURAL)
 /** Placeholder row when the search query is not empty. */
 const PLACEHOLDER_WITH_QUERY = (
-    <span className="opacity-75">This folder does not contain any files matching your query.</span>
+    <span className="opacity-75">
+        This folder does not contain any {ASSET_TYPE_NAME_PLURAL} matching your query.
+    </span>
 )
 /** Placeholder row when the search query is empty. */
 const PLACEHOLDER_WITHOUT_QUERY = (
-    <span className="opacity-75">This folder does not contain any files.</span>
+    <span className="opacity-75">This folder does not contain any {ASSET_TYPE_NAME_PLURAL}.</span>
 )
 /** Messages to be passed to {@link toastPromiseMultiple.toastPromiseMultiple}. */
 const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultipleMessages<backendModule.FileAsset> =
     {
-        begin: expectedCount =>
-            `Deleting ${expectedCount} ${expectedCount === 1 ? 'file' : 'files'}...`,
-        inProgress: (successCount, expectedCount) =>
-            `Deleted ${successCount}/${expectedCount} ${expectedCount === 1 ? 'file' : 'files'}.`,
-        end: (successCount, expectedCount) =>
-            `Deleted ${successCount}/${expectedCount} ${expectedCount === 1 ? 'file' : 'files'}.`,
-        error: file => `Could not delete file '${file.title}'.`,
+        begin: total => `Deleting ${total} ${pluralize(total)}...`,
+        inProgress: (successful, total) => `Deleted ${successful}/${total} ${pluralize(total)}.`,
+        end: (successful, total) => `Deleted ${successful}/${total} ${pluralize(total)}.`,
+        error: asset => `Could not delete ${ASSET_TYPE_NAME} '${asset.title}'.`,
     }
 
 // ======================
@@ -85,7 +94,7 @@ function FileCreateForm(props: InternalFileCreateFormProps) {
                         {
                             loading: 'Uploading file...',
                             success: 'Sucessfully uploaded file.',
-                            error: error.tryGetMessage,
+                            error: errorModule.tryGetMessage,
                         }
                     )
                     .then(onSuccess)
@@ -184,9 +193,11 @@ interface InternalFileNameProps extends table.ColumnProps<backendModule.FileAsse
 /** The icon and name of a specific file asset. */
 function FileName(props: InternalFileNameProps) {
     const { item, selected } = props
+    const [, doRefresh] = hooks.useRefresh()
     const [isNameEditable, setIsNameEditable] = React.useState(false)
 
-    // TODO: Wait for backend implementation.
+    // TODO[sb]: Wait for backend implementation.
+    // Backend implementation is tracked here: https://github.com/enso-org/cloud-v2/issues/505.
     const doRename = async () => {
         return await Promise.resolve(null)
     }
@@ -196,7 +207,7 @@ function FileName(props: InternalFileNameProps) {
             className="flex text-left items-center align-middle whitespace-nowrap"
             onClick={event => {
                 if (
-                    event.detail === 1 &&
+                    eventModule.isSingleClick(event) &&
                     (selected ||
                         (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey))
                 ) {
@@ -210,12 +221,18 @@ function FileName(props: InternalFileNameProps) {
                 onSubmit={async newTitle => {
                     setIsNameEditable(false)
                     if (newTitle !== item.title) {
-                        // Mutation is UNSAFE as it does not cause a re-render.
-                        // However, `setIsNameEditable` causes a re-render, and
-                        // using a `useState` is not an option as it will not get overwritten by
-                        // the updated value from the server.
+                        const oldTitle = item.title
+                        // Mutation is bad practice as it does not cause a re-render. However, a
+                        // `useState` is not an option because a new value may come from the props.
+                        // `doRefresh()` ensures that a re-render always happens.
                         item.title = newTitle
-                        await doRename(/* newTitle */)
+                        doRefresh()
+                        try {
+                            await doRename(/* newTitle */)
+                        } catch {
+                            item.title = oldTitle
+                            doRefresh()
+                        }
                     }
                 }}
                 onCancel={() => {
@@ -298,18 +315,18 @@ function FilesTable(props: FilesTableProps) {
                             />
                         )
                     }
-                    const filesText = files.size === 1 ? 'file' : 'files'
+                    const pluralized = pluralize(files.size)
                     setModal(
                         <ContextMenu key={uniqueString.uniqueString()} event={event}>
                             {/*<ContextMenuEntry disabled onClick={doCopyAll}>
-                                Copy {files.size} files
+                                Copy {files.size} {pluralized}
                             </ContextMenuEntry>
                             <ContextMenuEntry disabled onClick={doCutAll}>
-                                Cut {files.size} files
+                                Cut {files.size} {pluralized}
                             </ContextMenuEntry>*/}
                             <ContextMenuEntry onClick={doDeleteAll}>
                                 <span className="text-red-700">
-                                    Delete {files.size} {filesText}
+                                    Delete {files.size} {pluralized}
                                 </span>
                             </ContextMenuEntry>
                         </ContextMenu>
