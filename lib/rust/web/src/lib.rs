@@ -723,13 +723,32 @@ pub fn ignore_context_menu(target: &EventTarget) -> EventListenerHandle {
 
 // === EventListenerHandleOptions ===
 
+/// Structure representing event listener options used by [`EventListenerHandle`].
+///
+/// The handle cannot just use [`AddEventListenerOptions`], as it needs to construct also
+/// [`EventListenerOptions`] for removing the listener on drop, and values cannot be read from the
+/// former easily.
+///
+/// Description of fields is cited from the [MDN documentation](https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener#parameters)
 #[derive(Copy, Clone, Debug, Default)]
 pub struct EventListenerHandleOptions {
+    /// From
+    /// > A boolean value that, if true, indicates that the function specified by listener will
+    /// > never call preventDefault()
+    ///
+    /// `None` means a default value, which in turn may depend on the event kind.
     pub passive: Option<bool>,
+    /// > A boolean value indicating that events of this type will be dispatched to the registered
+    /// > listener before being dispatched to any EventTarget beneath it in the DOM tree. If not
+    /// > specified, defaults to false.
     pub capture: bool,
+    /// > A boolean value indicating that the listener should be invoked at most once after being
+    /// > added. If true, the listener would be automatically removed when invoked. If not
+    /// > specified, defaults to false.
     pub once:    bool,
 }
 
+#[allow(missing_docs)]
 impl EventListenerHandleOptions {
     pub fn new() -> Self {
         Self::default()
@@ -756,22 +775,22 @@ impl EventListenerHandleOptions {
     }
 }
 
-impl Into<AddEventListenerOptions> for EventListenerHandleOptions {
-    fn into(self) -> AddEventListenerOptions {
-        let mut options = AddEventListenerOptions::new();
-        if let Some(passive) = self.passive {
+impl From<EventListenerHandleOptions> for AddEventListenerOptions {
+    fn from(from: EventListenerHandleOptions) -> Self {
+        let mut options = Self::new();
+        if let Some(passive) = from.passive {
             options.passive(passive);
         }
-        options.capture(self.capture);
-        options.once(self.once);
+        options.capture(from.capture);
+        options.once(from.once);
         options
     }
 }
 
-impl Into<EventListenerOptions> for EventListenerHandleOptions {
-    fn into(self) -> EventListenerOptions {
+impl From<EventListenerHandleOptions> for EventListenerOptions {
+    fn from(from: EventListenerHandleOptions) -> Self {
         let mut options = EventListenerOptions::new();
-        options.capture(self.capture);
+        options.capture(from.capture);
         options
     }
 }
@@ -835,8 +854,8 @@ impl Drop for EventListenerHandleData {
 }
 
 
-///   Wrapper for the function defined in web_sys which allows passing wasm_bindgen
-///   [` Closure `]  directly.
+/// Wrapper for the function defined in web_sys which allows passing wasm_bindgen [`Closure`]
+/// directly.
 pub fn add_event_listener_with_options<T: ?Sized + 'static>(
     target: &EventTarget,
     name: &str,
@@ -857,6 +876,7 @@ pub fn add_event_listener_with_options<T: ?Sized + 'static>(
     EventListenerHandle::new(target, name, closure, options)
 }
 
+/// Wrapper for [`add_event_listener`] setting the default options.
 pub fn add_event_listener<T: ?Sized + 'static>(
     target: &EventTarget,
     name: &str,
@@ -865,6 +885,7 @@ pub fn add_event_listener<T: ?Sized + 'static>(
     add_event_listener_with_options(target, name, closure, default())
 }
 
+/// Wrapper for [`add_event_listener`] setting the `capture` option keeping other options default.
 pub fn add_event_listener_with_bool<T: ?Sized + 'static>(
     target: &EventTarget,
     name: &str,
