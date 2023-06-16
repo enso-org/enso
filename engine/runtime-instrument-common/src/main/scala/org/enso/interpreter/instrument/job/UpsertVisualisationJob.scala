@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument.job
 
 import cats.implicits._
+import com.oracle.truffle.api.TruffleLogger
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
@@ -52,7 +53,7 @@ class UpsertVisualisationJob(
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Option[Executable] = {
-    val logger = ctx.executionService.getLogger
+    implicit val logger = ctx.executionService.getLogger
     val lockTimestamp =
       ctx.locking.acquireContextLock(config.executionContextId)
     try {
@@ -174,7 +175,7 @@ object UpsertVisualisationJob {
     */
   def upsertVisualisation(
     visualisation: Visualisation
-  )(implicit ctx: RuntimeContext): Unit = {
+  )(implicit ctx: RuntimeContext, logger: TruffleLogger): Unit = {
     val visualisationConfig = visualisation.config
     val expressionId        = visualisation.expressionId
     val visualisationId     = visualisation.id
@@ -329,7 +330,7 @@ object UpsertVisualisationJob {
     visualisationConfig: Api.VisualisationConfiguration,
     callback: AnyRef,
     arguments: Vector[AnyRef]
-  )(implicit ctx: RuntimeContext): Visualisation = {
+  )(implicit ctx: RuntimeContext, logger: TruffleLogger): Visualisation = {
     val visualisationExpressionId =
       findVisualisationExpressionId(module, visualisationConfig.expression)
     val visualisation = Visualisation(
@@ -342,11 +343,15 @@ object UpsertVisualisationJob {
       callback,
       arguments
     )
-    ctx.locking.acquireWriteCompilationLock()
+    val writeLockTimestamp = ctx.locking.acquireWriteCompilationLock()
     try {
       invalidateCaches(visualisation)
     } finally {
       ctx.locking.releaseWriteCompilationLock()
+      logger.log(
+        Level.FINEST,
+        s"Kept write compilation lock [UpsertVisualisationJob] for ${System.currentTimeMillis() - writeLockTimestamp} milliseconds"
+      )
     }
     ctx.contextManager.upsertVisualisation(
       visualisationConfig.executionContextId,

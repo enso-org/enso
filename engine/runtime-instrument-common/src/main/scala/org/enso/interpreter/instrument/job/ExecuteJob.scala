@@ -28,9 +28,10 @@ class ExecuteJob(
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
-    val acquiredLock = ctx.locking.acquireContextLock(contextId)
-    ctx.locking.acquireReadCompilationLock()
-    val context = ctx.executionService.getContext
+    val logger            = ctx.executionService.getLogger
+    val acquiredLock      = ctx.locking.acquireContextLock(contextId)
+    val readLockTimestamp = ctx.locking.acquireReadCompilationLock()
+    val context           = ctx.executionService.getContext
     val originalExecutionEnvironment =
       executionEnvironment.map(_ => context.getExecutionEnvironment)
     try {
@@ -51,11 +52,16 @@ class ExecuteJob(
     } finally {
       originalExecutionEnvironment.foreach(context.setExecutionEnvironment)
       ctx.locking.releaseReadCompilationLock()
+      logger.log(
+        Level.FINEST,
+        s"Kept read compilation lock [ExecuteJob] for ${System.currentTimeMillis() - readLockTimestamp} milliseconds"
+      )
       ctx.locking.releaseContextLock(contextId)
-      ctx.executionService.getLogger.log(
+      logger.log(
         Level.FINEST,
         s"Kept context lock [ExecuteJob] for ${contextId} for ${System.currentTimeMillis() - acquiredLock}"
       )
+
     }
     ctx.endpoint.sendToClient(Api.Response(Api.ExecutionComplete(contextId)))
     StartBackgroundProcessingJob.startBackgroundJobs()

@@ -43,7 +43,7 @@ public class SetExecutionEnvironmentCommand extends Command {
       Runtime$Api$ExecutionEnvironment executionEnvironment, UUID contextId, RuntimeContext ctx) {
     var logger = ctx.executionService().getLogger();
     var contextLockTimestamp = ctx.locking().acquireContextLock(contextId);
-    ctx.locking().acquireWriteCompilationLock();
+    var writeLockTimestamp = ctx.locking().acquireWriteCompilationLock();
 
     try {
       Stack<InstrumentFrame> stack = ctx.contextManager().getStack(contextId);
@@ -56,10 +56,15 @@ public class SetExecutionEnvironmentCommand extends Command {
       reply(new Runtime$Api$SetExecutionEnvironmentResponse(contextId), ctx);
     } finally {
       ctx.locking().releaseWriteCompilationLock();
+      logger.log(
+          Level.FINEST,
+          "Kept write compilation lock [SetExecutionEnvironmentCommand] for "
+              + (System.currentTimeMillis() - writeLockTimestamp)
+              + " milliseconds");
       ctx.locking().releaseContextLock(contextId);
       logger.log(
           Level.FINEST,
-          "Kept context lock [UpsertVisualisationJob] for "
+          "Kept context lock [SetExecutionEnvironmentCommand] for "
               + (System.currentTimeMillis() - contextLockTimestamp)
               + " milliseconds");
     }
