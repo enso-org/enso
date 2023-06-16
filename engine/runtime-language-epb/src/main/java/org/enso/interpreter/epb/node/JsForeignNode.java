@@ -5,8 +5,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
 
-import java.util.Arrays;
-
 /** A node responsible for performing foreign JS calls. */
 @NodeField(name = "foreignFunction", type = Object.class)
 @NodeField(name = "arity", type = int.class)

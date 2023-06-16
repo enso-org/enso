@@ -203,19 +203,17 @@ pub mod shape {
 #[derivative(Clone(bound = ""))]
 #[allow(missing_docs)]
 pub struct Model<S: Shape> {
-    app:            Application,
     display_object: display::object::Instance,
     shape:          ShapeView<S>,
 }
 
 impl<Shape: ButtonShape> Model<Shape> {
     /// Construct a button's model.
-    pub fn new(app: &Application) -> Self {
-        let app = app.clone_ref();
+    pub fn new(_app: &Application) -> Self {
         let display_object = display::object::Instance::new();
         let shape = ShapeView::new();
         display_object.add_child(&shape);
-        Self { app, display_object, shape }
+        Self { display_object, shape }
     }
 
     /// Set the background (i.e. the circle) color.

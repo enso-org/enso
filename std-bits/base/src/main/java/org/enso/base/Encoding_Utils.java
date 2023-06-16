@@ -1,10 +1,5 @@
 package org.enso.base;
 
-import org.enso.base.encoding.ReportingStreamDecoder;
-import org.enso.base.encoding.ReportingStreamEncoder;
-import org.enso.base.text.ResultWithWarnings;
-import org.graalvm.polyglot.Value;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -16,6 +11,10 @@ import java.util.Arrays;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import org.enso.base.encoding.ReportingStreamDecoder;
+import org.enso.base.encoding.ReportingStreamEncoder;
+import org.enso.base.text.ResultWithWarnings;
+import org.graalvm.polyglot.Value;
 
 public class Encoding_Utils {
   /** The replacement character used for characters that could not have been decoded. */

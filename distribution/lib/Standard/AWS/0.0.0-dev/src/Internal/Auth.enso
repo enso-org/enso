@@ -1,0 +1,16 @@
+from Standard.Base import all
+
+import project.AWS_Credential.AWS_Credential
+
+polyglot java import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider
+
+## PRIVATE
+   Create the Java credentialsProvider object.
+create_provider : (AWS_Credential | Nothing) -> ProfileCredentialsProvider
+create_provider (credentials : AWS_Credential | Nothing) = case credentials of
+    AWS_Credential.Profile p ->
+        ProfileCredentialsProvider.builder.profileName p . build
+    AWS_Credential.Key k s ->
+        ProfileCredentialsProvider.builder.accessKeyId k . secretAccessKey s . build
+    Nothing ->
+        ProfileCredentialsProvider.builder.build

@@ -367,17 +367,13 @@ impl ScrollArea {
                     (0.0..=size.x).contains(&local_pos.x) && (-size.y..=0.0).contains(&local_pos.y)
                 }));
             hovering <- hovering.sampler();
+            let on_scroll = model.display_object.on_event::<mouse::Wheel>();
+            on_scroll_when_hovering <- on_scroll.gate(&hovering);
+            model.h_scrollbar.scroll_by <+ on_scroll_when_hovering
+                .map(|event| event.delta_x() as f32);
+            model.v_scrollbar.scroll_by <+ on_scroll_when_hovering
+                .map(|event| event.delta_y() as f32);
         }
-
-        let mouse_manager = &mouse.mouse_manager;
-        let scroll_handler = f!([model](event: &mouse::Wheel)
-            if hovering.value() {
-                model.h_scrollbar.scroll_by(event.delta_x() as f32);
-                model.v_scrollbar.scroll_by(event.delta_y() as f32);
-            }
-        );
-        let scroll_handler_handle = mouse_manager.on_wheel.add(scroll_handler);
-        network.store(&scroll_handler_handle);
 
 
         ScrollArea { model, frp }

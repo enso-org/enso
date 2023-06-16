@@ -127,7 +127,6 @@ impl Animations {
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)]
 struct ProjectNameModel {
-    app:            Application,
     display_object: display::object::Instance,
     view:           background::View,
     style:          StyleWatch,
@@ -138,7 +137,6 @@ struct ProjectNameModel {
 impl ProjectNameModel {
     /// Constructor.
     fn new(app: &Application) -> Self {
-        let app = app.clone_ref();
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
@@ -160,7 +158,7 @@ impl ProjectNameModel {
         scene.layers.panel.add(&view);
 
         let project_name = default();
-        Self { app, display_object, view, style, text_field, project_name }.init()
+        Self { display_object, view, style, text_field, project_name }.init()
     }
 
     /// Compute the width of the ProjectName view.
@@ -423,11 +421,9 @@ impl View for ProjectName {
     fn label() -> &'static str {
         "ProjectName"
     }
+
     fn new(app: &Application) -> Self {
         ProjectName::new(app)
-    }
-    fn app(&self) -> &Application {
-        &self.model.app
     }
 
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {

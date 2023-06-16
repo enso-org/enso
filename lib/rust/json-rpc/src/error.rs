@@ -79,7 +79,7 @@ pub enum HandlingError {
     /// Server responded to an identifier that does not match to any known
     /// ongoing request.
     #[fail(display = "Server generated a response with no matching request: id={:?}.", _0)]
-    UnexpectedResponse(Response<serde_json::Value>),
+    UnexpectedResponse(Response<Box<serde_json::value::RawValue>>),
 
     /// JSON-RPC client does not expect any binary messages, yet it received one.
     #[fail(display = "Server sent unexpected binary message: {:?}.", _0)]

@@ -41,7 +41,7 @@
 //! ```
 //!
 //! # Shape system life cycle
-//! The shape's view is a [`Sprite`] with associated attributes and helper functions. Sprites are
+//! The shape's view is a [`RawSprite`] with associated attributes and helper functions. Sprites are
 //! associated with sprite systems, which are always associated with a given scene, because they
 //! contain references to GPU buffers. Thus, creating a new view (e.g. by writing
 //! `shape::View::new()`) has to create a new sprite in the correct sprite system instance. Every
@@ -64,11 +64,10 @@ use crate::prelude::*;
 use crate::system::gpu::types::*;
 
 use crate::display;
-use crate::display::object::instance::GenericLayoutApi;
 use crate::display::shape::primitive::shader;
 use crate::display::shape::Var;
 use crate::display::symbol;
-use crate::display::symbol::geometry::Sprite;
+use crate::display::symbol::geometry::RawSprite;
 use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::symbol::material;
 use crate::display::symbol::material::Material;
@@ -230,9 +229,8 @@ impl ShapeSystemFlavor {
 #[allow(missing_docs)]
 pub struct ShapeInstance<S> {
     #[deref]
-    shape:          S,
-    pub sprite:     RefCell<Sprite>,
-    display_object: display::object::Instance,
+    shape:      S,
+    pub sprite: RefCell<RawSprite>,
 }
 
 impl<S> ShapeInstance<S> {
@@ -247,26 +245,22 @@ impl<S: Shape> ShapeInstance<S> {
     pub(crate) fn swap(&self, other: &Self) {
         self.shape.as_ref().swap(other.shape.as_ref());
         self.sprite.swap(&other.sprite);
-        // After we swap the sprites between shape instances, we need to update their parents to
-        // the corresponding display object of each instance. It is important to not swap all other
-        // children, as they might have been added externally directly to the instance's display
-        // object (by calling `add_child` on the shape).
-        self.display_object.add_child(&*self.sprite.borrow());
-        other.display_object.add_child(&*other.sprite.borrow());
-        // This function is called during display object hierarchy update, before updating children
-        // of this display object, but after updating its layout. Thus, we need to update the layout
-        // of the new sprite. Please note, that changing layout in the middle of the display object
-        // refresh could lead to wrong results if the new child layout is different than the
-        // old one (for example, if the parent display object resizing mode wa set to "hug"
-        // and the new child has bigger size, the parent would also need to be updated).
-        // However, we control the layout of the sprite, so we know it did not change.
-        self.display_object.refresh_layout();
     }
-}
 
-impl<S> display::Object for ShapeInstance<S> {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
+    pub(crate) fn show(&self) {
+        self.sprite.borrow().show();
+    }
+
+    pub(crate) fn hide(&self) {
+        self.sprite.borrow().hide();
+    }
+
+    pub(crate) fn set_transform(&self, transform: Matrix4<f32>) {
+        self.sprite.borrow().set_transform(transform);
+    }
+
+    pub(crate) fn set_size(&self, size: Vector2<f32>) {
+        self.sprite.borrow().set_size(size);
     }
 }
 
@@ -341,18 +335,11 @@ impl<S: Shape> ShapeSystem<S> {
         buffer_partition: attribute::BufferPartitionId,
     ) -> (ShapeInstance<S>, symbol::GlobalInstanceId) {
         let sprite = self.model.sprite_system.new_instance_at(buffer_partition);
-        sprite.allow_grow();
         let instance_id = sprite.instance_id;
         let global_id = sprite.global_instance_id;
         let shape = S::new_instance_params(&self.gpu_params, instance_id);
-        let debug = S::enable_dom_debug();
-        let display_object =
-            display::object::Instance::new_named_with_debug(type_name::<S>(), debug);
-        display_object.add_child(&sprite);
-        // FIXME: workaround:
-        // display_object.use_auto_layout();
         let sprite = RefCell::new(sprite);
-        let shape = ShapeInstance { sprite, shape, display_object };
+        let shape = ShapeInstance { sprite, shape };
         (shape, global_id)
     }
 
@@ -553,12 +540,6 @@ impl ShapeSystemModel {
     }
 }
 
-impl display::Object for ShapeSystemModel {
-    fn display_object(&self) -> &display::object::Instance {
-        self.sprite_system.display_object()
-    }
-}
-
 
 
 // ==================
@@ -726,7 +707,7 @@ macro_rules! _shape_old {
             use super::*;
             use $crate::prelude::*;
             use $crate::display;
-            use $crate::display::symbol::geometry::Sprite;
+            use $crate::display::symbol::geometry::RawSprite;
             use $crate::system::gpu;
             use $crate::system::gpu::data::Attribute;
             use $crate::display::shape::ShapeSystemId;
@@ -895,7 +876,7 @@ macro_rules! _shape {
             use super::*;
             use $crate::prelude::*;
             use $crate::display;
-            use $crate::display::symbol::geometry::Sprite;
+            use $crate::display::symbol::geometry::RawSprite;
             use $crate::system::gpu;
             use $crate::system::gpu::data::Attribute;
             use $crate::display::shape::ShapeSystemId;

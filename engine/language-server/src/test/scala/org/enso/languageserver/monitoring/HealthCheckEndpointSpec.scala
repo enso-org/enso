@@ -24,7 +24,7 @@ class HealthCheckEndpointSpec
     with ScalatestRouteTest
     with Directives {
 
-  implicit val timeout = RouteTestTimeout(25.seconds)
+  implicit val timeout: RouteTestTimeout = RouteTestTimeout(25.seconds)
 
   "A readiness probe" should "reply with 200 when the Language Server is ready to accept requests" in new TestCtx {
     //given

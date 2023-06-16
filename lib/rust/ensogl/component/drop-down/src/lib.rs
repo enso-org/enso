@@ -2,6 +2,8 @@
 //! entries.
 
 #![recursion_limit = "512"]
+// === Features ===
+#![feature(let_chains)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -189,6 +191,7 @@ impl<T: DropdownValue> Frp<T> {
             );
             requested_range_ready <- ready_and_request_ranges._0().iter();
             requested_range_needed <- ready_and_request_ranges._1().iter();
+            eval requested_range_needed ((range) model.expect_update_for_range(range.clone()));
 
             output.entries_in_range_needed <+ requested_range_needed;
 
@@ -199,7 +202,7 @@ impl<T: DropdownValue> Frp<T> {
             });
             output.currently_visible_range <+ visible_range;
 
-            updated_range <- provided_entries.map4(
+            requested_ranges_received <- provided_entries.map4(
                 &visible_range, &max_cache_size, &number_of_entries,
                 f!([model]((range, entries), visible, max_size, num_entries) {
                     let range = range.clone();
@@ -208,11 +211,18 @@ impl<T: DropdownValue> Frp<T> {
                 })
             );
 
-            range_to_update <- any(updated_range, requested_range_ready);
-            model.grid.model_for_entry <+ range_to_update.map(f!([model](range) {
-                let models_with_index = model.entry_models_for_range(range.clone());
-                let models_with_cell_pos = models_with_index.map(|(idx, entry)| (idx, 0, entry));
-                models_with_cell_pos.collect_vec()
+            ranges_to_update <- any(...);
+            ranges_to_update <+ requested_range_ready.map(f!([](range) vec![range.clone()]));
+            ranges_to_update <+ requested_ranges_received;
+            model.grid.model_for_entry <+ ranges_to_update.map(f!([model](ranges) {
+                let mut models = vec![];
+                for range in ranges {
+                    let models_with_index = model.entry_models_for_range(range.clone());
+                    let models_with_cell_pos =
+                        models_with_index.map(|(idx, entry)| (idx, 0, entry));
+                    models.extend(models_with_cell_pos);
+                }
+                models
             })).iter();
 
 

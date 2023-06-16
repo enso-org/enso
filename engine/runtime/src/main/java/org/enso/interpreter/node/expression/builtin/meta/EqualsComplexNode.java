@@ -1,22 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
-
-import org.enso.interpreter.dsl.AcceptsError;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
-import org.enso.interpreter.node.expression.builtin.ordering.CustomComparatorNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.callable.UnresolvedConversion;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.data.EnsoFile;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.scope.ModuleScope;
-
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -31,6 +14,21 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import org.enso.interpreter.dsl.AcceptsError;
+import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
+import org.enso.interpreter.node.expression.builtin.ordering.CustomComparatorNode;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.callable.UnresolvedConversion;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.data.EnsoFile;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
 @GenerateUncached
 public abstract class EqualsComplexNode extends Node {

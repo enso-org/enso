@@ -7,7 +7,7 @@ import org.enso.projectmanager.boot.configuration.StorageConfig
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
-import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
+import org.enso.projectmanager.control.effect.ErrorChannel
 import org.enso.projectmanager.infrastructure.file.FileStorage.{
   CannotDecodeData,
   LoadFailure
@@ -33,7 +33,7 @@ import shapeless.{Coproduct, Inl, Inr}
   * @param gen a random generator
   */
 final class MetadataFileStorage[
-  F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap
+  F[+_, +_]: ErrorChannel: CovariantFlatMap
 ](
   directory: File,
   storageConfig: StorageConfig,

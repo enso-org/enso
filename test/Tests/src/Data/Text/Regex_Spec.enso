@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Text.Span.Span
 import Standard.Base.Data.Text.Span.Utf_16_Span
-import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Match.Match
 import Standard.Base.Data.Text.Regex.No_Such_Group
 import Standard.Base.Data.Text.Regex.Pattern.Pattern

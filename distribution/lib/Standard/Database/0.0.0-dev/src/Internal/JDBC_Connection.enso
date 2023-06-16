@@ -135,8 +135,8 @@ type JDBC_Connection
     ## PRIVATE
        Performs the given action within a transaction.
        Once the action is completed, the transaction is committed.
-       If a panic escapes from the action, the transaction is rolled-back and
-       closed.
+       If a panic or dataflow error escapes from the action, the transaction is
+       rolled-back and closed.
        If the rollback fails and panics, the panic related to the rollback will
        take precedence over the original panic that caused that rollback.
     run_within_transaction : Any -> Any
@@ -150,7 +150,9 @@ type JDBC_Connection
                     Panic.throw caught_panic
                 result = Panic.catch Any handler=handle_panic <|
                     In_Transaction.mark_running_in_transaction action
-                java_connection.commit
+                case result.is_error of
+                    True -> java_connection.rollback
+                    False -> java_connection.commit
                 result
 
     ## PRIVATE

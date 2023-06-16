@@ -9,7 +9,7 @@ polyglot java import java.lang.Long
 polyglot java import java.lang.NumberFormatException
 polyglot java import java.lang.Exception as JException
 polyglot java import java.util.ArrayList
-polyglot java import java.util.Random
+polyglot java import java.util.Random as Java_Random
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -87,7 +87,7 @@ spec =
 
         Test.specify "should short-circuit polyglot evaluation" <|
             error = Error.throw 42
-            Random.new error . should_fail_with Integer
+            Java_Random.new error . should_fail_with Integer
 
         Test.specify "should allow to inspect their stacktrace" <|
             error = throw_a_bar

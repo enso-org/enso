@@ -1,17 +1,17 @@
 package org.enso.table.data.column.storage.numeric;
 
+import java.util.BitSet;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.UnaryLongToLongOp;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
-
-import java.util.BitSet;
 
 public abstract class AbstractLongStorage extends NumericStorage<Long> {
   public abstract long getItem(int idx);
@@ -126,6 +126,27 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
                   long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
                 throw new IllegalStateException(
                     "Internal error: Power operation should cast to double.");
+              }
+            })
+        .add(
+            new UnaryLongToLongOp(Maps.TRUNCATE) {
+              @Override
+              protected long doOperation(long a) {
+                return a;
+              }
+            })
+        .add(
+            new UnaryLongToLongOp(Maps.CEIL) {
+              @Override
+              protected long doOperation(long a) {
+                return a;
+              }
+            })
+        .add(
+            new UnaryLongToLongOp(Maps.FLOOR) {
+              @Override
+              protected long doOperation(long a) {
+                return a;
               }
             })
         .add(

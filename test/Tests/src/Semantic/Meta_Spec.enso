@@ -1,5 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Function import Function
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Errors.Common import Uninitialized_State
@@ -9,7 +8,7 @@ polyglot java import java.lang.Long as JLong
 polyglot java import java.lang.Exception as JException
 polyglot java import java.io.IOException
 polyglot java import java.util.ArrayList
-polyglot java import java.util.Random
+polyglot java import java.util.Random as Java_Random
 polyglot java import java.util.Locale as JavaLocale
 
 from Standard.Test import Test, Test_Suite
@@ -113,8 +112,8 @@ spec =
             1.0.is_a Integer . should_be_false
             1.0.is_a Text . should_be_false
 
-            random_gen = Random.new
-            Meta.is_a random_gen Random . should_be_true
+            random_gen = Java_Random.new
+            Meta.is_a random_gen Java_Random . should_be_true
             Meta.is_a random_gen Integer . should_be_false
 
             (My_Type.Value 1 "foo" Nothing).is_a My_Type . should_be_true
@@ -262,7 +261,7 @@ spec =
             Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['parse', 'parse_builtin', 'round', 'truncate']
 
         Test.specify "should correctly handle Java values" <|
-            java_meta = Meta.meta Random.new
+            java_meta = Meta.meta Java_Random.new
             java_meta . should_be_a Meta.Polyglot
             java_meta . get_language . should_equal Meta.Language.Java
 
