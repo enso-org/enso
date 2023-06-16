@@ -1,8 +1,8 @@
-from Standard.Base import all
+from Standard.Base import all hiding Data, Errors
 
 from Standard.Table import Table, Aggregate_Column, Value_Type
 
-from Standard.Database import Database, SQLite
+from Standard.Database import all
 import Standard.Database.Data.Table.Table as Database_Table
 
 import Standard.Visualization.Table.Visualization
