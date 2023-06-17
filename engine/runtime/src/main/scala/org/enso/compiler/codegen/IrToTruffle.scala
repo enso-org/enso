@@ -31,6 +31,7 @@ import org.enso.compiler.pass.resolve.{
   TypeSignatures
 }
 import org.enso.interpreter.epb.EpbParser
+import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
@@ -82,6 +83,7 @@ import org.enso.interpreter.runtime.scope.{
 import org.enso.interpreter.{Constants, EnsoLanguage}
 
 import java.math.BigInteger
+
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -443,7 +445,7 @@ class IrToTruffle(
                 // Register builtin iff it has not been automatically registered at an early stage
                 // of builtins initialization or if it is a static wrapper.
                 fOpt
-                  .filter(m => !m.isAutoRegister() || staticWrapper)
+                  //.filter(m => !m.isAutoRegister() || staticWrapper)
                   .map { m =>
                     if (staticWrapper) {
                       // Static wrappers differ in the number of arguments by 1.
@@ -456,8 +458,29 @@ class IrToTruffle(
                           effectContext,
                           true
                         )
+                      val rootNode = MethodRootNode.build(
+                        language,
+                        expressionProcessor.scope,
+                        moduleScope,
+                        () =>
+                          ApplicationNode.build(
+                            CreateFunctionNode.build(
+                              m.getFunction.getCallTarget,
+                              bodyBuilder.args()
+                            ),
+                            bodyBuilder
+                              .argExprs()
+                              .map(new CallArgument(_))
+                              .toArray,
+                            DefaultsExecutionMode.EXECUTE
+                          ),
+                        makeSection(moduleScope, methodDef.location),
+                        cons,
+                        methodDef.methodName.name
+                      )
                       new RuntimeFunction(
-                        m.getFunction.getCallTarget,
+                        //m.getFunction.getCallTarget,
+                        rootNode.getCallTarget,
                         null,
                         new FunctionSchema(
                           new Array[RuntimeAnnotation](0),
@@ -465,7 +488,42 @@ class IrToTruffle(
                         )
                       )
                     } else {
-                      m.getFunction
+                      val bodyBuilder =
+                        new expressionProcessor.BuildFunctionBody(
+                          fn.arguments,
+                          fn.body,
+                          effectContext,
+                          true
+                        )
+                      val rootNode = MethodRootNode.build(
+                        language,
+                        expressionProcessor.scope,
+                        moduleScope,
+                        () => {
+                          ApplicationNode.build(
+                            CreateFunctionNode.build(
+                              m.getFunction.getCallTarget,
+                              bodyBuilder.args()
+                            ),
+                            bodyBuilder
+                              .argExprs()
+                              .map(new CallArgument(_))
+                              .toArray,
+                            DefaultsExecutionMode.EXECUTE
+                          )
+                        },
+                        makeSection(moduleScope, methodDef.location),
+                        cons,
+                        methodDef.methodName.name
+                      )
+                      new RuntimeFunction(
+                        rootNode.getCallTarget,
+                        null,
+                        new FunctionSchema(
+                          new Array[RuntimeAnnotation](0),
+                          bodyBuilder.args(): _*
+                        )
+                      )
                     }
                   }
               )
@@ -1654,8 +1712,9 @@ class IrToTruffle(
       private lazy val slots = computeSlots()
       private lazy val bodyN = computeBodyNode()
 
-      def args(): Array[ArgumentDefinition] = slots._2
-      def bodyNode(): RuntimeExpression     = bodyN
+      def args(): Array[ArgumentDefinition]          = slots._2
+      def argExprs(): ArrayBuffer[RuntimeExpression] = slots._3
+      def bodyNode(): RuntimeExpression              = bodyN
 
       private def computeBodyNode(): RuntimeExpression = {
         val (argSlotIdxs, _, argExpressions) = slots
@@ -1749,7 +1808,7 @@ class IrToTruffle(
       * @param binding whether the function is right inside a binding
       * @return a truffle node representing the described function
       */
-    def processFunctionBody(
+    private def processFunctionBody(
       arguments: List[IR.DefinitionArgument],
       body: IR.Expression,
       location: Option[IdentifiedLocation],

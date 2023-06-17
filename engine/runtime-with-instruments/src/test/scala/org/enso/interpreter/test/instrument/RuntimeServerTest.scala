@@ -1049,6 +1049,60 @@ class RuntimeServerTest
     )
   }
 
+  it should "send method pointer updates of methods defined on type333" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+
+    val code =
+      """main =
+        |    x1 = T.A
+        |    x2 = x1.func1 1 2
+        |    x2
+        |
+        |type T
+        |    A
+        |
+        |    func1 self x y = x + y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "send method pointer updates of partially applied static methods without application" in {
     pending
     val contextId  = UUID.randomUUID()
@@ -1613,7 +1667,7 @@ class RuntimeServerTest
     )
   }
 
-  it should "send method pointer updates of partially applied module methods called with module name" in {
+  it should "send method pointer updates of partially applied module methods called with module name222" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -1687,6 +1741,69 @@ class RuntimeServerTest
         id_x1,
         ConstantsGen.INTEGER_BUILTIN,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "func1"))
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "send method pointer updates of a builtin method111" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x     = metadata.addItem(46, 17, "aa")
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x = "hello" + "world"
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        id_x,
+        ConstantsGen.TEXT,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Text",
+            "Standard.Base.Data.Text.Text",
+            "+"
+          )
+        )
       ),
       context.executionComplete(contextId)
     )

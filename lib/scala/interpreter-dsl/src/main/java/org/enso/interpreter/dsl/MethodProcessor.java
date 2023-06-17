@@ -314,6 +314,24 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
 
       out.println();
 
+      out.println("  public String getQualifiedName() {");
+      out.println("    return \"" + methodDefinition.getQualifiedName() + "\";");
+      out.println("  }");
+
+      out.println();
+
+      out.println("  public String getType() {");
+      out.println("    return \"" + methodDefinition.getType() + "\";");
+      out.println("  }");
+
+      out.println();
+
+      out.println("  public String getPackageName() {");
+      out.println("    return \"" + methodDefinition.getPackageName() + "\";");
+      out.println("  }");
+
+      out.println();
+
       out.println("  @Override");
       out.println("  public boolean isCloningAllowed() {");
       out.println("    return true;");
