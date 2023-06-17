@@ -49,6 +49,7 @@ public class InsightForEnsoTest {
             print(`${ctx.name} at ${ctx.source.name}:${ctx.line}:`);
             let dump = "";
             for (let p in frame) {
+                frame.unknown // used to yield NullPointerException
                 dump += ` ${p}=${frame[p]}`;
             }
             print(dump);
