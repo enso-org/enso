@@ -49,6 +49,12 @@ macro_rules! replace {
     ($a:tt,$($b:tt)*) => {$($b)*}
 }
 
+#[macro_export]
+macro_rules! replace2 {
+    (() => $($b:tt)*) => {};
+    (($($a:tt)*) => $($b:tt)*) => { $($b)* };
+}
+
 /// The same as [`newtype_prim`] but does not generate derive clauses.
 #[macro_export]
 macro_rules! newtype_prim_no_derives {

@@ -34,25 +34,28 @@
 //!    behavior should be created.
 //! 2. It does not allow for some network optimizations. For example, if a node that requires the
 //!    output to be sampled is removed, the hold node is no longer needed and the value does not
-//!    need to ble cloned anymore.
+//!    need to be cloned anymore.
 //!
 //! That's why this implementation makes this distinction implicit. The FRP network passes events
 //! and some output ports are considered "behaviors" if at least one "sample" input port is
 //! connected to the output port. There are three types of input ports:
 //!
-//! - [`Listen`]: A node can have only one listen port. If a node has this port it can also have
-//!   zero or more [`Sample`] ports (but no [`ListenAndSample`] ports). In case an event is emitted
-//!   to this port, the node will sample all of its [`Sample`] ports, evaluate its expression, and
-//!   emit the output value.
+//! - [`Listen`]: A node can have zero or more listen port, however, all of them have to share the
+//!   same output type. If a node has at least one such port, it can not have any
+//!   [`ListenAndSample`] ports. This restriction allows for a very performant implementation.
+//!   Whenever an input event is received, the node executes without checking which input sent the
+//!   event. If needed, this restriction can be relaxed in the future by implementing
+//!   overlapping/specialized impls. In case an event is emitted to this port, the node will sample
+//!   all of its [`Sample`] ports, evaluate its expression, and emit the output value.
 //!
 //! - [`Sample`]: In contrast to listen ports, if an event is emitted to a sample port, the node
-//!   will not evaluate its expression. Sample ports are used only to sample the last emitted value
-//!   in case a listen port is triggered.
+//!   will not execute. Sample ports are used only to sample the last emitted value in case a listen
+//!   port is triggered.
 //!
-//! - [`ListenAndSample`]: This port is a combination of [`Listen`] and [`Sample`] ports. Unlike the
-//!   [`Listen`] port, a node can have multiple [`ListenAndSample`] ports. In case an event is
-//!   emitted on this port, the node will sample all of its [`ListenAndSample`] and [`Sample`]
-//!   ports, evaluate its expression, and emit the output value.
+//! - [`ListenAndSample`]: This port is a combination of [`Listen`] and [`Sample`] ports. A node can
+//!   have zero or more [`ListenAndSample`] ports and unlike [`Listen`] ports, they do not have to
+//!   share the same output type. In case an event is emitted on this port, the node will sample all
+//!   of its [`ListenAndSample`] and [`Sample`] ports, execute, and emit the output value.
 //!
 //!
 //! # Imperative FRP evaluation order

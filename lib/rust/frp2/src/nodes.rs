@@ -228,7 +228,8 @@ macro_rules! def_map_nodes {
 }
 
 impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
-    def_map_nodes![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+    // def_map_nodes![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+    def_map_nodes![2, 3];
 }
 
 // TODO: Allow more than one listen port - for example, `any` node uses this pattern.

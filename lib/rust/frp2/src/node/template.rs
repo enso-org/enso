@@ -18,6 +18,7 @@ use crate::runtime::with_runtime;
 use crate::runtime::NodeData;
 use crate::runtime::Runtime;
 
+use shapely::replace2;
 
 
 // TODO: Add explanations why unsafe code is actually safe. Should be part of this issue:
@@ -39,7 +40,8 @@ impl<'a, Output> EventContext<'a, Output> {
     /// Constructor. The `Output` type is not checked, so you need to be careful when using this
     /// function.
     #[inline(always)]
-    fn unchecked_new(runtime: &'a Runtime, node: &'a NodeData) -> Self {
+    #[allow(unsafe_code)]
+    unsafe fn unchecked_new(runtime: &'a Runtime, node: &'a NodeData) -> Self {
         EventContext { tp: ZST(), runtime, node }
     }
 }
@@ -214,26 +216,35 @@ impl<Model> Network<Model> {
 ///
 /// The first bracket can contain zero or one value only. See docs of this crate to learn more.
 macro_rules! gen_template_impl {
-    ([$($listen:tt)?] [$($listen_and_sample:tt)*] [$($sample:tt)*]) => {
+    // ([$($l:tt)*] [$($ls:tt)*] [$($s:tt)*]) => {
+    //     range! {(range!)((range!)((gen_template_impl!)(@) [$($l)*]) [$($ls)*]) [$($s)*] }
+    //     // gen_template_impl!{ @ [range!{$($l)*}] [range!{$($ls)*}] [range!{$($s)*}] }
+    // };
+    // (@ [$($l:tt)*] [$($ls:tt)*] [$($s:tt)*]) => {
+    //     paste! {
+    //         gen_template_impl!(# [$([<N $l>])*] [$([<N $ls>])*] [$([<N $s>])*]);
+    //     }
+    // };
+    (# [$($lty:tt => $($l:tt)*)?] [$($ls:tt)*] [$($s:tt)*]) => {
         #[allow(non_snake_case)]
         #[allow(unused_unsafe)]
-        impl<M, Model, $($listen,)? $($listen_and_sample,)* $($sample,)* Output, F>
+        impl<M, Model, $($lty,)? $($($l,)*)? $($ls,)* $($s,)* Output, F>
         Template<M, Model, Output, F> for (
-            $(Listen<$listen>,)?
-            $(ListenAndSample<$listen_and_sample>,)*
-            $(Sample<$sample>,)*
+            $($(Listen<$l>,)*)?
+            $(ListenAndSample<$ls>,)*
+            $(Sample<$s>,)*
         )
         where
             M: ModelChooser<Model>,
-            $($listen: Node,)?
-            $($listen_and_sample: NodeWithDefaultOutput,)*
-            $($sample: NodeWithDefaultOutput,)*
+            $($($l: Node<Output = $lty>,)*)?
+            $($ls: NodeWithDefaultOutput,)*
+            $($s: NodeWithDefaultOutput,)*
             F: 'static + Fn(
                 EventContext<Output>,
                 &mut ChosenModel<M, Model>,
-                $(&$listen::Output,)?
-                $(&$listen_and_sample::Output,)?
-                $(&$sample::Output,)*
+                $(&$lty,)?
+                $(&$ls::Output,)*
+                $(&$s::Output,)*
             ),
         {
             #[inline(always)]
@@ -251,13 +262,14 @@ macro_rules! gen_template_impl {
                         move |rt: &Runtime, node: &NodeData, _data: &dyn Data| {
                             $(
                                 #[allow(trivial_casts)]
-                                let $listen = &*(_data as *const dyn Data as *const $listen::Output);
-                                let (_, _inputs) = _inputs.pop_first_field();
+                                let $lty = &*(_data as *const dyn Data as *const $lty);
                             )?
+                            $($(replace2!{($l) => let (_, _inputs) = _inputs.pop_first_field();})*)?
                             gen_template_impl_body! {
                                 rt, model, node, f, _inputs,
-                                [$($listen)? $($listen_and_sample)* $($sample)*],
-                                [$($listen_and_sample)* $($sample)*]
+                                [$($lty)?],
+                                [$($ls)* $($s)*],
+                                [$($ls)* $($s)*]
                             }
                         },
                         init,
@@ -271,78 +283,323 @@ macro_rules! gen_template_impl {
 }
 
 macro_rules! gen_template_impl_body {
-    ($rt:tt, $model:tt, $node:tt, $f:tt, $inputs:tt, $t:tt, [$n:tt $($ns:tt)*]) => {
+    ($rt:tt, $model:tt, $node:tt, $f:tt, $inputs:tt, $l:tt, $ls:tt, [$n:tt $($ns:tt)*]) => {
         let (input, _inputs) = $inputs.pop_first_field();
         $rt.with_borrowed_node_output_coerced(input.node_id(), |$n| {
-            gen_template_impl_body!($rt, $model, $node, $f, _inputs, $t, [$($ns)*]);
+            gen_template_impl_body!($rt, $model, $node, $f, _inputs, $l, $ls, [$($ns)*]);
         });
     };
-    ($rt:tt, $model:tt, $node:tt, $f:tt, $inputs:tt, [$($ns:tt)*], []) => {
+    ($rt:tt, $model:tt, $node:tt, $f:tt, $inputs:tt, [$($lty:tt)?], [$($ls:tt)*], []) => {
         M::with_model_borrow_mut(&$model, |model| {
-            $f(EventContext::unchecked_new($rt, $node), model, $($ns,)*)
+            $f(EventContext::unchecked_new($rt, $node), model, $($lty,)? $($ls,)*)
         })
     }
 }
 
-/// For the input `[f 1 2 3 4]` it generates:
+
+
+macro_rules! _range {
+    (($($f:tt)*) $(($($args:tt)*))? [] $($ts:tt)*) => { $($f)* { $($($args)*)? [] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [0] $($ts:tt)*) => { $($f)* { $($($args)*)? [0] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [1] $($ts:tt)*) => { $($f)* { $($($args)*)? [1] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [2] $($ts:tt)*) => { $($f)* { $($($args)*)? [2] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [3] $($ts:tt)*) => { $($f)* { $($($args)*)? [3] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [4] $($ts:tt)*) => { $($f)* { $($($args)*)? [4] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [5] $($ts:tt)*) => { $($f)* { $($($args)*)? [5] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [6] $($ts:tt)*) => { $($f)* { $($($args)*)? [6] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [7] $($ts:tt)*) => { $($f)* { $($($args)*)? [7] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [8] $($ts:tt)*) => { $($f)* { $($($args)*)? [8] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [9] $($ts:tt)*) => { $($f)* { $($($args)*)? [9] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [10] $($ts:tt)*) => { $($f)* { $($($args)*)? [10] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [11] $($ts:tt)*) => { $($f)* { $($($args)*)? [11] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [12] $($ts:tt)*) => { $($f)* { $($($args)*)? [12] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [13] $($ts:tt)*) => { $($f)* { $($($args)*)? [13] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [14] $($ts:tt)*) => { $($f)* { $($($args)*)? [14] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [15] $($ts:tt)*) => { $($f)* { $($($args)*)? [15] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [16] $($ts:tt)*) => { $($f)* { $($($args)*)? [16] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [0..=0] $($ts:tt)*) => { $($f)* { $($($args)*)? [0] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [0..=1] $($ts:tt)*) => { $($f)* { $($($args)*)? [0 1] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [0..=2] $($ts:tt)*) => { $($f)* { $($($args)*)? [0 1 2] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [0..=3] $($ts:tt)*) => { $($f)* { $($($args)*)? [0 1 2 3] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [0..=4] $($ts:tt)*) => { $($f)* { $($($args)*)? [0 1 2 3 4] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [0..=5] $($ts:tt)*) => { $($f)* { $($($args)*)? [0 1 2 3 4 5] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [0..=6] $($ts:tt)*) => { $($f)* { $($($args)*)? [0 1 2 3 4 5 6] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [0..=7] $($ts:tt)*) => { $($f)* { $($($args)*)? [0 1 2 3 4 5 6 7] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [0..=8] $($ts:tt)*) => { $($f)* { $($($args)*)? [0 1 2 3 4 5 6 7 8] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [0..=9] $($ts:tt)*) => { $($f)* { $($($args)*)? [0 1 2 3 4 5 6 7 8 9] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [0..=10] $($ts:tt)*) => { $($f)* { $($($args)*)? [0 1 2 3 4 5 6 7 8 9 10] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [0..=11] $($ts:tt)*) => { $($f)* { $($($args)*)? [0 1 2 3 4 5 6 7 8 9 10 11] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [0..=12] $($ts:tt)*) => { $($f)* { $($($args)*)? [0 1 2 3 4 5 6 7 8 9 10 11 12] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [0..=13] $($ts:tt)*) => { $($f)* { $($($args)*)? [0 1 2 3 4 5 6 7 8 9 10 11 12 13] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [0..=14] $($ts:tt)*) => { $($f)* { $($($args)*)? [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [0..=15] $($ts:tt)*) => { $($f)* { $($($args)*)? [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [0..=16] $($ts:tt)*) => { $($f)* { $($($args)*)? [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [1..=1] $($ts:tt)*) => { $($f)* { $($($args)*)? [1] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [1..=2] $($ts:tt)*) => { $($f)* { $($($args)*)? [1 2] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [1..=3] $($ts:tt)*) => { $($f)* { $($($args)*)? [1 2 3] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [1..=4] $($ts:tt)*) => { $($f)* { $($($args)*)? [1 2 3 4] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [1..=5] $($ts:tt)*) => { $($f)* { $($($args)*)? [1 2 3 4 5] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [1..=6] $($ts:tt)*) => { $($f)* { $($($args)*)? [1 2 3 4 5 6] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [1..=7] $($ts:tt)*) => { $($f)* { $($($args)*)? [1 2 3 4 5 6 7] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [1..=8] $($ts:tt)*) => { $($f)* { $($($args)*)? [1 2 3 4 5 6 7 8] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [1..=9] $($ts:tt)*) => { $($f)* { $($($args)*)? [1 2 3 4 5 6 7 8 9] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [1..=10] $($ts:tt)*) => { $($f)* { $($($args)*)? [1 2 3 4 5 6 7 8 9 10] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [1..=11] $($ts:tt)*) => { $($f)* { $($($args)*)? [1 2 3 4 5 6 7 8 9 10 11] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [1..=12] $($ts:tt)*) => { $($f)* { $($($args)*)? [1 2 3 4 5 6 7 8 9 10 11 12] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [1..=13] $($ts:tt)*) => { $($f)* { $($($args)*)? [1 2 3 4 5 6 7 8 9 10 11 12 13] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [1..=14] $($ts:tt)*) => { $($f)* { $($($args)*)? [1 2 3 4 5 6 7 8 9 10 11 12 13 14] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [1..=15] $($ts:tt)*) => { $($f)* { $($($args)*)? [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [1..=16] $($ts:tt)*) => { $($f)* { $($($args)*)? [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [2..=2] $($ts:tt)*) => { $($f)* { $($($args)*)? [2] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [2..=3] $($ts:tt)*) => { $($f)* { $($($args)*)? [2 3] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [2..=4] $($ts:tt)*) => { $($f)* { $($($args)*)? [2 3 4] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [2..=5] $($ts:tt)*) => { $($f)* { $($($args)*)? [2 3 4 5] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [2..=6] $($ts:tt)*) => { $($f)* { $($($args)*)? [2 3 4 5 6] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [2..=7] $($ts:tt)*) => { $($f)* { $($($args)*)? [2 3 4 5 6 7] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [2..=8] $($ts:tt)*) => { $($f)* { $($($args)*)? [2 3 4 5 6 7 8] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [2..=9] $($ts:tt)*) => { $($f)* { $($($args)*)? [2 3 4 5 6 7 8 9] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [2..=10] $($ts:tt)*) => { $($f)* { $($($args)*)? [2 3 4 5 6 7 8 9 10] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [2..=11] $($ts:tt)*) => { $($f)* { $($($args)*)? [2 3 4 5 6 7 8 9 10 11] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [2..=12] $($ts:tt)*) => { $($f)* { $($($args)*)? [2 3 4 5 6 7 8 9 10 11 12] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [2..=13] $($ts:tt)*) => { $($f)* { $($($args)*)? [2 3 4 5 6 7 8 9 10 11 12 13] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [2..=14] $($ts:tt)*) => { $($f)* { $($($args)*)? [2 3 4 5 6 7 8 9 10 11 12 13 14] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [2..=15] $($ts:tt)*) => { $($f)* { $($($args)*)? [2 3 4 5 6 7 8 9 10 11 12 13 14 15] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [2..=16] $($ts:tt)*) => { $($f)* { $($($args)*)? [2 3 4 5 6 7 8 9 10 11 12 13 14 15 16] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [3..=3] $($ts:tt)*) => { $($f)* { $($($args)*)? [3] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [3..=4] $($ts:tt)*) => { $($f)* { $($($args)*)? [3 4] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [3..=5] $($ts:tt)*) => { $($f)* { $($($args)*)? [3 4 5] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [3..=6] $($ts:tt)*) => { $($f)* { $($($args)*)? [3 4 5 6] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [3..=7] $($ts:tt)*) => { $($f)* { $($($args)*)? [3 4 5 6 7] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [3..=8] $($ts:tt)*) => { $($f)* { $($($args)*)? [3 4 5 6 7 8] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [3..=9] $($ts:tt)*) => { $($f)* { $($($args)*)? [3 4 5 6 7 8 9] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [3..=10] $($ts:tt)*) => { $($f)* { $($($args)*)? [3 4 5 6 7 8 9 10] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [3..=11] $($ts:tt)*) => { $($f)* { $($($args)*)? [3 4 5 6 7 8 9 10 11] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [3..=12] $($ts:tt)*) => { $($f)* { $($($args)*)? [3 4 5 6 7 8 9 10 11 12] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [3..=13] $($ts:tt)*) => { $($f)* { $($($args)*)? [3 4 5 6 7 8 9 10 11 12 13] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [3..=14] $($ts:tt)*) => { $($f)* { $($($args)*)? [3 4 5 6 7 8 9 10 11 12 13 14] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [3..=15] $($ts:tt)*) => { $($f)* { $($($args)*)? [3 4 5 6 7 8 9 10 11 12 13 14 15] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [3..=16] $($ts:tt)*) => { $($f)* { $($($args)*)? [3 4 5 6 7 8 9 10 11 12 13 14 15 16] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [4..=4] $($ts:tt)*) => { $($f)* { $($($args)*)? [4] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [4..=5] $($ts:tt)*) => { $($f)* { $($($args)*)? [4 5] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [4..=6] $($ts:tt)*) => { $($f)* { $($($args)*)? [4 5 6] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [4..=7] $($ts:tt)*) => { $($f)* { $($($args)*)? [4 5 6 7] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [4..=8] $($ts:tt)*) => { $($f)* { $($($args)*)? [4 5 6 7 8] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [4..=9] $($ts:tt)*) => { $($f)* { $($($args)*)? [4 5 6 7 8 9] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [4..=10] $($ts:tt)*) => { $($f)* { $($($args)*)? [4 5 6 7 8 9 10] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [4..=11] $($ts:tt)*) => { $($f)* { $($($args)*)? [4 5 6 7 8 9 10 11] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [4..=12] $($ts:tt)*) => { $($f)* { $($($args)*)? [4 5 6 7 8 9 10 11 12] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [4..=13] $($ts:tt)*) => { $($f)* { $($($args)*)? [4 5 6 7 8 9 10 11 12 13] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [4..=14] $($ts:tt)*) => { $($f)* { $($($args)*)? [4 5 6 7 8 9 10 11 12 13 14] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [4..=15] $($ts:tt)*) => { $($f)* { $($($args)*)? [4 5 6 7 8 9 10 11 12 13 14 15] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [4..=16] $($ts:tt)*) => { $($f)* { $($($args)*)? [4 5 6 7 8 9 10 11 12 13 14 15 16] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [5..=5] $($ts:tt)*) => { $($f)* { $($($args)*)? [5] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [5..=6] $($ts:tt)*) => { $($f)* { $($($args)*)? [5 6] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [5..=7] $($ts:tt)*) => { $($f)* { $($($args)*)? [5 6 7] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [5..=8] $($ts:tt)*) => { $($f)* { $($($args)*)? [5 6 7 8] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [5..=9] $($ts:tt)*) => { $($f)* { $($($args)*)? [5 6 7 8 9] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [5..=10] $($ts:tt)*) => { $($f)* { $($($args)*)? [5 6 7 8 9 10] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [5..=11] $($ts:tt)*) => { $($f)* { $($($args)*)? [5 6 7 8 9 10 11] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [5..=12] $($ts:tt)*) => { $($f)* { $($($args)*)? [5 6 7 8 9 10 11 12] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [5..=13] $($ts:tt)*) => { $($f)* { $($($args)*)? [5 6 7 8 9 10 11 12 13] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [5..=14] $($ts:tt)*) => { $($f)* { $($($args)*)? [5 6 7 8 9 10 11 12 13 14] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [5..=15] $($ts:tt)*) => { $($f)* { $($($args)*)? [5 6 7 8 9 10 11 12 13 14 15] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [5..=16] $($ts:tt)*) => { $($f)* { $($($args)*)? [5 6 7 8 9 10 11 12 13 14 15 16] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [6..=6] $($ts:tt)*) => { $($f)* { $($($args)*)? [6] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [6..=7] $($ts:tt)*) => { $($f)* { $($($args)*)? [6 7] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [6..=8] $($ts:tt)*) => { $($f)* { $($($args)*)? [6 7 8] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [6..=9] $($ts:tt)*) => { $($f)* { $($($args)*)? [6 7 8 9] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [6..=10] $($ts:tt)*) => { $($f)* { $($($args)*)? [6 7 8 9 10] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [6..=11] $($ts:tt)*) => { $($f)* { $($($args)*)? [6 7 8 9 10 11] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [6..=12] $($ts:tt)*) => { $($f)* { $($($args)*)? [6 7 8 9 10 11 12] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [6..=13] $($ts:tt)*) => { $($f)* { $($($args)*)? [6 7 8 9 10 11 12 13] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [6..=14] $($ts:tt)*) => { $($f)* { $($($args)*)? [6 7 8 9 10 11 12 13 14] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [6..=15] $($ts:tt)*) => { $($f)* { $($($args)*)? [6 7 8 9 10 11 12 13 14 15] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [6..=16] $($ts:tt)*) => { $($f)* { $($($args)*)? [6 7 8 9 10 11 12 13 14 15 16] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [7..=7] $($ts:tt)*) => { $($f)* { $($($args)*)? [7] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [7..=8] $($ts:tt)*) => { $($f)* { $($($args)*)? [7 8] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [7..=9] $($ts:tt)*) => { $($f)* { $($($args)*)? [7 8 9] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [7..=10] $($ts:tt)*) => { $($f)* { $($($args)*)? [7 8 9 10] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [7..=11] $($ts:tt)*) => { $($f)* { $($($args)*)? [7 8 9 10 11] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [7..=12] $($ts:tt)*) => { $($f)* { $($($args)*)? [7 8 9 10 11 12] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [7..=13] $($ts:tt)*) => { $($f)* { $($($args)*)? [7 8 9 10 11 12 13] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [7..=14] $($ts:tt)*) => { $($f)* { $($($args)*)? [7 8 9 10 11 12 13 14] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [7..=15] $($ts:tt)*) => { $($f)* { $($($args)*)? [7 8 9 10 11 12 13 14 15] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [7..=16] $($ts:tt)*) => { $($f)* { $($($args)*)? [7 8 9 10 11 12 13 14 15 16] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [8..=8] $($ts:tt)*) => { $($f)* { $($($args)*)? [8] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [8..=9] $($ts:tt)*) => { $($f)* { $($($args)*)? [8 9] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [8..=10] $($ts:tt)*) => { $($f)* { $($($args)*)? [8 9 10] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [8..=11] $($ts:tt)*) => { $($f)* { $($($args)*)? [8 9 10 11] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [8..=12] $($ts:tt)*) => { $($f)* { $($($args)*)? [8 9 10 11 12] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [8..=13] $($ts:tt)*) => { $($f)* { $($($args)*)? [8 9 10 11 12 13] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [8..=14] $($ts:tt)*) => { $($f)* { $($($args)*)? [8 9 10 11 12 13 14] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [8..=15] $($ts:tt)*) => { $($f)* { $($($args)*)? [8 9 10 11 12 13 14 15] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [8..=16] $($ts:tt)*) => { $($f)* { $($($args)*)? [8 9 10 11 12 13 14 15 16] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [9..=9] $($ts:tt)*) => { $($f)* { $($($args)*)? [9] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [9..=10] $($ts:tt)*) => { $($f)* { $($($args)*)? [9 10] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [9..=11] $($ts:tt)*) => { $($f)* { $($($args)*)? [9 10 11] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [9..=12] $($ts:tt)*) => { $($f)* { $($($args)*)? [9 10 11 12] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [9..=13] $($ts:tt)*) => { $($f)* { $($($args)*)? [9 10 11 12 13] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [9..=14] $($ts:tt)*) => { $($f)* { $($($args)*)? [9 10 11 12 13 14] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [9..=15] $($ts:tt)*) => { $($f)* { $($($args)*)? [9 10 11 12 13 14 15] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [9..=16] $($ts:tt)*) => { $($f)* { $($($args)*)? [9 10 11 12 13 14 15 16] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [10..=10] $($ts:tt)*) => { $($f)* { $($($args)*)? [10] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [10..=11] $($ts:tt)*) => { $($f)* { $($($args)*)? [10 11] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [10..=12] $($ts:tt)*) => { $($f)* { $($($args)*)? [10 11 12] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [10..=13] $($ts:tt)*) => { $($f)* { $($($args)*)? [10 11 12 13] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [10..=14] $($ts:tt)*) => { $($f)* { $($($args)*)? [10 11 12 13 14] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [10..=15] $($ts:tt)*) => { $($f)* { $($($args)*)? [10 11 12 13 14 15] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [10..=16] $($ts:tt)*) => { $($f)* { $($($args)*)? [10 11 12 13 14 15 16] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [11..=11] $($ts:tt)*) => { $($f)* { $($($args)*)? [11] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [11..=12] $($ts:tt)*) => { $($f)* { $($($args)*)? [11 12] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [11..=13] $($ts:tt)*) => { $($f)* { $($($args)*)? [11 12 13] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [11..=14] $($ts:tt)*) => { $($f)* { $($($args)*)? [11 12 13 14] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [11..=15] $($ts:tt)*) => { $($f)* { $($($args)*)? [11 12 13 14 15] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [11..=16] $($ts:tt)*) => { $($f)* { $($($args)*)? [11 12 13 14 15 16] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [12..=12] $($ts:tt)*) => { $($f)* { $($($args)*)? [12] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [12..=13] $($ts:tt)*) => { $($f)* { $($($args)*)? [12 13] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [12..=14] $($ts:tt)*) => { $($f)* { $($($args)*)? [12 13 14] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [12..=15] $($ts:tt)*) => { $($f)* { $($($args)*)? [12 13 14 15] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [12..=16] $($ts:tt)*) => { $($f)* { $($($args)*)? [12 13 14 15 16] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [13..=13] $($ts:tt)*) => { $($f)* { $($($args)*)? [13] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [13..=14] $($ts:tt)*) => { $($f)* { $($($args)*)? [13 14] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [13..=15] $($ts:tt)*) => { $($f)* { $($($args)*)? [13 14 15] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [13..=16] $($ts:tt)*) => { $($f)* { $($($args)*)? [13 14 15 16] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [14..=14] $($ts:tt)*) => { $($f)* { $($($args)*)? [14] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [14..=15] $($ts:tt)*) => { $($f)* { $($($args)*)? [14 15] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [14..=16] $($ts:tt)*) => { $($f)* { $($($args)*)? [14 15 16] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [15..=15] $($ts:tt)*) => { $($f)* { $($($args)*)? [15] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [15..=16] $($ts:tt)*) => { $($f)* { $($($args)*)? [15 16] $($ts)* } };
+    (($($f:tt)*) $(($($args:tt)*))? [16..=16] $($ts:tt)*) => { $($f)* { $($($args)*)? [16] $($ts)* } };
+}
+
+// range! { (range!)((range!)((foo!)(aa) [9..=10]) [4..=5]) [1..=3] }
+
+// gen_template_impls! {
+// //  listen /**/ listen_and_sample /**/ sample
+//     []     /**/ []                /**/  [],
+//     [1]    /**/ []                /**/  [],
+//     []     /**/ [1]               /**/  [],
+//     [1]    /**/ []                /**/  [2..=2],
+//     [1]    /**/ []                /**/  [2..=3],
+//     [1]    /**/ []                /**/  [2..=4],
+//     [1]    /**/ []                /**/  [2..=5],
+//     [1]    /**/ []                /**/  [2..=6],
+//     [1]    /**/ []                /**/  [2..=7],
+//     [1]    /**/ []                /**/  [2..=8],
+//     [1]    /**/ []                /**/  [2..=9],
+//     [1]    /**/ []                /**/  [2..=10],
+//     [1]    /**/ []                /**/  [2..=11],
+//     [1]    /**/ []                /**/  [2..=12],
+//     [1]    /**/ []                /**/  [2..=13],
+//     [1]    /**/ []                /**/  [2..=14],
+//     [1]    /**/ []                /**/  [2..=15],
+//     [1]    /**/ []                /**/  [2..=16],
+//     []     /**/ []                /**/  [1..=16],
+// }
+
+/// For the input `[(f!)(args) [1 2 3 4]]` (The `(args)` part is optional) it generates:
 /// ```text
-/// f! {}
-/// f! {1}
-/// f! {1 2}
-/// f! {1 2 3}
-/// f! {1 2 3 4}
+/// f! { args [] }
+/// f! { args [1] }
+/// f! { args [1 2] }
+/// f! { args [1 2 3] }
+/// f! { args [1 2 3 4] }
 /// ```
 ///
 /// For the input length of X, it generates (X + 1) calls to `f!`.
 macro_rules! with_all_init_sequences {
-    ($f:ident $($ns:literal)*) => {
-        with_all_init_sequences! { @ $f [] [ $($ns)* ] }
+    ($f:tt $(($($args:tt)*))? [$($ns:tt)*]) => {
+        with_all_init_sequences! { @ $f $(($($args)*))? [] [ $($ns)* ] }
     };
-    (@ $f:ident [$($ts:tt)*] [$s:tt $($ss:tt)*]) => {
-        $f! { $($ts)* }
-        with_all_init_sequences! { @ $f [$($ts)* $s] [$($ss)*] }
+    (@ ($($f:tt)*) $(($($args:tt)*))? [$($ts:tt)*] [$s:tt $($ss:tt)*]) => {
+        $($f)* { $($($args)*)? [$($ts)*] }
+        with_all_init_sequences! { @ ($($f)*) $(($($args)*))? [$($ts)* $s] [$($ss)*] }
     };
-    (@ $f:ident  [$($ts:tt)*] []) => {
-        $f! { $($ts)* }
+    (@ ($($f:tt)*) $(($($args:tt)*))? [$($ts:tt)*] []) => {
+        $($f)* { $($($args)*)? [$($ts)*] }
     };
 }
 
-/// For the input `1 2 3 4` it generates:
+
+/// Below we present an example expansion of this macro. The `(args)` part is optional:
+///
 /// ```text
-/// gen_template_impl! { [N0] [ ]            [N1 N2 N3 N4] }
-/// gen_template_impl! { []   [ ]            [N1 N2 N3 N4] }
-/// gen_template_impl! { [N0] [N1]           [N2 N3 N4]    }
-/// gen_template_impl! { []   [N1]           [N2 N3 N4]    }
-/// gen_template_impl! { [N0] [N1 N2]        [N3 N4]       }
-/// gen_template_impl! { []   [N1 N2]        [N3 N4]       }
-/// gen_template_impl! { [N0] [N1 N2 N3]     [N4]          }
-/// gen_template_impl! { []   [N1 N2 N3]     [N4]          }
-/// gen_template_impl! { [N0] [N1 N2 N3 N4]  []            }
-/// gen_template_impl! { []   [N1 N2 N3 N4]  []            }
+/// >> all_splits2!((f!)(args) [1 2 3])
+///
+/// f! { args []      [1 2 3] }
+/// f! { args [1]     [2 3]   }
+/// f! { args [1 2]   [3]     }
+/// f! { args [1 2 3] []      }
 /// ```
 ///
-/// For the empty input, it generates:
+/// For the input length X, it generates X calls to `f!`.
+macro_rules! all_splits2 {
+    (($($f:tt)*) $(($($args:tt)*))? [$($ts:tt)*]) => {
+        all_splits2! { @ ($($f)*) $(($($args)*))? [] [$($ts)*] }
+    };
+    (@ ($($f:tt)*) $(($($args:tt)*))? [$($as:tt)*] [$b:tt $($bs:tt)*]) => {
+        $($f)* { $($($args)*)? [$($as)*] [$b $($bs)*] }
+        all_splits2! { @ ($($f)*) $(($($args)*))? [$($as)* $b] [$($bs)*] }
+    };
+    (@ ($($f:tt)*) $(($($args:tt)*))? [$a:tt $($as:tt)*] []) => {
+        $($f)* { $($($args)*)? [$a $($as)*] [] }
+    };
+    (@ ($($f:tt)*) $(($($args:tt)*))? [] []) => {
+        $($f)* { $($($args)*)? [] [] }
+    };
+}
+// all_splits2!((f!)(args) [1 2 3]);
+
+/// Below we present an example expansion of this macro. The `(args)` part is optional:
+///
 /// ```text
-/// gen_template_impl! { [N0] [] [] }
-/// gen_template_impl! { []   [] [] }
+/// >> all_splits3!((f!)(args) [1 2 3])
+///
+/// f! { args []      []      [1 2 3] }
+/// f! { args []      [1]     [2 3]   }
+/// f! { args []      [1 2]   [3]     }
+/// f! { args []      [1 2 3] []      }
+/// f! { args [1]     []      [2 3]   }
+/// f! { args [1]     [2]     [3]     }
+/// f! { args [1]     [2 3]   []      }
+/// f! { args [1 2]   []      [3]     }
+/// f! { args [1 2]   [3]     []      }
+/// f! { args [1 2 3] []      []      }
 /// ```
 ///
-/// For the input length of X, it generates (X + 1) * 2 calls to `gen_template_impl!`.
-macro_rules! with_all_divisions {
-    ($($ns:literal)*) => { paste! {
-        with_all_divisions! { @ [] [ $([<N $ns>])* ] }
+/// For the input length X, it generates (X + 1) * (X + 2) / 2 calls to `f!`.
+macro_rules! _all_splits3 {
+    (($($f:tt)*) $(($($args:tt)*))? [$($ts:tt)*]) => {
+        all_splits3! { @ ($($f)*) $(($($args)*))? [] [] [$($ts)*] }
+    };
+    (@ ($($f:tt)*) $(($($args:tt)*))? [$($as:tt)*] [$($bs:tt)*] [$c:tt $($cs:tt)*]) => {
+        $($f)* { $($($args)*)? [$($as)*] [$($bs)*] [$c $($cs)*] }
+        all_splits3! { @ ($($f)*) $(($($args)*))? [$($as)*] [$($bs)* $c] [$($cs)*] }
+    };
+    (@ ($($f:tt)*) $(($($args:tt)*))? [$($as:tt)*] [$b:tt $($bs:tt)*] []) => {
+        $($f)* { $($($args)*)? [$($as)*] [$b $($bs)*] [] }
+        all_splits3! { @ ($($f)*) $(($($args)*))? [$($as)* $b] [] [$($bs)*] }
+    };
+    (@ ($($f:tt)*) $(($($args:tt)*))? [$($as:tt)*] [] []) => {
+        $($f)* { $($($args)*)? [$($as)*] [] [] }
+    };
+}
+
+
+
+macro_rules! gen_template_impls {
+    ([$($as:tt)*] [$($bs:tt)*]) => { paste! {
+        gen_template_impls! { @ [ $([<N $as>])* ] [ $([<N $bs>])* ] }
     }};
-    (@ [$($ts:tt)*] [$s:tt $($ss:tt)*]) => {
-        gen_template_impl! { [N0] [$($ts)*] [$s $($ss)*] }
-        gen_template_impl! { [] [$($ts)*] [$s $($ss)*] }
-        with_all_divisions! { @ [$($ts)* $s] [$($ss)*] }
-    };
-    (@ $ts:tt []) => {
-        gen_template_impl! { [N0] $ts [] }
-        gen_template_impl! { [] $ts [] }
-    };
+    (@ [] [$($bs:tt)*]) => { paste! {
+        gen_template_impl! { # [] [] [$($bs)*] }
+    }};
+    (@ [$($as:tt)*] [$($bs:tt)*]) => { paste! {
+        gen_template_impl! { # [] [$($as)*] [$($bs)*] }
+        gen_template_impl! { # [L => $($as)*] [] [$($bs)*] }
+    }};
 }
 
-// For the input of X, it generates (X + 1) * (X + 1) * 2 calls to `gen_template_impl!`.
-// It means, that for the input of 16, it generates 578 calls to `gen_template_impl!`.
-with_all_init_sequences![with_all_divisions 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15];
+// For the input of X, it generates less than 2 * X * (X + 1) impls. So, for X = 16, it generates
+// less than 512 impls.
+with_all_init_sequences! { (all_splits2!)((gen_template_impls!)) [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16] }

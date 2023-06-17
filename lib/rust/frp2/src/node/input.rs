@@ -42,7 +42,7 @@ macro_rules! gen {
                 match self { $(Self::$variant(t) => t),* }
             }
 
-            /// Check whether the input type is s sampler.
+            /// Check whether the input type is a sampler.
             #[inline(always)]
             pub fn is_sampler(self) -> bool {
                 match self { $(Self::$variant(_) => $is_sampler),* }

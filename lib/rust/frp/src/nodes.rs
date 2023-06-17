@@ -1457,7 +1457,7 @@ impl Network {
 // === Dynamic Node API ===
 // ========================
 
-/// This is a _phantom structure used by macros to create dynamic FRP graphs. It exposes the same
+/// This is a phantom structure used by macros to create dynamic FRP graphs. It exposes the same
 /// API as `Network` in order to reuse macro code for both network and dynamic modes.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct DynamicNetwork {}

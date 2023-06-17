@@ -116,11 +116,10 @@ where
 // === Public API ===
 
 impl<T, const N: usize, I, B> UnrolledLinkedList<T, N, I, B> {
+    const _NONZERO_N: () = assert!(N > 0, "UnrolledLinkedList: N must be greater than 0.");
+
     /// Constructor.
     pub fn new() -> Self {
-        if N == 0 {
-            panic!("UnrolledLinkedList: N must be greater than 0.");
-        }
         let len = default();
         let capacity = default();
         let first_node = default();
@@ -223,7 +222,7 @@ where
     }
 
     /// Add several new items at the end and return the index of the first added item. The exact
-    /// mew item shape depends on the allocation behavior (the [`Self::B`] parametrization). In case
+    /// new item shape depends on the allocation behavior (the [`Self::B`] parametrization). In case
     /// of [`prealloc::Disabled]` or [`prealloc::Default`], the new element will be initialized
     /// with its default value. in case of [`prealloc::Zeroed`], the new element will be
     /// initialized with zeroed memory.
@@ -387,10 +386,7 @@ impl<T, const N: usize, B> Node<T, N, B> {
     #[inline(always)]
     fn items_and_next_mut(&mut self) -> (&mut Vec<NodeItem<T>>, Option<&mut Box<Self>>) {
         let next = self.next.opt_item_mut();
-        // # Safety
-        // Self is mutably borrowed, so this call is safe.
-        #[allow(unsafe_code)]
-        let items = unsafe { self.items.unchecked_borrow_mut() };
+        let items = self.items.get_mut();
         (items, next)
     }
 
@@ -407,13 +403,7 @@ impl<T, const N: usize, B> Node<T, N, B> {
 
     #[inline(always)]
     fn items_mut(&mut self) -> &mut Vec<NodeItem<T>> {
-        // # Safety
-        // The only function that does not require mutable self access which mutably borrows items
-        // is [`Self::push_internal`], but it borrows newly created item only.
-        #[allow(unsafe_code)]
-        unsafe {
-            self.items.unchecked_borrow_mut()
-        }
+        self.items.get_mut()
     }
 }
 
