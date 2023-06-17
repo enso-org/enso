@@ -1,0 +1,17 @@
+[package]
+name = "enso-frp2"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[dependencies]
+enso-frp = { path = "../frp" }
+enso-prelude = { path = "../prelude" }
+smallvec = "1.10.0"
+bytemuck = { workspace = true }
+enso-data-structures = { path = "../data-structures" }
+enso-generics = { path = "../generics" }
+
+[features]
+stack-trace = []
+metrics = []

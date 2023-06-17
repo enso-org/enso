@@ -5,7 +5,7 @@
     name="doc-test/ensogl-examples [native]"
     type="CargoCommandRunConfiguration" 
     factoryName="Cargo Command"
-    folderName="🎨 EnsoGl      example"
+    folderName="🎨 EnsoGl      examples"
   >
     <option name="command" value="test --doc  --target-dir dist/intellij_native --package ensogl-examples" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
