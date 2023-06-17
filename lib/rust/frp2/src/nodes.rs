@@ -91,7 +91,8 @@ impl<M: Model> Network<M> {
     }
 }
 
-// TODO: Limit allowing emitting events to source node only.
+// TODO: Limit allowing emitting events to source node only. To be finished in:
+//       https://github.com/enso-org/enso/issues/7043
 
 
 // === Sampler ===

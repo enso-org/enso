@@ -431,7 +431,8 @@ where B: AllocationBehavior<T>
             if resize_items {
                 // # Safety
                 // The vector was initialized with capacity of `N` elements, so it is safe to set
-                // its new size here, as the value will be written below.
+                // its new size here, as the value will be written below. This is safe with the
+                // current Vec implementation, as it only changes its length (`usize`) field.
                 #[allow(unsafe_code)]
                 unsafe {
                     self.items.unchecked_borrow_mut().set_len(offset + 1);
@@ -723,17 +724,7 @@ impl<T: Default> AllocationBehavior<T> for prealloc::Disabled {
 
     #[inline(always)]
     fn new_node<const N: usize>() -> Node<T, N, Self> {
-        let items = {
-            let layout = std::alloc::Layout::array::<NodeItem<T>>(N).unwrap();
-            // # Safety
-            // We are allocating the memory, but we are keeping the Vec length at 0. This is needed
-            // because we want to be able to push new elements without the need to allocate the
-            // memory.
-            #[allow(unsafe_code)]
-            unsafe {
-                Vec::from_raw_parts(std::alloc::alloc(layout) as *mut _, 0, N)
-            }
-        };
+        let items = Vec::with_capacity(N);
         let items = UnsafeCell::new(items);
         let next = default();
         let _allocation_behavior = ZST();

@@ -51,7 +51,7 @@ impl<Type, Output: Data> Node for TypedNode<Type, Output> {
 
 impl<Type, Output> TypedNode<Type, Output> {
     /// # Safety
-    /// The value is checked to have the correct [`Output`] type.
+    /// The value is checked by the function type signature to have the correct [`Output`] type.
     #[inline(never)]
     #[allow(unsafe_code)]
     pub fn emit(&self, value: &Output)
@@ -67,7 +67,8 @@ impl<Model> Network<Model> {
     /// The type safety is not guaranteed. You have to ensure that the [`f`] function arguments and
     /// output type are correct.
     #[inline(always)]
-    pub(crate) fn new_node_with_init_unchecked<Type, Output>(
+    #[allow(unsafe_code)]
+    pub(crate) unsafe fn new_node_with_init_unchecked<Type, Output>(
         &self,
         f: impl EventConsumer,
         init: impl FnOnce(&mut NodeData),

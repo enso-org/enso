@@ -1,15 +1,10 @@
 //! FRP node implementation.
 
 
-// ==============
-// === Export ===
-// ==============
-
-pub mod input;
-
-
 
 mod node;
 mod template;
+
+pub mod input;
 
 pub use node::*;

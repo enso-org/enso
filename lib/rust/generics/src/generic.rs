@@ -1,6 +1,7 @@
 //! Generic representation of data types. Refer to the crate documentation to learn more.
 
-use super::hlist;
+use crate::hlist;
+
 use derivative::Derivative;
 use enso_zst::ZST;
 use hlist::Cons;
@@ -75,8 +76,6 @@ pub mod traits {
     pub use super::PushFirstField as _TRAIT_PushFirstField;
     pub use super::PushLastField as _TRAIT_PushBack;
     pub use super::PushLastField as _TRAIT_PushLastField;
-    pub use super::_AsMutFields as _TRAIT__AsMutFields;
-    pub use super::_AsRefFields as _TRAIT__AsRefFields;
     pub use super::_GetFieldAt as _TRAIT__GetFieldAt;
     pub use super::_GetFieldAtMut as _TRAIT__GetFieldAtMut;
     pub use super::_IntoFamily as _TRAIT__IntoFamily;
@@ -107,11 +106,12 @@ pub trait BelongsToFamily {
 /// Generic marker of the given type. See [`BelongsToFamily`] for more information.
 pub type Family<T> = <T as BelongsToFamily>::Family;
 
-/// Converts the generic representation [`HList`] to the concrete type of the given family. For
-/// example, `t.into_family::<Tuple>()` converts the given data to appropriate tuple representation.
+/// Converts the generic representation [`HList`] to the concrete type of the given family.
 #[allow(missing_docs)]
 pub trait IntoFamily<M> {
     type Output;
+    /// Instead of using this function, use the [`_IntoFamily::into_family`] which allows for a
+    /// turbofish syntax.
     fn _into_family(self) -> Self::Output;
 }
 
@@ -179,28 +179,17 @@ impl<T: HasHListRepr> HasFieldCount for T {
 #[allow(missing_docs)]
 pub trait AsRefFields {
     type RefFields;
-    fn _as_ref_fields(self) -> Self::RefFields;
+    #[allow(clippy::wrong_self_convention)]
+    fn as_ref_fields(self) -> Self::RefFields;
 }
 
 /// Struct with all fields transformed to references. See docs of [`AsRefFields`] for more info.
 pub type RefFields<T> = <T as AsRefFields>::RefFields;
 
-/// Wrapper for [`AsRefFields`] enabling the syntax `t.as_ref_fields()`. This trait is automatically
-/// implemented for all structs.
-#[allow(missing_docs)]
-pub trait _AsRefFields {
-    #[inline(always)]
-    fn as_ref_fields<'t>(&'t self) -> RefFields<&'t Self>
-    where &'t Self: AsRefFields {
-        self._as_ref_fields()
-    }
-}
-impl<T> _AsRefFields for T {}
-
 impl<'t> AsRefFields for &'t Nil {
     type RefFields = Nil;
     #[inline(always)]
-    fn _as_ref_fields(self) -> Self::RefFields {
+    fn as_ref_fields(self) -> Self::RefFields {
         Nil
     }
 }
@@ -210,8 +199,8 @@ where &'t T: AsRefFields
 {
     type RefFields = Cons<&'t H, RefFields<&'t T>>;
     #[inline(always)]
-    fn _as_ref_fields(self) -> Self::RefFields {
-        Cons(&self.0, (&self.1)._as_ref_fields())
+    fn as_ref_fields(self) -> Self::RefFields {
+        Cons(&self.0, (&self.1).as_ref_fields())
     }
 }
 
@@ -223,7 +212,7 @@ where
 {
     type RefFields = <HListRepr<&'t T> as IntoFamily<Family<T>>>::Output;
     #[inline(always)]
-    fn _as_ref_fields(self) -> Self::RefFields {
+    fn as_ref_fields(self) -> Self::RefFields {
         self.into_hlist().into_family_of::<T>()
     }
 }
@@ -240,28 +229,17 @@ where
 #[allow(missing_docs)]
 pub trait AsMutFields {
     type MutFields;
-    fn _as_mut_fields(self) -> Self::MutFields;
+    #[allow(clippy::wrong_self_convention)]
+    fn as_mut_fields(self) -> Self::MutFields;
 }
 
 /// Struct with all fields transformed to references. See docs of [`AsMutFields`] for more info.
 pub type MutFields<T> = <T as AsMutFields>::MutFields;
 
-/// Wrapper for [`AsMutFields`] enabling the syntax `t.as_mut_fields()`. This trait is automatically
-/// implemented for all structs.
-#[allow(missing_docs)]
-pub trait _AsMutFields {
-    #[inline(always)]
-    fn as_mut_fields<'t>(&'t mut self) -> MutFields<&'t mut Self>
-    where &'t mut Self: AsMutFields {
-        self._as_mut_fields()
-    }
-}
-impl<T> _AsMutFields for T {}
-
 impl<'t> AsMutFields for &'t mut Nil {
     type MutFields = Nil;
     #[inline(always)]
-    fn _as_mut_fields(self) -> Self::MutFields {
+    fn as_mut_fields(self) -> Self::MutFields {
         Nil
     }
 }
@@ -271,8 +249,8 @@ where &'t mut T: AsMutFields
 {
     type MutFields = Cons<&'t mut H, MutFields<&'t mut T>>;
     #[inline(always)]
-    fn _as_mut_fields(self) -> Self::MutFields {
-        Cons(&mut self.0, (&mut self.1)._as_mut_fields())
+    fn as_mut_fields(self) -> Self::MutFields {
+        Cons(&mut self.0, (&mut self.1).as_mut_fields())
     }
 }
 
@@ -284,7 +262,7 @@ where
 {
     type MutFields = <HListRepr<&'t mut T> as IntoFamily<Family<T>>>::Output;
     #[inline(always)]
-    fn _as_mut_fields(self) -> Self::MutFields {
+    fn as_mut_fields(self) -> Self::MutFields {
         self.into_hlist().into_family_of::<T>()
     }
 }
@@ -674,8 +652,9 @@ impl_field_index_for_hlist![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1
 
 /// Take the ownership of self and return its I-th field. Please note that this is automatically
 /// implemented for every type with a generic representation.
-#[allow(missing_docs)]
 pub trait IntoFieldAt<const I: usize>: Sized + HasFieldAt<I> {
+    /// Instead of using this function, use the [`_IntoFieldAt::into_field_at`] which allows for a
+    /// turbofish syntax.
     fn _into_field_at(self) -> FieldAt<I, Self>;
 }
 
@@ -739,8 +718,9 @@ impl_into_field_at_for_hlist![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 
 /// Return the I-th field reference. Please note that this is automatically implemented for every
 /// generic type.
-#[allow(missing_docs)]
 pub trait GetFieldAt<const I: usize>: HasFieldAt<I> {
+    /// Instead of using this function, use the [`_GetFieldAt::field_at`] which allows for a
+    /// turbofish syntax.
     fn _field_at(&self) -> &FieldAt<I, Self>;
 }
 
@@ -805,9 +785,10 @@ impl_get_field_at_for_hlist![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 
 
 /// Return the I-th field mutable reference. Please note that this is automatically implemented for
 /// every generic type.
-#[allow(missing_docs)]
 pub trait GetFieldAtMut<const I: usize>
 where Self: HasFieldAt<I> {
+    /// Instead of using this function, use the [`_HasFieldAt::field_at_mut`] which allows for a
+    /// turbofish syntax.
     fn _field_at_mut(&mut self) -> &mut FieldAt<I, Self>;
 }
 
@@ -1087,6 +1068,8 @@ where
 #[allow(missing_docs)]
 pub trait MapFieldsWith<M>: Sized {
     type MappedFieldsWith;
+    /// Instead of using this function, use the [`_MapFieldsWith::map_fields_with`] which allows for
+    /// a turbofish syntax.
     fn _map_fields_with(self, mapper: &M) -> Self::MappedFieldsWith;
 }
 
@@ -1174,8 +1157,9 @@ impl<T: Into<S>, S> MapFieldWith<MapperInto<S>> for T {
 
 /// Alias for [`MapFieldsWith<MapperInto<S>>`]. This trait is automatically implemented for every
 /// struct.
-#[allow(missing_docs)]
 pub trait MapFieldsInto<S>: MapFieldsWith<MapperInto<S>> {
+    /// Instead of using this function, use the [`_MapFieldsInto::map_fields_into`] which allows for
+    /// a turbofish syntax.
     #[inline(always)]
     fn _map_fields_into(self) -> MappedFieldsWith<Self, MapperInto<S>> {
         self.map_fields_with(&MapperInto::<S>::default())

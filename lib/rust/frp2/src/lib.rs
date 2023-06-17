@@ -173,6 +173,8 @@ pub use enso_prelude as prelude;
 
 
 
+// FIXME: this file will be finished as part of https://github.com/enso-org/enso/issues/7043
+
 // =============
 // === Tests ===
 // =============

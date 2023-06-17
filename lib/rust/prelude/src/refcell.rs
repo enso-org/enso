@@ -58,7 +58,8 @@ where
 // ================
 
 /// A value borrowed from a [`RefCell`]-like struct. In debug mode, this is an alias for
-/// [`std::cell::Ref`].
+/// [`std::cell::Ref`]. In a non-debug mode, this is a zero-overhead wrapper for the borrowed value,
+/// allowing uniform typing of borrowed values from [`ZeroOverheadRefCell`].
 #[cfg(debug_assertions)]
 pub type Borrowed<'a, T> = std::cell::Ref<'a, T>;
 

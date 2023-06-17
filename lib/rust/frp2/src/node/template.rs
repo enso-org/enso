@@ -246,21 +246,23 @@ macro_rules! gen_template_impl {
             ) -> TypedNode<Type, Output> {
                 let model = M::clone_model(&net.model);
                 let _inputs = inputs.map_fields_into::<input::Type>();
-                let node = net.new_node_with_init_unchecked(
-                    move |rt: &Runtime, node: &NodeData, _data: &dyn Data| unsafe {
-                        $(
-                            #[allow(trivial_casts)]
-                            let $listen = &*(_data as *const dyn Data as *const $listen::Output);
-                            let (_, _inputs) = _inputs.pop_first_field();
-                        )?
-                        gen_template_impl_body! {
-                            rt, model, node, f, _inputs,
-                            [$($listen)? $($listen_and_sample)* $($sample)*],
-                            [$($listen_and_sample)* $($sample)*]
-                        }
-                    },
-                    init,
-                );
+                let node = unsafe {
+                    net.new_node_with_init_unchecked(
+                        move |rt: &Runtime, node: &NodeData, _data: &dyn Data| {
+                            $(
+                                #[allow(trivial_casts)]
+                                let $listen = &*(_data as *const dyn Data as *const $listen::Output);
+                                let (_, _inputs) = _inputs.pop_first_field();
+                            )?
+                            gen_template_impl_body! {
+                                rt, model, node, f, _inputs,
+                                [$($listen)? $($listen_and_sample)* $($sample)*],
+                                [$($listen_and_sample)* $($sample)*]
+                            }
+                        },
+                        init,
+                    )
+                };
                 with_runtime(|rt| _inputs.field_iter(|input| rt.connect(*input, node.id)));
                 node
             }

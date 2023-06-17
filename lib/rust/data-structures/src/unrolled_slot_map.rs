@@ -329,7 +329,8 @@ where B: AllocationBehavior<Slot<Item>>
     }
 }
 
-// FIXME: Uncomment after implementing mut iter for UnrolledLinkedList
+// FIXME: Uncomment after implementing mut iter for UnrolledLinkedList in
+//        https://github.com/enso-org/enso/issues/7043
 // impl<T, const N: usize, Kind, B> Clearable for UnrolledSlotMap<T, N, Kind, B> {
 //     #[inline(always)]
 //     fn clear(&mut self) {
