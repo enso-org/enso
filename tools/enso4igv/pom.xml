@@ -189,6 +189,12 @@
         </dependency>
         <dependency>
             <groupId>org.netbeans.api</groupId>
+            <artifactId>org-netbeans-api-lsp</artifactId>
+            <version>RELEASE160</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
             <artifactId>org-netbeans-modules-nbjunit</artifactId>
             <version>${netbeans.version}</version>
             <scope>test</scope>
@@ -206,6 +212,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <netbeans.version>RELEASE113</netbeans.version>
         <netbeans.compile.on.save>none</netbeans.compile.on.save>
+        <enso.root>${basedir}/../../</enso.root>
     </properties>
     <profiles>
         <profile>
