@@ -103,33 +103,39 @@ impl Network {
 
     /// Emits `true`, `false`, `true`, `false`, ... on every incoming event. Initialized with false
     /// value.
+    /// [x]
     pub fn toggle<T: EventOutput>(&self, label: Label, src: &T) -> Stream<bool> {
         self.register(OwnedToggle::new(label, src))
     }
 
     /// Emits `false`, `true`, `false`, `true`, ... on every incoming event. Initialized with true
     /// value.
+    /// [x]
     pub fn toggle_true<T: EventOutput>(&self, label: Label, src: &T) -> Stream<bool> {
         self.register(OwnedToggle::new_with(label, src, true))
     }
 
     /// Count the incoming events.
+    /// [x]
     pub fn count<T: EventOutput>(&self, label: Label, src: &T) -> Stream<usize> {
         self.register(OwnedCount::new(label, src))
     }
 
     /// Replace the incoming event with the predefined value.
+    /// [x]
     pub fn constant<X: Data, T: EventOutput>(&self, label: Label, src: &T, value: X) -> Stream<X> {
         self.register(OwnedConstant::new(label, src, value))
     }
 
     /// Remembers the value of the input stream and outputs the previously received one.
+    /// [x]
     pub fn previous<T: EventOutput>(&self, label: Label, src: &T) -> Stream<Output<T>> {
         self.register(OwnedPrevious::new(label, src))
     }
 
     /// Samples the first stream (behavior) on every incoming event of the second stream. The
     /// incoming event is dropped and a new event with the behavior's value is emitted.
+    /// [x]
     pub fn sample<T1: EventOutput, T2: EventOutput>(
         &self,
         label: Label,
@@ -141,6 +147,7 @@ impl Network {
 
     /// Passes the incoming event of the first stream only if the value of the second stream is
     /// true.
+    /// [x]
     pub fn gate<T1, T2>(&self, label: Label, event: &T1, behavior: &T2) -> Stream<Output<T1>>
     where
         T1: EventOutput,
@@ -148,6 +155,7 @@ impl Network {
         self.register(OwnedGate::new(label, event, behavior))
     }
 
+    /// [ ]
     pub fn sampled_gate<T1, T2>(
         &self,
         label: Label,
@@ -164,6 +172,7 @@ impl Network {
         self.any(label, &value, &value2)
     }
 
+    /// [ ]
     pub fn sampled_gate_not<T1, T2>(
         &self,
         label: Label,
@@ -181,6 +190,7 @@ impl Network {
     }
 
     /// Like `gate` but passes the value when the condition is `false`.
+    /// [x]
     pub fn gate_not<T1, T2>(&self, label: Label, event: &T1, behavior: &T2) -> Stream<Output<T1>>
     where
         T1: EventOutput,
@@ -196,6 +206,7 @@ impl Network {
     /// Behavior: T---F---T-----F-------T---T---F---T--
     /// Event:    --1--2-----3---4-5-6-----------------
     /// Output:   --1-----2--3----------6--------------
+    /// [ ]
     pub fn buffered_gate<T1, T2>(
         &self,
         label: Label,
@@ -215,6 +226,7 @@ impl Network {
     /// Event:  1---2---3-----4-------5---6---7---8--
     /// Sync:   --|--------|---|---|-----------------
     /// Output: ----2---------4-------5--------------
+    /// [ ]
     pub fn sync_gate<T, T2>(&self, label: Label, event: &T, sync: &T2) -> Stream<Output<T>>
     where
         T: EventOutput,

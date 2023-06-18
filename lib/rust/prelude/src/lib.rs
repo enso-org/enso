@@ -14,6 +14,7 @@
 #![feature(negative_impls)]
 #![feature(pattern)]
 #![feature(cfg_version)]
+#![feature(box_into_inner)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

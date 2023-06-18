@@ -271,11 +271,86 @@ impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
         })
     }
 
-    // pub fn toggle(self) -> NodeInNetwork<'a, M, Stream<bool>> {
-    //     let mut value = false;
-    //     self.new_node((Listen(self),), move |event, _, _| {
-    //         value = !value;
-    //         event.emit(&value);
-    //     })
-    // }
+    /// On every event, emit next element of an infinite stream of `true`, `false`, `true`, `false`,
+    /// [...]. The first emitted value will be `true`.
+    pub fn toggle(self) -> NodeInNetwork<'a, M, Stream<bool>> {
+        let value = Cell::new(false);
+        self.new_node((Listen(self),), move |event, _, _| {
+            value.update(|t| !t);
+            event.emit(&value.get());
+        })
+    }
+
+    /// On every event, emit next element of an infinite stream of `false`, `true`, `false`, `true`,
+    /// [...]. The first emitted value will be `false`.
+    pub fn toggle_true(self) -> NodeInNetwork<'a, M, Stream<bool>> {
+        let value = Cell::new(true);
+        self.new_node((Listen(self),), move |event, _, _| {
+            value.update(|t| !t);
+            event.emit(&value.get());
+        })
+    }
+
+    /// On every event, increase the internal event count and emit the new count value.
+    pub fn count(self) -> NodeInNetwork<'a, M, Stream<usize>> {
+        let count = Cell::new(0);
+        self.new_node((Listen(self),), move |event, _, _| {
+            count.update(|t| t + 1);
+            event.emit(&count.get());
+        })
+    }
+
+    /// On every event, drop it and emit the provided value instead.
+    pub fn constant<T: Data>(self, value: T) -> NodeInNetwork<'a, M, Stream<T>> {
+        self.new_node((Listen(self),), move |event, _, _| {
+            event.emit(&value);
+        })
+    }
+
+    // FIXME: N1::Output: Clone should not be needed
+    /// On every event, remember it and emit the previously remembered one. In case of the first
+    /// event, the default value will be emitted.
+    pub fn previous(self) -> NodeInNetwork<'a, M, Stream<N1::Output>>
+    where N1::Output: Clone + Default {
+        let previous: RefCell<N1::Output> = RefCell::new(default());
+        self.new_node((Listen(self),), move |event, _, t0| {
+            let value = previous.replace(t0.clone());
+            event.emit(&value);
+        })
+    }
+
+    // FIXME: Make sure that the compatible API layer supports it as the ordering is different here
+    /// On every event, drop it, sample the value of the provided behavior, and emit it instead.
+    pub fn sample<N2: Node>(self, behavior: N2) -> NodeInNetwork<'a, M, Stream<N2::Output>>
+    where N2::Output: Default {
+        self.new_node((Listen(self), Sample(behavior)), move |event, _, _, sampled| {
+            event.emit(sampled);
+        })
+    }
+
+    /// On every event, pass it trough if the `cond` input is `true`.
+    pub fn gate(self, cond: impl NodeOf<bool>) -> NodeInNetwork<'a, M, Stream<N1::Output>> {
+        self.new_node((Listen(self), Sample(cond)), move |event, _, src, cond| {
+            if *cond {
+                event.emit(src);
+            }
+        })
+    }
+
+    /// On every event, pass it trough if the `cond` input is `false`.
+    pub fn gate_not(self, cond: impl NodeOf<bool>) -> NodeInNetwork<'a, M, Stream<N1::Output>> {
+        self.new_node((Listen(self), Sample(cond)), move |event, _, src, cond| {
+            if !cond {
+                event.emit(src);
+            }
+        })
+    }
+
+    /// On every event, emit its unwrapped value.
+    pub fn unwrap(self) -> NodeInNetwork<'a, M, Stream<Item<N1::Output>>>
+    where N1::Output: Wrapper {
+        self.new_node((Listen(self),), move |event, _, t0| {
+            event.emit(&t0.unwrap());
+        })
+    }
 }

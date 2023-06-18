@@ -3,6 +3,7 @@
 //! allowing to work with them in a unified way.
 
 use crate::std_reexports::*;
+use std::alloc::Allocator;
 
 use crate::ZeroableOption;
 use crate::ZeroableRefCell;
@@ -32,17 +33,17 @@ pub trait HasSizedItem = HasItem where Item<Self>: Sized;
 #[rustfmt::skip]
 mod has_item_impls {
     use super::*;
-    impl<T>         HasItem for Option<T>          { type Item = T; }
-    impl<T>         HasItem for ZeroableOption<T>  { type Item = T; }
-    impl<T, E>      HasItem for Result<T, E>       { type Item = T; }
-    impl<T: ?Sized> HasItem for Box<T>             { type Item = T; }
-    impl<T: ?Sized> HasItem for Rc<T>              { type Item = T; }
-    impl<T>         HasItem for RefCell<T>         { type Item = T; }
-    impl<T>         HasItem for ZeroableRefCell<T> { type Item = T; }
-    impl<T>         HasItem for Cell<T>            { type Item = T; }
-    impl<T>         HasItem for UnsafeCell<T>      { type Item = T; }
-    impl            HasItem for String             { type Item = char; }
-    impl<T>         HasItem for Vec<T>             { type Item = T; }
+    impl<T>                       HasItem for Option<T>          { type Item = T; }
+    impl<T>                       HasItem for ZeroableOption<T>  { type Item = T; }
+    impl<T, E>                    HasItem for Result<T, E>       { type Item = T; }
+    impl<T: ?Sized>               HasItem for Rc<T>              { type Item = T; }
+    impl<T>                       HasItem for RefCell<T>         { type Item = T; }
+    impl<T>                       HasItem for ZeroableRefCell<T> { type Item = T; }
+    impl<T>                       HasItem for Cell<T>            { type Item = T; }
+    impl<T>                       HasItem for UnsafeCell<T>      { type Item = T; }
+    impl                          HasItem for String             { type Item = char; }
+    impl<T>                       HasItem for Vec<T>             { type Item = T; }
+    impl<T: ?Sized, A: Allocator> HasItem for Box<T, A>          { type Item = T; }
 }
 
 
@@ -68,7 +69,6 @@ mod from_item_impls {
     impl<T>    FromItem for Option<T>          { fn from_item(t: Self::Item) -> Self {t.into()} }
     impl<T>    FromItem for ZeroableOption<T>  { fn from_item(t: Self::Item) -> Self {t.into()} }
     impl<T, E> FromItem for Result<T, E>       { fn from_item(t: Self::Item) -> Self {Ok(t)} }
-    impl<T>    FromItem for Box<T>             { fn from_item(t: Self::Item) -> Self {t.into()} }
     impl<T>    FromItem for Rc<T>              { fn from_item(t: Self::Item) -> Self {t.into()} }
     impl<T>    FromItem for RefCell<T>         { fn from_item(t: Self::Item) -> Self {t.into()} }
     impl<T>    FromItem for ZeroableRefCell<T> { fn from_item(t: Self::Item) -> Self {t.into()} }
@@ -76,6 +76,7 @@ mod from_item_impls {
     impl<T>    FromItem for UnsafeCell<T>      { fn from_item(t: Self::Item) -> Self {t.into()} }
     impl       FromItem for String             { fn from_item(t: Self::Item) -> Self {t.into()} }
     impl<T>    FromItem for Vec<T>             { fn from_item(t: Self::Item) -> Self {vec![t]} }
+    impl<T>    FromItem for Box<T>             { fn from_item(t: Self::Item) -> Self {t.into()} }
 }
 
 
@@ -96,7 +97,7 @@ pub trait ItemRef: HasItem {
 
 pub trait SizedItemRef = ItemRef + HasSizedItem;
 
-impl<T: ?Sized> ItemRef for Box<T> {
+impl<T: ?Sized, A: Allocator> ItemRef for Box<T, A> {
     fn item(&self) -> &Self::Item {
         self.deref()
     }
@@ -126,7 +127,7 @@ pub trait ItemRefMut: ItemRef {
 
 pub trait SizedItemRefMut = ItemRefMut + HasSizedItem;
 
-impl<T: ?Sized> ItemRefMut for Box<T> {
+impl<T: ?Sized, A: Allocator> ItemRefMut for Box<T, A> {
     #[inline(always)]
     fn item_mut(&mut self) -> &mut Self::Item {
         self.deref_mut()
@@ -277,5 +278,40 @@ impl<T> OptItemRefMut for ZeroableOption<T> {
 impl<T, E> OptItemRefMut for Result<T, E> {
     fn opt_item_mut(&mut self) -> Option<&mut Self::Item> {
         self.as_mut().ok()
+    }
+}
+
+
+
+// ===============
+// === Wrapper ===
+// ===============
+
+/// A generalization for structs that can be unwrapped, such as [`Option`] or [`Result`].
+pub trait Wrapper: HasItem {
+    fn unwrap(self) -> Self::Item;
+}
+
+impl<T> Wrapper for Option<T> {
+    fn unwrap(self) -> Self::Item {
+        Option::unwrap(self)
+    }
+}
+
+impl<T> Wrapper for ZeroableOption<T> {
+    fn unwrap(self) -> Self::Item {
+        ZeroableOption::unwrap(self)
+    }
+}
+
+impl<T, E: Debug> Wrapper for Result<T, E> {
+    fn unwrap(self) -> Self::Item {
+        Result::unwrap(self)
+    }
+}
+
+impl<T, A: Allocator> Wrapper for Box<T, A> {
+    fn unwrap(self) -> Self::Item {
+        Box::into_inner(self)
     }
 }
