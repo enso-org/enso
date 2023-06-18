@@ -1,5 +1,9 @@
 /** @file Helper functions for environment detection. */
 
+// ===========================
+// === isRunningInElectron ===
+// ===========================
+
 /** Returns `true` if running in Electron, else `false`.
  * This is used to determine whether to use a `MemoryRouter` (stores history in an array)
  * or a `BrowserRouter` (stores history in the path of the URL).
