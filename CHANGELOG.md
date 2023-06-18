@@ -132,6 +132,8 @@
   quickly understand each button's function.
 - [File associations are created on Windows and macOS][6077]. This allows
   opening Enso files by double-clicking them in the file explorer.
+- [AI-powered code completions][5910]. It is now possible to get AI-powered
+  completions when using node searcher with Tables.
 - [Added capability to create node widgets with complex UI][6347]. Node widgets
   such as dropdown can now be placed in the node and affect the code text flow.
 - [The IDE UI element for selecting the execution mode of the project is now
@@ -184,6 +186,7 @@
 - [Performance and readability of documentation panel was improved][6893]. The
   documentation is now split into separate pages, which are much smaller.
 
+[5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
 [6421]: https://github.com/enso-org/enso/pull/6421
 [6530]: https://github.com/enso-org/enso/pull/6530

@@ -292,6 +292,19 @@ impl model::execution_context::API for ExecutionContext {
         self.model.dispatch_visualization_update(visualization_id, data)
     }
 
+    fn get_ai_completion<'a>(
+        &'a self,
+        prompt: &str,
+        stop: &str,
+    ) -> BoxFuture<'a, FallibleResult<String>> {
+        self.language_server
+            .client
+            .ai_completion(&prompt.to_string(), &stop.to_string())
+            .map(|result| result.map(|completion| completion.code).map_err(Into::into))
+            .boxed_local()
+    }
+
+
     fn interrupt(&self) -> BoxFuture<FallibleResult> {
         async move {
             self.language_server.client.interrupt(&self.id).await?;
