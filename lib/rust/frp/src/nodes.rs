@@ -34,11 +34,13 @@ impl Network {
     /// Begin point in the FRP network. It does not accept inputs, but it is able to emit events.
     /// Often it is used to indicate that something happened, like a button was pressed. In such
     /// case its type parameter is set to an empty tuple.
+    /// [X]
     pub fn source<T: Data>(&self, label: Label) -> Source<T> {
         self.register_raw(OwnedSource::new(label))
     }
 
     /// Starting point in the FRP network. Specialized version of `source`.
+    /// [X]
     pub fn source_(&self, label: Label) -> Source {
         self.register_raw(OwnedSource::new(label))
     }
@@ -52,6 +54,7 @@ impl Network {
     }
 
     /// Remember the last event value and allow sampling it anytime.
+    /// [X]
     pub fn sampler<T, Out>(&self, label: Label, src: &T) -> Sampler<Out>
     where
         T: EventOutput<Output = Out>,
@@ -60,11 +63,13 @@ impl Network {
     }
 
     /// Print the incoming events to console and pass them to output.
+    /// [X]
     pub fn trace<T: EventOutput>(&self, label: Label, src: &T) -> Stream<Output<T>> {
         self.register(OwnedTrace::new(label, src))
     }
 
     /// Print the incoming events to console and pass them to output.
+    /// [X]
     pub fn trace_if<B, T>(&self, label: Label, src: &T, gate: &B) -> Stream<Output<T>>
     where
         B: EventOutput<Output = bool>,
@@ -88,6 +93,7 @@ impl Network {
     /// ```
     /// Now, we can safely attach any events to `mouse_on_up` and we can be sure that all these
     /// events will be handled before events attached to `mouse_on_up_cleaning_phase`.
+    /// [X]
     pub fn identity<T, V>(&self, label: Label, t: &T) -> Stream<V>
     where
         T: EventOutput<Output = V>,

@@ -52,11 +52,24 @@ impl<Type, Output: Data> Node for TypedNode<Type, Output> {
 impl<Type, Output> TypedNode<Type, Output> {
     /// # Safety
     /// The value is checked by the function type signature to have the correct [`Output`] type.
-    #[inline(never)]
+    #[inline(always)]
     #[allow(unsafe_code)]
-    pub fn emit(&self, value: &Output)
+    pub(crate) fn emit_internal(&self, value: &Output)
     where Output: Data {
         with_runtime(|rt| unsafe { rt.unchecked_emit_borrow(self.id, value) });
+    }
+
+    /// # Safety
+    /// The value is checked by the function type signature to have the correct [`Output`] type.
+    #[inline(always)]
+    #[allow(unsafe_code)]
+    pub(crate) fn value_internal(&self) -> Output
+    where Output: Clone + Default {
+        let mut output: Option<Output> = None;
+        with_runtime(|rt| unsafe {
+            rt.with_borrowed_node_output_coerced::<Output>(self.id, |t| output = Some(t.clone()))
+        });
+        output.unwrap_or_default()
     }
 }
 

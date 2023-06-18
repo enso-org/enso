@@ -91,11 +91,18 @@ impl<M: Model> Network<M> {
     }
 }
 
-// TODO: Limit allowing emitting events to source node only. To be finished in:
-//       https://github.com/enso-org/enso/issues/7043
+impl<Output> Source<Output> {
+    pub fn emit(&self, value: &Output)
+    where Output: Data {
+        self.emit_internal(value);
+    }
+}
 
 
+
+// ===============
 // === Sampler ===
+// ===============
 
 /// Marker type for the [`Sampler`] node.
 #[derive(Clone, Copy, Debug, Default)]
@@ -112,31 +119,19 @@ impl<'a, M: Model, N1: NodeWithDefaultOutput> NodeInNetwork<'a, M, N1> {
     }
 }
 
-
-// === Trace ===
-
-impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
-    /// On every event, print it to console, and pass it trough.
-    pub fn trace(self) -> NodeInNetwork<'a, M, Stream<N1::Output>> {
-        self.new_node((Listen(self),), move |event, _, t0| {
-            println!("TRACE: {t0:?}");
-            event.emit(t0);
-        })
-    }
-
-    /// On every event, print it to console if the `cond` input is `true`, and pass it trough.
-    pub fn trace_if(self, cond: impl NodeOf<bool>) -> NodeInNetwork<'a, M, Stream<N1::Output>> {
-        self.new_node((Listen(self), Sample(cond)), move |event, _, src, cond| {
-            if *cond {
-                println!("TRACE: {src:?}");
-            }
-            event.emit(src);
-        })
+impl<Output> Sampler<Output> {
+    /// Get the last emitted value. If no value was emitted yet, returns the default value.
+    pub fn value(&self) -> Output
+    where Output: Clone + Default {
+        self.value_internal()
     }
 }
 
 
+
+// ====================
 // === DebugCollect ===
+// ====================
 
 /// A node that collects all the events it receives. Usd mainly for debug purposes.
 #[derive(Debug, Clone, Derivative)]
@@ -173,7 +168,9 @@ impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
 
 
 
+// ===========
 // === Map ===
+// ===========
 
 macro_rules! def_map_nodes {
     ($($is:literal),*) => {
@@ -233,4 +230,52 @@ impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
     def_map_nodes![2, 3];
 }
 
-// TODO: Allow more than one listen port - for example, `any` node uses this pattern.
+
+
+// ===================
+// === Other Nodes ===
+// ===================
+
+impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
+    /// On every event, pass it trough. This node can be used to branch the event stream into
+    /// multiple streams to control their evaluation order. For example:
+    ///
+    /// ```text
+    /// let on_up_src = mouse.on_up();
+    /// let on_up = on_up_src.identity();
+    /// let on_up_cleaning_phase = on_up_src.identity();
+    /// on_up_cleaning_phase.map_ (|_| println!("On up cleaning phase."));
+    /// ```
+    ///
+    /// Now, we can safely attach any events to `on_up` and we can be sure that all these events
+    /// will be handled before events attached to `on_up_cleaning_phase`.
+    pub fn identity(self) -> NodeInNetwork<'a, M, Stream<N1::Output>> {
+        self.new_node((Listen(self),), move |event, _, t0| event.emit(t0))
+    }
+
+    /// On every event, print it to console, and pass it trough.
+    pub fn trace(self) -> NodeInNetwork<'a, M, Stream<N1::Output>> {
+        self.new_node((Listen(self),), move |event, _, t0| {
+            println!("TRACE: {t0:?}");
+            event.emit(t0);
+        })
+    }
+
+    /// On every event, print it to console if the `cond` input is `true`, and pass it trough.
+    pub fn trace_if(self, cond: impl NodeOf<bool>) -> NodeInNetwork<'a, M, Stream<N1::Output>> {
+        self.new_node((Listen(self), Sample(cond)), move |event, _, src, cond| {
+            if *cond {
+                println!("TRACE: {src:?}");
+            }
+            event.emit(src);
+        })
+    }
+
+    // pub fn toggle(self) -> NodeInNetwork<'a, M, Stream<bool>> {
+    //     let mut value = false;
+    //     self.new_node((Listen(self),), move |event, _, _| {
+    //         value = !value;
+    //         event.emit(&value);
+    //     })
+    // }
+}
