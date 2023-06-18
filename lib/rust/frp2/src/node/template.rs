@@ -207,25 +207,26 @@ impl<Model> Network<Model> {
 // === Template Impls ===
 // ======================
 
-/// For the input `[N0] [N2] [N2 N3]` it generates the following impl:
-/// ```text
-/// impl<M, Model, N0, N1, N2, N3, Output, F>
-/// Template<M, Model, Output, F> for
-/// (Listen<N0>, ListenAndSample<N1>, Sample<N2>, Sample<N3>) {...}
-/// ```
+/// Generate a template implementation for the given input types. Below we present an example
+/// expansion of this macro.
 ///
-/// The first bracket can contain zero or one value only. See docs of this crate to learn more.
+/// ```text
+/// >> gen_template_impl! { [L = N0 N1] [N2 N3] [N4 N5] }
+///
+/// impl<M, Model, L, N0, N1, N2, N3, N4, N5, Output, F>
+/// Template<M, Model, Output, F> for
+///     (Listen<N0>, Listen<N1>, ListenAndSample<N2>, ListenAndSample<N3>, Sample<N4>, Sample<N5>)
+/// where
+///         M: ModelChooser<Model>,
+///         N0: Node<Output=L>, N1: Node<Output=L>,
+///         N2: NodeWithDefaultOutput, N3: NodeWithDefaultOutput,
+///         N4: NodeWithDefaultOutput, N5: NodeWithDefaultOutput,
+///         F: 'static + Fn(EventContext<Output>, &mut ChosenModel<M, Model>,
+///             &L, &N2::Output, &N3::Output, &N4::Output, &N5::Output)
+/// {
+/// ```
 macro_rules! gen_template_impl {
-    // ([$($l:tt)*] [$($ls:tt)*] [$($s:tt)*]) => {
-    //     range! {(range!)((range!)((gen_template_impl!)(@) [$($l)*]) [$($ls)*]) [$($s)*] }
-    //     // gen_template_impl!{ @ [range!{$($l)*}] [range!{$($ls)*}] [range!{$($s)*}] }
-    // };
-    // (@ [$($l:tt)*] [$($ls:tt)*] [$($s:tt)*]) => {
-    //     paste! {
-    //         gen_template_impl!(# [$([<N $l>])*] [$([<N $ls>])*] [$([<N $s>])*]);
-    //     }
-    // };
-    (# [$($lty:tt => $($l:tt)*)?] [$($ls:tt)*] [$($s:tt)*]) => {
+    ([$($lty:tt => $($l:tt)*)?] [$($ls:tt)*] [$($s:tt)*]) => {
         #[allow(non_snake_case)]
         #[allow(unused_unsafe)]
         impl<M, Model, $($lty,)? $($($l,)*)? $($ls,)* $($s,)* Output, F>
@@ -474,29 +475,6 @@ macro_rules! _range {
 
 // range! { (range!)((range!)((foo!)(aa) [9..=10]) [4..=5]) [1..=3] }
 
-// gen_template_impls! {
-// //  listen /**/ listen_and_sample /**/ sample
-//     []     /**/ []                /**/  [],
-//     [1]    /**/ []                /**/  [],
-//     []     /**/ [1]               /**/  [],
-//     [1]    /**/ []                /**/  [2..=2],
-//     [1]    /**/ []                /**/  [2..=3],
-//     [1]    /**/ []                /**/  [2..=4],
-//     [1]    /**/ []                /**/  [2..=5],
-//     [1]    /**/ []                /**/  [2..=6],
-//     [1]    /**/ []                /**/  [2..=7],
-//     [1]    /**/ []                /**/  [2..=8],
-//     [1]    /**/ []                /**/  [2..=9],
-//     [1]    /**/ []                /**/  [2..=10],
-//     [1]    /**/ []                /**/  [2..=11],
-//     [1]    /**/ []                /**/  [2..=12],
-//     [1]    /**/ []                /**/  [2..=13],
-//     [1]    /**/ []                /**/  [2..=14],
-//     [1]    /**/ []                /**/  [2..=15],
-//     [1]    /**/ []                /**/  [2..=16],
-//     []     /**/ []                /**/  [1..=16],
-// }
-
 /// For the input `[(f!)(args) [1 2 3 4]]` (The `(args)` part is optional) it generates:
 /// ```text
 /// f! { args [] }
@@ -548,7 +526,6 @@ macro_rules! all_splits2 {
         $($f)* { $($($args)*)? [] [] }
     };
 }
-// all_splits2!((f!)(args) [1 2 3]);
 
 /// Below we present an example expansion of this macro. The `(args)` part is optional:
 ///
@@ -585,18 +562,16 @@ macro_rules! _all_splits3 {
     };
 }
 
-
-
 macro_rules! gen_template_impls {
     ([$($as:tt)*] [$($bs:tt)*]) => { paste! {
         gen_template_impls! { @ [ $([<N $as>])* ] [ $([<N $bs>])* ] }
     }};
     (@ [] [$($bs:tt)*]) => { paste! {
-        gen_template_impl! { # [] [] [$($bs)*] }
+        gen_template_impl! { [] [] [$($bs)*] }
     }};
     (@ [$($as:tt)*] [$($bs:tt)*]) => { paste! {
-        gen_template_impl! { # [] [$($as)*] [$($bs)*] }
-        gen_template_impl! { # [L => $($as)*] [] [$($bs)*] }
+        gen_template_impl! { [] [$($as)*] [$($bs)*] }
+        gen_template_impl! { [L => $($as)*] [] [$($bs)*] }
     }};
 }
 

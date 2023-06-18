@@ -154,15 +154,16 @@ impl<T> DebugCollectData<T> {
     }
 }
 
-impl<M: Model> Network<M> {
-    /// On every event, remember it, and pass it trough.
-    pub fn debug_collect<T0: Data + Clone + 'static>(
-        &self,
-        source: impl Node<Output = T0>,
-    ) -> (NodeInNetwork<M, Stream<Vec<T0>>>, DebugCollectData<T0>) {
-        let data: DebugCollectData<T0> = default();
+impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
+    /// On every event, remember it, and pass it trough. It returns bot the newly created node and
+    /// a struct allowing for easy access to the recorded values. Used mainly for debug purposes.
+    pub fn debug_collect(
+        self,
+    ) -> (NodeInNetwork<'a, M, Stream<Vec<N1::Output>>>, DebugCollectData<N1::Output>)
+    where N1::Output: Clone {
+        let data = DebugCollectData::default();
         let out = data.clone();
-        let node = self.new_node((Listen(source),), move |event, _, t0| {
+        let node = self.new_node((Listen(self),), move |event, _, t0| {
             data.cell.borrow_mut().push(t0.clone());
             event.emit(&*data.cell.borrow());
         });

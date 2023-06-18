@@ -193,7 +193,7 @@ mod tests {
         let src1 = net.source::<usize>();
         let src2 = net.source::<usize>();
         let m1 = src1.map2_(src2, |a, b| 10 * a + b);
-        let (_, results) = net.debug_collect(m1);
+        let (_, results) = m1.debug_collect();
         results.assert_eq(&[]);
         src1.emit(&1);
         results.assert_eq(&[10]);
@@ -208,11 +208,11 @@ mod tests {
         let net1 = Network_::new();
         let net1_src = net1.source::<usize>();
         let net1_tgt = net1_src.map_(|t| t + 1);
-        let (_, net1_results) = net1.debug_collect(net1_tgt);
+        let (_, net1_results) = net1_tgt.debug_collect();
 
         let net2 = Network_::new();
         let net2_tgt = net1_src.map_(|t| t * 3);
-        let (_, net2_results) = net2.debug_collect(net2_tgt);
+        let (_, net2_results) = net2_tgt.debug_collect();
 
         net1_results.assert_eq(&[]);
         net2_results.assert_eq(&[]);
