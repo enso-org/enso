@@ -506,15 +506,7 @@ lazy val logger = (project in file("lib/scala/logger"))
   )
 
 lazy val `syntax-definition` =
-  (project in file("lib/scala/syntax/definition"))
-    .dependsOn(logger)
-    .settings(
-      scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-      libraryDependencies ++= monocle ++ scalaCompiler ++ Seq(
-        "org.typelevel" %% "cats-core" % catsVersion,
-        "org.typelevel" %% "kittens"   % kittensVersion
-      )
-    )
+  project in file("lib/scala/syntax/definition")
 
 lazy val syntax = (project in file("lib/scala/syntax/specialization"))
   .dependsOn(`syntax-definition`)
