@@ -2144,7 +2144,7 @@ impl GraphEditorModel {
     }
 
     fn update_node_widgets(&self, node_id: NodeId, updates: &CallWidgetsConfig) {
-        self.with_node(node_id, |node| node.view.update_widgets.emit(updates.clone()));
+        self.try_with_node(node_id, |node| node.view.update_widgets.emit(updates.clone()));
     }
 
     fn disable_grid_snapping_for(&self, node_ids: &[NodeId]) {
@@ -2241,9 +2241,14 @@ impl GraphEditorModel {
         }
     }
 
-    /// Perform an operation on a node with given ID.
+    /// Perform an operation on a node with given ID, if it exists.
+    pub fn try_with_node<T>(&self, id: NodeId, f: impl FnOnce(&Node) -> T) -> Option<T> {
+        self.nodes.with(&id, f)
+    }
+
+    /// Perform an operation on a node with given ID. Reports an error if the node does not exist.
     pub fn with_node<T>(&self, id: NodeId, f: impl FnOnce(&Node) -> T) -> Option<T> {
-        self.nodes.with(&id, f).map_none(|| warn!("Trying to access nonexistent node '{id}'"))
+        self.try_with_node(id, f).map_none(|| warn!("Trying to access nonexistent node '{id}'"))
     }
 
     fn with_edge<T>(&self, id: EdgeId, f: impl FnOnce(&Edge) -> T) -> Option<T> {
@@ -2745,6 +2750,7 @@ impl GraphEditor {
             detached_source_endpoint <- state.detached_edge.and_then(|d| d.source_endpoint());
             detached_target_endpoint <- state.detached_edge.and_then(|d| d.target_endpoint());
             detached_target_node <- detached_target_endpoint.map_some(|e| e.node_id);
+            detached_node <- state.detached_edge.map_some(|e| e.node_id());
 
             cursor_pos_on_update <- cursor.scene_position.sample(&state.detached_edge);
             refresh_cursor_pos <- any(cursor_pos_on_update, cursor.scene_position);
@@ -2791,9 +2797,7 @@ impl GraphEditor {
             rest_node <- active_source_node.previous().unwrap();
 
             eval active_node((id) model.with_node(*id, |n| n.model().set_editing_edge(true)));
-            // Use `nodes.with` to avoid emitting warning when node no longer exists. This is a
-            // valid case, as the node might have been removed while the edge was being dragged.
-            eval rest_node((id) model.nodes.with(id, |n| n.model().set_editing_edge(false)));
+            eval rest_node((id) model.try_with_node(*id, |n| n.model().set_editing_edge(false)));
 
             // Whenever the detached edge is connected to a target, monitor for that target's port
             // existence. If it becomes invalid, the edge must be dropped.
@@ -2802,10 +2806,18 @@ impl GraphEditor {
             );
             check_endpoint <- any_(&detached_target_endpoint, &target_node_updated).debounce();
             target_endpoint_to_check <- detached_target_endpoint.sample(&check_endpoint);
-            detached_target_port_valid <- target_endpoint_to_check.and_then(
-                f!((e) model.with_node(e.node_id, |node| node.model().input.has_port(e.port)))
+            detached_target_port_valid <- target_endpoint_to_check.map_some(
+                f!((e) model
+                    .try_with_node(e.node_id, |node| node.model().input.has_port(e.port))
+                    .unwrap_or(false))
             ).unwrap();
             state.clear_detached_edge <+ detached_target_port_valid.on_false();
+
+            // Whenever the node the detached edge is connected to is removed, drop the edge.
+            state.clear_detached_edge <+ out.node_removed.map2(&detached_node,
+                |&removed_id, &detached_id| Some(removed_id) == detached_id
+            );
+
         }
     }
 
@@ -3073,7 +3085,7 @@ fn init_remaining_graph_editor_frp(
     frp::extend! { network
         _eval <- all_with(&out.node_hovered,&edit_mode,
             f!([model](tgt,e) if let Some(tgt) = tgt {
-                model.with_node(tgt.value,|t| t.set_edit_ready_mode(*e && tgt.is_on()));
+                model.try_with_node(tgt.value,|t| t.set_edit_ready_mode(*e && tgt.is_on()));
             }
         ));
         _eval <- all_with(&out.node_hovered,&edge_state.detached_edge,
@@ -3081,7 +3093,7 @@ fn init_remaining_graph_editor_frp(
                 let node_id = hover_target.value;
                 let can_attach = detached.map_or(false, |d| d.node_id() != node_id);
                 let is_active = can_attach && hover_target.is_on();
-                model.with_node(node_id,|t| t.model().input.set_ports_active(is_active));
+                model.try_with_node(node_id,|t| t.model().input.set_ports_active(is_active));
             }
         ));
     }
