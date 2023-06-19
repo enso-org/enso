@@ -34,13 +34,13 @@ impl Network {
     /// Begin point in the FRP network. It does not accept inputs, but it is able to emit events.
     /// Often it is used to indicate that something happened, like a button was pressed. In such
     /// case its type parameter is set to an empty tuple.
-    /// [X]
+    /// [x]
     pub fn source<T: Data>(&self, label: Label) -> Source<T> {
         self.register_raw(OwnedSource::new(label))
     }
 
     /// Starting point in the FRP network. Specialized version of `source`.
-    /// [X]
+    /// [x]
     pub fn source_(&self, label: Label) -> Source {
         self.register_raw(OwnedSource::new(label))
     }
@@ -55,7 +55,7 @@ impl Network {
     }
 
     /// Remember the last event value and allow sampling it anytime.
-    /// [X]
+    /// [x]
     pub fn sampler<T, Out>(&self, label: Label, src: &T) -> Sampler<Out>
     where
         T: EventOutput<Output = Out>,
@@ -64,13 +64,13 @@ impl Network {
     }
 
     /// Print the incoming events to console and pass them to output.
-    /// [X]
+    /// [x]
     pub fn trace<T: EventOutput>(&self, label: Label, src: &T) -> Stream<Output<T>> {
         self.register(OwnedTrace::new(label, src))
     }
 
     /// Print the incoming events to console and pass them to output.
-    /// [X]
+    /// [x]
     pub fn trace_if<B, T>(&self, label: Label, src: &T, gate: &B) -> Stream<Output<T>>
     where
         B: EventOutput<Output = bool>,
@@ -95,7 +95,7 @@ impl Network {
     /// ```
     /// Now, we can safely attach any events to `mouse_on_up` and we can be sure that all these
     /// events will be handled before events attached to `mouse_on_up_cleaning_phase`.
-    /// [X]
+    /// [x]
     pub fn identity<T, V>(&self, label: Label, t: &T) -> Stream<V>
     where
         T: EventOutput<Output = V>,
@@ -752,7 +752,7 @@ impl Network {
         self.register_raw(OwnedAllMut::new(label))
     }
 
-    /// [ ]
+    /// [x]
     pub fn all_vec2<Out, T1, T2>(&self, label: Label, t1: &T1, t2: &T2) -> Stream<Vec<Out>>
     where
         Out: Data,
@@ -761,7 +761,7 @@ impl Network {
         self.register(OwnedAllMut::new(label).with(t1).with(t2))
     }
 
-    /// [ ]
+    /// [x]
     pub fn all_vec3<Out, T1, T2, T3>(
         &self,
         label: Label,
@@ -778,7 +778,7 @@ impl Network {
         self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3))
     }
 
-    /// [ ]
+    /// [x]
     pub fn all_vec4<Out, T1, T2, T3, T4>(
         &self,
         label: Label,
@@ -797,7 +797,7 @@ impl Network {
         self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3).with(t4))
     }
 
-    /// [ ]
+    /// [x]
     pub fn all_vec5<Out, T1, T2, T3, T4, T5>(
         &self,
         label: Label,
@@ -818,7 +818,7 @@ impl Network {
         self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3).with(t4).with(t5))
     }
 
-    /// [ ]
+    /// [x]
     pub fn all_vec6<Out, T1, T2, T3, T4, T5, T6>(
         &self,
         label: Label,
@@ -841,7 +841,7 @@ impl Network {
         self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3).with(t4).with(t5).with(t6))
     }
 
-    /// [ ]
+    /// [x]
     pub fn all_vec7<Out, T1, T2, T3, T4, T5, T6, T7>(
         &self,
         label: Label,
@@ -868,7 +868,7 @@ impl Network {
         )
     }
 
-    /// [ ]
+    /// [x]
     pub fn all_vec8<Out, T1, T2, T3, T4, T5, T6, T7, T8>(
         &self,
         label: Label,
@@ -905,7 +905,7 @@ impl Network {
         )
     }
 
-    /// [ ]
+    /// [x]
     pub fn all_vec9<Out, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
         &self,
         label: Label,
@@ -1073,7 +1073,7 @@ impl Network {
     // === Filter ===
 
     /// Passes exactly those incoming events that satisfy the predicate `p`.
-    /// [ ]
+    /// [x]
     pub fn filter<T, P>(&self, label: Label, src: &T, p: P) -> Stream<Output<T>>
     where
         T: EventOutput,
@@ -1086,7 +1086,7 @@ impl Network {
 
     /// Applies the function `f` to the value of all incoming events. If the resulting `Option`
     /// caries a value then this value is passed on. Otherwise, nothing happens.
-    /// [ ]
+    /// [x]
     pub fn filter_map<T, F, Out>(&self, label: Label, src: &T, f: F) -> Stream<Out>
     where
         T: EventOutput,
@@ -1122,7 +1122,7 @@ impl Network {
     }
 
     /// A shortcut for `.map(|v| Some(v.clone()))`.
-    /// [ ]
+    /// [x]
     pub fn some<T>(&self, label: Label, src: &T) -> Stream<Option<Output<T>>>
     where T: EventOutput {
         self.map(label, src, |value| Some(value.clone()))
@@ -1543,7 +1543,7 @@ impl Network {
 
     /// Repeat node listens for input events of type [`usize`] and emits events in number equal to
     /// the input event value.
-    /// [ ]
+    /// [x]
     pub fn repeat<T>(&self, label: Label, src: &T) -> Stream<()>
     where T: EventOutput<Output = usize> {
         self.register(OwnedRepeat::new(label, src))

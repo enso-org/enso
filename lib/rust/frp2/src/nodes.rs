@@ -13,6 +13,7 @@ use crate::node::Node;
 use crate::node::NodeInNetwork;
 use crate::node::NodeOf;
 use crate::node::NodeWithDefaultOutput;
+use crate::node::NodeWithDefaultOutputOf;
 use crate::node::TypedNode;
 use crate::runtime::with_runtime;
 use enso_generics::*;
@@ -102,6 +103,47 @@ impl<Output> Source<Output> {
     }
 }
 
+
+
+// ==============
+// === OnDrop ===
+// ==============
+
+// /// Marker type for the [`OnDrop`] node.
+// #[derive(Clone, Copy, Debug, Default)]
+// pub struct ON_DROP;
+//
+// pub type OnDrop = TypedNode<ON_DROP, ()>;
+//
+// impl<M: Model> Network<M> {
+//     #[inline(always)]
+//     pub fn on_drop(&self) -> NodeInNetwork<M, OnDrop> {
+//         self.new_node((), |_, _| {})
+//     }
+// }
+
+#[derive(Clone, Debug)]
+pub struct OnDrop {
+    rc: Rc<OnDropWatch>,
+}
+
+#[derive(Debug)]
+pub struct OnDropWatch {
+    source: Source,
+}
+
+// pub trait Node: Copy {
+//     type Output: Data;
+//     fn id(self) -> NodeId;
+// }
+
+impl<M: Model> Network<M> {
+    pub fn on_drop(&self) -> OnDrop {
+        let source = *self.source();
+        let rc = Rc::new(OnDropWatch { source });
+        OnDrop { rc }
+    }
+}
 
 
 // ===============
@@ -326,7 +368,7 @@ macro_rules! def_all_nodes {
         #[inline(never)]
         #[allow(non_snake_case)]
         #[allow(clippy::too_many_arguments)]
-        pub fn $name < $($ns,)* F>
+        pub fn $name < $($ns,)*>
         (self, $($ns:$ns,)*) -> NodeInNetwork<'a, M, Stream< (N1::Output, $($ns::Output,)* ) >>
         where
             $($ns: NodeWithDefaultOutput,)*{
@@ -339,6 +381,52 @@ macro_rules! def_all_nodes {
 
 impl<'a, M: Model, N1: NodeWithDefaultOutput> NodeInNetwork<'a, M, N1> {
     def_all_nodes![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; // Max tuple size for Debug in Rust.
+}
+
+
+
+// ==============
+// === AllVec ===
+// ==============
+
+macro_rules! def_all_vec_nodes {
+    ($($is:literal),*) => {
+        def_all_vec_nodes! { @ [[all_vec 1 []]] $($is)* }
+    };
+
+    (@ [ [$name:ident $i:tt [$($is:tt)*]] $($iss:tt)* ] $n:tt $($ns:tt)*) => { paste !{
+        def_all_vec_nodes! { @ [ [[<all_vec $n>] $n [$($is)* $n]] [$name $i [$($is)*]] $($iss)* ] $($ns)* }
+    }};
+
+    (@ [ [$name:ident $i:tt [$($is:tt)*]] $($iss:tt)* ]) => {
+        def_all_vec_nodes! { @ [ $($iss)* ] }
+        paste! { def_all_vec_nodes! { # $name $i [$([<N $is>])*] } }
+    };
+
+    (@ []) => {};
+
+    (# $name:ident $i:tt [$($ns:tt)*]) => { paste! {
+        /// On every event on the first input, sample all inputs, evaluate the provided function,
+        /// and pass the result trough. The function contains mutable reference to the network
+        /// model. If you don't need the model, use the `allX_` family of functions instead.
+        #[inline(never)]
+        #[allow(non_snake_case)]
+        #[allow(clippy::too_many_arguments)]
+        pub fn $name < $($ns,)* T>
+        (self, $($ns:$ns,)*) -> NodeInNetwork<'a, M, Stream< Vec<T> >>
+        where
+            T: Data,
+            N1: NodeWithDefaultOutputOf<T>,
+            $($ns: NodeWithDefaultOutputOf<T>,)* {
+            self.network.new_node((ListenAndSample(self), $(ListenAndSample($ns),)*),
+                move |event, _, t1, $($ns,)*| { event.emit(&vec![t1.clone(), $($ns.clone(),)*]) }
+            )
+        }
+    }};
+}
+
+impl<'a, M: Model, N1: NodeWithDefaultOutput> NodeInNetwork<'a, M, N1> {
+    def_all_vec_nodes![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 }
 
 
@@ -649,6 +737,50 @@ impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
     where N1::Output: Into<T> {
         self.new_node((Listen(self),), move |event, _, t0| {
             event.emit(&Some(t0.clone().into()));
+        })
+    }
+
+    /// On every event, enclose it in `Some` and emit it.
+    pub fn some(self) -> NodeInNetwork<'a, M, Stream<Option<N1::Output>>> {
+        self.new_node((Listen(self),), move |event, _, t0| {
+            event.emit(&Some(t0.clone()));
+        })
+    }
+
+    /// On every event, emit `None`.
+    pub fn none(self) -> NodeInNetwork<'a, M, Stream<Option<N1::Output>>> {
+        self.new_node((Listen(self),), move |event, _, _| {
+            event.emit(&None);
+        })
+    }
+
+    /// On every event, pass it trough if it satisfies the `predicate`.
+    pub fn filter<P>(self, predicate: P) -> NodeInNetwork<'a, M, Stream<N1::Output>>
+    where P: 'static + Fn(&N1::Output) -> bool {
+        self.new_node((Listen(self),), move |event, _, t0| {
+            if predicate(t0) {
+                event.emit(t0);
+            }
+        })
+    }
+
+    /// On every event, run the provided function `f` and emit the result if it is `Some`.
+    pub fn filter_map<F, T: Data>(self, f: F) -> NodeInNetwork<'a, M, Stream<T>>
+    where F: 'static + Fn(&N1::Output) -> Option<T> {
+        self.new_node((Listen(self),), move |event, _, t0| {
+            if let Some(val) = f(t0) {
+                event.emit(&val);
+            }
+        })
+    }
+
+    /// For each event of value `N`, emit `N` events with value `()`.
+    pub fn repeat(self) -> NodeInNetwork<'a, M, Stream>
+    where N1: NodeOf<usize> {
+        self.new_node((Listen(self),), move |event, _, t0| {
+            for _ in 0..*t0 {
+                event.emit(&());
+            }
         })
     }
 

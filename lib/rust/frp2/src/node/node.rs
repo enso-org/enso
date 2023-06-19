@@ -29,6 +29,8 @@ pub trait NodeOf<T> = Node<Output = T>;
 /// An alias for [`Node`] with default output type bounds.
 pub trait NodeWithDefaultOutput = Node where <Self as Node>::Output: Default;
 
+pub trait NodeWithDefaultOutputOf<T> = NodeWithDefaultOutput<Output = T>;
+
 /// A generic node representation that is parametrized with the node kind and node output. All FRP
 /// nodes use this struct under the hood.
 #[derive(Derivative)]
