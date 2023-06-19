@@ -94,7 +94,7 @@ select_into_table source_table connection table_name primary_key temporary on_pr
                     table = Context.Output.with_enabled <|
                         connection.drop_table tmp_table_name if_exists=True
                         internal_upload_table source_table connection tmp_table_name primary_key temporary on_problems=on_problems row_limit=dry_run_row_limit
-                    warning = Dry_Run_Operation.Warning "The Output context is disabled, so only a dry-run was performed - a temporary table ["+tmp_table_name+"] was created. It may not contain all the data (max "+dry_run_row_limit.to_text+" rows from the input were used)."
+                    warning = Dry_Run_Operation.Warning "The Output context is disabled, so only a dry-run of `select_into_database_table` was performed - a temporary table ["+tmp_table_name+"] was created. It may not contain all the data (max "+dry_run_row_limit.to_text+" rows from the input were used)."
                     Warning.attach warning table
 
 ## PRIVATE
@@ -246,17 +246,11 @@ make_batched_insert_template connection table_name column_names =
     template
 
 ## PRIVATE
-common_update_table source_table connection table_name update_action key_columns error_on_missing_columns on_problems =
-    Panic.recover SQL_Error <| handle_upload_errors <|
-        connection.jdbc_connection.run_within_transaction <|
-            target_table = connection.query (SQL_Query.Table_Name table_name)
-            # We catch the `Table_Not_Found` error and handle it specially, if the error was different, it will just get passed through further.
-            handle_error = target_table.catch Table_Not_Found error->
-                # Rethrow the error with more info.
-                msg_suffix = " Use `Connection.create_table` to create a table before trying to append to it."
-                new_error = error.with_changed_extra_message msg_suffix
-                Error.throw new_error
-            if target_table.is_error then handle_error else
+common_update_table (source_table : In_Memory_Table | Database_Table) (target_table : In_Memory_Table | Database_Table) update_action key_columns error_on_missing_columns on_problems =
+    check_target_table_for_update target_table <|
+        connection = target_table.connection
+        Panic.recover SQL_Error <| handle_upload_errors <|
+            connection.jdbc_connection.run_within_transaction <|
                 effective_key_columns = if key_columns.is_nothing then [] else key_columns
                 check_update_arguments_structure_match source_table target_table effective_key_columns update_action error_on_missing_columns on_problems <|
                     tmp_table_name = "enso-temp-source-table-"+random_uuid
@@ -275,8 +269,14 @@ common_update_table source_table connection table_name update_action key_columns
                             case dry_run of
                                 False -> resulting_table
                                 True ->
-                                    warning = Dry_Run_Operation.Warning "The operation was performed in dry run mode, the target table has been returned unchanged."
+                                    warning = Dry_Run_Operation.Warning "The Output context is disabled, so only a dry-run of `update_database_table` was performed - the target table has been returned unchanged."
                                     Warning.attach warning resulting_table
+
+## PRIVATE
+check_target_table_for_update target_table ~action = case target_table of
+    _ : In_Memory_Table -> Error.throw (Illegal_Argument.Error "The target table must be a Database table.")
+    _ : Database_Table -> if target_table.is_trivial_query . not then Error.throw (Illegal_Argument.Error "The target table must be a simple table reference, like returned by `Connection.query`, without any changes like joins, aggregations or even column modifications.") else
+        action
 
 ## PRIVATE
    Assumes that `source_table` is a simple table query without any filters,
@@ -419,10 +419,11 @@ check_update_arguments_structure_match source_table target_table key_columns upd
                             on_problems.attach_problems_before problems action
 
 ## PRIVATE
-default_key_columns connection table_name =
-    keys = get_primary_key connection table_name
-    keys.catch Any _->
-        Error.throw (Illegal_Argument.Error "Could not determine the primary key for table "+table_name+". Please provide it explicitly.")
+default_key_columns (table : Database_Table | In_Memory_Table) =
+    check_target_table_for_update table <|
+        keys = get_primary_key table
+        keys.catch Any _->
+            Error.throw (Illegal_Argument.Error "Could not determine the primary key for table "+table.name+". Please provide it explicitly.")
 
 ## PRIVATE
 
@@ -439,16 +440,16 @@ default_key_columns connection table_name =
      UNION both `sqlite_schema` and `temp.sqlite_schema` tables to get results
      for both temporary and permanent tables.
 
-     TODO [RW] fix keys for SQLite temporary tables and test it
-get_primary_key connection table_name =
-    connection.query (SQL_Query.Table_Name table_name) . if_not_error <|
-        connection.jdbc_connection.with_connection java_connection->
-            rs = java_connection.getMetaData.getPrimaryKeys Nothing Nothing table_name
-            keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
-            # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
-            selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True
-            key_column_names = selected.order_by 1 . at 0 . to_vector
-            if key_column_names.is_empty then Nothing else key_column_names
+     TODO [RW] fix keys for SQLite temporary tables #7037
+get_primary_key table =
+    connection = table.connection
+    connection.jdbc_connection.with_connection java_connection->
+        rs = java_connection.getMetaData.getPrimaryKeys Nothing Nothing table.name
+        keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
+        # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
+        selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True
+        key_column_names = selected.order_by 1 . at 0 . to_vector
+        if key_column_names.is_empty then Nothing else key_column_names
 
 ## PRIVATE
 max_table_name_length = 60

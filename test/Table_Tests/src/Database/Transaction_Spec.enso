@@ -4,9 +4,13 @@ from Standard.Table import Value_Type
 
 from Standard.Database import all
 from Standard.Database.Errors import all
+import Standard.Database.Internal.IR.Query.Query
+import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
+
+import project.Database.Helpers.Name_Generator
 
 type My_Error
     Error
@@ -17,41 +21,52 @@ main = Test_Suite.run_main <|
 spec connection prefix =
     Test.group prefix+"Transaction Support" <|
         simple_table_structure = [Column_Description.Value "X" Value_Type.Integer]
+        insert_value table_name x =
+            pairs = [["X", SQL_Expression.Constant x]]
+            sql = connection.dialect.generate_sql <| Query.Insert table_name pairs
+            connection.execute_update sql . should_succeed
         Test.specify "should commit the changes after the transaction returns a regular value" <|
-            t1 = connection.create_table table_name=Nothing structure=simple_table_structure temporary=True
+            table_name = Name_Generator.random_name "transaction-test-1"
+            t1 = connection.create_table table_name=table_name structure=simple_table_structure temporary=True
             t1.should_succeed
             r1 = connection.jdbc_connection.run_within_transaction <|
-                t1.insert [1] . should_succeed
+                insert_value table_name 1
                 42
             r1.should_equal 42
 
             t1.at "X" . to_vector . should_equal [1]
+            connection.drop_table table_name
 
         Test.specify "should rollback the changes after the inner action panics" <|
-            t1 = connection.create_table table_name=Nothing structure=simple_table_structure temporary=True
+            table_name = Name_Generator.random_name "transaction-test-2"
+            t1 = connection.create_table table_name=table_name structure=simple_table_structure temporary=True
             t1.should_succeed
             Test.expect_panic_with matcher=My_Error <|
                 connection.jdbc_connection.run_within_transaction <|
-                    t1.insert [1] . should_succeed
+                    insert_value table_name 1
                     Panic.throw My_Error.Error
 
             t1.at "X" . to_vector . should_equal []
+            connection.drop_table table_name
 
         Test.specify "should rollback the changes if the inner action returns a dataflow error" <|
-            t1 = connection.create_table table_name=Nothing structure=simple_table_structure temporary=True
+            table_name = Name_Generator.random_name "transaction-test-3"
+            t1 = connection.create_table table_name=table_name structure=simple_table_structure temporary=True
             t1.should_succeed
             r1 = connection.jdbc_connection.run_within_transaction <|
-                t1.insert [1] . should_succeed
+                insert_value table_name 1
                 Error.throw My_Error.Error
             r1.should_fail_with My_Error
 
             t1.at "X" . to_vector . should_equal []
+            connection.drop_table table_name
 
         Test.specify "should commit the changes even if the inner action return value has warnings attached" <|
-            t1 = connection.create_table table_name=Nothing structure=simple_table_structure temporary=True
+            table_name = Name_Generator.random_name "transaction-test-4"
+            t1 = connection.create_table table_name=table_name structure=simple_table_structure temporary=True
             t1.should_succeed
             r1 = connection.jdbc_connection.run_within_transaction <|
-                t1.insert [1] . should_succeed
+                insert_value table_name 1
                 result = 43
                 with_warnings = Warning.attach My_Error.Error result
                 with_warnings
@@ -59,3 +74,4 @@ spec connection prefix =
             Problems.expect_only_warning My_Error r1
 
             t1.at "X" . to_vector . should_equal [1]
+            connection.drop_table table_name

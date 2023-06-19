@@ -163,7 +163,7 @@ type JDBC_Connection
        transaction to ensure consistency.
     batch_insert : Text -> Statement_Setter -> Materialized_Table -> Integer -> Integer -> Nothing
     batch_insert self insert_template statement_setter table batch_size row_limit=Nothing =
-        self.with_connection java_connection->
+        In_Transaction.ensure_in_transaction <| self.with_connection java_connection->
             Managed_Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
                 table_row_count = table.row_count
                 num_rows = case row_limit of
@@ -182,7 +182,6 @@ type JDBC_Connection
                     stmt.addBatch
                     if (row_id+1 % batch_size) == 0 then check_rows stmt.executeBatch batch_size
                 if (num_rows % batch_size) != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
-            java_connection.commit
 
 ## PRIVATE
 
