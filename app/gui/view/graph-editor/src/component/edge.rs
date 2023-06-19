@@ -53,9 +53,9 @@ define_endpoints_2! {
         set_color(color::Lcha),
     }
     Output {
-        /// The edge has clicked nearby the source end.
+        /// The edge was clicked close to the source end.
         source_click(),
-        /// The edge has clicked nearby the target end.
+        /// The edge was clicked close to the target end.
         target_click(),
     }
 }

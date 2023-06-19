@@ -974,7 +974,7 @@ impl TreeModel {
         self.nodes_map.borrow().get(&identity).and_then(|n| n.node.port()).map(f)
     }
 
-    /// Calculate the set of widgets that are currently children of a given port.
+    /// Compute a set of descendant widgets of a given port.
     fn port_child_widgets(&self, port: PortId) -> HashSet<WidgetIdentity> {
         let identity = self.ports_map.borrow().get(&port).copied();
         identity.map_or_default(|id| self.iter_subtree(id).collect())
@@ -1484,11 +1484,9 @@ impl<'a> TreeBuilder<'a> {
         let this = &mut *ctx.builder;
         let ptr_usage = this.pointer_usage.entry(main_ptr).or_default();
         ptr_usage.used_configs |= configuration.kind.flag();
-        let widget_has_port = ptr_usage.request_port(
-            &widget_id,
-            ctx.span_node.port_id,
-            configuration.has_port && !is_extended_ast,
-        );
+        let can_assign_port = configuration.has_port && !is_extended_ast;
+        let widget_has_port =
+            ptr_usage.request_port(&widget_id, ctx.span_node.port_id, can_assign_port);
 
         let port_pad = this.node_settings.custom_port_hover_padding;
         let old_node = this.old_nodes.remove(&widget_id).map(|e| e.node);

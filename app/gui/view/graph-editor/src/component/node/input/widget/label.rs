@@ -26,7 +26,6 @@ ensogl::define_endpoints_2! {
         content(ImString),
         text_color(ColorState),
         text_weight(text::Weight),
-        crumbs(span_tree::Crumbs),
     }
 }
 
@@ -129,7 +128,6 @@ impl SpanWidget for Widget {
         input.content.emit(content);
         input.text_color.emit(color_state);
         input.text_weight(text_weight);
-        input.crumbs.emit(ctx.span_node.crumbs.clone());
     }
 }
 

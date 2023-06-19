@@ -5,7 +5,6 @@ use enso_text::index::*;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 
-use crate::component::type_coloring;
 use crate::node;
 use crate::node::input::widget;
 use crate::node::input::widget::OverrideKey;
@@ -136,17 +135,16 @@ impl From<node::Expression> for Expression {
         let mut target_map: HashMap<ast::Id, ast::Id> = HashMap::new();
         let mut ports_map: HashMap<PortId, Crumbs> = HashMap::new();
         span_tree.root_ref().dfs(|node| {
-            if let Some(ast_id) = node.ast_id {
-                if let Some(call_id) = node.kind.call_id() {
-                    target_map
-                        .entry(call_id)
-                        .and_modify(|e| {
-                            if node.kind.is_this() {
-                                *e = ast_id;
-                            }
-                        })
-                        .or_insert(ast_id);
-                }
+            if let Some((ast_id, call_id)) = node.ast_id.zip(node.kind.call_id()) {
+                let entry = target_map.entry(call_id);
+                let is_target_argument = node.kind.is_this();
+                entry
+                    .and_modify(|target_id| {
+                        if is_target_argument {
+                            *target_id = ast_id;
+                        }
+                    })
+                    .or_insert(ast_id);
             }
             if let Some(port_id) = node.port_id {
                 ports_map.insert(port_id, node.crumbs.clone());
@@ -261,22 +259,17 @@ impl Model {
     }
 
     fn port_hover_pointer_style(&self, hovered: &Switch<PortId>) -> Option<cursor::Style> {
-        let port_id = hovered.into_on()?;
-        let display_object = self.widget_tree.get_port_display_object(port_id)?;
-        let tp = self.port_type(port_id);
-        let color = tp.map(|tp| type_coloring::compute(&tp, &self.styles));
+        let display_object = self.widget_tree.get_port_display_object(hovered.into_on()?)?;
         let pad_x = node::input::port::PORT_PADDING_X * 2.0;
         let min_y = node::input::port::BASE_PORT_HEIGHT;
         let computed_size = display_object.computed_size();
         let size = Vector2(computed_size.x + pad_x, computed_size.y.max(min_y));
-        let radius = size.y / 2.0;
-        Some(cursor::Style::new_highlight(display_object, size, radius, color))
+        Some(cursor::Style::new_highlight(display_object, size, min_y / 2.0))
     }
 
     fn port_type(&self, port: PortId) -> Option<Type> {
         let expression = self.expression.borrow();
-        let node = expression.port_node(port)?;
-        Some(Type::from(node.kind.tp()?))
+        Some(Type::from(expression.port_node(port)?.kind.tp()?))
     }
 
     /// Configure widgets associated with single Enso call expression, overriding default widgets
@@ -369,8 +362,7 @@ ensogl::define_endpoints! {
         /// Set read-only mode for input ports.
         set_read_only (bool),
 
-        /// Set the connection status of the port indicated by the breadcrumbs. For connected ports,
-        /// contains the color of connected edge.
+        /// Provide a map of edge colors for all connected ports.
         set_connections (HashMap<PortId, color::Lcha>),
 
         /// Update widget configuration for widgets already present in this input area.

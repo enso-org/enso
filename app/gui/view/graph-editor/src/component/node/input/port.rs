@@ -209,13 +209,8 @@ impl Port {
         pad_x_override: Option<f32>,
     ) {
         match ctx.span_node.port_id {
-            Some(id) => {
-                self.port_id.emit(id);
-            }
-            None => {
-                error!("Port widget created on node with no port ID assigned.");
-                default()
-            }
+            Some(id) => self.port_id.emit(id),
+            None => error!("Port widget created on node with no port ID assigned."),
         };
 
         self.set_connected(ctx.info.connection);

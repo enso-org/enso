@@ -307,20 +307,16 @@ impl Model {
                     port_index,
                     port_count,
                 );
+
                 let port_network = &port_frp.network;
-
                 let source = &self.frp.source;
-
+                let port_id = node.port_id.unwrap_or_default();
                 frp::extend! { port_network
                     port_frp.set_size_multiplier <+ self.frp.port_size_multiplier;
                     port_frp.set_type_label_visibility <+ self.frp.type_label_visibility;
                     source.tooltip <+ port_frp.tooltip;
                     port_frp.set_view_mode <+ self.frp.view_mode;
                     port_frp.set_size <+ self.frp.size;
-                }
-
-                let port_id = node.port_id.unwrap_or_default();
-                frp::extend! { port_network
                     source.on_port_hover <+ port_frp.on_hover.map(move |&t| Switch::new(port_id,t));
                     source.on_port_press <+ port_frp.on_press.constant(port_id);
                 }

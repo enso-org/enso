@@ -616,9 +616,10 @@ impl ViewUpdate {
             .collect()
     }
 
-    /// Synchronize connections to the graph state.
+    /// Get all current connections from the updated state, and return them in a form suitable for
+    /// passing to the Graph Editor view.
     #[profile(Debug)]
-    fn update_connections(&self) -> Vec<ViewConnection> {
+    fn map_all_connections(&self) -> Vec<ViewConnection> {
         self.state.update_from_controller().map_connections(&self.connections)
     }
 
@@ -715,7 +716,7 @@ impl Graph {
 
             // === Refreshing Connections ===
 
-            view.set_connections <+ update_data.map(|update| update.update_connections());
+            view.set_connections <+ update_data.map(|update| update.map_all_connections());
 
             // === Refreshing Expressions ===
 

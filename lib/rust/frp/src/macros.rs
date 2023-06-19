@@ -111,11 +111,11 @@ macro_rules! _new_dynamic_network {
 /// Creates a new `BridgeNetwork` for the provided networks.
 #[macro_export]
 macro_rules! new_bridge_network {
-    ([$($($path:ident).*),*] $bridge_network:ident $($ts:tt)*) => {
-        let $bridge_network = $crate::Network::new(stringify!($bridge_network));
-        $crate::extend! { $bridge_network $($ts)* }
-        let bridge = $crate::BridgeNetwork::from($bridge_network.clone());
-        $($($path).*.register_bridge_network(&bridge);)*
+    ([$($($path:ident).*),*] $label:ident $($ts:tt)*) => {
+        let _bridge_network_ = $crate::Network::new(stringify!($label));
+        $crate::extend! { _bridge_network_ $($ts)* }
+        let _bridge_network_ = $crate::BridgeNetwork::from(_bridge_network_);
+        $($($path).*.register_bridge_network(&_bridge_network_);)*
     };
 }
 

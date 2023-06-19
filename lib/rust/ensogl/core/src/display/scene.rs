@@ -1098,7 +1098,7 @@ impl SceneData {
     pub fn screen_to_scene_coordinates(&self, position: Vector3<f32>) -> Vector3<f32> {
         let zoom = self.camera().zoom();
         if zoom == 0.0 {
-            return Vector3::new(0.0, 0.0, 0.0);
+            return Vector3::zero();
         }
         let position = position / zoom;
         let position = Vector4::new(position.x, position.y, position.z, 1.0);

@@ -1069,6 +1069,8 @@ impl EdgeEndpoint {
     }
 }
 
+
+
 // ==================
 // === Connection ===
 // ==================
@@ -1083,6 +1085,7 @@ pub struct Connection {
     /// An usage point of the edge variable.
     pub target: EdgeEndpoint,
 }
+
 
 
 // ============
@@ -2315,23 +2318,21 @@ impl GraphEditorModel {
 
     fn pan_camera_to_node(&self, node_id: NodeId) {
         use theme::graph_editor::screen_margin_when_panning_camera_to_node as pan_margin;
-        self.with_node(node_id, |node| {
-            let camera = &self.scene().camera();
-            let screen_size_halved = Vector2::from(camera.screen()) / 2.0;
-            let styles = &self.styles_frp;
-            let top_margin = styles.get_number(pan_margin::top).value();
-            let bottom_margin = styles.get_number(pan_margin::bottom).value();
-            let left_margin = styles.get_number(pan_margin::left).value();
-            let right_margin = styles.get_number(pan_margin::right).value();
-            let viewport_max_y = screen_size_halved.y - top_margin;
-            let viewport_min_y = -screen_size_halved.y + bottom_margin;
-            let viewport_min_x = -screen_size_halved.x + left_margin;
-            let viewport_max_x = screen_size_halved.x - right_margin;
-            let viewport_min_xy = Vector2(viewport_min_x, viewport_min_y);
-            let viewport_max_xy = Vector2(viewport_max_x, viewport_max_y);
-            let node_bbox = node.bounding_box.value();
-            self.pan_camera(node_bbox, viewport_min_xy, viewport_max_xy)
-        });
+        let Some(node_bbox) = self.with_node(node_id, |n| n.bounding_box.value()) else { return };
+        let camera = &self.scene().camera();
+        let screen_size_halved = Vector2::from(camera.screen()) / 2.0;
+        let styles = &self.styles_frp;
+        let top_margin = styles.get_number(pan_margin::top).value();
+        let bottom_margin = styles.get_number(pan_margin::bottom).value();
+        let left_margin = styles.get_number(pan_margin::left).value();
+        let right_margin = styles.get_number(pan_margin::right).value();
+        let viewport_max_y = screen_size_halved.y - top_margin;
+        let viewport_min_y = -screen_size_halved.y + bottom_margin;
+        let viewport_min_x = -screen_size_halved.x + left_margin;
+        let viewport_max_x = screen_size_halved.x - right_margin;
+        let viewport_min_xy = Vector2(viewport_min_x, viewport_min_y);
+        let viewport_max_xy = Vector2(viewport_max_x, viewport_max_y);
+        self.pan_camera(node_bbox, viewport_min_xy, viewport_max_xy)
     }
 }
 
@@ -3009,7 +3010,10 @@ fn init_remaining_graph_editor_frp(
         node_to_edit_after_adding <- new_node.filter_map(|&(id,_,do_edit)| do_edit.as_some(id));
         eval node_to_edit_after_adding((id) model.with_node(*id, |node| node.show_preview()));
 
-        pan_camera_to_node <- new_node._0().debounce();
+        let on_before_rendering = ensogl::animation::on_before_rendering();
+        node_to_pan <- new_node._0().debounce();
+        time_to_pan <- on_before_rendering.sync_gate(&node_to_pan);
+        pan_camera_to_node <- node_to_pan.sample(&time_to_pan);
         eval pan_camera_to_node((&node) model.pan_camera_to_node(node));
     }
 

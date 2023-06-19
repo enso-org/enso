@@ -502,7 +502,7 @@ pub mod test_utils {
     static FRAME_TIME: Mutex<Cell<f64>> = Mutex::new(Cell::new(0.0));
     const FRAME_TIME_STEP: f64 = 1000.0 / 60.0;
 
-    /// Run single event loop frame and flush all queued tasks.
+    /// Run single animation loop frame and flush all queued tasks.
     pub fn next_frame() {
         LOOP_REGISTRY.with(|registry| {
             frp::microtasks::flush_microtasks();
