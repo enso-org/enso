@@ -534,7 +534,7 @@ type Table
             if c.is_nothing then Nothing else c.to_text
         self.drop (First 1) . rename_columns new_names on_problems=on_problems
 
-    ## ALIAS group, summarize
+    ## ALIAS group by, summarize
 
        Aggregates the rows in a table using any `Group_By` entries in columns.
        The columns argument specifies which additional aggregations to perform and to return.
@@ -1671,8 +1671,7 @@ type Table
                 problem_builder.attach_problems_before on_problems <|
                     Table.new good_columns
 
-    ## ALIAS dropna
-       ALIAS drop_missing_rows
+    ## ALIAS dropna, drop_missing_rows
        Remove rows which are all blank or containing blank values.
 
        Arguments:

@@ -724,10 +724,10 @@ spec =
             check_table (file.read (Excel (Cell_Range "Sheet1!B2"))) ["B"] [["A","B","C","D","E","F"]]
 
         Test.specify "Patchy table" <|
-            check_table (file.read (Excel (Cell_Range "Sheet1!D1"))) ["A", "B", "Column 1"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
+            check_table (file.read (Excel (Cell_Range "Sheet1!D1"))) ["A", "B", "F"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
             check_table (file.read (Excel (Cell_Range "Sheet1!D2"))) ["D", "E", "F"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
             check_table (file.read (Excel (Cell_Range "Sheet1!E"))) ["B"] [[4,4,Nothing,Nothing,Nothing,Nothing]]
-            check_table (file.read (Excel (Cell_Range "Sheet1!E1"))) ["B", "Column 1"] [[4,4,Nothing], [6,Nothing,6]]
+            check_table (file.read (Excel (Cell_Range "Sheet1!E1"))) ["B", "F"] [[4,4,Nothing], [6,Nothing,6]]
             check_table (file.read (Excel (Cell_Range "Sheet1!E2"))) ["E", "F"] [[4,4,Nothing], [6,Nothing,6]]
 
         Test.specify "Single cell" <|
@@ -738,15 +738,12 @@ spec =
             check_table (file.read (Excel (Cell_Range "Sheet1!J1"))) ["J", "K", "L"] [["Just"],["Some"],["Headers"]]
 
         Test.specify "Growing table" <|
-            check_table (file.read (Excel (Cell_Range "Sheet1!N1"))) ["A", "Full", "Table", "Column 1"] [["Hello","World",Nothing,"Extend"],[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
-            check_table (file.read (Excel (Cell_Range "Sheet1!O1"))) ["Full", "Table", "Column 1"] [[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
+            check_table (file.read (Excel (Cell_Range "Sheet1!N1"))) ["A", "Full", "Table", "Q"] [["Hello","World",Nothing,"Extend"],[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
+            check_table (file.read (Excel (Cell_Range "Sheet1!O1"))) ["Full", "Table", "Q"] [[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
             check_table (file.read (Excel (Cell_Range "Sheet1!O2"))) ["O", "P", "Q"] [[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
 
-        Test.specify "Should handle invalid headers with warnings" <|
-            action = file.read (Excel (Cell_Range "Sheet1!D1")) on_problems=_
-            tester = check_table _ ["A", "B", "Column 1"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
-            problems = [Invalid_Output_Column_Names.Error [""]]
-            Problems.test_problem_handling action problems tester
+        Test.specify "Should handle blank headers without warnings" <|
+            check_table (file.read (Excel (Cell_Range "Sheet1!D1"))) ["A", "B", "F"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
 
         Test.specify "Should handle duplicate headers with warnings" <|
             action = file.read (Excel (Cell_Range "Sheet1!S1")) on_problems=_

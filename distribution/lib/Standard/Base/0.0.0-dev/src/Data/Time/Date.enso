@@ -5,6 +5,7 @@ import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
 import project.Data.Text.Text
+from project.Data.Text.Extensions import all
 import project.Data.Time.Date_Period.Date_Period
 import project.Data.Time.Date_Range.Date_Range
 import project.Data.Time.Date_Time.Date_Time
@@ -27,6 +28,8 @@ import project.Panic.Panic
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Time.Date_Time import ensure_in_epoch
 
+from project.Widget_Helpers import make_date_format_selector
+
 polyglot java import java.lang.Exception as JException
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
@@ -47,38 +50,6 @@ polyglot java import org.enso.base.Time_Utils
    Recommended to use `Date.new` instead which handles potential exceptions.
 new_builtin : Integer -> Integer -> Integer -> Date
 new_builtin year month day = @Builtin_Method "Date.new_builtin"
-
-## PRIVATE
-   Converts text containing a date into a Date object.
-
-   Arguments:
-   - text: The text to try and parse as a date.
-   - pattern: An optional pattern describing how to parse the text.
-
-   Recommended to use `Date.parse` instead which handles potential exceptions.
-
-   ? Pattern Syntax
-     Patterns are based on a simple sequence of letters and symbols. For
-     example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
-     See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
-     for a complete format specification.
-
-   ? Default Date Formatting
-     Unless you provide a custom format, the text must represent a valid date
-     that can be parsed using the ISO-8601 extended local date format. The
-     format consists of:
-
-     - Four digits or more for the year. Years in the range 0000 to 9999
-       will be pre-padded by zero to ensure four digits. Years outside
-       that range will have a prefixed positive or negative symbol.
-     - A dash
-     - Two digits for the month-of-year. This is pre-padded by zero to ensure
-       two digits.
-     - A dash
-     - Two digits for the day-of-month. This is pre-padded by zero to ensure two
-       digits.
-parse_builtin : Text -> Any -> Date
-parse_builtin text pattern = @Builtin_Method "Date.parse_builtin"
 
 ## This type represents a date, often viewed as year-month-day.
 
@@ -144,6 +115,7 @@ type Date
        Arguments:
        - text: The text to try and parse as a date.
        - pattern: An optional pattern describing how to parse the text.
+       - locale: The locale in which the pattern should be interpreted.
 
        Returns a `Time_Error` if the provided `text` cannot be parsed using the
        provided `pattern`.
@@ -201,12 +173,14 @@ type Date
              example_parse_err =
                  date = Date.parse "1999-1-1" "yyyy-MM-dd"
                  date.catch Time_Error (_->Date.new 2000 1 1)
-    parse : Text -> (Text | Nothing) -> Date ! Time_Error
-    parse text pattern=Nothing =
-        result = Panic.recover Any <| case pattern of
-            Nothing -> parse_builtin text 0
-            _ : Text -> parse_builtin text pattern
-            _ -> Panic.throw (Time_Error.Error "An invalid pattern was provided.")
+    @pattern make_date_format_selector
+    @locale Locale.default_widget
+    parse : Text -> Text -> Locale -> Date ! Time_Error
+    parse text:Text pattern:Text="" locale:Locale=Locale.default =
+        result = Panic.recover Any <|
+            formatter = if pattern.is_empty then Time_Utils.default_date_formatter else
+                Time_Utils.make_formatter pattern locale.java_locale
+            Time_Utils.parse_date text.trim formatter
         result . map_error <| case _ of
             err : JException -> Time_Error.Error err.getMessage
             ex -> ex
@@ -718,11 +692,13 @@ type Date
          Format "2020-06-21" with French locale as "21. juin 2020"
 
              example_format = Date.new 2020 6 21 . format "d. MMMM yyyy" (Locale.new "fr")
+    @pattern make_date_format_selector
     @locale Locale.default_widget
     format : Text -> Locale -> Text
-    format self pattern locale=Locale.default = case locale of
-        Nothing -> Time_Utils.local_date_format self pattern
-        _ -> Time_Utils.local_date_format_with_locale self pattern locale.java_locale
+    format self pattern:Text locale=Locale.default =
+        formatter = if pattern.is_empty then Time_Utils.default_date_formatter else
+            Time_Utils.make_formatter pattern locale.java_locale
+        Time_Utils.date_format self formatter
 
 ## PRIVATE
 week_days_between start end =

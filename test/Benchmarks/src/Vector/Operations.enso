@@ -6,7 +6,7 @@ from Standard.Test import Bench
 
 import project.Vector.Utils
 
-polyglot java import java.util.Random
+polyglot java import java.util.Random as Java_Random
 
 ## Bench Utilities ============================================================
 
@@ -19,7 +19,7 @@ num_iterations = 10
 bench =
     random_vec = Utils.make_random_vec vector_size
     random_vec_2 = Utils.make_random_vec 100000
-    random_gen = Random.new 123456
+    random_gen = Java_Random.new 123456
 
     Bench.measure (Base.Vector.new vector_size i->i) "New Vector" iter_size num_iterations
     Bench.measure (Base.Vector.new vector_size _->42) "New Constant" iter_size num_iterations

@@ -5,7 +5,6 @@ from Standard.Test import Bench
 
 import project.Vector.Utils
 
-polyglot java import java.util.Random
 polyglot java import org.enso.base.Time_Utils
 
 

@@ -27,8 +27,6 @@ polyglot java import java.net.http.HttpRequest
 polyglot java import java.net.http.HttpResponse
 polyglot java import java.net.InetSocketAddress
 polyglot java import java.net.ProxySelector
-polyglot java import java.net.URI
-polyglot java import java.time.Duration as Java_Duration
 polyglot java import org.enso.base.Http_Utils
 
 type HTTP

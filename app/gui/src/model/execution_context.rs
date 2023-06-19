@@ -459,7 +459,6 @@ pub trait API: Debug {
         FallibleResult<futures::channel::mpsc::UnboundedReceiver<VisualizationUpdateData>>,
     >;
 
-
     /// Detach the visualization from this execution context.
     #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
     fn detach_visualization<'a>(
@@ -497,6 +496,13 @@ pub trait API: Debug {
         let detach_actions = visualizations.into_iter().map(move |v| self.detach_visualization(v));
         futures::future::join_all(detach_actions).boxed_local()
     }
+
+    /// Get an AI completion for the given `prompt`, with specified `stop` sequence.
+    fn get_ai_completion<'a>(
+        &'a self,
+        prompt: &str,
+        stop: &str,
+    ) -> BoxFuture<'a, FallibleResult<String>>;
 
     /// Interrupt the program execution.
     #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes

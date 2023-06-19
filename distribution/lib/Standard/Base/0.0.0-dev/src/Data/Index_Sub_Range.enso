@@ -1,7 +1,7 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
-import project.Data.Range.Extensions
+from project.Data.Range.Extensions import all
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds

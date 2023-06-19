@@ -46,11 +46,11 @@ class MainModule[
   E2: MonadError[F[ValidationFailure, *], ValidationFailure]
 ) {
 
-  implicit val system =
+  implicit val system: ActorSystem =
     ActorSystem("project-manager", None, None, Some(computeExecutionContext))
   system.eventStream.setLogLevel(LogLevel.toAkka(processConfig.logLevel))
 
-  implicit val materializer = SystemMaterializer.get(system)
+  implicit val materializer: SystemMaterializer = SystemMaterializer.get(system)
 
   lazy val logging = new Slf4jLogging[F]
 

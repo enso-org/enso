@@ -44,15 +44,13 @@ use ensogl_text_msdf::run_once_initialized;
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    app:            Application,
     display_object: display::object::Instance,
     shape:          Rectangle,
     cover:          Rectangle,
 }
 
 impl Model {
-    fn new(app: &Application) -> Self {
-        let app = app.clone_ref();
+    fn new() -> Self {
         let display_object = display::object::Instance::new();
         let shape: Rectangle = default();
         shape.set_size(Vector2(300.0, 300.0));
@@ -68,7 +66,7 @@ impl Model {
         cover.set_corner_radius_max();
         cover.set_pointer_events(false);
         display_object.add_child(&cover);
-        Self { app, display_object, shape, cover }
+        Self { display_object, shape, cover }
     }
 }
 
@@ -99,9 +97,9 @@ struct View {
 
 impl View {
     /// Constructor.
-    pub fn new(app: &Application) -> Self {
+    pub fn new() -> Self {
         let frp = Frp::new();
-        let model = Model::new(app);
+        let model = Model::new();
         let network = &frp.network;
         frp::extend! { network
             trace model.shape.events_deprecated.mouse_up;
@@ -139,11 +137,9 @@ impl application::View for View {
     fn label() -> &'static str {
         "Circul"
     }
-    fn new(app: &Application) -> Self {
-        View::new(app)
-    }
-    fn app(&self) -> &Application {
-        &self.model.app
+
+    fn new(_app: &Application) -> Self {
+        View::new()
     }
 }
 

@@ -2,8 +2,6 @@ from Standard.Base import all
 
 from Standard.Test import Bench
 
-polyglot java import java.util.Random
-
 bench =
     iter_size = 50
     num_iterations = 10

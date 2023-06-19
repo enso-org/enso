@@ -207,6 +207,48 @@ type Value_Type
         _ -> False
 
     ## PRIVATE
+       Checks if this type can be widened to the provided type.
+
+       The widening is permitted if the target type is in a way 'larger' than
+       the source type, so that there is no loss of information. In practice,
+       there are cases where widening can still lose information - notably
+       integers can be widened into floats and big enough integers may not be
+       able to be exactly represented in floats.
+    can_be_widened_to : Value_Type -> Boolean
+    can_be_widened_to self target_type = if (self == target_type) || (target_type == Value_Type.Mixed) then True else case self of
+        Value_Type.Integer self_bits -> case target_type of
+            Value_Type.Integer target_bits -> target_bits >= self_bits
+            Value_Type.Float _ -> True
+            Value_Type.Decimal _ _ -> True
+            _ -> False
+        Value_Type.Byte -> case target_type of
+            Value_Type.Integer _ -> True
+            Value_Type.Float _ -> True
+            Value_Type.Decimal _ _ -> True
+            _ -> False
+        Value_Type.Boolean -> case target_type of
+            Value_Type.Byte -> True
+            Value_Type.Integer _ -> True
+            Value_Type.Float _ -> True
+            Value_Type.Decimal _ _ -> True
+            _ -> False
+        Value_Type.Float self_bits -> case target_type of
+            Value_Type.Float target_bits -> target_bits >= self_bits
+            Value_Type.Decimal _ _ -> True
+            _ -> False
+        Value_Type.Char self_size self_variable_length -> case target_type of
+            Value_Type.Char target_size target_variable_length ->
+                fits_variability = if target_variable_length then True else self_variable_length == target_variable_length
+                fits_variability && (target_size >= self_size)
+            _ -> False
+        Value_Type.Binary self_size self_variable_length -> case target_type of
+            Value_Type.Binary target_size target_variable_length ->
+                fits_variability = if target_variable_length then True else self_variable_length == target_variable_length
+                fits_variability && (target_size >= self_size)
+            _ -> False
+        _ -> False
+
+    ## PRIVATE
        Specifies if values of the given type can be compared for ordering.
     are_comparable : Value_Type -> Value_Type -> Boolean
     are_comparable type_1 type_2 =
