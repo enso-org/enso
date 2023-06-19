@@ -533,7 +533,7 @@ impl View {
                 grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, entry));
 
 
-            // === Handling Inputs to the Searcher ===
+            // === Handling Inputs to the Searcher and Committing Edit ===
 
             searcher_input_change_opt <- graph.node_expression_edited.map2(&frp.searcher,
                 |(node_id, expr, selections), searcher| {
