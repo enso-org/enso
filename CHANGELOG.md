@@ -494,6 +494,7 @@
   `Time_Period`.][6956]
 - [Implemented `Table.update_database_table`.][7035]
 - [Added AWS credential support and initial S3 list buckets API.][6973]
+- [Removed `module` argument from `enso_project` and other minor tweaks.][7052]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -713,8 +714,9 @@
 [6925]: https://github.com/enso-org/enso/pull/6925
 [6941]: https://github.com/enso-org/enso/pull/6941
 [6956]: https://github.com/enso-org/enso/pull/6956
-[7035]: https://github.com/enso-org/enso/pull/7035
 [6973]: https://github.com/enso-org/enso/pull/6973
+[7035]: https://github.com/enso-org/enso/pull/7035
+[7052]: https://github.com/enso-org/enso/pull/7052
 
 #### Enso Compiler
 
