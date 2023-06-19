@@ -27,8 +27,19 @@ spec setup =
             #IO.println <| result . to_vector
             result.to_vector.at 0
 
-        Test.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)"
-            do_round 0 . should_equal 0
+        Test.specify "Can handle NaN/Infinity" <|
+            nan_result = if setup.test_selection.is_nan_and_nothing_distinct then Number.nan else Nothing
+            do_round Number.nan . should_equal nan_result
+        Test.specify "Can handle NaN/Infinity" <|
+            do_round Number.positive_infinity . should_equal Number.positive_infinity
+        Test.specify "Can handle NaN/Infinity" <|
+            do_round Number.negative_infinity . should_equal Number.negative_infinity
+
+        Test.specify "should allow round on a float column (to <0 decimal places)" <|
+            table = table_builder [["x", [51.2, 59.3, 351.45, 359.11, -51.2, -59.3, -351.23, -359.69]]]
+            result = table.at "x" . round -1
+            result.to_vector.should_equal [50.0, 60.0, 350.0, 360.0, -50.0, -60.0, -350.0, -360.0]
+            result.value_type . is_integer . should_be_true
 
     Test.group prefix+"Boolean Column Operations" <|
         Test.specify "iif" <|
@@ -473,6 +484,12 @@ spec setup =
                 result.to_vector.should_equal [0.5, 0.6, 3.5, 3.6, -0.5, -0.6, -3.5, -3.6]
                 result.value_type . is_integer . should_be_false
 
+            Test.specify "should allow round on a float column (to <0 decimal places)" <|
+                table = table_builder [["x", [51.2, 59.3, 351.45, 359.11, -51.2, -59.3, -351.23, -359.69]]]
+                result = table.at "x" . cast type . round -1
+                result.to_vector.should_equal [50.0, 60.0, 350.0, 360.0, -50.0, -60.0, -350.0, -360.0]
+                result.value_type . is_integer . should_be_true
+
             Test.specify "should allow truncate on a "+type.to_text+" column" <|
                 table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
                 result = table.at "x" . cast type . truncate
@@ -717,6 +734,12 @@ spec setup =
         Test.specify "Floating point imperfect representation counter-examples" <|
             do_round 1.225 2 use_bankers=True . should_equal 1.22 # Actual result 1.23
             do_round 37.785 2 . should_equal 37.79
+
+        Test.specify "Can handle NaN/Infinity" <|
+            nan_result = if setup.test_selection.is_nan_and_nothing_distinct then Number.nan else Nothing
+            do_round Number.nan . should_equal nan_result
+            do_round Number.positive_infinity . should_equal Number.positive_infinity
+            do_round Number.negative_infinity . should_equal Number.negative_infinity
 
         Test.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)"
             do_round 0 . should_equal 0
