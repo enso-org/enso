@@ -5,7 +5,6 @@
  * the API. */
 import * as backend from './backend'
 import * as errorModule from '../error'
-import * as newtype from '../newtype'
 import * as projectManager from './projectManager'
 
 // ========================
@@ -14,7 +13,7 @@ import * as projectManager from './projectManager'
 
 /** Convert a {@link projectManager.IpWithSocket} to a {@link backend.Address}. */
 function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
-    return newtype.asNewtype<backend.Address>(`ws://${ipWithSocket.host}:${ipWithSocket.port}`)
+    return backend.Address(`ws://${ipWithSocket.host}:${ipWithSocket.port}`)
 }
 
 // ====================
@@ -45,7 +44,7 @@ export class LocalBackend implements Partial<backend.Backend> {
             id: project.id,
             title: project.name,
             modifiedAt: project.lastOpened ?? project.created,
-            parentId: newtype.asNewtype<backend.AssetId>(''),
+            parentId: backend.DirectoryId(''),
             permissions: [],
             projectState: {
                 type:
@@ -81,7 +80,7 @@ export class LocalBackend implements Partial<backend.Backend> {
      * @throws An error if the JSON-RPC call fails. */
     async createProject(body: backend.CreateProjectRequestBody): Promise<backend.CreatedProject> {
         const project = await this.projectManager.createProject({
-            name: newtype.asNewtype<projectManager.ProjectName>(body.projectName),
+            name: projectManager.ProjectName(body.projectName),
             ...(body.projectTemplateName != null
                 ? { projectTemplate: body.projectTemplateName }
                 : {}),
@@ -222,7 +221,7 @@ export class LocalBackend implements Partial<backend.Backend> {
             if (body.projectName != null) {
                 await this.projectManager.renameProject({
                     projectId,
-                    name: newtype.asNewtype<projectManager.ProjectName>(body.projectName),
+                    name: projectManager.ProjectName(body.projectName),
                 })
             }
             const result = await this.projectManager.listProjects({})

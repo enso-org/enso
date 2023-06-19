@@ -15,7 +15,6 @@ import * as errorModule from '../../error'
 import * as http from '../../http'
 import * as localBackend from '../../dashboard/localBackend'
 import * as loggerProvider from '../../providers/logger'
-import * as newtype from '../../newtype'
 import * as remoteBackend from '../../dashboard/remoteBackend'
 import * as sessionProvider from './session'
 
@@ -369,7 +368,7 @@ export function AuthProvider(props: AuthProviderProps) {
                 await toast.promise(
                     backend.createUser({
                         userName: username,
-                        userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
+                        userEmail: backendModule.EmailAddress(email),
                     }),
                     {
                         success: MESSAGES.setUsernameSuccess,

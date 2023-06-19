@@ -13,41 +13,68 @@ export enum BackendType {
     remote = 'remote',
 }
 
+// These are constructor functions that construct values of the type they are named after.
+/* eslint-disable @typescript-eslint/no-redeclare */
+
 /** Unique identifier for a user/organization. */
 export type UserOrOrganizationId = newtype.Newtype<string, 'UserOrOrganizationId'>
+/** Create a {@link UserOrOrganizationId}. */
+export const UserOrOrganizationId = newtype.newtypeConstructor<UserOrOrganizationId>()
 
 /** Unique identifier for a directory. */
 export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
+/** Create a {@link DirectoryId}. */
+export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
 
 /** Unique identifier for a user's project. */
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
+/** Create a {@link ProjectId}. */
+export const ProjectId = newtype.newtypeConstructor<ProjectId>()
 
 /** Unique identifier for an uploaded file. */
 export type FileId = newtype.Newtype<string, 'FileId'>
+/** Create a {@link FileId}. */
+export const FileId = newtype.newtypeConstructor<FileId>()
 
 /** Unique identifier for a secret environment variable. */
 export type SecretId = newtype.Newtype<string, 'SecretId'>
+/** Create a {@link SecretId}. */
+export const SecretId = newtype.newtypeConstructor<SecretId>()
 
 /** Unique identifier for an arbitrary asset */
 export type AssetId = DirectoryId | FileId | ProjectId | SecretId
 
 /** Unique identifier for a file tag or project tag. */
 export type TagId = newtype.Newtype<string, 'TagId'>
+/** Create a {@link TagId}. */
+export const TagId = newtype.newtypeConstructor<TagId>()
 
 /** A URL. */
 export type Address = newtype.Newtype<string, 'Address'>
+/** Create an {@link Address}. */
+export const Address = newtype.newtypeConstructor<Address>()
 
 /** An email address. */
 export type EmailAddress = newtype.Newtype<string, 'EmailAddress'>
+/** Create an {@link EmailAddress}. */
+export const EmailAddress = newtype.newtypeConstructor<EmailAddress>()
 
 /** An AWS S3 file path. */
 export type S3FilePath = newtype.Newtype<string, 'S3FilePath'>
+/** Create an {@link S3FilePath}. */
+export const S3FilePath = newtype.newtypeConstructor<S3FilePath>()
 
 /** An AWS machine configuration. */
 export type Ami = newtype.Newtype<string, 'Ami'>
+/** Create an {@link Ami}. */
+export const Ami = newtype.newtypeConstructor<Ami>()
 
 /** An AWS user ID. */
 export type Subject = newtype.Newtype<string, 'Subject'>
+/** Create a {@link Subject}. */
+export const Subject = newtype.newtypeConstructor<Subject>()
+
+/* eslint-enable @typescript-eslint/no-redeclare */
 
 /** A user/organization in the application. These are the primary owners of a project. */
 export interface UserOrOrganization {
@@ -415,9 +442,7 @@ export const assetIsFile = assetIsType(AssetType.file)
 
 /** Return the id of the root directory for a user or organization. */
 export function rootDirectoryId(userOrOrganizationId: UserOrOrganizationId) {
-    return newtype.asNewtype<DirectoryId>(
-        userOrOrganizationId.replace(/^organization-/, `${AssetType.directory}-`)
-    )
+    return DirectoryId(userOrOrganizationId.replace(/^organization-/, `${AssetType.directory}-`))
 }
 
 // ==================

@@ -7,7 +7,6 @@ import * as backend from './backend'
 import * as config from '../config'
 import * as http from '../http'
 import * as loggerProvider from '../providers/logger'
-import * as newtype from '../newtype'
 
 // =================
 // === Constants ===
@@ -292,13 +291,9 @@ export class RemoteBackend implements backend.Backend {
             return (await response.json()).projects.map(project => ({
                 ...project,
                 jsonAddress:
-                    project.address != null
-                        ? newtype.asNewtype<backend.Address>(`${project.address}json`)
-                        : null,
+                    project.address != null ? backend.Address(`${project.address}json`) : null,
                 binaryAddress:
-                    project.address != null
-                        ? newtype.asNewtype<backend.Address>(`${project.address}binary`)
-                        : null,
+                    project.address != null ? backend.Address(`${project.address}binary`) : null,
             }))
         }
     }
@@ -350,13 +345,9 @@ export class RemoteBackend implements backend.Backend {
             return {
                 ...project,
                 jsonAddress:
-                    project.address != null
-                        ? newtype.asNewtype<backend.Address>(`${project.address}json`)
-                        : null,
+                    project.address != null ? backend.Address(`${project.address}json`) : null,
                 binaryAddress:
-                    project.address != null
-                        ? newtype.asNewtype<backend.Address>(`${project.address}binary`)
-                        : null,
+                    project.address != null ? backend.Address(`${project.address}binary`) : null,
             }
         }
     }

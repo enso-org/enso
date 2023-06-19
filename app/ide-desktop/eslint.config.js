@@ -133,7 +133,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         // Matches non-functions.
-        selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:has(:matches(ArrowFunctionExpression)))`,
+        selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:matches(:has(ArrowFunctionExpression), :has(CallExpression[callee.object.name=newtype][callee.property.name=newtypeConstructor])))`,
         message: 'Use `CONSTANT_CASE` for top-level constants that are not functions',
     },
     {

@@ -3,6 +3,17 @@
 import * as auth from './authentication/config'
 import * as newtype from './newtype'
 
+// ===========
+// === API ===
+// ===========
+
+/** Base URL for requests to our Cloud API backend. */
+type ApiUrl = newtype.Newtype<string, 'ApiUrl'>
+/** Create an {@link ApiUrl}. */
+// This is a constructor function that constructs values of the type it is named after.
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ApiUrl = newtype.newtypeConstructor<ApiUrl>()
+
 // =================
 // === Constants ===
 // =================
@@ -19,14 +30,14 @@ const CLOUD_REDIRECTS = {
      * The redirect URL must be known ahead of time because it is registered with the OAuth provider
      * when it is created. In the native app, the port is unpredictable, but this is not a problem
      * because the native app does not use port-based redirects, but deep links. */
-    development: newtype.asNewtype<auth.OAuthRedirect>('http://localhost:8080'),
-    production: newtype.asNewtype<auth.OAuthRedirect>(REDIRECT_OVERRIDE ?? CLOUD_DOMAIN),
+    development: auth.OAuthRedirect('http://localhost:8080'),
+    production: auth.OAuthRedirect(REDIRECT_OVERRIDE ?? CLOUD_DOMAIN),
 }
 
 /** All possible API URLs, sorted by environment. */
 const API_URLS = {
-    pbuchu: newtype.asNewtype<ApiUrl>('https://xw0g8j3tsb.execute-api.eu-west-1.amazonaws.com'),
-    production: newtype.asNewtype<ApiUrl>('https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com'),
+    pbuchu: ApiUrl('https://xw0g8j3tsb.execute-api.eu-west-1.amazonaws.com'),
+    production: ApiUrl('https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com'),
 }
 
 /** All possible configuration options, sorted by environment. */
@@ -62,10 +73,3 @@ export interface Config {
 /** Possible values for the environment/user we're running for and whose infrastructure we're
  * testing against. */
 export type Environment = 'pbuchu' | 'production'
-
-// ===========
-// === API ===
-// ===========
-
-/** Base URL for requests to our Cloud API backend. */
-type ApiUrl = newtype.Newtype<string, 'ApiUrl'>

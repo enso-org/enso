@@ -13,9 +13,9 @@ import * as directoryEventModule from '../events/directoryEvent'
 import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
-import * as newtype from '../../newtype'
 import * as projectEventModule from '../events/projectEvent'
 import * as toastPromise from '../toastPromise'
+import * as uniqueString from '../../uniqueString'
 
 import DirectoriesTable from './directoriesTable'
 import DriveBar from './driveBar'
@@ -266,16 +266,13 @@ function DirectoryView(props: DirectoryViewProps) {
                         const projectName = getNewProjectName(directoryEvent.templateId)
                         // Although this is a dummy value, it MUST be unique as it is used
                         // as the React key for lists.
-                        const dummyId = newtype.asNewtype<backendModule.ProjectId>(
-                            Number(new Date()).toString()
-                        )
+                        const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
                         const placeholderNewProjectAsset: backendModule.ProjectAsset = {
                             type: backendModule.AssetType.project,
                             title: projectName,
                             id: dummyId,
                             modifiedAt: dateTime.toRfc3339(new Date()),
-                            parentId:
-                                directoryId ?? newtype.asNewtype<backendModule.DirectoryId>(''),
+                            parentId: directoryId ?? backendModule.DirectoryId(''),
                             permissions: [],
                             projectState: { type: backendModule.ProjectState.new },
                         }
@@ -339,12 +336,9 @@ function DirectoryView(props: DirectoryViewProps) {
                             const placeholderNewDirectoryAsset: backendModule.DirectoryAsset = {
                                 title,
                                 type: backendModule.AssetType.directory,
-                                id: newtype.asNewtype<backendModule.DirectoryId>(
-                                    Number(new Date()).toString()
-                                ),
+                                id: backendModule.DirectoryId(uniqueString.uniqueString()),
                                 modifiedAt: dateTime.toRfc3339(new Date()),
-                                parentId:
-                                    directoryId ?? newtype.asNewtype<backendModule.DirectoryId>(''),
+                                parentId: directoryId ?? backendModule.DirectoryId(''),
                                 permissions: [],
                                 projectState: null,
                             }
