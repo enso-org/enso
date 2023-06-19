@@ -5,7 +5,7 @@ use enso_generics::traits::*;
 
 use crate::callstack::CallStack;
 use crate::callstack::DefInfo;
-use crate::data::Data;
+use crate::data::DynData;
 use crate::metrics;
 use crate::node::input;
 
@@ -15,7 +15,7 @@ use enso_data_structures::unrolled_slot_map::VersionedIndex;
 
 
 
-pub(crate) trait EventConsumer = Fn(&Runtime, &NodeData, &dyn Data) + 'static;
+pub(crate) trait EventConsumer = Fn(&Runtime, &NodeData, &dyn DynData) + 'static;
 
 
 
@@ -116,7 +116,7 @@ def_node! {
             /// Outputs to which an event should NOT be emitted. This includes only [`Sampler`]
             /// connections.
             sampler_outputs: NodeOutputs,
-            output_cache: ZeroOverheadRefCell<ZeroableOption<Box<dyn Data>>>,
+            output_cache: ZeroOverheadRefCell<ZeroableOption<Box<dyn DynData>>>,
             /// Number of samplers connected to this nodes. This includes both the count of
             /// [`ListenerAndSampler`] connections in [`Self::outputs`] and the count of all
             /// connections in [`Self::sampler_outputs`].
@@ -133,7 +133,7 @@ impl Debug for NodeData {
 
 impl NodeData {
     // Either `inline(always)` or `inline(never)` flags makes this code slower.
-    fn on_event(&self, runtime: &Runtime, event: &dyn Data) {
+    fn on_event(&self, runtime: &Runtime, event: &dyn DynData) {
         self.tp.as_ref().map(|f| f(runtime, self, event));
     }
 }
@@ -301,7 +301,7 @@ impl Runtime {
     /// The event type is not checked, so you have to guarantee that the type is correct.
     #[inline(always)]
     #[allow(unsafe_code)]
-    pub(crate) unsafe fn unchecked_emit_borrow(&self, src_node_id: NodeId, event: &dyn Data) {
+    pub(crate) unsafe fn unchecked_emit_borrow(&self, src_node_id: NodeId, event: &dyn DynData) {
         // TODO: Maybe we can check the type correctness with debug-assertions enabled?
         self.with_borrowed_node(src_node_id, |src_node| {
             self.unchecked_emit(src_node, event);
@@ -311,7 +311,7 @@ impl Runtime {
     /// Emit the event to all listeners of the given node. The event type is not checked, so you
     /// have to guarantee that the type is correct.
     #[inline(always)]
-    pub(crate) fn unchecked_emit(&self, src_node: &NodeData, event: &dyn Data) {
+    pub(crate) fn unchecked_emit(&self, src_node: &NodeData, event: &dyn DynData) {
         // Clone the incoming data if there are any sampler outputs.
         if src_node.sampler_count.get() > 0 {
             src_node.output_cache.replace(ZeroableOption::Some(event.boxed_clone()));
@@ -368,7 +368,7 @@ impl Runtime {
             let output = node.output_cache.borrow();
             if let Some(output) = output.as_ref().map(|t| &**t) {
                 #[allow(trivial_casts)]
-                let output_coerced = unsafe { &*(output as *const dyn Data as *const T) };
+                let output_coerced = unsafe { &*(output as *const dyn DynData as *const T) };
                 f(output_coerced)
             } else {
                 f(&default())

@@ -283,11 +283,32 @@ impl<T, E> OptItemRefMut for Result<T, E> {
 
 
 
+// ================
+// === IntoItem ===
+// ================
+
+/// Conversion between a type and its item.
+#[allow(missing_docs)]
+pub trait IntoItem: HasItem {
+    fn into_item(self) -> Self::Item;
+}
+
+impl<T, A: Allocator> IntoItem for Box<T, A> {
+    fn into_item(self) -> Self::Item {
+        Box::into_inner(self)
+    }
+}
+
+
+
 // ===============
 // === Wrapper ===
 // ===============
 
-/// A generalization for structs that can be unwrapped, such as [`Option`] or [`Result`].
+/// A generalization for structs that can be unwrapped, such as [`Option`] or [`Result`]. Unlike
+/// the [`IntoItem`] conversion, the `unwrap` function is allowed to panic in case the wrapped value
+/// does not exist.
+#[allow(missing_docs)]
 pub trait Wrapper: HasItem {
     fn unwrap(self) -> Self::Item;
 }

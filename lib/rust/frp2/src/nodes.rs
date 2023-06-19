@@ -5,6 +5,7 @@ use crate::prelude::*;
 use crate::data::Data;
 use crate::network::Model;
 use crate::network::Network;
+use crate::node::input;
 use crate::node::input::Listen;
 use crate::node::input::ListenAndSample;
 use crate::node::input::Sample;
@@ -13,6 +14,8 @@ use crate::node::NodeInNetwork;
 use crate::node::NodeOf;
 use crate::node::NodeWithDefaultOutput;
 use crate::node::TypedNode;
+use crate::runtime::with_runtime;
+use enso_generics::*;
 
 
 
@@ -226,8 +229,163 @@ macro_rules! def_map_nodes {
 }
 
 impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
-    // def_map_nodes![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
-    def_map_nodes![2, 3];
+    def_map_nodes![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+}
+
+
+
+// ===============
+// === AllWith ===
+// ===============
+
+// FIXME: rename `all_with` to `all` and `all` to `zip`.
+macro_rules! def_all_with_nodes {
+    ($($is:literal),*) => {
+        def_all_with_nodes! { @ [[all_with 1 []]] $($is)* }
+    };
+
+    (@ [ [$name:ident $i:tt [$($is:tt)*]] $($iss:tt)* ] $n:tt $($ns:tt)*) => { paste !{
+        def_all_with_nodes! { @ [ [[<all_with $n>] $n [$($is)* $n]] [$name $i [$($is)*]] $($iss)* ] $($ns)* }
+    }};
+
+    (@ [ [$name:ident $i:tt [$($is:tt)*]] $($iss:tt)* ]) => {
+        def_all_with_nodes! { @ [ $($iss)* ] }
+        paste! { def_all_with_nodes! { # $name $i [$([<N $is>])*] } }
+    };
+
+    (@ []) => {};
+
+    (# $name:ident $i:tt [$($ns:tt)*]) => { paste! {
+        /// On every event on the first input, sample all inputs, evaluate the provided function,
+        /// and pass the result trough. The function contains mutable reference to the network
+        /// model. If you don't need the model, use the `all_withX_` family of functions instead.
+        #[inline(never)]
+        #[allow(non_snake_case)]
+        #[allow(clippy::too_many_arguments)]
+        pub fn $name < $($ns,)* F, Output>
+        (self, $($ns:$ns,)* f: F) -> NodeInNetwork<'a, M, Stream<Output>>
+        where
+            $($ns: NodeWithDefaultOutput,)*
+            Output: Data,
+            F: 'static + Fn(&mut M, &N1::Output, $(&$ns::Output,)*) -> Output, {
+            self.network.new_node_with_model((ListenAndSample(self), $(ListenAndSample($ns),)*),
+                move |event, m, t1, $($ns,)*| { event.emit(&f(m, t1, $($ns,)*)) }
+            )
+        }
+
+        /// On every event on the first input, sample all inputs, evaluate the provided function,
+        /// and pass the result trough. The function does not contain mutable reference to the
+        /// network model. If you need the model, use the `all_withX` family of functions instead.
+        #[inline(never)]
+        #[allow(non_snake_case)]
+        #[allow(clippy::too_many_arguments)]
+        pub fn [<$name _>] < $($ns,)* F, Output>
+        (self, $($ns:$ns,)* f: F) -> NodeInNetwork<'a, M, Stream<Output>>
+        where
+            $($ns: NodeWithDefaultOutput,)*
+            Output: Data,
+            F: 'static + Fn(&N1::Output, $(&$ns::Output,)*) -> Output, {
+            self.network.new_node((Listen(self), $(Sample($ns),)*),
+                move |event, _, t1, $($ns,)*| { event.emit(&f(t1, $($ns,)*)) }
+            )
+        }
+    }};
+}
+
+impl<'a, M: Model, N1: NodeWithDefaultOutput> NodeInNetwork<'a, M, N1> {
+    def_all_with_nodes![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+}
+
+
+
+// ==============
+// === AnyMut ===
+// ==============
+
+/// Marker type for the [`AnyMut`] node.
+#[derive(Clone, Copy, Debug, Default)]
+#[allow(non_camel_case_types)]
+pub struct ANY_MUT;
+
+pub type AnyMut<Output = ()> = TypedNode<ANY_MUT, Output>;
+
+impl<M: Model> Network<M> {
+    /// Merges multiple input streams into a single output stream. All input streams have to share
+    /// the same output data type. This is a dynamic node, allowing new input streams to be attached
+    /// after its creation with the [`Self::attach`] method.
+    ///
+    /// Please note that `any_mut` can be used to create recursive FRP networks ...
+    // FIXME: check if we can really create recursive frp networks here.
+    #[inline(always)]
+    pub fn any_mut<T: Data>(&self) -> NodeInNetwork<M, AnyMut<T>> {
+        self.new_node(PhantomData::<(Listen<Stream<T>>,)>, |event, _, t| event.emit(t))
+    }
+}
+
+impl<Output: Data> AnyMut<Output> {
+    pub fn attach<N: NodeOf<Output>>(&self, node: N) {
+        with_runtime(|rt| rt.connect(input::Type::Listen(node.id()), self.id()));
+    }
+}
+
+
+
+// ===========
+// === Any ===
+// ===========
+
+macro_rules! def_any_nodes {
+    ($($is:literal),*) => {
+        def_any_nodes! { @ [[any 1 []]] $($is)* }
+    };
+
+    (@ [ [$name:ident $i:tt [$($is:tt)*]] $($iss:tt)* ] $n:tt $($ns:tt)*) => { paste !{
+        def_any_nodes! { @ [ [[<any $n>] $n [$($is)* $n]] [$name $i [$($is)*]] $($iss)* ] $($ns)* }
+    }};
+
+    (@ [ [$name:ident $i:tt [$($is:tt)*]] $($iss:tt)* ]) => {
+        def_any_nodes! { @ [ $($iss)* ] }
+        paste! { def_any_nodes! { # $name $i [$([<N $is>])*] } }
+    };
+
+    (@ []) => {};
+
+    (# $name:ident $i:tt [$($ns:tt)*]) => { paste! {
+        /// Merges multiple input event streams into a single output event stream. All input event
+        /// streams have to share the same output data type.
+        #[inline(never)]
+        #[allow(non_snake_case)]
+        #[allow(clippy::too_many_arguments)]
+        pub fn $name < $($ns,)* Output>(self, $($ns:$ns,)*) -> NodeInNetwork<'a, M, Stream<Output>>
+        where
+            N1: NodeOf<Output>,
+            $($ns: NodeOf<Output>,)*
+            Output: Data {
+            self.network.new_node((Listen(self), $(Listen($ns),)*),
+                move |event, _, t| { event.emit(t) }
+            )
+        }
+
+        /// Merges multiple input event streams into a single output event stream. All input event
+        /// streams have to share the same output data type. The event data is dropped and on every
+        /// event, an unit event is emitted.
+        #[inline(never)]
+        #[allow(non_snake_case)]
+        #[allow(clippy::too_many_arguments)]
+        pub fn [<$name _>] < $($ns,)* Output>(self, $($ns:$ns,)*) -> NodeInNetwork<'a, M, Stream>
+        where
+            N1: NodeOf<Output>,
+            $($ns: NodeOf<Output>,)*
+            Output: Data {
+            self.network.new_node((Listen(self), $(Listen($ns),)*),
+                move |event, _, _| { event.emit(&()) }
+            )
+        }
+    }};
+}
+
+impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
+    def_any_nodes![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 }
 
 
@@ -307,11 +465,10 @@ impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
         })
     }
 
-    // FIXME: N1::Output: Clone should not be needed
     /// On every event, remember it and emit the previously remembered one. In case of the first
     /// event, the default value will be emitted.
     pub fn previous(self) -> NodeInNetwork<'a, M, Stream<N1::Output>>
-    where N1::Output: Clone + Default {
+    where N1::Output: Default {
         let previous: RefCell<N1::Output> = RefCell::new(default());
         self.new_node((Listen(self),), move |event, _, t0| {
             let value = previous.replace(t0.clone());
@@ -346,11 +503,143 @@ impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
         })
     }
 
-    /// On every event, emit its unwrapped value.
+    /// On every event, emit its unwrapped value. In case the value cannot be unwrapped (e.g. from
+    /// the incoming `None` value), no output event will be emitted.
     pub fn unwrap(self) -> NodeInNetwork<'a, M, Stream<Item<N1::Output>>>
-    where N1::Output: Wrapper {
+    where
+        N1::Output: OptItemRef,
+        Item<N1::Output>: Data, {
         self.new_node((Listen(self),), move |event, _, t0| {
-            event.emit(&t0.unwrap());
+            if let Some(val) = t0.opt_item() {
+                event.emit(val);
+            }
+        })
+    }
+
+    /// On every event, iterate over its items and emit each item as a separate event.
+    pub fn iter<T: Data>(self) -> NodeInNetwork<'a, M, Stream<T>>
+    where for<'t> &'t N1::Output: IntoIterator<Item = &'t T> {
+        self.new_node((Listen(self),), move |event, _, t0| {
+            for val in t0 {
+                event.emit(val);
+            }
+        })
+    }
+
+    /// On every event, fold all of its items by using [`Monoid`] and emit the folded result.
+    pub fn fold<T: Data + Monoid>(self) -> NodeInNetwork<'a, M, Stream<T>>
+    where for<'t> &'t N1::Output: IntoIterator<Item = &'t T> {
+        self.new_node((Listen(self),), move |event, _, t0| {
+            let val = t0.into_iter().fold(default(), |t: T, s| t.concat(s));
+            event.emit(&val);
+        })
+    }
+
+    /// On every event, get the N-th field of the value and emit it.
+    pub fn field_at<const N: usize>(self) -> NodeInNetwork<'a, M, Stream<FieldAt<N, N1::Output>>>
+    where
+        N1::Output: GetFieldAt<N>,
+        FieldAt<N, N1::Output>: Data, {
+        self.new_node((Listen(self),), move |event, _, t0| {
+            event.emit(t0.field_at::<N>());
+        })
+    }
+
+    /// On every event, get the 0-index field of the value and emit it.
+    pub fn _0(self) -> NodeInNetwork<'a, M, Stream<FieldAt<0, N1::Output>>>
+    where
+        N1::Output: GetFieldAt<0>,
+        FieldAt<0, N1::Output>: Data, {
+        self.field_at::<0>()
+    }
+
+    // TODO: _1, _2, ...
+
+    // FIXME: Double check if it works, as the behavior is changed. It emits event even if the first
+    //        value == default().
+    /// On every event, remember it and pass it trough if its different than the previously
+    /// remembered one.
+    pub fn on_change(self) -> NodeInNetwork<'a, M, Stream<N1::Output>>
+    where N1::Output: PartialEq {
+        let previous: RefCell<Option<N1::Output>> = RefCell::new(None);
+        self.new_node((Listen(self),), move |event, _, t0| {
+            let changed = previous.borrow().as_ref() == Some(t0);
+            if changed {
+                *previous.borrow_mut() = Some(t0.clone());
+                event.emit(t0);
+            }
+        })
+    }
+
+    /// On every event `e: &N1::Output`, emit `&e.into()`.
+    pub fn ref_into<T: Data>(self) -> NodeInNetwork<'a, M, Stream<T>>
+    where for<'t> &'t N1::Output: Into<T> {
+        self.new_node((Listen(self),), move |event, _, t0| {
+            event.emit(&t0.into());
+        })
+    }
+
+    /// On every event `e: &N1::Output`, emit `&e.clone().into()`.
+    pub fn cloned_into<T: Data>(self) -> NodeInNetwork<'a, M, Stream<T>>
+    where N1::Output: Into<T> {
+        self.new_node((Listen(self),), move |event, _, t0| {
+            event.emit(&t0.clone().into());
+        })
+    }
+
+    /// On every event `e: &N1::Output`, emit `&Some(e.into())`.
+    pub fn ref_into_some<T: Data>(self) -> NodeInNetwork<'a, M, Stream<Option<T>>>
+    where for<'t> &'t N1::Output: Into<T> {
+        self.new_node((Listen(self),), move |event, _, t0| {
+            event.emit(&Some(t0.into()));
+        })
+    }
+
+    /// On every event `e: &N1::Output`, emit `&Some(e.clone().into())`.
+    pub fn cloned_into_some<T: Data>(self) -> NodeInNetwork<'a, M, Stream<Option<T>>>
+    where N1::Output: Into<T> {
+        self.new_node((Listen(self),), move |event, _, t0| {
+            event.emit(&Some(t0.clone().into()));
+        })
+    }
+
+    // === Bool Utils ===
+
+    /// On every event, emit `true`.
+    pub fn to_true(self) -> NodeInNetwork<'a, M, Stream<bool>> {
+        self.constant(true)
+    }
+
+    /// On every event, emit `false`.
+    pub fn to_false(self) -> NodeInNetwork<'a, M, Stream<bool>> {
+        self.constant(false)
+    }
+
+    /// On every event that is `true`, emit a unit event.
+    pub fn on_true(self) -> NodeInNetwork<'a, M, Stream>
+    where N1: NodeOf<bool> {
+        self.new_node((Listen(self),), move |event, _, t0| {
+            if *t0 {
+                event.emit(&());
+            }
+        })
+    }
+
+    /// On every event that is `false`, emit a unit event.
+    pub fn on_false(self) -> NodeInNetwork<'a, M, Stream>
+    where N1: NodeOf<bool> {
+        self.new_node((Listen(self),), move |event, _, t0| {
+            if !t0 {
+                event.emit(&());
+            }
+        })
+    }
+
+    /// On every event, emit its negation.
+    pub fn not(self) -> NodeInNetwork<'a, M, Stream<bool>>
+    where N1: NodeOf<bool> {
+        self.new_node((Listen(self),), move |event, _, t0| {
+            event.emit(&!t0);
         })
     }
 }

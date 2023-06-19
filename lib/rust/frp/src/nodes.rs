@@ -237,6 +237,7 @@ impl Network {
     }
 
     /// Unwraps the value of incoming events and emits the unwrapped values.
+    /// [x]
     pub fn unwrap<T, S>(&self, label: Label, event: &T) -> Stream<S>
     where
         T: EventOutput<Output = Option<S>>,
@@ -245,6 +246,7 @@ impl Network {
     }
 
     /// On every incoming event, iterate over its value and emit each element separately.
+    /// [x]
     pub fn iter<T1, X>(&self, label: Label, event: &T1) -> Stream<X>
     where
         T1: EventOutput,
@@ -292,6 +294,7 @@ impl Network {
     /// ```
     ///
     /// Note: See documentation of [`crate::microtasks`] module for more details about microtasks.
+    /// [ ]
     pub fn debounce<T>(&self, label: Label, event: &T) -> Stream<Output<T>>
     where T: EventOutput {
         self.register(OwnedDebounce::new(label, event))
@@ -311,6 +314,7 @@ impl Network {
     /// ```
     ///
     /// Note: See documentation of [`crate::microtasks`] module for more details about microtasks.
+    /// [ ]
     pub fn batch<T>(&self, label: Label, input: &T) -> Stream<Vec<Output<T>>>
     where T: EventOutput {
         self.register(OwnedBatch::new(label, input))
@@ -318,6 +322,7 @@ impl Network {
 
 
     /// Fold the incoming value using [`Monoid`] implementation.
+    /// [x]
     pub fn fold<T1, X>(&self, label: Label, event: &T1) -> Stream<X>
     where
         T1: EventOutput,
@@ -327,6 +332,7 @@ impl Network {
     }
 
     /// Get the 0-based index of the incoming event.
+    /// [x]
     pub fn _0<T1>(&self, label: Label, event: &T1) -> Stream<generics::FieldAt<0, Output<T1>>>
     where
         T1: EventOutput,
@@ -336,6 +342,7 @@ impl Network {
     }
 
     /// Get the 1-based index of the incoming event.
+    /// [x]
     pub fn _1<T1>(&self, label: Label, event: &T1) -> Stream<generics::FieldAt<1, Output<T1>>>
     where
         T1: EventOutput,
@@ -345,6 +352,7 @@ impl Network {
     }
 
     /// Get the 2-based index of the incoming event.
+    /// [x]
     pub fn _2<T1>(&self, label: Label, event: &T1) -> Stream<generics::FieldAt<2, Output<T1>>>
     where
         T1: EventOutput,
@@ -355,6 +363,7 @@ impl Network {
 
     /// Only if the input event has changed, emit the input event. This will hide multiple
     /// consecutive events with the same value.
+    /// [x]
     pub fn on_change<T, V>(&self, label: Label, t: &T) -> Stream<V>
     where
         T: EventOutput<Output = V>,
@@ -365,6 +374,7 @@ impl Network {
     }
 
     /// Just like [`value.into()`] on the reference of the incoming value.
+    /// [x]
     pub fn ref_into<T, V, S>(&self, label: Label, t: &T) -> Stream<S>
     where
         T: EventOutput<Output = V>,
@@ -374,6 +384,7 @@ impl Network {
     }
 
     /// Just like [`value.clone().into()`] on the incoming value.
+    /// [x]
     pub fn cloned_into<T, V, S>(&self, label: Label, t: &T) -> Stream<S>
     where
         T: EventOutput<Output = V>,
@@ -383,6 +394,7 @@ impl Network {
     }
 
     /// Just like [`Some(value.into())`] on the reference of the incoming value.
+    /// [x]
     pub fn ref_into_some<T, V, S>(&self, label: Label, t: &T) -> Stream<Option<S>>
     where
         T: EventOutput<Output = V>,
@@ -392,6 +404,7 @@ impl Network {
     }
 
     /// Just like [`Some(value.clone().into())`] on the incoming value.
+    /// [x]
     pub fn cloned_into_some<T, V, S>(&self, label: Label, t: &T) -> Stream<Option<S>>
     where
         T: EventOutput<Output = V>,
@@ -402,6 +415,7 @@ impl Network {
 
     /// Converts the incoming values to [`AnyData`] hiding their types. This can be used to create
     /// FRP inputs accepting different types, not known at compile time.
+    /// [ ]
     pub fn any_data<T>(&self, label: Label, t: &T) -> Stream<crate::AnyData>
     where
         T: EventOutput,
@@ -413,16 +427,19 @@ impl Network {
     // === Bool Utils ===
 
     /// Replace the incoming event with `true`.
+    /// [x]
     pub fn to_true<T: EventOutput>(&self, label: Label, src: &T) -> Stream<bool> {
         self.constant(label, src, true)
     }
 
     /// Replace the incoming event with `false`.
+    /// [x]
     pub fn to_false<T: EventOutput>(&self, label: Label, src: &T) -> Stream<bool> {
         self.constant(label, src, false)
     }
 
     /// Whenever the input event is `true`, emit the output event.
+    /// [x]
     pub fn on_true<T>(&self, label: Label, t: &T) -> Stream
     where T: EventOutput<Output = bool> {
         let t_ = self.constant(label, t, ());
@@ -430,6 +447,7 @@ impl Network {
     }
 
     /// Whenever the input event is `false`, emit the output event.
+    /// [x]
     pub fn on_false<T>(&self, label: Label, t: &T) -> Stream
     where T: EventOutput<Output = bool> {
         let t_ = self.constant(label, t, ());
@@ -437,6 +455,7 @@ impl Network {
     }
 
     /// Replace the incoming event from first input with `false` and from second with `true`.
+    /// [ ]
     pub fn bool<T1, T2>(&self, label: Label, src1: &T1, src2: &T2) -> Stream<bool>
     where
         T1: EventOutput,
@@ -447,6 +466,7 @@ impl Network {
     }
 
     /// On every input event, output its negation.
+    /// [x]
     pub fn not<T>(&self, label: Label, src: &T) -> Stream<bool>
     where T: EventOutput<Output = bool> {
         self.map(label, src, |t| !t)
@@ -559,12 +579,14 @@ impl Network {
     /// networks by creating an empty `any` and using the `attach` method to attach new streams to
     /// it. When a recursive network is created, `any_mut` breaks the cycle. After passing the first
     /// event, no more events will be passed till the end of the current FRP network resolution.
+    /// [x]
     pub fn any_mut<T: Data>(&self, label: Label) -> Any<T> {
         self.register_raw(OwnedAny::new(label))
     }
 
     /// Merges multiple input streams into a single output stream. All input streams have to share
     /// the same output data type.
+    /// [x]
     pub fn any<T1, T2, T: Data>(&self, label: Label, t1: &T1, t2: &T2) -> Stream<T>
     where
         T1: EventOutput<Output = T>,
@@ -573,6 +595,7 @@ impl Network {
     }
 
     /// Specialized version of `any`.
+    /// [x]
     pub fn any2<T1, T2, T: Data>(&self, label: Label, t1: &T1, t2: &T2) -> Stream<T>
     where
         T1: EventOutput<Output = T>,
@@ -581,6 +604,7 @@ impl Network {
     }
 
     /// Specialized version of `any`.
+    /// [x]
     pub fn any3<T1, T2, T3, T: Data>(&self, label: Label, t1: &T1, t2: &T2, t3: &T3) -> Stream<T>
     where
         T1: EventOutput<Output = T>,
@@ -590,6 +614,7 @@ impl Network {
     }
 
     /// Specialized version of `any`.
+    /// [x]
     pub fn any4<T1, T2, T3, T4, T: Data>(
         &self,
         label: Label,
@@ -608,6 +633,7 @@ impl Network {
     }
 
     /// Specialized version of `any`.
+    /// [x]
     pub fn any5<T1, T2, T3, T4, T5, T: Data>(
         &self,
         label: Label,
@@ -631,11 +657,13 @@ impl Network {
     // === Any_ ===
 
     /// Like `any_mut` but drops the incoming data. You can attach streams of different types.
+    /// [x]
     pub fn any_mut_(&self, label: Label) -> Any_ {
         self.register_raw(OwnedAny_::new(label))
     }
 
     /// Like `any` but drops the incoming data. You can attach streams of different types.
+    /// [x]
     pub fn any_<T1, T2>(&self, label: Label, t1: &T1, t2: &T2) -> Stream<()>
     where
         T1: EventOutput,
@@ -644,6 +672,7 @@ impl Network {
     }
 
     /// Specialized version of `any_`.
+    /// [x]
     pub fn any2_<T1, T2>(&self, label: Label, t1: &T1, t2: &T2) -> Stream<()>
     where
         T1: EventOutput,
@@ -652,6 +681,7 @@ impl Network {
     }
 
     /// Specialized version of `any_`.
+    /// [x]
     pub fn any3_<T1, T2, T3>(&self, label: Label, t1: &T1, t2: &T2, t3: &T3) -> Stream<()>
     where
         T1: EventOutput,
@@ -661,6 +691,7 @@ impl Network {
     }
 
     /// Specialized version of `any_`.
+    /// [x]
     pub fn any4_<T1, T2, T3, T4>(
         &self,
         label: Label,
@@ -679,6 +710,7 @@ impl Network {
     }
 
     /// Specialized version of `any_`.
+    /// [x]
     pub fn any5_<T1, T2, T3, T4, T5>(
         &self,
         label: Label,

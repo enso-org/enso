@@ -5,6 +5,7 @@ use crate::prelude::*;
 use enso_generics::traits::*;
 
 use crate::data::Data;
+use crate::data::DynData;
 use crate::network::Network;
 use crate::node::input;
 use crate::node::input::Listen;
@@ -34,6 +35,14 @@ pub(crate) struct EventContext<'a, Output> {
     tp:      ZST<Output>,
     runtime: &'a Runtime,
     node:    &'a NodeData,
+}
+
+impl<'a, Output> Copy for EventContext<'a, Output> {}
+impl<'a, Output> Clone for EventContext<'a, Output> {
+    #[inline(always)]
+    fn clone(&self) -> Self {
+        EventContext { tp: self.tp, runtime: self.runtime, node: self.node }
+    }
 }
 
 impl<'a, Output> EventContext<'a, Output> {
@@ -260,10 +269,10 @@ macro_rules! gen_template_impl {
                 let _inputs = inputs.map_fields_into::<input::Type>();
                 let node = unsafe {
                     net.new_node_with_init_unchecked(
-                        move |rt: &Runtime, node: &NodeData, _data: &dyn Data| {
+                        move |rt: &Runtime, node: &NodeData, _data: &dyn DynData| {
                             $(
                                 #[allow(trivial_casts)]
-                                let $lty = &*(_data as *const dyn Data as *const $lty);
+                                let $lty = &*(_data as *const dyn DynData as *const $lty);
                             )?
                             $($(replace2!{($l) => let (_, _inputs) = _inputs.pop_first_field();})*)?
                             gen_template_impl_body! {
@@ -578,3 +587,38 @@ macro_rules! gen_template_impls {
 // For the input of X, it generates less than 2 * X * (X + 1) impls. So, for X = 16, it generates
 // less than 512 impls.
 with_all_init_sequences! { (all_splits2!)((gen_template_impls!)) [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16] }
+
+
+
+#[allow(non_snake_case)]
+#[allow(unused_unsafe)]
+impl<M, Model, L, N1, Output, F> Template<M, Model, Output, F> for PhantomData<(Listen<N1>,)>
+where
+    M: ModelChooser<Model>,
+    N1: Node<Output = L>,
+    F: 'static + Fn(EventContext<Output>, &mut ChosenModel<M, Model>, &L),
+{
+    #[inline(always)]
+    #[allow(unsafe_code)]
+    fn new_node_with_init<Type>(
+        net: &Network<Model>,
+        _inputs: Self,
+        f: F,
+        init: impl FnOnce(&mut NodeData),
+    ) -> TypedNode<Type, Output> {
+        let model = M::clone_model(&net.model);
+        let node = unsafe {
+            net.new_node_with_init_unchecked(
+                move |rt: &Runtime, node: &NodeData, _data: &dyn DynData| {
+                    #[allow(trivial_casts)]
+                    let L = &*(_data as *const dyn DynData as *const L);
+                    M::with_model_borrow_mut(&model, |model| {
+                        f(EventContext::unchecked_new(rt, node), model, L)
+                    })
+                },
+                init,
+            )
+        };
+        node
+    }
+}
