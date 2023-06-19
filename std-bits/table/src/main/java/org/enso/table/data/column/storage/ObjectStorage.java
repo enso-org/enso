@@ -6,6 +6,8 @@ import org.enso.table.data.column.builder.object.ObjectBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 
 /** A column storing arbitrary objects. */
@@ -40,14 +42,28 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
   public StorageType inferPreciseType() {
     if (inferredType == null) {
       StorageType currentType = null;
+
       for (int i = 0; i < size(); i++) {
         var item = getItemBoxed(i);
-        if (item != null) {
-          var itemType = StorageType.forBoxedItem(item);
-          currentType = StorageType.findCommonType(currentType, itemType);
-          if (currentType instanceof AnyObjectType) {
-            break;
+        if (item == null) {
+          continue;
+        }
+
+        var itemType = StorageType.forBoxedItem(item);
+        if (currentType == null) {
+          currentType = itemType;
+        } else if (currentType != itemType) {
+          // Allow mixed integer and float types in a column, returning a float.
+          if ((itemType instanceof IntegerType && currentType instanceof FloatType)
+              || (itemType instanceof FloatType && currentType instanceof IntegerType)) {
+            currentType = FloatType.FLOAT_64;
+          } else {
+            currentType = AnyObjectType.INSTANCE;
           }
+        }
+
+        if (currentType instanceof AnyObjectType) {
+          break;
         }
       }
 
