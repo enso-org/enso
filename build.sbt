@@ -360,14 +360,12 @@ val akka =
 // === Cats ===================================================================
 
 val catsVersion    = "2.9.0"
-val kittensVersion = "3.0.0"
 val cats = {
   Seq(
     "org.typelevel" %% "cats-core"   % catsVersion,
     "org.typelevel" %% "cats-effect" % catsVersion,
     "org.typelevel" %% "cats-free"   % catsVersion,
     "org.typelevel" %% "cats-macros" % catsVersion,
-    "org.typelevel" %% "kittens"     % kittensVersion
   )
 }
 
