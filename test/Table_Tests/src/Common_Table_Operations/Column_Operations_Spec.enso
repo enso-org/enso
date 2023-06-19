@@ -1155,4 +1155,4 @@ spec setup =
 
         Test.specify "Should not allow the creation of a constant column of columns" <|
             t = table_builder [["x", ["1", "2", "3"]]]
-            t.at "x" . const t . should_fail_with Illegal_Argument
+            t.at "x" . const (t.at "x") . should_fail_with Illegal_Argument
