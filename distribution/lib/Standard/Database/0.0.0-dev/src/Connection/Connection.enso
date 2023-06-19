@@ -270,6 +270,8 @@ type Connection
         type_overrides = self.dialect.get_type_mapping.prepare_type_overrides column_type_suggestions
         statement_setter = self.dialect.get_statement_setter
         self.jdbc_connection.with_prepared_statement statement statement_setter stmt->
+            ac = self.jdbc_connection.with_connection .getAutoCommit
+            IO.println "QUERY (autocommit="+ac.to_text+"): "+stmt
             result_set_to_table stmt.executeQuery self.dialect.make_column_fetcher_for_type type_overrides last_row_only
 
     ## PRIVATE
@@ -295,6 +297,8 @@ type Connection
         if Execution_Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Executing update queries is forbidden as the Output context is disabled.") else
             statement_setter = self.dialect.get_statement_setter
             self.jdbc_connection.with_prepared_statement query statement_setter stmt->
+                ac = self.jdbc_connection.with_connection .getAutoCommit
+                IO.println "UPDATE (autocommit="+ac.to_text+"): "+stmt.to_text
                 Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                     stmt.executeUpdate
 
