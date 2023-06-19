@@ -27,11 +27,8 @@ spec setup =
             #IO.println <| result . to_vector
             result.to_vector.at 0
 
-        Test.specify "Can round positive decimals correctly" <|
-            #do_round 3.5 . should_equal 4
-            #do_round 333 -1 . should_equal 330
-            IO.println 'AAA'
-            IO.println <| do_round 9 -1
+        Test.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)"
+            do_round 0 . should_equal 0
 
     Test.group prefix+"Boolean Column Operations" <|
         Test.specify "iif" <|
