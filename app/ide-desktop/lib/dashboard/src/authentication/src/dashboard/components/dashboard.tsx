@@ -310,6 +310,7 @@ function Dashboard(props: DashboardProps) {
     const [project, setProject] = react.useState<backendModule.Project | null>(null)
     const [selectedAssets, setSelectedAssets] = react.useState<backendModule.Asset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = react.useState(false)
+    const [isScrollBarVisible, setIsScrollBarVisible] = react.useState(false)
 
     const [isLoadingAssets, setIsLoadingAssets] = react.useState(true)
     const [projectAssets, setProjectAssetsRaw] = react.useState<
@@ -825,6 +826,15 @@ function Dashboard(props: DashboardProps) {
         setVisibleSecretAssets(secretAssets.filter(doesItMatchQuery))
         setVisibleFileAssets(fileAssets.filter(doesItMatchQuery))
     }, [query])
+
+    react.useLayoutEffect(() => {
+        if (isLoadingAssets) {
+            document.body.style.overflowY = isScrollBarVisible ? 'scroll' : ''
+        } else {
+            document.body.style.overflowY = ''
+            setIsScrollBarVisible(document.body.scrollHeight > document.body.clientHeight)
+        }
+    }, [isLoadingAssets, projectAssets, directoryAssets, secretAssets, fileAssets])
 
     const setAssets = (assets: backendModule.Asset[]) => {
         const newProjectAssets = assets.filter(
