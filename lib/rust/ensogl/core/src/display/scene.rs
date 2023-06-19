@@ -1430,8 +1430,8 @@ enum TaskState {
 /// Extended API for tests.
 pub mod test_utils {
     use super::*;
-    use enso_callback::traits::*;
     use display::shape::ShapeInstance;
+    use enso_callback::traits::*;
 
     const MOCK_CANVAS_SHAPE: Shape =
         Shape { width: 1000.0, height: 750.0, pixel_ratio: 2.5 };
@@ -1450,30 +1450,33 @@ pub mod test_utils {
 
         /// Simulate mouse move and hover with manually specified event data and target.
         fn hover_raw(&self, data: mouse::MouseEventData, target: PointerTargetId) -> &Self {
-            self
-            .emit_move(mouse::Move::simulated(data, MOCK_CANVAS_SHAPE))
-            .set_hover_target(target)
+            self.emit_move(mouse::Move::simulated(data, MOCK_CANVAS_SHAPE)).set_hover_target(target)
         }
 
         /// Simulate mouse hover and click with manually specified event data and target.
         fn click_on_raw(&self, data: mouse::MouseEventData, target: PointerTargetId) -> &Self {
-            self.hover_raw(data, target).emit_down(mouse::Down::simulated(data, MOCK_CANVAS_SHAPE))
+            self.hover_raw(data, target)
+                .emit_down(mouse::Down::simulated(data, MOCK_CANVAS_SHAPE))
                 .emit_up(mouse::Up::simulated(data, MOCK_CANVAS_SHAPE))
         }
 
         /// Simulate mouse hover on a on given shape.
         fn hover<S>(&self, shape: &ShapeInstance<S>, pos: Vector2) -> &Self {
-            self.hover_raw(mouse::MouseEventData::primary_at(pos), PointerTargetId::Symbol { id: shape.sprite.borrow().global_instance_id })
+            self.hover_raw(mouse::MouseEventData::primary_at(pos), PointerTargetId::Symbol {
+                id: shape.sprite.borrow().global_instance_id,
+            })
         }
 
         /// Simulate mouse hover on background.
         fn hover_background(&self, pos: Vector2) -> &Self {
             self.hover_raw(mouse::MouseEventData::primary_at(pos), PointerTargetId::Background)
         }
-        
+
         /// Simulate mouse hover and click on given shape.
         fn click_on<S>(&self, shape: &ShapeInstance<S>, pos: Vector2) {
-            self.click_on_raw(mouse::MouseEventData::primary_at(pos), PointerTargetId::Symbol { id: shape.sprite.borrow().global_instance_id });
+            self.click_on_raw(mouse::MouseEventData::primary_at(pos), PointerTargetId::Symbol {
+                id: shape.sprite.borrow().global_instance_id,
+            });
         }
         /// Simulate mouse click on background.
         fn click_on_background(&self, pos: Vector2) {
