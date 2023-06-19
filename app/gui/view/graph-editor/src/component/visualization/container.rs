@@ -353,6 +353,7 @@ impl ContainerModel {
     fn init(self) -> Self {
         self.display_object.add_child(&self.drag_root);
         self.scene.layers.above_nodes.add(&self.action_bar);
+        self.scene.layers.panel.add(&self.fullscreen_view);
         self.update_shape_sizes(ViewState::default());
         self.init_corner_roundness();
         self.view.show_waiting_screen();
