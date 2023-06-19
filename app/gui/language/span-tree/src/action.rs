@@ -114,7 +114,7 @@ pub trait Implementation {
 
 impl<'a> Implementation for node::Ref<'a> {
     fn set_impl(&self) -> Option<SetOperation> {
-        match dbg!(&self.node.kind) {
+        match &self.node.kind {
             node::Kind::InsertionPoint(ins_point) => Some(Box::new(move |root, new| {
                 use node::InsertionPointType::*;
                 let kind = &ins_point.kind;
@@ -242,28 +242,23 @@ impl<'a> Implementation for node::Ref<'a> {
                 Ok(new_root)
             })),
             node::Kind::Token => None,
-            _ => {
-                dbg!(&self.ast_crumbs);
-                match &self.ast_crumbs.last() {
-                    // Operators should be treated in a special way - setting functions in place in
-                    // a operator should replace Infix with Prefix with two applications.
-                    // TODO[ao] Maybe some day...
-                    Some(Crumb::Infix(InfixCrumb::Operator))
-                    | Some(Crumb::SectionLeft(SectionLeftCrumb::Opr))
-                    | Some(Crumb::SectionRight(SectionRightCrumb::Opr))
-                    | Some(Crumb::SectionSides(SectionSidesCrumb)) => None,
-                    _ => Some(Box::new(move |root, new| {
-                        modify_preserving_id(root, |root| {
-                            root.set_traversing(&self.ast_crumbs, new)
-                        })
-                    })),
-                }
-            }
+            _ => match &self.ast_crumbs.last() {
+                // Operators should be treated in a special way - setting functions in place in
+                // a operator should replace Infix with Prefix with two applications.
+                // TODO[ao] Maybe some day...
+                Some(Crumb::Infix(InfixCrumb::Operator))
+                | Some(Crumb::SectionLeft(SectionLeftCrumb::Opr))
+                | Some(Crumb::SectionRight(SectionRightCrumb::Opr))
+                | Some(Crumb::SectionSides(SectionSidesCrumb)) => None,
+                _ => Some(Box::new(move |root, new| {
+                    modify_preserving_id(root, |root| root.set_traversing(&self.ast_crumbs, new))
+                })),
+            },
         }
     }
 
     fn erase_impl(&self) -> Option<EraseOperation> {
-        if dbg!(&self.node.kind).removable() {
+        if self.node.kind.removable() {
             Some(Box::new(move |root| {
                 let (mut last_crumb, mut parent_crumbs) =
                     self.ast_crumbs.split_last().expect("Erase target must have parent AST node");

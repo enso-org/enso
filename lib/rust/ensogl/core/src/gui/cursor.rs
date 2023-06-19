@@ -541,10 +541,13 @@ impl Cursor {
             //     ╲│ z = camera.z
             screen_position <- position.map(f!([model](position) {
                 let cam_pos = model.scene.layers.cursor.camera().position();
-                let coeff   = cam_pos.z / (cam_pos.z - position.z);
-                let x       = position.x * coeff;
-                let y       = position.y * coeff;
-                Vector3(x,y,0.0)
+                let z_diff = cam_pos.z - position.z;
+                if z_diff == 0.0 {
+                    Vector3::zero()
+                } else {
+                    let coeff = cam_pos.z / z_diff;
+                    (position.xy() * coeff).push(0.0)
+                }
             }));
 
             scene_position       <- screen_position.map(f!((p) scene.screen_to_scene_coordinates(*p)));

@@ -161,7 +161,7 @@ impl Mouse {
         display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
     ) -> Self {
         let background = PointerTarget_DEPRECATED::new();
-        let pointer_target_registry = PointerTargetRegistry::new(&background, &scene_object);
+        let pointer_target_registry = PointerTargetRegistry::new(&background, scene_object);
         let last_pressed_elem: Rc<RefCell<HashMap<mouse::Button, PointerTargetId>>> = default();
 
         let scene_frp = scene_frp.clone_ref();
@@ -913,7 +913,7 @@ impl SceneData {
         let renderer = Renderer::new(&dom, &variables);
         let style_sheet = world::with_context(|t| t.style_sheet.clone_ref());
         let frp = Frp::new(&dom.root.shape);
-        let mouse = Mouse::new(&frp, &*display_object, &dom.root, &variables, &display_mode);
+        let mouse = Mouse::new(&frp, &display_object, &dom.root, &variables, &display_mode);
         let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
         let keyboard = Keyboard::new(&web::window);
         let network = &frp.network;
@@ -1096,7 +1096,11 @@ impl SceneData {
     }
 
     pub fn screen_to_scene_coordinates(&self, position: Vector3<f32>) -> Vector3<f32> {
-        let position = position / self.camera().zoom();
+        let zoom = self.camera().zoom();
+        if zoom == 0.0 {
+            return Vector3::new(0.0, 0.0, 0.0);
+        }
+        let position = position / zoom;
         let position = Vector4::new(position.x, position.y, position.z, 1.0);
         (self.camera().inversed_view_matrix() * position).xyz()
     }
@@ -1302,21 +1306,17 @@ impl Scene {
     /// during this frame.
     #[profile(Debug)]
     pub fn update_layout(&self, time: animation::TimeInfo) -> UpdateStatus {
-        if self.context.borrow().is_some() {
-            debug_span!("Early update.").in_scope(|| {
-                world::with_context(|t| t.theme_manager.update());
+        debug_span!("Early update.").in_scope(|| {
+            world::with_context(|t| t.theme_manager.update());
 
-                let mut scene_was_dirty = false;
-                self.frp.frame_time_source.emit(time.since_animation_loop_started.unchecked_raw());
-                // Please note that `update_camera` is called first as it may trigger FRP events
-                // which may change display objects layout.
-                scene_was_dirty |= self.update_camera(self);
-                self.display_object.update(self);
-                UpdateStatus { scene_was_dirty, pointer_position_changed: false }
-            })
-        } else {
-            default()
-        }
+            let mut scene_was_dirty = false;
+            self.frp.frame_time_source.emit(time.since_animation_loop_started.unchecked_raw());
+            // Please note that `update_camera` is called first as it may trigger FRP events
+            // which may change display objects layout.
+            scene_was_dirty |= self.update_camera(self);
+            self.display_object.update(self);
+            UpdateStatus { scene_was_dirty, pointer_position_changed: false }
+        })
     }
 
     /// Perform rendering phase of scene update. At this point, all display object state is being
@@ -1328,30 +1328,26 @@ impl Scene {
         time: animation::TimeInfo,
         early_status: UpdateStatus,
     ) -> UpdateStatus {
-        if let Some(context) = &*self.context.borrow() {
-            debug_span!("Late update.").in_scope(|| {
-                let UpdateStatus { mut scene_was_dirty, mut pointer_position_changed } =
-                    early_status;
-                scene_was_dirty |= self.layers.update();
-                scene_was_dirty |= self.update_shape();
+        debug_span!("Late update.").in_scope(|| {
+            let UpdateStatus { mut scene_was_dirty, mut pointer_position_changed } = early_status;
+            scene_was_dirty |= self.layers.update();
+            scene_was_dirty |= self.update_shape();
+            if let Some(context) = &*self.context.borrow() {
                 context.profiler.measure_data_upload(|| {
                     scene_was_dirty |= self.update_symbols();
                 });
                 self.mouse.handle_over_and_out_events();
                 scene_was_dirty |= self.shader_compiler.run(context, time);
+            }
+            pointer_position_changed |= self.pointer_position_changed.get();
+            self.pointer_position_changed.set(false);
 
-                pointer_position_changed |= self.pointer_position_changed.get();
-                self.pointer_position_changed.set(false);
-
-                // FIXME: setting it to true for now in order to make cursor blinking work.
-                //   Text cursor animation is in GLSL. To be handled properly in this PR:
-                //   #183406745
-                scene_was_dirty |= true;
-                UpdateStatus { scene_was_dirty, pointer_position_changed }
-            })
-        } else {
-            default()
-        }
+            // FIXME: setting it to true for now in order to make cursor blinking work.
+            //   Text cursor animation is in GLSL. To be handled properly in this PR:
+            //   #183406745
+            scene_was_dirty |= true;
+            UpdateStatus { scene_was_dirty, pointer_position_changed }
+        })
     }
 }
 
@@ -1433,9 +1429,6 @@ pub mod test_utils {
     use display::shape::ShapeInstance;
     use enso_callback::traits::*;
 
-    const MOCK_CANVAS_SHAPE: Shape =
-        Shape { width: 1000.0, height: 750.0, pixel_ratio: 2.5 };
-
     pub trait MouseExt {
         /// Set the pointer target and emit mouse enter/leave and over/out events.
         fn set_hover_target(&self, target: PointerTargetId) -> &Self;
@@ -1447,39 +1440,51 @@ pub mod test_utils {
         fn emit_move(&self, event: mouse::Move) -> &Self;
         /// Simulate mouse wheel event.
         fn emit_wheel(&self, event: mouse::Wheel) -> &Self;
+        /// Get current screen shape.
+        fn screen_shape(&self) -> Shape;
+
+        /// Convert main camera scene position to needed event position in test environment.
+        fn scene_to_event_position(&self, scene_pos: Vector2) -> Vector2 {
+            scene_pos + self.screen_shape().center()
+        }
 
         /// Simulate mouse move and hover with manually specified event data and target.
         fn hover_raw(&self, data: mouse::MouseEventData, target: PointerTargetId) -> &Self {
-            self.emit_move(mouse::Move::simulated(data, MOCK_CANVAS_SHAPE)).set_hover_target(target)
+            self.emit_move(mouse::Move::simulated(data, self.screen_shape()))
+                .set_hover_target(target)
         }
 
         /// Simulate mouse hover and click with manually specified event data and target.
         fn click_on_raw(&self, data: mouse::MouseEventData, target: PointerTargetId) -> &Self {
             self.hover_raw(data, target)
-                .emit_down(mouse::Down::simulated(data, MOCK_CANVAS_SHAPE))
-                .emit_up(mouse::Up::simulated(data, MOCK_CANVAS_SHAPE))
+                .emit_down(mouse::Down::simulated(data, self.screen_shape()))
+                .emit_up(mouse::Up::simulated(data, self.screen_shape()))
         }
 
         /// Simulate mouse hover on a on given shape.
-        fn hover<S>(&self, shape: &ShapeInstance<S>, pos: Vector2) -> &Self {
+        fn hover<S>(&self, instance: &ShapeInstance<S>, scene_pos: Vector2) -> &Self {
+            let pos = self.scene_to_event_position(scene_pos);
             self.hover_raw(mouse::MouseEventData::primary_at(pos), PointerTargetId::Symbol {
-                id: shape.sprite.borrow().global_instance_id,
+                id: instance.sprite.borrow().global_instance_id,
             })
         }
 
         /// Simulate mouse hover on background.
-        fn hover_background(&self, pos: Vector2) -> &Self {
+        fn hover_background(&self, scene_pos: Vector2) -> &Self {
+            let pos = self.scene_to_event_position(scene_pos);
             self.hover_raw(mouse::MouseEventData::primary_at(pos), PointerTargetId::Background)
         }
 
         /// Simulate mouse hover and click on given shape.
-        fn click_on<S>(&self, shape: &ShapeInstance<S>, pos: Vector2) {
+        fn click_on<S>(&self, instance: &ShapeInstance<S>, scene_pos: Vector2) {
+            let pos = self.scene_to_event_position(scene_pos);
             self.click_on_raw(mouse::MouseEventData::primary_at(pos), PointerTargetId::Symbol {
-                id: shape.sprite.borrow().global_instance_id,
+                id: instance.sprite.borrow().global_instance_id,
             });
         }
         /// Simulate mouse click on background.
-        fn click_on_background(&self, pos: Vector2) {
+        fn click_on_background(&self, scene_pos: Vector2) {
+            let pos = self.scene_to_event_position(scene_pos);
             self.click_on_raw(mouse::MouseEventData::primary_at(pos), PointerTargetId::Background);
         }
     }
@@ -1508,6 +1513,10 @@ pub mod test_utils {
         fn emit_wheel(&self, event: mouse::Wheel) -> &Self {
             self.mouse_manager.on_wheel.run_all(&event);
             self
+        }
+
+        fn screen_shape(&self) -> Shape {
+            self.scene_frp.shape.value()
         }
     }
 }

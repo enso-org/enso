@@ -1488,7 +1488,6 @@ impl<T: frp::Data> TouchNetwork<T> {
             mouse_up      <- on_up_primary.gate(&was_down);
             should_select <- mouse_up.map2(&pos_on_down,
                 |end, start| {
-                    dbg!(start, end);
                     let total_drag_sq = (start - end.client()).norm_squared();
                     let move_sq = end.movement().norm_squared();
                     total_drag_sq <= move_sq * 4.0
@@ -1682,8 +1681,6 @@ impl GraphEditorModel {
         let node = self.new_node(ctx);
         node.set_xy(position);
         let should_edit = !matches!(way, WayOfCreatingNode::AddNodeEvent);
-        dbg!(way);
-        dbg!(should_edit);
         if should_edit {
             node.view.set_expression(node::Expression::default());
         }
@@ -3578,6 +3575,7 @@ impl display::Object for GraphEditor {
 mod tests {
     use super::*;
     use application::test_utils::ApplicationExt;
+    use ensogl::animation::test_utils::next_frame;
     use ensogl::display::scene::test_utils::MouseExt;
     use node::test_utils::NodeModelExt;
 
@@ -3618,6 +3616,7 @@ mod tests {
         graph_editor.assert(Case { node_source: None, should_edit: true });
         graph_editor.stop_editing();
         assert_eq!(graph_editor.num_nodes(), 1);
+        next_frame();
 
         // First node is created in the center of the screen.
         let node_1_pos = node_1.position();
@@ -3645,6 +3644,7 @@ mod tests {
         // Adding a new node.
         let (node_1_id, node_1) = graph_editor.add_node_by_api();
         graph_editor.stop_editing();
+        next_frame();
         // Creating edge.
         let port = node_1.model().output_port_shape().expect("No output port.");
         mouse.click_on(&port, Vector2::zero());
@@ -3669,6 +3669,7 @@ mod tests {
         graph_editor.stop_editing();
         let (node_id_2, node_2) = graph_editor.add_node_by_api();
         graph_editor.stop_editing();
+        next_frame();
         // Creating edge.
         let port = node_1.model().output_port_shape().expect("No output port.");
         mouse.click_on(&*port, Vector2::zero());
@@ -3683,6 +3684,7 @@ mod tests {
         // We need to enable ports. Normally it is done by hovering the node.
         node_2.model().input.frp.set_ports_active(true);
         let port_hover = node_2.model().input_port_hover_shape().expect("No input port.");
+        next_frame();
 
         mouse.click_on(&*port_hover, Vector2::zero());
         graph_editor.model.with_edge(edge_id, |edge| {
@@ -3862,7 +3864,8 @@ mod tests {
         let app = Application::new("root");
         app.set_screen_size_for_tests();
         let graph_editor = GraphEditor::new(&app);
-        app.display.default_scene.add_child(&graph_editor);
+        app.display.add_child(&graph_editor);
+        next_frame();
         (app, graph_editor)
     }
 }
