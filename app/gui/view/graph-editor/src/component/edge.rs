@@ -15,6 +15,8 @@ use ensogl::display;
 use ensogl::display::scene::Scene;
 use ensogl_hardcoded_theme as theme;
 
+
+
 mod inputs;
 mod layout;
 mod render;
@@ -351,7 +353,7 @@ mod coords {
     pub struct Coords<Space, Number: Copy + Debug + PartialEq + 'static = f32> {
         #[deref]
         coords: Vector2<Number>,
-        space:  PhantomData<*const Space>,
+        space:  ZST<Space>,
     }
 
     pub type ParentCoords = Coords<ParentOrigin>;

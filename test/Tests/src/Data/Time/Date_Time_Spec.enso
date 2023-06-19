@@ -696,7 +696,7 @@ foreign js js_local_datetime_impl year month day hour minute second nanosecond =
     }
     return new Date(year, month - 1, day, hour, minute, second, nanosecond / 1000000);
 
-js_parse text format=Nothing =
+js_parse text format="" =
     d = Date_Time.parse text format
     js_datetime d.year d.month d.day d.hour d.minute d.second d.nanosecond d.zone
 

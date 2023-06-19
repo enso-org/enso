@@ -874,7 +874,7 @@ function Dashboard(props: DashboardProps) {
         const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
         let highestProjectIndex = 0
         for (const projectAsset of projectAssets) {
-            let projectIndex = projectNameTemplate.exec(projectAsset.title)?.groups?.projectIndex
+            const projectIndex = projectNameTemplate.exec(projectAsset.title)?.groups?.projectIndex
             if (projectIndex) {
                 highestProjectIndex = Math.max(highestProjectIndex, parseInt(projectIndex, 10))
             }

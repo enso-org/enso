@@ -41,12 +41,16 @@ object ExecutionApi {
       receivesUpdates: CapabilityRegistration
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ExecutionContextCreate.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = ExecutionContextCreate.Result
-    }
+    implicit
+    val hasParams: HasParams.Aux[this.type, ExecutionContextCreate.Params] =
+      new HasParams[this.type] {
+        type Params = ExecutionContextCreate.Params
+      }
+    implicit val hasResult
+      : HasResult.Aux[this.type, ExecutionContextCreate.Result] =
+      new HasResult[this.type] {
+        type Result = ExecutionContextCreate.Result
+      }
   }
 
   case object ExecutionContextDestroy
@@ -54,36 +58,45 @@ object ExecutionApi {
 
     case class Params(contextId: ContextId)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ExecutionContextDestroy.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit
+    val hasParams: HasParams.Aux[this.type, ExecutionContextDestroy.Params] =
+      new HasParams[this.type] {
+        type Params = ExecutionContextDestroy.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object ExecutionContextPush extends Method("executionContext/push") {
 
     case class Params(contextId: ContextId, stackItem: StackItem)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ExecutionContextPush.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit
+    val hasParams: HasParams.Aux[this.type, ExecutionContextPush.Params] =
+      new HasParams[this.type] {
+        type Params = ExecutionContextPush.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object ExecutionContextPop extends Method("executionContext/pop") {
 
     case class Params(contextId: ContextId)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ExecutionContextPop.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit
+    val hasParams: HasParams.Aux[this.type, ExecutionContextPop.Params] =
+      new HasParams[this.type] {
+        type Params = ExecutionContextPop.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object ExecutionContextRecompute
@@ -95,12 +108,15 @@ object ExecutionApi {
       executionEnvironment: Option[ExecutionEnvironment]
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ExecutionContextRecompute.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit
+    val hasParams: HasParams.Aux[this.type, ExecutionContextRecompute.Params] =
+      new HasParams[this.type] {
+        type Params = ExecutionContextRecompute.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object ExecutionContextInterrupt
@@ -108,12 +124,15 @@ object ExecutionApi {
 
     case class Params(contextId: ContextId)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ExecutionContextInterrupt.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit
+    val hasParams: HasParams.Aux[this.type, ExecutionContextInterrupt.Params] =
+      new HasParams[this.type] {
+        type Params = ExecutionContextInterrupt.Params
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object ExecutionContextGetComponentGroups
@@ -123,12 +142,16 @@ object ExecutionApi {
 
     case class Result(componentGroups: Seq[LibraryComponentGroup])
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ExecutionContextGetComponentGroups.Params
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = ExecutionContextGetComponentGroups.Result
-    }
+    implicit val hasParams
+      : HasParams.Aux[this.type, ExecutionContextGetComponentGroups.Params] =
+      new HasParams[this.type] {
+        type Params = ExecutionContextGetComponentGroups.Params
+      }
+    implicit val hasResult
+      : HasResult.Aux[this.type, ExecutionContextGetComponentGroups.Result] =
+      new HasResult[this.type] {
+        type Result = ExecutionContextGetComponentGroups.Result
+      }
   }
 
   case object ExecutionContextExpressionUpdates
@@ -139,9 +162,11 @@ object ExecutionApi {
       updates: Vector[ContextRegistryProtocol.ExpressionUpdate]
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ExecutionContextExpressionUpdates.Params
-    }
+    implicit val hasParams
+      : HasParams.Aux[this.type, ExecutionContextExpressionUpdates.Params] =
+      new HasParams[this.type] {
+        type Params = ExecutionContextExpressionUpdates.Params
+      }
   }
 
   case object ExecutionContextExecutionFailed
@@ -153,9 +178,11 @@ object ExecutionApi {
       path: Option[Path]
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ExecutionContextExecutionFailed.Params
-    }
+    implicit val hasParams
+      : HasParams.Aux[this.type, ExecutionContextExecutionFailed.Params] =
+      new HasParams[this.type] {
+        type Params = ExecutionContextExecutionFailed.Params
+      }
   }
 
   case object ExecutionContextExecutionComplete
@@ -163,9 +190,11 @@ object ExecutionApi {
 
     case class Params(contextId: ContextId)
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ExecutionContextExecutionComplete.Params
-    }
+    implicit val hasParams
+      : HasParams.Aux[this.type, ExecutionContextExecutionComplete.Params] =
+      new HasParams[this.type] {
+        type Params = ExecutionContextExecutionComplete.Params
+      }
   }
 
   case object ExecutionContextExecutionStatus
@@ -176,9 +205,11 @@ object ExecutionApi {
       diagnostics: Seq[ExecutionDiagnostic]
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ExecutionContextExecutionStatus.Params
-    }
+    implicit val hasParams
+      : HasParams.Aux[this.type, ExecutionContextExecutionStatus.Params] =
+      new HasParams[this.type] {
+        type Params = ExecutionContextExecutionStatus.Params
+      }
   }
 
   case object VisualisationEvaluationFailed
@@ -192,9 +223,11 @@ object ExecutionApi {
       diagnostic: Option[ExecutionDiagnostic]
     )
 
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = VisualisationEvaluationFailed.Params
-    }
+    implicit val hasParams
+      : HasParams.Aux[this.type, VisualisationEvaluationFailed.Params] =
+      new HasParams[this.type] {
+        type Params = VisualisationEvaluationFailed.Params
+      }
   }
 
   case object ExecutionContextSetExecutionEnvironment
@@ -205,12 +238,16 @@ object ExecutionApi {
       executionEnvironment: ExecutionEnvironment
     )
 
-    implicit val hasParams = new HasParams[this.type] {
+    implicit val hasParams: HasParams.Aux[
+      this.type,
+      ExecutionContextSetExecutionEnvironment.Params
+    ] = new HasParams[this.type] {
       type Params = ExecutionContextSetExecutionEnvironment.Params
     }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object StackItemNotFoundError extends Error(2001, "Stack item not found")

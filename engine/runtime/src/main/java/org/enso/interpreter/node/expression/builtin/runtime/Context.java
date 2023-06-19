@@ -1,10 +1,9 @@
 package org.enso.interpreter.node.expression.builtin.runtime;
 
+import java.util.List;
 import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.Builtin;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-
-import java.util.List;
 
 @BuiltinType
 public class Context extends Builtin {

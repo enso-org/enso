@@ -1,0 +1,31 @@
+from Standard.Base import all
+import Standard.Table.Data.Table.Table
+
+goal_placeholder = "__$$GOAL$$__"
+
+Table.build_ai_prompt self =
+    ops = ["aggregate","filter_by_expression","order_by","row_count","set","select_columns","transpose","join"]
+    aggs = ["Count","Average","Sum","Median","First","Last","Maximum","Minimum"]
+    joins = ["Inner","Left_Outer","Right_Outer","Full","Left_Exclusive","Right_Exclusive"]
+    examples = """
+        Table["id","category","Unit Price","Stock"];goal=get product count by category==>>`aggregate [Aggregate_Column.Group_By "category", Aggregate_Column.Count Nothing]`
+        Table["ID","Unit Price","Stock"];goal=order by how many items are available==>>`order_by ["Stock"]`
+        Table["Name","Enrolled Year"];goal=select people who enrolled between 2015 and 2018==>>`filter_by_expression "[Enrolled Year] >= 2015 && [Enrolled Year] <= 2018`
+        Table["Number of items","client name","city","unit price"];goal=compute the total value of each order==>>`set "[Number of items] * [unit price]" "total value"`
+        Table["Number of items","client name","CITY","unit price","total value"];goal=compute the average order value by city==>>`aggregate [Aggregate_Column.Group_By "CITY", Aggregate_Column.Average "total value"]`
+        Table["Area Code", "number"];goal=get full phone numbers==>>`set "'+1 (' + [Area Code] + ') ' + [number]" "full phone number"`
+        Table["Name","Grade","Subject"];goal=rank students by their average grade==>>`aggregate [Aggregate_Column.Group_By "Name", Aggregate_Column.Average "Grade" "Average Grade"] . order_by [Sort_Column.Name "Average Grade" Sort_Direction.Descending]`
+        Table["Country","Prime minister name","2018","2019","2020","2021"];goal=pivot yearly GDP values to rows==>>`transpose ["Country", "Prime minister name"] "Year" "GDP"`
+        Table["Size","Weight","Width","stuff","thing"];goal=only select size and thing of each record==>>`select_columns ["Size", "thing"]`
+        Table["ID","Name","Count"];goal=join it with var_17==>>`join var_17 Join_Kind.Inner`
+    ops_prompt = "Operations available on Table are: " + (ops . join ",")
+    aggs_prompt = "Available ways to aggregate a column are: " + (aggs . join ",")
+    joins_prompt = "Available join kinds are: " + (joins . join ",")
+    base_prompt = ops_prompt + '\n' + aggs_prompt + '\n' + joins_prompt + '\n' + examples
+    columns = self.column_names . map .to_text . join "," "Table[" "];"
+    goal_line = "goal=" + goal_placeholder + "==>>`"
+    base_prompt + '\n' + columns + goal_line
+
+Any.build_ai_prompt self = "````"
+
+build_ai_prompt subject = subject.build_ai_prompt

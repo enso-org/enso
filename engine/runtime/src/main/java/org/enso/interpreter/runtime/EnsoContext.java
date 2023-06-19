@@ -1,23 +1,28 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.TruffleLanguage.Env;
+import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.object.Shape;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
-
+import java.util.stream.StreamSupport;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
@@ -40,19 +45,7 @@ import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
-import org.enso.polyglot.RuntimeServerInfo;
 import org.graalvm.options.OptionKey;
-
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.TruffleLanguage.Env;
-import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.object.Shape;
-import java.util.concurrent.ExecutorService;
-import java.util.stream.StreamSupport;
-
 import scala.jdk.javaapi.OptionConverters;
 
 /**
@@ -468,8 +461,10 @@ public class EnsoContext {
 
   /** The job parallelism or 1 */
   public int getJobParallelism() {
-    var n = getOption(RuntimeServerInfo.JOB_PARALLELISM_KEY);
-    return n == null ? 1 : n.intValue();
+    var n = getOption(RuntimeOptions.JOB_PARALLELISM_KEY);
+    var base = n == null ? 1 : n.intValue();
+    var optimal = Math.round(base * 0.5);
+    return optimal < 1 ? 1 : (int) optimal;
   }
 
   /**

@@ -38,8 +38,9 @@ import * as react from 'react'
 import * as router from 'react-router-dom'
 import * as toast from 'react-hot-toast'
 
+import * as detect from 'enso-common/src/detect'
+
 import * as authService from '../authentication/service'
-import * as detect from '../detect'
 import * as hooks from '../hooks'
 
 import * as authProvider from '../authentication/providers/auth'

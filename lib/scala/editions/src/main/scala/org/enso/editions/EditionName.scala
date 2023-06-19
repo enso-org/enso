@@ -29,7 +29,7 @@ object EditionName {
   implicit val editionNameDecoder: Decoder[EditionName] = { json =>
     json
       .as[String]
-      .fold(
+      .fold[Either[DecodingFailure, Any]](
         _ =>
           if (json.value == Json.Null)
             Left(DecodingFailure("edition cannot be empty", Nil))

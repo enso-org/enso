@@ -33,7 +33,6 @@ pub mod transport;
 
 pub use api::RemoteMethodCall;
 pub use api::Result;
-pub use enso_prelude as prelude;
 pub use enso_profiler;
 pub use enso_profiler_data;
 pub use enso_web as ensogl;
@@ -44,6 +43,13 @@ pub use transport::Transport;
 pub use transport::TransportEvent;
 
 
+
+#[allow(missing_docs)]
+pub mod prelude {
+    pub use enso_prelude::*;
+    pub use enso_profiler as profiler;
+    pub use enso_profiler::prelude::*;
+}
 
 #[allow(missing_docs)]
 pub mod constants {
