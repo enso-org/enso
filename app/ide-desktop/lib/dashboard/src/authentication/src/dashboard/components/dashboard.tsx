@@ -1097,6 +1097,7 @@ function Dashboard(props: DashboardProps) {
                             )}
                         </div>
                     </div>
+                    {/* Padding. */}
                     <div className="h-6 mx-2" />
                     <div className="flex-1 overflow-auto mx-2">
                         <table className="table-fixed items-center border-collapse mt-2">
@@ -1112,7 +1113,7 @@ function Dashboard(props: DashboardProps) {
                                     isLoading={isLoadingAssets}
                                     placeholder={
                                         <span className="opacity-75">
-                                            You have no project yet. Go ahead and create one using
+                                            You have no projects yet. Go ahead and create one using
                                             the form above.
                                         </span>
                                     }
@@ -1149,8 +1150,8 @@ function Dashboard(props: DashboardProps) {
                                             })
                                         }
                                         const doOpenAsFolder = () => {
-                                            // FIXME[sb]: Uncomment once backend support
-                                            // is in place.
+                                            // TODO[sb]: Implement once backend support is in place.
+                                            // https://github.com/enso-org/cloud-v2/issues/506
                                             // The following code does not typecheck
                                             // since `ProjectId`s are not `DirectoryId`s.
                                             // enterDirectory(projectAsset)

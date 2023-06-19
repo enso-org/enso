@@ -10,7 +10,7 @@ import * as svg from '../../components/svg'
 // =================
 
 /** The `localStorage` key used to store whether the {@link Templates} element should be
- * not collapsed by default. */
+ * expanded by default. */
 const IS_TEMPLATES_OPEN_KEY = `${common.PRODUCT_NAME.toLowerCase()}-is-templates-expanded`
 
 // =============
