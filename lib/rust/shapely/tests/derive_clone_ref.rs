@@ -58,7 +58,7 @@ struct StructBoundGeneric<T: Display>(Rc<T>);
 #[derive(CloneRef, Derivative)]
 #[derivative(Clone(bound = ""))]
 // Note: CloneRef "knows" about `Display` bound.
-struct StructGenericLifetime<'t>(PhantomData<&'t String>);
+struct StructGenericLifetime<'t>(ZST<&'t String>);
 
 #[derive(CloneRef, Derivative)]
 #[derivative(Clone(bound = ""))]

@@ -19,10 +19,10 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-use ensogl_core::display::geometry::compound::sprite::Sprite;
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
 
+use ensogl_core::display::geometry::compound::sprite::Sprite;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::symbol::geometry::SpriteSystem;
 

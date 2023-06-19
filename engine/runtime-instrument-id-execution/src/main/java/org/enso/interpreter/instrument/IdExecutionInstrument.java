@@ -15,7 +15,7 @@ import com.oracle.truffle.api.nodes.Node;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import org.enso.interpreter.instrument.execution.Timer;
+import org.enso.interpreter.instrument.Timer;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.ExpressionNode;

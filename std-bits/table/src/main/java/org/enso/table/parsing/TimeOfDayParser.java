@@ -1,10 +1,9 @@
 package org.enso.table.parsing;
 
-import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.data.column.builder.object.TimeOfDayBuilder;
-
 import java.time.LocalTime;
 import java.util.Locale;
+import org.enso.table.data.column.builder.object.Builder;
+import org.enso.table.data.column.builder.object.TimeOfDayBuilder;
 
 public class TimeOfDayParser extends BaseTimeParser {
   public TimeOfDayParser(String[] formats, Locale locale) {

@@ -20,7 +20,7 @@ use web::dom::Shape;
 pub struct Event<EventType, JsEvent> {
     js_event:   Option<JsEvent>,
     shape:      Shape,
-    event_type: PhantomData<EventType>,
+    event_type: ZST<EventType>,
 }
 
 impl<EventType, JsEvent> Debug for Event<EventType, JsEvent>

@@ -33,13 +33,14 @@ enum State {
 /// visibility.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
+    // Required for creating project view dynamically
     app:            Application,
     display_object: display::object::Instance,
     state:          Rc<CloneCell<State>>,
     status_bar:     crate::status_bar::View,
     welcome_view:   crate::welcome_screen::View,
     project_view:   Rc<CloneCell<Option<crate::project::View>>>,
-    frp:            Frp,
+    frp_outputs:    FrpOutputsSource,
 }
 
 impl Model {
@@ -53,9 +54,9 @@ impl Model {
         let welcome_view = app.new_view::<crate::welcome_screen::View>();
         let project_view = Rc::new(CloneCell::new(None));
         display_object.add_child(&welcome_view);
-        let frp = frp.clone_ref();
+        let frp_outputs = frp.output.source.clone_ref();
 
-        Self { app, display_object, state, status_bar, welcome_view, project_view, frp }
+        Self { app, display_object, state, status_bar, welcome_view, project_view, frp_outputs }
     }
 
     /// Switch displayed view from Project View to Welcome Screen. Project View will not be
@@ -84,18 +85,18 @@ impl Model {
 
     fn init_project_view(&self) {
         if self.project_view.get().is_none() {
-            let network = &self.frp.network;
             let view = self.app.new_view::<crate::project::View>();
+            let network = &view.network;
             let project_list_frp = &view.project_list().frp;
             let status_bar = &self.status_bar;
             let display_object = &self.display_object;
-            frp::new_bridge_network! { [network, view.network] project_bridge
+            frp::extend! { network
                 fs_vis_shown <- view.fullscreen_visualization_shown.on_true();
                 fs_vis_hidden <- view.fullscreen_visualization_shown.on_false();
                 eval fs_vis_shown ((_) status_bar.unset_parent());
                 eval fs_vis_hidden ([display_object, status_bar](_) display_object.add_child(&status_bar));
 
-                self.frp.source.selected_project <+ project_list_frp.selected_project;
+                self.frp_outputs.selected_project <+ project_list_frp.selected_project;
             }
             self.project_view.set(Some(view));
         }
@@ -202,9 +203,5 @@ impl application::View for View {
 
     fn new(app: &Application) -> Self {
         Self::new(app)
-    }
-
-    fn app(&self) -> &Application {
-        &self.model.app
     }
 }

@@ -1,8 +1,7 @@
 package org.enso.table.parsing.problems;
 
-import org.enso.table.problems.Problem;
-
 import java.util.List;
+import org.enso.table.problems.Problem;
 
 public class SimplifiedProblemAggregator implements ProblemAggregator {
 

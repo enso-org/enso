@@ -12,7 +12,7 @@ const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 // === Configuration ===
 // =====================
 
-// This is a third-party API that we do not control.
+// The names come from a third-party API and cannot be changed.
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention */
 export const content = [THIS_PATH + '/src/**/*.tsx']
 export const theme = {

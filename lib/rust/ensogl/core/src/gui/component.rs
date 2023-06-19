@@ -132,8 +132,8 @@ impl<S: Shape> ShapeView<S> {
     }
 }
 
-impl<S: Shape> HasContent for ShapeView<S> {
-    type Content = S;
+impl<S: Shape> HasItem for ShapeView<S> {
+    type Item = S;
 }
 
 // S: DynamicShapeInternals + 'static
@@ -366,13 +366,6 @@ impl<Model: 'static, Frp: 'static> Widget<Model, Frp> {
     /// Get the Model structure.
     pub fn model(&self) -> &Model {
         &self.data.model
-    }
-
-    /// Reference to the application the Widget belongs to. It's required for handling model and
-    /// FRP garbage collection, but also may be helpful when, for example, implementing
-    /// `application::View`.
-    pub fn app(&self) -> &Application {
-        &self.data.app
     }
 }
 

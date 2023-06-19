@@ -1,5 +1,8 @@
 package org.enso.table.aggregations;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -7,10 +10,6 @@ import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.util.ConstantList;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
 
 /**
  * Aggregate Column counting the number of distinct items in a group. If `ignoreAllNull` is true,

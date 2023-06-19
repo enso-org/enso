@@ -70,8 +70,6 @@ pub struct Model {
     background_left_corner_roundness: Rc<Cell<bool>>,
     background_right_corner_roundness: Rc<Cell<bool>>,
     padding: Rc<Cell<f32>>,
-
-    pub app: Application,
 }
 
 #[allow(missing_docs)]
@@ -95,7 +93,6 @@ impl Model {
         let background_right_corner_roundness = default();
         let padding = default();
 
-        let app = app.clone_ref();
         let scene = &app.display.default_scene;
 
         root.add_child(&label);
@@ -134,7 +131,6 @@ impl Model {
             background_left_corner_roundness,
             background_right_corner_roundness,
             padding,
-            app,
         }
     }
 

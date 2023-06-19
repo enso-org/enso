@@ -5,6 +5,7 @@ import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
 import project.Data.Text.Text
+from project.Data.Text.Extensions import all
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
 import project.Data.Time.Day_Of_Week.Day_Of_Week
@@ -24,6 +25,8 @@ import project.Panic.Panic
 import project.Warning.Warning
 
 from project.Data.Boolean import Boolean, True, False
+
+from project.Widget_Helpers import make_date_time_format_selector
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.Exception as JException
@@ -68,19 +71,6 @@ ensure_in_epoch date ~action =
    Recommended to use `Date_Time.new` instead which handles potential exceptions.
 new_builtin : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time
 new_builtin year month day hour minute second nanosecond zone = @Builtin_Method "Date_Time.new_builtin"
-
-## PRIVATE
-
-   Obtains an instance of `Time` from a text such as
-   "2007-12-03T10:15:30+01:00 Europe/Paris".
-
-   Arguments:
-   - text: The text representing the time to be parsed.
-
-   Recommended to use `Date_Time.parse_builtin` instead which handles potential exceptions
-   and date time formats.
-parse_builtin : Text -> Date_Time
-parse_builtin text = @Builtin_Method "Date_Time.parse_builtin"
 
 ## PRIVATE
 
@@ -244,14 +234,20 @@ type Date_Time
 
              example_parse =
                 Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
+    @pattern make_date_time_format_selector
     @locale Locale.default_widget
-    parse : Text -> Text | Nothing -> Locale -> Date_Time ! Time_Error
-    parse text pattern=Nothing locale=Locale.default =
-        Panic.catch JException handler=(cause -> Error.throw (Time_Error.Error cause.payload.getMessage)) <|
-            case pattern of
-                Nothing -> parse_builtin text
-                _ : Text -> Time_Utils.parse_datetime text pattern locale.java_locale
+    parse : Text -> Text -> Locale -> Date_Time ! Time_Error
+    parse text:Text pattern:Text="" locale:Locale=Locale.default =
+        result = Panic.recover Any <|
+            formatter = if pattern.is_empty then Time_Utils.default_date_time_formatter else
+                Time_Utils.make_formatter pattern locale.java_locale
 
+            needs_normalised = if pattern.is_empty then True else Time_Utils.is_iso_datetime_based pattern
+            normalised = if needs_normalised then Time_Utils.normalise_iso_datetime text.trim else text.trim
+            Time_Utils.parse_date_time normalised formatter
+        result . map_error <| case _ of
+            err : JException -> Time_Error.Error err.getMessage
+            ex -> ex
 
     ## Get the year portion of the time.
 
@@ -680,8 +676,10 @@ type Date_Time
 
              example_format =
                  Date_Time.parse "2020-06-21T16:41:13+03:00" . format "d. MMMM yyyy" (Locale.new "fr")
+    @pattern make_date_time_format_selector
     @locale Locale.default_widget
     format : Text -> Locale -> Text
-    format self pattern locale=Locale.default = case locale of
-        Nothing -> Time_Utils.date_time_format self pattern
-        _ -> Time_Utils.date_time_format_with_locale self pattern locale.java_locale
+    format self pattern:Text locale:Locale=Locale.default =
+        formatter = if pattern.is_empty then Time_Utils.default_output_date_time_formatter else
+            Time_Utils.make_formatter pattern locale.java_locale
+        Time_Utils.date_time_format self formatter

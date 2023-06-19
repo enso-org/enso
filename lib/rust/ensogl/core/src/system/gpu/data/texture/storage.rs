@@ -34,5 +34,5 @@ pub trait StorageRelation<InternalFormat, ElemType>: Storage {
 }
 
 enso_shapely::define_singleton_enum! {
-    AnyStorage {RemoteImage,GpuOnly,Owned}
+    AnyStorage {RemoteImage, GpuOnly, Owned}
 }

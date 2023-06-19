@@ -72,7 +72,7 @@ type Builder
     join separator statements =
         sep = case separator of
             Builder.Value _ -> separator
-            _ -> Builder.code separator
+            _ : Text -> Builder.code separator
 
         if statements.length == 0 then Builder.empty else
             (1.up_to statements.length . fold (statements.at 0) acc-> i-> acc ++ sep ++ statements.at i)

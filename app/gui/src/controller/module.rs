@@ -209,48 +209,106 @@ mod test {
             let ls = language_server::Connection::new_mock_rc(default());
             let parser = Parser::new();
             let location = Path::from_mock_module_name("Test");
-            let code = "2+2";
-            let uuid1 = Uuid::new_v4();
-            let uuid2 = Uuid::new_v4();
-            let uuid3 = Uuid::new_v4();
-            let uuid4 = Uuid::new_v4();
+
+            let mut index: u128 = 0;
+            let mut next_index = || {
+                index += 1;
+                Uuid::from_u128(index)
+            };
+            // Note: we need a leading empty line to avoid encountering AST id collision, see:
+            // https://github.com/enso-org/enso/issues/6718
+            let code = "\nmain = \n    2+2";
+            // FIXME: [mwu] Module id should be removed once
+            //        https://github.com/enso-org/enso/issues/6718 is fixed.
+            let module_id = next_index();
+            let assign_infix_id = next_index();
+            let var_id = next_index();
+            let assign_opr_id = next_index();
+            let block_id = next_index();
+            let sum_infix_id = next_index();
+            let first_number_id = next_index();
+            let add_opr_id = next_index();
+            let second_number_id = next_index();
+
             let id_map = ast::IdMap::new(vec![
-                ((0.byte()..1.byte()).into(), uuid1),
-                ((1.byte()..2.byte()).into(), uuid2),
-                ((2.byte()..3.byte()).into(), uuid3),
-                ((0.byte()..3.byte()).into(), uuid4),
+                ((0.byte()..code.len().byte()).into(), module_id),
+                ((1.byte()..code.len().byte()).into(), assign_infix_id),
+                ((1.byte()..5.byte()).into(), var_id),
+                ((6.byte()..7.byte()).into(), assign_opr_id),
+                ((8.byte()..code.len().byte()).into(), block_id),
+                // next final 3 bytes
+                ((13.byte()..16.byte()).into(), sum_infix_id),
+                ((13.byte()..14.byte()).into(), first_number_id),
+                ((14.byte()..15.byte()).into(), add_opr_id),
+                ((15.byte()..16.byte()).into(), second_number_id),
             ]);
             let controller =
                 Handle::new_mock(location, code, id_map, ls, parser, default()).unwrap();
 
-            // Change code from "2+2" to "22+2"
-            let change = enso_text::Change::inserted(0.byte(), "2".to_string());
+            // Change code from "\nmain = \n    2+2" to "\nmain = \n    22+2";
+            let change = enso_text::Change::inserted(13.byte(), "2".to_string());
             controller.apply_code_change(change).unwrap();
-            let expected_ast = Ast::new_no_id(ast::Module {
-                lines: vec![BlockLine {
-                    elem: Some(Ast::new(
-                        ast::Infix {
-                            larg: Ast::new(
-                                ast::Number { base: None, int: "22".to_string() },
-                                Some(uuid1),
-                            ),
-                            loff: 0,
-                            opr:  Ast::new(
-                                ast::Opr { name: "+".to_string(), right_assoc: false },
-                                Some(uuid2),
-                            ),
-                            roff: 0,
-                            rarg: Ast::new(
-                                ast::Number { base: None, int: "2".to_string() },
-                                Some(uuid3),
-                            ),
-                        },
-                        Some(uuid4),
-                    )),
-                    off:  0,
-                }],
-            });
-            assert_eq!(expected_ast, controller.model.ast().into());
+            let resulting_ast: Ast = controller.model.ast().into();
+            let expected_ast = Ast::new(
+                ast::Module {
+                    lines: vec![BlockLine { elem: None, off: 0 }, BlockLine {
+                        elem: Some(Ast::new(
+                            ast::Infix {
+                                larg: Ast::new(ast::Var { name: "main".to_string() }, Some(var_id)),
+                                loff: 1,
+                                opr:  Ast::new(
+                                    ast::Opr { name: "=".to_string(), right_assoc: true },
+                                    Some(assign_opr_id),
+                                ),
+                                roff: 1,
+                                rarg: Ast::new(
+                                    ast::Block {
+                                        indent:      4,
+                                        empty_lines: vec![],
+                                        first_line:  BlockLine {
+                                            elem: Ast::new(
+                                                ast::Infix {
+                                                    larg: Ast::new(
+                                                        ast::Number {
+                                                            base: None,
+                                                            int:  "22".to_string(),
+                                                        },
+                                                        Some(first_number_id),
+                                                    ),
+                                                    loff: 0,
+                                                    opr:  Ast::new(
+                                                        ast::Opr {
+                                                            name:        "+".to_string(),
+                                                            right_assoc: false,
+                                                        },
+                                                        Some(add_opr_id),
+                                                    ),
+                                                    roff: 0,
+                                                    rarg: Ast::new(
+                                                        ast::Number {
+                                                            base: None,
+                                                            int:  "2".to_string(),
+                                                        },
+                                                        Some(second_number_id),
+                                                    ),
+                                                },
+                                                Some(sum_infix_id),
+                                            ),
+                                            off:  0,
+                                        },
+                                        lines:       vec![],
+                                    },
+                                    Some(block_id),
+                                ),
+                            },
+                            Some(assign_infix_id),
+                        )),
+                        off:  0,
+                    }],
+                },
+                Some(module_id),
+            );
+            assert_eq!(expected_ast, resulting_ast);
         });
     }
 }

@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate as frp;
 use crate::io::js::Listener;
+use crate::web;
 
 use enso_web::KeyboardEvent;
 use inflector::Inflector;
@@ -418,6 +419,48 @@ impl Default for Keyboard {
 }
 
 
+// =======================
+// === BrowserShortcut ===
+// =======================
+
+/// A handy structure used for defining shortcuts used by the browser in some special way
+/// (for example reload page or add bookmark). We want to prevent default actions on such shortcuts.
+/// See also [`BROWSER_SHORTCUTS`].
+struct BrowserShortcut {
+    code:  &'static str,
+    ctrl:  bool,
+    shift: bool,
+}
+
+impl BrowserShortcut {
+    const fn new(code: &'static str) -> Self {
+        Self { code, ctrl: false, shift: false }
+    }
+
+    const fn ctrl(code: &'static str) -> Self {
+        Self { code, ctrl: true, shift: false }
+    }
+
+    const fn ctrl_shift(code: &'static str) -> Self {
+        Self { code, ctrl: true, shift: true }
+    }
+
+    fn matches(&self, event: &KeyboardEvent) -> bool {
+        event.code() == self.code
+            && self.ctrl == event.ctrl_key()
+            && self.shift == event.shift_key()
+    }
+}
+
+/// A list of shortcuts with special browser action, on which we want to call `prevent_default`.
+const BROWSER_SHORTCUTS: &[BrowserShortcut] =
+    &[BrowserShortcut::new("Tab"), BrowserShortcut::ctrl("R"), BrowserShortcut::ctrl_shift("D")];
+
+fn is_browser_shortcut(event: &KeyboardEvent) -> bool {
+    BROWSER_SHORTCUTS.iter().any(|shortcut| shortcut.matches(event))
+}
+
+
 
 // ===================
 // === DomBindings ===
@@ -442,16 +485,26 @@ impl DomBindings {
     ///
     /// We're preventing default on keyboard events, because we don't want the browser to handle
     /// them.
-    pub fn new(keyboard: &Keyboard) -> Self {
-        let key_down = Listener::new_key_down(f!([keyboard](event:&KeyboardEvent) {
-            event.prevent_default();
-            keyboard.source.down.emit(KeyWithCode::from(event));
-        }));
-        let key_up = Listener::new_key_up(f!([keyboard](event:&KeyboardEvent) {
-            event.prevent_default();
-            keyboard.source.up.emit(KeyWithCode::from(event));
-        }));
-        let blur = Listener::new_blur(f_!(keyboard.source.window_defocused.emit(())));
+    pub fn new(target: &web::EventTarget, keyboard: &Keyboard) -> Self {
+        let key_down = Listener::new_key_down(
+            target,
+            f!([keyboard](event: &KeyboardEvent) {
+                if is_browser_shortcut(event) {
+                    event.prevent_default();
+                }
+                keyboard.source.down.emit(KeyWithCode::from(event));
+            }),
+        );
+        let key_up = Listener::new_key_up(
+            target,
+            f!([keyboard](event: &KeyboardEvent) {
+                if is_browser_shortcut(event) {
+                    event.prevent_default();
+                }
+                keyboard.source.up.emit(KeyWithCode::from(event));
+            }),
+        );
+        let blur = Listener::new_blur(target, f_!(keyboard.source.window_defocused.emit(())));
         Self { key_down, key_up, blur }
     }
 }

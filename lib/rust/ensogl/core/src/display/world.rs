@@ -505,7 +505,7 @@ impl WorldData {
                 let key = event.code();
                 if key == "Backquote" {
                     stats_monitor.toggle()
-                } else if key == "KeyP" {
+                } else if key == "KeyO" {
                     if event.shift_key() {
                         let forwarding_incrementally = emit_measurements_handle.borrow().is_some();
                         // If we are submitting the data continuously, the hotkey is redundant.
@@ -668,6 +668,13 @@ impl WorldData {
     #[profile(Debug)]
     pub fn collect_garbage<T: 'static>(&self, object: T) {
         self.garbage_collector.collect(object);
+    }
+
+    /// Immediately drop the garbage.
+    ///
+    /// May be used to resolve dependence cycles if garbage keeps reference to [`World`].
+    pub fn force_garbage_drop(&self) {
+        self.garbage_collector.force_garbage_drop()
     }
 
     /// Set the maximum frequency at which the pointer location will be checked, in terms of number

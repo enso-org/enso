@@ -3150,7 +3150,7 @@ pub struct Row {
 pub struct ColumnOrRowRef<Dim> {
     instance: Instance,
     index:    usize,
-    axis:     PhantomData<Dim>,
+    axis:     ZST<Dim>,
 }
 
 /// The auto-layout column reference.
@@ -3161,7 +3161,7 @@ pub type RowRef = ColumnOrRowRef<Y>;
 
 impl<Dim> ColumnOrRowRef<Dim> {
     fn new(instance: Instance, index: usize) -> Self {
-        Self { instance, index, axis: PhantomData }
+        Self { instance, index, axis: ZST() }
     }
 }
 
