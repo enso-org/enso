@@ -656,20 +656,45 @@ impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
         })
     }
 
-    // pub fn buffered_gate(
-    //     self,
-    //     cond: impl NodeOf<bool>,
-    // ) -> NodeInNetwork<'a, M, Stream<N1::Output>>
-    // where
-    //     N1: NodeWithDefaultOutput,
-    // {
-    //     let last_event: RefCell<Option<N1::Output>> = RefCell::new(None);
-    //     self.new_node((Listen(cond), ListenAndSample(self), ListenAndSample(cond)), move |event,
-    // _, src, cond| {         if *cond {
-    //             event.emit(src);
-    //         }
-    //     })
-    // }
+    /// Passes the incoming event of the first stream only if the value of the second stream is
+    /// true. If the event is received when condition is false, it is buffered and emitted when
+    /// the condition becomes true. Only the last received event value is emitted next time the
+    /// condition becomes true. A single received event will be reemitted at most once.
+    ///
+    /// Behavior: T---F---T-----F-------T---T---F---T--
+    /// Event:    --1--2-----3---4-5-6-----------------
+    /// Output:   --1-----2--3----------6--------------
+    pub fn buffered_gate(
+        self,
+        cond: impl NodeOf<bool>,
+    ) -> NodeInNetwork<'a, M, Stream<N1::Output>>
+    where
+        N1: NodeWithDefaultOutput,
+    {
+        let cond_n = NodeInNetwork { network: self.network, node: cond };
+        let buffered_val = self.network.any_mut::<Option<N1::Output>>();
+        buffered_val.attach(self.gate_not(cond).some());
+        let val_on_true = cond_n.sample(buffered_val).unwrap();
+        let out = self.gate(cond).any2(val_on_true);
+        buffered_val.attach(out.none());
+        out
+    }
+
+    /// Passes the incoming event of the first stream only if the second stream has emitted an event
+    /// since the last event of the first stream.
+    ///
+    /// Event:  1---2---3-----4-------5---6---7---8--
+    /// Sync:   --|--------|---|---|-----------------
+    /// Output: ----2---------4-------5--------------
+    pub fn sync_gate(self, sync: impl Node) -> NodeInNetwork<'a, M, Stream<N1::Output>>
+    where N1: NodeWithDefaultOutput {
+        let sync_n = NodeInNetwork { network: self.network, node: sync };
+        let fence = self.network.any_mut::<bool>();
+        fence.attach(sync_n.to_true());
+        let out = self.gate(fence);
+        fence.attach(out.to_false());
+        out
+    }
 
     /// On every event, emit its unwrapped value. In case the value cannot be unwrapped (e.g. from
     /// the incoming `None` value), no output event will be emitted.
@@ -779,7 +804,7 @@ impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
     }
 
     /// On every event, emit `None`.
-    pub fn none(self) -> NodeInNetwork<'a, M, Stream<Option<N1::Output>>> {
+    pub fn none<T: Data>(self) -> NodeInNetwork<'a, M, Stream<Option<T>>> {
         self.new_node((Listen(self),), move |event, _, _| {
             event.emit(&None);
         })
@@ -854,5 +879,13 @@ impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
         self.new_node((Listen(self),), move |event, _, t0| {
             event.emit(&!t0);
         })
+    }
+
+    /// Replace the incoming event from first input with `false` and from second with `true`.
+    pub fn bool(self, n2: impl Node) -> NodeInNetwork<'a, M, Stream<bool>> {
+        let n2 = NodeInNetwork { node: n2, network: self.network };
+        let false_ = self.to_false();
+        let true_ = n2.to_true();
+        false_.any2(true_)
     }
 }

@@ -208,7 +208,7 @@ impl Network {
     /// Behavior: T---F---T-----F-------T---T---F---T--
     /// Event:    --1--2-----3---4-5-6-----------------
     /// Output:   --1-----2--3----------6--------------
-    /// [ ]
+    /// [x]
     pub fn buffered_gate<T1, T2>(
         &self,
         label: Label,
@@ -228,7 +228,7 @@ impl Network {
     /// Event:  1---2---3-----4-------5---6---7---8--
     /// Sync:   --|--------|---|---|-----------------
     /// Output: ----2---------4-------5--------------
-    /// [ ]
+    /// [x]
     pub fn sync_gate<T, T2>(&self, label: Label, event: &T, sync: &T2) -> Stream<Output<T>>
     where
         T: EventOutput,
@@ -457,7 +457,7 @@ impl Network {
     }
 
     /// Replace the incoming event from first input with `false` and from second with `true`.
-    /// [ ]
+    /// [x]
     pub fn bool<T1, T2>(&self, label: Label, src1: &T1, src2: &T2) -> Stream<bool>
     where
         T1: EventOutput,
