@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Array.Array
 
 from project.Internal.Vector_Builder.Vector_Builder import Leaf, Append
 

@@ -12,6 +12,7 @@ import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   VisualisationContext,
   VisualisationUpdate
 }
+import org.enso.languageserver.util.binary.BinaryDecoder
 import org.enso.testkit.FlakySpec
 import org.scalatest.concurrent.Eventually
 
@@ -20,7 +21,8 @@ class VisualisationProtocolTest
     with Eventually
     with FlakySpec {
 
-  implicit private val decoder = OutboundMessageDecoder
+  implicit private val decoder: BinaryDecoder[OutboundMessage] =
+    OutboundMessageDecoder
 
   "A visualisation binary protocol" must {
 

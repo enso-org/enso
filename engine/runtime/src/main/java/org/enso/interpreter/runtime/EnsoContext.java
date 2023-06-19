@@ -45,7 +45,6 @@ import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
-import org.enso.polyglot.RuntimeServerInfo;
 import org.graalvm.options.OptionKey;
 import scala.jdk.javaapi.OptionConverters;
 
@@ -462,8 +461,10 @@ public class EnsoContext {
 
   /** The job parallelism or 1 */
   public int getJobParallelism() {
-    var n = getOption(RuntimeServerInfo.JOB_PARALLELISM_KEY);
-    return n == null ? 1 : n.intValue();
+    var n = getOption(RuntimeOptions.JOB_PARALLELISM_KEY);
+    var base = n == null ? 1 : n.intValue();
+    var optimal = Math.round(base * 0.5);
+    return optimal < 1 ? 1 : (int) optimal;
   }
 
   /**

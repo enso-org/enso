@@ -142,8 +142,7 @@ public class RuntimeServerInstrument extends TruffleInstrument {
   protected OptionDescriptors getOptionDescriptors() {
     return OptionDescriptors.create(
         Arrays.asList(
-            OptionDescriptor.newBuilder(new OptionKey<>(""), RuntimeServerInfo.ENABLE_OPTION)
-                .build(),
-            RuntimeServerInfo.JOB_PARALLELISM_DESCRIPTOR));
+            OptionDescriptor.newBuilder(RuntimeServerInfo.ENABLE_OPTION_KEY, RuntimeServerInfo.ENABLE_OPTION)
+                .build()));
   }
 }

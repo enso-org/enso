@@ -15,10 +15,11 @@ package object repository {
     */
   object convertFileStorageFailure extends Poly1 {
 
-    implicit def caseCannotDecodeData =
+    implicit def caseCannotDecodeData
+      : Case.Aux[CannotDecodeData, CannotLoadIndex] =
       at[CannotDecodeData](f => CannotLoadIndex(f.msg))
 
-    implicit def caseFsFailure =
+    implicit def caseFsFailure: Case.Aux[FileSystemFailure, StorageFailure] =
       at[FileSystemFailure](f => StorageFailure(s"IO operation failed: $f"))
   }
 

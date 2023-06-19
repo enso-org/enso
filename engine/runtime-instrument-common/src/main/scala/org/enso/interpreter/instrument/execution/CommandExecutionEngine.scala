@@ -20,7 +20,9 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
       .get(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_KEY)
       .booleanValue()
 
-  private val locking = new ReentrantLocking
+  private val locking = new ReentrantLocking(
+    interpreterContext.executionService.getLogger
+  )
 
   private val executionState = new ExecutionState()
 

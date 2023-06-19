@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-polyglot java import java.util.Random
+polyglot java import java.util.Random as Java_Random
 polyglot java import org.enso.base.Text_Utils
 
 ## Object to generate (deterministic) random value for testing
@@ -17,7 +17,7 @@ type Faker
        - seed: Optional seed value to make the sequence deterministic
     new : Integer -> Faker
     new (seed = 0) =
-        generator = if seed == 0 then Random.new else Random.new seed
+        generator = if seed == 0 then Java_Random.new else Java_Random.new seed
         Faker.Value generator
 
     Value generator

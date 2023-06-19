@@ -100,6 +100,13 @@ public final class Module implements TruffleObject {
   private boolean wasLoadedFromCache;
   private boolean hasCrossModuleLinks;
   private final boolean synthetic;
+  /**
+   * This list is filled in case there is a directory with the same name as this module. The
+   * directory then contains submodules of this module that should be directly accessible from this
+   * module - achieved by both filling in this list, and inserting synthetic imports and exports
+   * into this module - See {@link
+   * org.enso.compiler.Compiler#injectSyntheticModuleExports(IR.Module, List)}.
+   */
   private List<QualifiedName> directModulesRefs;
 
   /**

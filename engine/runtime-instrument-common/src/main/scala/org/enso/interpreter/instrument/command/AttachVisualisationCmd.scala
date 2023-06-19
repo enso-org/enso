@@ -3,8 +3,8 @@ package org.enso.interpreter.instrument.command
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{ExecuteJob, UpsertVisualisationJob}
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
+import java.util.logging.Level
 import scala.concurrent.{ExecutionContext, Future}
 
 /** A command that attaches a visualisation to an expression.
@@ -13,7 +13,7 @@ import scala.concurrent.{ExecutionContext, Future}
   * @param request a request for a service
   */
 class AttachVisualisationCmd(
-  maybeRequestId: Option[RequestId],
+  maybeRequestId: Option[Api.RequestId],
   request: Api.AttachVisualisation
 ) extends AsynchronousCommand(maybeRequestId) {
 
@@ -22,8 +22,9 @@ class AttachVisualisationCmd(
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
-    val contextId = request.visualisationConfig.executionContextId
-    ctx.locking.acquireContextLock(contextId)
+    val logger        = ctx.executionService.getLogger
+    val contextId     = request.visualisationConfig.executionContextId
+    val lockTimestamp = ctx.locking.acquireContextLock(contextId)
     try {
       if (doesContextExist) {
         attachVisualisation()
@@ -32,6 +33,10 @@ class AttachVisualisationCmd(
       }
     } finally {
       ctx.locking.releaseContextLock(contextId)
+      logger.log(
+        Level.FINEST,
+        s"Kept context lock [AttachVisualisationCmd] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
+      )
     }
   }
 
@@ -45,11 +50,13 @@ class AttachVisualisationCmd(
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
+    ctx.endpoint.sendToClient(
+      Api.Response(maybeRequestId, Api.VisualisationAttached())
+    )
     val maybeFutureExecutable =
       ctx.jobProcessor.run(
         new UpsertVisualisationJob(
           maybeRequestId,
-          Api.VisualisationAttached(),
           request.visualisationId,
           request.expressionId,
           request.visualisationConfig
@@ -71,6 +78,10 @@ class AttachVisualisationCmd(
         Api.ContextNotExistError(request.visualisationConfig.executionContextId)
       )
     }
+  }
+
+  override def toString: String = {
+    "AttachVisualizationCmd(visualizationId: " + request.visualisationId + ",expressionId=" + request.expressionId + ")"
   }
 
 }
