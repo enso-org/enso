@@ -151,7 +151,10 @@ export interface TemplatesProps {
 /** A container for a {@link TemplatesRender} which passes it a list of templates. */
 function Templates(props: TemplatesProps) {
     const { onTemplateClick } = props
-    const [shadowClass, setShadowClass] = react.useState(ShadowClass.bottom)
+    // This is incorrect, but SAFE, as its value will always be assigned before any hooks are run.
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const containerRef = react.useRef<HTMLDivElement>(null!)
+    const [shadowClass, setShadowClass] = react.useState(ShadowClass.none)
     const [isOpen, setIsOpen] = react.useState(() => {
         /** This must not be in a `useEffect` as it would flash open for one frame.
          * It can be in a `useLayoutEffect` but as that needs to be checked every re-render,
@@ -173,8 +176,8 @@ function Templates(props: TemplatesProps) {
         setIsOpen(!isOpen)
     }
 
-    const updateShadowClass = (event: react.UIEvent) => {
-        const element = event.currentTarget
+    const updateShadowClass = () => {
+        const element = containerRef.current
         const boundingBox = element.getBoundingClientRect()
         let newShadowClass: ShadowClass
         const shouldShowTopShadow = element.scrollTop !== 0
@@ -190,6 +193,17 @@ function Templates(props: TemplatesProps) {
         }
         setShadowClass(newShadowClass)
     }
+
+    react.useEffect(() => {
+        window.addEventListener('resize', updateShadowClass)
+        return () => {
+            window.removeEventListener('resize', updateShadowClass)
+        }
+    })
+
+    react.useEffect(() => {
+        updateShadowClass()
+    }, [])
 
     react.useEffect(() => {
         localStorage.setItem(IS_TEMPLATES_OPEN_KEY, JSON.stringify(isOpen))
@@ -211,6 +225,7 @@ function Templates(props: TemplatesProps) {
                 <h1 className="text-xl font-bold self-center">Templates</h1>
             </div>
             <div
+                ref={containerRef}
                 className={`grid gap-2 grid-cols-fill-60 justify-center overflow-y-scroll scroll-hidden transition-all duration-300 ease-in-out ${
                     isOpen ? `h-80 ${shadowClass}` : 'h-0'
                 }`}
