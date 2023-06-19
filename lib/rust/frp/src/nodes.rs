@@ -49,6 +49,7 @@ impl Network {
     /// node, so its drop timing can be precisely controlled. It is not automatically retained by
     /// the network. When the source is cloned, the event will only be emitted after all clones are
     /// dropped.
+    /// [ ]
     pub fn on_drop(&self, label: Label) -> DropSource {
         DropSource::new(label)
     }
@@ -79,6 +80,7 @@ impl Network {
 
     /// Profile the event resolution from this node onwards and log the result in the profiling
     /// framework.
+    /// [ ]
     pub fn profile<T: EventOutput>(&self, label: Label, src: &T) -> Stream<Output<T>> {
         self.register(OwnedProfile::new(label, src))
     }
@@ -473,6 +475,7 @@ impl Network {
     }
 
     /// On every input event, sample all input streams and output their `or` value.
+    /// [ ]
     pub fn or<T1, T2>(&self, label: Label, t1: &T1, t2: &T2) -> Stream<bool>
     where
         T1: EventOutput<Output = bool>,
@@ -481,6 +484,7 @@ impl Network {
     }
 
     /// On every input event, sample all input streams and output their `and` value.
+    /// [ ]
     pub fn and<T1, T2>(&self, label: Label, t1: &T1, t2: &T2) -> Stream<bool>
     where
         T1: EventOutput<Output = bool>,
@@ -488,11 +492,13 @@ impl Network {
         self.all_with(label, t1, t2, |a, b| *a && *b)
     }
 
+    /// [ ]
     pub fn is_some<T, X>(&self, label: Label, src: &T) -> Stream<bool>
     where T: EventOutput<Output = Option<X>> {
         self.map(label, src, |t| t.is_some())
     }
 
+    /// [ ]
     pub fn is_none<T, X>(&self, label: Label, src: &T) -> Stream<bool>
     where T: EventOutput<Output = Option<X>> {
         self.map(label, src, |t| t.is_none())
@@ -502,6 +508,7 @@ impl Network {
     /// `true` respectively. The redirection is persistent. The first input doesn't have to fire to
     /// propagate the events fromm second and third input streams. Moreover, when first input
     /// changes, an output event will be emitted with the updated value.
+    /// [ ]
     pub fn switch<T1, T2, T3, T>(&self, label: Label, check: &T1, t2: &T2, t3: &T3) -> Stream<T>
     where
         T1: EventOutput<Output = bool>,
@@ -519,6 +526,7 @@ impl Network {
 
     /// On every `true` event from the first input, emit the second parameter. On every `false`
     /// event from the first input, emit the third parameter.
+    /// [ ]
     pub fn switch_constant<Cond, T>(&self, label: Label, check: &Cond, t1: T, t2: T) -> Stream<T>
     where
         Cond: EventOutput<Output = bool>,
@@ -526,6 +534,7 @@ impl Network {
         self.map(label, check, move |check| if !check { t1.clone() } else { t2.clone() })
     }
 
+    /// [ ]
     pub fn default_or<Cond, T>(&self, label: Label, check: &Cond, t: T) -> Stream<T>
     where
         Cond: EventOutput<Output = bool>,
@@ -535,6 +544,7 @@ impl Network {
 
     /// Map the incoming value into a stream and connect the resulting stream to the output. When a
     /// new value is emitted, the previous stream is disconnected and the new one is connected.
+    /// [ ]
     pub fn flat_map<T, F, Out>(&self, label: Label, src: &T, f: F) -> Stream<Out>
     where
         T: EventOutput,
@@ -556,6 +566,7 @@ impl Network {
     }
 
     /// Whenever the incoming value is `true`, emit constant value. Otherwise, emit `None`.
+    /// [ ]
     pub fn then_constant<Cond, T>(&self, label: Label, check: &Cond, t: T) -> Stream<Option<T>>
     where
         Cond: EventOutput<Output = bool>,
@@ -564,6 +575,7 @@ impl Network {
     }
 
     /// Emit the first input value if it is `Some`. Otherwise, emit the second input value.
+    /// [ ]
     pub fn unwrap_or<T, T1, T2>(&self, label: Label, t1: &T1, t2: &T2) -> Stream<T>
     where
         T1: EventOutput<Output = Option<T>>,
@@ -735,10 +747,12 @@ impl Network {
 
     /// Merges input streams into a stream containing values from all of them. On event from any of
     /// the input streams, all streams are sampled and the final event is produced.
+    /// [x]
     pub fn all_mut<T: Data>(&self, label: Label) -> AllMut<T> {
         self.register_raw(OwnedAllMut::new(label))
     }
 
+    /// [ ]
     pub fn all_vec2<Out, T1, T2>(&self, label: Label, t1: &T1, t2: &T2) -> Stream<Vec<Out>>
     where
         Out: Data,
@@ -747,6 +761,7 @@ impl Network {
         self.register(OwnedAllMut::new(label).with(t1).with(t2))
     }
 
+    /// [ ]
     pub fn all_vec3<Out, T1, T2, T3>(
         &self,
         label: Label,
@@ -763,6 +778,7 @@ impl Network {
         self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3))
     }
 
+    /// [ ]
     pub fn all_vec4<Out, T1, T2, T3, T4>(
         &self,
         label: Label,
@@ -781,6 +797,7 @@ impl Network {
         self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3).with(t4))
     }
 
+    /// [ ]
     pub fn all_vec5<Out, T1, T2, T3, T4, T5>(
         &self,
         label: Label,
@@ -801,6 +818,7 @@ impl Network {
         self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3).with(t4).with(t5))
     }
 
+    /// [ ]
     pub fn all_vec6<Out, T1, T2, T3, T4, T5, T6>(
         &self,
         label: Label,
@@ -823,6 +841,7 @@ impl Network {
         self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3).with(t4).with(t5).with(t6))
     }
 
+    /// [ ]
     pub fn all_vec7<Out, T1, T2, T3, T4, T5, T6, T7>(
         &self,
         label: Label,
@@ -849,6 +868,7 @@ impl Network {
         )
     }
 
+    /// [ ]
     pub fn all_vec8<Out, T1, T2, T3, T4, T5, T6, T7, T8>(
         &self,
         label: Label,
@@ -885,6 +905,7 @@ impl Network {
         )
     }
 
+    /// [ ]
     pub fn all_vec9<Out, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
         &self,
         label: Label,
@@ -926,6 +947,7 @@ impl Network {
 
     /// Merges input streams into a stream containing values from all of them. On event from any of
     /// the input streams, all streams are sampled and the final event is produced.
+    /// [x]
     pub fn all<T1, T2>(&self, label: Label, t1: &T1, t2: &T2) -> Stream<(Output<T1>, Output<T2>)>
     where
         T1: EventOutput,
@@ -934,6 +956,7 @@ impl Network {
     }
 
     /// Specialized version of `all`.
+    /// [x]
     pub fn all2<T1, T2>(&self, label: Label, t1: &T1, t2: &T2) -> Stream<(Output<T1>, Output<T2>)>
     where
         T1: EventOutput,
@@ -942,6 +965,7 @@ impl Network {
     }
 
     /// Specialized version of `all`.
+    /// [x]
     pub fn all3<T1, T2, T3>(
         &self,
         label: Label,
@@ -958,6 +982,7 @@ impl Network {
     }
 
     /// Specialized version of `all`.
+    /// [x]
     pub fn all4<T1, T2, T3, T4>(
         &self,
         label: Label,
@@ -976,6 +1001,7 @@ impl Network {
     }
 
     /// Specialized version of `all`.
+    /// [x]
     pub fn all5<T1, T2, T3, T4, T5>(
         &self,
         label: Label,
@@ -996,6 +1022,7 @@ impl Network {
     }
 
     /// Specialized version of `all`.
+    /// [x]
     pub fn all6<T1, T2, T3, T4, T5, T6>(
         &self,
         label: Label,
@@ -1018,6 +1045,7 @@ impl Network {
     }
 
     /// Specialized version of `all`.
+    /// [x]
     pub fn all7<T1, T2, T3, T4, T5, T6, T7>(
         &self,
         label: Label,
@@ -1045,6 +1073,7 @@ impl Network {
     // === Filter ===
 
     /// Passes exactly those incoming events that satisfy the predicate `p`.
+    /// [ ]
     pub fn filter<T, P>(&self, label: Label, src: &T, p: P) -> Stream<Output<T>>
     where
         T: EventOutput,
@@ -1057,6 +1086,7 @@ impl Network {
 
     /// Applies the function `f` to the value of all incoming events. If the resulting `Option`
     /// caries a value then this value is passed on. Otherwise, nothing happens.
+    /// [ ]
     pub fn filter_map<T, F, Out>(&self, label: Label, src: &T, f: F) -> Stream<Out>
     where
         T: EventOutput,
@@ -1071,6 +1101,7 @@ impl Network {
     /// On every event from the first input stream, sample all other input streams and run the
     /// provided function on all gathered values. If you want to run the function on event from any
     /// input stream, use the `all_with` function family instead.
+    /// [x]
     pub fn map<T, F, Out>(&self, label: Label, src: &T, f: F) -> Stream<Out>
     where
         T: EventOutput,
@@ -1079,6 +1110,7 @@ impl Network {
         self.register(OwnedMap::new(label, src, f))
     }
 
+    /// [ ]
     pub fn map_<'a, T, F, Out>(&self, label: Label, src: &T, f: F) -> Stream<()>
     where
         T: EventOutput,
@@ -1090,12 +1122,14 @@ impl Network {
     }
 
     /// A shortcut for `.map(|v| Some(v.clone()))`.
+    /// [ ]
     pub fn some<T>(&self, label: Label, src: &T) -> Stream<Option<Output<T>>>
     where T: EventOutput {
         self.map(label, src, |value| Some(value.clone()))
     }
 
     /// Specialized version of `map`.
+    /// [x]
     pub fn map2<T1, T2, F, T>(&self, label: Label, t1: &T1, t2: &T2, f: F) -> Stream<T>
     where
         T1: EventOutput,
@@ -1106,6 +1140,7 @@ impl Network {
     }
 
     /// Specialized version of `map`.
+    /// [x]
     pub fn map3<T1, T2, T3, F, T>(
         &self,
         label: Label,
@@ -1125,6 +1160,7 @@ impl Network {
     }
 
     /// Specialized version of `map`.
+    /// [x]
     pub fn map4<T1, T2, T3, T4, F, T>(
         &self,
         label: Label,
@@ -1146,6 +1182,7 @@ impl Network {
     }
 
     /// Specialized version of `map`.
+    /// [x]
     pub fn map5<T1, T2, T3, T4, T5, F, T>(
         &self,
         label: Label,
@@ -1169,6 +1206,7 @@ impl Network {
     }
 
     /// Specialized version of `map`.
+    /// [x]
     pub fn map6<T1, T2, T3, T4, T5, T6, F, T>(
         &self,
         label: Label,
@@ -1195,6 +1233,7 @@ impl Network {
     }
 
     /// Specialized version of `map`.
+    /// [x]
     pub fn map7<T1, T2, T3, T4, T5, T6, T7, F, T>(
         &self,
         label: Label,
@@ -1231,6 +1270,7 @@ impl Network {
     }
 
     /// Specialized version of `map`.
+    /// [x]
     pub fn map8<T1, T2, T3, T4, T5, T6, T7, T8, F, T>(
         &self,
         label: Label,
@@ -1270,6 +1310,7 @@ impl Network {
     }
 
     /// Specialized version of `map`.
+    /// [x]
     pub fn map9<T1, T2, T3, T4, T5, T6, T7, T8, T9, F, T>(
         &self,
         label: Label,
@@ -1317,6 +1358,7 @@ impl Network {
     /// On every input event sample all input streams and run the provided function on all gathered
     /// values. If you want to run the function only on event on the first input, use the `map`
     /// function family instead.
+    /// [x]
     pub fn all_with<T1, T2, F, T>(&self, label: Label, t1: &T1, t2: &T2, f: F) -> Stream<T>
     where
         T1: EventOutput,
@@ -1327,6 +1369,7 @@ impl Network {
     }
 
     /// Specialized version `all_with`.
+    /// [x]
     pub fn all_with3<T1, T2, T3, F, T>(
         &self,
         label: Label,
@@ -1346,6 +1389,7 @@ impl Network {
     }
 
     /// Specialized version `all_with`.
+    /// [x]
     pub fn all_with4<T1, T2, T3, T4, F, T>(
         &self,
         label: Label,
@@ -1367,6 +1411,7 @@ impl Network {
     }
 
     /// Specialized version `all_with`.
+    /// [x]
     pub fn all_with5<T1, T2, T3, T4, T5, F, T>(
         &self,
         label: Label,
@@ -1390,6 +1435,7 @@ impl Network {
     }
 
     /// Specialized version `all_with`.
+    /// [x]
     pub fn all_with6<T1, T2, T3, T4, T5, T6, F, T>(
         &self,
         label: Label,
@@ -1416,6 +1462,7 @@ impl Network {
     }
 
     /// Specialized version `all_with`.
+    /// [x]
     pub fn all_with7<T1, T2, T3, T4, T5, T6, T7, F, T>(
         &self,
         label: Label,
@@ -1452,6 +1499,7 @@ impl Network {
     }
 
     /// Specialized version `all_with`.
+    /// [x]
     pub fn all_with8<T1, T2, T3, T4, T5, T6, T7, T8, F, T>(
         &self,
         label: Label,
@@ -1495,6 +1543,7 @@ impl Network {
 
     /// Repeat node listens for input events of type [`usize`] and emits events in number equal to
     /// the input event value.
+    /// [ ]
     pub fn repeat<T>(&self, label: Label, src: &T) -> Stream<()>
     where T: EventOutput<Output = usize> {
         self.register(OwnedRepeat::new(label, src))

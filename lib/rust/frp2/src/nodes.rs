@@ -298,6 +298,50 @@ impl<'a, M: Model, N1: NodeWithDefaultOutput> NodeInNetwork<'a, M, N1> {
 
 
 
+// ===========
+// === All ===
+// ===========
+
+macro_rules! def_all_nodes {
+    ($($is:literal),*) => {
+        def_all_nodes! { @ [[all 1 []]] $($is)* }
+    };
+
+    (@ [ [$name:ident $i:tt [$($is:tt)*]] $($iss:tt)* ] $n:tt $($ns:tt)*) => { paste !{
+        def_all_nodes! { @ [ [[<all $n>] $n [$($is)* $n]] [$name $i [$($is)*]] $($iss)* ] $($ns)* }
+    }};
+
+    (@ [ [$name:ident $i:tt [$($is:tt)*]] $($iss:tt)* ]) => {
+        def_all_nodes! { @ [ $($iss)* ] }
+        paste! { def_all_nodes! { # $name $i [$([<N $is>])*] } }
+    };
+
+    (@ []) => {};
+
+    (# $name:ident $i:tt [$($ns:tt)*]) => { paste! {
+        /// On every event on the first input, sample all inputs, evaluate the provided function,
+        /// and pass the result trough. The function contains mutable reference to the network
+        /// model. If you don't need the model, use the `allX_` family of functions instead.
+        #[inline(never)]
+        #[allow(non_snake_case)]
+        #[allow(clippy::too_many_arguments)]
+        pub fn $name < $($ns,)* F>
+        (self, $($ns:$ns,)*) -> NodeInNetwork<'a, M, Stream< (N1::Output, $($ns::Output,)* ) >>
+        where
+            $($ns: NodeWithDefaultOutput,)*{
+            self.network.new_node((ListenAndSample(self), $(ListenAndSample($ns),)*),
+                move |event, _, t1, $($ns,)*| { event.emit(&(t1.clone(), $($ns.clone(),)*)) }
+            )
+        }
+    }};
+}
+
+impl<'a, M: Model, N1: NodeWithDefaultOutput> NodeInNetwork<'a, M, N1> {
+    def_all_nodes![2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; // Max tuple size for Debug in Rust.
+}
+
+
+
 // ==============
 // === AnyMut ===
 // ==============
