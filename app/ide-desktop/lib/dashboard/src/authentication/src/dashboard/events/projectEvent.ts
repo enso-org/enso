@@ -12,6 +12,7 @@ import * as backendModule from '../backend'
 /** Possible types of project state change. */
 export enum ProjectEventType {
     open = 'open',
+    showAsOpening = 'show-as-opening',
     cancelOpeningAll = 'cancel-opening-all',
 }
 
@@ -25,9 +26,19 @@ export interface ProjectOpenEvent extends ProjectBaseEvent<ProjectEventType.open
     projectId: backendModule.ProjectId
 }
 
+/** A signal to display the specified project as opening, but not actually send the call to the
+ * backend. */
+export interface ProjectShowAsOpeningEvent
+    extends ProjectBaseEvent<ProjectEventType.showAsOpening> {
+    projectId: backendModule.ProjectId
+}
+
 /** A signal to stop automatically opening any project that is currently opening. */
 export interface ProjectCancelOpeningAllEvent
     extends ProjectBaseEvent<ProjectEventType.cancelOpeningAll> {}
 
 /** Every possible type of project event. */
-export type ProjectEvent = ProjectCancelOpeningAllEvent | ProjectOpenEvent
+export type ProjectEvent =
+    | ProjectCancelOpeningAllEvent
+    | ProjectOpenEvent
+    | ProjectShowAsOpeningEvent

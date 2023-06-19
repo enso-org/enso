@@ -190,6 +190,13 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                         setCheckState(CheckState.notChecking)
                     }
                     setShouldOpenWhenReady(false)
+                    break
+                }
+                case projectEvent.ProjectEventType.showAsOpening: {
+                    if (event.projectId === project.id) {
+                        setState(backendModule.ProjectState.openInProgress)
+                    }
+                    break
                 }
             }
         }

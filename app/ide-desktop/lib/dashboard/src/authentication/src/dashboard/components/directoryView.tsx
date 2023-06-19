@@ -264,14 +264,15 @@ function DirectoryView(props: DirectoryViewProps) {
                 switch (directoryEvent.type) {
                     case directoryEventModule.DirectoryEventType.createProject: {
                         const projectName = getNewProjectName(directoryEvent.templateId)
+                        // Although this is a dummy value, it MUST be unique as it is used
+                        // as the React key for lists.
+                        const dummyId = newtype.asNewtype<backendModule.ProjectId>(
+                            Number(new Date()).toString()
+                        )
                         const placeholderNewProjectAsset: backendModule.ProjectAsset = {
                             type: backendModule.AssetType.project,
                             title: projectName,
-                            // Although this is a dummy value, it MUST be unique as it is used
-                            // as the React key for lists.
-                            id: newtype.asNewtype<backendModule.ProjectId>(
-                                Number(new Date()).toString()
-                            ),
+                            id: dummyId,
                             modifiedAt: dateTime.toRfc3339(new Date()),
                             parentId:
                                 directoryId ?? newtype.asNewtype<backendModule.DirectoryId>(''),
@@ -282,6 +283,10 @@ function DirectoryView(props: DirectoryViewProps) {
                             placeholderNewProjectAsset,
                             ...oldProjectAssets,
                         ])
+                        dispatchProjectEvent({
+                            type: projectEventModule.ProjectEventType.showAsOpening,
+                            projectId: dummyId,
+                        })
                         const createProjectPromise = backend.createProject({
                             projectName,
                             projectTemplateName: directoryEvent.templateId ?? null,
