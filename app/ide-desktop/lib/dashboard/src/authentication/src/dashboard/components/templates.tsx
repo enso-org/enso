@@ -211,7 +211,7 @@ function Templates(props: TemplatesProps) {
 
     return (
         <div className="mx-2">
-            <div className="flex items-center m-2">
+            <div className="flex items-center my-2">
                 <div className="w-4">
                     <div
                         className={`cursor-pointer transition-all ease-in-out ${
@@ -223,6 +223,16 @@ function Templates(props: TemplatesProps) {
                     </div>
                 </div>
                 <h1 className="text-xl font-bold self-center">Templates</h1>
+                {!isOpen && (
+                    <button
+                        className="bg-gray-100 rounded-full p-1 mx-2"
+                        onClick={() => {
+                            onTemplateClick()
+                        }}
+                    >
+                        {svg.ADD_ICON} New blank project&nbsp;
+                    </button>
+                )}
             </div>
             <div
                 ref={containerRef}

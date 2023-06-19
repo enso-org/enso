@@ -756,7 +756,7 @@ function Dashboard(props: DashboardProps) {
                         }
                     }}
                 >
-                    {svg.ADD_ICON}
+                    {svg.CIRCLED_ADD_ICON}
                 </button>
             </div>
         ) : (
