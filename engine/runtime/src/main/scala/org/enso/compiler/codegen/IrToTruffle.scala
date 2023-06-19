@@ -1663,7 +1663,7 @@ class IrToTruffle(
         val bodyExpr = body match {
           case IR.Foreign.Definition(lang, code, _, _, _) =>
             buildForeignBody(
-              lang,
+              EpbParser.ForeignLanguage.getBySyntacticTag(lang),
               code,
               arguments.map(_.name.name),
               argSlotIdxs

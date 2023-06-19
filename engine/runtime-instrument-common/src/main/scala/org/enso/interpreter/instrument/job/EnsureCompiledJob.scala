@@ -289,9 +289,10 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
   )(implicit ctx: RuntimeContext): Seq[CacheInvalidation] = {
     val invalidateExpressionsCommand =
       CacheInvalidation.Command.InvalidateKeys(changeset.invalidated)
-    val scopeIds = ctx.executionService.getContext.getCompiler
-      .parseMeta(source)
-      .map(_._2)
+    changeset.getClass()
+    source.getClass()
+    ctx.getClass()
+    val scopeIds = Seq()
     val invalidateStaleCommand =
       CacheInvalidation.Command.InvalidateStale(scopeIds)
     Seq(

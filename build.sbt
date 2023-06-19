@@ -274,6 +274,7 @@ lazy val enso = (project in file("."))
     searcher,
     launcher,
     downloader,
+    `runtime-parser`,
     `runtime-language-epb`,
     `runtime-instrument-common`,
     `runtime-instrument-id-execution`,
@@ -507,13 +508,8 @@ lazy val logger = (project in file("lib/scala/logger"))
 
 lazy val `syntax-definition` =
   (project in file("lib/scala/syntax/definition"))
-    .dependsOn(logger)
     .settings(
       scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-      libraryDependencies ++= monocle ++ scalaCompiler ++ Seq(
-        "org.typelevel" %% "cats-core" % catsVersion,
-        "org.typelevel" %% "kittens"   % kittensVersion
-      )
     )
 
 lazy val syntax = (project in file("lib/scala/syntax/specialization"))
@@ -527,10 +523,6 @@ lazy val syntax = (project in file("lib/scala/syntax/specialization"))
     logBuffered := false,
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest"     % scalatestVersion % Test,
-      "com.lihaoyi"   %% "pprint"        % pprintVersion,
-      "io.circe"      %% "circe-core"    % circeVersion,
-      "io.circe"      %% "circe-generic" % circeVersion,
-      "io.circe"      %% "circe-parser"  % circeVersion
     ),
     (Compile / compile) := (Compile / compile)
       .dependsOn(RecompileParser.run(`syntax-definition`))
@@ -1413,12 +1405,30 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`logging-utils`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
+  .dependsOn(`runtime-parser`)
   .dependsOn(pkg)
   .dependsOn(`edition-updater`)
   .dependsOn(`connected-lock-manager`)
-  .dependsOn(syntax)
-  .dependsOn(`syntax-rust-definition`)
   .dependsOn(testkit % Test)
+
+lazy val `runtime-parser` =
+  (project in file("engine/runtime-parser"))
+    .settings(
+      frgaalJavaCompilerSetting,
+      inConfig(Compile)(truffleRunOptionsSettings),
+      instrumentationSettings,
+      libraryDependencies ++= Seq(
+        "junit"                   % "junit"           % junitVersion     % Test,
+        "com.novocode"            % "junit-interface" % junitIfVersion   % Test exclude ("junit", "junit-dep"),
+        "org.scalatest"          %% "scalatest"       % scalatestVersion % Test,
+      ),
+      Test / javaOptions ++= Seq(
+        "-Dgraalvm.locatorDisabled=true",
+        s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
+      ),
+    )
+    .dependsOn(syntax)
+    .dependsOn(`syntax-rust-definition`)
 
 lazy val `runtime-instrument-common` =
   (project in file("engine/runtime-instrument-common"))

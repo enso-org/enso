@@ -74,7 +74,6 @@ class MetadataStorage(
     * @throws CompilerError if no metadata exists for `pass`
     * @return the metadata for `pass`, if it exists
     */
-  @throws[CompilerError]
   def getUnsafe[K <: IRPass](
     pass: K
   )(msg: => String = s"Missing metadata for pass $pass"): pass.Metadata = {

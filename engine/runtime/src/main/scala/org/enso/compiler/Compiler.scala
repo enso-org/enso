@@ -21,8 +21,8 @@ import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.runtime.{EnsoContext, Module}
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
-import org.enso.syntax.text.Parser
-import org.enso.syntax.text.Parser.IDMap
+//import org.enso.syntax.text.Parser
+//import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax2.Tree
 
 import java.io.{PrintStream, StringReader}
@@ -711,8 +711,8 @@ class Compiler(
     * @param source the code to parse
     * @return the source metadata
     */
-  def parseMeta(source: CharSequence): IDMap =
-    Parser().splitMeta(source.toString)._2
+//  def parseMeta(source: CharSequence): IDMap =
+//    Parser().splitMeta(source.toString)._2
 
   /** Enhances the provided IR with import/export statements for the provided list
     * of fully qualified names of modules. The statements are considered to be "synthetic" i.e. compiler-generated.
