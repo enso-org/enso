@@ -206,9 +206,9 @@ impl Endpoint {
         Endpoint { node, port }
     }
 
-    /// Create a source endpoint pointing to default node output - its whole pattern expression.
-    pub fn default_source(node_id: node::Id) -> Self {
-        Endpoint { node: node_id, port: PortId::Ast(node_id) }
+    /// Create an endpoint pointing to whole node pattern or expression.
+    pub fn root(node_id: node::Id) -> Self {
+        Endpoint { node: node_id, port: PortId::Root }
     }
 
     /// Create a target endpoint from given node info, pointing at a port under given AST crumbs.
@@ -572,10 +572,7 @@ impl Handle {
     ) -> FallibleResult<EndpointInfo> {
         let mut source = connection.source;
 
-        // When the endpoint is specified to target the whole node, set the actual target the
-        // node's whole pattern. That way a connection can be made even when no pattern was yet
-        // present at the time of its declaration.
-        let use_whole_pattern = source.port == PortId::Ast(source.node);
+        let use_whole_pattern = source.port == PortId::Root;
         let pattern = match use_whole_pattern {
             true => self.introduce_pattern_if_missing(connection.source.node)?,
             false => {
@@ -1536,7 +1533,7 @@ main =
             assert!(connections(&graph).unwrap().connections.is_empty());
             let (node0, _node1, node2) = graph.nodes().unwrap().expect_tuple();
             let connection_to_add = Connection {
-                source: Endpoint::default_source(node2.info.id()),
+                source: Endpoint::root(node2.info.id()),
                 target: Endpoint::target_at(&node0, [InfixCrumb::RightOperand]).unwrap(),
             };
             graph.connect(&connection_to_add, &span_tree::generate::context::Empty).unwrap();
@@ -1566,7 +1563,7 @@ main =
         test.run(|graph| async move {
             let (node0, _node1, _node2, _node3, node4, _) = graph.nodes().unwrap().expect_tuple();
             let connection_to_add = Connection {
-                source: Endpoint::default_source(node4.info.id()),
+                source: Endpoint::root(node4.info.id()),
                 target: Endpoint::target_at(&node0, [InfixCrumb::RightOperand]).unwrap(),
             };
             graph.connect(&connection_to_add, &span_tree::generate::context::Empty).unwrap();
@@ -1595,7 +1592,7 @@ main =
             assert!(connections(&graph).unwrap().connections.is_empty());
             let (node0, node1, _) = graph.nodes().unwrap().expect_tuple();
             let connection_to_add = Connection {
-                source: Endpoint::default_source(node0.info.id()),
+                source: Endpoint::root(node0.info.id()),
                 target: Endpoint::target_at(&node1, [PrefixCrumb::Arg]).unwrap(),
             };
             graph.connect(&connection_to_add, &span_tree::generate::context::Empty).unwrap();

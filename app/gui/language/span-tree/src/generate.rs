@@ -51,6 +51,8 @@ pub trait SpanTreeGenerator {
     /// Generate tree for this AST treated as root for the whole expression.
     fn generate_tree(&self, context: &impl Context) -> FallibleResult<SpanTree> {
         let root = self.generate_node(node::Kind::Root, context)?;
+        let port_id = root.port_id.or(Some(PortId::Root));
+        let root = root.with_port_id(port_id);
         Ok(SpanTree { root })
     }
 }

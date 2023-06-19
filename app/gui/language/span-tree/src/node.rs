@@ -210,10 +210,14 @@ impl DerefMut for Child {
 // ==============
 
 /// Identification for a port that can be hovered and connected to.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum PortId {
-    /// An unique existing AST within the expression.
+    /// An unique existing AST within the expression. Whenever a node has an assigned AST ID, this
+    /// port ID variant will be used.
     Ast(ast::Id),
+    /// The root node of the expression without assigned ID.
+    #[default]
+    Root,
     /// An argument that doesn't exist yet, but will be created when the connection is made.
     ArgPlaceholder {
         /// ID of method application containing this argument.
@@ -231,12 +235,6 @@ pub enum PortId {
         /// will be inserted after the first element, etc.
         insert_at: usize,
     },
-}
-
-impl Default for PortId {
-    fn default() -> Self {
-        Self::Ast(default())
-    }
 }
 
 

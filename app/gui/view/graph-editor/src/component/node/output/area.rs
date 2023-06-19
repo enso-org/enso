@@ -319,11 +319,10 @@ impl Model {
                     port_frp.set_size <+ self.frp.size;
                 }
 
-                if let Some(id) = node.port_id {
-                    frp::extend! { port_network
-                        source.on_port_hover <+ port_frp.on_hover.map(move |&t| Switch::new(id,t));
-                        source.on_port_press <+ port_frp.on_press.constant(id);
-                    }
+                let port_id = node.port_id.unwrap_or_default();
+                frp::extend! { port_network
+                    source.on_port_hover <+ port_frp.on_hover.map(move |&t| Switch::new(port_id,t));
+                    source.on_port_press <+ port_frp.on_press.constant(port_id);
                 }
 
                 port_frp.set_type_label_visibility.emit(self.frp.type_label_visibility.value());

@@ -1059,7 +1059,7 @@ impl Network {
         T: EventOutput<Output = Option<In>>,
         Out: Data,
         F: 'static + Fn(&In) -> Out, {
-        self.map(label, src, move |value| value.as_ref().map(|v| f(v)))
+        self.map(label, src, move |value| value.as_ref().map(&f))
     }
 
     /// A version of map that operates on optionals. The provided function will only be called when
@@ -1070,7 +1070,7 @@ impl Network {
         T: EventOutput<Output = Option<In>>,
         Out: Data,
         F: 'static + Fn(&In) -> Option<Out>, {
-        self.map(label, src, move |value| value.as_ref().and_then(|v| f(v)))
+        self.map(label, src, move |value| value.as_ref().and_then(&f))
     }
 
 

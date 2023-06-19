@@ -302,7 +302,7 @@ async fn mouse_oriented_node_placement() {
                 "No detached edge after clicking port"
             );
             let added_node = self.graph_editor.node_added.next_event();
-            self.scene.mouse.click_on_background();
+            self.scene.mouse.click_on_background(Vector2::zero());
             enso_web::simulate_sleep((enso_shortcuts::DOUBLE_EVENT_TIME_MS + 10.0) as f64);
             self.check_searcher_opening_place(added_node);
         }

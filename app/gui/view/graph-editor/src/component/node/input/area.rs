@@ -317,13 +317,13 @@ impl Model {
         let new_expression = Expression::from(new_expression.into());
         debug!("Set expression: \n{:?}", new_expression.tree_pretty_printer());
 
+        self.request_widget_config_overrides(&new_expression, area_frp);
         self.widget_tree.rebuild_tree(
             &new_expression.span_tree,
             &new_expression.code,
             &self.styles,
         );
 
-        self.request_widget_config_overrides(&new_expression, area_frp);
         *self.expression.borrow_mut() = new_expression;
     }
 

@@ -64,6 +64,7 @@ use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application;
 use ensogl::application::Application;
+use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::navigation::navigator::Navigator;
@@ -1475,17 +1476,23 @@ struct TouchNetwork<T: frp::Data> {
 }
 
 impl<T: frp::Data> TouchNetwork<T> {
-    fn new(network: &frp::Network, mouse: &frp::io::Mouse_DEPRECATED) -> Self {
+    fn new(network: &frp::Network, scene: &Scene) -> Self {
+        let on_scene_up = scene.on_event::<mouse::Up>();
+        let on_scene_down = scene.on_event_capturing::<mouse::Down>();
         frp::extend! { network
-            down          <- source::<T> ();
-            is_down       <- bool(&mouse.up_primary,&down);
+            pos_on_down <- on_scene_down.map(|e| e.client());
+            on_up_primary <- on_scene_up.filter(mouse::is_primary);
+            down          <- source::<T>();
+            is_down       <- bool(&on_up_primary,&down);
             was_down      <- is_down.previous();
-            mouse_up      <- mouse.up_primary.gate(&was_down);
-            pos_on_down   <- mouse.position.sample(&down);
-            pos_on_up     <- mouse.position.sample(&mouse_up);
-            should_select <- pos_on_up.map3(
-                &pos_on_down, &mouse.distance,
-                |end, start, distance| (end - start).norm() <= distance * 2.0
+            mouse_up      <- on_up_primary.gate(&was_down);
+            should_select <- mouse_up.map2(&pos_on_down,
+                |end, start| {
+                    dbg!(start, end);
+                    let total_drag_sq = (start - end.client()).norm_squared();
+                    let move_sq = end.movement().norm_squared();
+                    total_drag_sq <= move_sq * 4.0
+                }
             );
             up            <- down.sample(&mouse_up);
             selected      <- up.gate(&should_select);
@@ -1503,11 +1510,11 @@ struct TouchState {
 }
 
 impl TouchState {
-    fn new(network: &frp::Network, mouse: &frp::io::Mouse_DEPRECATED) -> Self {
-        let nodes = TouchNetwork::new(network, mouse);
-        let background = TouchNetwork::new(network, mouse);
-        let input_port = TouchNetwork::new(network, mouse);
-        let output_port = TouchNetwork::new(network, mouse);
+    fn new(network: &frp::Network, scene: &Scene) -> Self {
+        let nodes = TouchNetwork::new(network, scene);
+        let background = TouchNetwork::new(network, scene);
+        let input_port = TouchNetwork::new(network, scene);
+        let output_port = TouchNetwork::new(network, scene);
         Self { nodes, background, input_port, output_port }
     }
 }
@@ -1648,8 +1655,6 @@ impl GraphEditorModel {
             }
         }
 
-        console_log!("Maintained edges. Dirty count: {}", dirty_edges.len());
-
         (detached, dirty_edges)
     }
 
@@ -1677,6 +1682,8 @@ impl GraphEditorModel {
         let node = self.new_node(ctx);
         node.set_xy(position);
         let should_edit = !matches!(way, WayOfCreatingNode::AddNodeEvent);
+        dbg!(way);
+        dbg!(should_edit);
         if should_edit {
             node.view.set_expression(node::Expression::default());
         }
@@ -1884,7 +1891,7 @@ impl GraphEditorModel {
         let edges = RefCell::new(Edges::default());
         let vis_registry = visualization::Registry::with_default_visualizations();
         let visualisations = default();
-        let touch_state = TouchState::new(network, &scene.mouse.frp_deprecated);
+        let touch_state = TouchState::new(network, scene);
         let breadcrumbs = component::Breadcrumbs::new(app.clone_ref());
         let execution_environment_selector =
             execution_environment_selector::ExecutionEnvironmentSelector::new(app);
@@ -2507,7 +2514,7 @@ impl GraphEditor {
         frp::extend! { network
             up_target <- mouse.up_primary.map(f_!(mouse_target.get()));
             pointer_up <- up_target.filter(|t| t == &PointerTargetId::Background).constant(());
-            eval_ scene.background.mouse_down_primary(bg_down.emit(()));
+            eval_ scene.mouse.background.mouse_down_primary(bg_down.emit(()));
 
             // Remove focus from any element when background is clicked.
             eval_ touch.background.down(model.display_object.blur_tree());
@@ -2655,9 +2662,11 @@ impl GraphEditor {
         let mouse = &scene.mouse.frp_deprecated;
 
         frp::extend! { network
+            init <- source_();
 
             // Before performing edge attach logic, check if creating new edge on click makes sense.
             cannot_interact <- input.set_read_only || out.has_detached_edge;
+            cannot_interact <- all(cannot_interact, init)._0();
             can_create_new_edge <- cannot_interact.not();
             can_create_on_output <- can_create_new_edge.sample(&touch.output_port.selected);
             can_create_on_input <- can_create_new_edge.sample(&touch.input_port.selected);
@@ -2681,6 +2690,7 @@ impl GraphEditor {
                 .filter(f!([model] (t) !model.is_node_connected_at_input(t.node_id,t.port)))
                 .map(|target| DetachedEdge::new_target(*target));
         }
+        init.emit(());
     }
 
     fn frp_init_edge_colors(
@@ -2999,15 +3009,9 @@ fn init_remaining_graph_editor_frp(
         new_node <- add_node_way.map2(&cursor.scene_position,
             f!((way, cursor_pos) model.create_node(&node_ctx, way, cursor_pos.xy()))
         );
-        out.node_added <+ new_node.map(|&(id, src, should_edit)| (id, src, should_edit));
-        node_to_edit_after_adding <- new_node.filter_map(|&(id,_,cond)| cond.as_some(id));
-        eval new_node ([model](&(id, _, should_edit)) {
-            if should_edit {
-                if let Some(node) = model.nodes.get_cloned_ref(&id) {
-                    node.show_preview();
-                }
-            }
-        });
+        out.node_added <+ new_node;
+        node_to_edit_after_adding <- new_node.filter_map(|&(id,_,do_edit)| do_edit.as_some(id));
+        eval node_to_edit_after_adding((id) model.with_node(*id, |node| node.show_preview()));
 
         pan_camera_to_node <- new_node._0().debounce();
         eval pan_camera_to_node((&node) model.pan_camera_to_node(node));
@@ -3574,8 +3578,6 @@ impl display::Object for GraphEditor {
 mod tests {
     use super::*;
     use application::test_utils::ApplicationExt;
-    use ensogl::control::io::mouse;
-    use ensogl::control::io::mouse::PrimaryButton;
     use ensogl::display::scene::test_utils::MouseExt;
     use node::test_utils::NodeModelExt;
 
@@ -3637,20 +3639,19 @@ mod tests {
     #[test]
     fn test_adding_node_by_dropping_edge() {
         let (app, graph_editor) = init();
+        let mouse = &app.display.default_scene.mouse;
+
         assert_eq!(graph_editor.num_nodes(), 0);
         // Adding a new node.
         let (node_1_id, node_1) = graph_editor.add_node_by_api();
         graph_editor.stop_editing();
         // Creating edge.
         let port = node_1.model().output_port_shape().expect("No output port.");
-        port.events_deprecated.emit_mouse_down(PrimaryButton);
-        port.events_deprecated.emit_mouse_up(PrimaryButton);
+        mouse.click_on(&port, Vector2::zero());
         assert_eq!(graph_editor.num_edges(), 1);
         // Dropping edge.
-        let mouse = &app.display.default_scene.mouse;
         let click_pos = Vector2(300.0, 300.0);
-        mouse.frp_deprecated.position.emit(click_pos);
-        let click_on_background = |_: &GraphEditor| mouse.click_on_background();
+        let click_on_background = |_: &GraphEditor| mouse.click_on_background(click_pos);
         let (_, node_2) = graph_editor.add_node_by(&click_on_background);
         graph_editor.assert(Case { node_source: Some(node_1_id), should_edit: true });
         let node_pos = node_2.position();
@@ -3659,9 +3660,10 @@ mod tests {
 
     #[test]
     fn test_connecting_two_nodes() {
-        let (_, ref graph_editor) = init();
+        let (app, ref graph_editor) = init();
         assert_eq!(graph_editor.num_nodes(), 0);
         assert_eq!(graph_editor.num_edges(), 0);
+        let mouse = &app.display.default_scene.mouse;
         // Adding two nodes.
         let (node_id_1, node_1) = graph_editor.add_node_by_api();
         graph_editor.stop_editing();
@@ -3669,22 +3671,20 @@ mod tests {
         graph_editor.stop_editing();
         // Creating edge.
         let port = node_1.model().output_port_shape().expect("No output port.");
-        port.events_deprecated.emit_mouse_down(PrimaryButton);
-        port.events_deprecated.emit_mouse_up(PrimaryButton);
+        mouse.click_on(&*port, Vector2::zero());
         assert_eq!(graph_editor.num_edges(), 1);
         let edge_id = *graph_editor.model.edges.borrow().keys().next().expect("Edge was not added");
         graph_editor.model.with_edge(edge_id, |edge| {
             assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
             assert_eq!(edge.target(), None);
         });
+
         // Connecting edge.
         // We need to enable ports. Normally it is done by hovering the node.
         node_2.model().input.frp.set_ports_active(true);
         let port_hover = node_2.model().input_port_hover_shape().expect("No input port.");
 
-        // Input ports already use new event API.
-        port_hover.emit_event(mouse::Down::default());
-        port_hover.emit_event(mouse::Up::default());
+        mouse.click_on(&*port_hover, Vector2::zero());
         graph_editor.model.with_edge(edge_id, |edge| {
             assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
             assert_eq!(edge.target().map(|e| e.node_id), Some(node_id_2));
@@ -3701,7 +3701,7 @@ mod tests {
         editor: &GraphEditor,
         mouse_pos: Vector2,
     ) {
-        scene.mouse.frp_deprecated.position.emit(mouse_pos);
+        scene.mouse.hover_background(mouse_pos);
         press_add_node_shortcut(editor);
     }
 
@@ -3821,8 +3821,10 @@ mod tests {
         }
 
         fn add_node_by<F: Fn(&GraphEditor)>(&self, add_node: &F) -> (NodeId, Node) {
+            let (old_node_id, ..) = self.node_added.value();
             add_node(self);
             let (node_id, ..) = self.node_added.value();
+            assert_ne!(node_id, old_node_id, "Node was not added.");
             let node = self.model.nodes.get_cloned_ref(&node_id).expect("Node was not added.");
             node.set_expression(node::Expression::new_plain("some_not_empty_expression"));
             (node_id, node)
@@ -3860,8 +3862,7 @@ mod tests {
         let app = Application::new("root");
         app.set_screen_size_for_tests();
         let graph_editor = GraphEditor::new(&app);
-        let mouse = &app.display.default_scene.mouse;
-        mouse.frp_deprecated.position.emit(Vector2::zeros());
+        app.display.default_scene.add_child(&graph_editor);
         (app, graph_editor)
     }
 }

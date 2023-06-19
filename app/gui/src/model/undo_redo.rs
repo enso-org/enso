@@ -625,7 +625,7 @@ main =
             assert_eq!(product_node.expression().to_string(), "5 * 5");
 
             let connection = Connection {
-                source: Endpoint::default_source(product_node.id()),
+                source: Endpoint::root(product_node.id()),
                 target: Endpoint::target_at(sum_node, [InfixCrumb::LeftOperand]).unwrap(),
             };
             graph.connect(&connection, &span_tree::generate::context::Empty).unwrap();

@@ -231,7 +231,7 @@ impl<S: Shape> ShapeViewModel<S> {
             .and_then(|assignment| assignment.partition_id(shape_system))
             .unwrap_or_default();
         let (shape, instance) = layer.instantiate(&*self.data.borrow(), symbol_partition);
-        scene.pointer_target_registry.insert(
+        scene.mouse.pointer_target_registry.insert(
             instance.global_instance_id,
             self.events_deprecated.clone_ref(),
             self.display_object(),
@@ -247,7 +247,7 @@ impl<S: Shape> ShapeViewModel<S> {
 
     fn unregister_existing_mouse_targets(&self) {
         for global_instance_id in mem::take(&mut *self.pointer_targets.borrow_mut()) {
-            scene().pointer_target_registry.remove(global_instance_id);
+            scene().mouse.pointer_target_registry.remove(global_instance_id);
         }
     }
 }
