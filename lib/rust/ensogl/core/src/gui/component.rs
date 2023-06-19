@@ -132,8 +132,8 @@ impl<S: Shape> ShapeView<S> {
     }
 }
 
-impl<S: Shape> HasContent for ShapeView<S> {
-    type Content = S;
+impl<S: Shape> HasItem for ShapeView<S> {
+    type Item = S;
 }
 
 // S: DynamicShapeInternals + 'static

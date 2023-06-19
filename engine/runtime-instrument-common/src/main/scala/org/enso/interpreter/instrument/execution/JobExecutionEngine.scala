@@ -187,4 +187,16 @@ final class JobExecutionEngine(
     delayedBackgroundJobsQueue.forEach(job => runBackground(job))
     delayedBackgroundJobsQueue.clear()
   }
+
+  private val runningJobPartialFunction: PartialFunction[RunningJob, Job[_]] = {
+    case RunningJob(_, job, _) => job
+  }
+
+  override def jobInProgress[T](
+    filter: PartialFunction[Job[_], Option[T]]
+  ): Option[T] = {
+    val allJobs    = runningJobsRef.get()
+    val fullFilter = runningJobPartialFunction.andThen(filter)
+    allJobs.collectFirst(fullFilter).flatten
+  }
 }

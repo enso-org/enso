@@ -135,7 +135,7 @@ pub struct Data<InnerGridView, Entry> {
     animations: Animations,
     #[derivative(Debug = "ignore")]
     layers:     RefCell<Option<layer::Handler<InnerGridView>>>,
-    entry_type: PhantomData<Entry>,
+    entry_type: ZST<Entry>,
 }
 
 impl<InnerGridView, Entry> Data<InnerGridView, Entry>
@@ -279,7 +279,7 @@ pub struct Handler<Kind, InnerGridView, Entry, EntryParams: frp::node::Data> {
     #[deref]
     pub frp:   Frp<EntryParams>,
     model:     Rc<Data<InnerGridView, Entry>>,
-    kind_type: PhantomData<Kind>,
+    kind_type: ZST<Kind>,
 }
 
 /// The handler of selection highlight.

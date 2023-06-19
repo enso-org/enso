@@ -22,7 +22,7 @@ pub struct Event<EventType, JsEvent: ToEventData> {
     js_event:   Option<JsEvent>,
     data:       JsEvent::Data,
     shape:      Shape,
-    event_type: PhantomData<EventType>,
+    event_type: ZST<EventType>,
 }
 
 impl<EventType, JsEvent> Debug for Event<EventType, JsEvent>

@@ -77,7 +77,7 @@ macro_rules! define_singletons_gl {
 }
 
 
-/// Defines conversions `From<$type>` and `From<PhantomData<$type>>` for every provided type.
+/// Defines conversions `From<$type>` and `From<ZST<$type>>` for every provided type.
 #[macro_export]
 macro_rules! define_gl_enum_conversions {
     ( $target:tt $( $(#$meta:tt)* $type:ty = $expr:expr ),* $(,)? ) => {
@@ -97,8 +97,8 @@ macro_rules! define_gl_enum_conversions_2 {
             }
         }
 
-        impl From<PhantomData<$type>> for $($target)* {
-            fn from(_:PhantomData<$type>) -> Self {
+        impl From<ZST<$type>> for $($target)* {
+            fn from(_:ZST<$type>) -> Self {
                 $expr
             }
         }
@@ -123,7 +123,7 @@ macro_rules! define_singleton_enum_gl {
 
 
 /// Defines associated enum type for the provided variants, just like `define_singleton_enum_from`.
-/// It also defines conversions `From<$singleton>` and `From<PhantomData<$singleton>>` the enum
+/// It also defines conversions `From<$singleton>` and `From<ZST<$singleton>>` the enum
 /// type.
 #[macro_export]
 macro_rules! define_singleton_enum_gl_from {
@@ -138,7 +138,7 @@ macro_rules! define_singleton_enum_gl_from {
         impl From<&$name> for $($target)* {
             fn from(t:&$name) -> Self {
                 match t {
-                    $($name::$field => PhantomData::<$field>.into()),*
+                    $($name::$field => ZST::<$field>().into()),*
                 }
             }
         }
@@ -146,7 +146,7 @@ macro_rules! define_singleton_enum_gl_from {
         impl From<$name> for $($target)* {
             fn from(t:$name) -> Self {
                 match t {
-                    $($name::$field => PhantomData::<$field>.into()),*
+                    $($name::$field => ZST::<$field>().into()),*
                 }
             }
         }

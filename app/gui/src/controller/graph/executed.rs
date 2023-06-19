@@ -158,6 +158,11 @@ impl Handle {
         self.execution_ctx.attach_visualization(visualization).await
     }
 
+    /// See [`model::ExecutionContext::get_ai_completion`].
+    pub async fn get_ai_completion(&self, code: &str, stop: &str) -> FallibleResult<String> {
+        self.execution_ctx.get_ai_completion(code, stop).await
+    }
+
     /// See [`model::ExecutionContext::modify_visualization`].
     pub fn modify_visualization(
         &self,

@@ -91,7 +91,7 @@ declare module 'create-servers' {
 
     export default function (
         option: CreateServersOptions,
-        // This is a third-party module which we have no control over.
+        // The types come from a third-party API and cannot be changed.
         // eslint-disable-next-line no-restricted-syntax
         errorHandler: (err: HttpError | undefined) => void
     ): unknown
