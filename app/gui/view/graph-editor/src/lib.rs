@@ -2162,7 +2162,6 @@ impl GraphEditorModel {
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn node_pos_mod(&self, node_id: NodeId, pos_diff: Vector2) -> (NodeId, Vector2) {
-        let node_id = node_id.into();
         let new_position =
             self.with_node(node_id, |n| n.position().xy() + pos_diff).unwrap_or_default();
         (node_id, new_position)
@@ -3061,7 +3060,7 @@ fn init_remaining_graph_editor_frp(
 
     // === Edited node growth/shrink animation ===
 
-    component::node::growth_animation::initialize_edited_node_animator(&model, &frp, scene);
+    component::node::growth_animation::initialize_edited_node_animator(model, frp, scene);
 
 
     // === Event Propagation ===
@@ -3537,7 +3536,7 @@ fn init_remaining_graph_editor_frp(
     // === Execution Mode Selection ===
     // ================================
 
-    execution_environment::init_frp(&frp, &model);
+    execution_environment::init_frp(frp, model);
 
 
     // ==================

@@ -519,7 +519,7 @@ impl<'a> ControllerChange<'a> {
     pub fn map_connections(&self, connections: &[AstConnection]) -> Vec<ViewConnection> {
         let nodes = self.nodes.borrow();
         connections
-            .into_iter()
+            .iter()
             .filter_map(|connection| {
                 let src_node = nodes.get(connection.source.node)?.view_id?;
                 let dst_node = nodes.get(connection.target.node)?.view_id?;

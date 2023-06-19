@@ -355,7 +355,7 @@ impl EndpointInfo {
         let node = span_tree
             .root_ref()
             .find_node(|n| n.port_id == Some(endpoint.port))
-            .ok_or_else(|| EndpointNotFound(*endpoint))?;
+            .ok_or(EndpointNotFound(*endpoint))?;
         let crumbs = node.crumbs;
         Ok(EndpointInfo { ast, span_tree, crumbs })
     }
@@ -560,7 +560,7 @@ impl Handle {
         context: &impl SpanTreeContext,
     ) -> FallibleResult<EndpointInfo> {
         let target_node = self.node_info(connection.target.node)?;
-        let target_node_ast = target_node.expression().clone();
+        let target_node_ast = target_node.expression();
         EndpointInfo::new(&connection.target, target_node_ast, context)
     }
 
