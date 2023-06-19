@@ -19,27 +19,9 @@ spec setup =
     table_builder = setup.table_builder
 
     Test.group "gmt" <|
-        do_round n dp=0 use_bankers=False =
-            table = table_builder [["x", [n]]]
-            result = table.at "x" . round dp use_bankers
-            #IO.println 'do_round'
-            #IO.println <| table.at 'x' . to_vector
-            #IO.println <| result . to_vector
-            result.to_vector.at 0
-
-        Test.specify "Can handle NaN/Infinity" <|
-            nan_result = if setup.test_selection.is_nan_and_nothing_distinct then Number.nan else Nothing
-            do_round Number.nan . should_equal nan_result
-        Test.specify "Can handle NaN/Infinity" <|
-            do_round Number.positive_infinity . should_equal Number.positive_infinity
-        Test.specify "Can handle NaN/Infinity" <|
-            do_round Number.negative_infinity . should_equal Number.negative_infinity
-
-        Test.specify "should allow round on a float column (to <0 decimal places)" <|
-            table = table_builder [["x", [51.2, 59.3, 351.45, 359.11, -51.2, -59.3, -351.23, -359.69]]]
-            result = table.at "x" . round -1
-            result.to_vector.should_equal [50.0, 60.0, 350.0, 360.0, -50.0, -60.0, -350.0, -360.0]
-            result.value_type . is_integer . should_be_true
+        Test.specify "Should not allow the creation of a constant column of columns" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            t.at "x" . const (t.at "x") . should_fail_with Illegal_Argument
 
     Test.group prefix+"Boolean Column Operations" <|
         Test.specify "iif" <|
@@ -735,11 +717,12 @@ spec setup =
             do_round 1.225 2 use_bankers=True . should_equal 1.22 # Actual result 1.23
             do_round 37.785 2 . should_equal 37.79
 
-        Test.specify "Can handle NaN/Infinity" <|
-            nan_result = if setup.test_selection.is_nan_and_nothing_distinct then Number.nan else Nothing
-            do_round Number.nan . should_equal nan_result
-            do_round Number.positive_infinity . should_equal Number.positive_infinity
-            do_round Number.negative_infinity . should_equal Number.negative_infinity
+        ##
+            Test.specify "Can handle NaN/Infinity" <|
+                nan_result = if setup.test_selection.is_nan_and_nothing_distinct then Number.nan else Nothing
+                do_round Number.nan . should_equal nan_result
+                do_round Number.positive_infinity . should_equal Number.positive_infinity
+                do_round Number.negative_infinity . should_equal Number.negative_infinity
 
         Test.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)"
             do_round 0 . should_equal 0
@@ -1169,3 +1152,7 @@ spec setup =
         Test.specify "Should create the correct column name" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             t.at "x" . const 12 . name . take 9 . should_equal "Constant_"
+
+        Test.specify "Should not allow the creation of a constant column of columns" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            t.at "x" . const t . should_fail_with Illegal_Argument

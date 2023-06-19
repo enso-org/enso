@@ -1,5 +1,5 @@
 import project.Any.Any
-import project.Data.Decimal_Places_Helpers
+import project.Internal.Decimal_Places_Helpers
 import project.Data.Text.Text
 import project.Data.Locale.Locale
 import project.Errors.Common.Arithmetic_Error

@@ -10,6 +10,7 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors
 import project.Function
+import project.Internal.Decimal_Places_Helpers
 import project.IO
 import project.Math
 import project.Meta
@@ -42,6 +43,7 @@ export project.Data.Text.Text
 export project.Data.Vector.Vector
 export project.Error.Error
 export project.Errors
+export project.Internal.Decimal_Places_Helpers
 export project.IO
 export project.Math
 export project.Meta

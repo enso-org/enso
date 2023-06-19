@@ -707,16 +707,17 @@ type Table
     ## PRIVATE
 
        Create a constant column from a value.
-    make_constant_column : Any -> Column
+    make_constant_column : Any -> Column ! Illegal_Argument
     make_constant_column self value =
-        type_mapping = self.connection.dialect.get_type_mapping
-        argument_value_type = Value_Type_Helpers.find_argument_type value
-        sql_type = case argument_value_type of
-            Nothing -> SQL_Type.null
-            _ -> type_mapping.value_type_to_sql argument_value_type Problem_Behavior.Ignore
-        expr = SQL_Expression.Constant value
-        new_type_ref = SQL_Type_Reference.from_constant sql_type
-        Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type_ref expr self.context
+        if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a Column") else
+            type_mapping = self.connection.dialect.get_type_mapping
+            argument_value_type = Value_Type_Helpers.find_argument_type value
+            sql_type = case argument_value_type of
+                Nothing -> SQL_Type.null
+                _ -> type_mapping.value_type_to_sql argument_value_type Problem_Behavior.Ignore
+            expr = SQL_Expression.Constant value
+            new_type_ref = SQL_Type_Reference.from_constant sql_type
+            Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type_ref expr self.context
 
     ## UNSTABLE
 
