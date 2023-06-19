@@ -479,6 +479,17 @@ pub enum RequiredImport {
     Name(QualifiedName),
 }
 
+/// Whether the import is temporary or permanent. See [`Handle::add_required_imports`]
+/// documentation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ImportType {
+    /// The import is used for suggestion preview and can be removed after switching to the other
+    /// suggestion (or closing the component browser).
+    Temporary,
+    /// The import is permanent.
+    Permanent,
+}
+
 
 
 // ==================
@@ -698,30 +709,34 @@ impl Handle {
     /// Add a necessary unqualified import (`from module import name`) to the module, such that
     /// the provided fully qualified name is imported and available in the module.
     pub fn add_import_if_missing(&self, qualified_name: QualifiedName) -> FallibleResult {
-        self.add_required_imports(iter::once(RequiredImport::Name(qualified_name)), true)
+        self.add_required_imports(
+            iter::once(RequiredImport::Name(qualified_name)),
+            ImportType::Permanent,
+        )
     }
 
     /// Add imports to the module, but avoid their duplication. Temporary imports added by passing
-    /// `permanent: false` can be removed by calling [`Self::clear_temporary_imports`].
+    /// [`ImportType::Temporary`] can be removed by calling [`Self::clear_temporary_imports`].
+    /// Temporary imports are used for suggestion preview and are removed when the previewed
+    /// suggesiton is switched or cancelled.
     #[profile(Debug)]
     pub fn add_required_imports<'a>(
         &self,
         import_requirements: impl Iterator<Item = RequiredImport>,
-        permanent: bool,
+        import_type: ImportType,
     ) -> FallibleResult {
         let module_path = self.module.path();
         let project_name = self.project_name.clone_ref();
         let module_qualified_name = module_path.qualified_module_name(project_name);
         let imports = import_requirements
-            .filter_map(|requirement| match requirement {
-                RequiredImport::Entry(entry) => Some(
-                    entry.required_imports(&self.suggestion_db, module_qualified_name.as_ref()),
-                ),
-                RequiredImport::Name(name) => {
-                    let (_id, entry) = self.suggestion_db.lookup_by_qualified_name(&name).ok()?;
-                    let defined_in = module_qualified_name.as_ref();
-                    Some(entry.required_imports(&self.suggestion_db, defined_in))
-                }
+            .filter_map(|requirement| {
+                let defined_in = module_qualified_name.as_ref();
+                let entry = match requirement {
+                    RequiredImport::Entry(entry) => entry,
+                    RequiredImport::Name(name) =>
+                        self.suggestion_db.lookup_by_qualified_name(&name).ok()?.1,
+                };
+                Some(entry.required_imports(&self.suggestion_db, defined_in))
             })
             .flatten();
         let mut module = double_representation::module::Info { ast: self.module.ast() };
@@ -732,7 +747,8 @@ impl Handle {
             let import_id = import.id();
             let already_inserted = module.contains_import(import_id);
             let need_to_insert = !already_imported;
-            let old_import_became_permanent = permanent && already_inserted;
+            let old_import_became_permanent =
+                import_type == ImportType::Permanent && already_inserted;
             let need_to_update_md = need_to_insert || old_import_became_permanent;
             if need_to_insert {
                 module.add_import(&self.parser, import);
@@ -741,7 +757,7 @@ impl Handle {
                 self.module.with_import_metadata(
                     import_id,
                     Box::new(|import_metadata| {
-                        import_metadata.is_temporary = !permanent;
+                        import_metadata.is_temporary = import_type == ImportType::Temporary;
                     }),
                 )?;
             }

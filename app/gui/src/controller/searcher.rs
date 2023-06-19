@@ -4,6 +4,7 @@ use crate::model::traits::*;
 use crate::prelude::*;
 
 use crate::controller::graph::FailedToCreateNode;
+use crate::controller::graph::ImportType;
 use crate::controller::graph::RequiredImport;
 use crate::controller::searcher::component::group;
 use crate::model::module::NodeEditStatus;
@@ -687,7 +688,7 @@ impl Searcher {
             let picked_suggestion_requirement = suggestion_change.and_then(|change| change.import);
             let all_requirements =
                 current_input_requirements.chain(picked_suggestion_requirement.iter().cloned());
-            self.graph.graph().add_required_imports(all_requirements, false)?;
+            self.graph.graph().add_required_imports(all_requirements, ImportType::Temporary)?;
         }
         self.graph.graph().set_expression_ast(self.mode.node_id(), expression)?;
 
@@ -757,7 +758,7 @@ impl Searcher {
         {
             let data = self.data.borrow();
             let requirements = data.picked_suggestions.iter().filter_map(|ps| ps.import.clone());
-            self.graph.graph().add_required_imports(requirements, true)?;
+            self.graph.graph().add_required_imports(requirements, ImportType::Permanent)?;
         }
 
         let node_id = self.mode.node_id();
