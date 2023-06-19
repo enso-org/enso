@@ -49,7 +49,7 @@ impl Network {
     /// node, so its drop timing can be precisely controlled. It is not automatically retained by
     /// the network. When the source is cloned, the event will only be emitted after all clones are
     /// dropped.
-    /// [ ]
+    /// [x]
     pub fn on_drop(&self, label: Label) -> DropSource {
         DropSource::new(label)
     }
@@ -157,7 +157,7 @@ impl Network {
         self.register(OwnedGate::new(label, event, behavior))
     }
 
-    /// [ ]
+    /// [x]
     pub fn sampled_gate<T1, T2>(
         &self,
         label: Label,
@@ -174,7 +174,7 @@ impl Network {
         self.any(label, &value, &value2)
     }
 
-    /// [ ]
+    /// [x]
     pub fn sampled_gate_not<T1, T2>(
         &self,
         label: Label,

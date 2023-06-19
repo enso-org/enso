@@ -109,41 +109,33 @@ impl<Output> Source<Output> {
 // === OnDrop ===
 // ==============
 
-// /// Marker type for the [`OnDrop`] node.
-// #[derive(Clone, Copy, Debug, Default)]
-// pub struct ON_DROP;
-//
-// pub type OnDrop = TypedNode<ON_DROP, ()>;
-//
-// impl<M: Model> Network<M> {
-//     #[inline(always)]
-//     pub fn on_drop(&self) -> NodeInNetwork<M, OnDrop> {
-//         self.new_node((), |_, _| {})
-//     }
-// }
-
+/// A drop watch used in [`on_drop`]. Refer to its docs to learn more.
 #[derive(Clone, Debug)]
-pub struct OnDrop {
-    rc: Rc<OnDropWatch>,
+pub struct DropWatch {
+    rc: Rc<DropWatchSingleton>,
 }
 
 #[derive(Debug)]
-pub struct OnDropWatch {
+struct DropWatchSingleton {
     source: Source,
 }
 
-// pub trait Node: Copy {
-//     type Output: Data;
-//     fn id(self) -> NodeId;
-// }
-
-impl<M: Model> Network<M> {
-    pub fn on_drop(&self) -> OnDrop {
-        let source = *self.source();
-        let rc = Rc::new(OnDropWatch { source });
-        OnDrop { rc }
+impl Drop for DropWatchSingleton {
+    fn drop(&mut self) {
+        self.source.emit(&());
     }
 }
+
+impl<M: Model> Network<M> {
+    /// Return a stream and a drop watch. When the last clone of the drop watch is dropped, the
+    /// stream will emit a single unit value.
+    pub fn on_drop(&self) -> (Stream, DropWatch) {
+        let source = *self.source();
+        let rc = Rc::new(DropWatchSingleton { source });
+        (*source, DropWatch { rc })
+    }
+}
+
 
 
 // ===============
@@ -639,6 +631,45 @@ impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
             }
         })
     }
+
+    /// On every event, pass it trough if the `cond` input is `true`. When the `cond` input changes
+    /// to `true`, sample the first input and emit it.
+    pub fn sampled_gate(self, cond: impl NodeOf<bool>) -> NodeInNetwork<'a, M, Stream<N1::Output>>
+    where N1: NodeWithDefaultOutput {
+        self.new_node((ListenAndSample(self), ListenAndSample(cond)), move |event, _, src, cond| {
+            if *cond {
+                event.emit(src);
+            }
+        })
+    }
+
+    /// On every event, pass it trough if the `cond` input is `false`. When the `cond` input changes
+    /// to `false`, sample the first input and emit it.
+    pub fn sampled_gate_not<N2>(self, cond: N2) -> NodeInNetwork<'a, M, Stream<N1::Output>>
+    where
+        N1: NodeWithDefaultOutput,
+        N2: NodeOf<bool>, {
+        self.new_node((ListenAndSample(self), ListenAndSample(cond)), move |event, _, src, cond| {
+            if !cond {
+                event.emit(src);
+            }
+        })
+    }
+
+    // pub fn buffered_gate(
+    //     self,
+    //     cond: impl NodeOf<bool>,
+    // ) -> NodeInNetwork<'a, M, Stream<N1::Output>>
+    // where
+    //     N1: NodeWithDefaultOutput,
+    // {
+    //     let last_event: RefCell<Option<N1::Output>> = RefCell::new(None);
+    //     self.new_node((Listen(cond), ListenAndSample(self), ListenAndSample(cond)), move |event,
+    // _, src, cond| {         if *cond {
+    //             event.emit(src);
+    //         }
+    //     })
+    // }
 
     /// On every event, emit its unwrapped value. In case the value cannot be unwrapped (e.g. from
     /// the incoming `None` value), no output event will be emitted.
