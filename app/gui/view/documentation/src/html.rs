@@ -595,8 +595,8 @@ pub fn anchor_name(name: &QualifiedName) -> String {
 /// "Hovered item preview" caption on top of the documentation panel.
 pub fn caption_html() -> String {
     owned_html! {
-        div(class="caption-container") {
-            div(class="caption") {
+        div(class="enso-docs-caption-container") {
+            div(class="enso-docs-caption") {
                 : "Hovered item preview. Press the right mouse button to lock it.";
             }
         }
