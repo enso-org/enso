@@ -2816,7 +2816,7 @@ impl GraphEditor {
             // Whenever the node the detached edge is connected to is removed, drop the edge.
             state.clear_detached_edge <+ out.node_removed.map2(&detached_node,
                 |&removed_id, &detached_id| Some(removed_id) == detached_id
-            );
+            ).on_true();
 
         }
     }
