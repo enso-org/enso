@@ -18,7 +18,7 @@ use crate::microtasks::next_microtask;
 use crate::stream;
 use crate::stream::CallStack;
 use crate::stream::EventOutput;
-use crate::stream::OwnedStream;
+// use crate::stream::OwnedStream;
 use crate::stream::Stream;
 use crate::stream::ValueProvider;
 
@@ -1552,504 +1552,504 @@ impl Network {
 
 
 
-// ========================
-// === Dynamic Node API ===
-// ========================
-
-/// This is a phantom structure used by macros to create dynamic FRP graphs. It exposes the same
-/// API as `Network` in order to reuse macro code for both network and dynamic modes.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct DynamicNetwork {}
-
-impl DynamicNetwork {
-    /// Constructor.
-    pub fn new() -> Self {
-        default()
-    }
-}
-
-/// See docs of `Network` to learn about the methods.
-impl DynamicNetwork {
-    pub fn source<T: Data>(self, label: Label) -> OwnedSource<T> {
-        OwnedSource::new(label)
-    }
-
-    pub fn source_(self, label: Label) -> OwnedSource {
-        OwnedSource::new(label)
-    }
-
-    pub fn sampler<T, Out>(self, label: Label, src: &T) -> OwnedSampler<Out>
-    where
-        T: EventOutput<Output = Out>,
-        Out: Data, {
-        OwnedSampler::new(label, src)
-    }
-
-    pub fn trace<T: EventOutput>(self, label: Label, src: &T) -> OwnedStream<Output<T>> {
-        OwnedTrace::new(label, src).into()
-    }
-
-    pub fn profile<T: EventOutput>(self, label: Label, src: &T) -> OwnedStream<Output<T>> {
-        OwnedProfile::new(label, src).into()
-    }
-
-    pub fn toggle<T: EventOutput>(self, label: Label, src: &T) -> OwnedStream<bool> {
-        OwnedToggle::new(label, src).into()
-    }
-
-    pub fn count<T: EventOutput>(self, label: Label, src: &T) -> OwnedCount<T> {
-        OwnedCount::new(label, src)
-    }
-
-    pub fn constant<X: Data, T: EventOutput>(
-        self,
-        label: Label,
-        src: &T,
-        value: X,
-    ) -> OwnedStream<X> {
-        OwnedConstant::new(label, src, value).into()
-    }
-
-    pub fn previous<T: EventOutput>(self, label: Label, src: &T) -> OwnedStream<Output<T>> {
-        OwnedPrevious::new(label, src).into()
-    }
-
-    pub fn sample<T1: EventOutput, T2: EventOutput>(
-        self,
-        label: Label,
-        behavior: &T1,
-        event: &T2,
-    ) -> OwnedStream<Output<T1>> {
-        OwnedSample::new(label, behavior, event).into()
-    }
-
-    pub fn gate<T1, T2>(self, label: Label, event: &T1, behavior: &T2) -> OwnedStream<Output<T1>>
-    where
-        T1: EventOutput,
-        T2: EventOutput<Output = bool>, {
-        OwnedGate::new(label, event, behavior).into()
-    }
-
-    pub fn gate_not<T1, T2>(
-        self,
-        label: Label,
-        event: &T1,
-        behavior: &T2,
-    ) -> OwnedStream<Output<T1>>
-    where
-        T1: EventOutput,
-        T2: EventOutput<Output = bool>,
-    {
-        OwnedGateNot::new(label, event, behavior).into()
-    }
-
-    pub fn iter<T1, X>(self, label: Label, event: &T1) -> OwnedStream<X>
-    where
-        T1: EventOutput,
-        for<'t> &'t T1::Output: IntoIterator<Item = &'t X>,
-        X: Data, {
-        OwnedIter::new(label, event).into()
-    }
-
-    pub fn fold<T1, X>(self, label: Label, event: &T1) -> OwnedStream<X>
-    where
-        T1: EventOutput,
-        for<'t> &'t T1::Output: IntoIterator<Item = &'t X>,
-        X: Data + Monoid, {
-        OwnedFold::new(label, event).into()
-    }
-
-    pub fn _0<T1>(self, label: Label, event: &T1) -> OwnedStream<generics::FieldAt<0, Output<T1>>>
-    where
-        T1: EventOutput,
-        T1::Output: generics::GetFieldAt0,
-        generics::FieldAt<0, T1::Output>: Data, {
-        OwnedGet0::new(label, event).into()
-    }
-
-    pub fn _1<T1>(self, label: Label, event: &T1) -> OwnedStream<generics::FieldAt<1, Output<T1>>>
-    where
-        T1: EventOutput,
-        T1::Output: generics::GetFieldAt1,
-        generics::FieldAt<1, T1::Output>: Data, {
-        OwnedGet1::new(label, event).into()
-    }
-
-    pub fn _2<T1>(self, label: Label, event: &T1) -> OwnedStream<generics::FieldAt<2, Output<T1>>>
-    where
-        T1: EventOutput,
-        T1::Output: generics::GetFieldAt2,
-        generics::FieldAt<2, T1::Output>: Data, {
-        OwnedGet2::new(label, event).into()
-    }
-
-
-    // === Any ===
-
-    pub fn any_mut<T: Data>(self, label: Label) -> OwnedAny<T> {
-        OwnedAny::new(label)
-    }
-
-    pub fn any<T1, T2, T: Data>(self, label: Label, t1: &T1, t2: &T2) -> OwnedStream<T>
-    where
-        T1: EventOutput<Output = T>,
-        T2: EventOutput<Output = T>, {
-        OwnedAny::new2(label, t1, t2).into()
-    }
-
-    pub fn any2<T1, T2, T: Data>(self, label: Label, t1: &T1, t2: &T2) -> OwnedStream<T>
-    where
-        T1: EventOutput<Output = T>,
-        T2: EventOutput<Output = T>, {
-        OwnedAny::new2(label, t1, t2).into()
-    }
-
-    pub fn any3<T1, T2, T3, T: Data>(
-        self,
-        label: Label,
-        t1: &T1,
-        t2: &T2,
-        t3: &T3,
-    ) -> OwnedStream<T>
-    where
-        T1: EventOutput<Output = T>,
-        T2: EventOutput<Output = T>,
-        T3: EventOutput<Output = T>,
-    {
-        OwnedAny::new3(label, t1, t2, t3).into()
-    }
-
-    pub fn any4<T1, T2, T3, T4, T: Data>(
-        self,
-        label: Label,
-        t1: &T1,
-        t2: &T2,
-        t3: &T3,
-        t4: &T4,
-    ) -> OwnedStream<T>
-    where
-        T1: EventOutput<Output = T>,
-        T2: EventOutput<Output = T>,
-        T3: EventOutput<Output = T>,
-        T4: EventOutput<Output = T>,
-    {
-        OwnedAny::new4(label, t1, t2, t3, t4).into()
-    }
-
-    pub fn any5<T1, T2, T3, T4, T5, T: Data>(
-        self,
-        label: Label,
-        t1: &T1,
-        t2: &T2,
-        t3: &T3,
-        t4: &T4,
-        t5: &T5,
-    ) -> OwnedStream<T>
-    where
-        T1: EventOutput<Output = T>,
-        T2: EventOutput<Output = T>,
-        T3: EventOutput<Output = T>,
-        T4: EventOutput<Output = T>,
-        T5: EventOutput<Output = T>,
-    {
-        OwnedAny::new5(label, t1, t2, t3, t4, t5).into()
-    }
-
-
-    // === Any_ ===
-
-    pub fn any_mut_(self, label: Label) -> OwnedAny_ {
-        OwnedAny_::new(label)
-    }
-
-    pub fn any_<T1, T2>(self, label: Label, t1: &T1, t2: &T2) -> OwnedStream<()>
-    where
-        T1: EventOutput,
-        T2: EventOutput, {
-        OwnedAny_::new2(label, t1, t2).into()
-    }
-
-    pub fn any2_<T1, T2>(self, label: Label, t1: &T1, t2: &T2) -> OwnedStream<()>
-    where
-        T1: EventOutput,
-        T2: EventOutput, {
-        OwnedAny_::new2(label, t1, t2).into()
-    }
-
-    pub fn any3_<T1, T2, T3>(self, label: Label, t1: &T1, t2: &T2, t3: &T3) -> OwnedStream<()>
-    where
-        T1: EventOutput,
-        T2: EventOutput,
-        T3: EventOutput, {
-        OwnedAny_::new3(label, t1, t2, t3).into()
-    }
-
-    pub fn any4_<T1, T2, T3, T4>(
-        self,
-        label: Label,
-        t1: &T1,
-        t2: &T2,
-        t3: &T3,
-        t4: &T4,
-    ) -> OwnedStream<()>
-    where
-        T1: EventOutput,
-        T2: EventOutput,
-        T3: EventOutput,
-        T4: EventOutput,
-    {
-        OwnedAny_::new4(label, t1, t2, t3, t4).into()
-    }
-
-    pub fn any5_<T1, T2, T3, T4, T5>(
-        self,
-        label: Label,
-        t1: &T1,
-        t2: &T2,
-        t3: &T3,
-        t4: &T4,
-        t5: &T5,
-    ) -> OwnedStream<()>
-    where
-        T1: EventOutput,
-        T2: EventOutput,
-        T3: EventOutput,
-        T4: EventOutput,
-        T5: EventOutput,
-    {
-        OwnedAny_::new5(label, t1, t2, t3, t4, t5).into()
-    }
-
-
-    // === All ===
-
-    pub fn all<T1, T2>(
-        self,
-        label: Label,
-        t1: &T1,
-        t2: &T2,
-    ) -> OwnedStream<(Output<T1>, Output<T2>)>
-    where
-        T1: EventOutput,
-        T2: EventOutput,
-    {
-        OwnedAll2::new(label, t1, t2).into()
-    }
-
-    pub fn all2<T1, T2>(
-        self,
-        label: Label,
-        t1: &T1,
-        t2: &T2,
-    ) -> OwnedStream<(Output<T1>, Output<T2>)>
-    where
-        T1: EventOutput,
-        T2: EventOutput,
-    {
-        OwnedAll2::new(label, t1, t2).into()
-    }
-
-    pub fn all3<T1, T2, T3>(
-        self,
-        label: Label,
-        t1: &T1,
-        t2: &T2,
-        t3: &T3,
-    ) -> OwnedStream<(Output<T1>, Output<T2>, Output<T3>)>
-    where
-        T1: EventOutput,
-        T2: EventOutput,
-        T3: EventOutput,
-    {
-        OwnedAll3::new(label, t1, t2, t3).into()
-    }
-
-    pub fn all4<T1, T2, T3, T4>(
-        self,
-        label: Label,
-        t1: &T1,
-        t2: &T2,
-        t3: &T3,
-        t4: &T4,
-    ) -> OwnedStream<(Output<T1>, Output<T2>, Output<T3>, Output<T4>)>
-    where
-        T1: EventOutput,
-        T2: EventOutput,
-        T3: EventOutput,
-        T4: EventOutput,
-    {
-        OwnedAll4::new(label, t1, t2, t3, t4).into()
-    }
-
-    pub fn all5<T1, T2, T3, T4, T5>(
-        self,
-        label: Label,
-        t1: &T1,
-        t2: &T2,
-        t3: &T3,
-        t4: &T4,
-        t5: &T5,
-    ) -> OwnedStream<(Output<T1>, Output<T2>, Output<T3>, Output<T4>, Output<T5>)>
-    where
-        T1: EventOutput,
-        T2: EventOutput,
-        T3: EventOutput,
-        T4: EventOutput,
-        T5: EventOutput,
-    {
-        OwnedAll5::new(label, t1, t2, t3, t4, t5).into()
-    }
-
-
-    // === Filter ===
-    pub fn filter<T, P>(self, label: Label, src: &T, p: P) -> Stream<Output<T>>
-    where
-        T: EventOutput,
-        P: 'static + Fn(&Output<T>) -> bool, {
-        OwnedFilter::new(label, src, p).into()
-    }
-
-
-    // === FilterMap ===
-
-    pub fn filter_map<T, F, Out>(self, label: Label, src: &T, f: F) -> OwnedStream<Out>
-    where
-        T: EventOutput,
-        Out: Data,
-        F: 'static + Fn(&Output<T>) -> Option<Out>, {
-        OwnedFilterMap::new(label, src, f).into()
-    }
-
-
-    // === Map ===
-
-    pub fn map<T, F, Out>(self, label: Label, src: &T, f: F) -> OwnedStream<Out>
-    where
-        T: EventOutput,
-        Out: Data,
-        F: 'static + Fn(&Output<T>) -> Out, {
-        OwnedMap::new(label, src, f).into()
-    }
-
-    pub fn map2<T1, T2, F, T>(self, label: Label, t1: &T1, t2: &T2, f: F) -> OwnedStream<T>
-    where
-        T1: EventOutput,
-        T2: EventOutput,
-        T: Data,
-        F: 'static + Fn(&Output<T1>, &Output<T2>) -> T, {
-        OwnedMap2::new(label, t1, t2, f).into()
-    }
-
-    pub fn map3<T1, T2, T3, F, T>(
-        self,
-        label: Label,
-        t1: &T1,
-        t2: &T2,
-        t3: &T3,
-        f: F,
-    ) -> OwnedStream<T>
-    where
-        T1: EventOutput,
-        T2: EventOutput,
-        T3: EventOutput,
-        T: Data,
-        F: 'static + Fn(&Output<T1>, &Output<T2>, &Output<T3>) -> T,
-    {
-        OwnedMap3::new(label, t1, t2, t3, f).into()
-    }
-
-    pub fn map4<T1, T2, T3, T4, F, T>(
-        self,
-        label: Label,
-        t1: &T1,
-        t2: &T2,
-        t3: &T3,
-        t4: &T4,
-        f: F,
-    ) -> OwnedStream<T>
-    where
-        T1: EventOutput,
-        T2: EventOutput,
-        T3: EventOutput,
-        T4: EventOutput,
-        T: Data,
-        F: 'static + Fn(&Output<T1>, &Output<T2>, &Output<T3>, &Output<T4>) -> T,
-    {
-        OwnedMap4::new(label, t1, t2, t3, t4, f).into()
-    }
-
-
-    // === AllWith ===
-
-    pub fn apply2<T1, T2, F, T>(self, label: Label, t1: &T1, t2: &T2, f: F) -> OwnedStream<T>
-    where
-        T1: EventOutput,
-        T2: EventOutput,
-        T: Data,
-        F: 'static + Fn(&Output<T1>, &Output<T2>) -> T, {
-        OwnedAllWith2::new(label, t1, t2, f).into()
-    }
-
-    pub fn apply3<T1, T2, T3, F, T>(
-        self,
-        label: Label,
-        t1: &T1,
-        t2: &T2,
-        t3: &T3,
-        f: F,
-    ) -> OwnedStream<T>
-    where
-        T1: EventOutput,
-        T2: EventOutput,
-        T3: EventOutput,
-        T: Data,
-        F: 'static + Fn(&Output<T1>, &Output<T2>, &Output<T3>) -> T,
-    {
-        OwnedAllWith3::new(label, t1, t2, t3, f).into()
-    }
-
-    pub fn apply4<T1, T2, T3, T4, F, T>(
-        self,
-        label: Label,
-        t1: &T1,
-        t2: &T2,
-        t3: &T3,
-        t4: &T4,
-        f: F,
-    ) -> OwnedStream<T>
-    where
-        T1: EventOutput,
-        T2: EventOutput,
-        T3: EventOutput,
-        T4: EventOutput,
-        T: Data,
-        F: 'static + Fn(&Output<T1>, &Output<T2>, &Output<T3>, &Output<T4>) -> T,
-    {
-        OwnedAllWith4::new(label, t1, t2, t3, t4, f).into()
-    }
-
-    pub fn apply5<T1, T2, T3, T4, T5, F, T>(
-        self,
-        label: Label,
-        t1: &T1,
-        t2: &T2,
-        t3: &T3,
-        t4: &T4,
-        t5: &T5,
-        f: F,
-    ) -> OwnedStream<T>
-    where
-        T1: EventOutput,
-        T2: EventOutput,
-        T3: EventOutput,
-        T4: EventOutput,
-        T5: EventOutput,
-        T: Data,
-        F: 'static + Fn(&Output<T1>, &Output<T2>, &Output<T3>, &Output<T4>, &Output<T5>) -> T,
-    {
-        OwnedAllWith5::new(label, t1, t2, t3, t4, t5, f).into()
-    }
-}
+// // ========================
+// // === Dynamic Node API ===
+// // ========================
+//
+// /// This is a phantom structure used by macros to create dynamic FRP graphs. It exposes the same
+// /// API as `Network` in order to reuse macro code for both network and dynamic modes.
+// #[derive(Clone, Copy, Debug, Default)]
+// pub struct DynamicNetwork {}
+//
+// impl DynamicNetwork {
+//     /// Constructor.
+//     pub fn new() -> Self {
+//         default()
+//     }
+// }
+//
+// /// See docs of `Network` to learn about the methods.
+// impl DynamicNetwork {
+//     pub fn source<T: Data>(self, label: Label) -> OwnedSource<T> {
+//         OwnedSource::new(label)
+//     }
+//
+//     pub fn source_(self, label: Label) -> OwnedSource {
+//         OwnedSource::new(label)
+//     }
+//
+//     pub fn sampler<T, Out>(self, label: Label, src: &T) -> OwnedSampler<Out>
+//     where
+//         T: EventOutput<Output = Out>,
+//         Out: Data, {
+//         OwnedSampler::new(label, src)
+//     }
+//
+//     pub fn trace<T: EventOutput>(self, label: Label, src: &T) -> OwnedStream<Output<T>> {
+//         OwnedTrace::new(label, src).into()
+//     }
+//
+//     pub fn profile<T: EventOutput>(self, label: Label, src: &T) -> OwnedStream<Output<T>> {
+//         OwnedProfile::new(label, src).into()
+//     }
+//
+//     pub fn toggle<T: EventOutput>(self, label: Label, src: &T) -> OwnedStream<bool> {
+//         OwnedToggle::new(label, src).into()
+//     }
+//
+//     pub fn count<T: EventOutput>(self, label: Label, src: &T) -> OwnedCount<T> {
+//         OwnedCount::new(label, src)
+//     }
+//
+//     pub fn constant<X: Data, T: EventOutput>(
+//         self,
+//         label: Label,
+//         src: &T,
+//         value: X,
+//     ) -> OwnedStream<X> {
+//         OwnedConstant::new(label, src, value).into()
+//     }
+//
+//     pub fn previous<T: EventOutput>(self, label: Label, src: &T) -> OwnedStream<Output<T>> {
+//         OwnedPrevious::new(label, src).into()
+//     }
+//
+//     pub fn sample<T1: EventOutput, T2: EventOutput>(
+//         self,
+//         label: Label,
+//         behavior: &T1,
+//         event: &T2,
+//     ) -> OwnedStream<Output<T1>> {
+//         OwnedSample::new(label, behavior, event).into()
+//     }
+//
+//     pub fn gate<T1, T2>(self, label: Label, event: &T1, behavior: &T2) -> OwnedStream<Output<T1>>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput<Output = bool>, {
+//         OwnedGate::new(label, event, behavior).into()
+//     }
+//
+//     pub fn gate_not<T1, T2>(
+//         self,
+//         label: Label,
+//         event: &T1,
+//         behavior: &T2,
+//     ) -> OwnedStream<Output<T1>>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput<Output = bool>,
+//     {
+//         OwnedGateNot::new(label, event, behavior).into()
+//     }
+//
+//     pub fn iter<T1, X>(self, label: Label, event: &T1) -> OwnedStream<X>
+//     where
+//         T1: EventOutput,
+//         for<'t> &'t T1::Output: IntoIterator<Item = &'t X>,
+//         X: Data, {
+//         OwnedIter::new(label, event).into()
+//     }
+//
+//     pub fn fold<T1, X>(self, label: Label, event: &T1) -> OwnedStream<X>
+//     where
+//         T1: EventOutput,
+//         for<'t> &'t T1::Output: IntoIterator<Item = &'t X>,
+//         X: Data + Monoid, {
+//         OwnedFold::new(label, event).into()
+//     }
+//
+//     pub fn _0<T1>(self, label: Label, event: &T1) -> OwnedStream<generics::FieldAt<0,
+// Output<T1>>>     where
+//         T1: EventOutput,
+//         T1::Output: generics::GetFieldAt0,
+//         generics::FieldAt<0, T1::Output>: Data, {
+//         OwnedGet0::new(label, event).into()
+//     }
+//
+//     pub fn _1<T1>(self, label: Label, event: &T1) -> OwnedStream<generics::FieldAt<1,
+// Output<T1>>>     where
+//         T1: EventOutput,
+//         T1::Output: generics::GetFieldAt1,
+//         generics::FieldAt<1, T1::Output>: Data, {
+//         OwnedGet1::new(label, event).into()
+//     }
+//
+//     pub fn _2<T1>(self, label: Label, event: &T1) -> OwnedStream<generics::FieldAt<2,
+// Output<T1>>>     where
+//         T1: EventOutput,
+//         T1::Output: generics::GetFieldAt2,
+//         generics::FieldAt<2, T1::Output>: Data, {
+//         OwnedGet2::new(label, event).into()
+//     }
+//
+//
+//     // === Any ===
+//
+//     pub fn any_mut<T: Data>(self, label: Label) -> OwnedAny<T> {
+//         OwnedAny::new(label)
+//     }
+//
+//     pub fn any<T1, T2, T: Data>(self, label: Label, t1: &T1, t2: &T2) -> OwnedStream<T>
+//     where
+//         T1: EventOutput<Output = T>,
+//         T2: EventOutput<Output = T>, {
+//         OwnedAny::new2(label, t1, t2).into()
+//     }
+//
+//     pub fn any2<T1, T2, T: Data>(self, label: Label, t1: &T1, t2: &T2) -> OwnedStream<T>
+//     where
+//         T1: EventOutput<Output = T>,
+//         T2: EventOutput<Output = T>, {
+//         OwnedAny::new2(label, t1, t2).into()
+//     }
+//
+//     pub fn any3<T1, T2, T3, T: Data>(
+//         self,
+//         label: Label,
+//         t1: &T1,
+//         t2: &T2,
+//         t3: &T3,
+//     ) -> OwnedStream<T>
+//     where
+//         T1: EventOutput<Output = T>,
+//         T2: EventOutput<Output = T>,
+//         T3: EventOutput<Output = T>,
+//     {
+//         OwnedAny::new3(label, t1, t2, t3).into()
+//     }
+//
+//     pub fn any4<T1, T2, T3, T4, T: Data>(
+//         self,
+//         label: Label,
+//         t1: &T1,
+//         t2: &T2,
+//         t3: &T3,
+//         t4: &T4,
+//     ) -> OwnedStream<T>
+//     where
+//         T1: EventOutput<Output = T>,
+//         T2: EventOutput<Output = T>,
+//         T3: EventOutput<Output = T>,
+//         T4: EventOutput<Output = T>,
+//     {
+//         OwnedAny::new4(label, t1, t2, t3, t4).into()
+//     }
+//
+//     pub fn any5<T1, T2, T3, T4, T5, T: Data>(
+//         self,
+//         label: Label,
+//         t1: &T1,
+//         t2: &T2,
+//         t3: &T3,
+//         t4: &T4,
+//         t5: &T5,
+//     ) -> OwnedStream<T>
+//     where
+//         T1: EventOutput<Output = T>,
+//         T2: EventOutput<Output = T>,
+//         T3: EventOutput<Output = T>,
+//         T4: EventOutput<Output = T>,
+//         T5: EventOutput<Output = T>,
+//     {
+//         OwnedAny::new5(label, t1, t2, t3, t4, t5).into()
+//     }
+//
+//
+//     // === Any_ ===
+//
+//     pub fn any_mut_(self, label: Label) -> OwnedAny_ {
+//         OwnedAny_::new(label)
+//     }
+//
+//     pub fn any_<T1, T2>(self, label: Label, t1: &T1, t2: &T2) -> OwnedStream<()>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput, {
+//         OwnedAny_::new2(label, t1, t2).into()
+//     }
+//
+//     pub fn any2_<T1, T2>(self, label: Label, t1: &T1, t2: &T2) -> OwnedStream<()>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput, {
+//         OwnedAny_::new2(label, t1, t2).into()
+//     }
+//
+//     pub fn any3_<T1, T2, T3>(self, label: Label, t1: &T1, t2: &T2, t3: &T3) -> OwnedStream<()>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput,
+//         T3: EventOutput, {
+//         OwnedAny_::new3(label, t1, t2, t3).into()
+//     }
+//
+//     pub fn any4_<T1, T2, T3, T4>(
+//         self,
+//         label: Label,
+//         t1: &T1,
+//         t2: &T2,
+//         t3: &T3,
+//         t4: &T4,
+//     ) -> OwnedStream<()>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput,
+//         T3: EventOutput,
+//         T4: EventOutput,
+//     {
+//         OwnedAny_::new4(label, t1, t2, t3, t4).into()
+//     }
+//
+//     pub fn any5_<T1, T2, T3, T4, T5>(
+//         self,
+//         label: Label,
+//         t1: &T1,
+//         t2: &T2,
+//         t3: &T3,
+//         t4: &T4,
+//         t5: &T5,
+//     ) -> OwnedStream<()>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput,
+//         T3: EventOutput,
+//         T4: EventOutput,
+//         T5: EventOutput,
+//     {
+//         OwnedAny_::new5(label, t1, t2, t3, t4, t5).into()
+//     }
+//
+//
+//     // === All ===
+//
+//     pub fn all<T1, T2>(
+//         self,
+//         label: Label,
+//         t1: &T1,
+//         t2: &T2,
+//     ) -> OwnedStream<(Output<T1>, Output<T2>)>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput,
+//     {
+//         OwnedAll2::new(label, t1, t2).into()
+//     }
+//
+//     pub fn all2<T1, T2>(
+//         self,
+//         label: Label,
+//         t1: &T1,
+//         t2: &T2,
+//     ) -> OwnedStream<(Output<T1>, Output<T2>)>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput,
+//     {
+//         OwnedAll2::new(label, t1, t2).into()
+//     }
+//
+//     pub fn all3<T1, T2, T3>(
+//         self,
+//         label: Label,
+//         t1: &T1,
+//         t2: &T2,
+//         t3: &T3,
+//     ) -> OwnedStream<(Output<T1>, Output<T2>, Output<T3>)>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput,
+//         T3: EventOutput,
+//     {
+//         OwnedAll3::new(label, t1, t2, t3).into()
+//     }
+//
+//     pub fn all4<T1, T2, T3, T4>(
+//         self,
+//         label: Label,
+//         t1: &T1,
+//         t2: &T2,
+//         t3: &T3,
+//         t4: &T4,
+//     ) -> OwnedStream<(Output<T1>, Output<T2>, Output<T3>, Output<T4>)>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput,
+//         T3: EventOutput,
+//         T4: EventOutput,
+//     {
+//         OwnedAll4::new(label, t1, t2, t3, t4).into()
+//     }
+//
+//     pub fn all5<T1, T2, T3, T4, T5>(
+//         self,
+//         label: Label,
+//         t1: &T1,
+//         t2: &T2,
+//         t3: &T3,
+//         t4: &T4,
+//         t5: &T5,
+//     ) -> OwnedStream<(Output<T1>, Output<T2>, Output<T3>, Output<T4>, Output<T5>)>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput,
+//         T3: EventOutput,
+//         T4: EventOutput,
+//         T5: EventOutput,
+//     {
+//         OwnedAll5::new(label, t1, t2, t3, t4, t5).into()
+//     }
+//
+//
+//     // === Filter ===
+//     pub fn filter<T, P>(self, label: Label, src: &T, p: P) -> Stream<Output<T>>
+//     where
+//         T: EventOutput,
+//         P: 'static + Fn(&Output<T>) -> bool, {
+//         OwnedFilter::new(label, src, p).into()
+//     }
+//
+//
+//     // === FilterMap ===
+//
+//     pub fn filter_map<T, F, Out>(self, label: Label, src: &T, f: F) -> OwnedStream<Out>
+//     where
+//         T: EventOutput,
+//         Out: Data,
+//         F: 'static + Fn(&Output<T>) -> Option<Out>, {
+//         OwnedFilterMap::new(label, src, f).into()
+//     }
+//
+//
+//     // === Map ===
+//
+//     pub fn map<T, F, Out>(self, label: Label, src: &T, f: F) -> OwnedStream<Out>
+//     where
+//         T: EventOutput,
+//         Out: Data,
+//         F: 'static + Fn(&Output<T>) -> Out, {
+//         OwnedMap::new(label, src, f).into()
+//     }
+//
+//     pub fn map2<T1, T2, F, T>(self, label: Label, t1: &T1, t2: &T2, f: F) -> OwnedStream<T>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput,
+//         T: Data,
+//         F: 'static + Fn(&Output<T1>, &Output<T2>) -> T, {
+//         OwnedMap2::new(label, t1, t2, f).into()
+//     }
+//
+//     pub fn map3<T1, T2, T3, F, T>(
+//         self,
+//         label: Label,
+//         t1: &T1,
+//         t2: &T2,
+//         t3: &T3,
+//         f: F,
+//     ) -> OwnedStream<T>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput,
+//         T3: EventOutput,
+//         T: Data,
+//         F: 'static + Fn(&Output<T1>, &Output<T2>, &Output<T3>) -> T,
+//     {
+//         OwnedMap3::new(label, t1, t2, t3, f).into()
+//     }
+//
+//     pub fn map4<T1, T2, T3, T4, F, T>(
+//         self,
+//         label: Label,
+//         t1: &T1,
+//         t2: &T2,
+//         t3: &T3,
+//         t4: &T4,
+//         f: F,
+//     ) -> OwnedStream<T>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput,
+//         T3: EventOutput,
+//         T4: EventOutput,
+//         T: Data,
+//         F: 'static + Fn(&Output<T1>, &Output<T2>, &Output<T3>, &Output<T4>) -> T,
+//     {
+//         OwnedMap4::new(label, t1, t2, t3, t4, f).into()
+//     }
+//
+//
+//     // === AllWith ===
+//
+//     pub fn apply2<T1, T2, F, T>(self, label: Label, t1: &T1, t2: &T2, f: F) -> OwnedStream<T>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput,
+//         T: Data,
+//         F: 'static + Fn(&Output<T1>, &Output<T2>) -> T, {
+//         OwnedAllWith2::new(label, t1, t2, f).into()
+//     }
+//
+//     pub fn apply3<T1, T2, T3, F, T>(
+//         self,
+//         label: Label,
+//         t1: &T1,
+//         t2: &T2,
+//         t3: &T3,
+//         f: F,
+//     ) -> OwnedStream<T>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput,
+//         T3: EventOutput,
+//         T: Data,
+//         F: 'static + Fn(&Output<T1>, &Output<T2>, &Output<T3>) -> T,
+//     {
+//         OwnedAllWith3::new(label, t1, t2, t3, f).into()
+//     }
+//
+//     pub fn apply4<T1, T2, T3, T4, F, T>(
+//         self,
+//         label: Label,
+//         t1: &T1,
+//         t2: &T2,
+//         t3: &T3,
+//         t4: &T4,
+//         f: F,
+//     ) -> OwnedStream<T>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput,
+//         T3: EventOutput,
+//         T4: EventOutput,
+//         T: Data,
+//         F: 'static + Fn(&Output<T1>, &Output<T2>, &Output<T3>, &Output<T4>) -> T,
+//     {
+//         OwnedAllWith4::new(label, t1, t2, t3, t4, f).into()
+//     }
+//
+//     pub fn apply5<T1, T2, T3, T4, T5, F, T>(
+//         self,
+//         label: Label,
+//         t1: &T1,
+//         t2: &T2,
+//         t3: &T3,
+//         t4: &T4,
+//         t5: &T5,
+//         f: F,
+//     ) -> OwnedStream<T>
+//     where
+//         T1: EventOutput,
+//         T2: EventOutput,
+//         T3: EventOutput,
+//         T4: EventOutput,
+//         T5: EventOutput,
+//         T: Data,
+//         F: 'static + Fn(&Output<T1>, &Output<T2>, &Output<T3>, &Output<T4>, &Output<T5>) -> T,
+//     {
+//         OwnedAllWith5::new(label, t1, t2, t3, t4, t5, f).into()
+//     }
+// }
 
 
 

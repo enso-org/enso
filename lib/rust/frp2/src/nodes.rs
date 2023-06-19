@@ -95,6 +95,7 @@ impl<M: Model> Network<M> {
 }
 
 impl<Output> Source<Output> {
+    /// Emit a new event.
     pub fn emit(&self, value: &Output)
     where Output: Data {
         self.emit_internal(value);
@@ -351,6 +352,9 @@ impl<'a, M: Model, N1: NodeWithDefaultOutput> NodeInNetwork<'a, M, N1> {
 #[allow(non_camel_case_types)]
 pub struct ANY_MUT;
 
+/// Merges multiple input streams into a single output stream. All input streams have to share
+/// the same output data type. This is a dynamic node, allowing new input streams to be attached
+/// after its creation with the [`Self::attach`] method.
 pub type AnyMut<Output = ()> = TypedNode<ANY_MUT, Output>;
 
 impl<M: Model> Network<M> {
@@ -367,6 +371,7 @@ impl<M: Model> Network<M> {
 }
 
 impl<Output: Data> AnyMut<Output> {
+    /// Attach a new input to this node.
     pub fn attach<N: NodeOf<Output>>(&self, node: N) {
         with_runtime(|rt| rt.connect(input::Type::Listen(node.id()), self.id()));
     }
@@ -680,6 +685,7 @@ impl<'a, M: Model, N1: Node> NodeInNetwork<'a, M, N1> {
     }
 
     /// On every event, emit its negation.
+    #[allow(clippy::should_implement_trait)]
     pub fn not(self) -> NodeInNetwork<'a, M, Stream<bool>>
     where N1: NodeOf<bool> {
         self.new_node((Listen(self),), move |event, _, t0| {
