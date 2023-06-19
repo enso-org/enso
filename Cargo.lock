@@ -885,9 +885,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.12.0"
+version = "3.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d261e256854913907f67ed06efbc3338dfe6179796deefc1ff763fc1aee5535"
+checksum = "3c6ed94e98ecff0c12dd1b04c15ec0d7d9458ca8fe806cea6f12954efe74c63b"
 
 [[package]]
 name = "byte-tools"
@@ -913,9 +913,23 @@ checksum = "be0fdd54b507df8f22012890aadd099979befdba27713c767993f8380112ca7c"
 
 [[package]]
 name = "bytemuck"
-version = "1.13.0"
+version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c041d3eab048880cb0b86b256447da3f18859a163c3b8d8893f4e6368abe6393"
+checksum = "17febce684fd15d89027105661fec94afb475cb995fbc59d2865198446ba2eea"
+dependencies = [
+ "bytemuck_derive",
+]
+
+[[package]]
+name = "bytemuck_derive"
+version = "1.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fdde5c9cd29ebd706ce1b35600920a33550e402fc998a2e53ad3b42c3c47a192"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.15",
+]
 
 [[package]]
 name = "byteorder"
@@ -2045,6 +2059,7 @@ dependencies = [
 name = "enso-data-structures"
 version = "0.2.0"
 dependencies = [
+ "bytemuck",
  "criterion",
  "enso-prelude",
  "failure",
@@ -2130,10 +2145,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-frp2"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "enso-data-structures",
+ "enso-frp",
+ "enso-generics",
+ "enso-prelude",
+ "smallvec 1.10.0",
+]
+
+[[package]]
 name = "enso-generics"
 version = "0.2.0"
 dependencies = [
+ "derivative",
+ "enso-zst",
  "nalgebra",
+ "paste",
  "serde",
 ]
 
@@ -2258,6 +2288,7 @@ dependencies = [
  "bincode 1.3.3",
  "derivative",
  "derive_more",
+ "enso-zst",
 ]
 
 [[package]]
@@ -2355,12 +2386,14 @@ dependencies = [
  "assert_approx_eq",
  "backtrace",
  "boolinator",
+ "bytemuck",
  "derivative",
  "derive_more",
  "enso-logging",
  "enso-reflect",
  "enso-shapely",
  "enso-web",
+ "enso-zst",
  "failure",
  "futures",
  "gen-iter",
@@ -2465,6 +2498,7 @@ dependencies = [
  "derivative",
  "enso-prelude",
  "enso-shapely-macros",
+ "enso-zst",
  "paste",
  "rustversion",
  "wasm-bindgen",
@@ -2565,6 +2599,15 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-test",
  "web-sys",
+]
+
+[[package]]
+name = "enso-zst"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "paste",
+ "serde",
 ]
 
 [[package]]
@@ -4141,6 +4184,7 @@ dependencies = [
  "derive_more",
  "dirs",
  "enso-build-base",
+ "enso-zst",
  "filetime",
  "flate2",
  "flume",
@@ -5184,9 +5228,9 @@ checksum = "9b7820b9daea5457c9f21c69448905d723fbd21136ccf521748f23fd49e723ee"
 
 [[package]]
 name = "ouroboros"
-version = "0.15.5"
+version = "0.15.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dfbb50b356159620db6ac971c6d5c9ab788c9cc38a6f49619fca2a27acb062ca"
+checksum = "e1358bd1558bd2a083fed428ffeda486fbfb323e698cdda7794259d592ca72db"
 dependencies = [
  "aliasable",
  "ouroboros_macro",
@@ -5194,9 +5238,9 @@ dependencies = [
 
 [[package]]
 name = "ouroboros_macro"
-version = "0.15.5"
+version = "0.15.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a0d9d1a6191c4f391f87219d1ea42b23f09ee84d64763cd05ee6ea88d9f384d"
+checksum = "5f7d21ccd03305a674437ee1248f3ab5d4b1db095cf1caf49f1713ddf61956b7"
 dependencies = [
  "Inflector",
  "proc-macro-error",

@@ -19,6 +19,7 @@ crate-type = ["rlib"]
 enso-logging = { path = "../logging" }
 enso-reflect = { path = "../reflect" }
 enso-shapely = { path = "../shapely" }
+enso-zst = { path = "../zst" }
 enso-web = { path = "../web" }
 anyhow = { workspace = true }
 assert_approx_eq = { workspace = true }
@@ -37,6 +38,7 @@ smallvec = { workspace = true }
 wasm-bindgen = { workspace = true }
 weak-table = { workspace = true }
 gen-iter = { workspace = true }
+bytemuck = { workspace = true }
 
 [dependencies.web-sys]
 version = "0.3.4"

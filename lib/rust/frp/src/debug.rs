@@ -191,10 +191,10 @@ pub fn display_graphviz(viz: Graphviz) {
 
 impl<T> GraphvizBuilder for T
 where
-    T: ContentRef,
-    Content<T>: GraphvizBuilder,
+    T: ItemRef,
+    Item<T>: GraphvizBuilder,
 {
     default fn graphviz_build(&self, builder: &mut Graphviz) {
-        self.content().graphviz_build(builder)
+        self.item().graphviz_build(builder)
     }
 }
