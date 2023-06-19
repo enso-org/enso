@@ -5,8 +5,6 @@
 #![feature(const_trait_impl)]
 #![feature(auto_traits)]
 #![feature(negative_impls)]
-#![feature(const_ops)]
-#![feature(const_convert)]
 #![feature(const_mut_refs)]
 #![feature(const_fn_floating_point_arithmetic)]
 // === Standard Linter Configuration ===

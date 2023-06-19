@@ -104,7 +104,7 @@ impl Debug for Sampler {
     }
 }
 
-impl const Default for Sampler {
+impl Default for Sampler {
     fn default() -> Self {
         Self {
             label:                "Unlabeled",

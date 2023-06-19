@@ -282,19 +282,19 @@ impl<V, R> IntoUncheckedRawRange for ops::RangeFrom<UnitData<V, R>> {
 ///     type Output;
 /// }
 ///
-/// impl<V, R> const ops::Add<UnitData<V, R>> for f32
+/// impl<V, R> ops::Add<UnitData<V, R>> for f32
 /// where V: RevAdd<f32>, ... {
 ///     type Output = UnitData<<V as RevAdd<f32>>::Output, <f32 as ops::Add<R>>::Output>;
 ///     fn add(self, rhs: UnitData<V, R>) -> Self::Output { ... }
 /// }
 ///
-/// impl<V, R, T> const ops::Add<T> for UnitData<V, R>
+/// impl<V, R, T> ops::Add<T> for UnitData<V, R>
 /// where UnitData<V, R>: Add<T>, ... {
 ///     type Output = <UnitData<V, R> as Add<T>>::Output;
 ///     fn add(self, rhs: T) -> Self::Output { ... }
 /// }
 ///
-/// impl<V1, V2, R1, R2> const ops::Add<UnitData<V2, R2>> for UnitData<V1, R1>
+/// impl<V1, V2, R1, R2> ops::Add<UnitData<V2, R2>> for UnitData<V1, R1>
 /// where UnitData<V1, R1>: Add<UnitData<V2, R2>>, ... {
 ///     type Output = <UnitData<V1, R1> as Add<UnitData<V2, R2>>>::Output;
 ///     fn add(self, rhs: UnitData<V2, R2>) -> Self::Output { ... }
@@ -343,11 +343,11 @@ macro_rules! gen_ops {
 
         // Please note that this impl is not as generic as the following ones because Rust compiler
         // is unable to compile the more generic version.
-        impl<V, R> const ops::$trait<UnitData<V, R>> for f32
+        impl<V, R> ops::$trait<UnitData<V, R>> for f32
         where
             R: Copy,
             V: $rev_trait<f32>,
-            f32: ~const ops::$trait<R>,
+            f32: ops::$trait<R>,
         {
             type Output = UnitData<<V as $rev_trait<f32>>::Output, <f32 as ops::$trait<R>>::Output>;
             fn $op(self, rhs: UnitData<V, R>) -> Self::Output {
@@ -357,11 +357,11 @@ macro_rules! gen_ops {
 
         // Please note that this impl is not as generic as the following ones because Rust compiler
         // is unable to compile the more generic version.
-        impl<V, R> const ops::$trait<UnitData<V, R>> for f64
+        impl<V, R> ops::$trait<UnitData<V, R>> for f64
         where
             R: Copy,
             V: $rev_trait<f64>,
-            f64: ~const ops::$trait<R>,
+            f64: ops::$trait<R>,
         {
             type Output = UnitData<<V as $rev_trait<f64>>::Output, <f64 as ops::$trait<R>>::Output>;
             fn $op(self, rhs: UnitData<V, R>) -> Self::Output {
@@ -371,10 +371,10 @@ macro_rules! gen_ops {
 
         // Please note that this impl is not as generic as the following ones because Rust compiler
         // is unable to compile the more generic version.
-        impl<V> const ops::$trait<UnitData<V, usize>> for usize
+        impl<V> ops::$trait<UnitData<V, usize>> for usize
         where
             V: $rev_trait<usize>,
-            usize: ~const ops::$trait<usize>,
+            usize: ops::$trait<usize>,
         {
             type Output =
                 UnitData<<V as $rev_trait<usize>>::Output, <usize as ops::$trait<usize>>::Output>;
@@ -383,10 +383,10 @@ macro_rules! gen_ops {
             }
         }
 
-        impl<V, R, T> const ops::$trait<T> for UnitData<V, R>
+        impl<V, R, T> ops::$trait<T> for UnitData<V, R>
         where
             UnitData<V, R>: $trait<T>,
-            R: ~const ops::$trait<T> + Copy,
+            R: ops::$trait<T> + Copy,
             T: IsNotUnit,
             <R as ops::$trait<T>>::Output:
                 ~const UncheckedInto<<UnitData<V, R> as $trait<T>>::Output>,
@@ -397,10 +397,10 @@ macro_rules! gen_ops {
             }
         }
 
-        impl<V1, V2, R1, R2> const ops::$trait<UnitData<V2, R2>> for UnitData<V1, R1>
+        impl<V1, V2, R1, R2> ops::$trait<UnitData<V2, R2>> for UnitData<V1, R1>
         where
             UnitData<V1, R1>: $trait<UnitData<V2, R2>>,
-            R1: ~const ops::$trait<R2> + Copy,
+            R1: ops::$trait<R2> + Copy,
             R2: Copy,
             <R1 as ops::$trait<R2>>::Output:
                 ~const UncheckedInto<<UnitData<V1, R1> as $trait<UnitData<V2, R2>>>::Output>,
@@ -416,9 +416,9 @@ macro_rules! gen_ops {
 /// Internal helper for the [`gen_ops`] macro.
 macro_rules! gen_ops_mut {
     ($rev_trait:ident, $trait:ident, $trait_mut:ident, $op:ident) => {
-        impl<V, R> const ops::$trait_mut<UnitData<V, R>> for f32
+        impl<V, R> ops::$trait_mut<UnitData<V, R>> for f32
         where
-            f32: ~const ops::$trait_mut<R>,
+            f32: ops::$trait_mut<R>,
             R: Copy,
             UnitData<V, R>: $rev_trait<f32>,
         {
@@ -427,9 +427,9 @@ macro_rules! gen_ops_mut {
             }
         }
 
-        impl<V, R> const ops::$trait_mut<UnitData<V, R>> for f64
+        impl<V, R> ops::$trait_mut<UnitData<V, R>> for f64
         where
-            f64: ~const ops::$trait_mut<R>,
+            f64: ops::$trait_mut<R>,
             R: Copy,
             UnitData<V, R>: $rev_trait<f32>,
         {
@@ -438,9 +438,9 @@ macro_rules! gen_ops_mut {
             }
         }
 
-        impl<V, R> const ops::$trait_mut<UnitData<V, R>> for usize
+        impl<V, R> ops::$trait_mut<UnitData<V, R>> for usize
         where
-            usize: ~const ops::$trait_mut<R>,
+            usize: ops::$trait_mut<R>,
             R: Copy,
             UnitData<V, R>: $rev_trait<f32>,
         {
@@ -449,10 +449,10 @@ macro_rules! gen_ops_mut {
             }
         }
 
-        impl<V, R, T> const ops::$trait_mut<T> for UnitData<V, R>
+        impl<V, R, T> ops::$trait_mut<T> for UnitData<V, R>
         where
             T: IsNotUnit,
-            R: ~const ops::$trait_mut<T>,
+            R: ops::$trait_mut<T>,
             UnitData<V, R>: $trait<T>,
         {
             fn $op(&mut self, rhs: T) {
@@ -460,9 +460,9 @@ macro_rules! gen_ops_mut {
             }
         }
 
-        impl<V1, V2, R1, R2> const ops::$trait_mut<UnitData<V2, R2>> for UnitData<V1, R1>
+        impl<V1, V2, R1, R2> ops::$trait_mut<UnitData<V2, R2>> for UnitData<V1, R1>
         where
-            R1: ~const ops::$trait_mut<R2>,
+            R1: ops::$trait_mut<R2>,
             R2: Copy,
             UnitData<V1, R1>: $trait<UnitData<V2, R2>>,
         {
