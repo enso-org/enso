@@ -102,19 +102,20 @@ const PERMISSION: Record<backend.PermissionAction, permissionDisplay.Permissions
     },
 }
 
-/** React components for every column except for the name column. */
-// This is not a React component even though it contains JSX.
-// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
-export const COLUMN_RENDERER: Record<
-    Exclude<Column, Column.name>,
-    (
-        props: Omit<table.ColumnProps<backend.Asset>, 'rowState' | 'setRowState' | 'state'>
-    ) => JSX.Element
-> = {
-    [Column.lastModified]: props => (
-        <>{props.item.modifiedAt && dateTime.formatDateTime(new Date(props.item.modifiedAt))}</>
-    ),
-    [Column.sharedWith]: props => (
+/** {@link table.ColumnProps} for an unknown variant of {@link backend.Asset}. */
+type AnyAssetColumnProps = Omit<
+    table.ColumnProps<backend.Asset>,
+    'rowState' | 'setRowState' | 'state'
+>
+
+/** A column displaying the time at which the asset was last modified. */
+export function LastModifiedColumn(props: AnyAssetColumnProps) {
+    return <>{props.item.modifiedAt && dateTime.formatDateTime(new Date(props.item.modifiedAt))}</>
+}
+
+/** A column listing the users with which this asset is shared. */
+export function SharedWithColumn(props: AnyAssetColumnProps) {
+    return (
         <>
             {(props.item.permissions ?? []).map(user => (
                 <PermissionDisplay
@@ -125,13 +126,31 @@ export const COLUMN_RENDERER: Record<
                 </PermissionDisplay>
             ))}
         </>
-    ),
-    [Column.docs]: () => <></>,
-    [Column.labels]: () => <></>,
-    [Column.dataAccess]: () => <></>,
-    [Column.usagePlan]: () => <></>,
-    [Column.engine]: () => <></>,
-    [Column.ide]: () => <></>,
+    )
+}
+
+/** A placeholder component for columns which do not yet have corresponding data to display. */
+export function PlaceholderColumn() {
+    return <></>
+}
+
+/** React components for every column except for the name column. */
+// This is not a React component even though it contains JSX.
+// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
+export const COLUMN_RENDERER: Record<
+    Exclude<Column, Column.name>,
+    (
+        props: Omit<table.ColumnProps<backend.Asset>, 'rowState' | 'setRowState' | 'state'>
+    ) => JSX.Element
+> = {
+    [Column.lastModified]: LastModifiedColumn,
+    [Column.sharedWith]: SharedWithColumn,
+    [Column.docs]: PlaceholderColumn,
+    [Column.labels]: PlaceholderColumn,
+    [Column.dataAccess]: PlaceholderColumn,
+    [Column.usagePlan]: PlaceholderColumn,
+    [Column.engine]: PlaceholderColumn,
+    [Column.ide]: PlaceholderColumn,
 }
 
 // ========================

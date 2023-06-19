@@ -102,7 +102,8 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `for (const x of xs)`, not `for (let x of xs)`',
     },
     {
-        selector: 'TSTypeAliasDeclaration > TSTypeReference > Identifier',
+        selector:
+            'TSTypeAliasDeclaration > TSTypeReference:not(:has(.typeParameters)) > Identifier',
         message: 'No renamed types',
     },
     {
