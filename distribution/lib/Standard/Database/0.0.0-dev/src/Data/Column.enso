@@ -1386,6 +1386,9 @@ adapt_unified_column column expected_type =
 
 ## PRIVATE
    Cast the result of a round-like method to the correct type.
+   - Integer types should retain their bit-width
+   - Floating point should return integer
+   - Decimal should stay Decimal (for precision reasons)
 roundlike_cast : Value_Type -> Column -> Column
 roundlike_cast value_type column = case value_type of
     Value_Type.Integer _ -> column.cast value_type

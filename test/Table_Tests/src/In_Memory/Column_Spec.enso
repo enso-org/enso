@@ -108,8 +108,9 @@ spec =
             Column.from_vector "foo" [-12.0, -24.0, -25.0, -29.0] . round -1 . should_equal <| Column.from_vector "round([foo])" [-10, -20, -30, -30]
 
         Test.specify "decimal rounding should return the correct column type" <|
-            Column.from_vector "foo" [1.2, 2.3, 3.6] . round . value_type . should_equal Value_Type.Integer
-            Column.from_vector "foo" [1.2, 2.3, 3.6] . round 1 . value_type . should_equal Value_Type.Float
+            Column.from_vector "foo" [1.21, 2.34, 3.68] . round -1 . value_type . should_equal Value_Type.Integer
+            Column.from_vector "foo" [1.21, 2.34, 3.68] . round . value_type . should_equal Value_Type.Integer
+            Column.from_vector "foo" [1.21, 2.34, 3.68] . round 1 . value_type . should_equal Value_Type.Float
 
         Test.specify "should be able to round a column of integers" <|
             Column.from_vector "foo" [12, 24, 25, 29] . round . should_equal <| Column.from_vector "round([foo])" [12, 24, 25, 29]
@@ -117,6 +118,8 @@ spec =
             Column.from_vector "foo" [15, 25, 35] . round -1 use_bankers=True . should_equal <| Column.from_vector "round([foo])" [20, 20, 40]
 
         Test.specify "integer rounding should return the correct column type" <|
+            Column.from_vector "foo" [12, 24, 25, 29] . round 1 . value_type . should_equal Value_Type.Integer
+            Column.from_vector "foo" [12, 24, 25, 29] . round 0 . value_type . should_equal Value_Type.Integer
             Column.from_vector "foo" [12, 24, 25, 29] . round -1 . value_type . should_equal Value_Type.Integer
 
         Test.specify "should report out-of-range values as problems" <|
