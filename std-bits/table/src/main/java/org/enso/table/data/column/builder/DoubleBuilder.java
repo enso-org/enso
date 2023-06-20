@@ -1,8 +1,9 @@
-package org.enso.table.data.column.builder.object;
+package org.enso.table.data.column.builder;
 
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.operation.cast.ToIntegerStorageConverter;
+import org.enso.table.data.column.operation.cast.ToFloatStorageConverter;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BooleanType;
@@ -15,10 +16,10 @@ import java.util.BitSet;
 import java.util.Objects;
 
 /**
- * A builder for integer columns.
+ * A builder for floating point columns.
  */
-public class LongBuilder extends NumericBuilder {
-  LongBuilder(BitSet isMissing, long[] data, int currentSize) {
+public class DoubleBuilder extends NumericBuilder {
+  DoubleBuilder(BitSet isMissing, long[] data, int currentSize) {
     super(isMissing, data, currentSize);
   }
 
@@ -28,28 +29,24 @@ public class LongBuilder extends NumericBuilder {
       if (isMissing.get(i)) {
         items[i] = null;
       } else {
-        items[i] = data[i];
+        items[i] = Double.longBitsToDouble(data[i]);
       }
     }
   }
 
   @Override
   public boolean canRetypeTo(StorageType type) {
-    return Objects.equals(type, FloatType.FLOAT_64);
+    return false;
   }
 
   @Override
   public TypedBuilder retypeTo(StorageType type) {
-    if (Objects.equals(type, FloatType.FLOAT_64)) {
-      return retypeLongBuilderToDouble(this);
-    } else {
-      throw new UnsupportedOperationException();
-    }
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public StorageType getType() {
-    return IntegerType.INT_64;
+    return FloatType.FLOAT_64;
   }
 
   @Override
@@ -57,27 +54,41 @@ public class LongBuilder extends NumericBuilder {
     if (o == null) {
       isMissing.set(currentSize++);
     } else {
-      data[currentSize++] = NumericConverter.coerceToLong(o);
+      double value = NumericConverter.coerceToDouble(o);
+      data[currentSize++] = Double.doubleToRawLongBits(value);
     }
   }
 
   @Override
   public boolean accepts(Object o) {
-    return NumericConverter.isCoercibleToLong(o);
+    return NumericConverter.isCoercibleToDouble(o);
   }
 
   @Override
   public void appendBulkStorage(Storage<?> storage) {
-    if (Objects.equals(storage.getType(), IntegerType.INT_64)) {
-      if (storage instanceof LongStorage longStorage) {
-        int n = longStorage.size();
+    if (Objects.equals(storage.getType(), FloatType.FLOAT_64)) {
+      if (storage instanceof DoubleStorage doubleStorage) {
+        int n = doubleStorage.size();
         ensureFreeSpaceFor(n);
-        System.arraycopy(longStorage.getRawData(), 0, data, currentSize, n);
-        BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
+        System.arraycopy(doubleStorage.getRawData(), 0, data, currentSize, n);
+        BitSets.copy(doubleStorage.getIsMissing(), isMissing, currentSize, n);
         currentSize += n;
       } else {
         throw new IllegalStateException(
             "Unexpected storage implementation for type DOUBLE: "
+                + storage
+                + ". This is a bug in the Table library.");
+      }
+    } else if (Objects.equals(storage.getType(), IntegerType.INT_64)) {
+      if (storage instanceof LongStorage longStorage) {
+        int n = longStorage.size();
+        BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
+        for (int i = 0; i < n; i++) {
+          data[currentSize++] = Double.doubleToRawLongBits((double) longStorage.getItem(i));
+        }
+      } else {
+        throw new IllegalStateException(
+            "Unexpected storage implementation for type LONG: "
                 + storage
                 + ". This is a bug in the Table library.");
       }
@@ -88,7 +99,8 @@ public class LongBuilder extends NumericBuilder {
           if (boolStorage.isNa(i)) {
             isMissing.set(currentSize++);
           } else {
-            data[currentSize++] = ToIntegerStorageConverter.booleanAsLong(boolStorage.getItem(i));
+            double x = ToFloatStorageConverter.booleanAsDouble(boolStorage.getItem(i));
+            data[currentSize++] = Double.doubleToRawLongBits(x);
           }
         }
       } else {
@@ -103,26 +115,19 @@ public class LongBuilder extends NumericBuilder {
   }
 
   /**
-   * Append a new integer to this builder.
+   * Append a new double to this builder.
    *
-   * @param data the integer to append
+   * @param data the double to append
    */
-  public void appendLong(long data) {
-    int wasSize = currentSize;
-    int wasLength = this.data.length;
-
+  public void appendDouble(double data) {
     if (currentSize >= this.data.length) {
       grow();
     }
-
-    if (currentSize >= this.data.length) {
-      throw new IllegalStateException("currentSize=" + currentSize + "; wasSize=" + wasSize + "; wasLength=" + wasLength + "; data.length=" + this.data.length);
-    }
-    appendRawNoGrow(data);
+    appendRawNoGrow(Double.doubleToRawLongBits(data));
   }
 
   @Override
-  public Storage<Long> seal() {
-    return new LongStorage(data, currentSize, isMissing);
+  public Storage<Double> seal() {
+    return new DoubleStorage(data, currentSize, isMissing);
   }
 }

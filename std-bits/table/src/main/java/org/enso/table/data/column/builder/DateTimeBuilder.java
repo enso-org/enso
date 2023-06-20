@@ -1,4 +1,4 @@
-package org.enso.table.data.column.builder.object;
+package org.enso.table.data.column.builder;
 
 import java.time.ZonedDateTime;
 import org.enso.table.data.column.storage.Storage;

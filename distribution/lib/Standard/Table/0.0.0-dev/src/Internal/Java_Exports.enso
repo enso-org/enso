@@ -8,13 +8,13 @@ polyglot java import org.enso.table.data.table.Table as Java_Table
 
 polyglot java import org.enso.table.data.index.DefaultIndex
 polyglot java import org.enso.table.data.column.storage.Storage
-polyglot java import org.enso.table.data.column.builder.object.BoolBuilder
-polyglot java import org.enso.table.data.column.builder.object.DateBuilder
-polyglot java import org.enso.table.data.column.builder.object.DateTimeBuilder
-polyglot java import org.enso.table.data.column.builder.object.InferredBuilder
-polyglot java import org.enso.table.data.column.builder.object.NumericBuilder
-polyglot java import org.enso.table.data.column.builder.object.StringBuilder
-polyglot java import org.enso.table.data.column.builder.object.TimeOfDayBuilder
+polyglot java import org.enso.table.data.column.builder.BoolBuilder
+polyglot java import org.enso.table.data.column.builder.DateBuilder
+polyglot java import org.enso.table.data.column.builder.DateTimeBuilder
+polyglot java import org.enso.table.data.column.builder.InferredBuilder
+polyglot java import org.enso.table.data.column.builder.NumericBuilder
+polyglot java import org.enso.table.data.column.builder.StringBuilder
+polyglot java import org.enso.table.data.column.builder.TimeOfDayBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 
 ## PRIVATE
