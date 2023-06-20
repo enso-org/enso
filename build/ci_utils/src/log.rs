@@ -71,8 +71,7 @@ pub fn setup_logging() -> Result {
             .with_default_directive(LevelFilter::TRACE.into())
             .from_env_lossy();
 
-        let progress_bar = global::multi_progress_bar();
-        let progress_bar_writer = IndicatifWriter::new(progress_bar);
+        let progress_bar_writer = IndicatifWriter::new();
 
         tracing::subscriber::set_global_default(
             Registry::default().with(MyLayer).with(
@@ -102,16 +101,14 @@ pub fn setup_logging() -> Result {
 ///
 /// To avoid this, the writer suspends the progress bars when writing logs.
 #[derive(Clone, Debug)]
-struct IndicatifWriter {
-    progress_bar: indicatif::MultiProgress,
-}
+struct IndicatifWriter;
 
 
 // === Main `impl` ===
 
 impl IndicatifWriter {
-    pub fn new(progress_bar: indicatif::MultiProgress) -> Self {
-        Self { progress_bar }
+    pub fn new() -> Self {
+        Self
     }
 }
 
@@ -120,11 +117,11 @@ impl IndicatifWriter {
 
 impl std::io::Write for IndicatifWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.progress_bar.suspend(|| io::stderr().write(buf))
+        global::with_suspend_multi_progress_bar(|| io::stderr().write(buf))
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        self.progress_bar.suspend(|| io::stderr().flush())
+        global::with_suspend_multi_progress_bar(|| io::stderr().flush())
     }
 }
 
