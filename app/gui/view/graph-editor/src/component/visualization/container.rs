@@ -353,6 +353,7 @@ impl ContainerModel {
     fn init(self) -> Self {
         self.display_object.add_child(&self.drag_root);
         self.scene.layers.above_nodes.add(&self.action_bar);
+        self.scene.layers.panel.add(&self.fullscreen_view);
         self.update_shape_sizes(ViewState::default());
         self.init_corner_roundness();
         self.view.show_waiting_screen();
@@ -441,6 +442,7 @@ impl ContainerModel {
         preprocessor.emit(visualization.on_preprocessor_change.value());
     }
 
+    #[profile(Debug)]
     fn set_visualization_data(&self, data: &visualization::Data) {
         self.visualization.borrow().for_each_ref(|vis| vis.send_data.emit(data))
     }
@@ -498,6 +500,7 @@ impl ContainerModel {
         self.view.overlay.is_this_target(target)
     }
 
+    #[profile(Debug)]
     fn next_visualization(
         &self,
         current_vis: &Option<visualization::Definition>,

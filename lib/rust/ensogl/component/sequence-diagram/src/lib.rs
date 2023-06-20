@@ -89,6 +89,7 @@ impl component::Frp<Model> for Frp {
 /// Internal model of the SequenceDiagram.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
+    // Required for dynamically creating new lines.
     app:            Application,
     display_object: display::object::Instance,
     actor_lines:    Rc<RefCell<Vec<LabeledLine>>>,

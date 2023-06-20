@@ -1,7 +1,6 @@
 from Standard.Base import all
 from Standard.Base.Random import random_uuid
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.Data.Table.Table as In_Memory_Table
 from Standard.Table import Aggregate_Column, Join_Kind, Value_Type, Column_Selector
@@ -227,36 +226,122 @@ common_update_table source_table connection table_name update_action key_columns
                 Error.throw new_error
             if target_table.is_error then handle_error else
                 tmp_table_name = "temporary-source-table-"+random_uuid
-                tmp_table = internal_upload_table source_table connection tmp_table_name key_columns temporary=True on_problems=Problem_Behavior.Report_Error
+                tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=key_columns temporary=True on_problems=Problem_Behavior.Report_Error
                 tmp_table.if_not_error <|
                     resulting_table = append_to_existing_table tmp_table target_table update_action key_columns error_on_missing_columns on_problems
                     connection.drop_table tmp_table.name
                     resulting_table
 
 ## PRIVATE
+   Assumes that `source_table` is a simple table query without any filters,
+   joins and other composite operations - if a complex query is needed, it
+   should be first materialized into a temporary table.
 append_to_existing_table source_table target_table update_action key_columns error_on_missing_columns on_problems = In_Transaction.ensure_in_transaction <|
     effective_key_columns = if key_columns.is_nothing then [] else key_columns
     check_update_arguments source_table target_table effective_key_columns update_action error_on_missing_columns on_problems <|
-        throw_not_implemented =
-            Error.throw (Illegal_State.Error "Not implemented yet. Only `Insert` is implemented.")
+        helper = Append_Helper.Context source_table target_table effective_key_columns
         upload_status = case update_action of
             Update_Action.Insert ->
-                existing_rows_check = if effective_key_columns.is_empty then True else
-                    joined = source_table.join target_table on=key_columns join_kind=Join_Kind.Inner
-                    count = joined.row_count
-                    if count == 0 then True else
-                        Error.throw (Rows_Already_Present.Error count)
-                existing_rows_check.if_not_error <|
-                    connection = target_table.connection
-                    insert_statement = connection.dialect.generate_sql <|
-                        Query.Insert_From_Select target_table.name source_table.column_names source_table.to_select_query
-                    Panic.rethrow <| connection.execute_update insert_statement
-            Update_Action.Update -> throw_not_implemented
-            Update_Action.Update_Or_Insert -> throw_not_implemented
-            Update_Action.Align_Records -> throw_not_implemented
+                helper.check_already_existing_rows <|
+                    helper.insert_rows source_table
+            Update_Action.Update ->
+                helper.check_rows_unmatched_in_target <|
+                    helper.check_multiple_target_rows_match <|
+                        helper.update_common_rows
+            Update_Action.Update_Or_Insert ->
+                helper.check_multiple_target_rows_match <|
+                    helper.update_common_rows
+                    helper.insert_rows helper.new_source_rows
+            Update_Action.Align_Records ->
+                helper.check_multiple_target_rows_match <|
+                    helper.update_common_rows
+                    helper.insert_rows helper.new_source_rows
+                    helper.delete_unmatched_target_rows
         upload_status.if_not_error target_table
 
 ## PRIVATE
+type Append_Helper
+    ## PRIVATE
+    Context source_table target_table key_columns
+
+    ## PRIVATE
+    connection self = self.target_table.connection
+
+    ## PRIVATE
+       The update only affects matched rows, unmatched rows are ignored.
+    update_common_rows self =
+        update_statement = self.connection.dialect.generate_sql <|
+            Query.Update_From_Table self.target_table.name self.source_table.name self.source_table.column_names self.key_columns
+        Panic.rethrow <| self.connection.execute_update update_statement
+
+    ## PRIVATE
+       Inserts all rows from the source.
+
+       Behaviour is ill-defined if any of the rows already exist in the target.
+       If only new rows are supposed to be inserted, they have to be filtered
+       before inserting.
+    insert_rows self table_to_insert =
+        insert_statement = self.connection.dialect.generate_sql <|
+            Query.Insert_From_Select self.target_table.name table_to_insert.column_names table_to_insert.to_select_query
+        Panic.rethrow <| self.connection.execute_update insert_statement
+
+    ## PRIVATE
+       Finds rows that are present in the source but not in the target.
+    new_source_rows self =
+        self.source_table.join self.target_table on=self.key_columns join_kind=Join_Kind.Left_Exclusive
+
+    ## PRIVATE
+       Deletes rows from target table that were not present in the source.
+    delete_unmatched_target_rows self =
+        delete_statement = self.connection.dialect.generate_sql <|
+            Query.Delete_Unmatched_Rows self.target_table.name self.source_table.name self.key_columns
+        Panic.rethrow <| self.connection.execute_update delete_statement
+
+    ## PRIVATE
+       Checks if any rows from the source table already exist in the target, and
+       if they do - raises an error.
+
+       Does nothing if `key_columns` is empty, as then there is no notion of
+       'matching' rows.
+    check_already_existing_rows self ~continuation =
+        if self.key_columns.is_empty then continuation else
+            joined = self.source_table.join self.target_table on=self.key_columns join_kind=Join_Kind.Inner
+            count = joined.row_count
+            if count == 0 then continuation else
+                Error.throw (Rows_Already_Present.Error count)
+
+    ## PRIVATE
+    check_rows_unmatched_in_target self ~continuation =
+        # assert key_columns.not_empty
+        unmatched_rows = self.new_source_rows
+        count = unmatched_rows.row_count
+        if count != 0 then Error.throw (Unmatched_Rows.Error count) else continuation
+
+    ## PRIVATE
+       Check if there are rows in source that match multiple rows in the target.
+    check_multiple_target_rows_match self ~continuation =
+        matched_rows = self.source_table.join self.target_table on=self.key_columns join_kind=Join_Kind.Inner
+        agg = (self.key_columns.map (Aggregate_Column.Group_By _)) + [Aggregate_Column.Count]
+        ## This aggregation will only find duplicated in target, not in the source,
+           because the source is already guaranteed to be unique - that was checked
+           when uploading the temporary table with the key as its primary key.
+        duplicated_key_in_target = matched_rows.aggregate agg . filter -1 (Filter_Condition.Greater than=1)
+        example =  duplicated_key_in_target.read max_rows=1
+        case example.row_count == 0 of
+            False ->
+                row = duplicated_key_in_target.first_row . to_vector
+                offending_key = row.drop (Index_Sub_Range.Last 1)
+                count = row.last
+                Error.throw (Multiple_Target_Rows_Matched_For_Update.Error offending_key count)
+            True -> continuation
+
+## PRIVATE
+   This helper ensures that all arguments are valid.
+
+   The `action` is run only if the input invariants are satisfied:
+   - all columns in `source_table` have a corresponding column in `target_table`
+     (with the same name),
+   - all `key_columns` are present in both source and target tables.
 check_update_arguments source_table target_table key_columns update_action error_on_missing_columns on_problems ~action =
     check_source_column source_column =
         # The column must exist because it was verified earlier.

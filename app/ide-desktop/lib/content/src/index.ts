@@ -7,6 +7,7 @@ import * as semver from 'semver'
 import * as authentication from 'enso-authentication'
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
+import * as detect from 'enso-common/src/detect'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
@@ -37,7 +38,7 @@ const FETCH_TIMEOUT = 300
 // === Live reload ===
 // ===================
 
-if (IS_DEV_MODE) {
+if (IS_DEV_MODE && !detect.isRunningInElectron()) {
     new EventSource(ESBUILD_PATH).addEventListener(ESBUILD_EVENT_NAME, () => {
         // This acts like `location.reload`, but it preserves the query-string.
         // The `toString()` is to bypass a lint without using a comment.

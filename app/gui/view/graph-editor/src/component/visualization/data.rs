@@ -10,24 +10,42 @@ use crate::prelude::*;
 
 /// Json representation with a fast clone operation. Used for transmitting visualization data via
 /// FRP networks.
-#[derive(Clone, CloneRef, Debug, Default)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct Json {
-    rc: Rc<serde_json::Value>,
+    rc: Rc<serde_json::value::RawValue>,
 }
 
-impl Deref for Json {
-    type Target = serde_json::Value;
-    fn deref(&self) -> &Self::Target {
-        &self.rc
-    }
-}
-
-impl From<serde_json::Value> for Json {
-    fn from(t: serde_json::Value) -> Self {
-        let rc = Rc::new(t);
+impl Default for Json {
+    fn default() -> Self {
+        let null = serde_json::Value::default();
+        let raw_null = serde_json::value::to_raw_value(&null).unwrap();
+        let rc = raw_null.into();
         Self { rc }
     }
 }
+
+impl Json {
+    /// Deserialize the JSON data into an arbitrary type.
+    #[profile(Debug)]
+    pub fn deserialize<T: serde::de::DeserializeOwned>(&self) -> Result<T, DataError> {
+        serde_json::from_str(self.rc.get()).map_err(|_| DataError::InvalidJsonText)
+    }
+
+    /// Produce a string from the value. If it's a JSON string, return it; otherwise, pretty-print
+    /// the JSON data.
+    #[profile(Debug)]
+    pub fn to_string(&self) -> serde_json::Result<String> {
+        let data_str: Result<String, _> = serde_json::from_str(self.rc.get());
+        data_str.or_else(|_| serde_json::to_string_pretty(&self.rc))
+    }
+
+    /// Return the raw data.
+    pub fn raw(&self) -> &str {
+        self.rc.get()
+    }
+}
+
+
 
 // ===================
 // === Data Format ===
@@ -87,10 +105,21 @@ impl Default for Data {
     }
 }
 
-impl From<serde_json::Value> for Data {
-    fn from(t: serde_json::Value) -> Self {
-        let content = t.into();
-        Self::Json { content }
+impl Data {
+    /// Deserialize JSON visualization data from the given bytes.
+    #[profile(Debug)]
+    pub fn json(data: &[u8]) -> FallibleResult<Self> {
+        let rc: Rc<serde_json::value::RawValue> = serde_json::from_slice(data)?;
+        let content = Json { rc };
+        Ok(Self::Json { content })
+    }
+
+    /// Get a reference to the contained JSON data. Fails if this is non-JSON (binary) data.
+    pub fn as_json(&self) -> Result<&Json, DataError> {
+        match self {
+            Data::Json { content } => Ok(content),
+            Data::Binary => Err(DataError::BinaryNotSupported),
+        }
     }
 }
 

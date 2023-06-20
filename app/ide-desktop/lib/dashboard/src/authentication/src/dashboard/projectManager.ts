@@ -164,7 +164,7 @@ export class ProjectManager extends EventTarget {
     /** Create a {@link ProjectManager} */
     private constructor(protected readonly connectionUrl: string) {
         super()
-        let firstConnectionStartMs = Number(new Date())
+        const firstConnectionStartMs = Number(new Date())
         let lastConnectionStartMs = 0
         let justErrored = false
         const createSocket = () => {

@@ -31,7 +31,7 @@ import BUILD_INFO from '../../build.json' assert { type: 'json' }
  *
  * @see `args` definition below for fields description. */
 export interface Arguments {
-    // This is returned by a third-party library we do not control.
+    // The types come from a third-party API and cannot be changed.
     // eslint-disable-next-line no-restricted-syntax
     target?: string | undefined
     iconsDist: string
@@ -224,7 +224,10 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
 
         afterSign: async context => {
             // Notarization for macOS.
-            if (passedArgs.platform === electronBuilder.Platform.MAC && process.env.CSC_LINK) {
+            if (
+                passedArgs.platform === electronBuilder.Platform.MAC &&
+                process.env.CSC_LINK != null
+            ) {
                 const {
                     packager: {
                         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

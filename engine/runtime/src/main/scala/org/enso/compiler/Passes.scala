@@ -47,6 +47,7 @@ class Passes(
       OperatorToFunction,
       LambdaShorthandToLambda,
       ImportSymbolAnalysis,
+      AmbiguousImportsAnalysis,
       ShadowedPatternFields,
       UnreachableMatchBranches,
       NestedPatternMatch,

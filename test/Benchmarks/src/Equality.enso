@@ -3,7 +3,6 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Test import Bench
 
-polyglot java import java.util.Random
 polyglot java import org.graalvm.collections.Pair as Graal_Pair
 
 type Uniform_Type

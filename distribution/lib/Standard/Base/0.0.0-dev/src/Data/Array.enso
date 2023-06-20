@@ -3,9 +3,9 @@ import project.Data.Numbers.Integer
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.List.List
 import project.Data.Ordering.Ordering
-import project.Data.Ordering.Sort_Direction.Sort_Direction
+import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Pair.Pair
-import project.Data.Range.Extensions
+from project.Data.Range.Extensions import all
 import project.Data.Range.Range
 import project.Data.Text.Text
 import project.Data.Vector.Vector

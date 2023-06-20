@@ -59,7 +59,8 @@ make_aggregate_column_selector table display=Display.Always include_group_by=Tru
 make_aggregate_column_vector_selector : Table -> Display -> Widget
 make_aggregate_column_vector_selector table display=Display.Always =
     item_editor = make_aggregate_column_selector table display=Display.Always
-    Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=display
+    # TODO this is a workaround for a dropdown issue
+    Vector_Editor item_editor=item_editor item_default="(Aggregate_Column.Group_By)" display=display
 
 ## PRIVATE
    Make a column name selector.

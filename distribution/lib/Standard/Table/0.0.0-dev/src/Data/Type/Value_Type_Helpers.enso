@@ -87,10 +87,12 @@ find_common_type types strict =
    try to treat this value as fitting any type, or accordingly to specific
    semantics of each method.
 find_argument_type : Any -> Value_Type | Nothing
-find_argument_type value = case value of
-    Nothing -> Nothing
-    _ -> if is_column value then value.value_type else
-        Enso_Types.most_specific_value_type value use_smallest=True
+find_argument_type value = if Nothing == value then Nothing else
+    case is_column value of
+        False -> Enso_Types.most_specific_value_type value use_smallest=True
+        True ->
+            col_type = value.value_type
+            if col_type == Value_Type.Mixed then value.inferred_precise_value_type else col_type
 
 ## PRIVATE
    A helper which resolves if numeric addition or string concatenation should be
