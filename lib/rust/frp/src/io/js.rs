@@ -71,5 +71,5 @@ impl Listener {
 /// https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
 fn event_listener_options() -> enso_web::EventListenerHandleOptions {
     // We want to prevent default action on wheel events, thus listener cannot be passive.
-    enso_web::EventListenerHandleOptions::new().passive()
+    enso_web::EventListenerHandleOptions::new().not_passive()
 }

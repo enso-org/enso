@@ -748,27 +748,35 @@ pub struct EventListenerHandleOptions {
     pub once:    bool,
 }
 
-#[allow(missing_docs)]
 impl EventListenerHandleOptions {
+    /// Create default options.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Set listener explicitly as passive. See [`passive` field docs](EventListenerHandleOptions)
+    /// for more information.
     pub fn passive(mut self) -> Self {
         self.passive = Some(true);
         self
     }
 
+    /// Set listener explicitly as not passive. See [`passive` field
+    /// docs](EventListenerHandleOptions) for more information.
     pub fn not_passive(mut self) -> Self {
         self.passive = Some(false);
         self
     }
 
+    /// Set listener to get events in the capture phase. See
+    /// [`capture` field docs](EventListenerHandleOptions) for more information.
     pub fn capture(mut self) -> Self {
         self.capture = true;
         self
     }
 
+    /// The listener will be invoked only once. See
+    /// [`capture` field docs](EventListenerHandleOptions) for more information.
     pub fn once(mut self) -> Self {
         self.once = true;
         self
@@ -852,7 +860,6 @@ impl Drop for EventListenerHandleData {
             .ok();
     }
 }
-
 
 /// Wrapper for the function defined in web_sys which allows passing wasm_bindgen [`Closure`]
 /// directly.

@@ -117,7 +117,7 @@ fn event_listener_options() -> web::EventListenerHandleOptions {
     // as they provide incorrect events for the "capture" phase.
     //
     // 2. We want to prevent default action on wheel events, thus listener cannot be passive.
-    web::EventListenerHandleOptions::new().passive()
+    web::EventListenerHandleOptions::new().not_passive()
 }
 
 define_bindings! { target, gloabl_target,
