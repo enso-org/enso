@@ -18,6 +18,8 @@
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
 #![feature(array_windows)]
+#![feature(let_chains)]
+#![feature(if_let_guard)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

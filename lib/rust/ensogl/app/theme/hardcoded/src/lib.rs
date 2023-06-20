@@ -513,7 +513,7 @@ define_themes! { [light:0, dark:1]
             background         = Rgba(0.992,0.996,1.0,1.0), Rgba(0.182,0.188,0.196,1.0);
             text               = Rgba(0.078,0.067,0.137,0.85) , Lcha(1.0,0.0,0.0,0.7);
             selection {
-                size = 3.0 , 3.0;
+                size = 20.0 , 20.0;
                 opacity = 0.2 , 0.2;
             }
             actions {
@@ -565,7 +565,7 @@ define_themes! { [light:0, dark:1]
             // ... , rgb(35 41 47)
             selection = Rgba(0.306,0.647,0.992,0.14) , Rgba(0.137,0.16,0.184,1.0);
             selection {
-                size = 8.0 , 8.0;
+                size = 20.0 , 20.0;
                 offset = 0.0 , 0.0;
             }
             text_grid {

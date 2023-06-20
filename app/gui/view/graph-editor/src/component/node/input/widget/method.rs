@@ -16,7 +16,7 @@ use icons::component_icons::Id;
 // =================
 
 /// Distance between the icon and next widget.
-const ICON_GAP: f32 = -20.0;
+const ICON_GAP: f32 = 20.0;
 
 /// Maximum allowed size of the dropdown list. If the list needs to be longer or wider than allowed
 /// by these values, it will receive a scroll bar.
@@ -40,6 +40,7 @@ pub struct Config {
 #[allow(dead_code)]
 pub struct Widget {
     display_object: display::object::Instance,
+    icon_id:        Id,
     icon:           AnyIcon,
 }
 
@@ -73,15 +74,27 @@ impl super::SpanWidget for Widget {
             .set_children_alignment_left_center()
             .justify_content_center_y();
 
-        // let icon = Id::;
-        let icon = todo!();
-        Self { display_object, icon }.init(ctx)
+        let icon_id = Id::default();
+        let icon = icon_id.cached_view();
+        Self { display_object, icon_id, icon }.init(ctx)
     }
 
-    fn configure(&mut self, config: &Config, mut ctx: super::ConfigContext) {
-        let child_level = ctx.info.nesting_level;
-        let config = super::Configuration::hierarchy();
-        let child = ctx.builder.child_widget_of_type(ctx.span_node, child_level, Some(&config));
+    fn configure(&mut self, _: &Config, mut ctx: super::ConfigContext) {
+        let icon_id = ctx
+            .span_node
+            .application
+            .as_ref()
+            .and_then(|app| app.icon_name.as_ref())
+            .and_then(|name| name.parse::<Id>().ok())
+            .unwrap_or_default();
+        if icon_id != self.icon_id {
+            self.icon_id = icon_id;
+            self.icon = icon_id.cached_view();
+        }
+
+        let child = ctx.builder.child_widget(ctx.span_node, ctx.info.nesting_level);
+
+
         self.display_object.replace_children(&[self.icon.display_object(), &child.root_object]);
     }
 }
