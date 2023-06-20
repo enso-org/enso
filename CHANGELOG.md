@@ -499,6 +499,7 @@
 - [Implemented `Table.update_database_table`.][7035]
 - [Added AWS credential support and initial S3 list buckets API.][6973]
 - [Removed `module` argument from `enso_project` and other minor tweaks.][7052]
+- [Integrated Database write operations with Execution Contexts.][7072]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -721,6 +722,7 @@
 [6973]: https://github.com/enso-org/enso/pull/6973
 [7035]: https://github.com/enso-org/enso/pull/7035
 [7052]: https://github.com/enso-org/enso/pull/7052
+[7072]: https://github.com/enso-org/enso/pull/7072
 
 #### Enso Compiler
 
