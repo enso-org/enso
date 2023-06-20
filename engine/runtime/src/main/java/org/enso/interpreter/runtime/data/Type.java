@@ -88,10 +88,10 @@ public final class Type implements TruffleObject {
       // Some scopes won't have any methods at this point, e.g., Nil or Nothing, hence the null
       // check.
       CompilerAsserts.neverPartOfCompilation();
-//      Map<String, Function> methods = this.definitionScope.getMethods().get(this);
-//      if (methods != null) {
-//        methods.forEach((name, fun) -> scope.registerMethod(this, name, fun));
-//      }
+      Map<String, Function> methods = this.definitionScope.getMethods().get(this);
+      if (methods != null) {
+        methods.forEach((name, fun) -> scope.registerMethod(this, name, fun));
+      }
       this.definitionScope = scope;
       if (generateAccessorsInTarget) {
         generateQualifiedAccessor();

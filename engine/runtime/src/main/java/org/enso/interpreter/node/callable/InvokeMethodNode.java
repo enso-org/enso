@@ -105,26 +105,26 @@ public abstract class InvokeMethodNode extends BaseNode {
   public abstract Object execute(
       VirtualFrame frame, State state, UnresolvedSymbol symbol, Object self, Object[] arguments);
 
-//  @Specialization(guards = {
-//          "typesLibrary.hasType(self)",
-//          "!typesLibrary.hasSpecialDispatch(self)",
-//          "cachedSymbol == symbol",
-//          "cachedSelfTpe == typesLibrary.getType(self)",
-//          "function != null"
-//  }, limit = "CACHE_SIZE")
-//  Object doFunctionalDispatchCachedSymbol(
-//      VirtualFrame frame,
-//      State state,
-//      UnresolvedSymbol symbol,
-//      Object self,
-//      Object[] arguments,
-//      @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
-//      @Cached MethodResolverNode methodResolverNode,
-//      @Cached("symbol") UnresolvedSymbol cachedSymbol,
-//      @Cached("typesLibrary.getType(self)") Type cachedSelfTpe,
-//      @Cached("resolveFunction(cachedSymbol, cachedSelfTpe, methodResolverNode)") Function function) {
-//    return invokeFunctionNode.execute(function, frame, state, arguments);
-//  }
+  @Specialization(guards = {
+          "typesLibrary.hasType(self)",
+          "!typesLibrary.hasSpecialDispatch(self)",
+          "cachedSymbol == symbol",
+          "cachedSelfTpe == typesLibrary.getType(self)",
+          "function != null"
+  }, limit = "CACHE_SIZE")
+  Object doFunctionalDispatchCachedSymbol(
+      VirtualFrame frame,
+      State state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
+      @Cached MethodResolverNode methodResolverNode,
+      @Cached("symbol") UnresolvedSymbol cachedSymbol,
+      @Cached("typesLibrary.getType(self)") Type cachedSelfTpe,
+      @Cached("resolveFunction(cachedSymbol, cachedSelfTpe, methodResolverNode)") Function function) {
+    return invokeFunctionNode.execute(function, frame, state, arguments);
+  }
 
   Function resolveFunction(UnresolvedSymbol symbol, Type selfTpe, MethodResolverNode methodResolverNode) {
     Function function = methodResolverNode.execute(selfTpe, symbol);
@@ -161,7 +161,7 @@ public abstract class InvokeMethodNode extends BaseNode {
   }
 
   @Specialization(
-          //replaces = "doFunctionalDispatchCachedSymbol",
+          replaces = "doFunctionalDispatchCachedSymbol",
           guards = {"typesLibrary.hasType(self)", "!typesLibrary.hasSpecialDispatch(self)"})
   Object doFunctionalDispatchUncachedSymbol(
           VirtualFrame frame,

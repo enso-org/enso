@@ -1049,7 +1049,7 @@ class RuntimeServerTest
     )
   }
 
-  it should "send method pointer updates of methods defined on type333" in {
+  it should "send method pointer updates of methods defined on type" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -1667,7 +1667,7 @@ class RuntimeServerTest
     )
   }
 
-  it should "send method pointer updates of partially applied module methods called with module name222" in {
+  it should "send method pointer updates of partially applied module methods called with module name" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -1746,7 +1746,7 @@ class RuntimeServerTest
     )
   }
 
-  it should "send method pointer updates of a builtin method111" in {
+  it should "send method pointer updates of a builtin method" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -1802,6 +1802,83 @@ class RuntimeServerTest
             "Standard.Base.Data.Text",
             "Standard.Base.Data.Text.Text",
             "+"
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "send method pointer updates of a builtin method called as static" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x     = metadata.addItem(52, 25, "aa")
+    val id_y     = metadata.addItem(86, 16, "ab")
+
+    val code =
+      """import Standard.Base.Data.Time.Date
+        |
+        |main =
+        |    x = Date.new_builtin 1970 1 1
+        |    y = Date.Date.year x
+        |    y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        id_x,
+        ConstantsGen.DATE,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Time.Date",
+            "Standard.Base.Data.Time.Date",
+            "new_builtin"
+          )
+        )
+      ),
+      TestMessages.update(
+        contextId,
+        id_y,
+        ConstantsGen.INTEGER_BUILTIN,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Time.Date",
+            "Standard.Base.Data.Time.Date.Date",
+            "year"
           )
         )
       ),
@@ -1983,7 +2060,14 @@ class RuntimeServerTest
         ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "bar"))
       ),
-      TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.NOTHING,
+        Api.MethodCall(
+          Api.MethodPointer("Standard.Base.IO", "Standard.Base.IO", "println")
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -2046,7 +2130,14 @@ class RuntimeServerTest
         ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "bar"))
       ),
-      TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.NOTHING,
+        Api.MethodCall(
+          Api.MethodPointer("Standard.Base.IO", "Standard.Base.IO", "println")
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("10")
@@ -2175,7 +2266,14 @@ class RuntimeServerTest
           ConstantsGen.INTEGER,
           Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo"))
         ),
-      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainRes,
+        ConstantsGen.NOTHING,
+        Api.MethodCall(
+          Api.MethodPointer("Standard.Base.IO", "Standard.Base.IO", "println")
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("4")
@@ -2225,7 +2323,21 @@ class RuntimeServerTest
     context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages
-        .update(contextId, mainRes, ConstantsGen.NOTHING, typeChanged = false),
+        .update(
+          contextId,
+          mainRes,
+          ConstantsGen.NOTHING,
+          typeChanged = false,
+          methodCall = Some(
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.IO",
+                "Standard.Base.IO",
+                "println"
+              )
+            )
+          )
+        ),
       TestMessages.update(
         contextId,
         mainFoo,
@@ -2301,7 +2413,14 @@ class RuntimeServerTest
         ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo"))
       ),
-      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainRes,
+        ConstantsGen.NOTHING,
+        Api.MethodCall(
+          Api.MethodPointer("Standard.Base.IO", "Standard.Base.IO", "println")
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("4")
@@ -2348,8 +2467,21 @@ class RuntimeServerTest
         fromCache   = false,
         typeChanged = false
       ),
-      TestMessages
-        .update(contextId, mainRes, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        mainRes,
+        ConstantsGen.NOTHING,
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("6")
@@ -2477,7 +2609,14 @@ class RuntimeServerTest
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idResult, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, idPrintln, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        idPrintln,
+        ConstantsGen.NOTHING,
+        Api.MethodCall(
+          Api.MethodPointer("Standard.Base.IO", "Standard.Base.IO", "println")
+        )
+      ),
       TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
@@ -2505,7 +2644,16 @@ class RuntimeServerTest
         contextId,
         idPrintln,
         ConstantsGen.NOTHING,
-        typeChanged = false
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
       ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
@@ -2577,7 +2725,14 @@ class RuntimeServerTest
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMainA, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, idMainP, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        Api.MethodCall(
+          Api.MethodPointer("Standard.Base.IO", "Standard.Base.IO", "println")
+        )
+      ),
       TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
@@ -2606,8 +2761,21 @@ class RuntimeServerTest
         ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "x"))
       ),
-      TestMessages
-        .update(contextId, idMainP, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
       context.executionComplete(contextId)
@@ -2639,8 +2807,21 @@ class RuntimeServerTest
         fromCache   = false,
         typeChanged = false
       ),
-      TestMessages
-        .update(contextId, idMainP, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
       context.executionComplete(contextId)
@@ -2672,8 +2853,21 @@ class RuntimeServerTest
         fromCache   = false,
         typeChanged = true
       ),
-      TestMessages
-        .update(contextId, idMainP, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
       context.executionComplete(contextId)
@@ -2705,8 +2899,21 @@ class RuntimeServerTest
         fromCache   = false,
         typeChanged = true
       ),
-      TestMessages
-        .update(contextId, idMainP, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
       context.executionComplete(contextId)
@@ -2736,8 +2943,21 @@ class RuntimeServerTest
         ConstantsGen.TEXT,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "hie"))
       ),
-      TestMessages
-        .update(contextId, idMainP, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
       context.executionComplete(contextId)
@@ -2769,8 +2989,21 @@ class RuntimeServerTest
         fromCache   = false,
         typeChanged = true
       ),
-      TestMessages
-        .update(contextId, idMainP, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
       context.executionComplete(contextId)
@@ -3091,7 +3324,14 @@ class RuntimeServerTest
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, xId, ConstantsGen.FUNCTION),
-      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        mainRes,
+        ConstantsGen.NOTHING,
+        Api.MethodCall(
+          Api.MethodPointer("Standard.Base.IO", "Standard.Base.IO", "println")
+        )
+      ),
       context.executionComplete(contextId)
     )
   }
@@ -3588,7 +3828,14 @@ class RuntimeServerTest
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idText, ConstantsGen.TEXT),
-      TestMessages.update(contextId, idRes, ConstantsGen.NOTHING),
+      TestMessages.update(
+        contextId,
+        idRes,
+        ConstantsGen.NOTHING,
+        Api.MethodCall(
+          Api.MethodPointer("Standard.Base.IO", "Standard.Base.IO", "println")
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List(prompt1)
@@ -3617,8 +3864,21 @@ class RuntimeServerTest
     ) should contain theSameElementsAs Seq(
       TestMessages
         .update(contextId, idText, ConstantsGen.TEXT, typeChanged = false),
-      TestMessages
-        .update(contextId, idRes, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idRes,
+        ConstantsGen.NOTHING,
+        typeChanged = false,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.IO",
+              "Standard.Base.IO",
+              "println"
+            )
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List(prompt2)
@@ -5640,6 +5900,15 @@ class RuntimeServerTest
             Some(
               Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
             )
+          ),
+          methodCall = Some(
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.Warning",
+                "Standard.Base.Warning",
+                "attach_with_stacktrace"
+              )
+            )
           )
         ),
       TestMessages
@@ -5661,6 +5930,15 @@ class RuntimeServerTest
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
               Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+            )
+          ),
+          methodCall = Some(
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.IO",
+                "Standard.Base.IO",
+                "println"
+              )
             )
           )
         ),

@@ -442,90 +442,43 @@ class IrToTruffle(
                 else Left(l)
               }
               .map(fOpt =>
-                // Register builtin iff it has not been automatically registered at an early stage
-                // of builtins initialization or if it is a static wrapper.
-                fOpt
-                  //.filter(m => !m.isAutoRegister() || staticWrapper)
-                  .map { m =>
-                    if (staticWrapper) {
-                      // Static wrappers differ in the number of arguments by 1.
-                      // Therefore we cannot simply get the registered function.
-                      // BuiltinRootNode.execute will infer the right order of arguments.
-                      val bodyBuilder =
-                        new expressionProcessor.BuildFunctionBody(
-                          fn.arguments,
-                          fn.body,
-                          effectContext,
-                          true
-                        )
-                      val rootNode = MethodRootNode.build(
-                        language,
-                        expressionProcessor.scope,
-                        moduleScope,
-                        () =>
-                          ApplicationNode.build(
-                            CreateFunctionNode.build(
-                              m.getFunction.getCallTarget,
-                              bodyBuilder.args()
-                            ),
-                            bodyBuilder
-                              .argExprs()
-                              .map(new CallArgument(_))
-                              .toArray,
-                            DefaultsExecutionMode.EXECUTE
-                          ),
-                        makeSection(moduleScope, methodDef.location),
-                        cons,
-                        methodDef.methodName.name
-                      )
-                      new RuntimeFunction(
-                        //m.getFunction.getCallTarget,
-                        rootNode.getCallTarget,
-                        null,
-                        new FunctionSchema(
-                          new Array[RuntimeAnnotation](0),
-                          bodyBuilder.args(): _*
-                        )
-                      )
-                    } else {
-                      val bodyBuilder =
-                        new expressionProcessor.BuildFunctionBody(
-                          fn.arguments,
-                          fn.body,
-                          effectContext,
-                          true
-                        )
-                      val rootNode = MethodRootNode.build(
-                        language,
-                        expressionProcessor.scope,
-                        moduleScope,
-                        () => {
-                          ApplicationNode.build(
-                            CreateFunctionNode.build(
-                              m.getFunction.getCallTarget,
-                              bodyBuilder.args()
-                            ),
-                            bodyBuilder
-                              .argExprs()
-                              .map(new CallArgument(_))
-                              .toArray,
-                            DefaultsExecutionMode.EXECUTE
-                          )
-                        },
-                        makeSection(moduleScope, methodDef.location),
-                        cons,
-                        methodDef.methodName.name
-                      )
-                      new RuntimeFunction(
-                        rootNode.getCallTarget,
-                        null,
-                        new FunctionSchema(
-                          new Array[RuntimeAnnotation](0),
-                          bodyBuilder.args(): _*
-                        )
-                      )
-                    }
-                  }
+                fOpt.map { m =>
+                  val bodyBuilder =
+                    new expressionProcessor.BuildFunctionBody(
+                      fn.arguments,
+                      fn.body,
+                      effectContext,
+                      true
+                    )
+                  val rootNode = MethodRootNode.build(
+                    language,
+                    expressionProcessor.scope,
+                    moduleScope,
+                    () =>
+                      ApplicationNode.build(
+                        CreateFunctionNode.build(
+                          m.getFunction.getCallTarget,
+                          bodyBuilder.args()
+                        ),
+                        bodyBuilder
+                          .argExpressions()
+                          .map(new CallArgument(_))
+                          .toArray,
+                        DefaultsExecutionMode.EXECUTE
+                      ),
+                    makeSection(moduleScope, methodDef.location),
+                    cons,
+                    methodDef.methodName.name
+                  )
+                  new RuntimeFunction(
+                    rootNode.getCallTarget,
+                    null,
+                    new FunctionSchema(
+                      new Array[RuntimeAnnotation](0),
+                      bodyBuilder.args(): _*
+                    )
+                  )
+                }
               )
           case fn: IR.Function =>
             val bodyBuilder =
@@ -1712,12 +1665,12 @@ class IrToTruffle(
       private lazy val slots = computeSlots()
       private lazy val bodyN = computeBodyNode()
 
-      def args(): Array[ArgumentDefinition]          = slots._2
-      def argExprs(): ArrayBuffer[RuntimeExpression] = slots._3
-      def bodyNode(): RuntimeExpression              = bodyN
+      def args(): Array[ArgumentDefinition]               = slots._2
+      def argExpressions(): ArrayBuffer[ReadArgumentNode] = slots._4
+      def bodyNode(): RuntimeExpression                   = bodyN
 
       private def computeBodyNode(): RuntimeExpression = {
-        val (argSlotIdxs, _, argExpressions) = slots
+        val (argSlotIdxs, _, argExpressions, _) = slots
 
         val bodyExpr = body match {
           case IR.Foreign.Definition(lang, code, _, _, _) =>
@@ -1736,11 +1689,13 @@ class IrToTruffle(
       private def computeSlots(): (
         List[Int],
         Array[ArgumentDefinition],
-        ArrayBuffer[RuntimeExpression]
+        ArrayBuffer[RuntimeExpression],
+        ArrayBuffer[ReadArgumentNode]
       ) = {
         val seenArgNames   = mutable.Set[String]()
         val argDefinitions = new Array[ArgumentDefinition](arguments.size)
         val argExpressions = new ArrayBuffer[RuntimeExpression]
+        val readArgs       = new ArrayBuffer[ReadArgumentNode]
         // Note [Rewriting Arguments]
         val argSlots = arguments.zipWithIndex.map {
           case (unprocessedArg, idx) =>
@@ -1762,6 +1717,7 @@ class IrToTruffle(
                 arg.getDefaultValue.orElse(null),
                 runtimeTypes.asJava
               )
+            readArgs.append(readArg)
             val assignArg = AssignmentNode.build(readArg, slotIdx)
 
             argExpressions.append(assignArg)
@@ -1779,7 +1735,7 @@ class IrToTruffle(
             } else seenArgNames.add(argName)
             slotIdx
         }
-        (argSlots, argDefinitions, argExpressions)
+        (argSlots, argDefinitions, argExpressions, readArgs)
       }
     }
 
