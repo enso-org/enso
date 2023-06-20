@@ -761,59 +761,97 @@ function Dashboard(props: DashboardProps) {
             : columnRenderer[column]
     }
 
+    const uploadFilesFromInput = async (event: React.FormEvent<HTMLInputElement>) => {
+        if (backend.type === backendModule.BackendType.local) {
+            // TODO[sb]: Allow uploading `.enso-project`s
+            // https://github.com/enso-org/cloud-v2/issues/510
+            toast.error('Cannot upload files to the local backend.')
+        } else if (event.currentTarget.files == null || event.currentTarget.files.length === 0) {
+            toast.success('No files selected to upload.')
+        } else if (directoryId == null) {
+            // This should never happen, however display a nice
+            // error message in case it somehow does.
+            toast.error('You cannot upload files while offline.')
+        } else {
+            await uploadMultipleFiles.uploadMultipleFiles(
+                backend,
+                directoryId,
+                Array.from(event.currentTarget.files)
+            )
+            doRefresh()
+        }
+    }
+
     /** Heading element for every column. */
     const ColumnHeading = (column: Column, assetType: backendModule.AssetType) =>
         column === Column.name ? (
-            <div className="inline-flex">
-                {ASSET_TYPE_NAME[assetType]}
-                <button
-                    className="mx-1"
-                    onClick={event => {
-                        event.stopPropagation()
-                        const buttonPosition =
-                            // This type assertion is safe as this event handler is on a button.
-                            // eslint-disable-next-line no-restricted-syntax
-                            (event.target as HTMLButtonElement).getBoundingClientRect()
-                        if (assetType === backendModule.AssetType.project) {
-                            void toast.promise(handleCreateProject(null), {
-                                loading: 'Creating new empty project...',
-                                success: 'Created new empty project.',
-                                // This is UNSAFE, as the original function's parameter is of type
-                                // `any`.
-                                error: (promiseError: Error) =>
-                                    `Error creating new empty project: ${promiseError.message}`,
-                            })
-                        } else if (assetType === backendModule.AssetType.directory) {
-                            void toast.promise(handleCreateDirectory(), {
-                                loading: 'Creating new directory...',
-                                success: 'Created new directory.',
-                                // This is UNSAFE, as the original function's parameter is of type
-                                // `any`.
-                                error: (promiseError: Error) =>
-                                    `Error creating new directory: ${promiseError.message}`,
-                            })
-                        } else {
-                            // This is a React component even though it doesn't contain JSX.
-                            // eslint-disable-next-line no-restricted-syntax
-                            const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
-                            setModal(() => (
-                                <CreateForm
-                                    left={buttonPosition.left + window.scrollX}
-                                    top={buttonPosition.top + window.scrollY}
-                                    getNewProjectName={getNewProjectName}
-                                    // This is safe; headings are not rendered when there is no
-                                    // internet connection.
-                                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                                    directoryId={directoryId!}
-                                    onSuccess={doRefresh}
-                                />
-                            ))
-                        }
-                    }}
-                >
-                    {svg.ADD_ICON}
-                </button>
-            </div>
+            assetType === backendModule.AssetType.file ? (
+                <div className="inline-flex">
+                    {ASSET_TYPE_NAME[assetType]}
+                    <input
+                        type="file"
+                        id="files_table_upload_files_input"
+                        name="files_table_upload_files_input"
+                        multiple
+                        className="w-0 h-0"
+                        onInput={uploadFilesFromInput}
+                    />
+                    <label htmlFor="files_table_upload_files_input" className="cursor-pointer mx-1">
+                        {svg.ADD_ICON}
+                    </label>
+                </div>
+            ) : (
+                <div className="inline-flex">
+                    {ASSET_TYPE_NAME[assetType]}
+                    <button
+                        className="mx-1"
+                        onClick={event => {
+                            event.stopPropagation()
+                            const buttonPosition =
+                                // This type assertion is safe as this event handler is on a button.
+                                // eslint-disable-next-line no-restricted-syntax
+                                (event.target as HTMLButtonElement).getBoundingClientRect()
+                            if (assetType === backendModule.AssetType.project) {
+                                void toast.promise(handleCreateProject(null), {
+                                    loading: 'Creating new empty project...',
+                                    success: 'Created new empty project.',
+                                    // This is UNSAFE, as the original function's parameter is of type
+                                    // `any`.
+                                    error: (promiseError: Error) =>
+                                        `Error creating new empty project: ${promiseError.message}`,
+                                })
+                            } else if (assetType === backendModule.AssetType.directory) {
+                                void toast.promise(handleCreateDirectory(), {
+                                    loading: 'Creating new directory...',
+                                    success: 'Created new directory.',
+                                    // This is UNSAFE, as the original function's parameter is of type
+                                    // `any`.
+                                    error: (promiseError: Error) =>
+                                        `Error creating new directory: ${promiseError.message}`,
+                                })
+                            } else {
+                                // This is a React component even though it doesn't contain JSX.
+                                // eslint-disable-next-line no-restricted-syntax
+                                const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
+                                setModal(() => (
+                                    <CreateForm
+                                        left={buttonPosition.left + window.scrollX}
+                                        top={buttonPosition.top + window.scrollY}
+                                        getNewProjectName={getNewProjectName}
+                                        // This is safe; headings are not rendered when there is no
+                                        // internet connection.
+                                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                        directoryId={directoryId!}
+                                        onSuccess={doRefresh}
+                                    />
+                                ))
+                            }
+                        }}
+                    >
+                        {svg.ADD_ICON}
+                    </button>
+                </div>
+            )
         ) : (
             <>{COLUMN_NAME[column]}</>
         )
@@ -1096,34 +1134,13 @@ function Dashboard(props: DashboardProps) {
                                     type="file"
                                     multiple
                                     disabled={backend.type === backendModule.BackendType.local}
-                                    id="upload_file_input"
-                                    name="upload_file_input"
+                                    id="upload_files_input"
+                                    name="upload_files_input"
                                     className="w-0 h-0"
-                                    onInput={async event => {
-                                        if (backend.type === backendModule.BackendType.local) {
-                                            // FIXME[sb]: Allow uploading `.enso-project`s
-                                            toast.error('Cannot upload files to the local backend.')
-                                        } else if (
-                                            event.currentTarget.files == null ||
-                                            event.currentTarget.files.length === 0
-                                        ) {
-                                            toast.success('No files selected to upload.')
-                                        } else if (directoryId == null) {
-                                            // This should never happen, however display a nice
-                                            // error message in case it somehow does.
-                                            toast.error('You cannot upload files while offline.')
-                                        } else {
-                                            await uploadMultipleFiles.uploadMultipleFiles(
-                                                backend,
-                                                directoryId,
-                                                Array.from(event.currentTarget.files)
-                                            )
-                                            doRefresh()
-                                        }
-                                    }}
+                                    onInput={uploadFilesFromInput}
                                 />
                                 <label
-                                    htmlFor="upload_file_input"
+                                    htmlFor="upload_files_input"
                                     className={`mx-1 ${
                                         backend.type === backendModule.BackendType.local
                                             ? 'opacity-50'
