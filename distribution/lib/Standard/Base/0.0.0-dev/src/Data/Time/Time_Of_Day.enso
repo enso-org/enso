@@ -371,7 +371,7 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "'hour:'h"
-    @pattern make_time_format_selector
+    @pattern (value-> make_time_format_selector value)
     @locale Locale.default_widget
     format : Text -> Locale -> Text
     format self pattern:Text locale:Locale=Locale.default =

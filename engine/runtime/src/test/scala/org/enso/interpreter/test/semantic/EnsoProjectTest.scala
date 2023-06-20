@@ -13,9 +13,8 @@ class EnsoProjectTest extends InterpreterTest {
       val code =
         """
           |from Standard.Base.Meta import enso_project
-          |from Standard.Base.Nothing import Nothing
           |
-          |main = (enso_project Nothing).name
+          |main = enso_project.name
           |""".stripMargin
       eval(
         code
@@ -26,9 +25,9 @@ class EnsoProjectTest extends InterpreterTest {
       val code =
         """
           |import Standard.Base
-          |from Standard.Base.Meta import enso_project
+          |from Standard.Base.Meta import Project_Description
           |
-          |main = (enso_project Standard.Base).name
+          |main = (Project_Description.new Standard.Base).name
           |""".stripMargin
       eval(code) shouldEqual "Base"
     }
