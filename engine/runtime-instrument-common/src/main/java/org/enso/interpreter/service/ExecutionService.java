@@ -113,7 +113,7 @@ public class ExecutionService {
       throw new MethodNotFoundException(module.getName().toString(), type, methodName);
     }
     Object[] arguments = MAIN_METHOD.equals(methodName) ? new Object[] {} : new Object[] {type};
-    return new FunctionCallInstrumentationNode.FunctionCall(
+    return new FunctionCallInstrumentationNode.FunctionCall(module.getScope(),
         function, State.create(EnsoContext.get(null)), arguments);
   }
 

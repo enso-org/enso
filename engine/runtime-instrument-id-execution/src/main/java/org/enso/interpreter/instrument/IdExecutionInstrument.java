@@ -34,6 +34,7 @@ import org.enso.interpreter.runtime.Module;
 
 import java.util.function.Consumer;
 import org.enso.interpreter.node.ClosureRootNode;
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /** An instrument for getting values from AST-identified expressions. */
@@ -324,6 +325,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
             TailCallException tailCallException = (TailCallException) exception;
             FunctionCallInstrumentationNode.FunctionCall functionCall =
                     new FunctionCallInstrumentationNode.FunctionCall(
+                        this,
                         tailCallException.getFunction(),
                         state,
                         tailCallException.getArguments());

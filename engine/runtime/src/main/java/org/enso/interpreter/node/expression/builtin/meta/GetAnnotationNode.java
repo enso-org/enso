@@ -18,6 +18,7 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.object.DynamicObjectLibrary;
 
 @BuiltinMethod(
     type = "Meta",
@@ -38,7 +39,9 @@ public abstract class GetAnnotationNode extends BaseNode {
       Object parameter,
       @Cached ThunkExecutorNode thunkExecutorNode,
       @Cached ExpectStringNode expectStringNode,
-      @Cached TypeOfNode typeOfNode) {
+      @Cached TypeOfNode typeOfNode,
+      @CachedLibrary(limit = "10") DynamicObjectLibrary objects
+    ) {
     String methodName = expectStringNode.execute(method);
 
     Object targetTypeResult = typeOfNode.execute(target);
@@ -49,6 +52,11 @@ public abstract class GetAnnotationNode extends BaseNode {
     if (targetTypeResult instanceof Type targetType) {
       ModuleScope scope = targetType.getDefinitionScope();
       Function methodFunction = scope.lookupMethodDefinition(targetType, methodName);
+      if (methodFunction == null) {
+        if (objects.getOrDefault(state.getContainer(), 43L, null) instanceof ModuleScope instrumentationScope) {
+          methodFunction = instrumentationScope.lookupMethodDefinition(targetType, methodName);
+        }
+      }
       if (methodFunction != null) {
         String parameterName = expectStringNode.execute(parameter);
         Annotation annotation = methodFunction.getSchema().getAnnotation(parameterName);
