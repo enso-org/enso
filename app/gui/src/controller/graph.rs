@@ -578,13 +578,10 @@ impl Handle {
             let id = pattern.id.ok_or(EndpointNotFound(source))?;
             source.port = PortId::Ast(id);
             pattern
-        } else { 
+        } else {
             let source_node = self.node_info(connection.source.node)?;
             // For subports we would not have any idea what pattern to introduce. So we fail.
-            source_node
-                .pattern()
-                .ok_or(NoPatternOnNode { node: connection.source.node })?
-                .clone()
+            source_node.pattern().ok_or(NoPatternOnNode { node: connection.source.node })?.clone()
         };
         EndpointInfo::new(&source, pattern, context)
     }
