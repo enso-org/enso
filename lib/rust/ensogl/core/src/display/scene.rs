@@ -828,7 +828,6 @@ pub struct SceneData {
     pub display_object: display::object::Root,
     pub dom: Rc<Dom>,
     pub context: Rc<RefCell<Option<Context>>>,
-    pub context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
     pub variables: UniformScope,
     pub mouse: Mouse,
     pub keyboard: Keyboard,
@@ -849,6 +848,7 @@ pub struct SceneData {
     display_mode: Rc<Cell<glsl::codes::DisplayModes>>,
     extensions: Extensions,
     disable_context_menu: Rc<EventListenerHandle>,
+    trace: leak_detector::Trace,
 }
 
 impl SceneData {
@@ -893,7 +893,6 @@ impl SceneData {
 
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio);
         let context = default();
-        let context_lost_handler = default();
         let pointer_position_changed = default();
         let shader_compiler = default();
         let initial_shader_compilation = default();
@@ -902,7 +901,6 @@ impl SceneData {
             display_mode,
             dom,
             context,
-            context_lost_handler,
             variables,
             mouse,
             keyboard,
@@ -922,6 +920,7 @@ impl SceneData {
             initial_shader_compilation,
             extensions,
             disable_context_menu,
+            trace: leak_detector::Trace::enabled("SceneData"),
         }
         .init()
     }
@@ -929,16 +928,6 @@ impl SceneData {
     fn init(self) -> Self {
         self.init_pointer_position_changed_check();
         self
-    }
-
-    /// Set the GPU context. In most cases, this happens during app initialization or during context
-    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
-    pub fn set_context(&self, context: Option<&Context>) {
-        let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@set_context");
-        world::with_context(|t| t.set_context(context));
-        *self.context.borrow_mut() = context.cloned();
-        self.dirty.shape.set();
-        self.renderer.set_context(context);
     }
 
     pub fn shape(&self) -> &frp::Sampler<Shape> {
@@ -1156,7 +1145,10 @@ impl display::Object for SceneData {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Scene {
-    no_mut_access: Rc<SceneData>,
+    no_mut_access:        Rc<SceneData>,
+    // Context handlers keep reference to SceneData, thus cannot be put inside it.
+    context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
+    trace:                leak_detector::Trace,
 }
 
 impl Scene {
@@ -1166,7 +1158,12 @@ impl Scene {
         display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
     ) -> Self {
         let no_mut_access = SceneData::new(stats, on_mut, display_mode);
-        let this = Self { no_mut_access: Rc::new(no_mut_access) };
+        let context_lost_handler = default();
+        let this = Self {
+            no_mut_access: Rc::new(no_mut_access),
+            context_lost_handler,
+            trace: leak_detector::Trace::enabled("Scene"),
+        };
         this
     }
 
@@ -1183,10 +1180,11 @@ impl Scene {
     }
 
     fn init(&self) {
-        let context_loss_handler = crate::system::gpu::context::init_webgl_2_context(self);
+        let context_loss_handler =
+            crate::system::gpu::context::init_webgl_2_context(&self.no_mut_access);
         match context_loss_handler {
             Err(err) => error!("{err}"),
-            Ok(handler) => *self.context_lost_handler.borrow_mut() = Some(handler),
+            Ok(handler) => self.context_lost_handler.set(handler),
         }
     }
 
@@ -1262,11 +1260,27 @@ impl Scene {
 
 impl system::gpu::context::Display for Scene {
     fn device_context_handler(&self) -> &system::gpu::context::DeviceContextHandler {
-        &self.dom.layers.canvas
+        self.no_mut_access.device_context_handler()
     }
 
     fn set_context(&self, context: Option<&Context>) {
         self.no_mut_access.set_context(context)
+    }
+}
+
+impl system::gpu::context::Display for Rc<SceneData> {
+    fn device_context_handler(&self) -> &system::gpu::context::DeviceContextHandler {
+        &self.dom.layers.canvas
+    }
+
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
+    fn set_context(&self, context: Option<&Context>) {
+        let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@set_context");
+        world::with_context(|t| t.set_context(context));
+        *self.context.borrow_mut() = context.cloned();
+        self.dirty.shape.set();
+        self.renderer.set_context(context);
     }
 }
 
