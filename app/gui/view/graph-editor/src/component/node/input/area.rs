@@ -310,6 +310,9 @@ impl Model {
         let new_expression = Expression::from(new_expression.into());
         debug!("Set expression: \n{:?}", new_expression.tree_pretty_printer());
 
+        // Request widget configuration before rebuilding the widget tree, so that in case there are
+        // any widget responses already cached, they can be immediately used during the first build.
+        // Otherwise the tree would often be rebuilt twice immediately after setting the expression.
         self.request_widget_config_overrides(&new_expression, area_frp);
         self.widget_tree.rebuild_tree(
             &new_expression.span_tree,

@@ -573,25 +573,19 @@ impl Handle {
         let mut source = connection.source;
 
         let use_whole_pattern = source.port == PortId::Root;
-        let pattern = match use_whole_pattern {
-            true => self.introduce_pattern_if_missing(connection.source.node)?,
-            false => {
-                let source_node = self.node_info(connection.source.node)?;
-                // For subports we would not have any idea what pattern to introduce. So we fail.
-                source_node
-                    .pattern()
-                    .ok_or(NoPatternOnNode { node: connection.source.node })?
-                    .clone()
-            }
+        let pattern = if use_whole_pattern {
+            let pattern = self.introduce_pattern_if_missing(connection.source.node)?;
+            let id = pattern.id.ok_or(EndpointNotFound(source))?;
+            source.port = PortId::Ast(id);
+            pattern
+        } else { 
+            let source_node = self.node_info(connection.source.node)?;
+            // For subports we would not have any idea what pattern to introduce. So we fail.
+            source_node
+                .pattern()
+                .ok_or(NoPatternOnNode { node: connection.source.node })?
+                .clone()
         };
-
-        if use_whole_pattern {
-            if let Some(id) = pattern.id {
-                source.port = PortId::Ast(id);
-            } else {
-                return Err(EndpointNotFound(source).into());
-            }
-        }
         EndpointInfo::new(&source, pattern, context)
     }
 

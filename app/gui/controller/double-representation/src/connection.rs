@@ -23,9 +23,8 @@ use ast::crumbs::Located;
 pub struct Endpoint {
     /// Id of the node where the endpoint is located.
     pub node: Id,
-    /// The located AST ID of port creating this endpoint. Port crumbs are relative to the node's
-    /// AST, not just expression, if the node is binding, there'll crumb for left/right operand
-    /// first.
+    /// The AST ID and location of a port to which this endpoint is connected. The location is
+    /// relative to the entire node's AST, including both its expression and assignment pattern.
     pub port: Located<Id>,
 }
 

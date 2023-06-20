@@ -685,7 +685,7 @@ ensogl::define_endpoints_2! {
         node_added                 (NodeId, Option<NodeSource>, bool),
         node_removed               (NodeId),
         nodes_collapsed            ((Vec<NodeId>, NodeId)),
-        node_hovered               (Option<Switch<NodeId>>),
+        node_hovered               (Switch<NodeId>),
         node_selected              (NodeId),
         node_deselected            (NodeId),
         node_position_set          ((NodeId,Vector2)),
@@ -1722,8 +1722,7 @@ impl GraphEditorModel {
             let node_down = &touch.nodes.down;
             eval_ node.background_press(node_down.emit(node_id));
 
-            hovered <- node.output.hover.map (move |t| Some(Switch::new(node_id,*t)));
-            out.node_hovered <+ hovered;
+            out.node_hovered <+ node.output.hover.map(move |t| Switch::new(node_id,*t));
 
             out.node_comment_set <+ node.comment.map(move |c| (node_id,c.clone()));
             node.set_output_expression_visibility <+ out.nodes_labels_visible;
@@ -2755,9 +2754,12 @@ impl GraphEditor {
             cursor_pos_on_update <- cursor.scene_position.sample(&state.detached_edge);
             refresh_cursor_pos <- any(cursor_pos_on_update, cursor.scene_position);
 
-            is_hovering_output <- out.hover_node_output.is_some();
-            refresh_source <- refresh_cursor_pos.gate_not(&is_hovering_output);
-            snap_source_to_node <- out.hover_node_output.unwrap();
+            // Only allow hovering output ports of different nodes than the current target node.
+            is_hovering_valid_output <- out.hover_node_output.all_with(&detached_target_node,
+                |&hover, &target| hover.zip(target).map_or(false, |(h, id)| h.node_id != id)
+            );
+            refresh_source <- refresh_cursor_pos.gate_not(&is_hovering_valid_output);
+            snap_source_to_node <- out.hover_node_output.unwrap().gate(&is_hovering_valid_output);
 
 
             _eval <- refresh_cursor_pos.map2(&detached_source_edge,
@@ -2939,15 +2941,15 @@ fn init_remaining_graph_editor_frp(
         target_to_enter <- inputs.enter_hovered_node.map(f_!(scene.mouse.target.get()));
 
         // Go level up on background click.
-        enter_on_background    <= target_to_enter.map(|target| target.is_background().as_some(()));
+        enter_on_background <= target_to_enter.map(|target| target.is_background().as_some(()));
         out.node_exited <+ enter_on_background;
 
         // Go level down on node double click.
         enter_on_node <= target_to_enter.map(|target| target.is_symbol().as_some(()));
         output_port_is_hovered <- frp.output.hover_node_output.map(Option::is_some);
         enter_node <- enter_on_node.gate_not(&output_port_is_hovered);
-        node_switch_to_enter    <- out.node_hovered.sample(&enter_node).unwrap();
-        node_to_enter           <- node_switch_to_enter.map(|switch| switch.on().cloned()).unwrap();
+        node_switch_to_enter <- out.node_hovered.sample(&enter_node);
+        node_to_enter <- node_switch_to_enter.filter_map(|switch| switch.into_on());
         out.node_entered <+ node_to_enter;
     }
 
@@ -2960,7 +2962,7 @@ fn init_remaining_graph_editor_frp(
 
     // === Start project name edit ===
     frp::extend! { network
-        edit_mode     <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
+        edit_mode <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
         eval edit_mode ((edit_mode_on) model.breadcrumbs.ide_text_edit_mode.emit(edit_mode_on));
         // Deselect nodes when the project name is edited.
         frp.deselect_all_nodes <+ model.breadcrumbs.project_mouse_down;
@@ -2991,11 +2993,11 @@ fn init_remaining_graph_editor_frp(
         ).unwrap();
 
         input_add_node_way <- inputs.add_node.constant(WayOfCreatingNode::AddNodeEvent);
-        input_start_creation_way <- inputs.start_node_creation.map(f_!([scene]
+        input_start_creation_way <- inputs.start_node_creation.filter_map(f_!(
             // Only start node creation if nothing is focused. This is to prevent
             // creating nodes when we are editing texts and press enter.
             scene.focused_instance().is_none().then_some(WayOfCreatingNode::StartCreationEvent)
-        )).unwrap();
+        ));
         start_creation_from_port_way <- start_node_creation_from_port.map(
             |&endpoint| WayOfCreatingNode::StartCreationFromPortEvent{ endpoint });
         add_with_button_way <- node_added_with_button.constant(WayOfCreatingNode::ClickingButton);
@@ -3084,14 +3086,13 @@ fn init_remaining_graph_editor_frp(
     // See the docs of `Node` to learn about how the graph - nodes event propagation works.
     frp::extend! { network
         _eval <- all_with(&out.node_hovered,&edit_mode,
-            f!([model](tgt,e) if let Some(tgt) = tgt {
-                model.try_with_node(tgt.value,|t| t.set_edit_ready_mode(*e && tgt.is_on()));
-            }
-        ));
+            f!((tgt, e) model.try_with_node(tgt.value,|t| t.set_edit_ready_mode(*e && tgt.is_on())))
+        );
         _eval <- all_with(&out.node_hovered,&edge_state.detached_edge,
-            f!([model](hover_target,detached) if let Some(hover_target) = hover_target {
+            f!([model](hover_target,detached) {
                 let node_id = hover_target.value;
-                let can_attach = detached.map_or(false, |d| d.node_id() != node_id);
+                let detached_source = detached.and_then(|d| d.source_endpoint());
+                let can_attach = detached_source.map_or(false, |e| e.node_id != node_id);
                 let is_active = can_attach && hover_target.is_on();
                 model.try_with_node(node_id,|t| t.model().input.set_ports_active(is_active));
             }
@@ -3368,9 +3369,9 @@ fn init_remaining_graph_editor_frp(
     eval viz_enable          ((id) model.enable_visualization(id));
     eval viz_disable         ((id) model.disable_visualization(id));
     eval viz_preview_disable ((id) model.disable_visualization(id));
-    fullscreen_vis_was_enabled <- viz_fullscreen_on.map(f!((id)
+    fullscreen_vis_was_enabled <- viz_fullscreen_on.filter_map(f!((id)
         model.enable_visualization_fullscreen(id).then(|| *id))
-    ).unwrap();
+    );
 
     viz_fs_to_close <- out.visualization_fullscreen.sample(&inputs.close_fullscreen_visualization);
     eval viz_fs_to_close ([model](vis) {

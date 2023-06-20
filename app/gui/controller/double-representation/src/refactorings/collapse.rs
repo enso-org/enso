@@ -207,12 +207,12 @@ impl Extracted {
         for connection in graph.info.connections() {
             let starts_inside = extracted_nodes_set.contains(&connection.source.node);
             let ends_inside = extracted_nodes_set.contains(&connection.target.node);
+            let identifier = graph.connection_variable(&connection)?;
 
             leaves.remove(&connection.source.node);
             if !starts_inside && ends_inside {
-                inputs.push(graph.connection_variable(&connection)?)
+                inputs.push(identifier)
             } else if starts_inside && !ends_inside {
-                let identifier = graph.connection_variable(&connection)?;
                 match output {
                     Some(Output { identifier: previous_identifier, .. })
                         if identifier != previous_identifier =>

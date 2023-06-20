@@ -106,8 +106,9 @@ impl Edge {
             // Mouse events.
             gated_mouse_move <- mouse_move.gate_not(&frp.set_hover_disabled);
             gated_mouse_down <- mouse_down.gate_not(&frp.set_hover_disabled);
+            gated_mouse_out <- mouse_out.gate_not(&frp.set_hover_disabled);
             hover_disabled <- frp.set_hover_disabled.on_true();
-            clear_focus <- any_(mouse_out, hover_disabled);
+            clear_focus <- any_(gated_mouse_out, hover_disabled);
 
             eval gated_mouse_move ([model] (e) {
                 let pos = model.screen_pos_to_scene_pos(e.client_centered());
@@ -136,8 +137,8 @@ impl Edge {
             redraw_needed <+ frp.target_attached;
             redraw_needed <+ frp.source_size;
             redraw_needed <+ frp.set_disabled;
-            redraw_needed <+ mouse_move;
-            redraw_needed <+ mouse_out;
+            redraw_needed <+ gated_mouse_move;
+            redraw_needed <+ gated_mouse_out;
             redraw_needed <+ edge_color.value;
             redraw_needed <+ display_object.on_transformed;
             redraw <- redraw_needed.debounce();

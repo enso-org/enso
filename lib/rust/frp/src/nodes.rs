@@ -1064,7 +1064,7 @@ impl Network {
 
     /// A version of map that operates on optionals. The provided function will only be called when
     /// incoming stream's value is [`Some`], and then the provided function can return an optional
-    /// itself. If you want a non-optional return type, use [`Network::and_then`].
+    /// itself. If you want a non-optional return type, use [`Network::map_some`].
     pub fn and_then<T, In, F, Out>(&self, label: Label, src: &T, f: F) -> Stream<Option<Out>>
     where
         T: EventOutput<Output = Option<In>>,

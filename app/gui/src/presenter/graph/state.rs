@@ -514,8 +514,8 @@ impl<'a> ControllerChange<'a> {
 // === Connections ===
 
 impl<'a> ControllerChange<'a> {
-    /// Map controller connections to view connections. Only creates connections for nodes that
-    /// are currently in state.
+    /// Map controller connections to view connections. Only creates connections where nodes on both
+    /// endpoints are currently represented in the view.
     pub fn map_connections(&self, connections: &[AstConnection]) -> Vec<ViewConnection> {
         let nodes = self.nodes.borrow();
         connections
@@ -727,7 +727,8 @@ impl<'a> ViewChange<'a> {
         expression_has_changed.then_some(ast_id)
     }
 
-    /// Map a connection on view side to a connection on controller side.
+    /// Map a connection on view side to a connection on controller side. Returns `None` if view
+    /// node on either connection endpoint is not represented in the controller.
     pub fn view_to_ast_connection(&self, connection: &ViewConnection) -> Option<AstConnection> {
         let source_node = self.state.ast_node_id_of_view(connection.source.node_id)?;
         let target_node = self.state.ast_node_id_of_view(connection.target.node_id)?;
