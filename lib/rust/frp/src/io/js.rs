@@ -33,7 +33,7 @@ impl Listener {
     ) -> Self {
         let event_type = event_type.as_ref();
         let options = event_listener_options();
-        let handle = web::add_event_listener_with_options(target, event_type, callback, &options);
+        let handle = web::add_event_listener_with_options(target, event_type, callback, options);
         Self { _handle: handle }
     }
 }
@@ -69,9 +69,7 @@ impl Listener {
 
 /// Retrun options for addEventListener function. See also
 /// https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
-fn event_listener_options() -> enso_web::AddEventListenerOptions {
-    let mut options = enso_web::AddEventListenerOptions::new();
+fn event_listener_options() -> enso_web::EventListenerHandleOptions {
     // We want to prevent default action on wheel events, thus listener cannot be passive.
-    options.passive(false);
-    options
+    enso_web::EventListenerHandleOptions::new().not_passive()
 }
