@@ -8,7 +8,6 @@ use crate::prelude::*;
 
 use crate::model::module::NodeMetadata;
 
-use ast::crumbs::InfixCrumb;
 use ast::crumbs::Located;
 use ast::macros::DocumentationCommentInfo;
 use double_representation::connection;
@@ -21,7 +20,6 @@ use double_representation::module;
 use double_representation::node;
 use double_representation::node::MainLine;
 use double_representation::node::NodeAst;
-use double_representation::node::NodeAstInfo;
 use double_representation::node::NodeInfo;
 use double_representation::node::NodeLocation;
 use engine_protocol::language_server;
@@ -29,6 +27,7 @@ use parser::Parser;
 use span_tree::action::Action;
 use span_tree::action::Actions;
 use span_tree::generate::Context as SpanTreeContext;
+use span_tree::PortId;
 use span_tree::SpanTree;
 
 
@@ -48,10 +47,15 @@ pub use double_representation::graph::LocationHint;
 // === Errors ===
 // ==============
 
-/// Error raised when node with given Id was not found in the graph's body.
+/// Error raised when node with given ID was not found in the graph's body.
 #[derive(Clone, Copy, Debug, Fail)]
 #[fail(display = "Node with Id {} was not found.", _0)]
 pub struct NodeNotFound(ast::Id);
+
+/// Error raised when an endpoint with given Node ID and Port ID was not found in the graph's body.
+#[derive(Clone, Copy, Debug, Fail)]
+#[fail(display = "Port with ID {:?} was not found.", _0)]
+pub struct EndpointNotFound(Endpoint);
 
 /// Error raised when an attempt to set node's expression to a binding has been made.
 #[derive(Clone, Debug, Fail)]
@@ -69,6 +73,11 @@ pub struct FailedToCreateNode;
 pub struct NoPatternOnNode {
     pub node: node::Id,
 }
+
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, Fail)]
+#[fail(display = "AST node is missing ID.")]
+pub struct MissingAstId;
 
 
 
@@ -171,44 +180,45 @@ impl NewNodeInfo {
 /// Reference to the port (i.e. the span tree node).
 pub type PortRef<'a> = span_tree::node::Ref<'a>;
 
+// === Connection ===
+
+/// Connection within the graph, described using a pair of ports at given nodes.
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+pub struct Connection {
+    pub source: Endpoint,
+    pub target: Endpoint,
+}
 
 // === Endpoint
 
-/// Connection endpoint - a port on a node, described using span-tree crumbs.
+/// Connection endpoint - a port within a node.
 #[allow(missing_docs)]
-#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct Endpoint {
-    pub node:       double_representation::node::Id,
-    pub port:       span_tree::Crumbs,
-    /// Crumbs which locate the Var in the `port` ast node.
-    ///
-    /// In normal case this is an empty crumb (which means that the whole span of `port` is the
-    /// mentioned Var. However, span tree does not cover all the possible ast of node expression
-    /// (e.g. it does not decompose Blocks), but still we want to pass information about connection
-    /// to such port and be able to remove it.
-    pub var_crumbs: ast::Crumbs,
+    pub node: node::Id,
+    pub port: PortId,
 }
 
 impl Endpoint {
     /// Create endpoint with empty `var_crumbs`.
-    pub fn new(node: double_representation::node::Id, port: impl Into<span_tree::Crumbs>) -> Self {
-        let var_crumbs = default();
-        let port = port.into();
-        Endpoint { node, port, var_crumbs }
+    pub fn new(node: double_representation::node::Id, port: PortId) -> Self {
+        Endpoint { node, port }
+    }
+
+    /// Create an endpoint pointing to whole node pattern or expression.
+    pub fn root(node_id: node::Id) -> Self {
+        Endpoint { node: node_id, port: PortId::Root }
+    }
+
+    /// Create a target endpoint from given node info, pointing at a port under given AST crumbs.
+    /// Returns error if the crumbs do not point at any valid AST node.
+    pub fn target_at(node: &Node, crumbs: impl ast::crumbs::IntoCrumbs) -> FallibleResult<Self> {
+        let expression = node.info.expression();
+        let port_ast = expression.get_traversing(&crumbs.into_crumbs())?;
+        Ok(Endpoint { node: node.info.id(), port: PortId::Ast(port_ast.id.ok_or(MissingAstId)?) })
     }
 }
-
-
-// === Connection ===
-
-/// Connection described using span-tree crumbs.
-#[allow(missing_docs)]
-#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
-pub struct Connection {
-    pub source:      Endpoint,
-    pub destination: Endpoint,
-}
-
 
 // === NodeTrees ===
 
@@ -220,50 +230,14 @@ pub struct NodeTrees {
     pub inputs:  SpanTree,
     /// Describes node outputs, i.e. its pattern. `None` if a node is not an assignment.
     pub outputs: Option<SpanTree>,
-    /// Info about macros used in the node's expression.
-    ast_info:    NodeAstInfo,
 }
 
 impl NodeTrees {
     #[allow(missing_docs)]
     pub fn new(node: &NodeInfo, context: &impl SpanTreeContext) -> Option<NodeTrees> {
         let inputs = SpanTree::new(&node.expression(), context).ok()?;
-        let ast_info = node.main_line.ast_info.clone();
-        let outputs = if let Some(pat) = node.pattern() {
-            Some(SpanTree::new(pat, context).ok()?)
-        } else {
-            None
-        };
-        Some(NodeTrees { inputs, outputs, ast_info })
-    }
-
-    /// Converts AST crumbs (as obtained from double rep's connection endpoint) into the
-    /// appropriate span-tree node reference.
-    pub fn get_span_tree_node<'a, 'b>(
-        &'a self,
-        ast_crumbs: &'b [ast::Crumb],
-    ) -> Option<span_tree::node::NodeFoundByAstCrumbs<'a, 'b>> {
-        use ast::crumbs::Crumb::Infix;
-        // We can display only a part of the expression to the user. We hide [`SKIP`] and [`FREEZE`]
-        // macros and context switch expressions. In this case, we skip an additional
-        // number of AST crumbs.
-        let expression_crumbs_to_skip = self.ast_info.ast_crumbs_to_skip();
-        if let Some(outputs) = self.outputs.as_ref() {
-            // Node in assignment form. First crumb decides which span tree to use.
-            let first_crumb = ast_crumbs.get(0);
-            let is_input = matches!(first_crumb, Some(Infix(InfixCrumb::RightOperand)));
-            let tree = match first_crumb {
-                Some(Infix(InfixCrumb::LeftOperand)) => Some(outputs),
-                Some(Infix(InfixCrumb::RightOperand)) => Some(&self.inputs),
-                _ => None,
-            };
-            let skip = if is_input { expression_crumbs_to_skip + 1 } else { 1 };
-            tree.and_then(|tree| tree.root_ref().get_descendant_by_ast_crumbs(&ast_crumbs[skip..]))
-        } else {
-            let skip = expression_crumbs_to_skip;
-            // Expression node - there is only inputs span tree.
-            self.inputs.root_ref().get_descendant_by_ast_crumbs(&ast_crumbs[skip..])
-        }
+        let outputs = node.pattern().map(|pat| SpanTree::new(pat, context)).transpose().ok()?;
+        Some(NodeTrees { inputs, outputs })
     }
 }
 
@@ -288,36 +262,23 @@ impl Connections {
             .iter()
             .filter_map(|node| Some((node.id(), NodeTrees::new(node, context)?)))
             .collect();
-
-        let mut ret = Connections { trees, connections: default() };
-        let connections =
-            graph.connections().into_iter().filter_map(|c| ret.convert_connection(&c)).collect();
-        ret.connections = connections;
-        ret
+        let connections = graph.connections().iter().map(Self::convert_connection).collect();
+        Connections { trees, connections }
     }
 
-    /// Converts Endpoint from double representation to the span tree crumbs.
-    pub fn convert_endpoint(
-        &self,
-        endpoint: &double_representation::connection::Endpoint,
-    ) -> Option<Endpoint> {
-        let tree = self.trees.get(&endpoint.node)?;
-        let span_tree_node = tree.get_span_tree_node(&endpoint.crumbs)?;
-        Some(Endpoint {
-            node:       endpoint.node,
-            port:       span_tree_node.node.crumbs,
-            var_crumbs: span_tree_node.ast_crumbs.into(),
-        })
+    /// Converts Endpoint from double representation to port-based representation.
+    fn convert_endpoint(endpoint: &double_representation::connection::Endpoint) -> Endpoint {
+        Endpoint { node: endpoint.node, port: PortId::Ast(endpoint.port.item) }
     }
 
-    /// Converts Connection from double representation to the span tree crumbs.
-    pub fn convert_connection(
-        &self,
+    /// Converts Connection from double representation to port-based representation.
+    fn convert_connection(
         connection: &double_representation::connection::Connection,
-    ) -> Option<Connection> {
-        let source = self.convert_endpoint(&connection.source)?;
-        let destination = self.convert_endpoint(&connection.destination)?;
-        Some(Connection { source, destination })
+    ) -> Connection {
+        Connection {
+            source: Self::convert_endpoint(&connection.source),
+            target: Self::convert_endpoint(&connection.target),
+        }
     }
 }
 
@@ -370,94 +331,53 @@ pub fn name_for_ast(ast: &Ast) -> String {
 /// Also provides a number of utility functions for connection operations.
 #[derive(Clone, Debug)]
 pub struct EndpointInfo {
-    /// The endpoint descriptor.
-    pub endpoint:  Endpoint,
     /// Ast of the relevant node piece (expression or the pattern).
     pub ast:       Ast,
     /// Span tree for the relevant node side (outputs or inputs).
+    ///
+    /// TODO[PG]: Replace span-tree operations (set/erase) with direct AST operations using PortId.
+    /// That way we can get rid of crumbs/span-trees completely.
+    /// https://github.com/enso-org/enso/issues/6834
     pub span_tree: SpanTree,
+    /// The endpoint port location within the span tree.
+    /// TODO[PG]: Replace with PortId, see above.
+    pub crumbs:    span_tree::Crumbs,
 }
 
 impl EndpointInfo {
     /// Construct information about endpoint. Ast must be the node's expression or pattern.
     pub fn new(
         endpoint: &Endpoint,
-        ast: &Ast,
+        ast: Ast,
         context: &impl SpanTreeContext,
     ) -> FallibleResult<EndpointInfo> {
-        Ok(EndpointInfo {
-            endpoint:  endpoint.clone(),
-            ast:       ast.clone(),
-            span_tree: SpanTree::new(ast, context)?,
-        })
-    }
-
-    /// Obtains a reference to the port (span tree node) of this endpoint.
-    pub fn port(&self) -> FallibleResult<span_tree::node::Ref> {
-        self.span_tree.get_node(&self.endpoint.port)
-    }
-
-    /// Obtain reference to the parent of the port identified by given crumbs slice.
-    pub fn parent_port_of(&self, crumbs: &[span_tree::node::Crumb]) -> Option<PortRef> {
-        let parent_crumbs = span_tree::node::parent_crumbs(crumbs);
-        parent_crumbs.and_then(|cr| self.span_tree.get_node(cr.iter()).ok())
-    }
-
-    /// Iterates over sibling ports located after this endpoint in its chain.
-    pub fn chained_ports_after(&self) -> impl Iterator<Item = PortRef> + '_ {
-        let parent_port = self.parent_chain_port();
-        let ports_after = parent_port.map(move |parent_port| {
-            parent_port
-                .chain_children_iter()
-                .skip_while(move |port| port.crumbs != self.endpoint.port)
-                .skip(1)
-        });
-
-        ports_after.into_iter().flatten()
-    }
-
-    /// Obtains parent port. If this port is part of chain, the parent port will be the parent of
-    /// the whole chain.
-    pub fn parent_chain_port(&self) -> Option<PortRef> {
-        // TODO [mwu]
-        //  Unpleasant. Likely there should be something in span tree that allows obtaining
-        //  sequence of nodes between root and given crumb. Or sth.
-        let mut parent_port = self.parent_port_of(&self.endpoint.port);
-        while parent_port.contains_if(|p| p.node.is_chained()) {
-            parent_port = parent_port.and_then(|p| self.parent_port_of(&p.crumbs));
-        }
-        parent_port
+        let span_tree = SpanTree::new(&ast, context)?;
+        let node = span_tree
+            .root_ref()
+            .find_node(|n| n.port_id == Some(endpoint.port))
+            .ok_or(EndpointNotFound(*endpoint))?;
+        let crumbs = node.crumbs;
+        Ok(EndpointInfo { ast, span_tree, crumbs })
     }
 
     /// Ast being the exact endpoint target. Might be more granular than a span tree port.
     pub fn target_ast(&self) -> FallibleResult<&Ast> {
-        self.ast.get_traversing(&self.full_ast_crumbs()?)
+        self.ast.get_traversing(&self.span_tree_node()?.ast_crumbs)
     }
 
-    /// Full sequence of Ast crumbs identifying endpoint target.
-    pub fn full_ast_crumbs(&self) -> FallibleResult<ast::Crumbs> {
-        let port = self.port()?;
-        let mut crumbs = port.ast_crumbs;
-        crumbs.extend(self.endpoint.var_crumbs.iter().cloned());
-        Ok(crumbs)
+    /// Obtains a reference to the span tree node of this endpoint.
+    pub fn span_tree_node(&self) -> FallibleResult<span_tree::node::Ref> {
+        self.span_tree.get_node(&self.crumbs)
     }
 
     /// Sets AST at the given port. Returns new root Ast.
     pub fn set(&self, ast_to_set: Ast) -> FallibleResult<Ast> {
-        self.port()?.set(&self.ast, ast_to_set)
+        self.span_tree_node()?.set(&self.ast, ast_to_set)
     }
 
-    /// Sets AST at the endpoint target. Returns new root Ast. Does not use span tree logic.
-    pub fn set_ast(&self, ast_to_set: Ast) -> FallibleResult<Ast> {
-        self.ast.set_traversing(&self.full_ast_crumbs()?, ast_to_set)
-    }
-
-    /// Erases given port. Returns new root Ast and crumbs pointing to the nearest insertion point.
-    pub fn erase(
-        &self,
-        context: &impl SpanTreeContext,
-    ) -> FallibleResult<(Ast, span_tree::Crumbs)> {
-        self.port()?.erase(&self.ast, context)
+    /// Erases given port. Returns new root Ast.
+    pub fn erase(&self) -> FallibleResult<Ast> {
+        self.span_tree_node()?.erase(&self.ast)
     }
 }
 
@@ -609,7 +529,8 @@ impl Handle {
     /// appended to avoid conflicts with other identifiers used in the graph.
     pub fn variable_name_for(&self, node: &NodeInfo) -> FallibleResult<ast::known::Var> {
         let base_name = Self::variable_name_base_for(node);
-        let used_names = self.used_names()?.into_iter().map(|located_name| located_name.item);
+        let used_names = self.used_names()?;
+        let used_names = used_names.iter().map(|name| name.item.as_str());
         let name = generate_name(base_name.as_str(), used_names)?.as_var()?;
         Ok(ast::known::Var::new(name, None))
     }
@@ -632,30 +553,37 @@ impl Handle {
         })
     }
 
-    /// Obtains information for connection's destination endpoint.
-    pub fn destination_info(
+    /// Obtains information for new connection's target endpoint.
+    pub fn target_info(
         &self,
         connection: &Connection,
         context: &impl SpanTreeContext,
     ) -> FallibleResult<EndpointInfo> {
-        let destination_node = self.node_info(connection.destination.node)?;
-        let target_node_ast = destination_node.expression();
-        EndpointInfo::new(&connection.destination, &target_node_ast, context)
+        let target_node = self.node_info(connection.target.node)?;
+        let target_node_ast = target_node.expression();
+        EndpointInfo::new(&connection.target, target_node_ast, context)
     }
 
-    /// Obtains information about connection's source endpoint.
+    /// Obtains information about new connection's source endpoint.
     pub fn source_info(
         &self,
         connection: &Connection,
         context: &impl SpanTreeContext,
     ) -> FallibleResult<EndpointInfo> {
-        let source_node = self.node_info(connection.source.node)?;
-        if let Some(pat) = source_node.pattern() {
-            EndpointInfo::new(&connection.source, pat, context)
+        let mut source = connection.source;
+
+        let use_whole_pattern = source.port == PortId::Root;
+        let pattern = if use_whole_pattern {
+            let pattern = self.introduce_pattern_if_missing(connection.source.node)?;
+            let id = pattern.id.ok_or(EndpointNotFound(source))?;
+            source.port = PortId::Ast(id);
+            pattern
         } else {
+            let source_node = self.node_info(connection.source.node)?;
             // For subports we would not have any idea what pattern to introduce. So we fail.
-            Err(NoPatternOnNode { node: connection.source.node }.into())
-        }
+            source_node.pattern().ok_or(NoPatternOnNode { node: connection.source.node })?.clone()
+        };
+        EndpointInfo::new(&source, pattern, context)
     }
 
     /// If the node has no pattern, introduces a new pattern with a single variable name.
@@ -739,51 +667,35 @@ impl Handle {
         context: &impl SpanTreeContext,
     ) -> FallibleResult {
         let _transaction_guard = self.get_or_open_transaction("Connect");
-        if connection.source.port.is_empty() {
-            // If we create connection from node's expression root, we are able to introduce missing
-            // pattern with a new variable.
-            self.introduce_pattern_if_missing(connection.source.node)?;
-        }
-
         let source_info = self.source_info(connection, context)?;
-        let destination_info = self.destination_info(connection, context)?;
+        let target_info = self.target_info(connection, context)?;
         let source_identifier = source_info.target_ast()?.clone();
-        let updated_target_node_expr = destination_info.set(source_identifier.with_new_id())?;
-        self.set_expression_ast(connection.destination.node, updated_target_node_expr)?;
+        let updated_target_node_expr = target_info.set(source_identifier.with_new_id())?;
+        self.set_expression_ast(connection.target.node, updated_target_node_expr)?;
 
         // Reorder node lines, so the connection target is after connection source.
         let source_node = connection.source.node;
-        let destination_node = connection.destination.node;
-        self.place_node_and_dependencies_lines_after(source_node, destination_node)
+        let target_node = connection.target.node;
+        self.place_node_and_dependencies_lines_after(source_node, target_node)
     }
 
-    /// Remove the connections from the graph. Returns an updated edge destination endpoint for
-    /// disconnected edge, in case it is still used as destination-only edge. When `None` is
-    /// returned, no update is necessary.
+    /// Remove the connections from the graph.
     pub fn disconnect(
         &self,
         connection: &Connection,
         context: &impl SpanTreeContext,
-    ) -> FallibleResult<Option<span_tree::Crumbs>> {
+    ) -> FallibleResult {
         let _transaction_guard = self.get_or_open_transaction("Disconnect");
-        let info = self.destination_info(connection, context)?;
-
-        let mut new_destination_crumbs = None;
-        let updated_expression = if connection.destination.var_crumbs.is_empty() {
-            let port = info.port()?;
-            if port.is_action_available(Action::Erase) {
-                let (ast, crumbs) = info.erase(context)?;
-                new_destination_crumbs = Some(crumbs);
-                Ok(ast)
-            } else {
-                info.set(Ast::blank())
-            }
+        let info = self.target_info(connection, context)?;
+        let port = info.span_tree_node()?;
+        let updated_expression = if port.is_action_available(Action::Erase) {
+            info.erase()
         } else {
-            info.set_ast(Ast::blank())
+            info.set(Ast::blank())
         }?;
 
-        self.set_expression_ast(connection.destination.node, updated_expression)?;
-        Ok(new_destination_crumbs)
+        self.set_expression_ast(connection.target.node, updated_expression)?;
+        Ok(())
     }
 
     /// Obtain the definition information for this graph from the module's AST.
@@ -902,8 +814,7 @@ impl Handle {
             let mut graph = GraphInfo::from_definition(definition);
             graph.edit_node(id, expression)?;
             Ok(graph.source)
-        })?;
-        Ok(())
+        })
     }
 
     /// Updates the given node's expression by rewriting a part of it, as specified by span crumbs.
@@ -924,8 +835,7 @@ impl Handle {
         let port = node_span_tree.get_node(crumbs)?;
         let new_node_ast = if expression_text.as_ref().is_empty() {
             if port.is_action_available(Action::Erase) {
-                let (ast, _) = port.erase(&node_ast, context)?;
-                ast
+                port.erase(&node_ast)?
             } else {
                 port.set(&node_ast, Ast::blank())?
             }
@@ -1078,7 +988,7 @@ pub mod tests {
     use crate::model::suggestion_database;
     use crate::test::mock::data;
 
-    use ast::crumbs;
+    use ast::crumbs::*;
     use ast::test_utils::expect_shape;
     use double_representation::name::project;
     use engine_protocol::language_server::MethodPointer;
@@ -1086,7 +996,7 @@ pub mod tests {
     use parser::Parser;
     use span_tree::generate::context::CalledMethodInfo;
     use span_tree::generate::MockContext;
-
+    use span_tree::PortId;
 
     /// Returns information about all the connections between graph's nodes.
     pub fn connections(graph: &Handle) -> FallibleResult<Connections> {
@@ -1100,6 +1010,7 @@ pub mod tests {
         pub graph_id:     Id,
         pub project_name: project::QualifiedName,
         pub code:         String,
+        pub id_map:       ast::IdMap,
         pub suggestions:  HashMap<suggestion_database::entry::Id, suggestion_database::Entry>,
     }
 
@@ -1112,6 +1023,7 @@ pub mod tests {
                 graph_id:     data::graph_id(),
                 project_name: data::project_qualified_name(),
                 code:         data::CODE.to_owned(),
+                id_map:       default(),
                 suggestions:  default(),
             }
         }
@@ -1131,6 +1043,7 @@ pub mod tests {
             model::module::test::MockData {
                 code: self.code.clone(),
                 path: self.module_path.clone(),
+                id_map: self.id_map.clone(),
                 ..default()
             }
         }
@@ -1484,20 +1397,29 @@ main =
     }
 
     #[test]
-    #[ignore] // FIXME (https://github.com/enso-org/enso/issues/5574)
     fn graph_controller_connections_listing() {
         let mut test = Fixture::set_up();
         const PROGRAM: &str = r"
 main =
-    x,y = get_pos
+    [x,y] = get_pos
     print x
     z = print $ foo y
     print z
     foo
         print z";
         test.data.code = PROGRAM.into();
-        test.run(|graph| async move {
+        let id_map = &mut test.data.id_map;
+        let x_src = id_map.generate(13..14);
+        let y_src = id_map.generate(15..16);
+        let z_src = id_map.generate(44..45);
+        let x_dst = id_map.generate(38..39);
+        let y_dst = id_map.generate(60..61);
+        let z_dst1 = id_map.generate(72..73);
+        let z_dst2 = id_map.generate(96..97);
+
+        test.run(move |graph| async move {
             let connections = connections(&graph).unwrap();
+
 
             let (node0, node1, node2, node3, node4) = graph.nodes().unwrap().expect_tuple();
             assert_eq!(node0.info.expression().repr(), "get_pos");
@@ -1507,29 +1429,27 @@ main =
 
             let c = &connections.connections[0];
             assert_eq!(c.source.node, node0.info.id());
-            assert_eq!(c.source.port, span_tree::node::Crumbs::new(vec![1]));
-            assert_eq!(c.destination.node, node1.info.id());
-            assert_eq!(c.destination.port, span_tree::node::Crumbs::new(vec![2]));
+            assert_eq!(c.source.port, PortId::Ast(x_src));
+            assert_eq!(c.target.node, node1.info.id());
+            assert_eq!(c.target.port, PortId::Ast(x_dst));
 
             let c = &connections.connections[1];
             assert_eq!(c.source.node, node0.info.id());
-            assert_eq!(c.source.port, span_tree::node::Crumbs::new(vec![4]));
-            assert_eq!(c.destination.node, node2.info.id());
-            assert_eq!(c.destination.port, span_tree::node::Crumbs::new(vec![4, 2]));
+            assert_eq!(c.source.port, PortId::Ast(y_src));
+            assert_eq!(c.target.node, node2.info.id());
+            assert_eq!(c.target.port, PortId::Ast(y_dst));
 
             let c = &connections.connections[2];
             assert_eq!(c.source.node, node2.info.id());
-            assert_eq!(c.source.port, span_tree::node::Crumbs::default());
-            assert_eq!(c.destination.node, node3.info.id());
-            assert_eq!(c.destination.port, span_tree::node::Crumbs::new(vec![2]));
+            assert_eq!(c.source.port, PortId::Ast(z_src));
+            assert_eq!(c.target.node, node3.info.id());
+            assert_eq!(c.target.port, PortId::Ast(z_dst1));
 
-            use ast::crumbs::*;
             let c = &connections.connections[3];
             assert_eq!(c.source.node, node2.info.id());
-            assert_eq!(c.source.port, span_tree::node::Crumbs::default());
-            assert_eq!(c.destination.node, node4.info.id());
-            assert_eq!(c.destination.port, span_tree::node::Crumbs::new(vec![2]));
-            assert_eq!(c.destination.var_crumbs, crumbs!(BlockCrumb::HeadLine, PrefixCrumb::Arg));
+            assert_eq!(c.source.port, PortId::Ast(z_src));
+            assert_eq!(c.target.node, node4.info.id());
+            assert_eq!(c.target.port, PortId::Ast(z_dst2));
         })
     }
 
@@ -1541,32 +1461,35 @@ main =
         struct Case {
             /// A pattern (the left side of assignment operator) of source node.
             src:      &'static str,
-            /// An expression of destination node.
+            /// An expression of target node.
             dst:      &'static str,
-            /// Crumbs of source and destination ports (i.e. SpanTree nodes)
-            ports:    (&'static [usize], &'static [usize]),
-            /// Expected destination expression after connecting.
+            /// Crumbs of source and target ports (i.e. SpanTree nodes)
+            ports:    (Range<usize>, Range<usize>),
+            /// Expected target expression after connecting.
             expected: &'static str,
         }
 
         impl Case {
             fn run(&self) {
                 let mut test = Fixture::set_up();
-                let main_prefix = format!("main = \n    {} = foo\n    ", self.src);
+                let src_prefix = "main = \n    ";
+                let main_prefix = format!("{src_prefix}{} = foo\n    ", self.src);
                 let main = format!("{}{}", main_prefix, self.dst);
                 let expected = format!("{}{}", main_prefix, self.expected);
                 let this = self.clone();
 
-                let (src_port, dst_port) = self.ports;
-                let src_port = src_port.to_vec();
-                let dst_port = dst_port.to_vec();
-
+                let (src_port, dst_port) = self.ports.clone();
+                let src_port = src_port.start + src_prefix.len()..src_port.end + src_prefix.len();
+                let dst_port = dst_port.start + main_prefix.len()..dst_port.end + main_prefix.len();
+                let src_port = PortId::Ast(test.data.id_map.generate(src_port));
+                let dst_port = PortId::Ast(test.data.id_map.generate(dst_port));
                 test.data.code = main;
-                test.run(|graph| async move {
+
+                test.run(move |graph| async move {
                     let (node0, node1) = graph.nodes().unwrap().expect_tuple();
-                    let source = Endpoint::new(node0.info.id(), src_port.to_vec());
-                    let destination = Endpoint::new(node1.info.id(), dst_port.to_vec());
-                    let connection = Connection { source, destination };
+                    let source = Endpoint::new(node0.info.id(), src_port);
+                    let target = Endpoint::new(node1.info.id(), dst_port);
+                    let connection = Connection { source, target };
                     graph.connect(&connection, &span_tree::generate::context::Empty).unwrap();
                     let new_main = graph.definition().unwrap().ast.repr();
                     assert_eq!(new_main, expected, "Case {this:?}");
@@ -1574,11 +1497,11 @@ main =
             }
         }
 
-        let cases = &[Case { src: "x", dst: "foo", expected: "x", ports: (&[], &[]) }, Case {
+        let cases = &[Case { src: "x", dst: "foo", expected: "x", ports: (0..1, 0..3) }, Case {
             src:      "Vec x y",
             dst:      "1 + 2 + 3",
             expected: "x + 2 + 3",
-            ports:    (&[0, 2], &[0, 1]),
+            ports:    (4..5, 0..1),
         }];
         for case in cases {
             case.run()
@@ -1601,16 +1524,8 @@ main =
             assert!(connections(&graph).unwrap().connections.is_empty());
             let (node0, _node1, node2) = graph.nodes().unwrap().expect_tuple();
             let connection_to_add = Connection {
-                source:      Endpoint {
-                    node:       node2.info.id(),
-                    port:       default(),
-                    var_crumbs: default(),
-                },
-                destination: Endpoint {
-                    node:       node0.info.id(),
-                    port:       vec![4].into(),
-                    var_crumbs: default(),
-                },
+                source: Endpoint::root(node2.info.id()),
+                target: Endpoint::target_at(&node0, [InfixCrumb::RightOperand]).unwrap(),
             };
             graph.connect(&connection_to_add, &span_tree::generate::context::Empty).unwrap();
             let new_main = graph.definition().unwrap().ast.repr();
@@ -1637,19 +1552,10 @@ main =
     d = 4";
         test.data.code = PROGRAM.into();
         test.run(|graph| async move {
-            let (node0, _node1, _node2, _node3, node4, _node5) =
-                graph.nodes().unwrap().expect_tuple();
+            let (node0, _node1, _node2, _node3, node4, _) = graph.nodes().unwrap().expect_tuple();
             let connection_to_add = Connection {
-                source:      Endpoint {
-                    node:       node4.info.id(),
-                    port:       default(),
-                    var_crumbs: default(),
-                },
-                destination: Endpoint {
-                    node:       node0.info.id(),
-                    port:       vec![4].into(),
-                    var_crumbs: default(),
-                },
+                source: Endpoint::root(node4.info.id()),
+                target: Endpoint::target_at(&node0, [InfixCrumb::RightOperand]).unwrap(),
             };
             graph.connect(&connection_to_add, &span_tree::generate::context::Empty).unwrap();
             let new_main = graph.definition().unwrap().ast.repr();
@@ -1677,16 +1583,8 @@ main =
             assert!(connections(&graph).unwrap().connections.is_empty());
             let (node0, node1, _) = graph.nodes().unwrap().expect_tuple();
             let connection_to_add = Connection {
-                source:      Endpoint {
-                    node:       node0.info.id(),
-                    port:       default(),
-                    var_crumbs: default(),
-                },
-                destination: Endpoint {
-                    node:       node1.info.id(),
-                    port:       vec![2].into(), // `_` in `print _`
-                    var_crumbs: default(),
-                },
+                source: Endpoint::root(node0.info.id()),
+                target: Endpoint::target_at(&node1, [PrefixCrumb::Arg]).unwrap(),
             };
             graph.connect(&connection_to_add, &span_tree::generate::context::Empty).unwrap();
             let new_main = graph.definition().unwrap().ast.repr();
@@ -1789,7 +1687,7 @@ main =
             Case {
                 info: None,
                 dest_node_expr:     "f\n        bar a var",
-                dest_node_expected: "f\n        bar a _",
+                dest_node_expected: "f\n        bar a",
             },
         ];
         for case in cases {

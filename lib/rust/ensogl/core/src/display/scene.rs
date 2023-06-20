@@ -129,35 +129,39 @@ impl PointerTargetRegistry {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Mouse {
-    pub mouse_manager:          MouseManager,
-    pub last_position:          Rc<Cell<Vector2<i32>>>,
-    pub position:               Uniform<Vector2<i32>>,
-    pub click_count:            Uniform<i32>,
+    pub mouse_manager:           MouseManager,
+    pub pointer_target_registry: PointerTargetRegistry,
+    pub last_position:           Rc<Cell<Vector2>>,
+    pub position:                Uniform<Vector2<i32>>,
+    pub click_count:             Uniform<i32>,
     /// The encoded value of pointer target ID. The offscreen canvas containing the encoded IDs is
     /// sampled and the most recent sample is stored here. Please note, that this sample may be
     /// from a few frames back, as it is not guaranteed when we will receive the data from GPU.
-    pub pointer_target_encoded: Uniform<Vector4<u32>>,
-    pub target:                 Rc<Cell<PointerTargetId>>,
-    pub handles:                Rc<[callback::Handle; 6]>,
-    pub scene_frp:              Frp,
+    pub pointer_target_encoded:  Uniform<Vector4<u32>>,
+    pub target:                  Rc<Cell<PointerTargetId>>,
+    pub handles:                 Rc<[callback::Handle; 6]>,
+    pub scene_frp:               Frp,
     /// Stored in order to be converted to [`mouse::Over`], [`mouse::Out`], [`mouse::Enter`], and
     /// [`mouse::Leave`] when the mouse enters or leaves an element.
-    pub last_move_event:        Rc<RefCell<Option<mouse::Move>>>,
+    pub last_move_event:         Rc<RefCell<Option<mouse::Move>>>,
     /// # Deprecated
     /// This API is deprecated. Instead, use the display object's event API. For example, to get an
     /// FRP endpoint for mouse event, you can use the [`crate::display::Object::on_event`]
     /// function.
-    pub frp_deprecated:         enso_frp::io::Mouse_DEPRECATED,
+    pub frp_deprecated:          enso_frp::io::Mouse_DEPRECATED,
+    pub background:              PointerTarget_DEPRECATED,
 }
 
 impl Mouse {
     pub fn new(
         scene_frp: &Frp,
+        scene_object: &display::object::Instance,
         root: &web::dom::WithKnownShape<web::HtmlDivElement>,
         variables: &UniformScope,
         display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
-        pointer_target_registry: &PointerTargetRegistry,
     ) -> Self {
+        let background = PointerTarget_DEPRECATED::new();
+        let pointer_target_registry = PointerTargetRegistry::new(&background, scene_object);
         let last_pressed_elem: Rc<RefCell<HashMap<mouse::Button, PointerTargetId>>> = default();
 
         let scene_frp = scene_frp.clone_ref();
@@ -177,16 +181,14 @@ impl Mouse {
                 last_move_event.borrow_mut().replace(event.clone());
                 let shape = scene_frp.shape.value();
                 let pixel_ratio = shape.pixel_ratio;
-                let screen_x = event.client_x();
-                let screen_y = event.client_y();
-                let new_pos = Vector2::new(screen_x,screen_y);
+                let new_pos = event.client();
                 let pos_changed = new_pos != last_position.get();
                 if pos_changed {
                     last_position.set(new_pos);
-                    let new_canvas_position = new_pos.map(|v| (v as f32 *  pixel_ratio) as i32);
+                    let new_canvas_position = new_pos.map(|v| (v * pixel_ratio) as i32);
                     position.set(new_canvas_position);
-                    let position_bottom_left = Vector2(new_pos.x as f32, new_pos.y as f32);
-                    let position_top_left = Vector2(new_pos.x as f32, shape.height - new_pos.y as f32);
+                    let position_bottom_left = new_pos;
+                    let position_top_left = Vector2(new_pos.x, shape.height - new_pos.y);
                     let position = position_bottom_left - shape.center();
                     frp_deprecated.position_bottom_left.emit(position_bottom_left);
                     frp_deprecated.position_top_left.emit(position_top_left);
@@ -256,6 +258,7 @@ impl Mouse {
 
         let handles = Rc::new([on_move, on_down, on_up, on_wheel, on_leave, on_enter]);
         Self {
+            pointer_target_registry,
             mouse_manager,
             last_position,
             position,
@@ -266,6 +269,48 @@ impl Mouse {
             frp_deprecated,
             scene_frp,
             last_move_event,
+            background,
+        }
+    }
+
+    /// Discover what object the mouse pointer is on.
+    fn handle_over_and_out_events(&self) {
+        let opt_new_target = PointerTargetId::decode_from_rgba(self.pointer_target_encoded.get());
+        let new_target = opt_new_target.unwrap_or_else(|err| {
+            error!("{err}");
+            default()
+        });
+        self.switch_target(new_target);
+    }
+
+    /// Set mouse target and emit hover events if necessary.
+    fn switch_target(&self, new_target: PointerTargetId) {
+        let current_target = self.target.get();
+        if new_target != current_target {
+            self.target.set(new_target);
+            if let Some(event) = (*self.last_move_event.borrow()).clone() {
+                self.pointer_target_registry.with_mouse_target(current_target, |t, d| {
+                    t.mouse_out.emit(());
+                    let out_event = event.clone().unchecked_convert_to::<mouse::Out>();
+                    let leave_event = event.clone().unchecked_convert_to::<mouse::Leave>();
+                    d.emit_event(out_event);
+                    d.emit_event_without_bubbling(leave_event);
+                });
+                self.pointer_target_registry.with_mouse_target(new_target, |t, d| {
+                    t.mouse_over.emit(());
+                    let over_event = event.clone().unchecked_convert_to::<mouse::Over>();
+                    let enter_event = event.clone().unchecked_convert_to::<mouse::Enter>();
+                    d.emit_event(over_event);
+                    d.emit_event_without_bubbling(enter_event);
+                });
+
+                // Re-emitting position event. See the docs of [`re_emit_position_event`] to learn
+                // why.
+                self.pointer_target_registry.with_mouse_target(new_target, |_, d| {
+                    d.emit_event(event.clone());
+                });
+                self.re_emit_position_event();
+            }
         }
     }
 
@@ -292,7 +337,7 @@ impl Mouse {
     pub fn re_emit_position_event(&self) {
         let shape = self.scene_frp.shape.value();
         let new_pos = self.last_position.get();
-        let position = Vector2(new_pos.x as f32, new_pos.y as f32) - shape.center();
+        let position = new_pos - shape.center();
         self.frp_deprecated.position.emit(position);
     }
 }
@@ -832,8 +877,6 @@ pub struct SceneData {
     pub mouse: Mouse,
     pub keyboard: Keyboard,
     pub uniforms: Uniforms,
-    pub background: PointerTarget_DEPRECATED,
-    pub pointer_target_registry: PointerTargetRegistry,
     pub stats: Stats,
     pub dirty: Dirty,
     pub renderer: Renderer,
@@ -866,14 +909,11 @@ impl SceneData {
         let dirty = Dirty::new(on_mut);
         let layers = world::with_context(|t| t.layers.clone_ref());
         let stats = stats.clone();
-        let background = PointerTarget_DEPRECATED::new();
-        let pointer_target_registry = PointerTargetRegistry::new(&background, &display_object);
         let uniforms = Uniforms::new(&variables);
         let renderer = Renderer::new(&dom, &variables);
         let style_sheet = world::with_context(|t| t.style_sheet.clone_ref());
         let frp = Frp::new(&dom.root.shape);
-        let mouse =
-            Mouse::new(&frp, &dom.root, &variables, &display_mode, &pointer_target_registry);
+        let mouse = Mouse::new(&frp, &display_object, &dom.root, &variables, &display_mode);
         let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
         let keyboard = Keyboard::new(&web::window);
         let network = &frp.network;
@@ -905,8 +945,6 @@ impl SceneData {
             mouse,
             keyboard,
             uniforms,
-            pointer_target_registry,
-            background,
             stats,
             dirty,
             renderer,
@@ -1047,7 +1085,11 @@ impl SceneData {
     }
 
     pub fn screen_to_scene_coordinates(&self, position: Vector3<f32>) -> Vector3<f32> {
-        let position = position / self.camera().zoom();
+        let zoom = self.camera().zoom();
+        if zoom == 0.0 {
+            return Vector3::zero();
+        }
+        let position = position / zoom;
         let position = Vector4::new(position.x, position.y, position.z, 1.0);
         (self.camera().inversed_view_matrix() * position).xyz()
     }
@@ -1089,43 +1131,6 @@ impl SceneData {
         let pointer_position_changed = &self.pointer_position_changed;
         frp::extend! { network
             eval_ self.mouse.frp_deprecated.position (pointer_position_changed.set(true));
-        }
-    }
-
-    /// Discover what object the mouse pointer is on.
-    fn handle_mouse_over_and_out_events(&self) {
-        let opt_new_target =
-            PointerTargetId::decode_from_rgba(self.mouse.pointer_target_encoded.get());
-        let new_target = opt_new_target.unwrap_or_else(|err| {
-            error!("{err}");
-            default()
-        });
-        let current_target = self.mouse.target.get();
-        if new_target != current_target {
-            self.mouse.target.set(new_target);
-            if let Some(event) = (*self.mouse.last_move_event.borrow()).clone() {
-                self.pointer_target_registry.with_mouse_target(current_target, |t, d| {
-                    t.mouse_out.emit(());
-                    let out_event = event.clone().unchecked_convert_to::<mouse::Out>();
-                    let leave_event = event.clone().unchecked_convert_to::<mouse::Leave>();
-                    d.emit_event(out_event);
-                    d.emit_event_without_bubbling(leave_event);
-                });
-                self.pointer_target_registry.with_mouse_target(new_target, |t, d| {
-                    t.mouse_over.emit(());
-                    let over_event = event.clone().unchecked_convert_to::<mouse::Over>();
-                    let enter_event = event.clone().unchecked_convert_to::<mouse::Enter>();
-                    d.emit_event(over_event);
-                    d.emit_event_without_bubbling(enter_event);
-                });
-
-                // Re-emitting position event. See the docs of [`re_emit_position_event`] to learn
-                // why.
-                self.pointer_target_registry.with_mouse_target(new_target, |_, d| {
-                    d.emit_event(event.clone());
-                });
-                self.mouse.re_emit_position_event();
-            }
         }
     }
 }
@@ -1315,21 +1320,17 @@ impl Scene {
     /// during this frame.
     #[profile(Debug)]
     pub fn update_layout(&self, time: animation::TimeInfo) -> UpdateStatus {
-        if self.context.borrow().is_some() {
-            debug_span!("Early update.").in_scope(|| {
-                world::with_context(|t| t.theme_manager.update());
+        debug_span!("Early update.").in_scope(|| {
+            world::with_context(|t| t.theme_manager.update());
 
-                let mut scene_was_dirty = false;
-                self.frp.frame_time_source.emit(time.since_animation_loop_started.unchecked_raw());
-                // Please note that `update_camera` is called first as it may trigger FRP events
-                // which may change display objects layout.
-                scene_was_dirty |= self.update_camera(self);
-                self.display_object.update(self);
-                UpdateStatus { scene_was_dirty, pointer_position_changed: false }
-            })
-        } else {
-            default()
-        }
+            let mut scene_was_dirty = false;
+            self.frp.frame_time_source.emit(time.since_animation_loop_started.unchecked_raw());
+            // Please note that `update_camera` is called first as it may trigger FRP events
+            // which may change display objects layout.
+            scene_was_dirty |= self.update_camera(self);
+            self.display_object.update(self);
+            UpdateStatus { scene_was_dirty, pointer_position_changed: false }
+        })
     }
 
     /// Perform rendering phase of scene update. At this point, all display object state is being
@@ -1341,30 +1342,26 @@ impl Scene {
         time: animation::TimeInfo,
         early_status: UpdateStatus,
     ) -> UpdateStatus {
-        if let Some(context) = &*self.context.borrow() {
-            debug_span!("Late update.").in_scope(|| {
-                let UpdateStatus { mut scene_was_dirty, mut pointer_position_changed } =
-                    early_status;
-                scene_was_dirty |= self.layers.update();
-                scene_was_dirty |= self.update_shape();
+        debug_span!("Late update.").in_scope(|| {
+            let UpdateStatus { mut scene_was_dirty, mut pointer_position_changed } = early_status;
+            scene_was_dirty |= self.layers.update();
+            scene_was_dirty |= self.update_shape();
+            if let Some(context) = &*self.context.borrow() {
                 context.profiler.measure_data_upload(|| {
                     scene_was_dirty |= self.update_symbols();
                 });
-                self.handle_mouse_over_and_out_events();
+                self.mouse.handle_over_and_out_events();
                 scene_was_dirty |= self.shader_compiler.run(context, time);
+            }
+            pointer_position_changed |= self.pointer_position_changed.get();
+            self.pointer_position_changed.set(false);
 
-                pointer_position_changed |= self.pointer_position_changed.get();
-                self.pointer_position_changed.set(false);
-
-                // FIXME: setting it to true for now in order to make cursor blinking work.
-                //   Text cursor animation is in GLSL. To be handled properly in this PR:
-                //   #183406745
-                scene_was_dirty |= true;
-                UpdateStatus { scene_was_dirty, pointer_position_changed }
-            })
-        } else {
-            default()
-        }
+            // FIXME: setting it to true for now in order to make cursor blinking work.
+            //   Text cursor animation is in GLSL. To be handled properly in this PR:
+            //   #183406745
+            scene_was_dirty |= true;
+            UpdateStatus { scene_was_dirty, pointer_position_changed }
+        })
     }
 }
 
@@ -1443,18 +1440,97 @@ enum TaskState {
 /// Extended API for tests.
 pub mod test_utils {
     use super::*;
+    use display::shape::ShapeInstance;
+    use enso_callback::traits::*;
 
     pub trait MouseExt {
-        /// Emulate click on background for testing purposes.
-        fn click_on_background(&self);
+        /// Set the pointer target and emit mouse enter/leave and over/out events.
+        fn set_hover_target(&self, target: PointerTargetId) -> &Self;
+        /// Simulate mouse down event.
+        fn emit_down(&self, event: mouse::Down) -> &Self;
+        /// Simulate mouse up event.
+        fn emit_up(&self, event: mouse::Up) -> &Self;
+        /// Simulate mouse move event.
+        fn emit_move(&self, event: mouse::Move) -> &Self;
+        /// Simulate mouse wheel event.
+        fn emit_wheel(&self, event: mouse::Wheel) -> &Self;
+        /// Get current screen shape.
+        fn screen_shape(&self) -> Shape;
+
+        /// Convert main camera scene position to needed event position in test environment.
+        fn scene_to_event_position(&self, scene_pos: Vector2) -> Vector2 {
+            scene_pos + self.screen_shape().center()
+        }
+
+        /// Simulate mouse move and hover with manually specified event data and target.
+        fn hover_raw(&self, data: mouse::MouseEventData, target: PointerTargetId) -> &Self {
+            self.emit_move(mouse::Move::simulated(data, self.screen_shape()))
+                .set_hover_target(target)
+        }
+
+        /// Simulate mouse hover and click with manually specified event data and target.
+        fn click_on_raw(&self, data: mouse::MouseEventData, target: PointerTargetId) -> &Self {
+            self.hover_raw(data, target)
+                .emit_down(mouse::Down::simulated(data, self.screen_shape()))
+                .emit_up(mouse::Up::simulated(data, self.screen_shape()))
+        }
+
+        /// Simulate mouse hover on a on given shape.
+        fn hover<S>(&self, instance: &ShapeInstance<S>, scene_pos: Vector2) -> &Self {
+            let pos = self.scene_to_event_position(scene_pos);
+            self.hover_raw(mouse::MouseEventData::primary_at(pos), PointerTargetId::Symbol {
+                id: instance.sprite.borrow().global_instance_id,
+            })
+        }
+
+        /// Simulate mouse hover on background.
+        fn hover_background(&self, scene_pos: Vector2) -> &Self {
+            let pos = self.scene_to_event_position(scene_pos);
+            self.hover_raw(mouse::MouseEventData::primary_at(pos), PointerTargetId::Background)
+        }
+
+        /// Simulate mouse hover and click on given shape.
+        fn click_on<S>(&self, instance: &ShapeInstance<S>, scene_pos: Vector2) {
+            let pos = self.scene_to_event_position(scene_pos);
+            self.click_on_raw(mouse::MouseEventData::primary_at(pos), PointerTargetId::Symbol {
+                id: instance.sprite.borrow().global_instance_id,
+            });
+        }
+        /// Simulate mouse click on background.
+        fn click_on_background(&self, scene_pos: Vector2) {
+            let pos = self.scene_to_event_position(scene_pos);
+            self.click_on_raw(mouse::MouseEventData::primary_at(pos), PointerTargetId::Background);
+        }
     }
 
     impl MouseExt for Mouse {
-        fn click_on_background(&self) {
-            self.target.set(PointerTargetId::Background);
-            let left_mouse_button = frp::io::mouse::Button::Button0;
-            self.frp_deprecated.down.emit(left_mouse_button);
-            self.frp_deprecated.up.emit(left_mouse_button);
+        fn set_hover_target(&self, target: PointerTargetId) -> &Self {
+            self.switch_target(target);
+            self
+        }
+
+        fn emit_down(&self, event: mouse::Down) -> &Self {
+            self.mouse_manager.on_down.run_all(&event);
+            self
+        }
+
+        fn emit_up(&self, event: mouse::Up) -> &Self {
+            self.mouse_manager.on_up.run_all(&event);
+            self
+        }
+
+        fn emit_move(&self, event: mouse::Move) -> &Self {
+            self.mouse_manager.on_move.run_all(&event);
+            self
+        }
+
+        fn emit_wheel(&self, event: mouse::Wheel) -> &Self {
+            self.mouse_manager.on_wheel.run_all(&event);
+            self
+        }
+
+        fn screen_shape(&self) -> Shape {
+            self.scene_frp.shape.value()
         }
     }
 }

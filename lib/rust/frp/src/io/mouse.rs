@@ -20,9 +20,10 @@ use nalgebra::Vector2;
 /// JS supports up to 5 mouse buttons currently:
 /// https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button
 /// https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/buttons
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, Hash, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum Button {
+    #[default]
     Button0,
     Button1,
     Button2,
@@ -79,12 +80,6 @@ impl Button {
     /// Simple, user-friendly name of a key. Used in shortcut manager.
     pub fn simple_name(self) -> String {
         format!("mouse-button-{}", self.code())
-    }
-}
-
-impl Default for Button {
-    fn default() -> Self {
-        Self::Button0
     }
 }
 
