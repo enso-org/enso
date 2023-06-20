@@ -430,13 +430,11 @@ impl Handle {
         }
     }
 
-    /// Remove the connections from the graph. Returns an updated edge destination endpoint for
-    /// disconnected edge, in case it is still used as destination-only edge. When `None` is
-    /// returned, no update is necessary.
+    /// Remove the connections from the graph.
     ///
     /// ### Errors
     /// - Fails if the project is in read-only mode.
-    pub fn disconnect(&self, connection: &Connection) -> FallibleResult<Option<span_tree::Crumbs>> {
+    pub fn disconnect(&self, connection: &Connection) -> FallibleResult {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else {
@@ -515,7 +513,8 @@ pub mod tests {
     use crate::test;
 
     use crate::test::mock::Fixture;
-    use controller::graph::SpanTree;
+    use ast::crumbs::InfixCrumb;
+    use controller::graph::Endpoint;
     use engine_protocol::language_server::types::test::value_update_with_type;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
@@ -681,15 +680,10 @@ main =
             assert_eq!(sum_node.expression().to_string(), "2 + 2");
             assert_eq!(product_node.expression().to_string(), "5 * 5");
 
-            let context = &span_tree::generate::context::Empty;
-            let sum_tree = SpanTree::new(&sum_node.expression(), context).unwrap();
-            let sum_input =
-                sum_tree.root_ref().leaf_iter().find(|n| n.is_argument()).unwrap().crumbs;
             let connection = Connection {
-                source:      controller::graph::Endpoint::new(product_node.id(), []),
-                destination: controller::graph::Endpoint::new(sum_node.id(), sum_input),
+                source: Endpoint::root(product_node.id()),
+                target: Endpoint::target_at(sum_node, [InfixCrumb::LeftOperand]).unwrap(),
             };
-
             assert!(executed.connect(&connection).is_err());
         });
     }
