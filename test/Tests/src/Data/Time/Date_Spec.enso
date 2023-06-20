@@ -496,7 +496,7 @@ main = Test_Suite.run_main spec
 
 parseNormally x y = (Date.parse x y) . to_text
 
-js_parse text format=Nothing =
+js_parse text format="" =
     d = Date.parse text format
     js_date d.year d.month d.day
 

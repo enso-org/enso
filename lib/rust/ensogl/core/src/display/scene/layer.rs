@@ -556,7 +556,7 @@ impl LayerModel {
 
     /// Add depth-order dependency between two shape-like definitions, where a "shape-like"
     /// definition means a [`Shape`], a [`ShapeProxy`], or user-defined shape system.
-    pub fn add_shapes_order_dependency<S1, S2>(&self) -> (PhantomData<S1>, PhantomData<S2>)
+    pub fn add_shapes_order_dependency<S1, S2>(&self) -> (ZST<S1>, ZST<S2>)
     where
         S1: Shape,
         S2: Shape, {
@@ -570,9 +570,7 @@ impl LayerModel {
     /// Remove depth-order dependency between two shape-like definitions, where a "shape-like"
     /// definition means a [`Shape`], a [`ShapeProxy`], or user-defined shape system. Returns
     /// `true` if the dependency was found, and `false` otherwise.
-    pub fn remove_shapes_order_dependency<S1, S2>(
-        &self,
-    ) -> (bool, PhantomData<S1>, PhantomData<S2>)
+    pub fn remove_shapes_order_dependency<S1, S2>(&self) -> (bool, ZST<S1>, ZST<S2>)
     where
         S1: Shape,
         S2: Shape, {
@@ -1013,9 +1011,7 @@ impl LayerModel {
     /// This implementation can be simplified to `S1:KnownShapeSystemId` (not using [`Content`] at
     /// all), after the compiler gets updated to newer version. Returns `true` if the dependency was
     /// inserted successfully (was not already present), and `false` otherwise.
-    pub fn add_global_shapes_order_dependency<S1, S2>(
-        &self,
-    ) -> (bool, PhantomData<S1>, PhantomData<S2>)
+    pub fn add_global_shapes_order_dependency<S1, S2>(&self) -> (bool, ZST<S1>, ZST<S2>)
     where
         S1: Shape,
         S2: Shape, {
@@ -1029,9 +1025,7 @@ impl LayerModel {
     /// This implementation can be simplified to `S1:KnownShapeSystemId` (not using [`Content`] at
     /// all), after the compiler gets updated to newer version. Returns `true` if the dependency was
     /// found, and `false` otherwise.
-    pub fn remove_global_shapes_order_dependency<S1, S2>(
-        &self,
-    ) -> (bool, PhantomData<S1>, PhantomData<S2>)
+    pub fn remove_global_shapes_order_dependency<S1, S2>(&self) -> (bool, ZST<S1>, ZST<S2>)
     where
         S1: Shape,
         S2: Shape, {
@@ -1079,7 +1073,7 @@ impl std::borrow::Borrow<LayerModel> for Layer {
 pub struct LayerSymbolPartition<S> {
     layer: WeakLayer,
     id:    Immutable<SymbolPartitionId>,
-    shape: PhantomData<*const S>,
+    shape: ZST<*const S>,
 }
 
 /// Identifies a symbol partition, for some [`Symbol`], relative to some [`Layer`].
@@ -1450,7 +1444,7 @@ impl {
     pub(crate) fn drop_instance<S>(
         &mut self,
         flavor: ShapeSystemFlavor
-    ) -> (bool, ShapeSystemId, PhantomData<S>)
+    ) -> (bool, ShapeSystemId, ZST<S>)
     where
         S : Shape
     {
@@ -1464,7 +1458,7 @@ impl {
         // are still more instances in the currently processed entry.
         let no_more_instances = entry_is_empty && self.total_system_instances(system_id) == 0;
 
-        (no_more_instances, system_id, PhantomData)
+        (no_more_instances, system_id, ZST())
     }
 
     fn flavors(&self, shape_system_id: ShapeSystemId) -> impl Iterator<Item=ShapeSystemFlavor> {

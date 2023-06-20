@@ -5,6 +5,7 @@ edition = "2021"
 authors = ["Enso Team <contact@enso.org>"]
 
 [dependencies]
+enso-zst = { path = "../zst" }
 derivative = { workspace = true }
 derive_more = { workspace = true }
 

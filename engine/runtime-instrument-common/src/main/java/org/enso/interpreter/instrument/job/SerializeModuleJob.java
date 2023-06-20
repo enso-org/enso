@@ -29,7 +29,7 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
             .getEnvironment()
             .getOptions()
             .get(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY);
-    ctx.locking().acquireWriteCompilationLock();
+    var writeLockTimestamp = ctx.locking().acquireWriteCompilationLock();
     try {
       ctx.executionService()
           .getContext()
@@ -50,6 +50,13 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
               });
     } finally {
       ctx.locking().releaseWriteCompilationLock();
+      ctx.executionService()
+          .getLogger()
+          .log(
+              Level.FINEST,
+              "Kept write compilation lock [SetExecutionEnvironmentCommand] for "
+                  + (System.currentTimeMillis() - writeLockTimestamp)
+                  + " milliseconds");
     }
     return null;
   }

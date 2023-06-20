@@ -88,6 +88,7 @@ impl_clone_ref_as_clone_no_from!(u64);
 impl_clone_ref_as_clone_no_from!(usize);
 impl_clone_ref_as_clone_no_from!(std::any::TypeId);
 impl_clone_ref_as_clone_no_from!([T] std::marker::PhantomData<T>);
+impl_clone_ref_as_clone_no_from!([T] enso_zst::ZST<T>);
 impl_clone_ref_as_clone_no_from!([T:?Sized] std::rc::Rc<T>);
 impl_clone_ref_as_clone_no_from!([T:?Sized] std::rc::Weak<T>);
 

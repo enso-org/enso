@@ -29,4 +29,8 @@ trait JobControlPlane {
     * already running.
     */
   def startBackgroundJobs(): Boolean
+
+  /** Finds the first in-progress job satisfying the `filter` condition
+    */
+  def jobInProgress[T](filter: PartialFunction[Job[_], Option[T]]): Option[T]
 }

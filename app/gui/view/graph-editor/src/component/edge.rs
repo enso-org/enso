@@ -353,7 +353,7 @@ mod coords {
     pub struct Coords<Space, Number: Copy + Debug + PartialEq + 'static = f32> {
         #[deref]
         coords: Vector2<Number>,
-        space:  PhantomData<*const Space>,
+        space:  ZST<Space>,
     }
 
     pub type ParentCoords = Coords<ParentOrigin>;

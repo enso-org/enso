@@ -9,7 +9,7 @@ import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 
@@ -36,35 +36,43 @@ public abstract class GetAnnotationNode extends BaseNode {
       Object target,
       Object method,
       Object parameter,
-      @CachedLibrary(limit = "3") TypesLibrary types,
       @Cached ThunkExecutorNode thunkExecutorNode,
-      @Cached ExpectStringNode expectStringNode) {
+      @Cached ExpectStringNode expectStringNode,
+      @Cached TypeOfNode typeOfNode) {
     String methodName = expectStringNode.execute(method);
-    Type targetType = types.getType(target);
-    ModuleScope scope = targetType.getDefinitionScope();
-    Function methodFunction = scope.lookupMethodDefinition(targetType, methodName);
-    if (methodFunction != null) {
-      String parameterName = expectStringNode.execute(parameter);
-      Annotation annotation = methodFunction.getSchema().getAnnotation(parameterName);
-      if (annotation != null) {
-        Function thunk =
-            Function.thunk(annotation.getExpression().getCallTarget(), frame.materialize());
-        return thunkExecutorNode.executeThunk(frame, thunk, state, getTailStatus());
-      }
+
+    Object targetTypeResult = typeOfNode.execute(target);
+    if (targetTypeResult instanceof DataflowError error) {
+      return error;
     }
-    if (target instanceof Type type) {
-      AtomConstructor constructor = getAtomConstructor(type, methodName);
-      if (constructor != null) {
-        Function constructorFunction = constructor.getConstructorFunction();
+
+    if (targetTypeResult instanceof Type targetType) {
+      ModuleScope scope = targetType.getDefinitionScope();
+      Function methodFunction = scope.lookupMethodDefinition(targetType, methodName);
+      if (methodFunction != null) {
         String parameterName = expectStringNode.execute(parameter);
-        Annotation annotation = constructorFunction.getSchema().getAnnotation(parameterName);
+        Annotation annotation = methodFunction.getSchema().getAnnotation(parameterName);
         if (annotation != null) {
           Function thunk =
               Function.thunk(annotation.getExpression().getCallTarget(), frame.materialize());
           return thunkExecutorNode.executeThunk(frame, thunk, state, getTailStatus());
         }
       }
+      if (target instanceof Type type) {
+        AtomConstructor constructor = getAtomConstructor(type, methodName);
+        if (constructor != null) {
+          Function constructorFunction = constructor.getConstructorFunction();
+          String parameterName = expectStringNode.execute(parameter);
+          Annotation annotation = constructorFunction.getSchema().getAnnotation(parameterName);
+          if (annotation != null) {
+            Function thunk =
+                Function.thunk(annotation.getExpression().getCallTarget(), frame.materialize());
+            return thunkExecutorNode.executeThunk(frame, thunk, state, getTailStatus());
+          }
+        }
+      }
     }
+
     return EnsoContext.get(this).getNothing();
   }
 

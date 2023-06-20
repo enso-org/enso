@@ -72,7 +72,7 @@ function limitWebViewCreation() {
     electron.app.on('web-contents-created', (_event, contents) => {
         contents.on('will-attach-webview', (event, webPreferences, params) => {
             secureWebPreferences(webPreferences)
-            if (params.src && !WEBVIEW_URL_WHITELIST.includes(params.src)) {
+            if (params.src != null && !WEBVIEW_URL_WHITELIST.includes(params.src)) {
                 console.error(`Blocked the creation of WebView pointing to '${params.src}'`)
                 event.preventDefault()
             }
@@ -89,7 +89,8 @@ function preventNavigation() {
         contents.on('will-navigate', (event, navigationUrl) => {
             const parsedUrl = new URL(navigationUrl)
             const currentWindowUrl = electron.BrowserWindow.getFocusedWindow()?.webContents.getURL()
-            const parsedCurrentWindowUrl = currentWindowUrl ? new URL(currentWindowUrl) : null
+            const parsedCurrentWindowUrl =
+                currentWindowUrl != null ? new URL(currentWindowUrl) : null
             if (
                 parsedUrl.origin !== parsedCurrentWindowUrl?.origin &&
                 !TRUSTED_HOSTS.includes(parsedUrl.host)
