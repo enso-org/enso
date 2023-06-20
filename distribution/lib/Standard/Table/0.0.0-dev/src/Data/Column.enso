@@ -25,7 +25,6 @@ from project.Data.Type.Value_Type import Value_Type, Auto
 from project.Errors import No_Index_Set_Error, Floating_Point_Equality, Invalid_Value_Type, Inexact_Type_Coercion, Conversion_Failure
 from project.Internal.Java_Exports import make_string_builder, make_double_builder, make_long_builder, make_date_builder_adapter
 
-polyglot java import org.enso.table.data.column.builder.object.DateBuilder
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column

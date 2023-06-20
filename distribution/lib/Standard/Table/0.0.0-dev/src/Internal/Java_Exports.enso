@@ -1,12 +1,5 @@
 from Standard.Base import all
 
-import project.Data.Column.Column
-import project.Data.Table.Table
-
-polyglot java import org.enso.table.data.table.Column as Java_Column
-polyglot java import org.enso.table.data.table.Table as Java_Table
-
-polyglot java import org.enso.table.data.index.DefaultIndex
 polyglot java import org.enso.table.data.column.storage.Storage
 polyglot java import org.enso.table.data.column.builder.BoolBuilder
 polyglot java import org.enso.table.data.column.builder.DateBuilder
@@ -15,7 +8,6 @@ polyglot java import org.enso.table.data.column.builder.InferredBuilder
 polyglot java import org.enso.table.data.column.builder.NumericBuilder
 polyglot java import org.enso.table.data.column.builder.StringBuilder
 polyglot java import org.enso.table.data.column.builder.TimeOfDayBuilder
-polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 
 ## PRIVATE
 make_bool_builder : BoolBuilder
@@ -59,7 +51,7 @@ type DateBuilderAdapter
     append self date =
         self.date_builder.appendDate date
 
-    seal : Java_Storage
+    seal : Storage
     seal self = self.date_builder.seal
 
 ## PRIVATE
