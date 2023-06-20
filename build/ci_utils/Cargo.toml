@@ -36,7 +36,7 @@ headers = "0.3.7"
 heck = "0.4.0"
 http-serde = "1.1.0"
 indexmap = "1.7.0"
-indicatif = { version = "0.17.1", features = ["tokio"] }
+indicatif = "0.17.1"
 itertools = { workspace = true }
 lazy_static = { workspace = true }
 log = "0.4.14"
