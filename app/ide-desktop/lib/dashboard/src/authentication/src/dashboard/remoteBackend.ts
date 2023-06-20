@@ -157,6 +157,11 @@ export class RemoteBackend implements backend.Backend {
         if (!this.client.defaultHeaders.has('Authorization')) {
             return this.throw('Authorization header not set.')
         } else {
+            if (IS_DEV_MODE) {
+                // @ts-expect-error This exists only for debugging purposes. It does not have types
+                // because it MUST NOT be used in this codebase.
+                window.remoteBackend = this
+            }
             return
         }
     }

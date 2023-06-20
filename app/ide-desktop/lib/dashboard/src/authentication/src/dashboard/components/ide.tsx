@@ -122,7 +122,10 @@ function Ide(props: IdeProps) {
                 }
             }
         })()
-    }, [appRunner, backend, project])
+        // The backend MUST NOT be a dependency, since the IDE should only be recreated when a new
+        // project is opened.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [appRunner, project])
 
     return <></>
 }

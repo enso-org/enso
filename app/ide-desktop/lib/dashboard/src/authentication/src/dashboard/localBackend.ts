@@ -34,6 +34,15 @@ export class LocalBackend implements Partial<backend.Backend> {
     readonly type = backend.BackendType.local
     private readonly projectManager = projectManager.ProjectManager.default()
 
+    /** Create a {@link LocalBackend}. */
+    constructor() {
+        if (IS_DEV_MODE) {
+            // @ts-expect-error This exists only for debugging purposes. It does not have types
+            // because it MUST NOT be used in this codebase.
+            window.localBackend = this
+        }
+    }
+
     /** Return a list of assets in a directory.
      *
      * @throws An error if the JSON-RPC call fails. */
