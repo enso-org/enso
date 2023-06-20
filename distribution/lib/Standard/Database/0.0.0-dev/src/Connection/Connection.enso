@@ -5,6 +5,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context as Execution_Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
@@ -25,6 +26,7 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Query.Query
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
+import project.Internal.Hidden_Table_Registry
 
 from project.Internal.Result_Set import read_column, result_set_to_table
 from project.Internal.JDBC_Connection import handle_sql_errors
@@ -43,7 +45,21 @@ type Connection
        - jdbc_connection: the resource managing the underlying JDBC
          connection.
        - dialect: the dialect associated with the database we are connected to.
-    Value jdbc_connection dialect
+       - supports_large_update: whether the connection should try to use
+         `executeLargeUpdate`. Set to `True` by default and if the operation
+         fails with `UnsupportedOperationException`, it is updated to be
+         `False`.
+       - hidden_table_registry: a registry of hidden tables that are not
+         shown to the user, but are used internally by the dry-run system.
+    Value jdbc_connection dialect supports_large_update hidden_table_registry
+
+    ## PRIVATE
+       Constructs a new Connection.
+    new jdbc_connection dialect try_large_update=True =
+        drop table_name =
+            internal_drop_table jdbc_connection dialect table_name
+        registry = Hidden_Table_Registry.new drop
+        Connection.Value jdbc_connection dialect (Ref.new try_large_update) registry
 
     ## PRIVATE
        Closes the connection releasing the underlying database resources
@@ -128,17 +144,31 @@ type Connection
     @schema make_schema_selector
     tables : Text -> Text -> Text -> Vector Text | Text | Nothing -> Boolean -> Materialized_Table
     tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
+        self.get_tables_advanced name_like=name_like database=database schema=schema types=types all_fields=all_fields include_hidden=False
+
+    ## PRIVATE
+       A helper that allows to access all tables in a database, including hidden
+       ones.
+
+       Later, once nodes can have expandable arguments, we can merge this with
+       `tables`, marking the `include_hidden` argument as expandable.
+    get_tables_advanced self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False include_hidden=False =
         types_vector = case types of
             Nothing -> Nothing
             _ : Vector -> types
             _ -> [types]
         name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
-        self.jdbc_connection.with_metadata metadata->
+        result = self.jdbc_connection.with_metadata metadata->
             table = Managed_Resource.bracket (metadata.getTables database schema name_like types_vector) .close result_set->
                 result_set_to_table result_set self.dialect.make_column_fetcher_for_type
             renamed = table.rename_columns name_map
             if all_fields then renamed else
                 renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
+        case include_hidden of
+            True -> result
+            False ->
+                hidden_tables = self.hidden_table_registry.list_hidden_tables
+                result.filter "Name" (Filter_Condition.Not_In hidden_tables)
 
     ## PRIVATE
        Set up a query returning a Table object, which can be used to work with
@@ -176,14 +206,8 @@ type Connection
                 ctx = Context.for_query raw_sql name
                 Database_Table_Module.make_table self name columns ctx
         SQL_Query.Table_Name name ->
-            result = handle_sql_errors <|
-                ctx = Context.for_table name (if alias == "" then name else alias)
-                statement = self.dialect.generate_sql (Query.Select Nothing ctx)
-                statement_setter = self.dialect.get_statement_setter
-                columns = self.fetch_columns statement statement_setter
-                Database_Table_Module.make_table self name columns ctx
-            result.catch SQL_Error sql_error->
-                Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False extra_message="")
+            make_table_for_name self name alias
+
 
     ## PRIVATE
        Execute the query and load the results into memory as a Table.
@@ -295,8 +319,11 @@ type Connection
         if Execution_Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Executing update queries is forbidden as the Output context is disabled.") else
             statement_setter = self.dialect.get_statement_setter
             self.jdbc_connection.with_prepared_statement query statement_setter stmt->
-                Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
-                    stmt.executeUpdate
+                case self.supports_large_update.get of
+                    True -> Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
+                        self.supports_large_update.put False
+                        stmt.executeUpdate
+                    False -> stmt.executeUpdate
 
     ## PRIVATE
        Drops a table.
@@ -308,6 +335,22 @@ type Connection
     drop_table : Text -> Boolean -> Nothing
     drop_table self table_name if_exists=False =
         self.execute_update (self.dialect.generate_sql (Query.Drop_Table table_name if_exists))
+
+    ## PRIVATE
+       Creates a Table reference that refers to a table with the given name.
+
+       Once all references to the table with this name are destroyed, the table
+       will be dropped.
+    internal_allocate_hidden_table self table_name =
+        ref = self.hidden_table_registry.get_reference table_name
+        make_table_for_name self table_name table_name ref
+
+## PRIVATE
+internal_drop_table jdbc_connection dialect table_name =
+    statement_setter = dialect.get_statement_setter
+    query = dialect.generate_sql (Query.Drop_Table table_name if_exists=True)
+    jdbc_connection.with_prepared_statement query statement_setter stmt->
+        stmt.executeUpdate
 
 ## PRIVATE
 make_table_types_selector : Connection -> Widget
@@ -322,7 +365,7 @@ make_schema_selector connection =
 
 ## PRIVATE
 all_known_table_names connection =
-    tables = connection.tables name_like=Nothing database=connection.database schema=Nothing types=Nothing all_fields=False
+    tables = connection.get_tables_advanced name_like=Nothing database=connection.database schema=Nothing types=Nothing all_fields=False include_hidden=True
     tables.at "Name" . to_vector
 
 ## PRIVATE
@@ -341,3 +384,14 @@ make_structure_creator =
 first_column_in_structure structure = case structure of
     _ : Vector -> structure.first.name
     _ -> structure.column_names.first
+
+## PRIVATE
+make_table_for_name connection name alias internal_temporary_keep_alive_reference=Nothing =
+    result = handle_sql_errors <|
+        ctx = Context.for_table name (if alias == "" then name else alias) internal_temporary_keep_alive_reference
+        statement = connection.dialect.generate_sql (Query.Select Nothing ctx)
+        statement_setter = connection.dialect.get_statement_setter
+        columns = connection.fetch_columns statement statement_setter
+        Database_Table_Module.make_table connection name columns ctx
+    result.catch SQL_Error sql_error->
+        Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False extra_message="")

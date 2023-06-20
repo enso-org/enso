@@ -792,11 +792,11 @@ spec make_new_connection prefix persistent_connector=True =
             dest = connection.create_table dest_name [Column_Description.Value "X" Value_Type.Integer [Column_Constraint.Not_Null]] temporary=True primary_key=[] . should_succeed
             src = source_table_builder [["X", [1, Nothing, 3]]]
 
-            existing_tables = connection.tables types=Nothing . at "Name" . to_vector
+            existing_tables = connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
             res = src.update_database_table dest update_action=Update_Action.Insert key_columns=[]
             res.should_fail_with SQL_Error
 
-            tables_after = connection.tables types=Nothing . at "Name" . to_vector
+            tables_after = connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
             tables_after . should_contain_the_same_elements_as existing_tables
 
     table_builder name_prefix args primary_key=[] =
@@ -816,11 +816,47 @@ spec make_new_connection prefix persistent_connector=True =
 
         Test.specify "should return a temporary table for Connection.create_table" <|
             Context.Output.with_disabled <|
-                name = (Name_Generator.random_name "table-foo")
+                name = Name_Generator.random_name "table-foo"
                 r1 = connection.create_table name [Column_Description.Value "x" Value_Type.Integer] temporary=False primary_key=[]
                 Problems.expect_only_warning Dry_Run_Operation r1
                 r1.column_names . should_equal ["x"]
                 r1.name . should_not_equal name
+
+        Test.specify "will not show dry-run tables in the list by default" <|
+            src = Table.new [["X", [1, 2, 3]]]
+            name = Name_Generator.random_name "dry-run-list-test"
+            table = Context.Output.with_disabled <|
+                src.select_into_database_table connection name primary_key=[]
+            table.column_names . should_equal ["X"]
+            dry_run_name = table.name
+
+            v = connection.tables . at "Name" . to_vector
+            v.contains dry_run_name . should_be_false
+            #v . should_not_contain dry_run_name
+            connection.get_tables_advanced include_hidden=True . at "Name" . to_vector . should_contain dry_run_name
+
+            table.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+
+        ## This test relies on GC behaviour which may not be fully deterministic.
+           Currently this test seems to work fine, but if there are ever issues
+           due to GC nondeterminism, it may need to be disabled - currently we
+           do not have a more robust way to test finalizers.
+        Test.specify "will drop a dry run table once it is garbage collected" <|
+            src = Table.new [["X", [1, 2, 3]]]
+            name = Name_Generator.random_name "dry-run-list-test"
+            dry_run_name = Context.Output.with_disabled <|
+                table = src.select_into_database_table connection name primary_key=[]
+                table.column_names . should_equal ["X"]
+                connection.get_tables_advanced include_hidden=True . at "Name" . to_vector . should_contain table.name
+                table.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+                table.name
+
+            Runtime.gc
+
+            v = connection.get_tables_advanced include_hidden=True . at "Name" . to_vector
+            # This for some reason stack overflows
+            #v.should_not_contain dry_run_name
+            v.contains dry_run_name . should_be_false
 
         tests source_table_builder suffix =
             Test.specify "should return a temporary table with a sample of the data for select_into_table"+suffix <|

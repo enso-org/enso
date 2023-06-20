@@ -20,7 +20,11 @@ type From_Spec
          parts of the query, this is especially useful for example in
          self-joins, allowing to differentiate between different instances of
          the same table.
-    Table (table_name : Text) (alias : Text)
+       - internal_temporary_keep_alive_reference: a reference that can be used
+         to track the lifetime of a temporary dry-run table. Once this context
+         is garbage collected, the temporary table may be dropped.
+         See `Hidden_Table_Registry` for more details.
+    Table (table_name : Text) (alias : Text) internal_temporary_keep_alive_reference=Nothing
 
     ## PRIVATE
 

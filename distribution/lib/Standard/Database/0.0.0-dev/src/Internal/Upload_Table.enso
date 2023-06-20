@@ -47,10 +47,10 @@ create_table_implementation connection table_name structure primary_key temporar
                         # If the temporary table already exists, we drop it and will overwrite it.
                         connection.drop_table table_name if_exists=True
                     internal_create_table_structure connection effective_table_name structure primary_key effective_temporary on_problems
-            created_table = connection.query (SQL_Query.Table_Name created_table_name)
             case dry_run of
-                False -> created_table
+                False -> connection.query (SQL_Query.Table_Name created_table_name)
                 True ->
+                    created_table = connection.internal_allocate_hidden_table created_table_name
                     warning = Dry_Run_Operation.Warning "The Output context is disabled, so only a dry-run of `create_table` was performed. Instead of the actual table, a temporary table called "+created_table_name.pretty+" has been created."
                     Warning.attach warning created_table
 
@@ -94,8 +94,9 @@ select_into_table source_table connection table_name primary_key temporary on_pr
                     table = Context.Output.with_enabled <|
                         connection.drop_table tmp_table_name if_exists=True
                         internal_upload_table source_table connection tmp_table_name primary_key temporary on_problems=on_problems row_limit=dry_run_row_limit
+                    temporary_table = connection.internal_allocate_hidden_table table.name
                     warning = Dry_Run_Operation.Warning "The Output context is disabled, so only a dry-run of `select_into_database_table` was performed - a temporary table ["+tmp_table_name+"] was created. It may not contain all the data (max "+dry_run_row_limit.to_text+" rows from the input were used)."
-                    Warning.attach warning table
+                    Warning.attach warning temporary_table
 
 ## PRIVATE
    It should be run within a transaction and wrapped in `handle_upload_errors`.

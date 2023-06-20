@@ -307,7 +307,7 @@ alias dialect name =
    - from_spec: A description of the FROM clause.
 generate_from_part : Internal_Dialect -> From_Spec -> Builder
 generate_from_part dialect from_spec = case from_spec of
-    From_Spec.Table name as_name ->
+    From_Spec.Table name as_name _ ->
         dialect.wrap_identifier name ++ alias dialect as_name
     From_Spec.Query raw_sql as_name ->
         Builder.code raw_sql . paren ++ alias dialect as_name
