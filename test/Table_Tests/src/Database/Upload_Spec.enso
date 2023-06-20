@@ -828,11 +828,10 @@ spec make_new_connection prefix persistent_connector=True =
             table = Context.Output.with_disabled <|
                 src.select_into_database_table connection name primary_key=[]
             table.column_names . should_equal ["X"]
-            dry_run_name = table.name
 
-            v = connection.tables . at "Name" . to_vector
-            v.contains dry_run_name . should_be_false
-            #v . should_not_contain dry_run_name
+            # Workaround for bug #7093
+            dry_run_name = Warning.clear table.name
+            connection.tables . at "Name" . to_vector . should_not_contain dry_run_name
             connection.get_tables_advanced include_hidden=True . at "Name" . to_vector . should_contain dry_run_name
 
             table.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
@@ -844,7 +843,9 @@ spec make_new_connection prefix persistent_connector=True =
         Test.specify "will drop a dry run table once it is garbage collected" <|
             src = Table.new [["X", [1, 2, 3]]]
             name = Name_Generator.random_name "dry-run-list-test"
-            dry_run_name = Context.Output.with_disabled <|
+
+            # `Warning.clear` is added as a workaround for bug #7093
+            dry_run_name = Warning.clear <| Context.Output.with_disabled <|
                 table = src.select_into_database_table connection name primary_key=[]
                 table.column_names . should_equal ["X"]
                 connection.get_tables_advanced include_hidden=True . at "Name" . to_vector . should_contain table.name
@@ -853,10 +854,7 @@ spec make_new_connection prefix persistent_connector=True =
 
             Runtime.gc
 
-            v = connection.get_tables_advanced include_hidden=True . at "Name" . to_vector
-            # This for some reason stack overflows
-            #v.should_not_contain dry_run_name
-            v.contains dry_run_name . should_be_false
+            connection.get_tables_advanced include_hidden=True . at "Name" . to_vector . should_not_contain dry_run_name
 
         tests source_table_builder suffix =
             Test.specify "should return a temporary table with a sample of the data for select_into_table"+suffix <|
