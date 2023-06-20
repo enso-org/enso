@@ -29,8 +29,9 @@ OPTS.entryPoints.push(
 )
 OPTS.minify = false
 OPTS.write = false
-// eslint-disable-next-line @typescript-eslint/naming-convention
-OPTS.loader = { '.html': 'copy' }
+OPTS.loader = OPTS.loader ?? {}
+OPTS.loader['.html'] = 'copy'
+OPTS.loader['.svg'] = 'dataurl'
 OPTS.pure.splice(OPTS.pure.indexOf('assert'), 1)
 ;(OPTS.inject = OPTS.inject ?? []).push(path.resolve(THIS_PATH, '..', '..', 'debugGlobals.ts'))
 OPTS.plugins.push({
