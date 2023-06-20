@@ -350,15 +350,15 @@ make_not_equals a b =
 
 ## PRIVATE
 make_truncate = Base_Generator.lift_unary_op "TRUNCATE" arg->
-    Builder.code "CAST(TRUNC(" ++ arg ++ ") AS BIGINT)"
+    Builder.code "TRUNC(" ++ arg ++ ")"
 
 ## PRIVATE
 make_ceil = Base_Generator.lift_unary_op "CEIL" arg->
-    Builder.code "CAST(CEIL(" ++ arg ++ ") AS BIGINT)"
+    Builder.code "CEIL(" ++ arg ++ ")"
 
 ## PRIVATE
 make_floor = Base_Generator.lift_unary_op "FLOOR" arg->
-    Builder.code "CAST(FLOOR(" ++ arg ++ ") AS BIGINT)"
+    Builder.code "FLOOR(" ++ arg ++ ")"
 
 ## PRIVATE
 

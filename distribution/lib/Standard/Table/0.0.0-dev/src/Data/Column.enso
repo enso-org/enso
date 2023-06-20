@@ -760,7 +760,12 @@ type Column
     truncate self =
         case self.value_type.is_numeric of
             True ->
-                simple_unary_op self "truncate"
+                case self.value_type.is_integer of
+                    True ->
+                        new_name = Naming_Helpers.function_name "truncate" [self]
+                        self.rename new_name
+                    False ->
+                        simple_unary_op self "truncate"
             False -> case self.value_type == Value_Type.Date_Time of
                 True ->
                     fun = _.date
@@ -778,7 +783,12 @@ type Column
              Column.from_vector "foo" [1.25, 2.33, 3.57] . ceil == (Column.from_vector "foo" [2, 3, 4])
     ceil : Column ! Invalid_Value_Type
     ceil self = Value_Type.expect_numeric self <|
-        simple_unary_op self "ceil"
+        case self.value_type.is_integer of
+            True ->
+                new_name = Naming_Helpers.function_name "ceil" [self]
+                self.rename new_name
+            False ->
+                simple_unary_op self "ceil"
 
     ## Computes the nearest integer below this number for values in a numeric
        column.
@@ -791,7 +801,12 @@ type Column
              Column.from_vector "foo" [1.25, 2.33, 3.57] . floor == (Column.from_vector "foo" [1, 2, 3])
     floor : Column ! Invalid_Value_Type
     floor self = Value_Type.expect_numeric self <|
-        simple_unary_op self "floor"
+        case self.value_type.is_integer of
+            True ->
+                new_name = Naming_Helpers.function_name "floor" [self]
+                self.rename new_name
+            False ->
+                simple_unary_op self "floor"
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
