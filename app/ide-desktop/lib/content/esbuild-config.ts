@@ -106,7 +106,7 @@ export function bundlerOptions(args: Arguments) {
             '.css': 'copy',
             '.map': 'copy',
             '.wasm': 'copy',
-            '.svg': 'copy',
+            '.svg': 'file',
             '.png': 'copy',
             '.ttf': 'copy',
         },

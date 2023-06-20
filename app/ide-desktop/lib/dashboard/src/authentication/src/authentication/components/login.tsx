@@ -2,11 +2,15 @@
 import * as react from 'react'
 import * as router from 'react-router-dom'
 
+import ArrowRightIcon from 'enso-assets/arrow_right.svg'
+import AtIcon from 'enso-assets/at.svg'
+import CreateAccountIcon from 'enso-assets/create_account.svg'
+import LockIcon from 'enso-assets/lock.svg'
+
 import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
-import * as svg from '../../components/svg'
 
 import FontAwesomeIcon from './fontAwesomeIcon'
 import Input from './input'
@@ -87,8 +91,9 @@ function Login() {
                                 E-Mail Address:
                             </label>
                             <div className="relative">
-                                <SvgIcon svg={svg.AT} />
-
+                                <SvgIcon>
+                                    <img src={AtIcon} />
+                                </SvgIcon>
                                 <Input
                                     required
                                     id="email"
@@ -108,8 +113,9 @@ function Login() {
                                 Password:
                             </label>
                             <div className="relative">
-                                <SvgIcon svg={svg.LOCK} />
-
+                                <SvgIcon>
+                                    <img src={LockIcon} />
+                                </SvgIcon>
                                 <Input
                                     required={true}
                                     id="password"
@@ -143,7 +149,9 @@ function Login() {
                                 }
                             >
                                 <span className="mr-2 uppercase">Login</span>
-                                <span>{svg.RIGHT_ARROW}</span>
+                                <span>
+                                    <img src={ArrowRightIcon} />
+                                </span>
                             </button>
                         </div>
                     </form>
@@ -156,7 +164,9 @@ function Login() {
                             'text-xs text-center'
                         }
                     >
-                        <span>{svg.CREATE_ACCOUNT}</span>
+                        <span>
+                            <img src={CreateAccountIcon} />
+                        </span>
                         <span className="ml-2">You don&apos;t have an account?</span>
                     </router.Link>
                 </div>

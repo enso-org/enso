@@ -4,9 +4,13 @@ import * as react from 'react'
 import * as router from 'react-router-dom'
 import toast from 'react-hot-toast'
 
+import ArrowRightIcon from 'enso-assets/arrow_right.svg'
+import AtIcon from 'enso-assets/at.svg'
+import GoBackIcon from 'enso-assets/go_back.svg'
+import LockIcon from 'enso-assets/lock.svg'
+
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
-import * as svg from '../../components/svg'
 import * as validation from '../../dashboard/validation'
 
 import Input from './input'
@@ -72,8 +76,9 @@ function ResetPassword() {
                                 E-Mail Address:
                             </label>
                             <div className="relative">
-                                <SvgIcon svg={svg.AT} />
-
+                                <SvgIcon>
+                                    <img src={AtIcon} />
+                                </SvgIcon>
                                 <Input
                                     id="email"
                                     type="email"
@@ -92,8 +97,9 @@ function ResetPassword() {
                                 Confirmation Code:
                             </label>
                             <div className="relative">
-                                <SvgIcon svg={svg.LOCK} />
-
+                                <SvgIcon>
+                                    <img src={LockIcon} />
+                                </SvgIcon>
                                 <Input
                                     id="code"
                                     type="text"
@@ -112,8 +118,9 @@ function ResetPassword() {
                                 New Password:
                             </label>
                             <div className="relative">
-                                <SvgIcon svg={svg.LOCK} />
-
+                                <SvgIcon>
+                                    <img src={LockIcon} />
+                                </SvgIcon>
                                 <Input
                                     id="new_password"
                                     type="password"
@@ -134,8 +141,9 @@ function ResetPassword() {
                                 Confirm New Password:
                             </label>
                             <div className="relative">
-                                <SvgIcon svg={svg.LOCK} />
-
+                                <SvgIcon>
+                                    <img src={LockIcon} />
+                                </SvgIcon>
                                 <Input
                                     id="new_password_confirm"
                                     type="password"
@@ -156,7 +164,9 @@ function ResetPassword() {
                                 }
                             >
                                 <span className="mr-2 uppercase">Reset</span>
-                                <span>{svg.RIGHT_ARROW}</span>
+                                <span>
+                                    <img src={ArrowRightIcon} />
+                                </span>
                             </button>
                         </div>
                     </form>
@@ -169,7 +179,9 @@ function ResetPassword() {
                             'text-center'
                         }
                     >
-                        <span>{svg.GO_BACK}</span>
+                        <span>
+                            <img src={GoBackIcon} />
+                        </span>
                         <span className="ml-2">Go back to login</span>
                     </router.Link>
                 </div>
