@@ -257,7 +257,6 @@ lazy val enso = (project in file("."))
     `syntax-definition`,
     `syntax-rust-definition`,
     `text-buffer`,
-    graph,
     logger,
     pkg,
     cli,
@@ -360,17 +359,7 @@ val akka =
 
 // === Cats ===================================================================
 
-val catsVersion    = "2.9.0"
-val kittensVersion = "3.0.0"
-val cats = {
-  Seq(
-    "org.typelevel" %% "cats-core"   % catsVersion,
-    "org.typelevel" %% "cats-effect" % catsVersion,
-    "org.typelevel" %% "cats-free"   % catsVersion,
-    "org.typelevel" %% "cats-macros" % catsVersion,
-    "org.typelevel" %% "kittens"     % kittensVersion
-  )
-}
+val catsVersion = "2.9.0"
 
 // === Circe ==================================================================
 
@@ -423,17 +412,6 @@ val jmh = Seq(
   "org.openjdk.jmh" % "jmh-core"                 % jmhVersion % Benchmark,
   "org.openjdk.jmh" % "jmh-generator-annprocess" % jmhVersion % Benchmark
 )
-
-// === Monocle ================================================================
-
-val monocleVersion = "2.1.0"
-val monocle = {
-  Seq(
-    "com.github.julien-truffaut" %% "monocle-core"  % monocleVersion,
-    "com.github.julien-truffaut" %% "monocle-macro" % monocleVersion,
-    "com.github.julien-truffaut" %% "monocle-law"   % monocleVersion % "test"
-  )
-}
 
 // === Scala Compiler =========================================================
 
@@ -506,15 +484,7 @@ lazy val logger = (project in file("lib/scala/logger"))
   )
 
 lazy val `syntax-definition` =
-  (project in file("lib/scala/syntax/definition"))
-    .dependsOn(logger)
-    .settings(
-      scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-      libraryDependencies ++= monocle ++ scalaCompiler ++ Seq(
-        "org.typelevel" %% "cats-core" % catsVersion,
-        "org.typelevel" %% "kittens"   % kittensVersion
-      )
-    )
+  project in file("lib/scala/syntax/definition")
 
 lazy val syntax = (project in file("lib/scala/syntax/specialization"))
   .dependsOn(`syntax-definition`)
@@ -646,30 +616,6 @@ lazy val `syntax-rust-definition` = project
     Compile / resourceGenerators += generateRustParserLib,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java",
     frgaalJavaCompilerSetting
-  )
-
-lazy val graph = (project in file("lib/scala/graph/"))
-  .dependsOn(logger)
-  .configs(Test)
-  .settings(
-    frgaalJavaCompilerSetting,
-    version := "0.1",
-    resolvers ++= (
-      Resolver.sonatypeOssRepos("releases") ++
-      Resolver.sonatypeOssRepos("snapshots")
-    ),
-    scalacOptions += "-Ymacro-annotations",
-    libraryDependencies ++= scalaCompiler ++ Seq(
-      "com.chuusai"                %% "shapeless"     % shapelessVersion,
-      "io.estatico"                %% "newtype"       % newtypeVersion,
-      "org.scalatest"              %% "scalatest"     % scalatestVersion  % Test,
-      "org.scalacheck"             %% "scalacheck"    % scalacheckVersion % Test,
-      "com.github.julien-truffaut" %% "monocle-core"  % monocleVersion,
-      "org.apache.commons"          % "commons-lang3" % commonsLangVersion
-    ),
-    addCompilerPlugin(
-      "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
-    )
   )
 
 lazy val pkg = (project in file("lib/scala/pkg"))

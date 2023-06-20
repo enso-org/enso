@@ -676,7 +676,7 @@ type Date_Time
 
              example_format =
                  Date_Time.parse "2020-06-21T16:41:13+03:00" . format "d. MMMM yyyy" (Locale.new "fr")
-    @pattern make_date_time_format_selector
+    @pattern (value-> make_date_time_format_selector value)
     @locale Locale.default_widget
     format : Text -> Locale -> Text
     format self pattern:Text locale:Locale=Locale.default =

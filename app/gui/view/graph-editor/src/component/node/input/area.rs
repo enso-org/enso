@@ -133,12 +133,14 @@ impl From<node::Expression> for Expression {
 /// Internal model of the port area.
 #[derive(Debug)]
 pub struct Model {
-    display_object:  display::object::Instance,
-    edit_mode_label: text::Text,
-    expression:      RefCell<Expression>,
-    styles:          StyleWatch,
-    styles_frp:      StyleWatchFrp,
-    widget_tree:     widget::Tree,
+    display_object:            display::object::Instance,
+    edit_mode_label:           text::Text,
+    label_layer:               RefCell<display::scene::layer::WeakLayer>,
+    edit_mode_label_displayed: Cell<bool>,
+    expression:                RefCell<Expression>,
+    styles:                    StyleWatch,
+    styles_frp:                StyleWatchFrp,
+    widget_tree:               widget::Tree,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -154,13 +156,25 @@ impl Model {
         let display_object = display::object::Instance::new_named("input");
 
         let edit_mode_label = app.new_view::<text::Text>();
+        let label_layer = RefCell::new(app.display.default_scene.layers.label.downgrade());
+        let edit_mode_label_displayed = default();
         let expression = default();
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        display_object.add_child(&edit_mode_label);
         let widget_tree = widget::Tree::new(app);
         with_context(|ctx| ctx.layers.widget.add(&widget_tree));
-        Self { display_object, edit_mode_label, expression, styles, styles_frp, widget_tree }
-            .init(app)
+        Self {
+            display_object,
+            edit_mode_label,
+            edit_mode_label_displayed,
+            label_layer,
+            expression,
+            styles,
+            styles_frp,
+            widget_tree,
+        }
+        .init(app)
     }
 
     /// React to edit mode change. Shows and hides appropriate child views according to current
@@ -170,24 +184,42 @@ impl Model {
             let expression = self.expression.borrow();
             self.edit_mode_label.set_content(expression.code.clone());
             self.display_object.remove_child(&self.widget_tree);
-            self.display_object.add_child(&self.edit_mode_label);
+            self.show_edit_mode_label();
             self.edit_mode_label.set_cursor_at_mouse_position();
         } else {
-            self.display_object.remove_child(&self.edit_mode_label);
+            self.hide_edit_mode_label();
             self.display_object.add_child(&self.widget_tree);
             self.edit_mode_label.set_content("");
         }
         self.edit_mode_label.deprecated_set_focus(edit_mode_active);
     }
 
+    /// A workaround to fix the cursor position calculation when clicking into the node.
+    ///
+    /// Using standard [`ObjectOps::add_child`] and [`ObjectOps::remove_child`] for
+    /// [`edit_mode_label`] does not allow setting the cursor position in the same frame after
+    /// showing the label, as the position of the display object is not updated yet. To fix this,
+    /// we hide the label by using the `DETACHED` layer so that its position is always kept up to
+    /// date. To show the label, one can use [`Self::show_edit_mode_label`]. (which will move it
+    /// back to the correct scene layer)
+    fn hide_edit_mode_label(&self) {
+        self.edit_mode_label_displayed.set(false);
+        scene().layers.DETACHED.add(&self.edit_mode_label);
+    }
+
+    /// Show the edit mode label by placing it in the correct layer.
+    /// See [`Self::hide_edit_mode_label`].
+    fn show_edit_mode_label(&self) {
+        if let Some(layer) = self.label_layer.borrow().upgrade() {
+            self.edit_mode_label_displayed.set(true);
+            self.edit_mode_label.add_to_scene_layer(&layer);
+        } else {
+            error!("Cannot show edit mode label, the layer is missing.");
+        }
+    }
+
     #[profile(Debug)]
     fn init(self, app: &Application) -> Self {
-        // TODO: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
-        //   It needs to be more flexible once we have proper depth management.
-        //   See https://www.pivotaltracker.com/story/show/183567632.
-        let scene = &app.display.default_scene;
-        self.set_label_layer(&scene.layers.label);
-
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
 
         self.edit_mode_label.set_single_line_mode(true);
@@ -208,12 +240,19 @@ impl Model {
         self.widget_tree.set_xy(widgets_origin);
         self.edit_mode_label.set_xy(label_origin);
         self.set_edit_mode(false);
+        self.hide_edit_mode_label();
 
         self
     }
 
     fn set_label_layer(&self, layer: &display::scene::Layer) {
-        self.edit_mode_label.add_to_scene_layer(layer);
+        *self.label_layer.borrow_mut() = layer.downgrade();
+        // Currently, we never sets label layer when it's already displayed, but - as
+        // `set_label_layer` is a public method of this component - we're taking extra measures.
+        // See [`Self::show_edit_mode_label`] and [`Self::hide_edit_mode_label`].
+        if self.edit_mode_label_displayed.get() {
+            self.show_edit_mode_label();
+        }
     }
 
     fn set_connected(&self, crumbs: &Crumbs, status: Option<color::Lcha>) {

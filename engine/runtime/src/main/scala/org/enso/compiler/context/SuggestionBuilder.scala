@@ -239,7 +239,7 @@ final class SuggestionBuilder[A: IndexedSource](
   ): Suggestion.Method = {
     val typeSig = buildTypeSignatureFromMetadata(typeSignature)
     val (methodArgs, returnTypeDef) =
-      buildMethodArguments(args, typeSig, selfType)
+      buildMethodArguments(args, typeSig, selfType, isStatic)
     val annotations =
       genericAnnotations.map(buildAnnotationsFromMetadata).getOrElse(Seq())
     methodType match {
@@ -518,12 +518,14 @@ final class SuggestionBuilder[A: IndexedSource](
     * @param vargs the list of value arguments
     * @param targs the list of type arguments
     * @param selfType the self type of a method
+    * @param isStatic is the method static
     * @return the list of arguments with a method return type
     */
   private def buildMethodArguments(
     vargs: Seq[IR.DefinitionArgument],
     targs: Seq[TypeArg],
-    selfType: QualifiedName
+    selfType: QualifiedName,
+    isStatic: Boolean
   ): (Seq[Suggestion.Argument], Option[TypeArg]) = {
     @scala.annotation.tailrec
     def go(
@@ -544,14 +546,18 @@ final class SuggestionBuilder[A: IndexedSource](
                 _,
                 _
               ) +: vtail =>
-            val thisArg = Suggestion.Argument(
-              name         = name.name,
-              reprType     = selfType.toString,
-              isSuspended  = suspended,
-              hasDefault   = defaultValue.isDefined,
-              defaultValue = defaultValue.flatMap(buildDefaultValue)
-            )
-            go(vtail, targs, acc :+ thisArg)
+            if (isStatic) {
+              go(vtail, targs, acc)
+            } else {
+              val thisArg = Suggestion.Argument(
+                name         = name.name,
+                reprType     = selfType.toString,
+                isSuspended  = suspended,
+                hasDefault   = defaultValue.isDefined,
+                defaultValue = defaultValue.flatMap(buildDefaultValue)
+              )
+              go(vtail, targs, acc :+ thisArg)
+            }
           case varg +: vtail =>
             targs match {
               case targ +: ttail =>
