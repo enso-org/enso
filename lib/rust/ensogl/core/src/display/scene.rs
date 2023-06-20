@@ -1148,7 +1148,6 @@ pub struct Scene {
     no_mut_access:        Rc<SceneData>,
     // Context handlers keep reference to SceneData, thus cannot be put inside it.
     context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
-    trace:                leak_detector::Trace,
 }
 
 impl Scene {
@@ -1162,7 +1161,6 @@ impl Scene {
         let this = Self {
             no_mut_access: Rc::new(no_mut_access),
             context_lost_handler,
-            trace: leak_detector::Trace::enabled("Scene"),
         };
         this
     }
