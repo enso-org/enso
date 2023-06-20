@@ -33,11 +33,11 @@ export function useRefresh() {
  * finishes and sets the state).
  *
  * For further details, see: https://devtrium.com/posts/async-functions-useeffect.
- * Also see: https://stackoverflow.com/questions/61751728/asynchronous-calls-with-React-usememo.
+ * Also see: https://stackoverflow.com/questions/61751728/asynchronous-calls-with-react-usememo.
  *
  * @param initialValue - The initial value of the state controlled by this hook.
  * @param asyncEffect - The asynchronous function used to load the state controlled by this hook.
- * @param deps - The list of dependencies that, when updated, trigger the asynchronous fetch.
+ * @param deps - The list of dependencies that, when updated, trigger the asynchronous effect.
  * @returns The current value of the state controlled by this hook. */
 export function useAsyncEffect<T>(
     initialValue: T,
@@ -64,8 +64,8 @@ export function useAsyncEffect<T>(
             controller.abort()
         }
         // This is a wrapper function around `useEffect`, so it has its own `deps` array.
-        // `fetch` is omitted as it always changes - this is intentional.
-        // `logger` is omitted as it should not trigger a re-fetch.
+        // `asyncEffect` is omitted as it always changes - this is intentional.
+        // `logger` is omitted as it should not trigger the effect.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, deps ?? [])
 
