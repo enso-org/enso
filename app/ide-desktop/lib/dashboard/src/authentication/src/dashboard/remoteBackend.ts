@@ -38,6 +38,10 @@ function responseIsSuccessful(response: Response) {
 
 /** Relative HTTP path to the "set username" endpoint of the Cloud backend API. */
 const CREATE_USER_PATH = 'users'
+/** Relative HTTP path to the "invite user" endpoint of the Cloud backend API. */
+const INVITE_USER_PATH = 'users/invite'
+/** Relative HTTP path to the "create permission" endpoint of the Cloud backend API. */
+const CREATE_PERMISSION_PATH = 'permissions'
 /** Relative HTTP path to the "get user" endpoint of the Cloud backend API. */
 const USERS_ME_PATH = 'users/me'
 /** Relative HTTP path to the "list directory" endpoint of the Cloud backend API. */
@@ -172,6 +176,26 @@ export class RemoteBackend implements backend.Backend {
     async createUser(body: backend.CreateUserRequestBody): Promise<backend.UserOrOrganization> {
         const response = await this.post<backend.UserOrOrganization>(CREATE_USER_PATH, body)
         return await response.json()
+    }
+
+    /** Set the username of the current user. */
+    async inviteUser(body: backend.InviteUserRequestBody): Promise<void> {
+        const response = await this.post<backend.UserOrOrganization>(INVITE_USER_PATH, body)
+        if (!responseIsSuccessful(response)) {
+            return this.throw(`Unable to invite user with email '${body.userEmail}'.`)
+        } else {
+            return
+        }
+    }
+
+    /** Adds a permission for a specific user on a specific asset. */
+    async createPermission(body: backend.CreatePermissionRequestBody): Promise<void> {
+        const response = await this.post<backend.UserOrOrganization>(CREATE_PERMISSION_PATH, body)
+        if (!responseIsSuccessful(response)) {
+            return this.throw(`Unable to add permission.`)
+        } else {
+            return
+        }
     }
 
     /** Return organization info for the current user.
