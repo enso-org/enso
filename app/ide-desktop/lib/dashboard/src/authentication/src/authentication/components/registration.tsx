@@ -39,7 +39,7 @@ function Registration() {
             toast.error('Passwords do not match.')
             return Promise.resolve()
         } else {
-            return auth.signUp(email, password)
+            return auth.signUp(email, password, organizationId)
         }
     }
 

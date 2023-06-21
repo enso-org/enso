@@ -109,7 +109,7 @@ export type UserSession = FullUserSession | OfflineUserSession | PartialUserSess
  * See {@link Cognito} for details on each of the authentication functions. */
 interface AuthContextType {
     goOffline: () => Promise<boolean>
-    signUp: (email: string, password: string) => Promise<boolean>
+    signUp: (email: string, password: string, organizationId: string | null) => Promise<boolean>
     confirmSignUp: (email: string, code: string) => Promise<boolean>
     setUsername: (
         backend: backendProvider.AnyBackendAPI,
@@ -350,6 +350,7 @@ export function AuthProvider(props: AuthProviderProps) {
                     backend.createUser({
                         userName: username,
                         userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
+                        organizationId: null,
                     }),
                     {
                         success: MESSAGES.setUsernameSuccess,

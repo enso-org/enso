@@ -359,6 +359,11 @@ function intoSignUpParams(
     password: string,
     organizationId: string | null
 ): amplify.SignUpParams {
+    const redirectUrl = new URL(location.href)
+    redirectUrl.pathname = '/registration' // FIXME: depends on asdf
+    redirectUrl.search = new URLSearchParams(
+        organizationId != null ? { organization_id: organizationId } : null
+    ).toString()
     return {
         username,
         password,
@@ -376,7 +381,9 @@ function intoSignUpParams(
             // eslint-disable-next-line @typescript-eslint/naming-convention
             ...(supportsDeepLinks ? { 'custom:fromDesktop': JSON.stringify(true) } : {}),
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            ...(organizationId != null ? { 'custom:organizationId': organizationId } : {}),
+            'custom:redirectUrl': redirectUrl.toString(),
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            // ...(organizationId != null ? { 'custom:organizationId': organizationId } : {}),
         },
     }
 }
