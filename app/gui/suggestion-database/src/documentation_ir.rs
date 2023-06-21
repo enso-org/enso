@@ -205,13 +205,13 @@ impl EntryDocumentation {
         let defined_in = &entry.defined_in;
         let parent_module = db.lookup_by_qualified_name(defined_in);
         match parent_module {
-            Some((id, parent)) => match parent.kind {
+            Ok((id, parent)) => match parent.kind {
                 Kind::Module => Ok(ModuleDocumentation::new(id, &parent, db)
                     .map_err(|_| NoParentModule(entry.qualified_name().to_string()))?),
                 _ => Err(NoParentModule(entry.qualified_name().to_string())),
             },
-            None => {
-                error!("Parent module for entry {} not found.", entry.qualified_name());
+            Err(err) => {
+                error!("Parent module for entry {} not found: {}", entry.qualified_name(), err);
                 Err(NoParentModule(entry.qualified_name().to_string()))
             }
         }
@@ -237,7 +237,7 @@ impl EntryDocumentation {
         };
         let self_type = db.lookup_by_qualified_name(self_type);
         match self_type {
-            Some((id, parent)) => match parent.kind {
+            Ok((id, parent)) => match parent.kind {
                 Kind::Type => {
                     let docs = Function::from_entry(entry);
                     let type_docs = TypeDocumentation::new(id, &parent, db)?;
@@ -254,8 +254,8 @@ impl EntryDocumentation {
                     Ok(Placeholder::NoDocumentation.into())
                 }
             },
-            None => {
-                error!("Parent entry for method {} not found.", entry.qualified_name());
+            Err(err) => {
+                error!("Parent entry for method {} not found: {}", entry.qualified_name(), err);
                 Ok(Self::Placeholder(Placeholder::NoDocumentation))
             }
         }
@@ -269,14 +269,14 @@ impl EntryDocumentation {
         let return_type = db.lookup_by_qualified_name(return_type);
 
         match return_type {
-            Some((id, parent)) => {
+            Ok((id, parent)) => {
                 let docs = Function::from_entry(entry);
                 let type_docs = TypeDocumentation::new(id, &parent, db)?;
                 let module_docs = Self::parent_module(db, &parent)?;
                 Ok(Documentation::Constructor { docs, type_docs, module_docs }.into())
             }
-            None => {
-                error!("No return type found for constructor {}.", entry.qualified_name());
+            Err(err) => {
+                error!("No return type found for constructor {}: {}", entry.qualified_name(), err);
                 Ok(Placeholder::NoDocumentation.into())
             }
         }
