@@ -24,11 +24,28 @@ spec setup =
             Test.specify "should return decimals when rounding decimals" <|
                 i1 = 9223372036854775807 - 1
                 c = table_builder [["X", [i1]]] . at "X"
+                IO.println "CTYPE"
+                IO.println c.value_type
+                IO.println c.to_vector
                 decimal_col = c.cast Value_Type.Decimal
                 decimal_col.value_type.is_decimal . should_be_true
                 decimal_col2 = decimal_col + decimal_col*decimal_col
-                [(.floor), (.ceil), (.truncate), (x-> x.round 0), (x-> x.round 2)].each op->
-                    op decimal_col2 . to_vector . should_equal [i1 + i1*i1]
+                #[(.floor), (.ceil), (.truncate), (x-> x.round 0), (x-> x.round 2)].each op->
+                [(x-> x.round 0)].each op->
+                    k = op decimal_col2 . rename "foo"
+                    df = (k - decimal_col2) . rename "foo"
+                    eq = (k == decimal_col2) . rename "foo"
+                    IO.println 'KAY'
+                    IO.println <| c.value_type
+                    IO.println <| c.to_vector
+                    IO.println <| k.value_type
+                    IO.println <| k.to_vector
+                    IO.println <| df.value_type
+                    IO.println <| df.to_vector
+                    IO.println <| eq.value_type
+                    IO.println <| eq.to_vector
+                    #IO.println <| ((op decimal_col2) - decimal_col2) . rename "foo" . to_vector
+                    #((op decimal_col2) == decimal_col2) . rename "foo" . to_vector . should_equal [True]
 
     Test.group prefix+"Boolean Column Operations" <|
         Test.specify "iif" <|

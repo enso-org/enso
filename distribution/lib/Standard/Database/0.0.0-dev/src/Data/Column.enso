@@ -635,14 +635,26 @@ type Column
     round_float : Integer -> Boolean -> Column
     round_float self decimal_places use_bankers =
         new_name = self.naming_helpers.function_name "round" [self]
+        #scale = (self.const (10 ^ decimal_places)) . cast Value_Type.Decimal
         scale = 10 ^ decimal_places
         scaled = self * scale
-        round_base = scaled.floor
+        round_base = scaled.floor . rename "rb"
         round_midpoint = (round_base + 0.5) / scale
         even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
         half_goes_up = if use_bankers then even_is_up else self >= 0
         do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
         result = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
+        #result = round_midpoint
+
+        ##
+            rb5 = round_base + 0.5
+            round_midpoint2 = rb5 / scale
+            IO.println 'HMMM'
+            #IO.println <| scale.to_vector
+            IO.println <| rb5.to_vector
+            IO.println <| round_midpoint.to_vector
+            IO.println <| round_midpoint2.to_vector
+
         result.rename new_name
 
     ## PRIVATE

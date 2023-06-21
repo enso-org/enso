@@ -446,11 +446,11 @@ bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
 
 ## PRIVATE
 decimal_div = Base_Generator.lift_binary_op "/" x-> y->
-    Builder.code "CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)"
+    Builder.code "CAST(" ++ x ++ " AS decimal) / CAST(" ++ y ++ " AS decimal)"
 
 ## PRIVATE
 mod_op = Base_Generator.lift_binary_op "mod" x-> y->
-    x ++ " - FLOOR(CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)) * " ++ y
+    x ++ " - FLOOR(CAST(" ++ x ++ " AS decimal) / CAST(" ++ y ++ " AS decimal)) * " ++ y
 
 ## PRIVATE
 make_extract_as_int enso_name sql_name =
