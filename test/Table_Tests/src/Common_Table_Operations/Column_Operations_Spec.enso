@@ -544,8 +544,8 @@ spec setup =
             [(.floor), (.ceil), (.truncate), (x-> x.round 0), (x-> x.round 2)].each op->
                 op (t.at "X") . to_vector . should_equal [i1, i2]
 
-        if setup.test_selection.supports_decimal_type pending="fails on postgres" then
-            Test.specify "should return decimals when rounding decimals" <|
+        if setup.test_selection.supports_decimal_type then
+            Test.specify "should return decimals when rounding decimals" pending="fails on postgres" <|
                 i1 = 9223372036854775807 - 1
                 c = table_builder [["X", [i1]]] . at "X"
                 decimal_col = c.cast Value_Type.Decimal

@@ -175,7 +175,7 @@ base_dialect =
     unary = name -> [name, make_unary_op name]
     fun = name -> [name, make_function name]
 
-    arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["mod", make_function "MOD"], ["^", make_function "POWER"], make_truncate, make_ceil, make_floor]
+    arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["mod", make_function "MOD"], ["^", make_function "POWER"], ["TRUNCATE", make_function "TRUNC"], ["CEIL", make_function "CEIL"], ["FLOOR", make_function "FLOOR"]]
     logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif], ["CASE", case_when]]
     eq = lift_binary_op "==" make_equals
     neq = lift_binary_op "!=" make_not_equals
@@ -347,18 +347,6 @@ make_equals a b =
 ## PRIVATE
 make_not_equals a b =
     a.paren ++ " != " ++ b.paren
-
-## PRIVATE
-make_truncate = Base_Generator.lift_unary_op "TRUNCATE" arg->
-    Builder.code "TRUNC(" ++ arg ++ ")"
-
-## PRIVATE
-make_ceil = Base_Generator.lift_unary_op "CEIL" arg->
-    Builder.code "CEIL(" ++ arg ++ ")"
-
-## PRIVATE
-make_floor = Base_Generator.lift_unary_op "FLOOR" arg->
-    Builder.code "FLOOR(" ++ arg ++ ")"
 
 ## PRIVATE
 
