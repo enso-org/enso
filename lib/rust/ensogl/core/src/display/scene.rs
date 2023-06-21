@@ -1158,10 +1158,7 @@ impl Scene {
     ) -> Self {
         let no_mut_access = SceneData::new(stats, on_mut, display_mode);
         let context_lost_handler = default();
-        let this = Self {
-            no_mut_access: Rc::new(no_mut_access),
-            context_lost_handler,
-        };
+        let this = Self { no_mut_access: Rc::new(no_mut_access), context_lost_handler };
         this
     }
 
