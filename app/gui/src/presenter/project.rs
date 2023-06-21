@@ -7,6 +7,8 @@ use crate::executor::global::spawn_stream_handler;
 use crate::model::project::synchronized::ProjectNameInvalid;
 use crate::presenter;
 
+use crate::presenter::ai_searcher::AISearcher;
+use crate::searcher::Searcher;
 use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::project_manager::ProjectMetadata;
 use enso_frp as frp;
@@ -16,7 +18,7 @@ use model::module::NotificationKind;
 use model::project::Notification;
 use model::project::VcsStatus;
 
-
+const USE_AI_SEARCHER: bool = true;
 
 // =============
 // === Model ===
@@ -34,7 +36,7 @@ struct Model {
     status_bar:           view::status_bar::View,
     graph:                presenter::Graph,
     code:                 presenter::Code,
-    searcher:             RefCell<Option<presenter::Searcher>>,
+    searcher:             RefCell<Option<Box<dyn Searcher>>>,
     available_projects:   Rc<RefCell<Vec<ProjectMetadata>>>,
     shortcut_transaction: RefCell<Option<Rc<model::undo_redo::Transaction>>>,
 }
@@ -76,14 +78,21 @@ impl Model {
     }
 
     fn setup_searcher_presenter(&self, params: SearcherParams) {
-        let new_presenter = presenter::Searcher::setup_controller(
+        let searcher_constructor = if USE_AI_SEARCHER {
+            AISearcher::setup_searcher
+        } else {
+            presenter::DefaultSearcher::setup_searcher
+        };
+
+        let new_presenter = searcher_constructor(
             self.ide_controller.clone_ref(),
             self.controller.clone_ref(),
             self.graph_controller.clone_ref(),
             &self.graph,
-            self.view.clone_ref(),
+            self.view.clone(),
             params,
         );
+
         match new_presenter {
             Ok(searcher) => {
                 *self.searcher.borrow_mut() = Some(searcher);
@@ -96,11 +105,12 @@ impl Model {
 
     fn editing_committed(
         &self,
+        view_id: ide_view::graph_editor::NodeId,
         entry_id: Option<view::component_browser::component_list_panel::grid::GroupEntryId>,
     ) -> bool {
         let searcher = self.searcher.take();
         if let Some(searcher) = searcher {
-            if let Some(created_node) = searcher.expression_accepted(entry_id) {
+            if let Some(created_node) = searcher.expression_accepted(view_id, entry_id) {
                 self.graph.allow_expression_auto_updates(created_node, true);
                 false
             } else {
@@ -352,7 +362,7 @@ impl Project {
             });
 
             graph_view.remove_node <+ view.editing_committed.filter_map(f!([model]((node_view, entry)) {
-                model.editing_committed(*entry).as_some(*node_view)
+                model.editing_committed(*node_view,*entry).as_some(*node_view)
             }));
             eval_ view.editing_aborted(model.editing_aborted());
 

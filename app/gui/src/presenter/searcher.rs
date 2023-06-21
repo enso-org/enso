@@ -1,7 +1,19 @@
-//! The module containing [`Searcher`] presenter. See [`crate::presenter`] documentation to know
-//! more about presenters in general.
+//! The module containing [`DefaultSearcher`] presenter. See [`crate::presenter`] documentation to
+//! know more about presenters in general.
 
 use crate::prelude::*;
+
+use enso_frp as frp;
+use enso_suggestion_database::documentation_ir::EntryDocumentation;
+use enso_suggestion_database::documentation_ir::Placeholder;
+use enso_text as text;
+use ide_view as view;
+use ide_view::component_browser::component_list_panel::grid as component_grid;
+use ide_view::component_browser::component_list_panel::BreadcrumbId;
+use ide_view::component_browser::component_list_panel::SECTION_NAME_CRUMB_INDEX;
+use ide_view::graph_editor::GraphEditor;
+use ide_view::graph_editor::NodeId;
+use ide_view::project::SearcherParams;
 
 use crate::controller::graph::NewNodeInfo;
 use crate::controller::searcher::action::Suggestion;
@@ -16,24 +28,11 @@ use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
 use crate::presenter::searcher::provider::ControllerComponentsProviderExt;
 
-use enso_frp as frp;
-use enso_suggestion_database::documentation_ir::EntryDocumentation;
-use enso_suggestion_database::documentation_ir::Placeholder;
-use enso_text as text;
-use ide_view as view;
-use ide_view::component_browser::component_list_panel::grid as component_grid;
-use ide_view::component_browser::component_list_panel::BreadcrumbId;
-use ide_view::component_browser::component_list_panel::SECTION_NAME_CRUMB_INDEX;
-use ide_view::graph_editor::GraphEditor;
-use ide_view::project::SearcherParams;
-
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod provider;
-
 
 
 // ==============
@@ -44,7 +43,6 @@ pub mod provider;
 #[derive(Copy, Clone, Debug, Fail)]
 #[fail(display = "No component group with the index {:?}.", _0)]
 pub struct NoSuchComponent(component_grid::GroupEntryId);
-
 
 
 // ========================
@@ -220,6 +218,7 @@ impl Model {
 
     fn expression_accepted(
         &self,
+        _node_id: NodeId,
         entry_id: Option<component_grid::GroupEntryId>,
     ) -> Option<AstNodeId> {
         if let Some(entry_id) = entry_id {
@@ -278,15 +277,77 @@ impl Model {
 /// being edited). Alternatively, the [`setup_controller`] method covers constructing the controller
 /// and the presenter.
 #[derive(Debug)]
-pub struct Searcher {
+pub struct DefaultSearcher {
     _network: frp::Network,
     model:    Rc<Model>,
 }
 
-impl Searcher {
-    /// Constructor. The returned structure works right away.
+
+impl crate::searcher::Searcher for DefaultSearcher {
     #[profile(Task)]
-    pub fn new(
+    fn setup_searcher(
+        ide_controller: controller::Ide,
+        project_controller: controller::Project,
+        graph_controller: controller::ExecutedGraph,
+        graph_presenter: &presenter::Graph,
+        view: view::project::View,
+        parameters: SearcherParams,
+    ) -> FallibleResult<Box<dyn crate::searcher::Searcher>> {
+        // We get the position for searcher before initializing the input node, because the
+        // added node will affect the AST, and the position will become incorrect.
+        let position_in_code = graph_controller.graph().definition_end_location()?;
+
+        let mode = Self::init_input_node(
+            parameters,
+            graph_presenter,
+            view.graph(),
+            &graph_controller.graph(),
+        )?;
+
+        let searcher_controller = controller::Searcher::new_from_graph_controller(
+            ide_controller,
+            &project_controller.model,
+            graph_controller,
+            mode,
+            parameters.cursor_position,
+            position_in_code,
+        )?;
+
+        // Clear input on a new node. By default this will be set to whatever is used as the default
+        // content of the new node.
+        if let Mode::NewNode { source_node, .. } = mode {
+            if source_node.is_none() {
+                if let Err(e) = searcher_controller.set_input("".to_string(), text::Byte(0)) {
+                    error!("Failed to clear input when creating searcher for a new node: {e:?}.");
+                }
+            }
+        }
+
+        let input = parameters.input;
+        Ok(Box::new(Self::new(searcher_controller, view, input)))
+    }
+
+    fn expression_accepted(
+        self: Box<Self>,
+        node_id: NodeId,
+        entry_id: Option<component_grid::GroupEntryId>,
+    ) -> Option<AstNodeId> {
+        self.model.expression_accepted(node_id, entry_id)
+    }
+
+
+    fn abort_editing(self: Box<Self>) {
+        self.model.controller.abort_editing()
+    }
+
+    fn input_view(&self) -> ViewNodeId {
+        self.model.input_view
+    }
+}
+
+impl DefaultSearcher {
+    #[profile(Task)]
+    fn new(
         controller: controller::Searcher,
         view: view::project::View,
         input_view: ViewNodeId,
@@ -363,163 +424,13 @@ impl Searcher {
 
         let weak_model = Rc::downgrade(&model);
         let notifications = model.controller.subscribe();
-        let graph = model.view.graph().clone();
         spawn_stream_handler(weak_model, notifications, move |notification, _| {
             match notification {
                 Notification::NewActionList => action_list_changed.emit(()),
-                Notification::AISuggestionUpdated(expr, range) =>
-                    graph.edit_node_expression((input_view, range, ImString::new(expr))),
             };
             std::future::ready(())
         });
 
         Self { model, _network: network }
-    }
-
-    /// Create a new input node for use in the searcher. Initiates a new node in the ast and
-    /// associates it with the already existing view.
-    ///
-    /// Returns the new node id and optionally the source node which was selected/dragged when
-    /// creating this node.
-    fn create_input_node(
-        parameters: SearcherParams,
-        graph: &presenter::Graph,
-        graph_editor: &GraphEditor,
-        graph_controller: &controller::Graph,
-    ) -> FallibleResult<(ast::Id, Option<ast::Id>)> {
-        /// The expression to be used for newly created nodes when initialising the searcher without
-        /// an existing node.
-        const DEFAULT_INPUT_EXPRESSION: &str = "Nothing";
-        let SearcherParams { input, source_node, .. } = parameters;
-
-        let view_data = graph_editor.model.nodes.get_cloned_ref(&input);
-
-        let position = view_data.map(|node| node.position().xy());
-        let position = position.map(|vector| model::module::Position { vector });
-
-        let metadata = NodeMetadata { position, ..default() };
-        let mut new_node = NewNodeInfo::new_pushed_back(DEFAULT_INPUT_EXPRESSION);
-        new_node.metadata = Some(metadata);
-        new_node.introduce_pattern = false;
-        let transaction_name = "Add code for created node's visualization preview.";
-        let _transaction = graph_controller
-            .undo_redo_repository()
-            .open_ignored_transaction_or_ignore_current(transaction_name);
-        let created_node = graph_controller.add_node(new_node)?;
-
-        graph.assign_node_view_explicitly(input, created_node);
-
-        let source_node = source_node.and_then(|id| graph.ast_node_of_view(id.node));
-
-        Ok((created_node, source_node))
-    }
-
-    /// Initiate the operating mode for the searcher based on the given [`SearcherParams`]. If the
-    /// view associated with the input node given in the parameters does not yet exist, it will
-    /// be created.
-    ///
-    /// Returns the [`Mode`] that should be used for the searcher.
-    pub fn init_input_node(
-        parameters: SearcherParams,
-        graph: &presenter::Graph,
-        graph_editor: &GraphEditor,
-        graph_controller: &controller::Graph,
-    ) -> FallibleResult<Mode> {
-        let SearcherParams { input, .. } = parameters;
-        let ast_node = graph.ast_node_of_view(input);
-
-        let mode = match ast_node {
-            Some(node_id) => Ok(Mode::EditNode { node_id }),
-            None => {
-                let (new_node, source_node) =
-                    Self::create_input_node(parameters, graph, graph_editor, graph_controller)?;
-                Ok(Mode::NewNode { node_id: new_node, source_node })
-            }
-        };
-        let target_node = mode.as_ref().map(|mode| mode.node_id());
-        if let Ok(target_node) = target_node {
-            graph.allow_expression_auto_updates(target_node, false);
-        }
-        mode
-    }
-
-    /// Setup new, appropriate searcher controller for the edition of `node_view`, and construct
-    /// presenter handling it.
-    #[profile(Task)]
-    pub fn setup_controller(
-        ide_controller: controller::Ide,
-        project_controller: controller::Project,
-        graph_controller: controller::ExecutedGraph,
-        graph_presenter: &presenter::Graph,
-        view: view::project::View,
-        parameters: SearcherParams,
-    ) -> FallibleResult<Self> {
-        // We get the position for searcher before initializing the input node, because the
-        // added node will affect the AST, and the position will become incorrect.
-        let position_in_code = graph_controller.graph().definition_end_location()?;
-
-        let mode = Self::init_input_node(
-            parameters,
-            graph_presenter,
-            view.graph(),
-            &graph_controller.graph(),
-        )?;
-
-        let searcher_controller = controller::Searcher::new_from_graph_controller(
-            ide_controller,
-            &project_controller.model,
-            graph_controller,
-            mode,
-            parameters.cursor_position,
-            position_in_code,
-        )?;
-
-        // Clear input on a new node. By default this will be set to whatever is used as the default
-        // content of the new node.
-        if let Mode::NewNode { source_node, .. } = mode {
-            if source_node.is_none() {
-                if let Err(e) = searcher_controller.set_input("".to_string(), text::Byte(0)) {
-                    error!("Failed to clear input when creating searcher for a new node: {e:?}.");
-                }
-            }
-        }
-
-        let input = parameters.input;
-        Ok(Self::new(searcher_controller, view, input))
-    }
-
-    /// Expression accepted in Component Browser.
-    ///
-    /// This method takes `self`, as the presenter (with the searcher view) should be dropped once
-    /// editing finishes. The `entry_id` might be none in case where the user want to accept
-    /// the node input without any entry selected. If the commitment results in creating a new
-    /// node, its AST ID is returned.
-    pub fn expression_accepted(
-        self,
-        entry_id: Option<component_grid::GroupEntryId>,
-    ) -> Option<AstNodeId> {
-        self.model.expression_accepted(entry_id)
-    }
-
-    /// Abort editing, without taking any action.
-    ///
-    /// This method takes `self`, as the presenter (with the searcher view) should be dropped once
-    /// editing finishes.
-    pub fn abort_editing(self) {
-        self.model.controller.abort_editing()
-    }
-
-    /// Returns the node view that is being edited by the searcher.
-    pub fn input_view(&self) -> ViewNodeId {
-        self.model.input_view
-    }
-
-    /// Returns true if the entry under given index is one of the examples.
-    pub fn is_entry_an_example(&self, entry: view::searcher::entry::Id) -> bool {
-        use crate::controller::searcher::action::Action::Example;
-
-        let controller = &self.model.controller;
-        let entry = controller.actions().list().and_then(|l| l.get_cloned(entry));
-        entry.map_or(false, |e| matches!(e.action, Example(_)))
     }
 }

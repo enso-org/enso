@@ -20,6 +20,7 @@ use std::time::Duration;
 // === Export ===
 // ==============
 
+pub mod ai_searcher;
 pub mod code;
 pub mod graph;
 pub mod project;
@@ -28,7 +29,7 @@ pub mod searcher;
 pub use code::Code;
 pub use graph::Graph;
 pub use project::Project;
-pub use searcher::Searcher;
+pub use searcher::DefaultSearcher;
 
 
 

@@ -1,19 +1,8 @@
 //! This module contains all structures related to Searcher Controller.
 
-use crate::model::traits::*;
-use crate::prelude::*;
+use flo_stream::Subscriber;
 
-use crate::controller::graph::executed::Handle;
-use crate::controller::graph::FailedToCreateNode;
-use crate::controller::graph::ImportType;
-use crate::controller::graph::RequiredImport;
-use crate::controller::searcher::component::group;
-use crate::model::execution_context::QualifiedMethodPointer;
-use crate::model::execution_context::Visualization;
-use crate::model::module::NodeEditStatus;
-use crate::model::module::NodeMetadata;
-use crate::model::suggestion_database;
-
+pub use action::Action;
 use breadcrumbs::Breadcrumbs;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
@@ -28,8 +17,18 @@ use enso_text as text;
 use enso_text::Byte;
 use enso_text::Location;
 use enso_text::Rope;
-use flo_stream::Subscriber;
 
+use crate::controller::graph::executed::Handle;
+use crate::controller::graph::FailedToCreateNode;
+use crate::controller::graph::ImportType;
+use crate::controller::graph::RequiredImport;
+use crate::controller::searcher::component::group;
+use crate::model::execution_context::Visualization;
+use crate::model::module::NodeEditStatus;
+use crate::model::module::NodeMetadata;
+use crate::model::suggestion_database;
+use crate::model::traits::*;
+use crate::prelude::*;
 
 // ==============
 // === Export ===
@@ -39,10 +38,6 @@ pub mod action;
 pub mod breadcrumbs;
 pub mod component;
 pub mod input;
-
-pub use action::Action;
-
-
 
 // =================
 // === Constants ===
@@ -88,16 +83,6 @@ pub struct CannotExecuteWhenEditingNode;
 
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Fail)]
-#[fail(display = "An action cannot be executed when searcher is run without `this` argument.")]
-pub struct CannotRunWithoutThisArgument;
-
-#[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Fail)]
-#[fail(display = "No visualization data received for an AI suggestion.")]
-pub struct NoAIVisualizationDataReceived;
-
-#[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Fail)]
 #[fail(display = "Cannot commit expression in current mode ({:?}).", mode)]
 pub struct CannotCommitExpression {
     mode: Mode,
@@ -110,12 +95,10 @@ pub struct CannotCommitExpression {
 // =====================
 
 /// The notification emitted by Searcher Controller
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Notification {
     /// A new Suggestion list is available.
     NewActionList,
-    /// Code should be inserted by means of using an AI autocompletion.
-    AISuggestionUpdated(String, text::Range<Byte>),
 }
 
 
@@ -550,78 +533,12 @@ impl Searcher {
         self.notifier.notify(Notification::NewActionList);
     }
 
-    const AI_QUERY_PREFIX: &'static str = "AI:";
-    const AI_QUERY_ACCEPT_TOKEN: &'static str = "#";
-    const AI_STOP_SEQUENCE: &'static str = "`";
-    const AI_GOAL_PLACEHOLDER: &'static str = "__$$GOAL$$__";
-
-    /// Accepts the current AI query and exchanges it for actual expression.
-    /// To accomplish this, it performs the following steps:
-    /// 1. Attaches a visualization to `this`, calling `AI.build_ai_prompt`, to
-    ///    get a data-specific prompt for Open AI;
-    /// 2. Sends the prompt to the Open AI backend proxy, along with the user
-    ///    query.
-    /// 3. Replaces the query with the result of the Open AI call.
-    async fn accept_ai_query(
-        query: String,
-        query_range: text::Range<Byte>,
-        this: ThisNode,
-        graph: Handle,
-        notifier: notification::Publisher<Notification>,
-    ) -> FallibleResult {
-        let vis_ptr = QualifiedMethodPointer::from_qualified_text(
-            "Standard.Visualization.AI",
-            "Standard.Visualization.AI",
-            "build_ai_prompt",
-        )?;
-        let vis = Visualization::new(this.id, vis_ptr, vec![]);
-        let mut result = graph.attach_visualization(vis.clone()).await?;
-        let next = result.next().await.ok_or(NoAIVisualizationDataReceived)?;
-        let prompt = std::str::from_utf8(&next)?;
-        let prompt_with_goal = prompt.replace(Self::AI_GOAL_PLACEHOLDER, &query);
-        graph.detach_visualization(vis.id).await?;
-        let completion = graph.get_ai_completion(&prompt_with_goal, Self::AI_STOP_SEQUENCE).await?;
-        notifier.publish(Notification::AISuggestionUpdated(completion, query_range)).await;
-        Ok(())
-    }
-
-    /// Handles AI queries (i.e. searcher input starting with `"AI:"`). Doesn't
-    /// do anything if the query doesn't end with a specified "accept"
-    /// sequence. Otherwise, calls `Self::accept_ai_query` to perform the final
-    /// replacement.
-    fn handle_ai_query(&self, query: String) -> FallibleResult {
-        let len = query.as_bytes().len();
-        let range = text::Range::new(Byte::from(0), Byte::from(len));
-        let query = query.trim_start_matches(Self::AI_QUERY_PREFIX);
-        if !query.ends_with(Self::AI_QUERY_ACCEPT_TOKEN) {
-            return Ok(());
-        }
-        let query = query.trim_end_matches(Self::AI_QUERY_ACCEPT_TOKEN).trim().to_string();
-        let this = self.this_arg.clone();
-        if this.is_none() {
-            return Err(CannotRunWithoutThisArgument.into());
-        }
-        let this = this.as_ref().as_ref().unwrap().clone();
-        let graph = self.graph.clone_ref();
-        let notifier = self.notifier.clone_ref();
-        executor::global::spawn(async move {
-            if let Err(e) = Self::accept_ai_query(query, range, this, graph, notifier).await {
-                error!("error when handling AI query: {e}");
-            }
-        });
-
-        Ok(())
-    }
-
     /// Set the Searcher Input.
     ///
     /// This function should be called each time user modifies Searcher input in view. It may result
     /// in a new action list (the appropriate notification will be emitted).
     #[profile(Debug)]
     pub fn set_input(&self, new_input: String, cursor_position: Byte) -> FallibleResult {
-        if new_input.starts_with(Self::AI_QUERY_PREFIX) {
-            return self.handle_ai_query(new_input);
-        }
         debug!("Manually setting input to {new_input} with cursor position {cursor_position}");
         let parsed_input = input::Input::parse(self.ide.parser(), new_input, cursor_position);
         let new_context = parsed_input.context().map(|ctx| ctx.into_ast().repr());
@@ -1313,15 +1230,8 @@ fn component_list_for_literal(
 
 #[cfg(test)]
 pub mod test {
-    use super::*;
+    use std::assert_matches::assert_matches;
 
-    use crate::controller::ide::plain::ProjectOperationsNotSupported;
-    use crate::executor::test_utils::TestWithLocalPoolExecutor;
-    use crate::test::mock::data::project_qualified_name;
-    use crate::test::mock::data::MAIN_FINISH;
-    use crate::test::mock::data::MODULE_NAME;
-
-    use crate::controller::graph::RequiredImport;
     use engine_protocol::language_server::types::test::value_update_with_type;
     use engine_protocol::language_server::SuggestionId;
     use enso_suggestion_database::entry::Argument;
@@ -1329,7 +1239,15 @@ pub mod test {
     use enso_suggestion_database::SuggestionDatabase;
     use json_rpc::expect_call;
     use parser::Parser;
-    use std::assert_matches::assert_matches;
+
+    use crate::controller::graph::RequiredImport;
+    use crate::controller::ide::plain::ProjectOperationsNotSupported;
+    use crate::executor::test_utils::TestWithLocalPoolExecutor;
+    use crate::test::mock::data::project_qualified_name;
+    use crate::test::mock::data::MAIN_FINISH;
+    use crate::test::mock::data::MODULE_NAME;
+
+    use super::*;
 
     pub fn completion_response(results: &[SuggestionId]) -> language_server::response::Completion {
         language_server::response::Completion {

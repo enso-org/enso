@@ -83,6 +83,7 @@ pub mod integration_test;
 pub mod model;
 pub mod presenter;
 pub mod retry;
+pub mod searcher;
 pub mod sync;
 pub mod test;
 pub mod transport;
