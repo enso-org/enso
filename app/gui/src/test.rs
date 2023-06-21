@@ -223,7 +223,8 @@ pub mod mock {
             let method = self.method_pointer();
             let definition =
                 module.lookup_method(self.project_name.clone(), &method).expect("Lookup failed.");
-            controller::Graph::new(module, db, parser, definition)
+            let project_name = self.project_name.clone_ref();
+            controller::Graph::new(module, db, parser, definition, project_name)
                 .expect("Graph could not be created")
         }
 
@@ -423,6 +424,7 @@ pub mod mock {
                 language_server: self.project.json_rpc(),
                 model:           model.clone(),
                 parser:          self.data.parser.clone(),
+                project_name:    self.project.qualified_name(),
             };
             (model, controller)
         }

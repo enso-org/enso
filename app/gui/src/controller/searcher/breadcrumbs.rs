@@ -164,7 +164,7 @@ impl<'a> Builder<'a> {
         &self,
         name: impl Into<QualifiedNameRef<'b>>,
     ) -> Option<(component::Id, Rc<Entry>)> {
-        self.database.lookup_by_qualified_name(name)
+        self.database.lookup_by_qualified_name(name).ok()
     }
 
     /// Collect all parent modules of the given module.
