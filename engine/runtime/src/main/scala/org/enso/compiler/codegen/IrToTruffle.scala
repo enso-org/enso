@@ -1755,7 +1755,7 @@ class IrToTruffle(
       location: Option[IdentifiedLocation],
       binding: Boolean = false
     ): CreateFunctionNode = {
-      val bodyBuilder = new BuildFunctionBody(arguments, body, None, binding)
+      val bodyBuilder = new BuildFunctionBody(arguments, body, None, false)
       val fnRootNode = ClosureRootNode.build(
         language,
         scope,
