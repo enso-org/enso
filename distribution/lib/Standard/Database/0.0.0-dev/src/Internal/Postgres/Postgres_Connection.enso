@@ -179,15 +179,12 @@ type Postgres_Connection
          - An `SQL_Error` may be reported if there is a failure on the database
            side.
 
-       ? Dry Run
+       ? Dry Run if Output disabled
 
-         If the Output context is disabled, only a dry run is performed. This
-         means that the operation checks for errors like missing columns.
-
-         The operation creates a temporary table (the `temporary` setting is
-         ignored in dry run mode) and a `Dry_Run_Operation` warning attached.
-         The dry-run table name is prefixed with `enso-dry-run-` and suffixed
-         with a random string.
+         If performing output actions is disabled, only a dry run is performed
+         and no permanent changes occur. The operation will test for errors
+         (like missing columns) and if successful, return a temporary table with
+         a `Dry_Run_Operation` warning attached.
     @structure make_structure_creator
     create_table : Text  -> Vector Column_Description | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
     create_table self (table_name : Text) (structure : Vector Column_Description | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =

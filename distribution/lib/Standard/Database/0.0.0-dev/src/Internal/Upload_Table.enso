@@ -3,6 +3,7 @@ from Standard.Base.Random import random_uuid
 import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
 
 import Standard.Table.Data.Table.Table as In_Memory_Table
@@ -35,24 +36,18 @@ create_table_implementation connection table_name structure primary_key temporar
             if allow_existing then connection.query (SQL_Query.Table_Name table_name) else Error.throw (Table_Already_Exists.Error table_name)
         False ->
             dry_run = Context.Output.is_enabled.not
-            effective_table_name = case dry_run of
-                False -> table_name
-                True -> dry_run_table_name table_name
-            effective_temporary = case dry_run of
-                False -> temporary
-                True -> True
+            effective_table_name = if dry_run.not then table_name else dry_run_table_name table_name
+            effective_temporary = temporary || dry_run
             created_table_name = Context.Output.with_enabled <|
                 connection.jdbc_connection.run_within_transaction <|
                     if dry_run then
                         # If the temporary table already exists, we drop it and will overwrite it.
                         connection.drop_table table_name if_exists=True
                     internal_create_table_structure connection effective_table_name structure primary_key effective_temporary on_problems
-            case dry_run of
-                False -> connection.query (SQL_Query.Table_Name created_table_name)
-                True ->
-                    created_table = connection.internal_allocate_hidden_table created_table_name
-                    warning = Dry_Run_Operation.Warning "The Output context is disabled, so only a dry-run of `create_table` was performed. Instead of the actual table, a temporary table called "+created_table_name.pretty+" has been created."
-                    Warning.attach warning created_table
+            if dry_run.not then connection.query (SQL_Query.Table_Name created_table_name) else
+                created_table = connection.internal_allocate_hidden_table created_table_name
+                warning = Dry_Run_Operation.Warning "Only a dry run of `create_table` has occurred, creating a temporary table ("+created_table_name.pretty+") instead of the actual one."
+                Warning.attach warning created_table
 
 ## PRIVATE
    Assumes the output context is enabled for it to work.
@@ -63,6 +58,7 @@ internal_create_table_structure connection table_name structure primary_key temp
     if aligned_structure.is_empty then Error.throw (Illegal_Argument.Error "An empty table cannot be created: the `structure` must consist of at list one column description.") else
         resolved_primary_key = resolve_primary_key aligned_structure primary_key
         create_table_statement = prepare_create_table_statement connection table_name aligned_structure resolved_primary_key temporary on_problems
+        check_transaction_ddl_support connection
         update_result = create_table_statement.if_not_error <|
             connection.execute_update create_table_statement
         update_result.if_not_error <|
@@ -95,7 +91,7 @@ select_into_table source_table connection table_name primary_key temporary on_pr
                         connection.drop_table tmp_table_name if_exists=True
                         internal_upload_table source_table connection tmp_table_name primary_key temporary on_problems=on_problems row_limit=dry_run_row_limit
                     temporary_table = connection.internal_allocate_hidden_table table.name
-                    warning = Dry_Run_Operation.Warning "The Output context is disabled, so only a dry-run of `select_into_database_table` was performed - a temporary table ["+tmp_table_name+"] was created. It may not contain all the data (max "+dry_run_row_limit.to_text+" rows from the input were used)."
+                    warning = Dry_Run_Operation.Warning "Only a dry run of `select_into_database_table` was performed - a temporary table ("+tmp_table_name+") was created, containing a sample of the data."
                     Warning.attach warning temporary_table
 
 ## PRIVATE
@@ -256,9 +252,7 @@ common_update_table (source_table : In_Memory_Table | Database_Table) (target_ta
                 check_update_arguments_structure_match source_table target_table effective_key_columns update_action error_on_missing_columns on_problems <|
                     tmp_table_name = "enso-temp-source-table-"+random_uuid
                     dry_run = Context.Output.is_enabled.not
-                    row_limit = case dry_run of
-                        False -> Nothing
-                        True -> dry_run_row_limit
+                    row_limit = if dry_run then dry_run_row_limit else Nothing
                     Context.Output.with_enabled <|
                         tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=effective_key_columns temporary=True on_problems=Problem_Behavior.Report_Error row_limit=row_limit
                         tmp_table.if_not_error <|
@@ -267,11 +261,9 @@ common_update_table (source_table : In_Memory_Table | Database_Table) (target_ta
                                all of this happens within a transaction, so in case the
                                above fails, the whole transaction will be rolled back.
                             connection.drop_table tmp_table.name
-                            case dry_run of
-                                False -> resulting_table
-                                True ->
-                                    warning = Dry_Run_Operation.Warning "The Output context is disabled, so only a dry-run of `update_database_table` was performed - the target table has been returned unchanged."
-                                    Warning.attach warning resulting_table
+                            if dry_run.not then resulting_table else
+                                warning = Dry_Run_Operation.Warning "Only a dry run of `update_database_table` was performed - the target table has been returned unchanged."
+                                Warning.attach warning resulting_table
 
 ## PRIVATE
 check_target_table_for_update target_table ~action = case target_table of
@@ -463,3 +455,19 @@ dry_run_table_name table_name =
 
 ## PRIVATE
 dry_run_row_limit = 1000
+
+## PRIVATE
+   Verifies that the used driver supports transactional DDL statements.
+
+   Currently, all our drivers should support them. This check is added, so that
+   when we are adding a new drivers, we don't forget to check if it supports
+   transactional DDL statements - if it does not - we will need to add some
+   additional logic to our code.
+
+   It is a panic, because it is never expected to happen in user code - if it
+   happens, it is a bug in our code.
+check_transaction_ddl_support connection =
+    supports_ddl = connection.jdbc_connection.with_connection java_connection->
+        java_connection.getMetaData.supportsDataDefinitionAndDataManipulationTransactions
+    if supports_ddl.not then
+        Panic.throw (Illegal_State.Error "The connection "+connection.to_text+" does not support transactional DDL statements. Our current implementation of table updates relies on transactional DDL. To support this driver, the logic needs to be amended.")

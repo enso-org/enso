@@ -59,7 +59,7 @@ public abstract class NumericBuilder extends TypedBuilder {
 
   protected void ensureFreeSpaceFor(int additionalSize) {
     if (currentSize + additionalSize > data.length) {
-      grow(currentSize + additionalSize);
+      resize(currentSize + additionalSize);
     }
   }
 
@@ -110,10 +110,10 @@ public abstract class NumericBuilder extends TypedBuilder {
       desiredCapacity = currentSize + 1;
     }
 
-    grow(desiredCapacity);
+    resize(desiredCapacity);
   }
 
-  protected void grow(int desiredCapacity) {
+  protected void resize(int desiredCapacity) {
     this.data = Arrays.copyOf(data, desiredCapacity);
   }
 }

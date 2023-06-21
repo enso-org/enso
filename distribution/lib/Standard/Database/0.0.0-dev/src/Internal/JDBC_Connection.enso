@@ -161,7 +161,7 @@ type JDBC_Connection
 
        It is the caller's responsibility to call this method from within a
        transaction to ensure consistency.
-    batch_insert : Text -> Statement_Setter -> Materialized_Table -> Integer -> Integer -> Nothing
+    batch_insert : Text -> Statement_Setter -> Materialized_Table -> Integer -> Integer | Nothing -> Nothing
     batch_insert self insert_template statement_setter table batch_size row_limit=Nothing =
         In_Transaction.ensure_in_transaction <| self.with_connection java_connection->
             Managed_Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
