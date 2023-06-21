@@ -1,6 +1,6 @@
 package org.enso.compiler.data
 
-import org.enso.compiler.{Compiler, PackageRepository}
+import org.enso.compiler.{PackageRepository}
 import org.enso.compiler.PackageRepository.ModuleMap
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap.{DefinedEntity, ModuleReference}
@@ -26,12 +26,12 @@ import scala.annotation.unused
 case class BindingsMap(
   definedEntities: List[DefinedEntity],
   currentModule: ModuleReference
-) extends IRPass.Metadata {
+) extends IRPass.IRMetadata {
   import BindingsMap._
 
   override val metadataName: String = "Bindings Map"
 
-  override def duplicate(): Option[IRPass.Metadata] = Some(this)
+  override def duplicate(): Option[IRPass.IRMetadata] = Some(this)
 
   /** Other modules, imported by [[currentModule]].
     */
@@ -979,7 +979,7 @@ object BindingsMap {
   }
 
   /** A metadata-friendly storage for resolutions */
-  case class Resolution(target: ResolvedName) extends IRPass.Metadata {
+  case class Resolution(target: ResolvedName) extends IRPass.IRMetadata {
 
     /** The name of the metadata as a string. */
     override val metadataName: String = "Resolution"
@@ -1005,7 +1005,7 @@ object BindingsMap {
       * @return Some duplicate of this metadata or None if this metadata should
       *         not be preserved
       */
-    override def duplicate(): Option[IRPass.Metadata] = Some(this)
+    override def duplicate(): Option[IRPass.IRMetadata] = Some(this)
   }
 
   /** A reference to a module.

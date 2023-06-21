@@ -1,6 +1,5 @@
 package org.enso.compiler.pass.optimise
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
@@ -209,8 +208,8 @@ case object ApplicationSaturation extends IRPass {
   type KnownFunctionsMapping = Map[String, FunctionSpec]
 
   /** Describes the saturation state of a function application. */
-  sealed trait CallSaturation extends IRPass.Metadata {
-    override def duplicate(): Option[IRPass.Metadata] = Some(this)
+  sealed trait CallSaturation extends IRPass.IRMetadata {
+    override def duplicate(): Option[IRPass.IRMetadata] = Some(this)
   }
   object CallSaturation {
     sealed case class Over(additionalArgCount: Int) extends CallSaturation {

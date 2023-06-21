@@ -3,6 +3,7 @@ package org.enso.compiler.core.ir
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.ProcessingPass
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.CompilerStub
 
 /** Stores metadata for the various passes.
   *
@@ -120,12 +121,12 @@ class MetadataStorage(
     *
     * @param compiler the Enso compiler
     */
-  def prepareForSerialization(compiler: Any): Unit = {
+  def prepareForSerialization(compiler: CompilerStub): Unit = {
     this.metadata = metadata.map { case (pass, value) =>
-      val newVal =
-        value
-          .asInstanceOf[ProcessingPass.Metadata]
-          .prepareForSerialization(compiler)
+      val metadata = value.asInstanceOf[ProcessingPass.Metadata]
+      val newVal = metadata
+        // HP: could avoid casting by wrapping Metadata with some global compiler reference
+        .prepareForSerialization(compiler.asInstanceOf[metadata.Compiler])
       (pass, newVal)
     }
   }
@@ -140,11 +141,11 @@ class MetadataStorage(
     * @param compiler the Enso compiler
     * @return `true` if restoration was successful, `false` otherwise
     */
-  def restoreFromSerialization(compiler: Any): Boolean = {
+  def restoreFromSerialization(compiler: CompilerStub): Boolean = {
     this.metadata = metadata.map { case (pass, value) =>
-      val meta = value
-        .asInstanceOf[ProcessingPass.Metadata]
-        .restoreFromSerialization(compiler)
+      val metadata = value.asInstanceOf[ProcessingPass.Metadata]
+      val meta = metadata
+        .restoreFromSerialization(compiler.asInstanceOf[metadata.Compiler])
         .getOrElse(return false)
       (pass, meta)
     }

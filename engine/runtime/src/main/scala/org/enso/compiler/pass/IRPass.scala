@@ -1,6 +1,5 @@
 package org.enso.compiler.pass
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.ProcessingPass
@@ -115,51 +114,13 @@ object IRPass {
     * they are guaranteed to have `restoreFromSerialization` called after they
     * have been deserialized and before any other operations occur.
     */
-  trait Metadata extends ProcessingPass.Metadata {
+  trait IRMetadata extends ProcessingPass.Metadata {
+
+    type Metadata = IRMetadata
+    type Compiler = org.enso.compiler.Compiler
 
     /** The name of the metadata as a string. */
     val metadataName: String
-
-    /** Prepares the metadata for serialization.
-      *
-      * Metadata prepared for serialization should not contain any links that
-      * span more than one module, or any other properties that are problematic
-      * when serialized.
-      *
-      * Due to the type safety properties of
-      * [[org.enso.compiler.core.ir.MetadataStorage]], to allow this conversion
-      * to work it must be type-refined to return `typeof this`. To that end,
-      * there is no default definition for this method.
-      *
-      * @param compiler the Enso compiler
-      * @return `this`, but prepared for serialization
-      */
-    def prepareForSerialization(compiler: Compiler): Metadata
-
-    final override def prepareForSerialization(
-      compiler: Any
-    ): ProcessingPass.Metadata = {
-      prepareForSerialization(compiler.asInstanceOf[Compiler])
-    }
-
-    /** Restores metadata after it has been deserialized.
-      *
-      * Due to the type safety properties of
-      * [[org.enso.compiler.core.ir.MetadataStorage]], to allow this conversion
-      * to work it must be type-refined to return `typeof this`. To that end,
-      * there is no default definition for this method.
-      *
-      * @param compiler the Enso compiler
-      * @return `this`, but restored from serialization, or [[None]] if
-      *         restoration could not be performed
-      */
-    def restoreFromSerialization(compiler: Compiler): Option[Metadata]
-
-    final override def restoreFromSerialization(
-      compiler: Any
-    ): Option[ProcessingPass.Metadata] = {
-      restoreFromSerialization(compiler.asInstanceOf[Compiler])
-    }
 
     /** Casts the pass to the provided type.
       *
@@ -208,7 +169,7 @@ object IRPass {
   object Metadata {
 
     /** An empty metadata type for passes that do not create any metadata. */
-    sealed case class Empty() extends Metadata {
+    sealed case class Empty() extends IRMetadata {
       override val metadataName: String = "Empty"
 
       /** @inheritdoc */

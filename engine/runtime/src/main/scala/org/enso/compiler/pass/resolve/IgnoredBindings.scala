@@ -1,6 +1,5 @@
 package org.enso.compiler.pass.resolve
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Case, Pattern}
@@ -379,7 +378,7 @@ case object IgnoredBindings extends IRPass {
   // === Pass Metadata ========================================================
 
   /** States whether or not the binding was ignored. */
-  sealed trait State extends IRPass.Metadata {
+  sealed trait State extends IRPass.IRMetadata {
     val isIgnored: Boolean
   }
   object State {
@@ -399,7 +398,7 @@ case object IgnoredBindings extends IRPass {
       ): Option[Ignored.type] = Some(this)
 
       /** @inheritdoc */
-      override def duplicate(): Option[IRPass.Metadata] = Some(Ignored)
+      override def duplicate(): Option[IRPass.IRMetadata] = Some(Ignored)
     }
 
     /** States that the binding is not ignored. */
@@ -418,7 +417,7 @@ case object IgnoredBindings extends IRPass {
       ): Option[NotIgnored.type] = Some(this)
 
       /** @inheritdoc */
-      override def duplicate(): Option[IRPass.Metadata] = Some(NotIgnored)
+      override def duplicate(): Option[IRPass.IRMetadata] = Some(NotIgnored)
     }
   }
 }

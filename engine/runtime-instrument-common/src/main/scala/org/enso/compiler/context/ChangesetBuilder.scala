@@ -2,7 +2,7 @@ package org.enso.compiler.context
 
 import com.oracle.truffle.api.source.Source
 import java.util.UUID
-import org.enso.compiler.EnsoParser
+import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.analyse.DataflowAnalysis
@@ -89,7 +89,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
           val source = Source.newBuilder("enso", value, null).build
           Using(new EnsoParser) { compiler =>
             compiler
-              .generateIRInline(compiler.parse(source))
+              .generateIRInline(compiler.parse(source.getCharacters()))
               .flatMap(_ match {
                 case ir: IR.Literal => Some(ir.setLocation(oldIr.location))
                 case _              => None

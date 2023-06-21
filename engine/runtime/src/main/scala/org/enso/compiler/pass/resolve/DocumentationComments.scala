@@ -1,6 +1,5 @@
 package org.enso.compiler.pass.resolve
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Case.Branch
@@ -225,7 +224,7 @@ case object DocumentationComments extends IRPass {
     *
     * @param documentation the documentation as a string
     */
-  sealed case class Doc(documentation: String) extends IRPass.Metadata {
+  sealed case class Doc(documentation: String) extends IRPass.IRMetadata {
     override val metadataName: String =
       "DocumentationComments.Doc(\"" + documentation + "\")"
 
@@ -237,6 +236,6 @@ case object DocumentationComments extends IRPass {
       Some(this)
 
     /** @inheritdoc */
-    override def duplicate(): Option[IRPass.Metadata] = Some(this)
+    override def duplicate(): Option[IRPass.IRMetadata] = Some(this)
   }
 }

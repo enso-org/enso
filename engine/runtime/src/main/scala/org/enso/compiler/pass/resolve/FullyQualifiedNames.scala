@@ -401,7 +401,7 @@ case object FullyQualifiedNames extends IRPass {
     * @param target the partially resolved name
     */
   sealed case class FQNResolution(target: PartiallyResolvedFQN)
-      extends IRPass.Metadata {
+      extends IRPass.IRMetadata {
 
     override val metadataName: String =
       "FullyQualifiedNames.Resolution"
@@ -417,7 +417,7 @@ case object FullyQualifiedNames extends IRPass {
       target.restoreFromSerialization(compiler).map(FQNResolution)
 
     /** @inheritdoc */
-    override def duplicate(): Option[IRPass.Metadata] = Some(this)
+    override def duplicate(): Option[IRPass.IRMetadata] = Some(this)
   }
 
   sealed trait PartiallyResolvedFQN {

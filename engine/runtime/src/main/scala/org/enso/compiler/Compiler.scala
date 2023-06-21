@@ -5,6 +5,7 @@ import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.codegen.{IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.CompilerStub
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
@@ -50,7 +51,7 @@ class Compiler(
   val builtins: Builtins,
   val packageRepository: PackageRepository,
   config: CompilerConfig
-) {
+) extends CompilerStub {
   private val freshNameSupply: FreshNameSupply = new FreshNameSupply
   private val passes: Passes                   = new Passes(config)
   private val passManager: PassManager         = passes.passManager
@@ -706,7 +707,8 @@ class Compiler(
     * @param source The inline code to parse
     * @return A Tree representation of `source`
     */
-  def parseInline(source: Source): Tree = ensoCompiler.parse(source.getCharacters())
+  def parseInline(source: Source): Tree =
+    ensoCompiler.parse(source.getCharacters())
 
   /** Parses the metadata of the provided language sources.
     *
