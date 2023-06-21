@@ -1,15 +1,15 @@
-package org.enso.compiler.pass
+package org.enso.compiler.core.ir
 
-import org.enso.compiler.Compiler
+trait ProcessingPass extends Serializable {
 
-trait IRPass extends Serializable {
   /** The type of the metadata object that the pass writes to the IR. */
-  type Metadata <: IRPass.Metadata
+  type Metadata <: ProcessingPass.Metadata
 
 }
 
-object IRPass {
+object ProcessingPass {
   trait Metadata extends Serializable {
+
     /** The name of the metadata as a string. */
     val metadataName: String
 
@@ -27,7 +27,7 @@ object IRPass {
       * @param compiler the Enso compiler
       * @return `this`, but prepared for serialization
       */
-    def prepareForSerialization(compiler: Compiler): Metadata
+    def prepareForSerialization(compiler: Any): Metadata
 
     /** Restores metadata after it has been deserialized.
       *
@@ -40,8 +40,7 @@ object IRPass {
       * @return `this`, but restored from serialization, or [[None]] if
       *         restoration could not be performed
       */
-    def restoreFromSerialization(compiler: Compiler): Option[Metadata]
-
+    def restoreFromSerialization(compiler: Any): Option[Metadata]
 
     /** Creates a duplicate of this metadata if applicable.
       *

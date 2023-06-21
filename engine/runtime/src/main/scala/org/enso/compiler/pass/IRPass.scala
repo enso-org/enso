@@ -3,6 +3,7 @@ package org.enso.compiler.pass
 import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.ProcessingPass
 import org.enso.compiler.exception.CompilerError
 import shapeless.=:!=
 
@@ -19,13 +20,13 @@ import scala.reflect.ClassTag
   * its header the requirements it has for pass configuration and for passes
   * that must run before it.
   */
-trait IRPass extends Serializable {
+trait IRPass extends ProcessingPass {
 
   /** An identifier for the pass. Useful for keying it in maps. */
   val key: IRPass.Identifier = IRPass.genId
 
   /** The type of the metadata object that the pass writes to the IR. */
-  type Metadata <: IRPass.Metadata
+  type Metadata <: ProcessingPass.Metadata
 
   /** The type of configuration for the pass. */
   type Config <: IRPass.Configuration
@@ -114,7 +115,7 @@ object IRPass {
     * they are guaranteed to have `restoreFromSerialization` called after they
     * have been deserialized and before any other operations occur.
     */
-  trait Metadata extends Serializable {
+  trait Metadata extends ProcessingPass.Metadata {
 
     /** The name of the metadata as a string. */
     val metadataName: String
@@ -135,6 +136,12 @@ object IRPass {
       */
     def prepareForSerialization(compiler: Compiler): Metadata
 
+    final override def prepareForSerialization(
+      compiler: Any
+    ): ProcessingPass.Metadata = {
+      prepareForSerialization(compiler.asInstanceOf[Compiler])
+    }
+
     /** Restores metadata after it has been deserialized.
       *
       * Due to the type safety properties of
@@ -147,6 +154,12 @@ object IRPass {
       *         restoration could not be performed
       */
     def restoreFromSerialization(compiler: Compiler): Option[Metadata]
+
+    final override def restoreFromSerialization(
+      compiler: Any
+    ): Option[ProcessingPass.Metadata] = {
+      restoreFromSerialization(compiler.asInstanceOf[Compiler])
+    }
 
     /** Casts the pass to the provided type.
       *

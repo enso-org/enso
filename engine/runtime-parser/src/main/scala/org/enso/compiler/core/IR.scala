@@ -4,8 +4,8 @@ import org.enso.interpreter.Constants
 import org.enso.compiler.core.IR.{Expression, IdentifiedLocation}
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
+import org.enso.compiler.core.ir.ProcessingPass
 import org.enso.compiler.exception.CompilerError
-import org.enso.compiler.pass.IRPass
 import org.enso.syntax.text.{Debug, Location}
 import com.oracle.truffle.api.source.Source
 
@@ -9061,7 +9061,9 @@ object IR {
       * @param metadataPair the pair to add to the storage
       * @tparam K the concrete type of the pass
       */
-    def updateMetadata[K <: IRPass](metadataPair: MetadataPair[K]): T = {
+    def updateMetadata[K <: ProcessingPass](
+      metadataPair: MetadataPair[K]
+    ): T = {
       ir.passData.update(metadataPair)
       ir
     }
@@ -9072,7 +9074,7 @@ object IR {
       * @tparam K the concrete type of `pass`
       * @return the metadata for `pass`, if it exists
       */
-    def getMetadata[K <: IRPass](pass: K): Option[pass.Metadata] = {
+    def getMetadata[K <: ProcessingPass](pass: K): Option[pass.Metadata] = {
       ir.passData.get(pass)
     }
 
@@ -9085,8 +9087,8 @@ object IR {
       * @return the metadata for `pass`, if it exists
       */
     @throws[CompilerError]
-    def unsafeGetMetadata[K <: IRPass](
-      pass: IRPass,
+    def unsafeGetMetadata[K <: ProcessingPass](
+      pass: ProcessingPass,
       msg: => String
     ): pass.Metadata = {
       ir.passData.getUnsafe(pass)(msg)
