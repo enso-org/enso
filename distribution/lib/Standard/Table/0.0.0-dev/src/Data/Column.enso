@@ -720,24 +720,38 @@ type Column
              Column.from_vector "foo" [1.2, 2.3, 3.6] . round == (Column.from_vector "foo" [1, 2, 4])
     round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
     round self decimal_places=0 use_bankers=False =
-        Decimal_Places_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
+        Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
             # If it's an integer column and decimal_places >=0 then it's a no-op.
             new_name = Naming_Helpers.function_name "round" [self]
             if self.value_type.is_integer && decimal_places >= 0 then self.rename new_name else
-                scale = 10 ^ decimal_places
-                scaled = self * scale
-                round_base = scaled.floor
-                round_midpoint = (round_base + 0.5) / scale
-                even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
-                half_goes_up = if use_bankers then even_is_up else self >= 0
-                do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
-                result_float = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
-
                 should_cast_to_integer = decimal_places <= 0 || self.value_type.is_integer
-                result = if should_cast_to_integer.not then result_float else
-                    result_float.cast Value_Type.Integer
-
+                target_value_type = if should_cast_to_integer then Value_Type.Integer else self.value_type
+                result = self.check_round_input target_value_type <|
+                    scale = 10 ^ decimal_places
+                    scaled = self * scale
+                    round_base = scaled.floor
+                    round_midpoint = (round_base + 0.5) / scale
+                    even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
+                    half_goes_up = if use_bankers then even_is_up else self >= 0
+                    do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
+                    result_float = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
+                    cast_if_not result_float target_value_type
                 result.rename new_name
+
+    ## PRIVATE
+       Restrict allowed range of input to rounding methods.
+    check_round_input : Column -> Value_Type -> Any ! Illegal_Argument
+    check_round_input self target_value_type column =
+        min = Rounding_Helpers.round_min_long
+        max = Rounding_Helpers.round_max_long
+        within_range = self >= self.const min && self <= self.const max
+        warning = Illegal_Argument.Error <| "Error: `round` can only accept values between " + min.to_text + " and " + max.to_text + " (inclusive)"
+        nothing_with_problem = Warning.attach warning Nothing
+        ## TODO: This should be cast to NULL when that type is available,
+           see https://github.com/enso-org/enso/issues/6281.
+        nothings = self.const nothing_with_problem . cast target_value_type
+        result = within_range.iif column nothings
+        result.rename column.name
 
     ## ALIAS int
 
@@ -2068,3 +2082,8 @@ wrap_text_argument_as_value_provider val =
         col : Column ->
             storage = col.java_column.getStorage
             i-> storage.getItemBoxed i
+
+## PRIVATE
+   Cast a column to a `Value_Type`, unless it already has that type.
+cast_if_not : Column -> Value_Type -> Column
+cast_if_not column value_type = if column.value_type == value_type then column else column.cast value_type

@@ -122,22 +122,16 @@ spec =
             Column.from_vector "foo" [12, 24, 25, 29] . round 0 . value_type . should_equal Value_Type.Integer
             Column.from_vector "foo" [12, 24, 25, 29] . round -1 . value_type . should_equal Value_Type.Integer
 
-        Test.specify "should report out-of-range values as problems" <|
+        Test.specify "should report out-of-range values as warnings" <|
             col = Column.from_vector "foo" [12, 23, 99999999999999999]
             expected = Column.from_vector "round([foo])" [10, 20, Nothing]
-            col.round -1 . should_equal expected
-            action = col.round -1 on_problems=_
-            problems = [Illegal_Argument.Error "Error: `round` can only accept values between -99999999999999 and 99999999999999 (inclusive), but was 99999999999999999"]
-            tester = _.should_equal expected
-            Problems.test_problem_handling action problems tester
+            actual = col.round -1
+            actual . should_equal expected
+            Warning.get_all actual . map .value . should_equal [Illegal_Argument.Error "Error: `round` can only accept values between -99999999999999 and 99999999999999 (inclusive)"]
 
         Test.specify "should throw an error on decimal places out of range" <|
             col = Column.from_vector "foo" [12, 23, 99999999999999999]
-            expected = Column.from_vector "round([foo])" [Nothing, Nothing, Nothing]
-            action = col.round decimal_places=-1200 on_problems=_
-            problems = [Illegal_Argument.Error "round: decimal_places must be between -15 and 15 (inclusive), but was -1200"]
-            tester = _.should_equal expected
-            Problems.test_problem_handling action problems tester
+            col.round decimal_places=-1200 . should_fail_with Illegal_Argument
 
     Test.group "truncate" <|
         Test.specify "should be able to truncate a column of floats" <|

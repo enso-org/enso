@@ -1,5 +1,5 @@
 import project.Any.Any
-import project.Internal.Decimal_Places_Helpers
+import project.Internal.Rounding_Helpers
 import project.Data.Text.Text
 import project.Data.Locale.Locale
 import project.Errors.Common.Arithmetic_Error
@@ -610,12 +610,12 @@ type Decimal
             2.5 . round use_bankers=True == 2
     round : Integer -> Boolean -> Integer | Decimal ! Illegal_Argument
     round self decimal_places=0 use_bankers=False =
-        Decimal_Places_Helpers.check_decimal_places decimal_places <|
+        Rounding_Helpers.check_decimal_places decimal_places <|
             case self.is_nan || self.is_infinite of
                 True ->
                     msg = "round cannot accept " + self.to_text
                     Error.throw (Arithmetic_Error.Error msg)
-                False ->  check_round_input self <|
+                False -> Rounding_Helpers.check_round_input self <|
                     decimal_result =
                         # Algorithm taken from https://stackoverflow.com/a/7211688
                         scale = 10 ^ decimal_places
@@ -937,7 +937,7 @@ type Integer
         ## It's already an integer so unless decimal_places is
            negative, the value is unchanged.
         if decimal_places >= 0 then self else
-            Decimal_Places_Helpers.check_decimal_places decimal_places <| check_round_input self <|
+            Rounding_Helpers.check_decimal_places decimal_places <| Rounding_Helpers.check_round_input self <|
                 scale = 10 ^ -decimal_places
                 halfway = scale.div 2
                 remainder = self % scale
@@ -1122,27 +1122,3 @@ type Number_Parse_Error
     to_display_text : Text
     to_display_text =
         "Could not parse " + self.text.to_text + " as a double."
-
-## PRIVATE
-   The largest smallInteger (Long) that integer round can handle. Above 14
-   digits, it is possible that the underlying long, converted to double in the
-   rounding process, would lose precision in the least significant bits.
-   (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
-round_max_long : Integer
-round_max_long = 99999999999999
-
-## PRIVATE
-   The largest smallInteger (Long) that integer round can handle. Above 14
-   digits, it is possible that the underlying long, converted to double in the
-   rounding process, would lose precision in the least significant bits.
-   (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
-round_min_long : Integer
-round_min_long = -99999999999999
-
-## PRIVATE
-   Restrict allowed range of input to rounding methods.
-check_round_input : Number -> Function -> Any ! Illegal_Argument
-check_round_input n ~action =
-    if n >= round_min_long && n <= round_max_long then action else
-        msg = "Error: `round` can only accept values between " + round_min_long.to_text + " and " + round_max_long.to_text + " (inclusive), but was " + n.to_text
-        Error.throw (Illegal_Argument.Error msg)

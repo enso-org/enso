@@ -618,7 +618,7 @@ type Column
              example_round = Examples.decimal_column.round 2
     round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
     round self decimal_places=0 use_bankers=False =
-        Decimal_Places_Helpers.check_decimal_places decimal_places <|
+        Rounding_Helpers.check_decimal_places decimal_places <|
             round_maybe = if decimal_places <= 0 then roundlike_cast self.value_type else identity
             result_uncast = case self.value_type of
                 Value_Type.Integer _ -> self.round_integer decimal_places use_bankers
