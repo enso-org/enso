@@ -78,7 +78,7 @@ impl LayoutManager {
 #[derive(Clone, Copy, Debug)]
 pub struct ScopeLayoutManager<T> {
     location: Option<usize>,
-    tp:       PhantomData<T>,
+    tp:       ZST<T>,
 }
 
 impl<T> ScopeLayoutManager<T> {

@@ -13,41 +13,30 @@ make_delimiter_selector =
 
 ## PRIVATE
    Creates a Single_Choice Widget for parsing dates.
-make_date_format_selector : Widget
-make_date_format_selector =
-    ## Same Example Date as Excel
-    date = Date.new 2012 3 14
-
+make_date_format_selector : Date -> Widget
+make_date_format_selector (date:Date=(Date.new 2012 3 14)) =
     iso_format = ['ISO-Format (e.g. ' + date.to_text + ')', '""']
     formats = ['d/M/yyyy', 'dd/MM/yyyy', 'd-MMM-yy', 'd MMMM yyyy', 'M/d/yyyy', 'MM/dd/yyyy', 'MMMM d, yyyy'].map f-> [f + " (e.g. " + date.format f + ")", f.pretty]
-    custom_format = ['Custom', "'yyyy-MM-dd'"]
 
-    make_single_choice ([iso_format] + formats + [custom_format])
+    make_single_choice ([iso_format] + formats)
 
 ## PRIVATE
    Creates a Single_Choice Widget for parsing date times.
-make_date_time_format_selector : Widget
-make_date_time_format_selector =
-    date = Date_Time.new 2012 3 14 15 9 26 123
-
-    enso_format = ['Default (e.g. ' + date.to_text + ')', '""']
-    iso_format = ['ISO-Format (e.g. ' + (date.format "ISO_ZONED_DATE_TIME") + ')', '"ISO_ZONED_DATE_TIME"']
-    iso_local = ['ISO-Local (e.g. ' + (date.format "ISO_LOCAL_DATE_TIME") + ')', '"ISO_LOCAL_DATE_TIME"']
+make_date_time_format_selector : Date_Time -> Widget
+make_date_time_format_selector (date_time:Date_Time=(Date_Time.new 2012 3 14 15 9 26 123)) =
+    enso_format = ['Default (e.g. ' + date_time.to_text + ')', '""']
+    iso_format = ['ISO-Format (e.g. ' + (date_time.format "ISO_ZONED_DATE_TIME") + ')', '"ISO_ZONED_DATE_TIME"']
+    iso_local = ['ISO-Local (e.g. ' + (date_time.format "ISO_LOCAL_DATE_TIME") + ')', '"ISO_LOCAL_DATE_TIME"']
     formats = ['yyyy-MM-dd HH:mm:ss.S', 'yyyy-MM-dd HH:mm:ss.S VV', 'd/M/yyyy h:mm a', 'dd/MM/yyyy HH:mm:ss', 'd-MMM-yy HH:mm:ss', 'd-MMM-yy h:mm:ss a', 'd MMMM yyyy h:mm a', 'M/d/yyyy h:mm:ss a', 'MM/dd/yyyy HH:mm:ss']
-    mapped_formats = formats.map f-> [f + " (e.g. " + date.format f + ")", f.pretty]
-    custom_format = ['Custom', "'yyyy-MM-dd HH:mm:ss'"]
+    mapped_formats = formats.map f-> [f + " (e.g. " + date_time.format f + ")", f.pretty]
 
-    make_single_choice ([enso_format, iso_format, iso_local] + mapped_formats + [custom_format])
+    make_single_choice ([enso_format, iso_format, iso_local] + mapped_formats)
 
 ## PRIVATE
    Creates a Single_Choice Widget for parsing times.
-make_time_format_selector : Widget
-make_time_format_selector =
-    ## Same Example Time as Excel
-    time = Time_Of_Day.new 13 30 55 123
-
+make_time_format_selector : Time_Of_Day -> Widget
+make_time_format_selector (time:Time_Of_Day=(Time_Of_Day.new 13 30 55 123)) =
     iso_format = ['ISO-Format (e.g. ' + time.to_text + ')', '""']
     formats = ['HH:mm[:ss]', 'HH:mm:ss', 'h:mm[:ss] a', 'hh:mm:ss a', 'HH:mm:ss.S'].map f-> [f + " (e.g. " + time.format f + ")", f.pretty]
-    custom_format = ['Custom', "'HH:mm:ss'"]
 
-    make_single_choice ([iso_format] + formats + [custom_format])
+    make_single_choice ([iso_format] + formats)

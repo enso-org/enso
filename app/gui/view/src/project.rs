@@ -212,24 +212,18 @@ impl Model {
     }
 
     fn searcher_anchor_next_to_node(&self, node_id: NodeId) -> Vector2<f32> {
-        if let Some(node) = self.graph_editor.nodes().get_cloned_ref(&node_id) {
-            node.position().xy()
-        } else {
-            error!("Trying to show searcher under non existing node");
-            default()
-        }
+        self.graph_editor.model.with_node(node_id, |node| node.position().xy()).unwrap_or_default()
     }
 
     fn show_fullscreen_visualization(&self, node_id: NodeId) {
-        let node = self.graph_editor.nodes().get_cloned_ref(&node_id);
-        if let Some(node) = node {
+        self.graph_editor.model.with_node(node_id, |node| {
             let visualization =
                 node.view.model().visualization.fullscreen_visualization().clone_ref();
             self.display_object.remove_child(&*self.graph_editor);
             self.display_object.remove_child(&self.project_view_top_bar);
             self.display_object.add_child(&visualization);
             *self.fullscreen_vis.borrow_mut() = Some(visualization);
-        }
+        });
     }
 
     fn hide_fullscreen_visualization(&self) {

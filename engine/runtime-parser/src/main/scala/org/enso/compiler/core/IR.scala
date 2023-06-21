@@ -7547,7 +7547,7 @@ object IR {
         *
         * @param err the original error.
         */
-      case class ResolverError(err: Any)
+      case class ResolverError(private val explain: ExplainResolution)
           extends Reason {
 
         /** Provides a human-readable explanation of the error.
@@ -7555,7 +7555,11 @@ object IR {
           * @return a human-readable message.
           */
         override def explain(originalName: IR.Name): String =
-              s"The name `${originalName.name}` could not be found"
+          this.explain.explain(originalName)
+      }
+
+      trait ExplainResolution {
+        def explain(originalName: IR.Name): String
       }
 
       case class MissingLibraryImportInFQNError(namespace: String)

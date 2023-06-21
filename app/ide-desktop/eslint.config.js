@@ -4,7 +4,7 @@
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-// We prefer `import * as name`, however these modules do not support it.
+// The preferred syntax is `import * as name`, however these modules do not support it.
 // This is specialcased in other files, but these modules shouldn't be used in other files anyway.
 /* eslint-disable no-restricted-syntax */
 import eslintJs from '@eslint/js'
@@ -30,13 +30,13 @@ const NAME = 'enso'
 const DEFAULT_IMPORT_ONLY_MODULES =
     'node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*'
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|react-hot-toast`
-const OUR_MODULES = 'enso-content-config|enso-common'
+const OUR_MODULES = 'enso-content-config|enso-common|enso-common\\u002Fsrc\\u002Fdetect'
 const RELATIVE_MODULES =
     'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|file-associations|index|ipc|log|naming|paths|preload|security|url-associations'
 const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
 const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_PASCAL_CASE = '/^(?!_?([A-Z][a-z0-9]*)+$)/'
-const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)/'
+const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)(?!React$)/'
 const WHITELISTED_CONSTANTS = 'logger|.+Context'
 const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)/`
 
@@ -210,7 +210,8 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use arrow functions for nested functions',
     },
     {
-        selector: ':not(ExportNamedDeclaration) > TSInterfaceDeclaration[id.name=/Props$/]',
+        selector:
+            ':not(ExportNamedDeclaration) > TSInterfaceDeclaration[id.name=/^(?!Internal).+Props$/]',
         message: 'All React component `Props` types must be exported',
     },
     {
@@ -231,6 +232,11 @@ const RESTRICTED_SYNTAXES = [
 export default [
     eslintJs.configs.recommended,
     {
+        settings: {
+            react: {
+                version: '18.2',
+            },
+        },
         plugins: {
             jsdoc: jsdoc,
             '@typescript-eslint': tsEslint,
@@ -284,6 +290,7 @@ export default [
             ],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
             'prefer-arrow-callback': 'error',
+            'prefer-const': 'error',
             // Prefer `interface` over `type`.
             '@typescript-eslint/consistent-type-definitions': 'error',
             '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'no-type-imports' }],
@@ -347,6 +354,7 @@ export default [
             ],
             '@typescript-eslint/restrict-template-expressions': 'error',
             '@typescript-eslint/sort-type-constituents': 'error',
+            // '@typescript-eslint/strict-boolean-expressions': 'error',
             '@typescript-eslint/switch-exhaustiveness-check': 'error',
             'default-param-last': 'off',
             '@typescript-eslint/default-param-last': 'error',
@@ -452,6 +460,21 @@ export default [
                 {
                     object: 'hooks',
                     property: 'useDebugState',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+                {
+                    object: 'hooks',
+                    property: 'useDebugEffect',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+                {
+                    object: 'hooks',
+                    property: 'useDebugMemo',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+                {
+                    object: 'hooks',
+                    property: 'useDebugCallback',
                     message: 'Avoid leaving debugging statements when committing code',
                 },
             ],

@@ -80,7 +80,7 @@ use enso_callback::traits::*;
 use enso_callback as callback;
 use enso_generics::Cons;
 use enso_generics::Nil;
-use enso_generics::PushBack;
+use enso_generics::PushLastField;
 use enso_web::traits::WindowOps;
 use enso_web::Closure;
 use enso_web::JsEventHandler;
@@ -307,9 +307,9 @@ impl<T> TickPhases<T> {
     /// Add a phase to the list. The phase will be performed after all the phases that were added
     /// before.
     pub fn then<F>(self, f: F) -> TickPhases<T::Output>
-    where T: PushBack<F> {
+    where T: PushLastField<F> {
         let handle_cell = self.handle_cell;
-        let phase_list = self.phase_list.push_back(f);
+        let phase_list = self.phase_list.push_last_field(f);
         TickPhases { handle_cell, phase_list }
     }
 

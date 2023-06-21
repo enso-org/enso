@@ -369,10 +369,8 @@ impl ScrollArea {
             hovering <- hovering.sampler();
             let on_scroll = model.display_object.on_event::<mouse::Wheel>();
             on_scroll_when_hovering <- on_scroll.gate(&hovering);
-            model.h_scrollbar.scroll_by <+ on_scroll_when_hovering
-                .map(|event| event.delta_x() as f32);
-            model.v_scrollbar.scroll_by <+ on_scroll_when_hovering
-                .map(|event| event.delta_y() as f32);
+            model.h_scrollbar.scroll_by <+ on_scroll_when_hovering.map(|event| event.delta_x());
+            model.v_scrollbar.scroll_by <+ on_scroll_when_hovering.map(|event| event.delta_y());
         }
 
 

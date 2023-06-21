@@ -91,8 +91,6 @@ pub const SHORTCUTS: &[(ensogl::application::shortcut::ActionType, &str, &str, &
     (Release, "!read_only", "cmd", "edit_mode_off"),
     (Press, "!read_only", "cmd left-mouse-button", "edit_mode_on"),
     (Release, "!read_only", "cmd left-mouse-button", "edit_mode_off"),
-    // === Profiling Mode ===
-    (Press, "", "cmd p", "toggle_profiling_mode"),
     // === Debug ===
     (Press, "debug_mode", "ctrl d", "debug_set_test_visualization_data_for_selected_node"),
     (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
