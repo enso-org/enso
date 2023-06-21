@@ -36,6 +36,8 @@ function responseIsSuccessful(response: Response) {
 // === Paths ===
 // =============
 
+/** Relative HTTP path to the "list users" endpoint of the Cloud backend API. */
+const LIST_USERS_PATH = 'users'
 /** Relative HTTP path to the "set username" endpoint of the Cloud backend API. */
 const CREATE_USER_PATH = 'users'
 /** Relative HTTP path to the "invite user" endpoint of the Cloud backend API. */
@@ -111,6 +113,11 @@ function deleteTagPath(tagId: backend.TagId) {
 // === Types ===
 // =============
 
+/** HTTP response body for the "list users" endpoint. */
+interface ListUsersResponseBody {
+    users: backend.SimpleUser[]
+}
+
 /** HTTP response body for the "list projects" endpoint. */
 interface ListDirectoryResponseBody {
     assets: backend.BaseAsset[]
@@ -172,13 +179,23 @@ export class RemoteBackend implements backend.Backend {
         throw new Error(message)
     }
 
+    /** Return a list of all users in the same organization. */
+    async listUsers(): Promise<backend.SimpleUser[]> {
+        const response = await this.get<ListUsersResponseBody>(LIST_USERS_PATH)
+        if (!responseIsSuccessful(response)) {
+            return this.throw(`Unable to list users in the organization.`)
+        } else {
+            return (await response.json()).users
+        }
+    }
+
     /** Set the username of the current user. */
     async createUser(body: backend.CreateUserRequestBody): Promise<backend.UserOrOrganization> {
         const response = await this.post<backend.UserOrOrganization>(CREATE_USER_PATH, body)
         return await response.json()
     }
 
-    /** Set the username of the current user. */
+    /** Invite a new user to the organization by email. */
     async inviteUser(body: backend.InviteUserRequestBody): Promise<void> {
         const response = await this.post<backend.UserOrOrganization>(INVITE_USER_PATH, body)
         if (!responseIsSuccessful(response)) {

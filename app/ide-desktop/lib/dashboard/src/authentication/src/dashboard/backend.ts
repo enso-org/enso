@@ -232,6 +232,14 @@ export interface User {
     /* eslint-enable @typescript-eslint/naming-convention */
 }
 
+/** Metadata uniquely identifying a user inside an organization.
+ * This is similar to {@link User}, but without `organization_id`. */
+export interface SimpleUser {
+    id: Subject
+    name: string
+    email: EmailAddress
+}
+
 /** Backend representation of user permission types. */
 export enum PermissionAction {
     own = 'Own',
@@ -387,9 +395,11 @@ export function assetIsType<Type extends AssetType>(type: Type) {
 export interface Backend {
     readonly type: BackendType
 
+    /** Return a list of all users in the same organization. */
+    listUsers: () => Promise<SimpleUser[]>
     /** Set the username of the current user. */
     createUser: (body: CreateUserRequestBody) => Promise<UserOrOrganization>
-    /** Invite a new user to the organization. */
+    /** Invite a new user to the organization by email. */
     inviteUser: (body: InviteUserRequestBody) => Promise<void>
     /** Adds a permission for a specific user on a specific asset. */
     createPermission: (body: CreatePermissionRequestBody) => Promise<void>

@@ -1,6 +1,8 @@
 /** @file Colored border around icons and text indicating permissions. */
 import * as react from 'react'
 
+import * as backend from '../backend'
+
 // =============
 // === Types ===
 // =============
@@ -40,17 +42,48 @@ interface RegularPermissions extends BasePermissions {
 export type Permissions = AdminPermissions | OwnerPermissions | RegularPermissions
 
 // =================
+// === Constants ===
+// =================
+
+/** The corresponding `Permissions` for each backend `PermissionAction`. */
+export const PERMISSION: Record<backend.PermissionAction, Permissions> = {
+    [backend.PermissionAction.own]: { type: Permission.owner },
+    [backend.PermissionAction.execute]: {
+        type: Permission.regular,
+        read: false,
+        write: false,
+        docsWrite: false,
+        exec: true,
+    },
+    [backend.PermissionAction.edit]: {
+        type: Permission.regular,
+        read: false,
+        write: true,
+        docsWrite: false,
+        exec: false,
+    },
+    [backend.PermissionAction.read]: {
+        type: Permission.regular,
+        read: true,
+        write: false,
+        docsWrite: false,
+        exec: false,
+    },
+}
+
+// =================
 // === Component ===
 // =================
 
 /** Props for a {@link PermissionDisplay}. */
-export interface PermissionDisplayProps {
+export interface PermissionDisplayProps extends react.PropsWithChildren {
     permissions: Permissions
+    className?: string
 }
 
 /** Colored border around icons and text indicating permissions. */
-function PermissionDisplay(props: react.PropsWithChildren<PermissionDisplayProps>) {
-    const { permissions, children } = props
+function PermissionDisplay(props: PermissionDisplayProps) {
+    const { permissions, className, children } = props
     let permissionBorder
     switch (permissions.type) {
         case Permission.owner: {
@@ -95,7 +128,7 @@ function PermissionDisplay(props: react.PropsWithChildren<PermissionDisplayProps
     }
 
     return (
-        <div className="m-1 relative inline-block">
+        <div className={`m-1 relative inline-block ${className ?? ''}`}>
             {permissionBorder}
             <div className="bg-label rounded-full m-1">{children}</div>
         </div>

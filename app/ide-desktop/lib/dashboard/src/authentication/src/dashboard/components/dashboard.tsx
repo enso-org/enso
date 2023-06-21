@@ -28,6 +28,7 @@ import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import Ide from './ide'
 import Rows from './rows'
+import ShareWithModal from './shareWithModal'
 import Templates from './templates'
 import TopBar from './topBar'
 
@@ -148,35 +149,9 @@ const COLUMN_CSS_CLASS: Record<Column, string> = {
     [Column.ide]: 'w-20',
 } as const
 
-/** The corresponding `Permissions` for each backend `PermissionAction`. */
-const PERMISSION: Record<backendModule.PermissionAction, permissionDisplay.Permissions> = {
-    [backendModule.PermissionAction.own]: { type: permissionDisplay.Permission.owner },
-    [backendModule.PermissionAction.execute]: {
-        type: permissionDisplay.Permission.regular,
-        read: false,
-        write: false,
-        docsWrite: false,
-        exec: true,
-    },
-    [backendModule.PermissionAction.edit]: {
-        type: permissionDisplay.Permission.regular,
-        read: false,
-        write: true,
-        docsWrite: false,
-        exec: false,
-    },
-    [backendModule.PermissionAction.read]: {
-        type: permissionDisplay.Permission.regular,
-        read: true,
-        write: false,
-        docsWrite: false,
-        exec: false,
-    },
-}
-
 /** The list of columns displayed on each `ColumnDisplayMode`. */
 const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {
-    [ColumnDisplayMode.release]: [Column.name, Column.lastModified /*, Column.sharedWith*/],
+    [ColumnDisplayMode.release]: [Column.name, Column.lastModified, Column.sharedWith],
     [ColumnDisplayMode.all]: [
         Column.name,
         Column.lastModified,
@@ -661,11 +636,21 @@ function Dashboard(props: DashboardProps) {
                 {(asset.permissions ?? []).map(user => (
                     <PermissionDisplay
                         key={user.user.organization_id}
-                        permissions={PERMISSION[user.permission]}
+                        permissions={permissionDisplay.PERMISSION[user.permission]}
                     >
                         {svg.DEFAULT_USER_ICON}
                     </PermissionDisplay>
                 ))}
+                <button
+                    onClick={event => {
+                        event.stopPropagation()
+                        setModal(() => (
+                            <ShareWithModal asset={asset} eventTarget={event.currentTarget} />
+                        ))
+                    }}
+                >
+                    {svg.ADD_ICON}
+                </button>
             </>
         ),
         [Column.docs]: () => <></>,

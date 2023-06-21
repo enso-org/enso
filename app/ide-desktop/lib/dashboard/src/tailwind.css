@@ -106,5 +106,22 @@ body {
     .border-dashed-custom {
       background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%233e515f' stroke-width='4' stroke-dasharray='11 11' stroke-linecap='butt'/%3e%3c/svg%3e");
     }
+
+    .blink-background {
+      /** The duration MUST be synced with the corresponding value in `sharedWithModal.tsx`. */
+      animation: blink 0.5s ease-in-out;
+    }
+
+    @keyframes blink {
+      0% {
+        background: #f0f1f3;
+      }
+      33% {
+        background: #e2e4e9;
+      }
+      100% {
+        background: #f0f1f3;
+      }
+    }
   }
 }
