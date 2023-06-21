@@ -60,8 +60,8 @@ pub const DEFAULT_TYPE: &str = "Standard.Base.Any";
 /// builder.leave();
 /// let db = builder.result;
 ///
-/// assert!(db.lookup_by_qualified_name_str("local.Project.Type.Constructor").is_some());
-/// assert!(db.lookup_by_qualified_name_str("local.Project.module_method").is_some());
+/// assert!(db.lookup_by_qualified_name_str("local.Project.Type.Constructor").is_ok());
+/// assert!(db.lookup_by_qualified_name_str("local.Project.module_method").is_ok());
 /// ```
 #[derive(Debug, Default)]
 pub struct Builder {

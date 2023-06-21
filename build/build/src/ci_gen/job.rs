@@ -193,10 +193,13 @@ pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
                 &crate::ide::web::env::WIN_CSC_KEY_PASSWORD,
             ),
         OS::MacOS => step
-            .with_secret_exposed_as(
-                secret::APPLE_CODE_SIGNING_CERT,
-                &crate::ide::web::env::CSC_LINK,
-            )
+            // This temporarily disables notarization and code signing.
+            // Should be uncommented, once https://github.com/enso-org/enso/issues/7091 is
+            // addressed.
+            // .with_secret_exposed_as(
+            //     secret::APPLE_CODE_SIGNING_CERT,
+            //     &crate::ide::web::env::CSC_LINK,
+            // )
             .with_secret_exposed_as(
                 secret::APPLE_CODE_SIGNING_CERT_PASSWORD,
                 &crate::ide::web::env::CSC_KEY_PASSWORD,
