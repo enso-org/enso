@@ -1,11 +1,10 @@
 package org.enso.compiler.core
 
-import org.enso.interpreter.Constants
+import org.enso.compiler.core.ConstantsNames
 import org.enso.compiler.core.IR.{Expression, IdentifiedLocation}
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
 import org.enso.compiler.core.ir.ProcessingPass
-import org.enso.compiler.exception.CompilerError
 import org.enso.syntax.text.{Debug, Location}
 import com.oracle.truffle.api.source.Source
 
@@ -2985,7 +2984,7 @@ object IR {
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Name {
       override protected var id: Identifier = randomId
-      override val name: String             = Constants.Names.SELF_ARGUMENT
+      override val name: String             = ConstantsNames.SELF_ARGUMENT
 
       /** Creates a copy of `self`.
         *
@@ -3061,7 +3060,7 @@ object IR {
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Name {
       override protected var id: Identifier = randomId
-      override val name: String             = Constants.Names.SELF_TYPE_ARGUMENT
+      override val name: String             = ConstantsNames.SELF_TYPE_ARGUMENT
 
       /** Creates a copy of `Self`.
         *

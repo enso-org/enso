@@ -1,4 +1,4 @@
-package org.enso.compiler;
+package org.enso.compiler.core;
 
 import com.oracle.truffle.api.source.Source;
 import java.io.File;
@@ -13,16 +13,16 @@ import static org.junit.Assert.assertNotNull;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class EnsoCompilerTest {
-  private static EnsoCompiler ensoCompiler;
+public class EnsoParserTest {
+  private static EnsoParser ensoCompiler;
 
   @BeforeClass
-  public static void initEnsoCompiler() {
-    ensoCompiler = new EnsoCompiler();
+  public static void initEnsoParser() {
+    ensoCompiler = new EnsoParser();
   }
 
   @AfterClass
-  public static void closeEnsoCompiler() throws Exception {
+  public static void closeEnsoParser() throws Exception {
     ensoCompiler.close();
   }
 
@@ -1272,9 +1272,9 @@ public class EnsoCompilerTest {
     return compile(ensoCompiler, code);
   }
 
-  public static IR.Module compile(EnsoCompiler c, String code) {
+  public static IR.Module compile(EnsoParser c, String code) {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
-    var ir = c.compile(src);
+    var ir = c.compile(src.getCharacters());
     assertNotNull("IR was generated", ir);
     return ir;
   }

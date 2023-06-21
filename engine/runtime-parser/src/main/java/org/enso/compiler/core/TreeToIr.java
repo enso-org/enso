@@ -1,4 +1,4 @@
-package org.enso.compiler;
+package org.enso.compiler.core;
 
 import java.util.ArrayList;
 import java.util.Objects;

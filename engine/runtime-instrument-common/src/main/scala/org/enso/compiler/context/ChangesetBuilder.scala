@@ -2,9 +2,9 @@ package org.enso.compiler.context
 
 import com.oracle.truffle.api.source.Source
 import java.util.UUID
-import org.enso.compiler.EnsoCompiler
+import org.enso.compiler.EnsoParser
 import org.enso.compiler.core.IR
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.interpreter.instrument.execution.model.PendingEdit
 import org.enso.syntax.text.Location
@@ -87,7 +87,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
           }
 
           val source = Source.newBuilder("enso", value, null).build
-          Using(new EnsoCompiler) { compiler =>
+          Using(new EnsoParser) { compiler =>
             compiler
               .generateIRInline(compiler.parse(source))
               .flatMap(_ match {

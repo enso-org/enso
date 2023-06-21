@@ -1,7 +1,7 @@
-package org.enso.compiler.exception;
+package org.enso.compiler.core;
 
 public class CompilerError extends RuntimeException {
   public CompilerError(String message) {
-    super(message);
+    super("Compiler Internal Error: " + message);
   }
 }

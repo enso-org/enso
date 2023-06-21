@@ -1366,16 +1366,11 @@ lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
     .settings(
       frgaalJavaCompilerSetting,
-      inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings,
       libraryDependencies ++= Seq(
         "junit"                   % "junit"           % junitVersion     % Test,
         "com.novocode"            % "junit-interface" % junitIfVersion   % Test exclude ("junit", "junit-dep"),
         "org.scalatest"          %% "scalatest"       % scalatestVersion % Test,
-      ),
-      Test / javaOptions ++= Seq(
-        "-Dgraalvm.locatorDisabled=true",
-        s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
       ),
     )
     .dependsOn(syntax)

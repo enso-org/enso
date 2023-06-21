@@ -2,7 +2,7 @@ package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.ProcessingPass
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 
 /** Stores metadata for the various passes.
   *

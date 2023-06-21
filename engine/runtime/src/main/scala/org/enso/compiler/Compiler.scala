@@ -4,9 +4,11 @@ import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.codegen.{IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
-import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
+import org.enso.compiler.exception.CompilationAbortedException
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.phase.{
@@ -68,7 +70,7 @@ class Compiler(
     if (config.outputRedirect.isDefined)
       new PrintStream(config.outputRedirect.get)
     else context.getOut
-  private lazy val ensoCompiler: EnsoCompiler = new EnsoCompiler()
+  private lazy val ensoCompiler: EnsoParser = new EnsoParser()
 
   /** The thread pool that handles parsing of modules. */
   private val pool: ExecutorService = if (config.parallelParsing) {
@@ -582,7 +584,7 @@ class Compiler(
     )
 
     val src  = module.getSource
-    val tree = ensoCompiler.parse(src)
+    val tree = ensoCompiler.parse(src.getCharacters)
     val expr = ensoCompiler.generateIR(tree)
 
     val exprWithModuleExports =
@@ -654,7 +656,7 @@ class Compiler(
         "<interactive_source>"
       )
       .build()
-    val tree = ensoCompiler.parse(source)
+    val tree = ensoCompiler.parse(source.getCharacters)
 
     ensoCompiler.generateIRInline(tree).flatMap { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
@@ -704,7 +706,7 @@ class Compiler(
     * @param source The inline code to parse
     * @return A Tree representation of `source`
     */
-  def parseInline(source: Source): Tree = ensoCompiler.parse(source)
+  def parseInline(source: Source): Tree = ensoCompiler.parse(source.getCharacters())
 
   /** Parses the metadata of the provided language sources.
     *

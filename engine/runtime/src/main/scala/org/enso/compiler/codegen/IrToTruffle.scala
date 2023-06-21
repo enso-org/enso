@@ -1,6 +1,7 @@
 package org.enso.compiler.codegen
 
 import com.oracle.truffle.api.source.{Source, SourceSection}
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
 import org.enso.compiler.core.IR.Name.Special
@@ -11,7 +12,7 @@ import org.enso.compiler.data.BindingsMap.{
   ResolvedModule
 }
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
-import org.enso.compiler.exception.{BadPatternMatch, CompilerError}
+import org.enso.compiler.exception.BadPatternMatch
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
 import org.enso.compiler.pass.analyse.{

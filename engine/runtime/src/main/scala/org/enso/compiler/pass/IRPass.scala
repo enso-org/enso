@@ -4,7 +4,7 @@ import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.ProcessingPass
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import shapeless.=:!=
 
 import java.util.UUID

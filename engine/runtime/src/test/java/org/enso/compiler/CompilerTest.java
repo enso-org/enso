@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.function.Function;
+import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.core.IR;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
@@ -14,15 +15,15 @@ import org.junit.BeforeClass;
 
 public abstract class CompilerTest {
 
-  protected static EnsoCompiler ensoCompiler;
+  protected static EnsoParser ensoCompiler;
 
   @BeforeClass
-  public static void initEnsoCompiler() {
-    ensoCompiler = new EnsoCompiler();
+  public static void initEnsoParser() {
+    ensoCompiler = new EnsoParser();
   }
 
   @AfterClass
-  public static void closeEnsoCompiler() throws Exception {
+  public static void closeEnsoParser() throws Exception {
     ensoCompiler.close();
   }
 
@@ -30,7 +31,7 @@ public abstract class CompilerTest {
     var src =
         Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso")
             .build();
-    IR.Module ir = ensoCompiler.compile(src);
+    IR.Module ir = ensoCompiler.compile(src.getCharacters());
     assertNotNull("IR was generated", ir);
     return ir;
   }
