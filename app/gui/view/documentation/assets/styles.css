@@ -231,6 +231,7 @@ div.enso-docs .marked-icon-info {
 }
 
 .enso-docs-caption {
+  font-family: "M PLUS 1", DejaVuSansMonoBook, sans-serif;
   color: white;
   font-size: 11.5px;
 }
