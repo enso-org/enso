@@ -272,7 +272,7 @@ macro_rules! define_widget_modules(
         }
 
         $(
-            impl const From<<$module::Widget as SpanWidget>::Config> for DynConfig {
+            impl From<<$module::Widget as SpanWidget>::Config> for DynConfig {
                 fn from(config: <$module::Widget as SpanWidget>::Config) -> Self {
                     Self::$name(config)
                 }

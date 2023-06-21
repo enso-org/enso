@@ -20,7 +20,6 @@
 
 #![recursion_limit = "1024"]
 // === Features ===
-#![feature(option_result_contains)]
 #![feature(trait_alias)]
 #![feature(hash_drain_filter)]
 #![feature(type_alias_impl_trait)]

@@ -7,7 +7,6 @@
 #![recursion_limit = "1024"]
 // === Features ===
 #![feature(default_free_fn)]
-#![feature(option_result_contains)]
 #![feature(trait_alias)]
 #![feature(hash_drain_filter)]
 // === Standard Linter Configuration ===

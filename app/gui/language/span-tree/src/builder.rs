@@ -55,12 +55,12 @@ impl<Grandparent> ChildBuilder<ChildBuilder<Grandparent>> {
 impl<Parent> ChildBuilder<Parent> {
     /// Add new AST-type child to node. Returns the child's builder which may be used to further
     /// extend this branch of the tree.
-    pub fn add_child(
+    pub fn add_child<I: Into<ast::crumbs::Crumb>>(
         self,
         parent_offset: usize,
         len: usize,
         kind: impl Into<node::Kind>,
-        crumbs: impl IntoCrumbs,
+        crumbs: impl IntoCrumbs<I>,
     ) -> ChildBuilder<Self> {
         let kind = kind.into();
         let node = Node::new().with_kind(kind).with_size(len.into());
@@ -77,12 +77,12 @@ impl<Parent> ChildBuilder<Parent> {
     }
 
     /// Add a leaf AST-type child to node.
-    pub fn add_leaf(
+    pub fn add_leaf<I: Into<ast::crumbs::Crumb>>(
         self,
         offset: usize,
         len: usize,
         kind: impl Into<node::Kind>,
-        crumbs: impl IntoCrumbs,
+        crumbs: impl IntoCrumbs<I>,
     ) -> Self {
         self.add_child(offset, len, kind, crumbs).done()
     }

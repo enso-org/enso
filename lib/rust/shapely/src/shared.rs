@@ -399,7 +399,7 @@ macro_rules! shared2 {
 
         impl {$(
              $(#$fn_meta:tt)*
-             $fn_vis:vis fn $fn_name:ident $(<$($fn_param:ident : $fn_param_ty:ty),*>)?
+             $fn_vis:vis fn $fn_name:ident $(<$($fn_param:ident : $fn_param_ty:path),*>)?
              ($($fn_args:tt)*) $(-> $fn_out:ty)? { $($fn_body:tt)* }
         )*}
     ) => {

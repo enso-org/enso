@@ -17,6 +17,7 @@
 #![feature(marker_trait_attr)]
 #![feature(specialization)]
 #![feature(trait_alias)]
+#![feature(lazy_cell)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
 #![feature(trace_macros)]

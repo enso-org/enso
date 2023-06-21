@@ -367,6 +367,6 @@ mod tests {
         assert!(is_nightly("2022.1.1-nightly.2022.1.1"));
 
         let version = Version::parse("2022.1.1-nightly.2022-06-06.3").unwrap();
-        assert!(Kind::deduce(&version).contains(&Kind::Nightly));
+        assert!(Kind::deduce(&version).as_ref().is_ok_and(|k| k == &Kind::Nightly));
     }
 }

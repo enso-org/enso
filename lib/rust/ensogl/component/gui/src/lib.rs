@@ -4,7 +4,6 @@
 
 #![recursion_limit = "512"]
 // === Features ===
-#![feature(option_result_contains)]
 #![feature(trait_alias)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]

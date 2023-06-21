@@ -117,7 +117,7 @@ pub struct MeshData {
 
 impl {
     /// Creates new mesh with attached dirty callback.
-    pub fn new<OnMut:callback::NoArgs>
+    pub fn new<OnMut: callback::NoArgs>
     (stats:&Stats, on_mut:OnMut) -> Self {
         stats.inc_mesh_count();
         let stats         = stats.clone();

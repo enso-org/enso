@@ -20,7 +20,6 @@
 #![recursion_limit = "1024"]
 // === Features ===
 #![feature(drain_filter)]
-#![feature(option_result_contains)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

@@ -312,8 +312,13 @@ impl NodeInfo {
     /// Check if a given non-empty line's AST belongs to this node.
     pub fn contains_line(&self, line_ast: &Ast) -> bool {
         // TODO refactor these two lambdas into methods
-        let expression_id_matches =
-            || MainLine::from_ast(line_ast).as_ref().map(|ml| ml.id()).contains(&self.id());
+        let expression_id_matches = || {
+            MainLine::from_ast(line_ast)
+                .as_ref()
+                .map(|ml| ml.id())
+                .as_ref()
+                .is_some_and(|id| id == &self.id())
+        };
         let doc_comment_id_matches = || match (self.doc_comment_id(), line_ast.id) {
             (Some(node_doc_id), Some(line_ast_id)) => node_doc_id == line_ast_id,
             _ => false,

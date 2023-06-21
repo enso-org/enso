@@ -8,7 +8,6 @@
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
 #![feature(fn_traits)]
-#![feature(option_result_contains)]
 #![feature(specialization)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]

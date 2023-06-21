@@ -1,5 +1,3 @@
-// === Features ===
-#![feature(option_result_contains)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -78,7 +76,7 @@ fn blacklisted(memeber: &Path) -> bool {
 fn is_proc_macro_crate(member: &Path) -> bool {
     let cargo_toml_path = member.join("Cargo.toml");
     let cargo_toml_root = parse_toml(cargo_toml_path);
-    get_proc_macro(cargo_toml_root).contains(&true)
+    get_proc_macro(cargo_toml_root).unwrap_or(false)
 }
 
 /// Retrieve a `lib.proc-macro` field from Cargo.toml

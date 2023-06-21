@@ -22,7 +22,6 @@
 #![feature(trace_macros)]
 #![feature(const_trait_impl)]
 #![feature(slice_as_chunks)]
-#![feature(option_result_contains)]
 #![feature(int_roundings)]
 #![feature(array_methods)]
 // === Standard Linter Configuration ===

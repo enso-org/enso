@@ -8,7 +8,6 @@
 
 // === Features ===
 #![feature(associated_type_bounds)]
-#![feature(option_result_contains)]
 #![feature(trait_alias)]
 #![feature(type_ascription)]
 #![feature(exact_size_is_empty)]

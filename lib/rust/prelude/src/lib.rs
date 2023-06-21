@@ -571,3 +571,59 @@ impl<T: ?Sized> WeakRef for Weak<T> {
 /// [`NoCloneBecauseOfCustomDrop`] macro.
 #[allow(drop_bounds)]
 pub trait ImplementsDrop: Drop {}
+
+
+// ==============================
+// === option_result_contains ===
+// ==============================
+
+/// Our implementation of [`option_result_contains`](https://github.com/rust-lang/rust/issues/62358) feature that was not stabilized.
+/// Returns `true` if the option is a [`Some`] value containing the given value.
+///
+/// # Examples
+///
+/// ```
+/// use enso_prelude::Contains;
+///
+/// let x: Option<u32> = Some(2);
+/// assert_eq!(x.contains(&2), true);
+///
+/// let x: Option<u32> = Some(3);
+/// assert_eq!(x.contains(&2), false);
+///
+/// let x: Option<u32> = None;
+/// assert_eq!(x.contains(&2), false);
+///
+/// let x: Result<u32, &str> = Ok(2);
+/// assert_eq!(x.contains(&2), true);
+///
+/// let x: Result<u32, &str> = Ok(3);
+/// assert_eq!(x.contains(&2), false);
+///
+/// let x: Result<u32, &str> = Err("Some error message");
+/// assert_eq!(x.contains(&2), false);
+/// ```
+pub trait Contains<U> {
+    #[must_use]
+    fn contains(&self, x: &U) -> bool;
+}
+
+impl<T, U: PartialEq<T>> Contains<U> for Option<T> {
+    #[inline]
+    fn contains(&self, x: &U) -> bool {
+        match self {
+            Some(y) => x == y,
+            None => false,
+        }
+    }
+}
+
+impl<T, U: PartialEq<T>, E> Contains<U> for Result<T, E> {
+    #[inline]
+    fn contains(&self, x: &U) -> bool {
+        match self {
+            Ok(y) => x == y,
+            Err(_) => false,
+        }
+    }
+}

@@ -12,7 +12,6 @@
 // === Features ===
 #![feature(array_methods)]
 #![feature(drain_filter)]
-#![feature(option_result_contains)]
 #![feature(trait_alias)]
 #![feature(hash_drain_filter)]
 #![feature(int_roundings)]

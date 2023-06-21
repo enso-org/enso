@@ -4,7 +4,7 @@
 #![feature(associated_type_bounds)]
 #![feature(drain_filter)]
 #![feature(iter_order_by)]
-#![feature(option_result_contains)]
+#![feature(impl_trait_in_assoc_type)]
 #![feature(type_alias_impl_trait)]
 #![feature(iter_next_chunk)]
 // === Standard Linter Configuration ===

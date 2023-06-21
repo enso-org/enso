@@ -104,8 +104,8 @@ impl Debug for Sampler {
     }
 }
 
-impl Default for Sampler {
-    fn default() -> Self {
+impl Sampler {
+    pub const fn default() -> Self {
         Self {
             label:                "Unlabeled",
             expr:                 |_| None,
@@ -119,6 +119,12 @@ impl Default for Sampler {
             min_size:             None,
             can_be_reported_late: false,
         }
+    }
+}
+
+impl Default for Sampler {
+    fn default() -> Self {
+        Self::default()
     }
 }
 
@@ -149,7 +155,7 @@ impl Sampler {
 
 const MB: f64 = (1024 * 1024) as f64;
 
-const DEFAULT_SAMPLER: Sampler = Default::default();
+const DEFAULT_SAMPLER: Sampler = Sampler::default();
 
 #[allow(missing_docs)]
 pub const FPS: Sampler = Sampler {

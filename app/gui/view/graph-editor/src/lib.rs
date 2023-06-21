@@ -11,7 +11,6 @@
 #![feature(fn_traits)]
 #![feature(let_chains)]
 #![feature(macro_metavar_expr)]
-#![feature(option_result_contains)]
 #![feature(specialization)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
