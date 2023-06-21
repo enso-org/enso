@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall;
 
 /**
  * A service allowing externally-triggered code execution, registered by an instance of the
@@ -293,6 +294,7 @@ public class ExecutionService {
    * @return the result of calling the function
    */
   public Object callFunctionWithInstrument(
+      Node expressionSite,
       RuntimeCache cache, Module module, Object function, Object... arguments)
       throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
     UUID nextExecutionItem = null;
@@ -325,7 +327,7 @@ public class ExecutionService {
                     onExceptionalCallback));
     Object p = context.getThreadManager().enter();
     try {
-      return call.getCallTarget().call(function, arguments);
+      return call.getCallTarget().call(expressionSite, function, arguments);
     } finally {
       context.getThreadManager().leave(p);
       eventNodeFactory.ifPresent(EventBinding::dispose);
@@ -498,9 +500,11 @@ public class ExecutionService {
     @Override
     public Object execute(VirtualFrame frame) {
       try {
-        var self = frame.getArguments()[0];
-        var args = (Object[]) frame.getArguments()[1];
-        return iop.execute(self, args);
+        var callSite = (Node) frame.getArguments()[0];
+        var self = (FunctionCall) frame.getArguments()[1];
+        var copy = new FunctionCall(callSite, self);
+        var args = (Object[]) frame.getArguments()[2];
+        return iop.execute(copy, args);
       } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
         throw raise(RuntimeException.class, ex);
       }

@@ -188,7 +188,8 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
     @CompilerDirectives.TruffleBoundary
     private void onEnterImpl() {
-      UUID nodeId = getNodeId(context.getInstrumentedNode());
+      var node = context.getInstrumentedNode();
+      UUID nodeId = getNodeId(node);
 
       // Add a flag to say it was cached.
       // An array of `ProfilingInfo` in the value update.
@@ -202,6 +203,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         onCachedCallback.accept(
             new ExpressionValue(
                 nodeId,
+                node,
                 result,
                 cache.getType(nodeId),
                 typeOf(result),
@@ -261,9 +263,9 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       FunctionCallInfo cachedCall = cache.getCall(nodeId);
       ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
 
-      ExpressionValue expressionValue =
-      new ExpressionValue(
-      nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false);
+      var expressionValue = new ExpressionValue(
+        nodeId, node, result, resultType, cachedType, call, cachedCall, profilingInfo, false)
+      ;
       syncState.setExpressionUnsync(nodeId);
       syncState.setVisualisationUnsync(nodeId);
 

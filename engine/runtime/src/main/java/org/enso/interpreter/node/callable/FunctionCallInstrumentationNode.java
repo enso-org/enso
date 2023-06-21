@@ -78,6 +78,9 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
     public FunctionCall(ModuleScope ctx, Function function, State state, Object[] arguments) {
       this.ctx = ctx;
       this.function = function;
+      if ("Widgets.get_widget_json".equals(function.getName())) {
+        Thread.dumpStack();
+      }
       this.state = state;
       this.arguments = arguments;
     }
@@ -92,6 +95,10 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
      */
     public FunctionCall(Node ctx, Function function, State state, Object[] arguments) {
       this(findModuleScope(ctx), function, state, arguments);
+    }
+
+    public FunctionCall(Node ctx, FunctionCall self) {
+      this(ctx, self.function, self.state, self.arguments);
     }
 
     private static ModuleScope findModuleScope(Node ctx) {
