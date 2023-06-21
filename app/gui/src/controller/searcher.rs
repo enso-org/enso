@@ -1404,12 +1404,12 @@ pub mod test {
             let start_of_code = enso_text::Location::default();
             let end_of_code = code.location_of_text_end_utf16_code_unit();
             let code_range = start_of_code..=end_of_code;
-            let graph = data.graph.controller();
+            let database = database_setup(code_range);
+            let graph = data.graph.controller_with_db(database.clone_ref());
             let node = &graph.graph().nodes().unwrap()[0];
             let searcher_target = graph.graph().nodes().unwrap().last().unwrap().id();
             let this = ThisNode::new(node.info.id(), &graph.graph());
             let this = data.selected_node.and_option(this);
-            let database = database_setup(code_range);
             let mut ide = controller::ide::MockAPI::new();
             let mut project = model::project::MockAPI::new();
             let project_qname = project_qualified_name();
