@@ -2,13 +2,15 @@ from Standard.Base import all
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
 
+polyglot java import org.enso.database.dryrun.HiddenTableReferenceCounter
+
 ## PRIVATE
    A reference to a hidden table that keeps it alive.
 
    Once all references to a particular hidden table are garbage collected, the
    hidden table itself will be dropped.
 type Hidden_Table_Reference
-    Reference (parent_mapping : Ref (Map Text Integer)) (table_name : Text) (drop : Text -> Nothing)
+    Reference (parent : Hidden_Table_Registry) (table_name : Text)
 
 ## PRIVATE
    A registry that keeps track of temporary hidden tables.
@@ -31,17 +33,13 @@ type Hidden_Table_Reference
      mapping getting inconsistent.
 type Hidden_Table_Registry
     ## PRIVATE
-    Registry (mapping : Ref (Map Text Integer)) (drop : Text -> Nothing)
+    Registry (reference_counter : HiddenTableReferenceCounter) (drop : Text -> Nothing)
 
     ## PRIVATE
     get_reference : Text -> Managed_Resource
     get_reference self table_name =
-        mapping = self.mapping.get
-        ref_count = mapping.get table_name 0
-        new_mapping = mapping.insert table_name ref_count+1
-        self.mapping.put new_mapping
-
-        reference = Hidden_Table_Reference.Reference self.mapping table_name self.drop
+        self.reference_counter.increment table_name
+        reference = Hidden_Table_Reference.Reference self table_name
         Managed_Resource.register reference dispose_reference
 
     ## PRIVATE
@@ -52,20 +50,14 @@ type Hidden_Table_Registry
 ## PRIVATE
 new : Hidden_Table_Registry
 new (drop : Text -> Nothing) =
-    Hidden_Table_Registry.Registry (Ref.new Map.empty) drop
+    Hidden_Table_Registry.Registry (HiddenTableReferenceCounter.new) drop
 
 ## PRIVATE
    Utility method for disposing of references. Provided to avoid accidental
    scope capture with `Managed_Resource` finalizers.
 dispose_reference : Any -> Nothing
 dispose_reference reference =
-    mapping = reference.parent_mapping.get
-    ref_count = mapping.get reference.table_name 0
-    new_ref_count = ref_count-1
-    updated_mapping = case new_ref_count <= 0 of
-        True ->
-            reference.drop reference.table_name
-            mapping.remove reference.table_name
-        False ->
-            mapping.insert reference.table_name new_ref_count
-    reference.parent_mapping.put updated_mapping
+    registry = reference.parent
+    new_count = registry.reference_counter.decrement reference.table_name
+    if new_count <= 0 then
+        registry.drop reference.table_name

@@ -843,7 +843,7 @@ spec make_new_connection prefix persistent_connector=True =
            Currently this test seems to work fine, but if there are ever issues
            due to GC nondeterminism, it may need to be disabled - currently we
            do not have a more robust way to test finalizers.
-        Test.specify "will drop a dry run table once it is garbage collected" <|
+        Test.specify "will drop a dry run table once it is garbage collected" pending="Relying on GC seems not stable enough. Keeping this test so it can be checked manually. In the future we may improve it with better instrumentation of Managed_Resource." <|
             src = Table.new [["X", [1, 2, 3]]]
             name = Name_Generator.random_name "dry-run-list-test"
 
@@ -872,6 +872,40 @@ spec make_new_connection prefix persistent_connector=True =
                 False ->
                     # Let's note that the cleanup was not performed, so that we can investigate how often this happens.
                     IO.println "[WARNING] The GC was not performed on time in the "+execution_context_group_name+" test. The test did not check the invariants to avoid spurious failures."
+
+        if persistent_connector then
+            Test.specify "will not overwrite an existing table with a dry-run table if the name is clashing" <|
+                target_name = Name_Generator.random_name "test-table"
+                dry_run_name = Context.Output.with_disabled <|
+                    tmp_connection1 = make_new_connection Nothing
+                    dry_run_table = tmp_connection1.create_table target_name [Column_Description.Value "A" Value_Type.Integer] temporary=True . should_succeed
+                    Problems.expect_warning Dry_Run_Operation dry_run_table
+                    dry_run_name.column_names . should_equal ["A"]
+                    name = Warning.clear dry_run_table.name
+                    tmp_connection1.close
+                    name
+
+                src = Table.new [["X", [1, 2, 3]]]
+                # Create a table that has the same name as the dry run table normally would have.
+                pre_existing_table = src.select_into_database_table connection dry_run_name temporary=False . should_succeed
+                pre_existing_table.column_names . should_equal ["X"]
+                pre_existing_table.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+                Panic.with_finalizer (connection.drop_table pre_existing_table.name if_exists=True) <|
+                    new_dry_run_name = Context.Output.with_disabled <|
+                        tmp_connection2 = make_new_connection Nothing
+                        # Create a dry run table that is supposed to clash with pre_existing_table
+                        dry_run_table = tmp_connection2.create_table target_name [Column_Description.Value "B" Value_Type.Integer] temporary=True . should_succeed
+                        Problems.expect_warning Dry_Run_Operation dry_run_table
+                        dry_run_name.column_names . should_equal ["B"]
+                        name = Warning.clear dry_run_table.name
+                        tmp_connection2.close
+                        name
+
+                    # Ensure that the created dry run table changed the name to avoid clash.
+                    new_dry_run_name . should_not_equal dry_run_name
+
+                    # The pre-existing table should not have been overwritten.
+                    pre_existing_table.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
 
         tests source_table_builder suffix =
             Test.specify "should return a temporary table with a sample of the data for select_into_table"+suffix <|

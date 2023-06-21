@@ -2068,9 +2068,10 @@ lazy val `std-database` = project
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
-      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "org.xerial"       % "sqlite-jdbc"             % sqliteVersion,
-      "org.postgresql"   % "postgresql"              % "42.4.0"
+      "org.graalvm.truffle" % "truffle-api"             % graalVersion       % "provided",
+      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "org.xerial"          % "sqlite-jdbc"             % sqliteVersion,
+      "org.postgresql"      % "postgresql"              % "42.4.0"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
