@@ -385,9 +385,6 @@ impl component::Frp<Model> for Frp {
             on_hover_end <- is_hovered.on_false();
             model.grid.unhover_element <+ on_hover_end;
         }
-        panel_style.init.emit(());
-        grid_style.init.emit(());
-        navigator_style.init.emit(());
     }
 }
 

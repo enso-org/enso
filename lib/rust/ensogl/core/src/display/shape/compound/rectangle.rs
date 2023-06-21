@@ -32,11 +32,11 @@ pub mod shape {
         (
             style: Style,
             color: Vector4,
+            border_color: Vector4,
+            clip: Vector2,
             corner_radius: f32,
             inset: f32,
             border: f32,
-            border_color: Vector4,
-            clip: Vector2,
             rotate: f32,
         ) {
             // === Canvas ===

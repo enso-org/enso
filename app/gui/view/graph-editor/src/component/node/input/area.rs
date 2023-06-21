@@ -20,7 +20,6 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::world::with_context;
 use ensogl::gui::cursor;
-use ensogl::Animation;
 use ensogl_component::text;
 use ensogl_component::text::buffer::selection::Selection;
 use ensogl_component::text::FromInContextSnapped;
@@ -327,7 +326,7 @@ impl Model {
     /// If the widget tree was marked as dirty since its last update, rebuild it.
     fn rebuild_widget_tree_if_dirty(&self) {
         let expr = self.expression.borrow();
-        self.widget_tree.rebuild_tree_if_dirty(&expr.span_tree, &expr.code, &self.styles);
+        self.widget_tree.rebuild_tree_if_dirty(&expr.span_tree, &expr.code, &self.styles_frp);
     }
 
     /// Scan node expressions for all known method calls, for which the language server can provide
@@ -356,7 +355,7 @@ impl Model {
         self.widget_tree.rebuild_tree(
             &new_expression.span_tree,
             &new_expression.code,
-            &self.styles,
+            &self.styles_frp,
         );
 
         *self.expression.borrow_mut() = new_expression;
@@ -584,11 +583,6 @@ impl Area {
             // === View Mode ===
 
             frp.output.source.view_mode <+ frp.set_view_mode;
-
-            in_profiling_mode <- frp.view_mode.map(|m| m.is_profiling());
-            finished          <- frp.set_profiling_status.map(|s| s.is_finished());
-            profiled          <- in_profiling_mode && finished;
-
             model.widget_tree.set_read_only <+ frp.set_read_only;
             model.widget_tree.set_view_mode <+ frp.set_view_mode;
             model.widget_tree.set_profiling_status <+ frp.set_profiling_status;

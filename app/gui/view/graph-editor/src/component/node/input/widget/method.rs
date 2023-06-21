@@ -1,6 +1,7 @@
 //! A widget representing a top-level method call. Displays node background. Instead of `self`
 //! argument, it displays an icon as a first port.
 
+use super::prelude::*;
 use crate::prelude::*;
 
 use ensogl::display;
@@ -18,10 +19,6 @@ use icons::component_icons::Id;
 /// Distance between the icon and next widget.
 const ICON_GAP: f32 = 20.0;
 
-/// Maximum allowed size of the dropdown list. If the list needs to be longer or wider than allowed
-/// by these values, it will receive a scroll bar.
-const DROPDOWN_MAX_SIZE: Vector2 = Vector2(300.0, 500.0);
-
 
 
 // ==============
@@ -29,10 +26,8 @@ const DROPDOWN_MAX_SIZE: Vector2 = Vector2(300.0, 500.0);
 // ===============
 
 /// Method widget configuration options.
-#[derive(Debug, Clone, PartialEq)]
-pub struct Config {
-    // Chain
-}
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Config {}
 
 /// A widget for selecting a single value from a list of available options. The options can be
 /// provided as a static list of strings from argument `tag_values`, or as a dynamic expression.
@@ -44,21 +39,30 @@ pub struct Widget {
     icon:           AnyIcon,
 }
 
-/// An extension struct that can be accessed by any child widgets.
-// #[derive(Debug, Clone)]
-// pub struct MethodContext {
-//     methods_with_icons: SmallVec<[ast::Id]>,
-// }
+/// Extension which existence in given subtree prevents the widget from being created again.
+struct MethodAlreadyInTree;
 
-impl super::SpanWidget for Widget {
+impl SpanWidget for Widget {
     type Config = Config;
+
+    fn default_config(_: &ConfigContext) -> Configuration<Self::Config> {
+        Configuration::always(Config {})
+    }
+
+    fn match_node(ctx: &ConfigContext) -> Score {
+        let icon = ctx.span_node.application.as_ref().and_then(|a| a.icon_name.as_ref());
+        if icon.is_some() && ctx.get_extension::<MethodAlreadyInTree>().is_none() {
+            Score::Perfect
+        } else {
+            Score::Mismatch
+        }
+    }
 
     fn root_object(&self) -> &display::object::Instance {
         &self.display_object
     }
 
-    fn new(_: &Config, ctx: &super::ConfigContext) -> Self {
-        let app = ctx.app();
+    fn new(_: &Config, _: &ConfigContext) -> Self {
         // ╭─display_object──────────────────╮
         // │ ╭ icon ─╮ ╭ content ──────────╮ │
         // │ │       │ │                   │ │
@@ -76,10 +80,11 @@ impl super::SpanWidget for Widget {
 
         let icon_id = Id::default();
         let icon = icon_id.cached_view();
-        Self { display_object, icon_id, icon }.init(ctx)
+        Self { display_object, icon_id, icon }
     }
 
-    fn configure(&mut self, _: &Config, mut ctx: super::ConfigContext) {
+    fn configure(&mut self, _: &Config, mut ctx: ConfigContext) {
+        ctx.set_extension(MethodAlreadyInTree);
         let icon_id = ctx
             .span_node
             .application
@@ -96,11 +101,5 @@ impl super::SpanWidget for Widget {
 
 
         self.display_object.replace_children(&[self.icon.display_object(), &child.root_object]);
-    }
-}
-
-impl Widget {
-    fn init(self, ctx: &super::ConfigContext) -> Self {
-        self
     }
 }

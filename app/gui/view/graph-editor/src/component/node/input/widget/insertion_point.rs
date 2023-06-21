@@ -5,7 +5,7 @@
 //!
 //! See also [`span_tree::node::InsertionPoint`].
 
-use crate::component::node::input::widget::prelude::*;
+use super::prelude::*;
 use crate::prelude::*;
 
 use ensogl::display::object;

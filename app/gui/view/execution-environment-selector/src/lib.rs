@@ -281,7 +281,6 @@ impl component::Frp<Model> for Frp {
                 Vector2::new(style.overall_width(),style.height)
             }).on_change();
         }
-        style.init.emit(());
     }
 }
 

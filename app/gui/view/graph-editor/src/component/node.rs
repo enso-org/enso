@@ -24,8 +24,8 @@ use ensogl::display::shape::compound::rectangle;
 use ensogl::gui;
 use ensogl::Animation;
 use ensogl_component::text;
+use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme as theme;
-use ensogl_hardcoded_theme;
 
 
 // ==============
@@ -96,45 +96,69 @@ pub type Comment = ImString;
 // ==============
 
 /// A node's background area and selection.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone)]
 pub struct Background {
-    shape:           Rectangle,
-    inset:           Immutable<f32>,
-    selection_color: Immutable<color::Rgba>,
+    _network:            frp::Network,
+    shape:               Rectangle,
+    selection_animation: Animation<f32>,
+    color_animation:     color::Animation,
+    size_and_center:     frp::Source<(Vector2, Vector2)>,
+}
+
+#[derive(Debug, Clone, Default, FromTheme)]
+struct BackgroundStyle {
+    #[theme_path = "theme::graph_editor::node::selection::opacity"]
+    selection_opacity: f32,
+    #[theme_path = "theme::graph_editor::node::selection::size"]
+    selection_size:    f32,
 }
 
 impl Background {
     fn new(style: &StyleWatchFrp) -> Self {
-        let selection_color =
-            style.get_color(ensogl_hardcoded_theme::graph_editor::node::selection).value();
-        let selection_size =
-            style.get_number(ensogl_hardcoded_theme::graph_editor::node::selection::size).value();
-        let selection_offset =
-            style.get_number(ensogl_hardcoded_theme::graph_editor::node::selection::offset).value();
-        let inset = selection_size + selection_offset;
+        let network = frp::Network::new("Background");
+        let style = BackgroundStyle::from_theme(&network, style);
         let shape = Rectangle();
-        shape.set_corner_radius(RADIUS);
-        shape.set_border(selection_size);
-        shape.set_border_color(color::Rgba::transparent());
-        shape.set_inset(inset);
-        Self { shape, inset: Immutable(inset), selection_color: Immutable(selection_color) }
+        let color_animation = color::Animation::new(&network);
+        let selection_animation = Animation::new(&network);
+
+        frp::extend! { network
+            border_color <- color_animation.value.all_with(&style.update,
+                |color, style| color.multiply_alpha(style.selection_opacity)
+            );
+            border_size <- selection_animation.value.all_with(&style.update,
+                |selection, style| style.selection_size * selection
+            );
+
+            size_and_center <- source();
+            _eval <- size_and_center.all_with(&border_size, f!([shape] (size_and_center, border) {
+                let (size, center) = *size_and_center;
+                let size_with_border = size + Vector2(*border, *border) * 2.0;
+                let origin = center - size_with_border / 2.0;
+                shape.set_size(size_with_border);
+                shape.set_xy(origin);
+            }));
+
+            eval color_animation.value((color) shape.set_color(color.into()););
+            eval border_color((color) shape.set_border_color(color.into()););
+            eval border_size((size) shape.set_border(*size););
+        }
+
+        shape.set_corner_radius(CORNER_RADIUS);
+        selection_animation.target.emit(0.0);
+
+        Self { _network: network, shape, selection_animation, color_animation, size_and_center }
     }
 
-    fn set_selected(&self, degree: f32) {
-        let selected = self.selection_color;
-        let blended = color::Rgba(selected.red, selected.green, selected.blue, degree);
-        self.shape.set_border_color(blended);
+    fn set_selected(&self, selected: bool) {
+        self.selection_animation.target.emit(if selected { 1.0 } else { 0.0 });
     }
 
-    fn set_color(&self, color: color::Rgba) {
-        self.shape.set_color(color);
+    fn set_color(&self, color: color::Lcha) {
+        self.color_animation.target.emit(color);
     }
 
     fn set_size_and_center_xy(&self, size: Vector2<f32>, center: Vector2<f32>) {
-        let size_with_inset = size + 2.0 * Vector2(*self.inset, *self.inset);
-        let origin = center - size_with_inset / 2.0;
-        self.shape.set_size(size_with_inset);
-        self.shape.set_xy(origin);
+        self.size_and_center.emit((size, center));
     }
 }
 
@@ -158,7 +182,7 @@ pub mod error_shape {
         below = [rectangle];
         alignment = center;
         (style:Style,color_rgba:Vector4<f32>) {
-            use ensogl_hardcoded_theme::graph_editor::node as node_theme;
+            use theme::graph_editor::node as node_theme;
 
             let padded_size = Var::canvas_size();
             let size = padded_size - Var::from(Vector2::repeat(BACKDROP_INSET.pixels() * 2.0));
@@ -174,9 +198,8 @@ pub mod error_shape {
             let stripe              = Line(zoom * stripe_width);
             let mask                = base.grow(error_width);
             let stripe_pattern      = stripe.repeat(repeat).rotate(stripe_angle);
-            let stripe_pattern      = mask.intersection(stripe_pattern).fill(error_color);
-
-            pattern.into()
+            let stripe_pattern      = mask.intersection(stripe_pattern).fill(color_rgba);
+            stripe_pattern.into()
         }
     }
 }
@@ -351,7 +374,7 @@ impl Deref for Node {
 }
 
 /// Internal data of `Node`
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub struct NodeModel {
     // Required for switching the node to a different layer
@@ -376,8 +399,9 @@ impl NodeModel {
     /// Constructor.
     #[profile(Debug)]
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
+        let scene = &app.display.default_scene;
         ensogl::shapes_order_dependencies! {
-            app.display.default_scene => {
+            scene => {
                 error_shape               -> output::port::single_port;
                 error_shape               -> output::port::multi_port;
                 output::port::single_port -> rectangle;
@@ -385,8 +409,9 @@ impl NodeModel {
             }
         }
 
-        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        let style = StyleWatchFrp::new(&scene.style_sheet);
 
+        let error_indicator = error_shape::View::new();
         let profiling_label = ProfilingLabel::new(app);
         let background = Background::new(&style);
         let vcs_indicator = vcs::StatusIndicator::new(app);
@@ -427,6 +452,7 @@ impl NodeModel {
             app,
             display_object,
             background,
+            error_indicator,
             profiling_label,
             input,
             output,
@@ -449,7 +475,7 @@ impl NodeModel {
         // TODO: handle color change. Will likely require moving the node background and backdrop
         // into a widget, which is also necessary to later support "split" nodes, where '.' chains
         // are displayed as separate shapes.
-        self.set_base_color(&color::Lcha(0.56708, 0.23249, 0.71372, 1.0));
+        self.set_base_color(color::Lcha(0.56708, 0.23249, 0.71372, 1.0));
         self
     }
 
@@ -575,13 +601,12 @@ impl NodeModel {
     }
 
     #[profile(Debug)]
-    fn set_base_color(&self, color: &color::Lcha) {
-        let rgba = color::Rgba::from(color);
-        self.background.set_color(rgba);
+    fn set_base_color(&self, color: color::Lcha) {
+        self.background.set_color(color);
     }
 
-    fn set_selected(&self, degree: f32) {
-        self.background.set_selected(degree);
+    fn set_selected(&self, selected: bool) {
+        self.background.set_selected(selected);
     }
 }
 
@@ -594,7 +619,6 @@ impl Node {
         let out = &frp.private.output;
         let input = &frp.private.input;
         let model = Rc::new(NodeModel::new(app, registry));
-        let selection = Animation::<f32>::new(network);
         let display_object = &model.display_object;
 
         // TODO[ao] The comment color should be animated, but this is currently slow. Will be fixed
@@ -643,8 +667,7 @@ impl Node {
             // === Selection ===
 
             selected <- bool(&input.deselect, &input.select);
-            selection.target <+ switch_constant(&selected, -0.1, 1.0);
-            eval selection.value ((t) model.set_selected(*t));
+            eval selected ((selected) model.set_selected(*selected));
 
 
             // === Expression ===
@@ -879,7 +902,7 @@ impl Node {
 
     #[profile(Debug)]
     fn error_color(error: &Option<Error>, style: &StyleWatch) -> color::Lcha {
-        use ensogl_hardcoded_theme::graph_editor::node::error as error_theme;
+        use theme::graph_editor::node::error as error_theme;
 
         if let Some(error) = error {
             let path = match *error.kind {

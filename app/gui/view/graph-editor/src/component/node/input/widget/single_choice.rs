@@ -1,16 +1,29 @@
 //! Definition of single choice widget.
 
-use crate::component::node::input::widget::prelude::*;
+use super::prelude::*;
 use crate::prelude::*;
 
 use crate::component::node::input::widget::label;
 
 use enso_frp as frp;
 use ensogl::control::io::mouse;
+use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::event;
 use ensogl_component::drop_down::Dropdown;
-use ensogl_hardcoded_theme as theme;
+
+
+
+/// =============
+/// === Style ===
+/// =============
+
+#[derive(Clone, Debug, Default, PartialEq, FromTheme)]
+#[base_path = "theme::widget::activation_shape"]
+struct ActivationShapeStyle {
+    base:      color::Lcha,
+    connected: color::Lcha,
+}
 
 
 
@@ -330,27 +343,19 @@ impl Widget {
         let network = &self.config_frp.network;
         let config_frp = &self.config_frp;
         let widgets_frp = ctx.frp();
-        let styles = ctx.styles();
         let activation_shape = &self.activation_shape;
         let focus_receiver = &self.dropdown_wrapper;
+
+        let activation_style = ActivationShapeStyle::from_theme(network, ctx.styles());
+
         frp::extend! { network
             let id = ctx.info.identity;
             parent_port_hovered <- widgets_frp.hovered_port_children.map(move |h| h.contains(&id));
             is_connected_or_hovered <- config_frp.is_connected || parent_port_hovered;
-            activation_shape_theme <- is_connected_or_hovered.map(|is_connected_or_hovered| {
-                if *is_connected_or_hovered {
-                    Some(theme::widget::activation_shape::connected)
-                } else {
-                    Some(theme::widget::activation_shape::base)
-                }
-            });
-            activation_shape_theme <- activation_shape_theme.on_change();
-            eval activation_shape_theme([styles, activation_shape](path) {
-                if let Some(path) = path {
-                    let color = styles.get_color(path);
-                    activation_shape.color.set(color.into());
-                }
-            });
+            activation_shape_color <- is_connected_or_hovered.all_with(&activation_style.update,
+                |connected, style| if *connected { style.connected } else { style.base }
+            ).on_change();
+            eval activation_shape_color((color) activation_shape.color.set(color.into()));
 
             let dot_mouse_down = activation_shape.on_event::<mouse::Down>();
             dot_clicked <- dot_mouse_down.filter(mouse::is_primary);

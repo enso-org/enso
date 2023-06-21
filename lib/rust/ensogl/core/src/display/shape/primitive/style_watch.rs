@@ -84,73 +84,86 @@ impl StyleWatchFrp {
         sampler
     }
 
-    /// Queries style sheet value for a number. Emits a warning and returns 0.0 if not found.
-    pub fn get_number(&self, path: impl Into<Path>) -> frp::Sampler<f32> {
-        let network = &self.network;
+    /// Queries style sheet for a generic type. Emits a warning and returns a fallback value if not
+    /// found.
+    pub fn access<T: ThemeAccess>(&self, path: impl Into<Path>) -> frp::Sampler<T> {
         let path = path.into();
-        let warning = format!("Tried to access undefined number from theme: {}", &path);
+        let network = &self.network;
+        let path_str = path.to_string();
         let (source, current) = self.get_internal(path);
         frp::extend! { network
-            value <- source.map(move |t| t.number().unwrap_or_else(|| {
-                warn!("{}", warning);
-                0.0
-            }));
-            sampler <- value.sampler();
+            sampler <- source.map(move |t| T::from_style_data(&path_str, t)).sampler();
         }
         source.emit(current);
         sampler
+    }
+
+    /// Queries style sheet value for a number. Emits a warning and returns 0.0 if not found.
+    pub fn get_number(&self, path: impl Into<Path>) -> frp::Sampler<f32> {
+        self.access(path)
     }
 
     /// Queries style sheet color, if not found fallbacks to [`FALLBACK_COLOR`] and emits a warning.
-    pub fn get_color<T: Into<Path>>(&self, path: T) -> frp::Sampler<color::Rgba> {
-        let network = &self.network;
-        let path = path.into();
-        let warning = format!("Tried to access undefined color from theme: {}", &path);
-        let (source, current) = self.get_internal(path);
-        frp::extend! { network
-            value <- source.map(move |t| t.color().unwrap_or_else(|| {
-                warn!("{}", warning);
-                FALLBACK_COLOR
-            }));
-            sampler <- value.sampler();
-        }
-        source.emit(current);
-        sampler
+    pub fn get_color(&self, path: impl Into<Path>) -> frp::Sampler<color::Rgba> {
+        self.access(path)
     }
 
     /// Queries the style sheet for a text. Emits a warning and returns empty string if not found.
-    pub fn get_text<T: Into<Path>>(&self, path: T) -> frp::Sampler<ImString> {
-        let network = &self.network;
-        let path = path.into();
-        let warning = format!("Tried to access undefined text from theme: {}", &path);
-        let (source, current) = self.get_internal(path);
-        frp::extend! { network
-            value <- source.map(move |t| {
-                t.im_string_or_else(|| {
-                    warn!("{}", warning);
-                    default()
-                })
-            });
-            sampler <- value.sampler();
-        }
-        source.emit(current);
-        sampler
+    pub fn get_text(&self, path: impl Into<Path>) -> frp::Sampler<ImString> {
+        self.access(path)
     }
 
     /// Queries style sheet number.
-    pub fn get_number_or<T: Into<Path>>(&self, path: T, fallback: f32) -> frp::Sampler<f32> {
+    pub fn get_number_or(&self, path: impl Into<Path>, fallback: f32) -> frp::Sampler<f32> {
         let network = &self.network;
         let (source, current) = self.get_internal(path);
         frp::extend! { network
-            value   <- source.map(move |t| t.number().unwrap_or(fallback));
-            sampler <- value.sampler();
+            sampler <- source.map(move |t| t.number().unwrap_or(fallback)).sampler();
         }
         source.emit(current);
         sampler
     }
 }
 
+/// Defines a way for a value of given type to be accessed from the style sheet.
+pub trait ThemeAccess: Debug + Clone + Default + 'static {
+    /// Convert raw style data to a value of given type. Uses `path_str` to report a warning in case
+    /// of an unexpected data type.
+    fn from_style_data(path_str: &str, data: &Option<style::Data>) -> Self;
+}
 
+impl ThemeAccess for f32 {
+    fn from_style_data(path_str: &str, data: &Option<style::Data>) -> Self {
+        data.number().unwrap_or_else(|| {
+            warn!("Tried to access undefined number from theme: {path_str}");
+            0.0
+        })
+    }
+}
+
+impl ThemeAccess for ImString {
+    fn from_style_data(path_str: &str, data: &Option<style::Data>) -> Self {
+        data.im_string_or_else(|| {
+            warn!("Tried to access undefined text from theme: {path_str}");
+            default()
+        })
+    }
+}
+
+impl ThemeAccess for color::Rgba {
+    fn from_style_data(path_str: &str, data: &Option<style::Data>) -> Self {
+        data.color().unwrap_or_else(|| {
+            warn!("Tried to access undefined color from theme: {path_str}");
+            FALLBACK_COLOR
+        })
+    }
+}
+
+impl ThemeAccess for color::Lcha {
+    fn from_style_data(path_str: &str, data: &Option<style::Data>) -> Self {
+        <color::Rgba as ThemeAccess>::from_style_data(path_str, data).into()
+    }
+}
 
 // ==================
 // === StyleWatch ===

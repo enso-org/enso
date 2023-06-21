@@ -300,8 +300,6 @@ impl View {
         let style_frp = StyleWatchFrp::new(&scene.style_sheet);
         let style = Style::from_theme(network, &style_frp);
         frp::extend! { network
-            init <- source_();
-
             // === Displaying documentation ===
 
             docs <- any(...);
@@ -367,8 +365,6 @@ impl View {
             frp.source.is_hovered <+ model.overlay.events_deprecated.mouse_over.constant(true);
             frp.source.is_hovered <+ model.overlay.events_deprecated.mouse_out.constant(false);
         }
-        init.emit(());
-        style.init.emit(());
         self
     }
 }

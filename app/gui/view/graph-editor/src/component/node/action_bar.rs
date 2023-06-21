@@ -135,13 +135,6 @@ impl Icons {
         self.freeze.set_read_only(read_only);
         self.skip.set_read_only(read_only);
     }
-
-    fn set_color_scheme(&self, color_scheme: &toggle_button::ColorScheme) {
-        self.visibility.set_color_scheme(color_scheme);
-        self.context_switch.set_color_scheme(color_scheme);
-        self.freeze.set_color_scheme(color_scheme);
-        self.skip.set_color_scheme(color_scheme);
-    }
 }
 
 impl display::Object for Icons {
@@ -264,7 +257,6 @@ impl Model {
 
         let styles = StyleWatch::new(&scene.style_sheet);
 
-        use display::shape::compound::rectangle;
         ensogl::shapes_order_dependencies! {
             scene => {
                 compound::rectangle::shape -> icon::visibility;

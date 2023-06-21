@@ -172,7 +172,6 @@ impl component::Frp<Model> for Frp {
 
             eval_ output.pressed (model.set_playing(true));
         }
-        style.init.emit(());
     }
 }
 

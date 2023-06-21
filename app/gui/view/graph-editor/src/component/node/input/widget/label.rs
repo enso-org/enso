@@ -1,17 +1,27 @@
 //! Definition of static text label widget.
 
-use crate::component::node::input::widget::prelude::*;
+use super::prelude::*;
 use crate::prelude::*;
 
 use crate::component::node::input::area::TEXT_SIZE;
 
 use ensogl::data::color;
 use ensogl::display::object;
-use ensogl::display::shape::StyleWatch;
 use ensogl_component::text;
-use ensogl_hardcoded_theme as theme;
 
 
+/// =============
+/// === Style ===
+/// =============
+
+#[derive(Clone, Debug, Default, PartialEq, FromTheme)]
+#[base_path = "theme::code::syntax"]
+struct Style {
+    base:      color::Rgba,
+    selection: color::Rgba,
+    disabled:  color::Rgba,
+    expected:  color::Rgba,
+}
 
 // =============
 // === Label ===
@@ -74,15 +84,12 @@ impl SpanWidget for Widget {
         let weight_anim = ensogl::Animation::new(network);
         weight_anim.precision.emit(0.001);
 
-        let styles = ctx.styles();
+        let style = Style::from_theme(network, ctx.styles());
         frp::extend! { network
             let id = ctx.info.identity;
             parent_port_hovered <- widgets_frp.hovered_port_children.map(move |h| h.contains(&id));
-            label_color <- frp.text_color.all_with4(
-                &parent_port_hovered, &widgets_frp.set_view_mode, &widgets_frp.set_profiling_status,
-                f!([styles](state, hovered, mode, status) {
-                    state.to_color(*hovered, *mode, *status, &styles)
-                })
+            label_color <- frp.text_color.all_with3(&style.update, &parent_port_hovered,
+                |state, style, hovered| state.to_color(*hovered, style)
             );
 
             color_anim.target <+ label_color.on_change();
@@ -123,14 +130,7 @@ impl SpanWidget for Widget {
             _ if is_connected => ColorState::Connected,
             _ if ctx.info.disabled => ColorState::Disabled,
             _ if is_placeholder => ColorState::Placeholder,
-            _ => {
-                ColorState::Base
-                // let span_node_type = ctx.span_node.kind.tp();
-                // let usage_type = ctx.info.usage_type.clone();
-                // let ty = usage_type.or_else(|| span_node_type.map(|t| crate::Type(t.into())));
-                // let color = crate::type_coloring::compute_for_code(ty.as_ref(), ctx.styles());
-                // ColorState::FromType(color)
-            }
+            _ => ColorState::Base,
         };
 
         let ext = ctx.get_extension_or_default::<Extension>();
@@ -174,32 +174,17 @@ pub enum ColorState {
     Connected,
     Disabled,
     Placeholder,
-    FromType(color::Lcha),
 }
 
 impl ColorState {
-    fn to_color(
-        self,
-        is_hovered: bool,
-        view_mode: crate::view::Mode,
-        status: crate::node::profiling::Status,
-        styles: &StyleWatch,
-    ) -> color::Lcha {
-        use theme::code::syntax;
-        let profiling_mode = view_mode.is_profiling();
-        let profiled = profiling_mode && status.is_finished();
-        let base_path = match self {
-            _ if is_hovered => syntax::selection::HERE,
-            ColorState::Base => syntax::base::HERE,
-            ColorState::Connected => syntax::selection::HERE,
-            ColorState::Disabled => syntax::disabled::HERE,
-            ColorState::Placeholder => syntax::expected::HERE,
-            ColorState::FromType(_) if profiling_mode || profiled => syntax::base::HERE,
-            ColorState::FromType(typed) => return typed,
+    fn to_color(self, is_hovered: bool, style: &Style) -> color::Lcha {
+        match self {
+            _ if is_hovered => style.selection,
+            ColorState::Base => style.base,
+            ColorState::Connected => style.selection,
+            ColorState::Disabled => style.disabled,
+            ColorState::Placeholder => style.expected,
         }
-        .path();
-
-        let color_path = if profiled { base_path.sub("profiling") } else { base_path.sub("color") };
-        styles.get_color(color_path).into()
+        .into()
     }
 }

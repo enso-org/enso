@@ -1,7 +1,7 @@
 //! Definition of default hierarchy widget. This widget expands each child of its span tree into
 //! a new widget.
 
-use crate::component::node::input::widget::prelude::*;
+use super::prelude::*;
 use crate::prelude::*;
 
 use ensogl::display::object;

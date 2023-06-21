@@ -9,7 +9,6 @@ use quote::quote;
 use quote::ToTokens;
 use syn::DeriveInput;
 use syn::Path;
-use syn::Type;
 
 
 
@@ -20,39 +19,6 @@ use syn::Type;
 const BASE_PATH_ATTRIBUTE_NAME: &str = "base_path";
 // Sadly we can't use `path` here, because it conflicts with Rust's builtin attribute.
 const PATH_ATTRIBUTE_NAME: &str = "theme_path";
-const ACCESSOR_ATTRIBUTE_NAME: &str = "accessor";
-
-
-// ==================
-// === ThemeTypes ===
-// ==================
-
-/// Provides a convenient way to reason about the three types that have special theme support.
-enum ThemeTypes {
-    Color,
-    String,
-    Number,
-    /// The type is not directly supported by the macro, but can be accessed using a custom
-    /// accessor.
-    Unknown,
-}
-
-impl ThemeTypes {
-    /// Return the corresponging [`ThemeType`] for the given [`Type`].
-    fn from_ty(ty: &Type) -> Self {
-        match ty {
-            Type::Path(type_path)
-                if type_path.clone().into_token_stream().to_string().contains("ImString") =>
-                Self::String,
-            Type::Path(type_path) if type_path.clone().into_token_stream().to_string() == "f32" =>
-                Self::Number,
-            Type::Path(type_path)
-                if type_path.clone().into_token_stream().to_string().contains("Rgba") =>
-                Self::Color,
-            _ => Self::Unknown,
-        }
-    }
-}
 
 
 
@@ -68,30 +34,23 @@ fn build_frp(
     fields: &syn::punctuated::Punctuated<syn::Field, syn::token::Comma>,
 ) -> TokenStream {
     let mut frp_content = TokenStream::new();
-    let mut prev_value: Option<Ident> = None;
+    let mut prev_value: Ident = format_ident!("init");
 
     for field in fields.iter() {
         let field_name =
             field.ident.as_ref().expect("Encountered unnamed struct field. This cannot happen.");
         let field_update = format_ident!("{}_update", field_name);
-        let update = if let Some(prev_value) = prev_value {
-            quote! {
-                #field_update <- all(&#prev_value, &#field_name);
-            }
-        } else {
-            quote! {
-                #field_update <- all(&init, &#field_name);
-            }
+        let update = quote! {
+            #field_update <- all(&#prev_value, &#field_name);
         };
         frp_content.extend(update);
-        prev_value = Some(field_update);
+        prev_value = field_update;
     }
 
     let destruct_pattern = make_destruct_pattern(fields);
     let struct_init = make_struct_inits(fields);
-    let prev_value = prev_value.expect("Struct did not contain any fields.");
     let struct_generation = quote! {
-            layout_update <- #prev_value.map(|#destruct_pattern|{
+            layout_update <- #prev_value.debounce().map(|#destruct_pattern|{
             #struct_name {
                     #struct_init
                 }
@@ -103,7 +62,9 @@ fn build_frp(
             init <- source_();
             #frp_content;
         }
-
+        // The layout update is debounced, so emitting the init value here will guarantee it to
+        // happen in the next microtask.
+        init.emit(());
     }
 }
 
@@ -189,6 +150,7 @@ fn make_theme_getters(
         .iter()
         .map(|f| {
             let field_name = &f.ident;
+            let field_type = &f.ty;
             let field_path = get_path_metadata_for_field(f, PATH_ATTRIBUTE_NAME);
             let field_path = match (base_path, field_path) {
                 (Some(base_path), None) => quote! { #base_path::#field_name },
@@ -196,28 +158,8 @@ fn make_theme_getters(
                 (None, None) => panic!("Neither `base_path` nor `path` attributes were set."),
             };
 
-            let accessor = get_path_from_metadata(&f.attrs, ACCESSOR_ATTRIBUTE_NAME)
-                .map(|accessor| {
-                    quote! { #accessor(&network, style, #field_path) }
-                })
-                .unwrap_or_else(|| match ThemeTypes::from_ty(&f.ty) {
-                    ThemeTypes::Color => quote! {
-                      StyleWatchFrp::get_color(style, #field_path)
-                    },
-                    ThemeTypes::String => quote! {
-                      StyleWatchFrp::get_text(style, #field_path)
-                    },
-                    ThemeTypes::Number => quote! {
-                      StyleWatchFrp::get_number(style, #field_path)
-                    },
-                    ThemeTypes::Unknown => panic!(
-                        "Unknown type for theme value, but no accessor was provided. \
-                        Use the `#[accessor]` attribute to provide a custom accessor function"
-                    ),
-                });
-
             quote! {
-                let #field_name = #accessor;
+                let #field_name = style.access::<#field_type>(#field_path);
             }
         })
         .collect()
@@ -240,6 +182,7 @@ pub fn expand(input: DeriveInput) -> TokenStream {
     };
 
     let theme_getters = make_theme_getters(&fields, base_path.as_ref());
+    let st_vis = input.vis;
     let st_name = input.ident;
     let frp_network_description = build_frp(&st_name, &fields);
     let update_struct_name = format_ident!("{}FromThemeFRP", st_name);
@@ -247,21 +190,25 @@ pub fn expand(input: DeriveInput) -> TokenStream {
         #[automatically_derived]
         /// FRP endpoints with [`#st_name`] derived from style FRP. Generated by [`FromTheme`]
         /// macro.
-        pub struct #update_struct_name {
+        #st_vis struct #update_struct_name {
             /// Event emitted each time the style will be updated with the sructure derived from it.
             pub update: enso_frp::Stream<#st_name>,
-            /// Emit this event when you want to initialize all nodes dependant on the `update`
-            /// field.
+            /// Emit this event when you want to reinitialize all nodes dependant on the `update`
+            /// field. Note that the initialization of `update` will already automatically happen on
+            /// next microtask after calling `from_theme`.
             pub init: enso_frp::stream::WeakNode<enso_frp::SourceData>
         }
 
         #[automatically_derived]
         impl #st_name {
             /// Create FRP endpoints used to obtain [`#st_name`] from a style sheet.
-            pub fn from_theme(network: &enso_frp::Network, style: &StyleWatchFrp) -> #update_struct_name {
+            pub fn from_theme(
+                network: &enso_frp::Network,
+                style: &StyleWatchFrp,
+            ) -> #update_struct_name {
                 #theme_getters
                 #frp_network_description
-                #update_struct_name {update:layout_update,init}
+                #update_struct_name {update:layout_update, init}
             }
         }
     };

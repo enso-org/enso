@@ -53,7 +53,7 @@ use enso_text as text;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::shape::StyleWatch;
+use ensogl::display::shape::StyleWatchFrp;
 use ensogl::gui::cursor;
 use ensogl_component::drop_down::DropdownValue;
 use span_tree::node::Ref as SpanRef;
@@ -61,8 +61,7 @@ use span_tree::PortId;
 use span_tree::TagValue;
 use text::index::Byte;
 
-
-
+/// A prelude module imported in all widget modules.
 pub(super) mod prelude {
     pub use super::Choice;
     pub use super::ConfigContext;
@@ -76,6 +75,10 @@ pub(super) mod prelude {
     pub use super::TreeNode;
     pub use super::WidgetIdentity;
     pub use super::WidgetsFrp;
+
+    pub use ensogl::display::shape::StyleWatchFrp;
+    pub use ensogl_derive_theme::FromTheme;
+    pub use ensogl_hardcoded_theme as theme;
     pub use span_tree::node::Ref as SpanRef;
 }
 
@@ -319,6 +322,8 @@ macro_rules! define_widget_modules(
 );
 
 define_widget_modules! {
+    /// A widget for top-level Enso method calls. Displays an icon.
+    Method method,
     /// A widget for selecting a single value from a list of available options.
     SingleChoice single_choice,
     /// A widget for managing a list of values - adding, removing or reordering them.
@@ -329,8 +334,6 @@ define_widget_modules! {
     Hierarchy hierarchy,
     /// Default widget that only displays text.
     Label label,
-    /// A widget for top-level Enso method calls. Displays an icon.
-    Method method,
 }
 
 // =====================
@@ -623,7 +626,7 @@ impl Tree {
         &self,
         tree: &span_tree::SpanTree,
         node_expression: &str,
-        styles: &StyleWatch,
+        styles: &StyleWatchFrp,
     ) {
         if self.model.tree_dirty.get() {
             self.rebuild_tree(tree, node_expression, styles);
@@ -638,7 +641,7 @@ impl Tree {
         &self,
         tree: &span_tree::SpanTree,
         node_expression: &str,
-        styles: &StyleWatch,
+        styles: &StyleWatchFrp,
     ) {
         self.model.rebuild_tree(self.widgets_frp.clone_ref(), tree, node_expression, styles);
         self.frp.private.output.on_rebuild_finished.emit(());
@@ -921,7 +924,7 @@ impl TreeModel {
         frp: WidgetsFrp,
         tree: &span_tree::SpanTree,
         node_expression: &str,
-        styles: &StyleWatch,
+        styles: &StyleWatchFrp,
     ) {
         self.tree_dirty.set(false);
         let app = self.app.clone();
@@ -1058,8 +1061,8 @@ impl<'a, 'b> ConfigContext<'a, 'b> {
         &self.builder.node_expression[range]
     }
 
-    /// Get the `StyleWatch` used by this node.
-    pub fn styles(&self) -> &StyleWatch {
+    /// Get the `StyleWatchFrp` used by this node.
+    pub fn styles(&self) -> &StyleWatchFrp {
         self.builder.styles
     }
 
@@ -1318,7 +1321,7 @@ struct TreeBuilder<'a> {
     frp:             WidgetsFrp,
     node_disabled:   bool,
     node_expression: &'a str,
-    styles:          &'a StyleWatch,
+    styles:          &'a StyleWatchFrp,
     /// A list of widget overrides configured on the widget tree. It is persistent between tree
     /// builds, and cannot be modified during the tree building process.
     override_map:    &'a HashMap<OverrideKey, Configuration>,

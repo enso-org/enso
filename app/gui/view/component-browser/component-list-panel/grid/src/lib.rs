@@ -759,10 +759,6 @@ impl component::Frp<Model> for Frp {
 
         // Set the proper number of columns so we can set column widths.
         grid.resize_grid(0, column::COUNT);
-        style.init.emit(());
-        entry_style.init.emit(());
-        colors.init.emit(());
-        selection_colors.init.emit(());
     }
 
     fn default_shortcuts() -> Vec<Shortcut> {

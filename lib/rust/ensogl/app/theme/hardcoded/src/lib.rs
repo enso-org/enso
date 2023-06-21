@@ -447,22 +447,10 @@ define_themes! { [light:0, dark:1]
     }
     code {
         syntax {
-            base {
-                color = Lcha(1.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,0.7);
-                profiling = Lcha(1.0,0.0,0.0,0.9) , Lcha(0.0,0.0,0.0,0.7);
-            }
-            disabled {
-                color = Lcha(0.95,0.0,0.0,0.9) , Lcha(0.95,0.0,0.0,0.9);
-                profiling = Lcha(0.95,0.0,0.0,0.9) , Lcha(0.95,0.0,0.0,0.9);
-            }
-            expected {
-                color = Lcha(1.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
-                profiling = Lcha(1.0,0.0,0.0,0.5) , Lcha(0.0,0.0,0.0,0.5);
-            }
-            selection {
-                color = Lcha(1.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,1.0);
-                profiling = Lcha(1.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,1.0);
-            }
+            base = Lcha(1.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,0.7);
+            disabled = Lcha(0.95,0.0,0.0,0.9) , Lcha(0.95,0.0,0.0,0.9);
+            expected = Lcha(1.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
+            selection = Lcha(1.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,1.0);
         }
         types {
             hue_steps     = 512.0 , 512.0;

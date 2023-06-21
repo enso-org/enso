@@ -150,7 +150,6 @@ impl grid_view::Entry for Entry {
             data.text.set_property_default <+ text_size.map(|s| text::Size(*s)).cloned_into_some();
             data.text.set_property_default <+ text_color.cloned_into_some();
         }
-        style.init.emit(());
         Self { data, frp }
     }
 
@@ -305,7 +304,6 @@ impl ProjectList {
             );
             grid.select_entry <+ frp.output.selected_project.filter_map(|s| s.as_ref().map(|_| None));
         }
-        style.init.emit(());
         init.emit(());
 
         Self { display_object, background, caption, grid, frp }
