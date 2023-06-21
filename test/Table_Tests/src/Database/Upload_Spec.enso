@@ -3,6 +3,8 @@ import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Context
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Table import all
 from Standard.Table.Errors import all
@@ -808,7 +810,8 @@ spec make_new_connection prefix persistent_connector=True =
     Test.group prefix+"Appending a Database table to a Database table" <|
         test_table_append (table_builder "source-table") (table_builder "target-table")
 
-    Test.group prefix+"Output Execution Context for Database operations" <|
+    execution_context_group_name = prefix+"Output Execution Context for Database operations"
+    Test.group execution_context_group_name <|
         Test.specify "should forbid executing updates" <|
             Context.Output.with_disabled <|
                 r1 = connection.execute_update "CREATE TEMPORARY TABLE foo (x INTEGER)"
@@ -844,17 +847,31 @@ spec make_new_connection prefix persistent_connector=True =
             src = Table.new [["X", [1, 2, 3]]]
             name = Name_Generator.random_name "dry-run-list-test"
 
+            was_cleanup_performed = Ref.new False
+
             # `Warning.clear` is added as a workaround for bug #7093
             dry_run_name = Warning.clear <| Context.Output.with_disabled <|
                 table = src.select_into_database_table connection name primary_key=[]
+                sentinel = Managed_Resource.register "payload" (cleanup_sentinel was_cleanup_performed)
                 table.column_names . should_equal ["X"]
                 connection.get_tables_advanced include_hidden=True . at "Name" . to_vector . should_contain table.name
                 table.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
-                table.name
+                name = table.name
+                payload = sentinel.with x-> "transformed_"+x
+                payload . should_equal "transformed_payload"
+                name
 
             Runtime.gc
+            tables_after_potential_gc = connection.get_tables_advanced include_hidden=True . at "Name" . to_vector
 
-            connection.get_tables_advanced include_hidden=True . at "Name" . to_vector . should_not_contain dry_run_name
+            case was_cleanup_performed.get of
+                True ->
+                    # We assume that if the sentinel was cleaned, that the table was disposed too.
+                    # This is still a heuristic, but it should make it sufficiently precise to avoid test failures.
+                    tables_after_potential_gc.should_not_contain dry_run_name
+                False ->
+                    # Let's note that the cleanup was not performed, so that we can investigate how often this happens.
+                    IO.println "[WARNING] The GC was not performed on time in the "+execution_context_group_name+" test. The test did not check the invariants to avoid spurious failures."
 
         tests source_table_builder suffix =
             Test.specify "should return a temporary table with a sample of the data for select_into_table"+suffix <|
@@ -913,3 +930,7 @@ run_with_and_without_output ~action =
     Context.Output.with_disabled <|
         Test.with_clue "(dry run - Output context disabled) " <|
             action
+
+## PRIVATE
+cleanup_sentinel ref _ =
+    ref.put True
