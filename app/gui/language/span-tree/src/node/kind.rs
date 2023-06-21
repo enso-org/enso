@@ -32,6 +32,8 @@ pub enum Kind {
     /// between AST tokens. For example, given expression `foo   bar`, the span assigned to the
     /// `InsertionPoint` between `foo` and `bar` should be set to 3.
     InsertionPoint(InsertionPoint),
+    /// A single line within a block.
+    BlockLine,
 }
 
 
@@ -105,6 +107,17 @@ impl Kind {
     /// expected argument.
     pub fn is_function_parameter(&self) -> bool {
         self.is_this() || self.is_argument() || self.is_expected_argument()
+    }
+
+    /// If this kind is an expected argument, return its argument index.
+    pub fn expected_argument_index(&self) -> Option<usize> {
+        match self {
+            Self::InsertionPoint(InsertionPoint {
+                kind: InsertionPointType::ExpectedArgument { index, .. },
+                ..
+            }) => Some(*index),
+            _ => None,
+        }
     }
 }
 
@@ -258,6 +271,7 @@ impl Kind {
             Self::NamedArgument => "NamedArgument",
             Self::Token => "Token",
             Self::InsertionPoint(_) => "InsertionPoint",
+            Self::BlockLine => "BlockLine",
         }
     }
 }

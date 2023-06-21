@@ -15,7 +15,7 @@ import org.slf4j.ILoggerFactory;
  */
 public class StaticLoggerBinder {
   /** Should be in sync with `slf4jVersion` in `build.sbt`. */
-  public static String REQUESTED_API_VERSION = "1.7.30";
+  public static String REQUESTED_API_VERSION = "1.7.36";
 
   private static final StaticLoggerBinder singleton = new StaticLoggerBinder();
 

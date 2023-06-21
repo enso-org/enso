@@ -130,6 +130,8 @@ ensogl::define_endpoints! {
         drop_files_enabled             (bool),
         debug_mode                     (bool),
         go_to_dashboard_button_pressed (),
+        /// The name of the command currently being handled due to shortcut being pressed.
+        current_shortcut               (Option<ImString>),
     }
 }
 
@@ -141,7 +143,6 @@ ensogl::define_endpoints! {
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    app:                  Application,
     display_object:       display::object::Instance,
     project_view_top_bar: ProjectViewTopBar,
     graph_editor:         Rc<GraphEditor>,
@@ -173,10 +174,8 @@ impl Model {
         display_object.add_child(&project_view_top_bar);
         display_object.remove_child(&searcher);
 
-        let app = app.clone_ref();
         let graph_editor = Rc::new(graph_editor);
         Self {
-            app,
             display_object,
             project_view_top_bar,
             graph_editor,
@@ -213,24 +212,18 @@ impl Model {
     }
 
     fn searcher_anchor_next_to_node(&self, node_id: NodeId) -> Vector2<f32> {
-        if let Some(node) = self.graph_editor.nodes().get_cloned_ref(&node_id) {
-            node.position().xy()
-        } else {
-            error!("Trying to show searcher under non existing node");
-            default()
-        }
+        self.graph_editor.model.with_node(node_id, |node| node.position().xy()).unwrap_or_default()
     }
 
     fn show_fullscreen_visualization(&self, node_id: NodeId) {
-        let node = self.graph_editor.nodes().get_cloned_ref(&node_id);
-        if let Some(node) = node {
+        self.graph_editor.model.with_node(node_id, |node| {
             let visualization =
                 node.view.model().visualization.fullscreen_visualization().clone_ref();
             self.display_object.remove_child(&*self.graph_editor);
             self.display_object.remove_child(&self.project_view_top_bar);
             self.display_object.add_child(&visualization);
             *self.fullscreen_vis.borrow_mut() = Some(visualization);
-        }
+        });
     }
 
     fn hide_fullscreen_visualization(&self) {
@@ -359,6 +352,7 @@ impl View {
             .init_style_toggle_frp()
             .init_fullscreen_visualization_frp()
             .init_debug_mode_frp()
+            .init_shortcut_observer(app)
     }
 
     fn init_top_bar_frp(self, scene: &Scene) -> Self {
@@ -408,6 +402,7 @@ impl View {
             graph.set_navigator_disabled <+ disable_navigation;
 
             model.popup.set_label <+ graph.model.breadcrumbs.project_name_error;
+            model.popup.set_label <+ graph.visualization_update_error._1();
             graph.set_read_only <+ frp.set_read_only;
             graph.set_debug_mode <+ frp.source.debug_mode;
 
@@ -658,6 +653,15 @@ impl View {
         self
     }
 
+    fn init_shortcut_observer(self, app: &Application) -> Self {
+        let frp = &self.frp;
+        frp::extend! { network
+            frp.source.current_shortcut <+ app.shortcuts.currently_handled;
+        }
+
+        self
+    }
+
     /// Graph Editor View.
     pub fn graph(&self) -> &GraphEditor {
         &self.model.graph_editor
@@ -708,10 +712,6 @@ impl application::View for View {
 
     fn new(app: &Application) -> Self {
         View::new(app)
-    }
-
-    fn app(&self) -> &Application {
-        &self.model.app
     }
 
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {

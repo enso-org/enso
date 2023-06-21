@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument.command;
 
+import java.util.UUID;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
 import org.enso.interpreter.instrument.job.SerializeModuleJob;
 import org.enso.pkg.QualifiedName;
@@ -7,8 +8,6 @@ import scala.Option;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 import scala.runtime.BoxedUnit;
-
-import java.util.UUID;
 
 /** The command to start the module serialization. */
 public final class SerializeModuleCommand extends Command {

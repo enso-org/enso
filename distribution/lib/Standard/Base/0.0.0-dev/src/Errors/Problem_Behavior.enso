@@ -2,7 +2,6 @@ import project.Any.Any
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Warning.Warning
-from project import all
 
 from project.Errors.Problem_Behavior.Problem_Behavior import all
 

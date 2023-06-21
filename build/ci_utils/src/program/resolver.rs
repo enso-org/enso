@@ -7,7 +7,7 @@ pub struct Resolver<P> {
     pub cwd:          PathBuf,
     pub names:        Vec<OsString>,
     pub lookup_dirs:  OsString,
-    pub phantom_data: PhantomData<P>,
+    pub phantom_data: ZST<P>,
 }
 
 impl<P> Resolver<P> {

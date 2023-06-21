@@ -1908,8 +1908,8 @@ class RuntimeErrorsTest
     context.receiveNIgnorePendingExpressionUpdates(
       3
     ) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, x1Id, ConstantsGen.NOTHING_BUILTIN),
-      TestMessages.update(contextId, mainRes1Id, ConstantsGen.NOTHING_BUILTIN),
+      TestMessages.update(contextId, x1Id, ConstantsGen.NOTHING),
+      TestMessages.update(contextId, mainRes1Id, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("MyError")

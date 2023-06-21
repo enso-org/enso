@@ -19,6 +19,7 @@ crate-type = ["rlib"]
 default = []
 
 [dependencies]
+enso-zst = { path = "../zst" }
 enso-shapely-macros = { path = "macros" }
 paste = { workspace = true }
 derivative = { workspace = true }

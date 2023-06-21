@@ -50,7 +50,7 @@ interface AuthenticationApi {
 declare global {
     /** */
     interface Window {
-        enso: AppRunner & Enso
+        enso?: AppRunner & Enso
         authenticationApi: AuthenticationApi
     }
 
@@ -74,4 +74,7 @@ declare global {
     // eslint-disable-next-line no-restricted-syntax
     const REDIRECT_OVERRIDE: string | undefined
     /* eslint-disable @typescript-eslint/naming-convention */
+    // This is a function.
+    // eslint-disable-next-line no-restricted-syntax
+    const assert: (invariant: boolean, message: string) => void
 }

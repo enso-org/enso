@@ -1,11 +1,10 @@
 package org.enso.table.data.column.operation.map.datetime;
 
+import java.util.HashSet;
+import java.util.List;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 import org.enso.table.data.column.storage.Storage;
-
-import java.util.HashSet;
-import java.util.List;
 
 /**
  * An IS_IN implementation which ensures the Enso Date/Time types are correctly coerced.

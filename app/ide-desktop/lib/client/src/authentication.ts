@@ -81,9 +81,9 @@ import opener from 'opener'
 
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
-import * as urlAssociations from 'url-associations'
 
 import * as ipc from 'ipc'
+import * as urlAssociations from 'url-associations'
 
 const logger = contentConfig.logger
 

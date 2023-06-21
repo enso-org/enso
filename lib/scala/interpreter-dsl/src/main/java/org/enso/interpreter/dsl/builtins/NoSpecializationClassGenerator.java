@@ -1,8 +1,6 @@
 package org.enso.interpreter.dsl.builtins;
 
-import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ExecutableElement;
-import java.util.Map;
 
 /** Generator for builtin method class with no specialization. */
 public final class NoSpecializationClassGenerator extends MethodNodeClassGenerator {

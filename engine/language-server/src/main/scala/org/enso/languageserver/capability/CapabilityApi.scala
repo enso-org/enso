@@ -10,34 +10,40 @@ import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 object CapabilityApi {
 
   case object AcquireCapability extends Method("capability/acquire") {
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = CapabilityRegistration
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, CapabilityRegistration] =
+      new HasParams[this.type] {
+        type Params = CapabilityRegistration
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object ReleaseCapability extends Method("capability/release") {
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = CapabilityRegistration
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
+    implicit val hasParams: HasParams.Aux[this.type, CapabilityRegistration] =
+      new HasParams[this.type] {
+        type Params = CapabilityRegistration
+      }
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
   }
 
   case object ForceReleaseCapability
       extends Method("capability/forceReleased") {
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = CapabilityRegistration
-    }
+    implicit val hasParams: HasParams.Aux[this.type, CapabilityRegistration] =
+      new HasParams[this.type] {
+        type Params = CapabilityRegistration
+      }
   }
 
   case object GrantCapability extends Method("capability/granted") {
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = CapabilityRegistration
-    }
+    implicit val hasParams: HasParams.Aux[this.type, CapabilityRegistration] =
+      new HasParams[this.type] {
+        type Params = CapabilityRegistration
+      }
   }
 
   // Errors

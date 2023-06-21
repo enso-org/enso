@@ -363,9 +363,12 @@ impl Searcher {
 
         let weak_model = Rc::downgrade(&model);
         let notifications = model.controller.subscribe();
+        let graph = model.view.graph().clone();
         spawn_stream_handler(weak_model, notifications, move |notification, _| {
             match notification {
                 Notification::NewActionList => action_list_changed.emit(()),
+                Notification::AISuggestionUpdated(expr, range) =>
+                    graph.edit_node_expression((input_view, range, ImString::new(expr))),
             };
             std::future::ready(())
         });
@@ -399,8 +402,9 @@ impl Searcher {
         new_node.metadata = Some(metadata);
         new_node.introduce_pattern = false;
         let transaction_name = "Add code for created node's visualization preview.";
-        let _transaction =
-            graph_controller.undo_redo_repository().open_ignored_transaction(transaction_name);
+        let _transaction = graph_controller
+            .undo_redo_repository()
+            .open_ignored_transaction_or_ignore_current(transaction_name);
         let created_node = graph_controller.add_node(new_node)?;
 
         graph.assign_node_view_explicitly(input, created_node);

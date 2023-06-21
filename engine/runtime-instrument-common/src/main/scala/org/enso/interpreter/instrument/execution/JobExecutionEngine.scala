@@ -12,7 +12,7 @@ import java.util.logging.Level
 import scala.concurrent.{Future, Promise}
 import scala.util.control.NonFatal
 
-/** This component schedules the execution of jobs. It keep a queue of
+/** This component schedules the execution of jobs. It keeps a queue of
   * pending jobs and activates job execution in FIFO order.
   *
   * @param interpreterContext suppliers of services that provide interpreter
@@ -186,5 +186,17 @@ final class JobExecutionEngine(
     Collections.sort(delayedBackgroundJobsQueue)
     delayedBackgroundJobsQueue.forEach(job => runBackground(job))
     delayedBackgroundJobsQueue.clear()
+  }
+
+  private val runningJobPartialFunction: PartialFunction[RunningJob, Job[_]] = {
+    case RunningJob(_, job, _) => job
+  }
+
+  override def jobInProgress[T](
+    filter: PartialFunction[Job[_], Option[T]]
+  ): Option[T] = {
+    val allJobs    = runningJobsRef.get()
+    val fullFilter = runningJobPartialFunction.andThen(filter)
+    allJobs.collectFirst(fullFilter).flatten
   }
 }
