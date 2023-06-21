@@ -62,13 +62,12 @@ spec =
             # Any.== is a method that takes two arguments (self other)
             Meta.is_a (Any.==) Function . should_be_true
             Meta.is_a (Any.== self=Boolean) Function . should_be_true
-            Any.== self=Any Boolean . should_be_false
-            Any.== Boolean self=Any . should_be_false
-            Any.== Any Boolean . should_be_false
-            Any.== Boolean . should_be_false
-            Any.== Any . should_be_true
-            Any == Boolean . should_be_false
-            Any == Any . should_be_true
+            (Any.== self=Any Boolean) . should_be_false
+            (Any.== Any Boolean) . should_be_false
+            (Any.== Boolean) . should_be_false
+            (Any.== Any) . should_be_true
+            (Any == Boolean) . should_be_false
+            (Any == Any) . should_be_true
 
             # Any.to_text is a method that takes one argument (self)
             Any.to_text . should_equal "Any"
@@ -81,8 +80,9 @@ spec =
 
             # Any.spec_method is a method that takes three arguments (self, arg1, arg2)
             Meta.is_a (Any.spec_method) Function . should_be_true
-            Meta.is_a (Any.spec_method self=Boolean) Function . should_be_true
             Meta.is_a (Any.spec_method Boolean) Function . should_be_true
+            Meta.is_a (Any.spec_method self=Boolean) Function . should_be_true
+            Meta.is_a (Any.spec_method self=Boolean Vector) Function . should_be_true
             Any.spec_method Boolean Vector . should_equal "Any.spec_method:{Any}{Boolean}{Vector}"
             Any.spec_method Any Boolean Vector . should_equal "Any.spec_method:{Any}{Boolean}{Vector}"
             Any.spec_method Date Boolean Vector . should_equal "Any.spec_method:{Date}{Boolean}{Vector}"
