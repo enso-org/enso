@@ -19,6 +19,8 @@ use enso_text::Rope;
 use ensogl_component::list_view::entry::Id;
 use ide_view as view;
 use ide_view::component_browser::component_list_panel::grid::GroupEntryId;
+use ide_view::graph_editor::component::node;
+use ide_view::graph_editor::component::node::input::area::Expression;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::graph_editor::NodeId;
 use ide_view::project::SearcherParams;
@@ -56,6 +58,13 @@ struct Model {
     graph_presenter:  Graph,
     notifier:         notification::Publisher<Notification>,
     this_arg:         Rc<Option<ThisNode>>,
+    input_expression: RefCell<String>,
+}
+
+impl Model {
+    fn input_changed(&self, new_input: &str) {
+        self.input_expression.replace(new_input.to_string());
+    }
 }
 
 
@@ -101,8 +110,15 @@ impl crate::searcher::Searcher for AISearcher {
             graph_presenter: graph_presenter.clone_ref(),
             notifier: default(),
             this_arg,
+            input_expression: RefCell::new("".to_string()),
         });
-        let _network = frp::Network::new("AI Searcher");
+
+        let network = frp::Network::new("AI Searcher");
+        frp::extend! { TRACE_ALL network
+            eval model.view.searcher_input_changed ([model]((expr, _selections)) {
+                model.input_changed(expr);
+            });
+        }
 
         // Handle response to our AI query.
         let weak_model = Rc::downgrade(&model);
@@ -111,13 +127,15 @@ impl crate::searcher::Searcher for AISearcher {
         let input_view = model.input_view;
         spawn_stream_handler(weak_model, notifications, move |notification, _| {
             match notification {
-                Notification::AISuggestionUpdated(expr, range) =>
-                    graph.edit_node_expression((input_view, range, ImString::new(expr))),
+                Notification::AISuggestionUpdated(expr, range) => {
+                    console_log!("Got AI suggestion: {} at {:?}", expr, range);
+                    graph.edit_node_expression((input_view, range, ImString::new(expr)));
+                }
             };
             std::future::ready(())
         });
 
-        Ok(Box::new(Self { model, _network }))
+        Ok(Box::new(Self { model, _network: network }))
     }
 
     fn expression_accepted(
@@ -126,7 +144,7 @@ impl crate::searcher::Searcher for AISearcher {
         _entry_id: Option<GroupEntryId>,
     ) -> Option<AstNodeId> {
         let ast_id = self.model.graph_presenter.ast_node_of_view(node_id)?;
-        let expression = self.model.graph_controller.graph().node(ast_id).ok()?.expression();
+        let expression = self.model.input_expression.borrow().clone();
         if let Err(e) = self.handle_ai_query(expression.repr()) {
             warn!("Failed to handle AI query: {:?}", e);
         };
@@ -134,7 +152,9 @@ impl crate::searcher::Searcher for AISearcher {
     }
 
     fn abort_editing(self: Box<Self>) {
-        // Nothing to do, we just leave the node as is.
+        let graph = self.model.view.graph().clone();
+        let expression = node::Expression::new_plain(self.model.input_expression.borrow().clone());
+        graph.set_node_expression((self.input_view(), expression));
     }
 
     fn input_view(&self) -> ViewNodeId {

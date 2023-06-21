@@ -77,7 +77,7 @@ impl SearcherParams {
     }
 }
 
-ensogl::define_endpoints! {
+ensogl::define_endpoints! { [TRACE_ALL]
     Input {
         /// Open the Open Project Dialog.
         show_project_list(),
