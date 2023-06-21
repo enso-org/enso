@@ -33,12 +33,7 @@ async function bundle() {
             path.resolve(THIS_PATH, 'src', 'index.html'),
             path.resolve(THIS_PATH, 'src', 'index.tsx')
         )
-        opts.loader = opts.loader ?? {}
         opts.loader['.html'] = 'copy'
-        // The `dataurl` loader replaces the import with the file, as a data URL. Using the `file`
-        // loader, which copies the file and replaces the import with the path, is an option,
-        // however this loader avoids adding extra files to the bundle.
-        opts.loader['.svg'] = 'dataurl'
         await esbuild.build(opts)
         return
     } catch (error) {

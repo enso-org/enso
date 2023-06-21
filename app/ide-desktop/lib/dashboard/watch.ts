@@ -29,12 +29,7 @@ OPTS.entryPoints.push(
 )
 OPTS.minify = false
 OPTS.write = false
-OPTS.loader = OPTS.loader ?? {}
 OPTS.loader['.html'] = 'copy'
-// The `dataurl` loader replaces the import with the file, as a data URL. Using the `file` loader,
-// which copies the file and replaces the import with the path, is an option, however this loader
-// avoids adding extra files to the bundle.
-OPTS.loader['.svg'] = 'dataurl'
 OPTS.pure.splice(OPTS.pure.indexOf('assert'), 1)
 ;(OPTS.inject = OPTS.inject ?? []).push(path.resolve(THIS_PATH, '..', '..', 'debugGlobals.ts'))
 OPTS.plugins.push({

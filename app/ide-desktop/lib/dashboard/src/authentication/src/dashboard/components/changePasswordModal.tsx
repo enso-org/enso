@@ -7,6 +7,7 @@ import LockIcon from 'enso-assets/lock.svg'
 
 import * as auth from '../../authentication/providers/auth'
 import * as modalProvider from '../../providers/modal'
+import * as svg from '../../components/svg'
 import * as validation from '../validation'
 
 import Input from './input'
@@ -64,7 +65,7 @@ function ChangePasswordModal() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <img src={LockIcon} />
+                                    <svg.SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
                                     autoFocus
@@ -90,7 +91,7 @@ function ChangePasswordModal() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <img src={LockIcon} />
+                                    <svg.SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
                                     required
@@ -115,7 +116,7 @@ function ChangePasswordModal() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <img src={LockIcon} />
+                                    <svg.SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
                                     required
@@ -136,7 +137,7 @@ function ChangePasswordModal() {
                             >
                                 <span className="mr-2 uppercase">Reset</span>
                                 <span>
-                                    <img src={ArrowRightIcon} />
+                                    <svg.SvgMask src={ArrowRightIcon} />
                                 </span>
                             </button>
                         </div>

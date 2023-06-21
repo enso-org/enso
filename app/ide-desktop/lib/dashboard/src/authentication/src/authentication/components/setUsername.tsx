@@ -7,6 +7,7 @@ import AtIcon from 'enso-assets/at.svg'
 
 import * as auth from '../providers/auth'
 import * as backendProvider from '../../providers/backend'
+import * as svg from '../../components/svg'
 
 import Input from './input'
 import SvgIcon from './svgIcon'
@@ -44,7 +45,7 @@ function SetUsername() {
                         <div className="flex flex-col mb-6">
                             <div className="relative">
                                 <SvgIcon>
-                                    <img src={AtIcon} />
+                                    <svg.SvgMask src={AtIcon} />
                                 </SvgIcon>
 
                                 <Input
@@ -68,7 +69,7 @@ function SetUsername() {
                             >
                                 <span className="mr-2 uppercase">Set username</span>
                                 <span>
-                                    <img src={ArrowRightIcon} />
+                                    <svg.SvgMask src={ArrowRightIcon} />
                                 </span>
                             </button>
                         </div>

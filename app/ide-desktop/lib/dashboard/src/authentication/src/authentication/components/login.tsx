@@ -11,6 +11,7 @@ import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
+import * as svg from '../../components/svg'
 
 import FontAwesomeIcon from './fontAwesomeIcon'
 import Input from './input'
@@ -56,7 +57,7 @@ function Login() {
                     }}
                     className="relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200"
                 >
-                    <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
+                    <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
                     <span>Login with Google</span>
                 </button>
                 <button
@@ -92,7 +93,7 @@ function Login() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <img src={AtIcon} />
+                                    <svg.SvgMask src={AtIcon} />
                                 </SvgIcon>
                                 <Input
                                     required
@@ -114,7 +115,7 @@ function Login() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <img src={LockIcon} />
+                                    <svg.SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
                                     required={true}
@@ -150,7 +151,7 @@ function Login() {
                             >
                                 <span className="mr-2 uppercase">Login</span>
                                 <span>
-                                    <img src={ArrowRightIcon} />
+                                    <svg.SvgMask src={ArrowRightIcon} />
                                 </span>
                             </button>
                         </div>
@@ -165,7 +166,7 @@ function Login() {
                         }
                     >
                         <span>
-                            <img src={CreateAccountIcon} />
+                            <svg.SvgMask src={CreateAccountIcon} />
                         </span>
                         <span className="ml-2">You don&apos;t have an account?</span>
                     </router.Link>
