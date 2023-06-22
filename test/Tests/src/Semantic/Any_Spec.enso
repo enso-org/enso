@@ -78,6 +78,11 @@ spec =
             Any.to_text Vector . should_equal "Vector"
             Any.to_text [1,2,3] . should_equal "[1, 2, 3]"
 
+            Vector.to_text . should_equal "Vector"
+            Text.to_text . should_equal "Text"
+            Number.to_text . should_equal "Number"
+            Integer.to_text . should_equal "Integer"
+
             # Any.spec_method is a method that takes three arguments (self, arg1, arg2)
             Meta.is_a (Any.spec_method) Function . should_be_true
             Meta.is_a (Any.spec_method Boolean) Function . should_be_true
