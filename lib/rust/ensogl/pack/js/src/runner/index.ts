@@ -203,8 +203,8 @@ export class App {
     constructor(opts?: {
         configOptions?: config.Options
         packageInfo?: Record<string, string>
-        config?: config.StringConfig,
-        remoteLoggerUrl?: string,
+        config?: config.StringConfig
+        remoteLoggerUrl?: string
         accessToken?: string | undefined
     }) {
         this.packageInfo = new debug.PackageInfo(opts?.packageInfo ?? {})
@@ -244,26 +244,39 @@ export class App {
     }
 
     /** Log the message on the remote server. */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    remoteLog(message: string, data: any) {
-        if (this.remoteLoggerUrl && this.accessToken) {
-            const headers: HeadersInit = new Headers();
-            headers.set("Content-Type", "application/json")
-            headers.set("Authorization", `Bearer ${this.accessToken}`)
-            fetch(this.remoteLoggerUrl, {
-                method: "POST",
-                headers: headers,
-                body: JSON.stringify({
-                    message: message,
-                    metadata: data
+    async remoteLog(message: string, data: any) {
+        try {
+            if (
+                this.config.options.remoteLogging.value &&
+                this.remoteLoggerUrl &&
+                this.accessToken
+            ) {
+                const headers: HeadersInit = new Headers()
+                headers.set('Content-Type', 'application/json')
+                headers.set('Authorization', `Bearer ${this.accessToken}`)
+                const response = await fetch(this.remoteLoggerUrl, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({
+                        message: message,
+                        metadata: data,
+                    }),
                 })
-            }).then(response => {
                 if (!response.ok) {
-                    throw new Error(`Error while logging message: ${response.status}.`)
+                    const errorMessage = `Error while logging message: Status ${response.status}.`
+                    try {
+                        const text = await response.text()
+                        throw new Error(`${errorMessage} Response: ${text}.`)
+                    } catch (error) {
+                        throw new Error(
+                            `${errorMessage} Failed to read response: ${String(error)}.`
+                        )
+                    }
                 }
-            }).catch(error => {
-                logger.error(error)
-            })
+            }
+        } catch (error) {
+            logger.error(error)
+            throw error
         }
     }
 

@@ -3,6 +3,10 @@
     "debug": {
       "value": false,
       "description": "Controls the debug mode for the application. In this mode, all logs are printed to the console, and EnsoGL extensions are loaded. Otherwise, logs are hidden unless explicitly shown with 'showLogs'."
+    },
+    "remoteLogging": {
+      "value": true,
+      "description": "Whether analytics logs will be sent to the remote server."
     }
   },
   "groups": {

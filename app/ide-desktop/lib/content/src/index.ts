@@ -176,7 +176,7 @@ class Main implements AppRunner {
                 engineVersion: BUILD_INFO.engineVersion,
             },
             remoteLoggerUrl: REMOTE_LOG_URL,
-            accessToken: accessToken
+            accessToken: accessToken,
         })
 
         if (!this.app.initialized) {

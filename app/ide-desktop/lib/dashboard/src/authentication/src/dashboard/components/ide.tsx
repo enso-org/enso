@@ -80,20 +80,23 @@ function Ide(props: IdeProps) {
                             : {
                                   projectManagerUrl: GLOBAL_CONFIG.projectManagerEndpoint,
                               }
-                    await appRunner.runApp({
-                        loader: {
-                            assetsUrl: `${assetsRoot}dynamic-assets`,
-                            wasmUrl: `${assetsRoot}pkg-opt.wasm`,
-                            jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backend.type]}`,
+                    await appRunner.runApp(
+                        {
+                            loader: {
+                                assetsUrl: `${assetsRoot}dynamic-assets`,
+                                wasmUrl: `${assetsRoot}pkg-opt.wasm`,
+                                jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backend.type]}`,
+                            },
+                            engine: {
+                                ...engineConfig,
+                                preferredVersion: engineVersion,
+                            },
+                            startup: {
+                                project: project.packageName,
+                            },
                         },
-                        engine: {
-                            ...engineConfig,
-                            preferredVersion: engineVersion,
-                        },
-                        startup: {
-                            project: project.packageName,
-                        },
-                    }, accessToken)
+                        accessToken ?? undefined
+                    )
                 }
                 if (backend.type === backendModule.BackendType.local) {
                     await runNewProject()
