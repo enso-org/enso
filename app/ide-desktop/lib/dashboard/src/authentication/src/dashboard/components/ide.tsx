@@ -27,7 +27,7 @@ export interface IdeProps {
     appRunner: AppRunner
 }
 
-/** The ontainer that launches the IDE. */
+/** The container that launches the IDE. */
 function Ide(props: IdeProps) {
     const { project, appRunner } = props
     const { backend } = backendProvider.useBackend()
