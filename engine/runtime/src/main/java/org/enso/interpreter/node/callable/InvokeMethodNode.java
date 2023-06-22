@@ -223,7 +223,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       System.arraycopy(arguments, 0, argsWithPrependedSelf, 1, arguments.length);
 
       if (invokeAnyStaticFunctionNode == null) {
-        CompilerDirectives.transferToInterpreter();
+        CompilerDirectives.transferToInterpreterAndInvalidate();
         assert resolvedFuncArgCount >= 2
             : "Resolved function should be on Any.type, therefore, should have at least two self"
                 + " arguments";
