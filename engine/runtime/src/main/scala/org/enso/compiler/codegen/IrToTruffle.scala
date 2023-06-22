@@ -443,6 +443,15 @@ class IrToTruffle(
               }
               .map(fOpt =>
                 fOpt.map { m =>
+                  val irFunctionArgumentsCount = fn.arguments.length
+                  val builtinArgumentsCount =
+                    m.getFunction.getSchema.getArgumentsCount
+                  if (irFunctionArgumentsCount != builtinArgumentsCount) {
+                    throw new CompilerError(
+                      s"Wrong number of arguments provided in the definition of builtin function ${cons.getName}.${methodDef.methodName.name}. ${fn.arguments
+                        .map(_.name.name)} vs. ${m.getFunction.getSchema.getArgumentInfos.map(_.getName).toSeq}"
+                    )
+                  }
                   val bodyBuilder =
                     new expressionProcessor.BuildFunctionBody(
                       fn.arguments,
