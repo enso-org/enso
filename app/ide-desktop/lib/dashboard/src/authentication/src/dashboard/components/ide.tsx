@@ -136,7 +136,8 @@ function Ide(props: IdeProps) {
                 }
             }
         })()
-        // The project may have a different backend to the current backend.
+        // The backend MUST NOT be a dependency, since the IDE should only be recreated when a new
+        // project is opened, and a local project does not exist on the cloud and vice versa.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [project, /* should never change */ appRunner])
 
