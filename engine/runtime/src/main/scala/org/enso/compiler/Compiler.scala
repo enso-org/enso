@@ -1089,7 +1089,7 @@ class Compiler(
           var str = fansi.Str()
           val fileLocation = diagnostic.location match {
             case Some(_) => fileLocationFromSection(diagnostic.location, source)
-            case None => source.getPath
+            case None    => source.getPath
           }
           str ++= fansi
             .Str(fileLocation)
