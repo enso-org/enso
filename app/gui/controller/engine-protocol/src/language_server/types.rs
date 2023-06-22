@@ -1260,6 +1260,23 @@ pub mod test {
         }
     }
 
+    /// Generate [`ExpressionUpdate`] with an update for a single expression bringing only the type
+    /// and a method pointer.
+    pub fn value_update_with_type_and_method_ptr(
+        id: ExpressionId,
+        typename: impl Into<String>,
+        method_pointer: MethodPointer,
+    ) -> ExpressionUpdate {
+        ExpressionUpdate {
+            expression_id:  id,
+            typename:       Some(typename.into()),
+            method_call:    Some(MethodCall { method_pointer, not_applied_arguments: vec![] }),
+            profiling_info: default(),
+            from_cache:     false,
+            payload:        ExpressionUpdatePayload::Value { warnings: None },
+        }
+    }
+
     /// Generate [`ExpressionUpdate`] with an update for a single expression which resulted in
     /// a dataflow error.
     pub fn value_update_with_dataflow_error(id: ExpressionId) -> ExpressionUpdate {
@@ -1289,6 +1306,18 @@ pub mod test {
             profiling_info: default(),
             from_cache:     false,
             payload:        ExpressionUpdatePayload::Panic { trace, message },
+        }
+    }
+
+    /// Generate [`ExpressionUpdate`] with a "pending" payload.
+    pub fn value_pending_update(id: ExpressionId) -> ExpressionUpdate {
+        ExpressionUpdate {
+            expression_id:  id,
+            typename:       None,
+            method_call:    None,
+            profiling_info: default(),
+            from_cache:     false,
+            payload:        ExpressionUpdatePayload::Pending { message: None, progress: None },
         }
     }
 
