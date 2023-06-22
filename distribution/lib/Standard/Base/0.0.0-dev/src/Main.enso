@@ -13,7 +13,7 @@ import project.Function
 import project.IO
 import project.Math
 import project.Meta
-from project.Meta.Enso_Project import enso_project
+import project.Meta.Enso_Project.Project_Description
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Polyglot.Java
@@ -33,6 +33,8 @@ import project.System.Process
 import project.System.Process.Exit_Code.Exit_Code
 import project.Warning.Warning
 
+from project.Meta.Enso_Project import enso_project
+
 export project.Any.Any
 export project.Data.Array.Array
 export project.Data.List.List
@@ -45,7 +47,7 @@ export project.Errors
 export project.IO
 export project.Math
 export project.Meta
-from project.Meta.Enso_Project export enso_project
+export project.Meta.Enso_Project.Project_Description
 export project.Nothing.Nothing
 export project.Panic.Panic
 export project.Polyglot.Java
@@ -67,6 +69,7 @@ export project.Warning.Warning
 from project.Data.Boolean export Boolean, True, False
 from project.Function export all
 from project.Data.Numbers export Number, Integer, Decimal
+from project.Meta.Enso_Project export enso_project
 from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer, Auto_Detect, JSON_Format
 
 import project.Data
@@ -74,7 +77,6 @@ import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Interval.Bound
 import project.Data.Interval.Interval
-from project.Data.Json.Extensions import all
 import project.Data.Json.Json
 import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
@@ -87,13 +89,11 @@ import project.Data.Ordering.Default_Comparator
 import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Pair.Pair
 import project.Data.Range.Range
-from project.Data.Range.Extensions import all
 import project.Data.Regression
 import project.Data.Statistics
 import project.Data.Text.Case.Case
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Encoding.Encoding
-from project.Data.Text.Extensions import all
 import project.Data.Text.Line_Ending_Style.Line_Ending_Style
 import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
@@ -112,7 +112,6 @@ import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Errors.Problem_Behavior.Problem_Behavior
-from project.Network.Extensions import all
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
@@ -121,12 +120,16 @@ import project.Network.HTTP.HTTP_Version.HTTP_Version
 import project.Network.URI.URI
 import project.Random
 
+from project.Data.Json.Extensions import all
+from project.Data.Range.Extensions import all
+from project.Data.Text.Extensions import all
+from project.Network.Extensions import all
+
 export project.Data
 export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Index_Sub_Range.Index_Sub_Range
 export project.Data.Interval.Bound
 export project.Data.Interval.Interval
-from project.Data.Json.Extensions export all
 export project.Data.Json.Json
 export project.Data.Json.JS_Object
 export project.Data.Locale.Locale
@@ -137,13 +140,11 @@ export project.Data.Ordering.Comparable
 export project.Data.Ordering.Default_Comparator
 export project.Data.Pair.Pair
 export project.Data.Range.Range
-from project.Data.Range.Extensions export all
 export project.Data.Regression
 export project.Data.Sort_Direction.Sort_Direction
 export project.Data.Text.Case.Case
 export project.Data.Text.Case_Sensitivity.Case_Sensitivity
 export project.Data.Text.Encoding.Encoding
-from project.Data.Text.Extensions export all
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
 export project.Data.Text.Location.Location
 export project.Data.Text.Matching_Mode.Matching_Mode
@@ -162,7 +163,6 @@ export project.Data.Time.Time_Of_Day.Time_Of_Day
 export project.Data.Time.Time_Period.Time_Period
 export project.Data.Time.Time_Zone.Time_Zone
 export project.Errors.Problem_Behavior.Problem_Behavior
-from project.Network.Extensions export all
 export project.Network.HTTP.Header.Header
 export project.Network.HTTP.HTTP
 export project.Network.HTTP.HTTP_Method.HTTP_Method
@@ -170,6 +170,11 @@ export project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
 export project.Network.HTTP.HTTP_Version.HTTP_Version
 export project.Network.URI.URI
 export project.Random
+
+from project.Data.Json.Extensions export all
+from project.Data.Range.Extensions export all
+from project.Data.Text.Extensions export all
+from project.Network.Extensions export all
 
 from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random, Long, Random
 from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, compute_fold, empty_value, is_valid

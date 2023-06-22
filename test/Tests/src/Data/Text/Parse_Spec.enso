@@ -45,7 +45,7 @@ spec =
             "foo".parse_time_zone . should_fail_with Time_Error
 
         Test.specify "URI" <|
-            "http://example.com".parse_uri . should_equal <| URI.parse "http://example.com"
-            ":::".parse_uri . should_fail_with Syntax_Error
+            "http://example.com".to_uri . should_equal <| URI.parse "http://example.com"
+            ":::".to_uri . should_fail_with Syntax_Error
 
 main = Test_Suite.run_main spec

@@ -13,6 +13,7 @@
 #![feature(auto_traits)]
 #![feature(negative_impls)]
 #![feature(pattern)]
+#![feature(cfg_version)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -25,7 +26,9 @@
 #![recursion_limit = "256"]
 
 mod bool;
+mod cell;
 pub mod channel;
+mod clear_and_reuse;
 mod collections;
 mod data;
 pub mod debug;
@@ -33,13 +36,16 @@ pub mod env;
 mod fail;
 pub mod future;
 mod hash;
+mod item;
 mod leak;
 mod macros;
 mod not_same;
 mod option;
 mod phantom;
+pub mod prealloc;
 mod range;
 mod rc;
+mod refcell;
 mod reference;
 mod result;
 mod serde;
@@ -50,22 +56,30 @@ mod switch;
 pub mod sync;
 mod test;
 mod tp;
+mod unsafe_cell;
 mod vec;
-mod wrapper;
+mod void;
+mod zeroable;
 
 pub use crate::bool::*;
 pub use crate::serde::*;
 pub use crate::smallvec::*;
+pub use enso_zst::*;
+
 pub use anyhow;
+pub use cell::*;
+pub use clear_and_reuse::*;
 pub use collections::*;
 pub use data::*;
 pub use debug::*;
+pub use enso_shapely as shapely;
 pub use enso_shapely::before_main;
 pub use enso_shapely::clone_ref::*;
 pub use enso_shapely::impl_clone_ref_as_clone;
 pub use enso_shapely::root_call_path;
 pub use fail::*;
 pub use hash::*;
+pub use item::*;
 pub use leak::Leak;
 pub use leak::*;
 pub use macros::*;
@@ -74,6 +88,7 @@ pub use option::*;
 pub use phantom::*;
 pub use range::traits::*;
 pub use rc::*;
+pub use refcell::*;
 pub use reference::*;
 pub use result::*;
 pub use std_reexports::*;
@@ -81,8 +96,10 @@ pub use string::*;
 pub use switch::*;
 pub use test::traits::*;
 pub use tp::*;
+pub use unsafe_cell::*;
 pub use vec::*;
-pub use wrapper::*;
+pub use void::*;
+pub use zeroable::*;
 
 pub use assert_approx_eq::assert_approx_eq;
 pub use boolinator::Boolinator;
@@ -219,6 +236,7 @@ fn init_global_internal() {}
 /// want to pass an ownership to a structure, allow access all its public fields, but do not allow
 /// their modification.
 #[derive(Clone, Copy, Default, Eq, PartialEq)]
+#[repr(transparent)]
 pub struct Immutable<T> {
     data: T,
 }
@@ -444,26 +462,7 @@ impl<T: Debug> RefCellOptionOps<T> for RefCell<Option<T>> {
     }
 }
 
-// ===============
-// === HasItem ===
-// ===============
 
-/// Type family for structures containing items.
-pub trait HasItem {
-    type Item;
-}
-
-pub trait ItemClone = HasItem where <Self as HasItem>::Item: Clone;
-
-impl<T> HasItem for Option<T> {
-    type Item = T;
-}
-impl<T> HasItem for Cell<T> {
-    type Item = T;
-}
-impl<T> HasItem for RefCell<T> {
-    type Item = T;
-}
 
 // ===============================
 // === CellGetter / CellSetter ===

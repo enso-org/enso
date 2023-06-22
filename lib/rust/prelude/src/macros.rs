@@ -91,8 +91,8 @@ macro_rules! impls {
     ($([$($impl_params:tt)*])? PhantomFrom<$ty:ty> for $target:ty {
         $($result:tt)*
     } ) => {
-        impl <$($($impl_params)*)?> From <PhantomData<$ty>> for $target {
-            fn from (_:PhantomData<$ty>) -> Self {
+        impl <$($($impl_params)*)?> From <ZST<$ty>> for $target {
+            fn from (_:ZST<$ty>) -> Self {
                 $($result)*
             }
         }

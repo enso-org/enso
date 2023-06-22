@@ -42,7 +42,8 @@ use ensogl_component::grid_view::GridView;
 use ensogl_component::scrollbar;
 use ensogl_component::scrollbar::Scrollbar;
 use ensogl_hardcoded_theme as theme;
-
+use text_provider::BackendTextProvider;
+use text_provider::TextProvider;
 
 
 // =================
@@ -79,9 +80,6 @@ pub struct GridWindow {
     position: GridPosition,
     size:     GridSize,
 }
-
-use text_provider::BackendTextProvider;
-use text_provider::TextProvider;
 
 
 
@@ -164,19 +162,16 @@ impl<T: 'static> Model<T> {
         self.root.add_child(&self.scroll_bar_horizontal);
         self.root.add_child(&self.scroll_bar_vertical);
         self.scroll_bar_vertical.set_rotation_z(-90.0_f32.to_radians());
-
-        self.app.display.default_scene.layers.main.add(&self.scroll_bar_horizontal);
-        self.app.display.default_scene.layers.main.add(&self.scroll_bar_vertical);
     }
 
     fn set_size(&self, size: Vector2) {
-        self.scroll_bar_horizontal.set_y(-size.y / 2.0);
-        self.scroll_bar_horizontal.set_length(size.x);
         let scrollbar_width = scrollbar::WIDTH - scrollbar::PADDING;
-        self.scroll_bar_horizontal.modify_y(|y| *y += scrollbar_width / 2.0);
-        self.scroll_bar_vertical.set_x(size.x / 2.0);
+        let h_y = -size.y / 2.0 + scrollbar_width / 2.0;
+        self.scroll_bar_horizontal.set_y(h_y);
+        self.scroll_bar_horizontal.set_length(size.x);
+        let v_x = size.x / 2.0 - scrollbar_width / 2.0;
+        self.scroll_bar_vertical.set_x(v_x);
         self.scroll_bar_vertical.set_length(size.y);
-        self.scroll_bar_vertical.modify_x(|x| *x -= scrollbar_width / 2.0);
         let text_padding = Vector2::new(PADDING_TEXT, PADDING_TEXT);
         self.clipping_div.set_dom_size(size - 2.0 * text_padding);
         self.size.set(size);

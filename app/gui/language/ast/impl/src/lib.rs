@@ -738,7 +738,7 @@ impl<T: HasTokens> HasTokens for Vec<T> {
 
 impl<T: HasTokens> HasTokens for Rc<T> {
     fn feed_to(&self, consumer: &mut impl TokenConsumer) {
-        self.content().feed_to(consumer);
+        self.item().feed_to(consumer);
     }
 }
 
@@ -1126,11 +1126,6 @@ impl<T> Block<T> {
         let first_line = std::iter::once(self.first_line.as_ref().map(Some));
         let lines = self.lines.iter().map(|line| line.as_ref().map(|elem| elem.as_ref()));
         leading_empty_lines.chain(first_line).chain(lines)
-    }
-
-    /// Calculate absolute indentation of lines in this block.
-    pub fn indent(&self, parent_indent: usize) -> usize {
-        parent_indent + self.indent
     }
 
     /// Iterate over non-empty lines, while keeping their absolute indices.

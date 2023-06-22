@@ -206,6 +206,10 @@ trait API {
     #[MethodInput=VcsRestoreInput, rpc_name="vcs/restore"]
     fn restore_vcs(&self, root: Path, commit_id: Option<String>) -> response::RestoreVcs;
 
+    /// An OpenAI-powered completion to the given prompt, with the given stop sequence.
+    #[MethodInput=AiCompletionInput, rpc_name="ai/completion"]
+    fn ai_completion(&self, prompt: String, stop_sequence: String) -> response::AiCompletion;
+
     /// Set the execution environment of the context for future evaluations.
     #[MethodInput=SetModeInput, rpc_name="executionContext/setExecutionEnvironment"]
     fn set_execution_environment(&self, context_id: ContextId, execution_environment: ExecutionEnvironment) -> ();

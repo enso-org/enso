@@ -62,11 +62,10 @@ type File
 
              example_new = File.new Examples.csv_path
     new : (Text | File) -> File
-    new path =
+    new (path : Text|File) =
       case path of
         _ : Text -> get_file path
         _ : File -> path
-        _        -> Error.throw (Illegal_Argument.Error "new file should be either a File or a Text")
 
     ## Creates a temporary file which will be deleted when Enso exits.
     create_temporary_file : Text -> Text -> File

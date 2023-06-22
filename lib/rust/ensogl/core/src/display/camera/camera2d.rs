@@ -35,7 +35,11 @@ impl Screen {
 
     /// Get Screen's aspect ratio.
     pub fn aspect(self) -> f32 {
-        self.width / self.height
+        if self.height.is_finite() && self.width.is_finite() && self.height != 0.0 {
+            self.width / self.height
+        } else {
+            1.0
+        }
     }
 
     /// Check whether the screen size is zero or negative.

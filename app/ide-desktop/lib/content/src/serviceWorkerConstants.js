@@ -1,6 +1,10 @@
 /** @file Constants shared between all service workers (development and production). */
 import * as common from 'enso-common'
 
+// =================
+// === Constants ===
+// =================
+
 /** The name of the cache under which offline assets are stored. */
 export const CACHE_NAME = common.PRODUCT_NAME.toLowerCase()
 

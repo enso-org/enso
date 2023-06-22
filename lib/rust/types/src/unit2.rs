@@ -8,9 +8,9 @@
 
 use enso_reflect::prelude::*;
 
+use enso_prelude::ZST;
 use paste::paste;
 use std::borrow::Cow;
-use std::marker::PhantomData;
 
 
 
@@ -54,7 +54,7 @@ impl<T> const UncheckedFrom<T> for T {
 
 impl<V, R> const UncheckedFrom<R> for UnitData<V, R> {
     fn unchecked_from(repr: R) -> Self {
-        let variant = PhantomData;
+        let variant = ZST();
         UnitData { repr, variant }
     }
 }
@@ -106,7 +106,7 @@ pub trait Variant {
 pub struct UnitData<V, R> {
     repr:    R,
     #[reflect(skip)]
-    variant: PhantomData<V>,
+    variant: ZST<V>,
 }
 
 impl<V, R: Copy> UnitData<V, R> {

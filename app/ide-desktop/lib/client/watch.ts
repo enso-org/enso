@@ -10,6 +10,7 @@
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
+import * as url from 'node:url'
 import process from 'node:process'
 
 import * as esbuild from 'esbuild'
@@ -34,6 +35,8 @@ interface Watches {
 // === Constants ===
 // =================
 
+/** The path of this file. */
+const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 const IDE_DIR_PATH = paths.getIdeDirectory()
 const PROJECT_MANAGER_BUNDLE_PATH = paths.getProjectManagerBundlePath()
 
@@ -94,8 +97,7 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
 
         console.log('Bundling content.')
         const contentOpts = contentBundler.bundlerOptionsFromEnv({
-            // This is in watch mode, however it runs its own server rather than an esbuild server.
-            devMode: false,
+            devMode: true,
             supportsLocalBackend: true,
             supportsDeepLinks: false,
         })
@@ -107,6 +109,10 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
                 })
             },
         })
+        contentOpts.pure.splice(contentOpts.pure.indexOf('assert'), 1)
+        ;(contentOpts.inject = contentOpts.inject ?? []).push(
+            path.resolve(THIS_PATH, '..', '..', 'debugGlobals.ts')
+        )
         contentOpts.outdir = path.resolve(IDE_DIR_PATH, 'assets')
         contentOpts.define.REDIRECT_OVERRIDE = JSON.stringify('http://localhost:8080')
         const contentBuilder = await esbuild.context(contentOpts)
