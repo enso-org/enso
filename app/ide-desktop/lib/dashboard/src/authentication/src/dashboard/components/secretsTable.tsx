@@ -324,21 +324,22 @@ function SecretsTable(props: SecretsTableProps) {
                         </ContextMenu>
                     )
                 }}
-                onRowContextMenu={(secret, event) => {
+                onRowContextMenu={(innerProps, event) => {
+                    const { item } = innerProps
                     event.preventDefault()
                     event.stopPropagation()
                     const doDelete = () => {
                         setModal(
                             <ConfirmDeleteModal
-                                description={secret.title}
-                                assetType={secret.type}
-                                doDelete={() => backend.deleteSecret(secret.id, secret.title)}
+                                description={item.title}
+                                assetType={item.type}
+                                doDelete={() => backend.deleteSecret(item.id, item.title)}
                                 onSuccess={onDelete}
                             />
                         )
                     }
                     setModal(
-                        <ContextMenu key={secret.id} event={event}>
+                        <ContextMenu key={item.id} event={event}>
                             <ContextMenuEntry onClick={doDelete}>
                                 <span className="text-red-700">Delete</span>
                             </ContextMenuEntry>

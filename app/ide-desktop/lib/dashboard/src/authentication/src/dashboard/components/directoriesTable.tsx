@@ -272,21 +272,18 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                         </ContextMenu>
                     )
                 }}
-                onRowContextMenu={(directory, event) => {
+                onRowContextMenu={(innerProps, event) => {
+                    const { item } = innerProps
                     event.preventDefault()
                     event.stopPropagation()
                     const doRename = () => {
                         const innerDoRename = async (newName: string) => {
-                            await backend.updateDirectory(
-                                directory.id,
-                                { title: newName },
-                                directory.title
-                            )
+                            await backend.updateDirectory(item.id, { title: newName }, item.title)
                         }
                         setModal(
                             <RenameModal
-                                name={directory.title}
-                                assetType={directory.type}
+                                name={item.title}
+                                assetType={item.type}
                                 doRename={innerDoRename}
                                 // This is incredibly inefficient as it refreshes
                                 // the entire directory when only one row has been changed.
@@ -297,17 +294,15 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                     const doDelete = () => {
                         setModal(
                             <ConfirmDeleteModal
-                                description={directory.title}
-                                assetType={directory.type}
-                                doDelete={() =>
-                                    backend.deleteDirectory(directory.id, directory.title)
-                                }
+                                description={item.title}
+                                assetType={item.type}
+                                doDelete={() => backend.deleteDirectory(item.id, item.title)}
                                 onSuccess={onDelete}
                             />
                         )
                     }
                     setModal(
-                        <ContextMenu key={directory.id} event={event}>
+                        <ContextMenu key={item.id} event={event}>
                             <ContextMenuEntry onClick={doRename}>Rename</ContextMenuEntry>
                             <ContextMenuEntry onClick={doDelete}>
                                 <span className="text-red-700">Delete</span>

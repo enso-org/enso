@@ -335,7 +335,8 @@ function ProjectsTable(props: ProjectsTableProps) {
                     </ContextMenu>
                 )
             }}
-            onRowContextMenu={(project, event, rowState) => {
+            onRowContextMenu={(innerProps, event) => {
+                const { item, rowState } = innerProps
                 event.preventDefault()
                 event.stopPropagation()
                 const isDeleteDisabled =
@@ -344,25 +345,25 @@ function ProjectsTable(props: ProjectsTableProps) {
                     unsetModal()
                     setProjectEvent({
                         type: projectEventModule.ProjectEventType.open,
-                        projectId: project.id,
+                        projectId: item.id,
                     })
                 }
                 const doRename = () => {
                     const innerDoRename = async (newName: string) => {
                         await backend.projectUpdate(
-                            project.id,
+                            item.id,
                             {
                                 ami: null,
                                 ideVersion: null,
                                 projectName: newName,
                             },
-                            project.title
+                            item.title
                         )
                     }
                     setModal(
                         <RenameModal
-                            name={project.title}
-                            assetType={project.type}
+                            name={item.title}
+                            assetType={item.type}
                             doRename={innerDoRename}
                             onSuccess={onRename}
                             {...(backend.type === backendModule.BackendType.local
@@ -377,15 +378,15 @@ function ProjectsTable(props: ProjectsTableProps) {
                 const doDelete = () => {
                     setModal(
                         <ConfirmDeleteModal
-                            description={project.title}
-                            assetType={project.type}
-                            doDelete={() => backend.deleteProject(project.id, project.title)}
+                            description={item.title}
+                            assetType={item.type}
+                            doDelete={() => backend.deleteProject(item.id, item.title)}
                             onSuccess={onDelete}
                         />
                     )
                 }
                 setModal(
-                    <ContextMenu key={project.id} event={event}>
+                    <ContextMenu key={item.id} event={event}>
                         <ContextMenuEntry onClick={doOpenForEditing}>
                             Open for editing
                         </ContextMenuEntry>

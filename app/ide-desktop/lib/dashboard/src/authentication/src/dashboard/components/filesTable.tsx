@@ -336,21 +336,22 @@ function FilesTable(props: FilesTableProps) {
                         </ContextMenu>
                     )
                 }}
-                onRowContextMenu={(file, event) => {
+                onRowContextMenu={(innerProps, event) => {
+                    const { item } = innerProps
                     event.preventDefault()
                     event.stopPropagation()
                     const doDelete = () => {
                         setModal(
                             <ConfirmDeleteModal
-                                description={`'${file.title}'`}
-                                assetType={file.type}
-                                doDelete={() => backend.deleteFile(file.id, file.title)}
+                                description={`'${item.title}'`}
+                                assetType={item.type}
+                                doDelete={() => backend.deleteFile(item.id, item.title)}
                                 onSuccess={onDelete}
                             />
                         )
                     }
                     setModal(
-                        <ContextMenu key={file.id} event={event}>
+                        <ContextMenu key={item.id} event={event}>
                             {/*<ContextMenuEntry disabled onClick={doCopy}>
                                 Copy
                             </ContextMenuEntry>

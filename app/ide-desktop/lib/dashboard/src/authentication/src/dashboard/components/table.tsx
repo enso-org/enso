@@ -37,18 +37,20 @@ export interface Column<T, State = never, RowState = never> {
     render: (props: ColumnProps<T, State, RowState>) => JSX.Element
 }
 
-// =================
-// === StateProp ===
-// =================
+// =============================
+// === Partial `Props` types ===
+// =============================
 
 /** `state: State`. */
 interface StateProp<State> {
     state: State
 }
 
-// ===========================
-// === InitialRowStateProp ===
-// ===========================
+/** `rowState` and `setRowState` */
+interface InternalRowStateProps<RowState> {
+    rowState: RowState
+    setRowState: (newRowState: RowState) => void
+}
 
 /** `initialRowState: RowState`. */
 interface InitialRowStateProp<RowState> {
@@ -59,6 +61,17 @@ interface InitialRowStateProp<RowState> {
 // === Row ===
 // ===========
 
+/** Common properties for state and setters passed to event handlers on a {@link Row}. */
+interface InternalRowInnerProps<T> {
+    item: T
+    setItem: (newItem: T) => void
+    setNewKey: (newKey: string) => void
+}
+
+/** State and setters passed to event handlers on a {@link Row}. */
+export type RowInnerProps<T, RowState = never> = InternalRowInnerProps<T> &
+    ([RowState] extends never ? unknown : InternalRowStateProps<RowState>)
+
 /** Props for a {@link Row}. */
 interface InternalBaseRowProps<T, State = never, RowState = never> {
     item: T
@@ -67,12 +80,11 @@ interface InternalBaseRowProps<T, State = never, RowState = never> {
     columns: Column<T, State, RowState>[]
     selected: boolean
     allowContextMenu: boolean
-    onClick: (item: T, event: React.MouseEvent) => void
+    setNewKey: (newKey: string) => void
+    onClick: (props: RowInnerProps<T, RowState>, event: React.MouseEvent) => void
     onContextMenu: (
-        item: T,
-        event: React.MouseEvent<HTMLTableRowElement>,
-        rowState: RowState,
-        setRowState: (newRowState: RowState) => void
+        props: RowInnerProps<T, RowState>,
+        event: React.MouseEvent<HTMLTableRowElement>
     ) => void
 }
 
@@ -88,34 +100,48 @@ export type RowProps<T, State = never, RowState = never> = InternalBaseRowProps<
 /** A row of a table. This is required because each row may store its own state. */
 function Row<T, State = never, RowState = never>(props: RowProps<T, State, RowState>) {
     const {
-        item,
+        item: rawItem,
         state,
         initialRowState,
         columns,
         selected,
         allowContextMenu,
+        setNewKey,
         onClick,
         onContextMenu,
     } = props
     const { unsetModal } = modalProvider.useSetModal()
 
+    /** The internal state for this row. This may change as backend requests are sent. */
+    const [item, setItem] = React.useState(rawItem)
     /** This is SAFE, as the type is defined such that they MUST be
      * present if it is specified as a generic parameter.
-     * See the type definitions of {@link RowProps} and {@link TableProps}.
-     */
+     * See the type definitions of {@link RowProps} and {@link TableProps}. */
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [rowState, setRowState] = React.useState<RowState>(initialRowState!)
+
+    React.useEffect(() => {
+        setItem(rawItem)
+    }, [rawItem])
+
+    const innerProps = {
+        item,
+        setItem,
+        setNewKey,
+        rowState,
+        setRowState,
+    }
 
     return (
         <tr
             tabIndex={-1}
             onClick={event => {
                 unsetModal()
-                onClick(item, event)
+                onClick(innerProps, event)
             }}
             onContextMenu={event => {
                 if (allowContextMenu) {
-                    onContextMenu(item, event, rowState, setRowState)
+                    onContextMenu(innerProps, event)
                 }
             }}
             className={`h-10 transition duration-300 ease-in-out hover:bg-gray-100 ${
@@ -169,10 +195,8 @@ interface InternalTableProps<T, State = never, RowState = never> {
         setSelectedItems: (items: Set<T>) => void
     ) => void
     onRowContextMenu: (
-        item: T,
-        event: React.MouseEvent<HTMLTableRowElement>,
-        rowState: RowState,
-        setRowState: (newRowState: RowState) => void
+        props: RowInnerProps<T, RowState>,
+        event: React.MouseEvent<HTMLTableRowElement>
     ) => void
 }
 
@@ -187,14 +211,48 @@ export type TableProps<T, State = never, RowState = never> = InternalTableProps<
 
 /** Table that projects an object into each column. */
 function Table<T, State = never, RowState = never>(props: TableProps<T, State, RowState>) {
-    const { items, getKey, columns, isLoading, placeholder, onContextMenu, onRowContextMenu } =
-        props
+    const {
+        items,
+        getKey: rawGetKey,
+        columns,
+        isLoading,
+        placeholder,
+        onContextMenu,
+        onRowContextMenu,
+    } = props
 
     const [spinnerClasses, setSpinnerClasses] = React.useState(SPINNER_INITIAL_CLASSES)
     // This should not be made mutable as an optimization, otherwise its value may change after
     // `await`ing an I/O operation.
     const [selectedItems, setSelectedItems] = React.useState(() => new Set<T>())
     const [previouslySelectedItem, setPreviouslySelectedItem] = React.useState<T | null>(null)
+    /** A mapping from the initial optimistic key (if any) to the corresponing key obtained from
+     * the backend. */
+    const [keyRemapping, setKeyRemapping] = React.useState<Record<string, string>>({})
+    // FIXME: set key for each row (pass `setKeyRemapping`)
+
+    const getKey = React.useCallback(
+        (item: T) => {
+            const key = rawGetKey(item)
+            return keyRemapping[key] ?? key
+        },
+        [keyRemapping, rawGetKey]
+    )
+
+    React.useEffect(() => {
+        setKeyRemapping(oldKeyRemapping =>
+            items.reduce<Record<string, string>>((newKeyRemapping, item) => {
+                const actualKey = rawGetKey(item)
+                const remappedKey = oldKeyRemapping[actualKey]
+                if (remappedKey != null) {
+                    newKeyRemapping[actualKey] = remappedKey
+                }
+                return newKeyRemapping
+            }, {})
+        )
+        // `rawGetKey` is not a dependency of this effect.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [items])
 
     React.useEffect(() => {
         const onDocumentClick = (event: MouseEvent) => {
@@ -230,7 +288,8 @@ function Table<T, State = never, RowState = never>(props: TableProps<T, State, R
     }, [isLoading])
 
     const onRowClick = React.useCallback(
-        (item: T, event: React.MouseEvent) => {
+        (rowProps: RowInnerProps<T, RowState>, event: React.MouseEvent) => {
+            const { item } = rowProps
             event.stopPropagation()
             const getNewlySelectedItems = () => {
                 if (previouslySelectedItem == null) {
@@ -306,17 +365,23 @@ function Table<T, State = never, RowState = never>(props: TableProps<T, State, R
             <td colSpan={columns.length}>{placeholder}</td>
         </tr>
     ) : (
-        items.map(item => (
-            <Row<T, State, RowState>
-                {...props}
-                key={getKey(item)}
-                item={item}
-                selected={selectedItems.has(item)}
-                allowContextMenu={selectedItems.size === 0}
-                onClick={onRowClick}
-                onContextMenu={onRowContextMenu}
-            />
-        ))
+        items.map(item => {
+            const key = getKey(item)
+            return (
+                <Row<T, State, RowState>
+                    {...props}
+                    key={key}
+                    item={item}
+                    selected={selectedItems.has(item)}
+                    allowContextMenu={selectedItems.size === 0}
+                    setNewKey={newKey => {
+                        setKeyRemapping({ ...keyRemapping, [newKey]: key })
+                    }}
+                    onClick={onRowClick}
+                    onContextMenu={onRowContextMenu}
+                />
+            )
+        })
     )
     return (
         <table
