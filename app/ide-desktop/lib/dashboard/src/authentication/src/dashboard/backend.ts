@@ -292,6 +292,17 @@ export interface Asset<Type extends AssetType = AssetType> extends BaseAsset {
 export interface Directory extends Asset<AssetType.directory> {}
 
 // =================
+// === Constants ===
+// =================
+
+export const ASSET_TYPE_NAME: Record<AssetType, string> = {
+    [AssetType.project]: 'project',
+    [AssetType.directory]: 'folder',
+    [AssetType.secret]: 'secret',
+    [AssetType.file]: 'file',
+} as const
+
+// =================
 // === Endpoints ===
 // =================
 

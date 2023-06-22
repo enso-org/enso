@@ -3,6 +3,8 @@ import * as react from 'react'
 
 /** Props for a {@link Autocomplete}. */
 export interface AutocompleteProps {
+    type?: react.HTMLInputTypeAttribute
+    inputRef?: react.MutableRefObject<HTMLInputElement>
     initialValue: string
     autoFocus?: boolean
     items: string[]
@@ -15,6 +17,8 @@ export interface AutocompleteProps {
 /** A select menu with a dropdown. */
 function Autocomplete(props: AutocompleteProps) {
     const {
+        type = 'text',
+        inputRef: rawInputRef,
         initialValue,
         autoFocus = false,
         items,
@@ -27,20 +31,23 @@ function Autocomplete(props: AutocompleteProps) {
     const [isDropdownVisible, setIsDropdownVisible] = react.useState(false)
     const [selectedIndex, setSelectedIndex] = react.useState<number | null>(null)
 
-    const overrideValue = react.useCallback((item: string) => {
-        setIsDropdownVisible(false)
-        setValue(item)
-        inputRef.current.value = item
-        onChange(item)
-    }, [])
+    const overrideValue = react.useCallback(
+        (item: string) => {
+            setIsDropdownVisible(false)
+            setValue(item)
+            inputRef.current.value = item
+            onChange(item)
+        },
+        [onChange]
+    )
 
     // This is required, rather than conditionally setting the `value` prop on the input,
-    // because React disallows that for some reason. See:
+    // because React disallows that. See:
     // https://react.dev/reference/react-dom/components/input#im-getting-an-error-a-component-is-changing-an-uncontrolled-input-to-be-controlled
     // This is INCORRECT, but SAFE to use in hooks as its value will be set by the time any hook
     // runs.
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const inputRef = react.useRef<HTMLInputElement>(null!)
+    const inputRef = rawInputRef ?? react.useRef<HTMLInputElement>(null!)
 
     const onKeyDown = (event: react.KeyboardEvent) => {
         switch (event.key) {
@@ -97,6 +104,7 @@ function Autocomplete(props: AutocompleteProps) {
         >
             <div className="flex flex-1">
                 <input
+                    type={type}
                     ref={inputRef}
                     autoFocus={autoFocus}
                     className={`grow bg-transparent mx-1 ${className ?? ''}`}

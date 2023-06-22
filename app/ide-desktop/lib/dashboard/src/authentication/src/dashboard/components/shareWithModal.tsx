@@ -1,8 +1,11 @@
 /** @file A modal with inputs for user email and permission level. */
 import * as react from 'react'
+import toast from 'react-hot-toast'
 
+import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
+import * as errorModule from '../../error'
 import * as modalProvider from '../../providers/modal'
 import * as newtype from '../../newtype'
 import * as svg from '../../components/svg'
@@ -36,9 +39,11 @@ export function ShareWithModal(props: ShareWithModalProps) {
         asset: { type: assetType, id: assetId },
         eventTarget,
     } = props
+    const { organization } = auth.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
 
+    const [willInviteNewUser, setWillInviteNewUser] = react.useState(false)
     const [users, setUsers] = react.useState<backendModule.SimpleUser[]>([])
     const [matchingUsers, setMatchingUsers] = react.useState(users)
     const [canSubmit, setCanSubmit] = react.useState(true)
@@ -47,8 +52,15 @@ export function ShareWithModal(props: ShareWithModalProps) {
     const [userEmailClassName, setUserEmailClassName] = react.useState<string | null>(null)
     const [permissionClassName, setPermissionClassName] = react.useState<string | null>(null)
 
-    if (backend.type === backendModule.BackendType.local) {
-        // This should never happen.
+    // This is INCORRECT, but SAFE to use in hooks as its value will be set by the time any hook
+    // runs.
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const userEmailRef = react.useRef<HTMLInputElement>(null!)
+
+    if (backend.type === backendModule.BackendType.local || organization == null) {
+        // This should never happen - the local backend does not have the "shared with" column,
+        // and `organization` is absent only when offline - in which case the user should only
+        // be able to access the local backend.
         return <></>
     } else {
         const position = eventTarget.getBoundingClientRect()
@@ -65,11 +77,30 @@ export function ShareWithModal(props: ShareWithModalProps) {
             // `email` is NOT a dependency. `matchingUsers` is updated based on `email` elsewhere.
         }, [])
 
+        const onEmailChange = react.useCallback(
+            (newEmail: string) => {
+                setEmail(newEmail)
+                const lowercaseEmail = newEmail.toLowerCase()
+                if (userEmailRef.current.validity.valid) {
+                    // A new user will be invited to the organization.
+                    setWillInviteNewUser(
+                        lowercaseEmail !== '' &&
+                            !users.some(user => user.email.toLowerCase() === lowercaseEmail)
+                    )
+                }
+            },
+            [users]
+        )
+
         const onSubmit = react.useCallback(
             async (formEvent: React.FormEvent) => {
                 formEvent.preventDefault()
-                const isEmailInvalid = !users.some(user => email === user.email)
-                const isPermissionInvalid = permission == null
+                const isEmailInvalid = !userEmailRef.current.validity.valid
+                const isPermissionInvalid = !willInviteNewUser && permission == null
+                const lowercaseEmail = email.toLowerCase()
+                const user = willInviteNewUser
+                    ? null
+                    : users.find(theUser => theUser.email.toLowerCase() === lowercaseEmail)
                 if (isEmailInvalid || isPermissionInvalid) {
                     if (isEmailInvalid) {
                         setUserEmailClassName(BLINK_BACKGROUND_CLASS_NAME)
@@ -87,20 +118,39 @@ export function ShareWithModal(props: ShareWithModalProps) {
                     window.setTimeout(() => {
                         setCanSubmit(true)
                     }, BLINK_ANIMATION_LENGTH_MS)
-                } else {
+                } else if (willInviteNewUser) {
                     unsetModal()
-                    await backend.createPermission({
-                        userSubject: newtype.asNewtype(email),
-                        resourceId: assetId,
-                        action: permission,
-                    })
+                    try {
+                        await backend.inviteUser({
+                            organizationId: organization.id,
+                            userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
+                        })
+                    } catch (error) {
+                        toast.error(
+                            `Unable to invite user '${email}': ${
+                                errorModule.tryGetMessage(error) ?? 'unknown error'
+                            }.`
+                        )
+                    }
+                } else if (user != null && permission != null) {
+                    unsetModal()
+                    try {
+                        await backend.createPermission({
+                            userSubject: user.id,
+                            resourceId: assetId,
+                            action: permission,
+                        })
+                    } catch (error) {
+                        toast.error(
+                            `Unable to give permission '${permission}' to '${user.email}': ${
+                                errorModule.tryGetMessage(error) ?? 'unknown error'
+                            }.`
+                        )
+                    }
                 }
             },
-            [email, permission]
+            [email, permission, willInviteNewUser]
         )
-
-        // FIXME:
-        const assetTypeName = assetType === backendModule.AssetType.directory ? 'folder' : assetType
 
         return (
             <Modal className="absolute overflow-hidden bg-opacity-25 w-full h-full top-0 left-0">
@@ -118,11 +168,15 @@ export function ShareWithModal(props: ShareWithModalProps) {
                     <button type="button" className="absolute right-0 m-2" onClick={unsetModal}>
                         {svg.CLOSE_ICON}
                     </button>
-                    <h2 className="inline-block font-semibold m-2">Share {assetTypeName}</h2>
+                    <h2 className="inline-block font-semibold m-2">
+                        Share {backendModule.ASSET_TYPE_NAME[assetType]}
+                    </h2>
                     <div className="mx-2">
                         <label htmlFor="share_with_user_email">Email</label>
                         <Autocomplete
                             autoFocus
+                            inputRef={userEmailRef}
+                            type="email"
                             initialValue={email}
                             items={matchingUsers.map(user => user.email)}
                             className={userEmailClassName ?? ''}
@@ -132,25 +186,36 @@ export function ShareWithModal(props: ShareWithModalProps) {
                                     users.filter(user => user.email.includes(lowercaseEmail))
                                 )
                             }}
-                            onChange={newEmail => {
-                                setEmail(newEmail)
-                            }}
+                            onChange={onEmailChange}
                         />
                     </div>
-                    <div className="mx-2">Permission</div>
-                    <PermissionSelector
-                        className="m-1"
-                        permissionClassName={permissionClassName ?? ''}
-                        onChange={setPermission}
-                    />
-                    <input
-                        type="submit"
-                        disabled={!canSubmit}
-                        className={`inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-2 ${
-                            canSubmit ? 'hover:cursor-pointer' : 'opacity-50'
-                        }`}
-                        value="Share"
-                    />
+                    {willInviteNewUser ? (
+                        <input
+                            type="submit"
+                            disabled={!canSubmit}
+                            className={`inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-2 ${
+                                canSubmit ? 'hover:cursor-pointer' : 'opacity-50'
+                            }`}
+                            value="Invite user to organization"
+                        />
+                    ) : (
+                        <>
+                            <div className="mx-2">Permission</div>
+                            <PermissionSelector
+                                className="m-1"
+                                permissionClassName={permissionClassName ?? ''}
+                                onChange={setPermission}
+                            />
+                            <input
+                                type="submit"
+                                disabled={!canSubmit}
+                                className={`inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-2 ${
+                                    canSubmit ? 'hover:cursor-pointer' : 'opacity-50'
+                                }`}
+                                value="Share"
+                            />
+                        </>
+                    )}
                 </form>
             </Modal>
         )
