@@ -105,6 +105,7 @@ impl Debug for Sampler {
 }
 
 impl Sampler {
+    /// Const `Default::default()` alternative.
     pub const fn default() -> Self {
         Self {
             label:                "Unlabeled",

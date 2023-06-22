@@ -6,7 +6,6 @@ use crate::prelude::*;
 use crate::control::callback;
 use crate::data::dirty;
 use crate::debug::stats::Stats;
-use crate::system::gpu::Context;
 
 use enso_shapely::shared2;
 use num_enum::IntoPrimitive;

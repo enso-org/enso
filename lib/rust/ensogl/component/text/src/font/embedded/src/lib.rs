@@ -66,26 +66,6 @@ impl Debug for Embedded {
 
 
 
-// =============
-// === Tests ===
-// =============
-
-#[cfg(test)]
-mod test {
-    use crate::*;
-
-    #[test]
-    fn loading_embedded_fonts() {
-        let fonts = Embedded::init_and_load_embedded_fonts();
-        let example_font = fonts.data.get("DejaVuSans.ttf").unwrap();
-
-        assert_eq!(0x00, example_font[0]);
-        assert_eq!(0x01, example_font[1]);
-        assert_eq!(0x1d, example_font[example_font.len() - 1]);
-    }
-}
-
-
 // ======================
 // === Embedded Fonts ===
 // ======================
@@ -134,4 +114,25 @@ pub fn embedded_family_definitions_ext() -> HashMap<family::Name, family::Defini
     map.insert("dejavusans".into(), dejavusans);
     map.insert("dejavusansmono".into(), dejavusansmono);
     map
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod test {
+    use crate::*;
+
+    #[test]
+    fn loading_embedded_fonts() {
+        let fonts = Embedded::init_and_load_embedded_fonts();
+        let example_font = fonts.data.get("DejaVuSans.ttf").unwrap();
+
+        assert_eq!(0x00, example_font[0]);
+        assert_eq!(0x01, example_font[1]);
+        assert_eq!(0x1d, example_font[example_font.len() - 1]);
+    }
 }

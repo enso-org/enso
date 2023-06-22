@@ -57,7 +57,7 @@ pub fn derive(
             if &name != "main" {
                 panic!("The function should be named 'main'.");
             }
-            let mut fn_sig = f.sig.clone();
+            let mut fn_sig = f.sig;
             fn_sig.ident = fn_name;
             let attrs = &f.attrs;
             let block = &f.block;

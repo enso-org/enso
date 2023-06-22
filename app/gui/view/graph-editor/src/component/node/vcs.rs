@@ -17,9 +17,10 @@ use ensogl::display;
 // ==============
 
 /// The version control system status of a node.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 #[allow(missing_docs)]
 pub enum Status {
+    #[default]
     Unchanged,
     Added,
     Edited,
@@ -35,12 +36,6 @@ impl Status {
             Status::Edited =>
                 style.get_color(ensogl_hardcoded_theme::graph_editor::node::vcs::edited).into(),
         }
-    }
-}
-
-impl Default for Status {
-    fn default() -> Self {
-        Status::Unchanged
     }
 }
 

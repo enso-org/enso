@@ -1,4 +1,4 @@
-///! Frp of the range selector.
+//! Frp of the range selector.
 use crate::prelude::*;
 use ensogl_core::display::shape::*;
 

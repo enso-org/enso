@@ -610,6 +610,7 @@ define_flag! {
     Range<Ix>
 }
 
+#[allow(missing_docs)]
 pub trait RangeIx = PartialOrd + Copy + Debug;
 
 /// Internal representation of the [`Range`] flag.
@@ -687,6 +688,7 @@ define_flag! {
     Set<Ix>
 }
 
+#[allow(missing_docs)]
 pub trait SetItem = Eq + Hash + Debug;
 
 /// Internal representation of the [`Set`] flag.
@@ -775,6 +777,7 @@ define_flag! {
     Vector<Item>
 }
 
+#[allow(missing_docs)]
 pub trait VectorItem = Debug + PartialEq;
 
 /// Internal representation of the [`Vector`] flag.
@@ -848,7 +851,9 @@ define_flag! {
     Enum<Prim, T>
 }
 
+#[allow(missing_docs)]
 pub trait EnumBase = Default + PartialEq + Copy + BF;
+#[allow(missing_docs)]
 pub trait EnumElem = Copy + Into<usize>;
 
 /// Dirty flag which keeps dirty indexes in a `BitField` under the hood.

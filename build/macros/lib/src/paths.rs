@@ -445,7 +445,7 @@ impl Node {
     }
 
     pub fn matches_ref(&self, r#type: &str) -> bool {
-        self.var_name.as_ref().is_some_and(|n| n == &r#type)
+        self.var_name.as_ref().is_some_and(|n| n == r#type)
     }
 
     pub fn field_name(&self) -> Ident {

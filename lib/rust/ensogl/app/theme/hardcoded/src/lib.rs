@@ -159,17 +159,12 @@ macro_rules! define_themes {
 
 /// Enum holding available themes for ease of access.
 #[allow(missing_docs)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub enum Theme {
+    #[default]
     Light,
     Dark,
     Other(ImString),
-}
-
-impl Default for Theme {
-    fn default() -> Self {
-        Theme::Light
-    }
 }
 
 

@@ -21,6 +21,8 @@ use crate::display::render::passes::SymbolsRenderPass;
 use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
 use crate::display::scene::UpdateStatus;
+#[allow(clippy::useless_attribute)]
+#[allow(hidden_glob_reexports)]
 use crate::display::shape::primitive::glsl;
 use crate::display::symbol::registry::RunMode;
 use crate::display::symbol::registry::SymbolRegistry;

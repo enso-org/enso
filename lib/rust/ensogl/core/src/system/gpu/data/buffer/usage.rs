@@ -1,3 +1,4 @@
+#![allow(clippy::derivable_impls)]
 //! `BufferUsage` specifies the intended usage pattern of the data store for optimization purposes.
 
 use crate::prelude::*;

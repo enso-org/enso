@@ -74,10 +74,11 @@ pub enum Notification {
 // ==============
 
 /// Describes the state of the visualization on the Language Server.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
 #[allow(clippy::large_enum_variant)]
 pub enum Status {
     /// Not attached and no ongoing background work.
+    #[default]
     NotAttached,
     /// Attaching has been requested but result is still unknown.
     BeingAttached(Visualization),
@@ -139,12 +140,6 @@ impl Status {
             Status::BeingDetached(v) => Some(v),
             Status::Attached(v) => Some(v),
         }
-    }
-}
-
-impl Default for Status {
-    fn default() -> Self {
-        Status::NotAttached
     }
 }
 

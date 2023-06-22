@@ -52,9 +52,10 @@ impl Json {
 // ====================
 
 /// Data formats that can be used in a visualisation.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Default)]
 #[allow(missing_docs)]
 pub enum Format {
+    #[default]
     Json,
     Binary,
 }
@@ -75,12 +76,6 @@ impl FromStr for Format {
             "binary" => Ok(Format::Binary),
             _ => Err(ParseError::NotAValidFormat(s.to_string())),
         }
-    }
-}
-
-impl Default for Format {
-    fn default() -> Self {
-        Format::Json
     }
 }
 

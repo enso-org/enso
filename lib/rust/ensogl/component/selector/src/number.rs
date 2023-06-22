@@ -1,4 +1,4 @@
-///! Frp of the number selector.
+//! Frp of the number selector.
 use crate::prelude::*;
 use ensogl_core::display::shape::*;
 

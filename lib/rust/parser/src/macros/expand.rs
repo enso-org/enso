@@ -316,6 +316,9 @@ impl<'t, 's, V: Validator> VarMapView<'t, 's, V> {
                         let resolved_validator = entry.validator.clone_ref();
                         if let Some(parent_validator_to_check) = &self.parent_validator_to_check {
                             let mut ok = false;
+                            // Clippy thinks that the clone is redundant, but it is not true,
+                            // `resolved_validator` is used outside this `if` statement.
+                            #[allow(clippy::redundant_clone)]
                             let mut validator = resolved_validator.clone();
                             loop {
                                 if &validator == parent_validator_to_check {

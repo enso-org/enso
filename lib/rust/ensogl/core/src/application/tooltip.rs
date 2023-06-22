@@ -9,20 +9,15 @@
 // === Placement ===
 // =================
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Default)]
 #[allow(missing_docs)]
 /// Indicates the placement of the tooltip relative to the base position location.
 pub enum Placement {
+    #[default]
     Top,
     Bottom,
     Left,
     Right,
-}
-
-impl Default for Placement {
-    fn default() -> Self {
-        Placement::Top
-    }
 }
 
 

@@ -10,9 +10,10 @@ use ensogl::display::Scene;
 // =============
 
 /// Indicates where the visualisation should be displayed.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Default)]
 pub enum Layer {
     /// Display the visualisation as part of the scene.
+    #[default]
     Default,
     /// Display the visualisation over the scene.
     Front,
@@ -28,11 +29,5 @@ impl Layer {
             Layer::Front => scene.dom.layers.front.manage(dom),
             Layer::Fullscreen => scene.dom.layers.fullscreen_vis.manage(dom),
         }
-    }
-}
-
-impl Default for Layer {
-    fn default() -> Self {
-        Layer::Default
     }
 }

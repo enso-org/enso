@@ -106,6 +106,7 @@ macro_rules! define_singleton_enum_from {
         }
     ) => {
         #[allow(missing_docs)]
+        #[allow(clippy::derivable_impls)]
         #[derive(Copy,Clone,Debug,PartialEq,Eq)]
         $(#$meta)*
         pub enum $name {

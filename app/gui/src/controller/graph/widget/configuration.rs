@@ -87,7 +87,7 @@ fn to_kind(
                 item_default: ImString::from(item_default).into(),
             }
             .into(),
-        _ => widget::label::Config::default().into(),
+        _ => widget::label::Config.into(),
     }
 }
 

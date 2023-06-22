@@ -23,18 +23,13 @@ use ensogl_gui_component::component;
 // ===========
 
 /// Indicated the position of the lines cap.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub enum Cap {
     /// Place the cap at the start of the line.
+    #[default]
     Start,
     /// Place the cap at the end of the line.
     End,
-}
-
-impl Default for Cap {
-    fn default() -> Self {
-        Cap::Start
-    }
 }
 
 

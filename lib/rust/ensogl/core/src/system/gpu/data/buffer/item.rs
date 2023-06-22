@@ -32,6 +32,7 @@ pub trait MatrixCtx<T, R, C> = where
 
 // === Definition ===
 
+#[allow(missing_docs)]
 pub trait JsBufferViewArr = Sized where [Self]: JsBufferView;
 
 /// Super bounds of the `Item::Item` type;

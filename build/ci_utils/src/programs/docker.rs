@@ -400,18 +400,13 @@ impl RestartPolicy {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub enum Network {
+    #[default]
     Bridge,
     Host,
     User(String),
     Container(ContainerId),
-}
-
-impl Default for Network {
-    fn default() -> Self {
-        Network::Bridge
-    }
 }
 
 impl Display for Network {

@@ -14,6 +14,8 @@ pub mod physics;
 mod frp;
 mod loops;
 
+#[allow(clippy::useless_attribute)]
+#[allow(ambiguous_glob_reexports)]
 pub use frp::*;
 pub use loops::*;
 

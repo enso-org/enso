@@ -198,7 +198,7 @@ impl Path {
     pub fn from_mock_module_name(name: impl Str) -> Self {
         let file_name = Self::name_to_file_name(name);
         let src_dir = SOURCE_DIRECTORY.to_string();
-        let file_path = FilePath::new(default(), &[src_dir, file_name]);
+        let file_path = FilePath::new(default(), [src_dir, file_name]);
         Self::from_file_path(file_path).unwrap()
     }
 

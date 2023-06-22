@@ -20,9 +20,10 @@ use ensogl::gui::text;
 
 /// Describes whether the source code in a node is currently running or already finished. If it is
 /// finished then the status contains the number of milliseconds that it took to run the code.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub enum Status {
     /// The node's code is still running.
+    #[default]
     Running,
     /// The node finished execution.
     Finished {
@@ -40,12 +41,6 @@ impl Status {
     /// Returns `true` if the node finished execution.
     pub fn is_finished(self) -> bool {
         matches!(self, Status::Finished { .. })
-    }
-}
-
-impl Default for Status {
-    fn default() -> Self {
-        Status::Running
     }
 }
 

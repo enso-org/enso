@@ -1175,10 +1175,11 @@ pub struct LibraryComponentGroup {
 ///
 /// For more information, see
 /// https://github.com/enso-org/design/blob/main/epics/basic-libraries/write-action-control/design.md.
-#[derive(Hash, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Hash, Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum ExecutionEnvironment {
     /// Allows editing the graph, but the `Output` context is disabled, so it prevents accidental
     /// changes.
+    #[default]
     Design,
     /// Unrestricted, live editing of data.
     Live,
@@ -1190,12 +1191,6 @@ impl Display for ExecutionEnvironment {
             Self::Design => write!(f, "design"),
             Self::Live => write!(f, "live"),
         }
-    }
-}
-
-impl Default for ExecutionEnvironment {
-    fn default() -> Self {
-        ExecutionEnvironment::Design
     }
 }
 

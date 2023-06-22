@@ -291,8 +291,7 @@ mod tests {
         pub const FIELD_COUNT_IN_NOTIFICATION: usize = 3;
     }
 
-    fn expect_field<'a, Obj: 'a>(obj: &'a Map<String, Value>, field_name: &str) -> &'a Value
-    where &'a Obj: Into<&'a Value> {
+    fn expect_field<'a>(obj: &'a Map<String, Value>, field_name: &str) -> &'a Value {
         let missing_msg = format!("missing field {field_name}");
         obj.get(field_name).expect(&missing_msg)
     }

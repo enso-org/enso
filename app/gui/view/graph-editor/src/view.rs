@@ -11,21 +11,16 @@ use crate::prelude::*;
 /// Represents the current view mode of the graph editor. In profiling mode, most colors are removed
 /// from the interface and each node displays some profiling information, using color to represent
 /// the running time.
-#[derive(Debug, Copy, Clone, CloneRef, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, CloneRef, PartialEq, Eq, Default)]
 pub enum Mode {
     /// The standard mode of the graph editor. Edges are colored to reflect type information and no
     /// profiling information is visible.
+    #[default]
     Normal,
 
     /// The graph editor's profiling mode. Color is used sparingly. Every node shows profiling
     /// information and uses color to represent its running time.
     Profiling,
-}
-
-impl Default for Mode {
-    fn default() -> Self {
-        Mode::Normal
-    }
 }
 
 impl Mode {

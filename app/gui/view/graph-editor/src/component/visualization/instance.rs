@@ -30,18 +30,13 @@ const DEFAULT_VISUALIZATION_ARGUMENTS: Vec<enso::Code> = vec![];
 // === ContextModule ===
 
 /// Designation of the module to be used as a context for preprocessor evaluation.
-#[derive(Clone, CloneRef, Debug, PartialEq, Eq)]
+#[derive(Clone, CloneRef, Debug, PartialEq, Eq, Default)]
 pub enum ContextModule {
     /// Current project's `Main` module.
+    #[default]
     ProjectMain,
     /// Specific module of known name.
     Specific(enso::Module),
-}
-
-impl Default for ContextModule {
-    fn default() -> Self {
-        ContextModule::ProjectMain
-    }
 }
 
 impl ContextModule {

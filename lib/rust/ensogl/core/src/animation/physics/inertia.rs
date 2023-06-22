@@ -563,8 +563,9 @@ impl<T: Value> SimulationDataCell<T> {
 // === Callbacks ===
 // =================
 
-/// Simulator callback.
+/// Simulator callback without arguments.
 pub trait Callback0 = 'static + Fn0;
+/// Simulator callback with a single argument.
 pub trait Callback1<T> = 'static + Fn1<T>;
 
 
