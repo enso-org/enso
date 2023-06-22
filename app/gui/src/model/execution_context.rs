@@ -64,7 +64,7 @@ pub struct ComputedValueInfo {
 impl ComputedValueInfo {
     fn apply_update(&mut self, update: ExpressionUpdate) {
         // We do not erase method_call information to avoid ports "flickering" on every computation.
-        // the method_call should be updates soon anyway.
+        // the method_call should be updated soon anyway.
         // The type of the expression could also be kept, but so far we use the "lack of type"
         // information to inform user the results are recomputed.
         if !matches!(update.payload, ExpressionUpdatePayload::Pending { .. }) {
