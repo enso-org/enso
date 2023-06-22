@@ -27,6 +27,13 @@ function Autocomplete(props: AutocompleteProps) {
     const [isDropdownVisible, setIsDropdownVisible] = react.useState(false)
     const [selectedIndex, setSelectedIndex] = react.useState<number | null>(null)
 
+    const overrideValue = react.useCallback((item: string) => {
+        setIsDropdownVisible(false)
+        setValue(item)
+        inputRef.current.value = item
+        onChange(item)
+    }, [])
+
     // This is required, rather than conditionally setting the `value` prop on the input,
     // because React disallows that for some reason. See:
     // https://react.dev/reference/react-dom/components/input#im-getting-an-error-a-component-is-changing-an-uncontrolled-input-to-be-controlled
@@ -39,10 +46,8 @@ function Autocomplete(props: AutocompleteProps) {
         switch (event.key) {
             case 'ArrowUp': {
                 event.preventDefault()
-                if (selectedIndex == null) {
+                if (selectedIndex == null || selectedIndex === 0 || selectedIndex >= items.length) {
                     setSelectedIndex(items.length - 1)
-                } else if (selectedIndex === 0) {
-                    setSelectedIndex(null)
                 } else {
                     setSelectedIndex(selectedIndex - 1)
                 }
@@ -50,14 +55,36 @@ function Autocomplete(props: AutocompleteProps) {
             }
             case 'ArrowDown': {
                 event.preventDefault()
-                console.log('ad')
-                if (selectedIndex == null) {
+                if (selectedIndex == null || selectedIndex >= items.length - 1) {
                     setSelectedIndex(0)
-                } else if (selectedIndex === items.length - 1) {
-                    setSelectedIndex(null)
                 } else {
                     setSelectedIndex(selectedIndex + 1)
                 }
+                break
+            }
+            case 'Escape': {
+                // Do not prevent default; the input needs to handle the event too.
+                break
+            }
+            case 'Enter': {
+                // Do not prevent default; the input needs to handle the event too.
+                if (selectedIndex != null) {
+                    const item = items[selectedIndex]
+                    // If `item` is `null`, silently error. If it *is* `null`, it is out of range
+                    // anyway, so no item will be selected in the UI.
+                    if (item != null) {
+                        overrideValue(item)
+                    }
+                    setSelectedIndex(null)
+                }
+                break
+            }
+            case 'Tab': {
+                // Ignore completely.
+                break
+            }
+            default: {
+                setIsDropdownVisible(true)
                 break
             }
         }
@@ -66,9 +93,6 @@ function Autocomplete(props: AutocompleteProps) {
     return (
         <div
             className="whitespace-nowrap bg-gray-200 rounded-full cursor-pointer"
-            onClick={() => {
-                setIsDropdownVisible(false)
-            }}
             onKeyDown={onKeyDown}
         >
             <div className="flex flex-1">
@@ -80,10 +104,13 @@ function Autocomplete(props: AutocompleteProps) {
                     onFocus={() => {
                         setIsDropdownVisible(true)
                     }}
-                    onClick={event => {
-                        event.stopPropagation()
+                    onBlur={() => {
+                        requestAnimationFrame(() => {
+                            setIsDropdownVisible(false)
+                        })
                     }}
                     onInput={event => {
+                        setIsDropdownVisible(true)
                         onInput?.(event.currentTarget.value)
                     }}
                     onChange={event => {
@@ -100,15 +127,15 @@ function Autocomplete(props: AutocompleteProps) {
                     {items.map((item, index) => (
                         <div
                             key={item}
-                            className={`cursor-pointer bg-white first:rounded-t-lg last:rounded-b-lg hover:bg-gray-100 p-1 ${
-                                index === selectedIndex ? 'bg-gray-100' : ''
+                            className={`cursor-pointer first:rounded-t-lg last:rounded-b-lg hover:bg-gray-100 p-1 ${
+                                index === selectedIndex ? 'bg-gray-100' : 'bg-white'
                             }`}
+                            onMouseDown={event => {
+                                event.preventDefault()
+                            }}
                             onClick={event => {
                                 event.stopPropagation()
-                                setIsDropdownVisible(false)
-                                setValue(item)
-                                inputRef.current.value = item
-                                onChange(item)
+                                overrideValue(item)
                             }}
                         >
                             {item}

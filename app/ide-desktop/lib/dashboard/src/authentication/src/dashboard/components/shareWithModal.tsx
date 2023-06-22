@@ -7,9 +7,9 @@ import * as modalProvider from '../../providers/modal'
 import * as newtype from '../../newtype'
 import * as svg from '../../components/svg'
 
-import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
 import Autocomplete from './autocomplete'
 import Modal from './modal'
+import PermissionSelector from './permissionSelector'
 
 // =================
 // === Constants ===
@@ -62,38 +62,42 @@ export function ShareWithModal(props: ShareWithModalProps) {
                     newUsers.filter(newUser => newUser.email.toLowerCase().includes(lowercaseEmail))
                 )
             })()
+            // `email` is NOT a dependency. `matchingUsers` is updated based on `email` elsewhere.
         }, [])
 
-        const onSubmit = react.useCallback(async (formEvent: React.FormEvent) => {
-            formEvent.preventDefault()
-            const isEmailInvalid = !users.some(user => email === user.email)
-            const isPermissionInvalid = permission == null
-            if (isEmailInvalid || isPermissionInvalid) {
-                if (isEmailInvalid) {
-                    setUserEmailClassName(BLINK_BACKGROUND_CLASS_NAME)
+        const onSubmit = react.useCallback(
+            async (formEvent: React.FormEvent) => {
+                formEvent.preventDefault()
+                const isEmailInvalid = !users.some(user => email === user.email)
+                const isPermissionInvalid = permission == null
+                if (isEmailInvalid || isPermissionInvalid) {
+                    if (isEmailInvalid) {
+                        setUserEmailClassName(BLINK_BACKGROUND_CLASS_NAME)
+                        window.setTimeout(() => {
+                            setUserEmailClassName('')
+                        }, BLINK_ANIMATION_LENGTH_MS)
+                    }
+                    if (isPermissionInvalid) {
+                        setPermissionClassName(BLINK_BACKGROUND_CLASS_NAME)
+                        window.setTimeout(() => {
+                            setPermissionClassName('')
+                        }, BLINK_ANIMATION_LENGTH_MS)
+                    }
+                    setCanSubmit(false)
                     window.setTimeout(() => {
-                        setUserEmailClassName('')
+                        setCanSubmit(true)
                     }, BLINK_ANIMATION_LENGTH_MS)
+                } else {
+                    unsetModal()
+                    await backend.createPermission({
+                        userSubject: newtype.asNewtype(email),
+                        resourceId: assetId,
+                        action: permission,
+                    })
                 }
-                if (isPermissionInvalid) {
-                    setPermissionClassName(BLINK_BACKGROUND_CLASS_NAME)
-                    window.setTimeout(() => {
-                        setPermissionClassName('')
-                    }, BLINK_ANIMATION_LENGTH_MS)
-                }
-                setCanSubmit(false)
-                window.setTimeout(() => {
-                    setCanSubmit(true)
-                }, BLINK_ANIMATION_LENGTH_MS)
-            } else {
-                unsetModal()
-                await backend.createPermission({
-                    userSubject: newtype.asNewtype(email),
-                    resourceId: assetId,
-                    action: permission,
-                })
-            }
-        }, [])
+            },
+            [email, permission]
+        )
 
         // FIXME:
         const assetTypeName = assetType === backendModule.AssetType.directory ? 'folder' : assetType
@@ -134,90 +138,11 @@ export function ShareWithModal(props: ShareWithModalProps) {
                         />
                     </div>
                     <div className="mx-2">Permission</div>
-                    <div className="m-1">
-                        <input
-                            type="radio"
-                            id="share_with_permission_own"
-                            name="share_with_permission_input"
-                            className="w-0 h-0"
-                            onClick={() => {
-                                setPermission(backendModule.PermissionAction.own)
-                            }}
-                        />
-                        <label htmlFor="share_with_permission_own">
-                            <PermissionDisplay
-                                permissions={
-                                    permissionDisplay.PERMISSION[backendModule.PermissionAction.own]
-                                }
-                                className={`cursor-pointer ${permissionClassName ?? ''}`}
-                            >
-                                <div className="mx-1">Own</div>
-                            </PermissionDisplay>
-                        </label>
-                        <input
-                            type="radio"
-                            id="share_with_permission_read"
-                            name="share_with_permission_input"
-                            className="w-0 h-0"
-                            onClick={() => {
-                                setPermission(backendModule.PermissionAction.read)
-                            }}
-                        />
-                        <label htmlFor="share_with_permission_read">
-                            <PermissionDisplay
-                                permissions={
-                                    permissionDisplay.PERMISSION[
-                                        backendModule.PermissionAction.read
-                                    ]
-                                }
-                                className={`cursor-pointer ${permissionClassName ?? ''}`}
-                            >
-                                <div className="mx-1">Read</div>
-                            </PermissionDisplay>
-                        </label>
-                        <input
-                            type="radio"
-                            id="share_with_permission_edit"
-                            name="share_with_permission_input"
-                            className="w-0 h-0"
-                            onClick={() => {
-                                setPermission(backendModule.PermissionAction.edit)
-                            }}
-                        />
-                        <label htmlFor="share_with_permission_edit">
-                            <PermissionDisplay
-                                permissions={
-                                    permissionDisplay.PERMISSION[
-                                        backendModule.PermissionAction.edit
-                                    ]
-                                }
-                                className={`cursor-pointer ${permissionClassName ?? ''}`}
-                            >
-                                <div className="mx-1">Edit</div>
-                            </PermissionDisplay>
-                        </label>
-                        <input
-                            type="radio"
-                            id="share_with_permission_execute"
-                            name="share_with_permission_input"
-                            className="w-0 h-0"
-                            onClick={() => {
-                                setPermission(backendModule.PermissionAction.execute)
-                            }}
-                        />
-                        <label htmlFor="share_with_permission_execute">
-                            <PermissionDisplay
-                                permissions={
-                                    permissionDisplay.PERMISSION[
-                                        backendModule.PermissionAction.execute
-                                    ]
-                                }
-                                className={`cursor-pointer ${permissionClassName ?? ''}`}
-                            >
-                                <div className="mx-1">Execute</div>
-                            </PermissionDisplay>
-                        </label>
-                    </div>
+                    <PermissionSelector
+                        className="m-1"
+                        permissionClassName={permissionClassName ?? ''}
+                        onChange={setPermission}
+                    />
                     <input
                         type="submit"
                         disabled={!canSubmit}

@@ -128,7 +128,7 @@ function PermissionDisplay(props: PermissionDisplayProps) {
     }
 
     return (
-        <div className={`m-1 relative inline-block ${className ?? ''}`}>
+        <div className={`m-1 relative inline-block rounded-full ${className ?? ''}`}>
             {permissionBorder}
             <div className="bg-label rounded-full m-1">{children}</div>
         </div>
