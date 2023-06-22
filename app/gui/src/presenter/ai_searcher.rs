@@ -26,15 +26,15 @@ use ide_view::graph_editor::NodeId;
 use ide_view::project::SearcherParams;
 use ide_view::project::View;
 
-use crate::controller::graph::executed::Handle;
 use crate::controller::graph::FailedToCreateNode;
 use crate::controller::graph::ImportType;
 use crate::controller::graph::RequiredImport;
+use crate::controller::searcher::apply_this_argument;
 use crate::controller::searcher::component::group;
+use crate::controller::searcher::input;
 use crate::controller::searcher::Mode;
 use crate::controller::searcher::ThisNode;
 use crate::controller::ExecutedGraph;
-use crate::controller::Ide;
 use crate::controller::Project;
 use crate::model::execution_context::QualifiedMethodPointer;
 use crate::model::execution_context::Visualization;
@@ -58,6 +58,8 @@ struct Model {
     graph_presenter:  Graph,
     this_arg:         Rc<Option<ThisNode>>,
     input_expression: RefCell<String>,
+    mode:             Mode,
+    ide_controller:   controller::Ide,
 }
 
 impl Model {
@@ -80,7 +82,7 @@ pub struct AISearcher {
 
 impl crate::searcher::Searcher for AISearcher {
     fn setup_searcher(
-        _ide_controller: Ide,
+        ide_controller: controller::Ide,
         _project_controller: Project,
         graph_controller: ExecutedGraph,
         graph_presenter: &Graph,
@@ -109,6 +111,8 @@ impl crate::searcher::Searcher for AISearcher {
             graph_presenter: graph_presenter.clone_ref(),
             this_arg,
             input_expression: RefCell::new("".to_string()),
+            mode,
+            ide_controller,
         });
 
         let network = frp::Network::new("AI Searcher");
@@ -176,11 +180,13 @@ impl AISearcher {
     ///    query.
     /// 3. Replaces the query with the result of the Open AI call.
     async fn accept_ai_query(
+        mode: Mode,
         query: String,
         this: ThisNode,
-        graph: Handle,
+        graph: ExecutedGraph,
         graph_view: GraphEditor,
         input_view: ViewNodeId,
+        ide: controller::Ide,
     ) -> FallibleResult {
         console_log!("Accepting AI query: {}", query);
         let vis_ptr = QualifiedMethodPointer::from_qualified_text(
@@ -200,9 +206,29 @@ impl AISearcher {
         console_log!("Detached visualization: {:?}", vis);
         let completion = graph.get_ai_completion(&prompt_with_goal, Self::AI_STOP_SEQUENCE).await?;
         console_log!("Got completion: {}", completion);
-        let expression = node::Expression::new_plain(completion);
-        graph_view.set_node_expression((input_view, expression));
+        let parser = ide.parser();
+        let new_expression = input::Input::parse(parser, &completion, 0.into());
+        let new_expression_ast = new_expression.ast().cloned().unwrap();
+        let expression_to_insert = apply_this_argument(&this.var, &new_expression_ast);
+        Self::commit_node(mode, graph, expression_to_insert, this)?;
         console_log!("Edited node expression");
+        Ok(())
+    }
+
+    fn commit_node(
+        mode: Mode,
+        graph: ExecutedGraph,
+        expression: Ast,
+        this_arg: ThisNode,
+    ) -> FallibleResult {
+        let node_id = mode.node_id();
+        let graph = graph.graph();
+        graph.set_expression_ast(node_id, expression)?;
+        if let Mode::NewNode { .. } = mode {
+            graph.introduce_name_on(node_id)?;
+        }
+        this_arg.introduce_pattern(graph.clone_ref())?;
+
         Ok(())
     }
 
@@ -221,8 +247,11 @@ impl AISearcher {
         let graph = self.model.graph_controller.clone_ref();
         let graph_view = self.model.view.graph().clone();
         let input_view = self.model.input_view;
+        let mode = self.model.mode;
+        let ide = self.model.ide_controller.clone_ref();
         executor::global::spawn(async move {
-            if let Err(e) = Self::accept_ai_query(query, this, graph, graph_view, input_view).await
+            if let Err(e) =
+                Self::accept_ai_query(mode, query, this, graph, graph_view, input_view, ide).await
             {
                 error!("Error when handling AI query: {e}");
             }

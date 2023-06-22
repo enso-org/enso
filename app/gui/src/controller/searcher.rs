@@ -1183,7 +1183,7 @@ impl Drop for EditGuard {
 
 // === Helpers ===
 
-fn apply_this_argument(this_var: &str, ast: &Ast) -> Ast {
+pub fn apply_this_argument(this_var: &str, ast: &Ast) -> Ast {
     if let Ok(opr) = ast::known::Opr::try_from(ast) {
         let shape = ast::SectionLeft { arg: Ast::var(this_var), off: 1, opr: opr.into() };
         Ast::new(shape, None)
