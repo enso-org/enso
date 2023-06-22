@@ -612,7 +612,7 @@ impl<T: Storable> Parameter for T {
     type GpuType = T;
     type Variable = Var<T>;
 
-    default fn create_var(name: &str) -> Self::Variable {
+    fn create_var(name: &str) -> Self::Variable {
         name.into()
     }
 }

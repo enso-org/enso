@@ -355,7 +355,9 @@ impl Widget {
             activation_shape_color <- is_connected_or_hovered.all_with(&activation_style.update,
                 |connected, style| if *connected { style.connected } else { style.base }
             ).on_change();
-            eval activation_shape_color((color) activation_shape.color.set(color.into()));
+            eval activation_shape_color((color)
+                activation_shape.color.set(color::Rgba::from(color).into())
+            );
 
             let dot_mouse_down = activation_shape.on_event::<mouse::Down>();
             dot_clicked <- dot_mouse_down.filter(mouse::is_primary);

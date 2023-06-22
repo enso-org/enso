@@ -86,7 +86,7 @@ impl Shapes {
             shape.set_xy(arrow_center - arrow::SIZE / 2.0);
             shape.set_color(color);
             Self::set_layer(parent, is_attached, &shape);
-            self.dataflow_arrow.set(shape);
+            self.dataflow_arrow.replace(Some(shape));
         }
     }
 
@@ -138,7 +138,7 @@ impl Shapes {
                 let arc_shapes = draw_split_arc(arc_shapes, split_arc);
                 arc_shapes[0].color.set(source_color.into());
                 arc_shapes[1].color.set(target_color.into());
-                self.split_arc.set(arc_shapes);
+                self.split_arc.replace(Some(arc_shapes));
             }
             let (source_shape, target_shape) =
                 (section_factory.next().unwrap(), section_factory.next().unwrap());
@@ -196,7 +196,7 @@ impl Shapes {
             shape.set_size_y(length + attachment::TOP_ADJUSTMENT);
             shape.set_xy(target + Vector2(-LINE_WIDTH / 2.0, attachment::TOP_ADJUSTMENT));
             shape.set_color(color);
-            self.target_attachment.set(shape);
+            self.target_attachment.replace(Some(shape));
         }
     }
 

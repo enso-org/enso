@@ -464,7 +464,7 @@ impl FontLoadedNotifier {
             *callback.borrow_mut() = None;
         }));
 
-        callback.set(_closure);
+        callback.replace(Some(_closure));
 
         let _promise = match web::document.fonts().ready() {
             Ok(promise) => callback.borrow().as_ref().map(|closure| promise.then(closure)),

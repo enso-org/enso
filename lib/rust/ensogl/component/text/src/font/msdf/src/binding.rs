@@ -10,26 +10,6 @@ use enso_web as web;
 // === Bindings ===
 // ================
 
-auto trait NotResult {}
-impl<T, E> !NotResult for Result<T, E> {}
-
-/// Just like [`Default`], but with a specialization for [`Result`].
-trait MockBindingResultDefault {
-    fn mock_binding_result_default() -> Self;
-}
-
-impl<T: NotResult + Default> MockBindingResultDefault for T {
-    default fn mock_binding_result_default() -> Self {
-        Default::default()
-    }
-}
-
-impl<T: Default, E> MockBindingResultDefault for Result<T, E> {
-    fn mock_binding_result_default() -> Self {
-        Ok(Default::default())
-    }
-}
-
 macro_rules! define_bindings {
     ($( $(#$meta:tt)* pub fn $fn:ident $args:tt $(-> $ret:ty)?; )*) => {
         #[cfg(not(target_arch = "wasm32"))]
@@ -58,8 +38,12 @@ macro_rules! define_native_binding {
     ( $(#$meta:tt)* pub fn $fn:ident $args:tt; ) => {
         pub fn $fn $args {}
     };
+    ( $(#$meta:tt)* pub fn $fn:ident $args:tt -> Result<$ok:ty, $err:ty>; ) => {
+        pub fn $fn $args -> Result<$ok:ty, $err:ty> { Ok(default()) }
+    };
+
     ( $(#$meta:tt)* pub fn $fn:ident $args:tt -> $ret:ty; ) => {
-        pub fn $fn $args -> $ret { MockBindingResultDefault::mock_binding_result_default() }
+        pub fn $fn $args -> $ret { default() }
     };
 }
 

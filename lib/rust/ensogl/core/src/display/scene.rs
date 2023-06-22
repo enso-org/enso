@@ -1182,7 +1182,9 @@ impl Scene {
             crate::system::gpu::context::init_webgl_2_context(&self.no_mut_access);
         match context_loss_handler {
             Err(err) => error!("{err}"),
-            Ok(handler) => self.context_lost_handler.set(handler),
+            Ok(handler) => {
+                self.context_lost_handler.replace(Some(handler));
+            }
         }
     }
 

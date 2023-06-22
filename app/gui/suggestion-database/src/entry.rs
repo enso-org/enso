@@ -644,6 +644,13 @@ impl Entry {
         };
         let doc_sections = enso_doc_parser::parse(documentation);
         let icon_name = find_icon_name_in_doc_sections(&doc_sections);
+
+        if documentation.contains("Icon:") {
+            console_log!("icon_name: {icon_name:?}");
+            console_log!("documentation: {documentation}");
+            console_log!("doc_sections: {doc_sections:?}");
+        }
+
         let reexported_in: Option<QualifiedName> = match &mut entry {
             Type { reexport: Some(reexport), .. }
             | Constructor { reexport: Some(reexport), .. }

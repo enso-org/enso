@@ -138,7 +138,7 @@ impl EntryData {
 
     fn set_content(&self, text: &ImString) {
         self.selected_label().set_content(text.clone_ref());
-        self.deferred_label.set(text.clone_ref());
+        self.deferred_label.replace(Some(text.clone_ref()));
     }
 }
 

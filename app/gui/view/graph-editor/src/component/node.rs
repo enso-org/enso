@@ -136,14 +136,14 @@ impl Background {
                 let origin = center - size_with_border / 2.0;
                 shape.set_size(size_with_border);
                 shape.set_xy(origin);
+                shape.set_corner_radius(CORNER_RADIUS + border);
+                shape.set_inset_border(*border);
             }));
 
             eval color_animation.value((color) shape.set_color(color.into()););
             eval border_color((color) shape.set_border_color(color.into()););
-            eval border_size((size) shape.set_border(*size););
         }
 
-        shape.set_corner_radius(CORNER_RADIUS);
         selection_animation.target.emit(0.0);
 
         Self { _network: network, shape, selection_animation, color_animation, size_and_center }

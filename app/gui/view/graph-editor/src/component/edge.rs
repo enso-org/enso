@@ -195,7 +195,7 @@ impl EdgeModel {
     pub fn redraw(&self) {
         let state = self.calculate_state();
         self.apply_state(&state);
-        self.state.set(state);
+        self.state.replace(Some(state));
     }
 
     fn calculate_state(&self) -> State {

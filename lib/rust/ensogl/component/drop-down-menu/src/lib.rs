@@ -260,7 +260,7 @@ impl DropDownMenu {
 
             eval frp.input.set_entries ([model](entries) {
                 let entries:list_view::entry::SingleMaskedProvider<Entry> = entries.clone_ref().into();
-                model.content.set(entries.clone());
+                model.content.replace(Some(entries.clone()));
                 let entries = list_view::entry::AnyModelProvider::<Entry>::new(entries);
                 model.selection_menu.frp.set_entries.emit(entries);
             });
