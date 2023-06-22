@@ -2669,8 +2669,8 @@ impl GraphEditor {
             cannot_interact <- input.set_read_only || out.has_detached_edge;
             cannot_interact <- all(cannot_interact, init)._0();
             can_create_new_edge <- cannot_interact.not();
-            can_create_on_output <- can_create_new_edge.sample(&touch.output_port.selected);
-            can_create_on_input <- can_create_new_edge.sample(&touch.input_port.selected);
+            can_create_on_output <- can_create_new_edge.sample(&touch.output_port.down);
+            can_create_on_input <- can_create_new_edge.sample(&touch.input_port.down);
 
             // Attach detached edge to node port when clicking or releasing on node port.
             port_output_mouse_up <- out.hover_node_output.sample(&mouse.up_primary).unwrap();
@@ -2685,9 +2685,9 @@ impl GraphEditor {
             ).unwrap();
 
             // Create new detached edge when clicking on node port.
-            state.set_detached_edge <+ touch.output_port.selected.gate(&can_create_on_output)
+            state.set_detached_edge <+ touch.output_port.down.gate(&can_create_on_output)
                 .map(|source| DetachedEdge::new_source(*source));
-            state.set_detached_edge <+ touch.input_port.selected.gate(&can_create_on_input)
+            state.set_detached_edge <+ touch.input_port.down.gate(&can_create_on_input)
                 .filter(f!([model] (t) !model.is_node_connected_at_input(t.node_id,t.port)))
                 .map(|target| DetachedEdge::new_target(*target));
         }
