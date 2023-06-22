@@ -23,6 +23,8 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
+import org.enso.interpreter.Constants;
+import org.enso.interpreter.Constants.Names;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
@@ -206,7 +208,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       boolean selfArgSpecified = false;
       if (invokeFuncSchema.length > 1) {
         selfArgSpecified =
-            invokeFuncSchema[1].getName() != null && invokeFuncSchema[1].getName().equals("self");
+            invokeFuncSchema[1].getName() != null && invokeFuncSchema[1].getName().equals(Names.SELF_ARGUMENT);
       }
 
       if (selfArgSpecified) {
