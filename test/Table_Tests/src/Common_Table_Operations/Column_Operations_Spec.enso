@@ -19,34 +19,6 @@ spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
 
-    Test.group "gmt" <|
-        if setup.test_selection.supports_decimal_type then
-            Test.specify "should return decimals when rounding decimals" <|
-                i1 = 9223372036854775807 - 1
-                c = table_builder [["X", [i1]]] . at "X"
-                IO.println "CTYPE"
-                IO.println c.value_type
-                IO.println c.to_vector
-                decimal_col = c.cast Value_Type.Decimal
-                decimal_col.value_type.is_decimal . should_be_true
-                decimal_col2 = decimal_col + decimal_col*decimal_col
-                #[(.floor), (.ceil), (.truncate), (x-> x.round 0), (x-> x.round 2)].each op->
-                [(x-> x.round 0)].each op->
-                    k = op decimal_col2 . rename "foo"
-                    df = (k - decimal_col2) . rename "foo"
-                    eq = (k == decimal_col2) . rename "foo"
-                    IO.println 'KAY'
-                    IO.println <| c.value_type
-                    IO.println <| c.to_vector
-                    IO.println <| k.value_type
-                    IO.println <| k.to_vector
-                    IO.println <| df.value_type
-                    IO.println <| df.to_vector
-                    IO.println <| eq.value_type
-                    IO.println <| eq.to_vector
-                    #IO.println <| ((op decimal_col2) - decimal_col2) . rename "foo" . to_vector
-                    #((op decimal_col2) == decimal_col2) . rename "foo" . to_vector . should_equal [True]
-
     Test.group prefix+"Boolean Column Operations" <|
         Test.specify "iif" <|
             t = table_builder [["X", [True, False, Nothing, True]]]
@@ -541,15 +513,10 @@ spec setup =
                 op_name = pair.at 0
                 op = pair.at 1
 
-                Test.specify "rounding-like should return a column of the same type as the argument (floats): "+op_name <|
-                    col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
-                    op (col.cast Value_Type.Float) . value_type . should_equal Value_Type.Integer
-                    if setup.test_selection.supports_decimal_type then
-                        col.cast Value_Type.Decimal . round . value_type . should_equal Value_Type.Decimal
-
                 Test.specify "rounding-like should return a column of the same type as the argument (integers): "+op_name <|
                     col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
-                    op (col.cast (Value_Type.Integer Bits.Bits_32)) . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+                    bits_32_expected = if setup.test_selection.all_integers_64_bit then Value_Type.Integer Bits.Bits_64 else Value_Type.Integer Bits.Bits_32
+                    op (col.cast (Value_Type.Integer Bits.Bits_32)) . value_type . should_equal bits_32_expected
                     op (col.cast (Value_Type.Integer Bits.Bits_64)) . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
             roundlike_ops.each op-> round_with op

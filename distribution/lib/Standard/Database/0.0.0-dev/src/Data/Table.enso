@@ -1735,8 +1735,6 @@ type Table
                 Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.")
             False ->
                 sql = preprocessed.to_sql
-                IO.println 'SQL'
-                IO.println <| sql.unsafe_to_raw_sql
                 column_type_suggestions = preprocessed.internal_columns.map .sql_type_reference
                 self.connection.read_statement sql column_type_suggestions
 
