@@ -56,7 +56,6 @@ struct Model {
     input_view:       ViewNodeId,
     graph_controller: ExecutedGraph,
     graph_presenter:  Graph,
-    notifier:         notification::Publisher<Notification>,
     this_arg:         Rc<Option<ThisNode>>,
     input_expression: RefCell<String>,
 }
@@ -108,33 +107,16 @@ impl crate::searcher::Searcher for AISearcher {
             input_view: parameters.input,
             graph_controller,
             graph_presenter: graph_presenter.clone_ref(),
-            notifier: default(),
             this_arg,
             input_expression: RefCell::new("".to_string()),
         });
 
         let network = frp::Network::new("AI Searcher");
-        frp::extend! { TRACE_ALL network
+        frp::extend! { network
             eval model.view.searcher_input_changed ([model]((expr, _selections)) {
                 model.input_changed(expr);
             });
         }
-
-        // Handle response to our AI query.
-        let weak_model = Rc::downgrade(&model);
-        let notifications = model.notifier.subscribe();
-        let graph = model.view.graph().clone();
-        let input_view = model.input_view;
-        spawn_stream_handler(weak_model, notifications, move |notification, _| {
-            match notification {
-                Notification::AISuggestionUpdated(expr, range) => {
-                    console_log!("Got AI suggestion: {} at {:?}", expr, range);
-                    graph.edit_node_expression((input_view, range, ImString::new(expr)));
-                }
-            };
-            std::future::ready(())
-        });
-
         Ok(Box::new(Self { model, _network: network }))
     }
 
@@ -152,6 +134,7 @@ impl crate::searcher::Searcher for AISearcher {
     }
 
     fn abort_editing(self: Box<Self>) {
+        console_log!("Aborting editing");
         let graph = self.model.view.graph().clone();
         let expression = node::Expression::new_plain(self.model.input_expression.borrow().clone());
         graph.set_node_expression((self.input_view(), expression));
@@ -194,10 +177,10 @@ impl AISearcher {
     /// 3. Replaces the query with the result of the Open AI call.
     async fn accept_ai_query(
         query: String,
-        query_range: text::Range<Byte>,
         this: ThisNode,
         graph: Handle,
-        notifier: notification::Publisher<Notification>,
+        graph_view: GraphEditor,
+        input_view: ViewNodeId,
     ) -> FallibleResult {
         console_log!("Accepting AI query: {}", query);
         let vis_ptr = QualifiedMethodPointer::from_qualified_text(
@@ -217,8 +200,9 @@ impl AISearcher {
         console_log!("Detached visualization: {:?}", vis);
         let completion = graph.get_ai_completion(&prompt_with_goal, Self::AI_STOP_SEQUENCE).await?;
         console_log!("Got completion: {}", completion);
-        notifier.publish(Notification::AISuggestionUpdated(completion, query_range)).await;
-        console_log!("Published notification");
+        let expression = node::Expression::new_plain(completion);
+        graph_view.set_node_expression((input_view, expression));
+        console_log!("Edited node expression");
         Ok(())
     }
 
@@ -228,8 +212,6 @@ impl AISearcher {
     /// replacement.
     fn handle_ai_query(&self, query: String) -> FallibleResult {
         console_log!("Handling AI query: {}", query);
-        let len = query.as_bytes().len();
-        let range = text::Range::new(Byte::from(0), Byte::from(len));
         let this = self.model.this_arg.clone();
         if this.is_none() {
             console_log!("Cannot run AI query without this argument");
@@ -237,9 +219,11 @@ impl AISearcher {
         }
         let this = this.as_ref().as_ref().unwrap().clone();
         let graph = self.model.graph_controller.clone_ref();
-        let notifier = self.model.notifier.clone_ref();
+        let graph_view = self.model.view.graph().clone();
+        let input_view = self.model.input_view;
         executor::global::spawn(async move {
-            if let Err(e) = Self::accept_ai_query(query, range, this, graph, notifier).await {
+            if let Err(e) = Self::accept_ai_query(query, this, graph, graph_view, input_view).await
+            {
                 error!("Error when handling AI query: {e}");
             }
         });
