@@ -891,7 +891,6 @@ pub struct SceneData {
     display_mode: Rc<Cell<glsl::codes::DisplayModes>>,
     extensions: Extensions,
     disable_context_menu: Rc<EventListenerHandle>,
-    trace: leak_detector::Trace,
 }
 
 impl SceneData {
@@ -958,7 +957,6 @@ impl SceneData {
             initial_shader_compilation,
             extensions,
             disable_context_menu,
-            trace: leak_detector::Trace::enabled("SceneData"),
         }
         .init()
     }
