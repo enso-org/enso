@@ -604,3 +604,27 @@ fn test_execution_context() {
         (),
     );
 }
+
+#[test]
+fn recognize_timeout_errors() {
+    type RpcError = json_rpc::RpcError<Value>;
+
+    // Server-side errors.
+    let text = r#"{"code":11,"message":"Request timeout"}"#;
+    let msg = serde_json::from_str::<json_rpc::messages::Error>(text).unwrap();
+    let error = RpcError::RemoteError(msg).into();
+    assert!(is_timeout_error(&error));
+
+    let text = r#"{"code":2007,"message":"Evaluation of the visualisation expression failed"}"#;
+    let msg = serde_json::from_str::<json_rpc::messages::Error>(text).unwrap();
+    let error = RpcError::RemoteError(msg).into();
+    assert!(!is_timeout_error(&error));
+
+
+    // Client-side errors.
+    let error = RpcError::TimeoutError { millis: 500 }.into();
+    assert!(is_timeout_error(&error));
+
+    let error = RpcError::LostConnection.into();
+    assert!(!is_timeout_error(&error));
+}

@@ -120,6 +120,7 @@ pub trait Registry<T>: Default {
 // === HashSetRegistryModel ===
 // ============================
 
+#[allow(missing_docs)]
 pub trait HashSetRegistryItem = Clone + Debug + Eq + Hash;
 
 /// Internal model for `HashSetRegistry`.

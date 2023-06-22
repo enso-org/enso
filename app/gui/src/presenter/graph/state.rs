@@ -133,7 +133,7 @@ impl Nodes {
         view_id: ViewNodeId,
         ast_id: AstNodeId,
     ) -> &mut Node {
-        let mut displayed =
+        let displayed =
             Self::get_mut_or_create_static(&mut self.nodes, &mut self.nodes_without_view, ast_id);
         if let Some(old_view) = displayed.view_id {
             self.ast_node_by_view_id.remove(&old_view);
@@ -435,7 +435,7 @@ impl<'a> ControllerChange<'a> {
     /// is returned.
     pub fn set_node_position(&self, node: AstNodeId, position: Vector2) -> Option<ViewNodeId> {
         let mut nodes = self.nodes.borrow_mut();
-        let mut displayed = nodes.get_mut_or_create(node);
+        let displayed = nodes.get_mut_or_create(node);
         if displayed.position != position {
             displayed.position = position;
             displayed.view_id

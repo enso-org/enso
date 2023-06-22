@@ -31,13 +31,13 @@ use crate::display::shape::primitive::shader::canvas::Canvas;
 macro_rules! define_modifiers {
     ( $($name:ident $lname:ident $shapes:tt $fields:tt)* ) => {
         /// Contains mutable shapes definitions.
-        pub mod mutable {
+        mod mutable {
             use super::*;
             $(_define_modifier_data! {$name $shapes $fields})*
         }
 
         /// Contains immutable shapes definitions.
-        pub mod immutable {
+        mod immutable {
             use super::*;
             $(_define_modifier! {$name $lname $shapes $fields})*
         }

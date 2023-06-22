@@ -493,7 +493,7 @@ impl<'s> CaseBuilder<'s> {
                 if self.case_lines.is_empty() {
                     self.case_lines.push(default());
                 }
-                let mut case = self.case_lines.last_mut().unwrap().case.get_or_insert_default();
+                let case = self.case_lines.last_mut().unwrap().case.get_or_insert_default();
                 case.documentation = documentation.into();
                 return;
             }
@@ -518,7 +518,7 @@ impl<'s> CaseBuilder<'s> {
         if self.case_lines.is_empty() {
             self.case_lines.push(default());
         }
-        let mut case = &mut self.case_lines.last_mut().unwrap().case.get_or_insert_default();
+        let case = &mut self.case_lines.last_mut().unwrap().case.get_or_insert_default();
         case.pattern = pattern;
         case.arrow = arrow;
         case.expression = expression;

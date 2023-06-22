@@ -5,7 +5,6 @@ use crate::index::*;
 use crate::prelude::*;
 use enso_text::unit::*;
 
-use crate::buffer::formatting::Formatting;
 use crate::buffer::rope::formatted::FormattedRope;
 use crate::buffer::selection::Selection;
 

@@ -338,6 +338,7 @@ macro_rules! signed_unit_float_like {
                 pub use super::Into as TRAIT_Into;
             }
         }
+        #[allow(ambiguous_glob_reexports)]
         pub use $vname::export::*;
     };
 }

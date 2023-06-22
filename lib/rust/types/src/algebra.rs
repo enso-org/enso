@@ -6,7 +6,6 @@
 use nalgebra;
 use nalgebra::storage::Storage;
 use nalgebra::ComplexField;
-use nalgebra::Dim;
 use nalgebra::Matrix;
 use nalgebra::Scalar;
 
@@ -239,7 +238,9 @@ impl Magnitude for f32 {
     }
 }
 
-impl<N: ComplexField, R: Dim, C: Dim, S: Storage<N, R, C>> Magnitude for Matrix<N, R, C, S> {
+impl<N: ComplexField, R: nalgebra::Dim, C: nalgebra::Dim, S: Storage<N, R, C>> Magnitude
+    for Matrix<N, R, C, S>
+{
     type Output = N::RealField;
     fn magnitude(&self) -> Self::Output {
         self.norm()

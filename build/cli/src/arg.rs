@@ -1,3 +1,5 @@
+// TODO: update clap
+#![allow(unused_qualifications)]
 use enso_build::prelude::*;
 
 use clap::Arg;

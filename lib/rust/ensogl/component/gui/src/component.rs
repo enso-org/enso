@@ -47,17 +47,11 @@ pub trait Model {
 pub trait Frp<Model>: Default + API {
     /// Frp initializer. Should set up the logic for processing inputs and generating outputs
     /// through the FRP API.
-    fn init(
-        network: &frp::Network,
-        frp: &<Self as ensogl_core::application::frp::API>::Private,
-        app: &Application,
-        model: &Model,
-        style: &StyleWatchFrp,
-    );
+    fn init(network: &frp::Network, app: &Application, model: &Model, style: &StyleWatchFrp);
 
     /// Frp default input initialization. Should emit the initial values for all inputs where they
     /// don't match the value from `Default` trait.
-    fn init_inputs(frp: &<Self as ensogl_core::application::frp::API>::Public) {
+    fn init_inputs(frp: &<Self as API>::Public) {
         let _ = frp;
     }
 
@@ -91,7 +85,7 @@ where
         let model = Rc::new(M::new(app));
         let frp = F::default();
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        F::init(frp.network(), frp.private(), app, &model, &style);
+        F::init(frp.network(), app, &model, &style);
         F::init_inputs(frp.public());
         let display_object = model.display_object().clone_ref();
         let widget = Widget::new(app, frp, model, display_object);

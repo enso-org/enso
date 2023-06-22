@@ -591,7 +591,7 @@ impl CallInfoMap {
         let mut call_info: HashMap<ast::Id, CallInfo> = HashMap::new();
         expression.root_ref().dfs(|node| {
             if let Some(call_id) = node.kind.call_id() {
-                let mut entry = call_info.entry(call_id).or_default();
+                let entry = call_info.entry(call_id).or_default();
                 if entry.target_id.is_none() || node.kind.is_this() {
                     entry.target_id = node.ast_id;
                 }

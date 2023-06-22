@@ -10,6 +10,10 @@ pub mod definition;
 pub mod instance;
 pub mod source;
 
-pub use definition::*;
-pub use instance::*;
+pub use definition::field;
+pub use definition::method;
+pub use definition::Definition;
+pub use definition::FallibleDefinition;
+pub use instance::Instance;
+pub use instance::PreprocessorCallback;
 pub use source::Sources;

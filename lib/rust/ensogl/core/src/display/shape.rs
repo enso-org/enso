@@ -22,7 +22,7 @@ pub use primitive::*;
 
 
 
-// We have two Shape and two ShapeOps traits. This one takes precedence.
+// We have two ShapeOps traits. This one takes precedence.
 mod precedence_resolver {
     use super::*;
     pub use primitive::def::class::ShapeOps;

@@ -8,15 +8,14 @@
 pub mod class;
 pub mod modifier;
 pub mod primitive;
-pub mod unit;
+mod unit;
 pub mod var;
 
 
 
 /// Common types.
-pub mod export {
+mod export {
     pub use super::class::AnyShape;
-    pub use super::class::Shape;
     pub use super::class::ShapeOps;
     pub use super::modifier::*;
     pub use super::primitive::*;

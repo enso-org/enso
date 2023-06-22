@@ -744,7 +744,7 @@ impl<T: HasTokens> HasTokens for Rc<T> {
 
 impl<T: HasTokens> HasTokens for &T {
     fn feed_to(&self, consumer: &mut impl TokenConsumer) {
-        self.deref().feed_to(consumer);
+        (*self).feed_to(consumer);
     }
 }
 

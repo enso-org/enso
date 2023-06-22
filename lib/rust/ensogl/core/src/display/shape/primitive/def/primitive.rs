@@ -57,7 +57,7 @@ macro_rules! define_sdf_shapes {
     ( $( $(#$meta:tt)* $name:ident $args:tt $body:tt )* ) => {
 
         /// Contains mutable shapes definitions.
-        pub mod mutable {
+        mod mutable {
             use super::*;
             $(_define_sdf_shape_mutable_part! {$name $args $body} )*
         }

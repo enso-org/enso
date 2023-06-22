@@ -266,7 +266,7 @@ fn calculate_durations(iterations: &mut Vec<Iteration>) {
     for iteration in iterations {
         let mut timestamp = OffsetDateTime::UNIX_EPOCH;
 
-        for mut op in iteration.operations.iter_mut() {
+        for op in iteration.operations.iter_mut() {
             if timestamp == OffsetDateTime::UNIX_EPOCH {
                 timestamp = op.timestamp
             }

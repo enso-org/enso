@@ -25,6 +25,7 @@ use syn::WherePredicate;
 // === Trait Aliases ===
 // =====================
 
+/// Types that can be converted to string.
 pub trait Str = Into<String> + AsRef<str>;
 
 

@@ -33,12 +33,11 @@ pub mod traits {
 
 /// Common types.
 pub mod types {
+    pub use super::object::Object;
+    pub use super::scene::dom::DomScene;
+    pub use super::scene::Scene;
     pub use super::symbol::*;
     pub use super::traits::*;
-    use super::*;
-    pub use object::Object;
-    pub use scene::dom::DomScene;
-    pub use scene::Scene;
 }
 
 pub use object::event;

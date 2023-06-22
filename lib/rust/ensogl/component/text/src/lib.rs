@@ -16,7 +16,6 @@
 #![feature(let_chains)]
 #![feature(step_trait)]
 #![feature(specialization)]
-#![feature(once_cell)]
 #![feature(is_sorted)]
 #![feature(array_windows)]
 #![feature(local_key_cell_methods)]
