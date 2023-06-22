@@ -58,7 +58,13 @@ import org.enso.interpreter.runtime.state.State;
 public abstract class InvokeMethodNode extends BaseNode {
   protected static final int CACHE_SIZE = 10;
   private @Child InvokeFunctionNode invokeFunctionNode;
-  private @Child InvokeFunctionNode invokeAnyFunctionNode;
+  /**
+   * A node that is created specifically for cases when a static method is called on {@code Any}. In
+   * such cases, we need to modify the number of passed arguments, therefore, a new {@link
+   * InvokeFunctionNode} has to be created.
+   */
+  private @Child InvokeFunctionNode invokeAnyStaticFunctionNode;
+
   private final ConditionProfile errorReceiverProfile = ConditionProfile.createCountingProfile();
   private @Child InvokeMethodNode childDispatch;
 
@@ -214,7 +220,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       argsWithPrependedSelf[0] = EnsoContext.get(this).getBuiltins().any().getEigentype();
       System.arraycopy(arguments, 0, argsWithPrependedSelf, 1, arguments.length);
 
-      if (invokeAnyFunctionNode == null) {
+      if (invokeAnyStaticFunctionNode == null) {
         CompilerDirectives.transferToInterpreter();
         assert resolvedFuncArgCount >= 2
             : "Resolved function should be on Any.type, therefore, should have at least two self"
@@ -231,16 +237,16 @@ public abstract class InvokeMethodNode extends BaseNode {
         System.arraycopy(invokeFuncSchema, 0, newInvokeFuncSchema, 2, toCopyLen);
 
         assert argsWithPrependedSelf.length == newInvokeFuncSchema.length;
-        invokeAnyFunctionNode =
+        invokeAnyStaticFunctionNode =
             insert(
                 InvokeFunctionNode.build(
                     newInvokeFuncSchema,
                     DefaultsExecutionMode.EXECUTE,
                     ArgumentsExecutionMode.EXECUTE));
       }
-      assert argsWithPrependedSelf.length == invokeAnyFunctionNode.getSchema().length;
+      assert argsWithPrependedSelf.length == invokeAnyStaticFunctionNode.getSchema().length;
       assert Arrays.stream(argsWithPrependedSelf).allMatch(Objects::nonNull);
-      return invokeAnyFunctionNode.execute(function, frame, state, argsWithPrependedSelf);
+      return invokeAnyStaticFunctionNode.execute(function, frame, state, argsWithPrependedSelf);
     }
     assert arguments.length == invokeFunctionNode.getSchema().length;
     return invokeFunctionNode.execute(function, frame, state, arguments);
