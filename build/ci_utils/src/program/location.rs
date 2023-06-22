@@ -9,7 +9,7 @@ pub struct Location<P> {
     #[deref]
     #[deref_mut]
     pub executable_path: PathBuf,
-    pub phantom_data:    PhantomData<P>,
+    pub phantom_data:    ZST<P>,
 }
 
 impl<P> AsRef<Path> for Location<P> {

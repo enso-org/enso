@@ -57,6 +57,7 @@ use ensogl::display::shape::StyleWatch;
 use ensogl::gui::cursor;
 use ensogl_component::drop_down::DropdownValue;
 use span_tree::node::Ref as SpanRef;
+use span_tree::PortId;
 use span_tree::TagValue;
 use text::index::Byte;
 
@@ -92,8 +93,6 @@ pub const WIDGET_SPACING_PER_OFFSET: f32 = 7.224_609_4;
 /// the hover area of the port.
 pub const PRIMARY_PORT_MAX_NESTING_LEVEL: usize = 0;
 
-
-
 // ===========
 // === FRP ===
 // ===========
@@ -110,8 +109,8 @@ ensogl::define_endpoints_2! {
     Output {
         value_changed    (span_tree::Crumbs, Option<ImString>),
         request_import   (ImString),
-        on_port_hover    (Switch<span_tree::Crumbs>),
-        on_port_press    (span_tree::Crumbs),
+        on_port_hover    (Switch<PortId>),
+        on_port_press    (PortId),
         pointer_style    (cursor::Style),
         /// Any of the connected port's display object within the widget tree has been updated. This
         /// signal is generated using the `on_updated` signal of the `display_object` of the widget,
@@ -122,6 +121,8 @@ ensogl::define_endpoints_2! {
         /// Dirty flag has been marked. This signal is fired immediately after the update that
         /// caused it. Prefer using `rebuild_required` signal instead, which is debounced.
         marked_dirty_sync (),
+        /// The widget tree has been rebuilt. Its port structure has potentially been updated.
+        on_rebuild_finished (),
     }
 }
 
@@ -475,6 +476,7 @@ pub struct WidgetsFrp {
     pub(super) set_read_only:          frp::Sampler<bool>,
     pub(super) set_view_mode:          frp::Sampler<crate::view::Mode>,
     pub(super) set_profiling_status:   frp::Sampler<crate::node::profiling::Status>,
+    pub(super) hovered_port_children:  frp::Sampler<HashSet<WidgetIdentity>>,
     /// Remove given tree node's reference from the widget tree, and send its only remaining strong
     /// reference to a new widget owner using [`SpanWidget::receive_ownership`] method. This will
     /// effectively give up tree's ownership of that node, and will prevent its view from being
@@ -484,8 +486,8 @@ pub struct WidgetsFrp {
     pub(super) transfer_ownership:     frp::Any<TransferRequest>,
     pub(super) value_changed:          frp::Any<(span_tree::Crumbs, Option<ImString>)>,
     pub(super) request_import:         frp::Any<ImString>,
-    pub(super) on_port_hover:          frp::Any<Switch<span_tree::Crumbs>>,
-    pub(super) on_port_press:          frp::Any<span_tree::Crumbs>,
+    pub(super) on_port_hover:          frp::Any<Switch<PortId>>,
+    pub(super) on_port_press:          frp::Any<PortId>,
     pub(super) pointer_style:          frp::Any<cursor::Style>,
     pub(super) connected_port_updated: frp::Any<()>,
 }
@@ -552,6 +554,12 @@ impl Tree {
             on_port_press <- any(...);
             frp.private.output.on_port_hover <+ on_port_hover;
             frp.private.output.on_port_press <+ on_port_press;
+
+            port_hover_chain_dirty <- all(&on_port_hover, &frp.on_rebuild_finished)._0().debounce();
+            hovered_port_children <- port_hover_chain_dirty.map(
+                f!([model] (port) port.into_on().map_or_default(|id| model.port_child_widgets(id)))
+            ).sampler();
+
         }
 
         let value_changed = frp.private.output.value_changed.clone_ref();
@@ -570,6 +578,7 @@ impl Tree {
             on_port_hover,
             on_port_press,
             pointer_style,
+            hovered_port_children,
             connected_port_updated,
         };
 
@@ -592,11 +601,10 @@ impl Tree {
         self.notify_dirty(self.model.set_usage_type(ast_id, usage_type));
     }
 
-    /// Set connection status for given span crumbs. The connected nodes will be highlighted with a
-    /// different color, and the widgets might change behavior depending on the connection
-    /// status.
-    pub fn set_connected(&self, crumbs: &span_tree::Crumbs, status: Option<color::Lcha>) {
-        self.notify_dirty(self.model.set_connected(crumbs, status));
+    /// Set all currently active connections. The connected nodes will be highlighted with a
+    /// different color, and the widgets might change behavior depending on the connection status.
+    pub fn set_connections(&self, map: &HashMap<PortId, color::Lcha>) {
+        self.notify_dirty(self.model.set_connections(map));
     }
 
     /// Set disabled status for given span tree node. The disabled nodes will be grayed out.
@@ -608,7 +616,7 @@ impl Tree {
 
     /// Rebuild tree if it has been marked as dirty. The dirty flag is marked whenever more data
     /// external to the span-tree is provided, using `set_config_override`, `set_usage_type`,
-    /// `set_connected` or `set_disabled` methods of the widget tree.
+    /// `set_connections` or `set_disabled` methods of the widget tree.
     pub fn rebuild_tree_if_dirty(
         &self,
         tree: &span_tree::SpanTree,
@@ -630,17 +638,14 @@ impl Tree {
         node_expression: &str,
         styles: &StyleWatch,
     ) {
-        self.model.rebuild_tree(self.widgets_frp.clone_ref(), tree, node_expression, styles)
+        self.model.rebuild_tree(self.widgets_frp.clone_ref(), tree, node_expression, styles);
+        self.frp.private.output.on_rebuild_finished.emit(());
     }
 
     /// Get the root display object of the widget port for given span tree node. Not all nodes must
     /// have a distinct widget, so the returned value might be [`None`].
-    pub fn get_port_display_object(
-        &self,
-        span_node: &SpanRef,
-    ) -> Option<display::object::Instance> {
-        let pointer = self.model.get_node_widget_pointer(span_node);
-        self.model.with_port(pointer, |w| w.display_object().clone())
+    pub fn get_port_display_object(&self, port_id: PortId) -> Option<display::object::Instance> {
+        self.model.with_port(port_id, |w| w.display_object().clone())
     }
 
     /// Get hover shapes for all ports in the tree. Used in tests to manually dispatch mouse events.
@@ -762,9 +767,9 @@ struct TreeModel {
     /// be used to quickly find the parent of a node, or iterate over all children or descendants
     /// of a node.
     hierarchy:      RefCell<Vec<NodeHierarchy>>,
-    ports_map:      RefCell<HashMap<StableSpanIdentity, usize>>,
+    ports_map:      RefCell<HashMap<PortId, WidgetIdentity>>,
     override_map:   Rc<RefCell<HashMap<OverrideKey, Configuration>>>,
-    connected_map:  Rc<RefCell<HashMap<span_tree::Crumbs, color::Lcha>>>,
+    connected_map:  Rc<RefCell<HashMap<PortId, color::Lcha>>>,
     usage_type_map: Rc<RefCell<HashMap<ast::Id, crate::Type>>>,
     node_disabled:  Cell<bool>,
     tree_dirty:     Cell<bool>,
@@ -814,10 +819,13 @@ impl TreeModel {
     }
 
     /// Set the connection status under given widget. It may cause the tree to be marked as dirty.
-    fn set_connected(&self, crumbs: &span_tree::Crumbs, status: Option<color::Lcha>) -> bool {
-        let mut map = self.connected_map.borrow_mut();
-        let dirty = map.synchronize_entry(crumbs.clone(), status);
-        self.mark_dirty_flag(dirty)
+    fn set_connections(&self, map: &HashMap<PortId, color::Lcha>) -> bool {
+        let mut prev_map = self.connected_map.borrow_mut();
+        let modified = &*prev_map != map;
+        if modified {
+            *prev_map = map.clone();
+        }
+        self.mark_dirty_flag(modified)
     }
 
     /// Set the usage type of an expression. It may cause the tree to be marked as dirty.
@@ -952,30 +960,24 @@ impl TreeModel {
         self.hierarchy.replace(builder.hierarchy);
         let mut ports_map_borrow = self.ports_map.borrow_mut();
         ports_map_borrow.clear();
-        ports_map_borrow.extend(
-            builder.pointer_usage.into_iter().filter_map(|(k, v)| Some((k, v.port_index?))),
-        );
-    }
-
-    /// Convert span tree node to a representation with stable identity across rebuilds. Every node
-    /// in the span tree has a unique representation in the form of a [`StableSpanIdentity`], which
-    /// is more stable across changes in the span tree than [`span_tree::Crumbs`]. The pointer is
-    /// used to identify the widgets or ports in the widget tree.
-    pub fn get_node_widget_pointer(&self, span_node: &SpanRef) -> StableSpanIdentity {
-        StableSpanIdentity::from_node(span_node)
+        ports_map_borrow.extend(builder.pointer_usage.into_iter().filter_map(|(k, v)| {
+            let (port_id, index) = v.assigned_port?;
+            Some((port_id, WidgetIdentity { main: k, index }))
+        }));
     }
 
     /// Perform an operation on a shared reference to a tree port under given pointer. When there is
     /// no port under provided pointer, the operation will not be performed and `None` will be
     /// returned.
-    pub fn with_port<T>(
-        &self,
-        pointer: StableSpanIdentity,
-        f: impl FnOnce(&Port) -> T,
-    ) -> Option<T> {
-        let index = *self.ports_map.borrow().get(&pointer)?;
-        let unique_ptr = WidgetIdentity { main: pointer, index };
-        self.nodes_map.borrow().get(&unique_ptr).and_then(|n| n.node.port()).map(f)
+    pub fn with_port<T>(&self, port: PortId, f: impl FnOnce(&Port) -> T) -> Option<T> {
+        let identity = *self.ports_map.borrow().get(&port)?;
+        self.nodes_map.borrow().get(&identity).and_then(|n| n.node.port()).map(f)
+    }
+
+    /// Compute a set of descendant widgets of a given port.
+    fn port_child_widgets(&self, port: PortId) -> HashSet<WidgetIdentity> {
+        let identity = self.ports_map.borrow().get(&port).copied();
+        identity.map_or_default(|id| self.iter_subtree(id).collect())
     }
 }
 
@@ -1271,12 +1273,12 @@ impl WidgetIdentity {
 #[derive(Debug, Default)]
 struct PointerUsage {
     /// Next sequence index that will be assigned to a widget created for the same span tree node.
-    next_index:   usize,
+    next_index:    usize,
     /// The pointer index of a widget on this span tree that received a port, if any exist already.
-    port_index:   Option<usize>,
+    assigned_port: Option<(PortId, usize)>,
     /// The widget configuration kinds that were already used for this span tree node. Those will
     /// be excluded from config possibilities of the next widget created for this node.
-    used_configs: DynKindFlags,
+    used_configs:  DynKindFlags,
 }
 
 impl PointerUsage {
@@ -1285,9 +1287,15 @@ impl PointerUsage {
         self.next_index - 1
     }
 
-    fn request_port(&mut self, identity: &WidgetIdentity, wants_port: bool) -> bool {
-        let will_receive_port = wants_port && self.port_index.is_none();
-        will_receive_port.then(|| self.port_index = Some(identity.index));
+    fn request_port(
+        &mut self,
+        identity: &WidgetIdentity,
+        port_id: Option<PortId>,
+        wants_port: bool,
+    ) -> bool {
+        let Some(port_id) = port_id else { return false; };
+        let will_receive_port = wants_port && self.assigned_port.is_none();
+        will_receive_port.then(|| self.assigned_port = Some((port_id, identity.index)));
         will_receive_port
     }
 }
@@ -1317,7 +1325,7 @@ struct TreeBuilder<'a> {
     /// selected. This is a temporary map that is cleared and created from scratch for
     /// each tree building process.
     local_overrides: HashMap<OverrideKey, Configuration>,
-    connected_map:   &'a HashMap<span_tree::Crumbs, color::Lcha>,
+    connected_map:   &'a HashMap<PortId, color::Lcha>,
     usage_type_map:  &'a HashMap<ast::Id, crate::Type>,
     old_nodes:       HashMap<WidgetIdentity, TreeEntry>,
     new_nodes:       HashMap<WidgetIdentity, TreeEntry>,
@@ -1406,7 +1414,7 @@ impl<'a> TreeBuilder<'a> {
         let usage_type = span_node.ast_id.and_then(|id| self.usage_type_map.get(&id)).cloned();
 
         // Prepare the widget node info and build context.
-        let connection_color = self.connected_map.get(&span_node.crumbs);
+        let connection_color = span_node.port_id.as_ref().and_then(|p| self.connected_map.get(p));
         let connection = connection_color.map(|&color| EdgeData { color, depth });
         let parent_connection = self.parent_info.as_ref().and_then(|info| info.connection);
         let subtree_connection = connection.or(parent_connection);
@@ -1476,8 +1484,9 @@ impl<'a> TreeBuilder<'a> {
         let this = &mut *ctx.builder;
         let ptr_usage = this.pointer_usage.entry(main_ptr).or_default();
         ptr_usage.used_configs |= configuration.kind.flag();
+        let can_assign_port = configuration.has_port && !is_extended_ast;
         let widget_has_port =
-            ptr_usage.request_port(&widget_id, configuration.has_port && !is_extended_ast);
+            ptr_usage.request_port(&widget_id, ctx.span_node.port_id, can_assign_port);
 
         let port_pad = this.node_settings.custom_port_hover_padding;
         let old_node = this.old_nodes.remove(&widget_id).map(|e| e.node);

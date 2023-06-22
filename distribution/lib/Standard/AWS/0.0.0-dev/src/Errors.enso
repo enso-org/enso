@@ -1,0 +1,10 @@
+from Standard.Base import all
+
+## An error accessing S3
+type S3_Error
+    ## PRIVATE
+    Error message:Text code:Text
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = "S3 Error: " + self.message + " (" + self.code + ")"

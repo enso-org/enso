@@ -4,7 +4,6 @@ import org.enso.interpreter.Constants
 import org.enso.compiler.core.IR.{Expression, IdentifiedLocation}
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
-import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.interpreter.epb.EpbParser
@@ -7549,7 +7548,7 @@ object IR {
         *
         * @param err the original error.
         */
-      case class ResolverError(err: BindingsMap.ResolutionError)
+      case class ResolverError(private val explain: ExplainResolution)
           extends Reason {
 
         /** Provides a human-readable explanation of the error.
@@ -7557,30 +7556,11 @@ object IR {
           * @return a human-readable message.
           */
         override def explain(originalName: IR.Name): String =
-          err match {
-            case BindingsMap.ResolutionAmbiguous(candidates) =>
-              val firstLine =
-                s"The name ${originalName.name} is ambiguous. Possible candidates are:"
-              val lines = candidates.map {
-                case BindingsMap.ResolvedConstructor(
-                      definitionType,
-                      cons
-                    ) =>
-                  s"    Constructor ${cons.name} defined in module ${definitionType.module.getName};"
-                case BindingsMap.ResolvedModule(module) =>
-                  s"    The module ${module.getName};"
-                case BindingsMap.ResolvedPolyglotSymbol(_, symbol) =>
-                  s"    The imported polyglot symbol ${symbol.name};"
-                case BindingsMap.ResolvedMethod(module, symbol) =>
-                  s"    The method ${symbol.name} defined in module ${module.getName}"
-                case BindingsMap.ResolvedType(module, typ) =>
-                  s"    Type ${typ.name} defined in module ${module.getName}"
-              }
-              (firstLine :: lines).mkString("\n")
-            case BindingsMap.ResolutionNotFound =>
-              s"The name `${originalName.name}` could not be found"
-          }
+          this.explain.explain(originalName)
+      }
 
+      trait ExplainResolution {
+        def explain(originalName: IR.Name): String
       }
 
       case class MissingLibraryImportInFQNError(namespace: String)

@@ -110,6 +110,17 @@ type Column
         mapping = self.connection.dialect.get_type_mapping
         mapping.sql_type_to_value_type self.sql_type
 
+    ## PRIVATE
+       Returns a possibly more precise `Value_Type` based on the data in the
+       column.
+
+       Most columns will return their type without changes. A mixed column may
+       return a more precise type if a common type can be found for all of its
+       values.
+    inferred_precise_value_type : Value_Type
+    inferred_precise_value_type self =
+        self.value_type
+
     ## Returns an SQL statement that will be used for materializing this column.
     to_sql : SQL_Statement
     to_sql self = self.to_table.to_sql

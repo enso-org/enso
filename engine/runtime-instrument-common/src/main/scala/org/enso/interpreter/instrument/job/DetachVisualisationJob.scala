@@ -4,39 +4,39 @@ import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api.{
   ContextId,
   ExpressionId,
-  RequestId,
   VisualisationId
 }
-import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
+
+import java.util.logging.Level
 
 /** A job that detaches a visualisation.
   *
-  * @param requestId maybe a request id
   * @param visualisationId an identifier of visualisation
   * @param expressionId an identifier of expression
   * @param contextId an execution context id
-  * @param response a response used to reply to a client
   */
 class DetachVisualisationJob(
-  requestId: Option[RequestId],
   visualisationId: VisualisationId,
   expressionId: ExpressionId,
-  contextId: ContextId,
-  response: ApiResponse
+  contextId: ContextId
 ) extends UniqueJob[Unit](expressionId, List(contextId), false) {
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
-    ctx.locking.acquireContextLock(contextId)
+    val logger        = ctx.executionService.getLogger
+    val lockTimestamp = ctx.locking.acquireContextLock(contextId)
     try {
       ctx.contextManager.removeVisualisation(
         contextId,
         expressionId,
         visualisationId
       )
-      ctx.endpoint.sendToClient(Api.Response(requestId, response))
     } finally {
       ctx.locking.releaseContextLock(contextId)
+      logger.log(
+        Level.FINEST,
+        s"Kept context lock [DetachVisualisationJob] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
+      )
     }
   }
 }

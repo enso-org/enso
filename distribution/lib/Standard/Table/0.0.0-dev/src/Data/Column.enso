@@ -1628,6 +1628,18 @@ type Column
         Storage.to_value_type storage_type
 
     ## PRIVATE
+       Returns a possibly more precise `Value_Type` based on the data in the
+       column.
+
+       Most columns will return their type without changes. A mixed column may
+       return a more precise type if a common type can be found for all of its
+       values.
+    inferred_precise_value_type : Value_Type
+    inferred_precise_value_type self =
+        storage_type = self.java_column.getStorage.inferPreciseType
+        Storage.to_value_type storage_type
+
+    ## PRIVATE
        Converts this column to JS_Object representation.
 
        > Example

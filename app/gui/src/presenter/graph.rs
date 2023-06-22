@@ -17,7 +17,6 @@ use futures::future::LocalBoxFuture;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
-use ide_view::graph_editor::EdgeEndpoint;
 use span_tree::generate::Context as _;
 use view::graph_editor::CallWidgetsConfig;
 
@@ -46,10 +45,13 @@ pub type ViewNodeId = view::graph_editor::NodeId;
 pub type AstNodeId = ast::Id;
 
 /// The connection identifier used by view.
-pub type ViewConnection = view::graph_editor::EdgeId;
+pub type ViewConnection = view::graph_editor::Connection;
 
 /// The connection identifier used by controllers.
 pub type AstConnection = controller::graph::Connection;
+
+/// The connection endpoint used by controllers.
+pub type AstEndpoint = controller::graph::Endpoint;
 
 
 // =================
@@ -166,6 +168,26 @@ impl Model {
         );
     }
 
+    fn connection_made(&self, connection: &ViewConnection) {
+        self.log_action(
+            || {
+                let update = self.state.update_from_view();
+                Some(self.controller.connect(&update.view_to_ast_connection(connection)?))
+            },
+            "make connection",
+        );
+    }
+
+    fn connection_broken(&self, connection: &ViewConnection) {
+        self.log_action(
+            || {
+                let update = self.state.update_from_view();
+                Some(self.controller.disconnect(&update.view_to_ast_connection(connection)?))
+            },
+            "break connection",
+        );
+    }
+
     /// Sets or clears a context switch expression for the specified node.
     ///
     /// A context switch expression allows enabling or disabling the execution of a particular node
@@ -273,40 +295,6 @@ impl Model {
             },
             "remove node",
         )
-    }
-
-    /// Connection was created in view.
-    fn new_connection_created(&self, id: ViewConnection) {
-        self.log_action(
-            || {
-                let connection = self.view.model.edges.get_cloned_ref(&id)?;
-                let ast_to_create = self.state.update_from_view().create_connection(connection)?;
-                Some(self.controller.connect(&ast_to_create))
-            },
-            "create connection",
-        );
-    }
-
-    /// Connection was removed in view.
-    fn connection_removed(&self, id: ViewConnection) {
-        self.log_action(
-            || {
-                let update = self.state.update_from_view();
-                let ast_to_remove = update.remove_connection(id)?;
-                Some(self.controller.disconnect(&ast_to_remove).map(|target_crumbs| {
-                    if let Some(crumbs) = target_crumbs {
-                        trace!(
-                            "Updating edge target after disconnecting it. New crumbs: {crumbs:?}"
-                        );
-                        // If we are still using this edge (e.g. when dragging it), we need to
-                        // update its target endpoint. Otherwise it will not reflect expression
-                        // update performed on the target node.
-                        self.view.replace_detached_edge_target((id, crumbs));
-                    };
-                }))
-            },
-            "delete connection",
-        );
     }
 
     fn nodes_collapsed(&self, collapsed: &[ViewNodeId]) {
@@ -541,7 +529,7 @@ struct ViewUpdate {
     state:       Rc<State>,
     nodes:       Vec<controller::graph::Node>,
     trees:       HashMap<AstNodeId, controller::graph::NodeTrees>,
-    connections: HashSet<AstConnection>,
+    connections: Vec<AstConnection>,
 }
 
 impl ViewUpdate {
@@ -551,7 +539,7 @@ impl ViewUpdate {
         let state = model.state.clone_ref();
         let nodes = model.controller.graph().nodes()?;
         let connections_and_trees = model.controller.connections()?;
-        let connections = connections_and_trees.connections.into_iter().collect();
+        let connections = connections_and_trees.connections;
         let trees = connections_and_trees.trees;
         Ok(Self { state, nodes, trees, connections })
     }
@@ -628,21 +616,11 @@ impl ViewUpdate {
             .collect()
     }
 
-    /// Remove connections from the state and return views to be removed.
+    /// Get all current connections from the updated state, and return them in a form suitable for
+    /// passing to the Graph Editor view.
     #[profile(Debug)]
-    fn remove_connections(&self) -> Vec<ViewConnection> {
-        self.state.update_from_controller().retain_connections(&self.connections)
-    }
-
-    /// Add connections to the state and return endpoints of connections to be created in views.
-    #[profile(Debug)]
-    fn add_connections(&self) -> Vec<(EdgeEndpoint, EdgeEndpoint)> {
-        let ast_conns = self.connections.iter();
-        ast_conns
-            .filter_map(|connection| {
-                self.state.update_from_controller().set_connection(connection.clone())
-            })
-            .collect()
+    fn map_all_connections(&self) -> Vec<ViewConnection> {
+        self.state.update_from_controller().map_connections(&self.connections)
     }
 
     #[profile(Debug)]
@@ -738,11 +716,7 @@ impl Graph {
 
             // === Refreshing Connections ===
 
-            remove_connection <= update_data.map(|update| update.remove_connections());
-            add_connection <= update_data.map(|update| update.add_connections());
-            view.remove_edge <+ remove_connection;
-            view.connect_nodes <+ add_connection;
-
+            view.set_connections <+ update_data.map(|update| update.map_all_connections());
 
             // === Refreshing Expressions ===
 
@@ -761,11 +735,11 @@ impl Graph {
 
             eval view.node_position_set_batched(((node_id, position)) model.node_position_changed(*node_id, *position));
             eval view.node_removed((node_id) model.node_removed(*node_id));
-            eval view.on_edge_endpoints_set((edge_id) model.new_connection_created(*edge_id));
-            eval view.on_edge_endpoint_unset(((edge_id,_)) model.connection_removed(*edge_id));
             eval view.nodes_collapsed(((nodes, _)) model.nodes_collapsed(nodes));
             eval view.enabled_visualization_path(((node_id, path)) model.node_visualization_changed(*node_id, path.clone()));
             eval view.node_expression_span_set(((node_id, crumbs, expression)) model.node_expression_span_set(*node_id, crumbs, expression.clone_ref()));
+            eval view.connection_made((connection) model.connection_made(connection));
+            eval view.connection_broken((connection) model.connection_broken(connection));
             eval view.node_action_context_switch(((node_id, active)) model.node_action_context_switch(*node_id, *active));
             eval view.node_action_skip(((node_id, enabled)) model.node_action_skip(*node_id, *enabled));
             eval view.node_action_freeze(((node_id, enabled)) model.node_action_freeze(*node_id, *enabled));

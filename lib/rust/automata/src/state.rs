@@ -26,7 +26,7 @@ use crate::nfa::Nfa; // FIXME
 #[derivative(PartialOrd(bound = ""))]
 #[allow(missing_docs)]
 pub struct State<T> {
-    tp: PhantomData<T>,
+    tp: ZST<T>,
     id: usize,
 }
 
@@ -41,7 +41,7 @@ impl<T> State<T> {
     /// Constructor. Not exposed to public as it should never be possible to construct a state
     /// from a number.
     pub(crate) const fn new(id: usize) -> Self {
-        let tp = PhantomData;
+        let tp = ZST();
         Self { tp, id }
     }
 

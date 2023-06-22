@@ -292,6 +292,10 @@ impl MethodPointerToIdMap {
 #[fail(display = "The suggestion with id {} has not been found in the database.", _0)]
 pub struct NoSuchEntry(pub SuggestionId);
 
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Eq, Fail, PartialEq)]
+#[fail(display = "The suggestion with name {} has not been found in the database.", _0)]
+pub struct NoSuchEntryWithName(pub String);
 
 
 // ====================
@@ -476,10 +480,13 @@ impl SuggestionDatabase {
 
     /// Search the database for an entry at `fully_qualified_name`. The parameter is expected to be
     /// composed of segments separated by the [`ACCESS`] character.
-    pub fn lookup_by_qualified_name_str(&self, qualified_name_str: &str) -> Option<Rc<Entry>> {
-        let qualified_name = QualifiedName::from_text(qualified_name_str).ok()?;
+    pub fn lookup_by_qualified_name_str(
+        &self,
+        qualified_name_str: &str,
+    ) -> FallibleResult<Rc<Entry>> {
+        let qualified_name = QualifiedName::from_text(qualified_name_str)?;
         let (_, entry) = self.lookup_by_qualified_name(&qualified_name)?;
-        Some(entry)
+        Ok(entry)
     }
 
     /// Search the database for an entry at `name` consisting fully qualified name segments, e.g.
@@ -487,11 +494,15 @@ impl SuggestionDatabase {
     pub fn lookup_by_qualified_name<'a>(
         &self,
         name: impl Into<QualifiedNameRef<'a>>,
-    ) -> Option<(SuggestionId, Rc<Entry>)> {
+    ) -> FallibleResult<(SuggestionId, Rc<Entry>)> {
         let name = name.into();
         let segments = name.segments().map(CloneRef::clone_ref);
-        let id = self.qualified_name_to_id_map.borrow().get(segments);
-        id.and_then(|id| Some((id, self.lookup(id).ok()?)))
+        let id = self
+            .qualified_name_to_id_map
+            .borrow()
+            .get(segments)
+            .ok_or_else(|| NoSuchEntryWithName(name.to_string()))?;
+        Ok((id, self.lookup(id)?))
     }
 
     /// Search the database for entries with given name and visible at given location in module.
@@ -668,14 +679,14 @@ fn swap_value_and_traverse_back_pruning_empty_subtrees<P, I>(
 pub mod test {
     use super::*;
 
-    use enso_executor::test_utils::TestWithLocalPoolExecutor;
-
     use double_representation::name::NamePath;
     use engine_protocol::language_server::FieldUpdate;
     use engine_protocol::language_server::SuggestionEntry;
     use engine_protocol::language_server::SuggestionsDatabaseEntry;
     use engine_protocol::language_server::SuggestionsDatabaseModification;
+    use enso_executor::test_utils::TestWithLocalPoolExecutor;
     use futures::stream::StreamExt;
+    use std::assert_matches::assert_matches;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
     wasm_bindgen_test_configure!(run_in_browser);
@@ -818,7 +829,9 @@ pub mod test {
     /// is [`None`].
     fn lookup_and_verify_empty_result(db: &SuggestionDatabase, fully_qualified_name: &str) {
         let lookup = db.lookup_by_qualified_name_str(fully_qualified_name);
-        assert_eq!(lookup, None);
+        let err = lookup.expect_err("Lookup must return error.");
+        let err = err.downcast::<NoSuchEntryWithName>();
+        assert_matches!(err, Ok(NoSuchEntryWithName(fqn)) if fqn == fully_qualified_name);
     }
 
     fn db_entry(id: SuggestionId, suggestion: SuggestionEntry) -> SuggestionsDatabaseEntry {
@@ -1326,22 +1339,22 @@ pub mod test {
 
     // === Hierarchy Index tests ===
 
-    fn lookup_id_by_name(db: &SuggestionDatabase, name: &str) -> Option<entry::Id> {
-        let name = QualifiedName::from_text(name).ok()?;
+    fn lookup_id_by_name(db: &SuggestionDatabase, name: &str) -> FallibleResult<entry::Id> {
+        let name = QualifiedName::from_text(name)?;
         let (id, _) = db.lookup_by_qualified_name(&name)?;
-        Some(id)
+        Ok(id)
     }
 
     /// Verify that the entry with the given `name` has `expected` children. Children are defined as
     /// methods or constructors of the Type or Types defined in the module.
     fn verify_hierarchy_index(db: &SuggestionDatabase, name: &str, expected: &[&str]) {
         let id = lookup_id_by_name(db, name);
-        let id = id.unwrap_or_else(|| panic!("No entry with name {name}"));
+        let id = id.unwrap_or_else(|_| panic!("No entry with name {name}"));
         let hierarchy_index = db.hierarchy_index.borrow();
         let actual_ids = hierarchy_index.get(&id);
         let actual_ids = actual_ids.unwrap_or_else(|| panic!("No entry for id {id}"));
         let id_from_name = |name: &&str| {
-            lookup_id_by_name(db, name).unwrap_or_else(|| panic!("No entry with name {name}"))
+            lookup_id_by_name(db, name).unwrap_or_else(|_| panic!("No entry with name {name}"))
         };
         let expected_ids: HashSet<_> = expected.iter().map(id_from_name).collect();
         let name_from_id = |id: &entry::Id| {

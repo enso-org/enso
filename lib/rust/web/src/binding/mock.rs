@@ -513,13 +513,15 @@ mock_data! { Object => JsValue
 // === EventTarget ===
 mock_data! { EventTarget => Object
     fn remove_event_listener_with_callback
-        (&self, tp:&str, f:&Function) -> Result<(), JsValue>;
+        (&self, tp: &str, f: &Function) -> Result<(), JsValue>;
+    fn remove_event_listener_with_callback_and_event_listener_options
+        (&self, tp: &str, f: &Function, opt: &EventListenerOptions) -> Result<(), JsValue>;
     fn add_event_listener_with_callback
-        (&self, tp:&str, f:&Function) -> Result<(), JsValue>;
+        (&self, tp: &str, f: &Function) -> Result<(), JsValue>;
     fn add_event_listener_with_callback_and_bool
-        (&self, tp:&str, f:&Function, opt:bool) -> Result<(), JsValue>;
+        (&self, tp: &str, f: &Function, opt: bool) -> Result<(), JsValue>;
     fn add_event_listener_with_callback_and_add_event_listener_options
-        (&self, tp:&str, f:&Function, opt:&AddEventListenerOptions)
+        (&self, tp: &str, f: &Function, opt: &AddEventListenerOptions)
         -> Result<(), JsValue>;
 }
 
@@ -571,6 +573,15 @@ mock_data! { AddEventListenerOptions
 impl AddEventListenerOptions {
     mock_pub_fn!(capture(&mut self, val:bool) -> &mut Self);
     mock_pub_fn!(passive(&mut self, val:bool) -> &mut Self);
+    mock_pub_fn!(once(&mut self, val:bool) -> &mut Self);
+}
+
+// === EventListenerOptions ===
+mock_data! { EventListenerOptions
+    fn new() -> Self;
+}
+impl EventListenerOptions {
+    mock_pub_fn!(capture(&mut self, val:bool) -> &mut Self);
 }
 
 
