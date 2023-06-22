@@ -128,8 +128,8 @@ export function ShareWithModal(props: ShareWithModalProps) {
                     } catch (error) {
                         toast.error(
                             `Unable to invite user '${email}': ${
-                                errorModule.tryGetMessage(error) ?? 'unknown error'
-                            }.`
+                                errorModule.tryGetMessage(error) ?? 'unknown error.'
+                            }`
                         )
                     }
                 } else if (user != null && permission != null) {
