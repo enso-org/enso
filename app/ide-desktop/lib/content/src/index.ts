@@ -10,7 +10,7 @@ import * as contentConfig from 'enso-content-config'
 import * as detect from 'enso-common/src/detect'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist'
-import * as config from '../../dashboard/src/authentication/src/config'
+import * as authConfig from '../../dashboard/src/authentication/src/config'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
@@ -35,7 +35,7 @@ const SECOND = 1000
 /** Time in seconds after which a `fetchTimeout` ends. */
 const FETCH_TIMEOUT = 300
 /** URL address where remote logs should be sent. */
-const REMOTE_LOG_URL = `${config.ACTIVE_CONFIG.apiUrl}/logs`
+const REMOTE_LOG_URL = `${authConfig.ACTIVE_CONFIG.apiUrl}/logs`
 
 // ===================
 // === Live reload ===
@@ -182,9 +182,6 @@ class Main implements AppRunner {
         if (!this.app.initialized) {
             console.error('Failed to initialize the application.')
         } else {
-            if (contentConfig.OPTIONS.options.dataCollection.value) {
-                // TODO: Add remote-logging here.
-            }
             if (!(await checkMinSupportedVersion(contentConfig.OPTIONS))) {
                 displayDeprecatedVersionDialog()
             } else {

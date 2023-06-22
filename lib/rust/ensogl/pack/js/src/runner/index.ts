@@ -247,7 +247,7 @@ export class App {
     async remoteLog(message: string, data: any) {
         try {
             if (
-                this.config.options.remoteLogging.value &&
+                this.config.options.dataCollection.value &&
                 this.remoteLoggerUrl &&
                 this.accessToken
             ) {
