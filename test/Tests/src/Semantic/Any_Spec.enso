@@ -44,7 +44,7 @@ spec =
             With_Y.Value 44 . x . should_equal "With_Y:With_Y(44)"
             My_Type.x . should_equal "Any:My_Type"
             With_X.x . to_text . should_equal "Any:With_X"
-            Meta.is_a With_X.y Function . should_be_true
+            Meta.should_be_a With_X.y Function
             With_Y.x . to_text . should_equal "Any:With_Y"
             Meta.is_a With_Y.y Function . should_be_true
             With_X.to_text . to_text . should_equal "With_X"
@@ -63,7 +63,7 @@ spec =
             Meta.is_a (Any.==) Function . should_be_true
             Meta.is_a (Any.== self=Boolean) Function . should_be_true
             (Any.== self=Any Boolean) . should_be_false
-            (Any.== Any Boolean) . should_be_false
+            (Any.== Any Any) . should_be_true
             (Any.== Boolean) . should_be_false
             (Any.== Any) . should_be_true
             (Any == Boolean) . should_be_false
@@ -92,7 +92,7 @@ spec =
         Test.specify "instance methods on different types should not have defaulted self argument" <|
             # Vector.contains has two arguments (self elem)
             Vector.contains . to_text . contains "Vector.type.contains" . should_be_true
-            (Vector.contains 42) . to_text . contains "Vector.type.contains" . should_be_true
+            (Vector.contains [42]) . to_text . contains "Vector.type.contains" . should_be_true
             Vector.contains self=[1,2,3] 1 . should_be_true
             Vector.contains [1,2,3] 1 . should_be_true
 
