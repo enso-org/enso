@@ -298,6 +298,28 @@ impl Network {
         self.register(OwnedBatch::new(label, input))
     }
 
+    /// Batch unique incoming events emitted within a single microtask. The batch will be emitted
+    /// after the current program execution finishes, but before returning to the event loop. All
+    /// emitted batches are guaranteed to be non-empty. Since the batch is emitted as a hash set,
+    /// the order of incoming events is not preserved.
+    ///
+    /// Use [`Network::debounce`] if you want to receive only the latest value emitted within a
+    /// microtask.
+    ///
+    /// ```text
+    /// Input:       ───────1───3─2─3───────────
+    /// Microtasks:  ── ▶───── ▶───── ▶───── ▶──
+    /// Output:      ──────────{1}────{2,3}─────
+    /// ```
+    ///
+    /// Note: See documentation of [`crate::microtasks`] module for more details about microtasks.
+    pub fn batch_unique<T>(&self, label: Label, input: &T) -> Stream<HashSet<Output<T>>>
+    where
+        T: EventOutput,
+        Output<T>: Hash + Eq, {
+        self.register(OwnedBatchUnique::new(label, input))
+    }
+
 
     /// Fold the incoming value using [`Monoid`] implementation.
     pub fn fold<T1, X>(&self, label: Label, event: &T1) -> Stream<X>
@@ -1028,6 +1050,29 @@ impl Network {
         F: 'static + Fn(&Output<T>) -> Out, {
         self.register(OwnedMap::new(label, src, f))
     }
+
+    /// A version of map that operates on [`Some`] values. The provided function will only be called
+    /// when incoming stream's value is `Some(In)`. If you need the provided function to return an
+    /// optional type, use [`Network::and_then`].
+    pub fn map_some<T, In, F, Out>(&self, label: Label, src: &T, f: F) -> Stream<Option<Out>>
+    where
+        T: EventOutput<Output = Option<In>>,
+        Out: Data,
+        F: 'static + Fn(&In) -> Out, {
+        self.map(label, src, move |value| value.as_ref().map(&f))
+    }
+
+    /// A version of map that operates on optionals. The provided function will only be called when
+    /// incoming stream's value is [`Some`], and then the provided function can return an optional
+    /// itself. If you want a non-optional return type, use [`Network::map_some`].
+    pub fn and_then<T, In, F, Out>(&self, label: Label, src: &T, f: F) -> Stream<Option<Out>>
+    where
+        T: EventOutput<Output = Option<In>>,
+        Out: Data,
+        F: 'static + Fn(&In) -> Option<Out>, {
+        self.map(label, src, move |value| value.as_ref().and_then(&f))
+    }
+
 
     pub fn map_<'a, T, F, Out>(&self, label: Label, src: &T, f: F) -> Stream<()>
     where
@@ -2791,7 +2836,7 @@ impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedBatch<T> {
                 let this = weak.upgrade();
                 let this = this.expect("BatchData holds callback handle, so it must be alive.");
                 this.scheduled_task.take();
-                let batch = this.collected_batch.borrow_mut().drain(..).collect();
+                let batch = this.collected_batch.take();
                 this.emit_event(&default(), &batch);
             });
             scheduled_task.replace(handle);
@@ -2800,6 +2845,66 @@ impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedBatch<T> {
 }
 
 impl<T: EventOutput> stream::InputBehaviors for BatchData<T> {
+    fn input_behaviors(&self) -> Vec<Link> {
+        vec![]
+    }
+}
+
+
+// ===================
+// === BatchUnique ===
+// ===================
+
+#[derive(Debug)]
+pub struct BatchUniqueData<T: HasOutput> {
+    _input:          T,
+    collected_batch: RefCell<HashSet<Output<T>>>,
+    scheduled_task:  RefCell<Option<enso_callback::Handle>>,
+}
+
+pub type OwnedBatchUnique<T> = stream::Node<BatchUniqueData<T>>;
+pub type BatchUnique<T> = stream::WeakNode<BatchUniqueData<T>>;
+
+impl<T: HasOutput> HasOutput for BatchUniqueData<T> {
+    type Output = HashSet<Output<T>>;
+}
+
+impl<T: EventOutput> OwnedBatchUnique<T>
+where Output<T>: Eq + Hash
+{
+    /// Constructor.
+    pub fn new(label: Label, input: &T) -> Self {
+        let definition = BatchUniqueData {
+            _input:          input.clone_ref(),
+            collected_batch: default(),
+            scheduled_task:  default(),
+        };
+        Self::construct_and_connect(label, input, definition)
+    }
+}
+
+impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedBatchUnique<T>
+where Output<T>: Eq + Hash
+{
+    fn on_event(&self, _stack: CallStack, value: &Output<T>) {
+        self.collected_batch.borrow_mut().insert(value.clone());
+        let mut scheduled_task = self.scheduled_task.borrow_mut();
+        if scheduled_task.is_none() {
+            let weak = self.downgrade();
+            let handle = next_microtask(move || {
+                let this = weak.upgrade();
+                let this =
+                    this.expect("BatchUniqueData holds callback handle, so it must be alive.");
+                this.scheduled_task.take();
+                let batch = this.collected_batch.take();
+                this.emit_event(&default(), &batch);
+            });
+            scheduled_task.replace(handle);
+        }
+    }
+}
+
+impl<T: EventOutput> stream::InputBehaviors for BatchUniqueData<T> {
     fn input_behaviors(&self) -> Vec<Link> {
         vec![]
     }
@@ -2836,12 +2941,14 @@ impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedDebounce<T> {
         let mut next_value = self.next_value.borrow_mut();
         let not_scheduled = next_value.is_none();
         next_value.replace(value.clone());
+        drop(next_value);
 
         if not_scheduled {
             let weak = self.downgrade();
             let handler = next_microtask(move || {
                 if let Some(node) = weak.upgrade() {
-                    if let Some(value) = node.next_value.borrow_mut().take() {
+                    let taken_value = node.next_value.borrow_mut().take();
+                    if let Some(value) = taken_value {
                         node.emit_event(&default(), &value);
                     }
                 }

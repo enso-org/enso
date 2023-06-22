@@ -76,9 +76,25 @@ impl Default for GlobalState {
 
 static GLOBAL: LazyLock<Mutex<GlobalState>> = LazyLock::new(default);
 
-/// Returns a reference to the global multi-progress bar.
-pub fn multi_progress_bar() -> MultiProgress {
-    GLOBAL.lock().unwrap().mp.clone()
+/// Suspends (i.e., hides) the global [`MultiProgress`] bar, executes the given closure, then
+/// resumes (i.e., shows) the [`MultiProgress`] bar.
+///
+/// The [`MultiProgress`] bar must be suspended before logs are written or flushed to the console.
+/// If logs are written or flushed without suspending the [`MultiProgress`] bar, they will clobber
+/// the [`MultiProgress`] bar.
+///
+/// The reason this function is provided rather than letting callers clone the [`MultiProgress`] bar
+/// and suspend it themselves is to avoid deadlocks. The [`MultiProgress`] bar contains an
+/// [`RwLock`] internally. The [`GLOBAL`] state owns the [`MultiProgress`] bar and is itself wrapped
+/// in a [`Mutex`]. This means that if [`MultiProgress`] bar is cloned, a data race can happen,
+/// since there are two locks, one of which nests the other.
+///
+/// [`MultiProgress`]: indicatif::MultiProgress
+/// [`GLOBAL`]: GLOBAL
+/// [`RwLock`]: std::sync::RwLock
+/// [`Mutex`]: std::sync::Mutex
+pub fn with_suspend_multi_progress_bar<T>(f: impl FnOnce() -> T) -> T {
+    GLOBAL.lock().unwrap().mp.suspend(f)
 }
 
 pub fn progress_bar(f: impl FnOnce() -> ProgressBar) -> ProgressBar {
