@@ -620,10 +620,11 @@ type Column
     round self decimal_places=0 use_bankers=False =
         Rounding_Helpers.check_decimal_places decimal_places <|
             round_maybe = if decimal_places <= 0 then roundlike_cast self.value_type else identity
+            decimal_const x = self.const x . cast Value_Type.Decimal
             result_uncast = case self.value_type of
                 Value_Type.Integer _ -> self.round_integer decimal_places use_bankers
                 Value_Type.Float _ -> self.round_float decimal_places use_bankers
-                Value_Type.Decimal _ _ -> self.round_float decimal_places use_bankers
+                Value_Type.Decimal _ _ -> self.round_float decimal_places use_bankers decimal_const
                 _ ->
                     expected = "Value_Type.Decimal, Value_Type.Float, or Value_Type.Integer"
                     Error.throw (Invalid_Value_Type.Column expected self.value_type self.name)
@@ -632,18 +633,25 @@ type Column
 
     ## PRIVATE
        Round a float-like column.
-    round_float : Integer -> Boolean -> Column
-    round_float self decimal_places use_bankers =
+    round_float : Integer -> Boolean -> (Any -> Column) -> Column
+    round_float self decimal_places use_bankers const_wrapper=self.const =
+        k = const_wrapper
         new_name = self.naming_helpers.function_name "round" [self]
         #scale = (self.const (10 ^ decimal_places)) . cast Value_Type.Decimal
-        scale = 10 ^ decimal_places
+        ##
+            point_five = self.const 0.5 . cast Value_Type.Decimal
+            zero = self.const 0 . cast Value_Type.Decimal
+            one = self.const 1 . cast Value_Type.Decimal
+            two = self.const 2 . cast Value_Type.Decimal
+            ten = self.const 10 . cast Value_Type.Decimal
+        scale = k 10 ^ decimal_places
         scaled = self * scale
         round_base = scaled.floor . rename "rb"
-        round_midpoint = (round_base + 0.5) / scale
-        even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
-        half_goes_up = if use_bankers then even_is_up else self >= 0
+        round_midpoint = (round_base + k 0.5) / scale
+        even_is_up = (self >= k 0).iif ((scaled.truncate % k 2) != k 0) ((scaled.truncate % k 2) == k 0)
+        half_goes_up = if use_bankers then even_is_up else self >= k 0
         do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
-        result = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
+        result = do_round_up.iif ((round_base + k 1) / scale) (round_base / scale)
         #result = round_midpoint
 
         ##
