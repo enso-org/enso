@@ -1,5 +1,7 @@
-#![allow(clippy::derivable_impls)]
 //! `BufferUsage` specifies the intended usage pattern of the data store for optimization purposes.
+
+// === Non-Standard Linter Configuration ===
+#![allow(clippy::derivable_impls)]
 
 use crate::prelude::*;
 

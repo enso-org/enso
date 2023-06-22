@@ -782,8 +782,11 @@ impl<T> Located<T> {
     }
 
     /// Takes crumbs relative to self and item that will be wrapped.
-    pub fn descendant<U, I>(&self, crumbs: impl IntoCrumbs<I>, child: U) -> Located<U>
-    where Crumb: From<I> {
+    pub fn descendant<U, I: Into<Crumb>>(
+        &self,
+        crumbs: impl IntoCrumbs<I>,
+        child: U,
+    ) -> Located<U> {
         let crumbs_so_far = self.crumbs.iter().cloned();
         let crumbs = crumbs_so_far.chain(crumbs.into_crumbs());
         Located::new(crumbs, child)

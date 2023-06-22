@@ -1,8 +1,11 @@
+//! A slot map based on [`UnrolledLinkedList`].
+
 // Clippy thinks that `Item` is unused in [`Slot`] definition, but it is not correct.
 // It also does not seem to be possible to disable this lint for the particular struct only.
+
+// === Non-Standard Linter Configuration ===
 #![allow(clippy::extra_unused_type_parameters)]
 
-//! A slot map based on [`UnrolledLinkedList`].
 use crate::prelude::*;
 
 use crate::unrolled_linked_list;

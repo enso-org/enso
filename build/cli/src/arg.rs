@@ -1,5 +1,6 @@
-// TODO: update clap
+// === Non-Standard Linter Configuration ===
 #![allow(unused_qualifications)]
+
 use enso_build::prelude::*;
 
 use clap::Arg;
