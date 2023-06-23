@@ -204,6 +204,7 @@ object ExecutionContextJsonMessages {
               "expressionId": $expressionId,
               "visualisationConfig": {
                 "executionContextId": ${configuration.executionContextId},
+                "visualisationModule": ${configuration.visualisationModule},
                 "expression": {
                   "module": ${methodPointer.module},
                   "definedOnType": ${methodPointer.definedOnType},
