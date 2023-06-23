@@ -61,16 +61,21 @@ public abstract class InvokeFunctionNode extends BaseNode {
     return InvokeFunctionNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
   }
 
-  /** Creates a simple node to invoke a function with provided arity.
+  /**
+   * Creates a simple node to invoke a function with provided arity.
+   *
    * @param arity number of arguments to pass to the function
    * @return instance of this node to handle a {@code arity}-arity function invocation
    */
   public static InvokeFunctionNode buildWithArity(int arity) {
     var schema = new CallArgumentInfo[arity];
     for (int idx = 0; idx < schema.length; idx++) {
-        schema[idx] = new CallArgumentInfo();
+      schema[idx] = new CallArgumentInfo();
     }
-    return build(schema, InvokeCallableNode.DefaultsExecutionMode.EXECUTE, InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
+    return build(
+        schema,
+        InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+        InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
   }
 
   EnsoContext getContext() {
