@@ -292,9 +292,9 @@ impl Manager {
         let current_id = current.as_ref().and_then(|current| current.latest_id());
         let new_desired = new_desired.map(|new_desired| Desired {
             module,
-            expression_id:    target,
+            expression_id: target,
             visualization_id: current_id.unwrap_or_else(VisualizationId::new_v4),
-            metadata:         new_desired,
+            metadata: new_desired,
         });
         self.write_new_desired(target, new_desired)
     }
