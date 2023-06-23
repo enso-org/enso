@@ -485,7 +485,8 @@ object ProgramExecutionSupport {
           Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
         ctx.executionService.getLogger.log(
           Level.WARNING,
-          s"Visualisation evaluation failed: $message."
+          s"Visualisation evaluation failed: $message.",
+          error
         )
         ctx.endpoint.sendToClient(
           Api.Response(
