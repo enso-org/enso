@@ -501,8 +501,7 @@ type Table
         column = self.evaluate_expression expression on_problems
         self.filter column Filter_Condition.Is_True
 
-    ## UNSTABLE
-       Creates a new Table with the specified range of rows from the input
+    ## Creates a new Table with the specified range of rows from the input
        Table.
 
        Arguments:
@@ -514,8 +513,7 @@ type Table
         msg = "`Table.take` is not yet implemented."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
-    ## UNSTABLE
-       Creates a new Table from the input with the specified range of rows
+    ## Creates a new Table from the input with the specified range of rows
        removed.
 
 
@@ -1734,8 +1732,7 @@ type Table
         # assert cols.not_empty
         Query.Select cols self.context
 
-    ## UNSTABLE
-       Returns an SQL statement that will be used for materializing this table.
+    ## Returns an SQL statement that will be used for materializing this table.
     to_sql : SQL_Statement
     to_sql self = self.connection.dialect.generate_sql self.to_select_query
 

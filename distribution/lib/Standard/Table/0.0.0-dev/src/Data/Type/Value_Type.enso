@@ -139,29 +139,25 @@ type Value_Type
        In-Memory and SQLite tables support this.
     Mixed
 
-    ## UNSTABLE
-       Checks if the `Value_Type` represents a boolean type.
+    ## Checks if the `Value_Type` represents a boolean type.
     is_boolean : Boolean
     is_boolean self = case self of
         Value_Type.Boolean -> True
         _ -> False
 
-    ## UNSTABLE
-       Checks if the `Value_Type` represents a floating-point number type.
+    ## Checks if the `Value_Type` represents a floating-point number type.
     is_floating_point : Boolean
     is_floating_point self = case self of
         Value_Type.Float _ -> True
         _ -> False
 
-    ## UNSTABLE
-       Checks if the `Value_Type` represents a text type.
+    ## Checks if the `Value_Type` represents a text type.
     is_text : Boolean
     is_text self = case self of
         Value_Type.Char _ _ -> True
         _ -> False
 
-    ## UNSTABLE
-       Checks if the `Value_Type` represents any numeric type - integer, byte,
+    ## Checks if the `Value_Type` represents any numeric type - integer, byte,
        floating point or decimal.
     is_numeric : Boolean
     is_numeric self = case self of
@@ -171,15 +167,13 @@ type Value_Type
         Value_Type.Decimal _ _ -> True
         _ -> False
 
-    ## UNSTABLE
-       Checks if the `Value_Type` represents an integer type.
+    ## Checks if the `Value_Type` represents an integer type.
     is_integer : Boolean
     is_integer self = case self of
         Value_Type.Integer _ -> True
         _ -> False
 
-    ## UNSTABLE
-       Checks if the `Value_Type` represents a type that holds a date.
+    ## Checks if the `Value_Type` represents a type that holds a date.
 
        It will return true for both `Date` and `Date_Time` types.
     has_date : Boolean
