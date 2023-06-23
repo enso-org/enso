@@ -3,7 +3,6 @@ package org.enso.interpreter.instrument;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
-import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.util.Arrays;
 import java.util.Objects;
@@ -11,7 +10,6 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.EnsoRootNode;
-import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
@@ -83,7 +81,6 @@ public interface IdExecutionService {
   /** A class for notifications about identified expressions' values being computed. */
   class ExpressionValue {
     private final UUID expressionId;
-    private final Node node;
     private final Object value;
     private final String type;
     private final String cachedType;
@@ -96,7 +93,6 @@ public interface IdExecutionService {
      * Creates a new instance of this class.
      *
      * @param expressionId the id of the expression being computed.
-     * @param node the expression node being computed.
      * @param value the value returned by computing the expression.
      * @param type the type of the returned value.
      * @param cachedType the cached type of the value.
@@ -107,21 +103,14 @@ public interface IdExecutionService {
      */
     public ExpressionValue(
         UUID expressionId,
-        Node node,
         Object value,
         String type,
         String cachedType,
         FunctionCallInfo callInfo,
         FunctionCallInfo cachedCallInfo,
         ProfilingInfo[] profilingInfo,
-        boolean wasCached
-    ) {
-      this.node = node;
-      this.expressionId = expressionId != null ? expressionId : switch (node) {
-        case ExpressionNode expr -> expr.getId();
-        case FunctionCallInstrumentationNode call -> call.getId();
-        default -> null;
-      };
+        boolean wasCached) {
+      this.expressionId = expressionId;
       this.value = value;
       this.type = type;
       this.cachedType = cachedType;
@@ -133,10 +122,10 @@ public interface IdExecutionService {
 
     @Override
     public String toString() {
-      String info = Arrays.toString(this.profilingInfo);
+      String profilingInfo = Arrays.toString(this.profilingInfo);
       return "ExpressionValue{"
           + "expressionId="
-          + getExpressionId()
+          + expressionId
           + ", value="
           + (value == null ? "null" : new MaskedString(value.toString()).applyMasking())
           + ", type='"
@@ -150,15 +139,10 @@ public interface IdExecutionService {
           + ", cachedCallInfo="
           + cachedCallInfo
           + ", profilingInfo="
-          + info
+          + profilingInfo
           + ", wasCached="
           + wasCached
           + '}';
-    }
-
-    /** @return where the invocation is happening */
-    public Node getCallSite() {
-      return node;
     }
 
     /** @return the id of the expression computed. */
@@ -245,7 +229,7 @@ public interface IdExecutionService {
           typeName = null;
           functionName = rootNode.getName();
         }
-        default -> {
+        case default -> {
           moduleName = null;
           typeName = null;
           functionName = rootNode.getName();

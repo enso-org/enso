@@ -11,12 +11,10 @@ import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
@@ -24,9 +22,6 @@ import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import java.util.Arrays;
 import java.util.UUID;
 import org.enso.interpreter.node.ClosureRootNode;
-import org.enso.interpreter.node.EnsoRootNode;
-import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /**
@@ -62,51 +57,21 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
   /** A simple value class for function call information. */
   @ExportLibrary(InteropLibrary.class)
   public static final class FunctionCall implements TruffleObject {
-    private final ModuleScope ctx;
     private final Function function;
-    private final State state;
+    private final Object state;
     private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] arguments;
 
     /**
      * Creates an instance of this class.
      *
-     * @param ctx the scope where the instrumentation happens
      * @param function the function being called.
      * @param state the monadic state to pass to the function.
      * @param arguments the arguments passed to the function.
      */
-    public FunctionCall(ModuleScope ctx, Function function, State state, Object[] arguments) {
-      this.ctx = ctx;
+    public FunctionCall(Function function, Object state, Object[] arguments) {
       this.function = function;
-      if ("Widgets.get_widget_json".equals(function.getName())) {
-        Thread.dumpStack();
-      }
       this.state = state;
       this.arguments = arguments;
-    }
-
-    /**
-     * Creates an instance of this class.
-     *
-     * @param ctx the node where the instrumentation happens
-     * @param function the function being called.
-     * @param state the monadic state to pass to the function.
-     * @param arguments the arguments passed to the function.
-     */
-    public FunctionCall(Node ctx, Function function, State state, Object[] arguments) {
-      this(findModuleScope(ctx), function, state, arguments);
-    }
-
-    public FunctionCall(Node ctx, FunctionCall self) {
-      this(ctx, self.function, self.state, self.arguments);
-    }
-
-    private static ModuleScope findModuleScope(Node ctx) {
-      return switch (ctx.getRootNode()) {
-        case EnsoRootNode root -> root.getModuleScope();
-        case null -> null;
-        default -> null;
-      };
     }
 
     /**
@@ -120,31 +85,23 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
     }
 
     /**
-     * Handles execution through the polyglot API. Merges provide arguments with the ones
-     * that are already a part of this object.
+     * Handles execution through the polyglot API. Does not use the arguments provided, since the
+     * function arguments are already a part of this object.
      */
     @ExportMessage
     static class Execute {
       @Specialization
       static Object callCached(
-        FunctionCall functionCall,
-        Object[] arguments,
-        @Cached InteropApplicationNode interopApplicationNode,
-        @CachedLibrary(limit = "10") DynamicObjectLibrary objects
-      ) {
-        var args = Arrays.copyOf(
-          functionCall.getArguments(), functionCall.getArguments().length + arguments.length
-        );
-        System.arraycopy(arguments, 0, args, functionCall.getArguments().length, arguments.length);
-
-        var state = functionCall.state;
-        var old = objects.getOrDefault(state.getContainer(), 43L, null);
-        try {
-          objects.put(state.getContainer(), 43L, functionCall.ctx);
-          return interopApplicationNode.execute(functionCall.function, state, args);
-        } finally {
-          objects.put(state.getContainer(), 43L, old);
-        }
+          FunctionCall functionCall,
+          Object[] arguments,
+          @Cached InteropApplicationNode interopApplicationNode) {
+        Object[] callArguments =
+            Arrays.copyOf(
+                functionCall.getArguments(), functionCall.getArguments().length + arguments.length);
+        System.arraycopy(
+            arguments, 0, callArguments, functionCall.getArguments().length, arguments.length);
+        return interopApplicationNode.execute(
+            functionCall.function, functionCall.state, callArguments);
       }
     }
 
@@ -173,8 +130,8 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
    * @param arguments the arguments passed to the function.
    * @return an instance of {@link FunctionCall} containing the function, state and arguments.
    */
-  public Object execute(VirtualFrame frame, Function function, State state, Object[] arguments) {
-    return new FunctionCall(this, function, state, arguments);
+  public Object execute(VirtualFrame frame, Function function, Object state, Object[] arguments) {
+    return new FunctionCall(function, state, arguments);
   }
 
   /**

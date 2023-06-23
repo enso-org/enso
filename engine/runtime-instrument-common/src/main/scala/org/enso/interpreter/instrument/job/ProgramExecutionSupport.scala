@@ -2,7 +2,6 @@ package org.enso.interpreter.instrument.job
 
 import cats.implicits._
 import com.oracle.truffle.api.exception.AbstractTruffleException
-import com.oracle.truffle.api.nodes.Node
 import org.enso.interpreter.instrument.IdExecutionService.{
   ExpressionCall,
   ExpressionValue
@@ -141,7 +140,6 @@ object ProgramExecutionSupport {
           onCachedMethodCallCallback.accept(
             new ExpressionValue(
               expressionId,
-              null,
               null,
               expressionType,
               expressionType,
@@ -433,8 +431,7 @@ object ProgramExecutionSupport {
           syncState,
           visualisation,
           value.getExpressionId,
-          value.getValue,
-          value.getCallSite()
+          value.getValue
         )
       }
     }
@@ -453,8 +450,7 @@ object ProgramExecutionSupport {
     syncState: UpdatesSynchronizationState,
     visualisation: Visualisation,
     expressionId: UUID,
-    expressionValue: AnyRef,
-    expressionSite: Node = null
+    expressionValue: AnyRef
   )(implicit ctx: RuntimeContext): Unit = {
     val errorOrVisualisationData =
       Either
@@ -464,7 +460,6 @@ object ProgramExecutionSupport {
             s"Executing visualisation ${visualisation.expressionId}"
           )
           ctx.executionService.callFunctionWithInstrument(
-            expressionSite,
             visualisation.cache,
             visualisation.module,
             visualisation.callback,
@@ -485,8 +480,7 @@ object ProgramExecutionSupport {
           Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
         ctx.executionService.getLogger.log(
           Level.WARNING,
-          s"Visualisation evaluation failed: $message.",
-          error
+          s"Visualisation evaluation failed: $message."
         )
         ctx.endpoint.sendToClient(
           Api.Response(

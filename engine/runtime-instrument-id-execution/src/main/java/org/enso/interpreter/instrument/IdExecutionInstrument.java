@@ -34,7 +34,6 @@ import org.enso.interpreter.runtime.Module;
 
 import java.util.function.Consumer;
 import org.enso.interpreter.node.ClosureRootNode;
-import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /** An instrument for getting values from AST-identified expressions. */
@@ -188,8 +187,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
     @CompilerDirectives.TruffleBoundary
     private void onEnterImpl() {
-      var node = context.getInstrumentedNode();
-      UUID nodeId = getNodeId(node);
+      UUID nodeId = getNodeId(context.getInstrumentedNode());
 
       // Add a flag to say it was cached.
       // An array of `ProfilingInfo` in the value update.
@@ -203,7 +201,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         onCachedCallback.accept(
             new ExpressionValue(
                 nodeId,
-                node,
                 result,
                 cache.getType(nodeId),
                 typeOf(result),
@@ -263,9 +260,9 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       FunctionCallInfo cachedCall = cache.getCall(nodeId);
       ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
 
-      var expressionValue = new ExpressionValue(
-        nodeId, node, result, resultType, cachedType, call, cachedCall, profilingInfo, false)
-      ;
+      ExpressionValue expressionValue =
+      new ExpressionValue(
+      nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false);
       syncState.setExpressionUnsync(nodeId);
       syncState.setVisualisationUnsync(nodeId);
 
@@ -327,7 +324,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
             TailCallException tailCallException = (TailCallException) exception;
             FunctionCallInstrumentationNode.FunctionCall functionCall =
                     new FunctionCallInstrumentationNode.FunctionCall(
-                        this,
                         tailCallException.getFunction(),
                         state,
                         tailCallException.getArguments());
