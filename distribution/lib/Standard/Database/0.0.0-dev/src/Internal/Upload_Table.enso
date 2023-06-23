@@ -284,6 +284,9 @@ check_target_table_for_update target_table ~action = case target_table of
    Assumes that `source_table` is a simple table query without any filters,
    joins and other composite operations - if a complex query is needed, it
    should be first materialized into a temporary table.
+
+   If `dry_run` is set to True, only the checks are performed, but the
+   operations actually modifying the target table are not.
 append_to_existing_table source_table target_table update_action key_columns dry_run = In_Transaction.ensure_in_transaction <|
     helper = Append_Helper.Context source_table target_table key_columns dry_run
     upload_status = case update_action of

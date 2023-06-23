@@ -3,6 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+import Standard.Base.Runtime.Context
 
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type.Value_Type
@@ -39,7 +40,19 @@ type JDBC_Connection
        Runs the provided action ensuring that no other thread is working with
        this Connection concurrently.
     synchronized self ~action =
-        callback = _ -> action
+        # We save and restore context information. This is a workaround for bug #7117.
+        restore_context context =
+            saved_setting = context.is_enabled
+            ~action ->
+                case saved_setting of
+                    True -> context.with_enabled action
+                    False -> context.with_disabled action
+        restore_output = restore_context Context.Output
+        restore_input = restore_context Context.Input
+        callback _ =
+            restore_input <|
+                restore_output <|
+                    action
         self.operation_synchronizer.runSynchronizedAction callback
 
     ## PRIVATE
