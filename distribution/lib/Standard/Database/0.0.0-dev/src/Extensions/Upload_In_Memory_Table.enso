@@ -57,7 +57,7 @@ from project.Internal.Upload_Table import all
 @primary_key Widget_Helpers.make_column_name_vector_selector
 Table.select_into_database_table : Connection -> Text -> Vector Text | Nothing -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists | Inexact_Type_Coercion | Missing_Input_Columns | Non_Unique_Primary_Key | SQL_Error | Illegal_Argument
 Table.select_into_database_table self connection (table_name : Text) primary_key=[self.columns.first.name] temporary=False on_problems=Problem_Behavior.Report_Warning =
-    select_into_table self connection table_name primary_key temporary on_problems
+    select_into_table_implementation self connection table_name primary_key temporary on_problems
 
 ## Updates the target table with the contents of this table.
 

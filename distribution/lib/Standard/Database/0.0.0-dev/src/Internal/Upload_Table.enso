@@ -21,7 +21,6 @@ import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
-from project.Connection.Connection import all_known_table_names
 from project.Errors import all
 from project.Internal.Result_Set import result_set_to_table
 
@@ -31,17 +30,22 @@ from project.Internal.Result_Set import result_set_to_table
 
    The user-facing function that handles the dry-run logic.
 create_table_implementation connection table_name structure primary_key temporary allow_existing on_problems = Panic.recover SQL_Error <|
-    case all_known_table_names connection . contains table_name of
+    self.maybe_run_maintenance
+    case connection.base_connection.table_exists table_name of
         True ->
             if allow_existing then connection.query (SQL_Query.Table_Name table_name) else Error.throw (Table_Already_Exists.Error table_name)
         False ->
             dry_run = Context.Output.is_enabled.not
-            effective_table_name = if dry_run.not then table_name else dry_run_table_name table_name
+            effective_table_name = if dry_run.not then table_name else connection.base_connection.generate_dry_run_table_name table_name
             effective_temporary = temporary || dry_run
             created_table_name = Context.Output.with_enabled <|
                 connection.jdbc_connection.run_within_transaction <|
                     if dry_run then
-                        # If the temporary table already exists, we drop it and will overwrite it.
+                        ## This temporary table can be safely dropped if it
+                           exists, because it only existed if it was created by
+                           a previous dry run. `generate_dry_run_table_name`
+                           will never return a name of a table that exists but
+                           was created outside of a dry run.
                         connection.drop_table table_name if_exists=True
                     internal_create_table_structure connection effective_table_name structure primary_key effective_temporary on_problems
             if dry_run.not then connection.query (SQL_Query.Table_Name created_table_name) else
@@ -77,8 +81,9 @@ internal_upload_table source_table connection table_name primary_key temporary o
             Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.get_qualified_type_name source_table)
 
 ## PRIVATE
-select_into_table source_table connection table_name primary_key temporary on_problems =
-    real_target_already_exists = all_known_table_names connection . contains table_name
+select_into_table_implementation source_table connection table_name primary_key temporary on_problems =
+    self.maybe_run_maintenance
+    real_target_already_exists = connection.base_connection.table_exists table_name
     if real_target_already_exists then Error.throw (Table_Already_Exists.Error table_name) else
         Panic.recover SQL_Error <| handle_upload_errors <|
             dry_run = Context.Output.is_enabled.not
@@ -86,8 +91,13 @@ select_into_table source_table connection table_name primary_key temporary on_pr
                 False ->
                     internal_upload_table source_table connection table_name primary_key temporary on_problems=on_problems row_limit=Nothing
                 True ->
-                    tmp_table_name = dry_run_table_name table_name
+                    tmp_table_name = connection.base_connection.generate_dry_run_table_name table_name
                     table = Context.Output.with_enabled <|
+                        ## This temporary table can be safely dropped if it
+                           exists, because it only existed if it was created by
+                           a previous dry run. `generate_dry_run_table_name`
+                           will never return a name of a table that exists but
+                           was created outside of a dry run.
                         connection.drop_table tmp_table_name if_exists=True
                         internal_upload_table source_table connection tmp_table_name primary_key temporary on_problems=on_problems row_limit=dry_run_row_limit
                     temporary_table = connection.internal_allocate_hidden_table table.name
@@ -443,15 +453,6 @@ get_primary_key table =
         selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True
         key_column_names = selected.order_by 1 . at 0 . to_vector
         if key_column_names.is_empty then Nothing else key_column_names
-
-## PRIVATE
-max_table_name_length = 60
-
-## PRIVATE
-   Generates a temporary table name for the given table name, used for dry runs.
-dry_run_table_name table_name =
-    prefix = "enso-dry-run-"
-    prefix + table_name.take (max_table_name_length - prefix.length)
 
 ## PRIVATE
 dry_run_row_limit = 1000

@@ -59,6 +59,10 @@ public class HiddenTableReferenceCounter {
         });
   }
 
+  public synchronized boolean isRegistered(String name) {
+    return tableRefCounts.containsKey(name);
+  }
+
   /**
    * Returns the list of tables that have no remaining references and should be removed.
    * <p>

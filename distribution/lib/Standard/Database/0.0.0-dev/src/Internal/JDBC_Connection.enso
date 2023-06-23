@@ -38,16 +38,9 @@ type JDBC_Connection
     ## PRIVATE
        Runs the provided action ensuring that no other thread is working with
        this Connection concurrently.
-
-       This is used to ensure that queries issued from finalizers do not
-       interrupt any query processing happening on the main thread. This should
-       also be used to wrap transactions, so that the finalizer queries do not
-       run in the middle of a transaction but instead are forced to wait until
-       the whole transaction finishes. The `OperationSynchronizer` uses a
-       re-entrant lock, so it is safe to use this method in nested calls.
     synchronized self ~action =
         callback = _ -> action
-        self.operation_synchronizer.runActionSynchronously callback
+        self.operation_synchronizer.runSynchronizedAction callback
 
     ## PRIVATE
        Closes the connection releasing the underlying database resources
@@ -63,20 +56,25 @@ type JDBC_Connection
        Open the connection to the database, then run the action wrapping any
        SQL errors.
     with_connection : (Connection -> Any) -> Any
-    with_connection self ~action = self.synchronized <|
+    with_connection self action = self.synchronized <|
         handle_sql_errors <|
             self.connection_resource.with action
+
+    ## PRIVATE
+       Runs the provided callback only if no thread is currently inside a
+       `synchronized` critical section (including the current thread).
+    run_maintenance_action_if_possible : (Nothing -> Any) -> Nothing
+    run_maintenance_action_if_possible self callback =
+        self.operation_synchronizer.runMaintenanceActionIfPossible callback
 
     ## PRIVATE
 
        Open the connection to the database, then run the action passing the
        database's metadata wrapping any SQL errors.
     with_metadata : (DatabaseMetaData -> Any) -> Any
-    with_metadata self ~action = self.synchronized <|
-        handle_sql_errors <|
-            self.connection_resource.with connection->
-                metadata = connection.getMetaData
-                action metadata
+    with_metadata self ~action = self.with_connection connection->
+        metadata = connection.getMetaData
+        action metadata
 
     ## PRIVATE
 
@@ -84,7 +82,7 @@ type JDBC_Connection
        information to any thrown SQL errors.
     with_prepared_statement : Text  | SQL_Statement -> Statement_Setter -> (PreparedStatement -> Any) -> Any
     with_prepared_statement self query statement_setter action = self.synchronized <|
-        prepare template values = self.connection_resource.with java_connection->
+        prepare template values = self.with_connection java_connection->
             stmt = java_connection.prepareStatement template
             handle_illegal_state caught_panic =
                 Error.throw (Illegal_Argument.Error caught_panic.payload.message)
@@ -145,7 +143,8 @@ type JDBC_Connection
        running this function (so if it was off before, this method may not
        change anything).
     run_without_autocommit : Any -> Any
-    run_without_autocommit self ~action = self.synchronized <|
+    run_without_autocommit self ~action =
+        # The whole block is already `synchronized` by `with_connection`.
         self.with_connection java_connection->
             default_autocommit = java_connection.getAutoCommit
             Managed_Resource.bracket (java_connection.setAutoCommit False) (_ -> java_connection.setAutoCommit default_autocommit) _->

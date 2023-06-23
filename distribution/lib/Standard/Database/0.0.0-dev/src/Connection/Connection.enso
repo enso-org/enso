@@ -162,6 +162,7 @@ type Connection
        Later, once nodes can have expandable arguments, we can merge this with
        `tables`, marking the `include_hidden` argument as expandable.
     get_tables_advanced self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False include_hidden=False =
+        self.maybe_run_maintenance
         types_vector = case types of
             Nothing -> Nothing
             _ : Vector -> types
@@ -178,6 +179,14 @@ type Connection
             False ->
                 hidden_tables = self.hidden_table_registry.list_hidden_tables
                 result.filter "Name" (Filter_Condition.Not_In hidden_tables)
+
+    ## PRIVATE
+       Checks if the table with the given name exists in the database.
+    table_exists : Text -> Boolean
+    table_exists table_name =
+        # TODO make this more efficient
+        tables = self.get_tables_advanced name_like=Nothing database=connection.database schema=Nothing types=Nothing all_fields=False include_hidden=True
+        tables.at "Name" . to_vector . contains table_name
 
     ## PRIVATE
        Set up a query returning a Table object, which can be used to work with
@@ -201,7 +210,7 @@ type Connection
     query self query alias="" = case query of
         _ : Text ->
             result = self.query alias=alias <|
-                if (all_known_table_names self).contains query then (SQL_Query.Table_Name query) else
+                if self.table_exists query then (SQL_Query.Table_Name query) else
                     SQL_Query.Raw_SQL query
             result.catch SQL_Error sql_error->
                 case self.dialect.is_probably_a_query query of
@@ -343,12 +352,70 @@ type Connection
         self.execute_update (self.dialect.generate_sql (Query.Drop_Table table_name if_exists))
 
     ## PRIVATE
+       Returns the base `Connection` instance.
+
+       Used, so that all internal helper functions do not need to be replicated
+       on the 'subclasses'.
+    base_connection : Connection
+    base_connection = self
+
+    ## PRIVATE
+       If no thread (including the current one) is currently running operations
+       on the connection, maintenance will be performed.
+
+       Currently, this consists of removing dry run tables that are no longer
+       used.
+
+       This method should be run by most database operations to ensure that
+       unused tables are cleaned at some point.
+
+       All errors are swallowed and not propagated, so it is safe to call this
+       method wherever. There is no point of calling this method inside of
+       critical sections as then it will not do anything.
+    maybe_run_maintenance self =
+        callback _ =
+            Hidden_Table_Registry.run_maintenance_table_cleanup self
+        self.jdbc_connection.run_maintenance_action_if_possible callback
+
+    ## PRIVATE
+    max_table_name_length : Integer | Nothing
+    max_table_name_length self =
+        reported = self.jdbc_connection.with_metadata .getMaxTableNameLength
+        if reported == 0 then Nothing else reported
+
+    ## PRIVATE
+       Generates a temporary table name for the given table name, used for dry
+       runs.
+
+       The table name is 'stable', meaning that the same name will be returned
+       for the given input `table_name` on subsequent calls, unless the user
+       creates a clashing table in the meantime.
+
+       The table name is guaranteed to be unique for the database at the time it
+       is generated - this is used to ensure that the dry run tables never
+       overwrite pre-existing user data.
+    generate_dry_run_table_name : Text -> Text
+    generate_dry_run_table_name table_name =
+        go ix =
+            prefix = "enso-dry-run-" + if ix == 0 then "" else ix.to_text + "-"
+            max_length = (self.max_table_name_length.if_nothing 60) - 1
+            name = prefix + table_name.take (max_length - prefix.length)
+            ## The dry run name is ok if it is already registered (that means it
+               may exist in the Database, but it was created by other dry runs
+               and is safe to overwrite) or if it does not exist in the database.
+            name_ok = (self.hidden_table_registry.is_registered name) || (self.table_exists name . not)
+            if name_ok then name else
+                @Tail_Call go (ix + 1)
+        go 0
+
+    ## PRIVATE
        Creates a Table reference that refers to a table with the given name.
 
        Once all references to the table with this name are destroyed, the table
-       will be dropped.
-    internal_allocate_hidden_table self table_name =
-        ref = self.hidden_table_registry.get_reference table_name
+       will be marked for removal and dropped at the next maintenance.
+    internal_allocate_dry_run_table : Text -> Database_Table
+    internal_allocate_dry_run_table self table_name =
+        ref = self.hidden_table_registry.make_reference table_name
         make_table_for_name self table_name table_name ref
 
 ## PRIVATE
@@ -368,11 +435,6 @@ make_schema_selector : Connection -> Widget
 make_schema_selector connection =
     schemas_without_nothing = connection.schemas.filter Filter_Condition.Not_Nothing
     Single_Choice values=(schemas_without_nothing.map t-> Option t t.pretty)+[Option "any schema" "Nothing"]
-
-## PRIVATE
-all_known_table_names connection =
-    tables = connection.get_tables_advanced name_like=Nothing database=connection.database schema=Nothing types=Nothing all_fields=False include_hidden=True
-    tables.at "Name" . to_vector
 
 ## PRIVATE
 make_table_name_selector : Connection -> Widget

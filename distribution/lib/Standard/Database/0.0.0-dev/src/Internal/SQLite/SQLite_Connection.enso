@@ -217,21 +217,12 @@ type SQLite_Connection
         self.connection.drop_table table_name if_exists
 
     ## PRIVATE
-       A helper that allows to access all tables in a database, including hidden
-       ones.
+       Returns the base `Connection` instance.
 
-       Later, once nodes can have expandable arguments, we can merge this with
-       `tables`, marking the `include_hidden` argument as expandable.
-    get_tables_advanced self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False include_hidden=False =
-        self.connection.get_tables_advanced name_like database schema types all_fields include_hidden
-
-    ## PRIVATE
-       Creates a Table reference that refers to a table with the given name.
-
-       Once all references to the table with this name are destroyed, the table
-       will be dropped.
-    internal_allocate_hidden_table self table_name =
-        self.connection.internal_allocate_hidden_table table_name
+       Used, so that all internal helper functions do not need to be replicated
+       on the 'subclasses'.
+    base_connection : Connection
+    base_connection = self.connection
 
 ## PRIVATE
 

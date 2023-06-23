@@ -794,11 +794,11 @@ spec make_new_connection prefix persistent_connector=True =
             dest = connection.create_table dest_name [Column_Description.Value "X" Value_Type.Integer [Column_Constraint.Not_Null]] temporary=True primary_key=[] . should_succeed
             src = source_table_builder [["X", [1, Nothing, 3]]]
 
-            existing_tables = connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
+            existing_tables = connection.base_connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
             res = src.update_database_table dest update_action=Update_Action.Insert key_columns=[]
             res.should_fail_with SQL_Error
 
-            tables_after = connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
+            tables_after = connection.base_connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
             tables_after . should_contain_the_same_elements_as existing_tables
 
     table_builder name_prefix args primary_key=[] =
@@ -835,7 +835,7 @@ spec make_new_connection prefix persistent_connector=True =
             # Workaround for bug #7093
             dry_run_name = Warning.clear table.name
             connection.tables . at "Name" . to_vector . should_not_contain dry_run_name
-            connection.get_tables_advanced include_hidden=True . at "Name" . to_vector . should_contain dry_run_name
+            connection.base_connection.get_tables_advanced include_hidden=True . at "Name" . to_vector . should_contain dry_run_name
 
             table.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
 
@@ -854,7 +854,7 @@ spec make_new_connection prefix persistent_connector=True =
                 table = src.select_into_database_table connection name primary_key=[]
                 sentinel = Managed_Resource.register "payload" (cleanup_sentinel was_cleanup_performed)
                 table.column_names . should_equal ["X"]
-                connection.get_tables_advanced include_hidden=True . at "Name" . to_vector . should_contain table.name
+                connection.base_connection.get_tables_advanced include_hidden=True . at "Name" . to_vector . should_contain table.name
                 table.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
                 name = table.name
                 payload = sentinel.with x-> "transformed_"+x
@@ -862,7 +862,7 @@ spec make_new_connection prefix persistent_connector=True =
                 name
 
             Runtime.gc
-            tables_after_potential_gc = connection.get_tables_advanced include_hidden=True . at "Name" . to_vector
+            tables_after_potential_gc = connection.base_connection.get_tables_advanced include_hidden=True . at "Name" . to_vector
 
             case was_cleanup_performed.get of
                 True ->
@@ -908,7 +908,7 @@ spec make_new_connection prefix persistent_connector=True =
                     pre_existing_table.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
 
         tests source_table_builder suffix =
-            Test.specify "should return a temporary table with a sample of the data for select_into_table"+suffix <|
+            Test.specify "should return a temporary table with a sample of the data for select_into_database_table"+suffix <|
                 Context.Output.with_disabled <|
                     src1 = source_table_builder [["X", [1, 2, 3]]]
                     name = (Name_Generator.random_name "table-foo")
