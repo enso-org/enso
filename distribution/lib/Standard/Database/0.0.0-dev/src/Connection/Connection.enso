@@ -65,9 +65,7 @@ type Connection
          `executeLargeUpdate`.
     new : JDBC_Connection -> Dialect -> Boolean -> Connection
     new jdbc_connection dialect try_large_update=True =
-        drop table_name =
-            internal_drop_table jdbc_connection dialect table_name
-        registry = Hidden_Table_Registry.new drop
+        registry = Hidden_Table_Registry.new
         Connection.Value jdbc_connection dialect (Ref.new try_large_update) registry
 
     ## PRIVATE
@@ -183,9 +181,12 @@ type Connection
     ## PRIVATE
        Checks if the table with the given name exists in the database.
     table_exists : Text -> Boolean
-    table_exists table_name =
-        # TODO make this more efficient
-        tables = self.get_tables_advanced name_like=Nothing database=connection.database schema=Nothing types=Nothing all_fields=False include_hidden=True
+    table_exists self table_name =
+        # We fetch tables whose name is like the requested `table_name`.
+        tables = self.get_tables_advanced name_like=table_name database=self.database schema=Nothing types=Nothing all_fields=False include_hidden=True
+        ## If the name contains special patterns, this may match more than the
+           desired table so instead of an `not_empty` check, we check if the
+           exact name is contained.
         tables.at "Name" . to_vector . contains table_name
 
     ## PRIVATE
@@ -357,7 +358,7 @@ type Connection
        Used, so that all internal helper functions do not need to be replicated
        on the 'subclasses'.
     base_connection : Connection
-    base_connection = self
+    base_connection self = self
 
     ## PRIVATE
        If no thread (including the current one) is currently running operations
@@ -395,7 +396,7 @@ type Connection
        is generated - this is used to ensure that the dry run tables never
        overwrite pre-existing user data.
     generate_dry_run_table_name : Text -> Text
-    generate_dry_run_table_name table_name =
+    generate_dry_run_table_name self table_name =
         go ix =
             prefix = "enso-dry-run-" + if ix == 0 then "" else ix.to_text + "-"
             max_length = (self.max_table_name_length.if_nothing 60) - 1
@@ -409,6 +410,24 @@ type Connection
         go 0
 
     ## PRIVATE
+       Generates a random table name that does not currently exist in the
+       database.
+    generate_random_table_name : Text -> Text
+    generate_random_table_name self prefix="enso-table-" =
+        max_length = self.max_table_name_length
+        minimum_randomness = 5
+        maximum_retries = 20^minimum_randomness
+        if max_length.is_nothing.not && (prefix + minimum_randomness > max_length) then Error.throw (Illegal_State.Error "The prefix has length "+prefix.length.to_text+" while max table name is "+max_length.to_text+" - there is not enough space to safely generate random names.") else
+            go ix =
+                if ix > maximum_retries then Error.throw (Illegal_State.Error "Could not generate a non-assigned random table name after "+maximum_retries+". Giving up.") else
+                    base_name = prefix + Random.random_uuid
+                    name = if max_length.is_nothing then base_name else base_name.take max_length
+                    if self.table_exists name . not then name else
+                        @Tail_Call go (ix + 1)
+            go 0
+
+
+    ## PRIVATE
        Creates a Table reference that refers to a table with the given name.
 
        Once all references to the table with this name are destroyed, the table
@@ -417,13 +436,6 @@ type Connection
     internal_allocate_dry_run_table self table_name =
         ref = self.hidden_table_registry.make_reference table_name
         make_table_for_name self table_name table_name ref
-
-## PRIVATE
-internal_drop_table jdbc_connection dialect table_name =
-    statement_setter = dialect.get_statement_setter
-    query = dialect.generate_sql (Query.Drop_Table table_name if_exists=True)
-    jdbc_connection.with_prepared_statement query statement_setter stmt->
-        stmt.executeUpdate
 
 ## PRIVATE
 make_table_types_selector : Connection -> Widget

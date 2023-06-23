@@ -874,13 +874,13 @@ spec make_new_connection prefix persistent_connector=True =
                     IO.println "[WARNING] The GC was not performed on time in the "+execution_context_group_name+" test. The test did not check the invariants to avoid spurious failures."
 
         if persistent_connector then
-            Test.specify "will not overwrite an existing table with a dry-run table if the name is clashing" <|
+            Test.specify "will not overwrite an existing table with a dry-run table if the name is clashing (create_table)" <|
                 target_name = Name_Generator.random_name "test-table"
                 dry_run_name = Context.Output.with_disabled <|
                     tmp_connection1 = make_new_connection Nothing
                     dry_run_table = tmp_connection1.create_table target_name [Column_Description.Value "A" Value_Type.Integer] temporary=True . should_succeed
                     Problems.expect_warning Dry_Run_Operation dry_run_table
-                    dry_run_name.column_names . should_equal ["A"]
+                    dry_run_table.column_names . should_equal ["A"]
                     name = Warning.clear dry_run_table.name
                     tmp_connection1.close
                     name
@@ -896,7 +896,7 @@ spec make_new_connection prefix persistent_connector=True =
                         # Create a dry run table that is supposed to clash with pre_existing_table
                         dry_run_table = tmp_connection2.create_table target_name [Column_Description.Value "B" Value_Type.Integer] temporary=True . should_succeed
                         Problems.expect_warning Dry_Run_Operation dry_run_table
-                        dry_run_name.column_names . should_equal ["B"]
+                        dry_run_table.column_names . should_equal ["B"]
                         name = Warning.clear dry_run_table.name
                         tmp_connection2.close
                         name
@@ -942,6 +942,43 @@ spec make_new_connection prefix persistent_connector=True =
                     r1.name . should_equal dest.name
                     # But the data is not appended due to the dry-run - the table is unmodified.
                     r1.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+
+            if persistent_connector then
+                Test.specify "will not overwrite an existing table with a dry-run table if the name is clashing (select_into_database_table)"+suffix <|
+                    src1 = source_table_builder [["A", [1, 2, 3]]]
+                    target_name = Name_Generator.random_name "test-table"
+                    dry_run_name = Context.Output.with_disabled <|
+                        tmp_connection1 = make_new_connection Nothing
+                        dry_run_table = src1.select_into_database_table tmp_connection1 target_name temporary=True . should_succeed
+                        Problems.expect_warning Dry_Run_Operation dry_run_table
+                        dry_run_table.column_names . should_equal ["A"]
+                        name = Warning.clear dry_run_table.name
+                        tmp_connection1.close
+                        name
+
+                    pre_existing_src = Table.new [["X", [4, 5, 6]]]
+                    # Create a table that has the same name as the dry run table normally would have.
+                    pre_existing_table = pre_existing_src.select_into_database_table connection dry_run_name temporary=False . should_succeed
+                    pre_existing_table.column_names . should_equal ["X"]
+                    pre_existing_table.at "X" . to_vector . should_contain_the_same_elements_as [4, 5, 6]
+                    Panic.with_finalizer (connection.drop_table pre_existing_table.name if_exists=True) <|
+                        new_dry_run_name = Context.Output.with_disabled <|
+                            tmp_connection2 = make_new_connection Nothing
+                            src3 = source_table_builder [["B", [7, 8, 9]]]
+                            # Create a dry run table that is supposed to clash with pre_existing_table
+                            dry_run_table = src3.select_into_database_table tmp_connection2 target_name temporary=True . should_succeed
+                            Problems.expect_warning Dry_Run_Operation dry_run_table
+                            dry_run_table.column_names . should_equal ["B"]
+                            dry_run_table.at "B" . to_vector . should_contain_the_same_elements_as [7, 8, 9]
+                            name = Warning.clear dry_run_table.name
+                            tmp_connection2.close
+                            name
+
+                        # Ensure that the created dry run table changed the name to avoid clash.
+                        new_dry_run_name . should_not_equal dry_run_name
+
+                        # The pre-existing table should not have been overwritten.
+                        pre_existing_table.at "X" . to_vector . should_contain_the_same_elements_as [4, 5, 6]
 
         tests (Table.new) " (from memory)"
         tests (table_builder "ec-tests-table") " (from Database table)"

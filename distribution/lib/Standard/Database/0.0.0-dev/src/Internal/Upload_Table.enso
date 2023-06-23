@@ -1,5 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Random import random_uuid
 import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -30,7 +29,7 @@ from project.Internal.Result_Set import result_set_to_table
 
    The user-facing function that handles the dry-run logic.
 create_table_implementation connection table_name structure primary_key temporary allow_existing on_problems = Panic.recover SQL_Error <|
-    self.maybe_run_maintenance
+    connection.base_connection.maybe_run_maintenance
     case connection.base_connection.table_exists table_name of
         True ->
             if allow_existing then connection.query (SQL_Query.Table_Name table_name) else Error.throw (Table_Already_Exists.Error table_name)
@@ -49,7 +48,7 @@ create_table_implementation connection table_name structure primary_key temporar
                         connection.drop_table table_name if_exists=True
                     internal_create_table_structure connection effective_table_name structure primary_key effective_temporary on_problems
             if dry_run.not then connection.query (SQL_Query.Table_Name created_table_name) else
-                created_table = connection.internal_allocate_hidden_table created_table_name
+                created_table = connection.base_connection.internal_allocate_dry_run_table created_table_name
                 warning = Dry_Run_Operation.Warning "Only a dry run of `create_table` has occurred, creating a temporary table ("+created_table_name.pretty+") instead of the actual one."
                 Warning.attach warning created_table
 
@@ -82,7 +81,7 @@ internal_upload_table source_table connection table_name primary_key temporary o
 
 ## PRIVATE
 select_into_table_implementation source_table connection table_name primary_key temporary on_problems =
-    self.maybe_run_maintenance
+    connection.base_connection.maybe_run_maintenance
     real_target_already_exists = connection.base_connection.table_exists table_name
     if real_target_already_exists then Error.throw (Table_Already_Exists.Error table_name) else
         Panic.recover SQL_Error <| handle_upload_errors <|
@@ -100,7 +99,7 @@ select_into_table_implementation source_table connection table_name primary_key 
                            was created outside of a dry run.
                         connection.drop_table tmp_table_name if_exists=True
                         internal_upload_table source_table connection tmp_table_name primary_key temporary on_problems=on_problems row_limit=dry_run_row_limit
-                    temporary_table = connection.internal_allocate_hidden_table table.name
+                    temporary_table = connection.base_connection.internal_allocate_dry_run_table table.name
                     warning = Dry_Run_Operation.Warning "Only a dry run of `select_into_database_table` was performed - a temporary table ("+tmp_table_name+") was created, containing a sample of the data."
                     Warning.attach warning temporary_table
 
@@ -260,7 +259,7 @@ common_update_table (source_table : In_Memory_Table | Database_Table) (target_ta
             connection.jdbc_connection.run_within_transaction <|
                 effective_key_columns = if key_columns.is_nothing then [] else key_columns
                 check_update_arguments_structure_match source_table target_table effective_key_columns update_action error_on_missing_columns on_problems <|
-                    tmp_table_name = "enso-temp-source-table-"+random_uuid
+                    tmp_table_name = connection.base_connection.generate_random_table_name "enso-temp-source-table-"
                     dry_run = Context.Output.is_enabled.not
                     row_limit = if dry_run then dry_run_row_limit else Nothing
                     Context.Output.with_enabled <|

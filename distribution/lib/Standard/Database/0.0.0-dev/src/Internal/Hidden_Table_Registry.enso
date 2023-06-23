@@ -38,7 +38,7 @@ type Hidden_Table_Registry
         Vector.from_polyglot_array self.reference_counter.getKnownTables
 
     ## PRIVATE
-    is_registered : Text -> Bool
+    is_registered : Text -> Boolean
     is_registered self table_name =
         self.reference_counter.isRegistered table_name
 
@@ -54,7 +54,7 @@ new =
 dispose_reference : Any -> Nothing
 dispose_reference reference =
     registry = reference.parent
-    new_count = registry.reference_counter.decrement reference.table_name
+    registry.reference_counter.decrement reference.table_name
 
 ## PRIVATE
    Drops all temporary hidden tables that have been marked for removal and not
