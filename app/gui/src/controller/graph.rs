@@ -216,10 +216,7 @@ impl Endpoint {
 
     /// Create a target endpoint from given node info, pointing at a port under given AST crumbs.
     /// Returns error if the crumbs do not point at any valid AST node.
-    pub fn target_at<I: Into<ast::crumbs::Crumb>>(
-        node: &Node,
-        crumbs: impl ast::crumbs::IntoCrumbs<I>,
-    ) -> FallibleResult<Self> {
+    pub fn target_at(node: &Node, crumbs: impl ast::crumbs::IntoCrumbs) -> FallibleResult<Self> {
         let expression = node.info.expression();
         let port_ast = expression.get_traversing(&crumbs.into_crumbs())?;
         Ok(Endpoint { node: node.info.id(), port: PortId::Ast(port_ast.id.ok_or(MissingAstId)?) })

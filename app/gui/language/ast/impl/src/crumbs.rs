@@ -129,18 +129,15 @@ struct NonChildTreeCrumb;
 ///
 /// It provides way to easily convert vector of specific crumbs (e.g.
 /// `[InfixCrumb::LeftoOperand, ..]` without calling into on each element.
-pub trait IntoCrumbs<I: Into<Crumb>>: IntoIterator<Item = I> + Sized {
+pub trait IntoCrumbs: Sized {
     /// Convert to the actual Crumbs structure.
-    fn into_crumbs(self) -> Crumbs {
-        iter_crumbs(self).collect()
-    }
+    fn into_crumbs(self) -> Crumbs;
 }
 
-impl<I: Into<Crumb>, T: IntoIterator<Item = I> + Sized> IntoCrumbs<I> for T {}
-
-/// Converts `IntoCrumbs` value into a `Crumb`-yielding iterator.
-pub fn iter_crumbs<I: Into<Crumb>>(crumbs: impl IntoCrumbs<I>) -> impl Iterator<Item = Crumb> {
-    crumbs.into_iter().map(|crumb| crumb.into())
+impl<I: Into<Crumb>, T: IntoIterator<Item = I> + Sized> IntoCrumbs for T {
+    fn into_crumbs(self) -> Crumbs {
+        self.into_iter().map(Into::into).collect()
+    }
 }
 
 /// Sequence of `Crumb`s describing traversal path through AST.
@@ -759,7 +756,7 @@ pub struct Located<T> {
 
 impl<T> Located<T> {
     /// Creates a new located item.
-    pub fn new<I: Into<Crumb>>(crumbs: impl IntoCrumbs<I>, item: T) -> Located<T> {
+    pub fn new(crumbs: impl IntoCrumbs, item: T) -> Located<T> {
         let crumbs = crumbs.into_crumbs();
         Located { crumbs, item }
     }
@@ -782,11 +779,7 @@ impl<T> Located<T> {
     }
 
     /// Takes crumbs relative to self and item that will be wrapped.
-    pub fn descendant<U, I: Into<Crumb>>(
-        &self,
-        crumbs: impl IntoCrumbs<I>,
-        child: U,
-    ) -> Located<U> {
+    pub fn descendant<U>(&self, crumbs: impl IntoCrumbs, child: U) -> Located<U> {
         let crumbs_so_far = self.crumbs.iter().cloned();
         let crumbs = crumbs_so_far.chain(crumbs.into_crumbs());
         Located::new(crumbs, child)
