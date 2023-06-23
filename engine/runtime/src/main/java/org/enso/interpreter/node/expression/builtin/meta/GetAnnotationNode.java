@@ -1,23 +1,22 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.Annotation;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
-
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.library.CachedLibrary;
 
 @BuiltinMethod(
     type = "Meta",
@@ -39,16 +38,21 @@ public abstract class GetAnnotationNode extends BaseNode {
       @Cached ThunkExecutorNode thunkExecutorNode,
       @Cached ExpectStringNode expectStringNode,
       @Cached TypeOfNode typeOfNode) {
-    String methodName = expectStringNode.execute(method);
-
     Object targetTypeResult = typeOfNode.execute(target);
     if (targetTypeResult instanceof DataflowError error) {
       return error;
     }
 
     if (targetTypeResult instanceof Type targetType) {
-      ModuleScope scope = targetType.getDefinitionScope();
-      Function methodFunction = scope.lookupMethodDefinition(targetType, methodName);
+      Function methodFunction;
+      String methodName = null;
+      if (method instanceof UnresolvedSymbol symbol) {
+        methodFunction = symbol.resolveFor(targetType);
+      } else {
+        methodName = expectStringNode.execute(method);
+        ModuleScope scope = targetType.getDefinitionScope();
+        methodFunction = scope.lookupMethodDefinition(targetType, methodName);
+       }
       if (methodFunction != null) {
         String parameterName = expectStringNode.execute(parameter);
         Annotation annotation = methodFunction.getSchema().getAnnotation(parameterName);
