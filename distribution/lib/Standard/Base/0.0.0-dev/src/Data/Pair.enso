@@ -50,8 +50,7 @@ type Pair
     map self fun =
         Pair.new (fun self.first) (fun self.second)
 
-    ## UNSTABLE
-       Returns the length (2) of the Pair.
+    ## Returns the length (2) of the Pair.
     length : Integer
     length self = 2
 

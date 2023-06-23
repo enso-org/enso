@@ -631,7 +631,8 @@ Text.is_whitespace : Boolean
 Text.is_whitespace self =
     Text_Utils.is_all_whitespace self
 
-## Returns a vector containing bytes representing the specified encoding of the
+## ADVANCED
+   Returns a vector containing bytes representing the specified encoding of the
    input text.
 
    This is useful for low-level operations, such as binary data encoding.

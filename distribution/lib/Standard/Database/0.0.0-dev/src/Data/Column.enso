@@ -181,9 +181,7 @@ type Column
             self.naming_helpers.function_name op_kind [self]
         self.make_op op_kind [] effective_new_name
 
-    ## UNSTABLE
-
-       Returns the length of this column.
+    ## Returns the length of this column.
     length : Integer
     length self = self.to_table.row_count
 

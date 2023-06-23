@@ -47,10 +47,12 @@ make_inferred_builder initial_size = InferredBuilder.new initial_size
 type DateBuilderAdapter
     Value (date_builder : DateBuilder)
 
+    ## PRIVATE
     append : Date -> Nothing
     append self date =
         self.date_builder.appendDate date
 
+    ## PRIVATE
     seal : Storage
     seal self = self.date_builder.seal
 

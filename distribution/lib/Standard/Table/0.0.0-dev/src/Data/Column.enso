@@ -110,7 +110,6 @@ type Column
 
     ## PRIVATE
        ADVANCED
-       TEXT_ONLY
 
        Prints an ASCII-art table with this data to the standard output.
 
