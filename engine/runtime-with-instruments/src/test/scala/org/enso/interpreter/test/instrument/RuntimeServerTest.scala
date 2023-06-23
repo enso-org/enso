@@ -1949,6 +1949,88 @@ class RuntimeServerTest
     )
   }
 
+  it should "send method pointer updates of a suspended builtin (...)" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x_2   = metadata.addItem(94, 33, "aa")
+    val id_x_3   = metadata.addItem(138, 29, "aa")
+
+    val code =
+      """import Standard.Base.Meta
+        |
+        |type T
+        |    A x=99 y='bar'
+        |
+        |main =
+        |    x_1 = T.A 42 'foo'
+        |    x_2 = Meta.get_atom_constructor x_1 ...
+        |    x_3 = Meta.get_constructor_name x_2
+        |    x_3
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        id_x_2,
+        ConstantsGen.FUNCTION_BUILTIN,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Meta",
+            "Standard.Base.Meta",
+            "get_atom_constructor"
+          )
+        )
+      ),
+      TestMessages.update(
+        contextId,
+        id_x_3,
+        ConstantsGen.TEXT_BUILTIN,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Meta",
+            "Standard.Base.Meta",
+            "get_constructor_name"
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+
   it should "send updates from last line" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()

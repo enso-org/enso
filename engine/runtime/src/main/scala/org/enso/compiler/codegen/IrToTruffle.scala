@@ -473,7 +473,7 @@ class IrToTruffle(
                           .argExpressions()
                           .map(new CallArgument(_))
                           .toArray,
-                        DefaultsExecutionMode.EXECUTE
+                        DefaultsExecutionMode.IGNORE
                       ),
                     makeSection(moduleScope, methodDef.location),
                     cons,

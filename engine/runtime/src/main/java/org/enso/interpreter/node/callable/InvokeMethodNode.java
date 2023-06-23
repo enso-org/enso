@@ -137,7 +137,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     // and the method is invoked statically, i.e. type of self is the eigentype,
     // then we want to disambiguate method resolution by always resolved to the one in Any.
     EnsoContext ctx = EnsoContext.get(this);
-    if (where instanceof MethodRootNode node && typeCanOverride(node, ctx)) {
+    if (where instanceof MethodRootNode node && typeCanOverride(node, ctx) && !selfTpe.getName().contains("Meta")) {
       Type any = ctx.getBuiltins().any();
       Function anyFun = symbol.getScope().lookupMethodDefinition(any, symbol.getName());
       if (anyFun != null) {
