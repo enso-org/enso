@@ -268,22 +268,31 @@ class Compiler(
     modules.foreach(m => parseModule(m))
 
     var requiredModules = modules.flatMap { module =>
-      val modules = runImportsAndExportsResolution(module, generateCode)
+      val importedModules = runImportsAndExportsResolution(module, generateCode)
+      val isLoadedFromSource =
+        (m: Module) => !m.wasLoadedFromCache() && !m.isSynthetic
       if (
-        module
-          .wasLoadedFromCache() && modules
-          .exists(m => !m.wasLoadedFromCache() && !m.isSynthetic)
+        shouldCompileDependencies &&
+        module.wasLoadedFromCache() &&
+        importedModules.exists(isLoadedFromSource)
       ) {
+        val importedModulesLoadedFromSource = importedModules
+          .filter(isLoadedFromSource)
+          .map(_.getName)
         logger.log(
           Compiler.defaultLogLevel,
-          "Some imported modules' caches were invalided, forcing invalidation of {0}",
-          module.getName.toString
+          "{0} imported module caches were invalided, forcing invalidation of {1}. [{2}]",
+          Array(
+            importedModulesLoadedFromSource.length,
+            module.getName.toString,
+            importedModulesLoadedFromSource.take(10).mkString("", ",", "...")
+          )
         )
         module.getCache.invalidate(context)
         parseModule(module)
         runImportsAndExportsResolution(module, generateCode)
       } else {
-        modules
+        importedModules
       }
     }.distinct
 

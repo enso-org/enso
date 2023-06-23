@@ -207,7 +207,7 @@ Enso consists of several sub projects:
   command line tools.
 
 - **Enso IDE:** The
-  [Enso IDE](https://github.com/enso-org/enso/tree/develop/gui) is a desktop
+  [Enso IDE](https://github.com/enso-org/enso/tree/develop/app/gui) is a desktop
   application that allows working with the visual form of Enso. It consists of
   an Electron application, a high performance WebGL UI framework, and the
   searcher which provides contextual search, hints, and documentation for all of

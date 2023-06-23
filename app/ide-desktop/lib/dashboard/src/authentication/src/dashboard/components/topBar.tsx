@@ -1,9 +1,15 @@
 /** @file The top-bar of dashboard. */
 import * as react from 'react'
 
+import BarsIcon from 'enso-assets/bars.svg'
+import CloudIcon from 'enso-assets/cloud.svg'
+import ComputerIcon from 'enso-assets/computer.svg'
+import DefaultUserIcon from 'enso-assets/default_user.svg'
+import MagnifyingGlassIcon from 'enso-assets/magnifying_glass.svg'
+import SpeechBubbleIcon from 'enso-assets/speech_bubble.svg'
+
 import * as backendModule from '../backend'
 import * as dashboard from './dashboard'
-import * as svg from '../../components/svg'
 
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
@@ -63,7 +69,7 @@ function TopBar(props: TopBarProps) {
                                 : 'opacity-50'
                         } rounded-full px-1.5 py-1`}
                     >
-                        {svg.COMPUTER_ICON}
+                        <img src={ComputerIcon} />
                     </button>
                     <button
                         onClick={() => {
@@ -75,7 +81,7 @@ function TopBar(props: TopBarProps) {
                                 : 'opacity-50'
                         } rounded-full px-1.5 py-1`}
                     >
-                        {svg.CLOUD_ICON}
+                        <img src={CloudIcon} />
                     </button>
                 </div>
             )}
@@ -91,7 +97,9 @@ function TopBar(props: TopBarProps) {
                 >
                     {projectName ?? 'Dashboard'}
                 </span>
-                <div className="bg-white shadow-soft rounded-full px-1.5 py-1">{svg.BARS_ICON}</div>
+                <div className="bg-white shadow-soft rounded-full px-1.5 py-1">
+                    <img src={BarsIcon} />
+                </div>
                 <span
                     className={`opacity-50 overflow-hidden transition-width nowrap ${
                         tab === dashboard.Tab.ide ? 'm-2 w-16' : 'w-0'
@@ -101,7 +109,9 @@ function TopBar(props: TopBarProps) {
                 </span>
             </div>
             <div className="grow flex items-center bg-label rounded-full px-2">
-                <div>{svg.MAGNIFYING_GLASS_ICON}</div>
+                <div>
+                    <img src={MagnifyingGlassIcon} />
+                </div>
                 <input
                     type="text"
                     size={1}
@@ -119,7 +129,9 @@ function TopBar(props: TopBarProps) {
                 className="flex items-center bg-help rounded-full px-2.5 text-white mx-2"
             >
                 <span className="whitespace-nowrap">help chat</span>
-                <div className="ml-2">{svg.SPEECH_BUBBLE_ICON}</div>
+                <div className="ml-2">
+                    <img src={SpeechBubbleIcon} />
+                </div>
             </a>
             {/* User profile and menu. */}
             <div className="transform w-8">
@@ -130,7 +142,7 @@ function TopBar(props: TopBarProps) {
                     }}
                     className="rounded-full w-8 h-8 bg-cover cursor-pointer"
                 >
-                    {svg.DEFAULT_USER_ICON}
+                    <img src={DefaultUserIcon} />
                 </div>
             </div>
         </div>

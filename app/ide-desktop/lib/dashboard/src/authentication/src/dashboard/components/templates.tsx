@@ -1,9 +1,11 @@
 /** @file Renders the list of templates from which a project can be created. */
 import * as react from 'react'
 
-import * as common from 'enso-common'
+import PlusCircledIcon from 'enso-assets/plus_circled.svg'
+import PlusIcon from 'enso-assets/plus.svg'
+import RotatingArrowIcon from 'enso-assets/rotating_arrow.svg'
 
-import * as svg from '../../components/svg'
+import * as common from 'enso-common'
 
 // =================
 // === Constants ===
@@ -102,7 +104,9 @@ function TemplatesRender(props: TemplatesRenderProps) {
         >
             <div className="flex h-full w-full border-dashed-custom rounded-2xl text-primary">
                 <div className="m-auto text-center">
-                    <button>{svg.CIRCLED_PLUS_ICON}</button>
+                    <button>
+                        <img src={PlusCircledIcon} />
+                    </button>
                     <p className="font-semibold text-sm">New empty project</p>
                 </div>
             </div>
@@ -219,7 +223,7 @@ function Templates(props: TemplatesProps) {
                         }`}
                         onClick={toggleIsOpen}
                     >
-                        {svg.ROTATING_ARROW_ICON}
+                        <img src={RotatingArrowIcon} />
                     </div>
                 </div>
                 <h1 className="text-xl font-bold self-center">Templates</h1>
@@ -230,7 +234,7 @@ function Templates(props: TemplatesProps) {
                             onTemplateClick()
                         }}
                     >
-                        {svg.ADD_ICON} New blank project&nbsp;
+                        <img src={PlusIcon} className="inline" /> New blank project&nbsp;
                     </button>
                 )}
             </div>

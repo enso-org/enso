@@ -47,13 +47,15 @@ define_endpoints_2! {
         /// dragged by the mouse.)
         source_attached(bool),
         set_disabled(bool),
+        /// Whether the edge should stop responding to mouse movement.
+        set_hover_disabled(bool),
         /// The typical color of the node; also used to derive the focus color.
         set_color(color::Lcha),
     }
     Output {
-        /// The mouse has clicked to detach the source end of the edge.
+        /// The edge was clicked close to the source end.
         source_click(),
-        /// The mouse has clicked to detach the target end of the edge.
+        /// The edge was clicked close to the target end.
         target_click(),
     }
 }
@@ -102,17 +104,23 @@ impl Edge {
             eval frp.set_disabled ((t) model.inputs.set_disabled(*t));
 
             // Mouse events.
-            eval mouse_move ([model] (e) {
+            gated_mouse_move <- mouse_move.gate_not(&frp.set_hover_disabled);
+            gated_mouse_down <- mouse_down.gate_not(&frp.set_hover_disabled);
+            gated_mouse_out <- mouse_out.gate_not(&frp.set_hover_disabled);
+            hover_disabled <- frp.set_hover_disabled.on_true();
+            clear_focus <- any_(gated_mouse_out, hover_disabled);
+
+            eval gated_mouse_move ([model] (e) {
                 let pos = model.screen_pos_to_scene_pos(e.client_centered());
                 model.inputs.set_mouse_position(pos);
             });
-            eval_ mouse_out (model.inputs.clear_focus.set(true));
-            eval mouse_down ([model, output] (e) {
+            eval_ clear_focus (model.inputs.clear_focus.set(true));
+            eval gated_mouse_down ([model, output] (e) {
                 let pos = model.screen_pos_to_scene_pos(e.client_centered());
                 let pos = model.scene_pos_to_parent_pos(pos);
                 match model.closer_end(pos) {
-                    Some(EndPoint::Source) => output.target_click.emit(()),
-                    Some(EndPoint::Target) => output.source_click.emit(()),
+                    Some(EndPoint::Source) => output.source_click.emit(()),
+                    Some(EndPoint::Target) => output.target_click.emit(()),
                     // Ignore click events that were delivered to our display object inaccurately.
                     None => (),
                 }
@@ -123,16 +131,16 @@ impl Edge {
             eval edge_color.value ((color) model.inputs.set_color(color.into()));
 
             // Invalidation.
-            redraw_needed <- any(...);
-            redraw_needed <+ frp.target_position.constant(());
-            redraw_needed <+ frp.source_attached.constant(());
-            redraw_needed <+ frp.target_attached.constant(());
-            redraw_needed <+ frp.source_size.constant(());
-            redraw_needed <+ frp.set_disabled.constant(());
-            redraw_needed <+ mouse_move.constant(());
-            redraw_needed <+ mouse_out.constant(());
-            redraw_needed <+ edge_color.value.constant(());
-            redraw_needed <+ display_object.on_transformed.constant(());
+            redraw_needed <- any_(...);
+            redraw_needed <+ frp.target_position;
+            redraw_needed <+ frp.source_attached;
+            redraw_needed <+ frp.target_attached;
+            redraw_needed <+ frp.source_size;
+            redraw_needed <+ frp.set_disabled;
+            redraw_needed <+ gated_mouse_move;
+            redraw_needed <+ gated_mouse_out;
+            redraw_needed <+ edge_color.value;
+            redraw_needed <+ display_object.on_transformed;
             redraw <- redraw_needed.debounce();
             eval_ redraw (model.redraw());
         }

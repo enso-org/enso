@@ -692,7 +692,7 @@ type Date
          Format "2020-06-21" with French locale as "21. juin 2020"
 
              example_format = Date.new 2020 6 21 . format "d. MMMM yyyy" (Locale.new "fr")
-    @pattern make_date_format_selector
+    @pattern (value-> make_date_format_selector value)
     @locale Locale.default_widget
     format : Text -> Locale -> Text
     format self pattern:Text locale=Locale.default =
