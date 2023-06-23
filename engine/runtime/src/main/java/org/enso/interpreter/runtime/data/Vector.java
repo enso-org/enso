@@ -13,11 +13,9 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.Warning;
@@ -42,13 +40,6 @@ public final class Vector implements TruffleObject {
     this.storage = storage;
   }
 
-  public static InvokeFunctionNode createValueForIndexNode() {
-    return InvokeFunctionNode.build(
-        new CallArgumentInfo[] {new CallArgumentInfo()},
-        InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-        InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
-  }
-
   @Builtin.Method(
       name = "new",
       description = "Creates new Vector with given length and provided elements.",
@@ -59,7 +50,7 @@ public final class Vector implements TruffleObject {
       long length,
       Function fun,
       State state,
-      @Cached("createValueForIndexNode()") InvokeFunctionNode invokeFunctionNode) {
+      @Cached("buildWithArity(1)") InvokeFunctionNode invokeFunctionNode) {
     Object[] target = new Object[Math.toIntExact(length)];
     for (int i = 0; i < target.length; i++) {
       var value = invokeFunctionNode.execute(fun, frame, state, new Long[] {(long) i});
