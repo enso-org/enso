@@ -158,6 +158,7 @@ impl Default for Status {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Desired {
+    pub module:           String,
     pub visualization_id: VisualizationId,
     pub expression_id:    ast::Id,
     pub metadata:         Metadata,
@@ -285,8 +286,12 @@ impl Manager {
             // Early return: requested to remove visualization that was already removed.
             return;
         };
+        let prj = self.executed_graph.module_qualified_name(&*self.executed_graph.project);
+        let graph = self.executed_graph.graph();
+        let module = prj.to_string() + "." + graph.module.name();
         let current_id = current.as_ref().and_then(|current| current.latest_id());
         let new_desired = new_desired.map(|new_desired| Desired {
+            module,
             expression_id:    target,
             visualization_id: current_id.unwrap_or_else(VisualizationId::new_v4),
             metadata:         new_desired,
@@ -332,6 +337,7 @@ impl Manager {
         Ok(Visualization {
             id: desired.visualization_id,
             expression_id: desired.expression_id,
+            module: desired.module,
             method_pointer,
             arguments,
         })
@@ -563,6 +569,7 @@ mod tests {
             let faux_vis = Visualization {
                 id: default(),
                 expression_id: default(),
+                module: "local.Widgets.Main".to_string(),
                 method_pointer,
                 arguments,
             };
@@ -666,6 +673,7 @@ mod tests {
         // We don't attach it separately, as Manager identifies visualizations by their
         // expression ID rather than visualization ID.
         let desired_vis_3 = Desired {
+            module:           "local.Widgets.Main".to_string(),
             visualization_id: VisualizationId::from_u128(900),
             expression_id:    node_id,
             metadata:         desired_vis_1,

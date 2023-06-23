@@ -12,15 +12,13 @@ import java.util.UUID
   *
   * @param executionContextId an execution context of the visualisation
   * @param expression an expression that creates a visualisation
+  * @param visualisationModule the name of a module to execute expression at
   */
 case class VisualisationConfiguration(
   executionContextId: UUID,
-  expression: VisualisationExpression
+  expression: VisualisationExpression,
+  visualisationModule: String
 ) extends ToLogString {
-
-  /** A qualified module name containing the expression. */
-  def visualisationModule: String =
-    expression.module
 
   /** @inheritdoc */
   override def toLogString(shouldMask: Boolean): String =
@@ -31,8 +29,9 @@ case class VisualisationConfiguration(
   /** Convert to corresponding [[Api]] message. */
   def toApi: Api.VisualisationConfiguration =
     Api.VisualisationConfiguration(
-      executionContextId = executionContextId,
-      expression         = expression.toApi
+      executionContextId  = executionContextId,
+      expression          = expression.toApi,
+      visualisationModule = visualisationModule
     )
 
 }
@@ -52,7 +51,8 @@ object VisualisationConfiguration {
   ): VisualisationConfiguration =
     new VisualisationConfiguration(
       contextId,
-      VisualisationExpression.Text(module, expression)
+      VisualisationExpression.Text(module, expression),
+      module
     )
 
   /** Create a visualisation configuration.
@@ -65,6 +65,7 @@ object VisualisationConfiguration {
     */
   def apply(
     contextId: UUID,
+    module: String,
     expression: MethodPointer,
     positionalArgumentsExpressions: Vector[String]
   ): VisualisationConfiguration =
@@ -73,7 +74,8 @@ object VisualisationConfiguration {
       VisualisationExpression.ModuleMethod(
         expression,
         positionalArgumentsExpressions
-      )
+      ),
+      module
     )
 
   private object CodecField {
@@ -99,11 +101,15 @@ object VisualisationConfiguration {
             expression <- cursor
               .downField(CodecField.Expression)
               .as[MethodPointer]
+            visualisationModule <- cursor
+              .downField(CodecField.VisualisationModule)
+              .as[String]
             arguments <- cursor
               .downField(CodecField.Arguments)
               .as[Option[Vector[String]]]
           } yield VisualisationConfiguration(
             contextId,
+            visualisationModule,
             expression,
             arguments.getOrElse(Vector())
           )

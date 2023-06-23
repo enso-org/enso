@@ -574,7 +574,8 @@ impl Searcher {
             "Standard.Visualization.AI",
             "build_ai_prompt",
         )?;
-        let vis = Visualization::new(this.id, vis_ptr, vec![]);
+        let vis =
+            Visualization::new("Standard.Visualization.AI".to_string(), this.id, vis_ptr, vec![]);
         let mut result = graph.attach_visualization(vis.clone()).await?;
         let next = result.next().await.ok_or(NoAIVisualizationDataReceived)?;
         let prompt = std::str::from_utf8(&next)?;

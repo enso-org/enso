@@ -303,6 +303,8 @@ pub struct Visualization {
     pub id:             VisualizationId,
     /// Expression that is to be visualized.
     pub expression_id:  ExpressionId,
+    /// module to evaluate visualization in context of
+    pub module:         String,
     /// A pointer to the enso method that will transform the data into expected format.
     pub method_pointer: QualifiedMethodPointer,
     /// Enso expressions for positional arguments
@@ -313,12 +315,13 @@ impl Visualization {
     /// Creates a new visualization description. The visualization will get a randomly assigned
     /// identifier.
     pub fn new(
+        module: String,
         expression_id: ExpressionId,
         method_pointer: QualifiedMethodPointer,
         arguments: Vec<String>,
     ) -> Visualization {
         let id = VisualizationId::new_v4();
-        Visualization { id, expression_id, method_pointer, arguments }
+        Visualization { id, expression_id, module, method_pointer, arguments }
     }
 
     /// Creates a `VisualisationConfiguration` that is used in communication with language server.
@@ -326,6 +329,7 @@ impl Visualization {
         let expression = self.method_pointer.clone().into();
         let positional_arguments_expressions = self.arguments.clone();
         VisualisationConfiguration {
+            visualisation_module: self.module.to_owned(),
             execution_context_id,
             expression,
             positional_arguments_expressions,

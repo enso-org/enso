@@ -59,6 +59,7 @@ class UpsertVisualisationJob(
     try {
       val maybeCallable =
         UpsertVisualisationJob.evaluateVisualisationExpression(
+          config.visualisationModule,
           config.expression
         )
 
@@ -180,7 +181,10 @@ object UpsertVisualisationJob {
     val expressionId        = visualisation.expressionId
     val visualisationId     = visualisation.id
     val maybeCallable =
-      evaluateVisualisationExpression(visualisation.config.expression)
+      evaluateVisualisationExpression(
+        visualisationConfig.visualisationModule,
+        visualisationConfig.expression
+      )
 
     maybeCallable.foreach { result =>
       updateVisualisation(
@@ -224,6 +228,7 @@ object UpsertVisualisationJob {
   private def evaluateModuleExpression(
     module: Module,
     expression: Api.VisualisationExpression,
+    expressionModule: Module,
     retryCount: Int = 0
   )(implicit
     ctx: RuntimeContext
@@ -243,7 +248,7 @@ object UpsertVisualisationJob {
                 argumentExpressions
               ) =>
             val callback = ctx.executionService.prepareFunctionCall(
-              module,
+              expressionModule,
               QualifiedName.fromString(definedOnType).item,
               name
             )
@@ -261,7 +266,12 @@ object UpsertVisualisationJob {
             Level.FINE,
             s"Evaluation of visualisation was interrupted. Retrying [${retryCount + 1}]."
           )
-          evaluateModuleExpression(module, expression, retryCount + 1)
+          evaluateModuleExpression(
+            module,
+            expression,
+            expressionModule,
+            retryCount + 1
+          )
 
         case error: ThreadInterruptedException =>
           val message =
@@ -302,13 +312,19 @@ object UpsertVisualisationJob {
     * @return either the evaluation result or an evaluation error
     */
   private def evaluateVisualisationExpression(
+    module: String,
     expression: Api.VisualisationExpression
   )(implicit
     ctx: RuntimeContext
   ): Either[EvaluationFailure, EvaluationResult] = {
     for {
-      module     <- findModule(expression.module)
-      expression <- evaluateModuleExpression(module, expression)
+      module           <- findModule(module)
+      expressionModule <- findModule(expression.module)
+      expression <- evaluateModuleExpression(
+        module,
+        expression,
+        expressionModule
+      )
     } yield expression
   }
 

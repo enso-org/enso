@@ -96,7 +96,7 @@ pub struct Handle {
     execution_ctx: model::ExecutionContext,
     /// The handle to project controller is necessary, as entering nodes might need to switch
     /// modules, and only the project can provide their controllers.
-    project:       model::Project,
+    pub project:   model::Project,
     /// The publisher allowing sending notification to subscribed entities. Note that its outputs
     /// is merged with publishers from the stored graph and execution controllers.
     notifier:      notification::Publisher<Notification>,

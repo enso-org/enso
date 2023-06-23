@@ -392,7 +392,7 @@ impl QueryData {
     /// Generate visualization metadata for this query.
     fn visualization_metadata(&self) -> Metadata {
         let arguments: Vec<Code> = vec![
-            Self::escape_visualization_argument(&self.method_name).into(),
+            Self::as_unresolved_symbol(&self.method_name).into(),
             Self::arg_sequence(&self.arguments).into(),
         ];
 
@@ -408,6 +408,10 @@ impl QueryData {
     /// expression with string literal.
     fn escape_visualization_argument(arg: &str) -> String {
         Ast::raw_text_literal(arg).repr()
+    }
+
+    fn as_unresolved_symbol(arg: &str) -> String {
+        ".".to_string() + arg
     }
 
     /// Escape a list of strings to be used as a visualization argument. Transforms the strings into

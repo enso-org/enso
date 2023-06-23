@@ -618,18 +618,16 @@ object Runtime {
       */
     case class VisualisationConfiguration(
       executionContextId: ContextId,
-      expression: VisualisationExpression
+      expression: VisualisationExpression,
+      visualisationModule: String
     ) extends ToLogString {
-
-      /** A qualified module name containing the expression. */
-      def visualisationModule: String =
-        expression.module
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         s"VisualisationConfiguration(" +
         s"executionContextId=$executionContextId," +
-        s"expression=${expression.toLogString(shouldMask)})"
+        s"expression=${expression.toLogString(shouldMask)})" +
+        s"visualisationModule=${visualisationModule})"
     }
 
     /** An operation applied to the suggestion argument. */
