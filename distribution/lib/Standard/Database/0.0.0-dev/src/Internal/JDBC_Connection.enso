@@ -70,8 +70,7 @@ type JDBC_Connection
        SQL errors.
     with_connection : (Connection -> Any) -> Any
     with_connection self action = self.synchronized <|
-        handle_sql_errors <|
-            self.connection_resource.with action
+        self.connection_resource.with action
 
     ## PRIVATE
        Runs the provided callback only if no thread is currently inside a
@@ -85,7 +84,7 @@ type JDBC_Connection
        Open the connection to the database, then run the action passing the
        database's metadata wrapping any SQL errors.
     with_metadata : (DatabaseMetaData -> Any) -> Any
-    with_metadata self ~action = self.with_connection connection->
+    with_metadata self ~action = handle_sql_errors <| self.with_connection connection->
         metadata = connection.getMetaData
         action metadata
 
@@ -156,7 +155,7 @@ type JDBC_Connection
        running this function (so if it was off before, this method may not
        change anything).
     run_without_autocommit : Any -> Any
-    run_without_autocommit self ~action =
+    run_without_autocommit self ~action = handle_sql_errors <|
         # The whole block is already `synchronized` by `with_connection`.
         self.with_connection java_connection->
             default_autocommit = java_connection.getAutoCommit
@@ -194,7 +193,7 @@ type JDBC_Connection
        transaction to ensure consistency.
     batch_insert : Text -> Statement_Setter -> Materialized_Table -> Integer -> Integer | Nothing -> Nothing
     batch_insert self insert_template statement_setter table batch_size row_limit=Nothing =
-        In_Transaction.ensure_in_transaction <| self.with_connection java_connection->
+        In_Transaction.ensure_in_transaction <| self.with_connection java_connection-> handle_sql_errors related_query=insert_template <|
             Managed_Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
                 table_row_count = table.row_count
                 num_rows = case row_limit of

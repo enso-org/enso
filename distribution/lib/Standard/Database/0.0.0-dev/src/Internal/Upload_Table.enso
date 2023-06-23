@@ -448,8 +448,8 @@ default_key_columns (table : Database_Table | In_Memory_Table) =
      TODO [RW] fix keys for SQLite temporary tables #7037
 get_primary_key table =
     connection = table.connection
-    connection.jdbc_connection.with_connection java_connection->
-        rs = java_connection.getMetaData.getPrimaryKeys Nothing Nothing table.name
+    connection.jdbc_connection.with_metadata metadata->
+        rs = metadata.getPrimaryKeys Nothing Nothing table.name
         keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
         # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
         selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True
@@ -470,7 +470,7 @@ dry_run_row_limit = 1000
    It is a panic, because it is never expected to happen in user code - if it
    happens, it is a bug in our code.
 check_transaction_ddl_support connection =
-    supports_ddl = connection.jdbc_connection.with_connection java_connection->
-        java_connection.getMetaData.supportsDataDefinitionAndDataManipulationTransactions
+    supports_ddl = connection.jdbc_connection.with_metadata metadata->
+        metadata.supportsDataDefinitionAndDataManipulationTransactions
     if supports_ddl.not then
         Panic.throw (Illegal_State.Error "The connection "+connection.to_text+" does not support transactional DDL statements. Our current implementation of table updates relies on transactional DDL. To support this driver, the logic needs to be amended.")

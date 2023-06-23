@@ -395,6 +395,13 @@ type Connection
        The table name is guaranteed to be unique for the database at the time it
        is generated - this is used to ensure that the dry run tables never
        overwrite pre-existing user data.
+
+       ! Safety
+
+         It is safe to drop/overwrite the table returned by this method, as it
+         can be assumed that it was not created by the user. It either does not
+         (yet) exist, or if it exists, it is present in our hidden table
+         registry - but that means it was created by Enso as a hidden table.
     generate_dry_run_table_name : Text -> Text
     generate_dry_run_table_name self table_name =
         go ix =
@@ -417,7 +424,7 @@ type Connection
         max_length = self.max_table_name_length
         minimum_randomness = 5
         maximum_retries = 20^minimum_randomness
-        if max_length.is_nothing.not && (prefix + minimum_randomness > max_length) then Error.throw (Illegal_State.Error "The prefix has length "+prefix.length.to_text+" while max table name is "+max_length.to_text+" - there is not enough space to safely generate random names.") else
+        if max_length.is_nothing.not && (prefix.length + minimum_randomness > max_length) then Error.throw (Illegal_State.Error "The prefix has length "+prefix.length.to_text+" while max table name is "+max_length.to_text+" - there is not enough space to safely generate random names.") else
             go ix =
                 if ix > maximum_retries then Error.throw (Illegal_State.Error "Could not generate a non-assigned random table name after "+maximum_retries+". Giving up.") else
                     base_name = prefix + Random.random_uuid

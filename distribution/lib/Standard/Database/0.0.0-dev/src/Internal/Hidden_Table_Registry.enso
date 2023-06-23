@@ -61,7 +61,10 @@ dispose_reference reference =
    brought back to life.
 
    This method must be run in a critical section guaranteeing that no other
-   operations will be performed on the associated connection in parallel.
+   operations will be performed on the associated connection in parallel. Thanks
+   to running it in a critical section, there is no risk that a table that is
+   just being dropped will come back to life in the meantime - since no other
+   code can be creating tables on this connection at the same time.
 run_maintenance_table_cleanup connection =
     registry = connection.hidden_table_registry
     reference_counter = registry.reference_counter
