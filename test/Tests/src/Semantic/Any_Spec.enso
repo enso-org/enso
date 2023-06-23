@@ -44,9 +44,9 @@ spec =
             With_Y.Value 44 . x . should_equal "With_Y:With_Y(44)"
             My_Type.x . should_equal "Any:My_Type"
             With_X.x . to_text . should_equal "Any:With_X"
-            Meta.should_be_a With_X.y Function
+            With_X.y.should_be_a Function
             With_Y.x . to_text . should_equal "Any:With_Y"
-            Meta.should_be_a With_Y.y Function
+            With_Y.y.should_be_a Function
             With_X.to_text . to_text . should_equal "With_X"
             With_Y.to_text . to_text . should_equal "With_Y"
             Any.x . to_text . should_equal "Any:Any"
@@ -60,8 +60,8 @@ spec =
 
         Test.specify "static method calls on Any should have defaulted self argument to Any" <|
             # Any.== is a method that takes two arguments (self other)
-            Meta.should_be_a (Any.==) Function
-            Meta.should_be_a (Any.== self=Boolean) Function
+            (Any.==) . should_be_a Function
+            (Any.== self=Boolean) . should_be_a Function
             (Any.== self=Any Boolean) . should_be_false
             (Any.== Any Any) . should_be_true
             (Any.== Boolean) . should_be_false
@@ -84,15 +84,16 @@ spec =
             Integer.to_text . should_equal "Integer"
 
             # Any.spec_method is a method that takes three arguments (self, arg1, arg2)
-            Meta.should_be_a (Any.spec_method) Function
-            Meta.should_be_a (Any.spec_method Boolean) Function
-            Meta.should_be_a (Any.spec_method self=Boolean) Function
-            Meta.should_be_a (Any.spec_method self=Boolean Vector) Function
+            (Any.spec_method) . should_be_a Function
+            (Any.spec_method Boolean) . should_be_a Function
+            (Any.spec_method self=Boolean) . should_be_a Function
+            (Any.spec_method self=Boolean Vector) . should_be_a Function
             Any.spec_method Boolean Vector . should_equal "Any.spec_method:{Any}{Boolean}{Vector}"
             Any.spec_method Any Boolean Vector . should_equal "Any.spec_method:{Any}{Boolean}{Vector}"
             Any.spec_method Date Boolean Vector . should_equal "Any.spec_method:{Date}{Boolean}{Vector}"
             Any.spec_method self=Date Boolean Vector . should_equal "Any.spec_method:{Date}{Boolean}{Vector}"
             Any.spec_method self=Any Boolean Vector . should_equal "Any.spec_method:{Any}{Boolean}{Vector}"
+            Date.spec_method Boolean Vector . should_equal "Any.spec_method:{Date}{Boolean}{Vector}"
 
 
         Test.specify "instance methods on different types should not have defaulted self argument" <|
