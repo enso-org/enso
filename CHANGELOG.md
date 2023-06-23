@@ -185,6 +185,9 @@
   execution failed][6918].
 - [Performance and readability of documentation panel was improved][6893]. The
   documentation is now split into separate pages, which are much smaller.
+- [IDE no longer inserts redundant imports when selecting options from dropdown
+  widgets][7028]. The code was unified with the component browser, and it now
+  correctly handles reexports and already existing imports.
 - [Fixed cursor position when ctrl-clicking the node][7014]. Sometimes
   ctrl-clicking to edit the node placed the mouse cursor in the wrong position
   in the text. This is fixed now.
@@ -203,6 +206,7 @@
 [6827]: https://github.com/enso-org/enso/pull/6827
 [6918]: https://github.com/enso-org/enso/pull/6918
 [6893]: https://github.com/enso-org/enso/pull/6893
+[7028]: https://github.com/enso-org/enso/pull/7028
 [7014]: https://github.com/enso-org/enso/pull/7014
 
 #### EnsoGL (rendering engine)
@@ -836,6 +840,7 @@
 - [Execute some runtime commands synchronously to avoid race conditions][6998]
 - [Scala 2.13.11 update][7010]
 - [Improve parallel execution of commands and jobs in Language Server][7042]
+- [Add special handling for static method calls on Any][7033]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -955,6 +960,7 @@
 [6998]: https://github.com/enso-org/enso/pull/6998
 [7010]: https://github.com/enso-org/enso/pull/7010
 [7042]: https://github.com/enso-org/enso/pull/7042
+[7033]: https://github.com/enso-org/enso/pull/7033
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

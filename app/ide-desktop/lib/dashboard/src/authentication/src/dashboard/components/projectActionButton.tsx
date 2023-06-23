@@ -2,6 +2,9 @@
 import * as react from 'react'
 import toast from 'react-hot-toast'
 
+import ArrowUpIcon from 'enso-assets/arrow_up.svg'
+import PlayIcon from 'enso-assets/play.svg'
+
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as localBackend from '../localBackend'
@@ -341,18 +344,20 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         case backendModule.ProjectState.closed:
             return (
                 <button
+                    className="w-6"
                     onClick={clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
                         doOpenManually()
                     }}
                 >
-                    {svg.PLAY_ICON}
+                    <img src={PlayIcon} />
                 </button>
             )
         case backendModule.ProjectState.openInProgress:
             return (
                 <button
+                    className="w-6"
                     onClick={async clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
@@ -366,6 +371,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             return (
                 <>
                     <button
+                        className="w-6"
                         onClick={async clickEvent => {
                             clickEvent.stopPropagation()
                             unsetModal()
@@ -375,13 +381,14 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                         <svg.StopIcon className={SPINNER_CSS_CLASSES[spinnerState]} />
                     </button>
                     <button
+                        className="w-6"
                         onClick={clickEvent => {
                             clickEvent.stopPropagation()
                             unsetModal()
                             openIde()
                         }}
                     >
-                        {svg.ARROW_UP_ICON}
+                        <img src={ArrowUpIcon} />
                     </button>
                 </>
             )

@@ -2,13 +2,14 @@
 import * as react from 'react'
 import toast from 'react-hot-toast'
 
+import CloseIcon from 'enso-assets/close.svg'
+
 import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as errorModule from '../../error'
 import * as modalProvider from '../../providers/modal'
 import * as newtype from '../../newtype'
-import * as svg from '../../components/svg'
 
 import Autocomplete from './autocomplete'
 import Modal from './modal'
@@ -170,7 +171,7 @@ export function ShareWithModal(props: ShareWithModalProps) {
                     }}
                 >
                     <button type="button" className="absolute right-0 m-2" onClick={unsetModal}>
-                        {svg.CLOSE_ICON}
+                        <img src={CloseIcon} />
                     </button>
                     <h2 className="inline-block font-semibold m-2">
                         Share {backendModule.ASSET_TYPE_NAME[assetType]}

@@ -1,7 +1,7 @@
 /** @file A label, which may be either user-defined, or a system warning message. */
 import * as react from 'react'
 
-import * as svg from '../../components/svg'
+import ExclamationIcon from 'enso-assets/exclamation.svg'
 
 // =============
 // === Types ===
@@ -28,8 +28,16 @@ const CSS_CLASS: Record<Status, string> = {
 /** A mapping of label type to its corresponding icon. */
 const STATUS_ICON: Record<Status, JSX.Element | null> = {
     [Status.none]: null,
-    [Status.warning]: <div className="m-1">{svg.EXCLAMATION_ICON}</div>,
-    [Status.severeWarning]: <div className="m-1">{svg.EXCLAMATION_ICON}</div>,
+    [Status.warning]: (
+        <div className="m-1">
+            <img src={ExclamationIcon} />
+        </div>
+    ),
+    [Status.severeWarning]: (
+        <div className="m-1">
+            <img src={ExclamationIcon} />
+        </div>
+    ),
 }
 
 // =================

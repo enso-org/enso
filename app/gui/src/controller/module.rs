@@ -42,6 +42,7 @@ pub struct Handle {
     pub model:           model::Module,
     pub language_server: Rc<language_server::Connection>,
     pub parser:          Parser,
+    pub project_name:    project::QualifiedName,
 }
 
 impl Handle {
@@ -51,7 +52,8 @@ impl Handle {
         let model = project.module(path).await?;
         let language_server = project.json_rpc();
         let parser = project.parser();
-        Ok(Handle { model, language_server, parser })
+        let project_name = project.qualified_name();
+        Ok(Handle { model, language_server, parser, project_name })
     }
 
     /// Save the module to file.
@@ -101,7 +103,13 @@ impl Handle {
         id: double_representation::graph::Id,
         suggestion_db: Rc<model::SuggestionDatabase>,
     ) -> FallibleResult<controller::Graph> {
-        controller::Graph::new(self.model.clone_ref(), suggestion_db, self.parser.clone_ref(), id)
+        controller::Graph::new(
+            self.model.clone_ref(),
+            suggestion_db,
+            self.parser.clone_ref(),
+            id,
+            self.project_name.clone_ref(),
+        )
     }
 
     /// Returns a graph controller for graph in this module's subtree identified by `id` without
@@ -116,6 +124,7 @@ impl Handle {
             suggestion_db,
             self.parser.clone_ref(),
             id,
+            self.project_name.clone_ref(),
         )
     }
 
@@ -174,7 +183,7 @@ impl Handle {
         let ast = parser.parse(code.to_string(), id_map).try_into()?;
         let metadata = default();
         let model = Rc::new(model::module::Plain::new(path, ast, metadata, repository, default()));
-        Ok(Handle { model, language_server, parser })
+        Ok(Handle { model, language_server, parser, project_name: default() })
     }
 
     #[cfg(test)]

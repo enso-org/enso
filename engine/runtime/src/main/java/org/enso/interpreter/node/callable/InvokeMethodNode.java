@@ -15,8 +15,20 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.locks.Lock;
+import org.enso.interpreter.Constants;
+import org.enso.interpreter.Constants.Names;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.MethodRootNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
@@ -24,6 +36,7 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
@@ -44,17 +57,17 @@ import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.UUID;
-import java.util.concurrent.locks.Lock;
-
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class InvokeMethodNode extends BaseNode {
   protected static final int CACHE_SIZE = 10;
   private @Child InvokeFunctionNode invokeFunctionNode;
+  /**
+   * A node that is created specifically for cases when a static method is called on {@code Any}. In
+   * such cases, we need to modify the number of passed arguments, therefore, a new {@link
+   * InvokeFunctionNode} has to be created.
+   */
+  private @Child InvokeFunctionNode invokeAnyStaticFunctionNode;
+
   private final ConditionProfile errorReceiverProfile = ConditionProfile.createCountingProfile();
   private @Child InvokeMethodNode childDispatch;
 
@@ -105,13 +118,20 @@ public abstract class InvokeMethodNode extends BaseNode {
   public abstract Object execute(
       VirtualFrame frame, State state, UnresolvedSymbol symbol, Object self, Object[] arguments);
 
-  @Specialization(guards = {
-          "typesLibrary.hasType(self)",
-          "!typesLibrary.hasSpecialDispatch(self)",
-          "cachedSymbol == symbol",
-          "cachedSelfTpe == typesLibrary.getType(self)",
-          "function != null"
-  }, limit = "CACHE_SIZE")
+  boolean isAnyEigenType(Type type) {
+    return EnsoContext.get(this).getBuiltins().any().getEigentype() == type;
+  }
+
+  @Specialization(
+      guards = {
+        "typesLibrary.hasType(self)",
+        "!typesLibrary.hasSpecialDispatch(self)",
+        "cachedSymbol == symbol",
+        "cachedSelfTpe == typesLibrary.getType(self)",
+        "!isAnyEigenType(cachedSelfTpe)",
+        "function != null"
+      },
+      limit = "CACHE_SIZE")
   Object doFunctionalDispatchCachedSymbol(
       VirtualFrame frame,
       State state,
@@ -122,11 +142,14 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Cached MethodResolverNode methodResolverNode,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @Cached("typesLibrary.getType(self)") Type cachedSelfTpe,
-      @Cached("resolveFunction(cachedSymbol, cachedSelfTpe, methodResolverNode)") Function function) {
+      @Cached("resolveFunction(cachedSymbol, cachedSelfTpe, methodResolverNode)")
+          Function function) {
+    assert arguments.length == invokeFunctionNode.getSchema().length;
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
-  Function resolveFunction(UnresolvedSymbol symbol, Type selfTpe, MethodResolverNode methodResolverNode) {
+  Function resolveFunction(
+      UnresolvedSymbol symbol, Type selfTpe, MethodResolverNode methodResolverNode) {
     Function function = methodResolverNode.execute(selfTpe, symbol);
     if (function == null) {
       return null;
@@ -154,29 +177,85 @@ public abstract class InvokeMethodNode extends BaseNode {
     Type warning = builtins.warning();
     Type panic = builtins.panic();
     return methodOwnerType.isEigenType()
-            && builtins.nothing() != methodOwnerType
-            && any.getEigentype() != methodOwnerType
-            && panic.getEigentype() != methodOwnerType
-            && warning.getEigentype() != methodOwnerType;
+        && builtins.nothing() != methodOwnerType
+        && any.getEigentype() != methodOwnerType
+        && panic.getEigentype() != methodOwnerType
+        && warning.getEigentype() != methodOwnerType;
   }
 
   @Specialization(
-          replaces = "doFunctionalDispatchCachedSymbol",
-          guards = {"typesLibrary.hasType(self)", "!typesLibrary.hasSpecialDispatch(self)"})
+      replaces = "doFunctionalDispatchCachedSymbol",
+      guards = {"typesLibrary.hasType(self)", "!typesLibrary.hasSpecialDispatch(self)"})
   Object doFunctionalDispatchUncachedSymbol(
-          VirtualFrame frame,
-          State state,
-          UnresolvedSymbol symbol,
-          Object self,
-          Object[] arguments,
-          @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
-          @Cached MethodResolverNode methodResolverNode) {
+      VirtualFrame frame,
+      State state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
+      @Cached MethodResolverNode methodResolverNode) {
     Type selfTpe = typesLibrary.getType(self);
     Function function = resolveFunction(symbol, selfTpe, methodResolverNode);
     if (function == null) {
       throw new PanicException(
-              EnsoContext.get(this).getBuiltins().error().makeNoSuchMethod(self, symbol), this);
+          EnsoContext.get(this).getBuiltins().error().makeNoSuchMethod(self, symbol), this);
     }
+    var resolvedFuncArgCount = function.getSchema().getArgumentsCount();
+    CallArgumentInfo[] invokeFuncSchema = invokeFunctionNode.getSchema();
+    long argsWithDefaultValCount = 0;
+    for (var argDef : function.getSchema().getArgumentInfos()) {
+      if (argDef.hasDefaultValue()) {
+        argsWithDefaultValCount++;
+      }
+    }
+    // Static method calls on Any are resolved to `Any.type.method`. Such methods take one additional
+    // self argument (with Any.type) as opposed to static method calls resolved on any other
+    // types. This case is handled in the following block.
+    boolean shouldPrependSyntheticSelfArg = resolvedFuncArgCount - argsWithDefaultValCount == arguments.length + 1;
+    if (isAnyEigenType(selfTpe) && shouldPrependSyntheticSelfArg) {
+      // function is a static method on Any, so the first two arguments in `invokeFuncSchema`
+      // represent self arguments.
+      boolean selfArgSpecified = false;
+      if (invokeFuncSchema.length > 1) {
+        selfArgSpecified =
+            invokeFuncSchema[1].getName() != null && invokeFuncSchema[1].getName().equals(Names.SELF_ARGUMENT);
+      }
+
+      if (selfArgSpecified) {
+        // If there is a self named argument in the method call, we fall back to the old
+        // behavior - there will be no prepended Any.type self argument
+        assert arguments.length == invokeFuncSchema.length;
+        return invokeFunctionNode.execute(function, frame, state, arguments);
+      }
+
+      Object[] argsWithPrependedSelf = new Object[arguments.length + 1];
+      argsWithPrependedSelf[0] = EnsoContext.get(this).getBuiltins().any().getEigentype();
+      System.arraycopy(arguments, 0, argsWithPrependedSelf, 1, arguments.length);
+
+      if (invokeAnyStaticFunctionNode == null) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        assert resolvedFuncArgCount >= 2
+            : "Resolved function should be on Any.type, therefore, should have at least two self"
+                + " arguments";
+        // Prepend self=Any to the arguments and shift
+        CallArgumentInfo[] newInvokeFuncSchema = new CallArgumentInfo[arguments.length + 1];
+        newInvokeFuncSchema[0] = new CallArgumentInfo("self");
+        assert arguments.length == invokeFuncSchema.length;
+        System.arraycopy(invokeFuncSchema, 0, newInvokeFuncSchema, 1, invokeFuncSchema.length);
+
+        assert argsWithPrependedSelf.length == newInvokeFuncSchema.length;
+        invokeAnyStaticFunctionNode =
+            insert(
+                InvokeFunctionNode.build(
+                    newInvokeFuncSchema,
+                    DefaultsExecutionMode.EXECUTE,
+                    ArgumentsExecutionMode.EXECUTE));
+      }
+      assert argsWithPrependedSelf.length == invokeAnyStaticFunctionNode.getSchema().length;
+      assert Arrays.stream(argsWithPrependedSelf).allMatch(Objects::nonNull);
+      return invokeAnyStaticFunctionNode.execute(function, frame, state, argsWithPrependedSelf);
+    }
+    assert arguments.length == invokeFunctionNode.getSchema().length;
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
