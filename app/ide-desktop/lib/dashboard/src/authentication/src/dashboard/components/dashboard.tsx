@@ -632,26 +632,30 @@ function Dashboard(props: DashboardProps) {
         [Column.lastModified]: asset =>
             asset.modifiedAt && <>{dateTime.formatDateTime(new Date(asset.modifiedAt))}</>,
         [Column.sharedWith]: asset => (
-            <>
+            <div className="flex flex-nowrap">
                 {(asset.permissions ?? []).map(user => (
                     <PermissionDisplay
                         key={user.user.organization_id}
                         permissions={permissionDisplay.PERMISSION[user.permission]}
                     >
-                        {svg.DEFAULT_USER_ICON}
+                        {svg.DEFAULT_USER_ICON_SMALL}
                     </PermissionDisplay>
                 ))}
                 <button
                     onClick={event => {
                         event.stopPropagation()
                         setModal(() => (
-                            <ShareWithModal asset={asset} eventTarget={event.currentTarget} />
+                            <ShareWithModal
+                                asset={asset}
+                                eventTarget={event.currentTarget}
+                                onSuccess={doRefresh}
+                            />
                         ))
                     }}
                 >
                     {svg.ADD_ICON}
                 </button>
-            </>
+            </div>
         ),
         [Column.docs]: () => <></>,
         [Column.labels]: () => {
@@ -1082,7 +1086,7 @@ function Dashboard(props: DashboardProps) {
                             )}
                         </div>
                     </div>
-                    <table className="table-fixed items-center border-collapse mt-2 w-0">
+                    <table className="items-center border-collapse mt-2 w-0 whitespace-nowrap">
                         <tbody>
                             <tr className="h-10">
                                 {columnsFor(columnDisplayMode, backend.type).map(column => (

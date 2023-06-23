@@ -30,6 +30,7 @@ const BLINK_ANIMATION_LENGTH_MS = 500
 /** Props for a {@link ShareWithModal}. */
 export interface ShareWithModalProps {
     asset: backendModule.Asset
+    onSuccess: () => void
     eventTarget: HTMLElement
 }
 
@@ -37,6 +38,7 @@ export interface ShareWithModalProps {
 export function ShareWithModal(props: ShareWithModalProps) {
     const {
         asset: { type: assetType, id: assetId },
+        onSuccess,
         eventTarget,
     } = props
     const { organization } = auth.useNonPartialUserSession()
@@ -67,7 +69,8 @@ export function ShareWithModal(props: ShareWithModalProps) {
 
         react.useEffect(() => {
             void (async () => {
-                const newUsers = await backend.listUsers()
+                const listedUsers = await backend.listUsers()
+                const newUsers = listedUsers.filter(user => user.email !== organization.email)
                 setUsers(newUsers)
                 const lowercaseEmail = email.toLowerCase()
                 setMatchingUsers(
@@ -140,6 +143,7 @@ export function ShareWithModal(props: ShareWithModalProps) {
                             resourceId: assetId,
                             action: permission,
                         })
+                        onSuccess()
                     } catch (error) {
                         toast.error(
                             `Unable to give permission '${permission}' to '${user.email}': ${

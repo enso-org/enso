@@ -98,16 +98,13 @@ function Autocomplete(props: AutocompleteProps) {
     }
 
     return (
-        <div
-            className="whitespace-nowrap bg-gray-200 rounded-full cursor-pointer"
-            onKeyDown={onKeyDown}
-        >
+        <div onKeyDown={onKeyDown}>
             <div className="flex flex-1">
                 <input
                     type={type}
                     ref={inputRef}
                     autoFocus={autoFocus}
-                    className={`grow bg-transparent mx-1 ${className ?? ''}`}
+                    className={`grow bg-gray-200 rounded-full px-1 ${className ?? ''}`}
                     defaultValue={value}
                     onFocus={() => {
                         setIsDropdownVisible(true)
@@ -128,8 +125,8 @@ function Autocomplete(props: AutocompleteProps) {
             </div>
             <div className={`relative h-0 ${optionsClassName ?? ''}`}>
                 <div
-                    className={`absolute w-full rounded-lg shadow-soft ${
-                        isDropdownVisible ? 'overflow-visible' : 'overflow-hidden h-0'
+                    className={`absolute bg-white z-10 w-full rounded-lg shadow-soft max-h-10lh ${
+                        isDropdownVisible ? 'overflow-auto' : 'overflow-hidden h-0'
                     }`}
                 >
                     {items.map((item, index) => (

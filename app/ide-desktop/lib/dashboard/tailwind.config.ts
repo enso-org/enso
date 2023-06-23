@@ -42,6 +42,7 @@ export const theme = {
             vs: '0.8125rem',
         },
         spacing: {
+            '10lh': '10lh',
             '140': '35rem',
         },
         gridTemplateColumns: {
