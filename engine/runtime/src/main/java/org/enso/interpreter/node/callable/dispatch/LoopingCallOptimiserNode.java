@@ -58,13 +58,34 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
    * @return the result of executing {@code function} using {@code arguments}
    */
   @Specialization(guards = "warnings == null")
-  public Object dispatch(
+  public Object cachedDispatch(
       Function function,
       CallerInfo callerInfo,
       State state,
       Object[] arguments,
       Warning[] warnings,
       @Cached(value = "createLoopNode()") LoopNode loopNode) {
+    return dispatch(function, callerInfo, state, arguments, loopNode);
+  }
+
+  @Specialization(guards = "warnings != null")
+  public Object cachedDispatchWarnings(
+      Function function,
+      CallerInfo callerInfo,
+      State state,
+      Object[] arguments,
+      Warning[] warnings,
+      @Cached(value = "createLoopNode()") LoopNode loopNode) {
+    Object result = dispatch(function, callerInfo, state, arguments, loopNode);
+    return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
+  }
+
+  private Object dispatch(
+      Function function,
+      CallerInfo callerInfo,
+      State state,
+      Object[] arguments,
+      LoopNode loopNode) {
     RepeatedCallNode repeatedCallNode = (RepeatedCallNode) loopNode.getRepeatingNode();
     VirtualFrame frame = repeatedCallNode.createFrame();
     repeatedCallNode.setNextCall(frame, function, callerInfo, arguments);
@@ -73,19 +94,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
     return repeatedCallNode.getResult(frame);
   }
 
-  @Specialization(guards = "warnings != null")
-  public Object dispatchWarnings(
-      Function function,
-      CallerInfo callerInfo,
-      State state,
-      Object[] arguments,
-      Warning[] warnings,
-      @Cached(value = "createLoopNode()") LoopNode loopNode) {
-    Object result = dispatch(function, callerInfo, state, arguments, warnings, loopNode);
-    return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
-  }
-
-  @Specialization(replaces = "dispatch", guards = "warnings == null")
+  @Specialization(replaces = "cachedDispatch", guards = "warnings == null")
   @CompilerDirectives.TruffleBoundary
   public Object uncachedDispatch(
       MaterializedFrame frame,
@@ -95,18 +104,10 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       Object[] arguments,
       Warning[] warnings,
       @Cached ExecuteCallNode executeCallNode) {
-    while (true) {
-      try {
-        return executeCallNode.executeCall(frame, function, callerInfo, state, arguments);
-      } catch (TailCallException e) {
-        function = e.getFunction();
-        callerInfo = e.getCallerInfo();
-        arguments = e.getArguments();
-      }
-    }
+    return loopUntilCompletion(frame, function, callerInfo, state, arguments, executeCallNode);
   }
 
-  @Specialization(replaces = "dispatchWarnings", guards = "warnings != null")
+  @Specialization(replaces = "cachedDispatchWarnings", guards = "warnings != null")
   @CompilerDirectives.TruffleBoundary
   public Object uncachedDispatchWarnings(
       MaterializedFrame frame,
@@ -117,8 +118,26 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       Warning[] warnings,
       @Cached ExecuteCallNode executeCallNode) {
     Object result =
-        uncachedDispatch(frame, function, callerInfo, state, arguments, warnings, executeCallNode);
+        loopUntilCompletion(frame, function, callerInfo, state, arguments, executeCallNode);
     return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
+  }
+
+  private Object loopUntilCompletion(
+      MaterializedFrame frame,
+      Function function,
+      CallerInfo callerInfo,
+      State state,
+      Object[] arguments,
+      ExecuteCallNode executeCallNode) {
+    while (true) {
+      try {
+        return executeCallNode.executeCall(frame, function, callerInfo, state, arguments);
+      } catch (TailCallException e) {
+        function = e.getFunction();
+        callerInfo = e.getCallerInfo();
+        arguments = e.getArguments();
+      }
+    }
   }
 
   /**

@@ -437,6 +437,7 @@ spec = Test.group "Dataflow Warnings" <|
         result_non_tail . should_equal 6
         Warning.get_all result_non_tail . map .value . should_equal ["Foo"]
 
+    Test.specify "should not break TCO when warnings are attached to arguments" <|
         vec = Vector.new 10000 (i-> i+1)
         elem1 = Warning.attach "WARNING1" 998
         vec.contains 998 . should_equal True
