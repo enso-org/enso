@@ -26,7 +26,7 @@ export interface ColumnProps<T, State = never, RowState = never> {
     selected: boolean
     state: State
     rowState: RowState
-    setRowState: (rowState: RowState) => void
+    setRowState: React.Dispatch<React.SetStateAction<RowState>>
 }
 
 /** Metadata describing how to render a column of the table. */
@@ -49,7 +49,7 @@ interface StateProp<State> {
 /** `rowState` and `setRowState` */
 interface InternalRowStateProps<RowState> {
     rowState: RowState
-    setRowState: (newRowState: RowState) => void
+    setRowState: React.Dispatch<React.SetStateAction<RowState>>
 }
 
 /** `initialRowState: RowState`. */

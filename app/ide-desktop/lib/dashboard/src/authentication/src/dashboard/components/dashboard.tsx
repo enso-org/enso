@@ -5,10 +5,10 @@ import * as React from 'react'
 import * as common from 'enso-common'
 
 import * as backendModule from '../backend'
-import * as directoryEventModule from '../events/directoryEvent'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
 import * as localBackend from '../localBackend'
+import * as projectListEventModule from '../events/projectListEvent'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
 import * as shortcuts from '../shortcuts'
@@ -99,9 +99,8 @@ function Dashboard(props: DashboardProps) {
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
-    // This is a bad solution as it dirties the entire DOM subtree.
-    const [directoryEvent, dispatchDirectoryEvent] =
-        hooks.useEvent<directoryEventModule.DirectoryEvent>()
+    const [projectListEvent, dispatchProjectListEvent] =
+        React.useState<projectListEventModule.ProjectListEvent | null>(null)
 
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
@@ -232,12 +231,12 @@ function Dashboard(props: DashboardProps) {
 
     const doCreateProject = React.useCallback(
         (templateId?: string | null) => {
-            dispatchDirectoryEvent({
-                type: directoryEventModule.DirectoryEventType.createProject,
+            dispatchProjectListEvent({
+                type: projectListEventModule.ProjectListEventType.create,
                 templateId: templateId ?? null,
             })
         },
-        [/* should never change */ dispatchDirectoryEvent]
+        [/* should never change */ dispatchProjectListEvent]
     )
 
     const openIde = React.useCallback(
@@ -307,8 +306,8 @@ function Dashboard(props: DashboardProps) {
                         setNameOfProjectToImmediatelyOpen={setNameOfProjectToImmediatelyOpen}
                         directoryId={directoryId}
                         setDirectoryId={setDirectoryId}
-                        directoryEvent={directoryEvent}
-                        dispatchDirectoryEvent={dispatchDirectoryEvent}
+                        projectListEvent={projectListEvent}
+                        dispatchProjectListEvent={dispatchProjectListEvent}
                         query={query}
                         refresh={refresh}
                         doRefresh={doRefresh}

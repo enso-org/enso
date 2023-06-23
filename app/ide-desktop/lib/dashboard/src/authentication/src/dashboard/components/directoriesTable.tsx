@@ -35,13 +35,13 @@ const ASSET_TYPE_NAME_PLURAL = 'folders'
 // eslint-disable-next-line no-restricted-syntax
 const pluralize = string.makePluralize(ASSET_TYPE_NAME, ASSET_TYPE_NAME_PLURAL)
 /** Placeholder row when the search query is not empty. */
-const PLACEHOLDER_WITH_QUERY = (
+const PLACEHOLDER_WITH_FILTER = (
     <span className="opacity-75">
         This folder does not contain any sub{ASSET_TYPE_NAME_PLURAL} matching your query.
     </span>
 )
 /** Placeholder row when the search query is empty. */
-const PLACEHOLDER_WITHOUT_QUERY = (
+const PLACEHOLDER_WITHOUT_FILTER = (
     <span className="opacity-75">
         This folder does not contain any sub{ASSET_TYPE_NAME_PLURAL}.
     </span>
@@ -180,9 +180,9 @@ function DirectoryName(props: InternalDirectoryNameProps) {
 /** Props for a {@link DirectoriesTable}. */
 export interface DirectoriesTableProps {
     items: backendModule.DirectoryAsset[]
+    filter: ((item: backendModule.DirectoryAsset) => boolean) | null
     isLoading: boolean
     columnDisplayMode: columnModule.ColumnDisplayMode
-    query: string
     doCreateDirectory: () => void
     onRename: () => void
     onDelete: () => void
@@ -192,10 +192,10 @@ export interface DirectoriesTableProps {
 /** The table of directory assets. */
 function DirectoriesTable(props: DirectoriesTableProps) {
     const {
-        items,
+        items: rawItems,
+        filter,
         isLoading,
         columnDisplayMode,
-        query,
         doCreateDirectory,
         onRename,
         onDelete,
@@ -204,6 +204,11 @@ function DirectoriesTable(props: DirectoriesTableProps) {
     const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
+
+    const items = React.useMemo(
+        () => (filter != null ? rawItems.filter(filter) : rawItems),
+        [rawItems, filter]
+    )
 
     const state = React.useMemo(
         // The type MUST be here to trigger excess property errors at typecheck time.
@@ -220,7 +225,7 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                 isLoading={isLoading}
                 state={state}
                 getKey={backendModule.getAssetId}
-                placeholder={query ? PLACEHOLDER_WITH_QUERY : PLACEHOLDER_WITHOUT_QUERY}
+                placeholder={filter != null ? PLACEHOLDER_WITH_FILTER : PLACEHOLDER_WITHOUT_FILTER}
                 columns={columnModule.columnsFor(columnDisplayMode, backend.type).map(column =>
                     column === columnModule.Column.name
                         ? {

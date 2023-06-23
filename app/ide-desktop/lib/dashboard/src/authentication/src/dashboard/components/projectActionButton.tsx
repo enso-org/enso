@@ -5,7 +5,9 @@ import toast from 'react-hot-toast'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as errorModule from '../../error'
+import * as hooks from '../../hooks'
 import * as modalProvider from '../../providers/modal'
+import * as optimistic from '../optimistic'
 import * as projectEvent from '../events/projectEvent'
 import * as projectRowState from '../projectRowState'
 import * as svg from '../../components/svg'
@@ -70,7 +72,7 @@ const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
 export interface ProjectActionButtonProps {
     project: backendModule.ProjectAsset
     rowState: projectRowState.ProjectRowState
-    setRowState: (newRowState: projectRowState.ProjectRowState) => void
+    setRowState: React.Dispatch<React.SetStateAction<projectRowState.ProjectRowState>>
     event: projectEvent.ProjectEvent | null
     /** Called when the project is opened via the {@link ProjectActionButton}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
@@ -168,39 +170,64 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [project.projectState.type])
 
-    React.useEffect(() => {
-        if (event != null) {
-            switch (event.type) {
-                case projectEvent.ProjectEventType.open: {
-                    if (event.projectId !== project.id) {
-                        if (backend.type === backendModule.BackendType.local) {
-                            setState(backendModule.ProjectState.closed)
-                            setCheckState(CheckState.notChecking)
-                        }
-                        setShouldOpenWhenReady(false)
-                    } else {
-                        setShouldOpenWhenReady(true)
-                        void openProject()
-                    }
-                    break
-                }
-                case projectEvent.ProjectEventType.cancelOpeningAll: {
+    hooks.useEvent(event, theEvent => {
+        switch (theEvent.type) {
+            case projectEvent.ProjectEventType.open: {
+                if (theEvent.projectId !== project.id) {
                     if (backend.type === backendModule.BackendType.local) {
                         setState(backendModule.ProjectState.closed)
                         setCheckState(CheckState.notChecking)
                     }
                     setShouldOpenWhenReady(false)
-                    break
+                } else {
+                    setShouldOpenWhenReady(true)
+                    void openProject()
                 }
-                case projectEvent.ProjectEventType.showAsOpening: {
-                    if (event.projectId === project.id) {
-                        setState(backendModule.ProjectState.openInProgress)
-                    }
-                    break
+                break
+            }
+            case projectEvent.ProjectEventType.cancelOpeningAll: {
+                if (backend.type === backendModule.BackendType.local) {
+                    setState(backendModule.ProjectState.closed)
+                    setCheckState(CheckState.notChecking)
                 }
+                setShouldOpenWhenReady(false)
+                break
+            }
+            case projectEvent.ProjectEventType.showAsOpening: {
+                if (theEvent.projectId === project.id) {
+                    setState(backendModule.ProjectState.openInProgress)
+                    setRowState(oldState => ({
+                        ...oldState,
+                        status: optimistic.OptimisticStatus.inserting,
+                    }))
+                }
+                break
+            }
+            case projectEvent.ProjectEventType.deleteMultiple: {
+                if (theEvent.projectIds.has(project.id)) {
+                    setRowState(oldState => ({
+                        ...oldState,
+                        status: optimistic.OptimisticStatus.deleting,
+                    }))
+                    void backend.deleteProject(project.id, project.title).then(
+                        () => {
+                            setRowState(oldState => ({
+                                ...oldState,
+                                status: optimistic.OptimisticStatus.deleting,
+                            }))
+                        },
+                        () => {
+                            setRowState(oldState => ({
+                                ...oldState,
+                                status: optimistic.OptimisticStatus.present,
+                            }))
+                        }
+                    )
+                }
+                break
             }
         }
-    }, [event, openProject, project.id, backend.type])
+    })
 
     React.useEffect(() => {
         if (shouldOpenWhenReady && state === backendModule.ProjectState.opened) {

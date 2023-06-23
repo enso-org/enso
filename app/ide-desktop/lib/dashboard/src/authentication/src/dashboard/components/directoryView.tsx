@@ -9,13 +9,14 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as dateTime from '../dateTime'
-import * as directoryEventModule from '../events/directoryEvent'
-import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
-import * as projectEventModule from '../events/projectEvent'
 import * as toastPromise from '../toastPromise'
 import * as uniqueString from '../../uniqueString'
+
+import * as directoryListEventModule from '../events/directoryListEvent'
+import * as projectEventModule from '../events/projectEvent'
+import * as projectListEventModule from '../events/projectListEvent'
 
 import DirectoriesTable from './directoriesTable'
 import DriveBar from './driveBar'
@@ -54,8 +55,8 @@ export interface DirectoryViewProps {
     setNameOfProjectToImmediatelyOpen: (nameOfProjectToImmediatelyOpen: string | null) => void
     directoryId: backendModule.DirectoryId | null
     setDirectoryId: (directoryId: backendModule.DirectoryId | null) => void
-    directoryEvent: directoryEventModule.DirectoryEvent | null
-    dispatchDirectoryEvent: (directoryEvent: directoryEventModule.DirectoryEvent | null) => void
+    projectListEvent: projectListEventModule.ProjectListEvent | null
+    dispatchProjectListEvent: (directoryEvent: projectListEventModule.ProjectListEvent) => void
     query: string
     refresh: hooks.RefreshState
     doRefresh: () => void
@@ -78,8 +79,8 @@ function DirectoryView(props: DirectoryViewProps) {
         setDirectoryId,
         query,
         refresh,
-        directoryEvent,
-        dispatchDirectoryEvent,
+        projectListEvent,
+        dispatchProjectListEvent,
         doRefresh,
         onOpenIde,
         onCloseIde,
@@ -107,25 +108,19 @@ function DirectoryView(props: DirectoryViewProps) {
     const [secretAssets, setSecretAssets] = React.useState<backendModule.SecretAsset[]>([])
     const [fileAssets, setFileAssets] = React.useState<backendModule.FileAsset[]>([])
     const [projectEvent, dispatchProjectEvent] =
-        hooks.useEvent<projectEventModule.ProjectEvent | null>()
+        React.useState<projectEventModule.ProjectEvent | null>(null)
 
-    const queryRegex = React.useMemo(() => new RegExp(regexEscape(query), 'i'), [query])
-    const visibleProjectAssets = React.useMemo(
-        () => projectAssets.filter(asset => queryRegex.test(asset.title)),
-        [queryRegex, projectAssets]
-    )
-    const visibleDirectoryAssets = React.useMemo(
-        () => directoryAssets.filter(asset => queryRegex.test(asset.title)),
-        [queryRegex, directoryAssets]
-    )
-    const visibleSecretAssets = React.useMemo(
-        () => secretAssets.filter(asset => queryRegex.test(asset.title)),
-        [queryRegex, secretAssets]
-    )
-    const visibleFileAssets = React.useMemo(
-        () => fileAssets.filter(asset => queryRegex.test(asset.title)),
-        [queryRegex, fileAssets]
-    )
+    const [directoryListEvent, dispatchDirectoryListEvent] =
+        React.useState<directoryListEventModule.DirectoryListEvent | null>(null)
+
+    const assetFilter = React.useMemo(() => {
+        if (query === '') {
+            return null
+        } else {
+            const regex = new RegExp(regexEscape(query), 'i')
+            return (asset: backendModule.Asset) => regex.test(asset.title)
+        }
+    }, [query])
 
     const directory = directoryStack[directoryStack.length - 1] ?? null
     const parentDirectory = directoryStack[directoryStack.length - 2] ?? null
@@ -246,78 +241,10 @@ function DirectoryView(props: DirectoryViewProps) {
         /* should never change */ dispatchProjectEvent,
     ])
 
-    const getNewProjectName = React.useCallback(
-        (templateId?: string | null) => {
-            const prefix = `${templateId ?? 'New_Project'}_`
-            const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
-            const projectIndices = projectAssets
-                .map(project => projectNameTemplate.exec(project.title)?.groups?.projectIndex)
-                .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
-            return `${prefix}${Math.max(...projectIndices) + 1}`
-        },
-        [projectAssets]
-    )
-
     React.useEffect(() => {
         void (async () => {
             if (directoryEvent != null) {
                 switch (directoryEvent.type) {
-                    case directoryEventModule.DirectoryEventType.createProject: {
-                        const projectName = getNewProjectName(directoryEvent.templateId)
-                        // Although this is a dummy value, it MUST be unique as it is used
-                        // as the React key for lists.
-                        const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
-                        const placeholderNewProjectAsset: backendModule.ProjectAsset = {
-                            type: backendModule.AssetType.project,
-                            title: projectName,
-                            id: dummyId,
-                            modifiedAt: dateTime.toRfc3339(new Date()),
-                            parentId: directoryId ?? backendModule.DirectoryId(''),
-                            permissions: [],
-                            projectState: { type: backendModule.ProjectState.new },
-                        }
-                        setProjectAssets(oldProjectAssets => [
-                            placeholderNewProjectAsset,
-                            ...oldProjectAssets,
-                        ])
-                        dispatchProjectEvent({
-                            type: projectEventModule.ProjectEventType.showAsOpening,
-                            projectId: dummyId,
-                        })
-                        const createProjectPromise = backend.createProject({
-                            projectName,
-                            projectTemplateName: directoryEvent.templateId ?? null,
-                            parentDirectoryId: directoryId,
-                        })
-                        const createdProject = await toastPromise.toastPromise(
-                            createProjectPromise,
-                            {
-                                loading: 'Creating new empty project...',
-                                success: 'Created new empty project.',
-                                error: error =>
-                                    `Could not create new empty project: ${
-                                        errorModule.tryGetMessage(error) ?? 'unknown error'
-                                    }`,
-                            }
-                        )
-                        setProjectAssets(oldProjectAssets => {
-                            const newProjectAssets = [...oldProjectAssets]
-                            newProjectAssets[newProjectAssets.indexOf(placeholderNewProjectAsset)] =
-                                {
-                                    ...placeholderNewProjectAsset,
-                                    type: backendModule.AssetType.project,
-                                    title: createdProject.name,
-                                    id: createdProject.projectId,
-                                    projectState: createdProject.state,
-                                }
-                            return newProjectAssets
-                        })
-                        dispatchProjectEvent({
-                            type: projectEventModule.ProjectEventType.open,
-                            projectId: createdProject.projectId,
-                        })
-                        break
-                    }
                     case directoryEventModule.DirectoryEventType.createDirectory: {
                         if (backend.type !== backendModule.BackendType.remote) {
                             toast.error('Folders cannot be created on the local backend.')
@@ -377,27 +304,20 @@ function DirectoryView(props: DirectoryViewProps) {
                 }
             }
         })()
-    }, [
-        backend,
-        directoryEvent,
-        directoryId,
-        directoryAssets,
-        getNewProjectName,
-        /* should never change */ dispatchProjectEvent,
-    ])
+    }, [backend, directoryId, directoryAssets, /* should never change */ dispatchProjectEvent])
 
     const doCreateProject = React.useCallback(() => {
-        dispatchDirectoryEvent({
-            type: directoryEventModule.DirectoryEventType.createProject,
+        dispatchProjectListEvent({
+            type: projectListEventModule.ProjectListEventType.create,
             templateId: null,
         })
-    }, [/* should never change */ dispatchDirectoryEvent])
+    }, [/* should never change */ dispatchProjectListEvent])
 
     const doCreateDirectory = React.useCallback(() => {
-        dispatchDirectoryEvent({
-            type: directoryEventModule.DirectoryEventType.createDirectory,
+        dispatchDirectoryListEvent({
+            type: directoryListEventModule.DirectoryListEventType.create,
         })
-    }, [/* should never change */ dispatchDirectoryEvent])
+    }, [/* should never change */ dispatchDirectoryListEvent])
 
     const enterDirectory = React.useCallback(
         (directoryAsset: backendModule.DirectoryAsset) => {
@@ -432,11 +352,13 @@ function DirectoryView(props: DirectoryViewProps) {
             <div className="h-10" />
             <ProjectsTable
                 appRunner={appRunner}
-                items={visibleProjectAssets}
+                directoryId={directoryId}
+                items={projectAssets}
+                filter={assetFilter}
                 isLoading={isLoadingAssets}
                 columnDisplayMode={columnDisplayMode}
                 projectEvent={projectEvent}
-                setProjectEvent={dispatchProjectEvent}
+                dispatchProjectEvent={dispatchProjectEvent}
                 doCreateProject={doCreateProject}
                 onRename={doRefresh}
                 onDelete={doRefresh}
@@ -445,10 +367,10 @@ function DirectoryView(props: DirectoryViewProps) {
             />
             <div className="h-10" />
             <DirectoriesTable
-                items={visibleDirectoryAssets}
+                items={directoryAssets}
+                filter={assetFilter}
                 isLoading={isLoadingAssets}
                 columnDisplayMode={columnDisplayMode}
-                query={query}
                 doCreateDirectory={doCreateDirectory}
                 onRename={doRefresh}
                 onDelete={doRefresh}
@@ -457,20 +379,20 @@ function DirectoryView(props: DirectoryViewProps) {
             <div className="h-10" />
             <SecretsTable
                 directoryId={directoryId}
-                items={visibleSecretAssets}
+                items={secretAssets}
+                filter={assetFilter}
                 isLoading={isLoadingAssets}
                 columnDisplayMode={columnDisplayMode}
-                query={query}
                 onCreate={doRefresh}
                 onDelete={doRefresh}
             />
             <div className="h-10" />
             <FilesTable
                 directoryId={directoryId}
-                items={visibleFileAssets}
+                items={fileAssets}
+                filter={assetFilter}
                 isLoading={isLoadingAssets}
                 columnDisplayMode={columnDisplayMode}
-                query={query}
                 onCreate={doRefresh}
                 onDelete={doRefresh}
             />

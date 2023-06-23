@@ -104,17 +104,25 @@ export function useNavigate() {
 // === useEvent ===
 // ================
 
-/** A wrapper around `useState` that sets its value to `null` after the current render. */
-export function useEvent<T>(): [event: T | null, dispatchEvent: (value: T | null) => void] {
-    const [event, setEvent] = React.useState<T | null>(null)
+/** A map containing all known event types. Names MUST be chosen carefully to avoid conflicts.
+ * The simplest way to achieve this is by namespacing names using a prefix. */
+export interface KnownEventsMap {}
 
+/** A union of all known events. */
+type KnownEvent = KnownEventsMap[keyof KnownEventsMap]
+
+/** A wrapper around `useEffect` that has `event` as its sole dependency. */
+export function useEvent<T extends KnownEvent>(
+    event: T | null,
+    effect: (event: T) => Promise<void> | void
+) {
     React.useEffect(() => {
         if (event != null) {
-            setEvent(null)
+            void effect(event)
         }
+        // This effect MUST only run when the event changes.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [event])
-
-    return [event, setEvent]
 }
 
 // =========================================

@@ -4,18 +4,18 @@ import * as React from 'react'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
+import * as dateTime from '../dateTime'
 import * as errorModule from '../../error'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
-import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as projectEventModule from '../events/projectEvent'
+import * as projectListEventModule from '../events/projectListEvent'
 import * as projectRowState from '../projectRowState'
 import * as shortcuts from '../shortcuts'
 import * as string from '../../string'
 import * as svg from '../../components/svg'
 import * as toastPromise from '../toastPromise'
-import * as toastPromiseMultiple from '../../toastPromiseMultiple'
 import * as uniqueString from '../../uniqueString'
 import * as validation from '../validation'
 
@@ -44,14 +44,6 @@ const PLACEHOLDER = (
         You have no project yet. Go ahead and create one using the form above.
     </span>
 )
-/** Messages to be passed to {@link toastPromiseMultiple.toastPromiseMultiple}. */
-const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultipleMessages<backendModule.ProjectAsset> =
-    {
-        begin: total => `Deleting ${total} ${pluralize(total)}...`,
-        inProgress: (successful, total) => `Deleted ${successful}/${total} ${pluralize(total)}.`,
-        end: (successful, total) => `Deleted ${successful}/${total} ${pluralize(total)}.`,
-        error: asset => `Could not delete ${ASSET_TYPE_NAME} '${asset.title}'.`,
-    }
 
 // ==========================
 // === ProjectNameHeading ===
@@ -89,7 +81,8 @@ function ProjectNameHeading(props: InternalProjectNameHeadingProps) {
 interface ProjectNamePropsState {
     appRunner: AppRunner | null
     projectEvent: projectEventModule.ProjectEvent | null
-    setProjectEvent: (projectEvent: projectEventModule.ProjectEvent | null) => void
+    dispatchProjectEvent: (projectEvent: projectEventModule.ProjectEvent) => void
+    dispatchProjectListEvent: (projectListEvent: projectListEventModule.ProjectListEvent) => void
     /** Called when the project is opened via the {@link ProjectActionButton}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
     doOpenIde: (project: backendModule.ProjectAsset) => void
@@ -111,7 +104,14 @@ function ProjectName(props: InternalProjectNameProps) {
         selected,
         rowState,
         setRowState,
-        state: { appRunner, projectEvent, setProjectEvent, doOpenManually, doOpenIde, doCloseIde },
+        state: {
+            appRunner,
+            projectEvent,
+            dispatchProjectEvent,
+            doOpenManually,
+            doOpenIde,
+            doCloseIde,
+        },
     } = props
     const { backend } = backendProvider.useBackend()
     const [, doRefresh] = hooks.useRefresh()
@@ -145,7 +145,7 @@ function ProjectName(props: InternalProjectNameProps) {
             onClick={event => {
                 if (eventModule.isDoubleClick(event)) {
                     // It is a double click; open the project.
-                    setProjectEvent({
+                    dispatchProjectEvent({
                         type: projectEventModule.ProjectEventType.open,
                         projectId: item.id,
                     })
@@ -209,6 +209,94 @@ function ProjectName(props: InternalProjectNameProps) {
     )
 }
 
+// =============================
+// === ProjectRowContextMenu ===
+// =============================
+
+/** Props for a {@link ProjectRowContextMenu}. */
+interface InternalProjectRowContextMenuProps {
+    innerProps: table.RowInnerProps<backendModule.ProjectAsset, projectRowState.ProjectRowState>
+    event: React.MouseEvent
+}
+
+/** The context menu for a row of a {@link ProjectsTable}. */
+function ProjectRowContextMenu(props: InternalProjectRowContextMenuProps) {
+    const {
+        innerProps: { item, rowState },
+        event,
+    } = props
+    const { backend } = backendProvider.useBackend()
+    const { unsetModal } = modalProvider.useSetModal()
+
+    const isDeleteDisabled = backend.type === backendModule.BackendType.local && rowState.isRunning
+    const doOpenForEditing = () => {
+        unsetModal()
+        dispatchProjectEvent({
+            type: projectEventModule.ProjectEventType.open,
+            projectId: item.id,
+        })
+    }
+    const doRename = () => {
+        const innerDoRename = async (newName: string) => {
+            await backend.projectUpdate(
+                item.id,
+                {
+                    ami: null,
+                    ideVersion: null,
+                    projectName: newName,
+                },
+                item.title
+            )
+        }
+        setModal(
+            <RenameModal
+                name={item.title}
+                assetType={item.type}
+                doRename={innerDoRename}
+                onSuccess={onRename}
+                {...(backend.type === backendModule.BackendType.local
+                    ? {
+                          namePattern: validation.LOCAL_PROJECT_NAME_PATTERN,
+                          title: validation.LOCAL_PROJECT_NAME_TITLE,
+                      }
+                    : {})}
+            />
+        )
+    }
+    const doDelete = () => {
+        setModal(
+            <ConfirmDeleteModal
+                description={item.title}
+                assetType={item.type}
+                doDelete={() => backend.deleteProject(item.id, item.title)}
+                onSuccess={onDelete}
+            />
+        )
+    }
+    return (
+        <ContextMenu key={item.id} event={event}>
+            <ContextMenuEntry onClick={doOpenForEditing}>Open for editing</ContextMenuEntry>
+            {/*backend.type !== backendModule.BackendType.local && (
+                            <ContextMenuEntry disabled onClick={doOpenAsFolder}>
+                                Open as folder
+                            </ContextMenuEntry>
+                        )*/}
+            <ContextMenuEntry onClick={doRename}>Rename</ContextMenuEntry>
+            <ContextMenuEntry
+                disabled={isDeleteDisabled}
+                {...(isDeleteDisabled
+                    ? {
+                          title: 'A running local project cannot be removed.',
+                      }
+                    : {})}
+                onClick={doDelete}
+            >
+                <span className="text-red-700">Delete</span>
+            </ContextMenuEntry>
+        </ContextMenu>
+    )
+}
+
 // =====================
 // === ProjectsTable ===
 // =====================
@@ -216,11 +304,15 @@ function ProjectName(props: InternalProjectNameProps) {
 /** Props for a {@link ProjectsTable}. */
 export interface ProjectsTableProps {
     appRunner: AppRunner | null
+    directoryId: backendModule.DirectoryId | null
     items: backendModule.ProjectAsset[]
+    filter: ((item: backendModule.ProjectAsset) => boolean) | null
     isLoading: boolean
     columnDisplayMode: columnModule.ColumnDisplayMode
     projectEvent: projectEventModule.ProjectEvent | null
-    setProjectEvent: (projectEvent: projectEventModule.ProjectEvent | null) => void
+    dispatchProjectEvent: (projectEvent: projectEventModule.ProjectEvent) => void
+    projectListEvent: projectListEventModule.ProjectListEvent | null
+    dispatchProjectListEvent: (projectListEvent: projectListEventModule.ProjectListEvent) => void
     doCreateProject: () => void
     onRename: () => void
     onDelete: () => void
@@ -232,54 +324,146 @@ export interface ProjectsTableProps {
 function ProjectsTable(props: ProjectsTableProps) {
     const {
         appRunner,
-        items,
+        directoryId,
+        items: rawItems,
+        filter,
         isLoading,
         columnDisplayMode,
         projectEvent,
-        setProjectEvent,
+        dispatchProjectEvent,
+        projectListEvent,
+        dispatchProjectListEvent,
         doCreateProject,
         onRename,
         onDelete,
         doOpenIde,
         doCloseIde: rawDoCloseIde,
     } = props
-    const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
+    const [items, setItems] = React.useState(rawItems)
+
+    React.useEffect(() => {
+        setItems(rawItems)
+    }, [rawItems])
+
+    const visibleItems = React.useMemo(
+        () => (filter != null ? items.filter(filter) : items),
+        [items, filter]
+    )
+
+    const getNewProjectName = React.useCallback(
+        (templateId?: string | null) => {
+            const prefix = `${templateId ?? 'New_Project'}_`
+            const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
+            const projectIndices = items
+                .map(project => projectNameTemplate.exec(project.title)?.groups?.projectIndex)
+                .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
+            return `${prefix}${Math.max(0, ...projectIndices) + 1}`
+        },
+        [items]
+    )
+
+    hooks.useEvent(projectListEvent, async event => {
+        switch (event.type) {
+            case projectListEventModule.ProjectListEventType.create: {
+                const projectName = getNewProjectName(event.templateId)
+                // Although this is a dummy value, it MUST be unique as it is used
+                // as the React key for lists.
+                const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
+                const placeholderItem: backendModule.ProjectAsset = {
+                    type: backendModule.AssetType.project,
+                    title: projectName,
+                    id: dummyId,
+                    modifiedAt: dateTime.toRfc3339(new Date()),
+                    parentId: directoryId ?? backendModule.DirectoryId(''),
+                    permissions: [],
+                    projectState: { type: backendModule.ProjectState.new },
+                }
+                setItems(oldProjectAssets => [placeholderItem, ...oldProjectAssets])
+                dispatchProjectEvent({
+                    type: projectEventModule.ProjectEventType.showAsOpening,
+                    projectId: dummyId,
+                })
+                // FIXME: individual rows should handle this
+                const createProjectPromise = backend.createProject({
+                    projectName,
+                    projectTemplateName: event.templateId ?? null,
+                    parentDirectoryId: directoryId,
+                })
+                const createdProject = await toastPromise.toastPromise(createProjectPromise, {
+                    loading: 'Creating new empty project...',
+                    success: 'Created new empty project.',
+                    error: error =>
+                        `Could not create new empty project: ${
+                            errorModule.tryGetMessage(error) ?? 'unknown error.'
+                        }`,
+                })
+                const newItem: backendModule.ProjectAsset = {
+                    ...placeholderItem,
+                    type: backendModule.AssetType.project,
+                    title: createdProject.name,
+                    id: createdProject.projectId,
+                    projectState: createdProject.state,
+                }
+                setItems(oldItems =>
+                    oldItems.map(item => (item !== placeholderItem ? item : newItem))
+                )
+                dispatchProjectEvent({
+                    type: projectEventModule.ProjectEventType.open,
+                    projectId: createdProject.projectId,
+                })
+                break
+            }
+            case projectListEventModule.ProjectListEventType.delete: {
+                setItems(oldItems => oldItems.filter(item => item.id !== event.projectId))
+                break
+            }
+        }
+    })
 
     const doOpenManually = React.useCallback(
         (projectId: backendModule.ProjectId) => {
-            setProjectEvent({
+            dispatchProjectEvent({
                 type: projectEventModule.ProjectEventType.open,
                 projectId,
             })
         },
-        [setProjectEvent]
+        [/* should never change */ dispatchProjectEvent]
     )
 
     const doCloseIde = React.useCallback(() => {
-        setProjectEvent({
+        dispatchProjectEvent({
             type: projectEventModule.ProjectEventType.cancelOpeningAll,
         })
         rawDoCloseIde()
-    }, [rawDoCloseIde, setProjectEvent])
+    }, [rawDoCloseIde, /* should never change */ dispatchProjectEvent])
 
     const state = React.useMemo(
         // The type MUST be here to trigger excess property errors at typecheck time.
         (): ProjectNamePropsState => ({
             appRunner,
             projectEvent,
-            setProjectEvent,
+            dispatchProjectEvent,
+            dispatchProjectListEvent,
             doOpenManually,
             doOpenIde,
             doCloseIde,
         }),
-        [appRunner, projectEvent, setProjectEvent, doOpenManually, doOpenIde, doCloseIde]
+        [
+            appRunner,
+            projectEvent,
+            doOpenManually,
+            doOpenIde,
+            doCloseIde,
+            /* should never change */ dispatchProjectEvent,
+            /* should never change */ dispatchProjectListEvent,
+        ]
     )
 
     return (
         <Table<backendModule.ProjectAsset, ProjectNamePropsState, projectRowState.ProjectRowState>
-            items={items}
+            items={visibleItems}
             isLoading={isLoading}
             state={state}
             initialRowState={projectRowState.INITIAL_ROW_STATE}
@@ -311,14 +495,13 @@ function ProjectsTable(props: ProjectsTableProps) {
                             description={`${projects.size} selected projects`}
                             assetType="projects"
                             shouldShowToast={false}
-                            doDelete={async () => {
+                            doDelete={() => {
                                 setSelectedItems(new Set())
-                                await toastPromiseMultiple.toastPromiseMultiple(
-                                    logger,
-                                    [...projects],
-                                    project => backend.deleteProject(project.id, project.title),
-                                    TOAST_PROMISE_MULTIPLE_MESSAGES
-                                )
+                                dispatchProjectEvent({
+                                    type: projectEventModule.ProjectEventType.deleteMultiple,
+                                    projectIds: new Set([...projects].map(project => project.id)),
+                                })
+                                return Promise.resolve()
                             }}
                             onSuccess={onDelete}
                         />
@@ -336,79 +519,9 @@ function ProjectsTable(props: ProjectsTableProps) {
                 )
             }}
             onRowContextMenu={(innerProps, event) => {
-                const { item, rowState } = innerProps
                 event.preventDefault()
                 event.stopPropagation()
-                const isDeleteDisabled =
-                    backend.type === backendModule.BackendType.local && rowState.isRunning
-                const doOpenForEditing = () => {
-                    unsetModal()
-                    setProjectEvent({
-                        type: projectEventModule.ProjectEventType.open,
-                        projectId: item.id,
-                    })
-                }
-                const doRename = () => {
-                    const innerDoRename = async (newName: string) => {
-                        await backend.projectUpdate(
-                            item.id,
-                            {
-                                ami: null,
-                                ideVersion: null,
-                                projectName: newName,
-                            },
-                            item.title
-                        )
-                    }
-                    setModal(
-                        <RenameModal
-                            name={item.title}
-                            assetType={item.type}
-                            doRename={innerDoRename}
-                            onSuccess={onRename}
-                            {...(backend.type === backendModule.BackendType.local
-                                ? {
-                                      namePattern: validation.LOCAL_PROJECT_NAME_PATTERN,
-                                      title: validation.LOCAL_PROJECT_NAME_TITLE,
-                                  }
-                                : {})}
-                        />
-                    )
-                }
-                const doDelete = () => {
-                    setModal(
-                        <ConfirmDeleteModal
-                            description={item.title}
-                            assetType={item.type}
-                            doDelete={() => backend.deleteProject(item.id, item.title)}
-                            onSuccess={onDelete}
-                        />
-                    )
-                }
-                setModal(
-                    <ContextMenu key={item.id} event={event}>
-                        <ContextMenuEntry onClick={doOpenForEditing}>
-                            Open for editing
-                        </ContextMenuEntry>
-                        {/*backend.type !== backendModule.BackendType.local && (
-                            <ContextMenuEntry disabled onClick={doOpenAsFolder}>
-                                Open as folder
-                            </ContextMenuEntry>
-                        )*/}
-                        <ContextMenuEntry onClick={doRename}>Rename</ContextMenuEntry>
-                        <ContextMenuEntry
-                            disabled={isDeleteDisabled}
-                            {...(isDeleteDisabled
-                                ? {
-                                      title: 'A running local project cannot be removed.',
-                                  }
-                                : {})}
-                            onClick={doDelete}
-                        >
-                            <span className="text-red-700">Delete</span>
-                        </ContextMenuEntry>
-                    </ContextMenu>
-                )
+                setModal(<ProjectRowContextMenu innerProps={innerProps} event={event} />)
             }}
         />
     )

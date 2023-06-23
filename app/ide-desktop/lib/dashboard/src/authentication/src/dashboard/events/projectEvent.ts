@@ -1,9 +1,14 @@
 /** @file Events related to changes in project state. */
 import * as backendModule from '../backend'
 
-// Note: Events are currently sent from the parent. This causes a re-render of its entire subtree
-// and potentially degrades performance. Realistically, the performance degradation will not be
-// noticeable, but it is worth considering for improvements at some point in the future.
+// This is required, to whitelist this event.
+// eslint-disable-next-line no-restricted-syntax
+declare module '../../hooks' {
+    /** A map containing all known event types. */
+    export interface KnownEventsMap {
+        projectEvent: ProjectEvent
+    }
+}
 
 // ====================
 // === ProjectEvent ===
@@ -14,6 +19,7 @@ export enum ProjectEventType {
     open = 'open',
     showAsOpening = 'show-as-opening',
     cancelOpeningAll = 'cancel-opening-all',
+    deleteMultiple = 'delete-multiple',
 }
 
 /** Properties common to all project state change events. */
@@ -37,8 +43,15 @@ export interface ProjectShowAsOpeningEvent
 export interface ProjectCancelOpeningAllEvent
     extends ProjectBaseEvent<ProjectEventType.cancelOpeningAll> {}
 
+/** A signal to delete multiple projects. */
+export interface ProjectDeleteMultipleEvent
+    extends ProjectBaseEvent<ProjectEventType.deleteMultiple> {
+    projectIds: Set<backendModule.ProjectId>
+}
+
 /** Every possible type of project event. */
 export type ProjectEvent =
     | ProjectCancelOpeningAllEvent
+    | ProjectDeleteMultipleEvent
     | ProjectOpenEvent
     | ProjectShowAsOpeningEvent

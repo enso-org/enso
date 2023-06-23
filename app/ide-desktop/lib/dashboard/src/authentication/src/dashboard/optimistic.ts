@@ -7,7 +7,7 @@
 // definitions of other enum members - e.g. `deleting = present`.
 /* eslint-disable @typescript-eslint/no-shadow */
 /** The state of an item being synced to the backend. */
-export enum OptimisticState {
+export enum OptimisticStatus {
     /** The item is present. */
     present = 'present',
     /** The item will be inserted, but the backend request has not yet finished. */
@@ -18,24 +18,24 @@ export enum OptimisticState {
 /* eslint-enable @typescript-eslint/no-shadow */
 
 /** Properties common to all {@link Optimistic} values. */
-interface OptimisticBase<T, State extends OptimisticState> {
+interface OptimisticBase<T, State extends OptimisticStatus> {
     key: string
     value: T
     state: State
 }
 
 /** An {@link Optimistic} value which is present. */
-export interface OptimisticPresent<T> extends OptimisticBase<T, OptimisticState.present> {}
+export interface OptimisticPresent<T> extends OptimisticBase<T, OptimisticStatus.present> {}
 
 /** An {@link Optimistic} value which will be inserted, but is waiting for the backend request to
  * finish. */
-export interface OptimisticInserting<T> extends OptimisticBase<T, OptimisticState.inserting> {
+export interface OptimisticInserting<T> extends OptimisticBase<T, OptimisticStatus.inserting> {
     newValuePromise: Promise<T>
 }
 
 /** An {@link Optimistic} value which will be deleted, but is waiting for the backend request to
  * finish. */
-export interface OptimisticDeleting<T> extends OptimisticBase<T, OptimisticState.deleting> {}
+export interface OptimisticDeleting<T> extends OptimisticBase<T, OptimisticStatus.deleting> {}
 
 /** A value and the state of state of it being synced to the backend. */
 export type Optimistic<T> = OptimisticDeleting<T> | OptimisticInserting<T> | OptimisticPresent<T>
@@ -52,7 +52,7 @@ export function present<T>(key: string, value: T): OptimisticPresent<T> {
     return {
         key,
         value,
-        state: OptimisticState.present,
+        state: OptimisticStatus.present,
     }
 }
 
@@ -72,7 +72,7 @@ export function inserting<T>(
     return {
         key,
         value,
-        state: OptimisticState.inserting,
+        state: OptimisticStatus.inserting,
         newValuePromise,
     }
 }
@@ -92,7 +92,7 @@ export function deleting<T>(key: string, value: T): OptimisticDeleting<T> {
     return {
         key,
         value,
-        state: OptimisticState.deleting,
+        state: OptimisticStatus.deleting,
     }
 }
 
