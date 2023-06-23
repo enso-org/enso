@@ -36,6 +36,7 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
@@ -201,8 +202,14 @@ public abstract class InvokeMethodNode extends BaseNode {
     }
     var resolvedFuncArgCount = function.getSchema().getArgumentsCount();
     CallArgumentInfo[] invokeFuncSchema = invokeFunctionNode.getSchema();
-    // Check if this is a static method call on Any
-    if (isAnyEigenType(selfTpe) && arguments.length == resolvedFuncArgCount - 1) {
+    long defArgCount = Arrays.stream(function.getSchema().getArgumentInfos())
+        .filter(ArgumentDefinition::hasDefaultValue)
+        .count();
+    // Static method calls on Any are resolved to `Any.type.method`. Such methods take one additional
+    // self argument (with Any.type) as opposed to static method calls resolved on any other
+    // types. This case is handled in the following block.
+    boolean shouldPrependSyntheticSelfArg = resolvedFuncArgCount - defArgCount == arguments.length + 1;
+    if (isAnyEigenType(selfTpe) && shouldPrependSyntheticSelfArg) {
       // function is a static method on Any, so the first two arguments in `invokeFuncSchema`
       // represent self arguments.
       boolean selfArgSpecified = false;
@@ -214,7 +221,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       if (selfArgSpecified) {
         // If there is a self named argument in the method call, we fall back to the old
         // behavior - there will be no prepended Any.type self argument
-        assert arguments.length == invokeFunctionNode.getSchema().length;
+        assert arguments.length == invokeFuncSchema.length;
         return invokeFunctionNode.execute(function, frame, state, arguments);
       }
 
@@ -228,15 +235,10 @@ public abstract class InvokeMethodNode extends BaseNode {
             : "Resolved function should be on Any.type, therefore, should have at least two self"
                 + " arguments";
         // Prepend self=Any to the arguments and shift
-        assert resolvedFuncArgCount - 1 <= invokeFuncSchema.length
-            && invokeFuncSchema.length <= resolvedFuncArgCount;
-        assert arguments.length == invokeFuncSchema.length;
-
-        CallArgumentInfo[] newInvokeFuncSchema = new CallArgumentInfo[resolvedFuncArgCount];
+        CallArgumentInfo[] newInvokeFuncSchema = new CallArgumentInfo[arguments.length + 1];
         newInvokeFuncSchema[0] = new CallArgumentInfo("self");
-        newInvokeFuncSchema[1] = new CallArgumentInfo("self");
-        int toCopyLen = Math.min(newInvokeFuncSchema.length - 2, invokeFuncSchema.length);
-        System.arraycopy(invokeFuncSchema, 0, newInvokeFuncSchema, 2, toCopyLen);
+        assert arguments.length == invokeFuncSchema.length;
+        System.arraycopy(invokeFuncSchema, 0, newInvokeFuncSchema, 1, invokeFuncSchema.length);
 
         assert argsWithPrependedSelf.length == newInvokeFuncSchema.length;
         invokeAnyStaticFunctionNode =
