@@ -59,9 +59,7 @@ type Json
     from_pairs pairs =
         JS_Object.from_pairs pairs . to_text
 
-## UNSTABLE
-
-   A failure indicating malformed text input into the JSON parser.
+## A failure indicating malformed text input into the JSON parser.
 
    Check the `message` field for detailed information on the specific failure.
 type Invalid_JSON
@@ -74,9 +72,7 @@ type Invalid_JSON
     to_display_text self =
         "Parse error in parsing JSON: " + self.message.to_text + "."
 
-## UNSTABLE
-
-   A failure indicating the inability to marshall a `Json` object into the
+## A failure indicating the inability to marshall a `Json` object into the
    specified format.
 type Marshalling_Error
     ## PRIVATE
