@@ -2,6 +2,7 @@
 
 // Clippy thinks that `Item` is unused in [`Slot`] definition, but it is not correct.
 // It also does not seem to be possible to disable this lint for the particular struct only.
+// See https://github.com/rust-lang/rust-clippy/issues/11014.
 
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::extra_unused_type_parameters)]

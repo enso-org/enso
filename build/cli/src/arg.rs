@@ -1,3 +1,6 @@
+// It can be removed after updating `clap` to the most recent version.
+// See https://github.com/clap-rs/clap/issues/4951.
+
 // === Non-Standard Linter Configuration ===
 #![allow(unused_qualifications)]
 
