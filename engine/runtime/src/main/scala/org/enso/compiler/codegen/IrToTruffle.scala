@@ -447,9 +447,15 @@ class IrToTruffle(
                   val builtinArgumentsCount =
                     m.getFunction.getSchema.getArgumentsCount
                   if (irFunctionArgumentsCount != builtinArgumentsCount) {
+                    val irFunctionArguments =
+                      fn.arguments.map(_.name.name).mkString(",")
+                    val builtinArguments =
+                      m.getFunction.getSchema.getArgumentInfos
+                        .map(_.getName)
+                        .mkString(",")
                     throw new CompilerError(
-                      s"Wrong number of arguments provided in the definition of builtin function ${cons.getName}.${methodDef.methodName.name}. ${fn.arguments
-                        .map(_.name.name)} vs. ${m.getFunction.getSchema.getArgumentInfos.map(_.getName).toSeq}"
+                      s"Wrong number of arguments provided in the definition of builtin function ${cons.getName}.${methodDef.methodName.name}. " +
+                      s"[$irFunctionArguments] vs [$builtinArguments]"
                     )
                   }
                   val bodyBuilder =
