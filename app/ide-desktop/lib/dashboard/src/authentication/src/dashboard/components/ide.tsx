@@ -95,6 +95,8 @@ function Ide(props: IdeProps) {
                                 project: project.packageName,
                             },
                         },
+                        // Here we actually need explicit undefined.
+                        // eslint-disable-next-line no-restricted-syntax
                         accessToken ?? undefined
                     )
                 }
