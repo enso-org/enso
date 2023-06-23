@@ -497,7 +497,7 @@ lazy val syntax = (project in file("lib/scala/syntax/specialization"))
     version := "0.1",
     logBuffered := false,
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest"     % scalatestVersion % Test,
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test
     ),
     (Compile / compile) := (Compile / compile)
       .dependsOn(RecompileParser.run(`syntax-definition`))
@@ -1368,10 +1368,10 @@ lazy val `runtime-parser` =
       frgaalJavaCompilerSetting,
       instrumentationSettings,
       libraryDependencies ++= Seq(
-        "junit"                   % "junit"           % junitVersion     % Test,
-        "com.novocode"            % "junit-interface" % junitIfVersion   % Test exclude ("junit", "junit-dep"),
-        "org.scalatest"          %% "scalatest"       % scalatestVersion % Test,
-      ),
+        "junit"          % "junit"           % junitVersion     % Test,
+        "com.novocode"   % "junit-interface" % junitIfVersion   % Test exclude ("junit", "junit-dep"),
+        "org.scalatest" %% "scalatest"       % scalatestVersion % Test
+      )
     )
     .dependsOn(syntax)
     .dependsOn(`syntax-rust-definition`)
