@@ -2,6 +2,9 @@
 import * as react from 'react'
 import toast from 'react-hot-toast'
 
+import ArrowUpIcon from 'enso-assets/arrow_up.svg'
+import PlayIcon from 'enso-assets/play.svg'
+
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as localBackend from '../localBackend'
@@ -347,7 +350,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                         doOpenManually()
                     }}
                 >
-                    {svg.PLAY_ICON}
+                    <img src={PlayIcon} />
                 </button>
             )
         case backendModule.ProjectState.openInProgress:
@@ -381,7 +384,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                             openIde()
                         }}
                     >
-                        {svg.ARROW_UP_ICON}
+                        <img src={ArrowUpIcon} />
                     </button>
                 </>
             )

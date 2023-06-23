@@ -8,7 +8,6 @@ use crate::component::node;
 use crate::new_node_position::free_place_finder::find_free_place;
 use crate::new_node_position::free_place_finder::OccupiedArea;
 use crate::selection::BoundingBox;
-use crate::EdgeId;
 use crate::GraphEditorModel;
 use crate::Node;
 use crate::NodeId;
@@ -69,8 +68,8 @@ pub fn new_node_position(
             let pos = on_ray(graph_editor, screen_center, Vector2(0.0, -1.0)).unwrap();
             magnet_alignment(graph_editor, pos, HorizontallyAndVertically)
         }
-        DroppingEdge { edge_id } =>
-            at_mouse_aligned_to_source_node(graph_editor, *edge_id, mouse_position),
+        DroppingEdge { endpoint } =>
+            at_mouse_aligned_to_source_node(graph_editor, endpoint.node_id, mouse_position),
         StartCreationFromPortEvent { endpoint } => under(graph_editor, endpoint.node_id),
     }
 }
@@ -150,11 +149,10 @@ pub fn at_mouse_aligned_to_close_nodes(
 /// To learn more about the align algorithm, see the docs of [`aligned_if_close_to_node`].
 pub fn at_mouse_aligned_to_source_node(
     graph_editor: &GraphEditorModel,
-    edge_id: EdgeId,
+    node_id: NodeId,
     mouse_position: Vector2,
 ) -> Vector2 {
-    let source_node_id = graph_editor.edge_source_node_id(edge_id);
-    let source_node = source_node_id.and_then(|id| graph_editor.nodes.get_cloned_ref(&id));
+    let source_node = graph_editor.nodes.get_cloned_ref(&node_id);
     aligned_if_close_to_node(graph_editor, mouse_position, source_node)
 }
 

@@ -11,6 +11,7 @@ use crate::view;
 use crate::Type;
 
 use enso_frp as frp;
+use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::shape::primitive::def::class::ShapeOps;
@@ -23,7 +24,6 @@ use ensogl::display::shape::Rect;
 use ensogl::display::shape::StyleWatch;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl::display::shape::Var;
-use ensogl::gui::component;
 use ensogl::gui::text;
 use ensogl::Animation;
 
@@ -408,13 +408,6 @@ impl PortShapeView {
         set_padding_left  (this,t:f32)   { this.padding_left.set(t) }
         set_padding_right (this,t:f32)   { this.padding_right.set(t) }
     }
-
-    fn events(&self) -> &component::PointerTarget_DEPRECATED {
-        match self {
-            Self::Single(t) => &t.events_deprecated,
-            Self::Multi(t) => &t.events_deprecated,
-        }
-    }
 }
 
 impl display::Object for PortShapeView {
@@ -513,7 +506,6 @@ impl Model {
     ) {
         let frp = Frp::new();
         let network = &frp.network;
-        let events = shape.events();
         let opacity = Animation::<f32>::new(network);
         let color = color::Animation::new(network);
         let type_label_opacity = Animation::<f32>::new(network);
@@ -527,14 +519,19 @@ impl Model {
 
             // === Mouse Event Handling ===
 
-            frp.source.on_hover <+ bool(&events.mouse_out,&events.mouse_over);
-            frp.source.on_press <+ events.mouse_down_primary;
+            let mouse_down = shape.on_event::<mouse::Down>();
+            let mouse_out = shape.on_event::<mouse::Out>();
+            let mouse_over = shape.on_event::<mouse::Over>();
+            mouse_down_primary <- mouse_down.filter(mouse::is_primary);
+
+            frp.source.on_hover <+ bool(&mouse_out,&mouse_over);
+            frp.source.on_press <+ mouse_down_primary.constant(());
 
 
             // === Opacity ===
 
-            opacity.target <+ events.mouse_over.constant(PORT_OPACITY_HOVERED);
-            opacity.target <+ events.mouse_out.constant(PORT_OPACITY_NOT_HOVERED);
+            opacity.target <+ mouse_over.constant(PORT_OPACITY_HOVERED);
+            opacity.target <+ mouse_out.constant(PORT_OPACITY_NOT_HOVERED);
             eval opacity.value ((t) shape.set_opacity(*t));
 
 

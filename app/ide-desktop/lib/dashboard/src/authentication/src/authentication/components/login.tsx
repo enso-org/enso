@@ -2,6 +2,11 @@
 import * as react from 'react'
 import * as router from 'react-router-dom'
 
+import ArrowRightIcon from 'enso-assets/arrow_right.svg'
+import AtIcon from 'enso-assets/at.svg'
+import CreateAccountIcon from 'enso-assets/create_account.svg'
+import LockIcon from 'enso-assets/lock.svg'
+
 import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
 
 import * as app from '../../components/app'
@@ -52,7 +57,7 @@ function Login() {
                     }}
                     className="relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200"
                 >
-                    <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
+                    <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
                     <span>Login with Google</span>
                 </button>
                 <button
@@ -87,8 +92,9 @@ function Login() {
                                 E-Mail Address:
                             </label>
                             <div className="relative">
-                                <SvgIcon svg={svg.AT} />
-
+                                <SvgIcon>
+                                    <svg.SvgMask src={AtIcon} />
+                                </SvgIcon>
                                 <Input
                                     required
                                     id="email"
@@ -108,8 +114,9 @@ function Login() {
                                 Password:
                             </label>
                             <div className="relative">
-                                <SvgIcon svg={svg.LOCK} />
-
+                                <SvgIcon>
+                                    <svg.SvgMask src={LockIcon} />
+                                </SvgIcon>
                                 <Input
                                     required={true}
                                     id="password"
@@ -143,7 +150,9 @@ function Login() {
                                 }
                             >
                                 <span className="mr-2 uppercase">Login</span>
-                                <span>{svg.RIGHT_ARROW}</span>
+                                <span>
+                                    <svg.SvgMask src={ArrowRightIcon} />
+                                </span>
                             </button>
                         </div>
                     </form>
@@ -156,7 +165,9 @@ function Login() {
                             'text-xs text-center'
                         }
                     >
-                        <span>{svg.CREATE_ACCOUNT}</span>
+                        <span>
+                            <svg.SvgMask src={CreateAccountIcon} />
+                        </span>
                         <span className="ml-2">You don&apos;t have an account?</span>
                     </router.Link>
                 </div>

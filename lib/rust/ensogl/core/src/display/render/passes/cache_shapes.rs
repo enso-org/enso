@@ -10,7 +10,6 @@ use crate::display::scene::Layer;
 use crate::display::scene::UpdateStatus;
 use crate::display::shape::glsl::codes::DisplayModes;
 use crate::display::world::with_context;
-use crate::display::Scene;
 use crate::gui::component::AnyShapeView;
 
 
@@ -35,7 +34,6 @@ use crate::gui::component::AnyShapeView;
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
 pub struct CacheShapesPass {
-    scene: Scene,
     framebuffer: Option<pass::Framebuffer>,
     texture: Option<crate::system::gpu::data::uniform::AnyTextureUniform>,
     #[derivative(Debug = "ignore")]
@@ -48,15 +46,20 @@ pub struct CacheShapesPass {
     display_object_update_handler: Option<Rc<enso_callback::Handle>>,
 }
 
+impl Default for CacheShapesPass {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CacheShapesPass {
     /// Constructor.
-    pub fn new(scene: &Scene) -> Self {
+    pub fn new() -> Self {
         Self {
             framebuffer: default(),
             texture: default(),
             shapes_to_render: default(),
             layer: Layer::new("Cached Shapes"),
-            scene: scene.clone_ref(),
             texture_size_device: default(),
             camera_ready: default(),
             display_object_update_handler: default(),
@@ -69,6 +72,7 @@ impl CacheShapesPass {
 
 impl pass::Definition for CacheShapesPass {
     fn initialize(&mut self, instance: &Instance) {
+        let scene = scene();
         display::world::CACHED_SHAPES_DEFINITIONS.with_borrow(|shapes| {
             self.shapes_to_render =
                 shapes.iter().map(|def| (def.for_texture_constructor)().into()).collect()
@@ -78,7 +82,7 @@ impl pass::Definition for CacheShapesPass {
             texture_size.map(|i| ((i as f32) * instance.pixel_ratio).ceil() as i32);
 
         for shape in &self.shapes_to_render {
-            self.scene.add_child(&**shape);
+            scene.add_child(&**shape);
             self.layer.add(&**shape);
         }
         self.layer.camera().set_screen(texture_size.x as f32, texture_size.y as f32);
@@ -86,19 +90,20 @@ impl pass::Definition for CacheShapesPass {
         // 1. the [`self.layer`] is not in the Layer hierarchy, so it's not updated during routine
         //    layers update.
         // 2. The pass can be re-initialized after the display object hierarchy update, but before
-        //    rendering, so the herarchy could be outdated during rendering.
-        self.layer.camera().update(&self.scene);
-        self.scene.display_object.update(&self.scene);
+        //    rendering, so the hierarchy could be outdated during rendering.
+        self.layer.camera().update(&scene);
+        scene.display_object.update(&scene);
         self.layer.update();
         // The asynchronous update of the scene's display object initiated above will eventually
         // set our layer's camera's transformation. Handle the camera update when all
         // previously-initiated FRP events finish being processed.
         let handle = frp::microtasks::next_microtask({
             let camera = self.layer.camera();
-            let scene = self.scene.clone_ref();
             let camera_ready = Rc::clone(&self.camera_ready);
             move || {
-                camera.update(&scene);
+                // Be careful to not capture variable `scene` here! The scene keeps all passes,
+                // so we would create an Rc loop.
+                camera.update(&display::world::scene());
                 camera_ready.set(true);
             }
         });

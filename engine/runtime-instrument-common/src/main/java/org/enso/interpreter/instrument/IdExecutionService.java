@@ -22,7 +22,7 @@ import org.enso.logger.masking.MaskedString;
 import org.enso.pkg.QualifiedName;
 
 public interface IdExecutionService {
-  public static final String INSTRUMENT_ID = "id-value-extractor";
+  String INSTRUMENT_ID = "id-value-extractor";
 
   /**
    * Attach a new event node factory to observe identified nodes within given function.
@@ -238,7 +238,7 @@ public interface IdExecutionService {
           AtomConstructor atomConstructor = qualifiedAccessor.getAtomConstructor();
           moduleName = atomConstructor.getDefinitionScope().getModule().getName();
           typeName = atomConstructor.getType().getQualifiedName();
-          functionName = atomConstructor.getDisplayName();
+          functionName = atomConstructor.getName();
         }
         case EnsoRootNode ensoRootNode -> {
           moduleName = ensoRootNode.getModuleScope().getModule().getName();
