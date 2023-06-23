@@ -107,6 +107,11 @@ spec =
 
             42.if_not_error (Error.throw (Illegal_State.Error "foo")) . should_fail_with Illegal_State
 
+        Test.specify "should allow calling catch on types" <|
+            Vector.catch . should_equal Vector
+            Any.catch . should_equal Any
+            Boolean.catch . should_equal Boolean
+
     Test.group "Panics" <|
         Test.specify "should be able to be caught" <|
             result = Panic.catch Any (Panic.throw 42) caught_panic->

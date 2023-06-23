@@ -840,6 +840,7 @@
 - [Execute some runtime commands synchronously to avoid race conditions][6998]
 - [Scala 2.13.11 update][7010]
 - [Improve parallel execution of commands and jobs in Language Server][7042]
+- [Add special handling for static method calls on Any][7033]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -959,6 +960,7 @@
 [6998]: https://github.com/enso-org/enso/pull/6998
 [7010]: https://github.com/enso-org/enso/pull/7010
 [7042]: https://github.com/enso-org/enso/pull/7042
+[7033]: https://github.com/enso-org/enso/pull/7033
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

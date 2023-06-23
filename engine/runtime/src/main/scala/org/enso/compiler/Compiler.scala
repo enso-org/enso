@@ -1094,10 +1094,14 @@ class Compiler(
             }
           }
         case None =>
-          // We dont have location information, so we just print the message
+          // There is no source section associated with the diagnostics
           var str = fansi.Str()
+          val fileLocation = diagnostic.location match {
+            case Some(_) => fileLocationFromSection(diagnostic.location, source)
+            case None    => source.getPath
+          }
           str ++= fansi
-            .Str(fileLocationFromSection(diagnostic.location, source))
+            .Str(fileLocation)
             .overlay(fansi.Bold.On)
           str ++= ": "
           str ++= fansi.Str(subject).overlay(textAttrs)
